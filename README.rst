@@ -3,21 +3,6 @@ MARIO
 *******
 MARIO: Multifunctional Analysis of Regions through Input-Output
 
-.. image:: https://img.shields.io/pypi/v/pymrio.svg
-    :target: https://pypi.python.org/pypi/pymrio/
-.. image:: https://anaconda.org/conda-forge/pymrio/badges/version.svg   
-    :target: https://anaconda.org/conda-forge/pymrio
-.. image:: https://github.com/konstantinstadler/pymrio/workflows/build/badge.svg
-    :target: https://github.com/konstantinstadler/pymrio/actions
-.. image:: https://coveralls.io/repos/github/konstantinstadler/pymrio/badge.svg?branch=master
-    :target: https://coveralls.io/github/konstantinstadler/pymrio
-.. image:: https://readthedocs.org/projects/pymrio/badge/?version=latest
-    :target: http://pymrio.readthedocs.io/en/latest/?badge=latest
-    :alt: Documentation Status
-.. image:: https://img.shields.io/badge/License-GPL%20v3-blue.svg
-    :target: https://www.gnu.org/licenses/gpl-3.0
-.. image:: https://zenodo.org/badge/21688312.svg
-    :target: https://zenodo.org/badge/latestdoi/21688312
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
     
