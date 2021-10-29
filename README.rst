@@ -8,9 +8,9 @@
     :alt: Documentation Status  
     
 .. image:: https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png
-    :target: https://creativecommons.org/licenses/by-nc-sa/4.0/   
+    :target: https://creativecommons.org/licenses/by-nc-sa/4.0/ 
     
-.. image:: /_static/images/polimi.jpg
+.. image:: https://github.com/SESAM-Polimi/MARIO/blob/main/doc/source/_static/images/polimi.jpg?raw=true
    :width: 200
    :align: right
 
@@ -199,5 +199,5 @@ License
     :target: https://creativecommons.org/licenses/by-nc-sa/4.0/
 
 
-This work is licensed under a `Creative Commons Attribution-ShareAlike 4.0 International License <http://creativecommons.org/licenses/by-sa/4.0/>`_
+This work is licensed under a `Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0) <https://creativecommons.org/licenses/by-nc-sa/4.0/>`_
 
