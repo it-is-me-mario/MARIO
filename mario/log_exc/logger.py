@@ -44,17 +44,17 @@ def log_time(logger, comment, level="info"):
 
 
 def set_log_verbosity(verbosity="info", capture_warnings=True):
-    
-    '''Sets the formatted logging level 
-    
+
+    """Sets the formatted logging level
+
     Parameters
     ----------
     verbosity : str
         defines the level of logging such as [debug,info,warning,critical]
-        
+
     capture_warnings : boolean
         if True, will capture the warnings even if the verbosity level is lower than warning
-    '''
+    """
 
     backend_logger = logging.getLogger("MARIO.core.AttrDict")
     backend_logger.setLevel(verbosity.upper())

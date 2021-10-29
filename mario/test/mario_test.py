@@ -7,11 +7,16 @@ from mario.tools.parsersclass import parse_from_excel
 import os
 
 
-path = os.path.abspath(os.path.join(os.path.dirname(__file__), ))
+path = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+    )
+)
+
 
 def load_test(table):
-    '''Loads an example of mario.Database
-    
+    """Loads an example of mario.Database
+
     Parameters
     -----------
     table: str
@@ -20,11 +25,8 @@ def load_test(table):
     Returns
     -------
     mario.Database
-    '''
+    """
 
-    
     return parse_from_excel(
-        path= f'{path}\\{table}.xlsx', 
-        table= table,
-        name= f'{table} test'
-        )
+        path=f"{path}\\{table}.xlsx", table=table, name=f"{table} test"
+    )

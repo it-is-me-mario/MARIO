@@ -3,7 +3,7 @@
 from setuptools import find_packages, setup
 
 setup(
-    name="mario",
+    name="mario_py",
     description=(
         "A python package for automating input-output (IO) calculations, models"
         ",visualization and scenario analysis"
@@ -13,7 +13,7 @@ setup(
     author="Mohammad Amin Tahavori, Lorenzo Rinaldi, Nicolo Golinucci",
     author_email="mohammadamin.tahavori@polimi.it",
     version='0.1.0',
-    packages=find_packages(),
+    packages=['mario'],
     python_requires=">.3.7.0",
     package_data={"": ["*.txt", "*.dat", "*.doc", "*.rst","*.xlsx"]},
     install_requires=[

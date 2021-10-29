@@ -283,7 +283,7 @@ class CoreModel:
         """Updates the matrices for a specific scenario.
 
         .. note::
-            
+
             using update scenarios, will update only the matrices passed. In case,
             that the update, impacts other matrices, this should be done manually
             using update_scenarios and updating other matrices or reseting the datbases
@@ -415,7 +415,7 @@ class CoreModel:
         log_time(logger, "Databases: reset to coefficients.")
         self.matrices[scenario] = matrices
 
-    def get_index(self, index, level= "main"):
+    def get_index(self, index, level="main"):
 
         """Returns a list or a DataFrame of different levels of indeces in the database.
 
@@ -578,9 +578,9 @@ class CoreModel:
 
         Parameters
         ------------
-        method : str 
+        method : str
             represents the method to check the balance:
-                
+
                 #. 'flow'
                 #. 'coefficient'
                 #. 'price'
@@ -755,7 +755,7 @@ class CoreModel:
         """Return the value of the GDP based scenario.
 
         .. note::
-            
+
             GDP based on the total V. In case that some of the items
             should be ignored for the calulation of the GDP (such as the imports in
             single region models), the user can use exclude argument to ignore some
@@ -826,37 +826,34 @@ class CoreModel:
 
         return GDP
 
+    def search(self, item, search):
+        """Searches for specific keywords in a given item
 
-        
-    def search(self,item,search):
-        '''Searches for specific keywords in a given item
-        
         Parameters
         ----------
         item : str
             specific level of information like Region, Satellite account, Secotr, ...
-            
+
         search : str
             a keyword to search
-            
+
         Returns
         -------
         list :
             a list of items found in the search
-        '''
-        
+        """
+
         if item not in self.sets:
-            raise WrongInput(f'Acceptable items are {self.sets}')
-            
-        items = self.get_index(item)    
-        
+            raise WrongInput(f"Acceptable items are {self.sets}")
+
+        items = self.get_index(item)
+
         r = re.compile(f".*{search}")
-        
-        found = list(filter(r.match, items)) 
-        
+
+        found = list(filter(r.match, items))
+
         return found
-    
-    
+
     @property
     def scenarios(self):
         """Returns all the scenarios existed in the model

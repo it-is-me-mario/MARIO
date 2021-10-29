@@ -18,7 +18,6 @@ from mario.tools.constants import (
 )
 
 
-
 def _sh_excel(instance, num_shock, directory, clusters):
 
     # Defining the headers
@@ -420,12 +419,17 @@ def database_excel(instance, flows, coefficients, directory, units, scenario):
         units.write("C1", "unit", header_format)
 
         counter = 2
-        
-        if instance.table_type == 'SUT':
-            keys = [_MASTER_INDEX['a'],_MASTER_INDEX['c'],_MASTER_INDEX['f'],_MASTER_INDEX['k']]
+
+        if instance.table_type == "SUT":
+            keys = [
+                _MASTER_INDEX["a"],
+                _MASTER_INDEX["c"],
+                _MASTER_INDEX["f"],
+                _MASTER_INDEX["k"],
+            ]
         else:
-            keys = [_MASTER_INDEX['s'],_MASTER_INDEX['f'],_MASTER_INDEX['k']]
-            
+            keys = [_MASTER_INDEX["s"], _MASTER_INDEX["f"], _MASTER_INDEX["k"]]
+
         for key in keys:
             item = data[key]
             for row in range(item.shape[0]):
@@ -496,13 +500,17 @@ def database_txt(instance, flows, coefficients, path, units, scenario, _format):
         units = copy.deepcopy(instance.units)
         _units = pd.DataFrame()
         _index = []
-        
-        if instance.table_type == 'SUT':
-            keys = [_MASTER_INDEX['a'],_MASTER_INDEX['c'],_MASTER_INDEX['f'],_MASTER_INDEX['k']]
+
+        if instance.table_type == "SUT":
+            keys = [
+                _MASTER_INDEX["a"],
+                _MASTER_INDEX["c"],
+                _MASTER_INDEX["f"],
+                _MASTER_INDEX["k"],
+            ]
         else:
-            keys = [_MASTER_INDEX['s'],_MASTER_INDEX['f'],_MASTER_INDEX['k']]
-            
-            
+            keys = [_MASTER_INDEX["s"], _MASTER_INDEX["f"], _MASTER_INDEX["k"]]
+
         for key in keys:
             value = units[key]
             _index += [key] * value.shape[0]

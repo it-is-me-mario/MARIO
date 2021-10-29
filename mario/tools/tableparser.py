@@ -987,7 +987,7 @@ def eurostat_sut(
         use_years = use.loc["TIME", 1].to_list()
     except:
         use_years = [use.loc["TIME", 1]]
-                
+
     if supply_years == use_years:
         years = supply_years
     else:
@@ -1009,15 +1009,13 @@ def eurostat_sut(
 
     if len(set(supply_regions)) > 1:
         raise WrongExcelFormat(
-            "The supply tables contains accounts of multiple regions")
+            "The supply tables contains accounts of multiple regions"
+        )
     if len(set(use_regions)) > 1:
         raise WrongExcelFormat("The use tables contains accounts of multiple regions")
 
     "Warning on presence of selected region"
-    if (
-        region not in supply_regions
-        or region.capitalize() not in supply_regions
-    ):
+    if region not in supply_regions or region.capitalize() not in supply_regions:
         raise WrongInput("Input region not present in the tables")
 
     "Warning on region correspondance"

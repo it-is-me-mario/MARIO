@@ -51,7 +51,7 @@ def calc_Z(
 
     .. math::
         Z = z.\hat{X}
-        
+
     Parameters
     ----------
     z : pd.DataFrame
@@ -77,7 +77,7 @@ def calc_w(z):
 
     .. math::
         w = (I - z)^{-1}
-        
+
     Parameters
     ----------
     z : pd.DataFrame
@@ -98,7 +98,7 @@ def calc_g(b):
 
     .. math::
         g = (I - b)^{-1}
-        
+
     Parameters
     ----------
     b : pd.DataFrame
@@ -122,7 +122,7 @@ def calc_X_from_w(
 
     .. math::
         x = w.Y
-        
+
     Parameters
     ----------
     w : pd.DataFrame
@@ -141,14 +141,12 @@ def calc_X_from_w(
     return pd.DataFrame(w.dot(Y).values, index=Y.index, columns=["production"])
 
 
-def calc_X_from_z(z,
-                  Y
-                  ):
+def calc_X_from_z(z, Y):
     """Calculates Production vector from Intersectoral transaction coefficients matrix
 
     .. math::
         x = (I - z)^{-1} Y
-        
+
     Parameters
     ----------
     z : pd.DataFrame
@@ -170,14 +168,12 @@ def calc_X_from_z(z,
     return pd.DataFrame(w.dot(Y).values, index=Y.index, columns=["production"])
 
 
-def calc_E(e,
-           X
-           ):
+def calc_E(e, X):
     """Calculates satellite transaction flows matrix
 
     .. math::
         E = e.\hat{X}
-        
+
     Parameters
     ----------
     e : pd.DataFrame
@@ -193,14 +189,12 @@ def calc_E(e,
     return calc_Z(e, X)
 
 
-def calc_V(v,
-           X
-           ):
+def calc_V(v, X):
     """Calculates Factor of production transaction flows matrix
 
     .. math::
         V = v.\hat{X}
-        
+
     Parameters
     ----------
     v : pd.DataFrame
@@ -216,9 +210,7 @@ def calc_V(v,
     return calc_Z(v, X)
 
 
-def calc_e(E,
-           X
-           ):
+def calc_e(E, X):
     """Calculates Satellite transaction coefficients matrix
 
     .. math::
@@ -248,7 +240,7 @@ def calc_p(
 
     .. math::
         p = v.w
-        
+
     Parameters
     ----------
     v : pd.DataFrame
@@ -276,7 +268,7 @@ def calc_v(
 
     .. math::
         v = V.\hat{X}^{-1}
-        
+
     Parameters
     ----------
     V : pd.DataFrame
@@ -292,14 +284,12 @@ def calc_v(
     return calc_z(V, X)
 
 
-def calc_m(v,
-           w
-           ):
+def calc_m(v, w):
     """Calculates Multipliers coefficients matrix
 
     .. math::
         m = v.w
-        
+
     Parameters
     ----------
     v : pd.DataFrame
@@ -315,15 +305,13 @@ def calc_m(v,
     return calc_f(v, w)
 
 
-def calc_M(m,
-           Y
-           ):
+def calc_M(m, Y):
     """Calculates Economic impact matrix
 
 
     .. math::
         M = m.\hat{Y}
-        
+
     Parameters
     ----------
     m : pd.DataFrame
@@ -340,14 +328,12 @@ def calc_M(m,
     return calc_F(m, Y)
 
 
-def calc_z(Z,
-           X
-           ):
+def calc_z(Z, X):
     """Calculates Intersectoral transaction coefficients matrix
 
     .. math::
         z = Z.\hat{X}^{-1}
-        
+
     Parameters
     ----------
     Z : pd.DataFrame
@@ -366,14 +352,12 @@ def calc_z(Z,
     return pd.DataFrame(Z.values @ X_inv, index=Z.index, columns=Z.columns)
 
 
-def calc_b(X,
-           Z
-           ):
+def calc_b(X, Z):
     """Calculates Intersectoral transaction direct-output coefficients matrix (for Ghosh model)
 
     .. math::
         \hat{X}^{-1}.Z
-        
+
     Parameters
     ----------
     X : pd.DataFrame
@@ -392,14 +376,12 @@ def calc_b(X,
     return pd.DataFrame(X_inv @ Z.values, index=Z.index, columns=Z.columns)
 
 
-def calc_F(f,
-           Y
-           ):
+def calc_F(f, Y):
     """Calculates Footprint flows matrix
-    
+
     .. math::
         F = f.\hat{Y}
-        
+
     Parameters
     ----------
     f : pd.DataFrame
@@ -416,14 +398,12 @@ def calc_F(f,
     return calc_Z(f, Y)
 
 
-def calc_f(e,
-           w
-           ):
+def calc_f(e, w):
     """Calculates Footprint coefficients matrix
 
     .. math::
         f = e.w
-        
+
     Parameters
     ----------
     e : pd.DataFrame

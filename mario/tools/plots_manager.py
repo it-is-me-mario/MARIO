@@ -330,20 +330,17 @@ class Color(list):
     def random_color(self):
 
         return "#" + "".join([random.choice("0123456789ABCDEF") for j in range(6)])
-    
-    def has_enough_colors(self,check):
-        ''' To check if enough colors exist
-        
+
+    def has_enough_colors(self, check):
+        """To check if enough colors exist
+
         Parameters
         ----------
         check : any object that hsa len
-        
-        '''
+
+        """
         try:
-            while len(self)<len(check):
+            while len(self) < len(check):
                 self.random_color()
         except:
             pass
-            
-        
-        

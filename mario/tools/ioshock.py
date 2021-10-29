@@ -70,7 +70,7 @@ def Y_shock(instance, path, boolean, clusters, to_baseline):
 
         if info.isnull().values.any():
             raise WrongInput("nans(empty cells) found in the shock file for 'Y'.")
-            
+
         for shock in range(len(info)):
             if nan_check(info, shock, _type[shock]):
                 log_time(
@@ -132,11 +132,12 @@ def Y_shock(instance, path, boolean, clusters, to_baseline):
                 Y.loc[
                     (row_region_, row_level_, row_sector_),
                     (column_region_, _MASTER_INDEX["n"], demand_category_),
-                ] = Y.loc[
-                    (row_region_, row_level_, row_sector_),
-                    (column_region_, _MASTER_INDEX["n"], demand_category_),
-                ] * (
-                    1 + value[shock]
+                ] = (
+                    Y.loc[
+                        (row_region_, row_level_, row_sector_),
+                        (column_region_, _MASTER_INDEX["n"], demand_category_),
+                    ]
+                    * (1 + value[shock])
                 )
 
             elif _type[shock] == "Update":
@@ -144,7 +145,7 @@ def Y_shock(instance, path, boolean, clusters, to_baseline):
                     (row_region_, row_level_, row_sector_),
                     (column_region_, _MASTER_INDEX["n"], demand_category_),
                 ] = value[shock]
-                
+
                 print(value[shock])
             else:
                 raise WrongInput(
@@ -190,8 +191,10 @@ def V_shock(instance, path, matrix, boolean, clusters, to_baseline):
             info = path[matrix]
 
         if info.isnull().values.any():
-            raise WrongInput(f"nans(empty cells) found in the shock file for '{matrix}'.")
-            
+            raise WrongInput(
+                f"nans(empty cells) found in the shock file for '{matrix}'."
+            )
+
         row_sector = list(info[_SHOCKS["r_sec"]].values)
         column_region = list(info[_SHOCKS["c_reg"]].values)
         column_level = list(info[_SHOCKS["c_lev"]].values)
@@ -297,7 +300,7 @@ def Z_shock(instance, path, boolean, clusters, to_baseline):
             info = pd.read_excel(path, "z", header=[0])
         else:
             info = path["Z"]
-            
+
         row_region = list(info[_SHOCKS["r_reg"]].values)
         row_level = list(info[_SHOCKS["r_lev"]].values)
         row_sector = list(info[_SHOCKS["r_sec"]].values)
@@ -309,7 +312,7 @@ def Z_shock(instance, path, boolean, clusters, to_baseline):
 
         if info.isnull().values.any():
             raise WrongInput("nans(empty cells) found in the shock file for 'Z'.")
-            
+
         for shock in range(len(info)):
             if nan_check(info, shock, _type[shock]):
                 log_time(
@@ -366,11 +369,12 @@ def Z_shock(instance, path, boolean, clusters, to_baseline):
                 z.loc[
                     (row_region_, row_level_, row_sector_),
                     (column_region_, column_level_, column_sector_),
-                ] = z.loc[
-                    (row_region_, row_level_, row_sector_),
-                    (column_region_, column_level_, column_sector_),
-                ] * (
-                    1 + value[shock]
+                ] = (
+                    z.loc[
+                        (row_region_, row_level_, row_sector_),
+                        (column_region_, column_level_, column_sector_),
+                    ]
+                    * (1 + value[shock])
                 )
 
             elif _type[shock] == "Absolute":

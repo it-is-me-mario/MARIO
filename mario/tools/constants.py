@@ -273,59 +273,184 @@ _ALL_MATRICES = {
 
 
 _INDECES = {
-    "IOT": {"Z": {"indices": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['s'], 'Item'], 
-                  "columns": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['s'], 'Item']},
-            "z": {"indices": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['s'], 'Item'],
-                  "columns": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['s'], 'Item']},
-            "Y": {"indices": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['s'], 'Item'],
-                  "columns": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['n']]},
-            "X": {"indices": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['s'], 'Item'],
-                  "columns": ['production']},
-            "V": {"indices": [_MASTER_INDEX['f']],
-                  "columns": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['s'], 'Item']},
-            "v": {"indices": [_MASTER_INDEX['f']],
-                  "columns": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['s'], 'Item']},
-            "E": {"indices": [_MASTER_INDEX['k']],
-                  "columns": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['s'], 'Item']},
-            "e": {"indices": [_MASTER_INDEX['k']],
-                  "columns": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['s'], 'Item']},
-            "EY":{"indices": [_MASTER_INDEX['k']],
-                  "columns": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['n']]},
-            "F": {"indices": [_MASTER_INDEX['k']],
-                  "columns": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['s'], 'Item']},
-            "M": {"indices": [_MASTER_INDEX['f']],
-                  "columns": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['s'], 'Item']}
-            },
-    "SUT": {"Z": {"indices": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['a'],_MASTER_INDEX['c'], 'Item'],
-                  "columns": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['a'],_MASTER_INDEX['c'], 'Item']},
-            "z": {"indices": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['a'],_MASTER_INDEX['c'], 'Item'],
-                  "columns": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['a'],_MASTER_INDEX['c'], 'Item']},
-            "U": {"indices": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['c'], 'Item'],
-                  "columns": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['a'], 'Item']},
-            "u": {"indices": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['c'], 'Item'],
-                  "columns": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['a'], 'Item']},
-            "S": {"indices": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['a'], 'Item'],
-                  "columns": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['c'], 'Item']},
-            "s": {"indices": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['a'], 'Item'],
-                  "columns": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['c'], 'Item']},
-            "Y": {"indices": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['a'],_MASTER_INDEX['c'], 'Item'],
-                  "columns": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['n']]},
-            "X": {"indices": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['a'],_MASTER_INDEX['c'], 'Item'],
-                  "columns": ['production']},
-            "V": {"indices": [_MASTER_INDEX['f']],
-                  "columns": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['a'],_MASTER_INDEX['c'], 'Item']},
-            "v": {"indices": [_MASTER_INDEX['f']],
-                  "columns": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['a'],_MASTER_INDEX['c'], 'Item']},
-            "E": {"indices": [_MASTER_INDEX['k']],
-                  "columns": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['a'],_MASTER_INDEX['c'], 'Item']},
-            "e": {"indices": [_MASTER_INDEX['k']],
-                  "columns": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['a'],_MASTER_INDEX['c'], 'Item']},
-            "EY":{"indices": [_MASTER_INDEX['k']],
-                  "columns": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['n']]},
-            "F": {"indices": [_MASTER_INDEX['k']],
-                  "columns": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['a'],_MASTER_INDEX['c'], 'Item']},
-            "M": {"indices": [_MASTER_INDEX['f']],
-                  "columns": [_MASTER_INDEX['r'], "Level", _MASTER_INDEX['a'],_MASTER_INDEX['c'], 'Item']}
-            },
-    
+    "IOT": {
+        "Z": {
+            "indices": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["s"], "Item"],
+            "columns": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["s"], "Item"],
+        },
+        "z": {
+            "indices": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["s"], "Item"],
+            "columns": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["s"], "Item"],
+        },
+        "Y": {
+            "indices": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["s"], "Item"],
+            "columns": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["n"]],
+        },
+        "X": {
+            "indices": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["s"], "Item"],
+            "columns": ["production"],
+        },
+        "V": {
+            "indices": [_MASTER_INDEX["f"]],
+            "columns": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["s"], "Item"],
+        },
+        "v": {
+            "indices": [_MASTER_INDEX["f"]],
+            "columns": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["s"], "Item"],
+        },
+        "E": {
+            "indices": [_MASTER_INDEX["k"]],
+            "columns": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["s"], "Item"],
+        },
+        "e": {
+            "indices": [_MASTER_INDEX["k"]],
+            "columns": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["s"], "Item"],
+        },
+        "EY": {
+            "indices": [_MASTER_INDEX["k"]],
+            "columns": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["n"]],
+        },
+        "F": {
+            "indices": [_MASTER_INDEX["k"]],
+            "columns": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["s"], "Item"],
+        },
+        "M": {
+            "indices": [_MASTER_INDEX["f"]],
+            "columns": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["s"], "Item"],
+        },
+    },
+    "SUT": {
+        "Z": {
+            "indices": [
+                _MASTER_INDEX["r"],
+                "Level",
+                _MASTER_INDEX["a"],
+                _MASTER_INDEX["c"],
+                "Item",
+            ],
+            "columns": [
+                _MASTER_INDEX["r"],
+                "Level",
+                _MASTER_INDEX["a"],
+                _MASTER_INDEX["c"],
+                "Item",
+            ],
+        },
+        "z": {
+            "indices": [
+                _MASTER_INDEX["r"],
+                "Level",
+                _MASTER_INDEX["a"],
+                _MASTER_INDEX["c"],
+                "Item",
+            ],
+            "columns": [
+                _MASTER_INDEX["r"],
+                "Level",
+                _MASTER_INDEX["a"],
+                _MASTER_INDEX["c"],
+                "Item",
+            ],
+        },
+        "U": {
+            "indices": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["c"], "Item"],
+            "columns": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["a"], "Item"],
+        },
+        "u": {
+            "indices": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["c"], "Item"],
+            "columns": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["a"], "Item"],
+        },
+        "S": {
+            "indices": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["a"], "Item"],
+            "columns": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["c"], "Item"],
+        },
+        "s": {
+            "indices": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["a"], "Item"],
+            "columns": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["c"], "Item"],
+        },
+        "Y": {
+            "indices": [
+                _MASTER_INDEX["r"],
+                "Level",
+                _MASTER_INDEX["a"],
+                _MASTER_INDEX["c"],
+                "Item",
+            ],
+            "columns": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["n"]],
+        },
+        "X": {
+            "indices": [
+                _MASTER_INDEX["r"],
+                "Level",
+                _MASTER_INDEX["a"],
+                _MASTER_INDEX["c"],
+                "Item",
+            ],
+            "columns": ["production"],
+        },
+        "V": {
+            "indices": [_MASTER_INDEX["f"]],
+            "columns": [
+                _MASTER_INDEX["r"],
+                "Level",
+                _MASTER_INDEX["a"],
+                _MASTER_INDEX["c"],
+                "Item",
+            ],
+        },
+        "v": {
+            "indices": [_MASTER_INDEX["f"]],
+            "columns": [
+                _MASTER_INDEX["r"],
+                "Level",
+                _MASTER_INDEX["a"],
+                _MASTER_INDEX["c"],
+                "Item",
+            ],
+        },
+        "E": {
+            "indices": [_MASTER_INDEX["k"]],
+            "columns": [
+                _MASTER_INDEX["r"],
+                "Level",
+                _MASTER_INDEX["a"],
+                _MASTER_INDEX["c"],
+                "Item",
+            ],
+        },
+        "e": {
+            "indices": [_MASTER_INDEX["k"]],
+            "columns": [
+                _MASTER_INDEX["r"],
+                "Level",
+                _MASTER_INDEX["a"],
+                _MASTER_INDEX["c"],
+                "Item",
+            ],
+        },
+        "EY": {
+            "indices": [_MASTER_INDEX["k"]],
+            "columns": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["n"]],
+        },
+        "F": {
+            "indices": [_MASTER_INDEX["k"]],
+            "columns": [
+                _MASTER_INDEX["r"],
+                "Level",
+                _MASTER_INDEX["a"],
+                _MASTER_INDEX["c"],
+                "Item",
+            ],
+        },
+        "M": {
+            "indices": [_MASTER_INDEX["f"]],
+            "columns": [
+                _MASTER_INDEX["r"],
+                "Level",
+                _MASTER_INDEX["a"],
+                _MASTER_INDEX["c"],
+                "Item",
+            ],
+        },
+    },
 }

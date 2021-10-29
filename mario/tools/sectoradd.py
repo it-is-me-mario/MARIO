@@ -42,22 +42,29 @@ def adding_new_sector(instance, data, new_sectors, item, regions):
 
     matrix_mapper = {
         "it": {
-            "columns": pd.MultiIndex.from_product([[regions[0]],[counter_item],[instance.get_index(counter_item)[0]]]),
+            "columns": pd.MultiIndex.from_product(
+                [[regions[0]], [counter_item], [instance.get_index(counter_item)[0]]]
+            ),
             "index": pd.MultiIndex.from_product([regions, [item], new_sectors]),
         },
         "of": {
-            "columns": pd.MultiIndex.from_product([[regions[0]],[counter_item],[instance.get_index(counter_item)[0]]]),
+            "columns": pd.MultiIndex.from_product(
+                [[regions[0]], [counter_item], [instance.get_index(counter_item)[0]]]
+            ),
             "index": pd.MultiIndex.from_product([regions, [item], new_sectors]),
         },
         "fd": {
-            "columns": pd.MultiIndex.from_product([[regions[0]],
-                                                   [_MASTER_INDEX['n']],
-                                                   [instance.get_index(_MASTER_INDEX['n'])[0]]]),
-            
+            "columns": pd.MultiIndex.from_product(
+                [
+                    [regions[0]],
+                    [_MASTER_INDEX["n"]],
+                    [instance.get_index(_MASTER_INDEX["n"])[0]],
+                ]
+            ),
             "index": pd.MultiIndex.from_product([regions, [item], new_sectors]),
         },
     }
-    
+
     dataframes = {}
     if isinstance(data, str):
 
@@ -72,10 +79,12 @@ def adding_new_sector(instance, data, new_sectors, item, regions):
 
             except IndexError as e:
 
-                if e.args[0] == "list index out of range" and key in ["fd", "it","of"]:
+                if e.args[0] == "list index out of range" and key in ["fd", "it", "of"]:
 
                     df = pd.DataFrame(
-                        0, index=matrix_mapper[key]["index"], columns=matrix_mapper[key]["columns"]
+                        0,
+                        index=matrix_mapper[key]["index"],
+                        columns=matrix_mapper[key]["columns"],
                     )
                     dataframes[key] = df
                 else:

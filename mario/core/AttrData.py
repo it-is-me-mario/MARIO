@@ -200,9 +200,7 @@ class Database(CoreModel):
         # A counter for saving the results in a dictionary
         self.__counter = 1  # Shock Counter
 
-
-    def build_new_instance(self, 
-                           scenario):
+    def build_new_instance(self, scenario):
 
         """This function returns a new instance of Database which the baseline
         scenario can be any given scenario. This is specifically useful in case
@@ -211,7 +209,7 @@ class Database(CoreModel):
 
         Parameters
         ----------
-        scenario : str 
+        scenario : str
             representing the scenario name
 
         Returns
@@ -248,22 +246,22 @@ class Database(CoreModel):
     def sut_to_iot(
         self,
         method,
-        inplace= True,
+        inplace=True,
     ):
 
         """The function will transform a SUT table to a IOT table
 
 
         .. note::
-            
+
             Calling this function will delete all the existing scenarios in the database
             and create the new baseline scenario.
 
         Parameters
         ----------
-        method : str 
+        method : str
             Defines the method for transformation of the database:
-                
+
                 A. Product-by-product input-output table based on product technology assumption (possible negative values)
                 B. Product-by-product input-output table based on industry technology assumption
                 C. Industry-by-industry input-output table based on fixed industry sales structure assumption (possible negative values)
@@ -277,7 +275,7 @@ class Database(CoreModel):
         -------
         None :
             if inplace True
-        
+
         mario.Database :
             if inplace False
         """
@@ -325,8 +323,8 @@ class Database(CoreModel):
 
     def get_aggregation_excel(
         self,
-        path= None,
-        levels= "all",
+        path=None,
+        levels="all",
     ):
 
         """Generates the Excel file for aggregation of the database
@@ -370,10 +368,10 @@ class Database(CoreModel):
                 data.to_excel(writer, level)
 
     def read_aggregated_index(
-        self, 
+        self,
         io,
-        levels = "all",
-        ignore_nan = False,   
+        levels="all",
+        ignore_nan=False,
     ):
 
         """Reads information over the aggregation of levels without aggregating the data
@@ -474,12 +472,12 @@ class Database(CoreModel):
     def aggregate(
         self,
         io,
-        drop= ["unused"],
+        drop=["unused"],
         levels="all",
-        backup= True,
-        calc_all = True,
-        ignore_nan = False,
-        inplace= True,
+        backup=True,
+        calc_all=True,
+        ignore_nan=False,
+        inplace=True,
     ):
 
         """This function is in charge of reading data regarding the aggregation
@@ -488,14 +486,14 @@ class Database(CoreModel):
         Parameters
         ----------
         io : str, Dict[pd.DataFrame]
-        
+
             #. in case that the data should be given through an Excel file, represents the path of the Excel file
             #. in case that the data needs to be given by DataFrame, a dictionary of DataFrames can be give in which the keys are the name of the levels and values are the DataFrames
 
         drop : str, List[str]
             representing the items/items that should be droped (only allowed for E and EY matrix)
 
-        levels : str, List[str] 
+        levels : str, List[str]
             #. in case that a single level or 'all' levels should be aggregated, str can be used
             #. in case that multiple levels should be aggregated, a list of levels should be used
 
@@ -519,7 +517,7 @@ class Database(CoreModel):
         -------
         mario.Database :
             if inplace = False returns a new mario.Database
-        None : 
+        None :
             if inplace = True implents the changes in place
 
         """
@@ -602,7 +600,7 @@ class Database(CoreModel):
     def get_extensions_excel(
         self,
         matrix,
-        path= None,
+        path=None,
     ):
 
         """Generates an Excel file for easing the add extension functionality
@@ -637,35 +635,35 @@ class Database(CoreModel):
         io,
         matrix,
         units,
-        backup= True,
-        inplace= True,
-        calc_all = True,
-        notes= None,
+        backup=True,
+        inplace=True,
+        calc_all=True,
+        notes=None,
     ):
 
         """Adding a new extension [Factor of production or Satellite account] to the database
         passing the coefficients or the absolute values.
 
-        .. note:: 
+        .. note::
             This function will delete all the exisiting scenarios and implement the
             new sets of the matrices in the baseline.
 
         Parameters
         ----------
-        io : str, pd.DataFrame 
+        io : str, pd.DataFrame
             if the data is given from an excel file, is the path to the file else is
             a pd.DataFrame
-            
+
         matrix : str
             defines where the new extension should be added to.
             The options are :
-                
+
                 * 'v' value added by coefficient
                 * 'V' value added by absolute value
                 * 'e' satellite account by coefficient
                 * 'E' satellite account by absolute
 
-        units : pd.DataFrame 
+        units : pd.DataFrame
             a dataframe whose rows are the items to be added and single column
             which contains the units for every row
 
@@ -681,7 +679,7 @@ class Database(CoreModel):
 
         notes : list, Optional
             to add notes to the metadata
-            
+
         Returns
         -------
         mario.Database:
@@ -796,18 +794,13 @@ class Database(CoreModel):
             for note in notes:
                 self.meta._add_history(f"User note: {note}")
 
-    def to_single_region(
-            self,
-            region,
-            backup=True,
-            inplace=True
-    ):
+    def to_single_region(self, region, backup=True, inplace=True):
 
         """Extracts a single region from multi-region databases
 
-        .. note:: 
+        .. note::
             Following assumptions are considered (on flow matrices):
-                
+
                 * intermediate imports accounted as 'Import' in V
                 * intermediate exports are accounted as 'Intermediate exports' in Y
                 * final demand exports are accounted as 'Final demand exports' in Y
@@ -816,7 +809,7 @@ class Database(CoreModel):
 
         Parameters
         ----------
-        region : str 
+        region : str
             the region to extract
 
         backup : boolean
@@ -839,8 +832,8 @@ class Database(CoreModel):
             return new
 
         if self.is_hybrid:
-            raise NotImplementable('Hybrid tables are not supported.')
-            
+            raise NotImplementable("Hybrid tables are not supported.")
+
         if not self.is_multi_region:
             raise NotImplementable("Database is already a single region database.")
 
@@ -959,10 +952,12 @@ class Database(CoreModel):
             self.matrices["baseline"][matrix] = eval(matrix)
         log_time(logger, "Transformation: New baseline added to the database")
         _matrices(self, "add", scenario="baseline")
-        
-        slicer = _MASTER_INDEX['a'] if self.table_type == 'SUT' else _MASTER_INDEX['s']
-        
-        self.units[_MASTER_INDEX['f']].loc["imports",'unit'] =  self.units[slicer].iloc[0,0]
+
+        slicer = _MASTER_INDEX["a"] if self.table_type == "SUT" else _MASTER_INDEX["s"]
+
+        self.units[_MASTER_INDEX["f"]].loc["imports", "unit"] = self.units[slicer].iloc[
+            0, 0
+        ]
 
         self.meta._add_history(
             f"Transformation: Database transformed into a single region database for {region}. Following assumptions are considered: "
@@ -993,10 +988,10 @@ class Database(CoreModel):
 
     def calc_linkages(
         self,
-        scenario= "baseline",
-        normalized = True,
-        cut_diag = True,
-        multi_mode = True,
+        scenario="baseline",
+        normalized=True,
+        cut_diag=True,
+        multi_mode=True,
     ):
         """Calculates the linkages in different modes
 
@@ -1008,7 +1003,7 @@ class Database(CoreModel):
 
         Parameters
         ----------
-        scenario : str 
+        scenario : str
             the scenario that the linkages should be calculated for
 
         normalized : boolean
@@ -1016,7 +1011,7 @@ class Database(CoreModel):
 
         cut_diag : boolean
             sets the diagonals (self consumptions) to zero.
-            
+
         multi_mode : True
             --TODO--
 
@@ -1055,49 +1050,49 @@ class Database(CoreModel):
 
     def plot_linkages(
         self,
-        scenarios= "baseline",
-        normalized= True,
-        cut_diag= True,
-        multi_mode= False,
-        path= None,
-        plot= "Total",
+        scenarios="baseline",
+        normalized=True,
+        cut_diag=True,
+        multi_mode=False,
+        path=None,
+        plot="Total",
         auto_open=True,
         **config,
     ):
 
         """Plots linkages in different modes
-        
+
         .. note::
-            
+
             when caclulating linkages, possible negative numbers, are ignore
-            
+
         Parameters
         ----------
         scenarios : str,List[str]
             A scenario or a list of scenarios to plot
-            
+
         normalized : boolean
             if True, plots normalized linkages
-            
+
         cut_diag : boolean
             if True, ignores the self consumption of sectors in calculating linkages
-        
+
         multi_mode : boolean
             --TODO--
-            
+
         path : str,Optional
             the path and the name of the plot file. (path should contain the name of the file with .htlm extension)
             for example 'path\\linkagesPlot.html'
-            
+
         plot : str
             Options are:
-                
+
                 * 'Total' to plot the total linkages
                 * 'Direct' to plot the direct linkages
-                
+
         auto_open : boolean
             if True, opens the plot automatically
-        
+
         """
         if plot not in ["Total", "Direct"]:
             raise WrongInput(
@@ -1139,11 +1134,11 @@ class Database(CoreModel):
 
     def to_excel(
         self,
-        path= None,
-        flows= True,
-        coefficients= False,
-        units= True,
-        scenario= "baseline",
+        path=None,
+        flows=True,
+        coefficients=False,
+        units=True,
+        scenario="baseline",
     ):
 
         """Saves the database into an Excel file
@@ -1200,12 +1195,12 @@ class Database(CoreModel):
 
     def to_txt(
         self,
-        path= None,
-        flows= True,
-        coefficients= False,
-        units= True,
-        scenario= "baseline",
-        _format= "txt",
+        path=None,
+        flows=True,
+        coefficients=False,
+        units=True,
+        scenario="baseline",
+        _format="txt",
     ):
 
         """Saves the database multiple text file based on given inputs
@@ -1234,7 +1229,7 @@ class Database(CoreModel):
 
         scenario : str
             defines the scenario to print out the data
-            
+
         _format : str
             * txt to save as txt files
             * csv to save as csv files
@@ -1257,13 +1252,7 @@ class Database(CoreModel):
             _format,
         )
 
-    def get_add_sectors_excel(
-        self, 
-        new_sectors, 
-        regions,
-        path= None,
-        item= None
-    ):
+    def get_add_sectors_excel(self, new_sectors, regions, path=None, item=None):
 
         """Generates an Excel file to add a sector/activity/commodity to the database
 
@@ -1271,19 +1260,19 @@ class Database(CoreModel):
         ----------
         new_sectors : list
             new sectors/activities/commodities to be added to the database
-            
+
         regions : list
             specific regions that the new technology will be specified
-            
+
         path : str
             the path in which the Excel file will be saved (path should contain the name of file like 'path\\add_sector.xlsx')
-        
+
         item : str
             the item to be added. Sector for IOT table and Activity or Commodity for SUT
 
         """
 
-        if (not isinstance(regions, list)) and (not  isinstance(new_sectors, list)):
+        if (not isinstance(regions, list)) and (not isinstance(new_sectors, list)):
             raise WrongInput("'regions' and 'new_sectors' should be a list.")
 
         difference = set(regions).difference(self.get_index(_MASTER_INDEX["r"]))
@@ -1327,14 +1316,14 @@ class Database(CoreModel):
         new_sectors,
         regions,
         item,
-        inplace= True,
-        notes= None,
+        inplace=True,
+        notes=None,
     ):
 
         """Adds a Sector/Activity/Commodity to the database
 
-        .. note:: 
-            
+        .. note::
+
             This function will delete all the scenarios in the datbase and overwirte
             the new matrices to the baseline.
 
@@ -1343,23 +1332,23 @@ class Database(CoreModel):
         io : str, Dict[pd.DataFrame]
             the path of the Excel file containing the information or an equal dictionary with
             keys as the names of the sheets and values as dataframes of the excel file
-            
+
         new_sectors : list
             new sectors/activities/commodities to be added to the database
-            
+
         regions : list
             specific regions that the new technology will be specified
-            
+
         item : str
             the item to be added. Sector for IOT table and Activity or Commodity for SUT
             Sector if IOT, Activity or Commodity if SUT
         inplace : boolean
             if True will implement the changes directly in the database else
             returns a new new mario.Database
-            
+
         notes: list, Optional
             notes to be recorded in the metadata
-            
+
         Returns
         -------
         mario.Database:
@@ -1490,8 +1479,8 @@ class Database(CoreModel):
         -------
         dict:
             a nested dict of scnearios and the data asked
-        
-        namedtuples:  
+
+        namedtuples:
             a nested dict of namedtuples with keys refering to scenarios and values namedtuples of data
         """
 
@@ -1615,7 +1604,7 @@ class Database(CoreModel):
 
     def DataFrame(
         self,
-        scenario= "baseline",
+        scenario="baseline",
     ):
 
         """Returns a single DatFrame which is the whole flows all together.
@@ -1676,13 +1665,13 @@ class Database(CoreModel):
     def shock_calc(
         self,
         io,
-        z= False,
-        e= False,
-        v= False,
-        Y= False,
-        notes= [],
-        scenario= None,
-        force_rewrite= False,
+        z=False,
+        e=False,
+        v=False,
+        Y=False,
+        notes=[],
+        scenario=None,
+        force_rewrite=False,
         **clusters,
     ):
 
@@ -1690,34 +1679,34 @@ class Database(CoreModel):
         possibility of defining clusters on every level of information.
 
         .. note::
-            
+
             * Shocks can be implemented only with respect to the baseline
             * shocks will be implemented only on coefficients
-            
+
         Parameters
         ----------
         io : str, Dict[pd.DataFrame]
-            pass a str defining the excel file containing the shock data or pass 
-        a dict of dataframes in which keys are the name of matrices and values are 
+            pass a str defining the excel file containing the shock data or pass
+        a dict of dataframes in which keys are the name of matrices and values are
         the dataframes of the shock (exactly the same format of excel file)
 
         z : boolean
             if True will implement shock on the Z or z
-            
+
         e : boolean
             if True will implement shock on the E or e
-            
+
         v : boolean
             if True will implement shock on the V or v
-            
+
         Y : boolean
             if True will implement shock on Y
-            
+
         notes : list
             extra info can be recoreded in the metadata
 
         scneario : str, Optional
-            the name for the scenario implemented, in the instance.matrices. if nothing passed, default names will be considered 
+            the name for the scenario implemented, in the instance.matrices. if nothing passed, default names will be considered
 
         fore_rewrite : boolean
             if False will avoid overwriting existing scenario
@@ -1768,11 +1757,10 @@ class Database(CoreModel):
 
         log_time(logger, "Shock: Shock implemented successfully.")
 
-
     def get_shock_excel(
-        self, 
-        path = None,
-        num_shock= 10,
+        self,
+        path=None,
+        num_shock=10,
         **clusters,
     ):
 
@@ -1781,7 +1769,7 @@ class Database(CoreModel):
 
 
         .. note::
-            
+
             The generated Excel file will have list validations to simplify the error
             handling and help the user. In case the number of shocks are more than 10,
             it is suggested to increse num_shock to have more validated rows in every
@@ -1828,11 +1816,11 @@ class Database(CoreModel):
         x,
         y,
         size,
-        path= None,
-        auto_open= True,
-        scenario= "baseline",
-        log_x= False,
-        log_y= False,
+        path=None,
+        auto_open=True,
+        scenario="baseline",
+        log_x=False,
+        log_y=False,
     ):
 
         """Creates bubble plots
@@ -1841,25 +1829,25 @@ class Database(CoreModel):
         ----------
         x : str
             item to locate on x-axis. valid items should be a factor of production, satellite account or GDP
-            
+
         y : str
             item to locate on y-axis. valid items should be a factor of production, satellite account or GDP
-            
+
         size : str
             item to locate on size of bubble. valid items should be a factor of production, satellite account or GDP
-            
+
         path : str
             the path and the name of the file to save the plot. Like 'path\\plot.html'
-            
+
         auto_open : boolean
             if True, opens the plot automatically
-            
+
         scenario : str
             scenario to plot
-        
+
         log_x : boolean
             if True, will plot with x-axis with Logarithmic scale
-        
+
         log_y : boolean
             if True, will plot with y-axis with Logarithmic scale
         """
@@ -1904,9 +1892,9 @@ class Database(CoreModel):
 
         to_plot.index.names = ["Region", "Level", "Sector"]
         to_plot.columns = [cols[item] for item in items]
-        
+
         colors = Color()
-        colors.has_enough_colors(self.get_index(_MASTER_INDEX['r']))
+        colors.has_enough_colors(self.get_index(_MASTER_INDEX["r"]))
         try:
             fig = px.scatter(
                 to_plot.reset_index(),
@@ -1948,27 +1936,27 @@ class Database(CoreModel):
         ----------
         path : str, Optional
             the path and the name of the file to save the plot
-            
+
         plot : str
             type of the plot ['treemap','sunburst']
 
         scenario : str
             scenario to plot
-            
+
         extension : str, optional
             a satellite account item that can be used for scaling the colors
-            
+
         extension_value : str
             # 'relative' for scaling on specific satellite account (e.g. CO2/Euro of production)
             # 'absolute' for abolute scaling on satellite account (e.g. total CO2)
-            
+
         auto_open : boolean
             if True, the plot will be opened automatically
         """
 
         plots = ["treemap", "sunburst"]
         extension_values = ["relative", "absolute"]
-        
+
         if plot not in plots:
             raise WrongInput(f"Acceptable plots are {plots}")
 
@@ -2039,28 +2027,27 @@ class Database(CoreModel):
 
         _plotter(fig=fig, directory=path, auto_open=auto_open)
 
-
     def plot_matrix(
-            self,
-            matrix,
-            x,
-            color,
-            y= 'Value',
-            facet_row=None,
-            facet_col=None,
-            animation_frame="Scenario",
-            base_scenario=None,
-            path=None,
-            mode="stack",
-            layout = None,
-            auto_open=True,
-            shared_yaxes='all',
-            shared_xaxes=True,
-            **filters
-            ):
-        
+        self,
+        matrix,
+        x,
+        color,
+        y="Value",
+        facet_row=None,
+        facet_col=None,
+        animation_frame="Scenario",
+        base_scenario=None,
+        path=None,
+        mode="stack",
+        layout=None,
+        auto_open=True,
+        shared_yaxes="all",
+        shared_xaxes=True,
+        **filters,
+    ):
+
         """Generates a general html barplot giving the user certain degrees of freedom such as:
-            
+
             * Regions (both the ones on the indices and columns)
             * Sectors/Commodities/Activities (both the ones on the indices and columns)
             * Scenarios
@@ -2070,7 +2057,7 @@ class Database(CoreModel):
         ----------
         matrix : str
             Matrix to be plotted. Three families of matrix can be read according to their intrinsic structure:
-                
+
             #. The first family includes only matrix 'X', which has 3 levels of indices and 1 level of columns
             #. The second family includes matrices 'Z','z','U','u','S','s','Y', which have 3 levels of indices and 3 levels of columns
             #. The third family includes matrices 'E','e','V','v','EY', which have 1 level of indices and 3 levels of columns
@@ -2087,22 +2074,22 @@ class Database(CoreModel):
             Acceptable options change according to the matrix family
 
         facet_row:
-            String referring to one level of indices of the given matrix. 
+            String referring to one level of indices of the given matrix.
             Values from this column or array_like are used to assign marks to facetted subplots in the vertical direction
 
         facet_col:
-            String referring to one level of indices of the given matrix. 
+            String referring to one level of indices of the given matrix.
             Values from this column or array_like are used to assign marks to facetted subplots in the horizontal direction
 
         animation_frame:
             Defines whether to switch from one scenario to the others by means of sliders
-            
+
         base_scenario : str
             By setting None, the passed matrix will be displayed for each scenario available.
             By setting this parameter equal to one of the scenarios available,
             the passed matrix will be displayed in terms of difference with respect to each of the other scenarios.
             In this last case, the selected scenario will not be displayed
-  
+
         mode : str
             Equivalent to plotly.grap_object.figure.update_layout barmode. Determines how bars at the same location coordinate are displayed on the graph.
             * With "stack", the bars are stacked on top of one another
@@ -2116,7 +2103,7 @@ class Database(CoreModel):
         filters : dict
             The user has the option to filter the sets according to the necessity.
             Acceptable options are the following and must be provided as list:
-                
+
             * 'filter_Region_from',
             * 'filter_Region_to',
             * 'filter_Sector_from',
@@ -2126,7 +2113,6 @@ class Database(CoreModel):
             * 'filter_Commodity'
 
         """
-
 
         ### Preparing filters
         for filt in filters:
@@ -2152,36 +2138,34 @@ class Database(CoreModel):
         for filt in filter_options:
             filters[filt] = filters.get(filt, "all")
         filters = filtering(self, filters)
-        
-        
+
         # Setting the path
         path = self._getdir(path, "Plots", f"{matrix}.html")
-        
 
         # Importing and defining customizing layout
         if layout == None:
-            layout = _PLOTS_LAYOUT   
-        
+            layout = _PLOTS_LAYOUT
+
         if base_scenario == None:
-            layout['title'] = f"{_MATRICES_NAMES[matrix]}"
+            layout["title"] = f"{_MATRICES_NAMES[matrix]}"
         else:
-            layout['title'] = f"{_MATRICES_NAMES[matrix]} - Variation with respect to '{base_scenario}' scenario"            
-        
+            layout[
+                "title"
+            ] = f"{_MATRICES_NAMES[matrix]} - Variation with respect to '{base_scenario}' scenario"
 
         if matrix == "X":
-            plot_function = '_plotX'
+            plot_function = "_plotX"
         if matrix in ["Z", "z", "Y", "U", "u", "S", "s"]:
-            plot_function = '_plotZYUS'
+            plot_function = "_plotZYUS"
         if matrix in ["V", "v", "E", "e", "EY", "M", "F"]:
-            plot_function = '_plotVEMF'
-            
-            
+            plot_function = "_plotVEMF"
+
         eval(f"plt.{plot_function}")(
             self,
             matrix,
             x,
             y,
-            color,  
+            color,
             facet_row,
             facet_col,
             animation_frame,
@@ -2196,13 +2180,12 @@ class Database(CoreModel):
             filters,
         )
 
-
     def set_solver(self, solver):
 
         """This function can be used to set the solver for some specific uses.
 
         .. note::
-            
+
             This will be used mostly on the next version of MARIO which contains the models.
         """
 

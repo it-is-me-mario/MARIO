@@ -22,11 +22,11 @@ models = {"Database": Database}
 def parse_from_txt(
     path,
     table,
-    mode= "flows",
-    calc_all = False,
-    year = None,
-    name = None,
-    source = None,
+    mode="flows",
+    calc_all=False,
+    year=None,
+    name=None,
+    source=None,
     model="Database",
     **kwargs,
 ):
@@ -34,7 +34,7 @@ def parse_from_txt(
     """Parsing database from text files
 
     .. note::
-        
+
         This function works with different files to parse the io data. So every matrix & units should be placed in different txt files.
 
 
@@ -48,10 +48,10 @@ def parse_from_txt(
 
     mode : str
         defined the base matrices to parse. The options are:
-            
+
             * `flows`: needs [Z.txt, Y.txt, EY.txt, V.txt, E.txt, units.txt] in the path
             * `coefficients`: needs [z.txt, Y.txt, EY.txt, v.txt, e.txt, units.txt] in the path
-            
+
     calc_all : boolean
         if True, by default will calculate z,v,e,V,E,Z after parsing
 
@@ -87,13 +87,13 @@ def parse_from_txt(
 def parse_from_excel(
     path,
     table,
-    mode= "flows",
-    data_sheet= 0,
-    unit_sheet= "units",
-    calc_all= False,
-    year= None,
-    name= None,
-    source= None,
+    mode="flows",
+    data_sheet=0,
+    unit_sheet="units",
+    calc_all=False,
+    year=None,
+    name=None,
+    source=None,
     model="Database",
     **kwargs,
 ):
@@ -101,7 +101,7 @@ def parse_from_excel(
     """Parsing database from excel file
 
     .. note::
-        
+
         * This function works with a a single excel that contains data & units
         * Please look at the tutorials to understand the format/shape of the data
 
@@ -115,7 +115,7 @@ def parse_from_excel(
 
     mode : str
         defined the base matrices to parse. The options are:
-            
+
             * `flows`: needs [Z, Y, EY, V, E,] in a singel sheet and unit in another sheet
             * `coefficients`: needs [z, Y, EY, v, e, units.txt] in a singel sheet and unit in another sheet
 
@@ -131,12 +131,12 @@ def parse_from_excel(
     year : int, Optional
         optional to the Database (just for recoding the metadata)
 
-    source : str, Optional 
+    source : str, Optional
         optional to the Database (just for recoding the metadata)
 
     name : str, Optional
         optional but suggested. is useful for visualization and metadata.
-    
+
     Returns
     -------
     mario.Database
@@ -160,9 +160,9 @@ def parse_from_excel(
 
 def parse_exiobase_sut(
     path,
-    calc_all= False,
-    name= None,
-    year= None,
+    calc_all=False,
+    name=None,
+    year=None,
     model="Database",
     **kwargs,
 ):
@@ -170,7 +170,7 @@ def parse_exiobase_sut(
     """Parsing exiobase mrsut
 
     .. note::
-        
+
         mario v.0.1.0, supports only Monetary Exiobase MRSUT database.
 
     Parameters
@@ -212,18 +212,18 @@ def parse_exiobase_sut(
 
 def parse_exiobase_3(
     path,
-    calc_all= False,
-    year= None,
-    name= None,
+    calc_all=False,
+    year=None,
+    name=None,
     model="Database",
-    version= "3.8.2",
+    version="3.8.2",
     **kwargs,
 ):
 
     """Parsing exiobase3
 
-    .. note:: 
-        
+    .. note::
+
         pxp & ixi does not make any difference for the parser.
 
     Parameters
@@ -243,7 +243,7 @@ def parse_exiobase_3(
 
     version : str
         accpetable versions are:
-            
+
             * 3.8.2: F_Y for the final demand satellite account
             * 3.8.1: F_hh for the final demand satellite account
 
@@ -273,19 +273,19 @@ def parse_exiobase_3(
 def parse_eora(
     path,
     multi_region,
-    indeces= None,
-    name_convention= "full_name",
-    aggregate_trade= True,
-    year= None,
-    name = None,
-    calc_all= False,
+    indeces=None,
+    name_convention="full_name",
+    aggregate_trade=True,
+    year=None,
+    name=None,
+    calc_all=False,
     model="Database",
     **kwargs,
 ) -> object:
     """Parsing eora databases
 
     .. note::
-        
+
         * for multi_region database, only `eora26` is acceptable
         * multi_region database has some inconsistencies that are modified when parsed.
         * to see the modifications after parsing call 'meta_history'
@@ -318,7 +318,7 @@ def parse_eora(
 
     calc_all : boolean
         if True, will calculate the main missing matrices
-        
+
     Returns
     -------
     mario.Database
@@ -333,7 +333,7 @@ def parse_eora(
             )
 
         matrices, indeces, units = eora_multi_region(
-            data_path=path, index_path=indeces, year=year, price='bp'
+            data_path=path, index_path=indeces, year=year, price="bp"
         )
 
         kwargs["notes"] = [
@@ -358,7 +358,7 @@ def parse_eora(
     )
 
 
-def parse_eurostat(   
+def parse_eurostat(
     supply_path,
     use_path,
     region,
@@ -385,8 +385,8 @@ def parse_eurostat(
     """Parsing Eurostat databases
 
     .. note::
-        
-        * this function is not generally applicable to any Eurostat table: it works only for specific table formats. Please refer to the example on the website 
+
+        * this function is not generally applicable to any Eurostat table: it works only for specific table formats. Please refer to the example on the website
         * first rule: it is not possible to parse file different from .xls format
         * second rule: in each .xsl file, be sure data are referring to only one region
         * third rule: use only "total" as stock/flow parameter, and only one unit of measure
@@ -420,7 +420,7 @@ def parse_eurostat(
 
     calc_all : bool, Optional
         if True, will calculate the main missing matrices
-        
+
     Returns
     -------
     mario.Database
@@ -429,7 +429,7 @@ def parse_eurostat(
     if model not in models:
         raise WrongInput("Available models are {}".format([*models]))
 
-    table = 'SUT'
+    table = "SUT"
     if table == "SUT":
         matrices, indeces, units = eurostat_sut(
             supply_path,

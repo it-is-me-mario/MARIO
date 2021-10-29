@@ -29,54 +29,54 @@ logger = logging.getLogger(__name__)
 
 from IPython import get_ipython
 
-def slicer(matrix,axis,**levels):
-    '''Helps to slice the matrices
-    
+
+def slicer(matrix, axis, **levels):
+    """Helps to slice the matrices
+
     Parameters
     ----------
     matrix : str
         the matrix to be sliced
-        
+
     axis : int
         0 for rows and 1 for columns
-        
+
     levels : Dict['list']
-        defines the level to be sliced (according to index and columns names). 
+        defines the level to be sliced (according to index and columns names).
         for 3 level data [Region,Level,Item] and for 1 level data only [Item].
-        
+
     Returns
     -------
     tuple, list
-    
+
     Example
     --------
-    For slicing a the final demand matrix for reg1 and sec1 on the rows and 
+    For slicing a the final demand matrix for reg1 and sec1 on the rows and
     reg1 on the columns (local final demand of sec1 of reg1):
-        
+
     .. code-block:: python
-    
+
         Y_rows = slicer(matrix= 'Y', axis= 0, Region= ['reg1'], Item= ['sec1'])
         Y_cols = slicer(matrix= 'Y', axis= 1, Region= ['reg1'])
-        
+
         # To use the slicer
         data.Y.loc[Y_rows,Y_cols]
-    '''
-    
-    if matrix.upper() in ['V','E'] and axis==0:
-        acceptable_levels = ['Item']
+    """
+
+    if matrix.upper() in ["V", "E"] and axis == 0:
+        acceptable_levels = ["Item"]
     else:
-        acceptable_levels = ['Region','Level','Item']
-        
-        
+        acceptable_levels = ["Region", "Level", "Item"]
+
     difference = set(levels.keys()).difference(set(acceptable_levels))
     if difference:
-        raise ValueError(f'for {matrix}, acceptable levels are {acceptable_levels}')
-        
-    _slicer = [levels.get(level,slice(None)) for level in acceptable_levels]
-    
+        raise ValueError(f"for {matrix}, acceptable levels are {acceptable_levels}")
+
+    _slicer = [levels.get(level, slice(None)) for level in acceptable_levels]
+
     if len(_slicer) == 1:
         return _slicer[0]
-    
+
     return tuple(_slicer)
 
 
@@ -535,7 +535,7 @@ def filtering(instance, filters):
         if value == ["all"]:
             if assign in instance.sets:
                 filters[item] = instance.get_index(assign)
-            
+
         else:
             if assign in instance.sets:
                 original = instance.get_index(assign)
