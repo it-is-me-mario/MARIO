@@ -26,7 +26,7 @@ copyright = '2021, SESAM, Politecnico di Milano.\n Developed by: MARIO Team'
 author = 'Mohammad Amin Tahavori, Lorenzo Rinaldi, Nicolo Golinucci'
 
 # The full version, including alpha/beta/rc tags
-release = '0.1'
+release = '0.1.0'
 
 
 # -- General configuration ---------------------------------------------------
@@ -45,6 +45,7 @@ extensions = [
     'sphinx.ext.duration',
     'sphinx.ext.doctest',
 ]
+nbsphinx_execute = "never"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
