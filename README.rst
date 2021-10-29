@@ -6,6 +6,9 @@ MARIO: Multifunctional Analysis of Regions through Input-Output
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
     
+.. image:: https://readthedocs.org/projects/mario-suite/badge/?version=latest
+    :target: https://mario-suite.readthedocs.io/en/latest/index.html
+    :alt: Documentation Status  
     
 What is it
 -----------
