@@ -1,7 +1,4 @@
-*******
-MARIO
-*******
-MARIO: Multifunctional Analysis of Regions through Input-Output
+
 
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
@@ -10,6 +7,19 @@ MARIO: Multifunctional Analysis of Regions through Input-Output
     :target: https://mario-suite.readthedocs.io/en/latest/index.html
     :alt: Documentation Status  
     
+.. image:: https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png
+    :target: https://creativecommons.org/licenses/by-nc-sa/4.0/   
+    
+.. image:: /_static/images/polimi.jpg
+   :width: 200
+   :align: right
+
+*******
+MARIO
+*******
+Multifunctional Analysis of Regions through Input-Output 
+
+
 What is it
 -----------
 **MARIO** is a python package for handling input-output tables and models.
@@ -174,22 +184,12 @@ Some of the key packages the mario relies on are:
 * `Cvxpy  <https://pypi.org/project/tabulate/>`_ (Optional in this version)
 
 
-Communication, issues, bugs and contributions
-----------------------------------------------
-We use github for tracking bugs, issues and suggestions related to mario. Any communications
-thorugh email are welcomed.
-
-You may also follow us on social media like twitter or our official website to follow last news
-on mario or our research. We are looking forward for future communications and contributions.
-
-* `SESAM Website <http://sesam.polimi.it/>`_
-* `Mohammad Amin Tahavori  <https://twitter.com/TahavoriAmin>`_
-* `Lorenzo Rinaldi <https://twitter.com/lorenzo_rinald>`_
-* `Nicolò Golinucci <https://twitter.com/nigolred>`_
-
 
 .. note::
-   This project is under active development.
+   * This project is under active development. 
+   * More examples will be uploaded through time to the gellery.
+   * More parsers will be added to the next version.
+   * The next version will cover some optimization models within the IO framework
 
 
 License
