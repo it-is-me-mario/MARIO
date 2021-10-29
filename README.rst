@@ -4,7 +4,7 @@ MARIO
 MARIO: Multifunctional Analysis of Regions through Input-Output
 
 .. image:: https://i.creativecommons.org/l/by-nc/4.0/88x31.png
-    :target: http://creativecommons.org/licenses/by-nc/4.0/">Creative Commons Attribution-NonCommercial 4.0 International License
+    :target: http://creativecommons.org/licenses/by-nc/4.0/"
     
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
