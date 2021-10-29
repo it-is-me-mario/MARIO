@@ -3,8 +3,9 @@ MARIO
 *******
 MARIO: Multifunctional Analysis of Regions through Input-Output
 
-.. image:: https://i.creativecommons.org/l/by-nc/4.0/88x31.png
-    :target: https://creativecommons.org/licenses/by-nc/4.0/legalcode
+
+.. image:: https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png
+    :target: https://creativecommons.org/licenses/by-nc-sa/4.0/
     
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
