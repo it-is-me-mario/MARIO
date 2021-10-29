@@ -62,7 +62,7 @@ To run MARIO, a couple of things are needed:
 
 #. Being in love with Input-Output :-)
 #. The Python programming language, version 3.7 or higher
-#. A number of Python add-on modules (list)
+#. A number of Python :ref:`add-on packages <Python module requirements>`
 #. For some functionalities a solver may needed (optional)
 #. MARIO software itself
 
