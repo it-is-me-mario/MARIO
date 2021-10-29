@@ -193,4 +193,12 @@ on mario or our research. We are looking forward for future communications and c
    This project is under active development.
 
 
+License
+-------
+
+.. image:: https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png
+    :target: https://creativecommons.org/licenses/by-nc-sa/4.0/
+
+
+This work is licensed under a `Creative Commons Attribution-ShareAlike 4.0 International License <http://creativecommons.org/licenses/by-sa/4.0/>`_
 
