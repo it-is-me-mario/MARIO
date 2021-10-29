@@ -9,6 +9,9 @@ Handling databases
   htmls/parseEORA
   htmls/exiobaseSUT
   htmls/pd.DataFrameParser
+  htmls/parseEUROSTAT
+  htmls/excelParser
+  htmls/plotsExamples
 
 
   

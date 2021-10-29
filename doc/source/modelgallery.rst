@@ -5,5 +5,6 @@ MARIO example gallery
     :maxdepth: 2
 
     htmls/addextension
+    htmls/shock
     
  
