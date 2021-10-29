@@ -10,7 +10,7 @@
 .. image:: https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png
     :target: https://creativecommons.org/licenses/by-nc-sa/4.0/ 
     
-.. image:: https://github.com/SESAM-Polimi/MARIO/blob/main/doc/source/_static/images/polimi.jpg?raw=true
+.. image:: https://github.com/SESAM-Polimi/MARIO/blob/main/doc/source/_static/images/polimi.svg?raw=true
    :width: 200
    :align: right
 
