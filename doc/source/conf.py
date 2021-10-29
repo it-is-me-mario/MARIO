@@ -26,7 +26,7 @@ copyright = '2021, SESAM, Politecnico di Milano.\n Developed by: MARIO Team'
 author = 'Mohammad Amin Tahavori, Lorenzo Rinaldi, Nicolo Golinucci'
 
 # The full version, including alpha/beta/rc tags
-release = '0.1'
+release = '0.1.0'
 
 
 # -- General configuration ---------------------------------------------------
@@ -45,6 +45,7 @@ extensions = [
     'sphinx.ext.duration',
     'sphinx.ext.doctest',
 ]
+nbsphinx_execute = "never"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -62,11 +63,7 @@ exclude_patterns = []
 #
 html_theme = 'sphinx_rtd_theme'
 
-html_theme_options = {
-    'github_user': '#',
-    'github_banner': True,
-    'display_version': True,
-}
+
 
 
 # Add any paths that contain custom static files (such as style sheets) here,
