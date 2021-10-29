@@ -62,7 +62,7 @@ To run MARIO, a couple of things are needed:
 
 #. Being in love with Input-Output :-)
 #. The Python programming language, version 3.7 or higher
-#. A number of Python :ref:`add-on packages <Python module requirements>`
+#. A number of Python :ref:`_RST pckgs`
 #. For some functionalities a solver may needed (optional)
 #. MARIO software itself
 
@@ -172,6 +172,7 @@ The new database can be saved into excel,txt or csv file:
 
    reformed_iot.to_excel(path='a folder//database.xlsx')
 
+.. _RST pckgs:
 
 Python module requirements
 --------------------------
