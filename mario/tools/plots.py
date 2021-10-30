@@ -306,565 +306,545 @@ def _set_layout(fig, layout, mode, counter, iterator, prefix, x, y):
 
 
 def _plotX(
-    instance,
-    matrix,
-    x,
-    y,
-    color,
-    facet_row,
-    facet_col,
-    animation_frame,
-    base_scenario,
-    path,
-    chart,
-    mode,
-    auto_open,
-    layout,
-    shared_yaxes,
-    shared_xaxes,
-    filters,
+        instance,
+        matrix,
+        x,
+        y,
+        color,
+        facet_row,
+        facet_col,
+        animation_frame,
+        base_scenario,
+        path,
+        item_from,
+        chart,
+        mode,
+        auto_open,
+        layout,
+        shared_yaxes,
+        shared_xaxes,
+        filters,
 ):
-
+    
     # Extracting raw data
     scenarios = instance.scenarios
     if base_scenario != None:
-        scenarios.remove(base_scenario)
-    to_plot = instance.get_data(
-        matrices=matrix, format="dict", scenarios=scenarios, base_scenario=base_scenario
-    )
-
+        scenarios.remove(base_scenario)  
+    to_plot = instance.get_data(matrices=matrix, format="dict", scenarios=scenarios, base_scenario=base_scenario)
+    
     # Processing raw data for plottinh
     data = pd.DataFrame()
-    for scenario in scenarios:
+    for scenario in scenarios:     
         to_append = to_plot[scenario][matrix]
         to_append.columns = [scenario]
         to_append = to_append.stack(level=0).to_frame()
-        to_append.columns = [f"Value_{scenario}"]
+        to_append.columns = [f'Value_{scenario}']
         data = pd.concat([data, to_append], axis=1)
-    data.fillna(0, inplace=True)
+    data.fillna(0,inplace=True)
     data = data.sum(1).to_frame()
-    data.columns = ["Value"]
-
+    data.columns = ['Value']
+    
     # Slicing according to filters
-    data.index.names = [
-        f"{_MASTER_INDEX['r']}_from",
-        "Level_from",
-        "Item_from",
-        "Scenario",
-    ]
-    if instance.table_type == "IOT":
-        data = data.loc[
-            (
-                filters[f"filter_{_MASTER_INDEX['r']}_from"],
-                slice(None),
-                filters[f"filter_{_MASTER_INDEX['s']}_from"],
-                slice(None),
-            ),
-            :,
-        ]
-    elif instance.table_type == "SUT":
-        data = data.loc[
-            (
-                filters[f"filter_{_MASTER_INDEX['r']}_from"],
-                slice(None),
-                filters[f"filter_{_MASTER_INDEX['a']}_from"]
-                + filters[f"filter_{_MASTER_INDEX['c']}_from"],
-                slice(None),
-            ),
-            :,
-        ]
-    data.reset_index(inplace=True)
+    data.index.names = [f"{_MASTER_INDEX['r']}_from", 'Level_from', "Item_from", 'Scenario']
+    if instance.table_type == 'IOT':
+        data = data.loc[(filters[f"filter_{_MASTER_INDEX['r']}_from"],
+                         slice(None),
+                         filters[f"filter_{_MASTER_INDEX['s']}_from"],
+                         slice(None)), 
+                        :]
+    elif instance.table_type == 'SUT':
+        data1 = data.loc[(filters[f"filter_{_MASTER_INDEX['r']}_from"],
+                          _MASTER_INDEX['a'],
+                          filters[f"filter_{_MASTER_INDEX['a']}_from"],
+                          filters[f"filter_{_MASTER_INDEX['r']}_to"],
+                          slice(None)),
+                         :]
+        data2 = data.loc[(filters[f"filter_{_MASTER_INDEX['r']}_from"],
+                          _MASTER_INDEX['c'],
+                          filters[f"filter_{_MASTER_INDEX['c']}_from"],
+                          filters[f"filter_{_MASTER_INDEX['r']}_to"],
+                          slice(None)), 
+                         :]
+        data = data1.append(data2)
 
+    data.reset_index(inplace=True)
+    data = data[data["Level_from"]==item_from]
+    cols = []
+    for col in data.columns:
+        if col == "Item_from":
+            if instance.table_type == 'SUT':
+                if item_from == _MASTER_INDEX['c']:
+                    cols += [f"{_MASTER_INDEX['c']}_from"]
+                else:
+                    cols += [f"{_MASTER_INDEX['a']}_from"]
+            else:
+                cols += [f"{_MASTER_INDEX['s']}_from"]                
+        elif col == "Item_to":
+            if instance.table_type == 'SUT':
+                if item_from == _MASTER_INDEX['c']:
+                    cols += [f"{_MASTER_INDEX['a']}_to"]
+                else:
+                    cols += [f"{_MASTER_INDEX['c']}_to"]
+            else:
+                cols += [f"{_MASTER_INDEX['s']}_to"]
+        else:
+            cols += [col]
+    data.columns = cols
+
+    
     # Other input management
     if animation_frame.capitalize() not in data.columns:
-        raise WrongInput(
-            f"'{animation_frame}' not a valid option for 'animation_frame'. Valid options are: {data.columns}"
-        )
+        raise WrongInput(f"'{animation_frame}' not a valid option for 'animation_frame'. Valid options are: {data.columns}")
+    
+    plot_parameters_to_cap = {'x': x,
+                              'y': y,
+                              'color': color,
+                              'facet_row': facet_row,
+                              'facet_col': facet_col,
+                              'animation_frame': animation_frame,
+                              }
+    plot_parameters_to_low = {'chart': chart,
+                              'mode': mode,
+                              }
 
-    plot_parameters_to_cap = {
-        "x": x,
-        "y": y,
-        "color": color,
-        "facet_row": facet_row,
-        "facet_col": facet_col,
-        "animation_frame": animation_frame,
-    }
-    plot_parameters_to_low = {
-        "chart": chart,
-        "mode": mode,
-    }
-
-    for param, given in plot_parameters_to_cap.items():
+    for param,given in plot_parameters_to_cap.items():
         if given != None:
             plot_parameters_to_cap[param] = given.capitalize()
-    for param, given in plot_parameters_to_low.items():
+    for param,given in plot_parameters_to_low.items():
         if given != None:
             plot_parameters_to_low[param] = given.lower()
-
+    
     plot_parameters = plot_parameters_to_cap.copy()
     plot_parameters.update(plot_parameters_to_low)
-    for param, given in plot_parameters.items():
-        if given != None:
-            if _MASTER_INDEX["s"] in given:
-                plot_parameters[param] = given.replace(_MASTER_INDEX["s"], "Item")
-            if _MASTER_INDEX["a"] in given:
-                plot_parameters[param] = given.replace(_MASTER_INDEX["a"], "Item")
-            if _MASTER_INDEX["c"] in given:
-                plot_parameters[param] = given.replace(_MASTER_INDEX["c"], "Item")
+    # for param,given in plot_parameters.items():
+        # if given != None:
+        #     if _MASTER_INDEX['s'] in given:
+        #         plot_parameters[param] = given.replace(_MASTER_INDEX['s'],'Item')
+        #     if _MASTER_INDEX['a'] in given:
+        #         plot_parameters[param] = given.replace(_MASTER_INDEX['a'],'Item')
+        #     if _MASTER_INDEX['c'] in given:
+        #         plot_parameters[param] = given.replace(_MASTER_INDEX['c'],'Item')
 
-    for key, value in plot_parameters.items():
+
+    for key,value in plot_parameters.items():
         if value != None:
-            if value.split("_")[-1] == "from":
-                indices = _INDECES[instance.table_type][matrix]["indices"]
+            if value.split("_")[-1] == 'from':
+                indices = _INDECES[instance.table_type][matrix]['indices']
                 elements = []
                 for i in indices:
                     elements += [i]
                 if value.split("_")[0] not in elements:
-                    raise WrongInput(
-                        f"Matrix {matrix} does not accept '{value}' as a valid option for '{key}'. Please rearrange your inputs"
-                    )
-
-            if value.split("_")[-1] == "to":
-                columns = _INDECES[instance.table_type][matrix]["columns"]
+                    raise WrongInput(f"Matrix {matrix} does not accept '{value}' as a valid option for '{key}'. Please rearrange your inputs")
+    
+            if value.split("_")[-1] == 'to':
+                columns = _INDECES[instance.table_type][matrix]['columns']
                 elements = []
                 for i in columns:
                     elements += [i]
                 if value.split("_")[0] not in elements:
-                    raise WrongInput(
-                        f"Matrix {matrix} does not accept '{value}' as a valid option for '{key}'. Please rearrange your inputs"
-                    )
+                    raise WrongInput(f"Matrix {matrix} does not accept '{value}' as a valid option for '{key}'. Please rearrange your inputs")            
+
 
     # Plotting
     colors = Color()
-    colors.has_enough_colors(plot_parameters["color"])
-    if chart == "bar":
-        fig = px.bar(
-            data,
-            x=plot_parameters["x"],
-            y=plot_parameters["y"],
-            color=plot_parameters["color"],
-            animation_frame=plot_parameters["animation_frame"],
-            facet_row=plot_parameters["facet_row"],
-            facet_col=plot_parameters["facet_col"],
-            barmode=plot_parameters["mode"],
-            color_discrete_sequence=colors,
-        )
+    colors.has_enough_colors(plot_parameters['color'])
+    if chart=='bar':
+        fig = px.bar(data,
+                     x=plot_parameters['x'],
+                     y=plot_parameters['y'],
+                     color=plot_parameters['color'],
+                     animation_frame=plot_parameters['animation_frame'],
+                     facet_row = plot_parameters['facet_row'],
+                     facet_col = plot_parameters['facet_col'],
+                     barmode=plot_parameters['mode'],     
+                     color_discrete_sequence = colors,
+                     )
 
     for key in layout:
         try:
             fig["layout"][key] = layout[key]
         except:
             pass
-
+            
     _plotter(fig, path, auto_open=auto_open)
-
-
+        
+        
 def _plotZYUS(
-    instance,
-    matrix,
-    x,
-    y,
-    color,
-    facet_row,
-    facet_col,
-    animation_frame,
-    base_scenario,
-    path,
-    chart,
-    mode,
-    auto_open,
-    layout,
-    shared_yaxes,
-    shared_xaxes,
-    filters,
+        instance,
+        matrix,
+        x,
+        y,
+        color,
+        facet_row,
+        facet_col,
+        animation_frame,
+        base_scenario,
+        path,
+        item_from,
+        chart,
+        mode,
+        auto_open,
+        layout,
+        shared_yaxes,
+        shared_xaxes,
+        filters,
 ):
-
+    
     # Extracting raw data
     scenarios = instance.scenarios
     if base_scenario != None:
-        scenarios.remove(base_scenario)
-    to_plot = instance.get_data(
-        matrices=matrix, format="dict", scenarios=scenarios, base_scenario=base_scenario
-    )
-
+        scenarios.remove(base_scenario)  
+    to_plot = instance.get_data(matrices=matrix, format="dict", scenarios=scenarios, base_scenario=base_scenario)
+    
     # Processing raw data for plottinh
     data = pd.DataFrame()
-    for scenario in scenarios:
+    for scenario in scenarios:     
         to_append = to_plot[scenario][matrix]
-        to_append = to_append.stack(level=[0, 1, 2]).to_frame()
+        to_append = to_append.stack(level=[0,1,2]).to_frame()
         to_append.columns = [scenario]
-        to_append = to_append.stack(level=[0]).to_frame()
-        to_append.columns = [f"Value_{scenario}"]
+        to_append = to_append.stack(level=[0]).to_frame()        
+        to_append.columns = [f'Value_{scenario}']
         data = pd.concat([data, to_append], axis=1)
-    data.fillna(0, inplace=True)
+    data.fillna(0,inplace=True)
     data = data.sum(1).to_frame()
-    data.columns = ["Value"]
-
+    data.columns = ['Value']
+    
     # Slicing according to filters
-    if matrix in ["Z", "z", "U", "u", "S", "s"]:
-        data.index.names = [
-            f"{_MASTER_INDEX['r']}_from",
-            "Level_from",
-            "Item_from",
-            f"{_MASTER_INDEX['r']}_to",
-            "Level_to",
-            "Item_to",
-            "Scenario",
-        ]
-        if instance.table_type == "IOT":
-            data = data.loc[
-                (
-                    filters[f"filter_{_MASTER_INDEX['r']}_from"],
-                    slice(None),
-                    filters[f"filter_{_MASTER_INDEX['s']}_from"],
-                    filters[f"filter_{_MASTER_INDEX['r']}_to"],
-                    slice(None),
-                    filters[f"filter_{_MASTER_INDEX['s']}_to"],
-                    slice(None),
-                ),
-                :,
-            ]
-        elif instance.table_type == "SUT":
-            data = data.loc[
-                (
-                    filters[f"filter_{_MASTER_INDEX['r']}_from"],
-                    slice(None),
-                    filters[f"filter_{_MASTER_INDEX['a']}_from"]
-                    + filters[f"filter_{_MASTER_INDEX['c']}_from"],
-                    filters[f"filter_{_MASTER_INDEX['r']}_to"],
-                    slice(None),
-                    filters[f"filter_{_MASTER_INDEX['a']}_to"]
-                    + filters[f"filter_{_MASTER_INDEX['c']}_to"],
-                    slice(None),
-                ),
-                :,
-            ]
-    elif matrix in ["Y"]:
-        data.index.names = [
-            f"{_MASTER_INDEX['r']}_from",
-            "Level_from",
-            "Item_from",
-            f"{_MASTER_INDEX['r']}_to",
-            "Level_to",
-            f"{_MASTER_INDEX['n']}".replace(" ", "_"),
-            "Scenario",
-        ]
-        if instance.table_type == "IOT":
-            data = data.loc[
-                (
-                    filters[f"filter_{_MASTER_INDEX['r']}_from"],
-                    slice(None),
-                    filters[f"filter_{_MASTER_INDEX['s']}_from"],
-                    filters[f"filter_{_MASTER_INDEX['r']}_to"],
-                    slice(None),
-                    filters[f"filter_{_MASTER_INDEX['n']}".replace(" ", "_")],
-                    slice(None),
-                ),
-                :,
-            ]
-        elif instance.table_type == "SUT":
-            data = data.loc[
-                (
-                    filters[f"filter_{_MASTER_INDEX['r']}_from"],
-                    slice(None),
-                    filters[f"filter_{_MASTER_INDEX['a']}_from"]
-                    + filters[f"filter_{_MASTER_INDEX['c']}_from"],
-                    filters[f"filter_{_MASTER_INDEX['r']}_to"],
-                    slice(None),
-                    filters[f"filter_{_MASTER_INDEX['n']}".replace(" ", "_")],
-                    slice(None),
-                ),
-                :,
-            ]
-    data.reset_index(inplace=True)
+    if matrix in ['Z','z','U','u','S','s']:
+        data.index.names = [f"{_MASTER_INDEX['r']}_from", 'Level_from', "Item_from", f"{_MASTER_INDEX['r']}_to", 'Level_to', "Item_to", 'Scenario']
+        if instance.table_type == 'IOT':
+            data = data.loc[(filters[f"filter_{_MASTER_INDEX['r']}_from"],
+                             slice(None),
+                             filters[f"filter_{_MASTER_INDEX['s']}_from"],
+                             filters[f"filter_{_MASTER_INDEX['r']}_to"],
+                             slice(None),
+                             filters[f"filter_{_MASTER_INDEX['s']}_to"],
+                             slice(None)), 
+                            :]
+        elif instance.table_type == 'SUT':
+            if matrix == 'S' or matrix == 's':
+                data = data.loc[(filters[f"filter_{_MASTER_INDEX['r']}_from"],
+                                 _MASTER_INDEX['a'],
+                                 filters[f"filter_{_MASTER_INDEX['a']}_from"],
+                                 filters[f"filter_{_MASTER_INDEX['r']}_to"],
+                                 _MASTER_INDEX['c'],
+                                 filters[f"filter_{_MASTER_INDEX['c']}_to"],
+                                 slice(None)), 
+                                :]
+            if matrix == 'U' or matrix == 'u':
+                data = data.loc[(filters[f"filter_{_MASTER_INDEX['r']}_from"],
+                                 _MASTER_INDEX['c'],
+                                 filters[f"filter_{_MASTER_INDEX['c']}_from"],
+                                 filters[f"filter_{_MASTER_INDEX['r']}_to"],
+                                 _MASTER_INDEX['a'],
+                                 filters[f"filter_{_MASTER_INDEX['a']}_to"],
+                                 slice(None)), 
+                                :]
 
+    elif matrix in ['Y']:
+        data.index.names = [f"{_MASTER_INDEX['r']}_from", 'Level_from', "Item_from", f"{_MASTER_INDEX['r']}_to", 'Level_to', f"{_MASTER_INDEX['n']}".replace(" ","_"), 'Scenario']
+        if instance.table_type == 'IOT':
+            data = data.loc[(filters[f"filter_{_MASTER_INDEX['r']}_from"],
+                             slice(None),
+                             filters[f"filter_{_MASTER_INDEX['s']}_from"],
+                             filters[f"filter_{_MASTER_INDEX['r']}_to"],
+                             slice(None),
+                             filters[f"filter_{_MASTER_INDEX['n']}".replace(" ","_")],
+                             slice(None)), 
+                            :]
+        elif instance.table_type == 'SUT':
+            data1 = data.loc[(filters[f"filter_{_MASTER_INDEX['r']}_from"],
+                              _MASTER_INDEX['a'],
+                              filters[f"filter_{_MASTER_INDEX['a']}_from"],
+                              filters[f"filter_{_MASTER_INDEX['r']}_to"],
+                              slice(None),
+                              filters[f"filter_{_MASTER_INDEX['n']}".replace(" ","_")],
+                              slice(None)), 
+                             :]
+            data2 = data.loc[(filters[f"filter_{_MASTER_INDEX['r']}_from"],
+                              _MASTER_INDEX['c'],
+                              filters[f"filter_{_MASTER_INDEX['c']}_from"],
+                              filters[f"filter_{_MASTER_INDEX['r']}_to"],
+                              slice(None),
+                              filters[f"filter_{_MASTER_INDEX['n']}".replace(" ","_")],
+                              slice(None)), 
+                             :]
+            data = data1.append(data2)
+    data.reset_index(inplace=True)
+    data = data[data["Level_from"]==item_from]
+    cols = []
+    for col in data.columns:
+        if col == "Item_from":
+            if instance.table_type == 'SUT':
+                if item_from == _MASTER_INDEX['c']:
+                    cols += [f"{_MASTER_INDEX['c']}_from"]
+                else:
+                    cols += [f"{_MASTER_INDEX['a']}_from"]
+            else:
+                cols += [f"{_MASTER_INDEX['s']}_from"]                
+        elif col == "Item_to":
+            if instance.table_type == 'SUT':
+                if item_from == _MASTER_INDEX['c']:
+                    cols += [f"{_MASTER_INDEX['a']}_to"]
+                else:
+                    cols += [f"{_MASTER_INDEX['c']}_to"]
+            else:
+                cols += [f"{_MASTER_INDEX['s']}_to"]
+        else:
+            cols += [col]
+    data.columns = cols
+
+    
     # Other input management
     if animation_frame.capitalize() not in data.columns:
-        raise WrongInput(
-            f"'{animation_frame}' not a valid option for 'animation_frame'. Valid options are: {data.columns}"
-        )
+        raise WrongInput(f"'{animation_frame}' not a valid option for 'animation_frame'. Valid options are: {data.columns}")
+    
+    plot_parameters_to_cap = {'x': x,
+                              'y': y,
+                              'color': color,
+                              'facet_row': facet_row,
+                              'facet_col': facet_col,
+                              'animation_frame': animation_frame,
+                              }
+    plot_parameters_to_low = {'chart': chart,
+                              'mode': mode,
+                              }
 
-    plot_parameters_to_cap = {
-        "x": x,
-        "y": y,
-        "color": color,
-        "facet_row": facet_row,
-        "facet_col": facet_col,
-        "animation_frame": animation_frame,
-    }
-    plot_parameters_to_low = {
-        "chart": chart,
-        "mode": mode,
-    }
-
-    for param, given in plot_parameters_to_cap.items():
+    for param,given in plot_parameters_to_cap.items():
         if given != None:
             plot_parameters_to_cap[param] = given.capitalize()
-    for param, given in plot_parameters_to_low.items():
+    for param,given in plot_parameters_to_low.items():
         if given != None:
             plot_parameters_to_low[param] = given.lower()
-
+    
     plot_parameters = plot_parameters_to_cap.copy()
     plot_parameters.update(plot_parameters_to_low)
-    for param, given in plot_parameters.items():
-        if given != None:
-            if _MASTER_INDEX["s"] in given:
-                plot_parameters[param] = given.replace(_MASTER_INDEX["s"], "Item")
-            if _MASTER_INDEX["a"] in given:
-                plot_parameters[param] = given.replace(_MASTER_INDEX["a"], "Item")
-            if _MASTER_INDEX["c"] in given:
-                plot_parameters[param] = given.replace(_MASTER_INDEX["c"], "Item")
-
-    for key, value in plot_parameters.items():
+    
+    for key,value in plot_parameters.items():
         if value != None:
-            if value.split("_")[-1] == "from":
-                indices = _INDECES[instance.table_type][matrix]["indices"]
+            if value.split("_")[-1] == 'from':
+                indices = _INDECES[instance.table_type][matrix]['indices']
                 elements = []
                 for i in indices:
                     elements += [i]
                 if value.split("_")[0] not in elements:
-                    raise WrongInput(
-                        f"Matrix {matrix} does not accept '{value}' as a valid option for '{key}'. Please rearrange your inputs"
-                    )
-
-            if value.split("_")[-1] == "to":
-                columns = _INDECES[instance.table_type][matrix]["columns"]
+                    raise WrongInput(f"Matrix {matrix} does not accept '{value}' as a valid option for '{key}'. Please rearrange your inputs")
+    
+            if value.split("_")[-1] == 'to':
+                columns = _INDECES[instance.table_type][matrix]['columns']
                 elements = []
                 for i in columns:
                     elements += [i]
                 if value.split("_")[0] not in elements:
-                    raise WrongInput(
-                        f"Matrix {matrix} does not accept '{value}' as a valid option for '{key}'. Please rearrange your inputs"
-                    )
+                    raise WrongInput(f"Matrix {matrix} does not accept '{value}' as a valid option for '{key}'. Please rearrange your inputs")        
 
+    
     # Plotting
     colors = Color()
-    colors.has_enough_colors(plot_parameters["color"])
-    if chart == "bar":
-        fig = px.bar(
-            data,
-            x=plot_parameters["x"],
-            y=plot_parameters["y"],
-            color=plot_parameters["color"],
-            animation_frame=plot_parameters["animation_frame"],
-            facet_row=plot_parameters["facet_row"],
-            facet_col=plot_parameters["facet_col"],
-            barmode=plot_parameters["mode"],
-            color_discrete_sequence=colors,
-        )
+    colors.has_enough_colors(plot_parameters['color'])    
+    if chart=='bar':
+        fig = px.bar(data,
+                     x=plot_parameters['x'],
+                     y=plot_parameters['y'],
+                     color=plot_parameters['color'],
+                     animation_frame=plot_parameters['animation_frame'],
+                     facet_row = plot_parameters['facet_row'],
+                     facet_col = plot_parameters['facet_col'],
+                     barmode=plot_parameters['mode'],    
+                     color_discrete_sequence = colors
+                     )
 
     for key in layout:
         try:
             fig["layout"][key] = layout[key]
         except:
             pass
-
+            
     _plotter(fig, path, auto_open=auto_open)
 
-
+        
+        
 def _plotVEMF(
-    instance,
-    matrix,
-    x,
-    y,
-    color,
-    facet_row,
-    facet_col,
-    animation_frame,
-    base_scenario,
-    path,
-    chart,
-    mode,
-    auto_open,
-    layout,
-    shared_yaxes,
-    shared_xaxes,
-    filters,
+        instance,
+        matrix,
+        x,
+        y,
+        color,
+        facet_row,
+        facet_col,
+        animation_frame,
+        base_scenario,
+        path,
+        item_from,
+        chart,
+        mode,
+        auto_open,
+        layout,
+        shared_yaxes,
+        shared_xaxes,
+        filters,
 ):
-
+    
     # Extracting raw data
     scenarios = instance.scenarios
     if base_scenario != None:
-        scenarios.remove(base_scenario)
-    to_plot = instance.get_data(
-        matrices=matrix, format="dict", scenarios=scenarios, base_scenario=base_scenario
-    )
-
+        scenarios.remove(base_scenario)  
+    to_plot = instance.get_data(matrices=matrix, format="dict", scenarios=scenarios, base_scenario=base_scenario)
+    
     # Processing raw data for plottinh
     data = pd.DataFrame()
-    for scenario in scenarios:
+    for scenario in scenarios:     
         to_append = to_plot[scenario][matrix]
-        to_append = to_append.stack(level=[0, 1, 2]).to_frame()
+        to_append = to_append.stack(level=[0,1,2]).to_frame()
         to_append.columns = [scenario]
-        to_append = to_append.stack(level=[0]).to_frame()
-        to_append.columns = [f"Value_{scenario}"]
+        to_append = to_append.stack(level=[0]).to_frame()        
+        to_append.columns = [f'Value_{scenario}']
         data = pd.concat([data, to_append], axis=1)
-    data.fillna(0, inplace=True)
+    data.fillna(0,inplace=True)
     data = data.sum(1).to_frame()
-    data.columns = ["Value"]
-
+    data.columns = ['Value']
+    
     # Slicing according to filters
-    if matrix in ["V", "v", "M"]:
-        data.index.names = [
-            f"{_MASTER_INDEX['f']}",
-            f"{_MASTER_INDEX['r']}_to",
-            "Level_to",
-            "Item_to",
-            "Scenario",
-        ]
-        if instance.table_type == "IOT":
-            data = data.loc[
-                (
-                    filters[f"filter_{_MASTER_INDEX['f']}".replace(" ", "_")],
-                    filters[f"filter_{_MASTER_INDEX['r']}_to"],
-                    slice(None),
-                    filters[f"filter_{_MASTER_INDEX['s']}_to"],
-                    slice(None),
-                ),
-                :,
-            ]
-        elif instance.table_type == "SUT":
-            data = data.loc[
-                (
-                    filters[f"filter_{_MASTER_INDEX['f']}".replace(" ", "_")],
-                    filters[f"filter_{_MASTER_INDEX['r']}_to"],
-                    slice(None),
-                    filters[f"filter_{_MASTER_INDEX['a']}_to"]
-                    + filters[f"filter_{_MASTER_INDEX['c']}_to"],
-                    slice(None),
-                ),
-                :,
-            ]
-    elif matrix in ["E", "e", "F"]:
-        data.index.names = [
-            f"{_MASTER_INDEX['k']}",
-            f"{_MASTER_INDEX['r']}_to",
-            "Level_to",
-            "Item_to",
-            "Scenario",
-        ]
-        if instance.table_type == "IOT":
-            data = data.loc[
-                (
-                    filters[f"filter_{_MASTER_INDEX['k']}".replace(" ", "_")],
-                    filters[f"filter_{_MASTER_INDEX['r']}_to"],
-                    slice(None),
-                    filters[f"filter_{_MASTER_INDEX['s']}_to"],
-                    slice(None),
-                ),
-                :,
-            ]
-        elif instance.table_type == "SUT":
-            data = data.loc[
-                (
-                    filters[f"filter_{_MASTER_INDEX['k']}".replace(" ", "_")],
-                    filters[f"filter_{_MASTER_INDEX['r']}_to"],
-                    slice(None),
-                    filters[f"filter_{_MASTER_INDEX['a']}_to"]
-                    + filters[f"filter_{_MASTER_INDEX['c']}_to"],
-                    slice(None),
-                ),
-                :,
-            ]
-    elif matrix in ["EY"]:
-        data.index.names = [
-            f"{_MASTER_INDEX['k']}",
-            f"{_MASTER_INDEX['r']}_to",
-            "Level_to",
-            f"{_MASTER_INDEX['n']}".replace(" ", "_"),
-            "Scenario",
-        ]
-        data = data.loc[
-            (
-                filters[f"filter_{_MASTER_INDEX['k']}".replace(" ", "_")],
-                filters[f"filter_{_MASTER_INDEX['r']}_to"],
-                slice(None),
-                filters[f"filter_{_MASTER_INDEX['n']}_to"],
-                slice(None),
-            ),
-            :,
-        ]
+    if matrix in ['V','v','M']:
+        data.index.names = [f"{_MASTER_INDEX['f']}", f"{_MASTER_INDEX['r']}_to", 'Level_to', "Item_to", 'Scenario']
+        if instance.table_type == 'IOT':
+            data = data.loc[(filters[f"filter_{_MASTER_INDEX['f']}".replace(" ","_")],
+                             filters[f"filter_{_MASTER_INDEX['r']}_to"],
+                             slice(None),
+                             filters[f"filter_{_MASTER_INDEX['s']}_to"],
+                             slice(None)), 
+                            :]
+        elif instance.table_type == 'SUT':
+            data = data.loc[(filters[f"filter_{_MASTER_INDEX['f']}".replace(" ","_")],
+                             filters[f"filter_{_MASTER_INDEX['r']}_to"],
+                             slice(None),
+                             filters[f"filter_{_MASTER_INDEX['a']}_to"]+filters[f"filter_{_MASTER_INDEX['c']}_to"],
+                             slice(None)), 
+                            :]
+    elif matrix in ['E','e','F']:
+        data.index.names = [f"{_MASTER_INDEX['k']}", f"{_MASTER_INDEX['r']}_to", 'Level_to', "Item_to", 'Scenario']
+        if instance.table_type == 'IOT':
+            data = data.loc[(filters[f"filter_{_MASTER_INDEX['k']}".replace(" ","_")],
+                             filters[f"filter_{_MASTER_INDEX['r']}_to"],
+                             slice(None),
+                             filters[f"filter_{_MASTER_INDEX['s']}_to"],
+                             slice(None)), 
+                            :]
+        elif instance.table_type == 'SUT':
+            data = data.loc[(filters[f"filter_{_MASTER_INDEX['k']}".replace(" ","_")],
+                             filters[f"filter_{_MASTER_INDEX['r']}_to"],
+                             slice(None),
+                             filters[f"filter_{_MASTER_INDEX['a']}_to"]+filters[f"filter_{_MASTER_INDEX['c']}_to"],
+                             slice(None)), 
+                            :]
+    elif matrix in ['EY']:
+        data.index.names = [f"{_MASTER_INDEX['k']}", f"{_MASTER_INDEX['r']}_to", 'Level_to', f"{_MASTER_INDEX['n']}".replace(" ","_"), 'Scenario']
+        data = data.loc[(filters[f"filter_{_MASTER_INDEX['k']}".replace(" ","_")],
+                             filters[f"filter_{_MASTER_INDEX['r']}_to"],
+                             slice(None),
+                             filters[f"filter_{_MASTER_INDEX['n']}_to"],
+                             slice(None)), 
+                            :]
     data.reset_index(inplace=True)
+    
+    item_units = []
+    if len(set(to_plot[list(to_plot.keys())[0]]['units'][list(data.columns)[0]].T.values[0])) > 1:
+        for i in range(data.shape[0]):
+            s = data.iloc[i,list(data.columns).index("Scenario")]
+            item_units += [f"{data.iloc[i,0]} [{to_plot[s]['units'][list(data.columns)[0]].loc[data.iloc[i,0],'unit']}]"]
+        data[list(data.columns)[0]] = item_units
+    
+    
+    # data = data[data["Level_from"]==item_from]
+    cols = []
+    for col in data.columns:
+        if col == "Item_from":
+            if instance.table_type == 'SUT':
+                if item_from == _MASTER_INDEX['c']:
+                    cols += [f"{_MASTER_INDEX['c']}_from"]
+                else:
+                    cols += [f"{_MASTER_INDEX['a']}_from"]
+            else:
+                cols += [f"{_MASTER_INDEX['s']}_from"]                
+        elif col == "Item_to":
+            if instance.table_type == 'SUT':
+                if item_from == _MASTER_INDEX['c']:
+                    cols += [f"{_MASTER_INDEX['c']}_to"]
+                else:
+                    cols += [f"{_MASTER_INDEX['a']}_to"]
+            else:
+                cols += [f"{_MASTER_INDEX['s']}_to"]
+        else:
+            cols += [col]
+    data.columns = cols
 
+    
     # Other input management
     if animation_frame.capitalize() not in data.columns:
-        raise WrongInput(
-            f"'{animation_frame}' not a valid option for 'animation_frame'. Valid options are: {data.columns}"
-        )
+        raise WrongInput(f"'{animation_frame}' not a valid option for 'animation_frame'. Valid options are: {data.columns}")
+    
+    plot_parameters_to_cap = {'x': x,
+                              'y': y,
+                              'color': color,
+                              'facet_row': facet_row,
+                              'facet_col': facet_col,
+                              'animation_frame': animation_frame,
+                              }
+    plot_parameters_to_low = {'chart': chart,
+                              'mode': mode,
+                              }
 
-    plot_parameters_to_cap = {
-        "x": x,
-        "y": y,
-        "color": color,
-        "facet_row": facet_row,
-        "facet_col": facet_col,
-        "animation_frame": animation_frame,
-    }
-    plot_parameters_to_low = {
-        "chart": chart,
-        "mode": mode,
-    }
-
-    for param, given in plot_parameters_to_cap.items():
+    for param,given in plot_parameters_to_cap.items():
         if given != None:
             plot_parameters_to_cap[param] = given.capitalize()
-    for param, given in plot_parameters_to_low.items():
+    for param,given in plot_parameters_to_low.items():
         if given != None:
             plot_parameters_to_low[param] = given.lower()
-
+    
     plot_parameters = plot_parameters_to_cap.copy()
     plot_parameters.update(plot_parameters_to_low)
-    for param, given in plot_parameters.items():
-        if given != None:
-            if _MASTER_INDEX["s"] in given:
-                plot_parameters[param] = given.replace(_MASTER_INDEX["s"], "Item")
-            if _MASTER_INDEX["a"] in given:
-                plot_parameters[param] = given.replace(_MASTER_INDEX["a"], "Item")
-            if _MASTER_INDEX["c"] in given:
-                plot_parameters[param] = given.replace(_MASTER_INDEX["c"], "Item")
 
-    for key, value in plot_parameters.items():
+
+    for key,value in plot_parameters.items():
         if value != None:
-            if value.split("_")[-1] == "from":
-                indices = _INDECES[instance.table_type][matrix]["indices"]
+            if value.split("_")[-1] == 'from':
+                indices = _INDECES[instance.table_type][matrix]['indices']
                 elements = []
                 for i in indices:
                     elements += [i]
                 if value.split("_")[0] not in elements:
-                    raise WrongInput(
-                        f"Matrix {matrix} does not accept '{value}' as a valid option for '{key}'. Please rearrange your inputs"
-                    )
-
-            if value.split("_")[-1] == "to":
-                columns = _INDECES[instance.table_type][matrix]["columns"]
+                    raise WrongInput(f"Matrix {matrix} does not accept '{value}' as a valid option for '{key}'. Please rearrange your inputs")
+    
+            if value.split("_")[-1] == 'to':
+                columns = _INDECES[instance.table_type][matrix]['columns']
                 elements = []
                 for i in columns:
                     elements += [i]
                 if value.split("_")[0] not in elements:
-                    raise WrongInput(
-                        f"Matrix {matrix} does not accept '{value}' as a valid option for '{key}'. Please rearrange your inputs"
-                    )
+                    raise WrongInput(f"Matrix {matrix} does not accept '{value}' as a valid option for '{key}'. Please rearrange your inputs")        
+    
 
     # Plotting
     colors = Color()
-    colors.has_enough_colors(plot_parameters["color"])
-    if chart == "bar":
-        fig = px.bar(
-            data,
-            x=plot_parameters["x"],
-            y=plot_parameters["y"],
-            color=plot_parameters["color"],
-            animation_frame=plot_parameters["animation_frame"],
-            facet_row=plot_parameters["facet_row"],
-            facet_col=plot_parameters["facet_col"],
-            barmode=plot_parameters["mode"],
-            color_discrete_sequence=colors,
-        )
+    colors.has_enough_colors(plot_parameters['color'])
+    if chart=='bar':
+        fig = px.bar(data,
+                     x=plot_parameters['x'],
+                     y=plot_parameters['y'],
+                     color=plot_parameters['color'],
+                     animation_frame=plot_parameters['animation_frame'],
+                     facet_row = plot_parameters['facet_row'],
+                     facet_col = plot_parameters['facet_col'],
+                     barmode=plot_parameters['mode'],    
+                     color_discrete_sequence = colors
+                     )
 
     for key in layout:
         try:
             fig["layout"][key] = layout[key]
         except:
             pass
-
+    
     _plotter(fig, path, auto_open=auto_open)
+    
+    

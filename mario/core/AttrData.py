@@ -2051,26 +2051,27 @@ class Database(CoreModel):
         _plotter(fig=fig, directory=path, auto_open=auto_open)
 
     def plot_matrix(
-        self,
-        matrix,
-        x,
-        color,
-        y="Value",
-        facet_row=None,
-        facet_col=None,
-        animation_frame="Scenario",
-        base_scenario=None,
-        path=None,
-        mode="stack",
-        layout=None,
-        auto_open=True,
-        shared_yaxes="all",
-        shared_xaxes=True,
-        **filters,
-    ):
-
+            self,
+            matrix,
+            x,
+            color,
+            y= 'Value',
+            item = _MASTER_INDEX['s'],
+            facet_row=None,
+            facet_col=None,
+            animation_frame="Scenario",
+            base_scenario=None,
+            path=None,
+            mode="stack",
+            layout = None,
+            auto_open=True,
+            shared_yaxes='all',
+            shared_xaxes=True,
+            **filters
+            ):
+        
         """Generates a general html barplot giving the user certain degrees of freedom such as:
-
+            
             * Regions (both the ones on the indices and columns)
             * Sectors/Commodities/Activities (both the ones on the indices and columns)
             * Scenarios
@@ -2080,7 +2081,7 @@ class Database(CoreModel):
         ----------
         matrix : str
             Matrix to be plotted. Three families of matrix can be read according to their intrinsic structure:
-
+                
             #. The first family includes only matrix 'X', which has 3 levels of indices and 1 level of columns
             #. The second family includes matrices 'Z','z','U','u','S','s','Y', which have 3 levels of indices and 3 levels of columns
             #. The third family includes matrices 'E','e','V','v','EY', which have 1 level of indices and 3 levels of columns
@@ -2095,24 +2096,31 @@ class Database(CoreModel):
         y : str
             Degree of freedom to be showed on the y axis. Default y='Value'.
             Acceptable options change according to the matrix family
+        
+        item: str
+            Indicates the main level to be plot. 
+            Possible options are "Commodity","Activity" for SUT tables and "Sector" for IOT tables.
+            It is mandatory to be defined only for SUT tables.
+            For "Z","z","U","u","S","s","Y","X", it selects the rows level between 'Activity' and 'Commodity'.
+            For "V","v","E","e","EY","M","F", it selectes the columns level between 'Activity' and 'Commodity'.
 
         facet_row:
-            String referring to one level of indices of the given matrix.
+            String referring to one level of indices of the given matrix. 
             Values from this column or array_like are used to assign marks to facetted subplots in the vertical direction
 
         facet_col:
-            String referring to one level of indices of the given matrix.
+            String referring to one level of indices of the given matrix. 
             Values from this column or array_like are used to assign marks to facetted subplots in the horizontal direction
 
         animation_frame:
             Defines whether to switch from one scenario to the others by means of sliders
-
+            
         base_scenario : str
             By setting None, the passed matrix will be displayed for each scenario available.
             By setting this parameter equal to one of the scenarios available,
             the passed matrix will be displayed in terms of difference with respect to each of the other scenarios.
             In this last case, the selected scenario will not be displayed
-
+  
         mode : str
             Equivalent to plotly.grap_object.figure.update_layout barmode. Determines how bars at the same location coordinate are displayed on the graph.
             * With "stack", the bars are stacked on top of one another
@@ -2126,7 +2134,7 @@ class Database(CoreModel):
         filters : dict
             The user has the option to filter the sets according to the necessity.
             Acceptable options are the following and must be provided as list:
-
+                
             * 'filter_Region_from',
             * 'filter_Region_to',
             * 'filter_Sector_from',
@@ -2136,6 +2144,32 @@ class Database(CoreModel):
             * 'filter_Commodity'
 
         """
+
+
+        ### Inputs handling
+        item_from = item
+        if self.table_type == 'SUT':
+            if item_from == _MASTER_INDEX['s'] and matrix in ['z','Z','U','u','S','s','Y','X']:
+                raise WrongInput(f"Please set 'item_from' as '{_MASTER_INDEX['c']}' or '{_MASTER_INDEX['a']}'")
+            if matrix not in ['v','V','E','e','EY','F','M'] and item_from not in [_MASTER_INDEX['c'], _MASTER_INDEX['a']]:
+                raise WrongInput(f"Please set 'item_from' as '{_MASTER_INDEX['c']}' or '{_MASTER_INDEX['a']}'")
+        if self.table_type == 'IOT' and item_from != _MASTER_INDEX['s']:
+            raise WrongInput(f"Please set 'item_from' as '{_MASTER_INDEX['s']}'")
+
+            
+        if self.table_type=='SUT' and matrix=='Z' and item_from==_MASTER_INDEX['c']:
+            matrix = 'U'
+            print("Warning: according to the set combination of 'matrix' and 'item_from', matrix has been changed to '{}'".format(matrix))
+        if self.table_type=='SUT' and matrix=='z' and item_from==_MASTER_INDEX['c']:
+            matrix = 'u'
+            print("Warning: according to the set combination of 'matrix' and 'item_from', matrix has been changed to '{}'".format(matrix))
+        if self.table_type=='SUT' and matrix=='Z' and item_from==_MASTER_INDEX['a']:
+            matrix = 'S'
+            print("Warning: according to the set combination of 'matrix' and 'item_from', matrix has been changed to '{}'".format(matrix))
+        if self.table_type=='SUT' and matrix=='z' and item_from==_MASTER_INDEX['a']:
+            matrix = 's'
+            print("Warning: according to the set combination of 'matrix' and 'item_from', matrix has been changed to '{}'".format(matrix))
+
 
         ### Preparing filters
         for filt in filters:
@@ -2161,39 +2195,42 @@ class Database(CoreModel):
         for filt in filter_options:
             filters[filt] = filters.get(filt, "all")
         filters = filtering(self, filters)
-
+        
+        
         # Setting the path
         path = self._getdir(path, "Plots", f"{matrix}.html")
+        
 
         # Importing and defining customizing layout
         if layout == None:
-            layout = _PLOTS_LAYOUT
-
+            layout = _PLOTS_LAYOUT   
+        
         if base_scenario == None:
-            layout["title"] = f"{_MATRICES_NAMES[matrix]}"
+            layout['title'] = f"{_MATRICES_NAMES[matrix]}"
         else:
-            layout[
-                "title"
-            ] = f"{_MATRICES_NAMES[matrix]} - Variation with respect to '{base_scenario}' scenario"
+            layout['title'] = f"{_MATRICES_NAMES[matrix]} - Variation with respect to '{base_scenario}' scenario"            
+        
 
         if matrix == "X":
-            plot_function = "_plotX"
+            plot_function = '_plotX'
         if matrix in ["Z", "z", "Y", "U", "u", "S", "s"]:
-            plot_function = "_plotZYUS"
+            plot_function = '_plotZYUS'
         if matrix in ["V", "v", "E", "e", "EY", "M", "F"]:
-            plot_function = "_plotVEMF"
-
+            plot_function = '_plotVEMF'
+            
+            
         eval(f"plt.{plot_function}")(
             self,
             matrix,
             x,
             y,
-            color,
+            color,  
             facet_row,
             facet_col,
             animation_frame,
             base_scenario,
             path,
+            item_from,
             "bar",
             mode,
             auto_open,
