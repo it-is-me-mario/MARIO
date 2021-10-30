@@ -639,6 +639,7 @@ class Database(CoreModel):
         inplace=True,
         calc_all=True,
         notes=None,
+        EY=None,
     ):
 
         """Adding a new extension [Factor of production or Satellite account] to the database
@@ -679,6 +680,9 @@ class Database(CoreModel):
 
         notes : list, Optional
             to add notes to the metadata
+            
+        EY : pd.DataFrame, Optional
+            In case that E,e are used as the matrix, EY can be updated too
 
         Returns
         -------
@@ -749,6 +753,20 @@ class Database(CoreModel):
             raise WrongInput(
                 "units dataframe should has exactly the same index levels of io"
             )
+            
+        if EY is not None:
+            EY = EY.sort_index()
+            
+            if not data.index.equals(EY.index):
+                raise WrongInput(
+                    "EY dataframe should has exactly the same index levels of io"
+                )  
+                
+            # # check if the format of the file is correct
+            if not EY.columns.equals(info['EY'].columns):
+                raise WrongInput(
+                    "The EY has not correct columns."
+                )
 
         try:
             units.columns = ["unit"]
@@ -760,9 +778,14 @@ class Database(CoreModel):
         info[matrix] = info[matrix].append(data.loc[to_add, :])
 
         if matrix_id == "k":
-            info["EY"] = info["EY"].append(
-                pd.DataFrame(0, index=to_add, columns=info["EY"].columns)
-            )
+            
+            if EY is None:
+                
+                info["EY"] = info["EY"].append(
+                    pd.DataFrame(0, index=to_add, columns=info["EY"].columns)
+                )
+            else:
+                info["EY"] = info["EY"].append(EY.loc[to_add,:])
 
         unit_item = _MASTER_INDEX[matrix_id]
         info["units"][unit_item] = info["units"][unit_item].append(units.loc[to_add])
