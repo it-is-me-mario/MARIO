@@ -2150,11 +2150,11 @@ class Database(CoreModel):
         item_from = item
         if self.table_type == 'SUT':
             if item_from == _MASTER_INDEX['s'] and matrix in ['z','Z','U','u','S','s','Y','X']:
-                raise WrongInput(f"Please set 'item_from' as '{_MASTER_INDEX['c']}' or '{_MASTER_INDEX['a']}'")
+                raise WrongInput(f"Please set 'item' as '{_MASTER_INDEX['c']}' or '{_MASTER_INDEX['a']}'")
             if matrix not in ['v','V','E','e','EY','F','M'] and item_from not in [_MASTER_INDEX['c'], _MASTER_INDEX['a']]:
-                raise WrongInput(f"Please set 'item_from' as '{_MASTER_INDEX['c']}' or '{_MASTER_INDEX['a']}'")
+                raise WrongInput(f"Please set 'item' as '{_MASTER_INDEX['c']}' or '{_MASTER_INDEX['a']}'")
         if self.table_type == 'IOT' and item_from != _MASTER_INDEX['s']:
-            raise WrongInput(f"Please set 'item_from' as '{_MASTER_INDEX['s']}'")
+            raise WrongInput(f"Please set 'item' as '{_MASTER_INDEX['s']}'")
 
             
         if self.table_type=='SUT' and matrix=='Z' and item_from==_MASTER_INDEX['c']:
