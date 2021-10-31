@@ -13,7 +13,7 @@ setup(
     author="Mohammad Amin Tahavori, Lorenzo Rinaldi, Nicolo Golinucci",
     author_email="mohammadamin.tahavori@polimi.it",
     version='0.1.0',
-    packages=['mario'],
+    packages=find_packages(),
     license="Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)",
     python_requires=">.3.7.0",
     package_data={"": ["*.txt", "*.dat", "*.doc", "*.rst","*.xlsx"]},
