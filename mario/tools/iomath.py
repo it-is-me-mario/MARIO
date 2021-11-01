@@ -25,7 +25,7 @@ def calc_X(
     """Calculates the production vector
 
     .. math::
-        X = z.X + Y
+        X = z\cdot X + Y
 
     Parameters
     ----------
@@ -50,7 +50,7 @@ def calc_Z(
     """Calculates Intersectoral transaction flows matrix
 
     .. math::
-        Z = z.\hat{X}
+        Z = z\cdot \hat{X}
 
     Parameters
     ----------
@@ -121,7 +121,7 @@ def calc_X_from_w(
     """Calculates Production vector from Leontief coefficients matrix
 
     .. math::
-        x = w.Y
+        x = w\cdot Y
 
     Parameters
     ----------
@@ -172,7 +172,7 @@ def calc_E(e, X):
     """Calculates satellite transaction flows matrix
 
     .. math::
-        E = e.\hat{X}
+        E = e\cdot \hat{X}
 
     Parameters
     ----------
@@ -193,7 +193,7 @@ def calc_V(v, X):
     """Calculates Factor of production transaction flows matrix
 
     .. math::
-        V = v.\hat{X}
+        V = v\cdot\hat{X}
 
     Parameters
     ----------
@@ -214,7 +214,7 @@ def calc_e(E, X):
     """Calculates Satellite transaction coefficients matrix
 
     .. math::
-        e = E.\hat{X}^{-1}
+        e = E\cdot \hat{X}^{-1}
 
 
     Parameters
@@ -239,7 +239,7 @@ def calc_p(
     """Calculating Price index coefficients vector
 
     .. math::
-        p = v.w
+        p = v\cdot w
 
     Parameters
     ----------
@@ -267,7 +267,7 @@ def calc_v(
     """Calculates Factor of production transaction coefficients matrix
 
     .. math::
-        v = V.\hat{X}^{-1}
+        v = V\cdot \hat{X}^{-1}
 
     Parameters
     ----------
@@ -288,7 +288,7 @@ def calc_m(v, w):
     """Calculates Multipliers coefficients matrix
 
     .. math::
-        m = v.w
+        m = v\cdot w
 
     Parameters
     ----------
@@ -310,7 +310,7 @@ def calc_M(m, Y):
 
 
     .. math::
-        M = m.\hat{Y}
+        M = m\cdot \hat{Y}
 
     Parameters
     ----------
@@ -332,7 +332,7 @@ def calc_z(Z, X):
     """Calculates Intersectoral transaction coefficients matrix
 
     .. math::
-        z = Z.\hat{X}^{-1}
+        z = Z\cdot \hat{X}^{-1}
 
     Parameters
     ----------
@@ -356,7 +356,7 @@ def calc_b(X, Z):
     """Calculates Intersectoral transaction direct-output coefficients matrix (for Ghosh model)
 
     .. math::
-        \hat{X}^{-1}.Z
+        \hat{X}^{-1}\cdot Z
 
     Parameters
     ----------
@@ -380,7 +380,7 @@ def calc_F(f, Y):
     """Calculates Footprint flows matrix
 
     .. math::
-        F = f.\hat{Y}
+        F = f\cdot hat{Y}
 
     Parameters
     ----------
@@ -402,7 +402,7 @@ def calc_f(e, w):
     """Calculates Footprint coefficients matrix
 
     .. math::
-        f = e.w
+        f = e\cdot w
 
     Parameters
     ----------

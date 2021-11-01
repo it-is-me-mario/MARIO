@@ -47,7 +47,7 @@ _PALETTES = {
 _PLOTS_LAYOUT = {
     "font_family": "Verdana",
     "font_size": 15,
-    "template": "seaborn",
+    "template": "plotly_white",
     "palette": [],
 }
 

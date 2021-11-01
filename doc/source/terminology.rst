@@ -12,53 +12,77 @@ a thermodynamic way of nomencluture which:
 * Uppercase letters represents Flows
 * Lowercase lettters represents Coefficients
 
-Following table represents the variables and their explnations in MARIO:
+Following table represents the variables and their explanations in MARIO:
 
 .. list-table:: MARIO Terminology
-   :widths: 25 50
+   :widths: 25 25 50
    :header-rows: 1
 
    * - variable name
-     - description
+     - also known as
+     - extended name
    * - Z
+     - T
      - Intersectoral transaction flows matrix 
+   * -  z
+     - A
+     - Intersectoral transaction coefficients matrix
+   * - w
+     - L
+     - Leontief coefficient matrix
    * - Y
+     - F
      - Final demand matrix
    * - X
+     - x, q, g
      - Production vector
    * - V
-     - Value added transaction flows matrix
+     - F
+     - Factor of production transaction flows matrix
+   * - v
+     - f, B, S
+     - Factor of production transaction coefficients matrix
    * - E
+     - F, D_pba, terr
      - Satellite transaction flows matrix
    * - U
+     - T
      - Use transaction flow matrix
-   * - V
+   * - u
+     - A
+     - Use coefficients matrix
+   * - S
+     - V, M, T
      - Supply transaction flow matrix
+   * - s
+     - A
+     - Supply coefficients matrix
    * - EY
+     - S_Y, F_hh, F_y
      - Satellite transaction flows matrix for final use
    * - M
-     - Exonomic impact matrix
-   * - F
-     - Footprint matrix
-   * - z
-     - Endogenous transaction coefficients matrix
-   * - v
-     - Value added transaction coefficients matrix
-   * - e
-     - Satellite transaction coefficients matrix
-   * - u
-     - Use coefficients matrix
-   * - s
-     - Supply coefficients matrix
-   * - w
-     - Leontief coefficient matrix
+     - ...
+     - Economic impact matrix
    * - m
+     - M
      - Multipliers coefficient matrix
+   * - F
+     - D_cba, con
+     - Footprint matrix
+   * - e
+     - f, B, S
+     - Satellite transaction coefficients matrix
    * - f
+     - M
      - Footprint coefficients matrix
    * - g
+     - G
      - Gosh coefficients matrix
    * - b
+     - B
      - Intersectoral transaction direct-output coefficients matrix
+   * - p
+     - ...
+     - Price index coefficients vector
 
 

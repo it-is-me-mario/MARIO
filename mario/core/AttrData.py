@@ -1023,7 +1023,16 @@ class Database(CoreModel):
             * Only implementable on IOTs.
             * Normalized is applicable only for single region database.
             * multi_mode is applicable only for multi region databases.
-
+        
+        .. math::
+            Linkages^{backward, direct}_j = \sum_{i=1}^n z_{ij}
+        .. math::
+            Linkages^{backward, total}_j = \sum_{i=1}^n w_{ij} 
+        .. math::
+            Linkages^{forward, direct}_i = \sum_{j=1}^n b_{ij} 
+        .. math::
+            Linkages^{forward, total}_i = \sum_{j=1}^n g_{ij} 
+        
         Parameters
         ----------
         scenario : str
@@ -1036,7 +1045,7 @@ class Database(CoreModel):
             sets the diagonals (self consumptions) to zero.
 
         multi_mode : True
-            --TODO--
+            **work in progress**
 
         Returns
         -------
