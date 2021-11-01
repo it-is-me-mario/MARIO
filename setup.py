@@ -3,7 +3,7 @@
 from setuptools import find_packages, setup
 
 setup(
-    name="mario_py",
+    name="mariopy",
     description=(
         "A python package for automating input-output (IO) calculations, models"
         ",visualization and scenario analysis"

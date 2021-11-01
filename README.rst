@@ -104,7 +104,7 @@ If you would prefer not to create new environment, you can install mario in your
 
    .. code-block:: python
 
-      pip install mario
+      pip install mariopy
 
 #. conda
 
