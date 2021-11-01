@@ -7,6 +7,9 @@
     :target: https://mario-suite.readthedocs.io/en/latest/index.html
     :alt: Documentation Status  
     
+.. image:: https://img.shields.io/pypi/v/mariopy
+    :target: https://pypi.org/project/mariopy/
+    
 .. image:: https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png
     :target: https://creativecommons.org/licenses/by-nc-sa/4.0/ 
     
