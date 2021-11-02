@@ -171,7 +171,7 @@ Some of the key packages the mario relies on are:
 * `Numpy  <https://numpy.org/>`_ 
 * `Plotly  <https://plotly.com/>`_ 
 * `Tabulate  <https://pypi.org/project/tabulate/>`_ 
-* `Cvxpy  <https://pypi.org/project/tabulate/>`_ (Optional in this version)
+* `Cvxpy  <https://pypi.org/project/cvxpy/>`_ (Optional in this version)
 
 
 
