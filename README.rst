@@ -81,16 +81,11 @@ To get conda, `download and install "Anaconda Distribution" <https://www.anacond
 which is  a free and open source scientific environment written in Python, for Python, and designed by and for scientists,
 engineers and data analysts.
 
-When Anaconda and Spyder are installed, you have two options to install mario:
-
-*Option.1: Creating mario environment*
-
-create a new environment called "mario" with all the necessary modules,
-by running the following command in a terminal or command-line window
+You can install mario using pip or from source code. It is suggested to create a new environment by running the following command in the anaconda prompt
 
 .. code-block:: python
 
-   conda create -c conda-forge -n mario mario
+   conda create -n mario python=3.8
 
 If you create a new environment for mario, to use it, you need to activate the mario environment each time by writing
 the following line in *Anaconda Prompt*
@@ -99,23 +94,14 @@ the following line in *Anaconda Prompt*
 
    conda activate mario
 
-*Option.2: Installing mario package on base environment*
+Now you can use pip to install mario on your environment as follow:
 
-If you would prefer not to create new environment, you can install mario in your base environment in three different ways:
+.. code-block:: python
 
-#. pip
+  pip install mariopy
 
-   .. code-block:: python
+You can also install from the source code!
 
-      pip install mariopy
-
-#. conda
-
-   .. code-block:: python
-
-      conda install -c conda-forge mario
-
-#. installing from source code
            
 
 Quickstart
