@@ -63,8 +63,6 @@ exclude_patterns = []
 html_theme = 'sphinx_rtd_theme'
 
 html_theme_options = {
-    'github_user': '#',
-    'github_banner': True,
     'display_version': True,
 }
 

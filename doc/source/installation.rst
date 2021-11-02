@@ -11,7 +11,7 @@ To run MARIO, a couple of things are needed:
 
 #. Being in love with Input-Output :-)
 #. The Python programming language, version 3.7 or higher
-#. A number of Python add-on modules (list)
+#. A number of Python adds-on packages
 #. For some functionalities a solver may needed (optional)
 #. MARIO software itself
 
@@ -27,39 +27,25 @@ To get conda, `download and install "Anaconda Distribution" <https://www.anacond
 which is  a free and open source scientific environment written in Python, for Python, and designed by and for scientists,
 engineers and data analysts.
 
-When Anaconda and Spyder are installed, you have two options to install mario:
+You can install mario using pip or from source code. It is suggested to create a new environment by running the following command in the anaconda prompt
 
-*Option.1: Creating mario environment*
+.. code-block:: python
 
-create a new environment called "mario" with all the necessary modules,
-by running the following command in a terminal or command-line window
-
-.. code-block:: bash
-
-   conda create -c conda-forge -n mario mario
+   conda create -n mario python=3.8
 
 If you create a new environment for mario, to use it, you need to activate the mario environment each time by writing
 the following line in *Anaconda Prompt*
 
-.. code-block:: bash
+.. code-block:: python
 
    conda activate mario
 
-*Option.2: Installing mario package on base environment*
+Now you can use pip to install mario on your environment as follow:
 
-If you would prefer not to create new environment, you can install mario in your base environment in three different ways:
+.. code-block:: python
 
-#. pip
+  pip install mariopy
 
-   .. code-block:: bash
+You can also install from the source code!
 
-      pip install mario
-
-#. conda
-
-   .. code-block:: bash
-
-      conda install -c conda-forge mario
-
-#. installing from source code
            
