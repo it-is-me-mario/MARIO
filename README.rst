@@ -1,5 +1,7 @@
 
-
+.. image:: https://img.shields.io/gitter/room/SESAM-Polimi/MARIO
+    :target: https://gitter.im/SESAM-Polimi/MARIO
+    
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
     
