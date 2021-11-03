@@ -191,3 +191,8 @@ License
 
 This work is licensed under a `Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0) <https://creativecommons.org/licenses/by-nc-sa/4.0/>`_
 
+
+
+.. image:: https://badges.gitter.im/SESAM-Polimi/MARIO.svg
+   :alt: Join the chat at https://gitter.im/SESAM-Polimi/MARIO
+   :target: https://gitter.im/SESAM-Polimi/MARIO?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
