@@ -22,7 +22,7 @@
 *******
 MARIO
 *******
-Multifunctional Analysis of Regions through Input-Output 
+Multifunctional Analysis of Regions through Input-Output.  `Documents <https://mario-suite.readthedocs.io/en/latest/intro.html>`_.
 
 
 What is it
