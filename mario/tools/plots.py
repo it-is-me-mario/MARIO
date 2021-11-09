@@ -510,7 +510,7 @@ def _plotZYUS(
     data.columns = ['Value']
     
     # Slicing according to filters
-    if matrix in ['Z','z','U','u','S','s']:
+    if matrix in ['Z','z','U','u','S','s','f_dis']:
         data.index.names = [f"{_MASTER_INDEX['r']}_from", 'Level_from', "Item_from", f"{_MASTER_INDEX['r']}_to", 'Level_to', "Item_to", 'Scenario']
         if instance.table_type == 'IOT':
             data = data.loc[(filters[f"filter_{_MASTER_INDEX['r']}_from"],

@@ -39,7 +39,7 @@ Package dependencies:
 
 :Authors: Mohammad Amin Tahavori, Lorenzo Rinaldi, Nicolò Golinucci
 
-:license: Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)
+:license: 
 
 """
 
@@ -65,6 +65,7 @@ from mario.tools.iomath import (
     calc_b,
     calc_F,
     calc_f,
+    calc_f_dis,
     calc_m,
     calc_M,
     calc_y,
