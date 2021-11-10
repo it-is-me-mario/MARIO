@@ -402,6 +402,16 @@ _INDECES = {
             ],
             "columns": ["production"],
         },
+        "p": {
+            "indices": [
+                _MASTER_INDEX["r"],
+                "Level",
+                _MASTER_INDEX["a"],
+                _MASTER_INDEX["c"],
+                "Item",
+            ],
+            "columns": ["price index"],
+        },
         "V": {
             "indices": [_MASTER_INDEX["f"]],
             "columns": [
