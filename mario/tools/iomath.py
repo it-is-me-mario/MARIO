@@ -90,7 +90,7 @@ def calc_w(z):
     """
     I = np.eye(z.shape[0])
 
-    return pd.DataFrame(np.linalg.inv(I - z.values), index=z.index, columns=z.columns)
+    return pd.DataFrame(np.linalg.inv(I - z.values), index=z.index, columns=z.columns)   
 
 
 def calc_g(b):
@@ -417,6 +417,31 @@ def calc_f(e, w):
         Footprint coefficients matrix
     """
     return e.dot(w)
+
+
+def calc_f_dis(e,w):
+    """Calculates Footprint coefficients matrix disaggregated by origin sector and region
+
+    .. math::
+        f_dis = \hat{e} \cdot w
+
+    Parameters
+    ----------
+    e : pd.DataFrame
+        Satellite transaction coefficients matrix
+    w : pd.DataFrame
+        Leontief coefficients matrix
+
+    Returns
+    -------
+    pd.DataFrame
+        Footprint coefficients matrix disaggregated by origin sector and region
+    """
+
+    f_dis = np.diagflat(e.values) @ w    
+    f_dis.index = e.columns
+    
+    return f_dis
 
 
 def calc_y(Y):

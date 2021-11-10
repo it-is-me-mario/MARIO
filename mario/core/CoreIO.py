@@ -36,6 +36,7 @@ from mario.tools.iomath import (
     calc_b,
     calc_F,
     calc_f,
+    calc_f_dis,
     calc_y,
     calc_p,
 )
