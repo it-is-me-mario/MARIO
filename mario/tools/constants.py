@@ -221,6 +221,7 @@ _MATRICES_NAMES = {
     "S": "Supply transaction flows",
     "s": "Supply transaction coefficients",
     "X": "Production vector",
+    "p": "Price index vector",
     "F": "Footprints",
     "f": "Footprints coeffients",
     "f_dis": "Footprints coeffients disaggregated by origin sector and region",
