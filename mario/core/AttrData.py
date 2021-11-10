@@ -1122,7 +1122,7 @@ class Database(CoreModel):
 
                 * 'Total' to plot the total linkages
                 * 'Direct' to plot the direct linkages
-
+                
         auto_open : boolean
             if True, opens the plot automatically
 
@@ -2221,7 +2221,7 @@ class Database(CoreModel):
             layout['title'] = f"{_MATRICES_NAMES[matrix]} - Variation with respect to '{base_scenario}' scenario"            
         
 
-        if matrix == "X":
+        if matrix in ["X","p"]:
             plot_function = '_plotX'
         if matrix in ["Z", "z", "Y", "U", "u", "S", "s", "f_dis"]:
             plot_function = '_plotZYUS'

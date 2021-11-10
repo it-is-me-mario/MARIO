@@ -63,6 +63,7 @@ def _plot_linkages(
     path: str,
     multi_mode: bool,
     plot: str,
+    annotations = True,
     auto_open: bool = False,
     **config,
 ):

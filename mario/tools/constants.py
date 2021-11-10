@@ -295,6 +295,10 @@ _INDECES = {
             "indices": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["s"], "Item"],
             "columns": ["production"],
         },
+        "p": {
+            "indices": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["s"], "Item"],
+            "columns": ["price index"],
+        },
         "V": {
             "indices": [_MASTER_INDEX["f"]],
             "columns": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["s"], "Item"],
