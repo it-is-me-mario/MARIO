@@ -357,13 +357,11 @@ def _plotX(
         data1 = data.loc[(filters[f"filter_{_MASTER_INDEX['r']}_from"],
                           _MASTER_INDEX['a'],
                           filters[f"filter_{_MASTER_INDEX['a']}_from"],
-                          filters[f"filter_{_MASTER_INDEX['r']}_to"],
                           slice(None)),
                          :]
         data2 = data.loc[(filters[f"filter_{_MASTER_INDEX['r']}_from"],
                           _MASTER_INDEX['c'],
                           filters[f"filter_{_MASTER_INDEX['c']}_from"],
-                          filters[f"filter_{_MASTER_INDEX['r']}_to"],
                           slice(None)), 
                          :]
         data = data1.append(data2)
