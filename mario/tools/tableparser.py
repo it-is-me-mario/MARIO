@@ -651,17 +651,17 @@ def monetary_sut_exiobase(path):
 
     # creating units
     activities_unit = pd.DataFrame(
-        ["M EUR"] * len(indeces["a"]["main"]),
+        ["EUR"] * len(indeces["a"]["main"]),
         index=indeces["a"]["main"],
         columns=["unit"],
     )
     commodities_unit = pd.DataFrame(
-        ["M EUR"] * len(indeces["c"]["main"]),
+        ["EUR"] * len(indeces["c"]["main"]),
         index=indeces["c"]["main"],
         columns=["unit"],
     )
     factors_unit = pd.DataFrame(
-        ["M EUR"] * len(indeces["f"]["main"]),
+        ["EUR"] * len(indeces["f"]["main"]),
         index=indeces["f"]["main"],
         columns=["unit"],
     )
@@ -989,7 +989,7 @@ def eurostat_sut(
         use_years = [use.loc["TIME", 1]]
 
     if supply_years == use_years:
-        years = supply_years
+        years = supply_years    
     else:
         raise WrongInput("No correspondance between years of use and supply tables")
 
