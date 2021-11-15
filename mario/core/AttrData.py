@@ -1714,14 +1714,12 @@ class Database(CoreModel):
         .. note::
 
             * Shocks can be implemented only with respect to the baseline
-            * shocks will be implemented only on coefficients
+            * Shocks will be implemented only on coefficients
 
         Parameters
         ----------
         io : str, Dict[pd.DataFrame]
-            pass a str defining the excel file containing the shock data or pass
-        a dict of dataframes in which keys are the name of matrices and values are
-        the dataframes of the shock (exactly the same format of excel file)
+            pass a str defining the excel file containing the shock data or pass a dict of dataframes in which keys are the name of matrices and values are the dataframes of the shock (exactly the same format of excel file)
 
         z : boolean
             if True will implement shock on the Z or z
@@ -1738,8 +1736,8 @@ class Database(CoreModel):
         notes : list
             extra info can be recoreded in the metadata
 
-        scneario : str, Optional
-            the name for the scenario implemented, in the instance.matrices. if nothing passed, default names will be considered
+        scenario : str, Optional
+            the name for the scenario implemented, in the instance.matrices. If nothing passed, default names will be considered (shock #)
 
         fore_rewrite : boolean
             if False will avoid overwriting existing scenario
