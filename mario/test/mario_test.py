@@ -21,12 +21,12 @@ def load_test(table):
     -----------
     table: str
         type of the table. 'IOT' or 'SUT'
-
+s
     Returns
     -------
     mario.Database
     """
 
     return parse_from_excel(
-        path=f"{path}\\{table}.xlsx", table=table, name=f"{table} test"
+        path=f"{path}/{table}.xlsx", table=table, name=f"{table} test"
     )
