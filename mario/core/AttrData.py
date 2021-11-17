@@ -26,6 +26,7 @@ from mario.tools.utilities import (
     check_clusters,
     run_from_jupyter,
     filtering,
+    pymrio_styling,
 )
 
 from mario.tools.excelhandler import (
@@ -84,9 +85,11 @@ from mario.tools.constants import (
     _MASTER_INDEX,
     _ALL_MATRICES,
     _MATRICES_NAMES,
+    _PYMRIO_MATRICES
 )
 
 from mario.core.CoreIO import CoreModel
+import pymrio
 
 logger = logging.getLogger(__name__)
 
@@ -1284,6 +1287,63 @@ class Database(CoreModel):
             scenario,
             _format,
         )
+
+
+    def to_pymrio(
+        self,
+        satellite_account,
+        factor_of_production,
+        include_meta=True,
+        scenario="baseline",
+        **kwargs,
+    ):
+    
+    if a.table_type != 'IOT':
+        raise NotImplementable('pymrio supports only IO tables.')
+        
+    if any([' ' in i for i in [satellite_account,factor_of_production]]):
+        raise WrongInput('satellte_account and factor_of_production does not accept values containing space.')
+        
+    matrices= self.get_data(matrices=['V','Z','Y','E','EY'],
+                         scenarios=[scenario],
+                         auto_calc=True,
+                         )[scenario]
+
+    factor_input = pymrio.Extension(name= factor_of_production,
+                                    F= pymrio_styling(df=matrices.V,
+                                                      **PYMRIO_MATRICES['V']),
+                                    unit= self.units[_MASTER_INDEX['f']]
+                                    )
+    
+    satellite = pymrio.Extension(name= satellite_account,
+                                    F= pymrio_styling(df=matrices.E,
+                                                      **PYMRIO_MATRICES['E']),
+                                    F_Y= pymrio_styling(df=matrices.EY,
+                                                      **PYMRIO_MATRICES['EY']),
+                                    unit= self.units[_MASTER_INDEX['k']]
+                                    )
+
+    #--TODO-- reshape the units with regions
+    io = pymrio.IOSystem(Z=pymrio_styling(df=matrices.Z,
+                      **PYMRIO_MATRICES['Z']),
+                         Y=pymrio_styling(df=matrices.Y,
+                                           **PYMRIO_MATRICES['Y']),
+                         unit = self.units[_MASTER_INDEX['s']],
+                         **kwargs
+                         )
+    
+    setattr(io,satellite_account,satellite)
+    setattr(io,factor_of_production,factor_input)
+    
+    
+    io.meta.note('IOSystem and Extension initliazied by mario')
+    
+    if include_meta:
+        for note in a.meta._history:
+            io.meta.note(f'mario HISTORY - {note}')
+            
+    return io
+
 
     def get_add_sectors_excel(self, new_sectors, regions, path=None, item=None):
 
