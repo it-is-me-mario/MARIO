@@ -929,14 +929,14 @@ class CoreModel:
         """checks if the given path is correct or not."""
 
         if path is None:
-            if not os.path.exists(r"{}\{}".format(self.directory, subfolder)):
+            if not os.path.exists(r"{}/{}".format(self.directory, subfolder)):
                 try:
-                    os.mkdir(r"{}\{}".format(self.directory, subfolder))
+                    os.mkdir(r"{}/{}".format(self.directory, subfolder))
                 except:
                     raise ValueError(
                         "Can not create default path. Please specify the path"
                     )
-            path = r"{}\{}\{}".format(self.directory, subfolder, file)
+            path = r"{}/{}/{}".format(self.directory, subfolder, file)
             log_time(
                 logger,
                 f"DIRECTORY: default path = {path} is choosen to save the data.",
@@ -964,7 +964,7 @@ class CoreModel:
         """
 
         if self._dir == "":
-            self.directory = r"{}\Output".format(os.getcwd())
+            self.directory = r"{}/Output".format(os.getcwd())
 
         return self._dir
 
