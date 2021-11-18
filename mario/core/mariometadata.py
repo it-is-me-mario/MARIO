@@ -19,7 +19,6 @@ class MARIOMetaData:
     While, any class that is initialzed, a metadata will be built or will be passed
     to the class and will be updated continuesly.
 
-    It is also a tool to check the errors and issues.
     """
 
     def __init__(self, name=None, meta=None, **kwargs):
@@ -87,7 +86,7 @@ class MARIOMetaData:
         """
         returns the current time
         """
-        return datetime.now().strftime("%H:%M:%S")
+        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     def __str__(self):
 
