@@ -85,7 +85,7 @@ from mario.tools.constants import (
     _MASTER_INDEX,
     _ALL_MATRICES,
     _MATRICES_NAMES,
-    _PYMRIO_MATRICES
+    _PYMRIO_MATRICES,
 )
 
 from mario.core.CoreIO import CoreModel
@@ -248,9 +248,7 @@ class Database(CoreModel):
         )
 
     def sut_to_iot(
-        self,
-        method,
-        inplace=True,
+        self, method, inplace=True,
     ):
 
         """The function will transform a SUT table to a IOT table
@@ -326,9 +324,7 @@ class Database(CoreModel):
         )
 
     def get_aggregation_excel(
-        self,
-        path=None,
-        levels="all",
+        self, path=None, levels="all",
     ):
 
         """Generates the Excel file for aggregation of the database
@@ -356,10 +352,7 @@ class Database(CoreModel):
 
                 raise WrongInput(
                     "\{}' is/are not an acceptable level/s for the database.\n"
-                    "Acceptable items are \n{}".format(
-                        difference,
-                        self.sets,
-                    )
+                    "Acceptable items are \n{}".format(difference, self.sets,)
                 )
         elif levels == "all":
             levels = [*_LEVELS[self.meta.table]]
@@ -372,10 +365,7 @@ class Database(CoreModel):
                 data.to_excel(writer, level)
 
     def read_aggregated_index(
-        self,
-        io,
-        levels="all",
-        ignore_nan=False,
+        self, io, levels="all", ignore_nan=False,
     ):
 
         """Reads information over the aggregation of levels without aggregating the data
@@ -555,9 +545,7 @@ class Database(CoreModel):
 
             else:
                 self.read_aggregated_index(
-                    levels=levels,
-                    io=io,
-                    ignore_nan=ignore_nan,
+                    levels=levels, io=io, ignore_nan=ignore_nan,
                 )
                 __new_matrices = {}
 
@@ -602,9 +590,7 @@ class Database(CoreModel):
         log_time(logger, "Database: Reseting to back-up")
 
     def get_extensions_excel(
-        self,
-        matrix,
-        path=None,
+        self, matrix, path=None,
     ):
 
         """Generates an Excel file for easing the add extension functionality
@@ -684,7 +670,7 @@ class Database(CoreModel):
 
         notes : list, Optional
             to add notes to the metadata
-            
+
         EY : pd.DataFrame, Optional
             In case that E,e are used as the matrix, EY can be updated too
 
@@ -699,11 +685,7 @@ class Database(CoreModel):
         if not inplace:
             new = self.copy()
             new.add_extensions(
-                io=io,
-                matrix=matrix,
-                backup=backup,
-                inplace=True,
-                units=units,
+                io=io, matrix=matrix, backup=backup, inplace=True, units=units,
             )
 
             return new
@@ -757,20 +739,18 @@ class Database(CoreModel):
             raise WrongInput(
                 "units dataframe should has exactly the same index levels of io"
             )
-            
+
         if EY is not None:
             EY = EY.sort_index()
-            
+
             if not data.index.equals(EY.index):
                 raise WrongInput(
                     "EY dataframe should has exactly the same index levels of io"
-                )  
-                
-            # # check if the format of the file is correct
-            if not EY.columns.equals(info['EY'].columns):
-                raise WrongInput(
-                    "The EY has not correct columns."
                 )
+
+            # # check if the format of the file is correct
+            if not EY.columns.equals(info["EY"].columns):
+                raise WrongInput("The EY has not correct columns.")
 
         try:
             units.columns = ["unit"]
@@ -782,14 +762,14 @@ class Database(CoreModel):
         info[matrix] = info[matrix].append(data.loc[to_add, :])
 
         if matrix_id == "k":
-            
+
             if EY is None:
-                
+
                 info["EY"] = info["EY"].append(
                     pd.DataFrame(0, index=to_add, columns=info["EY"].columns)
                 )
             else:
-                info["EY"] = info["EY"].append(EY.loc[to_add,:])
+                info["EY"] = info["EY"].append(EY.loc[to_add, :])
 
         unit_item = _MASTER_INDEX[matrix_id]
         info["units"][unit_item] = info["units"][unit_item].append(units.loc[to_add])
@@ -892,20 +872,17 @@ class Database(CoreModel):
 
         # Take the imports from the Z matrix
         IM = Z.loc[
-            (rest_reg, slice(None), slice(None)),
-            (region, slice(None), slice(None)),
+            (rest_reg, slice(None), slice(None)), (region, slice(None), slice(None)),
         ]
 
         # Taking the intermediate export
         EX = Z.loc[
-            (region, slice(None), slice(None)),
-            (rest_reg, slice(None), slice(None)),
+            (region, slice(None), slice(None)), (rest_reg, slice(None), slice(None)),
         ]
 
         # Take the Z for the region
         Z = Z.loc[
-            (region, slice(None), slice(None)),
-            (region, slice(None), slice(None)),
+            (region, slice(None), slice(None)), (region, slice(None), slice(None)),
         ]
 
         IM = IM.sum(axis=0).to_frame().T
@@ -917,13 +894,11 @@ class Database(CoreModel):
 
         # Taking the Y_local matrix
         Y_local = Y.loc[
-            (region, slice(None), slice(None)),
-            (region, slice(None), slice(None)),
+            (region, slice(None), slice(None)), (region, slice(None), slice(None)),
         ]
 
         YEX = Y.loc[
-            (region, slice(None), slice(None)),
-            (rest_reg, slice(None), slice(None)),
+            (region, slice(None), slice(None)), (rest_reg, slice(None), slice(None)),
         ]
 
         YEX = YEX.sum(axis=1).to_frame()
@@ -1014,11 +989,7 @@ class Database(CoreModel):
         )
 
     def calc_linkages(
-        self,
-        scenario="baseline",
-        normalized=True,
-        cut_diag=True,
-        multi_mode=True,
+        self, scenario="baseline", normalized=True, cut_diag=True, multi_mode=True,
     ):
         """Calculates the linkages in different modes
 
@@ -1027,16 +998,16 @@ class Database(CoreModel):
             * Only implementable on IOTs.
             * Normalized is applicable only for single region database.
             * multi_mode is applicable only for multi region databases.
-        
+
         .. math::
             Linkages^{backward, direct}_j = \sum_{i=1}^n z_{ij}
         .. math::
-            Linkages^{backward, total}_j = \sum_{i=1}^n w_{ij} 
+            Linkages^{backward, total}_j = \sum_{i=1}^n w_{ij}
         .. math::
-            Linkages^{forward, direct}_i = \sum_{j=1}^n b_{ij} 
+            Linkages^{forward, direct}_i = \sum_{j=1}^n b_{ij}
         .. math::
-            Linkages^{forward, total}_i = \sum_{j=1}^n g_{ij} 
-        
+            Linkages^{forward, total}_i = \sum_{j=1}^n g_{ij}
+
         Parameters
         ----------
         scenario : str
@@ -1125,7 +1096,7 @@ class Database(CoreModel):
 
                 * 'Total' to plot the total linkages
                 * 'Direct' to plot the direct linkages
-                
+
         auto_open : boolean
             if True, opens the plot automatically
 
@@ -1144,8 +1115,7 @@ class Database(CoreModel):
         if difference:
             raise WrongInput(
                 "Scenarios: {} do not exist in the database. Existing scenarios are:\n{}".format(
-                    difference,
-                    self.scenarios,
+                    difference, self.scenarios,
                 )
             )
 
@@ -1288,7 +1258,6 @@ class Database(CoreModel):
             _format,
         )
 
-
     def to_pymrio(
         self,
         satellite_account,
@@ -1297,53 +1266,50 @@ class Database(CoreModel):
         scenario="baseline",
         **kwargs,
     ):
-    
-    if a.table_type != 'IOT':
-        raise NotImplementable('pymrio supports only IO tables.')
-        
-    if any([' ' in i for i in [satellite_account,factor_of_production]]):
-        raise WrongInput('satellte_account and factor_of_production does not accept values containing space.')
-        
-    matrices= self.get_data(matrices=['V','Z','Y','E','EY'],
-                         scenarios=[scenario],
-                         auto_calc=True,
-                         )[scenario]
 
-    factor_input = pymrio.Extension(name= factor_of_production,
-                                    F= pymrio_styling(df=matrices.V,
-                                                      **PYMRIO_MATRICES['V']),
-                                    unit= self.units[_MASTER_INDEX['f']]
-                                    )
-    
-    satellite = pymrio.Extension(name= satellite_account,
-                                    F= pymrio_styling(df=matrices.E,
-                                                      **PYMRIO_MATRICES['E']),
-                                    F_Y= pymrio_styling(df=matrices.EY,
-                                                      **PYMRIO_MATRICES['EY']),
-                                    unit= self.units[_MASTER_INDEX['k']]
-                                    )
+        if self.table_type != "IOT":
+            raise NotImplementable("pymrio supports only IO tables.")
 
-    #--TODO-- reshape the units with regions
-    io = pymrio.IOSystem(Z=pymrio_styling(df=matrices.Z,
-                      **PYMRIO_MATRICES['Z']),
-                         Y=pymrio_styling(df=matrices.Y,
-                                           **PYMRIO_MATRICES['Y']),
-                         unit = self.units[_MASTER_INDEX['s']],
-                         **kwargs
-                         )
-    
-    setattr(io,satellite_account,satellite)
-    setattr(io,factor_of_production,factor_input)
-    
-    
-    io.meta.note('IOSystem and Extension initliazied by mario')
-    
-    if include_meta:
-        for note in a.meta._history:
-            io.meta.note(f'mario HISTORY - {note}')
-            
-    return io
+        if any([" " in i for i in [satellite_account, factor_of_production]]):
+            raise WrongInput(
+                "satellte_account and factor_of_production does not accept values containing space."
+            )
 
+        matrices = self.get_data(
+            matrices=["V", "Z", "Y", "E", "EY"], scenarios=[scenario], auto_calc=True,
+        )[scenario]
+
+        factor_input = pymrio.Extension(
+            name=factor_of_production,
+            F=pymrio_styling(df=matrices.V, **_PYMRIO_MATRICES["V"]),
+            unit=self.units[_MASTER_INDEX["f"]],
+        )
+
+        satellite = pymrio.Extension(
+            name=satellite_account,
+            F=pymrio_styling(df=matrices.E, **_PYMRIO_MATRICES["E"]),
+            F_Y=pymrio_styling(df=matrices.EY, **_PYMRIO_MATRICES["EY"]),
+            unit=self.units[_MASTER_INDEX["k"]],
+        )
+
+        # --TODO-- reshape the units with regions
+        io = pymrio.IOSystem(
+            Z=pymrio_styling(df=matrices.Z, **_PYMRIO_MATRICES["Z"]),
+            Y=pymrio_styling(df=matrices.Y, **_PYMRIO_MATRICES["Y"]),
+            unit=self.units[_MASTER_INDEX["s"]],
+            **kwargs,
+        )
+
+        setattr(io, satellite_account, satellite)
+        setattr(io, factor_of_production, factor_input)
+
+        io.meta.note("IOSystem and Extension initliazied by mario")
+
+        if include_meta:
+            for note in self.meta._history:
+                io.meta.note(f"mario HISTORY - {note}")
+
+        return io
 
     def get_add_sectors_excel(self, new_sectors, regions, path=None, item=None):
 
@@ -1373,8 +1339,7 @@ class Database(CoreModel):
         if difference:
             raise WrongInput(
                 "Regions: {} do not exist in the database. Existing regions are:\n{}".format(
-                    difference,
-                    self.get_index(_MASTER_INDEX["r"]),
+                    difference, self.get_index(_MASTER_INDEX["r"]),
                 )
             )
 
@@ -1404,13 +1369,7 @@ class Database(CoreModel):
             )
 
     def add_sectors(
-        self,
-        io,
-        new_sectors,
-        regions,
-        item,
-        inplace=True,
-        notes=None,
+        self, io, new_sectors, regions, item, inplace=True, notes=None,
     ):
 
         """Adds a Sector/Activity/Commodity to the database
@@ -1461,8 +1420,7 @@ class Database(CoreModel):
         if difference:
             raise WrongInput(
                 "Regions: {} do not exist in the database. Existing regions are:\n{}".format(
-                    difference,
-                    self.get_index(_MASTER_INDEX["r"]),
+                    difference, self.get_index(_MASTER_INDEX["r"]),
                 )
             )
 
@@ -1696,8 +1654,7 @@ class Database(CoreModel):
         return dict_scenarios
 
     def DataFrame(
-        self,
-        scenario="baseline",
+        self, scenario="baseline",
     ):
 
         """Returns a single DatFrame which is the whole flows all together.
@@ -1849,10 +1806,7 @@ class Database(CoreModel):
         log_time(logger, "Shock: Shock implemented successfully.")
 
     def get_shock_excel(
-        self,
-        path=None,
-        num_shock=10,
-        **clusters,
+        self, path=None, num_shock=10, **clusters,
     ):
 
         """Creates an Excel file based on the shape and the format
@@ -2119,27 +2073,27 @@ class Database(CoreModel):
         _plotter(fig=fig, directory=path, auto_open=auto_open)
 
     def plot_matrix(
-            self,
-            matrix,
-            x,
-            color,
-            y= 'Value',
-            item = _MASTER_INDEX['s'],
-            facet_row=None,
-            facet_col=None,
-            animation_frame="Scenario",
-            base_scenario=None,
-            path=None,
-            mode="stack",
-            layout = None,
-            auto_open=True,
-            shared_yaxes='all',
-            shared_xaxes=True,
-            **filters
-            ):
-        
+        self,
+        matrix,
+        x,
+        color,
+        y="Value",
+        item=_MASTER_INDEX["s"],
+        facet_row=None,
+        facet_col=None,
+        animation_frame="Scenario",
+        base_scenario=None,
+        path=None,
+        mode="stack",
+        layout=None,
+        auto_open=True,
+        shared_yaxes="all",
+        shared_xaxes=True,
+        **filters,
+    ):
+
         """Generates a general html barplot giving the user certain degrees of freedom such as:
-            
+
             * Regions (both the ones on the indices and columns)
             * Sectors/Commodities/Activities (both the ones on the indices and columns)
             * Scenarios
@@ -2149,7 +2103,7 @@ class Database(CoreModel):
         ----------
         matrix : str
             Matrix to be plotted. Three families of matrix can be read according to their intrinsic structure:
-                
+
             #. The first family includes only matrix 'X', which has 3 levels of indices and 1 level of columns
             #. The second family includes matrices 'Z','z','U','u','S','s','Y', which have 3 levels of indices and 3 levels of columns
             #. The third family includes matrices 'E','e','V','v','EY', which have 1 level of indices and 3 levels of columns
@@ -2164,31 +2118,31 @@ class Database(CoreModel):
         y : str
             Degree of freedom to be showed on the y axis. Default y='Value'.
             Acceptable options change according to the matrix family
-        
+
         item: str
-            Indicates the main level to be plot. 
+            Indicates the main level to be plot.
             Possible options are "Commodity","Activity" for SUT tables and "Sector" for IOT tables.
             It is mandatory to be defined only for SUT tables.
             For "Z","z","U","u","S","s","Y","X", it selects the rows level between 'Activity' and 'Commodity'.
             For "V","v","E","e","EY","M","F", it selectes the columns level between 'Activity' and 'Commodity'.
 
         facet_row:
-            String referring to one level of indices of the given matrix. 
+            String referring to one level of indices of the given matrix.
             Values from this column or array_like are used to assign marks to facetted subplots in the vertical direction
 
         facet_col:
-            String referring to one level of indices of the given matrix. 
+            String referring to one level of indices of the given matrix.
             Values from this column or array_like are used to assign marks to facetted subplots in the horizontal direction
 
         animation_frame:
             Defines whether to switch from one scenario to the others by means of sliders
-            
+
         base_scenario : str
             By setting None, the passed matrix will be displayed for each scenario available.
             By setting this parameter equal to one of the scenarios available,
             the passed matrix will be displayed in terms of difference with respect to each of the other scenarios.
             In this last case, the selected scenario will not be displayed
-  
+
         mode : str
             Equivalent to plotly.grap_object.figure.update_layout barmode. Determines how bars at the same location coordinate are displayed on the graph.
             * With "stack", the bars are stacked on top of one another
@@ -2202,7 +2156,7 @@ class Database(CoreModel):
         filters : dict
             The user has the option to filter the sets according to the necessity.
             Acceptable options are the following and must be provided as list:
-                
+
             * 'filter_Region_from',
             * 'filter_Region_to',
             * 'filter_Sector_from',
@@ -2213,31 +2167,77 @@ class Database(CoreModel):
 
         """
 
-
         ### Inputs handling
         item_from = item
-        if self.table_type == 'SUT':
-            if item_from == _MASTER_INDEX['s'] and matrix in ['z','Z','U','u','S','s','f_dis','Y','X']:
-                raise WrongInput(f"Please set 'item' as '{_MASTER_INDEX['c']}' or '{_MASTER_INDEX['a']}'")
-            if matrix not in ['v','V','E','e','EY','F','M'] and item_from not in [_MASTER_INDEX['c'], _MASTER_INDEX['a']]:
-                raise WrongInput(f"Please set 'item' as '{_MASTER_INDEX['c']}' or '{_MASTER_INDEX['a']}'")
-        if self.table_type == 'IOT' and item_from != _MASTER_INDEX['s']:
+        if self.table_type == "SUT":
+            if item_from == _MASTER_INDEX["s"] and matrix in [
+                "z",
+                "Z",
+                "U",
+                "u",
+                "S",
+                "s",
+                "f_dis",
+                "Y",
+                "X",
+            ]:
+                raise WrongInput(
+                    f"Please set 'item' as '{_MASTER_INDEX['c']}' or '{_MASTER_INDEX['a']}'"
+                )
+            if matrix not in ["v", "V", "E", "e", "EY", "F", "M"] and item_from not in [
+                _MASTER_INDEX["c"],
+                _MASTER_INDEX["a"],
+            ]:
+                raise WrongInput(
+                    f"Please set 'item' as '{_MASTER_INDEX['c']}' or '{_MASTER_INDEX['a']}'"
+                )
+        if self.table_type == "IOT" and item_from != _MASTER_INDEX["s"]:
             raise WrongInput(f"Please set 'item' as '{_MASTER_INDEX['s']}'")
 
-            
-        if self.table_type=='SUT' and matrix=='Z' and item_from==_MASTER_INDEX['c']:
-            matrix = 'U'
-            print("Warning: according to the set combination of 'matrix' and 'item_from', matrix has been changed to '{}'".format(matrix))
-        if self.table_type=='SUT' and matrix=='z' and item_from==_MASTER_INDEX['c']:
-            matrix = 'u'
-            print("Warning: according to the set combination of 'matrix' and 'item_from', matrix has been changed to '{}'".format(matrix))
-        if self.table_type=='SUT' and matrix=='Z' and item_from==_MASTER_INDEX['a']:
-            matrix = 'S'
-            print("Warning: according to the set combination of 'matrix' and 'item_from', matrix has been changed to '{}'".format(matrix))
-        if self.table_type=='SUT' and matrix=='z' and item_from==_MASTER_INDEX['a']:
-            matrix = 's'
-            print("Warning: according to the set combination of 'matrix' and 'item_from', matrix has been changed to '{}'".format(matrix))
-
+        if (
+            self.table_type == "SUT"
+            and matrix == "Z"
+            and item_from == _MASTER_INDEX["c"]
+        ):
+            matrix = "U"
+            print(
+                "Warning: according to the set combination of 'matrix' and 'item_from', matrix has been changed to '{}'".format(
+                    matrix
+                )
+            )
+        if (
+            self.table_type == "SUT"
+            and matrix == "z"
+            and item_from == _MASTER_INDEX["c"]
+        ):
+            matrix = "u"
+            print(
+                "Warning: according to the set combination of 'matrix' and 'item_from', matrix has been changed to '{}'".format(
+                    matrix
+                )
+            )
+        if (
+            self.table_type == "SUT"
+            and matrix == "Z"
+            and item_from == _MASTER_INDEX["a"]
+        ):
+            matrix = "S"
+            print(
+                "Warning: according to the set combination of 'matrix' and 'item_from', matrix has been changed to '{}'".format(
+                    matrix
+                )
+            )
+        if (
+            self.table_type == "SUT"
+            and matrix == "z"
+            and item_from == _MASTER_INDEX["a"]
+        ):
+            matrix = "s"
+            print(
+                "Warning: according to the set combination of 'matrix' and 'item_from', matrix has been changed to '{}'".format(
+                    matrix
+                )
+            )
 
         ### Preparing filters
         for filt in filters:
@@ -2263,36 +2263,34 @@ class Database(CoreModel):
         for filt in filter_options:
             filters[filt] = filters.get(filt, "all")
         filters = filtering(self, filters)
-        
-        
+
         # Setting the path
         path = self._getdir(path, "Plots", f"{matrix}.html")
-        
 
         # Importing and defining customizing layout
         if layout == None:
-            layout = _PLOTS_LAYOUT   
-        
-        if base_scenario == None:
-            layout['title'] = f"{_MATRICES_NAMES[matrix]}"
-        else:
-            layout['title'] = f"{_MATRICES_NAMES[matrix]} - Variation with respect to '{base_scenario}' scenario"            
-        
+            layout = _PLOTS_LAYOUT
 
-        if matrix in ["X","p"]:
-            plot_function = '_plotX'
+        if base_scenario == None:
+            layout["title"] = f"{_MATRICES_NAMES[matrix]}"
+        else:
+            layout[
+                "title"
+            ] = f"{_MATRICES_NAMES[matrix]} - Variation with respect to '{base_scenario}' scenario"
+
+        if matrix in ["X", "p"]:
+            plot_function = "_plotX"
         if matrix in ["Z", "z", "Y", "U", "u", "S", "s", "f_dis"]:
-            plot_function = '_plotZYUS'
+            plot_function = "_plotZYUS"
         if matrix in ["V", "v", "E", "e", "EY", "M", "F"]:
-            plot_function = '_plotVEMF'
-            
-            
+            plot_function = "_plotVEMF"
+
         eval(f"plt.{plot_function}")(
             self,
             matrix,
             x,
             y,
-            color,  
+            color,
             facet_row,
             facet_col,
             animation_frame,
