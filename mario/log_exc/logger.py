@@ -58,6 +58,6 @@ def set_log_verbosity(verbosity="info", capture_warnings=True):
         if True, will capture the warnings even if the verbosity level is lower than warning
     """
 
-    backend_logger = logging.getLogger("MARIO.core.AttrDict")
+    backend_logger = logging.getLogger("mario.core.AttrData")
     backend_logger.setLevel(verbosity.upper())
     setup_root_logger(verbosity=verbosity, capture_warnings=capture_warnings)
