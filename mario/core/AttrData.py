@@ -1467,15 +1467,15 @@ class Database(CoreModel):
 
     def get_data(
         self,
-        matrices: list,
-        units: bool = True,
-        indeces: bool = True,
-        auto_calc: bool = True,
-        format: str = "object",
-        scenarios: list = ["baseline"],
-        base_scenario: list = None,
-        type: str = "absolute",
-    ) -> [tuple, dict]:
+        matrices,
+        units= True,
+        indeces= True,
+        auto_calc= True,
+        format= "object",
+        scenarios= ["baseline"],
+        base_scenario= None,
+        type= "absolute",
+    ):
 
         """Returns specific data and calculating them or the changes for scenarios in a database
            if requested
