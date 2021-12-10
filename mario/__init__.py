@@ -39,7 +39,7 @@ Package dependencies:
 
 :Authors: Mohammad Amin Tahavori, Lorenzo Rinaldi, Nicolò Golinucci
 
-:license: 
+:license:
 
 """
 
@@ -79,6 +79,7 @@ from mario.tools.parsersclass import (
     parse_eora,
     parse_exiobase_sut,
     parse_eurostat,
+    parse_from_pymrio,
 )
 
 from mario.tools.plots import set_palette

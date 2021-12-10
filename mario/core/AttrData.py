@@ -1260,8 +1260,8 @@ class Database(CoreModel):
 
     def to_pymrio(
         self,
-        satellite_account,
-        factor_of_production,
+        satellite_account="satellite_account",
+        factor_of_production="factor_of_production",
         include_meta=True,
         scenario="baseline",
         **kwargs,
@@ -1292,11 +1292,19 @@ class Database(CoreModel):
             unit=self.units[_MASTER_INDEX["k"]],
         )
 
-        # --TODO-- reshape the units with regions
+        units = pd.DataFrame(
+            data=np.tile(
+                self.units[_MASTER_INDEX["s"]].values,
+                (len(self.get_index(_MASTER_INDEX["r"])), 1),
+            ),
+            index=matrices.Z.index,
+            columns=["unit"],
+        )
+
         io = pymrio.IOSystem(
             Z=pymrio_styling(df=matrices.Z, **_PYMRIO_MATRICES["Z"]),
             Y=pymrio_styling(df=matrices.Y, **_PYMRIO_MATRICES["Y"]),
-            unit=self.units[_MASTER_INDEX["s"]],
+            unit=units,
             **kwargs,
         )
 

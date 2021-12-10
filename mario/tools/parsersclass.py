@@ -12,6 +12,7 @@ from mario.tools.tableparser import (
     monetary_sut_exiobase,
     eora_multi_region,
     eurostat_sut,
+    parse_pymrio,
 )
 
 from mario.log_exc.exceptions import WrongInput, LackOfInput
@@ -159,12 +160,7 @@ def parse_from_excel(
 
 
 def parse_exiobase_sut(
-    path,
-    calc_all=False,
-    name=None,
-    year=None,
-    model="Database",
-    **kwargs,
+    path, calc_all=False, name=None, year=None, model="Database", **kwargs,
 ):
 
     """Parsing exiobase mrsut
@@ -195,9 +191,7 @@ def parse_exiobase_sut(
     if model not in models:
         raise WrongInput("Available models are {}".format([*models]))
 
-    matrices, indeces, units = monetary_sut_exiobase(
-        path,
-    )
+    matrices, indeces, units = monetary_sut_exiobase(path,)
 
     return models[model](
         name=name,
@@ -450,3 +444,22 @@ def parse_eurostat(
         calc_all=calc_all,
         **kwargs,
     )
+
+
+def parse_from_pymrio(io, value_added, satellite_account, include_meta=True):
+
+    matrices, units, indeces = parse_pymrio(io, value_added, satellite_account)
+
+    notes = [
+        "Database parsed from pymrio",
+    ]
+    if include_meta:
+        notes.extend(["pymrio meta:"] + io.meta.history)
+
+    return models["Database"](
+        name=io.name,
+        table="IOT",
+        init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
+        notes=notes,
+    )
+
