@@ -1166,6 +1166,8 @@ def eurostat_sut(
 
 
 def parse_pymrio(io, value_added, satellite_account):
+    """Extracts the data from pymrio in mario format
+    """
     extensions = {}
     for value in dir(io):
         obj = getattr(io, value)

@@ -4,6 +4,5 @@
     "python.defaultInterpreterPath": "opt\\anaconda3\\bin\\python",
     "files.trimTrailingWhitespace": true,
     "python.formatting.provider": "black",
-    "editor.formatOnSave": true,
+    "editor.formatOnSave": false,
 }
-
