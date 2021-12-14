@@ -1045,3 +1045,54 @@ class CoreModel:
 
     def __setstate__(self, value):
         self.__dict__ = value
+
+    def __eq__(self,other):
+        """ Checks the equality if two databases
+        """
+        main_sets = sorted(self.sets)
+        other_sets = sorted(other.sets)
+
+        if main_sets != other_sets:
+            return False
+
+        for item in self.sets:
+            main_index = set(self.get_index(item))
+            other_index = set(other.get_index(item))
+
+            if main_index != other_index:
+                return False
+
+        return True
+
+
+    def _extract_index_from_frames(self,_dict):
+        ids = {
+            'r': {'matrix':['z','X','Y','v','e','Z',],"level":('index',0)},
+            's': {'matrix':['z','X','Y','v','e','Z',],"level":('index',-1)},
+            'a': {'matrix':['z','X','Y','v','e','Z',],"level":('index',-1)},
+            'c': {'matrix':['z','X','Y','v','e','Z',],"level":('index',-1)},
+            'n': {'matrix':['Y','EY'],"level":('columns',1)},
+            'k': {'matrix':['e','E','EY'],"level":('index',0)},
+            'f': {'matrix':['v','V','EY'],"level":('index',0)},
+        }
+
+        indeces = {}
+        for key,vals in ids.items():
+            idx = _MASTER_INDEX[key]
+
+            if idx not in self.sets:
+                continue
+
+            for matrix in vals['matrix']:
+                if matrix in _dict:
+                    df = _dict[matrix]
+                    print(idx,matrix)
+                    
+                    if key in ['s','a','c']:
+                        df = df.loc[(slice(None),idx,slice(None)),:]
+                    index = list(getattr(df,vals['level'][0]).unique(vals['level'][1]))
+                    indeces[idx] = index
+                    break
+
+        return indeces
+        
