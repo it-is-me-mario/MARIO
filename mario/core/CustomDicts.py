@@ -1,3 +1,4 @@
+
 from collections import UserDict
 
 class Matrices(UserDict):
@@ -19,9 +20,15 @@ class Matrices(UserDict):
         super().__init__(vals)
 
     def __setitem__(self, key, item):
+        if key == 'baseline':
+            key = self._bs_name
 
         if self._dynamic and not isinstance(key,int):
             raise ValueError('For a dynamic database, only integer keys are accepted.')
+
+        if not isinstance(item,dict):
+            raise ValueError('item should be a dict.')
+
 
         super().__setitem__(key, item)
 
@@ -31,3 +38,10 @@ class Matrices(UserDict):
             key = self._bs_name
 
         return super().__getitem__(key)
+
+if __name__ == '__main__':
+    test = Matrices(2020,True)
+    test['baseline'] = {}
+    #%%
+
+# %%
