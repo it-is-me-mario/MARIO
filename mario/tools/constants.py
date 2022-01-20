@@ -94,7 +94,7 @@ _CALC = {
     "U": "self.matrices['{}']['Z'].loc[(slice(None),_MASTER_INDEX['c'],slice(None)),(slice(None),_MASTER_INDEX['a'],slice(None))]",
     "p": "calc_p(self.matrices['{}']['v'],self.matrices['{}']['w'])",
     "X_Z": "calc_X(self.matrices['{}']['Z'],self.matrices['{}']['Y'])",
-    "z_z": "calc_X_from_z(self.matrices['{}']['z'],self.matrices['{}']['Y'])",
+    "X_z": "calc_X_from_z(self.matrices['{}']['z'],self.matrices['{}']['Y'])",
 }
 
 
