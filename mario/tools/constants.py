@@ -79,7 +79,6 @@ _CALC = {
     "V": "calc_E(self.matrices['{}']['v'],self.matrices['{}']['X'])",
     "v": "calc_e(self.matrices['{}']['V'],self.matrices['{}']['X'])",
     "f": "calc_f(self.matrices['{}']['e'],self.matrices['{}']['w'])",
-    "f_dis": "calc_f_dis(self.matrices['{}']['e'],self.matrices['{}']['w'])",
     "F": "calc_F(self.matrices['{}']['f'],self.matrices['{}']['Y'].sum(1))",
     "e": "calc_e(self.matrices['{}']['E'],self.matrices['{}']['X'])",
     "E": "calc_E(self.matrices['{}']['e'],self.matrices['{}']['X'])",
@@ -224,7 +223,6 @@ _MATRICES_NAMES = {
     "p": "Price index vector",
     "F": "Footprints",
     "f": "Footprints coeffients",
-    "f_dis": "Footprints coeffients disaggregated by origin sector and region",
 }
 
 
@@ -240,7 +238,6 @@ _ALL_MATRICES = {
         "v",
         "F",
         "f",
-        "f_dis",
         "M",
         "m",
         "b",
@@ -261,7 +258,6 @@ _ALL_MATRICES = {
         "v",
         "F",
         "f",
-        "f_dis",
         "M",
         "m",
         "b",
@@ -322,10 +318,6 @@ _INDECES = {
         },
         "F": {
             "indices": [_MASTER_INDEX["k"]],
-            "columns": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["s"], "Item"],
-        },
-        "f_dis": {
-            "indices": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["s"], "Item"],
             "columns": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["s"], "Item"],
         },
         "M": {
