@@ -340,7 +340,7 @@ def all_file_reader(
 
             for inner_key, inner_value in value.items():
 
-                file = r"{}\{}".format(path, inner_value["file_name"])
+                file = r"{}/{}".format(path, inner_value["file_name"])
                 readers(file, file)
 
     return read
