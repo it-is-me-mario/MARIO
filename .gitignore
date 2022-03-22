@@ -3,8 +3,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+
+amintest.py
+
 # os files
 .DS_Store
+
 # C extensions
 *.so
 '=

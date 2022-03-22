@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-this module contains the main functions behind parsing differnet type of 
+this module contains the main functions behind parsing differnet type of
 databases
 """
 from mario.log_exc.exceptions import WrongInput, WrongExcelFormat, WrongFormat
@@ -13,6 +13,7 @@ from mario.tools.utilities import (
     return_index,
     rename_index,
     sort_frames,
+    to_single_index,
 )
 
 from mario.tools.constants import (
@@ -21,6 +22,7 @@ from mario.tools.constants import (
     _EXIO_FACTORS,
     _MASTER_INDEX,
     _EXIO_INDEX,
+    _PYMRIO_INDEXING,
 )
 
 from mario.tools.parsers_id import (
@@ -43,6 +45,7 @@ import logging
 import copy
 import numpy as np
 import math
+import pymrio
 
 # reading the constants
 
@@ -441,14 +444,7 @@ def excel_parser(path, table, mode, sheet_name, unit_sheet):
         }
     else:
         matrices = {
-            "baseline": {
-                "Z": Z,
-                "V": V,
-                "E": E,
-                "Y": Y,
-                "X": calc_X(Z, Y),
-                "EY": EY,
-            }
+            "baseline": {"Z": Z, "V": V, "E": E, "Y": Y, "X": calc_X(Z, Y), "EY": EY,}
         }
 
     # read the unit sheet from the excel file
@@ -546,16 +542,7 @@ def dataframe_parser(Z, Y, E, V, EY, units, table):
 
     X = calc_X(Z, Y)
 
-    matrices = {
-        "baseline": {
-            "Z": Z,
-            "Y": Y,
-            "V": V,
-            "E": E,
-            "X": X,
-            "EY": EY,
-        }
-    }
+    matrices = {"baseline": {"Z": Z, "Y": Y, "V": V, "E": E, "X": X, "EY": EY,}}
 
     rename_index(matrices["baseline"])
     sort_frames(matrices["baseline"])
@@ -671,16 +658,7 @@ def monetary_sut_exiobase(path):
         columns=["unit"],
     )
 
-    matrices = {
-        "baseline": {
-            "Z": Z,
-            "V": V,
-            "E": E,
-            "EY": EY,
-            "Y": Y,
-            "X": X,
-        }
-    }
+    matrices = {"baseline": {"Z": Z, "V": V, "E": E, "EY": EY, "Y": Y, "X": X,}}
 
     units = {
         _MASTER_INDEX["a"]: activities_unit,
@@ -774,14 +752,7 @@ def eora_single_region(path, name_convention="full_name", aggregate_trade=True):
             exec(f"{matrix}.{level} = ind")
 
     matrices = {
-        "baseline": {
-            "Z": Z,
-            "V": V,
-            "E": E,
-            "EY": EY,
-            "Y": Y,
-            "X": calc_X(Z, Y),
-        }
+        "baseline": {"Z": Z, "V": V, "E": E, "EY": EY, "Y": Y, "X": calc_X(Z, Y),}
     }
 
     rename_index(matrices["baseline"])
@@ -989,7 +960,7 @@ def eurostat_sut(
         use_years = [use.loc["TIME", 1]]
 
     if supply_years == use_years:
-        years = supply_years    
+        years = supply_years
     else:
         raise WrongInput("No correspondance between years of use and supply tables")
 
@@ -1186,16 +1157,145 @@ def eurostat_sut(
     }
 
     matrices = {
-        "baseline": {
-            "Z": Z,
-            "V": V,
-            "E": E,
-            "EY": EY,
-            "Y": Y,
-            "X": calc_X(Z, Y),
-        }
+        "baseline": {"Z": Z, "V": V, "E": E, "EY": EY, "Y": Y, "X": calc_X(Z, Y),}
     }
 
     rename_index(matrices["baseline"])
 
     return matrices, indeces, units
+
+
+def parse_pymrio(io, value_added, satellite_account):
+    """Extracts the data from pymrio in mario format
+    """
+    
+    # be sure that system is calculated
+    io = io.calc_system()
+    
+    extensions = {}
+    for value in dir(io):
+        obj = getattr(io, value)
+        if isinstance(obj, pymrio.Extension):
+            extensions[value] = obj
+
+    difference = set(extensions).difference([*value_added] + [*satellite_account])
+
+    if difference:
+        raise WrongInput(
+            f"Extensions: {difference} are not explicitely characterized."
+            "All pymrio Extensions should characterized to define the factor of productions "
+            "and stallite accounts in mario."
+        )
+
+    v = pd.DataFrame()
+    e = pd.DataFrame()
+    EY = pd.DataFrame()
+    v_unit = pd.DataFrame()
+    e_unit = pd.DataFrame()
+
+    for key, value in value_added.items():
+        target = extensions[key]
+
+        if value == "all":
+            v = v.append(to_single_index(target.F))
+            v_unit = v_unit.append(to_single_index(target.unit))
+        else:
+            try:
+
+                to_append_mat = to_single_index(target.F.loc[value, :])
+                to_append_unit = to_single_index(target.unit.loc[value, :])
+
+                counter_mat = to_single_index(target.F.drop(value))
+                counter_unit = to_single_index(target.unit.drop(value))
+
+                v = v.append(to_append_mat)
+                v_unit = v_unit.append(to_append_unit)
+
+                e = e.append(counter_mat)
+                e_unit = e_unit.append(counter_unit)
+
+                EY = EY.append(to_single_index(target.F_Y.drop(value)))
+
+            except KeyError:
+                raise WrongInput(
+                    f"{value} is not a correct slicer for the specific Extension."
+                )
+
+    for key, value in satellite_account.items():
+        target = extensions[key]
+
+        if value == "all":
+            e = e.append(to_single_index(target.F))
+            e_unit = e_unit.append(to_single_index(target.unit))
+            EY = EY.append(to_single_index(target.F_Y))
+        else:
+            try:
+
+                to_append_e = to_single_index(target.F.loc[value, :])
+                to_append_e_unit = to_single_index(target.unit.loc[value, :])
+
+                to_append_v = to_single_index(target.F.drop(value))
+                to_append_v_unit = to_single_index(target.unit.drop(value))
+
+                v = v.append(to_append_v)
+                v_unit = v_unit.append(to_append_v_unit)
+
+                e = e.append(to_append_e)
+                e_unit = e_unit.append(to_append_e_unit)
+
+                EY = EY.append(to_single_index(target.F_Y.loc[value, :]))
+
+            except KeyError:
+                raise WrongInput(
+                    f"{value} is not a correct slicer for the specific Extension."
+                )
+
+    if not len(v):
+        v.loc["None", io.Z.columns] = 0
+        v_unit.loc["None", "unit"] = "None"
+
+    if not len(e):
+        e.loc["None", io.Z.columns] = 0
+        EY.loc["None", io.Y.columns] = 0
+        e_unit.loc["None", "unit"] = "None"
+
+    Y = io.Y
+    z = io.A
+    sector_unit = io.unit.loc[io.get_regions()[0]]
+
+    for matrix, info in _PYMRIO_INDEXING.items():
+        if info["index"] == 3:
+            eval(matrix).index = pd.MultiIndex.from_arrays(
+                [
+                    eval(matrix).index.get_level_values(0),
+                    info["add_i"] * len(eval(matrix)),
+                    eval(matrix).index.get_level_values(-1),
+                ]
+            )
+        if info["columns"] == 3:
+            eval(matrix).columns = pd.MultiIndex.from_arrays(
+                [
+                    eval(matrix).columns.get_level_values(0),
+                    info["add_c"] * eval(matrix).shape[1],
+                    eval(matrix).columns.get_level_values(-1),
+                ]
+            )
+
+    matrices = {"baseline": {"z": z, "E": e, "V": v, "Y": Y, "EY": EY,}}
+
+    units = {
+        _MASTER_INDEX["s"]: sector_unit,
+        _MASTER_INDEX["k"]: e_unit,
+        _MASTER_INDEX["f"]: v_unit,
+    }
+
+    indeces = {
+        "r": {"main": list(z.index.unique(0))},
+        "n": {"main": list(Y.columns.unique(-1))},
+        "k": {"main": list(e.index)},
+        "f": {"main": list(v.index)},
+        "s": {"main": list(z.index.unique(-1))},
+    }
+
+    rename_index(matrices["baseline"])
+    return matrices, units, indeces

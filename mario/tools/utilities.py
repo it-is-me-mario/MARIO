@@ -109,9 +109,7 @@ def validate_path(path: [str, list]):
             raise FileNotFoundError(f"{item} does not exist.")
 
 
-def unique_frmaes(
-    frame: pd.DataFrame,
-) -> list:
+def unique_frmaes(frame: pd.DataFrame,) -> list:
 
     all_items = []
     for col, values in frame.iteritems():
@@ -546,3 +544,31 @@ def filtering(instance, filters):
                     )
 
     return filters
+
+
+def pymrio_styling(df, keep_index, keep_columns, index_name, columns_name):
+
+    index = [df.index.get_level_values(i) for i in keep_index]
+    columns = [df.columns.get_level_values(i) for i in keep_columns]
+
+    if len(index) - 1:
+        index = pd.MultiIndex.from_arrays(index, names=index_name)
+    else:
+        index = pd.Index(index[0], name=index_name)
+
+    if len(columns) - 1:
+        columns = pd.MultiIndex.from_arrays(columns, names=columns_name)
+    else:
+        columns = pd.Index(columns[0], name=columns_name)
+
+    return pd.DataFrame(data=df.values, index=index, columns=columns)
+
+
+def to_single_index(df):
+    """Retuns joined pd.Index from pd.MultiIndex
+    """
+
+    if isinstance(df.index, pd.MultiIndex):
+        df.index = [", ".join(ii) for ii in df.index]
+
+    return df
