@@ -29,7 +29,7 @@ Database modification
     Database.aggregate
     Database.add_sectors
     Database.to_single_region
-    Database.sut_to_iot
+    Database.to_iot
     Database.add_extensions
     Database.update_scenarios
     Database.reset_to_flows

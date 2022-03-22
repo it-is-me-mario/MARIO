@@ -247,7 +247,7 @@ class Database(CoreModel):
             table=self.meta.table,
         )
 
-    def sut_to_iot(
+    def to_iot(
         self, method, inplace=True,
     ):
 
@@ -283,7 +283,7 @@ class Database(CoreModel):
         """
         if not inplace:
             new = self.copy()
-            new.sut_to_iot(method, inplace=True)
+            new.to_iot(method, inplace=True)
             return new
 
         if self.meta.table == "IOT":
