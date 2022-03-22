@@ -10,11 +10,14 @@ from mario.tools.tableparser import (
     excel_parser,
     exio3,
     monetary_sut_exiobase,
+    hybrid_sut_exiobase,
     eora_multi_region,
     eurostat_sut,
 )
 
 from mario.log_exc.exceptions import WrongInput, LackOfInput
+from mario.tools.constants import _acceptable_units
+
 
 models = {"Database": Database}
 
@@ -160,9 +163,12 @@ def parse_from_excel(
 
 def parse_exiobase_sut(
     path,
+    units,
     calc_all=False,
     name=None,
     year=None,
+    version=None,
+    extensions=None,
     model="Database",
     **kwargs,
 ):
@@ -176,14 +182,23 @@ def parse_exiobase_sut(
     Parameters
     ----------
     path : str
-        defined the zip file containing data
+        defines the zip file containing data
+    
+    units : str
+        defines whether the database is in economic or hybrid units
 
     calc_all : boolean
         if True, by default will calculate z,v,e after parsing
 
     year : int, Optional
         optional to the Database (just for recoding the metadata)
+    
+    version : str, Optional
+        optional to the Database, requested just if 'units' == hybrid
 
+    extensions : str, Optional
+        optional to the Database, requested just if 'units' == hybrid
+        
     name : str, Optional
         optional but suggested. is useful for visualization and metadata.
 
@@ -195,9 +210,23 @@ def parse_exiobase_sut(
     if model not in models:
         raise WrongInput("Available models are {}".format([*models]))
 
-    matrices, indeces, units = monetary_sut_exiobase(
-        path,
-    )
+    if units not in _acceptable_units:
+        raise WrongInput("Acceptable values for 'units' are {}".format(_acceptable_units))
+    
+    if units == "monetary":
+        matrices, indeces, units = monetary_sut_exiobase(
+            path,
+        )
+    elif units == "hybrid":
+        if version != "3.3.18":
+            raise WrongInput("Hybrid parser is available for the version 3.3.18. https://www.exiobase.eu/index.php/data-download/exiobase3hyb/128-exiobase-3-3-18-hsut-2011")
+        # if extensions == None:
+        #     raise Warning??
+        else:
+            matrices, indeces, units = hybrid_sut_exiobase(
+                path,
+                extensions,
+            )        
 
     return models[model](
         name=name,

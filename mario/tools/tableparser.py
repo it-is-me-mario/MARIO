@@ -38,11 +38,14 @@ from mario.tools.iomath import (
     calc_X_from_z,
 )
 
+from mario.tools.constants import _acceptable_extensions
+
 import pandas as pd
 import logging
 import copy
 import numpy as np
 import math
+from zipfile import ZipFile
 
 # reading the constants
 
@@ -692,6 +695,89 @@ def monetary_sut_exiobase(path):
     rename_index(matrices["baseline"])
 
     return matrices, indeces, units
+
+
+#%%%
+def hybrid_sut_exiobase(path,extensions):
+    
+    if path.split(".")[-1] == "zip":
+        
+        zf = ZipFile(r"{}".format(path), "a")
+        units = {}
+        
+        S = pd.read_csv(zf.open([i for i in zf.namelist() if "MR_HSUP_2011_v3_3_18" in i][0]), sep=",", index_col=[0,1,2,3,4], header=[0,1,2,3])
+        U = pd.read_csv(zf.open([i for i in zf.namelist() if "MR_HUSE_2011_v3_3_18" in i][0]), sep=",", index_col=[0,1,2,3,4], header=[0,1,2,3])
+        Y = pd.read_csv(zf.open([i for i in zf.namelist() if "MR_HSUTs_2011_v3_3_18_FD" in i][0]), sep=",", index_col=[0,1,2,3,4], header=[0,1,2,3])
+        E = pd.DataFrame()
+        EY = pd.DataFrame()
+        
+        if extensions != None:
+            E_dict = {}
+            for ext in extensions:
+                E_dict[ext+"_act"] =  pd.read_excel(zf.open([i for i in zf.namelist() if "MR_HSUTs_2011_v3_3_18_extensions" in i][0]), 
+                                                    sheet_name=ext+"_act", 
+                                                    index_col=_acceptable_extensions[ext]["index_col"], 
+                                                    header=_acceptable_extensions[ext]["header"])
+                E_dict[ext+"_FD"] =  pd.read_excel(zf.open([i for i in zf.namelist() if "MR_HSUTs_2011_v3_3_18_extensions" in i][0]), 
+                                                    sheet_name=ext+"_FD", 
+                                                    index_col=_acceptable_extensions[ext]["index_col"], 
+                                                    header=_acceptable_extensions[ext]["header"])
+                                
+                if len(E_dict[ext+"_act"].index.names) == 2:
+                    E = pd.concat([E, E_dict[ext+"_act"]], axis=0)
+                    EY = pd.concat([EY, E_dict[ext+"_FD"]], axis=0)
+                else:
+                    df_act = copy.deepcopy(E_dict[ext+"_act"])
+                    df_FD  = copy.deepcopy(E_dict[ext+"_FD"])
+                    
+                    df_act = df_act.droplevel(-1)
+                    df_FD = df_FD.droplevel(-1)
+                    
+                    E = pd.concat([E, df_act], axis=0)
+                    EY = pd.concat([EY, df_FD], axis=0)
+                
+    
+        
+    # Commodities index
+    c_index = [
+        S.index.get_level_values(0),
+        [_MASTER_INDEX["c"]] * S.shape[0],
+        S.index.get_level_values(1),
+    ]
+    # Activities index
+    a_index = [
+        S.columns.get_level_values(0),
+        [_MASTER_INDEX["a"]] * S.shape[1],
+        S.columns.get_level_values(1),
+    ]
+    # Demand index
+    n_index = [
+        Y.columns.get_level_values(0),
+        [_MASTER_INDEX["n"]] * Y.shape[1],
+        Y.columns.get_level_values(1),
+    ]
+    
+    # Units 
+    units[_MASTER_INDEX["c"]] = pd.MultiIndex.from_arrays([S.iloc[0:len(c_index[1]),:].index.get_level_values(1),
+                                                           S.iloc[0:len(c_index[1]),:].index.get_level_values(-1)])
+    units[_MASTER_INDEX["a"]] = pd.MultiIndex.from_arrays([S.iloc[:,0:len(a_index[1])].index.get_level_values(1),
+                                                           S.iloc[:,0:len(a_index[1])].index.get_level_values(-1)])
+    units[_MASTER_INDEX["k"]] = pd.MultiIndex.from_arrays([E.index.get_level_values(0),
+                                                           E.index.get_level_values(-1)])
+    
+    
+    # reshape the indeces
+    S.index = c_index
+    S.columns = a_index
+    S = S.T
+
+    U.index = c_index
+    U.columns = a_index
+    
+
+#%%%
+
+
 
 
 def eora_single_region(path, name_convention="full_name", aggregate_trade=True):
