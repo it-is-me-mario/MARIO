@@ -1205,7 +1205,7 @@ class Database(CoreModel):
         )
         if include_meta:
             meta = self.meta._to_dict()
-            with open(self._getdir(path, "Database", "")+"/meta.json","w") as fp:
+            with open(self._getdir(path, "Database", "")+"/metadata.json","w") as fp:
                 json.dump(meta,fp)
 
     def to_txt(
@@ -1272,9 +1272,9 @@ class Database(CoreModel):
 
         if include_meta:
             meta = self.meta._to_dict()
-            with open(self._getdir(path, "Database", "")+"/meta.json","w") as fp:
+            with open(self._getdir(path, "Database", "")+"/metadata.json","w") as fp:
                 json.dump(meta,fp)
-                
+
     def to_pymrio(
         self,
         satellite_account="satellite_account",
