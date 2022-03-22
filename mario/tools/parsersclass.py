@@ -446,7 +446,35 @@ def parse_eurostat(
     )
 
 
-def parse_from_pymrio(io, value_added, satellite_account, include_meta=True):
+def parse_from_pymrio(
+    io,
+    value_added,
+    satellite_account,
+    include_meta=True
+    ):
+    """Parsing a pymrio database
+
+    Parameters
+    ------------
+    io : pymrio.IOSystem
+        the pymrio IOSystem to be converted to mario.Database
+
+    value_added : dict
+        the value_added mapper. keys will be the io Extensions and the values will be the slicers if exist. in case that all the rows of the
+        specific Extension should be assigned, 'all' should be passed.
+
+    satellite_account : dict
+        the satellite_account mapper. keys will be the io Extensions and the values will be the slicers if exist. in case that all the rows of the
+        specific Extension should be assigned, 'all' should be passed.
+
+    include_meta : bool
+        if True, will record the pymrio.meta into mario.meta
+
+    Returns:
+       mario.Database
+    """
+
+
 
     matrices, units, indeces = parse_pymrio(io, value_added, satellite_account)
 

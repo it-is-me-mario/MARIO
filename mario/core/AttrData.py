@@ -1267,6 +1267,38 @@ class Database(CoreModel):
         **kwargs,
     ):
 
+        """Returns a pymrio.IOSystem from a mario.Database
+
+        Parameters
+        -----------
+        satellite_acount : str
+            Defines the name of the pymrio.Extension built from mario satellite account
+
+        factor_of_production : str
+            Defines the name of the pymrio.Extension built from mario factor of production
+
+        include_meta : str
+            If True, will record mario.meta into pymrio.meta
+
+        scenario : str
+            The specific scenario to create the pymrio.IOSystem from
+
+        **kwargs : (pymrio.IOSystem **kwargs)
+
+
+        Returns
+        -------
+        pymrio.IOSystem
+
+        Raises
+        ------
+        NotImplementable
+            if table_type is SUT
+
+        WrongInput
+            incorrect naming for factor_of_production and satellite_acount
+        """
+
         if self.table_type != "IOT":
             raise NotImplementable("pymrio supports only IO tables.")
 
