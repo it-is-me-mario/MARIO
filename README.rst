@@ -150,7 +150,7 @@ SUT to IOT transformation:
 
 .. code-block:: python
 
-   reformed_iot = test.sut_to_iot(method='B')
+   reformed_iot = test.to_iot(method='B')
 
 The changes can be tracked by metadata. The history can be checked by calling:
 
