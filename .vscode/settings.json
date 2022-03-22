@@ -1,8 +1,0 @@
-{
-    "code-runner.cwd": "\\Users\\mohammadamintahavori\\Documents\\GitHub\\MARIO",
-    "code-runner.preserveFocus": false,
-    "python.defaultInterpreterPath": "opt\\anaconda3\\bin\\python",
-    "files.trimTrailingWhitespace": true,
-    "python.formatting.provider": "black",
-    "editor.formatOnSave": false,
-}
