@@ -17,7 +17,7 @@ from mario.log_exc.logger import log_time
 
 from mario.tools.ioshock import Y_shock, V_shock, Z_shock
 from mario.tools.tabletransform import SUT_to_IOT
-
+import json
 from mario.tools.utilities import (
     _matrices,
     _manage_indeces,
@@ -1145,6 +1145,7 @@ class Database(CoreModel):
         coefficients=False,
         units=True,
         scenario="baseline",
+        include_meta = False
     ):
 
         """Saves the database into an Excel file
@@ -1181,6 +1182,9 @@ class Database(CoreModel):
         scenario : str
             defines the scenario to print out the data
 
+        include_meta : bool
+            saves the metadata as a json file along with the data
+
         """
 
         if scenario not in self.scenarios:
@@ -1190,6 +1194,7 @@ class Database(CoreModel):
                 )
             )
 
+        
         database_excel(
             self,
             flows,
@@ -1198,6 +1203,10 @@ class Database(CoreModel):
             units,
             scenario,
         )
+        if include_meta:
+            meta = self.meta._to_dict()
+            with open(self._getdir(path, "Database", "")+"/meta.json","w") as fp:
+                json.dump(meta,fp)
 
     def to_txt(
         self,
@@ -1207,6 +1216,7 @@ class Database(CoreModel):
         units=True,
         scenario="baseline",
         _format="txt",
+        include_meta = False
     ):
 
         """Saves the database multiple text file based on given inputs
@@ -1240,6 +1250,8 @@ class Database(CoreModel):
             * txt to save as txt files
             * csv to save as csv files
 
+        include_meta : bool
+            saves the metadata as a json file along with the data
         """
         if scenario not in self.scenarios:
             raise WrongInput(
@@ -1258,6 +1270,11 @@ class Database(CoreModel):
             _format,
         )
 
+        if include_meta:
+            meta = self.meta._to_dict()
+            with open(self._getdir(path, "Database", "")+"/meta.json","w") as fp:
+                json.dump(meta,fp)
+                
     def to_pymrio(
         self,
         satellite_account="satellite_account",
