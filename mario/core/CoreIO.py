@@ -1096,3 +1096,13 @@ class CoreModel:
 
         return indeces
         
+    def backup(self):
+
+        """The function creates a backup of the last configuration of database
+        to be returned in case needed.
+        """
+        self._backup = self._backup_(
+            copy.deepcopy(self.matrices),
+            copy.deepcopy(self._indeces),
+            copy.deepcopy(self.units),
+        )

@@ -977,16 +977,7 @@ class Database(CoreModel):
             "Transformation: The Final Demand emissions are considered only for 'Local Final Demand.'"
         )
 
-    def backup(self):
 
-        """The function creates a backup of the last configuration of database
-        to be returned in case needed.
-        """
-        self._backup = self._backup_(
-            copy.deepcopy(self.matrices),
-            copy.deepcopy(self._indeces),
-            copy.deepcopy(self.units),
-        )
 
     def calc_linkages(
         self, scenario="baseline", normalized=True, cut_diag=True, multi_mode=True,
