@@ -3,9 +3,13 @@
 
 import pytest
 import pandas.testing as pdt
-
+import numpy.testing as npt
 import os
 import sys
+
+import pandas as pd
+import numpy as np
+
 
 sys.path.append(
     os.path.join(
@@ -34,6 +38,8 @@ from mario.tools.iomath import (
     calc_M,
     calc_y,
     calc_p,
+    X_inverse,
+    calc_all_shock
 )
 
 @pytest.fixture()
@@ -42,6 +48,30 @@ def IOT_table():
     """
     return load_dummy('IOT_dummy')
 
+def test_calc_all_shock(IOT_table):
+
+    output = calc_all_shock(
+        z = IOT_table['z'],
+        v = IOT_table['v'],
+        Y = IOT_table['Y'],
+        e = IOT_table['e']
+    )
+
+    for k,v in output.items():
+        pdt.assert_frame_equal(
+            IOT_table[k],v
+        )
+
+
+def test_X_inverse():
+    x_array = np.array([1,2,3,0,0,1])
+    x_inv = np.array([1,1/2,1/3,0,0,1])
+    x_series = pd.Series(x_array,dtype=float)
+    x_frame = pd.DataFrame(x_array)
+
+    assert npt.assert_array_equal(x_inv,X_inverse(x_array))
+    assert npt.assert_array_equal(x_inv,X_inverse(x_series))
+    assert npt.assert_array_equal(x_inv,X_inverse(x_frame))
 
 
 def test_calc_X_from_z(IOT_table):
