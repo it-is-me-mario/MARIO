@@ -196,7 +196,7 @@ def parse_exiobase_sut(
     version : str, Optional
         optional to the Database, requested just if 'units' == hybrid
 
-    extensions : str, Optional
+    extensions : list, Optional
         optional to the Database, requested just if 'units' == hybrid
         
     name : str, Optional
@@ -219,9 +219,7 @@ def parse_exiobase_sut(
         )
     elif units == "hybrid":
         if version != "3.3.18":
-            raise WrongInput("Hybrid parser is available for the version 3.3.18. https://www.exiobase.eu/index.php/data-download/exiobase3hyb/128-exiobase-3-3-18-hsut-2011")
-        # if extensions == None:
-        #     raise Warning??
+            raise WrongInput("Please, provide the version of the database. Hybrid parser is available for the version 3.3.18. \nDownload from https://www.exiobase.eu/index.php/data-download/exiobase3hyb/128-exiobase-3-3-18-hsut-2011")
         else:
             matrices, indeces, units = hybrid_sut_exiobase(
                 path,
