@@ -148,3 +148,19 @@ eora_parser_id = {
         },
     },
 }
+
+_acceptable_units = ["monetary", "hybrid"]
+_acceptable_extensions = {"resource": {"index_col":[0,1], "header":[0,1,2,3], "units": 1}, 
+                          "Land": {"index_col":[0,1], "header":[0,1,2,3], "units": 1}, 
+                          "Emiss": {"index_col":[0,1,2], "header":[0,1,2,3], "units": 1}, 
+                          "Emis_unreg_w": {"index_col":[0,1,2], "header":[0,1,2,3], "units": 1},
+                          "Unreg_w": {"index_col":[0,1], "header":[0,1,2,3], "units": 1},
+                          "waste_sup": {"index_col":[0,1], "header":[0,1,2,3], "units": 1},
+                          "waste_use": {"index_col":[0,1], "header":[0,1,2,3], "units": 1},
+                          "pack_sup_waste": {"index_col":[0,1], "header":[0,1,2,3], "units": 1},
+                          "pack_use_waste": {"index_col":[0,1], "header":[0,1,2,3], "units": 1},
+                          "mach_sup_waste": {"index_col":[0,1], "header":[0,1,2,3], "units": 1},
+                          "mach_use_waste": {"index_col":[0,1], "header":[0,1,2,3], "units": 1},
+                          "stock_addition": {"index_col":[0,1], "header":[0,1,2,3], "units": 1},
+                          "crop_res": {"index_col":[0,1,2], "header":[0,1,2,3], "units": 1},
+                          }

@@ -16,7 +16,7 @@ from mario.tools.tableparser import (
 )
 
 from mario.log_exc.exceptions import WrongInput, LackOfInput
-from mario.tools.constants import _acceptable_units
+from mario.tools.parsers_id import _acceptable_units
 
 
 models = {"Database": Database}
@@ -163,7 +163,7 @@ def parse_from_excel(
 
 def parse_exiobase_sut(
     path,
-    units,
+    units="monetary",
     calc_all=False,
     name=None,
     year=None,
@@ -184,7 +184,7 @@ def parse_exiobase_sut(
     path : str
         defines the zip file containing data
     
-    units : str
+    units : str, Optional
         defines whether the database is in economic or hybrid units
 
     calc_all : boolean

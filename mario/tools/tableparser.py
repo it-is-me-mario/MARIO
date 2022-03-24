@@ -38,7 +38,7 @@ from mario.tools.iomath import (
     calc_X_from_z,
 )
 
-from mario.tools.constants import _acceptable_extensions
+from mario.tools.parsers_id import _acceptable_extensions
 
 import pandas as pd
 import logging
@@ -782,16 +782,16 @@ def hybrid_sut_exiobase(path,extensions):
     # Units 
     commodities_unit = pd.DataFrame(
         S.iloc[0:len(set(c_index[2])),:].index.get_level_values(-1),
-        S.iloc[0:len(set(c_index[2])),:].index.get_level_values(1),
+        index=S.iloc[0:len(set(c_index[2])),:].index.get_level_values(1),
         columns=["unit"],
     )
     activities_unit = pd.DataFrame(
-        U.iloc[0:len(set(a_index[2])),:].index.get_level_values(-1),
-        index=U.iloc[0:len(set(a_index[2])),:].index.get_level_values(1),
+        ["None"] * len(set(a_index[2])),
+        index=S.iloc[:,0:len(set(a_index[2]))].columns.get_level_values(1),
         columns=["unit"],
     )
     factors_unit = pd.DataFrame(
-        ["EUR"],
+        ["None"],
         index=["None"],
         columns=["unit"],
     )
