@@ -2,9 +2,11 @@
 
 import sys
 import os
+from numpy import eye
 import pytest
 import pandas.testing as pdt
 import pandas as pd
+from pymrio import Extension,IOSystem
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
@@ -176,6 +178,80 @@ def test_aggregate(agg_IOT):
             assert set(aggr.get_index(level)) == set(xlsx.values.ravel())
 
             
+def test_to_pymrio(CoreDataIOT,CoreDataSUT):
+
+    with pytest.raises(NotImplementable) as msg:
+        CoreDataSUT.to_pymrio()
+    
+    assert "pymrio supports only IO tables." in str(msg.value)
+
+    with pytest.raises(WrongInput) as msg:
+        # no " " in names are accepted
+        CoreDataIOT.to_pymrio(satellite_account = "Dummy Dummy")
+
+    assert "does not accept values containing space" in str(msg.value)
+
+    io = CoreDataIOT.to_pymrio(
+        satellite_account = "Extensions",
+        factor_of_production = "Value_added"
+        ).calc_all()
+
+    assert isinstance(io,IOSystem)
+    assert isinstance(io.Extensions,Extension)
+    assert isinstance(io.Value_added,Extension)
+
+    assert set(io.get_regions()) == set(CoreDataIOT.get_index("Region"))
+    assert set(io.get_sectors()) == set(CoreDataIOT.get_index("Sector"))
+    assert set(io.get_Y_categories()) == set(CoreDataIOT.get_index("Consumption category"))
+
+    assert set(io.Extensions.get_rows()) == set(CoreDataIOT.get_index("Satellite account"))
+    assert set(io.Value_added.get_rows()) == set(CoreDataIOT.get_index("Factor of production"))
+
+    x = CoreDataIOT.X.droplevel(level=1)
+    x.columns = ['indout']
+    pdt.assert_frame_equal(
+        io.x , x ,check_names=False
+    )
+
+    Y = CoreDataIOT.Y.droplevel(level=1).droplevel(level=1,axis=1)
+    pdt.assert_frame_equal(
+        io.Y , Y ,check_names=False
+    )
+
+    A = CoreDataIOT.z.droplevel(level=1).droplevel(level=1,axis=1)
+    pdt.assert_frame_equal(
+        io.A,A,check_names=False
+    )
+
+    Z = CoreDataIOT.Z.droplevel(level=1).droplevel(level=1,axis=1)
+    pdt.assert_frame_equal(
+        io.Z,Z,check_names=False
+    )
+
+    e = CoreDataIOT.e.droplevel(level=1,axis=1)
+    pdt.assert_frame_equal(
+        io.Extensions.S,e,check_names=False
+    )   
+
+    E = CoreDataIOT.E.droplevel(level=1,axis=1)
+    pdt.assert_frame_equal(
+        io.Extensions.F,E,check_names=False
+    )   
+
+    EY = CoreDataIOT.EY.droplevel(level=1,axis=1)
+    pdt.assert_frame_equal(
+        io.Extensions.F_Y,EY,check_names=False
+    )   
+
+    v = CoreDataIOT.v.droplevel(level=1,axis=1)
+    pdt.assert_frame_equal(
+        io.Value_added.S,v,check_names=False
+    )   
+
+    V = CoreDataIOT.V.droplevel(level=1,axis=1)
+    pdt.assert_frame_equal(
+        io.Value_added.F,V,check_names=False
+    )   
 
 
 
