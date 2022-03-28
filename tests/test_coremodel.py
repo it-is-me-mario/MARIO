@@ -1,32 +1,22 @@
-
 import sys
 import os
 import pytest
 import pandas.testing as pdt
 import pandas as pd
 
-sys.path.append(
-    os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        ".."
-    )
-)
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 MAIN_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 from mario.core.CoreIO import CoreModel
 from mario.test.mario_test import load_test
-from mario.log_exc.exceptions import (
-    WrongInput,
-    NotImplementable
-)
-
+from mario.log_exc.exceptions import WrongInput, NotImplementable
 
 
 @pytest.fixture()
 def CoreDataIOT():
 
-    return load_test('IOT')
+    return load_test("IOT")
 
     # return CoreModel(
     #     table = "IOT",
@@ -36,12 +26,13 @@ def CoreDataIOT():
     #     Y = data.Y,
     #     EY = data.EY,
     #     units = data.units
-    # )    
+    # )
+
 
 @pytest.fixture()
 def CoreDataSUT():
 
-    return load_test('SUT')
+    return load_test("SUT")
 
     # return CoreModel(
     #     table = "SUT",
@@ -51,7 +42,7 @@ def CoreDataSUT():
     #     Y = data.Y,
     #     EY = data.EY,
     #     units = data.units
-    # )    
+    # )
 
 
 # def test_clone_scenario(CoreDataIOT):
@@ -80,9 +71,9 @@ def CoreDataSUT():
 #         CoreDataIOT.clone_scenario(
 #             scenario = 'another dummy',
 #             name = 'dummy'
-#         )      
+#         )
 
-#     assert "does not exist" in str(msg.value) 
+#     assert "does not exist" in str(msg.value)
 
 
 # def test_reset_to_flows(CoreDataIOT):
@@ -127,7 +118,7 @@ def CoreDataSUT():
 
 
 # def test_get_index(CoreDataIOT,CoreDataSUT):
-    
+
 #     iot_all_index = {
 #         'Sector':[
 #             "Agriculture",
@@ -158,7 +149,7 @@ def CoreDataSUT():
 #             "Final Demand"
 #         ]
 #     }
-    
+
 #     sut_all_index = {
 #         'Activity':[
 #             "Agriculture",
@@ -273,7 +264,7 @@ def CoreDataSUT():
 
 
 # def test___eq__(CoreDataIOT,CoreDataSUT):
-    
+
 #     assert not CoreDataIOT == CoreDataSUT
 #     assert CoreDataIOT == CoreDataIOT.copy()
 #     assert CoreDataSUT == CoreDataSUT.copy()
@@ -285,7 +276,7 @@ def CoreDataSUT():
 
 
 # def test_is_balance(CoreDataIOT,CoreDataSUT):
-    
+
 #     # test normal balance
 #     for method in ['coefficients','flows','prices']:
 #         assert CoreDataIOT.is_balanced(method)
@@ -330,7 +321,7 @@ def CoreDataSUT():
 #     # testing wrong inputs
 #     with pytest.raises(WrongInput) as msg:
 #         assert CoreDataIOT.is_balanced('dummy')
-    
+
 #     assert "Acceptable methods are" in str(msg.value)
 
 
@@ -348,7 +339,7 @@ def CoreDataSUT():
 # def test__getdir(CoreDataIOT):
 
 #     assert (
-#         'Output/path_test/test_file.xlsx' in 
+#         'Output/path_test/test_file.xlsx' in
 #         CoreDataIOT._getdir(None,'path_test','test_file.xlsx')
 #     )
 

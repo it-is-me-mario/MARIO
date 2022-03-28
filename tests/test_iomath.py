@@ -11,12 +11,7 @@ import pandas as pd
 import numpy as np
 
 
-sys.path.append(
-    os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        ".."
-    )
-)
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 from mario.test.mario_test import load_dummy
 from mario.tools.iomath import (
@@ -39,14 +34,16 @@ from mario.tools.iomath import (
     calc_y,
     calc_p,
     X_inverse,
-    calc_all_shock
+    calc_all_shock,
 )
+
 
 @pytest.fixture()
 def IOT_table():
     """ A dictionary with dummy test data from an excel file
     """
-    return load_dummy('IOT_dummy')
+    return load_dummy("IOT_dummy")
+
 
 # def test_calc_all_shock(IOT_table):
 
@@ -165,4 +162,3 @@ def IOT_table():
 #     pdt.assert_frame_equal(
 #         IOT_table['M'],calc_M(IOT_table['m'],IOT_table['Y'])
 #     )
-
