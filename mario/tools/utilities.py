@@ -85,7 +85,8 @@ def run_from_jupyter():
         ipy_str = str(type(get_ipython()))
         if "zmqshell" in ipy_str:
             return True
-        return False
+    
+    return False
 
 
 def sort_frames(_dict):
