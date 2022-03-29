@@ -125,33 +125,6 @@ def _meta_parse_history(instance, function, old_index=None, new_index=None):
             )
 
 
-def _matrices(instance, function, scenario="baseline"):
-    """
-    This function is in charge of deleting or adding the matrices as a callable
-    attribute to the instance
-    """
-    # acceptable_matrices=_ALL_MATRICES+_SUT_MATRICES
-
-    if function == "del":
-
-        for attribute in _ALL_MATRICES[instance.table_type]:
-            if scenario != "baseline":
-                attribute = "{}_c".format(attribute)
-            try:
-                delattr(instance, attribute)
-            except AttributeError:
-                pass
-
-    if function == "add":
-        pass
-        # --TODO-- check if it is necessary to have it
-        # for attribute,value in instance.matrices[scenario].items():
-        #     if scenario != 'baseline':
-        #         attribute = '{}_c'.format(attribute)
-
-        #     setattr(instance, attribute,value)
-
-
 def _manage_indeces(instance, case, **kwargs):
 
     if case == "aggregation":

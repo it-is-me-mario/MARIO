@@ -143,8 +143,6 @@ class CoreModel:
             log_time(logger, "Metadata: initialized.")
             self.meta._add_attribute(table=table, price=price, source=source, year=year)
 
-            _matrices(self, function="add")
-
         else:
             if not all(
                 [matrix is not None for matrix in [Y, E, Z, V, EY, units, table]]
@@ -160,8 +158,6 @@ class CoreModel:
 
                 log_time(logger, "Metadata: initialized by dataframes.")
 
-                _matrices(self, function="del")
-                _matrices(self, function="add")
 
         # Adding notes if passed by user or the parsers
         if kwargs.get("notes"):
