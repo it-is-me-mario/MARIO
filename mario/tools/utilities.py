@@ -99,37 +99,8 @@ def sort_frames(_dict):
             _dict[key] = value.sort_index(axis=1, level=1).sort_index(axis=0, level=1)
 
 
-def validate_path(path: [str, list]):
-
-    if isinstance(path, str):
-        path = [path]
-
-    for item in path:
-        if not os.path.exists(item):
-            raise FileNotFoundError(f"{item} does not exist.")
-
-
-def unique_frmaes(frame: pd.DataFrame,) -> list:
-
-    all_items = []
-    for col, values in frame.iteritems():
-        given_values = delete_duplicates(values.values)
-        all_items.extend(given_values)
-
-    return delete_duplicates(all_items)
-
-
 def delete_duplicates(_list: [list, tuple]) -> list:
     return list(dict.fromkeys(_list))
-
-
-def index_col_equlity(
-    original: pd.DataFrame, given: pd.DataFrame, levels: list = ["index", "columns"]
-):
-
-    for level in levels:
-        if not getattr(original, level).equals(getattr(given, level)):
-            raise WrongExcelFormat(f"{level} does not have the correct format.")
 
 
 def _meta_parse_history(instance, function, old_index=None, new_index=None):
@@ -196,70 +167,6 @@ def _manage_indeces(instance, case, **kwargs):
     elif case == "single_region":
         for key, value in kwargs.items():
             instance._indeces[key] = {"main": value}
-
-
-def subplot_grid(subplot_number, orientation="v"):
-
-    if orientation == "v":
-        j = 0
-        n_cols = []
-        for i in reversed(range(subplot_number + 1)):
-            if int(math.sqrt(i) + 0.5) ** 2 == i:
-                n_cols += [int(math.sqrt(i))]
-            j += 1
-        n_cols = n_cols[0]
-
-        if int(math.sqrt(subplot_number) + 0.5) ** 2 == subplot_number:
-            n_rows = n_cols
-        else:
-            n_rows = n_cols + int(math.ceil((subplot_number - n_cols ** 2) / n_cols))
-
-    elif orientation == "h":
-        j = 0
-        n_rows = []
-        for i in reversed(range(subplot_number + 1)):
-            if int(math.sqrt(i) + 0.5) ** 2 == i:
-                n_rows += [int(math.sqrt(i))]
-            j += 1
-        n_rows = n_rows[0]
-
-        if int(math.sqrt(subplot_number) + 0.5) ** 2 == subplot_number:
-            n_cols = n_rows
-        else:
-            n_cols = n_rows + int(math.ceil((subplot_number - n_rows ** 2) / n_rows))
-
-    grid = [(row + 1, col + 1) for row in range(n_rows) for col in range(n_cols)]
-
-    return (n_rows, n_cols, grid)
-
-
-def str_2_list(*args):
-
-    "this fucntion returns a list in case that the user pass a string"
-
-    output = []
-    for arg in args:
-        if isinstance(arg, str):
-            output.append([arg])
-        else:
-            output.append(arg)
-
-    return output
-
-
-def master_exist(instance, **kwargs):
-    """
-    'this function checks if a specific item (any of the items from the MASTER_INDEX are valid or not'
-    instance = self
-    for kwargs:
-        key   = the key of the MASTER_INDEX
-        value = a list of the items that the user is giving
-    """
-
-    for key, values in kwargs.items():
-        for value in values:
-            if value not in instance.get_index(_MASTER_INDEX[key]):
-                raise WrongInput(f"{value} is not a valid {_MASTER_INDEX[key]}.")
 
 
 def check_clusters(instance, clusters):
@@ -344,15 +251,17 @@ def all_file_reader(
     return read
 
 
-def return_index(df, item, multi_index, del_duplicate, reindex, level=None):
+def return_index(df, item, multi_index, del_duplicate, reindex=None, level=None):
 
     if multi_index:
-        index = eval("df.{}.get_level_values({})".format(item, level))
+        index = list(getattr(df,item).get_level_values(level))
+        #eval("df.{}.get_level_values({})".format(item, level))
     else:
-        index = eval("df.{}".format(item))
+        index = list(getattr(df,item))
+        #index = eval("df.{}".format(item))
 
     if del_duplicate:
-        index = delete_duplicates(list(index))
+        index = delete_duplicates(index)
 
     return index
 
@@ -368,7 +277,7 @@ def multiindex_contain(inner_index, outer_index, file, check_levels=None):
         if check_levels is None:
             if inner_index.nlevels != outer_index.nlevels:
                 raise WrongInput(f"number levels for {file} are not valid.")
-            levels = [(i, i) for i in range(inner_index.nlevels)]
+            levels = list(range(inner_index.nlevels))# [i for i in range(inner_index.nlevels)]
         else:
             levels = check_levels
 
@@ -377,12 +286,12 @@ def multiindex_contain(inner_index, outer_index, file, check_levels=None):
         for level in levels:
 
             diff = (
-                outer_index.levels[level[1]]
-                .difference(inner_index.levels[level[0]])
+                outer_index.levels[level]
+                .difference(inner_index.levels[level])
                 .tolist()
             )
 
-            differences[level[1]] = diff
+            differences[level] = diff
             if len(diff):
                 passed = False
 
@@ -495,22 +404,6 @@ def linkages_calculation(instance, cut_diag, matrices, multi_mode, normalized):
 
     return links
 
-
-def unit_check(instance, sets, slicer=None):
-
-    if sets == _MASTER_INDEX["r"]:
-        raise WrongInput(f"Set '{sets}' do not have any unit")
-    units = instance.units[sets]
-    if slicer is not None:
-        units = units.loc[slicer, :]
-    uniques = {}
-
-    unique_units = units["unit"].unique()
-
-    for unit in unique_units:
-        uniques[unit] = units.index[units["unit"] == unit].tolist()
-
-    return uniques
 
 
 def filtering(instance, filters):
