@@ -103,28 +103,6 @@ def delete_duplicates(_list: [list, tuple]) -> list:
     return list(dict.fromkeys(_list))
 
 
-def _meta_parse_history(instance, function, old_index=None, new_index=None):
-
-    if function == "parse":
-        instance.meta._add_history("Database successfully imported.")
-        for index in instance._indeces.keys():
-            instance.meta._add_history(
-                "Number of {} = {}".format(
-                    _MASTER_INDEX[index], len(instance._indeces[index]["main"])
-                )
-            )
-
-    elif function == "aggregation":
-        for index, value in instance._indeces.items():
-            instance.meta._add_history(
-                "{} aggregated from {} levels to {} levels".format(
-                    _MASTER_INDEX[index],
-                    len(old_index[index]["main"]),
-                    len(new_index[index]["main"]),
-                )
-            )
-
-
 def _manage_indeces(instance, case, **kwargs):
 
     if case == "aggregation":
@@ -228,10 +206,9 @@ def return_index(df, item, multi_index, del_duplicate, reindex=None, level=None)
 
     if multi_index:
         index = list(getattr(df,item).get_level_values(level))
-        #eval("df.{}.get_level_values({})".format(item, level))
+
     else:
         index = list(getattr(df,item))
-        #index = eval("df.{}".format(item))
 
     if del_duplicate:
         index = delete_duplicates(index)
@@ -285,98 +262,6 @@ def rename_index(_dict):
                 getattr(value,item).names= _INDEX_NAMES['3levels']
             else:
                 getattr(value,item).name = _INDEX_NAMES['1level']
-
-
-
-def linkages_calculation(cut_diag, matrices, multi_mode, normalized):
-    """calculates the linkages"""
-    if cut_diag:
-        for key, value in matrices.items():
-            np.fill_diagonal(value.values, 0)
-
-    if multi_mode:
-
-        link_types = [
-            "Total Forward",
-            "Total Backward",
-            "Direct Forward",
-            "Direct Backward",
-        ]
-        geo_types = ["Local", "Foreign"]
-        links = pd.DataFrame(
-            0,
-            index=matrices["g"].index,
-            columns=pd.MultiIndex.from_product([link_types, geo_types]),
-        )
-
-        for index, values in links.iterrows():
-            links.loc[index, ("Total Forward", "Local")] = (
-                matrices["g"].loc[index, index[0]].sum().sum()
-            )
-            links.loc[index, ("Total Forward", "Foreign")] = (
-                matrices["g"].loc[index].sum().sum()
-                - matrices["g"].loc[index, index[0]].sum().sum()
-            )
-
-            links.loc[index, ("Total Backward", "Local")] = (
-                matrices["w"].loc[index, index[0]].sum().sum()
-            )
-            links.loc[index, ("Total Backward", "Foreign")] = (
-                matrices["w"].loc[index].sum().sum()
-                - matrices["w"].loc[index, index[0]].sum().sum()
-            )
-
-            links.loc[index, ("Direct Forward", "Local")] = (
-                matrices["b"].loc[index, index[0]].sum().sum()
-            )
-            links.loc[index, ("Direct Forward", "Foreign")] = (
-                matrices["b"].loc[index].sum().sum()
-                - matrices["b"].loc[index, index[0]].sum().sum()
-            )
-
-            links.loc[index, ("Direct Backward", "Local")] = (
-                matrices["z"].loc[index, index[0]].sum().sum()
-            )
-            links.loc[index, ("Direct Backward", "Foreign")] = (
-                matrices["z"].loc[index].sum().sum()
-                - matrices["z"].loc[index, index[0]].sum().sum()
-            )
-
-        if normalized:
-            log_time(
-                logger, "Normalization not available for multi-regional mode.", "warn"
-            )
-
-    # Computing linkages as if there were only one unique region
-    else:
-        _forward_t = matrices["g"].sum(axis=1).to_frame()
-        _backward_t = matrices["w"].sum(axis=0).to_frame()
-        _forward_d = matrices["b"].sum(axis=1).to_frame()
-        _backward_d = matrices["z"].sum(axis=0).to_frame()
-
-        _forward_t.columns = ["Total Forward"]
-        _backward_t.columns = ["Total Backward"]
-        _forward_d.columns = ["Direct Forward"]
-        _backward_d.columns = ["Direct Backward"]
-
-        if normalized:
-
-            _forward_t.iloc[:, 0] = _forward_t.iloc[:, 0] / np.average(
-                _forward_t.values
-            )
-            _backward_t.iloc[:, 0] = _backward_t.iloc[:, 0] / np.average(
-                _backward_t.values
-            )
-            _forward_d.iloc[:, 0] = _forward_d.iloc[:, 0] / np.average(
-                _forward_d.values
-            )
-            _backward_d.iloc[:, 0] = _backward_d.iloc[:, 0] / np.average(
-                _backward_d.values
-            )
-
-        links = pd.concat([_forward_t, _backward_t, _forward_d, _backward_d], axis=1)
-
-    return links
 
 
 

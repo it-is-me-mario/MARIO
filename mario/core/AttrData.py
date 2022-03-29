@@ -20,7 +20,6 @@ from mario.tools.tabletransform import SUT_to_IOT
 import json
 from mario.tools.utilities import (
     _manage_indeces,
-    linkages_calculation,
     check_clusters,
     run_from_jupyter,
     filtering,
@@ -61,6 +60,7 @@ from mario.tools.iomath import (
     calc_f,
     calc_f_dis,
     calc_X_from_z,
+    linkages_calculation,
 )
 
 from mario.tools.sectoradd import adding_new_sector
