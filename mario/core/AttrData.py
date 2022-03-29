@@ -1039,7 +1039,6 @@ class Database(CoreModel):
         }
 
         return linkages_calculation(
-            self,
             cut_diag=cut_diag,
             matrices=_matrices,
             multi_mode=multi_mode,

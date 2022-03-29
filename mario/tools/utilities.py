@@ -308,13 +308,14 @@ def rename_index(_dict):
 
     for key, value in _dict.items():
         for item in ["index", "columns"]:
-            if isinstance(eval(f"value.{item}"), pd.MultiIndex):
-                exec(f"value.{item}.names = _INDEX_NAMES['3levels']")
+            if isinstance(getattr(value,item), pd.MultiIndex):
+                getattr(value,item).names= _INDEX_NAMES['3levels']
             else:
-                exec(f"value.{item}.name = _INDEX_NAMES['1level']")
+                getattr(value,item).name = _INDEX_NAMES['1level']
 
 
-def linkages_calculation(instance, cut_diag, matrices, multi_mode, normalized):
+
+def linkages_calculation(cut_diag, matrices, multi_mode, normalized):
     """calculates the linkages"""
     if cut_diag:
         for key, value in matrices.items():
