@@ -326,6 +326,7 @@ class Database(CoreModel):
         self,
         path=None,
         levels="all",
+        units=True
     ):
 
         """Generates the Excel file for aggregation of the database
@@ -340,6 +341,9 @@ class Database(CoreModel):
             levels to be printed as Excel sheets. If 'all' it will print out all
             the levels, else different levels should be passed as a list of
             levels such as ['Region','Sector']
+            
+        units : boolean
+            if True, prints a support sheet with units associated to each index
 
         """
 
@@ -367,6 +371,23 @@ class Database(CoreModel):
                     index=self.get_index(level), columns=["Aggregation"]
                 )
                 data.to_excel(writer, level)
+            
+            if units:
+                unt = pd.DataFrame()
+                for u in self.units:
+                    
+                    for i,j in _MASTER_INDEX.items():
+                        if j == u:
+                            level = i
+                    
+                    ind  = pd.MultiIndex.from_arrays([[_MASTER_INDEX[level]]*self.units[u].shape[0], self.units[u].index])
+                    data = copy.deepcopy(self.units[u])
+                    data.index = ind
+                    unt = pd.concat([unt,data],axis=0)
+                
+                unt.to_excel(writer, "Units")
+
+                
 
     def read_aggregated_index(
         self,
