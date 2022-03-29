@@ -15,11 +15,6 @@ from mario.core.mariometadata import MARIOMetaData
 from mario.tools.tableparser import dataframe_parser
 
 
-from mario.tools.utilities import (
-    _matrices,
-    _meta_parse_history,
-)
-
 
 from mario.tools.iomath import (
     calc_X,
@@ -164,7 +159,6 @@ class CoreModel:
             for note in kwargs["notes"]:
                 self.meta._add_history(note)
 
-        _meta_parse_history(self, "parse")
         if calc_all:
             self.calc_all()
 

@@ -19,9 +19,7 @@ from mario.tools.ioshock import Y_shock, V_shock, Z_shock
 from mario.tools.tabletransform import SUT_to_IOT
 import json
 from mario.tools.utilities import (
-    _matrices,
     _manage_indeces,
-    _meta_parse_history,
     linkages_calculation,
     check_clusters,
     run_from_jupyter,
@@ -298,17 +296,14 @@ class Database(CoreModel):
         matrices, indeces, units = SUT_to_IOT(self, method)
 
         for scenario in self.scenarios:
-            _matrices(self, "del", scenario)
             log_time(logger, f"{scenario} deleted from the database", "warn")
             self.meta._add_history(f"{scenario} deleted from the database")
 
         self.matrices = matrices
-        _matrices(self, "add", "baseline")
 
         self._indeces = indeces
         self.units = units
 
-        _meta_parse_history(self, "parse")
 
         self.meta.table = "IOT"
         self.meta._add_history(
@@ -552,9 +547,7 @@ class Database(CoreModel):
                 __new_matrices, units = _aggregator(self, drop)
 
             for scenario in self.scenarios:
-                _matrices(self, "del", scenario)
                 self.matrices[scenario] = __new_matrices[scenario]
-                _matrices(self, "add", scenario)
 
             self.meta._add_history(
                 "original matrices changed to the aggregated level based on the inputs from {}".format(
@@ -569,7 +562,6 @@ class Database(CoreModel):
             _manage_indeces(self, "aggregation")
 
             new_index = copy.deepcopy(self._indeces)
-            _meta_parse_history(self, "aggregation", old_index, new_index)
 
             if calc_all:
                 for scenario in self.scenarios:
@@ -581,9 +573,7 @@ class Database(CoreModel):
         All the matrices and indeces will be updated to the last back-up
         """
 
-        _matrices(self, function="del")
         self.matrices = self._backup.matrices
-        _matrices(self, function="add")
         self._indeces = self._backup.indeces
         self.units = self._backup.units
         self.meta._add_history("Last backup recovered.")
@@ -780,12 +770,10 @@ class Database(CoreModel):
         matrices = {"baseline": {**info}}
 
         for scenario in self.scenarios:
-            _matrices(self, "del", scenario)
             log_time(logger, f"{scenario} deleted from the database", "warn")
             self.meta._add_history(f"{scenario} deleted from the database")
 
         self.matrices = matrices
-        _matrices(self, "add", "baseline")
 
         self.meta._add_history(
             f"Modification: new '{_MASTER_INDEX[matrix_id]}' added to the database as follow:\n"
@@ -946,14 +934,12 @@ class Database(CoreModel):
         _manage_indeces(self, "single_region", **new_indeces)
 
         for scenario in self.scenarios:
-            _matrices(self, "del", scenario=scenario)
             log_time(logger, f"Transformation: {scenario} deleted from the database.")
 
         self.matrices = {"baseline": {}}
         for matrix in ["Y", "Z", "E", "EY", "Y", "V", "X"]:
             self.matrices["baseline"][matrix] = eval(matrix)
         log_time(logger, "Transformation: New baseline added to the database")
-        _matrices(self, "add", scenario="baseline")
 
         slicer = _MASTER_INDEX["a"] if self.table_type == "SUT" else _MASTER_INDEX["s"]
 
@@ -1505,12 +1491,8 @@ class Database(CoreModel):
         EY = self.EY
 
         # Deleting old values
-        _matrices(self, "del")
         for matrix in ["z", "e", "v", "Y", "X", "Z", "E", "V", "EY"]:
             self.matrices["baseline"][matrix] = eval(matrix)
-
-        # Adding new values
-        _matrices(self, "add")
 
         self.meta._add_history(
             "Scenarios: all the scenarios deleted from the database."
