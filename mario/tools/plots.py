@@ -18,7 +18,6 @@ from plotly.subplots import make_subplots
 import plotly.offline as pltly
 import pandas as pd
 import logging
-import webbrowser
 
 logger = logging.getLogger(__name__)
 
