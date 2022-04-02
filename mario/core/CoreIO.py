@@ -986,18 +986,15 @@ class CoreModel:
 
     def __getitem__(self, key):
         """get item method retuns the data regarding the scenarios"""
-        self.scenario_exist(key)
+        if key not in self.scenarios:
+            raise WrongInput(
+                "{} is not a valid scenario. Valid scenarios are {}".format(
+                    key, self.scenarios
+                )
+            )
 
         return self.matrices[key]
 
-    def scenario_exist(self, scenario):
-        """Checks if a scneario exists or not"""
-        if scenario not in self.scenarios:
-            raise WrongInput(
-                "{} is not a valid scenario. Valid scenarios are {}".format(
-                    scenario, self.scenarios
-                )
-            )
 
     def __iter__(self):
         self.__it__ = self.scenarios
@@ -1055,37 +1052,7 @@ class CoreModel:
         return True
 
 
-    def _extract_index_from_frames(self,_dict):
-        ids = {
-            'r': {'matrix':['z','X','Y','v','e','Z',],"level":('index',0)},
-            's': {'matrix':['z','X','Y','v','e','Z',],"level":('index',-1)},
-            'a': {'matrix':['z','X','Y','v','e','Z',],"level":('index',-1)},
-            'c': {'matrix':['z','X','Y','v','e','Z',],"level":('index',-1)},
-            'n': {'matrix':['Y','EY'],"level":('columns',1)},
-            'k': {'matrix':['e','E','EY'],"level":('index',0)},
-            'f': {'matrix':['v','V','EY'],"level":('index',0)},
-        }
-
-        indeces = {}
-        for key,vals in ids.items():
-            idx = _MASTER_INDEX[key]
-
-            if idx not in self.sets:
-                continue
-
-            for matrix in vals['matrix']:
-                if matrix in _dict:
-                    df = _dict[matrix]
-                    print(idx,matrix)
-                    
-                    if key in ['s','a','c']:
-                        df = df.loc[(slice(None),idx,slice(None)),:]
-                    index = list(getattr(df,vals['level'][0]).unique(vals['level'][1]))
-                    indeces[idx] = index
-                    break
-
-        return indeces
-        
+     
     def backup(self):
 
         """The function creates a backup of the last configuration of database
