@@ -2,6 +2,7 @@
 """
 contains the utils functions in mario
 """
+#%%
 import pandas as pd
 import numpy as np
 import logging
@@ -120,25 +121,26 @@ def _manage_indeces(instance, case, **kwargs):
         for key, value in kwargs.items():
             instance._indeces[key] = {"main": value}
 
+def check_clusters(index_dict,table,clusters):
 
-def check_clusters(instance, clusters):
+    differences = set(clusters).difference(set(_LEVELS[table]))
+
+    if differences:
+        raise WrongInput(
+            "{} is/are not valid level/s. Valid items are {}".format(
+                differences, [*_LEVELS[table]]
+            )
+        )
 
     for level, level_cluster in clusters.items():
-        if level not in _LEVELS[instance.meta.table]:
-            raise WrongInput(
-                "{} is not a valid level. Valid items are {}".format(
-                    level, [*_LEVELS[instance.meta.table]]
-                )
-            )
         for cluster, values in level_cluster.items():
-            for value in values:
-                if value not in instance.get_index(level):
-                    raise WrongInput(
-                        "{} in cluster {} for level {} is not a valid item.".format(
-                            value, cluster, level
-                        )
+            differences =  set(values).difference(set(index_dict[level]))
+            if differences:
+                raise WrongInput(
+                    "{} in cluster {} for level {} is/are not a valid item/s.".format(
+                            differences, cluster, level
                     )
-
+                )
 
 def all_file_reader(
     path, guide, sub_folder=False, sep="\t", exceptions=[], engine=None
@@ -325,3 +327,5 @@ def to_single_index(df):
         df.index = [", ".join(ii) for ii in df.index]
 
     return df
+
+# %%

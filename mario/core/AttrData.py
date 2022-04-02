@@ -1802,7 +1802,11 @@ class Database(CoreModel):
         if scenario == "baseline":
             raise WrongInput("baseline scenario can not be overwritten.")
 
-        check_clusters(self, clusters)
+        check_clusters(
+            index_dict = self.get_index('all'),
+            table = self.table_type,
+            clusters = clusters
+        )
 
         # have the test for the existence of the database
 
@@ -1860,7 +1864,11 @@ class Database(CoreModel):
              e.g. clusters = {'Region':{'cluster_1':['reg1','reg2']}}
         """
 
-        check_clusters(self, clusters)
+        check_clusters(
+            index_dict = self.get_index('all'),
+            table = self.table_type,
+            clusters = clusters
+        )
 
         _sh_excel(self, num_shock, self._getdir(path, "Excels", "shock.xlsx"), clusters)
 
