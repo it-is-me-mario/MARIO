@@ -1,4 +1,4 @@
-
+#%%
 import pytest
 import pandas.testing as pdt
 import numpy.testing as npt
@@ -9,11 +9,18 @@ import pandas as pd
 import numpy as np
 
 
+
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 from mario.tools import utilities as ut
 from mario import load_test
 from mario.tools.constants import _INDEX_NAMES
+from mario.log_exc.exceptions import WrongInput
+
+MAIN_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MOCK_PATH = f"{MAIN_PATH}/tests/mocks"
+
+#%%
 @pytest.fixture()
 def CoreDataIOT():
 
@@ -168,6 +175,38 @@ def test_multiindex_contain():
     assert output["passed"]
     assert output["differences"] == {i:[] for i in [0,2]} 
 
+    # error handling (inner and outer not having the same type)
+    with pytest.raises(WrongInput) as msg:
+        ut.multiindex_contain(
+            inner_index= pd.Index(['a']),
+            outer_index= pd.MultiIndex.from_arrays([['a']]),
+            file = file
+        )
+
+    assert "Incorrect indexing " in str(msg.value)
+
+    # error handling (inner and outer not having the same nlevels)
+    with pytest.raises(WrongInput) as msg:
+        ut.multiindex_contain(
+            inner_index= pd.MultiIndex.from_arrays([['a'],['b']]),
+            outer_index= pd.MultiIndex.from_arrays([['a']]),
+            file = file
+        )
+
+    assert "number levels for" in str(msg.value)
+
+    # checking the single index
+    output = ut.multiindex_contain(
+            inner_index= pd.Index(['a','b']),
+            outer_index= pd.Index(['a','b']),
+            file = file
+        )
+
+    assert output["passed"]
+    assert output["differences"] == []
+
+
+
 def test_rename_index():
 
     index = pd.Index(['r1','r2'])
@@ -219,3 +258,145 @@ def test_pymrio_styling():
     pdt.assert_index_equal(
         df.columns,columns
     )
+
+
+
+def test_check_clusters():
+
+    # Passing non acceptable level
+    with pytest.raises(WrongInput) as msg:
+        ut.check_clusters(
+            index_dict = {},
+            table = 'IOT',
+            clusters = {'Activity':[],"Commodity":[]}
+        )
+
+    assert "is/are not valid level/s" in str(msg.value)
+
+    # Passing wrong items for a level
+    with pytest.raises(WrongInput) as msg:
+        ut.check_clusters(
+            index_dict = {"Sector": ['sec1','sec2','sec3']},
+            table = 'IOT',
+            clusters = {
+                'Sector':{
+                    "Sec.1" : ['sec1','sec2'], # Correct sectors
+                    "Sec.2" : ['sec4','sec5'] # Wrong sectors
+                },
+                }
+        )
+
+    assert "{} in cluster {} for level {} is/are not a valid item/s.".format(
+                            {'sec4','sec5'}, 'Sec.2', "Sector"
+    ) == str(msg.value)
+
+
+def test_all_file_reader():
+    # testing simple files
+        # no subbfolder
+
+    simple_file_no_subfolder = {
+        "set1": {
+            "xlsx": {
+                "file_name": "xlsx_test.xlsx",
+                "index_col": [0,1,2],
+                "header": [0,1,2],
+                "sheet_name": "test_sheet"
+            },
+        },
+        "set2":{
+            "csv": {
+                "file_name": "csv_test.csv",
+                "index_col": [0,1,2],
+                "header": [0,1,2],
+            },
+
+        }
+    }
+
+    output = ut.all_file_reader(
+        path = f'{MOCK_PATH}/file_reader',
+        guide = simple_file_no_subfolder,
+        sep = ','
+    )
+
+    assert simple_file_no_subfolder.keys() == output.keys()
+    
+    assert output["set1"].keys() == simple_file_no_subfolder["set1"].keys()
+    assert output["set2"].keys() == simple_file_no_subfolder["set2"].keys()
+
+    
+    for upper_level,parser_info in simple_file_no_subfolder.items():
+
+        parser = [*parser_info][0]
+        file_name = "{}/file_reader/{}".format(
+            MOCK_PATH,
+            parser_info[parser]["file_name"],
+        )
+        index_col = parser_info[parser]["index_col"]
+        header    = parser_info[parser]["header"]
+
+        if parser == 'xlsx':
+            data = pd.read_excel(
+                file_name,
+                index_col = index_col,
+                header = header,
+                )
+        else:
+            data = pd.read_csv(
+                file_name,
+                index_col = index_col,
+                header = header,
+                sep = ",",                
+            )
+
+        pdt.assert_frame_equal(
+            output[upper_level][parser],data
+        )
+        
+
+    # adding file that does not exist
+    file_does_not_exist = {
+        "set1": {
+            "x": {
+                "file_name" : 'dummy.xlsx',
+                "index_col" : 0,
+                "header" : 0
+                },
+        }
+    }
+
+    with pytest.raises(FileNotFoundError) as msg:
+        output = ut.all_file_reader(
+        path = f'{MOCK_PATH}/file_reader',
+        guide = file_does_not_exist,
+        sep = ','   
+        )
+    assert "dummy.xlsx" in str(msg.value)
+
+    # Adding the missing file to exceptions
+    output = ut.all_file_reader(
+        path = f'{MOCK_PATH}/file_reader',
+        guide = file_does_not_exist,
+        sep = ','  ,
+        exceptions=['x'] 
+        )  
+
+    # testing zip file 
+
+
+
+    output = ut.all_file_reader(
+        path = f'{MOCK_PATH}/file_reader/zip_test.zip',
+        guide = simple_file_no_subfolder,
+        sep = ',',
+        sub_folder=True
+    )
+
+    assert simple_file_no_subfolder.keys() == output.keys()
+    
+    assert output["set1"].keys() == simple_file_no_subfolder["set1"].keys()
+    assert output["set2"].keys() == simple_file_no_subfolder["set2"].keys()
+
+    
+

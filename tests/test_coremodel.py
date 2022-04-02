@@ -10,8 +10,8 @@ MAIN_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 from mario.core.CoreIO import CoreModel
 from mario.test.mario_test import load_test
-from mario.log_exc.exceptions import WrongInput, NotImplementable
-
+from mario.log_exc.exceptions import DataMissing, LackOfInput, WrongInput, NotImplementable
+from mario import calc_Z
 
 @pytest.fixture()
 def CoreDataIOT():
@@ -82,6 +82,11 @@ def test_reset_to_flows(CoreDataIOT):
         scenario = 'baseline',
         name = 'dummy'
     )
+
+    # deleting the data to be sure that they will be calculated
+    CoreDataIOT.calc_all()
+    del CoreDataIOT['baseline']['Z']
+    del CoreDataIOT['baseline']['E']
 
     for ss in CoreDataIOT.scenarios:
         CoreDataIOT.reset_to_flows(ss)
@@ -348,6 +353,7 @@ def test__getdir(CoreDataIOT):
         CoreDataIOT._getdir('test_file.xlsx','path_test','test_file.xlsx')
     )
 
+
 def test_directory(CoreDataIOT):
 
     path = f'{MAIN_PATH}/Output'
@@ -357,3 +363,203 @@ def test_directory(CoreDataIOT):
     CoreDataIOT.directory = 'dummy'
 
     assert 'dummy' == CoreDataIOT.directory
+
+    # Set impossible path
+    with pytest.raises(ValueError) as msg:
+        CoreDataIOT.directory = "dummy1/dummy2/dummy3/dummy4"
+    
+    assert "could not set the directory" in str(msg.value)
+
+
+def test_cvxpy_exist():
+
+    try:
+        import cvxpy
+        _cvxpy_here = True
+    except ModuleNotFoundError:
+        _cvxpy_here = False
+
+    from mario.core.CoreIO import __cvxpy__
+
+    assert __cvxpy__ == _cvxpy_here
+
+def test_calc_all_failure(CoreDataIOT):
+    # testing the cases that recursive process fails
+
+    del CoreDataIOT.matrices['baseline']['Z']
+
+    with pytest.raises(DataMissing) as msg:
+        CoreDataIOT.calc_all(['z'])
+
+    assert "not able to calculate" in str(msg.value)
+
+    # non aceeptable matrix
+    with pytest.raises(WrongInput) as msg:
+        CoreDataIOT.calc_all(['r'])
+    
+    assert "not present in acceptable item for calc_all" in str(msg.value)
+
+def test_calc_all_overwrite(CoreDataIOT):
+
+    CoreDataIOT.calc_all()
+    old_Z = CoreDataIOT.Z
+
+    CoreDataIOT.matrices['baseline']['z'].iloc[0,0]+=1
+
+    new_Z = calc_Z(CoreDataIOT.z,CoreDataIOT.X)
+
+    CoreDataIOT.calc_all(['Z'],force_rewrite=False)
+
+    pdt.assert_frame_equal(
+        old_Z,CoreDataIOT.Z
+    )
+
+    # forece rewrite
+    CoreDataIOT.calc_all(['Z'],force_rewrite=True)
+    pdt.assert_frame_equal(
+        new_Z,CoreDataIOT.Z
+    )
+
+def test_build_core_from_dfs_missing_data(CoreDataIOT):
+
+    Y = CoreDataIOT.Y
+    E = CoreDataIOT.E 
+    Z = CoreDataIOT.Z
+    V = CoreDataIOT.V
+    EY = CoreDataIOT.EY
+    units = CoreDataIOT.units 
+    table = CoreDataIOT.table_type
+
+    with pytest.raises(LackOfInput) as msg1:
+        CoreModel(Z=Z,E=E,V=V,Y=Y,EY=EY,units=units)
+
+    with pytest.raises(LackOfInput) as msg2:
+        CoreModel(Z=Z,E=E,V=V,Y=Y,EY=EY,table=table)
+
+    with pytest.raises(LackOfInput) as msg3:
+        CoreModel(Z=Z,E=E,Y=Y,EY=EY,table=table,units=units)
+
+    assert all(
+        ["all the data [Y,E,Z,V,EY,units,table] should be given." in str(msg.value) 
+        for msg in [msg1,msg2,msg3]
+        ]
+        )
+
+
+def test_core_model_init_nots(CoreDataIOT):
+
+    notes = ['dummy note 1',"dummy note 2"]
+    io = CoreModel(
+        Z=CoreDataIOT.Z,
+        V=CoreDataIOT.V,
+        E=CoreDataIOT.E,
+        EY=CoreDataIOT.EY,
+        Y = CoreDataIOT.Y,
+        units = CoreDataIOT.units,
+        table = CoreDataIOT.table_type,
+        notes = notes
+    )
+
+    for ii,note in enumerate(io.meta._history[-2:]):
+        assert  notes[ii] in note
+
+
+def test_add_note(CoreDataIOT):
+
+    notes = ['dummy 1','dummy 2']
+
+    CoreDataIOT.add_note(notes)
+
+    for ii,note in enumerate(CoreDataIOT.meta._history[-2:]):
+        assert notes[ii] in note
+
+def test_update_scenarios(CoreDataIOT):
+     # clone scenario 
+    CoreDataIOT.clone_scenario(
+         'baseline',
+         'dummy'
+    )
+
+    # Wrong scenario
+    with pytest.raises(WrongInput) as msg:
+        CoreDataIOT.update_scenarios(scenario='dummy_exist')
+    
+    assert  "Existing scenarios are" in str(msg.value)
+
+    # passing non pd.DataFrame
+    with pytest.raises(WrongInput) as msg:
+        CoreDataIOT.update_scenarios(scenario='baseline',v=1)
+    
+    assert  "items should be DataFrame" in str(msg.value)
+    
+    new_z = CoreDataIOT.z + 1
+
+    CoreDataIOT.update_scenarios(scenario='dummy',z=new_z)
+
+    pdt.assert_frame_equal(
+        CoreDataIOT['dummy']['z'],new_z
+    )
+
+
+def test_GDP(CoreDataIOT,CoreDataSUT):
+    # iot
+    # total
+    V = CoreDataIOT.V.sum().to_frame()
+    GDP= V.groupby(level='Region',sort=False).sum()
+    GDP.columns = ['GDP']
+    pdt.assert_frame_equal(
+        GDP,CoreDataIOT.GDP()
+    )
+    # Sectoral 
+    GDP = V
+    GDP.columns = ['GDP']
+    GDP.index.names = ['Region','Level','Sector']
+
+    pdt.assert_frame_equal(
+        GDP,CoreDataIOT.GDP(total=False)
+    )
+
+    reg1 = CoreDataIOT.get_index('Region')[0]
+    reg2 = CoreDataIOT.get_index('Region')[1]
+
+    # share
+    reg1_gdp = GDP.loc[reg1]
+    reg2_gdp = GDP.loc[reg2]
+
+    reg1_share = reg1_gdp/reg1_gdp.sum().sum()
+    reg2_share = reg2_gdp/reg2_gdp.sum().sum()
+
+    GDP.loc[reg1,'Share of sector by region'] = reg1_share.values * 100
+    GDP.loc[reg2,'Share of sector by region'] = reg2_share.values * 100
+
+    pdt.assert_frame_equal(
+        GDP,CoreDataIOT.GDP(total=False,share=True)
+    )
+
+    # exclude items
+    # Wrong exclude
+    with pytest.raises(WrongInput) as msg:
+        CoreDataIOT.GDP(exclude=['dummy'])
+    
+    assert "is/are not valid" in str(msg.value)
+
+    exclude = CoreDataIOT.get_index("Factor of production")[0:2]
+    V = CoreDataIOT.V.drop(exclude)
+    assert all([excl not in V.index for excl in exclude])
+
+    GDP = V.sum().to_frame().groupby(level='Region',sort=False).sum()
+    GDP.columns = ['GDP']
+
+    pdt.assert_frame_equal(
+        GDP,CoreDataIOT.GDP(exclude=exclude)
+    )
+
+    # sut
+    V = CoreDataSUT.V.loc[:,(slice(None),'Activity',slice(None))]
+    GDP = V.sum().to_frame()
+    GDP.columns = ['GDP']
+    GDP.index.names = ['Region','Level','Activity']
+
+    pdt.assert_frame_equal(
+        GDP,CoreDataSUT.GDP(total=False)
+    )
