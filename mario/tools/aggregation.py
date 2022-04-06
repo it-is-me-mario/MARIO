@@ -228,4 +228,7 @@ def unit_aggregation_check(instance, drop):
             # update the dictionary of units
             new_units[item] = _new_units
 
+        else:
+            new_units[item] = units[item]
+
     return new_units
