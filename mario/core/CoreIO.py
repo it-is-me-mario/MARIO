@@ -726,7 +726,7 @@ class CoreModel:
             defines the path to save metadata
 
         format : str
-            the format of the file: ['txt','binary']
+            the format of the file: ['txt','binary','json']
         """
         self.meta._save(path, format)
 

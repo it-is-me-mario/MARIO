@@ -9,7 +9,7 @@ from tempfile import TemporaryFile
 from mario.log_exc.exceptions import WrongInput
 from mario.tools.constants import _LEVELS
 
-
+import json
 class MARIOMetaData:
 
     """
@@ -122,6 +122,11 @@ class MARIOMetaData:
             with open("{}.txt".format(location), "w") as f:
                 for item in self._history:
                     f.write("{}\n".format(item))
+
+        elif _format == "json":
+            meta = self._to_dict()
+            with open(f"{location}.json","w") as fp:
+                json.dump(meta,fp)
 
     def _to_dict(self):
         meta_as_dict = {}
