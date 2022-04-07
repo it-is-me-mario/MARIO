@@ -724,7 +724,7 @@ class Database(CoreModel):
                 "units dataframe should has exactly the same index levels of io"
             )
 
-        if EY is not None:
+        if EY is not None and matrix_id == "k":
             EY = EY.sort_index()
 
             if not data.index.equals(EY.index):
