@@ -413,19 +413,13 @@ class Database(CoreModel):
             if index.shape[1] > 1:
                 index = index.iloc[:, 0].to_frame()
 
-            if set(index.index.to_list()) != set(self.get_index(level)):
-                missing_items = []
+            difference = set(index.index).difference(set(self.get_index(level)))
 
-                for item in set(self.get_index(level)):
-                    if item not in index.index.to_list():
-                        missing_items.append(item)
-
-                raise WrongExcelFormat(
-                    "Disaggregated indeces of level '{}' in the Excel file "
-                    "does not match with the original indices of the database.\nMissing items are:\n{}".format(
-                        level, missing_items
-                    )
+            if difference:
+                raise WrongInput(
+                    f"Following item are not acceptable for level {level} \n {difference}"
                 )
+
 
             index.columns = ["Aggregation"]
 
@@ -675,7 +669,7 @@ class Database(CoreModel):
         if not inplace:
             new = self.copy()
             new.add_extensions(
-                io=io, matrix=matrix, backup=backup, inplace=True, units=units,
+                io=io, matrix=matrix, backup=backup, inplace=True, units=units,calc_all=calc_all,notes=notes,EY=EY
             )
 
             return new
@@ -766,7 +760,7 @@ class Database(CoreModel):
 
         units = info["units"]
         del info["units"]
-        info["X"] = calc_X(Z=info["Z"], Y=info["Y"])
+        
         matrices = {"baseline": {**info}}
 
         for scenario in self.scenarios:
