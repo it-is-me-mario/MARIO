@@ -908,3 +908,19 @@ def _add_sector_iot(instance, sectors, regions, path, num_validation=30):
         _ += 1
 
     file.close()
+
+
+
+def _unit_conv_excel(units_df, path):
+    
+    file = pd.ExcelWriter(path)
+    for key,value in units_df.items():
+        value = pd.concat([value, 
+                           pd.DataFrame(index=value.index, columns=["new unit", "conversion factor"])],
+                          axis=1)
+        value.to_excel(file,key)
+    file.close()
+    
+    
+
+    
