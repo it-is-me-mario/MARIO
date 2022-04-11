@@ -472,3 +472,55 @@ _INDECES = {
 }
 
 
+_PYMRIO_MATRICES = {
+    "E": dict(
+        keep_index=[0],
+        keep_columns=[0, -1],
+        index_name="stressor",
+        columns_name=["region", "sector"],
+    ),
+    "EY": dict(
+        keep_index=[0],
+        keep_columns=[0, -1],
+        index_name="stressor",
+        columns_name=["region", "sector"],
+    ),
+    "V": dict(
+        keep_index=[0],
+        keep_columns=[0, -1],
+        index_name="stressor",
+        columns_name=["region", "sector"],
+    ),
+    "Z": dict(
+        keep_index=[0, -1],
+        keep_columns=[0, -1],
+        index_name=["region", "sector"],
+        columns_name=["region", "sector"],
+    ),
+    "Y": dict(
+        keep_index=[0, -1],
+        keep_columns=[0, -1],
+        index_name=["region", "sector"],
+        columns_name=["region", "category"],
+    ),
+}
+
+_PYMRIO_INDEXING = {
+    "v": {"index": 1, "columns": 3, "add_c": [_MASTER_INDEX["s"]]},
+    "e": {"index": 1, "columns": 3, "add_c": [_MASTER_INDEX["s"]]},
+    "EY": {"index": 1, "columns": 3, "add_c": [_MASTER_INDEX["n"]]},
+    "Y": {
+        "index": 3,
+        "columns": 3,
+        "add_c": ["Consumption category"],
+        "add_i": [_MASTER_INDEX["s"]],
+    },
+    "z": {
+        "index": 3,
+        "columns": 3,
+        "add_c": [_MASTER_INDEX["s"]],
+        "add_i": [_MASTER_INDEX["s"]],
+    },
+}
+
+

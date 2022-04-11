@@ -9,7 +9,7 @@ Analyzing database
 
 .. autosummary::
     :toctree: api_document/
-    
+
     CoreModel.is_balanced
     CoreModel.is_productive
     CoreModel.is_multi_region
@@ -25,11 +25,11 @@ Database modification
 
 .. autosummary::
     :toctree: api_document/
-    
+
     Database.aggregate
     Database.add_sectors
     Database.to_single_region
-    Database.sut_to_iot
+    Database.to_iot
     Database.add_extensions
     Database.update_scenarios
     Database.reset_to_flows
@@ -46,7 +46,7 @@ Shock analysis
 
 .. autosummary::
     :toctree: api_document/
-    
+
     Database.shock_calc
 
 *******************
@@ -55,7 +55,7 @@ Data visualization
 
 .. autosummary::
     :toctree: api_document/
-    
+
     mario.set_palette
     Database.plot_gdp
     Database.plot_bubble
@@ -70,7 +70,7 @@ the functionalities such as aggrgeaton and adding sectors.
 
 .. autosummary::
     :toctree: api_document/
-    
+
     Database.get_aggregation_excel
     Database.get_extensions_excel
     Database.get_add_sectors_excel
@@ -82,9 +82,10 @@ Save data
 
 .. autosummary::
     :toctree: api_document/
-    
+
     Database.to_excel
     Database.to_txt
+    Database.to_pymrio
 
 
 ******************
@@ -96,18 +97,19 @@ Structured Databases
 mario supports automatic parsing of following database:
 
 * Exiobase3
-* Exiobase Monetary Supply and Use 
+* Exiobase Monetary Supply and Use
 * Eurostat Supply and Use
 * Eora26
 * Eora single region
 
 .. autosummary::
     :toctree: api_document/
-    
+
     mario.parse_exiobase_3
     mario.parse_exiobase_sut
     mario.parse_eurostat
     mario.parse_eora
+    mario.parse_from_pymrio
 
 Non-Structured Databases
 ------------------------
@@ -117,7 +119,7 @@ specific rules (examples........)
 
 .. autosummary::
     :toctree: api_document/
-    
+
     mario.parse_from_excel
     mario.parse_from_txt
 
@@ -133,7 +135,7 @@ to call missing matrices for different scenarios.
 
 .. autosummary::
     :toctree: api_document/
-    
+
     CoreModel.calc_all
     CoreModel.GDP
     Database.calc_linkages
@@ -146,7 +148,7 @@ can be used independently outside a mario.Databases object.
 
 .. autosummary::
     :toctree: api_document/
-    
+
     calc_X
     calc_X_from_w
     calc_X_from_z
@@ -172,7 +174,7 @@ Metadata
 
 .. autosummary::
     :toctree: api_document/
-    
+
     CoreModel.save_meta
     CoreModel.meta_history
     CoreModel.add_note
@@ -185,7 +187,7 @@ For having a simple exmaple of mario, load_test can be used.
 
 .. autosummary::
     :toctree: api_document/
-    
+
     mario.load_test
 
 **********
@@ -193,13 +195,13 @@ Directory
 **********
 
 When mario needs to save an output of the model, if no path is given,
-files wil be saved in a default directory with subfolders based on 
+files wil be saved in a default directory with subfolders based on
 the type of the output. By default, the directory is the working directory
 but user can change the default directory.
 
 .. autosummary::
     :toctree: api_document/
-    
+
     CoreModel.directory
 
 **********
@@ -209,7 +211,7 @@ There are some useful functions in mario that may help the user for different pu
 
 .. autosummary::
     :toctree: api_document/
-    
+
     CoreModel.search
     mario.slicer
 

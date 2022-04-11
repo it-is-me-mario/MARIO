@@ -5,6 +5,7 @@ metadata for traking all the processes that user may follow using MARIO
 
 from datetime import datetime
 import pickle
+from tempfile import TemporaryFile
 from mario.log_exc.exceptions import WrongInput
 from mario.tools.constants import _LEVELS
 
@@ -122,6 +123,19 @@ class MARIOMetaData:
                 for item in self._history:
                     f.write("{}\n".format(item))
 
+    def _to_dict(self):
+        meta_as_dict = {}
+
+        for attr in ['price','name','year','source']:
+            try:
+                meta_as_dict[attr] = getattr(self,attr)
+            except AttributeError:
+                pass
+
+        meta_as_dict['history'] = self._history
+
+        return meta_as_dict
+        
     def load(self, location):
 
         with open(location, "rb") as load_file:

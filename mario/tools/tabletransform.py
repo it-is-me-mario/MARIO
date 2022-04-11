@@ -19,6 +19,7 @@ import numpy as np
 import copy
 from mario.tools.constants import _MASTER_INDEX
 from mario.tools.iomath import calc_X
+from mario.tools.utilities import rename_index
 
 
 import logging
@@ -225,5 +226,6 @@ def SUT_to_IOT(instance, method):
 
     matrices = {"baseline": {"Z": Z, "V": V, "E": E, "X": X, "Y": Y, "EY": data["EY"]}}
     indeces = {item: value for item, value in _indeces.items()}
+    rename_index(matrices["baseline"])
 
     return matrices, indeces, units
