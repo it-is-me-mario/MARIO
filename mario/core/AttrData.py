@@ -499,7 +499,7 @@ class Database(CoreModel):
         io,
         drop=["unused"],
         levels="all",
-        backup=True,
+        backup=False,
         calc_all=True,
         ignore_nan=False,
         inplace=True,
