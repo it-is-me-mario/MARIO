@@ -1,0 +1,5 @@
+,,,r.A,r.B
+,,,Sector,Sector
+,,,s.A,s.A
+r.A,Sector,s.A,1,3
+r.B,Sector,s.A,2,4

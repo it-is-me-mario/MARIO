@@ -19,10 +19,7 @@ from mario.tools.ioshock import Y_shock, V_shock, Z_shock
 from mario.tools.tabletransform import SUT_to_IOT
 import json
 from mario.tools.utilities import (
-    _matrices,
     _manage_indeces,
-    _meta_parse_history,
-    linkages_calculation,
     check_clusters,
     run_from_jupyter,
     filtering,
@@ -63,6 +60,7 @@ from mario.tools.iomath import (
     calc_f,
     calc_f_dis,
     calc_X_from_z,
+    linkages_calculation,
 )
 
 from mario.tools.sectoradd import adding_new_sector
@@ -298,17 +296,14 @@ class Database(CoreModel):
         matrices, indeces, units = SUT_to_IOT(self, method)
 
         for scenario in self.scenarios:
-            _matrices(self, "del", scenario)
             log_time(logger, f"{scenario} deleted from the database", "warn")
             self.meta._add_history(f"{scenario} deleted from the database")
 
         self.matrices = matrices
-        _matrices(self, "add", "baseline")
 
         self._indeces = indeces
         self.units = units
 
-        _meta_parse_history(self, "parse")
 
         self.meta.table = "IOT"
         self.meta._add_history(
@@ -418,19 +413,13 @@ class Database(CoreModel):
             if index.shape[1] > 1:
                 index = index.iloc[:, 0].to_frame()
 
-            if set(index.index.to_list()) != set(self.get_index(level)):
-                missing_items = []
+            difference = set(index.index).difference(set(self.get_index(level)))
 
-                for item in set(self.get_index(level)):
-                    if item not in index.index.to_list():
-                        missing_items.append(item)
-
-                raise WrongExcelFormat(
-                    "Disaggregated indeces of level '{}' in the Excel file "
-                    "does not match with the original indices of the database.\nMissing items are:\n{}".format(
-                        level, missing_items
-                    )
+            if difference:
+                raise WrongInput(
+                    f"Following item are not acceptable for level {level} \n {difference}"
                 )
+
 
             index.columns = ["Aggregation"]
 
@@ -552,9 +541,7 @@ class Database(CoreModel):
                 __new_matrices, units = _aggregator(self, drop)
 
             for scenario in self.scenarios:
-                _matrices(self, "del", scenario)
                 self.matrices[scenario] = __new_matrices[scenario]
-                _matrices(self, "add", scenario)
 
             self.meta._add_history(
                 "original matrices changed to the aggregated level based on the inputs from {}".format(
@@ -569,7 +556,6 @@ class Database(CoreModel):
             _manage_indeces(self, "aggregation")
 
             new_index = copy.deepcopy(self._indeces)
-            _meta_parse_history(self, "aggregation", old_index, new_index)
 
             if calc_all:
                 for scenario in self.scenarios:
@@ -581,9 +567,7 @@ class Database(CoreModel):
         All the matrices and indeces will be updated to the last back-up
         """
 
-        _matrices(self, function="del")
         self.matrices = self._backup.matrices
-        _matrices(self, function="add")
         self._indeces = self._backup.indeces
         self.units = self._backup.units
         self.meta._add_history("Last backup recovered.")
@@ -685,7 +669,7 @@ class Database(CoreModel):
         if not inplace:
             new = self.copy()
             new.add_extensions(
-                io=io, matrix=matrix, backup=backup, inplace=True, units=units,
+                io=io, matrix=matrix, backup=backup, inplace=True, units=units,calc_all=calc_all,notes=notes,EY=EY
             )
 
             return new
@@ -740,7 +724,7 @@ class Database(CoreModel):
                 "units dataframe should has exactly the same index levels of io"
             )
 
-        if EY is not None:
+        if EY is not None and matrix_id == "k":
             EY = EY.sort_index()
 
             if not data.index.equals(EY.index):
@@ -776,16 +760,14 @@ class Database(CoreModel):
 
         units = info["units"]
         del info["units"]
-        info["X"] = calc_X(Z=info["Z"], Y=info["Y"])
+        
         matrices = {"baseline": {**info}}
 
         for scenario in self.scenarios:
-            _matrices(self, "del", scenario)
             log_time(logger, f"{scenario} deleted from the database", "warn")
             self.meta._add_history(f"{scenario} deleted from the database")
 
         self.matrices = matrices
-        _matrices(self, "add", "baseline")
 
         self.meta._add_history(
             f"Modification: new '{_MASTER_INDEX[matrix_id]}' added to the database as follow:\n"
@@ -946,14 +928,12 @@ class Database(CoreModel):
         _manage_indeces(self, "single_region", **new_indeces)
 
         for scenario in self.scenarios:
-            _matrices(self, "del", scenario=scenario)
             log_time(logger, f"Transformation: {scenario} deleted from the database.")
 
         self.matrices = {"baseline": {}}
         for matrix in ["Y", "Z", "E", "EY", "Y", "V", "X"]:
             self.matrices["baseline"][matrix] = eval(matrix)
         log_time(logger, "Transformation: New baseline added to the database")
-        _matrices(self, "add", scenario="baseline")
 
         slicer = _MASTER_INDEX["a"] if self.table_type == "SUT" else _MASTER_INDEX["s"]
 
@@ -977,16 +957,7 @@ class Database(CoreModel):
             "Transformation: The Final Demand emissions are considered only for 'Local Final Demand.'"
         )
 
-    def backup(self):
 
-        """The function creates a backup of the last configuration of database
-        to be returned in case needed.
-        """
-        self._backup = self._backup_(
-            copy.deepcopy(self.matrices),
-            copy.deepcopy(self._indeces),
-            copy.deepcopy(self.units),
-        )
 
     def calc_linkages(
         self, scenario="baseline", normalized=True, cut_diag=True, multi_mode=True,
@@ -1048,7 +1019,6 @@ class Database(CoreModel):
         }
 
         return linkages_calculation(
-            self,
             cut_diag=cut_diag,
             matrices=_matrices,
             multi_mode=multi_mode,
@@ -1515,12 +1485,8 @@ class Database(CoreModel):
         EY = self.EY
 
         # Deleting old values
-        _matrices(self, "del")
         for matrix in ["z", "e", "v", "Y", "X", "Z", "E", "V", "EY"]:
             self.matrices["baseline"][matrix] = eval(matrix)
-
-        # Adding new values
-        _matrices(self, "add")
 
         self.meta._add_history(
             "Scenarios: all the scenarios deleted from the database."
@@ -1830,7 +1796,11 @@ class Database(CoreModel):
         if scenario == "baseline":
             raise WrongInput("baseline scenario can not be overwritten.")
 
-        check_clusters(self, clusters)
+        check_clusters(
+            index_dict = self.get_index('all'),
+            table = self.table_type,
+            clusters = clusters
+        )
 
         # have the test for the existence of the database
 
@@ -1888,7 +1858,11 @@ class Database(CoreModel):
              e.g. clusters = {'Region':{'cluster_1':['reg1','reg2']}}
         """
 
-        check_clusters(self, clusters)
+        check_clusters(
+            index_dict = self.get_index('all'),
+            table = self.table_type,
+            clusters = clusters
+        )
 
         _sh_excel(self, num_shock, self._getdir(path, "Excels", "shock.xlsx"), clusters)
 
