@@ -13,7 +13,6 @@ from mario.tools.tableparser import (
     hybrid_sut_exiobase,
     eora_multi_region,
     eurostat_sut,
-    parse_pymrio,
 )
 
 from mario.log_exc.exceptions import WrongInput, LackOfInput
@@ -211,9 +210,6 @@ def parse_exiobase_sut(
     if model not in models:
         raise WrongInput("Available models are {}".format([*models]))
 
-
-    matrices, indeces, units = monetary_sut_exiobase(path,)
-
     if units not in _acceptable_units:
         raise WrongInput("Acceptable values for 'units' are {}".format(_acceptable_units))
     
@@ -229,7 +225,6 @@ def parse_exiobase_sut(
                 path,
                 extensions,
             )        
-
 
     return models[model](
         name=name,
@@ -482,50 +477,3 @@ def parse_eurostat(
         calc_all=calc_all,
         **kwargs,
     )
-
-
-def parse_from_pymrio(
-    io,
-    value_added,
-    satellite_account,
-    include_meta=True
-    ):
-    """Parsing a pymrio database
-
-    Parameters
-    ------------
-    io : pymrio.IOSystem
-        the pymrio IOSystem to be converted to mario.Database
-
-    value_added : dict
-        the value_added mapper. keys will be the io Extensions and the values will be the slicers if exist. in case that all the rows of the
-        specific Extension should be assigned, 'all' should be passed.
-
-    satellite_account : dict
-        the satellite_account mapper. keys will be the io Extensions and the values will be the slicers if exist. in case that all the rows of the
-        specific Extension should be assigned, 'all' should be passed.
-
-    include_meta : bool
-        if True, will record the pymrio.meta into mario.meta
-
-    Returns:
-       mario.Database
-    """
-
-
-
-    matrices, units, indeces = parse_pymrio(io, value_added, satellite_account)
-
-    notes = [
-        "Database parsed from pymrio",
-    ]
-    if include_meta:
-        notes.extend(["pymrio meta:"] + io.meta.history)
-
-    return models["Database"](
-        name=io.name,
-        table="IOT",
-        init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
-        notes=notes,
-    )
-

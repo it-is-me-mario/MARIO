@@ -24,9 +24,7 @@ setup(
         "plotly >= 4.12.0",
         "tabulate >= 0.8.9",
         "openpyxl >= 3.0.6",
-        "IPython >= 7.22.0",
-        "pymrio >= 0.4.6",
-
+        "IPython >= 7.22.0"
     ],
     classifiers=[
         "Programming Language :: Python :: 3.7",

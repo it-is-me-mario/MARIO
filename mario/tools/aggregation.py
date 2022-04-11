@@ -9,7 +9,7 @@ import pandas as pd
 from mario.log_exc.logger import log_time
 from mario.log_exc.exceptions import WrongInput
 from copy import deepcopy
-from mario.tools.utilities import delete_duplicates,rename_index
+from mario.tools.utilities import delete_duplicates
 
 from mario.tools.constants import _MASTER_INDEX
 
@@ -161,12 +161,7 @@ def _aggregator(instance, drop):
         matrices[scenario]["X"] = calc_X(
             matrices[scenario]["Z"], matrices[scenario]["Y"]
         )
-
         log_time(logger, f"Aggregation: scenario: `{scenario}` aggregated.")
-
-    # Refixing the index/columns names
-    for ss in matrices:
-        rename_index(matrices[ss])
 
     return matrices, units
 

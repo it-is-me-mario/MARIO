@@ -15,6 +15,11 @@ from mario.core.mariometadata import MARIOMetaData
 from mario.tools.tableparser import dataframe_parser
 
 
+from mario.tools.utilities import (
+    _matrices,
+    _meta_parse_history,
+)
+
 
 from mario.tools.iomath import (
     calc_X,
@@ -138,6 +143,8 @@ class CoreModel:
             log_time(logger, "Metadata: initialized.")
             self.meta._add_attribute(table=table, price=price, source=source, year=year)
 
+            _matrices(self, function="add")
+
         else:
             if not all(
                 [matrix is not None for matrix in [Y, E, Z, V, EY, units, table]]
@@ -153,12 +160,15 @@ class CoreModel:
 
                 log_time(logger, "Metadata: initialized by dataframes.")
 
+                _matrices(self, function="del")
+                _matrices(self, function="add")
 
         # Adding notes if passed by user or the parsers
         if kwargs.get("notes"):
             for note in kwargs["notes"]:
                 self.meta._add_history(note)
 
+        _meta_parse_history(self, "parse")
         if calc_all:
             self.calc_all()
 
@@ -986,15 +996,18 @@ class CoreModel:
 
     def __getitem__(self, key):
         """get item method retuns the data regarding the scenarios"""
-        if key not in self.scenarios:
-            raise WrongInput(
-                "{} is not a valid scenario. Valid scenarios are {}".format(
-                    key, self.scenarios
-                )
-            )
+        self.scenario_exist(key)
 
         return self.matrices[key]
 
+    def scenario_exist(self, scenario):
+        """Checks if a scneario exists or not"""
+        if scenario not in self.scenarios:
+            raise WrongInput(
+                "{} is not a valid scenario. Valid scenarios are {}".format(
+                    scenario, self.scenarios
+                )
+            )
 
     def __iter__(self):
         self.__it__ = self.scenarios
@@ -1052,14 +1065,34 @@ class CoreModel:
         return True
 
 
-     
-    def backup(self):
+    def _extract_index_from_frames(self,_dict):
+        ids = {
+            'r': {'matrix':['z','X','Y','v','e','Z',],"level":('index',0)},
+            's': {'matrix':['z','X','Y','v','e','Z',],"level":('index',-1)},
+            'a': {'matrix':['z','X','Y','v','e','Z',],"level":('index',-1)},
+            'c': {'matrix':['z','X','Y','v','e','Z',],"level":('index',-1)},
+            'n': {'matrix':['Y','EY'],"level":('columns',1)},
+            'k': {'matrix':['e','E','EY'],"level":('index',0)},
+            'f': {'matrix':['v','V','EY'],"level":('index',0)},
+        }
 
-        """The function creates a backup of the last configuration of database
-        to be returned in case needed.
-        """
-        self._backup = self._backup_(
-            copy.deepcopy(self.matrices),
-            copy.deepcopy(self._indeces),
-            copy.deepcopy(self.units),
-        )
+        indeces = {}
+        for key,vals in ids.items():
+            idx = _MASTER_INDEX[key]
+
+            if idx not in self.sets:
+                continue
+
+            for matrix in vals['matrix']:
+                if matrix in _dict:
+                    df = _dict[matrix]
+                    print(idx,matrix)
+                    
+                    if key in ['s','a','c']:
+                        df = df.loc[(slice(None),idx,slice(None)),:]
+                    index = list(getattr(df,vals['level'][0]).unique(vals['level'][1]))
+                    indeces[idx] = index
+                    break
+
+        return indeces
+        

@@ -3,12 +3,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-.vscode
-amintest.py
-
 # os files
 .DS_Store
-
 # C extensions
 *.so
 '=
