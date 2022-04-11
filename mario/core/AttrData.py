@@ -1943,6 +1943,7 @@ class Database(CoreModel):
                 self,
                 io=io,
                 items=items,
+                inplace=inplace,
                 verbose=verbose
             )
             

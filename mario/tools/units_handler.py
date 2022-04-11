@@ -51,7 +51,7 @@ def _unit_converter(
             new_units[i] = io[i]
     
     if verbose:
-        print("Unit of measure conversion started. Please be aware the process could take require some time in accordance to the size of the database and the number of items to be converted")
+        print("\nUnit of measure conversion started. Please be aware the process could take require some time in accordance to the size of the database and the number of items to be converted")
     
     if instance.is_hybrid:
 
