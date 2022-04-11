@@ -32,6 +32,7 @@ from mario.tools.excelhandler import (
     _add_sector_iot,
     _add_sector_sut,
     _sh_excel,
+    _unit_conv_excel,
 )
 
 from mario.tools import plots as plt
@@ -43,6 +44,8 @@ from mario.tools.plots_manager import (
 )
 
 from mario.tools.aggregation import _aggregator
+from mario.tools.units_handler import _unit_converter
+
 from mario.tools.iomath import (
     calc_all_shock,
     calc_X,
@@ -319,7 +322,10 @@ class Database(CoreModel):
         )
 
     def get_aggregation_excel(
-        self, path=None, levels="all",
+        self,
+        path=None,
+        levels="all",
+        units=True
     ):
 
         """Generates the Excel file for aggregation of the database
@@ -334,6 +340,9 @@ class Database(CoreModel):
             levels to be printed as Excel sheets. If 'all' it will print out all
             the levels, else different levels should be passed as a list of
             levels such as ['Region','Sector']
+            
+        units : boolean
+            if True, prints a support sheet with units associated to each index
 
         """
 
@@ -358,6 +367,23 @@ class Database(CoreModel):
                     index=self.get_index(level), columns=["Aggregation"]
                 )
                 data.to_excel(writer, level)
+            
+            if units:
+                unt = pd.DataFrame()
+                for u in self.units:
+                    
+                    for i,j in _MASTER_INDEX.items():
+                        if j == u:
+                            level = i
+                    
+                    ind  = pd.MultiIndex.from_arrays([[_MASTER_INDEX[level]]*self.units[u].shape[0], self.units[u].index])
+                    data = copy.deepcopy(self.units[u])
+                    data.index = ind
+                    unt = pd.concat([unt,data],axis=0)
+                
+                unt.to_excel(writer, "Units")
+
+                
 
     def read_aggregated_index(
         self, io, levels="all", ignore_nan=False,
@@ -457,7 +483,7 @@ class Database(CoreModel):
         io,
         drop=["unused"],
         levels="all",
-        backup=True,
+        backup=False,
         calc_all=True,
         ignore_nan=False,
         inplace=True,
@@ -1886,6 +1912,88 @@ class Database(CoreModel):
                         comment="No units named {} found".format(item),
                         level="warn",
                     )
+
+    
+    def get_unit_conversion_excel(
+        self, 
+        path,
+        items='all'
+    ):
+
+        """Prints the excel template for unit conversion
+
+        Parameters
+        ----------
+        path : str
+            path to the output excel file. Must be a .xlsx file
+
+        items : str, list
+            list of items for which the unit conversion process is desired. 'all' by default.
+        """
+        
+        if self.table_type == "IOT":
+            raise WrongInput(f"Unit conversion is not available for {self.table} tables")
+        
+        if path[-5:] != ".xlsx":
+            raise WrongInput("The path must direct to an excel file with .xlsx extension")
+        
+        if items=='all':
+            items = list(self.units.keys())
+        
+        if all(i in list(self.units.keys()) for i in items) == False:
+            raise WrongInput(f"Acceptable items are {list(self.units.keys())}")
+        else:
+            units = {}
+            for i in items:
+                units[i] = self.units[i]
+                
+        _unit_conv_excel(units, path)
+
+
+    def convert_units(
+        self, 
+        io,
+        items='all',
+        inplace=True,
+        verbose=True,
+    ):
+
+        """Applies unit conversion process to the current database
+
+        Parameters
+        ----------
+        io : str, dict[pd.DataFrame]
+            path to the input excel file containing information regarding new units to convert. Get the empty template via the 'get_unit_conversion_excel' method
+
+        items : str, list
+            list of items for which the unit conversion process is desired. 'all' by default.
+
+        inplace : boolean,
+            if False, returns a new database object without replacing the original one
+        
+        verbose : boolean
+            if True, informative messages about the status of the unit conversion process will be printed
+        """
+
+
+        if not inplace:
+            new = self.copy()
+            new.convert_units(
+                io=io,
+                items=items,
+                inplace=True,
+            )
+            return new
+
+        else:
+            _unit_converter(
+                self,
+                io=io,
+                items=items,
+                inplace=inplace,
+                verbose=verbose
+            )
+            
 
     def plot_bubble(
         self,

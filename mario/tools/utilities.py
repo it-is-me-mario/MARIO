@@ -301,6 +301,7 @@ def filtering(instance, filters):
     return filters
 
 
+
 def pymrio_styling(df, keep_index, keep_columns, index_name, columns_name):
 
     index = [df.index.get_level_values(i) for i in keep_index]
@@ -328,4 +329,5 @@ def to_single_index(df):
 
     return df
 
-# %%
+
+

@@ -40,12 +40,15 @@ from mario.tools.iomath import (
     calc_X_from_z,
 )
 
+from mario.tools.parsers_id import _acceptable_extensions
+
 import pandas as pd
 import logging
 import copy
 import numpy as np
 import math
 import pymrio
+from zipfile import ZipFile
 
 # reading the constants
 
@@ -560,7 +563,7 @@ def monetary_sut_exiobase(path):
     Y = read["matrices"]["Y"]
     S = read["matrices"]["S"]
 
-    # Cpmmodities index
+    # Commodities index
     c_index = [
         S.index.get_level_values(0),
         [_MASTER_INDEX["c"]] * S.shape[0],
@@ -670,6 +673,193 @@ def monetary_sut_exiobase(path):
     rename_index(matrices["baseline"])
 
     return matrices, indeces, units
+
+
+#%%%
+def hybrid_sut_exiobase(path,extensions):
+    
+    if extensions == 'all':
+        extensions = list(_acceptable_extensions.keys())
+    
+    if path.split(".")[-1] == "zip":
+        
+        zf = ZipFile(r"{}".format(path), "a")
+        units = {}
+        
+        S = pd.read_csv(zf.open([i for i in zf.namelist() if "MR_HSUP_2011_v3_3_18" in i][0]), sep=",", index_col=[0,1,2,3,4], header=[0,1,2,3])
+        U = pd.read_csv(zf.open([i for i in zf.namelist() if "MR_HUSE_2011_v3_3_18" in i][0]), sep=",", index_col=[0,1,2,3,4], header=[0,1,2,3])
+        Y = pd.read_csv(zf.open([i for i in zf.namelist() if "MR_HSUTs_2011_v3_3_18_FD" in i][0]), sep=",", index_col=[0,1,2,3,4], header=[0,1,2,3])
+        E = pd.DataFrame()
+        EY = pd.DataFrame()
+
+        # Commodities index
+        c_index = [
+            S.index.get_level_values(0),
+            [_MASTER_INDEX["c"]] * S.shape[0],
+            S.index.get_level_values(1),
+        ]
+        # Activities index
+        a_index = [
+            S.columns.get_level_values(0),
+            [_MASTER_INDEX["a"]] * S.shape[1],
+            S.columns.get_level_values(1),
+        ]
+        # Demand index
+        n_index = [
+            Y.columns.get_level_values(0),
+            [_MASTER_INDEX["n"]] * Y.shape[1],
+            Y.columns.get_level_values(1),
+        ]
+        
+        if extensions != None:
+            E_dict = {}
+            for ext in extensions:
+                E_dict[ext+"_act"] =  pd.read_excel(zf.open([i for i in zf.namelist() if "MR_HSUTs_2011_v3_3_18_extensions" in i][0]), 
+                                                    sheet_name=ext+"_act", 
+                                                    index_col=_acceptable_extensions[ext]["index_col"], 
+                                                    header=_acceptable_extensions[ext]["header"])
+                try:
+                    E_dict[ext+"_FD"] =  pd.read_excel(zf.open([i for i in zf.namelist() if "MR_HSUTs_2011_v3_3_18_extensions" in i][0]), 
+                                                        sheet_name=ext+"_FD", 
+                                                        index_col=_acceptable_extensions[ext]["index_col"], 
+                                                        header=_acceptable_extensions[ext]["header"])
+                except:
+                    E_dict[ext+"_FD"] =  pd.read_excel(zf.open([i for i in zf.namelist() if "MR_HSUTs_2011_v3_3_18_extensions" in i][0]), 
+                                                        sheet_name=ext+"_fd", 
+                                                        index_col=_acceptable_extensions[ext]["index_col"], 
+                                                        header=_acceptable_extensions[ext]["header"])
+                    
+                                
+                if len(E_dict[ext+"_act"].index.names) == 2:
+                    E = pd.concat([E, E_dict[ext+"_act"]], axis=0)
+                    EY = pd.concat([EY, E_dict[ext+"_FD"]], axis=0)
+                else:
+                    df_act = copy.deepcopy(E_dict[ext+"_act"])
+                    df_FD  = copy.deepcopy(E_dict[ext+"_FD"])
+                    
+                    df_act = df_act.droplevel(-1)
+                    df_FD = df_FD.droplevel(-1)
+                    
+                    E = pd.concat([E, df_act], axis=0)
+                    EY = pd.concat([EY, df_FD], axis=0)
+                    
+        else:
+            E = pd.DataFrame(index=pd.MultiIndex.from_arrays([["None"],["None"]]),columns=a_index).fillna(0)
+            EY =pd.DataFrame(index=pd.MultiIndex.from_arrays([["None"],["None"]]),columns=n_index).fillna(0)
+                           
+    else:
+        raise WrongInput("Path must direct to a zip folder")
+        
+        
+    # Satellite accounts index
+    k_index = [
+        E.index.get_level_values(0),
+    ]
+
+
+    # Units 
+    commodities_unit = pd.DataFrame(
+        S.iloc[0:len(set(c_index[2])),:].index.get_level_values(-1),
+        index=S.iloc[0:len(set(c_index[2])),:].index.get_level_values(1),
+        columns=["unit"],
+    )
+    activities_unit = pd.DataFrame(
+        ["None"] * len(set(a_index[2])),
+        index=S.iloc[:,0:len(set(a_index[2]))].columns.get_level_values(1),
+        columns=["unit"],
+    )
+    factors_unit = pd.DataFrame(
+        ["None"],
+        index=["None"],
+        columns=["unit"],
+    )
+    extensions_unit = pd.DataFrame(
+        E.index.get_level_values(1),
+        index=E.index.get_level_values(0),
+        columns=["unit"],
+    )
+
+    
+    # reshape the indeces
+    S.index = c_index
+    S.columns = a_index
+    S = S.T
+
+    U.index = c_index
+    U.columns = a_index
+    
+    V = pd.concat([pd.DataFrame(index=["None"],columns=c_index).fillna(0),
+                   pd.DataFrame(index=["None"],columns=a_index).fillna(0)], axis=1)
+
+    Y.index = c_index
+    Y.columns = n_index
+    
+    E.index = k_index[0]
+    E.columns = U.columns
+    E = pd.concat([pd.DataFrame(np.zeros((E.shape[0],S.shape[1])),index=E.index,columns=S.columns),
+                   E], axis=1)
+    
+    EY.index = k_index[0]
+    EY.columns = n_index
+    
+    
+    # Creating the missing parts of the z matrix
+    z_upper = pd.DataFrame(
+        np.zeros((len(c_index[0]), len(c_index[0]))), index=c_index, columns=c_index
+    )
+    z_upper = z_upper.append(S)
+    z_lower = pd.DataFrame(
+        np.zeros((len(a_index[0]), len(a_index[0]))), index=a_index, columns=a_index
+    )
+    z_lower = U.append(z_lower)
+    Z = z_upper.join(z_lower)
+    
+    # adding the lower part to Y
+    y_lower = pd.DataFrame(
+        np.zeros((len(a_index[0]), len(n_index[0]))), index=a_index, columns=n_index
+    )
+    Y = Y.append(y_lower)
+    
+    X = calc_X(Z, Y)
+
+    indeces = {
+        "r": {"main": delete_duplicates(c_index[0].to_list())},
+        "n": {"main": delete_duplicates(n_index[2].to_list())},
+        "k": {"main": k_index[0]},
+        "f": {"main": ["None"]},
+        "s": {
+            "main": delete_duplicates(a_index[2].to_list())
+            + delete_duplicates(c_index[2].to_list()),
+        },
+        "a": {"main": delete_duplicates(a_index[2].to_list())},
+        "c": {"main": delete_duplicates(c_index[2].to_list())},
+    }
+
+    matrices = {
+        "baseline": {
+            "Z": Z,
+            "V": V,
+            "E": E,
+            "EY": EY,
+            "Y": Y,
+            "X": X,
+        }
+    }
+
+    units = {
+        _MASTER_INDEX["a"]: activities_unit,
+        _MASTER_INDEX["c"]: commodities_unit,
+        _MASTER_INDEX["f"]: factors_unit,
+        _MASTER_INDEX["k"]: extensions_unit,
+    }
+
+    rename_index(matrices["baseline"])
+
+    return matrices, indeces, units
+
+#%%%
+
+
 
 
 def eora_single_region(path, name_convention="full_name", aggregate_trade=True):
