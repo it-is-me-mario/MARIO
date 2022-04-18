@@ -341,6 +341,17 @@ def test_search(CoreDataIOT):
 
     assert "Acceptable items are" in str(msg.value)
 
+    # test the ignore_case
+    assert CoreDataIOT.search(
+        item = 'Satellite account', search='employ',ignore_case=False
+    ) == []
+
+    assert CoreDataIOT.search(
+        item = 'Satellite account', search='employ',ignore_case=True
+    ) == ["Employment"]
+
+
+
 def test__getdir(CoreDataIOT):
 
     assert (

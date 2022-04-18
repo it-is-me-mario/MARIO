@@ -817,7 +817,7 @@ class CoreModel:
 
         return GDP
 
-    def search(self, item, search,igonre_case=True):
+    def search(self, item, search,ignore_case=True):
         """Searches for specific keywords in a given item
 
         Parameters
@@ -842,7 +842,7 @@ class CoreModel:
 
         items = self.get_index(item)
 
-        if igonre_case:
+        if ignore_case:
             r = re.compile(f".*{search}",re.IGNORECASE)
         else:
             r = re.compile(f".*{search}")
