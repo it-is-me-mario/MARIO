@@ -9,9 +9,7 @@ from mario.tools.constants import _MASTER_INDEX, _MATRICES_NAMES, _INDECES
 from mario.tools.plots_manager import _PLOTS_LAYOUT, Color, _PALETTES
 
 from mario.tools.utilities import (
-    subplot_grid,
     run_from_jupyter,
-    unit_check,
 )
 
 import plotly.graph_objects as go
@@ -20,7 +18,6 @@ from plotly.subplots import make_subplots
 import plotly.offline as pltly
 import pandas as pd
 import logging
-import webbrowser
 
 logger = logging.getLogger(__name__)
 

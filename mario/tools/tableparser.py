@@ -1170,7 +1170,7 @@ def parse_pymrio(io, value_added, satellite_account):
     """
     
     # be sure that system is calculated
-    io = io.calc_system()
+    io = io.calc_all()
     
     extensions = {}
     for value in dir(io):
