@@ -410,6 +410,11 @@ def test_calc_all_failure(CoreDataIOT):
     
     assert "not present in acceptable item for calc_all" in str(msg.value)
 
+    with pytest.raises(WrongInput) as msg:
+        CoreDataIOT.calc_all(scenario='dummy')
+    
+    assert "Acceptable scenarios are" in str(msg.value)
+    
 def test_calc_all_overwrite(CoreDataIOT):
 
     CoreDataIOT.calc_all()

@@ -194,6 +194,9 @@ class CoreModel:
 
         _OPTIONS = copy.deepcopy(_ALL_MATRICES[self.table_type])
 
+        if scenario not in self.scenarios:
+            raise WrongInput(f"Acceptable scenarios are {self.scenarios}")
+
         for i in matrices:
             if i not in _OPTIONS:
                 raise WrongInput(
