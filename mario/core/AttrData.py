@@ -805,7 +805,7 @@ class Database(CoreModel):
             if True, creates a backup of the database before changes
 
         inplace : boolean
-            if True, changes the databsae inplace otherwise, returns a new object
+            if True, changes the database inplace otherwise, returns a new object
 
         Returns
         -------
@@ -1433,7 +1433,7 @@ class Database(CoreModel):
         mario.Database:
             if inplace = True will return a new mario.Database
         None:
-            if inplace = False returns None and implements the changes in the databsaes
+            if inplace = False returns None and implements the changes in the databases
         """
         if not inplace:
             new = self.copy()
@@ -1463,7 +1463,7 @@ class Database(CoreModel):
 
         log_time(
             logger,
-            "Databse: All the scenarios will be deleted from the database",
+            "Database: All the scenarios will be deleted from the database",
             "warn",
         )
 
