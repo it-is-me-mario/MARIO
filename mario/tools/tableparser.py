@@ -703,74 +703,69 @@ def hybrid_sut_exiobase(path,extensions):
     if extensions == 'all':
         extensions = list(_acceptable_extensions.keys())
     
-    if path.split(".")[-1] == "zip":
-        
-        zf = ZipFile(r"{}".format(path), "a")
-        units = {}
-        
-        S = pd.read_csv(zf.open([i for i in zf.namelist() if "MR_HSUP_2011_v3_3_18" in i][0]), sep=",", index_col=[0,1,2,3,4], header=[0,1,2,3])
-        U = pd.read_csv(zf.open([i for i in zf.namelist() if "MR_HUSE_2011_v3_3_18" in i][0]), sep=",", index_col=[0,1,2,3,4], header=[0,1,2,3])
-        Y = pd.read_csv(zf.open([i for i in zf.namelist() if "MR_HSUTs_2011_v3_3_18_FD" in i][0]), sep=",", index_col=[0,1,2,3,4], header=[0,1,2,3])
-        E = pd.DataFrame()
-        EY = pd.DataFrame()
+    units = {}
+    
+    S = pd.read_csv(f"{path}\MR_HSUP_2011_v3_3_18.csv", sep=",", index_col=[0,1,2,3,4], header=[0,1,2,3])
+    U = pd.read_csv(f"{path}\MR_HUSE_2011_v3_3_18.csv", sep=",", index_col=[0,1,2,3,4], header=[0,1,2,3])    
+    Y = pd.read_csv(f"{path}\MR_HSUTs_2011_v3_3_18_FD.csv", sep=",", index_col=[0,1,2,3,4], header=[0,1,2,3])
+    E = pd.DataFrame()
+    EY = pd.DataFrame()
 
-        # Commodities index
-        c_index = [
-            S.index.get_level_values(0),
-            [_MASTER_INDEX["c"]] * S.shape[0],
-            S.index.get_level_values(1),
-        ]
-        # Activities index
-        a_index = [
-            S.columns.get_level_values(0),
-            [_MASTER_INDEX["a"]] * S.shape[1],
-            S.columns.get_level_values(1),
-        ]
-        # Demand index
-        n_index = [
-            Y.columns.get_level_values(0),
-            [_MASTER_INDEX["n"]] * Y.shape[1],
-            Y.columns.get_level_values(1),
-        ]
-        
-        if extensions != None:
-            E_dict = {}
-            for ext in extensions:
-                E_dict[ext+"_act"] =  pd.read_excel(zf.open([i for i in zf.namelist() if "MR_HSUTs_2011_v3_3_18_extensions" in i][0]), 
-                                                    sheet_name=ext+"_act", 
+    # Commodities index
+    c_index = [
+        S.index.get_level_values(0),
+        [_MASTER_INDEX["c"]] * S.shape[0],
+        S.index.get_level_values(1),
+    ]
+    # Activities index
+    a_index = [
+        S.columns.get_level_values(0),
+        [_MASTER_INDEX["a"]] * S.shape[1],
+        S.columns.get_level_values(1),
+    ]
+    # Demand index
+    n_index = [
+        Y.columns.get_level_values(0),
+        [_MASTER_INDEX["n"]] * Y.shape[1],
+        Y.columns.get_level_values(1),
+    ]
+    
+    if extensions != None:
+        E_dict = {}
+        for ext in extensions:
+            E_dict[ext+"_act"] =  pd.read_excel(f"{path}\MR_HSUTs_2011_v3_3_18_extensions.xlsx", 
+                                                sheet_name=ext+"_act", 
+                                                index_col=_acceptable_extensions[ext]["index_col"], 
+                                                header=_acceptable_extensions[ext]["header"])
+            try:
+                E_dict[ext+"_FD"] =  pd.read_excel(f"{path}\MR_HSUTs_2011_v3_3_18_extensions.xlsx", 
+                                                    sheet_name=ext+"_FD", 
                                                     index_col=_acceptable_extensions[ext]["index_col"], 
                                                     header=_acceptable_extensions[ext]["header"])
-                try:
-                    E_dict[ext+"_FD"] =  pd.read_excel(zf.open([i for i in zf.namelist() if "MR_HSUTs_2011_v3_3_18_extensions" in i][0]), 
-                                                        sheet_name=ext+"_FD", 
-                                                        index_col=_acceptable_extensions[ext]["index_col"], 
-                                                        header=_acceptable_extensions[ext]["header"])
-                except:
-                    E_dict[ext+"_FD"] =  pd.read_excel(zf.open([i for i in zf.namelist() if "MR_HSUTs_2011_v3_3_18_extensions" in i][0]), 
-                                                        sheet_name=ext+"_fd", 
-                                                        index_col=_acceptable_extensions[ext]["index_col"], 
-                                                        header=_acceptable_extensions[ext]["header"])
-                    
-                                
-                if len(E_dict[ext+"_act"].index.names) == 2:
-                    E = pd.concat([E, E_dict[ext+"_act"]], axis=0)
-                    EY = pd.concat([EY, E_dict[ext+"_FD"]], axis=0)
-                else:
-                    df_act = copy.deepcopy(E_dict[ext+"_act"])
-                    df_FD  = copy.deepcopy(E_dict[ext+"_FD"])
-                    
-                    df_act = df_act.droplevel(-1)
-                    df_FD = df_FD.droplevel(-1)
-                    
-                    E = pd.concat([E, df_act], axis=0)
-                    EY = pd.concat([EY, df_FD], axis=0)
-                    
-        else:
-            E = pd.DataFrame(index=pd.MultiIndex.from_arrays([["None"],["None"]]),columns=a_index).fillna(0)
-            EY =pd.DataFrame(index=pd.MultiIndex.from_arrays([["None"],["None"]]),columns=n_index).fillna(0)
-                           
+            except:
+                E_dict[ext+"_FD"] =  pd.read_excel(f"{path}\MR_HSUTs_2011_v3_3_18_extensions.xlsx", 
+                                                    sheet_name=ext+"_fd", 
+                                                    index_col=_acceptable_extensions[ext]["index_col"], 
+                                                    header=_acceptable_extensions[ext]["header"])
+                
+                            
+            if len(E_dict[ext+"_act"].index.names) == 2:
+                E = pd.concat([E, E_dict[ext+"_act"]], axis=0)
+                EY = pd.concat([EY, E_dict[ext+"_FD"]], axis=0)
+            else:
+                df_act = copy.deepcopy(E_dict[ext+"_act"])
+                df_FD  = copy.deepcopy(E_dict[ext+"_FD"])
+                
+                df_act = df_act.droplevel(-1)
+                df_FD = df_FD.droplevel(-1)
+                
+                E = pd.concat([E, df_act], axis=0)
+                EY = pd.concat([EY, df_FD], axis=0)
+                
     else:
-        raise WrongInput("Path must direct to a zip folder")
+        E = pd.DataFrame(index=pd.MultiIndex.from_arrays([["None"],["None"]]),columns=a_index).fillna(0)
+        EY =pd.DataFrame(index=pd.MultiIndex.from_arrays([["None"],["None"]]),columns=n_index).fillna(0)
+                           
         
         
     # Satellite accounts index
