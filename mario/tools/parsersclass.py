@@ -13,6 +13,7 @@ from mario.tools.tableparser import (
     eora_multi_region,
     eurostat_sut,
     parse_pymrio,
+    hybrid_sut_exiobase_reader
 )
 
 from mario.log_exc.exceptions import WrongInput, LackOfInput
@@ -351,6 +352,59 @@ def parse_eora(
         **kwargs,
     )
 
+def hybrid_sut_exiobase(
+    folder_path,
+    extensions = [],
+    model = "Database",
+    name=None,
+    calc_all=False,
+    **kwargs
+):
+    """reads hybrid supply and use exiobase
+
+    Parameters
+    ----------
+    folder_path : str
+        the directory of the folder which contains the following files: [MR_HSUP_2011_v3_3_18.csv,MR_HSUTs_2011_v3_3_18_FD.csv,MR_HUSE_2011_v3_3_18.csv,MR_HSUTs_2011_v3_3_18_extensions.xlsx]
+    extensions : list, optional
+        the list of extensions that user intend to read, by default []
+    model : str, optional
+        type of model accepted in mario, by default "Database"
+    name : str, optional
+        a name for the database, by default None
+    calc_all : bool, optional
+        if True, will calculate all the missing matrices, by default False
+
+    Returns
+    -------
+    mario model
+        returns the mario model chosen
+
+    .. note:: 
+    The hybrid version of EXIOBASE, which is part of wider input-output database , is a multi-regional supply and use table. Here the term hybrid indicates that physical flows are accounted in mass units, energy flows in TJ and services in millions of euro (current prices).
+    EXIOBASE 3 provides a time series of environmentally extended multi-regional input‐output (EE MRIO) tables ranging from 1995 to a recent year for 44 countries (28 EU member plus 16 major economies) and five rest of the world regions. EXIOBASE 3 builds upon the previous versions of EXIOBASE by using rectangular supply‐use tables (SUT) in a 163 industry by 200 products classification as the main building blocks. The tables are provided in current, basic prices (Million EUR).
+    EXIOBASE 3 is the culmination of work in the FP7 DESIRE project and builds upon earlier work on EXIOBASE 2 in the FP7 CREEA project, EXIOBASE 1 of the FP6 EXIOPOL project and FORWAST project. 
+    A special issue of Journal of Industrial Ecology (Volume 22, Issue 3) describes the build process and some use cases of EXIOBASE 3. ("Merciai, Stefano, & Schmidt, Jannick. (2021). EXIOBASE HYBRID v3 - 2011 (3.3.18) [Data set]. Zenodo.)
+
+    For more informatio refer to https://zenodo.org/record/7244919#.Y6hEfi8w2L1
+    """
+    if model not in models:
+        raise WrongInput("Available models are {}".format([*models]))   
+
+    matrices,indeces,units = hybrid_sut_exiobase_reader(
+        path = folder_path,
+        extensions = extensions,
+    )
+
+    return models[model](
+        name=name,
+        table="SUT",
+        source="Merciai, Stefano, & Schmidt, Jannick. (2021). EXIOBASE HYBRID v3 - 2011 (3.3.18) [Data set]. Zenodo. https://doi.org/10.5281/zenodo.7244919",
+        year=2011,
+        init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
+        calc_all=calc_all,
+        **kwargs,
+    )
 
 def parse_eurostat(
     supply_path,

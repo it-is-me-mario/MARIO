@@ -148,3 +148,113 @@ eora_parser_id = {
         },
     },
 }
+
+
+_extension_type_1 = dict(
+    file_name="MR_HSUTs_2011_v3_3_18_extensions.xlsx",
+    header =  [0,1,2,3],
+    index_col = [0,1]
+)
+
+_extension_type_2 = dict(
+    file_name="MR_HSUTs_2011_v3_3_18_extensions.xlsx",
+    header =  [0,1,2,3],
+    index_col = [0,1,2]
+)
+
+
+
+hybrid_sut_exiobase_parser_id = {
+
+    "matrices": {
+        "S" : {
+            "file_name": "MR_HSUP_2011_v3_3_18.csv",
+            "index_col": [0,1,2,3,4],
+            "header": [0,1,2,3],
+        },
+        "U" : {
+            "file_name": "MR_HUSE_2011_v3_3_18.csv",
+            "index_col": [0,1,2,3,4],
+            "header": [0,1,2,3],
+        },
+
+        "Y": {
+            "file_name": "MR_HSUTs_2011_v3_3_18_FD.csv",
+            "index_col": [0,1,2,3,4],
+            "header": [0,1,2,3],
+        },
+
+    },
+
+    "resource": {
+        "activity":{**_extension_type_1,**dict(sheet_name="resource_act")},
+        "final_demand":{**_extension_type_1,**dict(sheet_name="resource_FD")},
+    },
+
+    "Land": {
+        "activity":{**_extension_type_1,**dict(sheet_name="Land_act")},
+        "final_demand":{**_extension_type_1,**dict(sheet_name="Land_FD")},
+        }, 
+
+    "Emiss": {
+        "activity":{**_extension_type_2,**dict(sheet_name="Emiss_act")},
+        "final_demand":{**_extension_type_2,**dict(sheet_name="Emiss_FD")},
+        }, 
+
+    "Emis_unreg_w": {
+        "activity":{**_extension_type_2,**dict(sheet_name="Emis_unreg_w_act")},
+        "final_demand":{**_extension_type_2,**dict(sheet_name="Emis_unreg_w_FD")},
+        },
+
+    "waste_sup": {
+        "activity":{**_extension_type_1,**dict(sheet_name="waste_sup_act")},
+        "final_demand":{**_extension_type_1,**dict(sheet_name="waste_sup_FD")},
+        },
+
+    "waste_use": {
+        "activity":{**_extension_type_1,**dict(sheet_name="waste_use_act")},
+        "final_demand":{**_extension_type_1,**dict(sheet_name="waste_use_FD")},
+        },
+
+    "pack_sup_waste": {
+        "activity":{**_extension_type_1,**dict(sheet_name="pack_sup_waste_act")},
+        "final_demand":{**_extension_type_1,**dict(sheet_name="pack_sup_waste_fd")},
+        },
+
+    "pack_use_waste": {
+        "activity":{**_extension_type_1,**dict(sheet_name="pack_use_waste_act")},
+        "final_demand":{**_extension_type_1,**dict(sheet_name="pack_use_waste_fd")},
+        },
+
+    "mach_sup_waste": {
+        "activity":{**_extension_type_1,**dict(sheet_name="mach_use_waste_act")},
+        "final_demand":{**_extension_type_1,**dict(sheet_name="mach_use_waste_fd")},
+        },
+
+    "mach_use_waste": {
+        "index_col":[0,1], "header":[0,1,2,3],
+        },
+
+    "stock_addition": {
+        "activity":{**_extension_type_1,**dict(sheet_name="stock_addition_act")},
+        "final_demand":{**_extension_type_1,**dict(sheet_name="stock_addition_fd")},
+        },
+
+    "crop_res": {
+        "activity":{**_extension_type_2,**dict(sheet_name="crop_res_act")},
+        "final_demand":{**_extension_type_2,**dict(sheet_name="crop_res_FD")},
+        },
+    }
+
+    # "V": {
+    #     "file_name": _extension_type_1["file_name"],
+    #     "sheet_name": 
+    #     "index_col": [2,3],
+    #     "header": [0,1,2,3]
+    # }
+
+
+
+
+
+

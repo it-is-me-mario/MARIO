@@ -31,6 +31,7 @@ from mario.tools.parsers_id import (
     txt_parser_id,
     eora,
     eora_parser_id,
+    hybrid_sut_exiobase_parser_id
 )
 
 from mario.tools.iomath import (
@@ -1299,3 +1300,196 @@ def parse_pymrio(io, value_added, satellite_account):
 
     rename_index(matrices["baseline"])
     return matrices, units, indeces
+
+
+
+def hybrid_sut_exiobase_reader(path,extensions):
+    
+    _ACCEPTABLE_EXIOBASE_EXTENSIONS = [*hybrid_sut_exiobase_parser_id]
+    
+    _ACCEPTABLE_EXIOBASE_EXTENSIONS.remove("matrices")
+
+
+    if extensions:
+        if extensions == "all":
+            extensions = _ACCEPTABLE_EXIOBASE_EXTENSIONS
+
+        else:
+            differnce = set(extensions).difference(_ACCEPTABLE_EXIOBASE_EXTENSIONS)
+
+            if differnce:
+                raise WrongInput(f"Following items are not valid for extensions: \n {differnce}.\n Valid items are: \n {_ACCEPTABLE_EXIOBASE_EXTENSIONS}")
+
+
+    main_files = dict(
+        matrices = hybrid_sut_exiobase_parser_id["matrices"],
+        )
+    
+    extensions_files = {extension: hybrid_sut_exiobase_parser_id[extension] for extension in extensions}
+    main_files = {**main_files, **extensions_files}
+
+
+    # reading the files
+    read = all_file_reader(path, main_files, sub_folder=False,sep=',')
+
+    S = read["matrices"]["S"]
+    U = read["matrices"]["U"]
+    Y = read["matrices"]["Y"]
+
+
+    # Commodity index
+    c_index= pd.MultiIndex.from_product(
+        [
+            S.index.unique(0),
+            [_MASTER_INDEX["c"]],
+            S.index.unique(1)
+        ]
+    )
+
+    # Activity index
+    a_index = pd.MultiIndex.from_product(
+        [
+            S.columns.unique(0),
+            [_MASTER_INDEX['a']],
+            S.columns.unique(1)
+        ]        
+    )
+
+    # # Demand index
+    n_index = pd.MultiIndex.from_product(
+        [
+            Y.columns.unique(0),
+            [_MASTER_INDEX["n"]],
+            Y.columns.unique(1)
+        ]
+    )
+
+    
+    
+    if extensions:               
+        E = []
+        EY = []
+        for extension in extensions:   
+            dfs = read[extension]
+            e  = dfs["activity"]
+            ey = dfs["final_demand"]
+
+            if e.index.nlevels == 1:
+                e = e.droplevel(-1)
+                ey = ey.droplevel(-1)
+
+            E.append(e)
+            EY.append(ey)
+
+        E  = pd.concat(E,axis=0)
+        EY = pd.concat(EY,axis=0)
+                
+    else:
+        E = pd.DataFrame(data = 0,index=[["None"],["None"]],columns=a_index)
+        EY =pd.DataFrame(data = 0,index=[["None"],["None"]],columns=n_index)
+                           
+        
+        
+    # # Satellite accounts index
+    k_index = E.index.get_level_values(0)
+
+
+    # units
+    commodities_unit = pd.DataFrame(
+        data  = S.index.get_level_values(-1)[0:len(c_index.unique(2))],
+        index = c_index.unique(2),
+        columns = ["unit"]
+    )
+
+    activities_unit = pd.DataFrame(
+        data  = ["None"] * len(a_index.unique(2)),
+        index = a_index.unique(2),
+        columns = ["unit"]
+    )
+
+    factors_unit = pd.DataFrame(
+        ["None"],
+        index=["None"],
+        columns=["unit"],
+    )
+
+    extensions_unit = pd.DataFrame(
+        E.index.get_level_values(1),
+        index=E.index.get_level_values(0),
+        columns=["unit"],
+    )
+
+    
+    # reshape the indeces
+    S.index = c_index
+    S.columns = a_index
+    S = S.T
+
+    U.index = c_index
+    U.columns = a_index
+    
+    V = pd.DataFrame(data=0,index=["None"],columns=c_index.append(a_index))
+
+    Y.index = c_index
+    Y.columns = n_index
+    
+    E.index = k_index
+    E.columns = U.columns
+    E = pd.concat([pd.DataFrame(np.zeros((E.shape[0],S.shape[1])),index=E.index,columns=S.columns),
+                   E], axis=1)
+    
+    EY.index = k_index
+    EY.columns = n_index
+    
+    
+    # Creating the missing parts of the z matrix
+    z_upper = pd.DataFrame(
+        np.zeros((len(c_index), len(c_index))), index=c_index, columns=c_index
+    )
+    z_upper = z_upper.append(S)
+    z_lower = pd.DataFrame(
+        np.zeros((len(a_index), len(a_index))), index=a_index, columns=a_index
+    )
+    z_lower = U.append(z_lower)
+    Z = z_upper.join(z_lower)
+    
+    # adding the lower part to Y
+    y_lower = pd.DataFrame(
+        np.zeros((len(a_index), len(n_index))), index=a_index, columns=n_index
+    )
+    Y = Y.append(y_lower)
+    
+    X = calc_X(Z, Y)
+
+    indeces = {
+        "r": {"main": a_index.unique(0).tolist()},
+        "n": {"main": n_index.unique(-1).tolist()},
+        "k": {"main": k_index.tolist()},
+        "f": {"main": ["None"]},
+        "s": {"main": (a_index.unique(-1).append(c_index.unique(-1)).tolist())},
+        "a": {"main": a_index.unique(-1).tolist()},
+        "c": {"main": c_index.unique(-1).tolist()},
+    }
+
+    matrices = {
+        "baseline": {
+            "Z": Z,
+            "V": V,
+            "E": E,
+            "EY": EY,
+            "Y": Y,
+            "X": X,
+        }
+    }
+
+    units = {
+        _MASTER_INDEX["a"]: activities_unit,
+        _MASTER_INDEX["c"]: commodities_unit,
+        _MASTER_INDEX["f"]: factors_unit,
+        _MASTER_INDEX["k"]: extensions_unit,
+    }
+
+    rename_index(matrices["baseline"])
+
+    return matrices, indeces, units
+
