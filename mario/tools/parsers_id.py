@@ -232,7 +232,8 @@ hybrid_sut_exiobase_parser_id = {
         },
 
     "mach_use_waste": {
-        "index_col":[0,1], "header":[0,1,2,3],
+        "activity":{**_extension_type_1,**dict(sheet_name="mach_use_waste_act")},
+        "final_demand":{**_extension_type_1,**dict(sheet_name="mach_use_waste_fd")},
         },
 
     "stock_addition": {
@@ -241,17 +242,15 @@ hybrid_sut_exiobase_parser_id = {
         },
 
     "crop_res": {
-        "activity":{**_extension_type_2,**dict(sheet_name="crop_res_act")},
-        "final_demand":{**_extension_type_2,**dict(sheet_name="crop_res_FD")},
+        "activity":{**_extension_type_1,**dict(sheet_name="crop_res_act")},
+        "final_demand":{**_extension_type_1,**dict(sheet_name="crop_res_FD")},
         },
+    
+    "Unreg_w":{
+        "activity":{**_extension_type_1,**dict(sheet_name="Unreg_w_act")},
+        "final_demand":{**_extension_type_1,**dict(sheet_name="Unreg_w_FD")},       
+    },
     }
-
-    # "V": {
-    #     "file_name": _extension_type_1["file_name"],
-    #     "sheet_name": 
-    #     "index_col": [2,3],
-    #     "header": [0,1,2,3]
-    # }
 
 
 

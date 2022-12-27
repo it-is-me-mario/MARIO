@@ -1374,9 +1374,25 @@ def hybrid_sut_exiobase_reader(path,extensions):
             e  = dfs["activity"]
             ey = dfs["final_demand"]
 
-            if e.index.nlevels == 1:
-                e = e.droplevel(-1)
-                ey = ey.droplevel(-1)
+            if e.index.nlevels == 3:
+                
+                idx = pd.MultiIndex.from_arrays(
+                    [
+                        e.index.get_level_values(0) + " (" + e.index.get_level_values(-1) + f" - {extension})",
+                        e.index.get_level_values(1)
+                    ]
+                )
+
+            else:
+                idx = pd.MultiIndex.from_arrays(
+                    [
+                        e.index.get_level_values(0) + f" ({extension})",
+                        e.index.get_level_values(1)
+                    ]
+                )
+
+            e.index = idx
+            ey.index= idx
 
             E.append(e)
             EY.append(ey)
