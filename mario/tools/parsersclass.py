@@ -24,7 +24,7 @@ models = {"Database": Database}
 def parse_from_txt(
     path,
     table,
-    mode="flows",
+    mode,
     calc_all=False,
     year=None,
     name=None,
@@ -89,7 +89,7 @@ def parse_from_txt(
 def parse_from_excel(
     path,
     table,
-    mode="flows",
+    mode,
     data_sheet=0,
     unit_sheet="units",
     calc_all=False,
