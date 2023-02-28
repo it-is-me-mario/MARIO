@@ -22,7 +22,7 @@ sys.path.insert(0, os.path.abspath("../../.."))
 
 
 project = 'MARIO'
-copyright = '2021, SESAM, Politecnico di Milano.\n Developed by: MARIO Team'
+copyright = '2021, MARIO Authors: Mohammad Amin Tahavori, Lorenzo Rinaldi, Nicolo Golinucci'
 author = 'Mohammad Amin Tahavori, Lorenzo Rinaldi, Nicolo Golinucci'
 
 # The full version, including alpha/beta/rc tags
