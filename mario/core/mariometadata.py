@@ -47,7 +47,6 @@ class MARIOMetaData:
             self._add_history("metadata file uploaded from {}".format(meta))
 
     def _add_attribute(self, **kwargs):
-        print(kwargs)
         for attribute, value in kwargs.items():
 
             # if the attribute already exists
@@ -180,4 +179,3 @@ class MARIOMetaData:
 
         self.__table = var
 
-        #self._add_attribute(table=var)
