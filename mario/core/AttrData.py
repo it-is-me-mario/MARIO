@@ -1506,6 +1506,91 @@ class Database(CoreModel):
             for note in notes:
                 self.meta._add_history(f"User note: {note}")
 
+    def query(
+            self,
+            matrices,
+            scenarios = ["baseline"],
+            base_scenario = None,
+            type="absolute",
+    ):
+        """ Requests a specific data from the database
+
+        Parameters
+        ----------
+        matrices : str
+            list of the matrices to return
+
+        scenarios : str, List[str]
+            list of scenarios for returing the matrices
+
+        base_scenario : str
+            str representing the base scenario in case that the data should be returned for the change in data between scenarios
+
+        type: str
+            #. 'absolute' for absolute difference for scenarios
+            #. 'relative' for relative difference for scenarios
+
+
+        Returns
+        -------
+        dict,pd.DataFrame
+            If multiple scenarios are passed, it returns a dict where keys are the scenarios and vals are the matrices. matrices itself could be a dict or pd.DataFrame depending if multiple matrices or one matrix is passed
+
+            
+        Example
+        -------
+        Let's consider the case that multiple scenarios ['sc.1','sc.2'] and multiple matrices ['X','z'] are passed:
+
+        .. code-block:: python
+
+            output = example.query(scenarios= ['sc.1','sc.2'], matrices = ['X','z'])
+
+        the output in this case would be:
+
+        type: Dict[Dict[pd.DataFrame]]
+
+        {
+            "sc.1" : {
+                "X": pd.DataFrame,
+                "z": pd.DataFrame,
+            },
+            "sc.2" : {
+                "X": pd.DataFrame,
+                "z": pd.DataFrame,
+            },
+            
+        }
+
+        if only one scenario ("sc.1") is passed, output will be:
+        
+        type Dict[pd.DataFrame]
+        {
+            "X": pd.DataFrame,
+            "Y": pd.DataFrame,
+        }
+
+        if only one scenario ("sc.1") and one matrix ("X") is passed the output will be a single pd.DataFrame.
+        """
+        data = self.get_data(
+            matrices=matrices,
+            units=False,
+            indeces=False,
+            format="dict",
+            scenarios=scenarios,
+            base_scenario = base_scenario,
+            type = type
+        )
+
+        
+        if len(matrices) == 1:
+            for scenario in scenarios:
+                data[scenario]= data[scenario][matrices[0]]
+
+        if len(scenarios) == 1:
+            data = data[scenarios[0]]
+
+        return data
+    
     def get_data(
         self,
         matrices,
@@ -1523,7 +1608,7 @@ class Database(CoreModel):
 
         Parameters
         ----------
-        path : str
+        matrices : str
             list of the matrices to return
 
         units : boolean
