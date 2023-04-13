@@ -5,7 +5,6 @@ metadata for traking all the processes that user may follow using MARIO
 
 from datetime import datetime
 import pickle
-from tempfile import TemporaryFile
 from mario.log_exc.exceptions import WrongInput
 from mario.tools.constants import _LEVELS
 
@@ -48,7 +47,7 @@ class MARIOMetaData:
             self._add_history("metadata file uploaded from {}".format(meta))
 
     def _add_attribute(self, **kwargs):
-
+        print(kwargs)
         for attribute, value in kwargs.items():
 
             # if the attribute already exists
@@ -180,3 +179,5 @@ class MARIOMetaData:
             raise WrongInput("table can be: {}".format(*_LEVELS))
 
         self.__table = var
+
+        #self._add_attribute(table=var)
