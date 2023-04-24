@@ -40,7 +40,8 @@ def agg_IOT():
 
     data = parse_from_excel(
         path = f"{MOCK_PATH}/IOT_aggregation.xlsx",
-        table = 'IOT'
+        table = 'IOT',
+        mode = "flows"
     )
 
     data.path = f"{MOCK_PATH}/IOT_aggregation.xlsx"
@@ -255,8 +256,60 @@ def test_to_pymrio(CoreDataIOT,CoreDataSUT):
 
 
 
+def test_querry(CoreDataIOT):
+
+    CoreDataIOT.calc_all()
+
+    CoreDataIOT.clone_scenario(scenario= 'baseline', name='sc.2')
 
 
+    # case 1: Nested dict
+    scenarios = ["baseline","sc.2"]
+    matrices=["X","z"]
 
+    case_1 = CoreDataIOT.query(scenarios = scenarios,matrices=matrices)
+
+    assert set(case_1.keys()) == set(scenarios)
+    assert set(list(case_1.values())[0].keys()) == set(matrices)
+
+    for k in  scenarios:
+        for v in matrices:
+            pdt.assert_frame_equal(case_1[k][v],CoreDataIOT[k][v])
+
+
+    # case 2: one scenario and 2 matrices
+    scenarios = ["sc.2"]
+    matrices=["X","z"]
+
+    case_2 = CoreDataIOT.query(scenarios = scenarios,matrices=matrices)
+
+    assert set(case_2.keys()) == set(matrices)
+
+
+    for v in matrices:
+        pdt.assert_frame_equal(case_2[v],CoreDataIOT[scenarios[0]][v])
+
+
+    # case 3: two scenarios and 1 matrix
+    scenarios = ["baseline","sc.2"]
+    matrices=["X"]
+
+    case_3 = CoreDataIOT.query(scenarios = scenarios,matrices=matrices)
+
+    assert set(case_3.keys()) == set(scenarios)
     
 
+
+    for k in scenarios:
+        pdt.assert_frame_equal(case_3[k],CoreDataIOT[k][matrices[0]])
+
+
+    # case 4: one scneario and one matrix
+    scenarios = ["sc.2"]
+    matrices=["X"]
+
+    case_4 = CoreDataIOT.query(scenarios = scenarios,matrices=matrices)
+
+    assert isinstance(case_4,pd.DataFrame)
+
+    pdt.assert_frame_equal(case_4,CoreDataIOT[scenarios[0]][matrices[0]])
