@@ -510,11 +510,11 @@ def linkages_calculation(cut_diag, matrices, multi_mode, normalized):
             )
 
             links.loc[index, ("Total Backward", "Local")] = (
-                matrices["w"].loc[index, index[0]].sum().sum()
+                matrices["w"].T.loc[index, index[0]].sum().sum()
             )
             links.loc[index, ("Total Backward", "Foreign")] = (
-                matrices["w"].loc[index].sum().sum()
-                - matrices["w"].loc[index, index[0]].sum().sum()
+                matrices["w"].T.loc[index].sum().sum()
+                - matrices["w"].T.loc[index, index[0]].sum().sum()
             )
 
             links.loc[index, ("Direct Forward", "Local")] = (
@@ -526,11 +526,11 @@ def linkages_calculation(cut_diag, matrices, multi_mode, normalized):
             )
 
             links.loc[index, ("Direct Backward", "Local")] = (
-                matrices["z"].loc[index, index[0]].sum().sum()
+                matrices["z"].T.loc[index, index[0]].sum().sum()
             )
             links.loc[index, ("Direct Backward", "Foreign")] = (
-                matrices["z"].loc[index].sum().sum()
-                - matrices["z"].loc[index, index[0]].sum().sum()
+                matrices["z"].T.loc[index].sum().sum()
+                - matrices["z"].T.loc[index, index[0]].sum().sum()
             )
 
         if normalized:
