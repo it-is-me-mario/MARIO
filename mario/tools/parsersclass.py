@@ -352,8 +352,78 @@ def parse_eora(
         **kwargs,
     )
 
+def parse_exiobase(
+    table,
+    unit,
+    path,
+    model = "Database",
+    name = None,
+    year = None,
+    calc_all = False,
+    **kwargs 
+):
+    """A unique function for parsing all exiobase databases
+
+    Parameters
+    ----------
+    table : str
+        acceptable values are "IOT" or "SUT"
+    unit : str
+        Acceptable values are "Hybrid" or "Monetary"
+    path : str
+        path to folder/file of the database (varies by the type of database)
+    calc_all : boolean
+        if True, by default will calculate z,v,e after parsing
+    year : int, Optional
+        optional to the Database (just for recoding the metadata)
+    name : str, Optional
+        optional but suggested. is useful for visualization and metadata.
+    **kwargs: dict
+        all the specific configuation of single exiobase parsers (please refer to the separat function documentations for more information)
+
+    Returns
+    -------
+    mario.Database
+        returns a mario.Database according to the type of exiobase database specified
+
+    Raises
+    ------
+    WrongInput
+        if non-valid values are passed to the arguments. 
+    """
+    
+    if table not in ["IOT","SUT"]:
+        raise WrongInput("table only accpets 'IOT' or 'SUT'.")
+    
+    if unit not in ["Hybrid","Monetary"]:
+        raise WrongInput("unit only accpets 'Hybrid' or 'Monetary.'")
+    
+    if table == "IOT":
+        if unit == "Monetary":
+            parser = parse_exiobase_3
+
+        else: 
+            raise WrongInput("Hybrid IOT exiobase is not supported by mario.")
+        
+    else:
+        if unit == "Monetary":
+            parser = parse_exiobase_sut
+
+        else:
+            parser = hybrid_sut_exiobase
+    
+    kwargs["path"] = path
+    kwargs["model"] = model
+    kwargs["name"] = name
+    kwargs["calc_all"] = calc_all
+    kwargs["year"] = year
+
+    return parser(**kwargs)
+    
+    
+    
 def hybrid_sut_exiobase(
-    folder_path,
+    path,
     extensions = [],
     model = "Database",
     name=None,
@@ -393,7 +463,7 @@ def hybrid_sut_exiobase(
         raise WrongInput("Available models are {}".format([*models]))   
 
     matrices,indeces,units = hybrid_sut_exiobase_reader(
-        path = folder_path,
+        path = path,
         extensions = extensions,
     )
 
