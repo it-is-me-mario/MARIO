@@ -14,6 +14,7 @@ from mario.tools.utilities import (
     rename_index,
     sort_frames,
     to_single_index,
+    extract_metadata_from_eurostat,
 )
 
 from mario.tools.constants import (
@@ -31,7 +32,8 @@ from mario.tools.parsers_id import (
     txt_parser_id,
     eora,
     eora_parser_id,
-    hybrid_sut_exiobase_parser_id
+    hybrid_sut_exiobase_parser_id,
+    eurostat_id
 )
 
 from mario.tools.iomath import (
@@ -937,233 +939,165 @@ def eora_multi_region(data_path, index_path, year, price):
     return matrices, indeces, units
 
 
+
 def eurostat_sut(
-    supply_path,
-    use_path,
-    region,
-    selected_year,
-    consumption_categories,
-    factors_of_production,
-    imports,
+        supply_path,
+        use_path,
 ):
+    supply_file = pd.ExcelFile(supply_path)
+    use_file = pd.ExcelFile(use_path)
 
-    supply = pd.read_excel(supply_path, header=None, index_col=0)
-    use = pd.read_excel(use_path, header=None, index_col=0)
+    supply_meta = extract_metadata_from_eurostat(supply_file)
+    use_meta = extract_metadata_from_eurostat(use_file)
 
-    "Warning on years correspondance"
-    try:
-        supply_years = supply.loc["TIME", 1].to_list()
-    except:
-        supply_years = [supply.loc["TIME", 1]]
-    try:
-        use_years = use.loc["TIME", 1].to_list()
-    except:
-        use_years = [use.loc["TIME", 1]]
+    if "Supply table at basic prices" not in supply_meta["table"]:
+        raise WrongInput("specified supply table dataset is {}. Acceptable dataset is 'Supply table at basic prices'."
+                         "Please refer to the documents for proper download of the dataset".format(supply_meta["table"]))
 
-    if supply_years == use_years:
-        years = supply_years
-    else:
-        raise WrongInput("No correspondance between years of use and supply tables")
+    if "Use table at basic prices " not in use_meta["table"]:
+        raise WrongInput("specified use table dataset is {}. Acceptable dataset is 'Use table at basic prices '."
+                         "Please refer to the documents for proper download of the dataset".format(use_meta["table"]))
+    
+    if supply_meta["country"]!=use_meta["country"] or supply_meta["year"]!=use_meta["year"]:
+        raise WrongInput("there are mismatched between the country/year of supply and use datasets.\nSupply Dataset: {}\nUse Dataset:{}".format(
+            supply_meta,
+            use_meta
+        ))
+    
 
-    "Warning on supply in IxP format, Use in PxI format"
-    if "INDUSE/PROD_NA" not in supply.index or "PROD_NA/INDUSE" not in use.index:
-        raise WrongExcelFormat("Tables not in the correct format")
-
-    "Warning on number of regions"
-    try:
-        supply_regions = supply.loc["GEO", 1].to_list()
-    except:
-        supply_regions = [supply.loc["GEO", 1]]
-    try:
-        use_regions = use.loc["GEO", 1].to_list()
-    except:
-        use_regions = [use.loc["GEO", 1]]
-
-    if len(set(supply_regions)) > 1:
-        raise WrongExcelFormat(
-            "The supply tables contains accounts of multiple regions"
-        )
-    if len(set(use_regions)) > 1:
-        raise WrongExcelFormat("The use tables contains accounts of multiple regions")
-
-    "Warning on presence of selected region"
-    if region not in supply_regions or region.capitalize() not in supply_regions:
-        raise WrongInput("Input region not present in the tables")
-
-    "Warning on region correspondance"
-    if supply_regions != use_regions:
-        raise WrongExcelFormat(
-            "Supply and use tables contains information about different regions"
-        )
-
-    "Preparing data (ready for dynamic version)"
-    data = {}
-    for y in years:
-        data[y] = {}
-
-        start_sup = supply.loc[:, 1].to_list().index(str(y)) + 2
-        end_sup = copy.deepcopy(start_sup)
-
-        for i in list(supply.index)[start_sup:]:
-            if isinstance(i, float) and math.isnan(i):
-                break
-            else:
-                end_sup += 1
-
-        data[y]["S"] = pd.DataFrame(
-            supply.iloc[start_sup + 1 : end_sup, :].values,
-            index=supply.iloc[start_sup + 1 : end_sup, :].index,
-            columns=supply.iloc[start_sup, :].to_list(),
-        )
-
-        start_use = use.loc[:, 1].to_list().index(str(y)) + 4
-        end_use = copy.deepcopy(start_use)
-
-        for i in list(use.index)[start_use:]:
-            if isinstance(i, float) and math.isnan(i):
-                break
-            else:
-                end_use += 1
-
-        data[y]["U"] = pd.DataFrame(
-            use.iloc[start_use + 1 : end_use, :].values,
-            index=use.iloc[start_use + 1 : end_use, :].index,
-            columns=use.iloc[start_use, :].to_list(),
-        )
-
-        activities = []
-        commodities = []
-        for activity in data[y]["U"].columns:
-            if activity == "Total":
-                break
-            else:
-                activities += [activity]
-        for commodity in data[y]["U"].index:
-            if commodity == "Total":
-                break
-            else:
-                commodities += [commodity]
-
-        data[y]["Y"] = data[y]["U"].loc[commodities, consumption_categories]
-        data[y]["IMP"] = data[y]["S"].loc[imports, commodities]
-        data[y]["V"] = data[y]["U"].loc[factors_of_production, activities]
-        data[y]["U"] = data[y]["U"].loc[commodities, activities]
-        data[y]["S"] = data[y]["S"].loc[activities, commodities]
-
-    for y in years:
-        for key in data[y].keys():
-            data[y][key].replace({":": 0}, regex=True, inplace=True)
-
-    "Preparing indeces"
-    commodities_multiindex = pd.MultiIndex.from_arrays(
-        [
-            [region.capitalize() for i in range(len(commodities))],
-            [_MASTER_INDEX["c"] for i in range(len(commodities))],
-            commodities,
-        ]
+    supply_data = supply_file.parse(
+        sheet_name=eurostat_id["supply"]["sheet_name"],
+        index_col=eurostat_id["supply"]["index_col"],
+        header=eurostat_id["supply"]["header"],
     )
-    activities_multiindex = pd.MultiIndex.from_arrays(
-        [
-            [region.capitalize() for i in range(len(activities))],
-            [_MASTER_INDEX["a"] for i in range(len(activities))],
-            activities,
-        ]
+
+    use_data = use_file.parse(
+        sheet_name=eurostat_id["use"]["sheet_name"],
+        index_col=eurostat_id["use"]["index_col"],
+        header=eurostat_id["use"]["header"],
     )
-    sectors_multiindex = commodities_multiindex.append(activities_multiindex)
-    factors_index = factors_of_production + imports
-    final_demand_multiindex = pd.MultiIndex.from_arrays(
+
+    # build Z_matrix
+    z_index_c = pd.MultiIndex.from_product(
         [
-            [region.capitalize() for i in range(len(consumption_categories))],
-            [_MASTER_INDEX["n"] for i in range(len(consumption_categories))],
-            consumption_categories,
+            [supply_meta["country"]],
+            [_MASTER_INDEX["c"]],
+            eurostat_id["c"]
         ]
     )
 
-    "Providing shapes of new matrices"
-    V = pd.DataFrame(
-        np.zeros(
-            (
-                data[y]["V"].shape[0] + data[y]["IMP"].shape[0],
-                data[y]["V"].shape[1] + data[y]["IMP"].shape[1],
-            )
-        ),
-        index=factors_index,
-        columns=sectors_multiindex,
+    z_index_a = pd.MultiIndex.from_product(
+        [
+            [supply_meta["country"]],
+            [_MASTER_INDEX["a"]],
+            eurostat_id["a"]
+        ]
     )
+
+    z_index = z_index_c.append(z_index_a)
+
     Z = pd.DataFrame(
-        np.zeros(
-            (
-                data[y]["S"].shape[0] + data[y]["U"].shape[0],
-                data[y]["S"].shape[1] + data[y]["U"].shape[1],
-            )
-        ),
-        index=sectors_multiindex,
-        columns=sectors_multiindex,
+        data = 0,
+        index = z_index,
+        columns=z_index
+        )
+
+    # fill supply side
+    Z.loc[
+        (supply_meta["country"],_MASTER_INDEX["a"],eurostat_id["a"]),
+        (supply_meta["country"],_MASTER_INDEX["c"],eurostat_id["c"])
+    ] = supply_data.loc[eurostat_id["a"],eurostat_id["c"]].values
+
+    # fill use side
+    Z.loc[
+        (supply_meta["country"],_MASTER_INDEX["c"],eurostat_id["c"]),
+        (supply_meta["country"],_MASTER_INDEX["a"],eurostat_id["a"])
+    ] = use_data.loc[eurostat_id["c"],eurostat_id["a"]].values  
+
+
+    # build V_matrix
+    V = pd.DataFrame(
+        data = 0,
+        index = eurostat_id['f'] + eurostat_id["c_import"],
+        columns = z_index
+    )
+
+    # Activity VA
+    V.loc[
+        eurostat_id['f'],
+        (supply_meta["country"],_MASTER_INDEX["a"],eurostat_id["a"])
+    ] = use_data.loc[eurostat_id['f'],eurostat_id['a']].values
+
+    # Commodity VA
+    V.loc[
+        eurostat_id["c_import"],
+        (supply_meta["country"],_MASTER_INDEX["c"],eurostat_id["c"])
+    ] = supply_data.loc[eurostat_id["c_import"],eurostat_id["c"]].values
+
+    # Building Y matrix
+    Y_columns = pd.MultiIndex.from_product(
+        [
+            [supply_meta["country"]],
+            [_MASTER_INDEX["n"]],
+            eurostat_id["n"]
+        ]      
     )
     Y = pd.DataFrame(
-        np.zeros(
-            (data[y]["S"].shape[0] + data[y]["U"].shape[0], data[y]["Y"].shape[1])
-        ),
-        index=sectors_multiindex,
-        columns=final_demand_multiindex,
+        data = 0 ,
+        index = z_index,
+        columns = Y_columns
     )
 
-    "Changing old indices with new ones"
-    for y in years:
+    Y.loc[
+        (supply_meta["country"],_MASTER_INDEX["c"],eurostat_id["c"]),
+        (supply_meta["country"],_MASTER_INDEX["n"],eurostat_id["n"])       
+    ] = use_data.loc[eurostat_id["c"],eurostat_id["n"]].values
 
-        data[y]["S"].index = activities_multiindex
-        data[y]["S"].columns = commodities_multiindex
+    # Building E and EY
+    E = pd.DataFrame(data=0,index=["None"],columns=z_index)
+    EY = pd.DataFrame(data=0,index=["None"],columns=Y_columns)
 
-        data[y]["U"].index = commodities_multiindex
-        data[y]["U"].columns = activities_multiindex
-
-        data[y]["Y"].index = commodities_multiindex
-        data[y]["Y"].columns = final_demand_multiindex
-
-        data[y]["V"].columns = activities_multiindex
-        data[y]["IMP"].columns = commodities_multiindex
-
-    Z.loc[activities_multiindex, commodities_multiindex] = data[str(selected_year)]["S"]
-    Z.loc[commodities_multiindex, activities_multiindex] = data[str(selected_year)]["U"]
-    Y.loc[commodities_multiindex, final_demand_multiindex] = data[str(selected_year)][
-        "Y"
-    ]
-    V.loc[factors_of_production, activities_multiindex] = data[str(selected_year)]["V"]
-    V.loc[imports, commodities_multiindex] = data[str(selected_year)]["IMP"]
-    E = pd.DataFrame(data=0, index=["None"], columns=sectors_multiindex)
-    EY = pd.DataFrame(data=0, index=["None"], columns=final_demand_multiindex)
-
-    indeces = {
-        "r": {"main": [region]},
-        "n": {"main": consumption_categories},
-        "k": {"main": delete_duplicates(E.index.get_level_values(0))},
-        "f": {"main": factors_index},
-        "c": {"main": commodities},
-        "a": {"main": activities},
-    }
-
+    # Units
     units = {
         _MASTER_INDEX["a"]: pd.DataFrame(
-            "M EUR", index=indeces["a"]["main"], columns=["unit"]
+            use_meta["unit"], index=eurostat_id["a"], columns=["unit"]
         ),
         _MASTER_INDEX["c"]: pd.DataFrame(
-            "M EUR", index=indeces["c"]["main"], columns=["unit"]
+            use_meta["unit"], index=eurostat_id["c"], columns=["unit"]
         ),
         _MASTER_INDEX["f"]: pd.DataFrame(
-            "M EUR", index=indeces["f"]["main"], columns=["unit"]
+            use_meta["unit"], index=eurostat_id["c_import"] + eurostat_id["f"], columns=["unit"]
         ),
         _MASTER_INDEX["k"]: pd.DataFrame(
-            "None", index=indeces["k"]["main"], columns=["unit"]
+            "None",
+            index=E.index,
+            columns=["unit"],
         ),
     }
 
+    X = calc_X(Z, Y)
     matrices = {
-        "baseline": {"Z": Z, "V": V, "E": E, "EY": EY, "Y": Y, "X": calc_X(Z, Y),}
+        "baseline": {
+            "Z": Z,
+            "V": V,
+            "E": E,
+            "EY": EY,
+            "Y": Y,
+            "X": X,
+        }
     }
-
+    sort_frames(matrices["baseline"])
+    indeces = {
+        "r": {"main": Z.index.unique(0).tolist()},
+        "n": {"main": Y.columns.unique(-1).tolist()},
+        "k": {"main": E.index.tolist()},
+        "f": {"main": V.index.tolist()},
+        "a": {"main": eurostat_id["a"]},
+        "c": {"main": eurostat_id["c"]},
+    }
     rename_index(matrices["baseline"])
 
-    return matrices, indeces, units
+    return matrices, indeces, units,use_meta
 
 
 def parse_pymrio(io, value_added, satellite_account):
