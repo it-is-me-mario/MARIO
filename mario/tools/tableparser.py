@@ -1076,6 +1076,10 @@ def eurostat_sut(
     }
 
     X = calc_X(Z, Y)
+
+    for matrix in [Z,V,E,EY,Y,X]:
+        matrix.replace(":",0,inplace=True)
+        
     matrices = {
         "baseline": {
             "Z": Z,
