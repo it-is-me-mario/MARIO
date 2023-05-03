@@ -96,6 +96,8 @@ txt_parser_id = {
 
 eora = {
     _MASTER_INDEX["s"]: ["Industries"],
+    _MASTER_INDEX["a"]: ["Industries"],
+    _MASTER_INDEX["c"]: ["Commodities"],
     _MASTER_INDEX["f"]: ["Primary Inputs", "ImportsFrom"],
     _MASTER_INDEX["n"]: ["Final Demand", "ExportsTo"],
 }
