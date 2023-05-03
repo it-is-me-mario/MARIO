@@ -480,24 +480,9 @@ def hybrid_sut_exiobase(
         **kwargs,
     )
 
-def parse_eurostat(
+def parse_eurostat_sut(
     supply_path,
     use_path,
-    region,
-    year,
-    consumption_categories=[
-        "Final consumption expediture",
-        "Gross Capital formation",
-        "Exports of goods and services",
-    ],
-    factors_of_production=[
-        "Compensation of employees",
-        "Other taxes less other subsidies on production",
-        "Consumption of fixed capital",
-        "Operating surplus and mixed income, net",
-        "Taxes less subsidies on products",
-    ],
-    imports=["Imports of goods and services"],
     model="Database",
     name=None,
     calc_all=False,
@@ -513,7 +498,7 @@ def parse_eurostat(
         * second rule: in each .xsl file, be sure data are referring to only one region
         * third rule: use only "total" as stock/flow parameter, and only one unit of measure
         * forth rule: supply must be provided in activity by commodity, use must be provided in commodity by activitiy formats
-        * fifth rule: only SUT table are supported
+
 
     Parameters
     ----------
@@ -521,22 +506,6 @@ def parse_eurostat(
         path to the .xls file containing the supply table
     use_path : str
         path to the .xls file containing the use table
-
-    region : str
-        name of the region: be consistent with the Eurostat names!
-
-    year : int
-        year to which the table is referring. Multiple years can be contained in the .xls files but one only can be parsed
-
-    consumption_categories : list, Optional
-        By default, a list of consumption categories that balance the tables according to the Eurostat criteria. The user can decide to modify them
-
-    factors_of_production : list, Optional
-        By default, a list of factors of production that balance the tables according to the Eurostat criteria. The user can decide to modify them
-
-    imports : list, Optional
-        By default, a list of imports that balance the tables according to the Eurostat criteria. The user can decide to modify them
-
     name : str, Optional
         for recording on the metadata
 
@@ -551,23 +520,17 @@ def parse_eurostat(
     if model not in models:
         raise WrongInput("Available models are {}".format([*models]))
 
-    table = "SUT"
-    if table == "SUT":
-        matrices, indeces, units = eurostat_sut(
+
+    matrices, indeces, units,meta = eurostat_sut(
             supply_path,
             use_path,
-            region,
-            year,
-            consumption_categories,
-            factors_of_production,
-            imports,
         )
 
     return models[model](
         name=name,
-        table=table,
+        table="SUT",
         source="eurostat",
-        year=year,
+        year=meta["year"],
         init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
         calc_all=calc_all,
         **kwargs,

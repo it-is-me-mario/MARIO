@@ -328,4 +328,29 @@ def to_single_index(df):
 
     return df
 
-# %%
+def extract_metadata_from_eurostat(file):
+    """extracts some info such as country,table_info, and the year of the data from an xlsx
+
+    Parameters
+    ----------
+    file : pd.ExcelFile
+        contains the Sheet 1 information
+
+    Return
+    -------
+    dict
+        metadata with country,table_type, and year info
+    """
+    meta_info = {
+        "year": (7,2,int),
+        "country": (6,2,str),
+        "table": (0,1,str),
+        "unit": (4,2,str)
+    }
+
+    initial_data = file.parse(sheet_name="Sheet 1")
+    metadata = {}
+    for item,info in meta_info.items():
+        metadata[item] = info[2](initial_data.iloc[info[0],info[1]])
+
+    return metadata
