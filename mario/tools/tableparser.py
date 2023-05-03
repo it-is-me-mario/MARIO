@@ -674,8 +674,7 @@ def monetary_sut_exiobase(path):
 
     return matrices, indeces, units
 
-
-def eora_single_region(path, name_convention="full_name", aggregate_trade=True):
+def eora_single_region(path, table, name_convention="full_name", aggregate_trade=True):
     """
     Eora single region parser
     """
@@ -684,13 +683,19 @@ def eora_single_region(path, name_convention="full_name", aggregate_trade=True):
 
     data = pd.read_csv(path, sep="\t", index_col=[2, 0, 1, 3], header=[2, 0, 1, 3])
 
-    Z = data.loc[eora[_MASTER_INDEX["s"]], eora[_MASTER_INDEX["s"]]]
-    Y = data.loc[eora[_MASTER_INDEX["s"]], eora[_MASTER_INDEX["n"]]]
-    V = data.loc[eora[_MASTER_INDEX["f"]], eora[_MASTER_INDEX["s"]]]
+    if table == 'IOT': 
+        Z_index = eora[_MASTER_INDEX["s"]]
 
-    take_E = data.drop(eora[_MASTER_INDEX["s"]] + eora[_MASTER_INDEX["f"]])
+    elif table == 'SUT':
+        Z_index = eora[_MASTER_INDEX["a"]] + eora[_MASTER_INDEX["c"]]
 
-    E = take_E[eora[_MASTER_INDEX["s"]]]
+    Z = data.loc[Z_index, Z_index]
+    Y = data.loc[Z_index, eora[_MASTER_INDEX["n"]]]
+    V = data.loc[eora[_MASTER_INDEX["f"]], Z_index]
+
+    take_E = data.drop(Z_index + eora[_MASTER_INDEX["f"]])
+
+    E = take_E[Z_index]
     EY = take_E[eora[_MASTER_INDEX["n"]]].fillna(0)
 
     # taking the indeces
@@ -700,7 +705,12 @@ def eora_single_region(path, name_convention="full_name", aggregate_trade=True):
         E.index.get_level_values(3).tolist()[index] + " (" + value + ")"
         for index, value in enumerate(E.index.get_level_values(2).tolist())
     ]
-    sectors = Z.index.get_level_values(-1).tolist()
+    
+    if table == 'IOT':
+        sectors = Z.index.get_level_values(-1).tolist()
+    else:
+        activities = Z.loc[eora[_MASTER_INDEX["a"]]].index.get_level_values(-1).tolist()
+        commodities = Z.loc[eora[_MASTER_INDEX["c"]]].index.get_level_values(-1).tolist()
 
     if aggregate_trade:
 
@@ -730,17 +740,27 @@ def eora_single_region(path, name_convention="full_name", aggregate_trade=True):
         final_consumptions.extend(exports_to)
 
     # Taking the units
-    sectors_unit = pd.DataFrame("USD", index=sectors, columns=["unit"])
+
+    if table == 'IOT':
+        sectors_unit = pd.DataFrame("USD", index=sectors, columns=["unit"])
+        Z_index = pd.MultiIndex.from_product([regions, [_MASTER_INDEX["s"]], sectors])
+
+    else:
+        activities_unit = pd.DataFrame("USD", index=activities, columns=["unit"])
+        commodities_unit = pd.DataFrame("USD", index=commodities, columns=["unit"])
+        Z_index_a = pd.MultiIndex.from_product([regions, [_MASTER_INDEX["a"]], activities])
+        Z_index_c = pd.MultiIndex.from_product([regions, [_MASTER_INDEX["c"]], commodities])
+        Z_index = Z_index_a.append(Z_index_c)
+
+   
     factor_unit = pd.DataFrame("USD", index=factors, columns=["unit"])
 
     satellite_unit = pd.DataFrame(
         E.index.get_level_values(0).tolist(), index=satellite, columns=["unit"]
     )
 
-    Z_index = pd.MultiIndex.from_product([regions, [_MASTER_INDEX["s"]], sectors])
-    Y_index = pd.MultiIndex.from_product(
-        [regions, [_MASTER_INDEX["s"]], final_consumptions]
-    )
+    
+    Y_index = pd.MultiIndex.from_product([regions, [_MASTER_INDEX['n']], final_consumptions])
 
     indeces = {
         "Y": {"columns": Y_index, "index": Z_index},
@@ -751,6 +771,7 @@ def eora_single_region(path, name_convention="full_name", aggregate_trade=True):
     }
 
     for matrix, value in indeces.items():
+        print(matrix)
         for level, ind in value.items():
             exec(f"{matrix}.{level} = ind")
 
@@ -760,18 +781,36 @@ def eora_single_region(path, name_convention="full_name", aggregate_trade=True):
 
     rename_index(matrices["baseline"])
 
-    indeces = {
+
+
+    if table =='IOT':
+        units = {
+            _MASTER_INDEX["s"]: sectors_unit,
+            _MASTER_INDEX["f"]: factor_unit,
+            _MASTER_INDEX["k"]: satellite_unit,
+        }    
+        indeces = {
         "r": {"main": regions},
         "n": {"main": final_consumptions},
         "k": {"main": satellite},
         "f": {"main": factors},
         "s": {"main": sectors},
     }
-
-    units = {
-        _MASTER_INDEX["s"]: sectors_unit,
+    else:
+        
+        units = {
+        _MASTER_INDEX["a"]: activities_unit,
+        _MASTER_INDEX["c"]: commodities_unit,
         _MASTER_INDEX["f"]: factor_unit,
         _MASTER_INDEX["k"]: satellite_unit,
+    }
+        indeces = {
+        "r": {"main": regions},
+        "n": {"main": final_consumptions},
+        "k": {"main": satellite},
+        "f": {"main": factors},
+        "a": {"main": activities},
+        "c": {"main": commodities},
     }
 
     return matrices, indeces, units
