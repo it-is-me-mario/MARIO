@@ -268,6 +268,7 @@ def parse_exiobase_3(
 def parse_eora(
     path,
     multi_region,
+    table,
     indeces=None,
     name_convention="full_name",
     aggregate_trade=True,
@@ -327,6 +328,9 @@ def parse_eora(
                 "For multi region Eora, the year and indeces path should be defined"
             )
 
+        if table == 'SUT':
+            raise NotImplemented("No handling of multiregional SUT from EORA is implemented yet")
+
         matrices, indeces, units = eora_multi_region(
             data_path=path, index_path=indeces, year=year, price="bp"
         )
@@ -339,12 +343,14 @@ def parse_eora(
 
     else:
         matrices, indeces, units = eora_single_region(
-            path=path, name_convention=name_convention, aggregate_trade=aggregate_trade
+            path=path, table=table, name_convention=name_convention, aggregate_trade=aggregate_trade
         )
+
+        
 
     return models[model](
         name=name,
-        table="IOT",
+        table=table,
         year=year,
         source="Eora website @ https://www.worldmrio.com/",
         init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
