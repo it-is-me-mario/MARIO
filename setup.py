@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from setuptools import find_packages, setup
-
+exec(open("mario/version.py").read())
 setup(
     name="mariopy",
     description=(
@@ -12,9 +12,9 @@ setup(
     url="https://github.com/SESAM-Polimi/MARIO",
     author="Mohammad Amin Tahavori, Lorenzo Rinaldi, Nicolo Golinucci",
     author_email="mohammadamin.tahavori@polimi.it",
-    version='0.1.0',
+    version=__version__,
     packages=find_packages(),
-    license="Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)",
+    license="GNU General Public License v3.0",
     python_requires=">.3.7.0",
     package_data={"": ["*.txt", "*.dat", "*.doc", "*.rst","*.xlsx"]},
     install_requires=[
