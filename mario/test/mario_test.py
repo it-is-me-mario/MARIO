@@ -50,7 +50,7 @@ s
     """
 
     return parse_from_excel(
-        path=f"{path}/{table}.xlsx", table=table, name=f"{table} test"
+        path=f"{path}/{table}.xlsx", table=table, name=f"{table} test",mode = "flows"
     )
 
 def load_dummy(test):

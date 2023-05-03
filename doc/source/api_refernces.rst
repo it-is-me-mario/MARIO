@@ -96,8 +96,7 @@ Structured Databases
 ------------------------
 mario supports automatic parsing of following database:
 
-* Exiobase3
-* Exiobase Monetary Supply and Use
+* Exiobase
 * Eurostat Supply and Use
 * Eora26
 * Eora single region
@@ -107,15 +106,18 @@ mario supports automatic parsing of following database:
 
     mario.parse_exiobase_3
     mario.parse_exiobase_sut
-    mario.parse_eurostat
+    mario.parse_eurostat_sut
     mario.parse_eora
     mario.parse_from_pymrio
+    mario.parse
+    mario.hybrid_sut_exiobase
+    mario.parse_exiobase
 
 Non-Structured Databases
 ------------------------
 When databases are not structured (coming from abovementioned sources),
 excel or text parsers can be used. The databases in this case, should follow
-specific rules (examples........)
+specific rules:
 
 .. autosummary::
     :toctree: api_document/

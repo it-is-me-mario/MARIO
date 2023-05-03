@@ -103,7 +103,7 @@ def _plot_linkages(
         ] = f"Sectors classification according to {plot} Backward and Forward linkages"
         layout[
             "legend_title_text"
-        ] = "Regions<br><i>Local contribution is luminous<br>Foreign contribution is opaque"
+        ] = "Regions<br><i>Foreign (light) over Total (opaque)"
 
         geo_types = ["Local", "Foreign"]
 
@@ -156,6 +156,10 @@ def _plot_linkages(
                         )
 
                         legends.add(region)
+
+                    # Show in hover text for each trace the region, value
+                    fig.update_traces(
+                        hovertemplate="%{y}<br>%{x:.4f}")
 
             # geo_type * links_type * regions
             counter.append(2 * 2 * len(data.index.unique(level=0)))

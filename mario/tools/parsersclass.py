@@ -13,6 +13,7 @@ from mario.tools.tableparser import (
     eora_multi_region,
     eurostat_sut,
     parse_pymrio,
+    hybrid_sut_exiobase_reader
 )
 
 from mario.log_exc.exceptions import WrongInput, LackOfInput
@@ -23,7 +24,7 @@ models = {"Database": Database}
 def parse_from_txt(
     path,
     table,
-    mode="flows",
+    mode,
     calc_all=False,
     year=None,
     name=None,
@@ -88,7 +89,7 @@ def parse_from_txt(
 def parse_from_excel(
     path,
     table,
-    mode="flows",
+    mode,
     data_sheet=0,
     unit_sheet="units",
     calc_all=False,
@@ -351,25 +352,137 @@ def parse_eora(
         **kwargs,
     )
 
+def parse_exiobase(
+    table,
+    unit,
+    path,
+    model = "Database",
+    name = None,
+    year = None,
+    calc_all = False,
+    **kwargs 
+):
+    """A unique function for parsing all exiobase databases
 
-def parse_eurostat(
+    Parameters
+    ----------
+    table : str
+        acceptable values are "IOT" or "SUT"
+    unit : str
+        Acceptable values are "Hybrid" or "Monetary"
+    path : str
+        path to folder/file of the database (varies by the type of database)
+    calc_all : boolean
+        if True, by default will calculate z,v,e after parsing
+    year : int, Optional
+        optional to the Database (just for recoding the metadata)
+    name : str, Optional
+        optional but suggested. is useful for visualization and metadata.
+    **kwargs: dict
+        all the specific configuation of single exiobase parsers (please refer to the separat function documentations for more information)
+
+    Returns
+    -------
+    mario.Database
+        returns a mario.Database according to the type of exiobase database specified
+
+    Raises
+    ------
+    WrongInput
+        if non-valid values are passed to the arguments. 
+    """
+    
+    if table not in ["IOT","SUT"]:
+        raise WrongInput("table only accpets 'IOT' or 'SUT'.")
+    
+    if unit not in ["Hybrid","Monetary"]:
+        raise WrongInput("unit only accpets 'Hybrid' or 'Monetary.'")
+    
+    if table == "IOT":
+        if unit == "Monetary":
+            parser = parse_exiobase_3
+
+        else: 
+            raise WrongInput("Hybrid IOT exiobase is not supported by mario.")
+        
+    else:
+        if unit == "Monetary":
+            parser = parse_exiobase_sut
+
+        else:
+            parser = hybrid_sut_exiobase
+    
+    kwargs["path"] = path
+    kwargs["model"] = model
+    kwargs["name"] = name
+    kwargs["calc_all"] = calc_all
+    kwargs["year"] = year
+
+    return parser(**kwargs)
+    
+    
+    
+def hybrid_sut_exiobase(
+    path,
+    extensions = [],
+    model = "Database",
+    name=None,
+    calc_all=False,
+    **kwargs
+):
+    """reads hybrid supply and use exiobase
+
+    Parameters
+    ----------
+    folder_path : str
+        the directory of the folder which contains the following files: [MR_HSUP_2011_v3_3_18.csv,MR_HSUTs_2011_v3_3_18_FD.csv,MR_HUSE_2011_v3_3_18.csv,MR_HSUTs_2011_v3_3_18_extensions.xlsx]
+    extensions : list, optional
+        the list of extensions that user intend to read, by default []
+    model : str, optional
+        type of model accepted in mario, by default "Database"
+    name : str, optional
+        a name for the database, by default None
+    calc_all : bool, optional
+        if True, will calculate all the missing matrices, by default False
+
+    Returns
+    -------
+    mario model
+        returns the mario model chosen
+
+    .. note:: 
+    1. The name of extensions are changed to avoid confusion of same satellite account category for different extensions. For example 'Food' in 'pack_use_waste_act' is changed to 'Food (pack_use_waste)' to avoid confusion with 'Food' in 'pack_sup_waste'.
+    2. The hybrid version of EXIOBASE, which is part of wider input-output database , is a multi-regional supply and use table. Here the term hybrid indicates that physical flows are accounted in mass units, energy flows in TJ and services in millions of euro (current prices).
+    EXIOBASE 3 provides a time series of environmentally extended multi-regional input‐output (EE MRIO) tables ranging from 1995 to a recent year for 44 countries (28 EU member plus 16 major economies) and five rest of the world regions. EXIOBASE 3 builds upon the previous versions of EXIOBASE by using rectangular supply‐use tables (SUT) in a 163 industry by 200 products classification as the main building blocks. The tables are provided in current, basic prices (Million EUR).
+    EXIOBASE 3 is the culmination of work in the FP7 DESIRE project and builds upon earlier work on EXIOBASE 2 in the FP7 CREEA project, EXIOBASE 1 of the FP6 EXIOPOL project and FORWAST project. 
+    A special issue of Journal of Industrial Ecology (Volume 22, Issue 3) describes the build process and some use cases of EXIOBASE 3. ("Merciai, Stefano, & Schmidt, Jannick. (2021). EXIOBASE HYBRID v3 - 2011 (3.3.18) [Data set]. Zenodo.)
+
+    For more informatio refer to https://zenodo.org/record/7244919#.Y6hEfi8w2L1
+    """
+    if model not in models:
+        raise WrongInput("Available models are {}".format([*models]))   
+
+    matrices,indeces,units = hybrid_sut_exiobase_reader(
+        path = path,
+        extensions = extensions,
+    )
+
+    notes = ["The name of extensions are changed to avoid confusion of same satellite account category for different extensions. For example 'Food' in 'pack_use_waste_act' is changed to 'Food (pack_use_waste)' to avoid confusion with 'Food' in 'pack_sup_waste'"]
+
+    return models[model](
+        name=name,
+        table="SUT",
+        source="Merciai, Stefano, & Schmidt, Jannick. (2021). EXIOBASE HYBRID v3 - 2011 (3.3.18) [Data set]. Zenodo. https://doi.org/10.5281/zenodo.7244919",
+        year=2011,
+        init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
+        calc_all=calc_all,
+        notes = notes,
+        **kwargs,
+    )
+
+def parse_eurostat_sut(
     supply_path,
     use_path,
-    region,
-    year,
-    consumption_categories=[
-        "Final consumption expediture",
-        "Gross Capital formation",
-        "Exports of goods and services",
-    ],
-    factors_of_production=[
-        "Compensation of employees",
-        "Other taxes less other subsidies on production",
-        "Consumption of fixed capital",
-        "Operating surplus and mixed income, net",
-        "Taxes less subsidies on products",
-    ],
-    imports=["Imports of goods and services"],
     model="Database",
     name=None,
     calc_all=False,
@@ -385,7 +498,7 @@ def parse_eurostat(
         * second rule: in each .xsl file, be sure data are referring to only one region
         * third rule: use only "total" as stock/flow parameter, and only one unit of measure
         * forth rule: supply must be provided in activity by commodity, use must be provided in commodity by activitiy formats
-        * fifth rule: only SUT table are supported
+
 
     Parameters
     ----------
@@ -393,22 +506,6 @@ def parse_eurostat(
         path to the .xls file containing the supply table
     use_path : str
         path to the .xls file containing the use table
-
-    region : str
-        name of the region: be consistent with the Eurostat names!
-
-    year : int
-        year to which the table is referring. Multiple years can be contained in the .xls files but one only can be parsed
-
-    consumption_categories : list, Optional
-        By default, a list of consumption categories that balance the tables according to the Eurostat criteria. The user can decide to modify them
-
-    factors_of_production : list, Optional
-        By default, a list of factors of production that balance the tables according to the Eurostat criteria. The user can decide to modify them
-
-    imports : list, Optional
-        By default, a list of imports that balance the tables according to the Eurostat criteria. The user can decide to modify them
-
     name : str, Optional
         for recording on the metadata
 
@@ -423,23 +520,17 @@ def parse_eurostat(
     if model not in models:
         raise WrongInput("Available models are {}".format([*models]))
 
-    table = "SUT"
-    if table == "SUT":
-        matrices, indeces, units = eurostat_sut(
+
+    matrices, indeces, units,meta = eurostat_sut(
             supply_path,
             use_path,
-            region,
-            year,
-            consumption_categories,
-            factors_of_production,
-            imports,
         )
 
     return models[model](
         name=name,
-        table=table,
+        table="SUT",
         source="eurostat",
-        year=year,
+        year=meta["year"],
         init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
         calc_all=calc_all,
         **kwargs,

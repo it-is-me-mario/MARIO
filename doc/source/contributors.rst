@@ -2,7 +2,7 @@
 Contributors
 =============
 
-**mario** has been developed within `SESAM group <http://sesam.polimi.it/>`_ in the Department of Energy at Politecnico di Milano under the scientific coordination of `Emanuela Colombo <https://www4.ceda.polimi.it/manifesti/manifesti/controller/ricerche/RicercaPerDocentiPublic.do?EVN_DIDATTICA=evento&k_doc=44891&lang=EN&aa=2014&tab_ricerca=1>`_ and `Matteo Vincenzo Rocco <https://www4.ceda.polimi.it/manifesti/manifesti/controller/ricerche/RicercaPerDocentiPublic.do?EVN_PRODOTTI=evento&k_doc=261181&lang=EN&aa=2021&tab_ricerca=1>`_.
+**mario** has been initally developed within `SESAM group <http://sesam.polimi.it/>`_ in the Department of Energy at Politecnico di Milano under the scientific coordination of `Emanuela Colombo <https://www4.ceda.polimi.it/manifesti/manifesti/controller/ricerche/RicercaPerDocentiPublic.do?EVN_DIDATTICA=evento&k_doc=44891&lang=EN&aa=2014&tab_ricerca=1>`_ and `Matteo Vincenzo Rocco <https://www4.ceda.polimi.it/manifesti/manifesti/controller/ricerche/RicercaPerDocentiPublic.do?EVN_PRODOTTI=evento&k_doc=261181&lang=EN&aa=2021&tab_ricerca=1>`_.
 The research activity of SESAM focuses on the use of mathematical models for the study of systems and components in the energy field and 
 industrial ecology.
 
