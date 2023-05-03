@@ -12,9 +12,6 @@
 .. image:: https://img.shields.io/pypi/v/mariopy
     :target: https://pypi.org/project/mariopy/
     
-.. image:: https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png
-    :target: https://creativecommons.org/licenses/by-nc-sa/4.0/ 
-    
 .. image:: https://raw.githubusercontent.com/SESAM-Polimi/MARIO/767d2c0e9e42ae0b6acf7c3a1cc379d7bcd367fa/doc/source/_static/images/polimi.svg
    :width: 200
    :align: right
@@ -188,9 +185,9 @@ Some of the key packages the mario relies on are:
 License
 -------
 
-.. image:: https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png
-    :target: https://creativecommons.org/licenses/by-nc-sa/4.0/
+.. image:: https://www.gnu.org/graphics/gplv3-or-later.png
+    :target: https://www.gnu.org/licenses/gpl-3.0.en.html
 
 
-This work is licensed under a `Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0) <https://creativecommons.org/licenses/by-nc-sa/4.0/>`_
+This work is licensed under a `GNU GENERAL PUBLIC LICENSE <https://www.gnu.org/licenses/gpl-3.0.en.html>`_
 

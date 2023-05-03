@@ -39,7 +39,7 @@ Package dependencies:
 
 :Authors: Mohammad Amin Tahavori, Lorenzo Rinaldi, Nicolò Golinucci
 
-:license:
+:license: GNU General Public License v3.0
 
 """
 
