@@ -9,7 +9,7 @@ setup(
         ",visualization and scenario analysis"
     ),
     long_description = open("README.rst",encoding="utf8").read(),,
-    https://github.com/it-is-me-mario/MARIO,
+    url="https://github.com/it-is-me-mario/MARIO",
     author="Mohammad Amin Tahavori, Lorenzo Rinaldi, Nicolo Golinucci",
     author_email="mohammadamin.tahavori@polimi.it",
     version=__version__,
