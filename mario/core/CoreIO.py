@@ -15,7 +15,6 @@ from mario.core.mariometadata import MARIOMetaData
 from mario.tools.tableparser import dataframe_parser
 
 
-
 from mario.tools.iomath import (
     calc_X,
     calc_Z,
@@ -152,7 +151,6 @@ class CoreModel:
                 self.meta._add_attribute(table=table, price=price)
 
                 log_time(logger, "Metadata: initialized by dataframes.")
-
 
         # Adding notes if passed by user or the parsers
         if kwargs.get("notes"):
@@ -314,9 +312,7 @@ class CoreModel:
             self.matrices[scenario][matrix] = value
 
     def clone_scenario(
-        self,
-        scenario,
-        name,
+        self, scenario, name,
     ):
         """Creates a new scenario by cloning an existing scenario
 
@@ -451,11 +447,7 @@ class CoreModel:
         return copy.deepcopy(self._indeces[_LEVELS[self.table_type][index]][level])
 
     def is_balanced(
-        self,
-        method,
-        data_set="baseline",
-        margin=0.05,
-        as_dataframe=False,
+        self, method, data_set="baseline", margin=0.05, as_dataframe=False,
     ):
 
         """Checks if a specific data_set in the database is balance or not
@@ -739,11 +731,7 @@ class CoreModel:
         return self.__str__()
 
     def GDP(
-        self,
-        exclude=[],
-        scenario="baseline",
-        total=True,
-        share=False,
+        self, exclude=[], scenario="baseline", total=True, share=False,
     ):
 
         """Return the value of the GDP based scenario.
@@ -805,22 +793,16 @@ class CoreModel:
         )
 
         if total:
-            return GDP.groupby(
-                level=0,
-                sort=False,
-            ).sum()
+            return GDP.groupby(level=0, sort=False,).sum()
 
         if share:
-            region_gdp = GDP.groupby(
-                level=0,
-                sort=False,
-            ).sum()
+            region_gdp = GDP.groupby(level=0, sort=False,).sum()
             share = GDP.div(region_gdp) * 100
             GDP["Share of sector by region"] = share["GDP"]
 
         return GDP
 
-    def search(self, item, search,ignore_case=True):
+    def search(self, item, search, ignore_case=True):
         """Searches for specific keywords in a given item
 
         Parameters
@@ -846,7 +828,7 @@ class CoreModel:
         items = self.get_index(item)
 
         if ignore_case:
-            r = re.compile(f".*{search}",re.IGNORECASE)
+            r = re.compile(f".*{search}", re.IGNORECASE)
         else:
             r = re.compile(f".*{search}")
 
@@ -1004,7 +986,6 @@ class CoreModel:
 
         return self.matrices[key]
 
-
     def __iter__(self):
         self.__it__ = self.scenarios
         return self
@@ -1042,7 +1023,7 @@ class CoreModel:
     def __setstate__(self, value):
         self.__dict__ = value
 
-    def __eq__(self,other):
+    def __eq__(self, other):
         """ Checks the equality if two databases
         """
         main_sets = sorted(self.sets)
@@ -1060,8 +1041,6 @@ class CoreModel:
 
         return True
 
-
-     
     def backup(self):
 
         """The function creates a backup of the last configuration of database

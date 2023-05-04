@@ -304,7 +304,6 @@ class Database(CoreModel):
         self._indeces = indeces
         self.units = units
 
-
         self.meta.table = "IOT"
         self.meta._add_history(
             "Transformation of the database from SUT to IOT via method {}".format(
@@ -419,7 +418,6 @@ class Database(CoreModel):
                 raise WrongInput(
                     f"Following item are not acceptable for level {level} \n {difference}"
                 )
-
 
             index.columns = ["Aggregation"]
 
@@ -669,7 +667,14 @@ class Database(CoreModel):
         if not inplace:
             new = self.copy()
             new.add_extensions(
-                io=io, matrix=matrix, backup=backup, inplace=True, units=units,calc_all=calc_all,notes=notes,EY=EY
+                io=io,
+                matrix=matrix,
+                backup=backup,
+                inplace=True,
+                units=units,
+                calc_all=calc_all,
+                notes=notes,
+                EY=EY,
             )
 
             return new
@@ -760,7 +765,7 @@ class Database(CoreModel):
 
         units = info["units"]
         del info["units"]
-        
+
         matrices = {"baseline": {**info}}
 
         for scenario in self.scenarios:
@@ -957,8 +962,6 @@ class Database(CoreModel):
             "Transformation: The Final Demand emissions are considered only for 'Local Final Demand.'"
         )
 
-
-
     def calc_linkages(
         self, scenario="baseline", normalized=True, cut_diag=True, multi_mode=True,
     ):
@@ -1115,7 +1118,7 @@ class Database(CoreModel):
         coefficients=False,
         units=True,
         scenario="baseline",
-        include_meta = False
+        include_meta=False,
     ):
 
         """Saves the database into an Excel file
@@ -1164,7 +1167,6 @@ class Database(CoreModel):
                 )
             )
 
-        
         database_excel(
             self,
             flows,
@@ -1175,8 +1177,8 @@ class Database(CoreModel):
         )
         if include_meta:
             meta = self.meta._to_dict()
-            with open(self._getdir(path, "Database", "")+"/metadata.json","w") as fp:
-                json.dump(meta,fp)
+            with open(self._getdir(path, "Database", "") + "/metadata.json", "w") as fp:
+                json.dump(meta, fp)
 
     def to_txt(
         self,
@@ -1186,7 +1188,7 @@ class Database(CoreModel):
         units=True,
         scenario="baseline",
         _format="txt",
-        include_meta = False
+        include_meta=False,
     ):
 
         """Saves the database multiple text file based on given inputs
@@ -1242,8 +1244,8 @@ class Database(CoreModel):
 
         if include_meta:
             meta = self.meta._to_dict()
-            with open(self._getdir(path, "Database", "")+"/metadata.json","w") as fp:
-                json.dump(meta,fp)
+            with open(self._getdir(path, "Database", "") + "/metadata.json", "w") as fp:
+                json.dump(meta, fp)
 
     def to_pymrio(
         self,
@@ -1507,11 +1509,7 @@ class Database(CoreModel):
                 self.meta._add_history(f"User note: {note}")
 
     def query(
-            self,
-            matrices,
-            scenarios = ["baseline"],
-            base_scenario = None,
-            type="absolute",
+        self, matrices, scenarios=["baseline"], base_scenario=None, type="absolute",
     ):
         """ Requests a specific data from the database
 
@@ -1577,30 +1575,29 @@ class Database(CoreModel):
             indeces=False,
             format="dict",
             scenarios=scenarios,
-            base_scenario = base_scenario,
-            type = type
+            base_scenario=base_scenario,
+            type=type,
         )
 
-        
         if len(matrices) == 1:
             for scenario in scenarios:
-                data[scenario]= data[scenario][matrices[0]]
+                data[scenario] = data[scenario][matrices[0]]
 
         if len(scenarios) == 1:
             data = data[scenarios[0]]
 
         return data
-    
+
     def get_data(
         self,
         matrices,
-        units= True,
-        indeces= True,
-        auto_calc= True,
-        format= "object",
-        scenarios= ["baseline"],
-        base_scenario= None,
-        type= "absolute",
+        units=True,
+        indeces=True,
+        auto_calc=True,
+        format="object",
+        scenarios=["baseline"],
+        base_scenario=None,
+        type="absolute",
     ):
 
         """Returns specific data and calculating them or the changes for scenarios in a database
@@ -1882,9 +1879,7 @@ class Database(CoreModel):
             raise WrongInput("baseline scenario can not be overwritten.")
 
         check_clusters(
-            index_dict = self.get_index('all'),
-            table = self.table_type,
-            clusters = clusters
+            index_dict=self.get_index("all"), table=self.table_type, clusters=clusters
         )
 
         # have the test for the existence of the database
@@ -1944,9 +1939,7 @@ class Database(CoreModel):
         """
 
         check_clusters(
-            index_dict = self.get_index('all'),
-            table = self.table_type,
-            clusters = clusters
+            index_dict=self.get_index("all"), table=self.table_type, clusters=clusters
         )
 
         _sh_excel(self, num_shock, self._getdir(path, "Excels", "shock.xlsx"), clusters)
@@ -2090,7 +2083,7 @@ class Database(CoreModel):
         extension_value="relative",
         auto_open=True,
         drop_reg=None,
-        title=None
+        title=None,
     ):
 
         """Plots sectoral GDP with additional info
@@ -2124,7 +2117,12 @@ class Database(CoreModel):
         """
 
         plots = ["treemap", "sunburst"]
-        extension_values = ["relative", "absolute","specific footprint","absolute footprint"]
+        extension_values = [
+            "relative",
+            "absolute",
+            "specific footprint",
+            "absolute footprint",
+        ]
 
         if plot not in plots:
             raise WrongInput(f"Acceptable plots are {plots}")
@@ -2148,15 +2146,15 @@ class Database(CoreModel):
             if extension_value == "relative":
                 matrix = "e"
                 color = "{} [{}]/ Production"
-            
+
             elif extension_value == "specific footprint":
                 matrix = "f"
                 color = "{} [{}]/ Production"
-            
+
             elif extension_value == "absolute footprint":
                 matrix = "F"
                 color = "{} [{}]"
-            
+
             else:
                 matrix = "E"
                 color = "{} [{}]"
@@ -2191,9 +2189,9 @@ class Database(CoreModel):
         values = "GDP"
 
         if drop_reg == None:
-            data_frame=data_frame
+            data_frame = data_frame
         else:
-            data_frame=data_frame.loc[data_frame.Region!=drop_reg]
+            data_frame = data_frame.loc[data_frame.Region != drop_reg]
 
         fig = getattr(px, plot)(
             data_frame=data_frame,
@@ -2201,7 +2199,7 @@ class Database(CoreModel):
             values=values,
             color=color,
             color_continuous_scale=px.colors.diverging.RdBu[::-1],
-            title=title
+            title=title,
         )
 
         path = r"{}".format(self._getdir(path, "Plots", f"GDP_{scenario}_{plot}.html"))

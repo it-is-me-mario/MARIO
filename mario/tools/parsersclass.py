@@ -13,7 +13,7 @@ from mario.tools.tableparser import (
     eora_multi_region,
     eurostat_sut,
     parse_pymrio,
-    hybrid_sut_exiobase_reader
+    hybrid_sut_exiobase_reader,
 )
 
 from mario.log_exc.exceptions import WrongInput, LackOfInput
@@ -328,8 +328,10 @@ def parse_eora(
                 "For multi region Eora, the year and indeces path should be defined"
             )
 
-        if table == 'SUT':
-            raise NotImplemented("No handling of multiregional SUT from EORA is implemented yet")
+        if table == "SUT":
+            raise NotImplemented(
+                "No handling of multiregional SUT from EORA is implemented yet"
+            )
 
         matrices, indeces, units = eora_multi_region(
             data_path=path, index_path=indeces, year=year, price="bp"
@@ -343,10 +345,11 @@ def parse_eora(
 
     else:
         matrices, indeces, units = eora_single_region(
-            path=path, table=table, name_convention=name_convention, aggregate_trade=aggregate_trade
+            path=path,
+            table=table,
+            name_convention=name_convention,
+            aggregate_trade=aggregate_trade,
         )
-
-        
 
     return models[model](
         name=name,
@@ -358,15 +361,9 @@ def parse_eora(
         **kwargs,
     )
 
+
 def parse_exiobase(
-    table,
-    unit,
-    path,
-    model = "Database",
-    name = None,
-    year = None,
-    calc_all = False,
-    **kwargs 
+    table, unit, path, model="Database", name=None, year=None, calc_all=False, **kwargs
 ):
     """A unique function for parsing all exiobase databases
 
@@ -397,27 +394,27 @@ def parse_exiobase(
     WrongInput
         if non-valid values are passed to the arguments. 
     """
-    
-    if table not in ["IOT","SUT"]:
+
+    if table not in ["IOT", "SUT"]:
         raise WrongInput("table only accpets 'IOT' or 'SUT'.")
-    
-    if unit not in ["Hybrid","Monetary"]:
+
+    if unit not in ["Hybrid", "Monetary"]:
         raise WrongInput("unit only accpets 'Hybrid' or 'Monetary.'")
-    
+
     if table == "IOT":
         if unit == "Monetary":
             parser = parse_exiobase_3
 
-        else: 
+        else:
             raise WrongInput("Hybrid IOT exiobase is not supported by mario.")
-        
+
     else:
         if unit == "Monetary":
             parser = parse_exiobase_sut
 
         else:
             parser = hybrid_sut_exiobase
-    
+
     kwargs["path"] = path
     kwargs["model"] = model
     kwargs["name"] = name
@@ -425,16 +422,10 @@ def parse_exiobase(
     kwargs["year"] = year
 
     return parser(**kwargs)
-    
-    
-    
+
+
 def hybrid_sut_exiobase(
-    path,
-    extensions = [],
-    model = "Database",
-    name=None,
-    calc_all=False,
-    **kwargs
+    path, extensions=[], model="Database", name=None, calc_all=False, **kwargs
 ):
     """reads hybrid supply and use exiobase
 
@@ -466,14 +457,15 @@ def hybrid_sut_exiobase(
     For more informatio refer to https://zenodo.org/record/7244919#.Y6hEfi8w2L1
     """
     if model not in models:
-        raise WrongInput("Available models are {}".format([*models]))   
+        raise WrongInput("Available models are {}".format([*models]))
 
-    matrices,indeces,units = hybrid_sut_exiobase_reader(
-        path = path,
-        extensions = extensions,
+    matrices, indeces, units = hybrid_sut_exiobase_reader(
+        path=path, extensions=extensions,
     )
 
-    notes = ["The name of extensions are changed to avoid confusion of same satellite account category for different extensions. For example 'Food' in 'pack_use_waste_act' is changed to 'Food (pack_use_waste)' to avoid confusion with 'Food' in 'pack_sup_waste'"]
+    notes = [
+        "The name of extensions are changed to avoid confusion of same satellite account category for different extensions. For example 'Food' in 'pack_use_waste_act' is changed to 'Food (pack_use_waste)' to avoid confusion with 'Food' in 'pack_sup_waste'"
+    ]
 
     return models[model](
         name=name,
@@ -482,17 +474,13 @@ def hybrid_sut_exiobase(
         year=2011,
         init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
         calc_all=calc_all,
-        notes = notes,
+        notes=notes,
         **kwargs,
     )
 
+
 def parse_eurostat_sut(
-    supply_path,
-    use_path,
-    model="Database",
-    name=None,
-    calc_all=False,
-    **kwargs,
+    supply_path, use_path, model="Database", name=None, calc_all=False, **kwargs,
 ) -> object:
 
     """Parsing Eurostat databases
@@ -526,11 +514,7 @@ def parse_eurostat_sut(
     if model not in models:
         raise WrongInput("Available models are {}".format([*models]))
 
-
-    matrices, indeces, units,meta = eurostat_sut(
-            supply_path,
-            use_path,
-        )
+    matrices, indeces, units, meta = eurostat_sut(supply_path, use_path,)
 
     return models[model](
         name=name,
@@ -543,12 +527,7 @@ def parse_eurostat_sut(
     )
 
 
-def parse_from_pymrio(
-    io,
-    value_added,
-    satellite_account,
-    include_meta=True
-    ):
+def parse_from_pymrio(io, value_added, satellite_account, include_meta=True):
     """Parsing a pymrio database
 
     Parameters
@@ -571,8 +550,6 @@ def parse_from_pymrio(
        mario.Database
     """
 
-
-
     matrices, units, indeces = parse_pymrio(io, value_added, satellite_account)
 
     notes = [
@@ -587,4 +564,3 @@ def parse_from_pymrio(
         init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
         notes=notes,
     )
-

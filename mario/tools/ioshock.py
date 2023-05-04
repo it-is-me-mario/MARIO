@@ -132,12 +132,11 @@ def Y_shock(instance, path, boolean, clusters, to_baseline):
                 Y.loc[
                     (row_region_, row_level_, row_sector_),
                     (column_region_, _MASTER_INDEX["n"], demand_category_),
-                ] = (
-                    Y.loc[
-                        (row_region_, row_level_, row_sector_),
-                        (column_region_, _MASTER_INDEX["n"], demand_category_),
-                    ]
-                    * (1 + value[shock])
+                ] = Y.loc[
+                    (row_region_, row_level_, row_sector_),
+                    (column_region_, _MASTER_INDEX["n"], demand_category_),
+                ] * (
+                    1 + value[shock]
                 )
 
             elif _type[shock] == "Update":
@@ -369,12 +368,11 @@ def Z_shock(instance, path, boolean, clusters, to_baseline):
                 z.loc[
                     (row_region_, row_level_, row_sector_),
                     (column_region_, column_level_, column_sector_),
-                ] = (
-                    z.loc[
-                        (row_region_, row_level_, row_sector_),
-                        (column_region_, column_level_, column_sector_),
-                    ]
-                    * (1 + value[shock])
+                ] = z.loc[
+                    (row_region_, row_level_, row_sector_),
+                    (column_region_, column_level_, column_sector_),
+                ] * (
+                    1 + value[shock]
                 )
 
             elif _type[shock] == "Absolute":
