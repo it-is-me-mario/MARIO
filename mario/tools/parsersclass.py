@@ -30,6 +30,7 @@ def parse_from_txt(
     name=None,
     source=None,
     model="Database",
+    sep = ',',
     **kwargs,
 ):
 
@@ -66,6 +67,9 @@ def parse_from_txt(
     name : str, Optional
         optional but suggested. is useful for visualization and metadata.
 
+    sep : str, Optional
+        txt file separator
+        
     Returns
     -------
     mario.Database
@@ -73,7 +77,7 @@ def parse_from_txt(
     if model not in models:
         raise WrongInput("Available models are {}".format([*models]))
 
-    matrices, indeces, units = txt_praser(path, table, mode)
+    matrices, indeces, units = txt_praser(path, table, mode,sep)
 
     return models[model](
         name=name,

@@ -309,7 +309,7 @@ def get_units(units, table, indeces):
     return _
 
 
-def txt_praser(path, table, mode):
+def txt_praser(path, table, mode,sep):
 
     if mode == "coefficients":
         v, e, z = list("vez")
@@ -321,7 +321,7 @@ def txt_praser(path, table, mode):
         path=path,
         guide=txt_parser_id[mode],
         sub_folder=False,
-        sep=",",
+        sep=sep,
         exceptions=("EY"),
     )
 
@@ -343,13 +343,14 @@ def txt_praser(path, table, mode):
     log_time(
         logger, "Parser: Parsing database finished. Calculating missing matrices.."
     )
-
+    print(read["matrices"])
     if mode == "flows":
         read["matrices"]["X"] = calc_X(read["matrices"]["Z"], read["matrices"]["Y"])
 
     else:
-        read["matrices"]["X"] = calc_X_from_w(calc_w(z), read["matrices"]["Y"])
+        read["matrices"]["X"] = calc_X_from_w(calc_w(read["matrices"]["z"]), read["matrices"]["Y"])
 
+    
     log_time(logger, "Parser: Production matrix calculated and added.")
 
     if "EY" not in read["matrices"]:
