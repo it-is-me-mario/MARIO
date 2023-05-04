@@ -1188,7 +1188,9 @@ class Database(CoreModel):
         units=True,
         scenario="baseline",
         _format="txt",
-        include_meta=False,
+        include_meta = False,
+        sep = ',',
+
     ):
 
         """Saves the database multiple text file based on given inputs
@@ -1224,6 +1226,9 @@ class Database(CoreModel):
 
         include_meta : bool
             saves the metadata as a json file along with the data
+
+        sep : str
+            txt file separator
         """
         if scenario not in self.scenarios:
             raise WrongInput(
@@ -1240,6 +1245,7 @@ class Database(CoreModel):
             units,
             scenario,
             _format,
+            sep
         )
 
         if include_meta:

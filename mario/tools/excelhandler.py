@@ -442,7 +442,7 @@ def database_excel(instance, flows, coefficients, directory, units, scenario):
     workbook.close()
 
 
-def database_txt(instance, flows, coefficients, path, units, scenario, _format):
+def database_txt(instance, flows, coefficients, path, units, scenario, _format,sep):
 
     if flows:
 
@@ -453,19 +453,19 @@ def database_txt(instance, flows, coefficients, path, units, scenario, _format):
             indeces=False,
             units=False,
         )[scenario]
-        if not os.path.exists(r"{}\{}".format(path, "flows")):
-            os.mkdir(r"{}\{}".format(path, "flows"))
+        if not os.path.exists(r"{}/{}".format(path, "flows")):
+            os.mkdir(r"{}/{}".format(path, "flows"))
 
         for key, value in flows.items():
 
-            if os.path.exists(r"{}\{}\{}.{}".format(path, "flows", key, _format)):
-                os.remove(r"{}\{}\{}.{}".format(path, "flows", key, _format))
+            if os.path.exists(r"{}/{}/{}.{}".format(path, "flows", key, _format)):
+                os.remove(r"{}/{}/{}.{}".format(path, "flows", key, _format))
 
             value.to_csv(
-                r"{}\{}\{}.{}".format(path, "flows", key, _format),
+                r"{}/{}/{}.{}".format(path, "flows", key, _format),
                 header=True,
                 index=True,
-                sep=",",
+                sep=sep,
                 mode="a",
             )
 
@@ -479,19 +479,19 @@ def database_txt(instance, flows, coefficients, path, units, scenario, _format):
             units=False,
         )[scenario]
 
-        if not os.path.exists(r"{}\{}".format(path, "coefficients")):
-            os.mkdir(r"{}\{}".format(path, "coefficients"))
+        if not os.path.exists(r"{}/{}".format(path, "coefficients")):
+            os.mkdir(r"{}/{}".format(path, "coefficients"))
 
         for key, value in coefficients.items():
             if os.path.exists(
-                r"{}\{}\{}.{}".format(path, "coefficients", key, _format)
+                r"{}/{}/{}.{}".format(path, "coefficients", key, _format)
             ):
-                os.remove(r"{}\{}\{}.{}".format(path, "coefficients", key, _format))
+                os.remove(r"{}/{}/{}.{}".format(path, "coefficients", key, _format))
             value.to_csv(
-                r"{}\{}\{}.{}".format(path, "coefficients", key, _format),
+                r"{}/{}/{}.{}".format(path, "coefficients", key, _format),
                 header=True,
                 index=True,
-                sep="\t",
+                sep=sep,
                 mode="a",
             )
 
@@ -523,16 +523,16 @@ def database_txt(instance, flows, coefficients, path, units, scenario, _format):
         else:
             unit_dir = "flows"
 
-        if not os.path.exists(r"{}\{}".format(path, unit_dir)):
-            os.mkdir(r"{}\{}".format(path, unit_dir))
+        if not os.path.exists(r"{}/{}".format(path, unit_dir)):
+            os.mkdir(r"{}/{}".format(path, unit_dir))
 
-        if os.path.exists(r"{}\{}\units.{}".format(path, unit_dir, _format)):
-            os.remove(r"{}\{}\units.{}".format(path, unit_dir, _format))
+        if os.path.exists(r"{}/{}/units.{}".format(path, unit_dir, _format)):
+            os.remove(r"{}/{}/units.{}".format(path, unit_dir, _format))
         _units.to_csv(
-            r"{}\{}\units.{}".format(path, unit_dir, _format),
+            r"{}/{}/units.{}".format(path, unit_dir, _format),
             header=True,
             index=True,
-            sep=",",
+            sep=sep,
             mode="a",
         )
 
