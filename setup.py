@@ -8,7 +8,7 @@ setup(
         "A python package for automating input-output (IO) calculations, models"
         ",visualization and scenario analysis"
     ),
-    long_description = open("README.rst",encoding="utf8").read(),,
+    long_description = open("README.rst",encoding="utf8").read(),
     url="https://github.com/it-is-me-mario/MARIO",
     author="Mohammad Amin Tahavori, Lorenzo Rinaldi, Nicolo Golinucci",
     author_email="mohammadamin.tahavori@polimi.it",
