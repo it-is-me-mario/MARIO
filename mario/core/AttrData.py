@@ -503,8 +503,9 @@ class Database(CoreModel):
 
         """
 
-        # insure of Y,E,V,Z,EY exist
-        self.calc_all(["E", "V", "Z"])
+        # ensure of Y,E,V,Z,EY exist
+        for scenario in self.scenarios:
+            self.calc_all(["E", "V", "Z"],scenario=scenario)
 
         if not inplace:
             new = self.copy()
