@@ -49,6 +49,8 @@ import copy
 import numpy as np
 import math
 import pymrio
+import zipfile
+import os
 
 # reading the constants
 
@@ -1487,3 +1489,143 @@ def hybrid_sut_exiobase_reader(path,extensions):
 
     return matrices, indeces, units
 
+
+
+def full_eora(path, indices):
+    
+    log_time(logger, "Parser: Parsing full eora database from {}".format(path))
+    log_time(logger, "Parser: Parsing full eora indices from {}".format(indices))
+    
+    indices_zip = zipfile.ZipFile(indices)
+    
+    indices = {
+        'Z': {
+            'rows': pd.read_csv(indices_zip.open("index_t.csv"),sep=',', index_col=[0]),
+            'cols': pd.read_csv(indices_zip.open("index_t.csv"),sep=',', index_col=[0]), 
+            },
+        'Y': {
+            'rows': pd.read_csv(indices_zip.open("index_t.csv"),sep=',', index_col=[0]),
+            'cols': pd.read_csv(indices_zip.open("index_y.csv"),sep=',', index_col=[0]), 
+            },
+        'V': {
+            'rows': pd.read_csv(indices_zip.open("index_v.csv"),sep=',', index_col=[0]),
+            'cols': pd.read_csv(indices_zip.open("index_t.csv"),sep=',', index_col=[0]), 
+            },
+        'E': {
+            'rows': pd.read_csv(indices_zip.open("index_q.csv"),sep='delimiter'),
+            'cols': pd.read_csv(indices_zip.open("index_t.csv"),sep=',', index_col=[0]), 
+            },
+        'EY': {
+            'rows': pd.read_csv(indices_zip.open("index_q.csv"),sep='delimiter'),
+            'cols': pd.read_csv(indices_zip.open("index_y.csv"),sep=',', index_col=[0]), 
+            },
+        }
+        
+    for matrix,levels in indices.items():
+        for level in levels:
+            indices[matrix][level].replace("Industries",_MASTER_INDEX['a'],inplace=True)
+            indices[matrix][level].replace("Commodities",_MASTER_INDEX['c'],inplace=True)
+            indices[matrix][level].replace("Final Demand",_MASTER_INDEX['n'],inplace=True)
+            indices[matrix][level].replace("Primary Inputs",_MASTER_INDEX['f'],inplace=True)
+            
+            indices[matrix][level].set_index(list(indices[matrix][level].columns),inplace=True)
+            if len(indices[matrix][level].index.names) > 1:
+                indices[matrix][level] = indices[matrix][level].droplevel(1)
+
+    matrices_paths = {
+        'Z': 'T-Results',
+        'Y': 'Y-Results',
+        'V': 'V-Results',
+        'Q': 'QY_Results',
+        }
+
+    matrices_files = {}
+    files = os.listdir(path)
+    for matrix,name in matrices_paths.items():
+        for file in files:
+            if name in file:
+                matrices_files[matrix] = file
+    
+    
+    Z_zip = zipfile.ZipFile(f"{path}\{matrices_files['Z']}")
+    Z = pd.read_csv(Z_zip.open(matrices_files['Z'].split(".zip")[0]), header=None, index_col=None)
+    
+    Y_zip = zipfile.ZipFile(f"{path}\{matrices_files['Y']}")
+    Y = pd.read_csv(Y_zip.open(matrices_files['Y'].split(".zip")[0]), header=None, index_col=None)
+    
+    V_zip = zipfile.ZipFile(f"{path}\{matrices_files['V']}")
+    V = pd.read_csv(V_zip.open(matrices_files['V'].split(".zip")[0]), header=None, index_col=None)
+
+    Q_zip = zipfile.ZipFile(f"{path}\{matrices_files['Q']}")
+    E_EY = pd.read_csv(Q_zip.open(matrices_files['Q'].split(".zip")[0]), header=None, index_col=None)
+        
+    E  = E_EY.iloc[:,:indices['E']['cols'].shape[0]]
+    EY = E_EY.iloc[:,indices['E']['cols'].shape[0]:]
+        
+    for matrix,levels in indices.items():
+        for level in levels:
+            if level == "rows":
+                exec(f"{matrix}.index = indices['{matrix}']['{level}'].index")
+            elif level == "cols":
+                exec(f"{matrix}.columns = indices['{matrix}']['{level}'].index")
+    
+    sN = slice(None)
+    units = {
+        _MASTER_INDEX['a']: pd.DataFrame(
+            "kUSD",
+            index=sorted(list(set(Z.loc[(sN,_MASTER_INDEX['a'],sN),:].index.get_level_values(2)))),
+            columns=['unit'],
+            ),
+        _MASTER_INDEX['c']: pd.DataFrame(
+            "kUSD",
+            index=sorted(list(set(Z.loc[(sN,_MASTER_INDEX['c'],sN),:].index.get_level_values(2)))),
+            columns=['unit'],
+            ),
+        _MASTER_INDEX['f']: pd.DataFrame(
+            "kUSD",
+            index=sorted(list(set(V.loc[(sN,_MASTER_INDEX['f'],sN),:].index.get_level_values(2)))),
+            columns=['unit'],
+            ),
+       }
+            
+    sat_ind = []
+    wrong = []
+    for i in E.index:
+        if "(".join(i.split("(")[1:]).count("(") == 0:
+            sat_ind += [i.split("(")[-1].split(")")[0]]
+        else:
+            tentative_units = "(".join(i.split("(")[1:]).split(")")
+            for tu in range(len(tentative_units)):
+                tentative_units[tu] = tentative_units[tu].split("(")[-1]
+            sat_ind += [tentative_units[0]]
+    
+    units[_MASTER_INDEX['k']] =  pd.DataFrame(sat_ind,index=E.index,columns=['unit'],)
+        
+    matrices = {
+        'baseline': {
+            'Z': Z,
+            'Y': Y,
+            'V': V,
+            'E': E,
+            'EY':EY,
+            }
+        }
+    
+    matrices['baseline']['X'] =  calc_X(matrices['baseline']["Z"], matrices['baseline']["Y"])    
+    
+    return matrices, units
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    

@@ -77,6 +77,7 @@ from mario.tools.parsersclass import (
     parse_from_excel,
     parse_exiobase_3,
     parse_eora,
+    parse_full_eora,
     parse_exiobase_sut,
     parse_eurostat_sut,
     parse_from_pymrio,

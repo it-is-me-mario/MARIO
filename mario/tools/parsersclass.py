@@ -8,6 +8,7 @@ from mario.tools.tableparser import (
     eora_single_region,
     txt_praser,
     excel_parser,
+    full_eora,
     exio3,
     monetary_sut_exiobase,
     eora_multi_region,
@@ -361,6 +362,61 @@ def parse_eora(
         calc_all=calc_all,
         **kwargs,
     )
+
+
+def parse_full_eora(
+    path,        
+    indices,
+    year=None,
+    name=None,
+    calc_all=False,
+    model='Database',
+    **kwargs,
+   ):
+    """Parsing full eora databases
+
+    Parameters
+    ----------
+    path : str
+        path to the folder containing the zip files related to T,Y,V and Q matrices (no standard deviations or mark-ups)
+
+    indeces : str
+        path to the indeces.zip file 
+
+    year : int, Optional
+        for recording on the metadata
+
+    name : str, Optional
+        for recording on the metadata
+
+    calc_all : boolean
+        if True, will calculate the main missing matrices
+
+    Returns
+    -------
+    mario.Database
+    """
+   
+    if model not in models:
+        raise WrongInput("Available models are {}".format([*models]))
+
+    matrices, units = full_eora(path, indices)
+    
+    return Database(
+        name=name,
+        year=year,
+        table='SUT',
+        Z=matrices['baseline']['Z'],
+        E=matrices['baseline']['E'],
+        Y=matrices['baseline']['Y'],
+        V=matrices['baseline']['V'].groupby(level=[-1],axis=0).sum(),
+        EY=matrices['baseline']['EY'],
+        units=units,
+        calc_all=False,   
+        **kwargs,
+        )
+    
+    
 
 def parse_exiobase(
     table,
