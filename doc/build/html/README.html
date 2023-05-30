@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MARIO &mdash; MARIO 0.1 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            MARIO
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="intro.html">MARIO</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Download and installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributors.html">Contributors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="terminology.html">Terminology</a></li>
+<li class="toctree-l1"><a class="reference internal" href="handlingdata.html">Handling databases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modelgallery.html">MARIO example gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_refernces.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">MARIO</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">MARIO</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/README.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <a class="reference external image-reference" href="https://github.com/psf/black"><img alt="https://img.shields.io/badge/code%20style-black-000000.svg" src="https://img.shields.io/badge/code%20style-black-000000.svg" /></a>
+<a class="reference external image-reference" href="https://mario-suite.readthedocs.io/en/latest/index.html"><img alt="Documentation Status" src="https://readthedocs.org/projects/mario-suite/badge/?version=latest" /></a>
+<a class="reference external image-reference" href="https://pypi.org/project/mariopy/"><img alt="https://img.shields.io/pypi/v/mariopy" src="https://img.shields.io/pypi/v/mariopy" /></a>
+<a class="reference external image-reference" href="https://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a>
+<a class="reference internal image-reference" href="https://raw.githubusercontent.com/SESAM-Polimi/MARIO/767d2c0e9e42ae0b6acf7c3a1cc379d7bcd367fa/doc/source/_static/images/polimi.svg"><img alt="https://raw.githubusercontent.com/SESAM-Polimi/MARIO/767d2c0e9e42ae0b6acf7c3a1cc379d7bcd367fa/doc/source/_static/images/polimi.svg" class="align-right" src="https://raw.githubusercontent.com/SESAM-Polimi/MARIO/767d2c0e9e42ae0b6acf7c3a1cc379d7bcd367fa/doc/source/_static/images/polimi.svg" width="200" /></a>
+<section id="mario">
+<h1>MARIO<a class="headerlink" href="#mario" title="Permalink to this heading"></a></h1>
+<p>Multifunctional Analysis of Regions through Input-Output</p>
+<section id="what-is-it">
+<h2>What is it<a class="headerlink" href="#what-is-it" title="Permalink to this heading"></a></h2>
+<p><strong>MARIO</strong> is a python package for handling input-output tables and models.
+MARIO aims to provide a <em>simple</em> &amp; <em>intuitive</em> API for common IO tasks without
+needing in-depth programming knowledge. MARIO supporst automatic parsing of different
+structured tables such EXIOBASE, EORA, EUROSTAT in different formats namely:</p>
+<ul class="simple">
+<li><p>Single region</p></li>
+<li><p>Multi region</p></li>
+<li><p>Hybrid tables</p></li>
+<li><p>Monetary tables</p></li>
+<li><p>Input-Output tables</p></li>
+<li><p>Supply-Use tables</p></li>
+</ul>
+<p>When databases are not structured, MARIO supports parsing data from xlsx, csv, txt files
+or pandas.DataFrames.</p>
+<p>More than parsing data, MARIO includes some basic functionalities:</p>
+<ul class="simple">
+<li><p>Aggregation of databases</p></li>
+<li><p>SUT to IOT transformation</p></li>
+<li><dl class="simple">
+<dt>Modifying database in terms of adding:</dt><dd><ul>
+<li><p>New sectors, activities or commodities to the database</p></li>
+<li><p>Adding new extensions to the satellite account</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>Scneario and shock analysis</p></li>
+<li><p>Backward and forward linkages analysis</p></li>
+<li><p>Extracting single region database from multi region databases</p></li>
+<li><p>Balance test</p></li>
+<li><p>Productivity test</p></li>
+<li><p>Exporting the databases into different formats for scenarios analyzed</p></li>
+<li><p>Interactive visualization routines</p></li>
+</ul>
+</section>
+<section id="requirements">
+<h2>Requirements<a class="headerlink" href="#requirements" title="Permalink to this heading"></a></h2>
+<p>MARIO has been tested on macOS and Windows.</p>
+<p>To run MARIO, a couple of things are needed:</p>
+<ol class="arabic simple">
+<li><p>Being in love with Input-Output :-)</p></li>
+<li><p>The Python programming language, version 3.7 or higher</p></li>
+<li><p>A number of Python adds-on packages</p></li>
+<li><p>For some functionalities a solver may needed (optional)</p></li>
+<li><p>MARIO software itself</p></li>
+</ol>
+</section>
+<section id="recommended-installation-method">
+<h2>Recommended installation method<a class="headerlink" href="#recommended-installation-method" title="Permalink to this heading"></a></h2>
+<p>The easiest way to make MARIO software working is to use the free
+conda package manager which can install the current and future MARIO
+depencies in an easy and user friendly way.</p>
+<p>To get conda, <a class="reference external" href="https://www.anaconda.com/products/individual">download and install “Anaconda Distribution”</a>
+. Between differnet options for running python codes, we strongly suggest, <a class="reference external" href="https://www.spyder-ide.org/">Spyder</a>,
+which is  a free and open source scientific environment written in Python, for Python, and designed by and for scientists,
+engineers and data analysts.</p>
+<p>You can install mario using pip or from source code. It is suggested to create a new environment by running the following command in the anaconda prompt</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">create</span> <span class="o">-</span><span class="n">n</span> <span class="n">mario</span> <span class="n">python</span><span class="o">=</span><span class="mf">3.8</span>
+</pre></div>
+</div>
+<p>If you create a new environment for mario, to use it, you need to activate the mario environment each time by writing
+the following line in <em>Anaconda Prompt</em></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">activate</span> <span class="n">mario</span>
+</pre></div>
+</div>
+<p>Now you can use pip to install mario on your environment as follow:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">mariopy</span>
+</pre></div>
+</div>
+<p>You can also install from the source code!</p>
+</section>
+<section id="quickstart">
+<h2>Quickstart<a class="headerlink" href="#quickstart" title="Permalink to this heading"></a></h2>
+<p>A simple test for Input-Output Table (IOT) and Supply-Use Table (SUT) is included in mario.</p>
+<p>To use the IOT test, call</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">mario</span>
+<span class="n">test_iot</span> <span class="o">=</span> <span class="n">mario</span><span class="o">.</span><span class="n">load_test</span><span class="p">(</span><span class="s1">&#39;IOT&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>and to use the SUT test, call</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">test_sut</span> <span class="o">=</span> <span class="n">mario</span><span class="o">.</span><span class="n">load_test</span><span class="p">(</span><span class="s1">&#39;SUT&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>To see the configurations of the data, you can print them:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">test_iot</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">test_sut</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>To see specific sets of the tables like regions or value added,
+get_index function can be used:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">test_iot</span><span class="o">.</span><span class="n">get_index</span><span class="p">(</span><span class="s1">&#39;Region&#39;</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">test_sut</span><span class="o">.</span><span class="n">get_index</span><span class="p">(</span><span class="s1">&#39;Factor of production&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>To visualize some data, various plot functions can be used:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">test_iot</span><span class="o">.</span><span class="n">plot_matrix</span><span class="p">(</span><span class="o">....</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Specific modifications on the database can be done, such as
+SUT to IOT transformation:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">reformed_iot</span> <span class="o">=</span> <span class="n">test</span><span class="o">.</span><span class="n">sut_to_iot</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The changes can be tracked by metadata. The history can be checked by calling:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">reformed_iot</span><span class="o">.</span><span class="n">meta_history</span>
+</pre></div>
+</div>
+<p>The new database can be saved into excel,txt or csv file:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">reformed_iot</span><span class="o">.</span><span class="n">to_excel</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="s1">&#39;a folder//database.xlsx&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="python-module-requirements">
+<span id="rst-pckgs"></span><h2>Python module requirements<a class="headerlink" href="#python-module-requirements" title="Permalink to this heading"></a></h2>
+<p>Some of the key packages the mario relies on are:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://pandas.pydata.org/">Pandas</a></p></li>
+<li><p><a class="reference external" href="https://numpy.org/">Numpy</a></p></li>
+<li><p><a class="reference external" href="https://plotly.com/">Plotly</a></p></li>
+<li><p><a class="reference external" href="https://pypi.org/project/tabulate/">Tabulate</a></p></li>
+<li><p><a class="reference external" href="https://pypi.org/project/tabulate/">Cvxpy</a> (Optional in this version)</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ul class="simple">
+<li><p>This project is under active development.</p></li>
+<li><p>More examples will be uploaded through time to the gellery.</p></li>
+<li><p>More parsers will be added to the next version.</p></li>
+<li><p>The next version will cover some optimization models within the IO framework</p></li>
+</ul>
+</div>
+</section>
+<section id="license">
+<h2>License<a class="headerlink" href="#license" title="Permalink to this heading"></a></h2>
+<a class="reference external image-reference" href="https://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a>
+<p>This work is licensed under a <a class="reference external" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)</a></p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, MARIO Authors: Mohammad Amin Tahavori, Lorenzo Rinaldi, Nicolo Golinucci.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
