@@ -18,7 +18,7 @@ setup(
     #python_requires=">.3.7.0",
     package_data={"": ["*.txt", "*.dat", "*.doc", "*.rst","*.xlsx"]},
     install_requires=[
-        "pandas >= 1.3.3",
+        "pandas <= 1.3.5",
         "numpy >= 1.21.2",
         "xlsxwriter <= 1.3.7",
         "plotly >= 4.12.0",

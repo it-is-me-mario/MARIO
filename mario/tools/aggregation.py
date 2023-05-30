@@ -9,7 +9,7 @@ import pandas as pd
 from mario.log_exc.logger import log_time
 from mario.log_exc.exceptions import WrongInput
 from copy import deepcopy
-from mario.tools.utilities import delete_duplicates,rename_index
+from mario.tools.utilities import delete_duplicates, rename_index
 
 from mario.tools.constants import _MASTER_INDEX
 
@@ -23,10 +23,7 @@ def return_pdIndex(Y, E, V, table):
     V = deepcopy(V)
 
     indeces = {
-        "r": {
-            "s": Y.index.get_level_values(0),
-            "n": Y.columns.get_level_values(0),
-        },
+        "r": {"s": Y.index.get_level_values(0), "n": Y.columns.get_level_values(0),},
         "n": {"n": Y.columns.get_level_values(-1)},
         "f": {"f": V.index},
         "k": {"k": E.index},
@@ -81,8 +78,7 @@ def _aggregator(instance, drop):
         if agg_indeces.get(_MASTER_INDEX[item]) is not None:
 
             index_replacer(
-                indeces=org_indeces[item],
-                mapper=agg_indeces[_MASTER_INDEX[item]],
+                indeces=org_indeces[item], mapper=agg_indeces[_MASTER_INDEX[item]],
             )
 
     E_index = EY_index = org_indeces["k"]["k"]
@@ -127,15 +123,11 @@ def _aggregator(instance, drop):
 
                 if isinstance(getattr(item, level), pd.MultiIndex):
                     item = item.groupby(
-                        axis=0 if level == "index" else 1,
-                        level=[0, 1, 2],
-                        sort=False,
+                        axis=0 if level == "index" else 1, level=[0, 1, 2], sort=False,
                     ).sum()
                 else:
                     item = item.groupby(
-                        axis=0 if level == "index" else 1,
-                        level=[0],
-                        sort=False,
+                        axis=0 if level == "index" else 1, level=[0], sort=False,
                     ).sum()
 
                 if level == "index" and matrix in ["E", "EY"] and drop is not None:
@@ -180,9 +172,7 @@ def unit_aggregation_check(instance, drop):
     if isinstance(drop, str):
         drop = [drop]
 
-    units = copy.deepcopy(
-        instance.units,
-    )
+    units = copy.deepcopy(instance.units,)
     new_units = {}
 
     indeces = copy.deepcopy(instance.get_index("all", "aggregated"))

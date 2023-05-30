@@ -86,7 +86,7 @@ def run_from_jupyter():
         ipy_str = str(type(get_ipython()))
         if "zmqshell" in ipy_str:
             return True
-    
+
     return False
 
 
@@ -121,7 +121,8 @@ def _manage_indeces(instance, case, **kwargs):
         for key, value in kwargs.items():
             instance._indeces[key] = {"main": value}
 
-def check_clusters(index_dict,table,clusters):
+
+def check_clusters(index_dict, table, clusters):
 
     differences = set(clusters).difference(set(_LEVELS[table]))
 
@@ -134,13 +135,14 @@ def check_clusters(index_dict,table,clusters):
 
     for level, level_cluster in clusters.items():
         for cluster, values in level_cluster.items():
-            differences =  set(values).difference(set(index_dict[level]))
+            differences = set(values).difference(set(index_dict[level]))
             if differences:
                 raise WrongInput(
                     "{} in cluster {} for level {} is/are not a valid item/s.".format(
-                            differences, cluster, level
+                        differences, cluster, level
                     )
                 )
+
 
 def all_file_reader(
     path, guide, sub_folder=False, sep="\t", exceptions=[], engine=None
@@ -208,10 +210,10 @@ def all_file_reader(
 def return_index(df, item, multi_index, del_duplicate, reindex=None, level=None):
 
     if multi_index:
-        index = list(getattr(df,item).get_level_values(level))
+        index = list(getattr(df, item).get_level_values(level))
 
     else:
-        index = list(getattr(df,item))
+        index = list(getattr(df, item))
 
     if del_duplicate:
         index = delete_duplicates(index)
@@ -230,7 +232,9 @@ def multiindex_contain(inner_index, outer_index, file, check_levels=None):
         if check_levels is None:
             if inner_index.nlevels != outer_index.nlevels:
                 raise WrongInput(f"number levels for {file} are not valid.")
-            levels = list(range(inner_index.nlevels))# [i for i in range(inner_index.nlevels)]
+            levels = list(
+                range(inner_index.nlevels)
+            )  # [i for i in range(inner_index.nlevels)]
         else:
             levels = check_levels
 
@@ -239,9 +243,7 @@ def multiindex_contain(inner_index, outer_index, file, check_levels=None):
         for level in levels:
 
             diff = (
-                outer_index.levels[level]
-                .difference(inner_index.levels[level])
-                .tolist()
+                outer_index.levels[level].difference(inner_index.levels[level]).tolist()
             )
 
             differences[level] = diff
@@ -261,11 +263,10 @@ def rename_index(_dict):
 
     for key, value in _dict.items():
         for item in ["index", "columns"]:
-            if isinstance(getattr(value,item), pd.MultiIndex):
-                getattr(value,item).names= _INDEX_NAMES['3levels']
+            if isinstance(getattr(value, item), pd.MultiIndex):
+                getattr(value, item).names = _INDEX_NAMES["3levels"]
             else:
-                getattr(value,item).name = _INDEX_NAMES['1level']
-
+                getattr(value, item).name = _INDEX_NAMES["1level"]
 
 
 def filtering(instance, filters):
@@ -328,6 +329,7 @@ def to_single_index(df):
 
     return df
 
+
 def extract_metadata_from_eurostat(file):
     """extracts some info such as country,table_info, and the year of the data from an xlsx
 
@@ -342,15 +344,15 @@ def extract_metadata_from_eurostat(file):
         metadata with country,table_type, and year info
     """
     meta_info = {
-        "year": (7,2,int),
-        "country": (6,2,str),
-        "table": (0,1,str),
-        "unit": (4,2,str)
+        "year": (7, 2, int),
+        "country": (6, 2, str),
+        "table": (0, 1, str),
+        "unit": (4, 2, str),
     }
 
     initial_data = file.parse(sheet_name="Sheet 1")
     metadata = {}
-    for item,info in meta_info.items():
-        metadata[item] = info[2](initial_data.iloc[info[0],info[1]])
+    for item, info in meta_info.items():
+        metadata[item] = info[2](initial_data.iloc[info[0], info[1]])
 
     return metadata

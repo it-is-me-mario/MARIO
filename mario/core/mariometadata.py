@@ -9,6 +9,8 @@ from mario.log_exc.exceptions import WrongInput
 from mario.tools.constants import _LEVELS
 
 import json
+
+
 class MARIOMetaData:
 
     """
@@ -123,22 +125,22 @@ class MARIOMetaData:
 
         elif _format == "json":
             meta = self._to_dict()
-            with open(f"{location}.json","w") as fp:
-                json.dump(meta,fp)
+            with open(f"{location}.json", "w") as fp:
+                json.dump(meta, fp)
 
     def _to_dict(self):
         meta_as_dict = {}
 
-        for attr in ['price','name','year','source']:
+        for attr in ["price", "name", "year", "source"]:
             try:
-                meta_as_dict[attr] = getattr(self,attr)
+                meta_as_dict[attr] = getattr(self, attr)
             except AttributeError:
                 pass
 
-        meta_as_dict['history'] = self._history
+        meta_as_dict["history"] = self._history
 
         return meta_as_dict
-        
+
     def load(self, location):
 
         with open(location, "rb") as load_file:
@@ -178,4 +180,3 @@ class MARIOMetaData:
             raise WrongInput("table can be: {}".format(*_LEVELS))
 
         self.__table = var
-
