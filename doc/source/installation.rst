@@ -48,4 +48,11 @@ Now you can use pip to install mario on your environment as follow:
 
 You can also install from the source code!
 
+
+IMPORTANT NOTE: Pandas version 2.0 has recently been released, presenting major changes conflicting with MARIO. To overcome these issue, just install a previous version of Pandas as follows:
+
+.. code-block:: python
+
+  pip install pandas==1.3.5
+
            
