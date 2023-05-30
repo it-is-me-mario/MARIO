@@ -24,8 +24,7 @@ def calc_all_shock(z, e, v, Y):
 
 
 def calc_X(
-    Z,
-    Y,
+    Z, Y,
 ):
     """Calculates the production vector
 
@@ -49,8 +48,7 @@ def calc_X(
 
 
 def calc_Z(
-    z,
-    X,
+    z, X,
 ):
     """Calculates Intersectoral transaction flows matrix
 
@@ -95,7 +93,7 @@ def calc_w(z):
     """
     I = np.eye(z.shape[0])
 
-    return pd.DataFrame(np.linalg.inv(I - z.values), index=z.index, columns=z.columns)   
+    return pd.DataFrame(np.linalg.inv(I - z.values), index=z.index, columns=z.columns)
 
 
 def calc_g(b):
@@ -120,8 +118,7 @@ def calc_g(b):
 
 
 def calc_X_from_w(
-    w,
-    Y,
+    w, Y,
 ):
     """Calculates Production vector from Leontief coefficients matrix
 
@@ -238,8 +235,7 @@ def calc_e(E, X):
 
 
 def calc_p(
-    v,
-    w,
+    v, w,
 ):
     """Calculating Price index coefficients vector
 
@@ -266,8 +262,7 @@ def calc_p(
 
 
 def calc_v(
-    V,
-    X,
+    V, X,
 ):
     """Calculates Factor of production transaction coefficients matrix
 
@@ -424,7 +419,7 @@ def calc_f(e, w):
     return e.dot(w)
 
 
-def calc_f_dis(e,w):
+def calc_f_dis(e, w):
     """Calculates Footprint coefficients matrix disaggregated by origin sector and region
 
     .. math::
@@ -443,9 +438,9 @@ def calc_f_dis(e,w):
         Footprint coefficients matrix disaggregated by origin sector and region
     """
 
-    f_dis = np.diagflat(e.values) @ w    
+    f_dis = np.diagflat(e.values) @ w
     f_dis.index = e.columns
-    
+
     return f_dis
 
 
@@ -475,8 +470,6 @@ def X_inverse(X):
     X_inv[X_inv != 0] = 1 / X_inv[X_inv != 0]
 
     return X_inv
-
-
 
 
 def linkages_calculation(cut_diag, matrices, multi_mode, normalized):
@@ -568,4 +561,3 @@ def linkages_calculation(cut_diag, matrices, multi_mode, normalized):
         links = pd.concat([_forward_t, _backward_t, _forward_d, _backward_d], axis=1)
 
     return links
-
