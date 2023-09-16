@@ -28,7 +28,7 @@ Multifunctional Analysis of Regions through Input-Output.  (`Documents <https://
 
 What is it
 -----------
-**MARIO** is a python package for handling input-output tables and models inspired by `pymrio <https://github.com/konstantinstadler/pymrio>`_.
+**MARIO** is a python package for handling input-output tables and models inspired by `Pymrio  <https://github.com/IndEcol/pymrio>`_ .
 MARIO aims to provide a *simple* & *intuitive* API for common IO tasks without
 needing in-depth programming knowledge. MARIO supporst automatic parsing of different
 structured tables such EXIOBASE, EORA, EUROSTAT in different formats namely:
@@ -174,7 +174,7 @@ Some of the key packages the mario relies on are:
 * `Numpy  <https://numpy.org/>`_ 
 * `Plotly  <https://plotly.com/>`_ 
 * `Tabulate  <https://pypi.org/project/tabulate/>`_ 
-* `pymrio  <https://github.com/IndEcol/pymrio>`_ 
+* `Pymrio  <https://github.com/IndEcol/pymrio>`_ 
 * `Cvxpy  <https://pypi.org/project/cvxpy/>`_ (Optional in this version)
 
 Testing MARIO
