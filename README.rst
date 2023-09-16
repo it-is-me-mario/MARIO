@@ -183,6 +183,7 @@ Some of the key packages the mario relies on are:
    * More examples will be uploaded through time to the gellery.
    * More parsers will be added to the next version.
    * The next version will cover some optimization models within the IO framework
+   * For more tutorials on mario, check out our `Input-Output analysis and modelling with MARIO Course  <https://zenodo.org/record/8308515>`_ 
 
 
 License
