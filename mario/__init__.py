@@ -89,6 +89,7 @@ from mario.tools.plots import set_palette
 from mario.log_exc import exceptions
 from mario.test.mario_test import load_test
 from mario.tools.utilities import slicer
+from mario.tools.iodownloader import *
 
 
 __authors__ = " 'Mohammad Amin Tahavori', Lorenzo Rinaldi', 'Nicolò Golinucci' "
