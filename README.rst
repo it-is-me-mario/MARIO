@@ -18,10 +18,11 @@
    
 .. image:: https://zenodo.org/badge/421900437.svg
    :target: https://zenodo.org/badge/latestdoi/421900437
-   
+
 *******
 MARIO
 *******
+
 Multifunctional Analysis of Regions through Input-Output.  (`Documents <https://mario-suite.readthedocs.io/en/latest/intro.html>`_)
 
 
