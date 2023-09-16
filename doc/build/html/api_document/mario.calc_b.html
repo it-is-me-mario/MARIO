@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>mario.calc_b &mdash; MARIO 0.1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="mario.calc_p" href="mario.calc_p.html" />
+    <link rel="prev" title="mario.calc_g" href="mario.calc_g.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            MARIO
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../intro.html">MARIO</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Download and installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributors.html">Contributors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../terminology.html">Terminology</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../handlingdata.html">Handling databases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modelgallery.html">MARIO example gallery</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api_refernces.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api_refernces.html#analyzing-database">Analyzing database</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_refernces.html#database-modification">Database modification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_refernces.html#shock-analysis">Shock analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_refernces.html#data-visualization">Data visualization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_refernces.html#get-excels">Get excels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_refernces.html#save-data">Save data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_refernces.html#database-parsers">Database parsers</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api_refernces.html#calculations">Calculations</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../api_refernces.html#high-level-matrix-calculations">High level matrix calculations</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../api_refernces.html#low-level-matrix-calculations">Low level matrix calculations</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="mario.calc_X.html">mario.calc_X</a></li>
+<li class="toctree-l4"><a class="reference internal" href="mario.calc_X_from_w.html">mario.calc_X_from_w</a></li>
+<li class="toctree-l4"><a class="reference internal" href="mario.calc_X_from_z.html">mario.calc_X_from_z</a></li>
+<li class="toctree-l4"><a class="reference internal" href="mario.calc_Z.html">mario.calc_z</a></li>
+<li class="toctree-l4"><a class="reference internal" href="mario.calc_E.html">mario.calc_e</a></li>
+<li class="toctree-l4"><a class="reference internal" href="mario.calc_V.html">mario.calc_v</a></li>
+<li class="toctree-l4"><a class="reference internal" href="mario.calc_M.html">mario.calc_m</a></li>
+<li class="toctree-l4"><a class="reference internal" href="mario.calc_F.html">mario.calc_f</a></li>
+<li class="toctree-l4"><a class="reference internal" href="mario.calc_w.html">mario.calc_w</a></li>
+<li class="toctree-l4"><a class="reference internal" href="mario.calc_g.html">mario.calc_g</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">mario.calc_b</a></li>
+<li class="toctree-l4"><a class="reference internal" href="mario.calc_p.html">mario.calc_p</a></li>
+<li class="toctree-l4"><a class="reference internal" href="mario.calc_y.html">mario.calc_y</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api_refernces.html#metadata">Metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_refernces.html#test">Test</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_refernces.html#directory">Directory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_refernces.html#utilities">Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_refernces.html#logging">Logging</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">MARIO</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api_refernces.html">API Reference</a></li>
+      <li class="breadcrumb-item active">mario.calc_b</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api_document/mario.calc_b.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="mario-calc-b">
+<h1>mario.calc_b<a class="headerlink" href="#mario-calc-b" title="Permalink to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="mario.calc_b">
+<span class="sig-prename descclassname"><span class="pre">mario.</span></span><span class="sig-name descname"><span class="pre">calc_b</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Z</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mario.calc_b" title="Permalink to this definition"></a></dt>
+<dd><p>Calculates Intersectoral transaction direct-output coefficients matrix (for Ghosh model)</p>
+<div class="math notranslate nohighlight">
+\[\hat{X}^{-1}\cdot Z\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> (<em>pd.DataFrame</em>) – Production flows vector</p></li>
+<li><p><strong>Z</strong> (<em>pd.DataFrame</em>) – Intersectoral transaction flows matrix</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Intersectoral transaction direct-output coefficients</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="mario.calc_g.html" class="btn btn-neutral float-left" title="mario.calc_g" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="mario.calc_p.html" class="btn btn-neutral float-right" title="mario.calc_p" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, MARIO Authors: Mohammad Amin Tahavori, Lorenzo Rinaldi, Nicolo Golinucci.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

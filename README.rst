@@ -9,13 +9,13 @@
     :target: https://mario-suite.readthedocs.io/en/latest/index.html
     :alt: Documentation Status  
     
-.. image:: https://img.shields.io/pypi/v/mariopy
-    :target: https://pypi.org/project/mariopy/
+.. image:: https://badge.fury.io/py/mariopy.svg
+    :target: https://badge.fury.io/py/mariopy
     
 .. image:: https://raw.githubusercontent.com/SESAM-Polimi/MARIO/767d2c0e9e42ae0b6acf7c3a1cc379d7bcd367fa/doc/source/_static/images/polimi.svg
    :width: 200
    :align: right
-
+   
 .. image:: https://zenodo.org/badge/421900437.svg
    :target: https://zenodo.org/badge/latestdoi/421900437
 

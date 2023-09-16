@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API Reference &mdash; MARIO 0.1 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="mario.CoreModel.is_balanced" href="api_document/mario.CoreModel.is_balanced.html" />
+    <link rel="prev" title="Shock and scenario analysis" href="htmls/shock.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            MARIO
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="intro.html">MARIO</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Download and installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributors.html">Contributors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="terminology.html">Terminology</a></li>
+<li class="toctree-l1"><a class="reference internal" href="handlingdata.html">Handling databases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modelgallery.html">MARIO example gallery</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#analyzing-database">Analyzing database</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.CoreModel.is_balanced.html">mario.CoreModel.is_balanced</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.CoreModel.is_productive.html">mario.CoreModel.is_productive</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.CoreModel.is_multi_region.html">mario.CoreModel.is_multi_region</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.CoreModel.is_hybrid.html">mario.CoreModel.is_hybrid</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.CoreModel.sets.html">mario.CoreModel.sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.CoreModel.scenarios.html">mario.CoreModel.scenarios</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.CoreModel.table_type.html">mario.CoreModel.table_type</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.CoreModel.get_index.html">mario.CoreModel.get_index</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#database-modification">Database modification</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.Database.aggregate.html">mario.Database.aggregate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.Database.add_sectors.html">mario.Database.add_sectors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.Database.to_single_region.html">mario.Database.to_single_region</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.Database.to_iot.html">mario.Database.to_iot</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.Database.add_extensions.html">mario.Database.add_extensions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.Database.update_scenarios.html">mario.Database.update_scenarios</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.Database.reset_to_flows.html">mario.Database.reset_to_flows</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.Database.reset_to_coefficients.html">mario.Database.reset_to_coefficients</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.Database.clone_scenario.html">mario.Database.clone_scenario</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.Database.copy.html">mario.Database.copy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.Database.backup.html">mario.Database.backup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.Database.reset_to_backup.html">mario.Database.reset_to_backup</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#shock-analysis">Shock analysis</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.Database.shock_calc.html">mario.Database.shock_calc</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#data-visualization">Data visualization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.set_palette.html">mario.set_palette</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.Database.plot_gdp.html">mario.Database.plot_gdp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.Database.plot_bubble.html">mario.Database.plot_bubble</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.Database.plot_linkages.html">mario.Database.plot_linkages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.Database.plot_matrix.html">mario.Database.plot_matrix</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#get-excels">Get excels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.Database.get_aggregation_excel.html">mario.Database.get_aggregation_excel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.Database.get_extensions_excel.html">mario.Database.get_extensions_excel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.Database.get_add_sectors_excel.html">mario.Database.get_add_sectors_excel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.Database.get_shock_excel.html">mario.Database.get_shock_excel</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#save-data">Save data</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.Database.to_excel.html">mario.Database.to_excel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.Database.to_txt.html">mario.Database.to_txt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.Database.to_pymrio.html">mario.Database.to_pymrio</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#database-parsers">Database parsers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#structured-databases">Structured Databases</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_document/mario.parse_exiobase_3.html">mario.parse_exiobase_3</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_document/mario.parse_exiobase_sut.html">mario.parse_exiobase_sut</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_document/mario.parse_eurostat_sut.html">mario.parse_eurostat_sut</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_document/mario.parse_eora.html">mario.parse_eora</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_document/mario.parse_from_pymrio.html">mario.parse_from_pymrio</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_document/mario.hybrid_sut_exiobase.html">mario.hybrid_sut_exiobase</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_document/mario.parse_exiobase.html">mario.parse_exiobase</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#non-structured-databases">Non-Structured Databases</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_document/mario.parse_from_excel.html">mario.parse_from_excel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_document/mario.parse_from_txt.html">mario.parse_from_txt</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#calculations">Calculations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#high-level-matrix-calculations">High level matrix calculations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_document/mario.CoreModel.calc_all.html">mario.CoreModel.calc_all</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_document/mario.CoreModel.GDP.html">mario.CoreModel.GDP</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_document/mario.Database.calc_linkages.html">mario.Database.calc_linkages</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#low-level-matrix-calculations">Low level matrix calculations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_document/mario.calc_X.html">mario.calc_X</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_document/mario.calc_X_from_w.html">mario.calc_X_from_w</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_document/mario.calc_X_from_z.html">mario.calc_X_from_z</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_document/mario.calc_Z.html">mario.calc_z</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_document/mario.calc_E.html">mario.calc_e</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_document/mario.calc_V.html">mario.calc_v</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_document/mario.calc_M.html">mario.calc_m</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_document/mario.calc_F.html">mario.calc_f</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_document/mario.calc_w.html">mario.calc_w</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_document/mario.calc_g.html">mario.calc_g</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_document/mario.calc_b.html">mario.calc_b</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_document/mario.calc_p.html">mario.calc_p</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_document/mario.calc_y.html">mario.calc_y</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#metadata">Metadata</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.CoreModel.save_meta.html">mario.CoreModel.save_meta</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.CoreModel.meta_history.html">mario.CoreModel.meta_history</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.CoreModel.add_note.html">mario.CoreModel.add_note</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#test">Test</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.load_test.html">mario.load_test</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#directory">Directory</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.CoreModel.directory.html">mario.CoreModel.directory</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#utilities">Utilities</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.CoreModel.search.html">mario.CoreModel.search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.slicer.html">mario.slicer</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#logging">Logging</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_document/mario.set_log_verbosity.html">mario.set_log_verbosity</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">MARIO</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">API Reference</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/api_refernces.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="api-reference">
+<h1>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h1>
+<section id="analyzing-database">
+<h2>Analyzing database<a class="headerlink" href="#analyzing-database" title="Permalink to this heading"></a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.CoreModel.is_balanced.html#mario.CoreModel.is_balanced" title="mario.CoreModel.is_balanced"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CoreModel.is_balanced</span></code></a>(method[, data_set, ...])</p></td>
+<td><p>Checks if a specific data_set in the database is balance or not</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api_document/mario.CoreModel.is_productive.html#mario.CoreModel.is_productive" title="mario.CoreModel.is_productive"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CoreModel.is_productive</span></code></a>(method[, data_set])</p></td>
+<td><p>Checks the productivity of the system</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.CoreModel.is_multi_region.html#mario.CoreModel.is_multi_region" title="mario.CoreModel.is_multi_region"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CoreModel.is_multi_region</span></code></a></p></td>
+<td><p>Defines if a database is single region or multi-region</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api_document/mario.CoreModel.is_hybrid.html#mario.CoreModel.is_hybrid" title="mario.CoreModel.is_hybrid"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CoreModel.is_hybrid</span></code></a></p></td>
+<td><p>checks if the database is hybrid or monetary</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.CoreModel.sets.html#mario.CoreModel.sets" title="mario.CoreModel.sets"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CoreModel.sets</span></code></a></p></td>
+<td><p>Returns a list of levels of info in the model</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api_document/mario.CoreModel.scenarios.html#mario.CoreModel.scenarios" title="mario.CoreModel.scenarios"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CoreModel.scenarios</span></code></a></p></td>
+<td><p>Returns all the scenarios existed in the model</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.CoreModel.table_type.html#mario.CoreModel.table_type" title="mario.CoreModel.table_type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CoreModel.table_type</span></code></a></p></td>
+<td><p>Returns the type of the database</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api_document/mario.CoreModel.get_index.html#mario.CoreModel.get_index" title="mario.CoreModel.get_index"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CoreModel.get_index</span></code></a>(index[, level])</p></td>
+<td><p>Returns a list or a DataFrame of different levels of indeces in the database.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="database-modification">
+<h2>Database modification<a class="headerlink" href="#database-modification" title="Permalink to this heading"></a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.Database.aggregate.html#mario.Database.aggregate" title="mario.Database.aggregate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Database.aggregate</span></code></a>(io[, drop, levels, ...])</p></td>
+<td><p>This function is in charge of reading data regarding the aggregation</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api_document/mario.Database.add_sectors.html#mario.Database.add_sectors" title="mario.Database.add_sectors"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Database.add_sectors</span></code></a>(io, new_sectors, ...[, ...])</p></td>
+<td><p>Adds a Sector/Activity/Commodity to the database</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.Database.to_single_region.html#mario.Database.to_single_region" title="mario.Database.to_single_region"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Database.to_single_region</span></code></a>(region[, backup, ...])</p></td>
+<td><p>Extracts a single region from multi-region databases</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api_document/mario.Database.to_iot.html#mario.Database.to_iot" title="mario.Database.to_iot"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Database.to_iot</span></code></a>(method[, inplace])</p></td>
+<td><p>The function will transform a SUT table to a IOT table</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.Database.add_extensions.html#mario.Database.add_extensions" title="mario.Database.add_extensions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Database.add_extensions</span></code></a>(io, matrix, units[, ...])</p></td>
+<td><p>Adding a new extension [Factor of production or Satellite account] to the database passing the coefficients or the absolute values.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api_document/mario.Database.update_scenarios.html#mario.Database.update_scenarios" title="mario.Database.update_scenarios"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Database.update_scenarios</span></code></a>(scenario, **matrices)</p></td>
+<td><p>Updates the matrices for a specific scenario.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.Database.reset_to_flows.html#mario.Database.reset_to_flows" title="mario.Database.reset_to_flows"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Database.reset_to_flows</span></code></a>(scenario[, backup])</p></td>
+<td><p>Deletes the coefficients of a scenario and keeps only flows</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api_document/mario.Database.reset_to_coefficients.html#mario.Database.reset_to_coefficients" title="mario.Database.reset_to_coefficients"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Database.reset_to_coefficients</span></code></a>(scenario[, ...])</p></td>
+<td><p>Deletes the flows of a scenario and keeps only coefficients</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.Database.clone_scenario.html#mario.Database.clone_scenario" title="mario.Database.clone_scenario"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Database.clone_scenario</span></code></a>(scenario, name)</p></td>
+<td><p>Creates a new scenario by cloning an existing scenario</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api_document/mario.Database.copy.html#mario.Database.copy" title="mario.Database.copy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Database.copy</span></code></a>()</p></td>
+<td><p>Returns a deepcopy of the instance</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.Database.backup.html#mario.Database.backup" title="mario.Database.backup"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Database.backup</span></code></a>()</p></td>
+<td><p>The function creates a backup of the last configuration of database to be returned in case needed.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api_document/mario.Database.reset_to_backup.html#mario.Database.reset_to_backup" title="mario.Database.reset_to_backup"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Database.reset_to_backup</span></code></a>()</p></td>
+<td><p>This function is in charge of reseting back the database to the last back-up.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="shock-analysis">
+<h2>Shock analysis<a class="headerlink" href="#shock-analysis" title="Permalink to this heading"></a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.Database.shock_calc.html#mario.Database.shock_calc" title="mario.Database.shock_calc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Database.shock_calc</span></code></a>(io[, z, e, v, Y, notes, ...])</p></td>
+<td><p>Implements shocks on different matrices with the possibility of defining clusters on every level of information.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="data-visualization">
+<h2>Data visualization<a class="headerlink" href="#data-visualization" title="Permalink to this heading"></a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.set_palette.html#mario.set_palette" title="mario.set_palette"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mario.set_palette</span></code></a>([mario_palettes, user_palette])</p></td>
+<td><p>Sets the default palette of plots</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api_document/mario.Database.plot_gdp.html#mario.Database.plot_gdp" title="mario.Database.plot_gdp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Database.plot_gdp</span></code></a>([path, plot, scenario, ...])</p></td>
+<td><p>Plots sectoral GDP with additional info</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.Database.plot_bubble.html#mario.Database.plot_bubble" title="mario.Database.plot_bubble"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Database.plot_bubble</span></code></a>(x, y, size[, path, ...])</p></td>
+<td><p>Creates bubble plots</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api_document/mario.Database.plot_linkages.html#mario.Database.plot_linkages" title="mario.Database.plot_linkages"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Database.plot_linkages</span></code></a>([scenarios, ...])</p></td>
+<td><p>Plots linkages in different modes</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.Database.plot_matrix.html#mario.Database.plot_matrix" title="mario.Database.plot_matrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Database.plot_matrix</span></code></a>(matrix, x, color[, y, ...])</p></td>
+<td><p>Generates a general html barplot giving the user certain degrees of freedom such as:</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="get-excels">
+<h2>Get excels<a class="headerlink" href="#get-excels" title="Permalink to this heading"></a></h2>
+<p>mario has some functions providing automatic excel file generations for easing some of
+the functionalities such as aggrgeaton and adding sectors.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.Database.get_aggregation_excel.html#mario.Database.get_aggregation_excel" title="mario.Database.get_aggregation_excel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Database.get_aggregation_excel</span></code></a>([path, levels])</p></td>
+<td><p>Generates the Excel file for aggregation of the database</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api_document/mario.Database.get_extensions_excel.html#mario.Database.get_extensions_excel" title="mario.Database.get_extensions_excel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Database.get_extensions_excel</span></code></a>(matrix[, path])</p></td>
+<td><p>Generates an Excel file for easing the add extension functionality</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.Database.get_add_sectors_excel.html#mario.Database.get_add_sectors_excel" title="mario.Database.get_add_sectors_excel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Database.get_add_sectors_excel</span></code></a>(new_sectors, ...)</p></td>
+<td><p>Generates an Excel file to add a sector/activity/commodity to the database</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api_document/mario.Database.get_shock_excel.html#mario.Database.get_shock_excel" title="mario.Database.get_shock_excel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Database.get_shock_excel</span></code></a>([path, num_shock])</p></td>
+<td><p>Creates an Excel file based on the shape and the format</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="save-data">
+<h2>Save data<a class="headerlink" href="#save-data" title="Permalink to this heading"></a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.Database.to_excel.html#mario.Database.to_excel" title="mario.Database.to_excel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Database.to_excel</span></code></a>([path, flows, ...])</p></td>
+<td><p>Saves the database into an Excel file</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api_document/mario.Database.to_txt.html#mario.Database.to_txt" title="mario.Database.to_txt"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Database.to_txt</span></code></a>([path, flows, coefficients, ...])</p></td>
+<td><p>Saves the database multiple text file based on given inputs</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.Database.to_pymrio.html#mario.Database.to_pymrio" title="mario.Database.to_pymrio"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Database.to_pymrio</span></code></a>([satellite_account, ...])</p></td>
+<td><p>Returns a pymrio.IOSystem from a mario.Database</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="database-parsers">
+<h2>Database parsers<a class="headerlink" href="#database-parsers" title="Permalink to this heading"></a></h2>
+<section id="structured-databases">
+<h3>Structured Databases<a class="headerlink" href="#structured-databases" title="Permalink to this heading"></a></h3>
+<p>mario supports automatic parsing of following database:</p>
+<ul class="simple">
+<li><p>Exiobase</p></li>
+<li><p>Eurostat Supply and Use</p></li>
+<li><p>Eora26</p></li>
+<li><p>Eora single region</p></li>
+</ul>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.parse_exiobase_3.html#mario.parse_exiobase_3" title="mario.parse_exiobase_3"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mario.parse_exiobase_3</span></code></a>(path[, calc_all, ...])</p></td>
+<td><p>Parsing exiobase3</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api_document/mario.parse_exiobase_sut.html#mario.parse_exiobase_sut" title="mario.parse_exiobase_sut"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mario.parse_exiobase_sut</span></code></a>(path[, calc_all, ...])</p></td>
+<td><p>Parsing exiobase mrsut</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.parse_eurostat_sut.html#mario.parse_eurostat_sut" title="mario.parse_eurostat_sut"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mario.parse_eurostat_sut</span></code></a>(supply_path, use_path)</p></td>
+<td><p>Parsing Eurostat databases</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api_document/mario.parse_eora.html#mario.parse_eora" title="mario.parse_eora"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mario.parse_eora</span></code></a>(path, multi_region, table)</p></td>
+<td><p>Parsing eora databases</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.parse_from_pymrio.html#mario.parse_from_pymrio" title="mario.parse_from_pymrio"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mario.parse_from_pymrio</span></code></a>(io, value_added, ...)</p></td>
+<td><p>Parsing a pymrio database</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api_document/mario.hybrid_sut_exiobase.html#mario.hybrid_sut_exiobase" title="mario.hybrid_sut_exiobase"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mario.hybrid_sut_exiobase</span></code></a>(path[, ...])</p></td>
+<td><p>reads hybrid supply and use exiobase</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.parse_exiobase.html#mario.parse_exiobase" title="mario.parse_exiobase"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mario.parse_exiobase</span></code></a>(table, unit, path[, ...])</p></td>
+<td><p>A unique function for parsing all exiobase databases</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="non-structured-databases">
+<h3>Non-Structured Databases<a class="headerlink" href="#non-structured-databases" title="Permalink to this heading"></a></h3>
+<p>When databases are not structured (coming from abovementioned sources),
+excel or text parsers can be used. The databases in this case, should follow
+specific rules:</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.parse_from_excel.html#mario.parse_from_excel" title="mario.parse_from_excel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mario.parse_from_excel</span></code></a>(path, table, mode[, ...])</p></td>
+<td><p>Parsing database from excel file</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api_document/mario.parse_from_txt.html#mario.parse_from_txt" title="mario.parse_from_txt"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mario.parse_from_txt</span></code></a>(path, table, mode[, ...])</p></td>
+<td><p>Parsing database from text files</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="calculations">
+<h2>Calculations<a class="headerlink" href="#calculations" title="Permalink to this heading"></a></h2>
+<section id="high-level-matrix-calculations">
+<h3>High level matrix calculations<a class="headerlink" href="#high-level-matrix-calculations" title="Permalink to this heading"></a></h3>
+<p>This function can be called inside a mario.Database object
+to call missing matrices for different scenarios.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.CoreModel.calc_all.html#mario.CoreModel.calc_all" title="mario.CoreModel.calc_all"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CoreModel.calc_all</span></code></a>([matrices, scenario, ...])</p></td>
+<td><p>Calculates the input-output matrices for different scenarios.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api_document/mario.CoreModel.GDP.html#mario.CoreModel.GDP" title="mario.CoreModel.GDP"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CoreModel.GDP</span></code></a>([exclude, scenario, total, share])</p></td>
+<td><p>Return the value of the GDP based scenario.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.Database.calc_linkages.html#mario.Database.calc_linkages" title="mario.Database.calc_linkages"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Database.calc_linkages</span></code></a>([scenario, ...])</p></td>
+<td><p>Calculates the linkages in different modes</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="low-level-matrix-calculations">
+<h3>Low level matrix calculations<a class="headerlink" href="#low-level-matrix-calculations" title="Permalink to this heading"></a></h3>
+<p>This functions are used to calculate the matrices in mario.Database while they
+can be used independently outside a mario.Databases object.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.calc_X.html#mario.calc_X" title="mario.calc_X"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_X</span></code></a>(Z, Y)</p></td>
+<td><p>Calculates the production vector</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api_document/mario.calc_X_from_w.html#mario.calc_X_from_w" title="mario.calc_X_from_w"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_X_from_w</span></code></a>(w, Y)</p></td>
+<td><p>Calculates Production vector from Leontief coefficients matrix</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.calc_X_from_z.html#mario.calc_X_from_z" title="mario.calc_X_from_z"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_X_from_z</span></code></a>(z, Y)</p></td>
+<td><p>Calculates Production vector from Intersectoral transaction coefficients matrix</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_Z</span></code>(z, X)</p></td>
+<td><p>Calculates Intersectoral transaction flows matrix</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_E</span></code>(e, X)</p></td>
+<td><p>Calculates satellite transaction flows matrix</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_V</span></code>(v, X)</p></td>
+<td><p>Calculates Factor of production transaction flows matrix</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_M</span></code>(m, Y)</p></td>
+<td><p>Calculates Economic impact matrix</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_F</span></code>(f, Y)</p></td>
+<td><p>Calculates Footprint flows matrix</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.calc_Z.html#mario.calc_z" title="mario.calc_z"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_z</span></code></a>(Z, X)</p></td>
+<td><p>Calculates Intersectoral transaction coefficients matrix</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api_document/mario.calc_V.html#mario.calc_v" title="mario.calc_v"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_v</span></code></a>(V, X)</p></td>
+<td><p>Calculates Factor of production transaction coefficients matrix</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.calc_E.html#mario.calc_e" title="mario.calc_e"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_e</span></code></a>(E, X)</p></td>
+<td><p>Calculates Satellite transaction coefficients matrix</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api_document/mario.calc_M.html#mario.calc_m" title="mario.calc_m"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_m</span></code></a>(v, w)</p></td>
+<td><p>Calculates Multipliers coefficients matrix</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.calc_F.html#mario.calc_f" title="mario.calc_f"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_f</span></code></a>(e, w)</p></td>
+<td><p>Calculates Footprint coefficients matrix</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api_document/mario.calc_w.html#mario.calc_w" title="mario.calc_w"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_w</span></code></a>(z)</p></td>
+<td><p>Calculates Leontief coefficients matrix</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.calc_g.html#mario.calc_g" title="mario.calc_g"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_g</span></code></a>(b)</p></td>
+<td><p>Calculates Ghosh coefficients matrix</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api_document/mario.calc_b.html#mario.calc_b" title="mario.calc_b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_b</span></code></a>(X, Z)</p></td>
+<td><p>Calculates Intersectoral transaction direct-output coefficients matrix (for Ghosh model)</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.calc_p.html#mario.calc_p" title="mario.calc_p"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_p</span></code></a>(v, w)</p></td>
+<td><p>Calculating Price index coefficients vector</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api_document/mario.calc_y.html#mario.calc_y" title="mario.calc_y"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_y</span></code></a>(Y)</p></td>
+<td><p>Calculates Final demand share coefficients matrix</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="metadata">
+<h2>Metadata<a class="headerlink" href="#metadata" title="Permalink to this heading"></a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.CoreModel.save_meta.html#mario.CoreModel.save_meta" title="mario.CoreModel.save_meta"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CoreModel.save_meta</span></code></a>(path[, format])</p></td>
+<td><p>Saves the metadata in different formats</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api_document/mario.CoreModel.meta_history.html#mario.CoreModel.meta_history" title="mario.CoreModel.meta_history"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CoreModel.meta_history</span></code></a></p></td>
+<td><p>Returns the whole history of the metadata</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.CoreModel.add_note.html#mario.CoreModel.add_note" title="mario.CoreModel.add_note"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CoreModel.add_note</span></code></a>(notes)</p></td>
+<td><p>Adds notes to the meta history</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="test">
+<h2>Test<a class="headerlink" href="#test" title="Permalink to this heading"></a></h2>
+<p>For having a simple exmaple of mario, load_test can be used.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.load_test.html#mario.load_test" title="mario.load_test"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mario.load_test</span></code></a>(table)</p></td>
+<td><p>Loads an example of mario.Database</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="directory">
+<h2>Directory<a class="headerlink" href="#directory" title="Permalink to this heading"></a></h2>
+<p>When mario needs to save an output of the model, if no path is given,
+files wil be saved in a default directory with subfolders based on
+the type of the output. By default, the directory is the working directory
+but user can change the default directory.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.CoreModel.directory.html#mario.CoreModel.directory" title="mario.CoreModel.directory"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CoreModel.directory</span></code></a></p></td>
+<td><p>The defualt directory of the database</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="utilities">
+<h2>Utilities<a class="headerlink" href="#utilities" title="Permalink to this heading"></a></h2>
+<p>There are some useful functions in mario that may help the user for different purposes.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.CoreModel.search.html#mario.CoreModel.search" title="mario.CoreModel.search"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CoreModel.search</span></code></a>(item, search[, ignore_case])</p></td>
+<td><p>Searches for specific keywords in a given item</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api_document/mario.slicer.html#mario.slicer" title="mario.slicer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mario.slicer</span></code></a>(matrix, axis, **levels)</p></td>
+<td><p>Helps to slice the matrices</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="logging">
+<h2>Logging<a class="headerlink" href="#logging" title="Permalink to this heading"></a></h2>
+<p>In case that logging is useful for the user, the following function can be used to set the level of verbosity.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api_document/mario.set_log_verbosity.html#mario.set_log_verbosity" title="mario.set_log_verbosity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mario.set_log_verbosity</span></code></a>([verbosity, ...])</p></td>
+<td><p>Sets the formatted logging level</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="htmls/shock.html" class="btn btn-neutral float-left" title="Shock and scenario analysis" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="api_document/mario.CoreModel.is_balanced.html" class="btn btn-neutral float-right" title="mario.CoreModel.is_balanced" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, MARIO Authors: Mohammad Amin Tahavori, Lorenzo Rinaldi, Nicolo Golinucci.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
