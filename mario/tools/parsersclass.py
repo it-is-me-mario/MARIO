@@ -471,6 +471,9 @@ def hybrid_sut_exiobase(
         "The name of extensions are changed to avoid confusion of same satellite account category for different extensions. For example 'Food' in 'pack_use_waste_act' is changed to 'Food (pack_use_waste)' to avoid confusion with 'Food' in 'pack_sup_waste'"
     ]
 
+    if "year" in kwargs:
+        del kwargs["year"]
+        
     return models[model](
         name=name,
         table="SUT",
