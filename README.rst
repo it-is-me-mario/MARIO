@@ -28,7 +28,7 @@ Multifunctional Analysis of Regions through Input-Output.  (`Documents <https://
 
 What is it
 -----------
-**MARIO** is a python package for handling input-output tables and models inspired by `pymrio <https://github.com/konstantinstadler/pymrio>`_.
+**MARIO** is a python package for handling input-output tables and models inspired by `Pymrio  <https://github.com/IndEcol/pymrio>`_ .
 MARIO aims to provide a *simple* & *intuitive* API for common IO tasks without
 needing in-depth programming knowledge. MARIO supporst automatic parsing of different
 structured tables such EXIOBASE, EORA, EUROSTAT in different formats namely:
@@ -174,15 +174,26 @@ Some of the key packages the mario relies on are:
 * `Numpy  <https://numpy.org/>`_ 
 * `Plotly  <https://plotly.com/>`_ 
 * `Tabulate  <https://pypi.org/project/tabulate/>`_ 
+* `Pymrio  <https://github.com/IndEcol/pymrio>`_ 
 * `Cvxpy  <https://pypi.org/project/cvxpy/>`_ (Optional in this version)
 
+Testing MARIO
+-------------
+The current version of Mario has achieved a test coverage of 49%. This coverage includes a comprehensive 100% assessment of the fundamental mathematical engine. 
+Additional tests are currently in active development to enhance the package's reliability. 
+Mario utilizes `pytest <https://docs.pytest.org/en/7.4.x/>`_  as its primary tool for conducting unit tests. For a more detailed analysis of the test coverage pertaining to mario's unit tests, 
+you can execute the following command:
 
+.. code-block:: python
+
+   pytest --cov=mario tests/ 
 
 .. note::
    * This project is under active development. 
    * More examples will be uploaded through time to the gellery.
    * More parsers will be added to the next version.
    * The next version will cover some optimization models within the IO framework
+   * For more tutorials on mario, check out our `Input-Output analysis and modelling with MARIO Course  <https://zenodo.org/record/8308515>`_ 
 
 
 License
