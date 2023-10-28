@@ -11,6 +11,7 @@ Contents:
    installation
    contributors
    terminology
+   settings
    handlingdata
    modelgallery
    api_refernces

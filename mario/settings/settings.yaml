@@ -1,0 +1,31 @@
+index:
+  a: Activity
+  c: Commodity
+  f: Factor of production
+  k: Satellite account
+  n: Consumption category
+  r: Region
+  s: Sector
+nomenclature:
+  E: E
+  EY: EY
+  F: F
+  M: M
+  S: S
+  U: U
+  V: V
+  X: X
+  Y: Y
+  Z: Z
+  b: b
+  e: e
+  f: f
+  g: g
+  m: m
+  p: p
+  s: s
+  u: u
+  v: v
+  w: w
+  y: y
+  z: z

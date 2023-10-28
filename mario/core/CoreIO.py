@@ -51,6 +51,7 @@ import re
 from mario.tools.constants import (
     _LEVELS,
     _MASTER_INDEX,
+    _ENUM,
     _CALC,
     _ALL_MATRICES,
 )
@@ -131,6 +132,14 @@ class CoreModel:
         self.meta = MARIOMetaData(name=name)
 
         if "init_by_parsers" in kwargs:
+            matrices = kwargs["init_by_parsers"]["matrices"]["baseline"]
+            renamed_matrices = {}
+
+            for m,v in matrices.items():
+                renamed_matrices[_ENUM[m]] = v
+
+            kwargs["init_by_parsers"]["matrices"]["baseline"] = renamed_matrices
+
             for item in ["matrices", "units", "_indeces"]:
                 setattr(self, item, kwargs["init_by_parsers"][item])
 
@@ -148,6 +157,15 @@ class CoreModel:
                 self.matrices, self._indeces, self.units = dataframe_parser(
                     Z, Y, E, V, EY, units, table
                 )
+
+                matrices = self.matrices["baseline"]
+                renamed_matrices = {}
+
+                for m,v in matrices.items():
+                    renamed_matrices[_ENUM[m]] = v
+                
+                self.matrices["baseline"] = renamed_matrices
+
                 self.meta._add_attribute(table=table, price=price)
 
                 log_time(logger, "Metadata: initialized by dataframes.")
@@ -162,7 +180,7 @@ class CoreModel:
 
     def calc_all(
         self,
-        matrices=["z", "v", "e", "Z", "V", "E"],
+        matrices=[_ENUM.z, _ENUM.v, _ENUM.e, _ENUM.Z, _ENUM.V, _ENUM.E],
         scenario="baseline",
         force_rewrite=False,
         **kwargs,
@@ -209,19 +227,23 @@ class CoreModel:
                 kwargs["try"] = _try
                 try:
 
-                    if item != "X":
-                        data = eval(_CALC[item].format(scenario, scenario))
+                    if item != _ENUM.X:
+                        eq = _CALC[item][0]
+                        
+                        kw = _CALC[item][1]
+                        
+                        data = eval(eq.format(scenario=scenario,**kw))
                     else:
-                        if "z" in self.matrices[scenario]:
+                        if _ENUM.z in self.matrices[scenario]:
                             data = calc_X_from_z(
-                                z=self.matrices[scenario]["z"],
-                                Y=self.matrices[scenario]["Y"],
+                                z=self.matrices[scenario][_ENUM.z],
+                                Y=self.matrices[scenario][_ENUM.Y],
                             )
 
-                        elif "Z" in self.matrices[scenario]:
+                        elif _ENUM.Z in self.matrices[scenario]:
                             data = calc_X(
-                                Z=self.matrices[scenario]["Z"],
-                                Y=self.matrices[scenario]["Y"],
+                                Z=self.matrices[scenario][_ENUM.Z],
+                                Y=self.matrices[scenario][_ENUM.Y],
                             )
 
                         else:
@@ -359,7 +381,7 @@ class CoreModel:
         if backup:
             self.backup()
 
-        keep = ["Z", "E", "V", "EY", "Y"]
+        keep = [_ENUM.Z, _ENUM.E, _ENUM.V, _ENUM.EY, _ENUM.Y]
 
         if scenario not in self.scenarios:
             raise WrongInput(f"Acceptable scenarios are {self.scenarios}")
@@ -386,7 +408,7 @@ class CoreModel:
         backup : boolean
             if True, will create a backup of database before changes
         """
-        keep = ["z", "e", "v", "EY", "Y"]
+        keep = [_ENUM.z, _ENUM.e, _ENUM.v, _ENUM.EY, _ENUM.Y]
 
         if backup:
             self.backup()
@@ -490,9 +512,9 @@ class CoreModel:
         """
 
         methods = {
-            "flows": {"matrices": ["V", "Z", "X"], "header": ["\u0394X"]},
-            "coefficients": {"matrices": ["v", "z"], "header": ["v+z"]},
-            "prices": {"matrices": ["p"], "header": ["\u0394p"]},
+            "flows": {"matrices": [_ENUM.V, _ENUM.Z, _ENUM.X], "header": ["\u0394X"]},
+            "coefficients": {"matrices": [_ENUM.v, _ENUM.z], "header": [f"{_ENUM.v}+{_ENUM.z}"]},
+            "prices": {"matrices": [_ENUM.p], "header": ["\u0394p"]},
         }
 
         if method not in methods:
@@ -502,17 +524,13 @@ class CoreModel:
                 "Balance test is not applicable for hybrid units tables."
             )
 
-        data = self.get_data(
+        data = self.query(
             matrices=methods[method]["matrices"],
-            units=False,
-            indeces=False,
             scenarios=[data_set],
-            format="object",
-            auto_calc=True,
-        )[data_set]
+        )
 
         if method == "flows":
-            balance = (data.Z.sum() + data.V.sum() - data.X.sum(1)).to_frame()
+            balance = (data[_ENUM.Z].sum() + data[_ENUM.V].sum() - data[_ENUM.X].sum(1)).to_frame()
             balance.columns = ["col"]
 
             imbalances = balance[
@@ -520,7 +538,7 @@ class CoreModel:
             ]
 
         elif method == "coefficients":
-            balance = (data.z.sum() + data.v.sum()).to_frame()
+            balance = (data[_ENUM.z].sum() + data[_ENUM.v].sum()).to_frame()
             balance.columns = ["col"]
 
             imbalances = balance[
@@ -529,7 +547,7 @@ class CoreModel:
             ]
 
         elif method == "prices":
-            balance = data.p
+            balance = data
             imbalances = balance[
                 (balance["price index"] >= 1 + margin)
                 | (balance["price index"] <= 1 - margin) & (balance["price index"] != 0)
@@ -674,7 +692,7 @@ class CoreModel:
 
             prob = cp.Problem(obj, const)
             prob.solve(verbose=False)
-            print(s.value)
+            
 
             if all(s.value == 0):
                 log_time(
@@ -774,13 +792,10 @@ class CoreModel:
 
         slicer = _MASTER_INDEX["s"] if self.table_type == "IOT" else _MASTER_INDEX["a"]
 
-        data = self.get_data(
+        data = self.query(
             matrices=["V"],
             scenarios=[scenario],
-            units=False,
-            indeces=False,
-            format="object",
-        )[scenario].V
+        )
 
         GDP = (
             data.drop(exclude).sum().to_frame().loc[(slice(None), slicer, slice(None))]

@@ -84,6 +84,7 @@ from mario.tools.constants import (
     _ALL_MATRICES,
     _MATRICES_NAMES,
     _PYMRIO_MATRICES,
+    _ENUM
 )
 
 from mario.core.CoreIO import CoreModel
@@ -227,20 +228,17 @@ class Database(CoreModel):
                 )
             )
 
-        data = self.get_data(
-            matrices=["Y", "E", "V", "Z", "EY"],
+        data = self.query(
+            matrices=[_ENUM.Y, _ENUM.E, _ENUM.V, _ENUM.Z, _ENUM.EY],
             scenarios=scenario,
-            units=False,
-            indeces=False,
-            auto_calc=True,
-        )[scenario]
+        )
 
         return Database(
-            Y=data.Y,
-            E=data.E,
-            V=data.V,
-            Z=data.Z,
-            EY=data.EY,
+            Y=data[_ENUM.Y],
+            E=data[_ENUM.E],
+            V=data[_ENUM.V],
+            Z=data[_ENUM.Z],
+            EY=data[_ENUM.EY],
             units=self.units,
             table=self.meta.table,
         )
@@ -505,7 +503,7 @@ class Database(CoreModel):
 
         # ensure of Y,E,V,Z,EY exist
         for scenario in self.scenarios:
-            self.calc_all(["E", "V", "Z"],scenario=scenario)
+            self.calc_all([_ENUM.E, _ENUM.V, _ENUM.Z],scenario=scenario)
 
         if not inplace:
             new = self.copy()
@@ -589,7 +587,7 @@ class Database(CoreModel):
 
         """
 
-        aceptables = ["E", "V"]
+        aceptables = [_ENUM.E, _ENUM.V]
 
         if matrix.upper() not in aceptables:
             raise WrongInput(f"Acceptable matrix are: \n {[*aceptables]}")
@@ -681,23 +679,23 @@ class Database(CoreModel):
             return new
 
         # This function can be implemented only in the following matrices
-        if matrix not in ["v", "V", "e", "E"]:
+        if matrix not in [_ENUM.v, _ENUM.V, _ENUM.e, _ENUM.E]:
             raise WrongInput(
-                "Acceptable items for matrix are:\n{}".format(["v", "V", "e", "E"])
+                "Acceptable items for matrix are:\n{}".format([_ENUM.v, _ENUM.V, _ENUM.e, _ENUM.E])
             )
 
-        all_matrices = ["v", "V", "e", "E", "EY", "Z", "Y"]
+        all_matrices = [_ENUM.v, _ENUM.V, _ENUM.e, _ENUM.E, _ENUM.EY, _ENUM.Z, _ENUM.Y]
 
         if matrix.upper() == matrix:
             all_matrices.remove(matrix.lower())
         else:
             all_matrices.remove(matrix.upper())
 
-        matrix_id = "f" if matrix.upper() == "V" else "k"
+        matrix_id = "f" if matrix.upper() == _ENUM.V else "k"
 
-        info = self.get_data(
-            matrices=all_matrices, auto_calc=True, indeces=False, format="dict"
-        )["baseline"]
+        info = self.query(
+            matrices=all_matrices, 
+        )
 
         if isinstance(io, pd.DataFrame):
             data = io
@@ -841,18 +839,16 @@ class Database(CoreModel):
             "warn",
         )
 
-        data = self.get_data(
-            matrices=["Y", "X", "Z", "V", "E", "EY"],
-            units=False,
-            indeces=False,
-            auto_calc=True,
-        )["baseline"]
+        data = self.query(
+            matrices=[_ENUM.Y, _ENUM.X, _ENUM.Z, _ENUM.V, _ENUM.E, _ENUM.EY],
 
-        Z = data.Z
-        V = data.V
-        Y = data.Y
-        E = data.E
-        EY = data.EY
+        )
+
+        Z = data[_ENUM.Z]
+        V = data[_ENUM.V]
+        Y = data[_ENUM.Y]
+        E = data[_ENUM.E]
+        EY = data[_ENUM.EY]
 
         # Take the regions!=region
         rest_reg = self.get_index(_MASTER_INDEX["r"])
@@ -938,7 +934,7 @@ class Database(CoreModel):
 
         self.matrices = {"baseline": {}}
         for matrix in ["Y", "Z", "E", "EY", "Y", "V", "X"]:
-            self.matrices["baseline"][matrix] = eval(matrix)
+            self.matrices["baseline"][_ENUM[matrix]] = eval(matrix)
         log_time(logger, "Transformation: New baseline added to the database")
 
         slicer = _MASTER_INDEX["a"] if self.table_type == "SUT" else _MASTER_INDEX["s"]
@@ -1012,14 +1008,9 @@ class Database(CoreModel):
             raise NotImplementable("Linkages can not be calculated for SUT.")
 
         _matrices = {
-            **self.get_data(
-                matrices=["w", "b", "z", "g"],
-                units=False,
-                indeces=False,
-                format="dict",
-                scenarios=[scenario],
-                auto_calc=True,
-            )[scenario]
+            **self.query(
+                matrices=[_ENUM.w, _ENUM.b, _ENUM.z, _ENUM.g],
+            )
         }
 
         return linkages_calculation(
@@ -1303,20 +1294,19 @@ class Database(CoreModel):
                 "satellte_account and factor_of_production does not accept values containing space."
             )
 
-        matrices = self.get_data(
-            matrices=["V", "Z", "Y", "E", "EY"], scenarios=[scenario], auto_calc=True,
-        )[scenario]
+        matrices = self.query(
+            matrices=[_ENUM.V, _ENUM.Z, _ENUM.Y, _ENUM.E, _ENUM.EY], scenarios=[scenario])
 
         factor_input = pymrio.Extension(
             name=factor_of_production,
-            F=pymrio_styling(df=matrices.V, **_PYMRIO_MATRICES["V"]),
+            F=pymrio_styling(df=matrices[_ENUM.V], **_PYMRIO_MATRICES["V"]),
             unit=self.units[_MASTER_INDEX["f"]],
         )
 
         satellite = pymrio.Extension(
             name=satellite_account,
-            F=pymrio_styling(df=matrices.E, **_PYMRIO_MATRICES["E"]),
-            F_Y=pymrio_styling(df=matrices.EY, **_PYMRIO_MATRICES["EY"]),
+            F=pymrio_styling(df=matrices[_ENUM.E], **_PYMRIO_MATRICES["E"]),
+            F_Y=pymrio_styling(df=matrices[_ENUM.EY], **_PYMRIO_MATRICES["EY"]),
             unit=self.units[_MASTER_INDEX["k"]],
         )
 
@@ -1325,13 +1315,13 @@ class Database(CoreModel):
                 self.units[_MASTER_INDEX["s"]].values,
                 (len(self.get_index(_MASTER_INDEX["r"])), 1),
             ),
-            index=matrices.Z.index,
+            index=matrices[_ENUM.Z].index,
             columns=["unit"],
         )
 
         io = pymrio.IOSystem(
-            Z=pymrio_styling(df=matrices.Z, **_PYMRIO_MATRICES["Z"]),
-            Y=pymrio_styling(df=matrices.Y, **_PYMRIO_MATRICES["Y"]),
+            Z=pymrio_styling(df=matrices[_ENUM.Z], **_PYMRIO_MATRICES["Z"]),
+            Y=pymrio_styling(df=matrices[_ENUM.Y], **_PYMRIO_MATRICES["Y"]),
             unit=units,
             **kwargs,
         )
@@ -1495,7 +1485,7 @@ class Database(CoreModel):
 
         # Deleting old values
         for matrix in ["z", "e", "v", "Y", "X", "Z", "E", "V", "EY"]:
-            self.matrices["baseline"][matrix] = eval(matrix)
+            self.matrices["baseline"][_ENUM[matrix]] = eval(matrix)
 
         self.meta._add_history(
             "Scenarios: all the scenarios deleted from the database."
@@ -1576,6 +1566,8 @@ class Database(CoreModel):
 
         if only one scenario ("sc.1") and one matrix ("X") is passed the output will be a single pd.DataFrame.
         """
+        if isinstance(scenarios,str):
+            scenarios = [scenarios]
         data = self.get_data(
             matrices=matrices,
             units=False,
@@ -1783,19 +1775,16 @@ class Database(CoreModel):
         pd.DataFrame
         """
 
-        data = self.get_data(
-            matrices=["Z", "Y", "V", "E", "EY"],
-            units=False,
-            indeces=False,
-            auto_calc=True,
+        data = self.query(
+            matrices=[_ENUM.Z, _ENUM.Y, _ENUM.V, _ENUM.E, _ENUM.EY],
             scenarios=scenario,
-        )[scenario]
+        )
 
-        Z = data.Z
-        Y = data.Y
-        V = data.V
-        E = data.E
-        EY = data.EY
+        Z = data[_ENUM.Z]
+        Y = data[_ENUM.Y]
+        V = data[_ENUM.V]
+        E = data[_ENUM.E]
+        EY = data[_ENUM.EY]
 
         V.index = [[""] * len(V), [_MASTER_INDEX["f"]] * len(V), V.index]
         E.index = [[""] * len(E), [_MASTER_INDEX["k"]] * len(E), E.index]
@@ -1895,7 +1884,7 @@ class Database(CoreModel):
         e_c, note_e = V_shock(self, io, "E", e, clusters, 1)
         v_c, note_v = V_shock(self, io, "V", v, clusters, 1)
         Y_c, note_y = Y_shock(self, io, Y, clusters, 1)
-        EY_c = copy.deepcopy(self.EY)
+        EY_c = self.query([_ENUM.EY])
 
         _results = calc_all_shock(z_c, e_c, v_c, Y_c)
         _results["EY"] = EY_c
@@ -1921,6 +1910,7 @@ class Database(CoreModel):
 
     def get_shock_excel(
         self, path=None, num_shock=10, **clusters,
+
     ):
 
         """Creates an Excel file based on the shape and the format
@@ -2024,9 +2014,9 @@ class Database(CoreModel):
         )
 
         cols = {}
-        matrices = self.get_data(
-            matrices=["E", "V"], scenarios=scenario, units=False, indeces=False
-        )[scenario]
+        matrices = self.query(
+            matrices=[_ENUM.E, _ENUM.V]
+        )
         for item in items:
             if eval(item) == "GDP":
                 to_plot["GDP"] = (
@@ -2037,11 +2027,11 @@ class Database(CoreModel):
                 unit = self.units[_MASTER_INDEX["f"]].iloc[0, 0]
 
             elif eval(item) in self.get_index(_MASTER_INDEX["k"]):
-                to_plot[eval(item)] = matrices.E.loc[eval(item), to_plot.index].values
+                to_plot[eval(item)] = matrices[_ENUM.E].loc[eval(item), to_plot.index].values
                 unit = self.units[_MASTER_INDEX["k"]].loc[eval(item), "unit"]
 
             elif eval(item) in self.get_index(_MASTER_INDEX["f"]):
-                to_plot[eval(item)] = matrices.V.loc[eval(item), to_plot.index].values
+                to_plot[eval(item)] = matrices[_ENUM.V].loc[eval(item), to_plot.index].values
                 unit = self.units[_MASTER_INDEX["f"]].loc[eval(item), "unit"]
             else:
                 raise WrongInput(
@@ -2151,19 +2141,19 @@ class Database(CoreModel):
         if extension is not None:
 
             if extension_value == "relative":
-                matrix = "e"
+                matrix = _ENUM.e
                 color = "{} [{}]/ Production"
 
             elif extension_value == "specific footprint":
-                matrix = "f"
+                matrix = _ENUM.f
                 color = "{} [{}]/ Production"
 
             elif extension_value == "absolute footprint":
-                matrix = "F"
+                matrix = _ENUM.F
                 color = "{} [{}]"
 
             else:
-                matrix = "E"
+                matrix = _ENUM.E
                 color = "{} [{}]"
 
             data = self.get_data(

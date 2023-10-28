@@ -6,6 +6,7 @@ import pandas as pd
 
 # constants
 from mario.tools.constants import (
+    _ENUM,
     _MASTER_INDEX,
     _ADD_SECTOR_SHEETS,
 )
@@ -33,12 +34,10 @@ def adding_new_sector(instance, data, new_sectors, item, regions):
             keys.remove("if")
             counter_item = _MASTER_INDEX["a"]
 
-    _data = instance.get_data(
-        matrices=["e", "v", "z", "Y"],
+    _data = instance.query(
+        matrices=[_ENUM.e, _ENUM.v, _ENUM.z, _ENUM.Y],
         scenarios=["baseline"],
-        units=False,
-        indeces=False,
-    )["baseline"]
+    )
 
     matrix_mapper = {
         "it": {
@@ -90,16 +89,14 @@ def adding_new_sector(instance, data, new_sectors, item, regions):
                 else:
                     raise Exception(e)
 
-    data = instance.get_data(
-        matrices=["e", "v", "z", "Y"],
+    data = instance.query(
+        matrices=[_ENUM.e, _ENUM.v, _ENUM.z, _ENUM.Y],
         scenarios=["baseline"],
-        units=False,
-        indeces=False,
-    )["baseline"]
-    e = data.e
-    v = data.v
-    z = data.z
-    Y = data.Y
+    )
+    e = data[_ENUM.e]
+    v = data[_ENUM.v]
+    z = data[_ENUM.z]
+    Y = data[_ENUM.Y]
 
     # check if the units are passed or not
     for sec in new_sectors:

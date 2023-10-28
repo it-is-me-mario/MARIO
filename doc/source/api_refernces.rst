@@ -227,3 +227,16 @@ In case that logging is useful for the user, the following function can be used 
     :toctree: api_document/
 
     mario.set_log_verbosity
+
+
+**********
+Settings
+**********
+To customize the mario settings for naming convensions, the following functions can be used: 
+
+.. autosummary::
+    :toctree: api_document/
+
+    mario.upload_settings
+    mario.download_settings
+    mario.reset_settings

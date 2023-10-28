@@ -8,6 +8,8 @@ import pandas.testing as pdt
 import pandas as pd
 from pymrio import Extension,IOSystem
 
+from mario.tools.constants import _ENUM
+
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 MAIN_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -50,7 +52,7 @@ def agg_IOT():
 
 def test_build_new_instance(CoreDataIOT):
 
-    CoreDataIOT.calc_all(matrices=["X"])
+    CoreDataIOT.calc_all(matrices=[_ENUM.X])
     CoreDataIOT.clone_scenario("baseline", "dummy")
 
     dummy = CoreDataIOT.build_new_instance("dummy")
@@ -214,42 +216,42 @@ def test_to_pymrio(CoreDataIOT,CoreDataSUT):
         io.x , x ,check_names=False
     )
 
-    Y = CoreDataIOT.Y.droplevel(level=1).droplevel(level=1,axis=1)
+    Y = getattr(CoreDataIOT,_ENUM.Y).droplevel(level=1).droplevel(level=1,axis=1)
     pdt.assert_frame_equal(
         io.Y , Y ,check_names=False
     )
 
-    A = CoreDataIOT.z.droplevel(level=1).droplevel(level=1,axis=1)
+    A = getattr(CoreDataIOT,_ENUM.z).droplevel(level=1).droplevel(level=1,axis=1)
     pdt.assert_frame_equal(
         io.A,A,check_names=False
     )
 
-    Z = CoreDataIOT.Z.droplevel(level=1).droplevel(level=1,axis=1)
+    Z = getattr(CoreDataIOT,_ENUM.Z).droplevel(level=1).droplevel(level=1,axis=1)
     pdt.assert_frame_equal(
         io.Z,Z,check_names=False
     )
 
-    e = CoreDataIOT.e.droplevel(level=1,axis=1)
+    e = getattr(CoreDataIOT,_ENUM.e).droplevel(level=1,axis=1)
     pdt.assert_frame_equal(
         io.Extensions.S,e,check_names=False
     )   
 
-    E = CoreDataIOT.E.droplevel(level=1,axis=1)
+    E = getattr(CoreDataIOT,_ENUM.E).droplevel(level=1,axis=1)
     pdt.assert_frame_equal(
         io.Extensions.F,E,check_names=False
     )   
 
-    EY = CoreDataIOT.EY.droplevel(level=1,axis=1)
+    EY = getattr(CoreDataIOT,_ENUM.EY).droplevel(level=1,axis=1)
     pdt.assert_frame_equal(
         io.Extensions.F_Y,EY,check_names=False
     )   
 
-    v = CoreDataIOT.v.droplevel(level=1,axis=1)
+    v = getattr(CoreDataIOT,_ENUM.v).droplevel(level=1,axis=1)
     pdt.assert_frame_equal(
         io.Value_added.S,v,check_names=False
     )   
 
-    V = CoreDataIOT.V.droplevel(level=1,axis=1)
+    V = getattr(CoreDataIOT,_ENUM.V).droplevel(level=1,axis=1)
     pdt.assert_frame_equal(
         io.Value_added.F,V,check_names=False
     )   
@@ -265,7 +267,7 @@ def test_querry(CoreDataIOT):
 
     # case 1: Nested dict
     scenarios = ["baseline","sc.2"]
-    matrices=["X","z"]
+    matrices=[_ENUM.X,_ENUM.z]
 
     case_1 = CoreDataIOT.query(scenarios = scenarios,matrices=matrices)
 
@@ -279,7 +281,7 @@ def test_querry(CoreDataIOT):
 
     # case 2: one scenario and 2 matrices
     scenarios = ["sc.2"]
-    matrices=["X","z"]
+    matrices=[_ENUM.X,_ENUM.z]
 
     case_2 = CoreDataIOT.query(scenarios = scenarios,matrices=matrices)
 
@@ -292,7 +294,7 @@ def test_querry(CoreDataIOT):
 
     # case 3: two scenarios and 1 matrix
     scenarios = ["baseline","sc.2"]
-    matrices=["X"]
+    matrices=[_ENUM.X]
 
     case_3 = CoreDataIOT.query(scenarios = scenarios,matrices=matrices)
 
@@ -306,7 +308,7 @@ def test_querry(CoreDataIOT):
 
     # case 4: one scneario and one matrix
     scenarios = ["sc.2"]
-    matrices=["X"]
+    matrices=[_ENUM.X]
 
     case_4 = CoreDataIOT.query(scenarios = scenarios,matrices=matrices)
 
