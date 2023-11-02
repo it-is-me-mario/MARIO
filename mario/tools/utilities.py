@@ -2,7 +2,7 @@
 """
 contains the utils functions in mario
 """
-#%%
+
 import pandas as pd
 import numpy as np
 import logging
@@ -11,6 +11,7 @@ import os
 
 
 from mario.tools.constants import (
+    _ENUM,
     _MASTER_INDEX,
     _LEVELS,
     _ALL_MATRICES,
@@ -64,7 +65,7 @@ def slicer(matrix, axis, **levels):
         data.Y.loc[Y_rows,Y_cols]
     """
 
-    if matrix.upper() in ["V", "E"] and axis == 0:
+    if matrix.upper() in [_ENUM.V, _ENUM.E] and axis == 0:
         acceptable_levels = ["Item"]
     else:
         acceptable_levels = ["Region", "Level", "Item"]
@@ -94,7 +95,7 @@ def sort_frames(_dict):
 
     for key, value in _dict.items():
 
-        if key.upper() in ["E", "V", "EY"]:
+        if key.upper() in [_ENUM.E, _ENUM.V, _ENUM.EY]:
             _dict[key] = value.sort_index(axis=1, level=1)
 
         else:

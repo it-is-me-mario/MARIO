@@ -11,7 +11,7 @@ from mario.log_exc.exceptions import WrongInput
 from copy import deepcopy
 from mario.tools.utilities import delete_duplicates, rename_index
 
-from mario.tools.constants import _MASTER_INDEX
+from mario.tools.constants import _MASTER_INDEX,_ENUM
 
 logger = logging.getLogger(__name__)
 
@@ -60,12 +60,14 @@ def index_replacer(indeces: dict, mapper, level=None):
 
 def _aggregator(instance, drop):
 
+    data = instance.query(matrices=[_ENUM.Y,_ENUM.V,_ENUM.E])
+
     # checking the consistencey of units at first
     units = unit_aggregation_check(instance, drop)
 
     agg_indeces = instance.get_index("all", "aggregated")
     org_indeces = return_pdIndex(
-        instance.Y, instance.E, instance.V, instance.table_type
+        data[_ENUM.Y], data[_ENUM.E], data[_ENUM.V], instance.table_type
     )
 
     """
@@ -73,7 +75,7 @@ def _aggregator(instance, drop):
     """
     matrices = {}
 
-    for item in [*_MASTER_INDEX]:
+    for item in [*_MASTER_INDEX.setting]:
 
         if agg_indeces.get(_MASTER_INDEX[item]) is not None:
 
@@ -87,7 +89,7 @@ def _aggregator(instance, drop):
 
     Y_columns = EY_columns = [
         org_indeces["r"]["n"],
-        instance.Y.columns.get_level_values(1),
+        instance.query(_ENUM.Y).columns.get_level_values(1),
         org_indeces["n"]["n"],
     ]
 
@@ -107,19 +109,20 @@ def _aggregator(instance, drop):
 
     Y_index = V_columns = E_columns = Z_index = Z_columns = [
         org_indeces["r"]["s"],
-        instance.Y.index.get_level_values(1),
+        getattr(instance,_ENUM.Y).index.get_level_values(1),
         last_index,
     ]
 
     for scenario, values in instance:
         matrices[scenario] = {}
 
-        for matrix in ["Z", "E", "V", "EY", "Y"]:
+        for matrix in [_ENUM.Z, _ENUM.E, _ENUM.V, _ENUM.EY, _ENUM.Y]:
             item = deepcopy(values[matrix])
 
             for level in ["index", "columns"]:
 
-                setattr(item, level, eval(f"{matrix}_{level}"))
+
+                setattr(item, level, eval(f"{_ENUM.reverse(matrix)}_{level}"))
 
                 if isinstance(getattr(item, level), pd.MultiIndex):
                     item = item.groupby(
@@ -130,7 +133,7 @@ def _aggregator(instance, drop):
                         axis=0 if level == "index" else 1, level=[0], sort=False,
                     ).sum()
 
-                if level == "index" and matrix in ["E", "EY"] and drop is not None:
+                if level == "index" and matrix in [_ENUM.E, _ENUM.EY] and drop is not None:
 
                     try:
                         item = item.drop(drop, axis=0)
@@ -150,8 +153,8 @@ def _aggregator(instance, drop):
 
             matrices[scenario][matrix] = item
 
-        matrices[scenario]["X"] = calc_X(
-            matrices[scenario]["Z"], matrices[scenario]["Y"]
+        matrices[scenario][_ENUM.X] = calc_X(
+            matrices[scenario][_ENUM.Z], matrices[scenario][_ENUM.Y]
         )
 
         log_time(logger, f"Aggregation: scenario: `{scenario}` aggregated.")
@@ -172,7 +175,7 @@ def unit_aggregation_check(instance, drop):
     if isinstance(drop, str):
         drop = [drop]
 
-    units = copy.deepcopy(instance.units,)
+    units = copy.deepcopy(instance.units)
     new_units = {}
 
     indeces = copy.deepcopy(instance.get_index("all", "aggregated"))

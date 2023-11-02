@@ -16,7 +16,7 @@ setup(
     packages=find_packages(),
     license="GNU General Public License v3.0",
     #python_requires=">.3.7.0",
-    package_data={"": ["*.txt", "*.dat", "*.doc", "*.rst","*.xlsx"]},
+    package_data={"": ["*.txt", "*.dat", "*.doc", "*.rst","*.xlsx","*.yaml"]},
     install_requires=[
         "pandas <= 1.3.5",
         "numpy >= 1.21.2",

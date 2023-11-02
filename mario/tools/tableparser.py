@@ -779,7 +779,7 @@ def eora_single_region(path, table, name_convention="full_name", aggregate_trade
     }
 
     for matrix, value in indeces.items():
-        print(matrix)
+        
         for level, ind in value.items():
             exec(f"{matrix}.{level} = ind")
 

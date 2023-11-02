@@ -9,6 +9,7 @@ from copy import deepcopy as dc
 from mario.log_exc.logger import log_time
 import logging
 
+from mario.tools.constants import _ENUM
 logger = logging.getLogger(__name__)
 
 
@@ -20,7 +21,7 @@ def calc_all_shock(z, e, v, Y):
     V = calc_V(v, X)
     Z = calc_Z(z, X)
 
-    return {"X": X, "E": E, "V": V, "Z": Z, "Y": Y, "e": e, "v": v, "z": z}
+    return {_ENUM.X: X, _ENUM.E: E, _ENUM.V: V, _ENUM.Z: Z, _ENUM.Y: Y, _ENUM.e: e, _ENUM.v: v, _ENUM.z: z}
 
 
 def calc_X(
@@ -489,41 +490,41 @@ def linkages_calculation(cut_diag, matrices, multi_mode, normalized):
         geo_types = ["Local", "Foreign"]
         links = pd.DataFrame(
             0,
-            index=matrices["g"].index,
+            index=matrices[_ENUM.g].index,
             columns=pd.MultiIndex.from_product([link_types, geo_types]),
         )
 
         for index, values in links.iterrows():
             links.loc[index, ("Total Forward", "Local")] = (
-                matrices["g"].loc[index, index[0]].sum().sum()
+                matrices[_ENUM.g].loc[index, index[0]].sum().sum()
             )
             links.loc[index, ("Total Forward", "Foreign")] = (
-                matrices["g"].loc[index].sum().sum()
-                - matrices["g"].loc[index, index[0]].sum().sum()
+                matrices[_ENUM.g].loc[index].sum().sum()
+                - matrices[_ENUM.g].loc[index, index[0]].sum().sum()
             )
 
             links.loc[index, ("Total Backward", "Local")] = (
-                matrices["w"].T.loc[index, index[0]].sum().sum()
+                matrices[_ENUM.w].T.loc[index, index[0]].sum().sum()
             )
             links.loc[index, ("Total Backward", "Foreign")] = (
-                matrices["w"].T.loc[index].sum().sum()
-                - matrices["w"].T.loc[index, index[0]].sum().sum()
+                matrices[_ENUM.w].T.loc[index].sum().sum()
+                - matrices[_ENUM.w].T.loc[index, index[0]].sum().sum()
             )
 
             links.loc[index, ("Direct Forward", "Local")] = (
-                matrices["b"].loc[index, index[0]].sum().sum()
+                matrices[_ENUM.b].loc[index, index[0]].sum().sum()
             )
             links.loc[index, ("Direct Forward", "Foreign")] = (
-                matrices["b"].loc[index].sum().sum()
-                - matrices["b"].loc[index, index[0]].sum().sum()
+                matrices[_ENUM.b].loc[index].sum().sum()
+                - matrices[_ENUM.b].loc[index, index[0]].sum().sum()
             )
 
             links.loc[index, ("Direct Backward", "Local")] = (
-                matrices["z"].T.loc[index, index[0]].sum().sum()
+                matrices[_ENUM.z].T.loc[index, index[0]].sum().sum()
             )
             links.loc[index, ("Direct Backward", "Foreign")] = (
-                matrices["z"].T.loc[index].sum().sum()
-                - matrices["z"].T.loc[index, index[0]].sum().sum()
+                matrices[_ENUM.z].T.loc[index].sum().sum()
+                - matrices[_ENUM.z].T.loc[index, index[0]].sum().sum()
             )
 
         if normalized:
@@ -533,10 +534,10 @@ def linkages_calculation(cut_diag, matrices, multi_mode, normalized):
 
     # Computing linkages as if there were only one unique region
     else:
-        _forward_t = matrices["g"].sum(axis=1).to_frame()
-        _backward_t = matrices["w"].sum(axis=0).to_frame()
-        _forward_d = matrices["b"].sum(axis=1).to_frame()
-        _backward_d = matrices["z"].sum(axis=0).to_frame()
+        _forward_t = matrices[_ENUM.g].sum(axis=1).to_frame()
+        _backward_t = matrices[_ENUM.w].sum(axis=0).to_frame()
+        _forward_d = matrices[_ENUM.b].sum(axis=1).to_frame()
+        _backward_d = matrices[_ENUM.z].sum(axis=0).to_frame()
 
         _forward_t.columns = ["Total Forward"]
         _backward_t.columns = ["Total Backward"]

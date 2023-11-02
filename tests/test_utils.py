@@ -14,13 +14,12 @@ sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 from mario.tools import utilities as ut
 from mario import load_test
-from mario.tools.constants import _INDEX_NAMES
+from mario.tools.constants import _ENUM, _INDEX_NAMES
 from mario.log_exc.exceptions import WrongInput
 
 MAIN_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MOCK_PATH = f"{MAIN_PATH}/tests/mocks"
 
-#%%
 @pytest.fixture()
 def CoreDataIOT():
 
@@ -34,7 +33,7 @@ def CoreDataSUT():
 
 def test_slicer(CoreDataIOT,CoreDataSUT):
 
-    sl = ut.slicer(matrix='E',axis=1,Region=['Italy'],Item=['Transport',"Manufacturing"])
+    sl = ut.slicer(matrix=_ENUM.E,axis=1,Region=['Italy'],Item=['Transport',"Manufacturing"])
 
     pdt.assert_frame_equal(
         CoreDataIOT.E.loc[:,sl],
@@ -42,7 +41,7 @@ def test_slicer(CoreDataIOT,CoreDataSUT):
     )
 
     sl = ut.slicer(
-        matrix = 'Z',
+        matrix = _ENUM.Z,
         axis = 0,
         Region = ["Italy"],
         Level = "Activity",
@@ -54,10 +53,10 @@ def test_slicer(CoreDataIOT,CoreDataSUT):
         CoreDataSUT.Z.loc[(["Italy"],"Activity",["Transport","Manufacturing"]),(["Italy"],"Activity",["Transport","Manufacturing"])]
     )
 
-    assert "dummy" == ut.slicer(matrix='E',axis=0,Item="dummy")
+    assert "dummy" == ut.slicer(matrix=_ENUM.E,axis=0,Item="dummy")
 
     with pytest.raises(ValueError) as msg:
-        ut.slicer(matrix='E',axis=0,Region='dummy')
+        ut.slicer(matrix=_ENUM.E,axis=0,Region='dummy')
     
     assert "acceptable levels are" in str(msg.value)
 
@@ -72,7 +71,7 @@ def test_sort_frames():
 
     unsorted_frame = pd.DataFrame(0,index=unsorted_index,columns=unsorted_index)
     
-    matrices = ['e','V','Z']
+    matrices = [_ENUM.e,_ENUM.V,_ENUM.Z]
 
     _dict = {k:unsorted_frame for k in matrices}
 
@@ -84,7 +83,7 @@ def test_sort_frames():
           v.columns , sorted_index  
         )
         # exceptions for ['e','v','E','V','EY'], sorting only on cols
-        if k in ['e','V']:
+        if k in [_ENUM.e,_ENUM.V]:
             pdt.assert_index_equal(
                 v.index, unsorted_index
             )

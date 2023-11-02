@@ -15,6 +15,7 @@ from mario.tools.constants import (
     _SHOCK_LEVELS,
     _ADD_SECTOR_SHEETS,
     _SHOCKS,
+    _ENUM,
 )
 
 
@@ -105,7 +106,7 @@ def _sh_excel(instance, num_shock, directory, clusters):
         main.data_validation("E{}".format(i + 2), {"validate": "list", "source": yn})
 
     # Building the Y sheet
-    Y = workbook.add_worksheet("Y")
+    Y = workbook.add_worksheet(_ENUM.Y)
     Y.write("A1", _SHOCKS["r_reg"], header_format)
     Y.write("B1", _SHOCKS["r_lev"], header_format)
     Y.write("C1", _SHOCKS["r_sec"], header_format)
@@ -132,7 +133,7 @@ def _sh_excel(instance, num_shock, directory, clusters):
         Y.data_validation("F{}".format(i + 2), {"validate": "list", "source": types})
 
     # Building the V sheet
-    V = workbook.add_worksheet("v")
+    V = workbook.add_worksheet(_ENUM.v)
     V.write("A1", _SHOCKS["r_sec"], header_format)
     V.write("B1", _SHOCKS["c_reg"], header_format)
     V.write("C1", _SHOCKS["c_lev"], header_format)
@@ -155,7 +156,7 @@ def _sh_excel(instance, num_shock, directory, clusters):
         V.data_validation("E{}".format(i + 2), {"validate": "list", "source": types})
 
     # Building the E sheet
-    E = workbook.add_worksheet("e")
+    E = workbook.add_worksheet(_ENUM.e)
     E.write("A1", _SHOCKS["r_sec"], header_format)
     E.write("B1", _SHOCKS["c_reg"], header_format)
     E.write("C1", _SHOCKS["c_lev"], header_format)
@@ -178,7 +179,7 @@ def _sh_excel(instance, num_shock, directory, clusters):
         E.data_validation("E{}".format(i + 2), {"validate": "list", "source": types})
 
     # Building the Z sheet
-    Z = workbook.add_worksheet("z")
+    Z = workbook.add_worksheet(_ENUM.z)
     Z.write("A1", _SHOCKS["r_reg"], header_format)
     Z.write("B1", _SHOCKS["r_lev"], header_format)
     Z.write("C1", _SHOCKS["r_sec"], header_format)
@@ -357,20 +358,17 @@ def database_excel(instance, flows, coefficients, directory, units, scenario):
     header_format = workbook.add_format(_FORMAT)
 
     if flows:
-        matrices = ["V", "E", "Z", "Y", "EY"]
-        data = instance.get_data(
-            matrices=matrices,
-            units=False,
-            indeces=False,
-            auto_calc=True,
-            scenarios=scenario,
-        )[scenario]
 
-        V = data.V
-        E = data.E
-        Z = data.Z
-        Y = data.Y
-        EY = data.EY
+        data = instance.query(
+            matrices=[_ENUM.V, _ENUM.E, _ENUM.Z, _ENUM.Y, _ENUM.EY],
+            scenarios=scenario,
+        )
+
+        V = data[_ENUM.V]
+        E = data[_ENUM.E]
+        Z = data[_ENUM.Z]
+        Y = data[_ENUM.Y]
+        EY = data[_ENUM.Y]
 
         V_index = V.index.to_list()
         V.index = [["-"] * len(V_index), [_MASTER_INDEX["f"]] * len(V_index), V_index]
@@ -385,20 +383,17 @@ def database_excel(instance, flows, coefficients, directory, units, scenario):
         wrirte_matrices(flows, Z, V, E, Y, EY, flow_format, header_format)
 
     if coefficients:
-        matrices = ["v", "e", "z", "Y", "EY"]
-        data = instance.get_data(
+        matrices = [_ENUM.v, _ENUM.e, _ENUM.z, _ENUM.Y, _ENUM.EY]
+        data = instance.query(
             matrices=matrices,
-            units=False,
-            indeces=False,
-            auto_calc=True,
             scenarios=scenario,
-        )[scenario]
+        )
 
-        V = data.v
-        E = data.e
-        Z = data.z
-        Y = data.Y
-        EY = data.EY
+        V = data[_ENUM.v]
+        E = data[_ENUM.e]
+        Z = data[_ENUM.z]
+        Y = data[_ENUM.Y]
+        EY = data[_ENUM.EY]
 
         V_index = V.index.to_list()
         V.index = [["-"] * len(V_index), [_MASTER_INDEX["f"]] * len(V_index), V_index]
@@ -446,13 +441,10 @@ def database_txt(instance, flows, coefficients, path, units, scenario, _format,s
 
     if flows:
 
-        flows = instance.get_data(
-            matrices=["V", "E", "Z", "Y", "X", "EY"],
+        flows = instance.query(
+            matrices=[_ENUM.V, _ENUM.E, _ENUM.Z, _ENUM.Y, _ENUM.X, _ENUM.EY],
             scenarios=[scenario],
-            format="dict",
-            indeces=False,
-            units=False,
-        )[scenario]
+        )
         if not os.path.exists(r"{}/{}".format(path, "flows")):
             os.mkdir(r"{}/{}".format(path, "flows"))
 
@@ -471,13 +463,10 @@ def database_txt(instance, flows, coefficients, path, units, scenario, _format,s
 
     if coefficients:
 
-        coefficients = instance.get_data(
-            matrices=["v", "e", "z", "Y", "EY"],
+        coefficients = instance.query(
+            matrices=[_ENUM.v, _ENUM.e, _ENUM.z, _ENUM.Y, _ENUM.EY],
             scenarios=[scenario],
-            format="dict",
-            indeces=False,
-            units=False,
-        )[scenario]
+        )
 
         if not os.path.exists(r"{}/{}".format(path, "coefficients")):
             os.mkdir(r"{}/{}".format(path, "coefficients"))

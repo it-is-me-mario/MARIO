@@ -17,7 +17,7 @@ from mario.log_exc.logger import log_time
 import pandas as pd
 import numpy as np
 import copy
-from mario.tools.constants import _MASTER_INDEX
+from mario.tools.constants import _ENUM, _MASTER_INDEX
 from mario.tools.iomath import calc_X
 from mario.tools.utilities import rename_index
 
@@ -39,24 +39,20 @@ def SUT_to_IOT(instance, method):
         )
     # Making a deep copy of the matrices to avoid changing the baseline
 
-    data = instance.get_data(
-        matrices=["Z", "V", "E", "X", "Y", "S", "U", "EY"],
-        units=False,
-        indeces=False,
-        auto_calc=True,
-        format="dict",
-    )["baseline"]
+    data = instance.query(
+        matrices=[_ENUM.Z, _ENUM.V, _ENUM.E, _ENUM.X, _ENUM.Y, _ENUM.S, _ENUM.U, _ENUM.EY],
+    )
 
-    data["V"] = data["V"].loc[:, (slice(None), _MASTER_INDEX["a"], slice(None))]
-    data["E"] = data["E"].loc[:, (slice(None), _MASTER_INDEX["a"], slice(None))]
+    data[_ENUM.V] = data[_ENUM.V].loc[:, (slice(None), _MASTER_INDEX["a"], slice(None))]
+    data[_ENUM.E] = data[_ENUM.E].loc[:, (slice(None), _MASTER_INDEX["a"], slice(None))]
 
-    q = data["X"].loc[(slice(None), _MASTER_INDEX["c"], slice(None)), :].values
-    g = data["X"].loc[(slice(None), _MASTER_INDEX["a"], slice(None)), :].values
+    q = data[_ENUM.X].loc[(slice(None), _MASTER_INDEX["c"], slice(None)), :].values
+    g = data[_ENUM.X].loc[(slice(None), _MASTER_INDEX["a"], slice(None)), :].values
 
     if method == "A":
 
         "Check number of commodities and industries"
-        if data["S"].shape[0] != data["S"].shape[1]:
+        if data[_ENUM.S].shape[0] != data[_ENUM.S].shape[1]:
             raise NotImplementable(
                 "Method "
                 + str(method)
@@ -65,7 +61,7 @@ def SUT_to_IOT(instance, method):
 
         "Transformation matrix"
         try:
-            T = np.linalg.inv(data["S"].T) @ np.diagflat(q)
+            T = np.linalg.inv(data[_ENUM.S].T) @ np.diagflat(q)
         except np.linalg.LinAlgError:
             log_time(
                 logger,
@@ -74,20 +70,20 @@ def SUT_to_IOT(instance, method):
                 "may raise some inconsistency in the data",
                 "critical",
             )
-            T = np.linalg.pinv(data["S"].T) @ np.diagflat(q)
+            T = np.linalg.pinv(data[_ENUM.S].T) @ np.diagflat(q)
 
         "Product by Product IOT"
         Z_index = [
-            data["U"].index.get_level_values(0),
-            [_MASTER_INDEX["s"]] * data["U"].shape[0],
-            data["U"].index.get_level_values(2),
+            data[_ENUM.U].index.get_level_values(0),
+            [_MASTER_INDEX["s"]] * data[_ENUM.U].shape[0],
+            data[_ENUM.U].index.get_level_values(2),
         ]
 
-        Z = pd.DataFrame(data["U"].values @ T, index=Z_index, columns=Z_index)
-        V = pd.DataFrame(data["V"].values @ T, index=data["V"].index, columns=Z_index)
-        E = pd.DataFrame(data["E"].values @ T, index=data["E"].index, columns=Z_index)
+        Z = pd.DataFrame(data[_ENUM.U].values @ T, index=Z_index, columns=Z_index)
+        V = pd.DataFrame(data[_ENUM.V].values @ T, index=data[_ENUM.V].index, columns=Z_index)
+        E = pd.DataFrame(data[_ENUM.E].values @ T, index=data[_ENUM.E].index, columns=Z_index)
 
-        Y = data["Y"].loc[(slice(None), _MASTER_INDEX["c"], slice(None)), :]
+        Y = data[_ENUM.Y].loc[(slice(None), _MASTER_INDEX["c"], slice(None)), :]
         Y.index = Z_index
 
         "Fixing units"
@@ -101,7 +97,7 @@ def SUT_to_IOT(instance, method):
 
         "Transformation matrix"
         try:
-            T = np.linalg.inv(np.diagflat(g)) @ data["S"].values
+            T = np.linalg.inv(np.diagflat(g)) @ data[_ENUM.S].values
         except np.linalg.LinAlgError:
             log_time(
                 logger,
@@ -110,20 +106,20 @@ def SUT_to_IOT(instance, method):
                 "may raise some inconsistency in the data",
                 "critical",
             )
-            T = np.linalg.pinv(np.diagflat(g)) @ data["S"].values
+            T = np.linalg.pinv(np.diagflat(g)) @ data[_ENUM.S].values
 
         "Product by Product IOT"
         Z_index = [
-            data["U"].index.get_level_values(0),
-            [_MASTER_INDEX["s"]] * data["U"].shape[0],
-            data["U"].index.get_level_values(2),
+            data[_ENUM.U].index.get_level_values(0),
+            [_MASTER_INDEX["s"]] * data[_ENUM.U].shape[0],
+            data[_ENUM.U].index.get_level_values(2),
         ]
 
-        Z = pd.DataFrame(data["U"].values @ T, index=Z_index, columns=Z_index)
-        V = pd.DataFrame(data["V"].values @ T, index=data["V"].index, columns=Z_index)
-        E = pd.DataFrame(data["E"].values @ T, index=data["E"].index, columns=Z_index)
+        Z = pd.DataFrame(data[_ENUM.U].values @ T, index=Z_index, columns=Z_index)
+        V = pd.DataFrame(data[_ENUM.V].values @ T, index=data[_ENUM.V].index, columns=Z_index)
+        E = pd.DataFrame(data[_ENUM.E].values @ T, index=data[_ENUM.E].index, columns=Z_index)
 
-        Y = data["Y"].loc[(slice(None), _MASTER_INDEX["c"], slice(None)), :]
+        Y = data[_ENUM.Y].loc[(slice(None), _MASTER_INDEX["c"], slice(None)), :]
         Y.index = Z_index
 
         "Fixing units"
@@ -136,7 +132,7 @@ def SUT_to_IOT(instance, method):
     if method == "C":
 
         "Check number of commodities and industries"
-        if data["S"].shape[0] != data["S"].shape[1]:
+        if data[_ENUM.S].shape[0] != data[_ENUM.S].shape[1]:
             raise NotImplementable(
                 "Method "
                 + str(method)
@@ -145,7 +141,7 @@ def SUT_to_IOT(instance, method):
 
         "Transformation matrix"
         try:
-            T = np.diagflat(g) @ np.linalg.inv(data["S"].T)
+            T = np.diagflat(g) @ np.linalg.inv(data[_ENUM.S].T)
         except np.linalg.LinAlgError:
             log_time(
                 logger,
@@ -154,22 +150,22 @@ def SUT_to_IOT(instance, method):
                 "may raise some inconsistency in the data",
                 "critical",
             )
-            T = np.diagflat(g) @ np.linalg.pinv(data["S"].T)
+            T = np.diagflat(g) @ np.linalg.pinv(data[_ENUM.S].T)
 
         "Industry by Industry IOT"
         Z_index = [
-            data["S"].index.get_level_values(0),
-            [_MASTER_INDEX["s"]] * data["S"].shape[0],
-            data["S"].index.get_level_values(2),
+            data[_ENUM.S].index.get_level_values(0),
+            [_MASTER_INDEX["s"]] * data[_ENUM.S].shape[0],
+            data[_ENUM.S].index.get_level_values(2),
         ]
 
-        Z = pd.DataFrame(T @ data["U"].values, index=Z_index, columns=Z_index)
-        V = pd.DataFrame(data["V"].values, index=data["V"].index, columns=Z_index)
-        E = pd.DataFrame(data["E"].values, index=data["E"].index, columns=Z_index)
+        Z = pd.DataFrame(T @ data[_ENUM.U].values, index=Z_index, columns=Z_index)
+        V = pd.DataFrame(data[_ENUM.V].values, index=data[_ENUM.V].index, columns=Z_index)
+        E = pd.DataFrame(data[_ENUM.E].values, index=data[_ENUM.E].index, columns=Z_index)
         Y = pd.DataFrame(
-            T @ data["Y"].loc[(slice(None), _MASTER_INDEX["c"], slice(None)), :].values,
+            T @ data[_ENUM.Y].loc[(slice(None), _MASTER_INDEX["c"], slice(None)), :].values,
             index=Z_index,
-            columns=data["Y"].columns,
+            columns=data[_ENUM.Y].columns,
         )
 
         "Fixing units"
@@ -183,7 +179,7 @@ def SUT_to_IOT(instance, method):
 
         "Transformation matrix"
         try:
-            T = data["S"].values @ np.linalg.inv(np.diagflat(q))
+            T = data[_ENUM.S].values @ np.linalg.inv(np.diagflat(q))
         except np.linalg.LinAlgError:
             log_time(
                 logger,
@@ -192,22 +188,22 @@ def SUT_to_IOT(instance, method):
                 "may raise some inconsistency in the data",
                 "critical",
             )
-            T = data["S"].values @ np.linalg.pinv(np.diagflat(q))
+            T = data[_ENUM.S].values @ np.linalg.pinv(np.diagflat(q))
 
         "Industry by Industry IOT"
         Z_index = [
-            data["S"].index.get_level_values(0),
-            [_MASTER_INDEX["s"]] * data["S"].shape[0],
-            data["S"].index.get_level_values(2),
+            data[_ENUM.S].index.get_level_values(0),
+            [_MASTER_INDEX["s"]] * data[_ENUM.S].shape[0],
+            data[_ENUM.S].index.get_level_values(2),
         ]
 
-        Z = pd.DataFrame(T @ data["U"].values, index=Z_index, columns=Z_index)
-        V = pd.DataFrame(data["V"].values, index=data["V"].index, columns=Z_index)
-        E = pd.DataFrame(data["E"].values, index=data["E"].index, columns=Z_index)
+        Z = pd.DataFrame(T @ data[_ENUM.U].values, index=Z_index, columns=Z_index)
+        V = pd.DataFrame(data[_ENUM.V].values, index=data[_ENUM.V].index, columns=Z_index)
+        E = pd.DataFrame(data[_ENUM.E].values, index=data[_ENUM.E].index, columns=Z_index)
         Y = pd.DataFrame(
-            T @ data["Y"].loc[(slice(None), _MASTER_INDEX["c"], slice(None)), :].values,
+            T @ data[_ENUM.Y].loc[(slice(None), _MASTER_INDEX["c"], slice(None)), :].values,
             index=Z_index,
-            columns=data["Y"].columns,
+            columns=data[_ENUM.Y].columns,
         )
 
         "Fixing units"
@@ -224,7 +220,14 @@ def SUT_to_IOT(instance, method):
 
     X = calc_X(Z, Y)
 
-    matrices = {"baseline": {"Z": Z, "V": V, "E": E, "X": X, "Y": Y, "EY": data["EY"]}}
+    matrices = {"baseline": {
+        _ENUM.Z: Z, 
+        _ENUM.V: V, 
+        _ENUM.E: E, 
+        _ENUM.X: X, 
+        _ENUM.Y: Y, 
+        _ENUM.EY: data[_ENUM.EY]}}
+    
     indeces = {item: value for item, value in _indeces.items()}
     rename_index(matrices["baseline"])
 
