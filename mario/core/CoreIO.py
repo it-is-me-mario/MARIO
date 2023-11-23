@@ -708,6 +708,40 @@ class CoreModel:
 
         return _productive
 
+    def is_isard(self):
+
+        """
+        Checks whether a SUT is an Isard-like model
+        RETURN
+        -------------
+
+        boolean
+
+                True if the dataset is an Isard SUT
+                False if the dataset is a Chenery-Moses SUT
+
+        """  
+        
+        if self.table_type == 'IOT':
+            raise WrongInput('This method is not applicable to IOT tables')
+        
+        sN = slice(None)
+        if self.is_multi_region:
+            s_extradiag = self.S
+            
+            for region in self.get_index(_MASTER_INDEX['r']):
+                s_extradiag.loc[(region,sN,sN),(region,sN,sN)] *= 0
+        
+            if s_extradiag.sum().sum() == 0:
+                return True
+            
+            else:
+                return False
+                
+        else:
+            raise WrongInput('This method is not applicable to single-region tables')
+            
+        
     def copy(self):
         """Returns a deepcopy of the instance
 
