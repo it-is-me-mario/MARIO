@@ -16,7 +16,7 @@ from mario.log_exc.exceptions import (
 from mario.log_exc.logger import log_time
 
 from mario.tools.ioshock import Y_shock, V_shock, Z_shock
-from mario.tools.tabletransform import SUT_to_IOT,ISARD_to_CHENERYMOSES
+from mario.tools.tabletransform import SUT_to_IOT
 import json
 from mario.tools.utilities import (
     _manage_indeces,
@@ -242,69 +242,6 @@ class Database(CoreModel):
             units=self.units,
             table=self.meta.table,
         )
-
-    def to_chenerymoses(
-            self, inplace=True,
-            ):
-
-        """
-        The function will transform a ISARD Supply and Use table 
-        to a Chenery-Moses Supply and Use table
-
-        .. note::
-
-            Calling this function will delete all the existing scenarios in the database
-            and create the new baseline scenario.
-
-        Parameters
-        ----------
-        inplace : boolean
-            if True, implements the changes on the Database else returns
-            a new object without changing the original Database object
-
-        Returns
-        -------
-        None :
-            if inplace True
-
-        mario.Database :
-            if inplace False
-        """
-                
-        if not inplace:
-            new = self.copy()
-            new.to_chenerymoses(inplace=True)
-            return new
-
-        if self.is_isard() == False:
-            raise NotImplementable("This is already a Chenery-Moses table")
-
-        log_time(
-            logger,
-            "Database: Transforming the database from an Isard to a Chenery-Moses SUT",
-            )
-        
-        matrices, indeces, units = ISARD_to_CHENERYMOSES(self)
-
-        for scenario in self.scenarios:
-            log_time(logger, f"{scenario} deleted from the database", "warn")
-            self.meta._add_history(f"{scenario} deleted from the database")
-        
-        self.matrices = matrices
-
-        self._indeces = indeces
-        self.units = units
-
-        self.meta._add_history(
-            "Transformation of the database from from an Isard to a Chenery-Moses SUT"
-            )
-        log_time(
-            logger,
-            "Transformation of the database from an Isard to a Chenery-Moses SUT"
-            )
-            
-        
-        
 
     def to_iot(
         self, method, inplace=True,

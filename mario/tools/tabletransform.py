@@ -30,54 +30,6 @@ logger = logging.getLogger(__name__)
 _ACCEPTABLES = ["A", "B", "C", "D"]
 
 
-def ISARD_to_CHENERYMOSES(instance):
-    
-    sN = slice(None)
-    regions = instance.get_index('Region')
-    commodities = instance.get_index('Commodity')
-    activities = instance.get_index('Activity')
-    
-    total_cons = pd.DataFrame(index=instance.U.index,columns=regions)
-    
-    for region in regions:
-        intermediate_cons = instance.U.loc[:,(region,sN,sN)].sum(1).to_frame()
-        final_cons = instance.Y.loc[(sN,_MASTER_INDEX['c'],sN),(region,sN,sN)].sum(1).to_frame()
-        tot = intermediate_cons + final_cons
-        tot.columns = [region]
-        total_cons.update(tot)
-    
-    U_new = instance.U*0
-    Y_new = instance.Y*0
-    for region in regions:
-        U_new.loc[(region,sN,sN),(region,sN,sN)] = instance.U.loc[:,(region,sN,sN)].groupby(['Level', 'Item']).sum().values
-        Y_new.loc[(region,sN,sN),(region,sN,sN)] = instance.Y.loc[:,(region,sN,sN)].groupby(['Level', 'Item']).sum().values
-        
-    S_new = instance.S*0
-    for region_col in regions:
-        for commodity in commodities:
-            for region_row in regions:                
-                S_new.loc[(region_row,sN,sN),(region_col,sN,commodity)] = instance.s.loc[(region_row,sN,sN),(region_row,sN,commodity)].values*total_cons.loc[(region_row,sN,commodity),region_col].values                          
-        
-    Z_new = instance.Z*0
-    Z_new.update(S_new)
-    Z_new.update(U_new)     
-         
-    matrices = {'baseline':{
-        'Z': Z_new,
-        'Y': Y_new,
-        'V': instance.V,
-        'E': instance.E,
-        'EY': instance.EY,
-        },}           
-
-    indeces = instance._indeces
-    units = instance.units
-
-    return matrices,indeces,units    
-
-    
-    
-
 def SUT_to_IOT(instance, method):
 
     if method not in _ACCEPTABLES:
