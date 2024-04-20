@@ -4,7 +4,7 @@ import pytest
 import pandas.testing as pdt
 import pandas as pd
 
-from mario.tools.constants import _ENUM
+from mario.tools.constants import _ENUM, _MASTER_INDEX
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
@@ -511,8 +511,8 @@ def test_update_scenarios(CoreDataIOT):
     
     assert  "items should be DataFrame" in str(msg.value)
     
-    new_z = getattr(CoreDataIOT,_ENUM.z)
-    matrices = {_ENUM.z :  new_z+ 1}
+    new_z = getattr(CoreDataIOT,_ENUM.z) + 1
+    matrices = {_ENUM.z :  new_z}
 
     CoreDataIOT.update_scenarios(scenario='dummy',**matrices)
 
@@ -524,7 +524,7 @@ def test_update_scenarios(CoreDataIOT):
 def test_GDP(CoreDataIOT,CoreDataSUT):
     # iot
     # total
-    V = CoreDataIOT.V.sum().to_frame()
+    V = CoreDataIOT['baseline'][_ENUM.V].sum().to_frame()
     GDP= V.groupby(level='Region',sort=False).sum()
     GDP.columns = ['GDP']
     pdt.assert_frame_equal(
@@ -533,14 +533,15 @@ def test_GDP(CoreDataIOT,CoreDataSUT):
     # Sectoral 
     GDP = V
     GDP.columns = ['GDP']
-    GDP.index.names = ['Region','Level','Sector']
+    GDP.index.names = ['Region',"Level",'Sector']
+    GDP = GDP.droplevel("Level")
+
 
     pdt.assert_frame_equal(
         GDP,CoreDataIOT.GDP(total=False)
     )
 
-    reg1 = CoreDataIOT.get_index('Region')[0]
-    reg2 = CoreDataIOT.get_index('Region')[1]
+    reg1,reg2 = CoreDataIOT.get_index('Region')
 
     # share
     reg1_gdp = GDP.loc[reg1]
@@ -575,10 +576,9 @@ def test_GDP(CoreDataIOT,CoreDataSUT):
     )
 
     # sut
-    V = CoreDataSUT.V.loc[:,(slice(None),'Activity',slice(None))]
-    GDP = V.sum().to_frame()
-    GDP.columns = ['GDP']
-    GDP.index.names = ['Region','Level','Activity']
+    V = CoreDataSUT.V.loc[:,(slice(None),_MASTER_INDEX["a"],slice(None))]
+    GDP = V.sum().to_frame('GDP').droplevel(1)
+    GDP.index.names = ['Region','Activity']
 
     pdt.assert_frame_equal(
         GDP,CoreDataSUT.GDP(total=False)

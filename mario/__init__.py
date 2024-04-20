@@ -48,7 +48,7 @@ from mario.version import __version__
 from mario.core.AttrData import Database
 from mario.core.CoreIO import CoreModel
 from mario.log_exc.logger import set_log_verbosity
-
+from mario.tools.database_builder import MatrixBuilder,DataTemplate
 
 from mario.tools.iomath import (
     calc_X,

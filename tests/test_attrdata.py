@@ -50,6 +50,19 @@ def agg_IOT():
 
     return data
 
+@pytest.fixture()
+def agg_SUT():
+
+    data = parse_from_excel(
+        path = f"{MOCK_PATH}/SUT_aggregation.xlsx",
+        table = 'SUT',
+        mode = "flows"
+    )
+
+    data.path = f"{MOCK_PATH}/SUT_aggregation.xlsx"
+
+    return data
+
 def test_build_new_instance(CoreDataIOT):
 
     CoreDataIOT.calc_all(matrices=[_ENUM.X])
@@ -146,7 +159,7 @@ def test_read_aggregated_index(CoreDataIOT,CoreDataSUT):
             )
 
 # TODO :: Drop to be checked
-def test_aggregate(agg_IOT):
+def test_aggregate_IOT(agg_IOT):
 
     sats = agg_IOT.get_index('Satellite account')
     aggregator = {
@@ -180,6 +193,49 @@ def test_aggregate(agg_IOT):
         else:
             assert set(aggr.get_index(level)) == set(xlsx.values.ravel())
 
+    aggr = agg_IOT.aggregate(
+        io = agg_IOT.path,
+        inplace= False
+    )
+
+def test_aggregate_SUT(agg_SUT):
+
+    sats = agg_SUT.get_index('Satellite account')
+    aggregator = {
+        'Satellite account': pd.DataFrame(['sats']*len(sats),index=sats,columns=['Agg'])
+    }
+    # test error catch for different units
+    with pytest.raises(WrongInput) as msg:
+        agg_SUT.aggregate(
+            io = aggregator,
+            levels = 'Satellite account',
+            inplace = False
+        )
+
+    assert "different units" in str(msg.value)
+
+    file = pd.ExcelFile(agg_SUT.path)
+    for level in agg_SUT.sets:
+
+
+        xlsx = file.parse(sheet_name=level,index_col=0)
+        aggr = agg_SUT.aggregate(
+                    io = agg_SUT.path,
+                    levels = level,
+                    inplace = False,
+                    #drop = ['delete']
+                )
+
+        if level == 'Satellite account':
+            assert aggr.get_index(level) == ['sats']
+            assert len(aggr.get_index(level)) == 1
+        else:
+            assert set(aggr.get_index(level)) == set(xlsx.values.ravel())
+
+    aggr = agg_SUT.aggregate(
+        io = agg_SUT.path,
+        inplace= False
+    )
             
 def test_to_pymrio(CoreDataIOT,CoreDataSUT):
 
