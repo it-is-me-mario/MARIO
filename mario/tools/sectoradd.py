@@ -43,6 +43,7 @@ def add_new_sector(
 
     # get the essentail keys to read the data, and the counter_item
     keys,counter_item = get_corresponding_keys(item)
+    print("get_corresponding passed")
 
     add_sector_dfs = {
         key:parse_add_sector_excels(io,key,new_sectors,instance,item,counter_item,regions)
@@ -157,12 +158,13 @@ def parse_add_sector_excels(
     index_col = list(range(_ADD_SECTOR_SHEETS[key]["rows"]))
     header = list(range(_ADD_SECTOR_SHEETS[key]["cols"]))
 
+    print(sheet)
     
     try:
         df = pd.read_excel(io,sheet,index_col = index_col,header=header)
     
-    # if there is an empty excel sheet, this can raise an error
-    except IndexError as e:
+    
+    except IndexError as e: # catch the error raised when empty file passed pandas v1.3.5
         # in some specific cases it is ok to have empty sheets
         if (e.args[0] == "list index out of range") and (key in _ACCEPTABLE_EMPTY_SHEETS):
             df = get_empty_frame(key,new_sectors,instance,item,counter_item,regions)
@@ -170,6 +172,13 @@ def parse_add_sector_excels(
         else:
             raise Exception(e)
         
+    except ValueError as e: # catch the error raised when empty file passed pandas v2.0.3
+        if ("Length of new names must be 1, got 3" in e.args[0]) and (key in _ACCEPTABLE_EMPTY_SHEETS):
+            df = get_empty_frame(key,new_sectors,instance,item,counter_item,regions)
+        
+        else:
+            raise Exception(e)
+    
     return df
 
 
