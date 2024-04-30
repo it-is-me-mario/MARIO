@@ -43,7 +43,7 @@ def add_new_sector(
 
     # get the essentail keys to read the data, and the counter_item
     keys,counter_item = get_corresponding_keys(item)
-    print("get_corresponding passed")
+
 
     add_sector_dfs = {
         key:parse_add_sector_excels(io,key,new_sectors,instance,item,counter_item,regions)
@@ -109,12 +109,16 @@ def check_unit_consistency(units_df:pd.DataFrame,new_sectors:list) -> list:
         _description_
     """
     unit_errors = []
+
+    nan_indices = units_df[units_df['unit'].isna()].index.tolist()
     for new_sector in new_sectors:
-        if units_df.loc[new_sector,"unit"] == "nan":
-            unit_errors.append("The unit of measure of {} is unfilled.".format(new_sector))
+        if new_sector in nan_indices:
+            unit_errors.append(new_sector)
+
 
     if unit_errors:
-        raise LackOfInput("\n".join(unit_errors))
+        msg = "The unit of measure of following items are not identified. Please fill the info in '{}' sheet of excel file. \n".format(_ADD_SECTOR_SHEETS["un"]["sheet"])
+        raise LackOfInput(msg+"\n".join(unit_errors))
 
 
 def get_corresponding_keys(item):
@@ -158,7 +162,7 @@ def parse_add_sector_excels(
     index_col = list(range(_ADD_SECTOR_SHEETS[key]["rows"]))
     header = list(range(_ADD_SECTOR_SHEETS[key]["cols"]))
 
-    print(sheet)
+
     
     try:
         df = pd.read_excel(io,sheet,index_col = index_col,header=header)
