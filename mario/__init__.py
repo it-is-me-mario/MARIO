@@ -91,6 +91,6 @@ from mario.test.mario_test import load_test
 from mario.tools.utilities import slicer
 from mario.tools.iodownloader import *
 from mario.settings.settings import upload_settings,download_settings,reset_settings,Nomenclature,Index
-
+from mario.tools.constants import IOT,SUT
 
 __authors__ = " 'Mohammad Amin Tahavori', Lorenzo Rinaldi', 'Nicolò Golinucci' "
