@@ -600,18 +600,18 @@ def monetary_sut_exiobase(path):
     y_lower = pd.DataFrame(
         np.zeros((len(a_index[0]), len(n_index[0]))), index=a_index, columns=n_index
     )
-    Y = Y.append(y_lower)
+    Y = pd.concat([Y,y_lower])
 
     # Creating the missing parts of the z matrix
     z_upper = pd.DataFrame(
         np.zeros((len(c_index[0]), len(c_index[0]))), index=c_index, columns=c_index
     )
-    z_upper = z_upper.append(S)
+    z_upper = pd.concat([z_upper,S])
 
     z_lower = pd.DataFrame(
         np.zeros((len(a_index[0]), len(a_index[0]))), index=a_index, columns=a_index
     )
-    z_lower = U.append(z_lower)
+    z_lower = pd.concat([U,z_lower])
 
     Z = z_upper.join(z_lower)
 
@@ -622,15 +622,15 @@ def monetary_sut_exiobase(path):
     V = v_left.join(V)
 
     # creating fake E and EY
-    E = pd.DataFrame(0, index=["None"], columns=V.columns)
-    EY = pd.DataFrame(0, index=["None"], columns=Y.columns)
+    E = pd.DataFrame(0, index=["-"], columns=V.columns)
+    EY = pd.DataFrame(0, index=["-"], columns=Y.columns)
 
     X = calc_X(Z, Y)
 
     indeces = {
         "r": {"main": delete_duplicates(c_index[0].to_list())},
         "n": {"main": delete_duplicates(n_index[2].to_list())},
-        "k": {"main": ["None"]},
+        "k": {"main": ["-"]},
         "f": {"main": delete_duplicates(V.index.to_list())},
         "s": {
             "main": delete_duplicates(a_index[2].to_list())
@@ -1084,8 +1084,8 @@ def eurostat_sut(
     ] = use_data.loc[eurostat_id["c"], eurostat_id["n"]].values
 
     # Building E and EY
-    E = pd.DataFrame(data=0, index=["None"], columns=z_index)
-    EY = pd.DataFrame(data=0, index=["None"], columns=Y_columns)
+    E = pd.DataFrame(data=0, index=["-"], columns=z_index)
+    EY = pd.DataFrame(data=0, index=["-"], columns=Y_columns)
 
     # Units
     units = {
@@ -1155,8 +1155,8 @@ def parse_pymrio(io, value_added, satellite_account):
         target = extensions[key]
 
         if value == "all":
-            v = v.append(to_single_index(target.F))
-            v_unit = v_unit.append(to_single_index(target.unit))
+            v = pd.concat([v,to_single_index(target.F)])
+            v_unit = pd.concat([v_unit,to_single_index(target.unit)])
         else:
             try:
 
@@ -1166,13 +1166,13 @@ def parse_pymrio(io, value_added, satellite_account):
                 counter_mat = to_single_index(target.F.drop(value))
                 counter_unit = to_single_index(target.unit.drop(value))
 
-                v = v.append(to_append_mat)
-                v_unit = v_unit.append(to_append_unit)
+                v = pd.concat([v,to_append_mat])
+                v_unit = pd.concat([v_unit,to_append_unit])
 
-                e = e.append(counter_mat)
-                e_unit = e_unit.append(counter_unit)
+                e = pd.concat([e,counter_mat])
+                e_unit = pd.concat([e_unit,counter_unit])
 
-                EY = EY.append(to_single_index(target.F_Y.drop(value)))
+                EY = pd.concat([EY,to_single_index(target.F_Y.drop(value))])
 
             except KeyError:
                 raise WrongInput(
@@ -1183,9 +1183,9 @@ def parse_pymrio(io, value_added, satellite_account):
         target = extensions[key]
 
         if value == "all":
-            e = e.append(to_single_index(target.F))
-            e_unit = e_unit.append(to_single_index(target.unit))
-            EY = EY.append(to_single_index(target.F_Y))
+            e = pd.concat([e,to_single_index(target.F)])
+            e_unit = pd.concat([e_unit,to_single_index(target.unit)])
+            EY = pd.concat([EY,to_single_index(target.F_Y)])
         else:
             try:
 
@@ -1195,13 +1195,13 @@ def parse_pymrio(io, value_added, satellite_account):
                 to_append_v = to_single_index(target.F.drop(value))
                 to_append_v_unit = to_single_index(target.unit.drop(value))
 
-                v = v.append(to_append_v)
-                v_unit = v_unit.append(to_append_v_unit)
+                v = pd.concat([v,to_append_v])
+                v_unit = pd.concat([v_unit,to_append_v_unit])
 
-                e = e.append(to_append_e)
-                e_unit = e_unit.append(to_append_e_unit)
+                e = pd.concat([e,to_append_e])
+                e_unit = pd.concat([e_unit,to_append_e_unit])
 
-                EY = EY.append(to_single_index(target.F_Y.loc[value, :]))
+                EY = pd.concat([EY,to_single_index(target.F_Y.loc[value, :])])
 
             except KeyError:
                 raise WrongInput(
@@ -1209,13 +1209,13 @@ def parse_pymrio(io, value_added, satellite_account):
                 )
 
     if not len(v):
-        v.loc["None", io.Z.columns] = 0
-        v_unit.loc["None", "unit"] = "None"
+        v.loc["-", io.Z.columns] = 0
+        v_unit.loc["-", "unit"] = "None"
 
     if not len(e):
-        e.loc["None", io.Z.columns] = 0
-        EY.loc["None", io.Y.columns] = 0
-        e_unit.loc["None", "unit"] = "None"
+        e.loc["-", io.Z.columns] = 0
+        EY.loc["-", io.Y.columns] = 0
+        e_unit.loc["-", "unit"] = "None"
 
     Y = io.Y
     z = io.A
@@ -1344,8 +1344,8 @@ def hybrid_sut_exiobase_reader(path, extensions):
         EY = pd.concat(EY, axis=0)
 
     else:
-        E = pd.DataFrame(data=0, index=[["None"], ["None"]], columns=a_index)
-        EY = pd.DataFrame(data=0, index=[["None"], ["None"]], columns=n_index)
+        E = pd.DataFrame(data=0, index=[["-"], ["-"]], columns=a_index)
+        EY = pd.DataFrame(data=0, index=[["-"], ["-"]], columns=n_index)
 
     # # Satellite accounts index
     k_index = E.index.get_level_values(0)
@@ -1363,7 +1363,7 @@ def hybrid_sut_exiobase_reader(path, extensions):
         columns=["unit"],
     )
 
-    factors_unit = pd.DataFrame(["None"], index=["None"], columns=["unit"],)
+    factors_unit = pd.DataFrame(["None"], index=["-"], columns=["unit"],)
 
     extensions_unit = pd.DataFrame(
         E.index.get_level_values(1),
@@ -1379,7 +1379,7 @@ def hybrid_sut_exiobase_reader(path, extensions):
     U.index = c_index
     U.columns = a_index
 
-    V = pd.DataFrame(data=0, index=["None"], columns=c_index.append(a_index))
+    V = pd.DataFrame(data=0, index=["-"], columns=c_index.append(a_index))
 
     Y.index = c_index
     Y.columns = n_index
@@ -1403,18 +1403,18 @@ def hybrid_sut_exiobase_reader(path, extensions):
     z_upper = pd.DataFrame(
         np.zeros((len(c_index), len(c_index))), index=c_index, columns=c_index
     )
-    z_upper = z_upper.append(S)
+    z_upper = pd.concat([z_upper,S])
     z_lower = pd.DataFrame(
         np.zeros((len(a_index), len(a_index))), index=a_index, columns=a_index
     )
-    z_lower = U.append(z_lower)
+    z_lower = pd.concat([U,z_lower])
     Z = z_upper.join(z_lower)
 
     # adding the lower part to Y
     y_lower = pd.DataFrame(
         np.zeros((len(a_index), len(n_index))), index=a_index, columns=n_index
     )
-    Y = Y.append(y_lower)
+    Y = pd.concat([Y,y_lower])
 
     X = calc_X(Z, Y)
 
@@ -1422,7 +1422,7 @@ def hybrid_sut_exiobase_reader(path, extensions):
         "r": {"main": a_index.unique(0).tolist()},
         "n": {"main": n_index.unique(-1).tolist()},
         "k": {"main": k_index.tolist()},
-        "f": {"main": ["None"]},
+        "f": {"main": ["-"]},
         "s": {"main": (a_index.unique(-1).append(c_index.unique(-1)).tolist())},
         "a": {"main": a_index.unique(-1).tolist()},
         "c": {"main": c_index.unique(-1).tolist()},

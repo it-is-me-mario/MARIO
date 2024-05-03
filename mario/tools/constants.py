@@ -8,10 +8,13 @@ from mario.settings.settings import Index,Nomenclature
 _MASTER_INDEX = Index()
 _ENUM = Nomenclature()
 
+SUT = "SUT"
+IOT = "IOT"
+
 # represents different levels of aggregation
 _LEVELS = {
-    "SUT": {_MASTER_INDEX[i]: i for i in ["a", "c", "f", "k", "n", "r"]},
-    "IOT": {_MASTER_INDEX[i]: i for i in ["f", "k", "n", "r", "s"]},
+    SUT: {_MASTER_INDEX[i]: i for i in ["a", "c", "f", "k", "n", "r"]},
+    IOT: {_MASTER_INDEX[i]: i for i in ["f", "k", "n", "r", "s"]},
 }
 
 
@@ -19,13 +22,13 @@ _INDEX_NAMES = {"3levels": (_MASTER_INDEX["r"], "Level", "Item"), "1level": ("It
 
 
 _ACCEPTABLES = {
-    "table": ["SUT", "IOT"],
+    "table": [SUT, IOT],
 }
 
 
 _UNITS = {
-    "SUT": {_MASTER_INDEX[i]: i for i in ["a", "c", "f", "k"]},
-    "IOT": {_MASTER_INDEX[i]: i for i in ["s", "f", "k"]},
+    SUT: {_MASTER_INDEX[i]: i for i in ["a", "c", "f", "k"]},
+    IOT: {_MASTER_INDEX[i]: i for i in ["s", "f", "k"]},
 }
 
 
@@ -221,7 +224,7 @@ _MATRICES_NAMES = {
 
 
 _ALL_MATRICES = {
-    "IOT": [
+    IOT: [
         _ENUM.e,
         _ENUM.E,
         _ENUM.X,
@@ -241,7 +244,7 @@ _ALL_MATRICES = {
         _ENUM.z,
         _ENUM.Z,
     ],
-    "SUT": [
+    SUT: [
         _ENUM.e,
         _ENUM.E,
         _ENUM.X,
@@ -269,7 +272,7 @@ _ALL_MATRICES = {
 
 
 _INDECES = {
-    "IOT": {
+    IOT: {
         "Z": {
             "indices": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["s"], "Item"],
             "columns": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["s"], "Item"],
@@ -319,7 +322,7 @@ _INDECES = {
             "columns": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["s"], "Item"],
         },
     },
-    "SUT": {
+    SUT: {
         "Z": {
             "indices": [
                 _MASTER_INDEX["r"],

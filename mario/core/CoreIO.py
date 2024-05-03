@@ -793,7 +793,7 @@ class CoreModel:
         slicer = _MASTER_INDEX["s"] if self.table_type == "IOT" else _MASTER_INDEX["a"]
 
         data = self.query(
-            matrices=["V"],
+            matrices=[_ENUM.V],
             scenarios=[scenario],
         )
 
@@ -801,14 +801,15 @@ class CoreModel:
             data.drop(exclude).sum().to_frame().loc[(slice(None), slicer, slice(None))]
         )
         GDP.columns = ["GDP"]
+      
         GDP.index.names = (
-            ["Region", "Level", "Sector"]
+            ["Region", "Sector"]
             if self.table_type == "IOT"
-            else ["Region", "Level", "Activity"]
+            else ["Region", "Activity"]
         )
 
         if total:
-            return GDP.groupby(level=0, sort=False,).sum()
+            GDP =  GDP.groupby(level=0, sort=False,).sum()
 
         if share:
             region_gdp = GDP.groupby(level=0, sort=False,).sum()

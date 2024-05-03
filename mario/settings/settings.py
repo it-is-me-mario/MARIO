@@ -66,6 +66,10 @@ class Setting:
             else:
                 raise AttributeError(attr)
             
+    def items(self):
+
+        return self.setting.items()
+            
     def _check_duplicates(self):
 
         vars = list(self.setting.values())

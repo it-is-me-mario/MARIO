@@ -430,7 +430,11 @@ def database_excel(instance, flows, coefficients, directory, units, scenario):
             for row in range(item.shape[0]):
                 units.write("A{}".format(counter), key, header_format)
                 units.write("B{}".format(counter), item.index[row], header_format)
-                units.write("C{}".format(counter), item.iloc[row, 0])
+                try:
+                    units.write("C{}".format(counter), item.iloc[row, 0])
+                except TypeError:
+                    units.write("C{}".format(counter), "None")
+
 
                 counter += 1
 

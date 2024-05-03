@@ -63,7 +63,7 @@ from mario.tools.iomath import (
     linkages_calculation,
 )
 
-from mario.tools.sectoradd import adding_new_sector
+from mario.tools.sectoradd import add_new_sector
 
 from collections import namedtuple
 import plotly.offline as pltly
@@ -1466,12 +1466,13 @@ class Database(CoreModel):
             "warn",
         )
 
-        z, v, e, Y, units = adding_new_sector(self, io, new_sectors, item, regions)
 
-        X = calc_X_from_z(z, Y)
-        E = calc_E(e, X)
-        V = calc_E(v, X)
-        Z = calc_Z(z, X)
+        new_data, units = add_new_sector(self, io, new_sectors, item, regions)
+
+        new_data["X"] = calc_X_from_z(new_data["z"], new_data["Y"])
+        new_data["E"] = calc_E(new_data["e"], new_data["X"])
+        new_data["V"] = calc_E(new_data["v"], new_data["X"])
+        new_data["Z"]= calc_Z(new_data["z"], new_data["X"])
 
         # add new sector in the index
         index_take = [key for key, take in _MASTER_INDEX.items() if take == item][0]
@@ -1481,11 +1482,11 @@ class Database(CoreModel):
             if index_take != "s":
                 self._indeces["s"]["main"].append(sec)
 
-        EY = self.EY
+        new_data["EY"] = self.EY
 
         # Deleting old values
         for matrix in ["z", "e", "v", "Y", "X", "Z", "E", "V", "EY"]:
-            self.matrices["baseline"][_ENUM[matrix]] = eval(matrix)
+            self.matrices["baseline"][_ENUM[matrix]] = new_data[matrix]
 
         self.meta._add_history(
             "Scenarios: all the scenarios deleted from the database."
