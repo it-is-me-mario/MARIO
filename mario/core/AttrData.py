@@ -16,7 +16,7 @@ from mario.log_exc.exceptions import (
 from mario.log_exc.logger import log_time
 
 from mario.tools.ioshock import Y_shock, V_shock, Z_shock
-from mario.tools.tabletransform import SUT_to_IOT
+from mario.tools.tabletransform import SUT_to_IOT,ISARD_TO_CHENERY_MOSES
 import json
 from mario.tools.utilities import (
     _manage_indeces,
@@ -314,6 +314,62 @@ class Database(CoreModel):
                 method
             ),
         )
+
+    def to_chenery_moses(
+        self, inplace=True, scenarios=None,
+    ):
+
+        """The function will transform an Isard SUT table to a Chenery-Moses SUT table
+
+
+        .. note::
+
+            Calling this function will modify all scenarios in the database
+
+        Parameters
+        ----------
+
+        inplace : boolean
+            if True, implements the changes on the Database else returns
+            a new object without changing the original Database object
+
+        scenarios : str, list
+            if None, will implement the changes on all the scenarios, else will
+            implement the changes on the given scenarios
+        
+        Returns
+        -------
+        None :
+            if inplace True
+
+        mario.Database :
+            if inplace False
+        """
+        if not inplace:
+            new = self.copy()
+            new.to_chenery_moses(inplace=True)
+            return new
+
+        if self.meta.table == "IOT":
+            raise NotImplementable("IOT table cannot be classified neither as Isard nor as Chenery-Moses.")
+
+        log_time(
+            logger,
+            "Database: Transforming the database into Chenery-Moses",
+        )
+
+        if scenarios is None:
+            scenarios = self.scenarios
+
+        for scenario in scenarios:
+            Z_chenery,Y_chenery = ISARD_TO_CHENERY_MOSES(self,scenario)
+            self.update_scenarios(scenario, Z=Z_chenery, Y=Y_chenery)
+
+            print(Z_chenery)
+
+            self.reset_to_flows(scenario=scenario)
+
+
 
     def get_aggregation_excel(
         self, path=None, levels="all",
