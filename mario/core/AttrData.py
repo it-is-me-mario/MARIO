@@ -355,6 +355,9 @@ class Database(CoreModel):
         if self.meta.table == "IOT":
             raise NotImplementable("IOT table cannot be classified neither as Isard nor as Chenery-Moses.")
 
+        if self.is_chenerymoses():
+            raise WrongInput("Table is already in Chenery-Moses format")
+
         log_time(
             logger,
             "Database: Transforming the database into Chenery-Moses",
