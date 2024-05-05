@@ -319,8 +319,10 @@ class Database(CoreModel):
         self, inplace=True, scenarios=None,
     ):
 
-        """The function will transform an Isard SUT table to a Chenery-Moses SUT table
-
+        """The function will transform an Isard SUT table to a Chenery-Moses SUT table.
+        The transformation implies moving from trades accounted in the USE matrix to trades accounted in the SUPPLY matrix.
+        For further notes on the transformation check:
+        - John M. Hartwick, 1970. "Notes on the Isard and Chenery-Moses Interregional Input-Output Models," Working Paper 16, Economics Department, Queen's University.
 
         .. note::
 
@@ -347,7 +349,7 @@ class Database(CoreModel):
         """
         if not inplace:
             new = self.copy()
-            new.to_chenery_moses(inplace=True)
+            new.to_chenery_moses(inplace=True, scenarios=None)
             return new
 
         if self.meta.table == "IOT":
@@ -365,9 +367,10 @@ class Database(CoreModel):
             Z_chenery,Y_chenery = ISARD_TO_CHENERY_MOSES(self,scenario)
             self.update_scenarios(scenario, Z=Z_chenery, Y=Y_chenery)
 
-            print(Z_chenery)
-
             self.reset_to_flows(scenario=scenario)
+
+        self.meta._add_history("Transformation of the database from into Chenery-Moses")
+        log_time(logger,"Transformation of the database from into Chenery-Moses")
 
 
 

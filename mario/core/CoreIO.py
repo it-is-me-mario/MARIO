@@ -599,8 +599,8 @@ class CoreModel:
 
         boolean
 
-                True if the dataset is balance
-                Flase if the dataset is not balance --> it also prints in a table the imbalances
+                True if the dataset is productive
+                Flase if the dataset is not productive
 
         """
         _methods = {
@@ -649,64 +649,109 @@ class CoreModel:
                 )
                 _productive = False
 
-        elif method == "B":
+    def is_isard(self, scenario: str = "baseline") -> bool:
 
-            M = {}
-            M[0] = I
-            M_cum = {}
-            M_cum[0] = M[0]
-            residuals = []  # initial point
-            error = 0.1
-            i = 0
+        """Checks whether a table is in Isard format.
+        Isard SUT tables account for trades among regions in the USE matrix
 
-            while residuals[i] >= error:
-                M[i + 1] = np.linalg.matrix_power(z, i + 1)
-                M_cum[i + 1] = M_cum[i] + M[i + 1]
-                residuals.append(sum(sum(abs(L - M_cum[i + 1]))))
-                if residuals[i + 1] > residuals[i]:
-                    log_time(
-                        logger,
-                        "Test: non-productive system (non-convergent power series)",
-                    )
-                    _productive = False
-                    break
-                i += 1
-            else:
-                log_time(
-                    logger, "Test: productive system (non-convergent power series)"
-                )
+        Parameters
+        ------------
+        scenario: str
+            defining the scenario to be checked
 
-        elif method == "C" and __cvxpy__:
+        RETURN
+        -------------
 
-            x = cp.Variable((Y.shape[0], 1))
-            s = cp.Variable((Y.shape[0], 1))
+        boolean
 
-            Z = cp.sum(s, 0)
-            obj = cp.Minimize(Z)
+                True if the dataset is isard
+                Flase if the dataset is not isard
 
-            const = [
-                cp.matmul(I - z, x) + s == np.ones((Y.shape[0], 1)),
-                x >= 0,
-                s >= 0,
-            ]
+        """
 
-            prob = cp.Problem(obj, const)
-            prob.solve(verbose=False)
+        if self.meta.table != "SUT":
+            raise NotImplementable("This test is implementable only on SUT tables")
+        elif len(self.get_index(_MASTER_INDEX["r"])) == 1:
+            raise NotImplementable("This test is not implementable on single-region tables")
+    
+        if scenario not in self.scenarios:
+            raise WrongInput("Acceptable data_sets are:\n{}".format(self.scenarios))
+           
+        if 'z' in self.matrices[scenario]: # this avoid to calculate z or Z in case one of them is missing, to avoid losing time
+            matrix = self.matrices[scenario][_ENUM.z]
+        else:
+            matrix = self.matrices[scenario][_ENUM.Z]
+        
+        sN = slice(None)
+        matrix = matrix.loc[(sN,_MASTER_INDEX['c'],sN),(sN,_MASTER_INDEX['a'],sN)] # extract the use side from z or Z
+        matrix = matrix.groupby(level=[_MASTER_INDEX['r']],axis=0).sum()
+        matrix = matrix.groupby(level=[_MASTER_INDEX['r']],axis=1).sum()
+
+        is_diagonal = np.all(matrix.values == np.diag(np.diagonal(matrix)))
+
+        if is_diagonal:
+            log_time(logger, "Test: table is not in Isard format")
+
+            return False
+
+        else:
+            log_time(logger, "Test: table is in Isard format")
+
+            return True
+
+    def is_chenerymoses(self, scenario: str = "baseline") -> bool:
+
+        """Checks whether a table is in Isard format.
+        Isard SUT tables account for trades among regions in the USE matrix
+
+        Parameters
+        ------------
+        scenario: str
+            defining the scenario to be checked
+
+        RETURN
+        -------------
+
+        boolean
+
+                True if the dataset is isard
+                Flase if the dataset is not isard
+
+        """
+    
+        if self.meta.table != "SUT":
+            raise NotImplementable("This test is implementable only on SUT tables")
+        elif len(self.get_index(_MASTER_INDEX["r"])) == 1:
+            raise NotImplementable("This test is not implementable on single-region tables")
+
+        if scenario not in self.scenarios:
+            raise WrongInput("Acceptable data_sets are:\n{}".format(self.scenarios))
             
+        if 'z' in self.matrices[scenario]:  # this avoid to calculate z or Z in case one of them is missing, to avoid losing time
+            matrix = self.matrices[scenario][_ENUM.z]
+        else:
+            matrix = self.matrices[scenario][_ENUM.Z]
+        
+        sN = slice(None)
+        matrix = matrix.loc[(sN,_MASTER_INDEX['a'],sN),(sN,_MASTER_INDEX['c'],sN)]  # extract the supply side from z or Z
+        matrix = matrix.groupby(level=[_MASTER_INDEX['r']],axis=0).sum()
+        matrix = matrix.groupby(level=[_MASTER_INDEX['r']],axis=1).sum()
 
-            if all(s.value == 0):
-                log_time(
-                    logger, "Test: productive system (all industries are productive)"
-                )
+        is_diagonal = np.all(matrix.values == np.diag(np.diagonal(matrix)))
 
-            else:
-                log_time(
-                    logger,
-                    "Test: non-productive system (number of non-productive industries: {})",
-                )
-                _productive = False
+        if is_diagonal:
+            log_time(logger, "Test: table is not in Chenery-Moses format")
 
-        return _productive
+            return False
+
+        else:
+            log_time(logger, "Test: table is in Chenery-Moses format")
+
+            return True
+
+
+
+        
 
     def copy(self):
         """Returns a deepcopy of the instance

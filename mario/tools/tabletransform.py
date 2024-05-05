@@ -236,13 +236,19 @@ def SUT_to_IOT(instance, method):
 
 def ISARD_TO_CHENERY_MOSES(instance,scenario):
 
+    """This function transforms a SUT in Isard format to a SUT in Chenery-Moses format.
+    The transformation implies moving from trades accounted in the USE matrix to trades accounted in the SUPPLY matrix.
+    For further notes on the transformation check:
+    - John M. Hartwick, 1970. "Notes on the Isard and Chenery-Moses Interregional Input-Output Models," Working Paper 16, Economics Department, Queen's University.
+    """
+
     regions = instance.get_index(_MASTER_INDEX['r'])
     commodities = instance.get_index(_MASTER_INDEX['c'])
     sN = slice(None)
 
-    U_isard = instance.get_data(['U'], scenarios=[scenario])[scenario][0]
-    Y_isard = instance.get_data(['Y'], scenarios=[scenario])[scenario][0]
-    s_isard = instance.get_data(['s'], scenarios=[scenario])[scenario][0]
+    U_isard = instance.get_data([_ENUM.U], scenarios=[scenario])[scenario][0]
+    Y_isard = instance.get_data([_ENUM.Y], scenarios=[scenario])[scenario][0]
+    s_isard = instance.get_data([_ENUM.s], scenarios=[scenario])[scenario][0]
 
     domestic_use = pd.DataFrame(0, index=U_isard.index, columns=regions)
     for region in regions:
@@ -262,14 +268,20 @@ def ISARD_TO_CHENERY_MOSES(instance,scenario):
         Y_chenery.loc[(region,_MASTER_INDEX['c'],sN),(region,sN,sN)] = domestic_Y.values
 
         for region_2 in regions:
-            for commodity in commodities:
+            dom_use = np.diag(domestic_use.loc[(region_2,sN,sN),region].values)
+            market_share = s_isard.loc[(region_2,sN,sN),(region_2,sN,sN)].values
+
+            S_chenery.loc[(region_2,sN,sN),(region,sN,sN)] = market_share @ dom_use
+
+        # for region_2 in regions:
+        #     for commodity in commodities:
                 
-                market_share = s_isard.loc[(region_2,sN,sN),(region_2,sN,commodity)]
-                dom_use = domestic_use.loc[(region_2,sN,commodity),region]
+        #         market_share = s_isard.loc[(region_2,sN,sN),(region_2,sN,commodity)]
+        #         dom_use = domestic_use.loc[(region_2,sN,commodity),region]
 
-                S_chenery.loc[(region_2,sN,sN),(region,sN,commodity)] = market_share.values * dom_use.values
+        #         S_chenery.loc[(region_2,sN,sN),(region,sN,commodity)] = market_share.values * dom_use.values
 
-    Z_chenery = instance.get_data(['Z'], scenarios=[scenario])[scenario][0]*0
+    Z_chenery = instance.get_data([_ENUM.Z], scenarios=[scenario])[scenario][0]*0
     Z_chenery.loc[(sN,_MASTER_INDEX['a'],sN),(sN,_MASTER_INDEX['c'],sN)] = S_chenery
     Z_chenery.loc[(sN,_MASTER_INDEX['c'],sN),(sN,_MASTER_INDEX['a'],sN)] = U_chenery
 
