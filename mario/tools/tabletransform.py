@@ -250,14 +250,14 @@ def ISARD_TO_CHENERY_MOSES(instance,scenario):
     Y_isard = instance.get_data([_ENUM.Y], scenarios=[scenario])[scenario][0]
     s_isard = instance.get_data([_ENUM.s], scenarios=[scenario])[scenario][0]
 
-    domestic_use = pd.DataFrame(0, index=U_isard.index, columns=regions)
+    domestic_use = pd.DataFrame(0.0, index=U_isard.index, columns=regions)
     for region in regions:
         df = pd.DataFrame((U_isard.loc[:,(region,sN,sN)].sum(axis=1) + Y_isard.loc[(sN,_MASTER_INDEX['c'],sN),(region,sN,sN)].sum(axis=1)).values,index=U_isard.index,columns=[region])
         domestic_use.update(df)
     
-    U_chenery = pd.DataFrame(0, index=U_isard.index, columns=U_isard.columns)
-    Y_chenery = pd.DataFrame(0, index=Y_isard.index, columns=Y_isard.columns)
-    S_chenery = pd.DataFrame(0, index=s_isard.index, columns=s_isard.columns)
+    U_chenery = pd.DataFrame(0.0, index=U_isard.index, columns=U_isard.columns)
+    Y_chenery = pd.DataFrame(0.0, index=Y_isard.index, columns=Y_isard.columns)
+    S_chenery = pd.DataFrame(0.0, index=s_isard.index, columns=s_isard.columns)
     for region in regions:
         domestic_U = U_isard.loc[:,(region,sN,sN)].groupby(level=2).sum()
         domestic_U.index = U_isard.loc[(region,sN,sN),:].index
@@ -274,7 +274,7 @@ def ISARD_TO_CHENERY_MOSES(instance,scenario):
             S_chenery.loc[(region_2,sN,sN),(region,sN,sN)] = market_share @ dom_use
 
 
-    Z_chenery = instance.get_data([_ENUM.Z], scenarios=[scenario])[scenario][0]*0
+    Z_chenery = instance.get_data([_ENUM.Z], scenarios=[scenario])[scenario][0]*0.0
     Z_chenery.loc[(sN,_MASTER_INDEX['a'],sN),(sN,_MASTER_INDEX['c'],sN)] = S_chenery
     Z_chenery.loc[(sN,_MASTER_INDEX['c'],sN),(sN,_MASTER_INDEX['a'],sN)] = U_chenery
 

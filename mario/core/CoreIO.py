@@ -686,8 +686,8 @@ class CoreModel:
         
         sN = slice(None)
         matrix = matrix.loc[(sN,_MASTER_INDEX['c'],sN),(sN,_MASTER_INDEX['a'],sN)] # extract the use side from z or Z
-        matrix = matrix.groupby(level=[_MASTER_INDEX['r']],axis=0).sum()
-        matrix = matrix.groupby(level=[_MASTER_INDEX['r']],axis=1).sum()
+        matrix = matrix.groupby(level=[_MASTER_INDEX['r']]).sum()
+        matrix = matrix.T.groupby(level=[_MASTER_INDEX['r']]).sum().T
 
         is_diagonal = np.all(matrix.values == np.diag(np.diagonal(matrix)))
 
@@ -733,8 +733,8 @@ class CoreModel:
         
         sN = slice(None)
         matrix = matrix.loc[(sN,_MASTER_INDEX['a'],sN),(sN,_MASTER_INDEX['c'],sN)]  # extract the supply side from z or Z
-        matrix = matrix.groupby(level=[_MASTER_INDEX['r']],axis=0).sum()
-        matrix = matrix.groupby(level=[_MASTER_INDEX['r']],axis=1).sum()
+        matrix = matrix.groupby(level=[_MASTER_INDEX['r']]).sum()
+        matrix = matrix.T.groupby(level=[_MASTER_INDEX['r']]).sum().T
 
         is_diagonal = np.all(matrix.values == np.diag(np.diagonal(matrix)))
 

@@ -900,7 +900,7 @@ class Database(CoreModel):
         log_time(
             logger,
             "All the scenarios will be deleted to build up the new baseline.",
-            "warn",
+            "warning",
         )
 
         data = self.query(
@@ -1527,7 +1527,7 @@ class Database(CoreModel):
         log_time(
             logger,
             "Database: All the scenarios will be deleted from the database",
-            "warn",
+            "warning",
         )
 
 
@@ -2024,7 +2024,7 @@ class Database(CoreModel):
                     log_time(
                         logger,
                         comment="No units named {} found".format(item),
-                        level="warn",
+                        level="warning",
                     )
 
     def plot_bubble(
