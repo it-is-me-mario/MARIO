@@ -273,13 +273,6 @@ def ISARD_TO_CHENERY_MOSES(instance,scenario):
 
             S_chenery.loc[(region_2,sN,sN),(region,sN,sN)] = market_share @ dom_use
 
-        # for region_2 in regions:
-        #     for commodity in commodities:
-                
-        #         market_share = s_isard.loc[(region_2,sN,sN),(region_2,sN,commodity)]
-        #         dom_use = domestic_use.loc[(region_2,sN,commodity),region]
-
-        #         S_chenery.loc[(region_2,sN,sN),(region,sN,commodity)] = market_share.values * dom_use.values
 
     Z_chenery = instance.get_data([_ENUM.Z], scenarios=[scenario])[scenario][0]*0
     Z_chenery.loc[(sN,_MASTER_INDEX['a'],sN),(sN,_MASTER_INDEX['c'],sN)] = S_chenery

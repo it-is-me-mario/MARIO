@@ -661,12 +661,10 @@ class CoreModel:
 
         RETURN
         -------------
-
         boolean
 
                 True if the dataset is isard
                 Flase if the dataset is not isard
-
         """
 
         if self.meta.table != "SUT":
@@ -677,7 +675,7 @@ class CoreModel:
         if scenario not in self.scenarios:
             raise WrongInput("Acceptable data_sets are:\n{}".format(self.scenarios))
            
-        if 'z' in self.matrices[scenario]: # this avoid to calculate z or Z in case one of them is missing, to avoid losing time
+        if _ENUM.z in self.matrices[scenario]: # this avoid to calculate z or Z in case one of them is missing, to avoid losing time
             matrix = self.matrices[scenario][_ENUM.z]
         else:
             matrix = self.matrices[scenario][_ENUM.Z]
@@ -711,12 +709,9 @@ class CoreModel:
 
         RETURN
         -------------
-
         boolean
-
                 True if the dataset is isard
                 Flase if the dataset is not isard
-
         """
     
         if self.meta.table != "SUT":
@@ -725,9 +720,9 @@ class CoreModel:
             raise NotImplementable("This test is not implementable on single-region tables")
 
         if scenario not in self.scenarios:
-            raise WrongInput("Acceptable data_sets are:\n{}".format(self.scenarios))
+            raise WrongInput("{} is not an acceptable scenario. Acceptable data_sets are:\n{}".format(scenario,self.scenarios))
             
-        if 'z' in self.matrices[scenario]:  # this avoid to calculate z or Z in case one of them is missing, to avoid losing time
+        if _ENUM.z in self.matrices[scenario]:  # this avoid to calculate z or Z in case one of them is missing, to avoid losing time
             matrix = self.matrices[scenario][_ENUM.z]
         else:
             matrix = self.matrices[scenario][_ENUM.Z]

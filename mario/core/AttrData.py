@@ -24,6 +24,7 @@ from mario.tools.utilities import (
     run_from_jupyter,
     filtering,
     pymrio_styling,
+    sort_frames,
 )
 
 from mario.tools.excelhandler import (
@@ -316,7 +317,7 @@ class Database(CoreModel):
         )
 
     def to_chenery_moses(
-        self, inplace=True, scenarios=None,
+        self, inplace:bool=True, scenarios:list=None,
     ):
 
         """The function will transform an Isard SUT table to a Chenery-Moses SUT table.
@@ -335,7 +336,7 @@ class Database(CoreModel):
             if True, implements the changes on the Database else returns
             a new object without changing the original Database object
 
-        scenarios : str, list
+        scenarios : list
             if None, will implement the changes on all the scenarios, else will
             implement the changes on the given scenarios
         
@@ -349,30 +350,31 @@ class Database(CoreModel):
         """
         if not inplace:
             new = self.copy()
-            new.to_chenery_moses(inplace=True, scenarios=None)
+            new.to_chenery_moses(inplace=True, scenarios=scenarios)
             return new
 
-        if self.meta.table == "IOT":
-            raise NotImplementable("IOT table cannot be classified neither as Isard nor as Chenery-Moses.")
-
-        if self.is_chenerymoses():
-            raise WrongInput("Table is already in Chenery-Moses format")
+        if scenarios is None:
+            scenarios = self.scenarios
+        
+        for scenario in scenarios:
+            if self.is_chenerymoses(scenario=scenario):
+                raise NotImplementable(f"scenario {scenario} is already in Chenery-Moses format")
 
         log_time(
             logger,
             "Database: Transforming the database into Chenery-Moses",
         )
 
-        if scenarios is None:
-            scenarios = self.scenarios
 
         for scenario in scenarios:
             Z_chenery,Y_chenery = ISARD_TO_CHENERY_MOSES(self,scenario)
-            self.update_scenarios(scenario, Z=Z_chenery, Y=Y_chenery)
-
+            to_update = {_ENUM.Z:Z_chenery,_ENUM.Y:Y_chenery}
+            sort_frames(to_update)
+            self.update_scenarios(scenario, **to_update)
             self.reset_to_flows(scenario=scenario)
 
-        self.meta._add_history("Transformation of the database from into Chenery-Moses")
+            self.meta._add_history(f"Transformation of the database from into Chenery-Moses for scenario {scenario}")
+
         log_time(logger,"Transformation of the database from into Chenery-Moses")
 
 
