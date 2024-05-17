@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings("ignore",category=DeprecationWarning)
+
 import sys
 import os
 import pytest
@@ -14,6 +17,8 @@ from mario.core.CoreIO import CoreModel
 from mario.test.mario_test import load_test
 from mario.log_exc.exceptions import DataMissing, LackOfInput, WrongInput, NotImplementable
 from mario import calc_Z
+import warnings
+warnings.filterwarnings("ignore",category=DeprecationWarning)
 
 @pytest.fixture()
 def CoreDataIOT():

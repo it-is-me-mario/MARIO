@@ -43,7 +43,6 @@ Package dependencies:
 
 """
 
-
 from mario.version import __version__
 from mario.core.AttrData import Database
 from mario.core.CoreIO import CoreModel

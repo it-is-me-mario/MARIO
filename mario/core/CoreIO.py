@@ -46,6 +46,10 @@ import os
 import copy
 import re
 
+import warnings
+# Filter out the specific warning from openpyxl
+warning_message = "Data Validation extension is not supported and will be removed"
+warnings.filterwarnings("ignore", message=warning_message)
 
 # constants
 from mario.tools.constants import (
@@ -265,7 +269,7 @@ class CoreModel:
                             logger,
                             f"Database: to calculate {item} following matrices are need.\n{list(error.args)}."
                             f"Trying to calculate dependencies.",
-                            "warn",
+                            "warning",
                         )
                         self.calc_all(list(error.args), scenario, **kwargs)
                         self.calc_all([item], scenario, **kwargs)
@@ -977,7 +981,7 @@ class CoreModel:
             log_time(
                 logger,
                 f"DIRECTORY: default path = {path} is choosen to save the data.",
-                "warn",
+                "warning",
             )
 
         return path

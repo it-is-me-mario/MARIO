@@ -293,7 +293,7 @@ def get_units(units, table, indeces):
                 warning.append(item)
             else:
                 # otherwise add it to the _unit dict
-                _units[item] = units.loc[(matrix, item)][0]
+                _units[item] = units.loc[(matrix, item)].iloc[0]
 
         # if some items are missed, raise an error and show them
         if warning:
@@ -357,7 +357,7 @@ def txt_praser(path, table, mode,sep):
         log_time(
             logger,
             "Parser: EY matrix is not present in the database. An EY matrix with 0 values created",
-            "warn",
+            "warning",
         )
         read["matrices"]["EY"] = pd.DataFrame(
             0, index=read["matrices"][e].index, columns=read["matrices"]["Y"].columns

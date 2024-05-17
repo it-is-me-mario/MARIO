@@ -295,7 +295,7 @@ class Database(CoreModel):
         matrices, indeces, units = SUT_to_IOT(self, method)
 
         for scenario in self.scenarios:
-            log_time(logger, f"{scenario} deleted from the database", "warn")
+            log_time(logger, f"{scenario} deleted from the database", "warning")
             self.meta._add_history(f"{scenario} deleted from the database")
 
         self.matrices = matrices
@@ -493,7 +493,7 @@ class Database(CoreModel):
                         "nan values for the aggregation of {} for following items ignored\n{}".format(
                             level, list(nans)
                         ),
-                        "warn",
+                        "warning",
                     )
 
                     index.loc[nans, "Aggregation"] = list(nans)
@@ -778,7 +778,7 @@ class Database(CoreModel):
         log_time(
             logger,
             "Using add extensions will rewrite the new results on the baseline and delete other scenarios",
-            "warn",
+            "warning",
         )
 
         if backup:
@@ -832,7 +832,7 @@ class Database(CoreModel):
         matrices = {"baseline": {**info}}
 
         for scenario in self.scenarios:
-            log_time(logger, f"{scenario} deleted from the database", "warn")
+            log_time(logger, f"{scenario} deleted from the database", "warning")
             self.meta._add_history(f"{scenario} deleted from the database")
 
         self.matrices = matrices

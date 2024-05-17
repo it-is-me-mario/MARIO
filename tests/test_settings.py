@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings("ignore",category=DeprecationWarning)
+
 import pytest
 import os
 import sys

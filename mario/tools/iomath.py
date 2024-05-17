@@ -529,7 +529,7 @@ def linkages_calculation(cut_diag, matrices, multi_mode, normalized):
 
         if normalized:
             log_time(
-                logger, "Normalization not available for multi-regional mode.", "warn"
+                logger, "Normalization not available for multi-regional mode.", "warning"
             )
 
     # Computing linkages as if there were only one unique region

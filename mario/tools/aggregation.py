@@ -148,7 +148,7 @@ def _aggregator(instance, drop):
                             "{} does not found in {} and can not be removed.".format(
                                 drop, _MASTER_INDEX["k"]
                             ),
-                            "warn",
+                            "warning",
                         )
 
             matrices[scenario][matrix] = item
