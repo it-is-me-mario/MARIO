@@ -1,11 +1,11 @@
 API Reference
-==============
+=============
 
 .. currentmodule:: mario
 
-**********************
+******************
 Analyzing database
-**********************
+******************
 
 .. autosummary::
     :toctree: api_document/
@@ -18,10 +18,12 @@ Analyzing database
     CoreModel.scenarios
     CoreModel.table_type
     CoreModel.get_index
+    CoreModel.is_chenerymoses
+    CoreModel.is_isard
 
-**********************
+*********************
 Database modification
-**********************
+*********************
 
 .. autosummary::
     :toctree: api_document/
@@ -38,20 +40,21 @@ Database modification
     Database.copy
     Database.backup
     Database.reset_to_backup
+    Database.to_chenery_moses
 
 
-******************
+**************
 Shock analysis
-******************
+**************
 
 .. autosummary::
     :toctree: api_document/
 
     Database.shock_calc
 
-*******************
+******************
 Data visualization
-*******************
+******************
 
 .. autosummary::
     :toctree: api_document/
@@ -62,9 +65,9 @@ Data visualization
     Database.plot_linkages
     Database.plot_matrix
 
-**************
+**********
 Get excels
-**************
+**********
 mario has some functions providing automatic excel file generations for easing some of
 the functionalities such as aggrgeaton and adding sectors.
 
@@ -76,9 +79,9 @@ the functionalities such as aggrgeaton and adding sectors.
     Database.get_add_sectors_excel
     Database.get_shock_excel
 
-***********
+*********
 Save data
-***********
+*********
 
 .. autosummary::
     :toctree: api_document/
@@ -88,12 +91,12 @@ Save data
     Database.to_pymrio
 
 
-******************
+****************
 Database parsers
-******************
+****************
 
 Structured Databases
-------------------------
+--------------------
 mario supports automatic parsing of following database:
 
 * Exiobase
@@ -126,9 +129,9 @@ specific rules:
     mario.parse_from_txt
 
 
-*************
+************
 Calculations
-*************
+************
 
 High level matrix calculations
 -------------------------------
@@ -170,9 +173,9 @@ can be used independently outside a mario.Databases object.
     calc_p
     calc_y
 
-**********
+********
 Metadata
-**********
+********
 
 .. autosummary::
     :toctree: api_document/
@@ -181,9 +184,9 @@ Metadata
     CoreModel.meta_history
     CoreModel.add_note
 
-**********
+****
 Test
-**********
+****
 
 For having a simple exmaple of mario, load_test can be used.
 
@@ -192,9 +195,9 @@ For having a simple exmaple of mario, load_test can be used.
 
     mario.load_test
 
-**********
+*********
 Directory
-**********
+*********
 
 When mario needs to save an output of the model, if no path is given,
 files wil be saved in a default directory with subfolders based on
@@ -206,9 +209,9 @@ but user can change the default directory.
 
     CoreModel.directory
 
-**********
+*********
 Utilities
-**********
+*********
 There are some useful functions in mario that may help the user for different purposes.
 
 .. autosummary::
@@ -218,9 +221,9 @@ There are some useful functions in mario that may help the user for different pu
     mario.slicer
 
 
-**********
+*******
 Logging
-**********
+*******
 In case that logging is useful for the user, the following function can be used to set the level of verbosity.
 
 .. autosummary::
@@ -229,9 +232,9 @@ In case that logging is useful for the user, the following function can be used 
     mario.set_log_verbosity
 
 
-**********
+********
 Settings
-**********
+********
 To customize the mario settings for naming convensions, the following functions can be used: 
 
 .. autosummary::

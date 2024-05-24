@@ -1,4 +1,6 @@
-#%%
+import warnings
+warnings.filterwarnings("ignore",category=DeprecationWarning)
+
 import pytest
 import pandas.testing as pdt
 import numpy.testing as npt

@@ -1,4 +1,6 @@
 """Tests for Database class"""
+import warnings
+warnings.filterwarnings("ignore",category=DeprecationWarning)
 
 import sys
 import os
@@ -24,7 +26,6 @@ from mario.log_exc.exceptions import (
     DataMissing
 )
 from mario import parse_from_excel
-
 
 @pytest.fixture()
 def CoreDataIOT():

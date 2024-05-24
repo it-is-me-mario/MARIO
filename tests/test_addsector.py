@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings("ignore",category=DeprecationWarning)
+
 from mario.tools.sectoradd import get_corresponding_keys,matrix_concat,fill_matrix
 from mario.tools.constants import _MASTER_INDEX,_ADD_SECTOR_SHEETS
 from mario.tools.database_builder import MatrixBuilder
@@ -6,8 +9,6 @@ import pandas as pd
 import pytest
 from mario import load_test
 from mario.tools.constants import _ENUM,_MASTER_INDEX
-
-
 
 @pytest.fixture()
 def CoreDataIOT():

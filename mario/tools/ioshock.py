@@ -79,7 +79,7 @@ def Y_shock(instance, path, boolean, clusters, to_baseline):
                     "nan values found on row {} of {} shock sheet. No more shock is imported after row {}".format(
                         shock, _ENUM.Y ,shock
                     ),
-                    "warn",
+                    "warning",
                 )
                 break
 
@@ -212,7 +212,7 @@ def V_shock(instance, path, matrix, boolean, clusters, to_baseline):
                     "nan values found on row {} of {} shock sheet. No more shock is imported after row {}".format(
                         shock, matrix, shock
                     ),
-                    "warn",
+                    "warning",
                 )
                 break
 
@@ -323,7 +323,7 @@ def Z_shock(instance, path, boolean, clusters, to_baseline):
                     "nan values found on row {} of {} shock sheet. No more shock is imported after row {}".format(
                         shock, _ENUM.Z,shock
                     ),
-                    "warn",
+                    "warning",
                 )
                 break
 

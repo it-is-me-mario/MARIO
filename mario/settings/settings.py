@@ -45,7 +45,7 @@ class Setting:
 
             return setting
         
-        log_time(logger=logger,level="warn",comment=f"The user settings is not correctly build for {key}, so the original mario settings are used.")
+        log_time(logger=logger,level="warning",comment=f"The user settings is not correctly build for {key}, so the original mario settings are used.")
 
         setting = self._read_yaml(f"{path}/original_settings.yaml")
 

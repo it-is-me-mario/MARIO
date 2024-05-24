@@ -16,7 +16,7 @@ from mario.log_exc.exceptions import (
 from mario.log_exc.logger import log_time
 
 from mario.tools.ioshock import Y_shock, V_shock, Z_shock
-from mario.tools.tabletransform import SUT_to_IOT
+from mario.tools.tabletransform import SUT_to_IOT,ISARD_TO_CHENERY_MOSES
 import json
 from mario.tools.utilities import (
     _manage_indeces,
@@ -24,6 +24,7 @@ from mario.tools.utilities import (
     run_from_jupyter,
     filtering,
     pymrio_styling,
+    sort_frames,
 )
 
 from mario.tools.excelhandler import (
@@ -294,7 +295,7 @@ class Database(CoreModel):
         matrices, indeces, units = SUT_to_IOT(self, method)
 
         for scenario in self.scenarios:
-            log_time(logger, f"{scenario} deleted from the database", "warn")
+            log_time(logger, f"{scenario} deleted from the database", "warning")
             self.meta._add_history(f"{scenario} deleted from the database")
 
         self.matrices = matrices
@@ -314,6 +315,69 @@ class Database(CoreModel):
                 method
             ),
         )
+
+    def to_chenery_moses(
+        self, inplace:bool=True, scenarios:list=None,
+    ):
+
+        """The function will transform an Isard SUT table to a Chenery-Moses SUT table.
+        The transformation implies moving from trades accounted in the USE matrix to trades accounted in the SUPPLY matrix.
+        For further notes on the transformation check:
+        - John M. Hartwick, 1970. "Notes on the Isard and Chenery-Moses Interregional Input-Output Models," Working Paper 16, Economics Department, Queen's University.
+
+        .. note::
+
+            Calling this function will modify all scenarios in the database
+
+        Parameters
+        ----------
+
+        inplace : boolean
+            if True, implements the changes on the Database else returns
+            a new object without changing the original Database object
+
+        scenarios : list
+            if None, will implement the changes on all the scenarios, else will
+            implement the changes on the given scenarios
+        
+        Returns
+        -------
+        None :
+            if inplace True
+
+        mario.Database :
+            if inplace False
+        """
+        if not inplace:
+            new = self.copy()
+            new.to_chenery_moses(inplace=True, scenarios=scenarios)
+            return new
+
+        if scenarios is None:
+            scenarios = self.scenarios
+        
+        for scenario in scenarios:
+            if self.is_chenerymoses(scenario=scenario):
+                raise NotImplementable(f"scenario {scenario} is already in Chenery-Moses format")
+
+        log_time(
+            logger,
+            "Database: Transforming the database into Chenery-Moses",
+        )
+
+
+        for scenario in scenarios:
+            Z_chenery,Y_chenery = ISARD_TO_CHENERY_MOSES(self,scenario)
+            to_update = {_ENUM.Z:Z_chenery,_ENUM.Y:Y_chenery}
+            sort_frames(to_update)
+            self.update_scenarios(scenario, **to_update)
+            self.reset_to_flows(scenario=scenario)
+
+            self.meta._add_history(f"Transformation of the database from into Chenery-Moses for scenario {scenario}")
+
+        log_time(logger,"Transformation of the database from into Chenery-Moses")
+
+
 
     def get_aggregation_excel(
         self, path=None, levels="all",
@@ -429,7 +493,7 @@ class Database(CoreModel):
                         "nan values for the aggregation of {} for following items ignored\n{}".format(
                             level, list(nans)
                         ),
-                        "warn",
+                        "warning",
                     )
 
                     index.loc[nans, "Aggregation"] = list(nans)
@@ -714,7 +778,7 @@ class Database(CoreModel):
         log_time(
             logger,
             "Using add extensions will rewrite the new results on the baseline and delete other scenarios",
-            "warn",
+            "warning",
         )
 
         if backup:
@@ -768,7 +832,7 @@ class Database(CoreModel):
         matrices = {"baseline": {**info}}
 
         for scenario in self.scenarios:
-            log_time(logger, f"{scenario} deleted from the database", "warn")
+            log_time(logger, f"{scenario} deleted from the database", "warning")
             self.meta._add_history(f"{scenario} deleted from the database")
 
         self.matrices = matrices
@@ -836,7 +900,7 @@ class Database(CoreModel):
         log_time(
             logger,
             "All the scenarios will be deleted to build up the new baseline.",
-            "warn",
+            "warning",
         )
 
         data = self.query(
@@ -1463,7 +1527,7 @@ class Database(CoreModel):
         log_time(
             logger,
             "Database: All the scenarios will be deleted from the database",
-            "warn",
+            "warning",
         )
 
 
@@ -1960,7 +2024,7 @@ class Database(CoreModel):
                     log_time(
                         logger,
                         comment="No units named {} found".format(item),
-                        level="warn",
+                        level="warning",
                     )
 
     def plot_bubble(
