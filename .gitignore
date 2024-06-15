@@ -15,6 +15,11 @@ amintest.py
 # local test files
 amintest.py
 
+# tutorial dbs
+new_tutorials/EXIOBASE_folder/
+new_tutorials/EORA_folder/
+new_tutorials/Custom_database_folder/
+
 # Distribution / packaging
 .Python
 build/
