@@ -34,7 +34,7 @@ from mario.tools.parsers_id import (
     eora_parser_id,
     hybrid_sut_exiobase_parser_id,
     eurostat_id,
-    FIGARO_id
+
 )
 
 from mario.tools.iomath import (
