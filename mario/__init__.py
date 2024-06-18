@@ -81,6 +81,7 @@ from mario.tools.parsersclass import (
     parse_from_pymrio,
     hybrid_sut_exiobase,
     parse_exiobase,
+    parse_FIGARO_SUT
 )
 
 from mario.tools.plots import set_palette
