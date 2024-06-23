@@ -811,20 +811,20 @@ class Database(CoreModel):
 
         to_add = data.index.difference(info[matrix].index)
 
-        info[matrix] = info[matrix].append(data.loc[to_add, :])
+        info[matrix] = pd.concat([info[matrix],data.loc[to_add, :]])
 
         if matrix_id == "k":
 
             if EY is None:
 
-                info["EY"] = info["EY"].append(
-                    pd.DataFrame(0, index=to_add, columns=info["EY"].columns)
+                info["EY"] = pd.concat([info["EY"],
+                    pd.DataFrame(0, index=to_add, columns=info["EY"].columns)]
                 )
             else:
-                info["EY"] = info["EY"].append(EY.loc[to_add, :])
+                info["EY"] = pd.concat([info["EY"],EY.loc[to_add, :]])
 
         unit_item = _MASTER_INDEX[matrix_id]
-        info["units"][unit_item] = info["units"][unit_item].append(units.loc[to_add])
+        info["units"][unit_item] = pd.concat([info["units"][unit_item],units.loc[to_add]])
 
         units = info["units"]
         del info["units"]
