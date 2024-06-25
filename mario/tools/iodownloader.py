@@ -120,7 +120,7 @@ def download_figaro(table,year,path,format=None):
         else:
             extension = ".csv"
 
-        file = f"{name}_{year}_{extension}"
+        file = f"{name}_{year}{extension}"
         file_path = f"{path}/{file}"
 
         response = requests.get(url)
