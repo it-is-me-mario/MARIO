@@ -1,0 +1,188 @@
+﻿Level,Code,Name
+c,CPA_A01,"Products of agriculture, hunting and related services"
+c,CPA_A02,"Products of forestry, logging and related services"
+c,CPA_A03,Fish and other fishing products; aquaculture products; support services to fishing
+c,CPA_B,Mining and quarrying
+c,CPA_C10T12,"Food, beverages and tobacco products"
+c,CPA_C13T15,"Textiles, wearing apparel, leather and related products"
+c,CPA_C16,"Wood and of products of wood and cork, except furniture; articles of straw and plaiting materials"
+c,CPA_C17,Paper and paper products
+c,CPA_C18,Printing and recording services
+c,CPA_C19,Coke and refined petroleum products
+c,CPA_C20,Chemicals and chemical products
+c,CPA_C21,Basic pharmaceutical products and pharmaceutical preparations
+c,CPA_C22,Rubber and plastic products
+c,CPA_C23,Other non-metallic mineral products
+c,CPA_C24,Basic metals
+c,CPA_C25,"Fabricated metal products, except machinery and equipment"
+c,CPA_C26,"Computer, electronic and optical products"
+c,CPA_C27,Electrical equipment
+c,CPA_C28,Machinery and equipment n.e.c.
+c,CPA_C29,"Motor vehicles, trailers and semi-trailers"
+c,CPA_C30,Other transport equipment
+c,CPA_C31_32,Furniture and other manufactured goods
+c,CPA_C33,Repair and installation services of machinery and equipment
+c,CPA_D35,"Electricity, gas, steam and air conditioning"
+c,CPA_E36,Natural water; water treatment and supply services
+c,CPA_E37T39,"Sewerage services; sewage sludge; waste collection, treatment and disposal services; materials recovery services; remediation services and other waste management services"
+c,CPA_F,Constructions and construction works
+c,CPA_G45,Wholesale and retail trade and repair services of motor vehicles and motorcycles
+c,CPA_G46,"Wholesale trade services, except of motor vehicles and motorcycles"
+c,CPA_G47,"Retail trade services, except of motor vehicles and motorcycles"
+c,CPA_H49,Land transport services and transport services via pipelines
+c,CPA_H50,Water transport services
+c,CPA_H51,Air transport services
+c,CPA_H52,Warehousing and support services for transportation
+c,CPA_H53,Postal and courier services
+c,CPA_I,Accommodation and food services
+c,CPA_J58,Publishing services
+c,CPA_J59_60,"Motion picture, video and television programme production services, sound recording and music publishing; programming and broadcasting services"
+c,CPA_J61,Telecommunications services
+c,CPA_J62_63,"Computer programming, consultancy and related services; Information services"
+c,CPA_K64,"Financial services, except insurance and pension funding"
+c,CPA_K65,"Insurance, reinsurance and pension funding services, except compulsory social security"
+c,CPA_K66,Services auxiliary to financial services and insurance services
+c,CPA_L,Real estate services
+c,CPA_M69_70,Legal and accounting services; services of head offices; management consultancy services
+c,CPA_M71,Architectural and engineering services; technical testing and analysis services
+c,CPA_M72,Scientific research and development services
+c,CPA_M73,Advertising and market research services
+c,CPA_M74_75,"Other professional, scientific and technical services and veterinary services"
+c,CPA_N77,Rental and leasing services
+c,CPA_N78,Employment services
+c,CPA_N79,"Travel agency, tour operator and other reservation services and related services"
+c,CPA_N80T82,"Security and investigation services; services to buildings and landscape; office administrative, office support and other business support services"
+c,CPA_O84,Public administration and defence services; compulsory social security services
+c,CPA_P85,Education services
+c,CPA_Q86,Human health services
+c,CPA_Q87_88,Residential care services; social work services without accommodation
+c,CPA_R90T92,"Creative, arts, entertainment, library, archive, museum, other cultural services; gambling and betting services"
+c,CPA_R93,Sporting services and amusement and recreation services
+c,CPA_S94,Services furnished by membership organisations
+c,CPA_S95,Repair services of computers and personal and household goods
+c,CPA_S96,Other personal services
+c,CPA_T,Services of households as employers; undifferentiated goods and services produced by households for own use
+c,CPA_U,Services provided by extraterritorial organisations and bodies
+a,A01,"Crop and animal production, hunting and related service activities"
+a,A02,Forestry and logging
+a,A03,Fishing and aquaculture
+a,B,Mining and quarrying
+a,C10T12,Manufacture of food products; beverages and tobacco products
+a,C13T15,"Manufacture of textiles, wearing apparel, leather and related products"
+a,C16,"Manufacture of wood and of products of wood and cork, except furniture; manufacture of articles of straw and plaiting materials"
+a,C17,Manufacture of paper and paper products
+a,C18,Printing and reproduction of recorded media
+a,C19,Manufacture of coke and refined petroleum products
+a,C20,Manufacture of chemicals and chemical products
+a,C21,Manufacture of basic pharmaceutical products and pharmaceutical preparations
+a,C22,Manufacture of rubber and plastic products
+a,C23,Manufacture of other non-metallic mineral products
+a,C24,Manufacture of basic metals
+a,C25,"Manufacture of fabricated metal products, except machinery and equipment"
+a,C26,"Manufacture of computer, electronic and optical products"
+a,C27,Manufacture of electrical equipment
+a,C28,Manufacture of machinery and equipment n.e.c.
+a,C29,"Manufacture of motor vehicles, trailers and semi-trailers"
+a,C30,Manufacture of other transport equipment
+a,C31_32,Manufacture of furniture; other manufacturing
+a,C33,Repair and installation of machinery and equipment
+a,D35,"Electricity, gas, steam and air conditioning supply"
+a,E36,"Water collection, treatment and supply"
+a,E37T39,"Sewerage, waste management, remediation activities"
+a,F,Construction
+a,G45,Wholesale and retail trade and repair of motor vehicles and motorcycles
+a,G46,"Wholesale trade, except of motor vehicles and motorcycles"
+a,G47,"Retail trade, except of motor vehicles and motorcycles"
+a,H49,Land transport and transport via pipelines
+a,H50,Water transport
+a,H51,Air transport
+a,H52,Warehousing and support activities for transportation
+a,H53,Postal and courier activities
+a,I,Accommodation and food service activities
+a,J58,Publishing activities
+a,J59_60,"Motion picture, video, television programme production; programming and broadcasting activities"
+a,J61,Telecommunications
+a,J62_63,"Computer programming, consultancy, and information service activities"
+a,K64,"Financial service activities, except insurance and pension funding"
+a,K65,"Insurance, reinsurance and pension funding, except compulsory social security"
+a,K66,Activities auxiliary to financial services and insurance activities
+a,L,Real estate activities
+a,M69_70,Legal and accounting activities; activities of head offices; management consultancy activities
+a,M71,Architectural and engineering activities; technical testing and analysis
+a,M72,Scientific research and development
+a,M73,Advertising and market research
+a,M74_75,"Other professional, scientific and technical activities; veterinary activities"
+a,N77,Rental and leasing activities
+a,N78,Employment activities
+a,N79,"Travel agency, tour operator and other reservation service and related activities"
+a,N80T82,"Security and investigation, service and landscape, office administrative and support activities"
+a,O84,Public administration and defence; compulsory social security
+a,P85,Education
+a,Q86,Human health activities
+a,Q87_88,Residential care activities and social work activities without accommodation
+a,R90T92,"Creative, arts and entertainment activities; libraries, archives, museums and other cultural activities; gambling and betting activities"
+a,R93,Sports activities and amusement and recreation activities
+a,S94,Activities of membership organisations
+a,S95,Repair of computers and personal and household goods
+a,S96,Other personal service activities
+a,T,Activities of households as employers; undifferentiated goods- and services-producing activities of households for own use
+a,U,Activities of extraterritorial organisations and bodies
+f,D21X31,Taxes less subsidies on products
+f,OP_NRES,Purchases of non-residents in the domestic territory
+f,OP_RES,Direct purchase abroad by residents
+f,D1,Compensation of employees
+f,D29X39,Other net taxes on production
+f,B2A3G,Gross operating surplus
+n,P3_S13,Final consumption expenditure of general government
+n,P3_S14,Final consumption expenditure of households
+n,P3_S15,Final consumption expenditure of non-profit institutions serving households
+n,P51G,Gross fixed capital formation
+n,P5M,Changes in inventories and acquisition less disposals of valuables
+r,BE,Belgium
+r,BG,Bulgaria
+r,CZ,Czech Republic
+r,DK,Denmark
+r,DE,Germany
+r,EE,Estonia
+r,IE,Ireland
+r,GR,Greece
+r,ES,Spain
+r,FR,France
+r,HR,Croatia
+r,IT,Italy
+r,CY,Cyprus
+r,LV,Latvia
+r,LT,Lithuania
+r,LU,Luxembourg
+r,HU,Hungary
+r,MT,Malta
+r,NL,Netherlands
+r,AT,Austria
+r,PL,Poland
+r,PT,Portugal
+r,RO,Romania
+r,SI,Slovenia
+r,SK,Slovakia
+r,FI,Finland
+r,SE,Sweden
+r,AR,Argentina
+r,AU,Australia
+r,BR,Brazil
+r,CA,Canada
+r,CH,Switzerland
+r,CN,China
+r,ID,Indonesia
+r,IN,India
+r,JP,Japan
+r,KR,South Korea
+r,MX,Mexico
+r,NO,Norway
+r,RU,Russia
+r,SA,Saudi Arabia
+r,TR,Turkey
+r,UK,United Kingdom
+r,US,United States
+r,ZA,South Africa
+r,FIGW1,Rest of the world
+r,W2,Domestic (home or reference area)
+r,GB,Great Britain

@@ -34,6 +34,7 @@ from mario.tools.parsers_id import (
     eora_parser_id,
     hybrid_sut_exiobase_parser_id,
     eurostat_id,
+
 )
 
 from mario.tools.iomath import (
@@ -53,7 +54,8 @@ import pymrio
 # reading the constants
 
 logger = logging.getLogger(__name__)
-
+import os
+import re
 
 def get_index_txt(Z, V, Y, E, table):
 
@@ -1440,3 +1442,140 @@ def hybrid_sut_exiobase_reader(path, extensions):
     rename_index(matrices["baseline"])
 
     return matrices, indeces, units
+
+
+
+
+
+def parser_figaro_sut(path):
+
+    all_files = os.listdir(path)
+
+    supply_found = False
+    use_found = False
+    for file in all_files:
+        if file.startswith("supply_") and file.endswith(".csv"):
+            use = pd.read_csv(f"{path}/{file}",index_col=0,sep=",")
+            use_found = True
+            match = re.search(r'\d+', file)
+            year = int(match.group())
+
+        if file.startswith("use_") and file.endswith(".csv"):
+            supply = pd.read_csv(f"{path}/{file}",index_col=0,sep=",")
+            supply_found = True
+
+    if not all([supply_found,use_found]):
+        raise FileNotFoundError("not all the necessary files are in the folder")
+
+    metadata = load_figaro_metadata()
+
+    use.index = pd.MultiIndex.from_tuples(figaro_get_new_index(use.index,metadata))
+    use.columns = pd.MultiIndex.from_tuples(figaro_get_new_index(use.columns,metadata))
+
+    supply.index = pd.MultiIndex.from_tuples(figaro_get_new_index(supply.index,metadata))
+    supply.columns = pd.MultiIndex.from_tuples(figaro_get_new_index(supply.columns,metadata))
+
+
+    s_matrix = supply.loc[(slice(None),_MASTER_INDEX.c,slice(None)),(slice(None),_MASTER_INDEX.a,slice(None))]
+
+    Z = pd.concat([s_matrix.T,use]).fillna(0.0)
+
+
+
+    Y = supply.loc[(slice(None),_MASTER_INDEX.c,slice(None)),(slice(None),_MASTER_INDEX.n,slice(None))]
+
+    Y = pd.concat([Y,pd.DataFrame(0.0,index=use.columns,columns=Y.columns)])
+
+    V = supply.loc[(slice(None),_MASTER_INDEX.f,slice(None)),(slice(None),_MASTER_INDEX.a,slice(None))]
+    V = pd.concat([V,pd.DataFrame(0.0,index=V.index,columns=use.index)],axis=1).droplevel([0,1])
+
+    E = pd.DataFrame(
+        0,
+        index = ["-"],
+        columns= V.columns
+    )
+
+    EY = pd.DataFrame(
+        0,
+        index = ["-"],
+        columns = Y.columns
+    )
+
+    X = calc_X(Z, Y)
+
+    activities = Z.xs(_MASTER_INDEX.a,level=1).index.unique(-1).tolist()
+    commodities = Z.xs(_MASTER_INDEX.c,level=1).index.unique(-1).tolist()
+    final_consumption = Y.columns.unique(-1).tolist()
+    value_added = V.index.tolist()
+    extensions = E.index.tolist()
+    regions = Z.index.unique(0)
+
+
+
+    indeces = {
+        "r": {"main": regions},
+        "n": {"main": final_consumption},
+        "f": {"main": value_added},
+        "k": {"main": extensions},
+        "s": {"main": activities+commodities},
+        "a": {"main": activities},
+        "c": {"main": commodities},
+    }
+
+    units = {
+        _MASTER_INDEX.a : pd.DataFrame(
+            "nominal million euros",index=activities,columns=["unit"]
+        ),
+        _MASTER_INDEX.c : pd.DataFrame(
+            "nominal million euros",index=commodities,columns=["unit"]
+        ),
+        _MASTER_INDEX.f : pd.DataFrame(
+            "nominal million euros",index=value_added,columns=["unit"]
+        ),
+        _MASTER_INDEX.k : pd.DataFrame(
+            "-",index=extensions,columns=["unit"]
+        ),
+    }
+
+    matrices = {"baseline": {"Z": Z, "V": V, "E": E, "EY": EY, "Y": Y, "X": X,}}
+
+
+    rename_index(matrices["baseline"])
+
+    return matrices, indeces, units,year
+
+def figar_mapper(lvl0,lvl1):
+    
+    if lvl0.index[0] == "r":
+        return (lvl0.Name.iloc[0],_MASTER_INDEX[lvl1.index[0]],lvl1.Name.iloc[0])
+    
+    else:
+        return ("",_MASTER_INDEX[lvl1.index[0]],lvl1.Name.iloc[0])
+
+
+
+
+def figaro_get_new_index(iter,metadata):
+    index = []
+    for idx in iter:
+
+        split = idx.split("_")
+        level_0 = split[0]
+        if len(split) >= 3:
+            level_1 = "_".join(split[1:])
+        else:
+            level_1 = split[1]
+
+        level_0_=metadata.loc[metadata.Code == level_0]
+        level_1_=metadata.loc[metadata.Code == level_1]
+
+        index.append(figar_mapper(level_0_,level_1_))
+
+    return index
+
+
+
+def load_figaro_metadata():
+
+    path = os.path.abspath(os.path.join(os.path.dirname(__file__),))
+    return pd.read_csv(f"{path}/figaro_metadata.csv",index_col=0,sep=",")
