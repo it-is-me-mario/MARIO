@@ -1,4 +1,8 @@
 
+.. image:: https://avatars.githubusercontent.com/u/121170888?s=400&u=4cec21e036afea744bef6886998fa302fca02ce0&v=4
+   :width: 100
+   :align: right
+
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
     
@@ -9,9 +13,7 @@
 .. image:: https://badge.fury.io/py/mariopy.svg
     :target: https://badge.fury.io/py/mariopy
     
-.. image:: https://avatars.githubusercontent.com/u/121170888?s=400&u=4cec21e036afea744bef6886998fa302fca02ce0&v=4
-   :width: 200
-   :align: right
+
    
 .. image:: https://zenodo.org/badge/421900437.svg
    :target: https://zenodo.org/badge/latestdoi/421900437
