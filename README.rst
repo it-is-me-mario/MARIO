@@ -9,7 +9,7 @@
 .. image:: https://badge.fury.io/py/mariopy.svg
     :target: https://badge.fury.io/py/mariopy
     
-.. image:: https://raw.githubusercontent.com/SESAM-Polimi/MARIO/767d2c0e9e42ae0b6acf7c3a1cc379d7bcd367fa/doc/source/_static/images/polimiff.svg
+.. image:: https://avatars.githubusercontent.com/u/121170888?s=400&u=4cec21e036afea744bef6886998fa302fca02ce0&v=4
    :width: 200
    :align: right
    
