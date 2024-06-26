@@ -517,7 +517,6 @@ class Database(CoreModel):
         io,
         drop=["unused"],
         levels="all",
-        backup=True,
         calc_all=True,
         ignore_nan=False,
         inplace=True,
@@ -540,9 +539,6 @@ class Database(CoreModel):
             #. in case that a single level or 'all' levels should be aggregated, str can be used
             #. in case that multiple levels should be aggregated, a list of levels should be used
 
-        backup : boolean
-            shows if the user needs to make a backup before aggregating so can
-            reset to previous case.
 
         calc_all : boolean
             if True, ['v','z','e'] will be calculated automatically after the
@@ -575,7 +571,6 @@ class Database(CoreModel):
                 io=io,
                 drop=drop,
                 levels=levels,
-                backup=False,
                 calc_all=calc_all,
                 ignore_nan=ignore_nan,
                 inplace=True,
@@ -584,8 +579,6 @@ class Database(CoreModel):
             return new
 
         else:
-            if backup:
-                self.backup()
 
             if isinstance(drop, str):
                 drop = [drop]
@@ -622,17 +615,6 @@ class Database(CoreModel):
                 for scenario in self.scenarios:
                     self.calc_all(scenario=scenario)
 
-    def reset_to_backup(self):
-
-        """This function is in charge of reseting back the database to the last back-up.
-        All the matrices and indeces will be updated to the last back-up
-        """
-
-        self.matrices = self._backup.matrices
-        self._indeces = self._backup.indeces
-        self.units = self._backup.units
-        self.meta._add_history("Last backup recovered.")
-        log_time(logger, "Database: Reseting to back-up")
 
     def get_extensions_excel(
         self, matrix, path=None,
@@ -670,7 +652,6 @@ class Database(CoreModel):
         io,
         matrix,
         units,
-        backup=True,
         inplace=True,
         calc_all=True,
         notes=None,
@@ -703,9 +684,6 @@ class Database(CoreModel):
             a dataframe whose rows are the items to be added and single column
             which contains the units for every row
 
-        backup : boolean
-            creates a backup of the last database to recover if needed
-
         inplace : boolean
             if True, will change the database inplace otherwise will return
             a new object
@@ -732,7 +710,6 @@ class Database(CoreModel):
             new.add_extensions(
                 io=io,
                 matrix=matrix,
-                backup=backup,
                 inplace=True,
                 units=units,
                 calc_all=calc_all,
@@ -760,6 +737,7 @@ class Database(CoreModel):
         info = self.query(
             matrices=all_matrices, 
         )
+        info["units"] = copy.deepcopy(self.units)
 
         if isinstance(io, pd.DataFrame):
             data = io
@@ -781,8 +759,6 @@ class Database(CoreModel):
             "warning",
         )
 
-        if backup:
-            self.backup()
 
         data = data.sort_index()
         units = units.sort_index()
@@ -851,7 +827,7 @@ class Database(CoreModel):
             for note in notes:
                 self.meta._add_history(f"User note: {note}")
 
-    def to_single_region(self, region, backup=True, inplace=True):
+    def to_single_region(self, region,inplace=True):
 
         """Extracts a single region from multi-region databases
 
@@ -869,9 +845,6 @@ class Database(CoreModel):
         region : str
             the region to extract
 
-        backup : boolean
-            if True, creates a backup of the database before changes
-
         inplace : boolean
             if True, changes the database inplace otherwise, returns a new object
 
@@ -884,7 +857,7 @@ class Database(CoreModel):
         """
         if not inplace:
             new = self.copy()
-            new.to_single_region(region=region, backup=backup, inplace=True)
+            new.to_single_region(region=region, inplace=True)
 
             return new
 
@@ -979,8 +952,6 @@ class Database(CoreModel):
         E = E.loc[:, (region, slice(None), slice(None))]
 
         X = calc_X(Z=Z, Y=Y)
-        if backup:
-            self.backup()
 
         all_indeces = self.get_index("all")
 
@@ -2505,62 +2476,4 @@ class Database(CoreModel):
             filters,
         )
 
-    def set_solver(self, solver):
 
-        """This function can be used to set the solver for some specific uses.
-
-        .. note::
-
-            This will be used mostly on the next version of MARIO which contains the models.
-        """
-
-        if __cvxpy__:
-
-            # All the acceptable solvers by CVXPY
-            solvers = [
-                "GUROBI",
-                "ECOS",
-                "ECOS_BB",
-                "OSQP",
-                "SCS",
-                "CBC",
-                "CVXOPT",
-                "GLPK",
-                "GLPK_MI",
-                "MOSEK",
-                "CPLEX",
-                "NAG",
-                "SCIP",
-                "XPRESS",
-            ]
-
-            if solver.upper() not in solvers:
-                raise WrongInput(
-                    "Invalid solver. Acceptable solvers by CVXPY are: {}".format(
-                        solvers
-                    )
-                )
-
-            if solver.upper() not in cp.installed_solvers():
-                raise WrongInput(
-                    "{} is not installed on your machine. Installed solvers are{}".format(
-                        solver, cp.installed_solvers()
-                    )
-                )
-
-            log_time(
-                logger,
-                "Solver: solver changed from {} to {}".format(
-                    self.__solver, solver.upper()
-                ),
-                "info",
-            )
-
-            self.__solver = eval(f"cp.{solver.upper()}")
-
-        else:
-            log_time(
-                logger,
-                "this function can not be used if cvxpy module is not installed",
-                "critical",
-            )

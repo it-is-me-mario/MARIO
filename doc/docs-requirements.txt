@@ -11,3 +11,6 @@ nbsphinx
 ipykernel
 sphinx-autobuild
 pymrio >= 0.4.6
+nbconvert
+nbformat
+sphinx_wagtail_theme

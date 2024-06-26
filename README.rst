@@ -1,7 +1,4 @@
 
-.. image:: https://img.shields.io/gitter/room/SESAM-Polimi/MARIO
-    :target: https://gitter.im/SESAM-Polimi/MARIO
-    
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
     
@@ -12,7 +9,7 @@
 .. image:: https://badge.fury.io/py/mariopy.svg
     :target: https://badge.fury.io/py/mariopy
     
-.. image:: https://raw.githubusercontent.com/SESAM-Polimi/MARIO/767d2c0e9e42ae0b6acf7c3a1cc379d7bcd367fa/doc/source/_static/images/polimi.svg
+.. image:: https://raw.githubusercontent.com/SESAM-Polimi/MARIO/767d2c0e9e42ae0b6acf7c3a1cc379d7bcd367fa/doc/source/_static/images/polimiff.svg
    :width: 200
    :align: right
    
@@ -72,8 +69,9 @@ To run MARIO, a couple of things are needed:
 #. For some functionalities a solver may needed (optional)
 #. MARIO software itself
 
-Recommended installation method
--------------------------------
+************
+Installation
+************
 
 The easiest way to make MARIO software working is to use the free
 conda package manager which can install the current and future MARIO
@@ -88,7 +86,7 @@ You can install mario using pip or from source code. It is suggested to create a
 
 .. code-block:: python
 
-   conda create -n mario python=3.8
+   conda create -n mario python=3.10
 
 If you create a new environment for mario, to use it, you need to activate the mario environment each time by writing
 the following line in *Anaconda Prompt*
@@ -104,11 +102,11 @@ Now you can use pip to install mario on your environment as follow:
   pip install mariopy
 
 You can also install from the source code!
-
-           
-
+     
+**********
 Quickstart
-----------
+**********
+
 A simple test for Input-Output Table (IOT) and Supply-Use Table (SUT) is included in mario.
 
 To use the IOT test, call
@@ -166,16 +164,9 @@ The new database can be saved into excel,txt or csv file:
 
 .. _RST pckgs:
 
-Python module requirements
---------------------------
-Some of the key packages the mario relies on are:
-
-* `Pandas  <https://pandas.pydata.org/>`_ 
-* `Numpy  <https://numpy.org/>`_ 
-* `Plotly  <https://plotly.com/>`_ 
-* `Tabulate  <https://pypi.org/project/tabulate/>`_ 
-* `Pymrio  <https://github.com/IndEcol/pymrio>`_ 
-* `Cvxpy  <https://pypi.org/project/cvxpy/>`_ (Optional in this version)
+*********
+Read more
+*********
 
 Testing MARIO
 -------------
@@ -190,11 +181,15 @@ you can execute the following command:
 
 .. note::
    * This project is under active development. 
-   * More examples will be uploaded through time to the gellery.
+   * More examples will be uploaded through time to the gallery.
    * More parsers will be added to the next version.
    * The next version will cover some optimization models within the IO framework
    * For more tutorials on mario, check out our `Input-Output analysis and modelling with MARIO Course  <https://zenodo.org/record/8308515>`_ 
 
+Citation
+--------
+
+In case you use mario, you should use our peer reviewed publication (`Tahavori et al. <https://openresearchsoftware.metajnl.com/articles/10.5334/jors.473>`_) for citiation!
 
 License
 -------

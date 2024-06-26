@@ -720,9 +720,9 @@ def eora_single_region(path, table, name_convention="full_name", aggregate_trade
 
     if aggregate_trade:
 
-        V = V.groupby(level=[0, 3], axis=0, sort=False).sum()
-        Y = Y.groupby(level=[0, 3], axis=1, sort=False).sum()
-        EY = EY.groupby(level=[0, 3], axis=1, sort=False).sum()
+        V = V.groupby(level=[0, 3], sort=False).sum()
+        Y = Y.T.groupby(level=[0, 3], sort=False).sum().T
+        EY = EY.T.groupby(level=[0, 3], sort=False).sum().T
 
         final_consumptions = Y.columns.get_level_values(-1).tolist()
         final_consumptions.remove("Total")
