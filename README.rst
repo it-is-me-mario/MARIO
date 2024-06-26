@@ -66,9 +66,8 @@ MARIO has been tested on macOS and Windows.
 To run MARIO, a couple of things are needed:
 
 #. Being in love with Input-Output :-)
-#. The Python programming language, version 3.7 or higher
+#. The Python programming language
 #. A number of Python adds-on packages
-#. For some functionalities a solver may needed (optional)
 #. MARIO software itself
 
 ************
