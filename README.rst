@@ -30,7 +30,7 @@ What is it
 **MARIO** is a python package for handling input-output tables and models inspired by `Pymrio  <https://github.com/IndEcol/pymrio>`_ .
 MARIO aims to provide a *simple* & *intuitive* API for common IO tasks without
 needing in-depth programming knowledge. MARIO supporst automatic parsing of different
-structured tables such EXIOBASE, EORA, EUROSTAT in different formats namely:
+structured tables such EXIOBASE, EORA, EUROSTAT, and FIGARO in different formats namely:
 
 * Single region 
 * Multi region
