@@ -8,10 +8,8 @@ Contents:
    :maxdepth: 2
    
    intro
-   installation
    contributors
    terminology
    settings
-   handlingdata
-   modelgallery
+   examples
    api_refernces

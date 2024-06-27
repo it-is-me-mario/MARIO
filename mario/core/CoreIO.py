@@ -62,17 +62,7 @@ from mario.tools.constants import (
 
 logger = logging.getLogger(__name__)
 
-try:
-    import cvxpy as cp
 
-    __cvxpy__ = True
-except ModuleNotFoundError:
-    log_time(
-        logger,
-        "cvxpy module is not installed in your system. This will raise problems in some of the abilities of MARIO",
-        "critical",
-    )
-    __cvxpy__ = False
 
 
 class CoreModel:
@@ -371,7 +361,7 @@ class CoreModel:
             "Scenarios: {name} added to scearios by cloning {scenario}"
         )
 
-    def reset_to_flows(self, scenario, backup=True):
+    def reset_to_flows(self, scenario,):
         """Deletes the coefficients of a scenario and keeps only flows
 
         Parameters
@@ -379,11 +369,7 @@ class CoreModel:
         scenario : str
             the specific scenario to reset
 
-        backup : boolean
-            if True, will create a backup of database before changes
         """
-        if backup:
-            self.backup()
 
         keep = [_ENUM.Z, _ENUM.E, _ENUM.V, _ENUM.EY, _ENUM.Y]
 
@@ -401,7 +387,7 @@ class CoreModel:
         log_time(logger, "Databases: reset to flows.")
         self.matrices[scenario] = matrices
 
-    def reset_to_coefficients(self, scenario, backup=True):
+    def reset_to_coefficients(self, scenario):
         """Deletes the flows of a scenario and keeps only coefficients
 
         Parameters
@@ -409,13 +395,8 @@ class CoreModel:
         scenario : str
             the specific scenario to reset
 
-        backup : boolean
-            if True, will create a backup of database before changes
         """
         keep = [_ENUM.z, _ENUM.e, _ENUM.v, _ENUM.EY, _ENUM.Y]
-
-        if backup:
-            self.backup()
 
         if scenario not in self.scenarios:
             raise WrongInput(f"Acceptable scenarios are {self.scenarios}")
@@ -580,79 +561,7 @@ class CoreModel:
         )
         return True
 
-    def is_productive(self, method: str, data_set: str = "baseline") -> bool:
-
-        """Checks the productivity of the system
-
-        Parameters
-        ------------
-        method : str
-            represents the method to check the balance:
-
-                #. 'flow'
-                #. 'coefficient'
-                #. 'price'
-
-        data_set: str
-            defining the scenario to be checked
-
-        margin: float which will be considered as a margin for the balance
-
-        RETURN
-        -------------
-
-        boolean
-
-                True if the dataset is productive
-                Flase if the dataset is not productive
-
-        """
-        _methods = {
-            "A": "SPECTRAL RADIUS",
-            "B": "POWER SERIES EXPANSION",
-            "C": "SLACK VARIABLE",
-        }
-
-        if data_set not in self.scenarios:
-            raise WrongInput("Acceptable data_sets are:\n{}".format(self.scenarios))
-
-        if method.upper() not in _methods:
-            raise WrongInput("Acceptable methods are: \n{}".format([*_methods]))
-
-        z = copy.deepcopy(self.matrices[data_set]["z"])
-        Y = copy.deepcopy(self.matrices[data_set]["Y"])
-        Y = Y.sum(axis=1).to_frame()
-        I = np.eye(z.shape[0])
-        L = np.linalg.inv(I - z)
-
-        log_time(
-            logger, "Productivity test by {} method".format(_methods[method.upper()])
-        )
-
-        _productive = True
-
-        if method == "A":
-
-            eigen_value = np.linalg.eig(z)[0]
-            rho = max(abs(eigen_value))
-
-            if rho < 1:
-                log_time(
-                    logger,
-                    "Test: productive system (spectral radius = {})".format(
-                        round(rho, 2)
-                    ),
-                )
-
-            else:
-                log_time(
-                    logger,
-                    "Test: non-productive system (spectral radius = {})".format(
-                        round(rho, 2)
-                    ),
-                )
-                _productive = False
-
+ 
     def is_isard(self, scenario: str = "baseline") -> bool:
 
         """Checks whether a table is in Isard format.
