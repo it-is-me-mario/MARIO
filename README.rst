@@ -200,7 +200,7 @@ Publications
 * Assessing environmental and market implications of steel decarbonisation strategies: a hybrid input-output model for the European Union (`Rinaldi et al, Environmental Research Letters, 2024  <https://doi.org/10.1088/1748-9326/ad5bf1>`_ )
 * Assessing critical materials demand in global energy transition scenarios based on the Dynamic Extraction and Recycling Input-Output framework (DYNERIO) (`Rinaldi et al, Resources Conservation adn Recycling, 2023  <https://www.sciencedirect.com/science/article/pii/S092134492300037X?via%3Dihub>`_ )
 * Three different directions in which the European Union could replace Russian natural gas (`Nikas et al, Energy, 2024 <https://www.sciencedirect.com/science/article/pii/S0360544224000252?via%3Dihub>`_ )
-* Investigating the economic and environmental impacts of a technological shift towards hydrogen-based solutions for steel manufacture in high-renewable electricity mix scenarios for Italy (`Nikas et al, Energy, 2024 <https://iopscience.iop.org/article/10.1088/1755-1315/1106/1/012008>`_)
+* Investigating the economic and environmental impacts of a technological shift towards hydrogen-based solutions for steel manufacture in high-renewable electricity mix scenarios for Italy (`Marco Conte et al, IOP Conf. Ser.: Earth Environ. Sci., 2022 <https://iopscience.iop.org/article/10.1088/1755-1315/1106/1/012008>`_)
 
 
 Support Materials
