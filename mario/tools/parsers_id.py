@@ -68,7 +68,11 @@ txt_parser_id = {
             "EY": {"file_name": "EY.txt", "index_col": [0], "header": [0, 1, 2]},
         },
         "units": {
-            "all": {"file_name": "units.txt", "index_col": [0, 1], "header": [0],}
+            "all": {
+                "file_name": "units.txt",
+                "index_col": [0, 1],
+                "header": [0],
+            }
         },
     },
     "coefficients": {
@@ -80,7 +84,11 @@ txt_parser_id = {
             "EY": {"file_name": "EY.txt", "index_col": [0], "header": [0, 1, 2]},
         },
         "units": {
-            "all": {"file_name": "units.txt", "index_col": [0, 1], "header": [0],}
+            "all": {
+                "file_name": "units.txt",
+                "index_col": [0, 1],
+                "header": [0],
+            }
         },
     },
 }
@@ -125,8 +133,21 @@ eora_parser_id = {
     "labels": {
         "Z_i": {"file_name": "labels_T.txt", "index_col": [1, 2, 3], "header": None},
         "Y_c": {"file_name": "labels_FD.txt", "index_col": [1, 2, 3], "header": None},
-        "V_i": {"file_name": "labels_VA.txt", "index_col": [1,], "header": None,},
-        "E_i": {"file_name": "labels_Q.txt", "index_col": [0, 1,], "header": None,},
+        "V_i": {
+            "file_name": "labels_VA.txt",
+            "index_col": [
+                1,
+            ],
+            "header": None,
+        },
+        "E_i": {
+            "file_name": "labels_Q.txt",
+            "index_col": [
+                0,
+                1,
+            ],
+            "header": None,
+        },
     },
 }
 

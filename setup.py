@@ -11,7 +11,7 @@ setup(
     long_description = open("README.rst",encoding="utf8").read(),
     url="https://github.com/it-is-me-mario/MARIO",
     author="Mohammad Amin Tahavori, Lorenzo Rinaldi, Nicolo Golinucci",
-    author_email="mohammadamin.tahavori@polimi.it",
+    author_email="amin.tahavori@enextgen.it",
     version=__version__,
     packages=find_packages(),
     license="GNU General Public License v3.0",

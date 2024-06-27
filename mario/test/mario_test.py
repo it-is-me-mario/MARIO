@@ -31,20 +31,24 @@ _DATA_MAP = {
     _ENUM.p: dict(sheet_name="p", index_col=[0, 1, 2], header=[0]),
 }
 
-path = os.path.abspath(os.path.join(os.path.dirname(__file__),))
+path = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+    )
+)
 
 
 def load_test(table):
     """Loads an example of mario.Database
 
-    Parameters
-    -----------
-    table: str
-        type of the table. 'IOT' or 'SUT'
-s
-    Returns
-    -------
-    mario.Database
+        Parameters
+        -----------
+        table: str
+            type of the table. 'IOT' or 'SUT'
+    s
+        Returns
+        -------
+        mario.Database
     """
 
     return parse_from_excel(
@@ -53,11 +57,13 @@ s
 
 
 def load_dummy(test):
-
     file = pd.ExcelFile(f"{path}/{test}.xlsx")
 
     return {
-        matrix: file.parse(**info,).astype(float) for matrix, info in _DATA_MAP.items()
+        matrix: file.parse(
+            **info,
+        ).astype(float)
+        for matrix, info in _DATA_MAP.items()
     }
 
 

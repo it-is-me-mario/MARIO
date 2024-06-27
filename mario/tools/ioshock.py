@@ -8,22 +8,16 @@ import pandas as pd
 import logging
 from mario.log_exc.logger import log_time
 from mario.log_exc.exceptions import WrongInput
-from mario.tools.constants import (
-    _MASTER_INDEX,
-    _SHOCKS,
-    _ENUM
-)
+from mario.tools.constants import _MASTER_INDEX, _SHOCKS, _ENUM
 
 logger = logging.getLogger(__name__)
 
 
 def check_replace_clusters(userValue, dataValues, clusters):
-
     if userValue in dataValues:
         return userValue
 
     else:
-
         if clusters is not None and clusters.get(userValue) is not None:
             return clusters.get(userValue)
 
@@ -38,7 +32,6 @@ def get_value(given):
 
 
 def nan_check(dataframe, row, shock_type):
-
     dataframe = copy.deepcopy(dataframe)
 
     if shock_type != "Switch":
@@ -50,12 +43,10 @@ def nan_check(dataframe, row, shock_type):
 
 
 def Y_shock(instance, path, boolean, clusters, to_baseline):
-
     Y = instance.query(_ENUM.Y)
     notes = []
 
     if boolean:
-
         if isinstance(path, str):
             info = pd.read_excel(path, _ENUM.Y, header=[0])
         else:
@@ -70,14 +61,16 @@ def Y_shock(instance, path, boolean, clusters, to_baseline):
         value = list(info[_SHOCKS["value"]].values)
 
         if info.isnull().values.any():
-            raise WrongInput(f"nans(empty cells) found in the shock file for '{_ENUM.Y}'.")
+            raise WrongInput(
+                f"nans(empty cells) found in the shock file for '{_ENUM.Y}'."
+            )
 
         for shock in range(len(info)):
             if nan_check(info, shock, _type[shock]):
                 log_time(
                     logger,
                     "nan values found on row {} of {} shock sheet. No more shock is imported after row {}".format(
-                        shock, _ENUM.Y ,shock
+                        shock, _ENUM.Y, shock
                     ),
                     "warning",
                 )
@@ -129,7 +122,6 @@ def Y_shock(instance, path, boolean, clusters, to_baseline):
                 )
 
             elif _type[shock] == "Percentage":
-
                 Y.loc[
                     (row_region_, row_level_, row_sector_),
                     (column_region_, _MASTER_INDEX["n"], demand_category_),
@@ -146,7 +138,6 @@ def Y_shock(instance, path, boolean, clusters, to_baseline):
                     (column_region_, _MASTER_INDEX["n"], demand_category_),
                 ] = value[shock]
 
-                
             else:
                 raise WrongInput(
                     "Acceptable values for type are Absolute, Percentage, and Update."
@@ -170,10 +161,8 @@ def Y_shock(instance, path, boolean, clusters, to_baseline):
 
 
 def V_shock(instance, path, matrix, boolean, clusters, to_baseline):
-
     notes = []
     if matrix == "V":
-
         v = instance.query(_ENUM.v)
         V = instance.query(_ENUM.V)
         X = instance.query(_ENUM.X)
@@ -252,7 +241,6 @@ def V_shock(instance, path, matrix, boolean, clusters, to_baseline):
                 )
 
             elif _type[shock] == "Absolute":
-
                 v.loc[row_sector_, (column_region_, column_level_, column_sector_)] = (
                     get_value(
                         V.loc[
@@ -292,7 +280,6 @@ def V_shock(instance, path, matrix, boolean, clusters, to_baseline):
 
 
 def Z_shock(instance, path, boolean, clusters, to_baseline):
-
     z = instance.query(_ENUM.z)
 
     notes = []
@@ -314,14 +301,16 @@ def Z_shock(instance, path, boolean, clusters, to_baseline):
         value = list(info[_SHOCKS["value"]].values)
 
         if info.isnull().values.any():
-            raise WrongInput(f"nans(empty cells) found in the shock file for '{_ENUM.Z}'.")
+            raise WrongInput(
+                f"nans(empty cells) found in the shock file for '{_ENUM.Z}'."
+            )
 
         for shock in range(len(info)):
             if nan_check(info, shock, _type[shock]):
                 log_time(
                     logger,
                     "nan values found on row {} of {} shock sheet. No more shock is imported after row {}".format(
-                        shock, _ENUM.Z,shock
+                        shock, _ENUM.Z, shock
                     ),
                     "warning",
                 )

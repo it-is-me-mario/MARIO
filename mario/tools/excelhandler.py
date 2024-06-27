@@ -20,7 +20,6 @@ from mario.tools.constants import (
 
 
 def _sh_excel(instance, num_shock, directory, clusters):
-
     # Defining the headers
     levels = _SHOCK_LEVELS[instance.meta.table]
 
@@ -116,7 +115,6 @@ def _sh_excel(instance, num_shock, directory, clusters):
     Y.write("G1", _SHOCKS["value"], header_format)
 
     for i in range(num_shock):
-
         Y.data_validation(
             "A{}".format(i + 2), {"validate": "list", "source": regions_ref}
         )
@@ -142,7 +140,6 @@ def _sh_excel(instance, num_shock, directory, clusters):
     V.write("F1", _SHOCKS["value"], header_format)
 
     for i in range(num_shock):
-
         V.data_validation(
             "A{}".format(i + 2), {"validate": "list", "source": factors_ref}
         )
@@ -165,7 +162,6 @@ def _sh_excel(instance, num_shock, directory, clusters):
     E.write("F1", _SHOCKS["value"], header_format)
 
     for i in range(num_shock):
-
         E.data_validation(
             "A{}".format(i + 2), {"validate": "list", "source": extensions_ref}
         )
@@ -209,7 +205,6 @@ def _sh_excel(instance, num_shock, directory, clusters):
 
 
 def dataframe_to_xlsx(path, **kwargs):
-
     file = xlsxwriter.Workbook(path)
 
     for sheet, data in kwargs.items():
@@ -224,7 +219,6 @@ def dataframe_to_xlsx(path, **kwargs):
             rows = data.index.get_level_values(level).to_list()
             counter = 0
             for row in rows:
-
                 sheet.write(rows_start + counter, level, row)
                 counter += 1
 
@@ -247,7 +241,6 @@ def wrirte_matrices(sheet, Z, V, E, Y, EY, flow_format, header_format):
     col_counter = 0
     # indeces
     for row in range(Z.shape[0]):
-
         sheet.write(
             "A{}".format(row + 4), Z.index.get_level_values(0)[row], header_format
         )
@@ -350,7 +343,6 @@ def wrirte_matrices(sheet, Z, V, E, Y, EY, flow_format, header_format):
 
 
 def database_excel(instance, flows, coefficients, directory, units, scenario):
-
     file = directory
     workbook = xlsxwriter.Workbook(file)
 
@@ -358,7 +350,6 @@ def database_excel(instance, flows, coefficients, directory, units, scenario):
     header_format = workbook.add_format(_FORMAT)
 
     if flows:
-
         data = instance.query(
             matrices=[_ENUM.V, _ENUM.E, _ENUM.Z, _ENUM.Y, _ENUM.EY],
             scenarios=scenario,
@@ -435,16 +426,13 @@ def database_excel(instance, flows, coefficients, directory, units, scenario):
                 except TypeError:
                     units.write("C{}".format(counter), "None")
 
-
                 counter += 1
 
     workbook.close()
 
 
-def database_txt(instance, flows, coefficients, path, units, scenario, _format,sep):
-
+def database_txt(instance, flows, coefficients, path, units, scenario, _format, sep):
     if flows:
-
         flows = instance.query(
             matrices=[_ENUM.V, _ENUM.E, _ENUM.Z, _ENUM.Y, _ENUM.X, _ENUM.EY],
             scenarios=[scenario],
@@ -453,7 +441,6 @@ def database_txt(instance, flows, coefficients, path, units, scenario, _format,s
             os.mkdir(r"{}/{}".format(path, "flows"))
 
         for key, value in flows.items():
-
             if os.path.exists(r"{}/{}/{}.{}".format(path, "flows", key, _format)):
                 os.remove(r"{}/{}/{}.{}".format(path, "flows", key, _format))
 
@@ -466,7 +453,6 @@ def database_txt(instance, flows, coefficients, path, units, scenario, _format,s
             )
 
     if coefficients:
-
         coefficients = instance.query(
             matrices=[_ENUM.v, _ENUM.e, _ENUM.z, _ENUM.Y, _ENUM.EY],
             scenarios=[scenario],
@@ -489,7 +475,6 @@ def database_txt(instance, flows, coefficients, path, units, scenario, _format,s
             )
 
     if units:
-
         units = copy.deepcopy(instance.units)
         _units = pd.DataFrame()
         _index = []
@@ -531,7 +516,6 @@ def database_txt(instance, flows, coefficients, path, units, scenario, _format,s
 
 
 def add_sector_writer(matrices, path):
-
     workbook = xlsxwriter.Workbook(path)
 
     # Add a format for the header cells.
@@ -541,7 +525,6 @@ def add_sector_writer(matrices, path):
         sheet = workbook.add_worksheet(key)
 
         if key in ["e", "v"]:
-
             row_count = 4
             for row in matrix.index.to_list():
                 sheet.write("A{}".format(row_count), row, header_format)
@@ -752,7 +735,6 @@ def _add_sector_sut(instance, sectors, regions, path, item, num_validation=30):
 
 
 def _add_sector_iot(instance, sectors, regions, path, num_validation=30):
-
     file = xlsxwriter.Workbook(path)
     header_format = file.add_format(_FORMAT)
 

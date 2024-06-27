@@ -10,22 +10,32 @@ from mario.log_exc.logger import log_time
 import logging
 
 from mario.tools.constants import _ENUM
+
 logger = logging.getLogger(__name__)
 
 
 def calc_all_shock(z, e, v, Y):
-
     w = calc_w(z)
     X = calc_X_from_w(w, Y)
     E = calc_E(e, X)
     V = calc_V(v, X)
     Z = calc_Z(z, X)
 
-    return {_ENUM.X: X, _ENUM.E: E, _ENUM.V: V, _ENUM.Z: Z, _ENUM.Y: Y, _ENUM.e: e, _ENUM.v: v, _ENUM.z: z}
+    return {
+        _ENUM.X: X,
+        _ENUM.E: E,
+        _ENUM.V: V,
+        _ENUM.Z: Z,
+        _ENUM.Y: Y,
+        _ENUM.e: e,
+        _ENUM.v: v,
+        _ENUM.z: z,
+    }
 
 
 def calc_X(
-    Z, Y,
+    Z,
+    Y,
 ):
     """Calculates the production vector
 
@@ -49,7 +59,8 @@ def calc_X(
 
 
 def calc_Z(
-    z, X,
+    z,
+    X,
 ):
     """Calculates Intersectoral transaction flows matrix
 
@@ -119,7 +130,8 @@ def calc_g(b):
 
 
 def calc_X_from_w(
-    w, Y,
+    w,
+    Y,
 ):
     """Calculates Production vector from Leontief coefficients matrix
 
@@ -236,7 +248,8 @@ def calc_e(E, X):
 
 
 def calc_p(
-    v, w,
+    v,
+    w,
 ):
     """Calculating Price index coefficients vector
 
@@ -263,7 +276,8 @@ def calc_p(
 
 
 def calc_v(
-    V, X,
+    V,
+    X,
 ):
     """Calculates Factor of production transaction coefficients matrix
 
@@ -462,7 +476,6 @@ def calc_y(Y):
 
 
 def X_inverse(X):
-
     X_inv = dc(X)
 
     if isinstance(X_inv, (pd.Series, pd.DataFrame)):
@@ -480,7 +493,6 @@ def linkages_calculation(cut_diag, matrices, multi_mode, normalized):
             np.fill_diagonal(value.values, 0)
 
     if multi_mode:
-
         link_types = [
             "Total Forward",
             "Total Backward",
@@ -529,7 +541,9 @@ def linkages_calculation(cut_diag, matrices, multi_mode, normalized):
 
         if normalized:
             log_time(
-                logger, "Normalization not available for multi-regional mode.", "warning"
+                logger,
+                "Normalization not available for multi-regional mode.",
+                "warning",
             )
 
     # Computing linkages as if there were only one unique region
@@ -545,7 +559,6 @@ def linkages_calculation(cut_diag, matrices, multi_mode, normalized):
         _backward_d.columns = ["Direct Backward"]
 
         if normalized:
-
             _forward_t.iloc[:, 0] = _forward_t.iloc[:, 0] / np.average(
                 _forward_t.values
             )

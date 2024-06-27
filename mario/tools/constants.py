@@ -2,7 +2,7 @@
 """
 This module contains all the constants of the code
 """
-from mario.settings.settings import Index,Nomenclature
+from mario.settings.settings import Index, Nomenclature
 
 
 _MASTER_INDEX = Index()
@@ -71,27 +71,81 @@ _ADD_SECTOR_SHEETS = {
 
 
 _CALC = {
-    _ENUM.F: ("calc_F(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'].sum(1))",dict(enum0=_ENUM.f,enum1=_ENUM.Y)),
-    _ENUM.M: ("calc_F(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'].sum(1))",dict(enum0=_ENUM.m,enum1=_ENUM.Y)),
-    _ENUM.m: ("calc_f(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",dict(enum0=_ENUM.v,enum1=_ENUM.w)),
-    _ENUM.V: ("calc_E(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",dict(enum0=_ENUM.v,enum1=_ENUM.X)),
-    _ENUM.v: ("calc_e(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",dict(enum0=_ENUM.V,enum1=_ENUM.X)),
-    _ENUM.f: ("calc_f(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",dict(enum0=_ENUM.e,enum1=_ENUM.w)),
-    _ENUM.e: ("calc_e(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",dict(enum0=_ENUM.E,enum1=_ENUM.X)),
-    _ENUM.E: ("calc_E(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",dict(enum0=_ENUM.e,enum1=_ENUM.X)),
-    _ENUM.z: ("calc_z(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",dict(enum0=_ENUM.Z,enum1=_ENUM.X)),
-    _ENUM.Z: ("calc_Z(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",dict(enum0=_ENUM.z,enum1=_ENUM.X)),
-    _ENUM.b: ("calc_b(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",dict(enum0=_ENUM.X,enum1=_ENUM.Z)),
-    _ENUM.w: ("calc_w(self.matrices['{scenario}']['{enum0}'])",dict(enum0=_ENUM.z)),
-    _ENUM.g: ("calc_w(self.matrices['{scenario}']['{enum0}'])",dict(enum0=_ENUM.b)),
-    _ENUM.y: ("calc_y(self.matrices['{scenario}']['{enum0}'])",dict(enum0=_ENUM.Y)),
-    _ENUM.s: ("self.matrices['{scenario}']['{enum0}'].loc[(slice(None),_MASTER_INDEX['a'],slice(None)),(slice(None),_MASTER_INDEX['c'],slice(None))]",dict(enum0=_ENUM.z)),
-    _ENUM.S: ("self.matrices['{scenario}']['{enum0}'].loc[(slice(None),_MASTER_INDEX['a'],slice(None)),(slice(None),_MASTER_INDEX['c'],slice(None))]",dict(enum0=_ENUM.Z)),
-    _ENUM.u: ("self.matrices['{scenario}']['{enum0}'].loc[(slice(None),_MASTER_INDEX['c'],slice(None)),(slice(None),_MASTER_INDEX['a'],slice(None))]",dict(enum0=_ENUM.z)),
-    _ENUM.U: ("self.matrices['{scenario}']['{enum0}'].loc[(slice(None),_MASTER_INDEX['c'],slice(None)),(slice(None),_MASTER_INDEX['a'],slice(None))]",dict(enum0=_ENUM.Z)),
-    _ENUM.p: ("calc_p(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",dict(enum0=_ENUM.v,enum1=_ENUM.w)),
-    "X_Z": ("calc_X(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",dict(enum0=_ENUM.Z,enum1=_ENUM.Y)),
-    "X_z": ("calc_X_from_z(self.matrices['{}']['{enum0}'],self.matrices['{}']['{enum1}'])",dict(enum0=_ENUM.z,enum1=_ENUM.Y)),
+    _ENUM.F: (
+        "calc_F(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'].sum(1))",
+        dict(enum0=_ENUM.f, enum1=_ENUM.Y),
+    ),
+    _ENUM.M: (
+        "calc_F(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'].sum(1))",
+        dict(enum0=_ENUM.m, enum1=_ENUM.Y),
+    ),
+    _ENUM.m: (
+        "calc_f(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.v, enum1=_ENUM.w),
+    ),
+    _ENUM.V: (
+        "calc_E(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.v, enum1=_ENUM.X),
+    ),
+    _ENUM.v: (
+        "calc_e(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.V, enum1=_ENUM.X),
+    ),
+    _ENUM.f: (
+        "calc_f(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.e, enum1=_ENUM.w),
+    ),
+    _ENUM.e: (
+        "calc_e(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.E, enum1=_ENUM.X),
+    ),
+    _ENUM.E: (
+        "calc_E(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.e, enum1=_ENUM.X),
+    ),
+    _ENUM.z: (
+        "calc_z(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.Z, enum1=_ENUM.X),
+    ),
+    _ENUM.Z: (
+        "calc_Z(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.z, enum1=_ENUM.X),
+    ),
+    _ENUM.b: (
+        "calc_b(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.X, enum1=_ENUM.Z),
+    ),
+    _ENUM.w: ("calc_w(self.matrices['{scenario}']['{enum0}'])", dict(enum0=_ENUM.z)),
+    _ENUM.g: ("calc_w(self.matrices['{scenario}']['{enum0}'])", dict(enum0=_ENUM.b)),
+    _ENUM.y: ("calc_y(self.matrices['{scenario}']['{enum0}'])", dict(enum0=_ENUM.Y)),
+    _ENUM.s: (
+        "self.matrices['{scenario}']['{enum0}'].loc[(slice(None),_MASTER_INDEX['a'],slice(None)),(slice(None),_MASTER_INDEX['c'],slice(None))]",
+        dict(enum0=_ENUM.z),
+    ),
+    _ENUM.S: (
+        "self.matrices['{scenario}']['{enum0}'].loc[(slice(None),_MASTER_INDEX['a'],slice(None)),(slice(None),_MASTER_INDEX['c'],slice(None))]",
+        dict(enum0=_ENUM.Z),
+    ),
+    _ENUM.u: (
+        "self.matrices['{scenario}']['{enum0}'].loc[(slice(None),_MASTER_INDEX['c'],slice(None)),(slice(None),_MASTER_INDEX['a'],slice(None))]",
+        dict(enum0=_ENUM.z),
+    ),
+    _ENUM.U: (
+        "self.matrices['{scenario}']['{enum0}'].loc[(slice(None),_MASTER_INDEX['c'],slice(None)),(slice(None),_MASTER_INDEX['a'],slice(None))]",
+        dict(enum0=_ENUM.Z),
+    ),
+    _ENUM.p: (
+        "calc_p(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.v, enum1=_ENUM.w),
+    ),
+    "X_Z": (
+        "calc_X(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.Z, enum1=_ENUM.Y),
+    ),
+    "X_z": (
+        "calc_X_from_z(self.matrices['{}']['{enum0}'],self.matrices['{}']['{enum1}'])",
+        dict(enum0=_ENUM.z, enum1=_ENUM.Y),
+    ),
 }
 
 

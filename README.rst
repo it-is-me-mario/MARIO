@@ -163,7 +163,15 @@ The new database can be saved into excel,txt or csv file:
 
    reformed_iot.to_excel(path='a folder//database.xlsx')
 
+********
+Citation
+********
+
+In case you use mario, you should use our peer reviewed publication (`Tahavori, Golinucci, Rinaldi, et al. <https://openresearchsoftware.metajnl.com/articles/10.5334/jors.473>`_) for citiation!
+
+
 .. _RST pckgs:
+
 
 *********
 Read more
@@ -184,13 +192,23 @@ you can execute the following command:
    * This project is under active development. 
    * More examples will be uploaded through time to the gallery.
    * More parsers will be added to the next version.
-   * The next version will cover some optimization models within the IO framework
-   * For more tutorials on mario, check out our `Input-Output analysis and modelling with MARIO Course  <https://zenodo.org/record/8308515>`_ 
 
-Citation
---------
 
-In case you use mario, you should use our peer reviewed publication (`Tahavori, Golinucci, Rinaldi, et al. <https://openresearchsoftware.metajnl.com/articles/10.5334/jors.473>`_) for citiation!
+Publications
+------------
+
+* Assessing environmental and market implications of steel decarbonisation strategies: a hybrid input-output model for the European Union (`Rinaldi et al, Environmental Research Letters, 2024  <https://doi.org/10.1088/1748-9326/ad5bf1>`_ )
+* Assessing critical materials demand in global energy transition scenarios based on the Dynamic Extraction and Recycling Input-Output framework (DYNERIO) (`Rinaldi et al, Resources Conservation adn Recycling, 2023  <https://www.sciencedirect.com/science/article/pii/S092134492300037X?via%3Dihub>`_ )
+* Three different directions in which the European Union could replace Russian natural gas (`Nikas et al, Energy, 2024 <https://www.sciencedirect.com/science/article/pii/S0360544224000252?via%3Dihub>`_ )
+* Investigating the economic and environmental impacts of a technological shift towards hydrogen-based solutions for steel manufacture in high-renewable electricity mix scenarios for Italy (`Marco Conte et al, IOP Conf. Ser.: Earth Environ. Sci., 2022 <https://iopscience.iop.org/article/10.1088/1755-1315/1106/1/012008>`_)
+
+
+Support Materials
+-----------------
+
+* `Input-Output analysis and modelling with MARIO Open University Course  <https://www.open.edu/openlearncreate/course/view.php?id=11723>`_ 
+  
+
 
 License
 -------
@@ -201,3 +219,17 @@ License
 
 This work is licensed under a `GNU GENERAL PUBLIC LICENSE <https://www.gnu.org/licenses/gpl-3.0.en.html>`_
 
+
+Supporting Institutions
+-----------------------
+
+.. image:: https://github.com/it-is-me-mario/MARIO/blob/pre-releasev0.3.0/doc/source/_static/images/enextgen.png?raw=true
+   :width: 120
+   :align: left
+   :target: https://www.enextgen.it/
+
+.. image:: https://raw.githubusercontent.com/it-is-me-mario/MARIO/7cc701e2e0f23d2cdc0f01c05d6c6e33b30b682e/doc/source/_static/images/polimi.svg
+   :width: 200
+   :align: left
+   :target: https://polimi.it/
+   
