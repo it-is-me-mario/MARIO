@@ -190,7 +190,7 @@ you can execute the following command:
 Citation
 --------
 
-In case you use mario, you should use our peer reviewed publication (`Tahavori et al. <https://openresearchsoftware.metajnl.com/articles/10.5334/jors.473>`_) for citiation!
+In case you use mario, you should use our peer reviewed publication (`Tahavori, Golinucci, Rinaldi, et al. <https://openresearchsoftware.metajnl.com/articles/10.5334/jors.473>`_) for citiation!
 
 License
 -------
