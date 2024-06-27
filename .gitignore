@@ -3,8 +3,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+~$*
 .vscode
-amintest.py
+*.zip
+doc/notebooks/exiobase_hybrid/Exiobase v3.3.18/
+amin_test.py
 
 # os files
 .DS_Store
@@ -14,6 +17,11 @@ amintest.py
 '=
 # local test files
 amintest.py
+
+# tutorial dbs
+new_tutorials/EXIOBASE_folder/
+new_tutorials/EORA_folder/
+new_tutorials/Custom_database_folder/
 
 # Distribution / packaging
 .Python
@@ -137,3 +145,5 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+

@@ -16,7 +16,7 @@ from mario.log_exc.exceptions import (
 from mario.log_exc.logger import log_time
 
 from mario.tools.ioshock import Y_shock, V_shock, Z_shock
-from mario.tools.tabletransform import SUT_to_IOT
+from mario.tools.tabletransform import SUT_to_IOT, ISARD_TO_CHENERY_MOSES
 import json
 from mario.tools.utilities import (
     _manage_indeces,
@@ -24,6 +24,7 @@ from mario.tools.utilities import (
     run_from_jupyter,
     filtering,
     pymrio_styling,
+    sort_frames,
 )
 
 from mario.tools.excelhandler import (
@@ -63,7 +64,7 @@ from mario.tools.iomath import (
     linkages_calculation,
 )
 
-from mario.tools.sectoradd import adding_new_sector
+from mario.tools.sectoradd import add_new_sector
 
 from collections import namedtuple
 import plotly.offline as pltly
@@ -84,6 +85,7 @@ from mario.tools.constants import (
     _ALL_MATRICES,
     _MATRICES_NAMES,
     _PYMRIO_MATRICES,
+    _ENUM,
 )
 
 from mario.core.CoreIO import CoreModel
@@ -203,7 +205,6 @@ class Database(CoreModel):
         self.__counter = 1  # Shock Counter
 
     def build_new_instance(self, scenario):
-
         """This function returns a new instance of Database which the baseline
         scenario can be any given scenario. This is specifically useful in case
         a shock needs to be implemented around a non-baseline scenario. Indeed,
@@ -227,28 +228,26 @@ class Database(CoreModel):
                 )
             )
 
-        data = self.get_data(
-            matrices=["Y", "E", "V", "Z", "EY"],
+        data = self.query(
+            matrices=[_ENUM.Y, _ENUM.E, _ENUM.V, _ENUM.Z, _ENUM.EY],
             scenarios=scenario,
-            units=False,
-            indeces=False,
-            auto_calc=True,
-        )[scenario]
+        )
 
         return Database(
-            Y=data.Y,
-            E=data.E,
-            V=data.V,
-            Z=data.Z,
-            EY=data.EY,
+            Y=data[_ENUM.Y],
+            E=data[_ENUM.E],
+            V=data[_ENUM.V],
+            Z=data[_ENUM.Z],
+            EY=data[_ENUM.EY],
             units=self.units,
             table=self.meta.table,
         )
 
     def to_iot(
-        self, method, inplace=True,
+        self,
+        method,
+        inplace=True,
     ):
-
         """The function will transform a SUT table to a IOT table
 
 
@@ -296,7 +295,7 @@ class Database(CoreModel):
         matrices, indeces, units = SUT_to_IOT(self, method)
 
         for scenario in self.scenarios:
-            log_time(logger, f"{scenario} deleted from the database", "warn")
+            log_time(logger, f"{scenario} deleted from the database", "warning")
             self.meta._add_history(f"{scenario} deleted from the database")
 
         self.matrices = matrices
@@ -317,10 +316,76 @@ class Database(CoreModel):
             ),
         )
 
-    def get_aggregation_excel(
-        self, path=None, levels="all",
+    def to_chenery_moses(
+        self,
+        inplace: bool = True,
+        scenarios: list = None,
     ):
+        """The function will transform an Isard SUT table to a Chenery-Moses SUT table.
+        The transformation implies moving from trades accounted in the USE matrix to trades accounted in the SUPPLY matrix.
+        For further notes on the transformation check:
+        - John M. Hartwick, 1970. "Notes on the Isard and Chenery-Moses Interregional Input-Output Models," Working Paper 16, Economics Department, Queen's University.
 
+        .. note::
+
+            Calling this function will modify all scenarios in the database
+
+        Parameters
+        ----------
+
+        inplace : boolean
+            if True, implements the changes on the Database else returns
+            a new object without changing the original Database object
+
+        scenarios : list
+            if None, will implement the changes on all the scenarios, else will
+            implement the changes on the given scenarios
+
+        Returns
+        -------
+        None :
+            if inplace True
+
+        mario.Database :
+            if inplace False
+        """
+        if not inplace:
+            new = self.copy()
+            new.to_chenery_moses(inplace=True, scenarios=scenarios)
+            return new
+
+        if scenarios is None:
+            scenarios = self.scenarios
+
+        for scenario in scenarios:
+            if self.is_chenerymoses(scenario=scenario):
+                raise NotImplementable(
+                    f"scenario {scenario} is already in Chenery-Moses format"
+                )
+
+        log_time(
+            logger,
+            "Database: Transforming the database into Chenery-Moses",
+        )
+
+        for scenario in scenarios:
+            Z_chenery, Y_chenery = ISARD_TO_CHENERY_MOSES(self, scenario)
+            to_update = {_ENUM.Z: Z_chenery, _ENUM.Y: Y_chenery}
+            sort_frames(to_update)
+            self.update_scenarios(scenario, **to_update)
+            self.reset_to_flows(scenario=scenario)
+
+            self.meta._add_history(
+                f"Transformation of the database from into Chenery-Moses for scenario {scenario}"
+            )
+
+        log_time(logger, "Transformation of the database from into Chenery-Moses")
+
+    def get_aggregation_excel(
+        self,
+        path=None,
+        levels="all",
+    ):
         """Generates the Excel file for aggregation of the database
 
         Parameters
@@ -343,10 +408,12 @@ class Database(CoreModel):
 
             difference = set(levels).difference(set(self.sets))
             if difference:
-
                 raise WrongInput(
                     "\{}' is/are not an acceptable level/s for the database.\n"
-                    "Acceptable items are \n{}".format(difference, self.sets,)
+                    "Acceptable items are \n{}".format(
+                        difference,
+                        self.sets,
+                    )
                 )
         elif levels == "all":
             levels = [*_LEVELS[self.meta.table]]
@@ -359,9 +426,11 @@ class Database(CoreModel):
                 data.to_excel(writer, level)
 
     def read_aggregated_index(
-        self, io, levels="all", ignore_nan=False,
+        self,
+        io,
+        levels="all",
+        ignore_nan=False,
     ):
-
         """Reads information over the aggregation of levels without aggregating the data
 
 
@@ -425,13 +494,12 @@ class Database(CoreModel):
                 isna = index.isna()
                 nans = isna.loc[isna["Aggregation"] == True].index
                 if ignore_nan:
-
                     log_time(
                         logger,
                         "nan values for the aggregation of {} for following items ignored\n{}".format(
                             level, list(nans)
                         ),
-                        "warn",
+                        "warning",
                     )
 
                     index.loc[nans, "Aggregation"] = list(nans)
@@ -455,12 +523,10 @@ class Database(CoreModel):
         io,
         drop=["unused"],
         levels="all",
-        backup=True,
         calc_all=True,
         ignore_nan=False,
         inplace=True,
     ):
-
         """This function is in charge of reading data regarding the aggregation
            of different levels and aggregate data.
 
@@ -478,9 +544,6 @@ class Database(CoreModel):
             #. in case that a single level or 'all' levels should be aggregated, str can be used
             #. in case that multiple levels should be aggregated, a list of levels should be used
 
-        backup : boolean
-            shows if the user needs to make a backup before aggregating so can
-            reset to previous case.
 
         calc_all : boolean
             if True, ['v','z','e'] will be calculated automatically after the
@@ -505,7 +568,7 @@ class Database(CoreModel):
 
         # ensure of Y,E,V,Z,EY exist
         for scenario in self.scenarios:
-            self.calc_all(["E", "V", "Z"],scenario=scenario)
+            self.calc_all([_ENUM.E, _ENUM.V, _ENUM.Z], scenario=scenario)
 
         if not inplace:
             new = self.copy()
@@ -513,7 +576,6 @@ class Database(CoreModel):
                 io=io,
                 drop=drop,
                 levels=levels,
-                backup=False,
                 calc_all=calc_all,
                 ignore_nan=ignore_nan,
                 inplace=True,
@@ -522,9 +584,6 @@ class Database(CoreModel):
             return new
 
         else:
-            if backup:
-                self.backup()
-
             if isinstance(drop, str):
                 drop = [drop]
 
@@ -533,7 +592,9 @@ class Database(CoreModel):
 
             else:
                 self.read_aggregated_index(
-                    levels=levels, io=io, ignore_nan=ignore_nan,
+                    levels=levels,
+                    io=io,
+                    ignore_nan=ignore_nan,
                 )
                 __new_matrices = {}
 
@@ -560,22 +621,11 @@ class Database(CoreModel):
                 for scenario in self.scenarios:
                     self.calc_all(scenario=scenario)
 
-    def reset_to_backup(self):
-
-        """This function is in charge of reseting back the database to the last back-up.
-        All the matrices and indeces will be updated to the last back-up
-        """
-
-        self.matrices = self._backup.matrices
-        self._indeces = self._backup.indeces
-        self.units = self._backup.units
-        self.meta._add_history("Last backup recovered.")
-        log_time(logger, "Database: Reseting to back-up")
-
     def get_extensions_excel(
-        self, matrix, path=None,
+        self,
+        matrix,
+        path=None,
     ):
-
         """Generates an Excel file for easing the add extension functionality
 
 
@@ -589,7 +639,7 @@ class Database(CoreModel):
 
         """
 
-        aceptables = ["E", "V"]
+        aceptables = [_ENUM.E, _ENUM.V]
 
         if matrix.upper() not in aceptables:
             raise WrongInput(f"Acceptable matrix are: \n {[*aceptables]}")
@@ -608,13 +658,11 @@ class Database(CoreModel):
         io,
         matrix,
         units,
-        backup=True,
         inplace=True,
         calc_all=True,
         notes=None,
         EY=None,
     ):
-
         """Adding a new extension [Factor of production or Satellite account] to the database
         passing the coefficients or the absolute values.
 
@@ -640,9 +688,6 @@ class Database(CoreModel):
         units : pd.DataFrame
             a dataframe whose rows are the items to be added and single column
             which contains the units for every row
-
-        backup : boolean
-            creates a backup of the last database to recover if needed
 
         inplace : boolean
             if True, will change the database inplace otherwise will return
@@ -670,7 +715,6 @@ class Database(CoreModel):
             new.add_extensions(
                 io=io,
                 matrix=matrix,
-                backup=backup,
                 inplace=True,
                 units=units,
                 calc_all=calc_all,
@@ -681,23 +725,26 @@ class Database(CoreModel):
             return new
 
         # This function can be implemented only in the following matrices
-        if matrix not in ["v", "V", "e", "E"]:
+        if matrix not in [_ENUM.v, _ENUM.V, _ENUM.e, _ENUM.E]:
             raise WrongInput(
-                "Acceptable items for matrix are:\n{}".format(["v", "V", "e", "E"])
+                "Acceptable items for matrix are:\n{}".format(
+                    [_ENUM.v, _ENUM.V, _ENUM.e, _ENUM.E]
+                )
             )
 
-        all_matrices = ["v", "V", "e", "E", "EY", "Z", "Y"]
+        all_matrices = [_ENUM.v, _ENUM.V, _ENUM.e, _ENUM.E, _ENUM.EY, _ENUM.Z, _ENUM.Y]
 
         if matrix.upper() == matrix:
             all_matrices.remove(matrix.lower())
         else:
             all_matrices.remove(matrix.upper())
 
-        matrix_id = "f" if matrix.upper() == "V" else "k"
+        matrix_id = "f" if matrix.upper() == _ENUM.V else "k"
 
-        info = self.get_data(
-            matrices=all_matrices, auto_calc=True, indeces=False, format="dict"
-        )["baseline"]
+        info = self.query(
+            matrices=all_matrices,
+        )
+        info["units"] = copy.deepcopy(self.units)
 
         if isinstance(io, pd.DataFrame):
             data = io
@@ -716,11 +763,8 @@ class Database(CoreModel):
         log_time(
             logger,
             "Using add extensions will rewrite the new results on the baseline and delete other scenarios",
-            "warn",
+            "warning",
         )
-
-        if backup:
-            self.backup()
 
         data = data.sort_index()
         units = units.sort_index()
@@ -749,20 +793,23 @@ class Database(CoreModel):
 
         to_add = data.index.difference(info[matrix].index)
 
-        info[matrix] = info[matrix].append(data.loc[to_add, :])
+        info[matrix] = pd.concat([info[matrix], data.loc[to_add, :]])
 
         if matrix_id == "k":
-
             if EY is None:
-
-                info["EY"] = info["EY"].append(
-                    pd.DataFrame(0, index=to_add, columns=info["EY"].columns)
+                info["EY"] = pd.concat(
+                    [
+                        info["EY"],
+                        pd.DataFrame(0, index=to_add, columns=info["EY"].columns),
+                    ]
                 )
             else:
-                info["EY"] = info["EY"].append(EY.loc[to_add, :])
+                info["EY"] = pd.concat([info["EY"], EY.loc[to_add, :]])
 
         unit_item = _MASTER_INDEX[matrix_id]
-        info["units"][unit_item] = info["units"][unit_item].append(units.loc[to_add])
+        info["units"][unit_item] = pd.concat(
+            [info["units"][unit_item], units.loc[to_add]]
+        )
 
         units = info["units"]
         del info["units"]
@@ -770,7 +817,7 @@ class Database(CoreModel):
         matrices = {"baseline": {**info}}
 
         for scenario in self.scenarios:
-            log_time(logger, f"{scenario} deleted from the database", "warn")
+            log_time(logger, f"{scenario} deleted from the database", "warning")
             self.meta._add_history(f"{scenario} deleted from the database")
 
         self.matrices = matrices
@@ -789,8 +836,7 @@ class Database(CoreModel):
             for note in notes:
                 self.meta._add_history(f"User note: {note}")
 
-    def to_single_region(self, region, backup=True, inplace=True):
-
+    def to_single_region(self, region, inplace=True):
         """Extracts a single region from multi-region databases
 
         .. note::
@@ -807,9 +853,6 @@ class Database(CoreModel):
         region : str
             the region to extract
 
-        backup : boolean
-            if True, creates a backup of the database before changes
-
         inplace : boolean
             if True, changes the database inplace otherwise, returns a new object
 
@@ -822,7 +865,7 @@ class Database(CoreModel):
         """
         if not inplace:
             new = self.copy()
-            new.to_single_region(region=region, backup=backup, inplace=True)
+            new.to_single_region(region=region, inplace=True)
 
             return new
 
@@ -838,21 +881,18 @@ class Database(CoreModel):
         log_time(
             logger,
             "All the scenarios will be deleted to build up the new baseline.",
-            "warn",
+            "warning",
         )
 
-        data = self.get_data(
-            matrices=["Y", "X", "Z", "V", "E", "EY"],
-            units=False,
-            indeces=False,
-            auto_calc=True,
-        )["baseline"]
+        data = self.query(
+            matrices=[_ENUM.Y, _ENUM.X, _ENUM.Z, _ENUM.V, _ENUM.E, _ENUM.EY],
+        )
 
-        Z = data.Z
-        V = data.V
-        Y = data.Y
-        E = data.E
-        EY = data.EY
+        Z = data[_ENUM.Z]
+        V = data[_ENUM.V]
+        Y = data[_ENUM.Y]
+        E = data[_ENUM.E]
+        EY = data[_ENUM.EY]
 
         # Take the regions!=region
         rest_reg = self.get_index(_MASTER_INDEX["r"])
@@ -860,17 +900,20 @@ class Database(CoreModel):
 
         # Take the imports from the Z matrix
         IM = Z.loc[
-            (rest_reg, slice(None), slice(None)), (region, slice(None), slice(None)),
+            (rest_reg, slice(None), slice(None)),
+            (region, slice(None), slice(None)),
         ]
 
         # Taking the intermediate export
         EX = Z.loc[
-            (region, slice(None), slice(None)), (rest_reg, slice(None), slice(None)),
+            (region, slice(None), slice(None)),
+            (rest_reg, slice(None), slice(None)),
         ]
 
         # Take the Z for the region
         Z = Z.loc[
-            (region, slice(None), slice(None)), (region, slice(None), slice(None)),
+            (region, slice(None), slice(None)),
+            (region, slice(None), slice(None)),
         ]
 
         IM = IM.sum(axis=0).to_frame().T
@@ -882,11 +925,13 @@ class Database(CoreModel):
 
         # Taking the Y_local matrix
         Y_local = Y.loc[
-            (region, slice(None), slice(None)), (region, slice(None), slice(None)),
+            (region, slice(None), slice(None)),
+            (region, slice(None), slice(None)),
         ]
 
         YEX = Y.loc[
-            (region, slice(None), slice(None)), (rest_reg, slice(None), slice(None)),
+            (region, slice(None), slice(None)),
+            (rest_reg, slice(None), slice(None)),
         ]
 
         YEX = YEX.sum(axis=1).to_frame()
@@ -919,8 +964,6 @@ class Database(CoreModel):
         E = E.loc[:, (region, slice(None), slice(None))]
 
         X = calc_X(Z=Z, Y=Y)
-        if backup:
-            self.backup()
 
         all_indeces = self.get_index("all")
 
@@ -938,7 +981,7 @@ class Database(CoreModel):
 
         self.matrices = {"baseline": {}}
         for matrix in ["Y", "Z", "E", "EY", "Y", "V", "X"]:
-            self.matrices["baseline"][matrix] = eval(matrix)
+            self.matrices["baseline"][_ENUM[matrix]] = eval(matrix)
         log_time(logger, "Transformation: New baseline added to the database")
 
         slicer = _MASTER_INDEX["a"] if self.table_type == "SUT" else _MASTER_INDEX["s"]
@@ -964,7 +1007,11 @@ class Database(CoreModel):
         )
 
     def calc_linkages(
-        self, scenario="baseline", normalized=True, cut_diag=True, multi_mode=True,
+        self,
+        scenario="baseline",
+        normalized=True,
+        cut_diag=True,
+        multi_mode=True,
     ):
         """Calculates the linkages in different modes
 
@@ -1012,14 +1059,9 @@ class Database(CoreModel):
             raise NotImplementable("Linkages can not be calculated for SUT.")
 
         _matrices = {
-            **self.get_data(
-                matrices=["w", "b", "z", "g"],
-                units=False,
-                indeces=False,
-                format="dict",
-                scenarios=[scenario],
-                auto_calc=True,
-            )[scenario]
+            **self.query(
+                matrices=[_ENUM.w, _ENUM.b, _ENUM.z, _ENUM.g],
+            )
         }
 
         return linkages_calculation(
@@ -1040,7 +1082,6 @@ class Database(CoreModel):
         auto_open=True,
         **config,
     ):
-
         """Plots linkages in different modes
 
         .. note::
@@ -1089,7 +1130,8 @@ class Database(CoreModel):
         if difference:
             raise WrongInput(
                 "Scenarios: {} do not exist in the database. Existing scenarios are:\n{}".format(
-                    difference, self.scenarios,
+                    difference,
+                    self.scenarios,
                 )
             )
 
@@ -1121,7 +1163,6 @@ class Database(CoreModel):
         scenario="baseline",
         include_meta=False,
     ):
-
         """Saves the database into an Excel file
 
         .. note::
@@ -1189,11 +1230,9 @@ class Database(CoreModel):
         units=True,
         scenario="baseline",
         _format="txt",
-        include_meta = False,
-        sep = ',',
-
+        include_meta=False,
+        sep=",",
     ):
-
         """Saves the database multiple text file based on given inputs
 
         .. note::
@@ -1246,7 +1285,7 @@ class Database(CoreModel):
             units,
             scenario,
             _format,
-            sep
+            sep,
         )
 
         if include_meta:
@@ -1262,7 +1301,6 @@ class Database(CoreModel):
         scenario="baseline",
         **kwargs,
     ):
-
         """Returns a pymrio.IOSystem from a mario.Database
 
         Parameters
@@ -1303,20 +1341,21 @@ class Database(CoreModel):
                 "satellte_account and factor_of_production does not accept values containing space."
             )
 
-        matrices = self.get_data(
-            matrices=["V", "Z", "Y", "E", "EY"], scenarios=[scenario], auto_calc=True,
-        )[scenario]
+        matrices = self.query(
+            matrices=[_ENUM.V, _ENUM.Z, _ENUM.Y, _ENUM.E, _ENUM.EY],
+            scenarios=[scenario],
+        )
 
         factor_input = pymrio.Extension(
             name=factor_of_production,
-            F=pymrio_styling(df=matrices.V, **_PYMRIO_MATRICES["V"]),
+            F=pymrio_styling(df=matrices[_ENUM.V], **_PYMRIO_MATRICES["V"]),
             unit=self.units[_MASTER_INDEX["f"]],
         )
 
         satellite = pymrio.Extension(
             name=satellite_account,
-            F=pymrio_styling(df=matrices.E, **_PYMRIO_MATRICES["E"]),
-            F_Y=pymrio_styling(df=matrices.EY, **_PYMRIO_MATRICES["EY"]),
+            F=pymrio_styling(df=matrices[_ENUM.E], **_PYMRIO_MATRICES["E"]),
+            F_Y=pymrio_styling(df=matrices[_ENUM.EY], **_PYMRIO_MATRICES["EY"]),
             unit=self.units[_MASTER_INDEX["k"]],
         )
 
@@ -1325,13 +1364,13 @@ class Database(CoreModel):
                 self.units[_MASTER_INDEX["s"]].values,
                 (len(self.get_index(_MASTER_INDEX["r"])), 1),
             ),
-            index=matrices.Z.index,
+            index=matrices[_ENUM.Z].index,
             columns=["unit"],
         )
 
         io = pymrio.IOSystem(
-            Z=pymrio_styling(df=matrices.Z, **_PYMRIO_MATRICES["Z"]),
-            Y=pymrio_styling(df=matrices.Y, **_PYMRIO_MATRICES["Y"]),
+            Z=pymrio_styling(df=matrices[_ENUM.Z], **_PYMRIO_MATRICES["Z"]),
+            Y=pymrio_styling(df=matrices[_ENUM.Y], **_PYMRIO_MATRICES["Y"]),
             unit=units,
             **kwargs,
         )
@@ -1348,7 +1387,6 @@ class Database(CoreModel):
         return io
 
     def get_add_sectors_excel(self, new_sectors, regions, path=None, item=None):
-
         """Generates an Excel file to add a sector/activity/commodity to the database
 
         Parameters
@@ -1375,7 +1413,8 @@ class Database(CoreModel):
         if difference:
             raise WrongInput(
                 "Regions: {} do not exist in the database. Existing regions are:\n{}".format(
-                    difference, self.get_index(_MASTER_INDEX["r"]),
+                    difference,
+                    self.get_index(_MASTER_INDEX["r"]),
                 )
             )
 
@@ -1405,9 +1444,14 @@ class Database(CoreModel):
             )
 
     def add_sectors(
-        self, io, new_sectors, regions, item, inplace=True, notes=None,
+        self,
+        io,
+        new_sectors,
+        regions,
+        item,
+        inplace=True,
+        notes=None,
     ):
-
         """Adds a Sector/Activity/Commodity to the database
 
         .. note::
@@ -1456,7 +1500,8 @@ class Database(CoreModel):
         if difference:
             raise WrongInput(
                 "Regions: {} do not exist in the database. Existing regions are:\n{}".format(
-                    difference, self.get_index(_MASTER_INDEX["r"]),
+                    difference,
+                    self.get_index(_MASTER_INDEX["r"]),
                 )
             )
 
@@ -1473,15 +1518,15 @@ class Database(CoreModel):
         log_time(
             logger,
             "Database: All the scenarios will be deleted from the database",
-            "warn",
+            "warning",
         )
 
-        z, v, e, Y, units = adding_new_sector(self, io, new_sectors, item, regions)
+        new_data, units = add_new_sector(self, io, new_sectors, item, regions)
 
-        X = calc_X_from_z(z, Y)
-        E = calc_E(e, X)
-        V = calc_E(v, X)
-        Z = calc_Z(z, X)
+        new_data["X"] = calc_X_from_z(new_data["z"], new_data["Y"])
+        new_data["E"] = calc_E(new_data["e"], new_data["X"])
+        new_data["V"] = calc_E(new_data["v"], new_data["X"])
+        new_data["Z"] = calc_Z(new_data["z"], new_data["X"])
 
         # add new sector in the index
         index_take = [key for key, take in _MASTER_INDEX.items() if take == item][0]
@@ -1491,11 +1536,11 @@ class Database(CoreModel):
             if index_take != "s":
                 self._indeces["s"]["main"].append(sec)
 
-        EY = self.EY
+        new_data["EY"] = self.EY
 
         # Deleting old values
         for matrix in ["z", "e", "v", "Y", "X", "Z", "E", "V", "EY"]:
-            self.matrices["baseline"][matrix] = eval(matrix)
+            self.matrices["baseline"][_ENUM[matrix]] = new_data[matrix]
 
         self.meta._add_history(
             "Scenarios: all the scenarios deleted from the database."
@@ -1516,9 +1561,13 @@ class Database(CoreModel):
                 self.meta._add_history(f"User note: {note}")
 
     def query(
-        self, matrices, scenarios=["baseline"], base_scenario=None, type="absolute",
+        self,
+        matrices,
+        scenarios=["baseline"],
+        base_scenario=None,
+        type="absolute",
     ):
-        """ Requests a specific data from the database
+        """Requests a specific data from the database
 
         Parameters
         ----------
@@ -1541,7 +1590,7 @@ class Database(CoreModel):
         dict,pd.DataFrame
             If multiple scenarios are passed, it returns a dict where keys are the scenarios and vals are the matrices. matrices itself could be a dict or pd.DataFrame depending if multiple matrices or one matrix is passed
 
-            
+
         Example
         -------
         Let's consider the case that multiple scenarios ['sc.1','sc.2'] and multiple matrices ['X','z'] are passed:
@@ -1563,11 +1612,11 @@ class Database(CoreModel):
                 "X": pd.DataFrame,
                 "z": pd.DataFrame,
             },
-            
+
         }
 
         if only one scenario ("sc.1") is passed, output will be:
-        
+
         type Dict[pd.DataFrame]
         {
             "X": pd.DataFrame,
@@ -1576,6 +1625,8 @@ class Database(CoreModel):
 
         if only one scenario ("sc.1") and one matrix ("X") is passed the output will be a single pd.DataFrame.
         """
+        if isinstance(scenarios, str):
+            scenarios = [scenarios]
         data = self.get_data(
             matrices=matrices,
             units=False,
@@ -1606,7 +1657,6 @@ class Database(CoreModel):
         base_scenario=None,
         type="absolute",
     ):
-
         """Returns specific data and calculating them or the changes for scenarios in a database
            if requested
 
@@ -1721,7 +1771,6 @@ class Database(CoreModel):
                         calc_data()
 
                     except KeyError:
-
                         if auto_calc:
                             try:
                                 calc_missed = {}
@@ -1735,7 +1784,6 @@ class Database(CoreModel):
                                     calc_missed[scenario] = item
 
                                 for key, value in calc_missed.items():
-
                                     self.calc_all(
                                         matrices=[value], scenario=key, setattr=False
                                     )
@@ -1766,9 +1814,9 @@ class Database(CoreModel):
         return dict_scenarios
 
     def DataFrame(
-        self, scenario="baseline",
+        self,
+        scenario="baseline",
     ):
-
         """Returns a single DatFrame which is the whole flows all together.
 
 
@@ -1783,19 +1831,16 @@ class Database(CoreModel):
         pd.DataFrame
         """
 
-        data = self.get_data(
-            matrices=["Z", "Y", "V", "E", "EY"],
-            units=False,
-            indeces=False,
-            auto_calc=True,
+        data = self.query(
+            matrices=[_ENUM.Z, _ENUM.Y, _ENUM.V, _ENUM.E, _ENUM.EY],
             scenarios=scenario,
-        )[scenario]
+        )
 
-        Z = data.Z
-        Y = data.Y
-        V = data.V
-        E = data.E
-        EY = data.EY
+        Z = data[_ENUM.Z]
+        Y = data[_ENUM.Y]
+        V = data[_ENUM.V]
+        E = data[_ENUM.E]
+        EY = data[_ENUM.EY]
 
         V.index = [[""] * len(V), [_MASTER_INDEX["f"]] * len(V), V.index]
         E.index = [[""] * len(E), [_MASTER_INDEX["k"]] * len(E), E.index]
@@ -1836,7 +1881,6 @@ class Database(CoreModel):
         force_rewrite=False,
         **clusters,
     ):
-
         """Implements shocks on different matrices with the
         possibility of defining clusters on every level of information.
 
@@ -1895,7 +1939,7 @@ class Database(CoreModel):
         e_c, note_e = V_shock(self, io, "E", e, clusters, 1)
         v_c, note_v = V_shock(self, io, "V", v, clusters, 1)
         Y_c, note_y = Y_shock(self, io, Y, clusters, 1)
-        EY_c = copy.deepcopy(self.EY)
+        EY_c = self.query([_ENUM.EY])
 
         _results = calc_all_shock(z_c, e_c, v_c, Y_c)
         _results["EY"] = EY_c
@@ -1920,9 +1964,11 @@ class Database(CoreModel):
         log_time(logger, "Shock: Shock implemented successfully.")
 
     def get_shock_excel(
-        self, path=None, num_shock=10, **clusters,
+        self,
+        path=None,
+        num_shock=10,
+        **clusters,
     ):
-
         """Creates an Excel file based on the shape and the format
            of the database for the shock impelemntation.
 
@@ -1952,7 +1998,6 @@ class Database(CoreModel):
         _sh_excel(self, num_shock, self._getdir(path, "Excels", "shock.xlsx"), clusters)
 
     def replace_units_name(self, level, names):
-
         if level not in [*_LEVELS[self.meta.table]]:
             raise WrongInput(
                 "'{}' is not a valid index. Valid indeces are: \n{}".format(
@@ -1960,16 +2005,14 @@ class Database(CoreModel):
                 )
             )
         if len(list(dict.fromkeys(self.units[level].iloc[:, 0]))) > 1:
-
             for item, value in names.items():
-
                 if True in set((self.units[level]["unit"] == item).values):
                     self.units[level][self.units[level]["unit"] == item] = value
                 else:
                     log_time(
                         logger,
                         comment="No units named {} found".format(item),
-                        level="warn",
+                        level="warning",
                     )
 
     def plot_bubble(
@@ -1983,7 +2026,6 @@ class Database(CoreModel):
         log_x=False,
         log_y=False,
     ):
-
         """Creates bubble plots
 
         Parameters
@@ -2024,9 +2066,7 @@ class Database(CoreModel):
         )
 
         cols = {}
-        matrices = self.get_data(
-            matrices=["E", "V"], scenarios=scenario, units=False, indeces=False
-        )[scenario]
+        matrices = self.query(matrices=[_ENUM.E, _ENUM.V])
         for item in items:
             if eval(item) == "GDP":
                 to_plot["GDP"] = (
@@ -2037,11 +2077,15 @@ class Database(CoreModel):
                 unit = self.units[_MASTER_INDEX["f"]].iloc[0, 0]
 
             elif eval(item) in self.get_index(_MASTER_INDEX["k"]):
-                to_plot[eval(item)] = matrices.E.loc[eval(item), to_plot.index].values
+                to_plot[eval(item)] = (
+                    matrices[_ENUM.E].loc[eval(item), to_plot.index].values
+                )
                 unit = self.units[_MASTER_INDEX["k"]].loc[eval(item), "unit"]
 
             elif eval(item) in self.get_index(_MASTER_INDEX["f"]):
-                to_plot[eval(item)] = matrices.V.loc[eval(item), to_plot.index].values
+                to_plot[eval(item)] = (
+                    matrices[_ENUM.V].loc[eval(item), to_plot.index].values
+                )
                 unit = self.units[_MASTER_INDEX["f"]].loc[eval(item), "unit"]
             else:
                 raise WrongInput(
@@ -2092,7 +2136,6 @@ class Database(CoreModel):
         drop_reg=None,
         title=None,
     ):
-
         """Plots sectoral GDP with additional info
 
         Parameters
@@ -2118,7 +2161,7 @@ class Database(CoreModel):
 
         drop_reg : str, optional
             a region to be excluded in the plot can be passed. Useful when using MRIO with one region and a Rest of the World region.
-        
+
         title: str, optional
             here the user can pass a costume title for the plot
         """
@@ -2149,21 +2192,20 @@ class Database(CoreModel):
         )
         color = "Share of sector by region"
         if extension is not None:
-
             if extension_value == "relative":
-                matrix = "e"
+                matrix = _ENUM.e
                 color = "{} [{}]/ Production"
 
             elif extension_value == "specific footprint":
-                matrix = "f"
+                matrix = _ENUM.f
                 color = "{} [{}]/ Production"
 
             elif extension_value == "absolute footprint":
-                matrix = "F"
+                matrix = _ENUM.F
                 color = "{} [{}]"
 
             else:
-                matrix = "E"
+                matrix = _ENUM.E
                 color = "{} [{}]"
 
             data = self.get_data(
@@ -2235,7 +2277,6 @@ class Database(CoreModel):
         shared_xaxes=True,
         **filters,
     ):
-
         """Generates a general html barplot giving the user certain degrees of freedom such as:
 
             * Regions (both the ones on the indices and columns)
@@ -2449,63 +2490,3 @@ class Database(CoreModel):
             shared_xaxes,
             filters,
         )
-
-    def set_solver(self, solver):
-
-        """This function can be used to set the solver for some specific uses.
-
-        .. note::
-
-            This will be used mostly on the next version of MARIO which contains the models.
-        """
-
-        if __cvxpy__:
-
-            # All the acceptable solvers by CVXPY
-            solvers = [
-                "GUROBI",
-                "ECOS",
-                "ECOS_BB",
-                "OSQP",
-                "SCS",
-                "CBC",
-                "CVXOPT",
-                "GLPK",
-                "GLPK_MI",
-                "MOSEK",
-                "CPLEX",
-                "NAG",
-                "SCIP",
-                "XPRESS",
-            ]
-
-            if solver.upper() not in solvers:
-                raise WrongInput(
-                    "Invalid solver. Acceptable solvers by CVXPY are: {}".format(
-                        solvers
-                    )
-                )
-
-            if solver.upper() not in cp.installed_solvers():
-                raise WrongInput(
-                    "{} is not installed on your machine. Installed solvers are{}".format(
-                        solver, cp.installed_solvers()
-                    )
-                )
-
-            log_time(
-                logger,
-                "Solver: solver changed from {} to {}".format(
-                    self.__solver, solver.upper()
-                ),
-                "info",
-            )
-
-            self.__solver = eval(f"cp.{solver.upper()}")
-
-        else:
-            log_time(
-                logger,
-                "this function can not be used if cvxpy module is not installed",
-                "critical",
-            )

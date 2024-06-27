@@ -46,28 +46,22 @@ import os
 import copy
 import re
 
+import warnings
+
+# Filter out the specific warning from openpyxl
+warning_message = "Data Validation extension is not supported and will be removed"
+warnings.filterwarnings("ignore", message=warning_message)
 
 # constants
 from mario.tools.constants import (
     _LEVELS,
     _MASTER_INDEX,
+    _ENUM,
     _CALC,
     _ALL_MATRICES,
 )
 
 logger = logging.getLogger(__name__)
-
-try:
-    import cvxpy as cp
-
-    __cvxpy__ = True
-except ModuleNotFoundError:
-    log_time(
-        logger,
-        "cvxpy module is not installed in your system. This will raise problems in some of the abilities of MARIO",
-        "critical",
-    )
-    __cvxpy__ = False
 
 
 class CoreModel:
@@ -101,7 +95,6 @@ class CoreModel:
         year=None,
         **kwargs,
     ):
-
         name: str
         table: str
         Z: pd.DataFrame
@@ -131,6 +124,14 @@ class CoreModel:
         self.meta = MARIOMetaData(name=name)
 
         if "init_by_parsers" in kwargs:
+            matrices = kwargs["init_by_parsers"]["matrices"]["baseline"]
+            renamed_matrices = {}
+
+            for m, v in matrices.items():
+                renamed_matrices[_ENUM[m]] = v
+
+            kwargs["init_by_parsers"]["matrices"]["baseline"] = renamed_matrices
+
             for item in ["matrices", "units", "_indeces"]:
                 setattr(self, item, kwargs["init_by_parsers"][item])
 
@@ -148,6 +149,15 @@ class CoreModel:
                 self.matrices, self._indeces, self.units = dataframe_parser(
                     Z, Y, E, V, EY, units, table
                 )
+
+                matrices = self.matrices["baseline"]
+                renamed_matrices = {}
+
+                for m, v in matrices.items():
+                    renamed_matrices[_ENUM[m]] = v
+
+                self.matrices["baseline"] = renamed_matrices
+
                 self.meta._add_attribute(table=table, price=price)
 
                 log_time(logger, "Metadata: initialized by dataframes.")
@@ -162,12 +172,11 @@ class CoreModel:
 
     def calc_all(
         self,
-        matrices=["z", "v", "e", "Z", "V", "E"],
+        matrices=[_ENUM.z, _ENUM.v, _ENUM.e, _ENUM.Z, _ENUM.V, _ENUM.E],
         scenario="baseline",
         force_rewrite=False,
         **kwargs,
     ):
-
         """Calculates the input-output matrices for different scenarios.
 
         Notes
@@ -208,20 +217,23 @@ class CoreModel:
                 _try = kwargs.get("try", 0)
                 kwargs["try"] = _try
                 try:
+                    if item != _ENUM.X:
+                        eq = _CALC[item][0]
 
-                    if item != "X":
-                        data = eval(_CALC[item].format(scenario, scenario))
+                        kw = _CALC[item][1]
+
+                        data = eval(eq.format(scenario=scenario, **kw))
                     else:
-                        if "z" in self.matrices[scenario]:
+                        if _ENUM.z in self.matrices[scenario]:
                             data = calc_X_from_z(
-                                z=self.matrices[scenario]["z"],
-                                Y=self.matrices[scenario]["Y"],
+                                z=self.matrices[scenario][_ENUM.z],
+                                Y=self.matrices[scenario][_ENUM.Y],
                             )
 
-                        elif "Z" in self.matrices[scenario]:
+                        elif _ENUM.Z in self.matrices[scenario]:
                             data = calc_X(
-                                Z=self.matrices[scenario]["Z"],
-                                Y=self.matrices[scenario]["Y"],
+                                Z=self.matrices[scenario][_ENUM.Z],
+                                Y=self.matrices[scenario][_ENUM.Y],
                             )
 
                         else:
@@ -243,7 +255,7 @@ class CoreModel:
                             logger,
                             f"Database: to calculate {item} following matrices are need.\n{list(error.args)}."
                             f"Trying to calculate dependencies.",
-                            "warn",
+                            "warning",
                         )
                         self.calc_all(list(error.args), scenario, **kwargs)
                         self.calc_all([item], scenario, **kwargs)
@@ -254,7 +266,6 @@ class CoreModel:
                         )
 
     def add_note(self, notes):
-
         """Adds notes to the meta history
 
         Parameters
@@ -271,7 +282,6 @@ class CoreModel:
             self.meta._add_history(f"User Note: {note}")
 
     def update_scenarios(self, scenario, **matrices):
-
         """Updates the matrices for a specific scenario.
 
         .. note::
@@ -312,7 +322,9 @@ class CoreModel:
             self.matrices[scenario][matrix] = value
 
     def clone_scenario(
-        self, scenario, name,
+        self,
+        scenario,
+        name,
     ):
         """Creates a new scenario by cloning an existing scenario
 
@@ -345,7 +357,10 @@ class CoreModel:
             "Scenarios: {name} added to scearios by cloning {scenario}"
         )
 
-    def reset_to_flows(self, scenario, backup=True):
+    def reset_to_flows(
+        self,
+        scenario,
+    ):
         """Deletes the coefficients of a scenario and keeps only flows
 
         Parameters
@@ -353,13 +368,9 @@ class CoreModel:
         scenario : str
             the specific scenario to reset
 
-        backup : boolean
-            if True, will create a backup of database before changes
         """
-        if backup:
-            self.backup()
 
-        keep = ["Z", "E", "V", "EY", "Y"]
+        keep = [_ENUM.Z, _ENUM.E, _ENUM.V, _ENUM.EY, _ENUM.Y]
 
         if scenario not in self.scenarios:
             raise WrongInput(f"Acceptable scenarios are {self.scenarios}")
@@ -375,7 +386,7 @@ class CoreModel:
         log_time(logger, "Databases: reset to flows.")
         self.matrices[scenario] = matrices
 
-    def reset_to_coefficients(self, scenario, backup=True):
+    def reset_to_coefficients(self, scenario):
         """Deletes the flows of a scenario and keeps only coefficients
 
         Parameters
@@ -383,13 +394,8 @@ class CoreModel:
         scenario : str
             the specific scenario to reset
 
-        backup : boolean
-            if True, will create a backup of database before changes
         """
-        keep = ["z", "e", "v", "EY", "Y"]
-
-        if backup:
-            self.backup()
+        keep = [_ENUM.z, _ENUM.e, _ENUM.v, _ENUM.EY, _ENUM.Y]
 
         if scenario not in self.scenarios:
             raise WrongInput(f"Acceptable scenarios are {self.scenarios}")
@@ -406,7 +412,6 @@ class CoreModel:
         self.matrices[scenario] = matrices
 
     def get_index(self, index, level="main"):
-
         """Returns a list or a DataFrame of different levels of indeces in the database.
 
         Parameters
@@ -447,9 +452,12 @@ class CoreModel:
         return copy.deepcopy(self._indeces[_LEVELS[self.table_type][index]][level])
 
     def is_balanced(
-        self, method, data_set="baseline", margin=0.05, as_dataframe=False,
+        self,
+        method,
+        data_set="baseline",
+        margin=0.05,
+        as_dataframe=False,
     ):
-
         """Checks if a specific data_set in the database is balance or not
 
         .. note::
@@ -490,9 +498,12 @@ class CoreModel:
         """
 
         methods = {
-            "flows": {"matrices": ["V", "Z", "X"], "header": ["\u0394X"]},
-            "coefficients": {"matrices": ["v", "z"], "header": ["v+z"]},
-            "prices": {"matrices": ["p"], "header": ["\u0394p"]},
+            "flows": {"matrices": [_ENUM.V, _ENUM.Z, _ENUM.X], "header": ["\u0394X"]},
+            "coefficients": {
+                "matrices": [_ENUM.v, _ENUM.z],
+                "header": [f"{_ENUM.v}+{_ENUM.z}"],
+            },
+            "prices": {"matrices": [_ENUM.p], "header": ["\u0394p"]},
         }
 
         if method not in methods:
@@ -502,17 +513,15 @@ class CoreModel:
                 "Balance test is not applicable for hybrid units tables."
             )
 
-        data = self.get_data(
+        data = self.query(
             matrices=methods[method]["matrices"],
-            units=False,
-            indeces=False,
             scenarios=[data_set],
-            format="object",
-            auto_calc=True,
-        )[data_set]
+        )
 
         if method == "flows":
-            balance = (data.Z.sum() + data.V.sum() - data.X.sum(1)).to_frame()
+            balance = (
+                data[_ENUM.Z].sum() + data[_ENUM.V].sum() - data[_ENUM.X].sum(1)
+            ).to_frame()
             balance.columns = ["col"]
 
             imbalances = balance[
@@ -520,7 +529,7 @@ class CoreModel:
             ]
 
         elif method == "coefficients":
-            balance = (data.z.sum() + data.v.sum()).to_frame()
+            balance = (data[_ENUM.z].sum() + data[_ENUM.v].sum()).to_frame()
             balance.columns = ["col"]
 
             imbalances = balance[
@@ -529,7 +538,7 @@ class CoreModel:
             ]
 
         elif method == "prices":
-            balance = data.p
+            balance = data
             imbalances = balance[
                 (balance["price index"] >= 1 + margin)
                 | (balance["price index"] <= 1 - margin) & (balance["price index"] != 0)
@@ -558,137 +567,114 @@ class CoreModel:
         )
         return True
 
-    def is_productive(self, method: str, data_set: str = "baseline") -> bool:
-
-        """Checks the productivity of the system
+    def is_isard(self, scenario: str = "baseline") -> bool:
+        """Checks whether a table is in Isard format.
+        Isard SUT tables account for trades among regions in the USE matrix
 
         Parameters
         ------------
-        method : str
-            represents the method to check the balance:
-
-                #. 'flow'
-                #. 'coefficient'
-                #. 'price'
-
-        data_set: str
+        scenario: str
             defining the scenario to be checked
-
-        margin: float which will be considered as a margin for the balance
 
         RETURN
         -------------
-
         boolean
 
-                True if the dataset is balance
-                Flase if the dataset is not balance --> it also prints in a table the imbalances
-
+                True if the dataset is isard
+                Flase if the dataset is not isard
         """
-        _methods = {
-            "A": "SPECTRAL RADIUS",
-            "B": "POWER SERIES EXPANSION",
-            "C": "SLACK VARIABLE",
-        }
 
-        if data_set not in self.scenarios:
+        if self.meta.table != "SUT":
+            raise NotImplementable("This test is implementable only on SUT tables")
+        elif len(self.get_index(_MASTER_INDEX["r"])) == 1:
+            raise NotImplementable(
+                "This test is not implementable on single-region tables"
+            )
+
+        if scenario not in self.scenarios:
             raise WrongInput("Acceptable data_sets are:\n{}".format(self.scenarios))
 
-        if method.upper() not in _methods:
-            raise WrongInput("Acceptable methods are: \n{}".format([*_methods]))
+        if (
+            _ENUM.z in self.matrices[scenario]
+        ):  # this avoid to calculate z or Z in case one of them is missing, to avoid losing time
+            matrix = self.matrices[scenario][_ENUM.z]
+        else:
+            matrix = self.matrices[scenario][_ENUM.Z]
 
-        z = copy.deepcopy(self.matrices[data_set]["z"])
-        Y = copy.deepcopy(self.matrices[data_set]["Y"])
-        Y = Y.sum(axis=1).to_frame()
-        I = np.eye(z.shape[0])
-        L = np.linalg.inv(I - z)
+        sN = slice(None)
+        matrix = matrix.loc[
+            (sN, _MASTER_INDEX["c"], sN), (sN, _MASTER_INDEX["a"], sN)
+        ]  # extract the use side from z or Z
+        matrix = matrix.groupby(level=[_MASTER_INDEX["r"]]).sum()
+        matrix = matrix.T.groupby(level=[_MASTER_INDEX["r"]]).sum().T
 
-        log_time(
-            logger, "Productivity test by {} method".format(_methods[method.upper()])
-        )
+        is_diagonal = np.all(matrix.values == np.diag(np.diagonal(matrix)))
 
-        _productive = True
+        if is_diagonal:
+            log_time(logger, "Test: table is not in Isard format")
 
-        if method == "A":
+            return False
 
-            eigen_value = np.linalg.eig(z)[0]
-            rho = max(abs(eigen_value))
+        else:
+            log_time(logger, "Test: table is in Isard format")
 
-            if rho < 1:
-                log_time(
-                    logger,
-                    "Test: productive system (spectral radius = {})".format(
-                        round(rho, 2)
-                    ),
+            return True
+
+    def is_chenerymoses(self, scenario: str = "baseline") -> bool:
+        """Checks whether a table is in Isard format.
+        Isard SUT tables account for trades among regions in the USE matrix
+
+        Parameters
+        ------------
+        scenario: str
+            defining the scenario to be checked
+
+        RETURN
+        -------------
+        boolean
+                True if the dataset is isard
+                Flase if the dataset is not isard
+        """
+
+        if self.meta.table != "SUT":
+            raise NotImplementable("This test is implementable only on SUT tables")
+        elif len(self.get_index(_MASTER_INDEX["r"])) == 1:
+            raise NotImplementable(
+                "This test is not implementable on single-region tables"
+            )
+
+        if scenario not in self.scenarios:
+            raise WrongInput(
+                "{} is not an acceptable scenario. Acceptable data_sets are:\n{}".format(
+                    scenario, self.scenarios
                 )
+            )
 
-            else:
-                log_time(
-                    logger,
-                    "Test: non-productive system (spectral radius = {})".format(
-                        round(rho, 2)
-                    ),
-                )
-                _productive = False
+        if (
+            _ENUM.z in self.matrices[scenario]
+        ):  # this avoid to calculate z or Z in case one of them is missing, to avoid losing time
+            matrix = self.matrices[scenario][_ENUM.z]
+        else:
+            matrix = self.matrices[scenario][_ENUM.Z]
 
-        elif method == "B":
+        sN = slice(None)
+        matrix = matrix.loc[
+            (sN, _MASTER_INDEX["a"], sN), (sN, _MASTER_INDEX["c"], sN)
+        ]  # extract the supply side from z or Z
+        matrix = matrix.groupby(level=[_MASTER_INDEX["r"]]).sum()
+        matrix = matrix.T.groupby(level=[_MASTER_INDEX["r"]]).sum().T
 
-            M = {}
-            M[0] = I
-            M_cum = {}
-            M_cum[0] = M[0]
-            residuals = []  # initial point
-            error = 0.1
-            i = 0
+        is_diagonal = np.all(matrix.values == np.diag(np.diagonal(matrix)))
 
-            while residuals[i] >= error:
-                M[i + 1] = np.linalg.matrix_power(z, i + 1)
-                M_cum[i + 1] = M_cum[i] + M[i + 1]
-                residuals.append(sum(sum(abs(L - M_cum[i + 1]))))
-                if residuals[i + 1] > residuals[i]:
-                    log_time(
-                        logger,
-                        "Test: non-productive system (non-convergent power series)",
-                    )
-                    _productive = False
-                    break
-                i += 1
-            else:
-                log_time(
-                    logger, "Test: productive system (non-convergent power series)"
-                )
+        if is_diagonal:
+            log_time(logger, "Test: table is not in Chenery-Moses format")
 
-        elif method == "C" and __cvxpy__:
+            return False
 
-            x = cp.Variable((Y.shape[0], 1))
-            s = cp.Variable((Y.shape[0], 1))
+        else:
+            log_time(logger, "Test: table is in Chenery-Moses format")
 
-            Z = cp.sum(s, 0)
-            obj = cp.Minimize(Z)
-
-            const = [
-                cp.matmul(I - z, x) + s == np.ones((Y.shape[0], 1)),
-                x >= 0,
-                s >= 0,
-            ]
-
-            prob = cp.Problem(obj, const)
-            prob.solve(verbose=False)
-            print(s.value)
-
-            if all(s.value == 0):
-                log_time(
-                    logger, "Test: productive system (all industries are productive)"
-                )
-
-            else:
-                log_time(
-                    logger,
-                    "Test: non-productive system (number of non-productive industries: {})",
-                )
-                _productive = False
-
-        return _productive
+            return True
 
     def copy(self):
         """Returns a deepcopy of the instance
@@ -716,7 +702,6 @@ class CoreModel:
         self.meta._save(path, format)
 
     def __str__(self):
-
         to_print = (
             "name = {}\n"
             "table = {}\n"
@@ -731,9 +716,12 @@ class CoreModel:
         return self.__str__()
 
     def GDP(
-        self, exclude=[], scenario="baseline", total=True, share=False,
+        self,
+        exclude=[],
+        scenario="baseline",
+        total=True,
+        share=False,
     ):
-
         """Return the value of the GDP based scenario.
 
         .. note::
@@ -774,29 +762,31 @@ class CoreModel:
 
         slicer = _MASTER_INDEX["s"] if self.table_type == "IOT" else _MASTER_INDEX["a"]
 
-        data = self.get_data(
-            matrices=["V"],
+        data = self.query(
+            matrices=[_ENUM.V],
             scenarios=[scenario],
-            units=False,
-            indeces=False,
-            format="object",
-        )[scenario].V
+        )
 
         GDP = (
             data.drop(exclude).sum().to_frame().loc[(slice(None), slicer, slice(None))]
         )
         GDP.columns = ["GDP"]
+
         GDP.index.names = (
-            ["Region", "Level", "Sector"]
-            if self.table_type == "IOT"
-            else ["Region", "Level", "Activity"]
+            ["Region", "Sector"] if self.table_type == "IOT" else ["Region", "Activity"]
         )
 
         if total:
-            return GDP.groupby(level=0, sort=False,).sum()
+            GDP = GDP.groupby(
+                level=0,
+                sort=False,
+            ).sum()
 
         if share:
-            region_gdp = GDP.groupby(level=0, sort=False,).sum()
+            region_gdp = GDP.groupby(
+                level=0,
+                sort=False,
+            ).sum()
             share = GDP.div(region_gdp) * 100
             GDP["Share of sector by region"] = share["GDP"]
 
@@ -921,7 +911,7 @@ class CoreModel:
             log_time(
                 logger,
                 f"DIRECTORY: default path = {path} is choosen to save the data.",
-                "warn",
+                "warning",
             )
 
         return path
@@ -1004,7 +994,6 @@ class CoreModel:
             raise StopIteration
 
     def __getattr__(self, attr):
-
         if attr in self.__dict__:
             return self.__dict__[attr]
         else:
@@ -1024,8 +1013,7 @@ class CoreModel:
         self.__dict__ = value
 
     def __eq__(self, other):
-        """ Checks the equality if two databases
-        """
+        """Checks the equality if two databases"""
         main_sets = sorted(self.sets)
         other_sets = sorted(other.sets)
 
@@ -1042,7 +1030,6 @@ class CoreModel:
         return True
 
     def backup(self):
-
         """The function creates a backup of the last configuration of database
         to be returned in case needed.
         """

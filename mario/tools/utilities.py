@@ -2,7 +2,7 @@
 """
 contains the utils functions in mario
 """
-#%%
+
 import pandas as pd
 import numpy as np
 import logging
@@ -11,6 +11,7 @@ import os
 
 
 from mario.tools.constants import (
+    _ENUM,
     _MASTER_INDEX,
     _LEVELS,
     _ALL_MATRICES,
@@ -64,7 +65,7 @@ def slicer(matrix, axis, **levels):
         data.Y.loc[Y_rows,Y_cols]
     """
 
-    if matrix.upper() in ["V", "E"] and axis == 0:
+    if matrix.upper() in [_ENUM.V, _ENUM.E] and axis == 0:
         acceptable_levels = ["Item"]
     else:
         acceptable_levels = ["Region", "Level", "Item"]
@@ -91,10 +92,8 @@ def run_from_jupyter():
 
 
 def sort_frames(_dict):
-
     for key, value in _dict.items():
-
-        if key.upper() in ["E", "V", "EY"]:
+        if key.upper() in [_ENUM.E, _ENUM.V, _ENUM.EY]:
             _dict[key] = value.sort_index(axis=1, level=1)
 
         else:
@@ -106,7 +105,6 @@ def delete_duplicates(_list: [list, tuple]) -> list:
 
 
 def _manage_indeces(instance, case, **kwargs):
-
     if case == "aggregation":
         for index in instance._indeces.keys():
             if "aggregated" in instance._indeces[index]:
@@ -123,7 +121,6 @@ def _manage_indeces(instance, case, **kwargs):
 
 
 def check_clusters(index_dict, table, clusters):
-
     differences = set(clusters).difference(set(_LEVELS[table]))
 
     if differences:
@@ -152,7 +149,6 @@ def all_file_reader(
     def readers(file_to_read, file):
         try:
             if file_to_read.split(".")[-1] in ["txt", "csv"]:
-
                 read[key][inner_key] = pd.read_csv(
                     file,
                     index_col=inner_value["index_col"],
@@ -176,14 +172,12 @@ def all_file_reader(
 
     if path.split(".")[-1] == "zip":
         with ZipFile(r"{}".format(path), "a") as folder:
-
             try:
                 new_path = folder.namelist()[0].split("/")[0] if sub_folder else ""
             except IndexError:
                 raise FileNotFoundError
 
             for key, value in guide.items():
-
                 read[key] = {}
 
                 for inner_key, inner_value in value.items():
@@ -200,7 +194,6 @@ def all_file_reader(
             read[key] = {}
 
             for inner_key, inner_value in value.items():
-
                 file = r"{}/{}".format(path, inner_value["file_name"])
                 readers(file, file)
 
@@ -208,7 +201,6 @@ def all_file_reader(
 
 
 def return_index(df, item, multi_index, del_duplicate, reindex=None, level=None):
-
     if multi_index:
         index = list(getattr(df, item).get_level_values(level))
 
@@ -222,7 +214,6 @@ def return_index(df, item, multi_index, del_duplicate, reindex=None, level=None)
 
 
 def multiindex_contain(inner_index, outer_index, file, check_levels=None):
-
     if type(inner_index) != type(outer_index):
         raise WrongInput(
             f"Incorrect indexing for {file}. the indexing should be with a {type(outer_index)} format."
@@ -241,7 +232,6 @@ def multiindex_contain(inner_index, outer_index, file, check_levels=None):
         differences = {}
         passed = True
         for level in levels:
-
             diff = (
                 outer_index.levels[level].difference(inner_index.levels[level]).tolist()
             )
@@ -260,7 +250,6 @@ def multiindex_contain(inner_index, outer_index, file, check_levels=None):
 
 
 def rename_index(_dict):
-
     for key, value in _dict.items():
         for item in ["index", "columns"]:
             if isinstance(getattr(value, item), pd.MultiIndex):
@@ -270,9 +259,7 @@ def rename_index(_dict):
 
 
 def filtering(instance, filters):
-
     for item, value in filters.items():
-
         splitter = item.split("_")
         if item == "filter_{}".format(_MASTER_INDEX["n"].replace(" ", "_")):
             assign = _MASTER_INDEX["n"]
@@ -303,7 +290,6 @@ def filtering(instance, filters):
 
 
 def pymrio_styling(df, keep_index, keep_columns, index_name, columns_name):
-
     index = [df.index.get_level_values(i) for i in keep_index]
     columns = [df.columns.get_level_values(i) for i in keep_columns]
 
@@ -321,8 +307,7 @@ def pymrio_styling(df, keep_index, keep_columns, index_name, columns_name):
 
 
 def to_single_index(df):
-    """Retuns joined pd.Index from pd.MultiIndex
-    """
+    """Retuns joined pd.Index from pd.MultiIndex"""
 
     if isinstance(df.index, pd.MultiIndex):
         df.index = [", ".join(ii) for ii in df.index]

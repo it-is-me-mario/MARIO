@@ -14,7 +14,6 @@ _time_format = "%Y-%m-%d %H:%M:%S"
 
 
 def setup_root_logger(verbosity, capture_warnings):
-
     root_logger = logging.getLogger()
 
     # Removing all the existing handlers
@@ -41,12 +40,10 @@ def setup_root_logger(verbosity, capture_warnings):
 
 
 def log_time(logger, comment, level="info"):
-
     getattr(logger, level)(comment)
 
 
 def set_log_verbosity(verbosity="info", capture_warnings=True):
-
     """Sets the formatted logging level
 
     Parameters
@@ -58,6 +55,8 @@ def set_log_verbosity(verbosity="info", capture_warnings=True):
         if True, will capture the warnings even if the verbosity level is lower than warning
     """
 
+    if verbosity.upper() == "WARN":
+        verbosity = "WARNING"
     backend_logger = logging.getLogger("mario.core.AttrData")
     backend_logger.setLevel(verbosity.upper())
     setup_root_logger(verbosity=verbosity, capture_warnings=capture_warnings)

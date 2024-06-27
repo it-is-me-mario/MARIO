@@ -1,4 +1,6 @@
 """Tests for Database class"""
+import warnings
+warnings.filterwarnings("ignore",category=DeprecationWarning)
 
 import sys
 import os
@@ -7,6 +9,8 @@ import pytest
 import pandas.testing as pdt
 import pandas as pd
 from pymrio import Extension,IOSystem
+
+from mario.tools.constants import _ENUM
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
@@ -22,7 +26,6 @@ from mario.log_exc.exceptions import (
     DataMissing
 )
 from mario import parse_from_excel
-
 
 @pytest.fixture()
 def CoreDataIOT():
@@ -48,9 +51,22 @@ def agg_IOT():
 
     return data
 
+@pytest.fixture()
+def agg_SUT():
+
+    data = parse_from_excel(
+        path = f"{MOCK_PATH}/SUT_aggregation.xlsx",
+        table = 'SUT',
+        mode = "flows"
+    )
+
+    data.path = f"{MOCK_PATH}/SUT_aggregation.xlsx"
+
+    return data
+
 def test_build_new_instance(CoreDataIOT):
 
-    CoreDataIOT.calc_all(matrices=["X"])
+    CoreDataIOT.calc_all(matrices=[_ENUM.X])
     CoreDataIOT.clone_scenario("baseline", "dummy")
 
     dummy = CoreDataIOT.build_new_instance("dummy")
@@ -144,7 +160,7 @@ def test_read_aggregated_index(CoreDataIOT,CoreDataSUT):
             )
 
 # TODO :: Drop to be checked
-def test_aggregate(agg_IOT):
+def test_aggregate_IOT(agg_IOT):
 
     sats = agg_IOT.get_index('Satellite account')
     aggregator = {
@@ -178,6 +194,49 @@ def test_aggregate(agg_IOT):
         else:
             assert set(aggr.get_index(level)) == set(xlsx.values.ravel())
 
+    aggr = agg_IOT.aggregate(
+        io = agg_IOT.path,
+        inplace= False
+    )
+
+def test_aggregate_SUT(agg_SUT):
+
+    sats = agg_SUT.get_index('Satellite account')
+    aggregator = {
+        'Satellite account': pd.DataFrame(['sats']*len(sats),index=sats,columns=['Agg'])
+    }
+    # test error catch for different units
+    with pytest.raises(WrongInput) as msg:
+        agg_SUT.aggregate(
+            io = aggregator,
+            levels = 'Satellite account',
+            inplace = False
+        )
+
+    assert "different units" in str(msg.value)
+
+    file = pd.ExcelFile(agg_SUT.path)
+    for level in agg_SUT.sets:
+
+
+        xlsx = file.parse(sheet_name=level,index_col=0)
+        aggr = agg_SUT.aggregate(
+                    io = agg_SUT.path,
+                    levels = level,
+                    inplace = False,
+                    #drop = ['delete']
+                )
+
+        if level == 'Satellite account':
+            assert aggr.get_index(level) == ['sats']
+            assert len(aggr.get_index(level)) == 1
+        else:
+            assert set(aggr.get_index(level)) == set(xlsx.values.ravel())
+
+    aggr = agg_SUT.aggregate(
+        io = agg_SUT.path,
+        inplace= False
+    )
             
 def test_to_pymrio(CoreDataIOT,CoreDataSUT):
 
@@ -214,42 +273,42 @@ def test_to_pymrio(CoreDataIOT,CoreDataSUT):
         io.x , x ,check_names=False
     )
 
-    Y = CoreDataIOT.Y.droplevel(level=1).droplevel(level=1,axis=1)
+    Y = getattr(CoreDataIOT,_ENUM.Y).droplevel(level=1).droplevel(level=1,axis=1)
     pdt.assert_frame_equal(
         io.Y , Y ,check_names=False
     )
 
-    A = CoreDataIOT.z.droplevel(level=1).droplevel(level=1,axis=1)
+    A = getattr(CoreDataIOT,_ENUM.z).droplevel(level=1).droplevel(level=1,axis=1)
     pdt.assert_frame_equal(
         io.A,A,check_names=False
     )
 
-    Z = CoreDataIOT.Z.droplevel(level=1).droplevel(level=1,axis=1)
+    Z = getattr(CoreDataIOT,_ENUM.Z).droplevel(level=1).droplevel(level=1,axis=1)
     pdt.assert_frame_equal(
         io.Z,Z,check_names=False
     )
 
-    e = CoreDataIOT.e.droplevel(level=1,axis=1)
+    e = getattr(CoreDataIOT,_ENUM.e).droplevel(level=1,axis=1)
     pdt.assert_frame_equal(
         io.Extensions.S,e,check_names=False
     )   
 
-    E = CoreDataIOT.E.droplevel(level=1,axis=1)
+    E = getattr(CoreDataIOT,_ENUM.E).droplevel(level=1,axis=1)
     pdt.assert_frame_equal(
         io.Extensions.F,E,check_names=False
     )   
 
-    EY = CoreDataIOT.EY.droplevel(level=1,axis=1)
+    EY = getattr(CoreDataIOT,_ENUM.EY).droplevel(level=1,axis=1)
     pdt.assert_frame_equal(
         io.Extensions.F_Y,EY,check_names=False
     )   
 
-    v = CoreDataIOT.v.droplevel(level=1,axis=1)
+    v = getattr(CoreDataIOT,_ENUM.v).droplevel(level=1,axis=1)
     pdt.assert_frame_equal(
         io.Value_added.S,v,check_names=False
     )   
 
-    V = CoreDataIOT.V.droplevel(level=1,axis=1)
+    V = getattr(CoreDataIOT,_ENUM.V).droplevel(level=1,axis=1)
     pdt.assert_frame_equal(
         io.Value_added.F,V,check_names=False
     )   
@@ -265,7 +324,7 @@ def test_querry(CoreDataIOT):
 
     # case 1: Nested dict
     scenarios = ["baseline","sc.2"]
-    matrices=["X","z"]
+    matrices=[_ENUM.X,_ENUM.z]
 
     case_1 = CoreDataIOT.query(scenarios = scenarios,matrices=matrices)
 
@@ -279,7 +338,7 @@ def test_querry(CoreDataIOT):
 
     # case 2: one scenario and 2 matrices
     scenarios = ["sc.2"]
-    matrices=["X","z"]
+    matrices=[_ENUM.X,_ENUM.z]
 
     case_2 = CoreDataIOT.query(scenarios = scenarios,matrices=matrices)
 
@@ -292,7 +351,7 @@ def test_querry(CoreDataIOT):
 
     # case 3: two scenarios and 1 matrix
     scenarios = ["baseline","sc.2"]
-    matrices=["X"]
+    matrices=[_ENUM.X]
 
     case_3 = CoreDataIOT.query(scenarios = scenarios,matrices=matrices)
 
@@ -306,7 +365,7 @@ def test_querry(CoreDataIOT):
 
     # case 4: one scneario and one matrix
     scenarios = ["sc.2"]
-    matrices=["X"]
+    matrices=[_ENUM.X]
 
     case_4 = CoreDataIOT.query(scenarios = scenarios,matrices=matrices)
 

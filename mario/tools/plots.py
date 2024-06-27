@@ -41,7 +41,6 @@ def set_palette(mario_palettes=None, user_palette=None):
         palette = user_palette
 
     else:
-
         if mario_palettes is not None:
             if mario_palettes not in _PALETTES:
                 raise ValueError(f"Default palettes in mario are \n:{[*_PALETTES]}.")
@@ -62,7 +61,6 @@ def _plot_linkages(
     auto_open: bool = False,
     **config,
 ):
-
     if isinstance(data, pd.DataFrame):
         links = {"Baseline": data}
     elif isinstance(data, dict):
@@ -115,7 +113,6 @@ def _plot_linkages(
                     for color, region in enumerate(
                         data.index.unique(level=0)
                     ):  # iterating over regions
-
                         x = data.loc[(region, slice(None), slice(None)), (ll, gg)]
                         y = (
                             data.loc[(region, slice(None), slice(None)), (ll, gg)]
@@ -162,7 +159,6 @@ def _plot_linkages(
             counter.append(2 * 2 * len(data.index.unique(level=0)))
 
     else:
-
         fig = go.Figure()
         # defining a margin for plots
         margin_max = config.get("margin_max", 1.05)
@@ -254,7 +250,6 @@ def _plotter(fig, directory, auto_open):
 
 
 def _set_layout(fig, layout, mode, counter, iterator, prefix, x, y):
-
     steps = []
     for index, item in enumerate(iterator):
         if index == 0:
@@ -280,7 +275,10 @@ def _set_layout(fig, layout, mode, counter, iterator, prefix, x, y):
             )
         )
 
-    modifications = dict(active=0, pad={"t": 50},)
+    modifications = dict(
+        active=0,
+        pad={"t": 50},
+    )
 
     if mode == "sliders":
         modifications["steps"] = steps
@@ -321,7 +319,6 @@ def _plotX(
     shared_xaxes,
     filters,
 ):
-
     # Extracting raw data
     scenarios = instance.scenarios
     if base_scenario != None:
@@ -508,7 +505,6 @@ def _plotZYUS(
     shared_xaxes,
     filters,
 ):
-
     # Extracting raw data
     scenarios = instance.scenarios
     if base_scenario != None:
@@ -751,7 +747,6 @@ def _plotVEMF(
     shared_xaxes,
     filters,
 ):
-
     # Extracting raw data
     scenarios = instance.scenarios
     if base_scenario != None:

@@ -8,21 +8,16 @@ import pandas as pd
 import logging
 from mario.log_exc.logger import log_time
 from mario.log_exc.exceptions import WrongInput
-from mario.tools.constants import (
-    _MASTER_INDEX,
-    _SHOCKS,
-)
+from mario.tools.constants import _MASTER_INDEX, _SHOCKS, _ENUM
 
 logger = logging.getLogger(__name__)
 
 
 def check_replace_clusters(userValue, dataValues, clusters):
-
     if userValue in dataValues:
         return userValue
 
     else:
-
         if clusters is not None and clusters.get(userValue) is not None:
             return clusters.get(userValue)
 
@@ -37,7 +32,6 @@ def get_value(given):
 
 
 def nan_check(dataframe, row, shock_type):
-
     dataframe = copy.deepcopy(dataframe)
 
     if shock_type != "Switch":
@@ -49,16 +43,14 @@ def nan_check(dataframe, row, shock_type):
 
 
 def Y_shock(instance, path, boolean, clusters, to_baseline):
-
-    Y = copy.deepcopy(instance.Y)
+    Y = instance.query(_ENUM.Y)
     notes = []
 
     if boolean:
-
         if isinstance(path, str):
-            info = pd.read_excel(path, "Y", header=[0])
+            info = pd.read_excel(path, _ENUM.Y, header=[0])
         else:
-            info = path["Y"]
+            info = path[_ENUM.Y]
 
         row_region = list(info[_SHOCKS["r_reg"]].values)
         row_level = list(info[_SHOCKS["r_lev"]].values)
@@ -69,16 +61,18 @@ def Y_shock(instance, path, boolean, clusters, to_baseline):
         value = list(info[_SHOCKS["value"]].values)
 
         if info.isnull().values.any():
-            raise WrongInput("nans(empty cells) found in the shock file for 'Y'.")
+            raise WrongInput(
+                f"nans(empty cells) found in the shock file for '{_ENUM.Y}'."
+            )
 
         for shock in range(len(info)):
             if nan_check(info, shock, _type[shock]):
                 log_time(
                     logger,
-                    "nan values found on row {} of Y shock sheet. No more shock is imported after row {}".format(
-                        shock, shock
+                    "nan values found on row {} of {} shock sheet. No more shock is imported after row {}".format(
+                        shock, _ENUM.Y, shock
                     ),
-                    "warn",
+                    "warning",
                 )
                 break
 
@@ -128,7 +122,6 @@ def Y_shock(instance, path, boolean, clusters, to_baseline):
                 )
 
             elif _type[shock] == "Percentage":
-
                 Y.loc[
                     (row_region_, row_level_, row_sector_),
                     (column_region_, _MASTER_INDEX["n"], demand_category_),
@@ -145,7 +138,6 @@ def Y_shock(instance, path, boolean, clusters, to_baseline):
                     (column_region_, _MASTER_INDEX["n"], demand_category_),
                 ] = value[shock]
 
-                print(value[shock])
             else:
                 raise WrongInput(
                     "Acceptable values for type are Absolute, Percentage, and Update."
@@ -169,19 +161,20 @@ def Y_shock(instance, path, boolean, clusters, to_baseline):
 
 
 def V_shock(instance, path, matrix, boolean, clusters, to_baseline):
-
     notes = []
     if matrix == "V":
-        v = copy.deepcopy(instance.v)
-        V = copy.deepcopy(instance.V)
-        X = copy.deepcopy(instance.X)
+        v = instance.query(_ENUM.v)
+        V = instance.query(_ENUM.V)
+        X = instance.query(_ENUM.X)
         _id = "f"
 
     else:
-        v = copy.deepcopy(instance.e)
-        V = copy.deepcopy(instance.E)
-        X = copy.deepcopy(instance.X)
+        v = instance.query(_ENUM.e)
+        V = instance.query(_ENUM.E)
+        X = instance.query(_ENUM.X)
         _id = "k"
+
+    matrix = _ENUM[matrix]
 
     if boolean:
         if isinstance(path, str):
@@ -208,7 +201,7 @@ def V_shock(instance, path, matrix, boolean, clusters, to_baseline):
                     "nan values found on row {} of {} shock sheet. No more shock is imported after row {}".format(
                         shock, matrix, shock
                     ),
-                    "warn",
+                    "warning",
                 )
                 break
 
@@ -248,7 +241,6 @@ def V_shock(instance, path, matrix, boolean, clusters, to_baseline):
                 )
 
             elif _type[shock] == "Absolute":
-
                 v.loc[row_sector_, (column_region_, column_level_, column_sector_)] = (
                     get_value(
                         V.loc[
@@ -288,17 +280,16 @@ def V_shock(instance, path, matrix, boolean, clusters, to_baseline):
 
 
 def Z_shock(instance, path, boolean, clusters, to_baseline):
-
-    z = copy.deepcopy(instance.z)
+    z = instance.query(_ENUM.z)
 
     notes = []
     if boolean:
-        Z = copy.deepcopy(instance.Z)
-        X = copy.deepcopy(instance.X)
+        Z = instance.query(_ENUM.Z)
+        X = instance.query(_ENUM.X)
         if isinstance(path, str):
-            info = pd.read_excel(path, "z", header=[0])
+            info = pd.read_excel(path, _ENUM.z, header=[0])
         else:
-            info = path["Z"]
+            info = path[_ENUM.Z]
 
         row_region = list(info[_SHOCKS["r_reg"]].values)
         row_level = list(info[_SHOCKS["r_lev"]].values)
@@ -310,16 +301,18 @@ def Z_shock(instance, path, boolean, clusters, to_baseline):
         value = list(info[_SHOCKS["value"]].values)
 
         if info.isnull().values.any():
-            raise WrongInput("nans(empty cells) found in the shock file for 'Z'.")
+            raise WrongInput(
+                f"nans(empty cells) found in the shock file for '{_ENUM.Z}'."
+            )
 
         for shock in range(len(info)):
             if nan_check(info, shock, _type[shock]):
                 log_time(
                     logger,
-                    "nan values found on row {} of Z shock sheet. No more shock is imported after row {}".format(
-                        shock, shock
+                    "nan values found on row {} of {} shock sheet. No more shock is imported after row {}".format(
+                        shock, _ENUM.Z, shock
                     ),
-                    "warn",
+                    "warning",
                 )
                 break
 

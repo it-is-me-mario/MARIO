@@ -17,7 +17,7 @@ from mario.log_exc.logger import log_time
 import pandas as pd
 import numpy as np
 import copy
-from mario.tools.constants import _MASTER_INDEX
+from mario.tools.constants import _ENUM, _MASTER_INDEX
 from mario.tools.iomath import calc_X
 from mario.tools.utilities import rename_index
 
@@ -31,7 +31,6 @@ _ACCEPTABLES = ["A", "B", "C", "D"]
 
 
 def SUT_to_IOT(instance, method):
-
     if method not in _ACCEPTABLES:
         raise WrongInput(
             "'{}' is not an accpetable input for 'method'. "
@@ -39,24 +38,28 @@ def SUT_to_IOT(instance, method):
         )
     # Making a deep copy of the matrices to avoid changing the baseline
 
-    data = instance.get_data(
-        matrices=["Z", "V", "E", "X", "Y", "S", "U", "EY"],
-        units=False,
-        indeces=False,
-        auto_calc=True,
-        format="dict",
-    )["baseline"]
+    data = instance.query(
+        matrices=[
+            _ENUM.Z,
+            _ENUM.V,
+            _ENUM.E,
+            _ENUM.X,
+            _ENUM.Y,
+            _ENUM.S,
+            _ENUM.U,
+            _ENUM.EY,
+        ],
+    )
 
-    data["V"] = data["V"].loc[:, (slice(None), _MASTER_INDEX["a"], slice(None))]
-    data["E"] = data["E"].loc[:, (slice(None), _MASTER_INDEX["a"], slice(None))]
+    data[_ENUM.V] = data[_ENUM.V].loc[:, (slice(None), _MASTER_INDEX["a"], slice(None))]
+    data[_ENUM.E] = data[_ENUM.E].loc[:, (slice(None), _MASTER_INDEX["a"], slice(None))]
 
-    q = data["X"].loc[(slice(None), _MASTER_INDEX["c"], slice(None)), :].values
-    g = data["X"].loc[(slice(None), _MASTER_INDEX["a"], slice(None)), :].values
+    q = data[_ENUM.X].loc[(slice(None), _MASTER_INDEX["c"], slice(None)), :].values
+    g = data[_ENUM.X].loc[(slice(None), _MASTER_INDEX["a"], slice(None)), :].values
 
     if method == "A":
-
         "Check number of commodities and industries"
-        if data["S"].shape[0] != data["S"].shape[1]:
+        if data[_ENUM.S].shape[0] != data[_ENUM.S].shape[1]:
             raise NotImplementable(
                 "Method "
                 + str(method)
@@ -65,7 +68,7 @@ def SUT_to_IOT(instance, method):
 
         "Transformation matrix"
         try:
-            T = np.linalg.inv(data["S"].T) @ np.diagflat(q)
+            T = np.linalg.inv(data[_ENUM.S].T) @ np.diagflat(q)
         except np.linalg.LinAlgError:
             log_time(
                 logger,
@@ -74,20 +77,24 @@ def SUT_to_IOT(instance, method):
                 "may raise some inconsistency in the data",
                 "critical",
             )
-            T = np.linalg.pinv(data["S"].T) @ np.diagflat(q)
+            T = np.linalg.pinv(data[_ENUM.S].T) @ np.diagflat(q)
 
         "Product by Product IOT"
         Z_index = [
-            data["U"].index.get_level_values(0),
-            [_MASTER_INDEX["s"]] * data["U"].shape[0],
-            data["U"].index.get_level_values(2),
+            data[_ENUM.U].index.get_level_values(0),
+            [_MASTER_INDEX["s"]] * data[_ENUM.U].shape[0],
+            data[_ENUM.U].index.get_level_values(2),
         ]
 
-        Z = pd.DataFrame(data["U"].values @ T, index=Z_index, columns=Z_index)
-        V = pd.DataFrame(data["V"].values @ T, index=data["V"].index, columns=Z_index)
-        E = pd.DataFrame(data["E"].values @ T, index=data["E"].index, columns=Z_index)
+        Z = pd.DataFrame(data[_ENUM.U].values @ T, index=Z_index, columns=Z_index)
+        V = pd.DataFrame(
+            data[_ENUM.V].values @ T, index=data[_ENUM.V].index, columns=Z_index
+        )
+        E = pd.DataFrame(
+            data[_ENUM.E].values @ T, index=data[_ENUM.E].index, columns=Z_index
+        )
 
-        Y = data["Y"].loc[(slice(None), _MASTER_INDEX["c"], slice(None)), :]
+        Y = data[_ENUM.Y].loc[(slice(None), _MASTER_INDEX["c"], slice(None)), :]
         Y.index = Z_index
 
         "Fixing units"
@@ -98,10 +105,9 @@ def SUT_to_IOT(instance, method):
         _indeces["s"] = _indeces["c"]
 
     if method == "B":
-
         "Transformation matrix"
         try:
-            T = np.linalg.inv(np.diagflat(g)) @ data["S"].values
+            T = np.linalg.inv(np.diagflat(g)) @ data[_ENUM.S].values
         except np.linalg.LinAlgError:
             log_time(
                 logger,
@@ -110,20 +116,24 @@ def SUT_to_IOT(instance, method):
                 "may raise some inconsistency in the data",
                 "critical",
             )
-            T = np.linalg.pinv(np.diagflat(g)) @ data["S"].values
+            T = np.linalg.pinv(np.diagflat(g)) @ data[_ENUM.S].values
 
         "Product by Product IOT"
         Z_index = [
-            data["U"].index.get_level_values(0),
-            [_MASTER_INDEX["s"]] * data["U"].shape[0],
-            data["U"].index.get_level_values(2),
+            data[_ENUM.U].index.get_level_values(0),
+            [_MASTER_INDEX["s"]] * data[_ENUM.U].shape[0],
+            data[_ENUM.U].index.get_level_values(2),
         ]
 
-        Z = pd.DataFrame(data["U"].values @ T, index=Z_index, columns=Z_index)
-        V = pd.DataFrame(data["V"].values @ T, index=data["V"].index, columns=Z_index)
-        E = pd.DataFrame(data["E"].values @ T, index=data["E"].index, columns=Z_index)
+        Z = pd.DataFrame(data[_ENUM.U].values @ T, index=Z_index, columns=Z_index)
+        V = pd.DataFrame(
+            data[_ENUM.V].values @ T, index=data[_ENUM.V].index, columns=Z_index
+        )
+        E = pd.DataFrame(
+            data[_ENUM.E].values @ T, index=data[_ENUM.E].index, columns=Z_index
+        )
 
-        Y = data["Y"].loc[(slice(None), _MASTER_INDEX["c"], slice(None)), :]
+        Y = data[_ENUM.Y].loc[(slice(None), _MASTER_INDEX["c"], slice(None)), :]
         Y.index = Z_index
 
         "Fixing units"
@@ -134,9 +144,8 @@ def SUT_to_IOT(instance, method):
         _indeces["s"] = _indeces["c"]
 
     if method == "C":
-
         "Check number of commodities and industries"
-        if data["S"].shape[0] != data["S"].shape[1]:
+        if data[_ENUM.S].shape[0] != data[_ENUM.S].shape[1]:
             raise NotImplementable(
                 "Method "
                 + str(method)
@@ -145,7 +154,7 @@ def SUT_to_IOT(instance, method):
 
         "Transformation matrix"
         try:
-            T = np.diagflat(g) @ np.linalg.inv(data["S"].T)
+            T = np.diagflat(g) @ np.linalg.inv(data[_ENUM.S].T)
         except np.linalg.LinAlgError:
             log_time(
                 logger,
@@ -154,22 +163,29 @@ def SUT_to_IOT(instance, method):
                 "may raise some inconsistency in the data",
                 "critical",
             )
-            T = np.diagflat(g) @ np.linalg.pinv(data["S"].T)
+            T = np.diagflat(g) @ np.linalg.pinv(data[_ENUM.S].T)
 
         "Industry by Industry IOT"
         Z_index = [
-            data["S"].index.get_level_values(0),
-            [_MASTER_INDEX["s"]] * data["S"].shape[0],
-            data["S"].index.get_level_values(2),
+            data[_ENUM.S].index.get_level_values(0),
+            [_MASTER_INDEX["s"]] * data[_ENUM.S].shape[0],
+            data[_ENUM.S].index.get_level_values(2),
         ]
 
-        Z = pd.DataFrame(T @ data["U"].values, index=Z_index, columns=Z_index)
-        V = pd.DataFrame(data["V"].values, index=data["V"].index, columns=Z_index)
-        E = pd.DataFrame(data["E"].values, index=data["E"].index, columns=Z_index)
+        Z = pd.DataFrame(T @ data[_ENUM.U].values, index=Z_index, columns=Z_index)
+        V = pd.DataFrame(
+            data[_ENUM.V].values, index=data[_ENUM.V].index, columns=Z_index
+        )
+        E = pd.DataFrame(
+            data[_ENUM.E].values, index=data[_ENUM.E].index, columns=Z_index
+        )
         Y = pd.DataFrame(
-            T @ data["Y"].loc[(slice(None), _MASTER_INDEX["c"], slice(None)), :].values,
+            T
+            @ data[_ENUM.Y]
+            .loc[(slice(None), _MASTER_INDEX["c"], slice(None)), :]
+            .values,
             index=Z_index,
-            columns=data["Y"].columns,
+            columns=data[_ENUM.Y].columns,
         )
 
         "Fixing units"
@@ -180,10 +196,9 @@ def SUT_to_IOT(instance, method):
         _indeces["s"] = _indeces["a"]
 
     if method == "D":
-
         "Transformation matrix"
         try:
-            T = data["S"].values @ np.linalg.inv(np.diagflat(q))
+            T = data[_ENUM.S].values @ np.linalg.inv(np.diagflat(q))
         except np.linalg.LinAlgError:
             log_time(
                 logger,
@@ -192,22 +207,29 @@ def SUT_to_IOT(instance, method):
                 "may raise some inconsistency in the data",
                 "critical",
             )
-            T = data["S"].values @ np.linalg.pinv(np.diagflat(q))
+            T = data[_ENUM.S].values @ np.linalg.pinv(np.diagflat(q))
 
         "Industry by Industry IOT"
         Z_index = [
-            data["S"].index.get_level_values(0),
-            [_MASTER_INDEX["s"]] * data["S"].shape[0],
-            data["S"].index.get_level_values(2),
+            data[_ENUM.S].index.get_level_values(0),
+            [_MASTER_INDEX["s"]] * data[_ENUM.S].shape[0],
+            data[_ENUM.S].index.get_level_values(2),
         ]
 
-        Z = pd.DataFrame(T @ data["U"].values, index=Z_index, columns=Z_index)
-        V = pd.DataFrame(data["V"].values, index=data["V"].index, columns=Z_index)
-        E = pd.DataFrame(data["E"].values, index=data["E"].index, columns=Z_index)
+        Z = pd.DataFrame(T @ data[_ENUM.U].values, index=Z_index, columns=Z_index)
+        V = pd.DataFrame(
+            data[_ENUM.V].values, index=data[_ENUM.V].index, columns=Z_index
+        )
+        E = pd.DataFrame(
+            data[_ENUM.E].values, index=data[_ENUM.E].index, columns=Z_index
+        )
         Y = pd.DataFrame(
-            T @ data["Y"].loc[(slice(None), _MASTER_INDEX["c"], slice(None)), :].values,
+            T
+            @ data[_ENUM.Y]
+            .loc[(slice(None), _MASTER_INDEX["c"], slice(None)), :]
+            .values,
             index=Z_index,
-            columns=data["Y"].columns,
+            columns=data[_ENUM.Y].columns,
         )
 
         "Fixing units"
@@ -224,8 +246,82 @@ def SUT_to_IOT(instance, method):
 
     X = calc_X(Z, Y)
 
-    matrices = {"baseline": {"Z": Z, "V": V, "E": E, "X": X, "Y": Y, "EY": data["EY"]}}
+    matrices = {
+        "baseline": {
+            _ENUM.Z: Z,
+            _ENUM.V: V,
+            _ENUM.E: E,
+            _ENUM.X: X,
+            _ENUM.Y: Y,
+            _ENUM.EY: data[_ENUM.EY],
+        }
+    }
+
     indeces = {item: value for item, value in _indeces.items()}
     rename_index(matrices["baseline"])
 
     return matrices, indeces, units
+
+
+def ISARD_TO_CHENERY_MOSES(instance, scenario):
+    """This function transforms a SUT in Isard format to a SUT in Chenery-Moses format.
+    The transformation implies moving from trades accounted in the USE matrix to trades accounted in the SUPPLY matrix.
+    For further notes on the transformation check:
+    - John M. Hartwick, 1970. "Notes on the Isard and Chenery-Moses Interregional Input-Output Models," Working Paper 16, Economics Department, Queen's University.
+    """
+
+    regions = instance.get_index(_MASTER_INDEX["r"])
+    commodities = instance.get_index(_MASTER_INDEX["c"])
+    sN = slice(None)
+
+    U_isard = instance.get_data([_ENUM.U], scenarios=[scenario])[scenario][0]
+    Y_isard = instance.get_data([_ENUM.Y], scenarios=[scenario])[scenario][0]
+    s_isard = instance.get_data([_ENUM.s], scenarios=[scenario])[scenario][0]
+
+    domestic_use = pd.DataFrame(0.0, index=U_isard.index, columns=regions)
+    for region in regions:
+        df = pd.DataFrame(
+            (
+                U_isard.loc[:, (region, sN, sN)].sum(axis=1)
+                + Y_isard.loc[(sN, _MASTER_INDEX["c"], sN), (region, sN, sN)].sum(
+                    axis=1
+                )
+            ).values,
+            index=U_isard.index,
+            columns=[region],
+        )
+        domestic_use.update(df)
+
+    U_chenery = pd.DataFrame(0.0, index=U_isard.index, columns=U_isard.columns)
+    Y_chenery = pd.DataFrame(0.0, index=Y_isard.index, columns=Y_isard.columns)
+    S_chenery = pd.DataFrame(0.0, index=s_isard.index, columns=s_isard.columns)
+    for region in regions:
+        domestic_U = U_isard.loc[:, (region, sN, sN)].groupby(level=2).sum()
+        domestic_U.index = U_isard.loc[(region, sN, sN), :].index
+        U_chenery.loc[(region, sN, sN), (region, sN, sN)] = domestic_U.values
+
+        domestic_Y = (
+            Y_isard.loc[(sN, _MASTER_INDEX["c"], sN), (region, sN, sN)]
+            .groupby(level=2)
+            .sum()
+        )
+        domestic_Y.index = Y_isard.loc[(region, _MASTER_INDEX["c"], sN), :].index
+        Y_chenery.loc[
+            (region, _MASTER_INDEX["c"], sN), (region, sN, sN)
+        ] = domestic_Y.values
+
+        for region_2 in regions:
+            dom_use = np.diag(domestic_use.loc[(region_2, sN, sN), region].values)
+            market_share = s_isard.loc[(region_2, sN, sN), (region_2, sN, sN)].values
+
+            S_chenery.loc[(region_2, sN, sN), (region, sN, sN)] = market_share @ dom_use
+
+    Z_chenery = instance.get_data([_ENUM.Z], scenarios=[scenario])[scenario][0] * 0.0
+    Z_chenery.loc[
+        (sN, _MASTER_INDEX["a"], sN), (sN, _MASTER_INDEX["c"], sN)
+    ] = S_chenery
+    Z_chenery.loc[
+        (sN, _MASTER_INDEX["c"], sN), (sN, _MASTER_INDEX["a"], sN)
+    ] = U_chenery
+
+    return Z_chenery, Y_chenery

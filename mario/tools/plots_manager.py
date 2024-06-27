@@ -305,7 +305,6 @@ _NON_ACCEPTABLE_FILTERS = {
 
 class Color(list):
     def __init__(self):
-
         palette = _PLOTS_LAYOUT["palette"]
 
         if palette:
@@ -314,11 +313,9 @@ class Color(list):
             self.extend(_PALETTES["mario"])
 
     def __getitem__(self, i):
-
         try:
             return super().__getitem__(i)
         except IndexError:
-
             color = self.random_color()
             while color in self:
                 color = self.random_color()
@@ -328,7 +325,6 @@ class Color(list):
             return color
 
     def random_color(self):
-
         return "#" + "".join([random.choice("0123456789ABCDEF") for j in range(6)])
 
     def has_enough_colors(self, check):

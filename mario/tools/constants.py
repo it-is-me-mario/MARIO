@@ -2,22 +2,19 @@
 """
 This module contains all the constants of the code
 """
+from mario.settings.settings import Index, Nomenclature
 
-_MASTER_INDEX = {
-    "r": "Region",
-    "a": "Activity",
-    "c": "Commodity",
-    "s": "Sector",
-    "k": "Satellite account",
-    "f": "Factor of production",
-    "n": "Consumption category",
-}
 
+_MASTER_INDEX = Index()
+_ENUM = Nomenclature()
+
+SUT = "SUT"
+IOT = "IOT"
 
 # represents different levels of aggregation
 _LEVELS = {
-    "SUT": {_MASTER_INDEX[i]: i for i in ["a", "c", "f", "k", "n", "r"]},
-    "IOT": {_MASTER_INDEX[i]: i for i in ["f", "k", "n", "r", "s"]},
+    SUT: {_MASTER_INDEX[i]: i for i in ["a", "c", "f", "k", "n", "r"]},
+    IOT: {_MASTER_INDEX[i]: i for i in ["f", "k", "n", "r", "s"]},
 }
 
 
@@ -25,13 +22,13 @@ _INDEX_NAMES = {"3levels": (_MASTER_INDEX["r"], "Level", "Item"), "1level": ("It
 
 
 _ACCEPTABLES = {
-    "table": ["SUT", "IOT"],
+    "table": [SUT, IOT],
 }
 
 
 _UNITS = {
-    "SUT": {_MASTER_INDEX[i]: i for i in ["a", "c", "f", "k"]},
-    "IOT": {_MASTER_INDEX[i]: i for i in ["s", "f", "k"]},
+    SUT: {_MASTER_INDEX[i]: i for i in ["a", "c", "f", "k"]},
+    IOT: {_MASTER_INDEX[i]: i for i in ["s", "f", "k"]},
 }
 
 
@@ -74,27 +71,81 @@ _ADD_SECTOR_SHEETS = {
 
 
 _CALC = {
-    "m": "calc_f(self.matrices['{}']['v'],self.matrices['{}']['w'])",
-    "M": "calc_F(self.matrices['{}']['m'],self.matrices['{}']['Y'].sum(1))",
-    "V": "calc_E(self.matrices['{}']['v'],self.matrices['{}']['X'])",
-    "v": "calc_e(self.matrices['{}']['V'],self.matrices['{}']['X'])",
-    "f": "calc_f(self.matrices['{}']['e'],self.matrices['{}']['w'])",
-    "F": "calc_F(self.matrices['{}']['f'],self.matrices['{}']['Y'].sum(1))",
-    "e": "calc_e(self.matrices['{}']['E'],self.matrices['{}']['X'])",
-    "E": "calc_E(self.matrices['{}']['e'],self.matrices['{}']['X'])",
-    "z": "calc_z(self.matrices['{}']['Z'],self.matrices['{}']['X'])",
-    "Z": "calc_Z(self.matrices['{}']['z'],self.matrices['{}']['X'])",
-    "w": "calc_w(self.matrices['{}']['z'])",
-    "g": "calc_w(self.matrices['{}']['b'])",
-    "b": "calc_b(self.matrices['{}']['X'],self.matrices['{}']['Z'])",
-    "y": "calc_y(self.matrices['{}']['Y'])",
-    "s": "self.matrices['{}']['z'].loc[(slice(None),_MASTER_INDEX['a'],slice(None)),(slice(None),_MASTER_INDEX['c'],slice(None))]",
-    "S": "self.matrices['{}']['Z'].loc[(slice(None),_MASTER_INDEX['a'],slice(None)),(slice(None),_MASTER_INDEX['c'],slice(None))]",
-    "u": "self.matrices['{}']['z'].loc[(slice(None),_MASTER_INDEX['c'],slice(None)),(slice(None),_MASTER_INDEX['a'],slice(None))]",
-    "U": "self.matrices['{}']['Z'].loc[(slice(None),_MASTER_INDEX['c'],slice(None)),(slice(None),_MASTER_INDEX['a'],slice(None))]",
-    "p": "calc_p(self.matrices['{}']['v'],self.matrices['{}']['w'])",
-    "X_Z": "calc_X(self.matrices['{}']['Z'],self.matrices['{}']['Y'])",
-    "X_z": "calc_X_from_z(self.matrices['{}']['z'],self.matrices['{}']['Y'])",
+    _ENUM.F: (
+        "calc_F(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'].sum(1))",
+        dict(enum0=_ENUM.f, enum1=_ENUM.Y),
+    ),
+    _ENUM.M: (
+        "calc_F(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'].sum(1))",
+        dict(enum0=_ENUM.m, enum1=_ENUM.Y),
+    ),
+    _ENUM.m: (
+        "calc_f(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.v, enum1=_ENUM.w),
+    ),
+    _ENUM.V: (
+        "calc_E(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.v, enum1=_ENUM.X),
+    ),
+    _ENUM.v: (
+        "calc_e(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.V, enum1=_ENUM.X),
+    ),
+    _ENUM.f: (
+        "calc_f(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.e, enum1=_ENUM.w),
+    ),
+    _ENUM.e: (
+        "calc_e(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.E, enum1=_ENUM.X),
+    ),
+    _ENUM.E: (
+        "calc_E(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.e, enum1=_ENUM.X),
+    ),
+    _ENUM.z: (
+        "calc_z(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.Z, enum1=_ENUM.X),
+    ),
+    _ENUM.Z: (
+        "calc_Z(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.z, enum1=_ENUM.X),
+    ),
+    _ENUM.b: (
+        "calc_b(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.X, enum1=_ENUM.Z),
+    ),
+    _ENUM.w: ("calc_w(self.matrices['{scenario}']['{enum0}'])", dict(enum0=_ENUM.z)),
+    _ENUM.g: ("calc_w(self.matrices['{scenario}']['{enum0}'])", dict(enum0=_ENUM.b)),
+    _ENUM.y: ("calc_y(self.matrices['{scenario}']['{enum0}'])", dict(enum0=_ENUM.Y)),
+    _ENUM.s: (
+        "self.matrices['{scenario}']['{enum0}'].loc[(slice(None),_MASTER_INDEX['a'],slice(None)),(slice(None),_MASTER_INDEX['c'],slice(None))]",
+        dict(enum0=_ENUM.z),
+    ),
+    _ENUM.S: (
+        "self.matrices['{scenario}']['{enum0}'].loc[(slice(None),_MASTER_INDEX['a'],slice(None)),(slice(None),_MASTER_INDEX['c'],slice(None))]",
+        dict(enum0=_ENUM.Z),
+    ),
+    _ENUM.u: (
+        "self.matrices['{scenario}']['{enum0}'].loc[(slice(None),_MASTER_INDEX['c'],slice(None)),(slice(None),_MASTER_INDEX['a'],slice(None))]",
+        dict(enum0=_ENUM.z),
+    ),
+    _ENUM.U: (
+        "self.matrices['{scenario}']['{enum0}'].loc[(slice(None),_MASTER_INDEX['c'],slice(None)),(slice(None),_MASTER_INDEX['a'],slice(None))]",
+        dict(enum0=_ENUM.Z),
+    ),
+    _ENUM.p: (
+        "calc_p(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.v, enum1=_ENUM.w),
+    ),
+    "X_Z": (
+        "calc_X(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.Z, enum1=_ENUM.Y),
+    ),
+    "X_z": (
+        "calc_X_from_z(self.matrices['{}']['{enum0}'],self.matrices['{}']['{enum1}'])",
+        dict(enum0=_ENUM.z, enum1=_ENUM.Y),
+    ),
 }
 
 
@@ -227,55 +278,55 @@ _MATRICES_NAMES = {
 
 
 _ALL_MATRICES = {
-    "IOT": [
-        "e",
-        "E",
-        "X",
-        "EY",
-        "Y",
-        "y",
-        "V",
-        "v",
-        "F",
-        "f",
-        "M",
-        "m",
-        "b",
-        "g",
-        "w",
-        "p",
-        "z",
-        "Z",
+    IOT: [
+        _ENUM.e,
+        _ENUM.E,
+        _ENUM.X,
+        _ENUM.EY,
+        _ENUM.Y,
+        _ENUM.y,
+        _ENUM.V,
+        _ENUM.v,
+        _ENUM.F,
+        _ENUM.f,
+        _ENUM.M,
+        _ENUM.m,
+        _ENUM.b,
+        _ENUM.g,
+        _ENUM.w,
+        _ENUM.p,
+        _ENUM.z,
+        _ENUM.Z,
     ],
-    "SUT": [
-        "e",
-        "E",
-        "X",
-        "EY",
-        "Y",
-        "y",
-        "V",
-        "v",
-        "F",
-        "f",
-        "M",
-        "m",
-        "b",
-        "g",
-        "w",
-        "p",
-        "z",
-        "Z",
-        "u",
-        "U",
-        "s",
-        "S",
+    SUT: [
+        _ENUM.e,
+        _ENUM.E,
+        _ENUM.X,
+        _ENUM.EY,
+        _ENUM.Y,
+        _ENUM.y,
+        _ENUM.V,
+        _ENUM.v,
+        _ENUM.F,
+        _ENUM.f,
+        _ENUM.M,
+        _ENUM.m,
+        _ENUM.b,
+        _ENUM.g,
+        _ENUM.w,
+        _ENUM.p,
+        _ENUM.z,
+        _ENUM.Z,
+        _ENUM.u,
+        _ENUM.U,
+        _ENUM.s,
+        _ENUM.S,
     ],
 }
 
 
 _INDECES = {
-    "IOT": {
+    IOT: {
         "Z": {
             "indices": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["s"], "Item"],
             "columns": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["s"], "Item"],
@@ -325,7 +376,7 @@ _INDECES = {
             "columns": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["s"], "Item"],
         },
     },
-    "SUT": {
+    SUT: {
         "Z": {
             "indices": [
                 _MASTER_INDEX["r"],

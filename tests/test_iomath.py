@@ -1,5 +1,7 @@
 """Mathematical Engine Tests"""
 
+import warnings
+warnings.filterwarnings("ignore",category=DeprecationWarning)
 
 import pytest
 import pandas.testing as pdt
@@ -9,6 +11,8 @@ import sys
 
 import pandas as pd
 import numpy as np
+
+from mario.tools.constants import _ENUM
 
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
@@ -48,10 +52,10 @@ def IOT_table():
 def test_calc_all_shock(IOT_table):
 
     output = calc_all_shock(
-        z = IOT_table['z'],
-        v = IOT_table['v'],
-        Y = IOT_table['Y'],
-        e = IOT_table['e']
+        z = IOT_table[_ENUM.z],
+        v = IOT_table[_ENUM.v],
+        Y = IOT_table[_ENUM.Y],
+        e = IOT_table[_ENUM.e]
     )
 
     for k,v in output.items():
@@ -73,92 +77,92 @@ def test_calc_all_shock(IOT_table):
 
 def test_calc_X_from_z(IOT_table):
     pdt.assert_frame_equal(
-        IOT_table['X'],calc_X_from_z(IOT_table['z'],IOT_table['Y'])
+        IOT_table[_ENUM.X],calc_X_from_z(IOT_table[_ENUM.z],IOT_table[_ENUM.Y])
     )
 
 def test_calc_X_from_w(IOT_table):
     pdt.assert_frame_equal(
-        IOT_table['X'],calc_X_from_w(IOT_table['w'],IOT_table['Y'])
+        IOT_table[_ENUM.X],calc_X_from_w(IOT_table[_ENUM.w],IOT_table[_ENUM.Y])
     )
 
 def test_calc_X(IOT_table):
     pdt.assert_frame_equal(
-        IOT_table['X'],calc_X(IOT_table['Z'],IOT_table['Y'])
+        IOT_table[_ENUM.X],calc_X(IOT_table[_ENUM.Z],IOT_table[_ENUM.Y])
     )
 
 def test_calc_w(IOT_table):
     pdt.assert_frame_equal(
-        IOT_table['w'],calc_w(IOT_table['z'])
+        IOT_table[_ENUM.w],calc_w(IOT_table[_ENUM.z])
     )
 
 def test_calc_z(IOT_table):
     pdt.assert_frame_equal(
-        IOT_table['z'],calc_z(IOT_table['Z'],IOT_table['X'])
+        IOT_table[_ENUM.z],calc_z(IOT_table[_ENUM.Z],IOT_table[_ENUM.X])
     )
 
 def test_calc_Z(IOT_table):
     pdt.assert_frame_equal(
-        IOT_table['Z'],calc_Z(IOT_table['z'],IOT_table['X']),
+        IOT_table[_ENUM.Z],calc_Z(IOT_table[_ENUM.z],IOT_table[_ENUM.X]),
     )
 
 def test_calc_v(IOT_table):
     pdt.assert_frame_equal(
-        IOT_table['v'],calc_v(IOT_table['V'],IOT_table['X'])
+        IOT_table[_ENUM.v],calc_v(IOT_table[_ENUM.V],IOT_table[_ENUM.X])
     )
 
 def test_calc_V(IOT_table):
     pdt.assert_frame_equal(
-        IOT_table['V'],calc_V(IOT_table['v'],IOT_table['X'])
+        IOT_table[_ENUM.V],calc_V(IOT_table[_ENUM.v],IOT_table[_ENUM.X])
     )
 
 def test_calc_e(IOT_table):
     pdt.assert_frame_equal(
-        IOT_table['e'],calc_e(IOT_table['E'],IOT_table['X'])
+        IOT_table[_ENUM.e],calc_e(IOT_table[_ENUM.E],IOT_table[_ENUM.X])
     )
 
 def test_calc_E(IOT_table):
     pdt.assert_frame_equal(
-        IOT_table['E'],calc_E(IOT_table['e'],IOT_table['X'])
+        IOT_table[_ENUM.E],calc_E(IOT_table[_ENUM.e],IOT_table[_ENUM.X])
     )
 
 def test_calc_p(IOT_table):
     pdt.assert_frame_equal(
-        IOT_table['p'],calc_p(IOT_table['v'],IOT_table['w'])
+        IOT_table[_ENUM.p],calc_p(IOT_table[_ENUM.v],IOT_table[_ENUM.w])
     )
 
 def test_calc_y(IOT_table):
     pdt.assert_frame_equal(
-        IOT_table['y'],calc_y(IOT_table['Y'])
+        IOT_table[_ENUM.y],calc_y(IOT_table[_ENUM.Y])
     )
 
-    assert calc_y(IOT_table['y']).sum().sum() == 1
+    assert calc_y(IOT_table[_ENUM.y]).sum().sum() == 1
 
 def test_calc_b(IOT_table):
     pdt.assert_frame_equal(
-        IOT_table['b'],calc_b(IOT_table['X'],IOT_table['Z'])
+        IOT_table[_ENUM.b],calc_b(IOT_table[_ENUM.X],IOT_table[_ENUM.Z])
     )
 
 def test_calc_g(IOT_table):
     pdt.assert_frame_equal(
-        IOT_table['g'],calc_g(IOT_table['b'])
+        IOT_table[_ENUM.g],calc_g(IOT_table[_ENUM.b])
     )
 
 def test_calc_f(IOT_table):
     pdt.assert_frame_equal(
-        IOT_table['f'],calc_f(IOT_table['e'],IOT_table['w'])
+        IOT_table[_ENUM.f],calc_f(IOT_table[_ENUM.e],IOT_table[_ENUM.w])
     )
 
 def test_calc_F(IOT_table):
     pdt.assert_frame_equal(
-        IOT_table['F'],calc_F(IOT_table['f'],IOT_table['Y'])
+        IOT_table[_ENUM.F],calc_F(IOT_table[_ENUM.f],IOT_table[_ENUM.Y])
     )
 
 def test_calc_m(IOT_table):
     pdt.assert_frame_equal(
-        IOT_table['m'],calc_m(IOT_table['v'],IOT_table['w'])
+        IOT_table[_ENUM.m],calc_m(IOT_table[_ENUM.v],IOT_table[_ENUM.w])
     )
 
 def test_calcM(IOT_table):
     pdt.assert_frame_equal(
-        IOT_table['M'],calc_M(IOT_table['m'],IOT_table['Y'])
+        IOT_table[_ENUM.M],calc_M(IOT_table[_ENUM.m],IOT_table[_ENUM.Y])
     )
