@@ -20,18 +20,16 @@ from mario.log_exc.exceptions import (
 from mario.tools.utilities import multiindex_contain
 
 
+# TODO It does seem that improving the speed will be very limited
 
-#TODO It does seem that improving the speed will be very limited
 
 def add_new_sector(
-        instance,#TODO add the typing 
-        io:str, 
-        new_sectors:list, 
-        item:str, 
-        regions:list
-        ) -> tuple:
-    
-
+    instance,  # TODO add the typing
+    io: str,
+    new_sectors: list,
+    item: str,
+    regions: list,
+) -> tuple:
     table = instance.table_type
 
     # get the original baseline data
@@ -40,55 +38,52 @@ def add_new_sector(
         scenarios=["baseline"],
     )
 
-
     # get the essentail keys to read the data, and the counter_item
-    keys,counter_item = get_corresponding_keys(item)
-
+    keys, counter_item = get_corresponding_keys(item)
 
     add_sector_dfs = {
-        key:parse_add_sector_excels(io,key,new_sectors,instance,item,counter_item,regions)
+        key: parse_add_sector_excels(
+            io, key, new_sectors, instance, item, counter_item, regions
+        )
         for key in keys
     }
 
-
     # check if the units are passed or not
-    check_unit_consistency(add_sector_dfs["un"],new_sectors)
+    check_unit_consistency(add_sector_dfs["un"], new_sectors)
 
     # build new sets of matrices to be filled for the new sectors
-    new_matrices = build_additional_matrix(table,instance,new_sectors,item)
+    new_matrices = build_additional_matrix(table, instance, new_sectors, item)
 
     empty_matrices = dict(
-        z = new_matrices.Z,
-        Y = new_matrices.Y,
-        e = new_matrices.E,
-        v = new_matrices.V,
+        z=new_matrices.Z,
+        Y=new_matrices.Y,
+        e=new_matrices.E,
+        v=new_matrices.V,
     )
     # how each new level of information is added to the table?
     matrix_mapping = {
-        "z": ["if","it","sf","of"],
+        "z": ["if", "it", "sf", "of"],
         "Y": ["fd"],
         "e": ["sa"],
         "v": ["fp"],
     }
 
-    matrix_concat(data,empty_matrices,new_sectors)
+    matrix_concat(data, empty_matrices, new_sectors)
 
-    for m,ks in matrix_mapping.items():
+    for m, ks in matrix_mapping.items():
         df_to_fill = data[m]
         for k in ks:
             if k not in keys:
                 continue
 
-            df_filled = fill_matrix(df_to_fill,add_sector_dfs[k])
-        
+            df_filled = fill_matrix(df_to_fill, add_sector_dfs[k])
+
         data[m] = df_filled
 
-    return data,add_sector_dfs["un"]
+    return data, add_sector_dfs["un"]
 
 
-
-
-def check_unit_consistency(units_df:pd.DataFrame,new_sectors:list) -> list:
+def check_unit_consistency(units_df: pd.DataFrame, new_sectors: list) -> list:
     """Checks the consistency of units
 
     Parameters
@@ -110,25 +105,25 @@ def check_unit_consistency(units_df:pd.DataFrame,new_sectors:list) -> list:
     """
     unit_errors = []
 
-    nan_indices = units_df[units_df['unit'].isna()].index.tolist()
+    nan_indices = units_df[units_df["unit"].isna()].index.tolist()
     for new_sector in new_sectors:
         if new_sector in nan_indices:
             unit_errors.append(new_sector)
 
-
     if unit_errors:
-        msg = "The unit of measure of following items are not identified. Please fill the info in '{}' sheet of excel file. \n".format(_ADD_SECTOR_SHEETS["un"]["sheet"])
-        raise LackOfInput(msg+"\n".join(unit_errors))
+        msg = "The unit of measure of following items are not identified. Please fill the info in '{}' sheet of excel file. \n".format(
+            _ADD_SECTOR_SHEETS["un"]["sheet"]
+        )
+        raise LackOfInput(msg + "\n".join(unit_errors))
 
 
 def get_corresponding_keys(item):
-
     keys = [*_ADD_SECTOR_SHEETS]
 
     # if sector, output from not needed
     if item == _MASTER_INDEX["s"]:
         keys.remove("of")
-        counter_item = item #TODO why is needed?
+        counter_item = item  # TODO why is needed?
 
     # if activity, self consumption & input_to not needed
     elif item == _MASTER_INDEX["a"]:
@@ -141,20 +136,20 @@ def get_corresponding_keys(item):
         keys.remove("sf")
         keys.remove("if")
         counter_item = _MASTER_INDEX["a"]
-    
-    return keys,counter_item
+
+    return keys, counter_item
+
 
 # TODO --> This is messy. Can we avoid it?
 def parse_add_sector_excels(
-        io:str,
-        key:str,
-        new_sectors:list,
-        instance,
-        item:str,
-        counter_item:str,
-        regions,
-        ):
-    
+    io: str,
+    key: str,
+    new_sectors: list,
+    instance,
+    item: str,
+    counter_item: str,
+    regions,
+):
     _ACCEPTABLE_EMPTY_SHEETS = ["fd", "it", "of"]
     # only accept str for io
 
@@ -162,57 +157,54 @@ def parse_add_sector_excels(
     index_col = list(range(_ADD_SECTOR_SHEETS[key]["rows"]))
     header = list(range(_ADD_SECTOR_SHEETS[key]["cols"]))
 
-
-    
     try:
-        df = pd.read_excel(io,sheet,index_col = index_col,header=header)
-    
-    
-    except IndexError as e: # catch the error raised when empty file passed pandas v1.3.5
+        df = pd.read_excel(io, sheet, index_col=index_col, header=header)
+
+    except (
+        IndexError
+    ) as e:  # catch the error raised when empty file passed pandas v1.3.5
         # in some specific cases it is ok to have empty sheets
-        if (e.args[0] == "list index out of range") and (key in _ACCEPTABLE_EMPTY_SHEETS):
-            df = get_empty_frame(key,new_sectors,instance,item,counter_item,regions)
+        if (e.args[0] == "list index out of range") and (
+            key in _ACCEPTABLE_EMPTY_SHEETS
+        ):
+            df = get_empty_frame(
+                key, new_sectors, instance, item, counter_item, regions
+            )
 
         else:
             raise Exception(e)
-        
-    except ValueError as e: # catch the error raised when empty file passed pandas v2.0.3
-        if ("Length of new names must be 1, got 3" in e.args[0]) and (key in _ACCEPTABLE_EMPTY_SHEETS):
-            df = get_empty_frame(key,new_sectors,instance,item,counter_item,regions)
-        
+
+    except (
+        ValueError
+    ) as e:  # catch the error raised when empty file passed pandas v2.0.3
+        if ("Length of new names must be 1, got 3" in e.args[0]) and (
+            key in _ACCEPTABLE_EMPTY_SHEETS
+        ):
+            df = get_empty_frame(
+                key, new_sectors, instance, item, counter_item, regions
+            )
+
         else:
             raise Exception(e)
-    
+
     return df
 
 
-def get_empty_frame(
-        key,
-        new_sectors,
-        instance,
-        item,
-        counter_item,
-        regions
-        ):
-
-
-
-    if key in ["it","of"]:
-
+def get_empty_frame(key, new_sectors, instance, item, counter_item, regions):
+    if key in ["it", "of"]:
         return pd.DataFrame(
             0,
-            index = pd.MultiIndex.from_product([regions, [item], new_sectors]),
-            columns = pd.MultiIndex.from_product(
+            index=pd.MultiIndex.from_product([regions, [item], new_sectors]),
+            columns=pd.MultiIndex.from_product(
                 [[regions[0]], [counter_item], [instance.get_index(counter_item)[0]]]
-            )
+            ),
         )
 
     elif key == "fd":
-
         return pd.DataFrame(
             0,
-            index = pd.MultiIndex.from_product([regions, [item], new_sectors]),
-            columns = pd.MultiIndex.from_product(
+            index=pd.MultiIndex.from_product([regions, [item], new_sectors]),
+            columns=pd.MultiIndex.from_product(
                 [
                     [regions[0]],
                     [_MASTER_INDEX["n"]],
@@ -221,66 +213,56 @@ def get_empty_frame(
             ),
         )
 
-def build_additional_matrix(
-        table,
-        instance,
-        new_sectors,
-        item
-        ):
 
-    levels = {
-        k:instance.get_index(k) for k in instance.sets
-    }
+def build_additional_matrix(table, instance, new_sectors, item):
+    levels = {k: instance.get_index(k) for k in instance.sets}
 
     # update the new set of info
     levels[item] = levels[item] + new_sectors
 
-    return  MatrixBuilder(
-        table = table,
-        levels= levels,
+    return MatrixBuilder(
+        table=table,
+        levels=levels,
     )
 
 
-def fill_matrix(empty_df,user_df):
-
+def fill_matrix(empty_df, user_df):
     # if there is no user value passed, just skip any operation
     if (user_df == 0).all().all():
         return empty_df
 
     # otherwise fille the data
-    empty_df.loc[user_df.index,user_df.columns] = user_df.values
+    empty_df.loc[user_df.index, user_df.columns] = user_df.values
     return empty_df
 
 
-def matrix_concat(
-        data :Dict,
-        empty_matrices:Dict,
-        new_sectors:list
-        ) -> None:
+def matrix_concat(data: Dict, empty_matrices: Dict, new_sectors: list) -> None:
+    """concat the original data to the newly create one and sort the index"""
+    for k, v in empty_matrices.items():
+        if k in ["v", "e", "EY"]:
+            data[k] = (
+                pd.concat(
+                    [data[k], v.loc[:, (slice(None), slice(None), new_sectors)]], axis=1
+                )
+                .sort_index(axis=1)
+                .fillna(0)
+            )
 
-    """concat the original data to the newly create one and sort the index
-    """
-    for k,v in empty_matrices.items():
-
-        if k in ["v","e","EY"]:
-            data[k] = pd.concat(
-                [data[k],v.loc[:,(slice(None),slice(None),new_sectors)]],
-                axis=1
-                ).sort_index(axis=1).fillna(0)
-        
         elif k in ["z"]:
-            data[k] = pd.concat(
-                [
-                    data[k],
-                    v.loc[(slice(None),slice(None),new_sectors)]
-                    ]
-                    ).sort_index(axis=0).sort_index(axis=1).fillna(0)
-        
-        elif k in ["Y"]:
-            data[k] = pd.concat([data[k],v.loc[(slice(None),slice(None),new_sectors)]]).sort_index().fillna(0)
+            data[k] = (
+                pd.concat([data[k], v.loc[(slice(None), slice(None), new_sectors)]])
+                .sort_index(axis=0)
+                .sort_index(axis=1)
+                .fillna(0)
+            )
 
-    
-        
+        elif k in ["Y"]:
+            data[k] = (
+                pd.concat([data[k], v.loc[(slice(None), slice(None), new_sectors)]])
+                .sort_index()
+                .fillna(0)
+            )
+
         else:
             raise ValueError(f"invalid key {k}.")
 
@@ -364,7 +346,7 @@ def matrix_concat(
 #     v = data[_ENUM.v]
 #     z = data[_ENUM.z]
 #     Y = data[_ENUM.Y]
-#     ## IDEA 
+#     ## IDEA
 #     # 1. --> Creat a new matrix from scratch and populate it?
 #     # 2. --> add find the new matrix and append it the existing matrix?
 

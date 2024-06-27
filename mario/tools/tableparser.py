@@ -34,7 +34,6 @@ from mario.tools.parsers_id import (
     eora_parser_id,
     hybrid_sut_exiobase_parser_id,
     eurostat_id,
-
 )
 
 from mario.tools.iomath import (
@@ -57,8 +56,8 @@ logger = logging.getLogger(__name__)
 import os
 import re
 
-def get_index_txt(Z, V, Y, E, table):
 
+def get_index_txt(Z, V, Y, E, table):
     if table == "SUT":
         regions_main = delete_duplicates(Z.columns.get_level_values(0))
         satellite_main = delete_duplicates(E.index)
@@ -145,7 +144,6 @@ def get_index_txt(Z, V, Y, E, table):
 
 
 def get_index_excel(data, table, mode):
-
     if table == "SUT":
         # first level of the columns should represent the regions
         regions_main = delete_duplicates(data.columns.get_level_values(0))
@@ -214,7 +212,6 @@ def get_index_excel(data, table, mode):
         }
 
     else:
-
         # first level of the columns should represent the regions
         regions_main = delete_duplicates(data.columns.get_level_values(0))
 
@@ -271,7 +268,6 @@ def get_index_excel(data, table, mode):
 
 
 def get_units(units, table, indeces):
-
     if set(units.index.get_level_values(0)) != set([*_UNITS[table]]):
         raise WrongFormat(
             "the units should contain {} levels for {}.".format([*_UNITS[table]], table)
@@ -279,7 +275,6 @@ def get_units(units, table, indeces):
 
     _ = {}
     for matrix in [*_UNITS[table]]:
-
         # take all the items that should be there (in units)
         index_check = indeces[_UNITS[table][matrix]]["main"]
         # take the items that are there
@@ -311,8 +306,7 @@ def get_units(units, table, indeces):
     return _
 
 
-def txt_praser(path, table, mode,sep):
-
+def txt_praser(path, table, mode, sep):
     if mode == "coefficients":
         v, e, z = list("vez")
     else:
@@ -350,9 +344,10 @@ def txt_praser(path, table, mode,sep):
         read["matrices"]["X"] = calc_X(read["matrices"]["Z"], read["matrices"]["Y"])
 
     else:
-        read["matrices"]["X"] = calc_X_from_w(calc_w(read["matrices"]["z"]), read["matrices"]["Y"])
+        read["matrices"]["X"] = calc_X_from_w(
+            calc_w(read["matrices"]["z"]), read["matrices"]["Y"]
+        )
 
-    
     log_time(logger, "Parser: Production matrix calculated and added.")
 
     if "EY" not in read["matrices"]:
@@ -374,7 +369,6 @@ def txt_praser(path, table, mode,sep):
 
 
 def excel_parser(path, table, mode, sheet_name, unit_sheet):
-
     if table not in _ACCEPTABLES["table"]:
         raise WrongInput(
             "{} is not an acceptable value for table. Acceptable valuse are \n{}".format(
@@ -390,7 +384,6 @@ def excel_parser(path, table, mode, sheet_name, unit_sheet):
     indeces = get_index_excel(data, table, mode)
 
     if table == "SUT":
-
         Z = data.loc[
             (slice(None), [_MASTER_INDEX["a"], _MASTER_INDEX["c"]]),
             (slice(None), [_MASTER_INDEX["a"], _MASTER_INDEX["c"]]),
@@ -437,7 +430,6 @@ def excel_parser(path, table, mode, sheet_name, unit_sheet):
     EY.index = EY.index.get_level_values(-1)
 
     if mode == "coefficients":
-
         matrices = {
             "baseline": {
                 "z": Z,
@@ -450,7 +442,14 @@ def excel_parser(path, table, mode, sheet_name, unit_sheet):
         }
     else:
         matrices = {
-            "baseline": {"Z": Z, "V": V, "E": E, "Y": Y, "X": calc_X(Z, Y), "EY": EY,}
+            "baseline": {
+                "Z": Z,
+                "V": V,
+                "E": E,
+                "Y": Y,
+                "X": calc_X(Z, Y),
+                "EY": EY,
+            }
         }
 
     # read the unit sheet from the excel file
@@ -464,7 +463,6 @@ def excel_parser(path, table, mode, sheet_name, unit_sheet):
 
 
 def exio3(path, version):
-
     log_time(logger, "Parser: Parsing exiobase database from {}".format(path))
     read = all_file_reader(path, exiobase_version_3[version], sub_folder=True)
 
@@ -536,7 +534,6 @@ def exio3(path, version):
 
 
 def dataframe_parser(Z, Y, E, V, EY, units, table):
-
     if isinstance(units, dict):
         units = pd.concat(units.values(), keys=units.keys())
 
@@ -548,7 +545,16 @@ def dataframe_parser(Z, Y, E, V, EY, units, table):
 
     X = calc_X(Z, Y)
 
-    matrices = {"baseline": {"Z": Z, "Y": Y, "V": V, "E": E, "X": X, "EY": EY,}}
+    matrices = {
+        "baseline": {
+            "Z": Z,
+            "Y": Y,
+            "V": V,
+            "E": E,
+            "X": X,
+            "EY": EY,
+        }
+    }
 
     rename_index(matrices["baseline"])
     sort_frames(matrices["baseline"])
@@ -557,7 +563,6 @@ def dataframe_parser(Z, Y, E, V, EY, units, table):
 
 
 def monetary_sut_exiobase(path):
-
     # reading the files
     read = all_file_reader(path, exiobase_mrsut, sub_folder=True)
 
@@ -602,18 +607,18 @@ def monetary_sut_exiobase(path):
     y_lower = pd.DataFrame(
         np.zeros((len(a_index[0]), len(n_index[0]))), index=a_index, columns=n_index
     )
-    Y = pd.concat([Y,y_lower])
+    Y = pd.concat([Y, y_lower])
 
     # Creating the missing parts of the z matrix
     z_upper = pd.DataFrame(
         np.zeros((len(c_index[0]), len(c_index[0]))), index=c_index, columns=c_index
     )
-    z_upper = pd.concat([z_upper,S])
+    z_upper = pd.concat([z_upper, S])
 
     z_lower = pd.DataFrame(
         np.zeros((len(a_index[0]), len(a_index[0]))), index=a_index, columns=a_index
     )
-    z_lower = pd.concat([U,z_lower])
+    z_lower = pd.concat([U, z_lower])
 
     Z = z_upper.join(z_lower)
 
@@ -664,7 +669,16 @@ def monetary_sut_exiobase(path):
         columns=["unit"],
     )
 
-    matrices = {"baseline": {"Z": Z, "V": V, "E": E, "EY": EY, "Y": Y, "X": X,}}
+    matrices = {
+        "baseline": {
+            "Z": Z,
+            "V": V,
+            "E": E,
+            "EY": EY,
+            "Y": Y,
+            "X": X,
+        }
+    }
 
     units = {
         _MASTER_INDEX["a"]: activities_unit,
@@ -719,7 +733,6 @@ def eora_single_region(path, table, name_convention="full_name", aggregate_trade
         )
 
     if aggregate_trade:
-
         V = V.groupby(level=[0, 3], sort=False).sum()
         Y = Y.T.groupby(level=[0, 3], sort=False).sum().T
         EY = EY.T.groupby(level=[0, 3], sort=False).sum().T
@@ -781,12 +794,18 @@ def eora_single_region(path, table, name_convention="full_name", aggregate_trade
     }
 
     for matrix, value in indeces.items():
-        
         for level, ind in value.items():
             exec(f"{matrix}.{level} = ind")
 
     matrices = {
-        "baseline": {"Z": Z, "V": V, "E": E, "EY": EY, "Y": Y, "X": calc_X(Z, Y),}
+        "baseline": {
+            "Z": Z,
+            "V": V,
+            "E": E,
+            "EY": EY,
+            "Y": Y,
+            "X": calc_X(Z, Y),
+        }
     }
 
     rename_index(matrices["baseline"])
@@ -805,7 +824,6 @@ def eora_single_region(path, table, name_convention="full_name", aggregate_trade
             "s": {"main": sectors},
         }
     else:
-
         units = {
             _MASTER_INDEX["a"]: activities_unit,
             _MASTER_INDEX["c"]: commodities_unit,
@@ -987,7 +1005,8 @@ def eora_multi_region(data_path, index_path, year, price):
 
 
 def eurostat_sut(
-    supply_path, use_path,
+    supply_path,
+    use_path,
 ):
     supply_file = pd.ExcelFile(supply_path)
     use_file = pd.ExcelFile(use_path)
@@ -1102,7 +1121,11 @@ def eurostat_sut(
             index=eurostat_id["c_import"] + eurostat_id["f"],
             columns=["unit"],
         ),
-        _MASTER_INDEX["k"]: pd.DataFrame("None", index=E.index, columns=["unit"],),
+        _MASTER_INDEX["k"]: pd.DataFrame(
+            "None",
+            index=E.index,
+            columns=["unit"],
+        ),
     }
 
     X = calc_X(Z, Y)
@@ -1110,7 +1133,16 @@ def eurostat_sut(
     for matrix in [Z, V, E, EY, Y, X]:
         matrix.replace(":", 0, inplace=True)
 
-    matrices = {"baseline": {"Z": Z, "V": V, "E": E, "EY": EY, "Y": Y, "X": X,}}
+    matrices = {
+        "baseline": {
+            "Z": Z,
+            "V": V,
+            "E": E,
+            "EY": EY,
+            "Y": Y,
+            "X": X,
+        }
+    }
     sort_frames(matrices["baseline"])
     indeces = {
         "r": {"main": Z.index.unique(0).tolist()},
@@ -1126,8 +1158,7 @@ def eurostat_sut(
 
 
 def parse_pymrio(io, value_added, satellite_account):
-    """Extracts the data from pymrio in mario format
-    """
+    """Extracts the data from pymrio in mario format"""
 
     # be sure that system is calculated
     io = io.calc_all()
@@ -1157,24 +1188,23 @@ def parse_pymrio(io, value_added, satellite_account):
         target = extensions[key]
 
         if value == "all":
-            v = pd.concat([v,to_single_index(target.F)])
-            v_unit = pd.concat([v_unit,to_single_index(target.unit)])
+            v = pd.concat([v, to_single_index(target.F)])
+            v_unit = pd.concat([v_unit, to_single_index(target.unit)])
         else:
             try:
-
                 to_append_mat = to_single_index(target.F.loc[value, :])
                 to_append_unit = to_single_index(target.unit.loc[value, :])
 
                 counter_mat = to_single_index(target.F.drop(value))
                 counter_unit = to_single_index(target.unit.drop(value))
 
-                v = pd.concat([v,to_append_mat])
-                v_unit = pd.concat([v_unit,to_append_unit])
+                v = pd.concat([v, to_append_mat])
+                v_unit = pd.concat([v_unit, to_append_unit])
 
-                e = pd.concat([e,counter_mat])
-                e_unit = pd.concat([e_unit,counter_unit])
+                e = pd.concat([e, counter_mat])
+                e_unit = pd.concat([e_unit, counter_unit])
 
-                EY = pd.concat([EY,to_single_index(target.F_Y.drop(value))])
+                EY = pd.concat([EY, to_single_index(target.F_Y.drop(value))])
 
             except KeyError:
                 raise WrongInput(
@@ -1185,25 +1215,24 @@ def parse_pymrio(io, value_added, satellite_account):
         target = extensions[key]
 
         if value == "all":
-            e = pd.concat([e,to_single_index(target.F)])
-            e_unit = pd.concat([e_unit,to_single_index(target.unit)])
-            EY = pd.concat([EY,to_single_index(target.F_Y)])
+            e = pd.concat([e, to_single_index(target.F)])
+            e_unit = pd.concat([e_unit, to_single_index(target.unit)])
+            EY = pd.concat([EY, to_single_index(target.F_Y)])
         else:
             try:
-
                 to_append_e = to_single_index(target.F.loc[value, :])
                 to_append_e_unit = to_single_index(target.unit.loc[value, :])
 
                 to_append_v = to_single_index(target.F.drop(value))
                 to_append_v_unit = to_single_index(target.unit.drop(value))
 
-                v = pd.concat([v,to_append_v])
-                v_unit = pd.concat([v_unit,to_append_v_unit])
+                v = pd.concat([v, to_append_v])
+                v_unit = pd.concat([v_unit, to_append_v_unit])
 
-                e = pd.concat([e,to_append_e])
-                e_unit = pd.concat([e_unit,to_append_e_unit])
+                e = pd.concat([e, to_append_e])
+                e_unit = pd.concat([e_unit, to_append_e_unit])
 
-                EY = pd.concat([EY,to_single_index(target.F_Y.loc[value, :])])
+                EY = pd.concat([EY, to_single_index(target.F_Y.loc[value, :])])
 
             except KeyError:
                 raise WrongInput(
@@ -1241,7 +1270,15 @@ def parse_pymrio(io, value_added, satellite_account):
                 ]
             )
 
-    matrices = {"baseline": {"z": z, "E": e, "V": v, "Y": Y, "EY": EY,}}
+    matrices = {
+        "baseline": {
+            "z": z,
+            "E": e,
+            "V": v,
+            "Y": Y,
+            "EY": EY,
+        }
+    }
 
     units = {
         _MASTER_INDEX["s"]: sector_unit,
@@ -1262,7 +1299,6 @@ def parse_pymrio(io, value_added, satellite_account):
 
 
 def hybrid_sut_exiobase_reader(path, extensions):
-
     _ACCEPTABLE_EXIOBASE_EXTENSIONS = [*hybrid_sut_exiobase_parser_id]
 
     _ACCEPTABLE_EXIOBASE_EXTENSIONS.remove("matrices")
@@ -1279,7 +1315,9 @@ def hybrid_sut_exiobase_reader(path, extensions):
                     f"Following items are not valid for extensions: \n {differnce}.\n Valid items are: \n {_ACCEPTABLE_EXIOBASE_EXTENSIONS}"
                 )
 
-    main_files = dict(matrices=hybrid_sut_exiobase_parser_id["matrices"],)
+    main_files = dict(
+        matrices=hybrid_sut_exiobase_parser_id["matrices"],
+    )
 
     extensions_files = {
         extension: hybrid_sut_exiobase_parser_id[extension] for extension in extensions
@@ -1317,7 +1355,6 @@ def hybrid_sut_exiobase_reader(path, extensions):
             ey = dfs["final_demand"]
 
             if e.index.nlevels == 3:
-
                 idx = pd.MultiIndex.from_arrays(
                     [
                         e.index.get_level_values(0)
@@ -1365,7 +1402,11 @@ def hybrid_sut_exiobase_reader(path, extensions):
         columns=["unit"],
     )
 
-    factors_unit = pd.DataFrame(["None"], index=["-"], columns=["unit"],)
+    factors_unit = pd.DataFrame(
+        ["None"],
+        index=["-"],
+        columns=["unit"],
+    )
 
     extensions_unit = pd.DataFrame(
         E.index.get_level_values(1),
@@ -1405,18 +1446,18 @@ def hybrid_sut_exiobase_reader(path, extensions):
     z_upper = pd.DataFrame(
         np.zeros((len(c_index), len(c_index))), index=c_index, columns=c_index
     )
-    z_upper = pd.concat([z_upper,S])
+    z_upper = pd.concat([z_upper, S])
     z_lower = pd.DataFrame(
         np.zeros((len(a_index), len(a_index))), index=a_index, columns=a_index
     )
-    z_lower = pd.concat([U,z_lower])
+    z_lower = pd.concat([U, z_lower])
     Z = z_upper.join(z_lower)
 
     # adding the lower part to Y
     y_lower = pd.DataFrame(
         np.zeros((len(a_index), len(n_index))), index=a_index, columns=n_index
     )
-    Y = pd.concat([Y,y_lower])
+    Y = pd.concat([Y, y_lower])
 
     X = calc_X(Z, Y)
 
@@ -1430,7 +1471,16 @@ def hybrid_sut_exiobase_reader(path, extensions):
         "c": {"main": c_index.unique(-1).tolist()},
     }
 
-    matrices = {"baseline": {"Z": Z, "V": V, "E": E, "EY": EY, "Y": Y, "X": X,}}
+    matrices = {
+        "baseline": {
+            "Z": Z,
+            "V": V,
+            "E": E,
+            "EY": EY,
+            "Y": Y,
+            "X": X,
+        }
+    }
 
     units = {
         _MASTER_INDEX["a"]: activities_unit,
@@ -1444,121 +1494,122 @@ def hybrid_sut_exiobase_reader(path, extensions):
     return matrices, indeces, units
 
 
-
-
-
 def parser_figaro_sut(path):
-
     all_files = os.listdir(path)
 
     supply_found = False
     use_found = False
     for file in all_files:
         if file.startswith("supply_") and file.endswith(".csv"):
-            use = pd.read_csv(f"{path}/{file}",index_col=0,sep=",")
+            use = pd.read_csv(f"{path}/{file}", index_col=0, sep=",")
             use_found = True
-            match = re.search(r'\d+', file)
+            match = re.search(r"\d+", file)
             year = int(match.group())
 
         if file.startswith("use_") and file.endswith(".csv"):
-            supply = pd.read_csv(f"{path}/{file}",index_col=0,sep=",")
+            supply = pd.read_csv(f"{path}/{file}", index_col=0, sep=",")
             supply_found = True
 
-    if not all([supply_found,use_found]):
+    if not all([supply_found, use_found]):
         raise FileNotFoundError("not all the necessary files are in the folder")
 
     metadata = load_figaro_metadata()
 
-    use.index = pd.MultiIndex.from_tuples(figaro_get_new_index(use.index,metadata))
-    use.columns = pd.MultiIndex.from_tuples(figaro_get_new_index(use.columns,metadata))
+    use.index = pd.MultiIndex.from_tuples(figaro_get_new_index(use.index, metadata))
+    use.columns = pd.MultiIndex.from_tuples(figaro_get_new_index(use.columns, metadata))
 
-    supply.index = pd.MultiIndex.from_tuples(figaro_get_new_index(supply.index,metadata))
-    supply.columns = pd.MultiIndex.from_tuples(figaro_get_new_index(supply.columns,metadata))
-
-
-    s_matrix = supply.loc[(slice(None),_MASTER_INDEX.c,slice(None)),(slice(None),_MASTER_INDEX.a,slice(None))]
-
-    Z = pd.concat([s_matrix.T,use]).fillna(0.0)
-
-
-
-    Y = supply.loc[(slice(None),_MASTER_INDEX.c,slice(None)),(slice(None),_MASTER_INDEX.n,slice(None))]
-
-    Y = pd.concat([Y,pd.DataFrame(0.0,index=use.columns,columns=Y.columns)])
-
-    V = supply.loc[(slice(None),_MASTER_INDEX.f,slice(None)),(slice(None),_MASTER_INDEX.a,slice(None))]
-    V = pd.concat([V,pd.DataFrame(0.0,index=V.index,columns=use.index)],axis=1).droplevel([0,1])
-
-    E = pd.DataFrame(
-        0,
-        index = ["-"],
-        columns= V.columns
+    supply.index = pd.MultiIndex.from_tuples(
+        figaro_get_new_index(supply.index, metadata)
+    )
+    supply.columns = pd.MultiIndex.from_tuples(
+        figaro_get_new_index(supply.columns, metadata)
     )
 
-    EY = pd.DataFrame(
-        0,
-        index = ["-"],
-        columns = Y.columns
-    )
+    s_matrix = supply.loc[
+        (slice(None), _MASTER_INDEX.c, slice(None)),
+        (slice(None), _MASTER_INDEX.a, slice(None)),
+    ]
+
+    Z = pd.concat([s_matrix.T, use]).fillna(0.0)
+
+    Y = supply.loc[
+        (slice(None), _MASTER_INDEX.c, slice(None)),
+        (slice(None), _MASTER_INDEX.n, slice(None)),
+    ]
+
+    Y = pd.concat([Y, pd.DataFrame(0.0, index=use.columns, columns=Y.columns)])
+
+    V = supply.loc[
+        (slice(None), _MASTER_INDEX.f, slice(None)),
+        (slice(None), _MASTER_INDEX.a, slice(None)),
+    ]
+    V = pd.concat(
+        [V, pd.DataFrame(0.0, index=V.index, columns=use.index)], axis=1
+    ).droplevel([0, 1])
+
+    E = pd.DataFrame(0, index=["-"], columns=V.columns)
+
+    EY = pd.DataFrame(0, index=["-"], columns=Y.columns)
 
     X = calc_X(Z, Y)
 
-    activities = Z.xs(_MASTER_INDEX.a,level=1).index.unique(-1).tolist()
-    commodities = Z.xs(_MASTER_INDEX.c,level=1).index.unique(-1).tolist()
+    activities = Z.xs(_MASTER_INDEX.a, level=1).index.unique(-1).tolist()
+    commodities = Z.xs(_MASTER_INDEX.c, level=1).index.unique(-1).tolist()
     final_consumption = Y.columns.unique(-1).tolist()
     value_added = V.index.tolist()
     extensions = E.index.tolist()
     regions = Z.index.unique(0)
-
-
 
     indeces = {
         "r": {"main": regions},
         "n": {"main": final_consumption},
         "f": {"main": value_added},
         "k": {"main": extensions},
-        "s": {"main": activities+commodities},
+        "s": {"main": activities + commodities},
         "a": {"main": activities},
         "c": {"main": commodities},
     }
 
     units = {
-        _MASTER_INDEX.a : pd.DataFrame(
-            "nominal million euros",index=activities,columns=["unit"]
+        _MASTER_INDEX.a: pd.DataFrame(
+            "nominal million euros", index=activities, columns=["unit"]
         ),
-        _MASTER_INDEX.c : pd.DataFrame(
-            "nominal million euros",index=commodities,columns=["unit"]
+        _MASTER_INDEX.c: pd.DataFrame(
+            "nominal million euros", index=commodities, columns=["unit"]
         ),
-        _MASTER_INDEX.f : pd.DataFrame(
-            "nominal million euros",index=value_added,columns=["unit"]
+        _MASTER_INDEX.f: pd.DataFrame(
+            "nominal million euros", index=value_added, columns=["unit"]
         ),
-        _MASTER_INDEX.k : pd.DataFrame(
-            "-",index=extensions,columns=["unit"]
-        ),
+        _MASTER_INDEX.k: pd.DataFrame("-", index=extensions, columns=["unit"]),
     }
 
-    matrices = {"baseline": {"Z": Z, "V": V, "E": E, "EY": EY, "Y": Y, "X": X,}}
-
+    matrices = {
+        "baseline": {
+            "Z": Z,
+            "V": V,
+            "E": E,
+            "EY": EY,
+            "Y": Y,
+            "X": X,
+        }
+    }
 
     rename_index(matrices["baseline"])
 
-    return matrices, indeces, units,year
+    return matrices, indeces, units, year
 
-def figar_mapper(lvl0,lvl1):
-    
+
+def figar_mapper(lvl0, lvl1):
     if lvl0.index[0] == "r":
-        return (lvl0.Name.iloc[0],_MASTER_INDEX[lvl1.index[0]],lvl1.Name.iloc[0])
-    
+        return (lvl0.Name.iloc[0], _MASTER_INDEX[lvl1.index[0]], lvl1.Name.iloc[0])
+
     else:
-        return ("",_MASTER_INDEX[lvl1.index[0]],lvl1.Name.iloc[0])
+        return ("", _MASTER_INDEX[lvl1.index[0]], lvl1.Name.iloc[0])
 
 
-
-
-def figaro_get_new_index(iter,metadata):
+def figaro_get_new_index(iter, metadata):
     index = []
     for idx in iter:
-
         split = idx.split("_")
         level_0 = split[0]
         if len(split) >= 3:
@@ -1566,16 +1617,18 @@ def figaro_get_new_index(iter,metadata):
         else:
             level_1 = split[1]
 
-        level_0_=metadata.loc[metadata.Code == level_0]
-        level_1_=metadata.loc[metadata.Code == level_1]
+        level_0_ = metadata.loc[metadata.Code == level_0]
+        level_1_ = metadata.loc[metadata.Code == level_1]
 
-        index.append(figar_mapper(level_0_,level_1_))
+        index.append(figar_mapper(level_0_, level_1_))
 
     return index
 
 
-
 def load_figaro_metadata():
-
-    path = os.path.abspath(os.path.join(os.path.dirname(__file__),))
-    return pd.read_csv(f"{path}/figaro_metadata.csv",index_col=0,sep=",")
+    path = os.path.abspath(
+        os.path.join(
+            os.path.dirname(__file__),
+        )
+    )
+    return pd.read_csv(f"{path}/figaro_metadata.csv", index_col=0, sep=",")

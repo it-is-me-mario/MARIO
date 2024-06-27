@@ -24,7 +24,6 @@ class MARIOMetaData:
     """
 
     def __init__(self, name=None, meta=None, **kwargs):
-
         """
         Initializng the metadata with any given sets of inputs or a given metafile
         """
@@ -50,10 +49,8 @@ class MARIOMetaData:
 
     def _add_attribute(self, **kwargs):
         for attribute, value in kwargs.items():
-
             # if the attribute already exists
             if hasattr(self, attribute):
-
                 # if the existed attribuute has the same value pass
                 if getattr(self, attribute) == value:
                     pass
@@ -75,7 +72,6 @@ class MARIOMetaData:
             setattr(self, attribute, value)
 
     def _add_history(self, note):
-
         """
         Adds a history or note to the _history attribute to track all the events
         in the instances build by the user.
@@ -83,14 +79,12 @@ class MARIOMetaData:
         self._history.append("[{}]    {}".format(self._time(), note))
 
     def _time(self):
-
         """
         returns the current time
         """
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     def __str__(self):
-
         history_lines_2_show = 15
 
         history = "\n".join(self._history[:history_lines_2_show])
@@ -107,14 +101,12 @@ class MARIOMetaData:
         return self.__str__()
 
     def _save(self, location, _format="binary"):
-
         """
         this function will save the metadata with a database so if the database
         wants to imported with its own metadata in order not to build the metadat again,
         this can be used.
         """
         if _format == "binary":
-
             with open(location, "wb") as config_dictionary_file:
                 pickle.dump(self, config_dictionary_file)
 
@@ -142,14 +134,12 @@ class MARIOMetaData:
         return meta_as_dict
 
     def load(self, location):
-
         with open(location, "rb") as load_file:
             meta = pickle.load(load_file)
 
         return meta
 
     def meta_check(self, **kwargs):
-
         """
         This fucntion can be used in case that an object of a database is build
         based on a metadata file to check if the given info are not in contrast

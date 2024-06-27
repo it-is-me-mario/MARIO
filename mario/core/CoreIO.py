@@ -47,6 +47,7 @@ import copy
 import re
 
 import warnings
+
 # Filter out the specific warning from openpyxl
 warning_message = "Data Validation extension is not supported and will be removed"
 warnings.filterwarnings("ignore", message=warning_message)
@@ -61,8 +62,6 @@ from mario.tools.constants import (
 )
 
 logger = logging.getLogger(__name__)
-
-
 
 
 class CoreModel:
@@ -96,7 +95,6 @@ class CoreModel:
         year=None,
         **kwargs,
     ):
-
         name: str
         table: str
         Z: pd.DataFrame
@@ -129,7 +127,7 @@ class CoreModel:
             matrices = kwargs["init_by_parsers"]["matrices"]["baseline"]
             renamed_matrices = {}
 
-            for m,v in matrices.items():
+            for m, v in matrices.items():
                 renamed_matrices[_ENUM[m]] = v
 
             kwargs["init_by_parsers"]["matrices"]["baseline"] = renamed_matrices
@@ -155,9 +153,9 @@ class CoreModel:
                 matrices = self.matrices["baseline"]
                 renamed_matrices = {}
 
-                for m,v in matrices.items():
+                for m, v in matrices.items():
                     renamed_matrices[_ENUM[m]] = v
-                
+
                 self.matrices["baseline"] = renamed_matrices
 
                 self.meta._add_attribute(table=table, price=price)
@@ -179,7 +177,6 @@ class CoreModel:
         force_rewrite=False,
         **kwargs,
     ):
-
         """Calculates the input-output matrices for different scenarios.
 
         Notes
@@ -220,13 +217,12 @@ class CoreModel:
                 _try = kwargs.get("try", 0)
                 kwargs["try"] = _try
                 try:
-
                     if item != _ENUM.X:
                         eq = _CALC[item][0]
-                        
+
                         kw = _CALC[item][1]
-                        
-                        data = eval(eq.format(scenario=scenario,**kw))
+
+                        data = eval(eq.format(scenario=scenario, **kw))
                     else:
                         if _ENUM.z in self.matrices[scenario]:
                             data = calc_X_from_z(
@@ -270,7 +266,6 @@ class CoreModel:
                         )
 
     def add_note(self, notes):
-
         """Adds notes to the meta history
 
         Parameters
@@ -287,7 +282,6 @@ class CoreModel:
             self.meta._add_history(f"User Note: {note}")
 
     def update_scenarios(self, scenario, **matrices):
-
         """Updates the matrices for a specific scenario.
 
         .. note::
@@ -328,7 +322,9 @@ class CoreModel:
             self.matrices[scenario][matrix] = value
 
     def clone_scenario(
-        self, scenario, name,
+        self,
+        scenario,
+        name,
     ):
         """Creates a new scenario by cloning an existing scenario
 
@@ -361,7 +357,10 @@ class CoreModel:
             "Scenarios: {name} added to scearios by cloning {scenario}"
         )
 
-    def reset_to_flows(self, scenario,):
+    def reset_to_flows(
+        self,
+        scenario,
+    ):
         """Deletes the coefficients of a scenario and keeps only flows
 
         Parameters
@@ -413,7 +412,6 @@ class CoreModel:
         self.matrices[scenario] = matrices
 
     def get_index(self, index, level="main"):
-
         """Returns a list or a DataFrame of different levels of indeces in the database.
 
         Parameters
@@ -454,9 +452,12 @@ class CoreModel:
         return copy.deepcopy(self._indeces[_LEVELS[self.table_type][index]][level])
 
     def is_balanced(
-        self, method, data_set="baseline", margin=0.05, as_dataframe=False,
+        self,
+        method,
+        data_set="baseline",
+        margin=0.05,
+        as_dataframe=False,
     ):
-
         """Checks if a specific data_set in the database is balance or not
 
         .. note::
@@ -498,7 +499,10 @@ class CoreModel:
 
         methods = {
             "flows": {"matrices": [_ENUM.V, _ENUM.Z, _ENUM.X], "header": ["\u0394X"]},
-            "coefficients": {"matrices": [_ENUM.v, _ENUM.z], "header": [f"{_ENUM.v}+{_ENUM.z}"]},
+            "coefficients": {
+                "matrices": [_ENUM.v, _ENUM.z],
+                "header": [f"{_ENUM.v}+{_ENUM.z}"],
+            },
             "prices": {"matrices": [_ENUM.p], "header": ["\u0394p"]},
         }
 
@@ -515,7 +519,9 @@ class CoreModel:
         )
 
         if method == "flows":
-            balance = (data[_ENUM.Z].sum() + data[_ENUM.V].sum() - data[_ENUM.X].sum(1)).to_frame()
+            balance = (
+                data[_ENUM.Z].sum() + data[_ENUM.V].sum() - data[_ENUM.X].sum(1)
+            ).to_frame()
             balance.columns = ["col"]
 
             imbalances = balance[
@@ -561,9 +567,7 @@ class CoreModel:
         )
         return True
 
- 
     def is_isard(self, scenario: str = "baseline") -> bool:
-
         """Checks whether a table is in Isard format.
         Isard SUT tables account for trades among regions in the USE matrix
 
@@ -583,20 +587,26 @@ class CoreModel:
         if self.meta.table != "SUT":
             raise NotImplementable("This test is implementable only on SUT tables")
         elif len(self.get_index(_MASTER_INDEX["r"])) == 1:
-            raise NotImplementable("This test is not implementable on single-region tables")
-    
+            raise NotImplementable(
+                "This test is not implementable on single-region tables"
+            )
+
         if scenario not in self.scenarios:
             raise WrongInput("Acceptable data_sets are:\n{}".format(self.scenarios))
-           
-        if _ENUM.z in self.matrices[scenario]: # this avoid to calculate z or Z in case one of them is missing, to avoid losing time
+
+        if (
+            _ENUM.z in self.matrices[scenario]
+        ):  # this avoid to calculate z or Z in case one of them is missing, to avoid losing time
             matrix = self.matrices[scenario][_ENUM.z]
         else:
             matrix = self.matrices[scenario][_ENUM.Z]
-        
+
         sN = slice(None)
-        matrix = matrix.loc[(sN,_MASTER_INDEX['c'],sN),(sN,_MASTER_INDEX['a'],sN)] # extract the use side from z or Z
-        matrix = matrix.groupby(level=[_MASTER_INDEX['r']]).sum()
-        matrix = matrix.T.groupby(level=[_MASTER_INDEX['r']]).sum().T
+        matrix = matrix.loc[
+            (sN, _MASTER_INDEX["c"], sN), (sN, _MASTER_INDEX["a"], sN)
+        ]  # extract the use side from z or Z
+        matrix = matrix.groupby(level=[_MASTER_INDEX["r"]]).sum()
+        matrix = matrix.T.groupby(level=[_MASTER_INDEX["r"]]).sum().T
 
         is_diagonal = np.all(matrix.values == np.diag(np.diagonal(matrix)))
 
@@ -611,7 +621,6 @@ class CoreModel:
             return True
 
     def is_chenerymoses(self, scenario: str = "baseline") -> bool:
-
         """Checks whether a table is in Isard format.
         Isard SUT tables account for trades among regions in the USE matrix
 
@@ -626,24 +635,34 @@ class CoreModel:
                 True if the dataset is isard
                 Flase if the dataset is not isard
         """
-    
+
         if self.meta.table != "SUT":
             raise NotImplementable("This test is implementable only on SUT tables")
         elif len(self.get_index(_MASTER_INDEX["r"])) == 1:
-            raise NotImplementable("This test is not implementable on single-region tables")
+            raise NotImplementable(
+                "This test is not implementable on single-region tables"
+            )
 
         if scenario not in self.scenarios:
-            raise WrongInput("{} is not an acceptable scenario. Acceptable data_sets are:\n{}".format(scenario,self.scenarios))
-            
-        if _ENUM.z in self.matrices[scenario]:  # this avoid to calculate z or Z in case one of them is missing, to avoid losing time
+            raise WrongInput(
+                "{} is not an acceptable scenario. Acceptable data_sets are:\n{}".format(
+                    scenario, self.scenarios
+                )
+            )
+
+        if (
+            _ENUM.z in self.matrices[scenario]
+        ):  # this avoid to calculate z or Z in case one of them is missing, to avoid losing time
             matrix = self.matrices[scenario][_ENUM.z]
         else:
             matrix = self.matrices[scenario][_ENUM.Z]
-        
+
         sN = slice(None)
-        matrix = matrix.loc[(sN,_MASTER_INDEX['a'],sN),(sN,_MASTER_INDEX['c'],sN)]  # extract the supply side from z or Z
-        matrix = matrix.groupby(level=[_MASTER_INDEX['r']]).sum()
-        matrix = matrix.T.groupby(level=[_MASTER_INDEX['r']]).sum().T
+        matrix = matrix.loc[
+            (sN, _MASTER_INDEX["a"], sN), (sN, _MASTER_INDEX["c"], sN)
+        ]  # extract the supply side from z or Z
+        matrix = matrix.groupby(level=[_MASTER_INDEX["r"]]).sum()
+        matrix = matrix.T.groupby(level=[_MASTER_INDEX["r"]]).sum().T
 
         is_diagonal = np.all(matrix.values == np.diag(np.diagonal(matrix)))
 
@@ -656,10 +675,6 @@ class CoreModel:
             log_time(logger, "Test: table is in Chenery-Moses format")
 
             return True
-
-
-
-        
 
     def copy(self):
         """Returns a deepcopy of the instance
@@ -687,7 +702,6 @@ class CoreModel:
         self.meta._save(path, format)
 
     def __str__(self):
-
         to_print = (
             "name = {}\n"
             "table = {}\n"
@@ -702,9 +716,12 @@ class CoreModel:
         return self.__str__()
 
     def GDP(
-        self, exclude=[], scenario="baseline", total=True, share=False,
+        self,
+        exclude=[],
+        scenario="baseline",
+        total=True,
+        share=False,
     ):
-
         """Return the value of the GDP based scenario.
 
         .. note::
@@ -754,18 +771,22 @@ class CoreModel:
             data.drop(exclude).sum().to_frame().loc[(slice(None), slicer, slice(None))]
         )
         GDP.columns = ["GDP"]
-      
+
         GDP.index.names = (
-            ["Region", "Sector"]
-            if self.table_type == "IOT"
-            else ["Region", "Activity"]
+            ["Region", "Sector"] if self.table_type == "IOT" else ["Region", "Activity"]
         )
 
         if total:
-            GDP =  GDP.groupby(level=0, sort=False,).sum()
+            GDP = GDP.groupby(
+                level=0,
+                sort=False,
+            ).sum()
 
         if share:
-            region_gdp = GDP.groupby(level=0, sort=False,).sum()
+            region_gdp = GDP.groupby(
+                level=0,
+                sort=False,
+            ).sum()
             share = GDP.div(region_gdp) * 100
             GDP["Share of sector by region"] = share["GDP"]
 
@@ -973,7 +994,6 @@ class CoreModel:
             raise StopIteration
 
     def __getattr__(self, attr):
-
         if attr in self.__dict__:
             return self.__dict__[attr]
         else:
@@ -993,8 +1013,7 @@ class CoreModel:
         self.__dict__ = value
 
     def __eq__(self, other):
-        """ Checks the equality if two databases
-        """
+        """Checks the equality if two databases"""
         main_sets = sorted(self.sets)
         other_sets = sorted(other.sets)
 
@@ -1011,7 +1030,6 @@ class CoreModel:
         return True
 
     def backup(self):
-
         """The function creates a backup of the last configuration of database
         to be returned in case needed.
         """
