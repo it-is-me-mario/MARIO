@@ -220,11 +220,16 @@ License
 This work is licensed under a `GNU GENERAL PUBLIC LICENSE <https://www.gnu.org/licenses/gpl-3.0.en.html>`_
 
 
+Supporting Institutions
+-----------------------
 
-.. image:: https://raw.githubusercontent.com/it-is-me-mario/MARIO/7cc701e2e0f23d2cdc0f01c05d6c6e33b30b682e/doc/source/_static/images/polimi.svg
-   :width: 100
+.. image:: https://github.com/it-is-me-mario/MARIO/blob/pre-releasev0.3.0/doc/source/_static/images/enextgen.png?raw=true
+   :width: 120
    :align: left
+   :target: https://www.enextgen.it/
 
 .. image:: https://raw.githubusercontent.com/it-is-me-mario/MARIO/7cc701e2e0f23d2cdc0f01c05d6c6e33b30b682e/doc/source/_static/images/polimi.svg
-   :width: 100
-   :align: right
+   :width: 200
+   :align: left
+   :target: https://polimi.it/
+   
