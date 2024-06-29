@@ -1495,18 +1495,19 @@ def hybrid_sut_exiobase_reader(path, extensions):
 
 
 def parser_figaro_sut(path):
+
     all_files = os.listdir(path)
 
     supply_found = False
     use_found = False
     for file in all_files:
-        if file.startswith("supply_") and file.endswith(".csv"):
+        if file.startswith("use_") and file.endswith(".csv"):
             use = pd.read_csv(f"{path}/{file}", index_col=0, sep=",")
             use_found = True
             match = re.search(r"\d+", file)
             year = int(match.group())
 
-        if file.startswith("use_") and file.endswith(".csv"):
+        if file.startswith("supply_") and file.endswith(".csv"):
             supply = pd.read_csv(f"{path}/{file}", index_col=0, sep=",")
             supply_found = True
 
@@ -1530,26 +1531,32 @@ def parser_figaro_sut(path):
         (slice(None), _MASTER_INDEX.a, slice(None)),
     ]
 
-    Z = pd.concat([s_matrix.T, use]).fillna(0.0)
+    u_matrix = use.loc[
+        (slice(None), _MASTER_INDEX.c, slice(None)),
+        (slice(None), _MASTER_INDEX.a, slice(None)),
+    ]
 
-    Y = supply.loc[
+    Z = pd.concat([s_matrix.T, u_matrix]).fillna(0.0)
+
+    Y = use.loc[
         (slice(None), _MASTER_INDEX.c, slice(None)),
         (slice(None), _MASTER_INDEX.n, slice(None)),
     ]
 
-    Y = pd.concat([Y, pd.DataFrame(0.0, index=use.columns, columns=Y.columns)])
+    Y = pd.concat([Y, pd.DataFrame(0.0, index=supply.columns, columns=Y.columns)])
 
-    V = supply.loc[
+    V = use.loc[
         (slice(None), _MASTER_INDEX.f, slice(None)),
         (slice(None), _MASTER_INDEX.a, slice(None)),
     ]
+
     V = pd.concat(
-        [V, pd.DataFrame(0.0, index=V.index, columns=use.index)], axis=1
+        [V, pd.DataFrame(0.0, index=V.index, columns=supply.index)], axis=1
     ).droplevel([0, 1])
 
-    E = pd.DataFrame(0, index=["-"], columns=V.columns)
+    E = pd.DataFrame(0, index=["None"], columns=V.columns)
 
-    EY = pd.DataFrame(0, index=["-"], columns=Y.columns)
+    EY = pd.DataFrame(0, index=["None"], columns=Y.columns)
 
     X = calc_X(Z, Y)
 
@@ -1580,7 +1587,7 @@ def parser_figaro_sut(path):
         _MASTER_INDEX.f: pd.DataFrame(
             "nominal million euros", index=value_added, columns=["unit"]
         ),
-        _MASTER_INDEX.k: pd.DataFrame("-", index=extensions, columns=["unit"]),
+        _MASTER_INDEX.k: pd.DataFrame("None", index=extensions, columns=["unit"]),
     }
 
     matrices = {
@@ -1595,6 +1602,9 @@ def parser_figaro_sut(path):
     }
 
     rename_index(matrices["baseline"])
+    sort_frames(matrices["baseline"])
+
+
 
     return matrices, indeces, units, year
 
