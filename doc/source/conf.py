@@ -26,7 +26,7 @@ copyright = '2021, MARIO Authors: Mohammad Amin Tahavori, Lorenzo Rinaldi, Nicol
 author = 'Mohammad Amin Tahavori, Lorenzo Rinaldi, Nicolo Golinucci'
 
 # The full version, including alpha/beta/rc tags
-release = '0.3'
+release = '0.3.1'
 
 
 # -- General configuration ---------------------------------------------------
