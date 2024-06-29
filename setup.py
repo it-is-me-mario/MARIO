@@ -13,10 +13,22 @@ setup(
     author="Mohammad Amin Tahavori, Lorenzo Rinaldi, Nicolo Golinucci",
     author_email="amin.tahavori@enextgen.it",
     version=__version__,
-    packages=find_packages(),
     license="GNU General Public License v3.0",
     #python_requires=">.3.7.0",
-    package_data={"": ["*.txt", "*.dat", "*.doc", "*.rst","*.xlsx","*.yaml"]},
+    include_package_data=True,
+    packages=[
+        "mario",
+        'mario/core',
+        'mario/log_exc',
+        'mario/test',
+        'mario/tools',
+        "mario/settings"
+    ],
+    package_data={
+        "mario/settings": ["*.yaml"],
+        'mario/tools': ["*.csv"],
+        "mario/test":["*.xlsx"],
+        },
     install_requires=[
         "pandas",
         "numpy >= 1.21.2",
