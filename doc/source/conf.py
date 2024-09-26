@@ -44,7 +44,7 @@ extensions = [
     "sphinx.ext.napoleon",
     'sphinx.ext.duration',
     'sphinx.ext.doctest',
-    "sphinx_wagtail_theme",
+    "sphinx_rtd_theme",
     "sphinx_copybutton",
  
 ]
@@ -70,7 +70,7 @@ exclude_patterns = []
 #
 
 
-html_theme = "sphinx_wagtail_theme"
+html_theme = 'sphinx_rtd_theme'
 html_theme_options = dict(
     project_name="MARIO Documentation",
 )

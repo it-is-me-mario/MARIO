@@ -359,7 +359,7 @@ def database_excel(instance, flows, coefficients, directory, units, scenario):
         E = data[_ENUM.E]
         Z = data[_ENUM.Z]
         Y = data[_ENUM.Y]
-        EY = data[_ENUM.Y]
+        EY = data[_ENUM.EY]
 
         V_index = V.index.to_list()
         V.index = [["-"] * len(V_index), [_MASTER_INDEX["f"]] * len(V_index), V_index]
