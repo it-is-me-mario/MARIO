@@ -339,7 +339,6 @@ def txt_praser(path, table, mode, sep):
     log_time(
         logger, "Parser: Parsing database finished. Calculating missing matrices.."
     )
-    print(read["matrices"])
     if mode == "flows":
         read["matrices"]["X"] = calc_X(read["matrices"]["Z"], read["matrices"]["Y"])
 
@@ -1525,6 +1524,7 @@ def parser_figaro_sut(path):
     supply.columns = pd.MultiIndex.from_tuples(
         figaro_get_new_index(supply.columns, metadata)
     )
+
 
     s_matrix = supply.loc[
         (slice(None), _MASTER_INDEX.c, slice(None)),
