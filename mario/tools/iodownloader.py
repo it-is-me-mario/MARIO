@@ -8,6 +8,7 @@ from pymrio.tools.iodownloader import (
 )
 
 import os
+import zipfile
 import requests
 import shutil
 from mario.log_exc.exceptions import WrongInput
@@ -62,12 +63,12 @@ def download_figaro(table, year, path, format=None):
     def build_url(table, format, year):
         urls = {
             "SUT": {
-                "supply": "https://ec.europa.eu/eurostat/documents/51957/17979405/matrix_eu-ic-supply_23ed_{year}.csv",
-                "use": "https://ec.europa.eu/eurostat/documents/51957/17979408/matrix_eu-ic-use_23ed_{year}.csv",
+                "supply": "https://ec.europa.eu/eurostat/documents/51957/19579466/flatfile_eu-ic-supply_24ed_{year}.zip",
+                "use": "https://ec.europa.eu/eurostat/documents/51957/19579478/flatfile_eu-ic-use_24ed_{year}.zip" 
             },
             "IOT": {
-                "prod-by-prod": "https://ec.europa.eu/eurostat/documents/51957/17979411/matrix_eu-ic-io_prod-by-prod_23ed_{year}.csv",
-                "ind-by-ind": "https://ec.europa.eu/eurostat/documents/51957/17979414/matrix_eu-ic-io_ind-by-ind_23ed_{year}.csv",
+                "prod-by-prod": "https://ec.europa.eu/eurostat/documents/51957/19579946/flatfile_eu-ic-io_prod-by-prod_24ed_{year}.zip",
+                "ind-by-ind": "https://ec.europa.eu/eurostat/documents/51957/19579808/flatfile_eu-ic-io_ind-by-ind_24ed_{year}.zip",
             },
             # "extensions":{
             #     "employement":"https://ec.europa.eu/eurostat/documents/51957/17994554/EMPLOYMENTindicator64industries_23ed_{year}.xlsx",
@@ -117,3 +118,34 @@ def download_figaro(table, year, path, format=None):
         response = requests.get(url)
 
         open(file_path, "wb").write(response.content)
+
+        if extension == ".zip":
+
+            # Specify the path to your zip file
+            zip_file_path = file_path
+
+            # Specify the directory where you want to extract the files
+            extract_directory = path
+
+            # Create the directory if it doesn't exist
+            os.makedirs(extract_directory, exist_ok=True)
+
+            # Open the zip file
+            with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
+                # Loop through each file in the zip archive
+                for file_info in zip_ref.infolist():
+                    # Extract each file to a temporary location
+                    extracted_path = zip_ref.extract(file_info, extract_directory)
+                    
+                    # Construct a new filename (you can modify this part as needed)
+
+                    new_extension = extracted_path.split(".")[-1]
+                    new_file_name = f"{name}_{year}.{new_extension}"
+                    new_file_path = os.path.join(extract_directory, new_file_name)
+                    
+                    # Rename the file
+                    os.rename(extracted_path, new_file_path)
+
+
+
+
