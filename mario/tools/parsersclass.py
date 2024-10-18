@@ -11,7 +11,6 @@ from mario.tools.tableparser import (
     exio3,
     monetary_sut_exiobase,
     eora_multi_region,
-    eurostat_sut,
     parse_pymrio,
     hybrid_sut_exiobase_reader,
     parser_figaro_sut,
@@ -527,23 +526,7 @@ def parse_eurostat_sut(
     mario.Database
     """
 
-    if model not in models:
-        raise WrongInput("Available models are {}".format([*models]))
-
-    matrices, indeces, units, meta = eurostat_sut(
-        supply_path,
-        use_path,
-    )
-
-    return models[model](
-        name=name,
-        table="SUT",
-        source="eurostat",
-        year=meta["year"],
-        init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
-        calc_all=calc_all,
-        **kwargs,
-    )
+    raise NotImplemented("This function was deprecated since the parser was too dependent on Eurostat web interface. Downgrade to mariopy==v.3.3.3 in case you need it")
 
 
 def parse_from_pymrio(io, value_added, satellite_account, include_meta=True):
