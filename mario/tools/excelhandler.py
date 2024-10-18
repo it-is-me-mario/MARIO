@@ -342,7 +342,7 @@ def wrirte_matrices(sheet, Z, V, E, Y, EY, flow_format, header_format):
             sheet.write(row, col, 0, flow_format)
 
 
-def database_excel(instance, flows, coefficients, directory, units, scenario):
+def database_excel(instance, flows, coefficients, directory, scenario):
     file = directory
     workbook = xlsxwriter.Workbook(file)
 
@@ -398,35 +398,34 @@ def database_excel(instance, flows, coefficients, directory, units, scenario):
 
         wrirte_matrices(coefficients, Z, V, E, Y, EY, coeff_format, header_format)
 
-    if units:
-        units = workbook.add_worksheet("units")
+    units = workbook.add_worksheet("units")
 
-        data = instance.units
-        units.write("C1", "unit", header_format)
+    data = instance.units
+    units.write("C1", "unit", header_format)
 
-        counter = 2
+    counter = 2
 
-        if instance.table_type == "SUT":
-            keys = [
-                _MASTER_INDEX["a"],
-                _MASTER_INDEX["c"],
-                _MASTER_INDEX["f"],
-                _MASTER_INDEX["k"],
-            ]
-        else:
-            keys = [_MASTER_INDEX["s"], _MASTER_INDEX["f"], _MASTER_INDEX["k"]]
+    if instance.table_type == "SUT":
+        keys = [
+            _MASTER_INDEX["a"],
+            _MASTER_INDEX["c"],
+            _MASTER_INDEX["f"],
+            _MASTER_INDEX["k"],
+        ]
+    else:
+        keys = [_MASTER_INDEX["s"], _MASTER_INDEX["f"], _MASTER_INDEX["k"]]
 
-        for key in keys:
-            item = data[key]
-            for row in range(item.shape[0]):
-                units.write("A{}".format(counter), key, header_format)
-                units.write("B{}".format(counter), item.index[row], header_format)
-                try:
-                    units.write("C{}".format(counter), item.iloc[row, 0])
-                except TypeError:
-                    units.write("C{}".format(counter), "None")
+    for key in keys:
+        item = data[key]
+        for row in range(item.shape[0]):
+            units.write("A{}".format(counter), key, header_format)
+            units.write("B{}".format(counter), item.index[row], header_format)
+            try:
+                units.write("C{}".format(counter), item.iloc[row, 0])
+            except TypeError:
+                units.write("C{}".format(counter), "None")
 
-                counter += 1
+            counter += 1
 
     workbook.close()
 

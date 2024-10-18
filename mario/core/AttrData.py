@@ -1159,7 +1159,6 @@ class Database(CoreModel):
         path=None,
         flows=True,
         coefficients=False,
-        units=True,
         scenario="baseline",
         include_meta=False,
     ):
@@ -1190,10 +1189,6 @@ class Database(CoreModel):
             if True, in the Excel file, a sheet will be created named coefficients containing
             the data of the coefficients
 
-        units : boolean
-            if True, in the Excel file, a sheet will be created named units containing
-            the data of the units
-
         scenario : str
             defines the scenario to print out the data
 
@@ -1214,7 +1209,6 @@ class Database(CoreModel):
             flows,
             coefficients,
             self._getdir(path, "Database", "New_Database.xlsx"),
-            units,
             scenario,
         )
         if include_meta:
