@@ -19,6 +19,7 @@ from mario.tools.tableparser import (
 
 from mario.log_exc.exceptions import WrongInput, LackOfInput
 from mario.tools.constants import _ACCEPTABLES, _HMRSUT_EXTENSIONS
+import pandas as pd
 
 models = {"Database": Database}
 
@@ -98,6 +99,10 @@ def parse_from_txt(
         raise WrongInput(errmsg)
 
     matrices, indeces, units = txt_parser(path, table, mode, sep)
+
+    nan_keys = [key for key, df in matrices['baseline'].items() if isinstance(df, pd.DataFrame) and df.isna().any().any()]
+    if nan_keys:
+        raise ValueError(f"NaN values found in the following matrices: {nan_keys}")
 
     return models[model](
         name=name,
@@ -188,6 +193,10 @@ def parse_from_excel(
     
     matrices, indeces, units = excel_parser(path, table, mode, data_sheet, unit_sheet)
 
+    nan_keys = [key for key, df in matrices['baseline'].items() if isinstance(df, pd.DataFrame) and df.isna().any().any()]
+    if nan_keys:
+        raise ValueError(f"NaN values found in the following matrices: {nan_keys}")
+
     return models[model](
         name=name,
         table=table,
@@ -246,6 +255,10 @@ def parse_exiobase_sut(
     matrices, indeces, units = monetary_sut_exiobase(
         path,
     )
+
+    nan_keys = [key for key, df in matrices['baseline'].items() if isinstance(df, pd.DataFrame) and df.isna().any().any()]
+    if nan_keys:
+        raise ValueError(f"NaN values found in the following matrices: {nan_keys}")
 
     return models[model](
         name=name,
@@ -316,6 +329,10 @@ def parse_exiobase_3(
         raise WrongInput(errmsg)
 
     matrices, indeces, units = exio3(path, version)
+
+    nan_keys = [key for key, df in matrices['baseline'].items() if isinstance(df, pd.DataFrame) and df.isna().any().any()]
+    if nan_keys:
+        raise ValueError(f"NaN values found in the following matrices: {nan_keys}")
 
     return models[model](
         name=name,
@@ -402,6 +419,10 @@ def parse_eora(
             data_path=path, index_path=indeces, year=year, price="bp"
         )
 
+        nan_keys = [key for key, df in matrices['baseline'].items() if isinstance(df, pd.DataFrame) and df.isna().any().any()]
+        if nan_keys:
+            raise ValueError(f"NaN values found in the following matrices: {nan_keys}")
+
         kwargs["notes"] = [
             "ROW deleted from database due to inconsistency.",
             "Intermediate imports from ROW added to VA matrix",
@@ -415,6 +436,10 @@ def parse_eora(
             name_convention=name_convention,
             aggregate_trade=aggregate_trade,
         )
+
+        nan_keys = [key for key, df in matrices['baseline'].items() if isinstance(df, pd.DataFrame) and df.isna().any().any()]
+        if nan_keys:
+            raise ValueError(f"NaN values found in the following matrices: {nan_keys}")
 
     return models[model](
         name=name,
@@ -551,6 +576,10 @@ def hybrid_sut_exiobase(
         extensions=extensions,
     )
 
+    nan_keys = [key for key, df in matrices['baseline'].items() if isinstance(df, pd.DataFrame) and df.isna().any().any()]
+    if nan_keys:
+        raise ValueError(f"NaN values found in the following matrices: {nan_keys}")
+
     notes = [
         "The name of extensions are changed to avoid confusion of same satellite account category for different extensions. For example 'Food' in 'pack_use_waste_act' is changed to 'Food (pack_use_waste)' to avoid confusion with 'Food' in 'pack_sup_waste'"
     ]
@@ -638,6 +667,10 @@ def parse_from_pymrio(
 
     matrices, units, indeces = parse_pymrio(io, value_added, satellite_account)
 
+    nan_keys = [key for key, df in matrices['baseline'].items() if isinstance(df, pd.DataFrame) and df.isna().any().any()]
+    if nan_keys:
+        raise ValueError(f"NaN values found in the following matrices: {nan_keys}")
+
     notes = [
         "Database parsed from pymrio",
     ]
@@ -684,6 +717,10 @@ def parse_FIGARO_SUT(
         raise WrongInput("Calc_all should be a boolean")
 
     matrices, indeces, units, year = parser_figaro_sut(path)
+
+    nan_keys = [key for key, df in matrices['baseline'].items() if isinstance(df, pd.DataFrame) and df.isna().any().any()]
+    if nan_keys:
+        raise ValueError(f"NaN values found in the following matrices: {nan_keys}")
 
     return models["Database"](
         name=name,
