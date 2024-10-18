@@ -496,23 +496,26 @@ def database_txt(instance, flows, coefficients, path, units, scenario, _format, 
 
         _units.index = [_index, _units.index]
 
-        if (coefficients) and (not flows):
-            unit_dir = "coefficients"
-        else:
-            unit_dir = "flows"
+        unit_dirs = []
+        if coefficients:
+            unit_dirs += ["coefficients"]
+        if flows:
+            unit_dirs += ["flows"]
 
-        if not os.path.exists(r"{}/{}".format(path, unit_dir)):
-            os.mkdir(r"{}/{}".format(path, unit_dir))
+        for unit_dir in unit_dirs:
+            if not os.path.exists(r"{}/{}".format(path, unit_dir)):
+                os.mkdir(r"{}/{}".format(path, unit_dir))
 
-        if os.path.exists(r"{}/{}/units.{}".format(path, unit_dir, _format)):
-            os.remove(r"{}/{}/units.{}".format(path, unit_dir, _format))
-        _units.to_csv(
-            r"{}/{}/units.{}".format(path, unit_dir, _format),
-            header=True,
-            index=True,
-            sep=sep,
-            mode="a",
-        )
+            if os.path.exists(r"{}/{}/units.{}".format(path, unit_dir, _format)):
+                os.remove(r"{}/{}/units.{}".format(path, unit_dir, _format))
+
+            _units.to_csv(
+                r"{}/{}/units.{}".format(path, unit_dir, _format),
+                header=True,
+                index=True,
+                sep=sep,
+                mode="a",
+            )
 
 
 def add_sector_writer(matrices, path):
