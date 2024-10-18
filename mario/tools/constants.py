@@ -11,6 +11,12 @@ _ENUM = Nomenclature()
 SUT = "SUT"
 IOT = "IOT"
 
+FLOWS = "flows"
+COEFFICIENTS = "coefficients"
+
+MONETARY = "Monetary"
+HYBRID = "Hybrid"
+
 # represents different levels of aggregation
 _LEVELS = {
     SUT: {_MASTER_INDEX[i]: i for i in ["a", "c", "f", "k", "n", "r"]},
@@ -23,6 +29,8 @@ _INDEX_NAMES = {"3levels": (_MASTER_INDEX["r"], "Level", "Item"), "1level": ("It
 
 _ACCEPTABLES = {
     "table": [SUT, IOT],
+    "mode": [FLOWS, COEFFICIENTS],
+    'unit': [MONETARY, HYBRID],
 }
 
 

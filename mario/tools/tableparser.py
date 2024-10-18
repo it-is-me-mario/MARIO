@@ -306,7 +306,7 @@ def get_units(units, table, indeces):
     return _
 
 
-def txt_praser(path, table, mode, sep):
+def txt_parser(path, table, mode, sep):
     if mode == "coefficients":
         v, e, z = list("vez")
     else:
