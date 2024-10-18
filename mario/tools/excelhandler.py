@@ -431,7 +431,7 @@ def database_excel(instance, flows, coefficients, directory, units, scenario):
     workbook.close()
 
 
-def database_txt(instance, flows, coefficients, path, units, scenario, _format, sep):
+def database_txt(instance, flows, coefficients, path, scenario, _format, sep):
     if flows:
         flows = instance.query(
             matrices=[_ENUM.V, _ENUM.E, _ENUM.Z, _ENUM.Y, _ENUM.X, _ENUM.EY],
@@ -474,48 +474,47 @@ def database_txt(instance, flows, coefficients, path, units, scenario, _format, 
                 mode="a",
             )
 
-    if units:
-        units = copy.deepcopy(instance.units)
-        _units = pd.DataFrame()
-        _index = []
+    units = copy.deepcopy(instance.units)
+    _units = pd.DataFrame()
+    _index = []
 
-        if instance.table_type == "SUT":
-            keys = [
-                _MASTER_INDEX["a"],
-                _MASTER_INDEX["c"],
-                _MASTER_INDEX["f"],
-                _MASTER_INDEX["k"],
-            ]
-        else:
-            keys = [_MASTER_INDEX["s"], _MASTER_INDEX["f"], _MASTER_INDEX["k"]]
+    if instance.table_type == "SUT":
+        keys = [
+            _MASTER_INDEX["a"],
+            _MASTER_INDEX["c"],
+            _MASTER_INDEX["f"],
+            _MASTER_INDEX["k"],
+        ]
+    else:
+        keys = [_MASTER_INDEX["s"], _MASTER_INDEX["f"], _MASTER_INDEX["k"]]
 
-        for key in keys:
-            value = units[key]
-            _index += [key] * value.shape[0]
-            _units = pd.concat([_units, value])
+    for key in keys:
+        value = units[key]
+        _index += [key] * value.shape[0]
+        _units = pd.concat([_units, value])
 
-        _units.index = [_index, _units.index]
+    _units.index = [_index, _units.index]
 
-        unit_dirs = []
-        if coefficients:
-            unit_dirs += ["coefficients"]
-        if flows:
-            unit_dirs += ["flows"]
+    unit_dirs = []
+    if coefficients:
+        unit_dirs += ["coefficients"]
+    if flows:
+        unit_dirs += ["flows"]
 
-        for unit_dir in unit_dirs:
-            if not os.path.exists(r"{}/{}".format(path, unit_dir)):
-                os.mkdir(r"{}/{}".format(path, unit_dir))
+    for unit_dir in unit_dirs:
+        if not os.path.exists(r"{}/{}".format(path, unit_dir)):
+            os.mkdir(r"{}/{}".format(path, unit_dir))
 
-            if os.path.exists(r"{}/{}/units.{}".format(path, unit_dir, _format)):
-                os.remove(r"{}/{}/units.{}".format(path, unit_dir, _format))
+        if os.path.exists(r"{}/{}/units.{}".format(path, unit_dir, _format)):
+            os.remove(r"{}/{}/units.{}".format(path, unit_dir, _format))
 
-            _units.to_csv(
-                r"{}/{}/units.{}".format(path, unit_dir, _format),
-                header=True,
-                index=True,
-                sep=sep,
-                mode="a",
-            )
+        _units.to_csv(
+            r"{}/{}/units.{}".format(path, unit_dir, _format),
+            header=True,
+            index=True,
+            sep=sep,
+            mode="a",
+        )
 
 
 def add_sector_writer(matrices, path):
