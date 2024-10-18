@@ -1204,6 +1204,9 @@ class Database(CoreModel):
                 )
             )
 
+        if flows==False and coefficients==False:
+            raise WrongInput("At least one of the flows or coefficients should be True")
+
         database_excel(
             self,
             flows,
@@ -1263,6 +1266,7 @@ class Database(CoreModel):
         sep : str
             txt file separator
         """
+
         if scenario not in self.scenarios:
             raise WrongInput(
                 "{} is not a valid scenario. Existing scenarios are {}".format(
@@ -1270,6 +1274,9 @@ class Database(CoreModel):
                 )
             )
 
+        if flows==False and coefficients==False:
+            raise WrongInput("At least one of the flows or coefficients should be True")
+        
         database_txt(
             self,
             flows,
