@@ -706,6 +706,11 @@ def eora_single_region(path, table, name_convention="full_name", aggregate_trade
     elif table == "SUT":
         Z_index = eora[_MASTER_INDEX["a"]] + eora[_MASTER_INDEX["c"]]
 
+    if not all(item in data.index.get_level_values(0) for item in Z_index):
+        raise WrongFormat(
+            f"The parsed table does not seem a {table}. Please check the table type."
+        )
+
     Z = data.loc[Z_index, Z_index]
     Y = data.loc[Z_index, eora[_MASTER_INDEX["n"]]]
     V = data.loc[eora[_MASTER_INDEX["f"]], Z_index]
