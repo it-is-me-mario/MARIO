@@ -306,6 +306,24 @@ def get_units(units, table, indeces):
     return _
 
 
+def replace_nan_indices(indices):
+    for key, value in indices.items():
+        for sub_key, sub_value in value.items():
+            indices[key][sub_key] = ["None" if pd.isna(x) else x for x in sub_value]
+
+    return indices
+
+def replace_nan_units_indices(units):
+
+    new_levels = [[],[]]
+    for level in range(len(units.index.names)):
+        for i in units.index.get_level_values(level):
+            if pd.isna(i):
+                i = "None"
+            new_levels[level].append(i)
+    units.index = pd.MultiIndex.from_arrays(new_levels)
+
+
 def txt_parser(path, table, mode, sep):
     if mode == "coefficients":
         v, e, z = list("vez")
@@ -323,6 +341,7 @@ def txt_parser(path, table, mode, sep):
 
     log_time(logger, "Parser: Reading files finished.")
     _units = read["units"]["all"]
+    replace_nan_units_indices(_units)
 
     log_time(logger, "Parser: Investigating possible identifiable errors.")
 
@@ -333,6 +352,8 @@ def txt_parser(path, table, mode, sep):
         E=read["matrices"][e],
         table=table,
     )
+
+    indeces = replace_nan_indices(indeces)
 
     # sorting the matrices
     sort_frames(read["matrices"])
@@ -381,6 +402,7 @@ def excel_parser(path, table, mode, sheet_name, unit_sheet):
         path, header=[0, 1, 2], index_col=[0, 1, 2], sheet_name=sheet_name
     )
     indeces = get_index_excel(data, table, mode)
+    indeces = replace_nan_indices(indeces)
 
     if table == "SUT":
         Z = data.loc[
@@ -424,9 +446,9 @@ def excel_parser(path, table, mode, sheet_name, unit_sheet):
             (slice(None), _MASTER_INDEX["k"]), (slice(None), _MASTER_INDEX["n"])
         ]
 
-    V.index = V.index.get_level_values(-1)
-    E.index = E.index.get_level_values(-1)
-    EY.index = EY.index.get_level_values(-1)
+    V.index = indeces['f']['main']
+    E.index = indeces['k']['main']
+    EY.index = indeces['k']['main']
 
     if mode == "coefficients":
         matrices = {
@@ -452,9 +474,13 @@ def excel_parser(path, table, mode, sheet_name, unit_sheet):
         }
 
     # read the unit sheet from the excel file
+    _units = pd.read_excel(path, sheet_name=unit_sheet, index_col=[0, 1])
+    replace_nan_units_indices(_units)
+
     units = get_units(
-        pd.read_excel(path, sheet_name=unit_sheet, index_col=[0, 1]), table, indeces
+        _units, table, indeces
     )
+
     rename_index(matrices["baseline"])
     sort_frames(matrices["baseline"])
 
