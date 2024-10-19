@@ -309,7 +309,7 @@ def get_units(units, table, indeces):
 def replace_nan_indices(indices):
     for key, value in indices.items():
         for sub_key, sub_value in value.items():
-            indices[key][sub_key] = ["None" if pd.isna(x) else x for x in sub_value]
+            indices[key][sub_key] = ["None" if pd.isna(x) or x=='-' else x for x in sub_value]
 
     return indices
 
@@ -318,10 +318,11 @@ def replace_nan_units_indices(units):
     new_levels = [[],[]]
     for level in range(len(units.index.names)):
         for i in units.index.get_level_values(level):
-            if pd.isna(i):
+            if pd.isna(i) or i == '-':
                 i = "None"
             new_levels[level].append(i)
     units.index = pd.MultiIndex.from_arrays(new_levels)
+    return units
 
 
 def txt_parser(path, table, mode, sep):
@@ -341,7 +342,7 @@ def txt_parser(path, table, mode, sep):
 
     log_time(logger, "Parser: Reading files finished.")
     _units = read["units"]["all"]
-    replace_nan_units_indices(_units)
+    _units = replace_nan_units_indices(_units)
 
     log_time(logger, "Parser: Investigating possible identifiable errors.")
 
@@ -475,7 +476,7 @@ def excel_parser(path, table, mode, sheet_name, unit_sheet):
 
     # read the unit sheet from the excel file
     _units = pd.read_excel(path, sheet_name=unit_sheet, index_col=[0, 1])
-    replace_nan_units_indices(_units)
+    _units = replace_nan_units_indices(_units)
 
     units = get_units(
         _units, table, indeces
