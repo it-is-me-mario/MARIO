@@ -710,6 +710,10 @@ def eora_single_region(path, table, name_convention="full_name", aggregate_trade
         raise WrongFormat(
             f"The parsed table does not seem a {table}. Please check the table type."
         )
+    if 'Commodities' in data.index.get_level_values(0) and table=='IOT':
+        raise WrongFormat(
+            f"The parsed table does not seem a {table}. Please check the table type."
+        )
 
     Z = data.loc[Z_index, Z_index]
     Y = data.loc[Z_index, eora[_MASTER_INDEX["n"]]]
