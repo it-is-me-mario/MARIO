@@ -1216,7 +1216,11 @@ class Database(CoreModel):
         )
         if include_meta:
             meta = self.meta._to_dict()
-            with open(self._getdir(path, "Database", "") + "/metadata.json", "w") as fp:
+            meta_path = self._getdir(path, "Database", "")
+            meta_path = meta_path.split("/")[:-1]
+            meta_path = ('/').join(meta_path) + "/metadata.json"
+
+            with open(meta_path, "w") as fp:
                 json.dump(meta, fp)
 
     def to_txt(
