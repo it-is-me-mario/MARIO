@@ -43,6 +43,15 @@ Package dependencies:
 
 """
 
+
+import warnings
+import pandas as pd
+
+warnings.filterwarnings("ignore", category=RuntimeWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=pd.errors.PerformanceWarning)
+warnings.filterwarnings("ignore", category=pd.errors.DtypeWarning)
+
 from mario.version import __version__
 from mario.core.AttrData import Database
 from mario.core.CoreIO import CoreModel
@@ -98,5 +107,6 @@ from mario.settings.settings import (
     Index,
 )
 from mario.tools.constants import IOT, SUT
+
 
 __authors__ = " 'Mohammad Amin Tahavori', Lorenzo Rinaldi', 'Nicolò Golinucci' "

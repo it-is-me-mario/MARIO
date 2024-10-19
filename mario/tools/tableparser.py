@@ -306,7 +306,26 @@ def get_units(units, table, indeces):
     return _
 
 
-def txt_praser(path, table, mode, sep):
+def replace_nan_indices(indices):
+    for key, value in indices.items():
+        for sub_key, sub_value in value.items():
+            indices[key][sub_key] = ["None" if pd.isna(x) or x=='-' else x for x in sub_value]
+
+    return indices
+
+def replace_nan_units_indices(units):
+
+    new_levels = [[],[]]
+    for level in range(len(units.index.names)):
+        for i in units.index.get_level_values(level):
+            if pd.isna(i) or i == '-':
+                i = "None"
+            new_levels[level].append(i)
+    units.index = pd.MultiIndex.from_arrays(new_levels)
+    return units
+
+
+def txt_parser(path, table, mode, sep):
     if mode == "coefficients":
         v, e, z = list("vez")
     else:
@@ -323,6 +342,7 @@ def txt_praser(path, table, mode, sep):
 
     log_time(logger, "Parser: Reading files finished.")
     _units = read["units"]["all"]
+    _units = replace_nan_units_indices(_units)
 
     log_time(logger, "Parser: Investigating possible identifiable errors.")
 
@@ -333,6 +353,8 @@ def txt_praser(path, table, mode, sep):
         E=read["matrices"][e],
         table=table,
     )
+
+    indeces = replace_nan_indices(indeces)
 
     # sorting the matrices
     sort_frames(read["matrices"])
@@ -381,6 +403,7 @@ def excel_parser(path, table, mode, sheet_name, unit_sheet):
         path, header=[0, 1, 2], index_col=[0, 1, 2], sheet_name=sheet_name
     )
     indeces = get_index_excel(data, table, mode)
+    indeces = replace_nan_indices(indeces)
 
     if table == "SUT":
         Z = data.loc[
@@ -424,9 +447,9 @@ def excel_parser(path, table, mode, sheet_name, unit_sheet):
             (slice(None), _MASTER_INDEX["k"]), (slice(None), _MASTER_INDEX["n"])
         ]
 
-    V.index = V.index.get_level_values(-1)
-    E.index = E.index.get_level_values(-1)
-    EY.index = EY.index.get_level_values(-1)
+    V.index = indeces['f']['main']
+    E.index = indeces['k']['main']
+    EY.index = indeces['k']['main']
 
     if mode == "coefficients":
         matrices = {
@@ -452,9 +475,13 @@ def excel_parser(path, table, mode, sheet_name, unit_sheet):
         }
 
     # read the unit sheet from the excel file
+    _units = pd.read_excel(path, sheet_name=unit_sheet, index_col=[0, 1])
+    _units = replace_nan_units_indices(_units)
+
     units = get_units(
-        pd.read_excel(path, sheet_name=unit_sheet, index_col=[0, 1]), table, indeces
+        _units, table, indeces
     )
+
     rename_index(matrices["baseline"])
     sort_frames(matrices["baseline"])
 
@@ -705,6 +732,15 @@ def eora_single_region(path, table, name_convention="full_name", aggregate_trade
 
     elif table == "SUT":
         Z_index = eora[_MASTER_INDEX["a"]] + eora[_MASTER_INDEX["c"]]
+
+    if not all(item in data.index.get_level_values(0) for item in Z_index):
+        raise WrongFormat(
+            f"The parsed table does not seem a {table}. Please check the table type."
+        )
+    if 'Commodities' in data.index.get_level_values(0) and table=='IOT':
+        raise WrongFormat(
+            f"The parsed table does not seem a {table}. Please check the table type."
+        )
 
     Z = data.loc[Z_index, Z_index]
     Y = data.loc[Z_index, eora[_MASTER_INDEX["n"]]]
@@ -1001,159 +1037,6 @@ def eora_multi_region(data_path, index_path, year, price):
     rename_index(matrices["baseline"])
 
     return matrices, indeces, units
-
-
-def eurostat_sut(
-    supply_path,
-    use_path,
-):
-    supply_file = pd.ExcelFile(supply_path)
-    use_file = pd.ExcelFile(use_path)
-
-    supply_meta = extract_metadata_from_eurostat(supply_file)
-    use_meta = extract_metadata_from_eurostat(use_file)
-
-    if "Supply table at basic prices" not in supply_meta["table"]:
-        raise WrongInput(
-            "specified supply table dataset is {}. Acceptable dataset is 'Supply table at basic prices'."
-            "Please refer to the documents for proper download of the dataset".format(
-                supply_meta["table"]
-            )
-        )
-
-    if "Use table at basic prices " not in use_meta["table"]:
-        raise WrongInput(
-            "specified use table dataset is {}. Acceptable dataset is 'Use table at basic prices '."
-            "Please refer to the documents for proper download of the dataset".format(
-                use_meta["table"]
-            )
-        )
-
-    if (
-        supply_meta["country"] != use_meta["country"]
-        or supply_meta["year"] != use_meta["year"]
-    ):
-        raise WrongInput(
-            "there are mismatched between the country/year of supply and use datasets.\nSupply Dataset: {}\nUse Dataset:{}".format(
-                supply_meta, use_meta
-            )
-        )
-
-    supply_data = supply_file.parse(
-        sheet_name=eurostat_id["supply"]["sheet_name"],
-        index_col=eurostat_id["supply"]["index_col"],
-        header=eurostat_id["supply"]["header"],
-    )
-
-    use_data = use_file.parse(
-        sheet_name=eurostat_id["use"]["sheet_name"],
-        index_col=eurostat_id["use"]["index_col"],
-        header=eurostat_id["use"]["header"],
-    )
-
-    # build Z_matrix
-    z_index_c = pd.MultiIndex.from_product(
-        [[supply_meta["country"]], [_MASTER_INDEX["c"]], eurostat_id["c"]]
-    )
-
-    z_index_a = pd.MultiIndex.from_product(
-        [[supply_meta["country"]], [_MASTER_INDEX["a"]], eurostat_id["a"]]
-    )
-
-    z_index = z_index_c.append(z_index_a)
-
-    Z = pd.DataFrame(data=0, index=z_index, columns=z_index)
-
-    # fill supply side
-    Z.loc[
-        (supply_meta["country"], _MASTER_INDEX["a"], eurostat_id["a"]),
-        (supply_meta["country"], _MASTER_INDEX["c"], eurostat_id["c"]),
-    ] = supply_data.loc[eurostat_id["a"], eurostat_id["c"]].values
-
-    # fill use side
-    Z.loc[
-        (supply_meta["country"], _MASTER_INDEX["c"], eurostat_id["c"]),
-        (supply_meta["country"], _MASTER_INDEX["a"], eurostat_id["a"]),
-    ] = use_data.loc[eurostat_id["c"], eurostat_id["a"]].values
-
-    # build V_matrix
-    V = pd.DataFrame(
-        data=0, index=eurostat_id["f"] + eurostat_id["c_import"], columns=z_index
-    )
-
-    # Activity VA
-    V.loc[
-        eurostat_id["f"], (supply_meta["country"], _MASTER_INDEX["a"], eurostat_id["a"])
-    ] = use_data.loc[eurostat_id["f"], eurostat_id["a"]].values
-
-    # Commodity VA
-    V.loc[
-        eurostat_id["c_import"],
-        (supply_meta["country"], _MASTER_INDEX["c"], eurostat_id["c"]),
-    ] = supply_data.loc[eurostat_id["c_import"], eurostat_id["c"]].values
-
-    # Building Y matrix
-    Y_columns = pd.MultiIndex.from_product(
-        [[supply_meta["country"]], [_MASTER_INDEX["n"]], eurostat_id["n"]]
-    )
-    Y = pd.DataFrame(data=0, index=z_index, columns=Y_columns)
-
-    Y.loc[
-        (supply_meta["country"], _MASTER_INDEX["c"], eurostat_id["c"]),
-        (supply_meta["country"], _MASTER_INDEX["n"], eurostat_id["n"]),
-    ] = use_data.loc[eurostat_id["c"], eurostat_id["n"]].values
-
-    # Building E and EY
-    E = pd.DataFrame(data=0, index=["-"], columns=z_index)
-    EY = pd.DataFrame(data=0, index=["-"], columns=Y_columns)
-
-    # Units
-    units = {
-        _MASTER_INDEX["a"]: pd.DataFrame(
-            use_meta["unit"], index=eurostat_id["a"], columns=["unit"]
-        ),
-        _MASTER_INDEX["c"]: pd.DataFrame(
-            use_meta["unit"], index=eurostat_id["c"], columns=["unit"]
-        ),
-        _MASTER_INDEX["f"]: pd.DataFrame(
-            use_meta["unit"],
-            index=eurostat_id["c_import"] + eurostat_id["f"],
-            columns=["unit"],
-        ),
-        _MASTER_INDEX["k"]: pd.DataFrame(
-            "None",
-            index=E.index,
-            columns=["unit"],
-        ),
-    }
-
-    X = calc_X(Z, Y)
-
-    for matrix in [Z, V, E, EY, Y, X]:
-        matrix.replace(":", 0, inplace=True)
-
-    matrices = {
-        "baseline": {
-            "Z": Z,
-            "V": V,
-            "E": E,
-            "EY": EY,
-            "Y": Y,
-            "X": X,
-        }
-    }
-    sort_frames(matrices["baseline"])
-    indeces = {
-        "r": {"main": Z.index.unique(0).tolist()},
-        "n": {"main": Y.columns.unique(-1).tolist()},
-        "k": {"main": E.index.tolist()},
-        "f": {"main": V.index.tolist()},
-        "a": {"main": eurostat_id["a"]},
-        "c": {"main": eurostat_id["c"]},
-    }
-    rename_index(matrices["baseline"])
-
-    return matrices, indeces, units, use_meta
 
 
 def parse_pymrio(io, value_added, satellite_account):

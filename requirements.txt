@@ -1,10 +1,10 @@
-numpy >= 1.21.2
-plotly >= 4.12.0
-tabulate >= 0.8.9
-openpyxl >= 3.0.6
-IPython >= 7.22.0
+numpy == 1.21.2
+plotly == 5.24.1
+tabulate == 0.8.9
+openpyxl == 3.0.6
+IPython == 7.22.0
 pymrio
-pytest
-pandas
-pyyaml
-xlsxwriter 
+pytest 
+pandas == 2.2.3
+pyyaml == 6.0.2
+xlsxwriter == 3.2.0

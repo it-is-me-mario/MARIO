@@ -1159,7 +1159,6 @@ class Database(CoreModel):
         path=None,
         flows=True,
         coefficients=False,
-        units=True,
         scenario="baseline",
         include_meta=False,
     ):
@@ -1190,10 +1189,6 @@ class Database(CoreModel):
             if True, in the Excel file, a sheet will be created named coefficients containing
             the data of the coefficients
 
-        units : boolean
-            if True, in the Excel file, a sheet will be created named units containing
-            the data of the units
-
         scenario : str
             defines the scenario to print out the data
 
@@ -1209,17 +1204,23 @@ class Database(CoreModel):
                 )
             )
 
+        if flows==False and coefficients==False:
+            raise WrongInput("At least one of the flows or coefficients should be True")
+
         database_excel(
             self,
             flows,
             coefficients,
             self._getdir(path, "Database", "New_Database.xlsx"),
-            units,
             scenario,
         )
         if include_meta:
             meta = self.meta._to_dict()
-            with open(self._getdir(path, "Database", "") + "/metadata.json", "w") as fp:
+            meta_path = self._getdir(path, "Database", "")
+            meta_path = meta_path.split("/")[:-1]
+            meta_path = ('/').join(meta_path) + "/metadata.json"
+
+            with open(meta_path, "w") as fp:
                 json.dump(meta, fp)
 
     def to_txt(
@@ -1227,7 +1228,6 @@ class Database(CoreModel):
         path=None,
         flows=True,
         coefficients=False,
-        units=True,
         scenario="baseline",
         _format="txt",
         include_meta=False,
@@ -1270,6 +1270,7 @@ class Database(CoreModel):
         sep : str
             txt file separator
         """
+
         if scenario not in self.scenarios:
             raise WrongInput(
                 "{} is not a valid scenario. Existing scenarios are {}".format(
@@ -1277,12 +1278,14 @@ class Database(CoreModel):
                 )
             )
 
+        if flows==False and coefficients==False:
+            raise WrongInput("At least one of the flows or coefficients should be True")
+        
         database_txt(
             self,
             flows,
             coefficients,
             self._getdir(path, "Database", ""),
-            units,
             scenario,
             _format,
             sep,
