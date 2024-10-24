@@ -342,7 +342,7 @@ def wrirte_matrices(sheet, Z, V, E, Y, EY, flow_format, header_format):
             sheet.write(row, col, 0, flow_format)
 
 
-def database_excel(instance, flows, coefficients, directory, units, scenario):
+def database_excel(instance, flows, coefficients, directory, scenario):
     file = directory
     workbook = xlsxwriter.Workbook(file)
 
@@ -398,40 +398,39 @@ def database_excel(instance, flows, coefficients, directory, units, scenario):
 
         wrirte_matrices(coefficients, Z, V, E, Y, EY, coeff_format, header_format)
 
-    if units:
-        units = workbook.add_worksheet("units")
+    units = workbook.add_worksheet("units")
 
-        data = instance.units
-        units.write("C1", "unit", header_format)
+    data = instance.units
+    units.write("C1", "unit", header_format)
 
-        counter = 2
+    counter = 2
 
-        if instance.table_type == "SUT":
-            keys = [
-                _MASTER_INDEX["a"],
-                _MASTER_INDEX["c"],
-                _MASTER_INDEX["f"],
-                _MASTER_INDEX["k"],
-            ]
-        else:
-            keys = [_MASTER_INDEX["s"], _MASTER_INDEX["f"], _MASTER_INDEX["k"]]
+    if instance.table_type == "SUT":
+        keys = [
+            _MASTER_INDEX["a"],
+            _MASTER_INDEX["c"],
+            _MASTER_INDEX["f"],
+            _MASTER_INDEX["k"],
+        ]
+    else:
+        keys = [_MASTER_INDEX["s"], _MASTER_INDEX["f"], _MASTER_INDEX["k"]]
 
-        for key in keys:
-            item = data[key]
-            for row in range(item.shape[0]):
-                units.write("A{}".format(counter), key, header_format)
-                units.write("B{}".format(counter), item.index[row], header_format)
-                try:
-                    units.write("C{}".format(counter), item.iloc[row, 0])
-                except TypeError:
-                    units.write("C{}".format(counter), "None")
+    for key in keys:
+        item = data[key]
+        for row in range(item.shape[0]):
+            units.write("A{}".format(counter), key, header_format)
+            units.write("B{}".format(counter), item.index[row], header_format)
+            try:
+                units.write("C{}".format(counter), item.iloc[row, 0])
+            except TypeError:
+                units.write("C{}".format(counter), "None")
 
-                counter += 1
+            counter += 1
 
     workbook.close()
 
 
-def database_txt(instance, flows, coefficients, path, units, scenario, _format, sep):
+def database_txt(instance, flows, coefficients, path, scenario, _format, sep):
     if flows:
         flows = instance.query(
             matrices=[_ENUM.V, _ENUM.E, _ENUM.Z, _ENUM.Y, _ENUM.X, _ENUM.EY],
@@ -474,38 +473,40 @@ def database_txt(instance, flows, coefficients, path, units, scenario, _format, 
                 mode="a",
             )
 
-    if units:
-        units = copy.deepcopy(instance.units)
-        _units = pd.DataFrame()
-        _index = []
+    units = copy.deepcopy(instance.units)
+    _units = pd.DataFrame()
+    _index = []
 
-        if instance.table_type == "SUT":
-            keys = [
-                _MASTER_INDEX["a"],
-                _MASTER_INDEX["c"],
-                _MASTER_INDEX["f"],
-                _MASTER_INDEX["k"],
-            ]
-        else:
-            keys = [_MASTER_INDEX["s"], _MASTER_INDEX["f"], _MASTER_INDEX["k"]]
+    if instance.table_type == "SUT":
+        keys = [
+            _MASTER_INDEX["a"],
+            _MASTER_INDEX["c"],
+            _MASTER_INDEX["f"],
+            _MASTER_INDEX["k"],
+        ]
+    else:
+        keys = [_MASTER_INDEX["s"], _MASTER_INDEX["f"], _MASTER_INDEX["k"]]
 
-        for key in keys:
-            value = units[key]
-            _index += [key] * value.shape[0]
-            _units = pd.concat([_units, value])
+    for key in keys:
+        value = units[key]
+        _index += [key] * value.shape[0]
+        _units = pd.concat([_units, value])
 
-        _units.index = [_index, _units.index]
+    _units.index = [_index, _units.index]
 
-        if (coefficients) and (not flows):
-            unit_dir = "coefficients"
-        else:
-            unit_dir = "flows"
+    unit_dirs = []
+    if coefficients:
+        unit_dirs += ["coefficients"]
+    if flows:
+        unit_dirs += ["flows"]
 
+    for unit_dir in unit_dirs:
         if not os.path.exists(r"{}/{}".format(path, unit_dir)):
             os.mkdir(r"{}/{}".format(path, unit_dir))
 
         if os.path.exists(r"{}/{}/units.{}".format(path, unit_dir, _format)):
             os.remove(r"{}/{}/units.{}".format(path, unit_dir, _format))
+
         _units.to_csv(
             r"{}/{}/units.{}".format(path, unit_dir, _format),
             header=True,
