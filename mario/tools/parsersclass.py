@@ -23,7 +23,6 @@ import pandas as pd
 
 models = {"Database": Database}
 
-
 def parse_from_txt(
     path: str,
     table: str,

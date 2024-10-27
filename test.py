@@ -16,7 +16,7 @@ raw_db = mario.parse_from_txt(
     )
 
 #%%
-# raw_db.get_aggregation_excel(os.path.join(shared_folder,aggregation_excel))
+raw_db.get_aggregation_excel(os.path.join(shared_folder,aggregation_excel))
 
 #%%
 aggregated_db = raw_db.aggregate(

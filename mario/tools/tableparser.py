@@ -305,13 +305,32 @@ def get_units(units, table, indeces):
     # if everything is ok, build a dataframe from the units.
     return _
 
+def replace_nan_indices(matrix):
+    for axis in [0,1]:
+        if axis == 0:
+            n_levels = matrix.index.nlevels
+        else:
+             n_levels = matrix.columns.nlevels
+        new_levels = [[] for i in range(n_levels)]
+        
+        for level in range(n_levels):
+            if axis == 0:
+                new_levels[level] = ["None" if pd.isna(x) else x for x in matrix.index.get_level_values(level)]
+            else:
+                new_levels[level] = ["None" if pd.isna(x) else x for x in matrix.columns.get_level_values(level)]
 
-def replace_nan_indices(indices):
-    for key, value in indices.items():
-        for sub_key, sub_value in value.items():
-            indices[key][sub_key] = ["None" if pd.isna(x) or x=='-' else x for x in sub_value]
-
-    return indices
+        if axis == 0:
+            if n_levels == 1:
+                matrix.index = pd.Index(new_levels[0])
+            else:
+                matrix.index = pd.MultiIndex.from_arrays(new_levels)
+        else:
+            if n_levels == 1:
+                matrix.columns = pd.Index(new_levels[0])
+            else:
+                matrix.columns = pd.MultiIndex.from_arrays(new_levels)
+    
+    return matrix
 
 def replace_nan_units_indices(units):
 
@@ -322,8 +341,8 @@ def replace_nan_units_indices(units):
                 i = "None"
             new_levels[level].append(i)
     units.index = pd.MultiIndex.from_arrays(new_levels)
+    units.fillna("None", inplace=True)
     return units
-
 
 def txt_parser(path, table, mode, sep):
     if mode == "coefficients":
@@ -346,6 +365,9 @@ def txt_parser(path, table, mode, sep):
 
     log_time(logger, "Parser: Investigating possible identifiable errors.")
 
+    for matrix in read["matrices"].keys():
+        read["matrices"][matrix] = replace_nan_indices(read["matrices"][matrix])
+
     indeces = get_index_txt(
         Z=read["matrices"][z],
         V=read["matrices"][v],
@@ -353,8 +375,6 @@ def txt_parser(path, table, mode, sep):
         E=read["matrices"][e],
         table=table,
     )
-
-    indeces = replace_nan_indices(indeces)
 
     # sorting the matrices
     sort_frames(read["matrices"])
@@ -386,6 +406,7 @@ def txt_parser(path, table, mode, sep):
 
     matrices = {"baseline": {**read["matrices"]}}
 
+
     return matrices, indeces, units
 
 
@@ -402,8 +423,8 @@ def excel_parser(path, table, mode, sheet_name, unit_sheet):
     data = pd.read_excel(
         path, header=[0, 1, 2], index_col=[0, 1, 2], sheet_name=sheet_name
     )
+    
     indeces = get_index_excel(data, table, mode)
-    indeces = replace_nan_indices(indeces)
 
     if table == "SUT":
         Z = data.loc[
