@@ -5,7 +5,7 @@ import os
 shared_folder = '/Users/lorenzorinaldi/Library/CloudStorage/OneDrive-SharedLibraries-PolitecnicodiMilano/Gabriele Casella - Lorenzo_ROSSI/model'
 raw_path = '/Users/lorenzorinaldi/Library/CloudStorage/OneDrive-SharedLibraries-PolitecnicodiMilano/DENG-SESAM - Documenti/c-Research/a-Datasets/Exiobase Hybrid 3.3.18 with VA/flows'
 aggr_path = 'Exiobase Hybrid 3.3.18 with VA/aggregated'
-aggregation_excel = 'aggregations/raw_to_aggregated.xlsx'
+aggregation_excel = 'aggregations/raw_to_aggregated1.xlsx'
 mode = 'flows'
 
 #%%
@@ -24,5 +24,11 @@ aggregated_db = raw_db.aggregate(
     inplace=False, 
     ignore_nan=True
     )
+
+#%%
+aggregated_db.to_excel('test.xlsx')
+
+#%%
+aggregated_db = mario.parse_from_excel('test.xlsx',table='SUT',mode='flows')
 
 #%%

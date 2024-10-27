@@ -424,6 +424,7 @@ def excel_parser(path, table, mode, sheet_name, unit_sheet):
         path, header=[0, 1, 2], index_col=[0, 1, 2], sheet_name=sheet_name
     )
     
+    data = replace_nan_indices(data)
     indeces = get_index_excel(data, table, mode)
 
     if table == "SUT":
