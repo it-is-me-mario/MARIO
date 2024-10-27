@@ -493,8 +493,10 @@ def hybrid_sut_exiobase(
 
     # check the inputs to be correct
     errmsg = []
-    if any([ext not in _HMRSUT_EXTENSIONS for ext in extensions]):
-        errmsg.append("Extensions should be chosen among {}".format(_HMRSUT_EXTENSIONS))
+    if extensions != 'all':
+        if extensions != None:
+            if any([ext not in _HMRSUT_EXTENSIONS for ext in extensions]):
+                errmsg.append("Extensions should be chosen among {}".format(_HMRSUT_EXTENSIONS))
     if errmsg:
         raise WrongInput(errmsg)
 
