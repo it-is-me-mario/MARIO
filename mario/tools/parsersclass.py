@@ -77,24 +77,12 @@ def parse_from_txt(
     mario.Database
     """
 
-    # check the inputs to be correct
+    # check key inputs to be correct
     errmsg = []
-    if not isinstance(path,str):
-        errmsg.append("Path should be a string")
     if table not in _ACCEPTABLES['table']:
         errmsg.append(f"Table should be in {_ACCEPTABLES['table']}")
     if mode not in _ACCEPTABLES['mode']:
         errmsg.append(f"Mode should be in {_ACCEPTABLES['mode']}")
-    if model not in models:
-        errmsg.append("Available models are {}".format([*models]))
-    if not isinstance(year,int) and year is not None:
-        errmsg.append("Year should be an integer")
-    if not isinstance(name,str) and name is not None:
-        errmsg.append("Name should be a string")
-    if not isinstance(source,str) and source is not None:
-        errmsg.append("Source should be a string")
-    if not isinstance(sep,str) and sep is not None:
-        errmsg.append("Separator should be a string")
     if errmsg:
         raise WrongInput(errmsg)
 
@@ -168,22 +156,12 @@ def parse_from_excel(
     mario.Database
     """
 
-    # check the inputs to be correct
+    # check key inputs to be correct
     errmsg = []
-    if not isinstance(path,str):
-        errmsg.append("Path should be a string")
     if table not in _ACCEPTABLES['table']:
         errmsg.append(f"Table should be in {_ACCEPTABLES['table']}")
     if mode not in _ACCEPTABLES['mode']:
         errmsg.append(f"Mode should be in {_ACCEPTABLES['mode']}")
-    if model not in models:
-        errmsg.append("Available models are {}".format([*models]))
-    if not isinstance(year,int) and year is not None:
-        errmsg.append("Year should be an integer")
-    if not isinstance(name,str) and name is not None:
-        errmsg.append("Name should be a string")
-    if not isinstance(source,str) and source is not None:
-        errmsg.append("Source should be a string")
     if errmsg:
         raise WrongInput(errmsg)
     
@@ -229,18 +207,6 @@ def parse_exiobase_sut(
     mario.Database
     """
 
-    # check the inputs to be correct
-    errmsg = []
-    if not isinstance(path,str):
-        errmsg.append("Path should be a string")
-    if model not in models:
-        errmsg.append("Available models are {}".format([*models]))
-    if not isinstance(year,int) and year is not None:
-        errmsg.append("Year should be an integer")
-    if not isinstance(name,str) and name is not None:
-        errmsg.append("Name should be a string")
-    if errmsg:
-        raise WrongInput(errmsg)
     if model not in models:
         raise WrongInput("Available models are {}".format([*models]))
 
@@ -303,14 +269,6 @@ def parse_exiobase_3(
 
     # check the inputs to be correct
     errmsg = []
-    if not isinstance(path,str):
-        errmsg.append("Path should be a string")
-    if model not in models:
-        errmsg.append("Available models are {}".format([*models]))
-    if not isinstance(year,int) and year is not None:
-        errmsg.append("Year should be an integer")
-    if not isinstance(name,str) and name is not None:
-        errmsg.append("Name should be a string")
     if version not in ["3.8.2", "3.8.1"]:
         errmsg.append("Acceptable versions are {}".format(["3.8.2", "3.8.1"]))
     if errmsg:
@@ -536,14 +494,8 @@ def hybrid_sut_exiobase(
 
     # check the inputs to be correct
     errmsg = []
-    if not isinstance(path,str):
-        errmsg.append("Path should be a string")
-    if model not in models:
-        errmsg.append("Available models are {}".format([*models]))
     if any([ext not in _HMRSUT_EXTENSIONS for ext in extensions]):
         errmsg.append("Extensions should be chosen among {}".format(_HMRSUT_EXTENSIONS))
-    if not isinstance(name,str) and name is not None:
-        errmsg.append("Name should be a string")
     if errmsg:
         raise WrongInput(errmsg)
 
@@ -676,13 +628,6 @@ def parse_FIGARO_SUT(
     mario.Database
         mario database object
     """
-
-    if not isinstance(path,str):
-        raise WrongInput("Path should be a string")
-    if not isinstance(name,str) and name is not None:
-        raise WrongInput("Name should be a string")
-    if not isinstance(calc_all,bool):
-        raise WrongInput("Calc_all should be a boolean")
 
     matrices, indeces, units, year = parser_figaro_sut(path)
 
