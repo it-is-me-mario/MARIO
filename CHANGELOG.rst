@@ -2,13 +2,25 @@
 Release History
 ****************
 
+<<<<<<< HEAD
+=======
+<<<<<<< Updated upstream
+=======
+>>>>>>> 12fa773 (update changelog)
 v 0.3.3
 -------
 
 Settings
 ~~~~~~~~
 
+<<<<<<< HEAD
 
+=======
+to_excel function bug in flow mode fixed.
+
+
+>>>>>>> Stashed changes
+>>>>>>> 12fa773 (update changelog)
 v 0.3.0
 -------
 
