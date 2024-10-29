@@ -477,6 +477,7 @@ class Database(CoreModel):
                 # Reading the aggregation data from a single Excel file with differetn sheets '''
 
                 index = pd.read_excel(io, sheet_name=level, index_col=0)
+                index.index = index.index.fillna("None")
 
             if index.shape[1] > 1:
                 index = index.iloc[:, 0].to_frame()

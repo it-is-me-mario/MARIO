@@ -44,7 +44,6 @@ Package dependencies:
 """
 
 
-import warnings
 import pandas as pd
 
 from mario.version import __version__
