@@ -31,12 +31,12 @@ setup(
         },
     install_requires=[
         "pandas == 2.2.3",
-        "numpy == 1.21.2",
+        "numpy == 2.1.1",
         "xlsxwriter == 3.2.0",
         "plotly",
         "tabulate",
-        "openpyxl == 3.0.6",
-        "IPython >= 7.22.0",
+        "openpyxl == 3.1.0",
+        "IPython >= 8.27.0",
         "pymrio",
         "pyyaml"
 
