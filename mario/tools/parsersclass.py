@@ -4,34 +4,35 @@ This module contains all the mario parsers API
 """
 
 from mario import Database
+import pymrio
 from mario.tools.tableparser import (
     eora_single_region,
-    txt_praser,
+    txt_parser,
     excel_parser,
     exio3,
     monetary_sut_exiobase,
     eora_multi_region,
-    eurostat_sut,
     parse_pymrio,
     hybrid_sut_exiobase_reader,
     parser_figaro_sut,
 )
 
 from mario.log_exc.exceptions import WrongInput, LackOfInput
+from mario.tools.constants import _ACCEPTABLES, _HMRSUT_EXTENSIONS
+import pandas as pd
 
 models = {"Database": Database}
 
-
 def parse_from_txt(
-    path,
-    table,
-    mode,
-    calc_all=False,
-    year=None,
-    name=None,
-    source=None,
-    model="Database",
-    sep=",",
+    path: str,
+    table: str,
+    mode: str,
+    calc_all: bool = False,
+    year: int = None,
+    name:str = None,
+    source:str =None,
+    model: str ="Database",
+    sep: str = ",",
     **kwargs,
 ):
     """Parsing database from text files
@@ -74,10 +75,17 @@ def parse_from_txt(
     -------
     mario.Database
     """
-    if model not in models:
-        raise WrongInput("Available models are {}".format([*models]))
 
-    matrices, indeces, units = txt_praser(path, table, mode, sep)
+    # check key inputs to be correct
+    errmsg = []
+    if table not in _ACCEPTABLES['table']:
+        errmsg.append(f"Table should be in {_ACCEPTABLES['table']}")
+    if mode not in _ACCEPTABLES['mode']:
+        errmsg.append(f"Mode should be in {_ACCEPTABLES['mode']}")
+    if errmsg:
+        raise WrongInput(errmsg)
+
+    matrices, indeces, units = txt_parser(path, table, mode, sep)
 
     return models[model](
         name=name,
@@ -91,16 +99,16 @@ def parse_from_txt(
 
 
 def parse_from_excel(
-    path,
-    table,
-    mode,
-    data_sheet=0,
-    unit_sheet="units",
-    calc_all=False,
-    year=None,
-    name=None,
-    source=None,
-    model="Database",
+    path: str,
+    table: str,
+    mode: str,
+    data_sheet: str = 0,
+    unit_sheet: str = "units",
+    calc_all: bool = False,
+    year: int = None,
+    name: str = None,
+    source: str = None,
+    model: str ="Database",
     **kwargs,
 ):
     """Parsing database from excel file
@@ -147,9 +155,15 @@ def parse_from_excel(
     mario.Database
     """
 
-    if model not in models:
-        raise WrongInput("Available models are {}".format([*models]))
-
+    # check key inputs to be correct
+    errmsg = []
+    if table not in _ACCEPTABLES['table']:
+        errmsg.append(f"Table should be in {_ACCEPTABLES['table']}")
+    if mode not in _ACCEPTABLES['mode']:
+        errmsg.append(f"Mode should be in {_ACCEPTABLES['mode']}")
+    if errmsg:
+        raise WrongInput(errmsg)
+    
     matrices, indeces, units = excel_parser(path, table, mode, data_sheet, unit_sheet)
 
     return models[model](
@@ -164,18 +178,14 @@ def parse_from_excel(
 
 
 def parse_exiobase_sut(
-    path,
-    calc_all=False,
-    name=None,
-    year=None,
-    model="Database",
+    path: str,
+    calc_all: bool =False,
+    name: str = None,
+    year: int = None,
+    model: str = "Database",
     **kwargs,
 ):
-    """Parsing exiobase mrsut
-
-    .. note::
-
-        mario v.0.1.0, supports only Monetary Exiobase MRSUT database.
+    """Parsing Multi-Regional Supply and Use Table from Exiobase
 
     Parameters
     ----------
@@ -215,15 +225,15 @@ def parse_exiobase_sut(
 
 
 def parse_exiobase_3(
-    path,
-    calc_all=False,
-    year=None,
-    name=None,
-    model="Database",
-    version="3.8.2",
+    path: str,
+    calc_all: bool =False,
+    year: int = None,
+    name: str = None,
+    model: str = "Database",
+    version: str = "3.8.2",
     **kwargs,
 ):
-    """Parsing exiobase3
+    """Parsing Multi-Regional Input-Output Table from Exiobase
 
     .. note::
 
@@ -255,11 +265,14 @@ def parse_exiobase_3(
     mario.Database
 
     """
-    if model not in models:
-        raise WrongInput("Available models are {}".format([*models]))
 
+    # check the inputs to be correct
+    errmsg = []
     if version not in ["3.8.2", "3.8.1"]:
-        raise WrongInput("Acceptable versions are {}".format(["3.8.2", "3.8.1"]))
+        errmsg.append("Acceptable versions are {}".format(["3.8.2", "3.8.1"]))
+    if errmsg:
+        raise WrongInput(errmsg)
+
     matrices, indeces, units = exio3(path, version)
 
     return models[model](
@@ -274,19 +287,20 @@ def parse_exiobase_3(
 
 
 def parse_eora(
-    path,
-    multi_region,
-    table,
-    indeces=None,
-    name_convention="full_name",
-    aggregate_trade=True,
-    year=None,
-    name=None,
-    calc_all=False,
-    model="Database",
+    path: str,
+    multi_region: bool,
+    table: str,
+    indeces: str = None,
+    name_convention: str = "full_name",
+    aggregate_trade: bool = True,
+    year: int = None,
+    name: str = None,
+    calc_all: bool = False,
+    model: str = "Database",
     **kwargs,
 ) -> object:
-    """Parsing eora databases
+    
+    """Parsing EORA databases
 
     .. note::
 
@@ -327,6 +341,7 @@ def parse_eora(
     -------
     mario.Database
     """
+    
     if model not in models:
         raise WrongInput("Available models are {}".format([*models]))
 
@@ -371,9 +386,17 @@ def parse_eora(
 
 
 def parse_exiobase(
-    table, unit, path, model="Database", name=None, year=None, calc_all=False, **kwargs
+    table:str,
+    unit:str,
+    path:str,
+    model:str = "Database",
+    name:str = None, 
+    year:int = None, 
+    calc_all: bool = False, 
+    **kwargs
 ):
-    """A unique function for parsing all exiobase databases
+    
+    """A unique function for parsing all Exiobase databases
 
     Parameters
     ----------
@@ -403,23 +426,20 @@ def parse_exiobase(
         if non-valid values are passed to the arguments.
     """
 
-    if table not in ["IOT", "SUT"]:
-        raise WrongInput("table only accpets 'IOT' or 'SUT'.")
+    if table not in _ACCEPTABLES['table']:
+        raise WrongInput("Table can be only chosen among {}".format(_ACCEPTABLES['table']))
 
-    if unit not in ["Hybrid", "Monetary"]:
-        raise WrongInput("unit only accpets 'Hybrid' or 'Monetary.'")
+    if unit not in _ACCEPTABLES['unit']:
+        raise WrongInput("Unit con be only chosen among {}".format(_ACCEPTABLES['unit']))
 
     if table == "IOT":
         if unit == "Monetary":
             parser = parse_exiobase_3
-
         else:
             raise WrongInput("Hybrid IOT exiobase is not supported by mario.")
-
     else:
         if unit == "Monetary":
             parser = parse_exiobase_sut
-
         else:
             parser = hybrid_sut_exiobase
 
@@ -433,9 +453,15 @@ def parse_exiobase(
 
 
 def hybrid_sut_exiobase(
-    path, extensions=[], model="Database", name=None, calc_all=False, **kwargs
+    path:str,
+    extensions: list = [], 
+    model: str = "Database", 
+    name: str = None, 
+    calc_all: bool = False, 
+    **kwargs
 ):
-    """reads hybrid supply and use exiobase
+    """
+    Parser for hybrid units Exiobase database (v3.3.18)
 
     Parameters
     ----------
@@ -464,8 +490,15 @@ def hybrid_sut_exiobase(
 
     For more informatio refer to https://zenodo.org/record/7244919#.Y6hEfi8w2L1
     """
-    if model not in models:
-        raise WrongInput("Available models are {}".format([*models]))
+
+    # check the inputs to be correct
+    errmsg = []
+    if extensions != 'all':
+        if extensions != None:
+            if any([ext not in _HMRSUT_EXTENSIONS for ext in extensions]):
+                errmsg.append("Extensions should be chosen among {}".format(_HMRSUT_EXTENSIONS))
+    if errmsg:
+        raise WrongInput(errmsg)
 
     matrices, indeces, units = hybrid_sut_exiobase_reader(
         path=path,
@@ -492,11 +525,11 @@ def hybrid_sut_exiobase(
 
 
 def parse_eurostat_sut(
-    supply_path,
-    use_path,
-    model="Database",
-    name=None,
-    calc_all=False,
+    supply_path:str,
+    use_path:str,
+    model:str="Database",
+    name:str=None,
+    calc_all:bool=False,
     **kwargs,
 ) -> object:
     """Parsing Eurostat databases
@@ -508,7 +541,6 @@ def parse_eurostat_sut(
         * second rule: in each .xsl file, be sure data are referring to only one region
         * third rule: use only "total" as stock/flow parameter, and only one unit of measure
         * forth rule: supply must be provided in activity by commodity, use must be provided in commodity by activitiy formats
-
 
     Parameters
     ----------
@@ -527,26 +559,15 @@ def parse_eurostat_sut(
     mario.Database
     """
 
-    if model not in models:
-        raise WrongInput("Available models are {}".format([*models]))
-
-    matrices, indeces, units, meta = eurostat_sut(
-        supply_path,
-        use_path,
-    )
-
-    return models[model](
-        name=name,
-        table="SUT",
-        source="eurostat",
-        year=meta["year"],
-        init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
-        calc_all=calc_all,
-        **kwargs,
-    )
+    raise NotImplemented("This function was deprecated since the parser was too dependent on Eurostat web interface. Downgrade to mariopy==v.3.3.3 in case you need it")
 
 
-def parse_from_pymrio(io, value_added, satellite_account, include_meta=True):
+def parse_from_pymrio(
+        io,
+        value_added,
+        satellite_account,
+        include_meta=True
+    ):
     """Parsing a pymrio database
 
     Parameters
@@ -585,12 +606,18 @@ def parse_from_pymrio(io, value_added, satellite_account, include_meta=True):
     )
 
 
-def parse_FIGARO_SUT(directory, name=None, calc_all=False, **kwargs):
-    """reads a FIGARO SUT table
+def parse_FIGARO_SUT(
+        path:str, 
+        name:str = None, 
+        calc_all:bool = False, 
+        **kwargs
+    ):
+
+    """Download and parse a FIGARO SUT table
 
     Parameters
     ----------
-    directory : str
+    path : str
         the folder where the files are downloaded
     name : str, optional
         a name for the database, by default None
@@ -603,7 +630,7 @@ def parse_FIGARO_SUT(directory, name=None, calc_all=False, **kwargs):
         mario database object
     """
 
-    matrices, indeces, units, year = parser_figaro_sut(directory)
+    matrices, indeces, units, year = parser_figaro_sut(path)
 
     return models["Database"](
         name=name,
@@ -614,3 +641,5 @@ def parse_FIGARO_SUT(directory, name=None, calc_all=False, **kwargs):
         calc_all=calc_all,
         **kwargs,
     )
+
+

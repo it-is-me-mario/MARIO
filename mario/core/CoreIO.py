@@ -135,6 +135,10 @@ class CoreModel:
             for item in ["matrices", "units", "_indeces"]:
                 setattr(self, item, kwargs["init_by_parsers"][item])
 
+            nan_keys = [key for key, df in renamed_matrices.items() if isinstance(df, pd.DataFrame) and df.isna().any().any()]
+            if nan_keys:
+                raise ValueError(f"NaN values found in the following matrices: {nan_keys}")
+
             log_time(logger, "Metadata: initialized.")
             self.meta._add_attribute(table=table, price=price, source=source, year=year)
 

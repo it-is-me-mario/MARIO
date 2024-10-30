@@ -30,15 +30,15 @@ setup(
         "mario/test":["*.xlsx"],
         },
     install_requires=[
-        "pandas",
-        "numpy >= 1.21.2",
-        "xlsxwriter",
-        "plotly >= 4.12.0",
-        "tabulate >= 0.8.9",
-        "openpyxl >= 3.0.6",
-        "IPython >= 7.22.0",
-        "pymrio >= 0.4.6",
-        "pyyaml >= 5.4.1"
+        "pandas == 2.2.3",
+        "numpy == 2.1.1",
+        "xlsxwriter == 3.2.0",
+        "plotly",
+        "tabulate",
+        "openpyxl == 3.1.0",
+        "IPython >= 8.27.0",
+        "pymrio",
+        "pyyaml"
 
     ],
     # classifiers=[

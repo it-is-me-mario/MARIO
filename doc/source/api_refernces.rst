@@ -100,7 +100,6 @@ Structured Databases
 mario supports automatic parsing of following database:
 
 * Exiobase
-* Eurostat Supply and Use
 * Eora26
 * Eora single region
 
@@ -109,7 +108,6 @@ mario supports automatic parsing of following database:
 
     mario.parse_exiobase_3
     mario.parse_exiobase_sut
-    mario.parse_eurostat_sut
     mario.parse_eora
     mario.parse_from_pymrio
     mario.parse
