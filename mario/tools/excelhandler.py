@@ -13,7 +13,6 @@ from mario.tools.constants import (
     _FORMAT,
     _MASTER_INDEX,
     _SHOCK_LEVELS,
-    _ADD_SECTOR_SHEETS,
     _SHOCKS,
     _ENUM,
 )
@@ -532,7 +531,124 @@ def add_sector_writer(matrices, path):
                 row_count += 1
 
 
-def _add_sector_sut(instance, sectors, regions, path, item, num_validation=30):
+def _add_sector_sut(
+        instance,
+        master_name,
+        master_columns,
+        reg_map_name,
+        reg_map_columns,
+        path
+    ):
+
+    master_sheet = pd.DataFrame(columns=list(master_columns.values()))
+    regions_maps_sheet = pd.DataFrame(instance.get_index(_MASTER_INDEX['r']), columns=reg_map_columns) 
+
+    with pd.ExcelWriter(path) as writer:
+        master_sheet.to_excel(writer, sheet_name=master_name, index=False)
+        regions_maps_sheet.to_excel(writer, sheet_name=reg_map_name, index=False)
+
+    # add data validation...
+
+
+def _read_add_sectors_sut(path,master_name,reg_map_name):
+    
+    master_file = pd.read_excel(path,sheet_name=None,header=0)
+    master_sheet = master_file[master_name]
+
+    regions_maps = {k:master_file[reg_map_name][k].dropna().to_list() for k in master_file[reg_map_name].columns}
+
+    # check_for_errors_in_region_maps(instance,regions_maps)
+    # check_for_errors_in_master_sheet(instance,master_sheet,regions_maps)
+
+    return master_sheet, regions_maps
+
+def _read_add_inventories_sut(instance,path):
+    inventories = pd.read_excel(path,sheet_name=None,header=0,)
+    keys = list(inventories.keys())
+
+    for i in keys:
+        if i not in instance.add_sectors_master['Inventory sheet'].unique():
+            del inventories[i] # drop all sheets that don't contain inventory data
+        elif instance.add_sectors_master.query(f"`Inventory sheet`==@i")['Leave empty'].values[0] == True:
+            del inventories[i] # drop all inventories to be left empty
+
+    inventories_by_act = {}
+    for k,v in inventories.items():
+        activity = instance.add_sectors_master.query(f'`Inventory sheet` == "{k}"')[_MASTER_INDEX['a']].values[0]
+        if activity in inventories_by_act.keys():
+            inventories_by_act[activity][k] = v
+        else:
+            inventories_by_act[activity] = {k:v}
+
+    return inventories_by_act
+
+
+def _get_new_add_sectors_sets(
+        instance,
+    ):
+    """
+    Retrieves new sets of activities and commodities from the master sheet.
+
+    Returns:
+        None
+    """
+
+    master_sheet = instance.add_sectors_master
+    new_activities = master_sheet[_MASTER_INDEX['a']].unique()
+    new_commodities = master_sheet[_MASTER_INDEX['c']].unique()
+
+    # excluding already existing commodities
+    new_commodities = [com for com in new_commodities if com not in instance.get_index(_MASTER_INDEX['c'])]
+
+    # listing activities that have a parent
+    parented_activities = []
+    for act in new_activities:
+        parent = master_sheet.query(f'{_MASTER_INDEX["a"]} == "{act}"')[f'Parent {_MASTER_INDEX["a"]}'].values[0]
+        if isinstance(parent, str):
+            parented_activities.append(act)
+    
+    # listing activities that don't have a parent
+    non_parented_activites = []
+    for act in new_activities:
+        if act not in parented_activities:
+            non_parented_activites.append(act)
+
+    parented_activities = parented_activities
+    non_parented_activites = non_parented_activites
+    new_activities = list(new_activities)
+
+    return new_activities, new_commodities, parented_activities, non_parented_activites
+
+
+def _inventory_templates(
+        instance,
+        new_sheets,
+        inv_columns,
+        overwrite,
+        path,
+    ):
+
+    inventory_sheet = pd.DataFrame(columns=list(inv_columns.values()))
+    units_sheet = pd.DataFrame()
+    for item,unit in instance.units.items():
+        unit_index = pd.MultiIndex.from_arrays([[item for i in range(unit.shape[0])],list(unit.index)])
+        unit.index = unit_index
+        units_sheet = pd.concat([units_sheet,unit],axis=0)
+    
+    if overwrite:
+        mode = 'replace'
+    else:
+        mode = 'error'
+
+    with pd.ExcelWriter(path, mode='a', engine='openpyxl', if_sheet_exists=mode) as writer:
+        for sheet in new_sheets:
+            inventory_sheet.to_excel(writer, sheet_name=sheet, index=False)
+        units_sheet.to_excel(writer, sheet_name='DB units',merge_cells=False)
+
+    # add data validation...
+
+
+def _add_sector_sut_old(instance, sectors, regions, path, item, num_validation=30):
     file = xlsxwriter.Workbook(path)
     header_format = file.add_format(_FORMAT)
 

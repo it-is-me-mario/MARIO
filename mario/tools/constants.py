@@ -78,6 +78,36 @@ _ADD_SECTOR_SHEETS = {
 }
 
 
+_ADD_SECTORS_MASTER_SHEET_COLUMNS = {
+    'r': _MASTER_INDEX['r'],
+    'a': _MASTER_INDEX['a'],
+    'c': _MASTER_INDEX['c'],
+    'inv_sheet': 'Inventory sheet',
+    'qt': 'Quantity',
+    'unit': 'Unit',
+    'ms': 'Market share',
+    'findem': 'Final consumption',
+    'n': _MASTER_INDEX['n'],
+    'pa': f'Parent {_MASTER_INDEX["a"]}',
+    'empty': 'Leave empty',
+    'source': 'Source',
+    'note': 'Notes',
+}
+
+_ADD_SECTORS_INVENTORY_SHEET_COLUMNS = { # if change order, change also data validation
+    'qt': 'Quantity',
+    'unit': 'Unit',
+    'input': 'Input',
+    'item': 'Item type',
+    'db_item': 'DB Item', 
+    'db_r': f"DB {_MASTER_INDEX['r']}",
+    'change': 'Change type',
+    'source': 'Source',
+    'note': 'Notes',
+}
+
+_ADD_SECTORS_REGIONS_CLUSTERS_SHEET_COLUMNS = ['GLOBAL']
+
 _CALC = {
     _ENUM.F: (
         "calc_F(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'].sum(1))",
