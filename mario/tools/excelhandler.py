@@ -16,6 +16,7 @@ from mario.tools.constants import (
     _SHOCKS,
     _ENUM,
 )
+from mario.tools.constants import _ADD_SECTORS_MASTER_SHEET_COLUMNS as MSC
 
 
 def _sh_excel(instance, num_shock, directory, clusters):
@@ -531,7 +532,7 @@ def add_sector_writer(matrices, path):
                 row_count += 1
 
 
-def _add_sector_sut(
+def _add_sector(
         instance,
         master_name,
         master_columns,
@@ -550,7 +551,7 @@ def _add_sector_sut(
     # add data validation...
 
 
-def _read_add_sectors_sut(path,master_name,reg_map_name):
+def _read_add_sectors(path,master_name,reg_map_name):
     
     master_file = pd.read_excel(path,sheet_name=None,header=0)
     master_sheet = master_file[master_name]
@@ -562,19 +563,20 @@ def _read_add_sectors_sut(path,master_name,reg_map_name):
 
     return master_sheet, regions_maps
 
-def _read_add_inventories_sut(instance,path):
+def _read_add_inventories(instance,path):
     inventories = pd.read_excel(path,sheet_name=None,header=0,)
     keys = list(inventories.keys())
 
     for i in keys:
-        if i not in instance.add_sectors_master['Inventory sheet'].unique():
+        if i not in instance.add_sectors_master[MSC[instance.meta.table]['inv_sheet']].unique():
             del inventories[i] # drop all sheets that don't contain inventory data
-        elif instance.add_sectors_master.query(f"`Inventory sheet`==@i")['Leave empty'].values[0] == True:
+        elif instance.add_sectors_master.query(f"`{MSC[instance.meta.table]['inv_sheet']}`==@i")[MSC[instance.meta.table]['empty']].values[0] == True:
             del inventories[i] # drop all inventories to be left empty
 
     inventories_by_act = {}
+    item_to_query = _MASTER_INDEX['a'] if instance.meta.table == 'SUT' else _MASTER_INDEX['s']
     for k,v in inventories.items():
-        activity = instance.add_sectors_master.query(f'`Inventory sheet` == "{k}"')[_MASTER_INDEX['a']].values[0]
+        activity = instance.add_sectors_master.query(f'`{MSC[instance.meta.table]["inv_sheet"]}` == "{k}"')[item_to_query].values[0]
         if activity in inventories_by_act.keys():
             inventories_by_act[activity][k] = v
         else:
@@ -594,30 +596,58 @@ def _get_new_add_sectors_sets(
     """
 
     master_sheet = instance.add_sectors_master
-    new_activities = master_sheet[_MASTER_INDEX['a']].unique()
-    new_commodities = master_sheet[_MASTER_INDEX['c']].unique()
 
-    # excluding already existing commodities
-    new_commodities = [com for com in new_commodities if com not in instance.get_index(_MASTER_INDEX['c'])]
+    if instance.meta.table == "SUT":
+        new_activities = master_sheet[_MASTER_INDEX['a']].unique()
+        new_commodities = master_sheet[_MASTER_INDEX['c']].unique()
 
-    # listing activities that have a parent
-    parented_activities = []
-    for act in new_activities:
-        parent = master_sheet.query(f'{_MASTER_INDEX["a"]} == "{act}"')[f'Parent {_MASTER_INDEX["a"]}'].values[0]
-        if isinstance(parent, str):
-            parented_activities.append(act)
-    
-    # listing activities that don't have a parent
-    non_parented_activites = []
-    for act in new_activities:
-        if act not in parented_activities:
-            non_parented_activites.append(act)
+        # excluding already existing commodities
+        new_commodities = [com for com in new_commodities if com not in instance.get_index(_MASTER_INDEX['c'])]
 
-    parented_activities = parented_activities
-    non_parented_activites = non_parented_activites
-    new_activities = list(new_activities)
+        # listing activities that have a parent
+        parented_activities = []
+        for act in new_activities:
+            parent = master_sheet.query(f'{_MASTER_INDEX["a"]} == "{act}"')[f'{MSC[instance.meta.table]["pa"]}'].values[0]
+            if isinstance(parent, str):
+                parented_activities.append(act)
+        
+        # listing activities that don't have a parent
+        non_parented_activites = []
+        for act in new_activities:
+            if act not in parented_activities:
+                non_parented_activites.append(act)
 
-    return new_activities, new_commodities, parented_activities, non_parented_activites
+        parented_activities = parented_activities
+        non_parented_activites = non_parented_activites
+        new_activities = list(new_activities)
+
+        return new_activities, new_commodities, parented_activities, non_parented_activites
+
+
+    if instance.meta.table == "IOT":
+        new_sectors = master_sheet[_MASTER_INDEX['s']].unique()
+
+        # excluding already existing sectors
+        new_sectors = [sec for sec in new_sectors if sec not in instance.get_index(_MASTER_INDEX['s'])]
+
+        # listing sectors that have a parent
+        parented_sectors = []
+        for sec in new_sectors:
+            parent = master_sheet.query(f'{_MASTER_INDEX["s"]} == "{sec}"')[f'{MSC[instance.meta.table]["ps"]}'].values[0]
+            if isinstance(parent, str):
+                parented_sectors.append(sec)
+
+        # listing activities that don't have a parent
+        non_parented_sectors = []
+        for sec in new_sectors:
+            if sec not in non_parented_sectors:
+                non_parented_sectors.append(sec)
+
+        parented_sectors = parented_sectors
+        non_parented_sectors = non_parented_sectors
+        new_sectors = list(new_sectors)
+
+        return new_sectors, parented_sectors, non_parented_sectors
 
 
 def _inventory_templates(

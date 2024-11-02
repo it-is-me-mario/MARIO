@@ -17,11 +17,19 @@ import warnings
 sn = slice(None)
 
 _matrix_slices_map = {
-    'u':{0:MI['c'],1:MI['a'],'concat':1},
-    's':{0:MI['a'],1:MI['c'],'concat':0},
-    'e':{0:MI['k'],1:MI['a'],'concat':1},
-    'v':{0:MI['f'],1:MI['a'],'concat':1},
-    'Y':{0:MI['c'],1:MI['n'],'concat':0},
+    'SUT': {
+        'u':{0:MI['c'],1:MI['a'],'concat':1},
+        's':{0:MI['a'],1:MI['c'],'concat':0},
+        'e':{0:MI['k'],1:MI['a'],'concat':1},
+        'v':{0:MI['f'],1:MI['a'],'concat':1},
+        'Y':{0:MI['c'],1:MI['n'],'concat':0},
+    },
+    'IOT': {
+        'z':{0:MI['s'],1:MI['s'],'concat':1},
+        'e':{0:MI['k'],1:MI['a'],'concat':1},
+        'v':{0:MI['f'],1:MI['a'],'concat':1},
+        'Y':{0:MI['s'],1:MI['n'],'concat':0},
+    },
 }
 
 class AddSectors:
@@ -52,24 +60,51 @@ class AddSectors:
         self.matrices = matrices
         self.regions = instance.get_index(MI['r'])
         self.units = instance.units
-        self.new_activities = instance.new_activities
-        self.new_commodities = instance.new_commodities
-        self.parented_activities = instance.parented_activities
+        self.table = self.db.meta.table
+        if self.table == 'SUT':
+            self.new_activities = instance.new_activities
+            self.new_commodities = instance.new_commodities
+            self.parented_activities = instance.parented_activities
+        else:
+            self.new_sectors = instance.new_sectors
+            self.parented_sectors = instance.parented_sectors
 
         if ignore_warnings:
             warnings.filterwarnings("ignore")
+
+    def to_iot(
+            self,
+    ):
+        """
+        Add new sectors to the current IOT database.
+        """
+        if self.table != 'IOT':
+            raise ValueError("This method can only be used for SUT matrices")
+
+        self.add_new_units(MI['s'])
+        empty_slices = self.get_empty_table_slices()
+
+        self.filled_slices = deepcopy(empty_slices)
+        for sector in self.new_sectors:
+            self.fill_slices(sector)
+
+        self.add_slices()
+        
+        self.reindex_matrices()
+        self.get_mario_indices() # to be deprecated when mario will allow to initialize database in coefficients
+        
+        return self.matrices, self.units, self.indeces
 
     def to_sut(
             self
     ):
         """
-        Adds new units from the master inventory to the current inventory.
-
-        This method retrieves the indices for 'c' and 'a' regions from the master inventory
-        and adds the new units to the current inventory using the 'add_new_units' method.
-        It also initializes the 'slices' attribute with empty table slices.
+        Add new activities and commodities to the current SUT database.
         """
-             
+            
+        if self.table != 'SUT':
+            raise ValueError("This method can only be used for SUT matrices")
+        
         self.add_new_units(MI['c'])
         self.add_new_units(MI['a'])
 
@@ -106,12 +141,10 @@ class AddSectors:
         Parameters:
             item (str): The item for which new units are being added.
 
-        Returns:
-            None
         """
         if item == MI['c']:
             new_items = self.new_commodities
-            df = self.db.add_sectors_master.query(f"{MI['c']}==@new_items").loc[:,[item,MSC['unit']]].set_index(item)
+            df = self.db.add_sectors_master.query(f"{MI['c']}==@new_items").loc[:,[item,MSC[self.table]['unit']]].set_index(item)
             df.columns = ['unit']
             df = df.reset_index().drop_duplicates().set_index(item)
 
@@ -121,10 +154,16 @@ class AddSectors:
                 act_unit = self.units[MI['a']]['unit'].unique()[0]
                 df = pd.DataFrame(act_unit, index=new_items, columns=['unit'])
             else:
-                df = self.db.add_sectors_master.query(f"{MI['a']}==@new_items").loc[:,[item,MSC['unit']]].set_index(item)
+                df = self.db.add_sectors_master.query(f"{MI['a']}==@new_items").loc[:,[item,MSC[self.table]['unit']]].set_index(item)
                 df.columns = ['unit']
                 df = df.drop_duplicates()
-                
+
+        if item == MI['s']:
+            new_items = self.new_sectors
+            df = self.db.add_sectors_master.query(f"{MI['s']}==@new_items").loc[:,[item,MSC[self.table]['unit']]].set_index(item)
+            df.columns = ['unit']
+            df = df.reset_index().drop_duplicates().set_index(item)
+
         self.units[item] = pd.concat([self.units[item],df],axis=0)
     
     def get_empty_table_slices(self):
@@ -140,7 +179,7 @@ class AddSectors:
         """
         empty_slices = {}
 
-        for matrix in _matrix_slices_map:
+        for matrix in _matrix_slices_map[self.table]:
             new_index,new_columns = self.get_slice_indices(matrix)
             empty_slices[matrix] = pd.DataFrame(0, index=new_index, columns=new_columns) 
             
@@ -160,13 +199,16 @@ class AddSectors:
         
         """
         
-        concat = _matrix_slices_map[matrix]['concat']
-        item_row = _matrix_slices_map[matrix][0]
-        item_col = _matrix_slices_map[matrix][1]
+        concat = _matrix_slices_map[self.table][matrix]['concat']
+        item_row = _matrix_slices_map[self.table][matrix][0]
+        item_col = _matrix_slices_map[self.table][matrix][1]
 
         if concat == 0:
             empty_index = [[],[],[]]  # will always be 3 levels
-            items_to_add_on_rows = self.new_commodities if item_row == MI['c'] else self.new_activities
+            if self.table == 'SUT':
+                items_to_add_on_rows = self.new_commodities if item_row == MI['c'] else self.new_activities
+            if self.table == 'IOT':
+                items_to_add_on_rows = self.new_sectors
             for region in self.regions:
                 for item in items_to_add_on_rows:
                     empty_index[0] += [region]
@@ -183,7 +225,10 @@ class AddSectors:
                 new_index = pd.MultiIndex.from_arrays(empty_index)
 
             empty_extra_columns = [[],[],[]] # will always be 3 levels
-            items_to_add_on_cols = self.new_activities if item_col == MI['a'] else self.new_commodities
+            if self.table == 'SUT':
+                items_to_add_on_cols = self.new_activities if item_col == MI['a'] else self.new_commodities
+            if self.table == 'IOT':
+                items_to_add_on_cols = self.new_sectors
             for region in self.regions:
                 for item in items_to_add_on_cols:
                     empty_extra_columns[0] += [region]
@@ -202,7 +247,11 @@ class AddSectors:
                 new_index = self.matrices[matrix].index
             else: 
                 empty_extra_index = [[],[],[]]  # will always be 3 levels if not v or e
-                items_to_add_on_rows = self.new_activities if item_row == MI['a'] else self.new_commodities
+                if self.table == 'SUT':
+                    items_to_add_on_rows = self.new_activities if item_row == MI['a'] else self.new_commodities
+                if self.table == 'IOT':
+                    items_to_add_on_rows = self.new_sectors
+
                 for region in self.regions:
                     for item in items_to_add_on_rows:
                         empty_extra_index[0] += [region]
@@ -215,7 +264,10 @@ class AddSectors:
                 ])
 
             empty_columns = [[],[],[]] # will always be 3 levels
-            items_to_add_on_cols = self.new_activities if item_col == MI['a'] else self.new_commodities
+            if self.table == 'SUT':
+                items_to_add_on_cols = self.new_activities if item_col == MI['a'] else self.new_commodities
+            if self.table == 'IOT':
+                items_to_add_on_cols = self.new_sectors
             for region in self.regions:
                 for item in items_to_add_on_cols:
                     empty_columns[0] += [region]
@@ -230,10 +282,10 @@ class AddSectors:
             activity:str,
     ):
         """
-        Fills the slices for the given activity.
+        Fills the slices for the given activity (or sector in case of an IOT).
 
         Args:
-            activity (str): The activity for which the slices need to be filled.
+            activity (str): The activity (or sector) for which the slices need to be filled.
 
         Raises:
             ValueError: If the activity is added in a region that is not in the SUT nor in the regions map.
@@ -251,7 +303,7 @@ class AddSectors:
                 return
             
             # get the region where to add the activity
-            region = self.db.add_sectors_master.query(f"`{MSC['inv_sheet']}`==@sheet_name")[MI['r']].values[0]
+            region = self.db.add_sectors_master.query(f"`{MSC[self.table]['inv_sheet']}`==@sheet_name")[MI['r']].values[0]
 
             # check if the region is in the SUT or in the regions maps
             if region in self.regions:
@@ -263,7 +315,11 @@ class AddSectors:
                     raise ValueError(f"Activity {activity} is added in region {region} which is not in the SUT nor in the regions map")
 
             # in case the activity has a parent to be initialized from
-            parent_activity = self.db.add_sectors_master.query(f"`{MSC['inv_sheet']}`==@sheet_name")[MSC['pa']].values[0]
+            if self.table == 'SUT':
+                parent_activity = self.db.add_sectors_master.query(f"`{MSC[self.table]['inv_sheet']}`==@sheet_name")[MSC[self.table]['pa']].values[0]
+            if self.table == 'IOT':
+                parent_activity = self.db.add_sectors_master.query(f"`{MSC[self.table]['inv_sheet']}`==@sheet_name")[MSC[self.table]['ps']].values[0]
+            
             if pd.isna(parent_activity) == False: 
                 slices = self.copy_from_parent(activity,parent_activity,target_regions,slices,inventory)
 
@@ -273,7 +329,8 @@ class AddSectors:
                 slices = self.fill_commodities_inputs(inventory,region_to,activity,slices)
                 slices = self.fill_fact_sats_inputs(inventory,region_to,activity,'v',slices)
                 slices = self.fill_fact_sats_inputs(inventory,region_to,activity,'e',slices)
-                slices = self.fill_market_shares(activity,region_to,region,slices)
+                if self.table == 'SUT':
+                    slices = self.fill_market_shares(activity,region_to,region,slices)
                 slices = self.fill_final_demand(activity,region_to,region,slices)
 
         for matrix in slices:
@@ -319,8 +376,8 @@ class AddSectors:
 
         for i in inventory.index:
             item = inventory.loc[i, INC['item']]
-            if item == MI['c']:
-                DB_unit = self.units[MI['c']].loc[inventory.loc[i, INC['db_item']],'unit']
+            if item == MI['c'] or item == MI['s']:
+                DB_unit = self.units[item].loc[inventory.loc[i, INC['db_item']],'unit']
             elif item == MI['a']:
                 raise ValueError(f"{INC['item']} {item} is not recognized: activities cannot be supplied to other activities")
             elif item == MI['k']:
@@ -348,7 +405,7 @@ class AddSectors:
         inventory:pd.DataFrame
     )->dict:
         """
-        Copy the parent activity in the target region into the new activity inventory on u, v and e.
+        Copy the parent activity (or sector in case of an IOT) in the target region into the new activity (or sector) inventory on u, v and e.
 
         Args:
             activity (str): activity to be filled starting from the parent activity.
@@ -363,14 +420,20 @@ class AddSectors:
 
         # copy the parent activity in the target region into the new activity inventory on u, v and e
         for region in target_regions: 
-            slices[_ENUM['u']].loc[self.matrices[_ENUM['u']].index,(region,MI['a'],activity)] = self.matrices[_ENUM['u']].loc[:,(region,MI['a'],parent_activity)].values
-            slices[_ENUM['v']].loc[:,(region,MI['a'],activity)] = self.matrices[_ENUM['v']].loc[:,(region,MI['a'],parent_activity)].values
-            slices[_ENUM['e']].loc[:,(region,MI['a'],activity)] = self.matrices[_ENUM['e']].loc[:,(region,MI['a'],parent_activity)].values
+            if self.table == 'SUT':
+                slices[_ENUM['u']].loc[self.matrices[_ENUM['u']].index,(region,MI['a'],activity)] = self.matrices[_ENUM['u']].loc[:,(region,MI['a'],parent_activity)].values
+                slices[_ENUM['v']].loc[:,(region,MI['a'],activity)] = self.matrices[_ENUM['v']].loc[:,(region,MI['a'],parent_activity)].values
+                slices[_ENUM['e']].loc[:,(region,MI['a'],activity)] = self.matrices[_ENUM['e']].loc[:,(region,MI['a'],parent_activity)].values
+            if self.table == 'IOT':
+                slices[_ENUM['z']].loc[self.matrices[_ENUM['z']].index,(region,MI['s'],activity)] = self.matrices[_ENUM['z']].loc[:,(region,MI['s'],parent_activity)].values
+                slices[_ENUM['v']].loc[:,(region,MI['s'],activity)] = self.matrices[_ENUM['v']].loc[:,(region,MI['s'],parent_activity)].values
+                slices[_ENUM['e']].loc[:,(region,MI['s'],activity)] = self.matrices[_ENUM['e']].loc[:,(region,MI['s'],parent_activity)].values
 
             # nullify the values that must be updated according to the activity's inventory
+            item_to_query = MI['c'] if self.table == 'SUT' else MI['s']
             commodities_to_nullify = [(c,r) for c,r in zip(
-                inventory.query(f"`{INC['item']}`=='{MI['c']}' & `{INC['change']}`=='Update'")[INC['db_item']].values,
-                inventory.query(f"`{INC['item']}`=='{MI['c']}' & `{INC['change']}`=='Update'")[INC['db_r']].values
+                inventory.query(f"`{INC['item']}`=='{item_to_query}' & `{INC['change']}`=='Update'")[INC['db_item']].values,
+                inventory.query(f"`{INC['item']}`=='{item_to_query}' & `{INC['change']}`=='Update'")[INC['db_r']].values
                 )]
             satellites_to_nullify = inventory.query(f"`{INC['item']}`=='{MI['k']}' & `{INC['change']}`=='Update'")[INC['db_item']].values
             factors_to_nullify = inventory.query(f"`{INC['item']}`=='{MI['f']}' & `{INC['change']}`=='Update'")[INC['db_item']].values
@@ -379,9 +442,16 @@ class AddSectors:
                 c = tup[0]
                 r = tup[1]
                 if r in self.regions:
-                    slices[_ENUM['u']].loc[(r,MI['c'],c),(region,MI['a'],activity)] = 0
+                    if self.table == 'SUT':
+                        slices[_ENUM['u']].loc[(r,MI['c'],c),(region,MI['a'],activity)] = 0
+                    if self.table == 'IOT':
+                        slices[_ENUM['z']].loc[(r,MI['s'],c),(region,MI['s'],activity)] = 0
+
                 elif r in self.db.regions_clusters:
-                    slices[_ENUM['u']].loc[(self.db.regions_clusters[r],MI['c'],c),(region,MI['a'],activity)] = 0
+                    if self.table == 'SUT':
+                        slices[_ENUM['u']].loc[(self.db.regions_clusters[r],MI['c'],c),(region,MI['a'],activity)] = 0
+                    if self.table == 'IOT':
+                        slices[_ENUM['z']].loc[(self.db.regions_clusters[r],MI['s'],c),(region,MI['s'],activity)] = 0
                 
             for k in satellites_to_nullify:
                 slices[_ENUM['e']].loc[k,(region,MI['a'],activity)] = 0
@@ -401,6 +471,7 @@ class AddSectors:
     )->dict:
         """
         Fills the commodities inputs for a given region and activity.
+        In case of IOT tables, it fills the old sectors inputs towards the new sectors
 
         Args:
             full_inventory (pandas.DataFrame): The full inventory data.
@@ -411,13 +482,14 @@ class AddSectors:
         Returns:
             dict: The updated slices.
         """
-        inventory = full_inventory.query(f"`{INC['item']}`=='{MI['c']}'") 
-        
+        item_to_query = MI['c'] if self.table == 'SUT' else MI['s']
+        inventory = full_inventory.query(f"`{INC['item']}`=='{item_to_query}'") 
+
         for i in inventory.index:
             
             # get all the necessary information of the input item
             input_item = inventory.loc[i,INC['db_item']]
-            if input_item in self.db.get_index(MI['c']):
+            if input_item in self.db.get_index(item_to_query):
                 is_new = False
             else:
                 is_new = True
@@ -428,18 +500,33 @@ class AddSectors:
 
             if change_type == 'Update':
                 if region_from in self.regions:
-                    slices[_ENUM['u']].loc[(region_from,MI['c'],input_item),(region_to,MI['a'],activity)] += quantity
+                    if self.table == 'SUT':
+                        slices[_ENUM['u']].loc[(region_from,MI['c'],input_item),(region_to,MI['a'],activity)] += quantity
+                    if self.table == 'IOT':
+                        slices[_ENUM['z']].loc[(region_from,MI['s'],input_item),(region_to,MI['s'],activity)] += quantity
             
                 elif region_from in self.db.regions_clusters:
                     if not is_new:
-                        com_use = self.matrices[_ENUM['u']].loc[(self.db.regions_clusters[region_from],sn,input_item),(region_to,sn,sn)]                    
-                        u_share = com_use.sum(1)/com_use.sum().sum()*quantity
-                        if isinstance(u_share,pd.Series):
-                            u_share = u_share.to_frame()
-                        u_share.columns = pd.MultiIndex.from_arrays([[region_to],[MI['a']],[activity]])
-                        slices[_ENUM['u']].loc[u_share.index,u_share.columns] += u_share.values
+                        if self.table == 'SUT':
+                            com_use = self.matrices[_ENUM['u']].loc[(self.db.regions_clusters[region_from],sn,input_item),(region_to,sn,sn)]                    
+                            u_share = com_use.sum(1)/com_use.sum().sum()*quantity
+                            if isinstance(u_share,pd.Series):
+                                u_share = u_share.to_frame()
+                            u_share.columns = pd.MultiIndex.from_arrays([[region_to],[MI['a']],[activity]])
+                            slices[_ENUM['u']].loc[u_share.index,u_share.columns] += u_share.values
+                        
+                        if self.table == 'IOT':
+                            com_use = self.matrices[_ENUM['z']].loc[(self.db.regions_clusters[region_from],sn,input_item),(region_to,sn,sn)]
+                            z_share = com_use.sum(1)/com_use.sum().sum()*quantity
+                            if isinstance(z_share,pd.Series):
+                                z_share = z_share.to_frame()
+                            z_share.columns = pd.MultiIndex.from_arrays([[region_to],[MI['s']],[activity]])
+                            slices[_ENUM['z']].loc[z_share.index,z_share.columns] += z_share.values
                     else:
-                        slices[_ENUM['u']].loc[(region_to,MI['c'],input_item),(region_to,MI['a'],activity)] += quantity
+                        if self.table == 'SUT':
+                            slices[_ENUM['u']].loc[(region_to,MI['c'],input_item),(region_to,MI['a'],activity)] += quantity
+                        if self.table == 'IOT':
+                            slices[_ENUM['z']].loc[(region_to,MI['s'],input_item),(region_to,MI['s'],activity)] += quantity
 
         return slices
 
@@ -452,7 +539,7 @@ class AddSectors:
         slices:str
     )->dict:
         """
-        Fills the fact sats inputs based on the given parameters.
+        Fills the factors of production or satellite accounts inputs towards a new activity or sector.
 
         Args:
             full_inventory (pd.DataFrame): The full inventory dataframe.
@@ -477,10 +564,17 @@ class AddSectors:
             if change_type == 'Update':
                 slices[matrix].loc[input_item, (region_to, MI['a'], activity)] += quantity
             if change_type == 'Percentage':
-                if activity in self.parented_activities:
-                    parent_activity = self.db.add_sectors_master.query(f"{MI['a']}==@activity")[MSC['pa']].values[0]
-                    old_value = self.matrices[matrix].loc[input_item, (region_to, MI['a'], parent_activity)]
-                    slices[matrix].loc[input_item, (region_to, MI['a'], activity)] += old_value*(1+quantity)
+                if self.table == 'SUT':
+                    if activity in self.parented_activities:
+                        parent_activity = self.db.add_sectors_master.query(f"{MI['a']}==@activity")[MSC[self.table]['pa']].values[0]
+                        old_value = self.matrices[matrix].loc[input_item, (region_to, MI['a'], parent_activity)]
+                        slices[matrix].loc[input_item, (region_to, MI['a'], activity)] += old_value*(1+quantity)
+                if self.table == 'IOT':
+                    if activity in self.parented_sectors:
+                        parent_sector = self.db.add_sectors_master.query(f"{MI['s']}==@activity")[MSC[self.table]['ps']].values[0]
+                        old_value = self.matrices[matrix].loc[input_item, (region_to, MI['s'], parent_sector)]
+                        slices[matrix].loc[input_item, (region_to, MI['s'], activity)] += old_value*(1+quantity)
+
                 else:
                     raise ValueError(f"It's not possible to apply a percentage change to activity {activity} because it has no parent activity")
         
@@ -506,7 +600,7 @@ class AddSectors:
         - dict: The updated slices.
         """
 
-        market_shares = self.db.add_sectors_master.query(f"{MI['a']}==@activity & {MI['r']}==@cluster_region")[MSC['ms']].values
+        market_shares = self.db.add_sectors_master.query(f"{MI['a']}==@activity & {MI['r']}==@cluster_region")[MSC[self.table]['ms']].values
         for i in range(len(market_shares)):
             if pd.isna(market_shares[i]):
                 market_shares[i] = 0
@@ -536,12 +630,15 @@ class AddSectors:
         Returns:
             dict: The updated slices.
         """
-        total_outputs = self.db.add_sectors_master.query(f"{MI['a']}==@activity & {MI['r']}==@cluster_region")[MSC['findem']].values
+        item_to_query = MI['a'] if self.table == 'SUT' else MI['s']
+        other_item = MI['c'] if self.table == 'SUT' else MI['s']
+
+        total_outputs = self.db.add_sectors_master.query(f"{item_to_query}==@activity & {MI['r']}==@cluster_region")[MSC[self.table]['findem']].values
         for i in range(len(total_outputs)):
             if pd.isna(total_outputs[i]):
                 total_outputs[i] = 0
 
-        cons_categories = self.db.add_sectors_master.query(f"{MI['a']}==@activity & {MI['r']}==@cluster_region")[MI['n']].values
+        cons_categories = self.db.add_sectors_master.query(f"{item_to_query}==@activity & {MI['r']}==@cluster_region")[MI['n']].values
         new_cons_categories = []
         
         for i in range(len(cons_categories)):
@@ -551,10 +648,10 @@ class AddSectors:
                 new_cons_categories += [cons_categories[i]]
 
         cons_region = region # could be easily changed by adding a new column in the master file
-        commodities = self.db.add_sectors_master.query(f"{MI['a']}==@activity & {MI['r']}==@cluster_region")[MI['c']].values
+        commodities = self.db.add_sectors_master.query(f"{item_to_query}==@activity & {MI['r']}==@cluster_region")[other_item].values
 
         for i in range(len(commodities)):
-            slices[_ENUM['Y']].loc[(region,MI['c'],commodities[i]),(cons_region,MI['n'],new_cons_categories[i])] += total_outputs[i]
+            slices[_ENUM['Y']].loc[(region,other_item,commodities[i]),(cons_region,MI['n'],new_cons_categories[i])] += total_outputs[i]
 
         return slices   
 
@@ -574,7 +671,7 @@ class AddSectors:
         Raises:
         - ValueError: If the 'Leave empty' column is not a boolean or left empty.
         """
-        empty = self.db.add_sectors_master.query(f"`{MSC['inv_sheet']}`==@sheet_name")[MSC['empty']].values[0]
+        empty = self.db.add_sectors_master.query(f"`{MSC[self.table]['inv_sheet']}`==@sheet_name")[MSC[self.table]['empty']].values[0]
         if empty == True or empty == False:
             return empty
 
@@ -586,7 +683,7 @@ class AddSectors:
             if pd.isna(empty):
                 return False
         else:
-            raise ValueError(f"'{MSC['empty']}' column for inventory {sheet_name} in the master file must be boolean or left empty, got {empty} instead")
+            raise ValueError(f"'{MSC[self.table]['empty']}' column for inventory {sheet_name} in the master file must be boolean or left empty, got {empty} instead")
 
     def add_slices(self):
         """
@@ -598,8 +695,8 @@ class AddSectors:
         If it is a column slice, it concatenates the slice with the corresponding matrix along the column axis.
         """
         
-        for matrix in _matrix_slices_map:
-            concat = _matrix_slices_map[matrix]['concat']
+        for matrix in _matrix_slices_map[self.table]:
+            concat = _matrix_slices_map[self.table][matrix]['concat']
             self.matrices[matrix] = pd.concat([self.matrices[matrix],self.filled_slices[matrix]],axis=concat)
             self.matrices[matrix] = self.matrices[matrix].groupby(level=list(range(self.matrices[matrix].index.nlevels)),axis=0).sum()
             self.matrices[matrix] = self.matrices[matrix].groupby(level=list(range(self.matrices[matrix].columns.nlevels)),axis=1).sum()
@@ -626,10 +723,14 @@ class AddSectors:
         for item in MI.vars:
             if item == 'r':
                 mario_indices[item] = {'main': sorted(list(set(self.matrices[_ENUM['z']].index.get_level_values(0))))}
-            if item == 'a' or item == 's':
-                mario_indices[item] = {'main': sorted(list(set(self.matrices[_ENUM['z']].loc[(sn,MI['a'],sn),:].index.get_level_values(2))))}
-            if item == 'c':
-                mario_indices[item] = {'main': sorted(list(set(self.matrices[_ENUM['z']].loc[(sn,MI['c'],sn),:].index.get_level_values(2))))}
+            if self.table == 'SUT':
+                if item == 'a' or item == 's':
+                    mario_indices[item] = {'main': sorted(list(set(self.matrices[_ENUM['z']].loc[(sn,MI['a'],sn),:].index.get_level_values(2))))}
+                if item == 'c':
+                    mario_indices[item] = {'main': sorted(list(set(self.matrices[_ENUM['z']].loc[(sn,MI['c'],sn),:].index.get_level_values(2))))}
+            if self.table == 'IOT':
+                if item == 's':
+                    mario_indices[item] = {'main': sorted(list(set(self.matrices[_ENUM['z']].loc[(sn,MI['s'],sn),:].index.get_level_values(2))))}
             if item == 'n':
                 mario_indices[item] = {'main': sorted(list(set(self.matrices[_ENUM['Y']].columns.get_level_values(2))))}
             if item == 'k':

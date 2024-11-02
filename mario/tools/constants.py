@@ -79,20 +79,37 @@ _ADD_SECTOR_SHEETS = {
 
 
 _ADD_SECTORS_MASTER_SHEET_COLUMNS = {
-    'r': _MASTER_INDEX['r'],
-    'a': _MASTER_INDEX['a'],
-    'c': _MASTER_INDEX['c'],
-    'inv_sheet': 'Inventory sheet',
-    'qt': 'Quantity',
-    'unit': 'Unit',
-    'ms': 'Market share',
-    'findem': 'Final consumption',
-    'n': _MASTER_INDEX['n'],
-    'pa': f'Parent {_MASTER_INDEX["a"]}',
-    'empty': 'Leave empty',
-    'source': 'Source',
-    'note': 'Notes',
+    'SUT': {
+        'r': _MASTER_INDEX['r'],
+        'a': _MASTER_INDEX['a'],
+        'c': _MASTER_INDEX['c'],
+        'inv_sheet': 'Inventory sheet',
+        'qt': 'Quantity',
+        'unit': 'Unit',
+        'ms': 'Market share',
+        'findem': 'Final consumption',
+        'n': _MASTER_INDEX['n'],
+        'pa': f'Parent {_MASTER_INDEX["a"]}',
+        'empty': 'Leave empty',
+        'source': 'Source',
+        'note': 'Notes',
+    },
+    'IOT': {
+        'r': _MASTER_INDEX['r'],
+        's': _MASTER_INDEX['s'],
+        'inv_sheet': 'Inventory sheet',
+        'qt': 'Quantity',
+        'unit': 'Unit',
+        'ms': 'Market share',
+        'findem': 'Final consumption',
+        'n': _MASTER_INDEX['n'],
+        'ps': f'Parent {_MASTER_INDEX["s"]}',
+        'empty': 'Leave empty',
+        'source': 'Source',
+        'note': 'Notes',
+    }
 }
+
 
 _ADD_SECTORS_INVENTORY_SHEET_COLUMNS = { # if change order, change also data validation
     'qt': 'Quantity',

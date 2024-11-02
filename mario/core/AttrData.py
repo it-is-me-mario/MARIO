@@ -30,12 +30,11 @@ from mario.tools.utilities import (
 from mario.tools.excelhandler import (
     database_excel,
     database_txt,
-    _add_sector_iot,
-    _add_sector_sut,
-    _read_add_sectors_sut,
+    _add_sector,
+    _read_add_sectors,
     _get_new_add_sectors_sets,
     _inventory_templates,
-    _read_add_inventories_sut,
+    _read_add_inventories,
     _sh_excel,
 )
 
@@ -1417,18 +1416,14 @@ class Database(CoreModel):
             None
         """
 
-        if self.meta.table == "IOT":
-            raise NotImplementable("This function is not implemented yet for IOT tables.")
-
-        if self.meta.table == "SUT":
-            _add_sector_sut(
-                self,
-                master_sheet,
-                _ADD_SECTORS_MASTER_SHEET_COLUMNS,
-                regions_clusters_sheet,
-                _ADD_SECTORS_REGIONS_CLUSTERS_SHEET_COLUMNS,
-                path
-            )
+        _add_sector(
+            self,
+            master_sheet,
+            _ADD_SECTORS_MASTER_SHEET_COLUMNS[self.meta.table],
+            regions_clusters_sheet,
+            _ADD_SECTORS_REGIONS_CLUSTERS_SHEET_COLUMNS,
+            path
+        )
         
 
     def read_add_sectors_excel(
@@ -1451,20 +1446,20 @@ class Database(CoreModel):
 
         """
 
+        self.add_sectors_master, self.regions_clusters = _read_add_sectors(
+            path,
+            master_sheet,
+            regions_clusters_sheet,
+        )
+
         if self.meta.table == "IOT":
-            raise NotImplementable("This function is not implemented yet for IOT tables.")
+            self.new_sectors, self.parented_sectors, self.non_parented_sectors = _get_new_add_sectors_sets(self)
 
         if self.meta.table == "SUT":
-            self.add_sectors_master, self.regions_clusters = _read_add_sectors_sut(
-                path,
-                master_sheet,
-                regions_clusters_sheet,
-            )
-
             self.new_activities, self.new_commodities, self.parented_activities, self.non_parented_activities = _get_new_add_sectors_sets(self)
 
         if get_inventories:
-            self.get_inventory_sheets(path=path)
+            self.get_inventory_sheets(path)
         if read_inventories:
             self.read_inventory_sheets(path)
 
@@ -1481,18 +1476,14 @@ class Database(CoreModel):
             path (str): The path where the inventory templates will be saved.
             overwrite (bool, optional): Specifies whether to overwrite existing templates. Defaults to True.
         """
-        if self.meta.table == "IOT":
-            raise NotImplementable("This function is not implemented yet for IOT tables.")
-
-        if self.meta.table == "SUT":
-            new_sheets = self.add_sectors_master['Inventory sheet'].unique()
-            _inventory_templates(
-                self,
-                new_sheets,
-                _ADD_SECTORS_INVENTORY_SHEET_COLUMNS,
-                overwrite, 
-                path
-            )
+        new_sheets = self.add_sectors_master[_ADD_SECTORS_MASTER_SHEET_COLUMNS[self.meta.table]['inv_sheet']].unique()
+        _inventory_templates(
+            self,
+            new_sheets,
+            _ADD_SECTORS_INVENTORY_SHEET_COLUMNS,
+            overwrite, 
+            path
+        )
 
     def read_inventory_sheets(
             self,
@@ -1504,11 +1495,7 @@ class Database(CoreModel):
         Args:
             path (str): The path to the inventory templates.
         """
-        if self.meta.table == "IOT":
-            raise NotImplementable("This function is not implemented yet for IOT tables.")
-        
-        if self.meta.table == "SUT":
-            self.inventories = _read_add_inventories_sut(self, path)
+        self.inventories = _read_add_inventories(self, path)
 
 
     def get_add_sectors_excel_old(self, new_sectors, regions, path=None, item=None):
@@ -1609,8 +1596,9 @@ class Database(CoreModel):
 
         else:
             err_msg = []
+            item_to_query = _MASTER_INDEX['a'] if self.meta.table == 'SUT' else _MASTER_INDEX['s']
             for inventory in self.inventories:
-                if inventory in self.get_index(_MASTER_INDEX['a']):
+                if inventory in self.get_index(item_to_query):
                     err_msg.append(inventory)
             if len(err_msg) > 0:
                 raise ValueError(f"Some info already exist in the table: {sorted(list(set(err_msg)))} ")
@@ -1622,25 +1610,22 @@ class Database(CoreModel):
                 _ENUM.Y: self.get_data(matrices=[_ENUM.Y],scenarios=[scenario])[scenario][0],
             }
             
-            if self.meta.table == "IOT":
-                raise NotImplementable("This function is not implemented yet for IOT tables.")
-            
-            if self.meta.table == "SUT":            
-                if io != 'inventories':
-                    self.read_inventory_sheets(io)
+            if io != 'inventories':
+                self.read_inventory_sheets(io)
 
-                add_sectors_class = AddSectors(self,matrices,ignore_warnings)
+            add_sectors_class = AddSectors(self,matrices,ignore_warnings)
+            if self.meta.table == 'IOT':
+                new_matrices, new_units, new_indeces = add_sectors_class.to_iot()
+            if self.meta.table == 'SUT':
                 new_matrices, new_units, new_indeces = add_sectors_class.to_sut()
-                
-                new_matrices[_ENUM.EY] = self.get_data(matrices=[_ENUM.EY],scenarios=[scenario])[scenario][0]
+            
+            new_matrices[_ENUM.EY] = self.get_data(matrices=[_ENUM.EY],scenarios=[scenario])[scenario][0]
 
             # return a new mario Database instance
             new_matrices = {'baseline': new_matrices}  
             self.matrices = new_matrices
             self.units = new_units
             self._indeces = new_indeces
-
-
 
     def add_sectors_old(
         self,
