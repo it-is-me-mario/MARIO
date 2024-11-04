@@ -570,8 +570,8 @@ def _read_add_inventories(instance,path):
     for i in keys:
         if i not in instance.add_sectors_master[MSC[instance.meta.table]['inv_sheet']].unique():
             del inventories[i] # drop all sheets that don't contain inventory data
-        elif instance.add_sectors_master.query(f"`{MSC[instance.meta.table]['inv_sheet']}`==@i")[MSC[instance.meta.table]['empty']].values[0] == True:
-            del inventories[i] # drop all inventories to be left empty
+        # elif instance.add_sectors_master.query(f"`{MSC[instance.meta.table]['inv_sheet']}`==@i")[MSC[instance.meta.table]['empty']].values[0] == True:
+        #     del inventories[i] # drop all inventories to be left empty
 
     inventories_by_act = {}
     item_to_query = _MASTER_INDEX['a'] if instance.meta.table == 'SUT' else _MASTER_INDEX['s']
