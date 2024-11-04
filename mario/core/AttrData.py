@@ -1575,14 +1575,14 @@ class Database(CoreModel):
             "Scenarios: all the scenarios deleted from the database."
         )
 
-        if self.meta.table == 'IOT':
+        if self.meta.table == 'SUT':
             self.meta._add_history(f"Database: new {_MASTER_INDEX['a']}: {self.new_activities} added to the database")
             self.meta._add_history(f"Database: new {_MASTER_INDEX['c']}: {self.new_commodities} added to the database")
 
             log_time(logger,f"New {_MASTER_INDEX['a']}: {self.new_activities} added to the database")
             log_time(logger,f"New {_MASTER_INDEX['c']}: {self.new_commodities} added to the database")
         
-        if self.meta.table == 'SUT':
+        if self.meta.table == 'IOT':
             self.meta._add_history(f"Database: new {_MASTER_INDEX['s']}: {self.new_sectors} added to the database")
             log_time(logger,f"New {_MASTER_INDEX['s']}: {self.new_sectors} added to the database")
 
