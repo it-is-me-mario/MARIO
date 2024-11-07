@@ -1,10 +1,11 @@
-numpy == 1.21.2
+numpy == 2.1.1
 plotly
 tabulate
-openpyxl == 3.0.6
-IPython == 7.22.0
+openpyxl == 3.1.0
+IPython == 8.27.0
 pymrio
 pytest 
 pandas == 2.2.3
 pyyaml
 xlsxwriter == 3.2.0
+flexparser == 0.3.1 # due to issues in pint. check before releasing if pint was fixed meanwhile
