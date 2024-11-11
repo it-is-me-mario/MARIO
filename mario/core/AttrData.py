@@ -91,7 +91,7 @@ from mario.tools.constants import (
     _ENUM,
     _ADD_SECTORS_MASTER_SHEET_COLUMNS,
     _ADD_SECTORS_REGIONS_CLUSTERS_SHEET_COLUMNS,
-    _ADD_SECTORS_COMMODITIES_CLUSTERS_SHEET_COLUMNS,
+    _ADD_SECTORS_ITEMS_CLUSTERS_SHEET_COLUMNS,
     _ADD_SECTORS_INVENTORY_SHEET_COLUMNS,
 )
 
@@ -1403,7 +1403,6 @@ class Database(CoreModel):
         path:str,
         master_sheet = "Master",
         regions_clusters_sheet = 'Regions Clusters',
-        commodities_clusters_sheet = 'Commodities Clusters',
     ):
         """
         Generates an Excel file to add multiple sectors/activities/commodities to a mario.Database
@@ -1418,14 +1417,19 @@ class Database(CoreModel):
             None
         """
 
+        if self.meta.table == "IOT":
+            items_clusters_sheet = 'Sectors Clusters'
+        if self.meta.table == "SUT":
+            items_clusters_sheet = 'Commodities Clusters'
+        
         _add_sector(
             self,
             master_sheet,
             _ADD_SECTORS_MASTER_SHEET_COLUMNS[self.meta.table],
             regions_clusters_sheet,
             _ADD_SECTORS_REGIONS_CLUSTERS_SHEET_COLUMNS,
-            commodities_clusters_sheet,
-            _ADD_SECTORS_COMMODITIES_CLUSTERS_SHEET_COLUMNS,
+            items_clusters_sheet,
+            _ADD_SECTORS_ITEMS_CLUSTERS_SHEET_COLUMNS,
             path
         )
         
@@ -1437,7 +1441,6 @@ class Database(CoreModel):
         read_inventories:bool = False,
         master_sheet = "Master",
         regions_clusters_sheet = 'Regions Clusters',
-        commodities_clusters_sheet = 'Commodities Clusters',
     ):
         """
         Reads the master template from the specified path and performs necessary operations.
@@ -1452,11 +1455,16 @@ class Database(CoreModel):
 
         """
 
+        if self.meta.table == "IOT":
+            items_clusters_sheet = 'Sectors Clusters'
+        if self.meta.table == "SUT":
+            items_clusters_sheet = 'Commodities Clusters'
+
         self.add_sectors_master, self.regions_clusters, self.commodities_clusters = _read_add_sectors(
             path,
             master_sheet,
             regions_clusters_sheet,
-            commodities_clusters_sheet,
+            items_clusters_sheet,
         )
 
         if self.meta.table == "IOT":
