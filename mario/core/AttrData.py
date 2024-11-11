@@ -1452,7 +1452,7 @@ class Database(CoreModel):
 
         """
 
-        self.add_sectors_master, self.regions_clusters = _read_add_sectors(
+        self.add_sectors_master, self.regions_clusters, self.commodities_clusters = _read_add_sectors(
             path,
             master_sheet,
             regions_clusters_sheet,
