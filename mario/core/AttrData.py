@@ -91,6 +91,7 @@ from mario.tools.constants import (
     _ENUM,
     _ADD_SECTORS_MASTER_SHEET_COLUMNS,
     _ADD_SECTORS_REGIONS_CLUSTERS_SHEET_COLUMNS,
+    _ADD_SECTORS_COMMODITIES_CLUSTERS_SHEET_COLUMNS,
     _ADD_SECTORS_INVENTORY_SHEET_COLUMNS,
 )
 
@@ -1402,6 +1403,7 @@ class Database(CoreModel):
         path:str,
         master_sheet = "Master",
         regions_clusters_sheet = 'Regions Clusters',
+        commodities_clusters_sheet = 'Commodities Clusters',
     ):
         """
         Generates an Excel file to add multiple sectors/activities/commodities to a mario.Database
@@ -1421,6 +1423,8 @@ class Database(CoreModel):
             _ADD_SECTORS_MASTER_SHEET_COLUMNS[self.meta.table],
             regions_clusters_sheet,
             _ADD_SECTORS_REGIONS_CLUSTERS_SHEET_COLUMNS,
+            commodities_clusters_sheet,
+            _ADD_SECTORS_COMMODITIES_CLUSTERS_SHEET_COLUMNS,
             path
         )
         

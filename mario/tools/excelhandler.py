@@ -538,15 +538,19 @@ def _add_sector(
         master_columns,
         reg_map_name,
         reg_map_columns,
+        com_map_name,
+        com_map_columns,
         path
     ):
 
     master_sheet = pd.DataFrame(columns=list(master_columns.values()))
     regions_maps_sheet = pd.DataFrame(instance.get_index(_MASTER_INDEX['r']), columns=reg_map_columns) 
+    commodity_maps_sheet = pd.DataFrame(columns=com_map_columns) 
 
     with pd.ExcelWriter(path) as writer:
         master_sheet.to_excel(writer, sheet_name=master_name, index=False)
         regions_maps_sheet.to_excel(writer, sheet_name=reg_map_name, index=False)
+        commodity_maps_sheet.to_excel(writer, sheet_name=com_map_name, index=False)
 
     # add data validation...
 
