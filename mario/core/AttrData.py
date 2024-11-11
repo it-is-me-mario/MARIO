@@ -1412,6 +1412,7 @@ class Database(CoreModel):
             path (str): The path where the template will be generated.
             master_sheet (str): The name of the sheet that will contain the master data. Default is 'Master'.
             regions_clusters_sheet (str): The name of the sheet that will contain the clusters of regions. Default is 'Regions Clusters'.
+            commodities_clusters_sheet (str): The name of the sheet that will contain the clusters of commodities. Default is 'Commodities Clusters'.
 
         Returns:
             None
@@ -1436,6 +1437,7 @@ class Database(CoreModel):
         read_inventories:bool = False,
         master_sheet = "Master",
         regions_clusters_sheet = 'Regions Clusters',
+        commodities_clusters_sheet = 'Commodities Clusters',
     ):
         """
         Reads the master template from the specified path and performs necessary operations.
@@ -1446,6 +1448,7 @@ class Database(CoreModel):
             read_inventories (bool, optional): Flag indicating whether to read inventory templates if already filled. Defaults to False.
             master_sheet (str, optional): The name of the sheet that contains the master data. Defaults to 'Master'.
             regions_clusters_sheet (str, optional): The name of the sheet that contains the regions clusters. Defaults to 'Regions Clusters'.
+            commodities_clusters_sheet (str, optional): The name of the sheet that contains the commodities clusters. Defaults to 'Commodities Clusters'.
 
         """
 
@@ -1453,6 +1456,7 @@ class Database(CoreModel):
             path,
             master_sheet,
             regions_clusters_sheet,
+            commodities_clusters_sheet,
         )
 
         if self.meta.table == "IOT":

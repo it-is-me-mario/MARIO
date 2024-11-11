@@ -555,17 +555,18 @@ def _add_sector(
     # add data validation...
 
 
-def _read_add_sectors(path,master_name,reg_map_name):
+def _read_add_sectors(path,master_name,reg_map_name,com_map_name):
     
     master_file = pd.read_excel(path,sheet_name=None,header=0)
     master_sheet = master_file[master_name]
 
     regions_maps = {k:master_file[reg_map_name][k].dropna().to_list() for k in master_file[reg_map_name].columns}
+    commodity_maps = {k:master_file[com_map_name][k].dropna().to_list() for k in master_file[com_map_name].columns}
 
     # check_for_errors_in_region_maps(instance,regions_maps)
     # check_for_errors_in_master_sheet(instance,master_sheet,regions_maps)
 
-    return master_sheet, regions_maps
+    return master_sheet, regions_maps, commodity_maps
 
 def _read_add_inventories(instance,path):
     inventories = pd.read_excel(path,sheet_name=None,header=0,)
