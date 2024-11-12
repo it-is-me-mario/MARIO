@@ -1477,15 +1477,17 @@ class Database(CoreModel):
             self.new_sectors, self.parented_sectors, self.non_parented_sectors = _get_new_add_sectors_sets(self)
 
             for k,v in self.sectors_clusters.items():
-                if v in self.new_sectors:
-                    raise ValueError(f"Error in definition of sectors clusters. It seems one of the clusters contain a new sector and this is not allowed")
+                for s in v:
+                    if s in self.new_sectors:
+                        raise ValueError(f"Error in definition of sectors cluster {k}: sector {s} is among the new ones added to the table and cannot be included in clusters")
 
         if self.meta.table == "SUT":
             self.new_activities, self.new_commodities, self.parented_activities, self.non_parented_activities = _get_new_add_sectors_sets(self)
 
             for k,v in self.commodities_clusters.items():
-                if v in self.new_commodities:
-                    raise ValueError(f"Error in definition of commodities clusters. It seems one of the clusters contain a new commodity and this is not allowed")
+                for c in v:
+                    if c in self.new_commodities:
+                        raise ValueError(f"Error in definition of commodities cluster {k}: commodity {c} is among the new ones added to the table and cannot be included in clusters")
 
         if get_inventories:
             self.get_inventory_sheets(path)

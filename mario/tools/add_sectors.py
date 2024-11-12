@@ -392,7 +392,20 @@ class AddSectors:
                             DB_unit = DB_units[0]
                         else:
                             raise ValueError(f"Commodities in cluster {inventory.loc[i, INC['db_item']]} have different units")
-            
+
+                if self.table == 'IOT':
+                    if inventory.loc[i, INC['db_item']] in self.sectors:
+                        DB_unit = self.units[item].loc[inventory.loc[i, INC['db_item']],'unit']
+                    if inventory.loc[i, INC['db_item']] in self.db.sectors_clusters:
+                        DB_units = []
+                        for c in self.db.sectors_clusters[inventory.loc[i, INC['db_item']]]:
+                            DB_units += [self.units[item].loc[c,'unit']]
+                        if len(list(set(DB_units))) == 1:
+                            DB_unit = DB_units[0]
+                        else:
+                            raise ValueError(f"Sectors in cluster {inventory.loc[i, INC['db_item']]} have different units")
+
+
             elif item == MI['a']:
                 raise ValueError(f"{INC['item']} {item} is not recognized: activities cannot be supplied to other activities")
             elif item == MI['k']:
