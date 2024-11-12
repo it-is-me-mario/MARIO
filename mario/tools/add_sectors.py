@@ -384,6 +384,8 @@ class AddSectors:
                 if self.table == 'SUT':
                     if inventory.loc[i, INC['db_item']] in self.commodities:
                         DB_unit = self.units[item].loc[inventory.loc[i, INC['db_item']],'unit']
+                    if inventory.loc[i, INC['db_item']] in self.new_commodities:
+                        DB_unit = self.db.add_sectors_master.query(f"{MI['c']}==@inventory.loc[i, INC['db_item']]")[MSC[self.table]['unit']].values[0]
                     if inventory.loc[i, INC['db_item']] in self.db.commodities_clusters:
                         DB_units = []
                         for c in self.db.commodities_clusters[inventory.loc[i, INC['db_item']]]:
@@ -396,6 +398,8 @@ class AddSectors:
                 if self.table == 'IOT':
                     if inventory.loc[i, INC['db_item']] in self.sectors:
                         DB_unit = self.units[item].loc[inventory.loc[i, INC['db_item']],'unit']
+                    if inventory.loc[i, INC['db_item']] in self.new_sectors:
+                        DB_unit = self.db.add_sectors_master.query(f"{MI['s']}==@inventory.loc[i, INC['db_item']]")[MSC[self.table]['unit']].values[0]
                     if inventory.loc[i, INC['db_item']] in self.db.sectors_clusters:
                         DB_units = []
                         for c in self.db.sectors_clusters[inventory.loc[i, INC['db_item']]]:
