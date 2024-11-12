@@ -538,30 +538,36 @@ def _add_sector(
         master_columns,
         reg_map_name,
         reg_map_columns,
+        com_map_name,
+        com_map_columns,
         path
     ):
 
     master_sheet = pd.DataFrame(columns=list(master_columns.values()))
     regions_maps_sheet = pd.DataFrame(instance.get_index(_MASTER_INDEX['r']), columns=reg_map_columns) 
+    commodity_maps_sheet = pd.DataFrame(columns=com_map_columns) 
 
     with pd.ExcelWriter(path) as writer:
         master_sheet.to_excel(writer, sheet_name=master_name, index=False)
         regions_maps_sheet.to_excel(writer, sheet_name=reg_map_name, index=False)
+        commodity_maps_sheet.to_excel(writer, sheet_name=com_map_name, index=False)
 
     # add data validation...
 
 
-def _read_add_sectors(path,master_name,reg_map_name):
+def _read_add_sectors(path,master_name,reg_map_name,item_map_name):
     
     master_file = pd.read_excel(path,sheet_name=None,header=0)
     master_sheet = master_file[master_name]
 
     regions_maps = {k:master_file[reg_map_name][k].dropna().to_list() for k in master_file[reg_map_name].columns}
+    item_maps = {k:master_file[item_map_name][k].dropna().to_list() for k in master_file[item_map_name].columns}
 
     # check_for_errors_in_region_maps(instance,regions_maps)
     # check_for_errors_in_master_sheet(instance,master_sheet,regions_maps)
 
-    return master_sheet, regions_maps
+    return master_sheet, regions_maps, item_maps
+
 
 def _read_add_inventories(instance,path):
     inventories = pd.read_excel(path,sheet_name=None,header=0,)

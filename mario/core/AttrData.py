@@ -91,6 +91,7 @@ from mario.tools.constants import (
     _ENUM,
     _ADD_SECTORS_MASTER_SHEET_COLUMNS,
     _ADD_SECTORS_REGIONS_CLUSTERS_SHEET_COLUMNS,
+    _ADD_SECTORS_ITEMS_CLUSTERS_SHEET_COLUMNS,
     _ADD_SECTORS_INVENTORY_SHEET_COLUMNS,
 )
 
@@ -1410,17 +1411,25 @@ class Database(CoreModel):
             path (str): The path where the template will be generated.
             master_sheet (str): The name of the sheet that will contain the master data. Default is 'Master'.
             regions_clusters_sheet (str): The name of the sheet that will contain the clusters of regions. Default is 'Regions Clusters'.
+            commodities_clusters_sheet (str): The name of the sheet that will contain the clusters of commodities. Default is 'Commodities Clusters'.
 
         Returns:
             None
         """
 
+        if self.meta.table == "IOT":
+            items_clusters_sheet = 'Sectors Clusters'
+        if self.meta.table == "SUT":
+            items_clusters_sheet = 'Commodities Clusters'
+        
         _add_sector(
             self,
             master_sheet,
             _ADD_SECTORS_MASTER_SHEET_COLUMNS[self.meta.table],
             regions_clusters_sheet,
             _ADD_SECTORS_REGIONS_CLUSTERS_SHEET_COLUMNS,
+            items_clusters_sheet,
+            _ADD_SECTORS_ITEMS_CLUSTERS_SHEET_COLUMNS,
             path
         )
         
@@ -1442,20 +1451,43 @@ class Database(CoreModel):
             read_inventories (bool, optional): Flag indicating whether to read inventory templates if already filled. Defaults to False.
             master_sheet (str, optional): The name of the sheet that contains the master data. Defaults to 'Master'.
             regions_clusters_sheet (str, optional): The name of the sheet that contains the regions clusters. Defaults to 'Regions Clusters'.
+            commodities_clusters_sheet (str, optional): The name of the sheet that contains the commodities clusters. Defaults to 'Commodities Clusters'.
 
         """
 
-        self.add_sectors_master, self.regions_clusters = _read_add_sectors(
-            path,
-            master_sheet,
-            regions_clusters_sheet,
-        )
+        if self.meta.table == "IOT":
+            items_clusters_sheet = 'Sectors Clusters'
+            self.add_sectors_master, self.regions_clusters, self.sectors_clusters = _read_add_sectors(
+                path,
+                master_sheet,
+                regions_clusters_sheet,
+                items_clusters_sheet,
+            )
+
+        if self.meta.table == "SUT":
+            items_clusters_sheet = 'Commodities Clusters'
+            self.add_sectors_master, self.regions_clusters, self.commodities_clusters = _read_add_sectors(
+                path,
+                master_sheet,
+                regions_clusters_sheet,
+                items_clusters_sheet,
+            )
 
         if self.meta.table == "IOT":
             self.new_sectors, self.parented_sectors, self.non_parented_sectors = _get_new_add_sectors_sets(self)
 
+            for k,v in self.sectors_clusters.items():
+                for s in v:
+                    if s in self.new_sectors:
+                        raise ValueError(f"Error in definition of sectors cluster {k}: sector {s} is among the new ones added to the table and cannot be included in clusters")
+
         if self.meta.table == "SUT":
             self.new_activities, self.new_commodities, self.parented_activities, self.non_parented_activities = _get_new_add_sectors_sets(self)
+
+            for k,v in self.commodities_clusters.items():
+                for c in v:
+                    if c in self.new_commodities:
+                        raise ValueError(f"Error in definition of commodities cluster {k}: commodity {c} is among the new ones added to the table and cannot be included in clusters")
 
         if get_inventories:
             self.get_inventory_sheets(path)
