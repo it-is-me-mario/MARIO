@@ -1457,21 +1457,35 @@ class Database(CoreModel):
 
         if self.meta.table == "IOT":
             items_clusters_sheet = 'Sectors Clusters'
+            self.add_sectors_master, self.regions_clusters, self.sectors_clusters = _read_add_sectors(
+                path,
+                master_sheet,
+                regions_clusters_sheet,
+                items_clusters_sheet,
+            )
+
         if self.meta.table == "SUT":
             items_clusters_sheet = 'Commodities Clusters'
-
-        self.add_sectors_master, self.regions_clusters, self.commodities_clusters = _read_add_sectors(
-            path,
-            master_sheet,
-            regions_clusters_sheet,
-            items_clusters_sheet,
-        )
+            self.add_sectors_master, self.regions_clusters, self.commodities_clusters = _read_add_sectors(
+                path,
+                master_sheet,
+                regions_clusters_sheet,
+                items_clusters_sheet,
+            )
 
         if self.meta.table == "IOT":
             self.new_sectors, self.parented_sectors, self.non_parented_sectors = _get_new_add_sectors_sets(self)
 
+            for k,v in self.sectors_clusters.items():
+                if v in self.new_sectors:
+                    raise ValueError(f"Error in definition of sectors clusters. It seems one of the clusters contain a new sector and this is not allowed")
+
         if self.meta.table == "SUT":
             self.new_activities, self.new_commodities, self.parented_activities, self.non_parented_activities = _get_new_add_sectors_sets(self)
+
+            for k,v in self.commodities_clusters.items():
+                if v in self.new_commodities:
+                    raise ValueError(f"Error in definition of commodities clusters. It seems one of the clusters contain a new commodity and this is not allowed")
 
         if get_inventories:
             self.get_inventory_sheets(path)
