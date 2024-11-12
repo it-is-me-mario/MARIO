@@ -549,9 +549,9 @@ class AddSectors:
                 if region_from in self.regions:
                     
                     if self.table == 'SUT':
-                        if input_item in self.commodities:
+                        if input_item in self.commodities or input_item in self.new_commodities:
                             slices[_ENUM['u']].loc[(region_from,MI['c'],input_item),(region_to,MI['a'],activity)] += quantity
-                        
+                                                
                         if input_item in self.db.commodities_clusters:
                             com_use = self.matrices[_ENUM['u']].loc[(region_from,sn,self.db.commodities_clusters[input_item]),(region_to,sn,sn)]  
                             u_share = com_use.sum(1)/com_use.sum().sum()*quantity
@@ -561,7 +561,7 @@ class AddSectors:
                             slices[_ENUM['u']].loc[u_share.index,u_share.columns] += u_share.values
 
                     if self.table == 'IOT':
-                        if input_item in self.sectors:
+                        if input_item in self.sectors or input_item in self.new_sectors:
                             slices[_ENUM['z']].loc[(region_from,MI['s'],input_item),(region_to,MI['s'],activity)] += quantity
                         
                         if input_item in self.db.sectors_clusters:
@@ -613,7 +613,7 @@ class AddSectors:
                                 
                     else:
                         if self.table == 'SUT':
-                            if input_item in self.commodities:
+                            if input_item in self.commodities or input_item in self.new_commodities:
                                 slices[_ENUM['u']].loc[(region_to,MI['c'],input_item),(region_to,MI['a'],activity)] += quantity
                             
                             if input_item in self.db.commodities_clusters:
@@ -625,7 +625,7 @@ class AddSectors:
                                 slices[_ENUM['u']].loc[u_share.index,u_share.columns] += u_share.values
                         
                         if self.table == 'IOT':
-                            if input_item in self.sectors:
+                            if input_item in self.sectors or input_item in self.new_sectors:
                                 slices[_ENUM['z']].loc[(region_to,MI['s'],input_item),(region_to,MI['s'],activity)] += quantity
                             
                             if input_item in self.db.sectors_clusters:
