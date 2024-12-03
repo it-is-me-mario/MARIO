@@ -15,6 +15,7 @@ from mario.tools.tableparser import (
     parse_pymrio,
     hybrid_sut_exiobase_reader,
     parser_figaro_sut,
+    parser_figaro_e3,
 )
 
 from mario.log_exc.exceptions import WrongInput, LackOfInput
@@ -643,3 +644,37 @@ def parse_FIGARO_SUT(
     )
 
 
+def parse_FIGARO_E3(
+        path:str, 
+        name:str = None, 
+        calc_all:bool = False, 
+        **kwargs
+    ):
+
+    """Download and parse a FIGARO SUT table
+
+    Parameters
+    ----------
+    path : str
+        the folder where the files are downloaded
+    name : str, optional
+        a name for the database, by default None
+    calc_all : bool, optional
+        calacualtes all the missing matrices, by default False
+
+    Returns
+    -------
+    mario.Database
+        mario database object
+    """
+
+    matrices, indeces, units = parser_figaro_e3(path)
+
+    return models["Database"](
+        name=name,
+        table="SUT",
+        source="eurostat (https://data.jrc.ec.europa.eu/collection/id-00403)",
+        init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
+        calc_all=calc_all,
+        **kwargs,
+    )
