@@ -159,5 +159,7 @@ import mario
 path = '/Users/lorenzorinaldi/Library/CloudStorage/OneDrive-SharedLibraries-PolitecnicodiMilano/DENG-SESAM - Documenti/c-Research/a-Datasets/FIGARO E3'
 
 db = mario.parse_FIGARO_E3(path)
+
 # %%
 db
+# %%

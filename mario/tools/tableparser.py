@@ -1680,8 +1680,8 @@ def parser_figaro_e3(path):
             _ENUM['V']: V,
             _ENUM['E']: E,
             _ENUM['EY']: EY,
-            _ENUM['X']: X,
-        }
+            _ENUM['X']: X,  
+        }   
     }
 
     for key, df in matrices['baseline'].items():
