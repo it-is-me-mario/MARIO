@@ -100,6 +100,12 @@ from mario.settings.settings import (
     Nomenclature,
     Index,
 )
+
+from mario.tools.handshkare_parsers import (
+    parse_exiobase_3_9_4,
+    parse_oecd
+    )
+
 from mario.tools.constants import IOT, SUT
 
 

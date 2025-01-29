@@ -113,6 +113,8 @@ mario supports automatic parsing of following database:
     mario.parse
     mario.hybrid_sut_exiobase
     mario.parse_exiobase
+    mario.parse_oecd
+
 
 Non-Structured Databases
 ------------------------
