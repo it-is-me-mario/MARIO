@@ -15,6 +15,8 @@ Examples
   examples/tutorial_parse_exiobase_hybrid/tutorial_parse_exiobase_hybrid
   examples/tutorial_parse_exiobase_monetary/tutorial_parse_exiobase_monetary
   examples/tutorial_parse_custom_database/tutorial_parse_custom_database
+  examples/tutorial_hand_shakes/tutorial_hand_shakes
+
 
 
 
