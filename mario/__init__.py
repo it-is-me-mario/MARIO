@@ -101,7 +101,7 @@ from mario.settings.settings import (
     Index,
 )
 
-from mario.tools.handshkare_parsers import (
+from mario.tools.handshake_parsers import (
     parse_exiobase_3_9_4,
     parse_oecd
     )

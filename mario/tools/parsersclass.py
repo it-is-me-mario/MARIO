@@ -16,7 +16,7 @@ from mario.tools.tableparser import (
     hybrid_sut_exiobase_reader,
     parser_figaro_sut,
 )
-from mario.tools.handshkare_parsers import (
+from mario.tools.handshake_parsers import (
     parse_exiobase_3_9_4,
     parse_oecd
     )
@@ -234,7 +234,7 @@ def parse_exiobase_3(
     year: int = None,
     name: str = None,
     model: str = "Database",
-    version: str = "3.8.2",
+    version: str = "3.9.4",
     **kwargs,
 ):
     """Parsing Multi-Regional Input-Output Table from Exiobase
