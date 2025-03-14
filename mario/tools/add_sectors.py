@@ -672,9 +672,9 @@ class AddSectors:
 
             if change_type == 'Update':
                 if self.table == 'SUT':
-                    slices[matrix].loc[input_item, (region_to, MI['a'], activity)] += quantity
+                    slices[matrix].loc[input_item, (region_to, MI['a'], activity)] = quantity
                 if self.table == 'IOT':
-                    slices[matrix].loc[input_item, (region_to, MI['s'], activity)] += quantity
+                    slices[matrix].loc[input_item, (region_to, MI['s'], activity)] = quantity
 
             if change_type == 'Percentage':
                 if self.table == 'SUT':
@@ -688,7 +688,7 @@ class AddSectors:
                     if activity in self.parented_sectors:
                         parent_sector = self.db.add_sectors_master.query(f"{MI['s']}==@activity")[MSC[self.table]['ps']].values[0]
                         old_value = self.matrices[matrix].loc[input_item, (region_to, MI['s'], parent_sector)]
-                        slices[matrix].loc[input_item, (region_to, MI['s'], activity)] += old_value*(1+quantity)
+                        slices[matrix].loc[input_item, (region_to, MI['s'], activity)] = old_value*(1+quantity)
                     else:
                         raise ValueError(f"It's not possible to apply a percentage change to activity {activity} because it has no parent activity")
         
