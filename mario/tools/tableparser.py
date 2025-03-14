@@ -1684,10 +1684,14 @@ def parser_figaro_e3(path):
         }   
     }
 
-    for key, df in matrices['baseline'].items():
-        df.sort_index(axis=0, level=list(range(df.index.nlevels)), inplace=True)
-        df.sort_index(axis=1, level=list(range(df.columns.nlevels)), inplace=True)
-        matrices['baseline'][key] = df
+    # for key, df in matrices['baseline'].items():
+    #     df.sort_index(axis=0, level=list(range(df.index.nlevels)), inplace=True)
+    #     df.sort_index(axis=1, level=list(range(df.columns.nlevels)), inplace=True)
+    #     matrices['baseline'][key] = df
+    
+    rename_index(matrices["baseline"])
+    sort_frames(matrices["baseline"])
+
 
     indeces = {
         'a':{'main': sets[_MASTER_INDEX['a']]},
