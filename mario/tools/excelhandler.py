@@ -666,7 +666,9 @@ def _inventory_templates(
 
     inventory_sheet = pd.DataFrame(columns=list(inv_columns.values()))
     units_sheet = pd.DataFrame()
-    for item,unit in instance.units.items():
+    db_units = copy.deepcopy(instance.units)
+
+    for item,unit in db_units.items():
         unit_index = pd.MultiIndex.from_arrays([[item for i in range(unit.shape[0])],list(unit.index)])
         unit.index = unit_index
         units_sheet = pd.concat([units_sheet,unit],axis=0)

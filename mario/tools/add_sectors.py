@@ -26,8 +26,8 @@ _matrix_slices_map = {
     },
     'IOT': {
         'z':{0:MI['s'],1:MI['s'],'concat':1},
-        'e':{0:MI['k'],1:MI['a'],'concat':1},
-        'v':{0:MI['f'],1:MI['a'],'concat':1},
+        'e':{0:MI['k'],1:MI['s'],'concat':1},
+        'v':{0:MI['f'],1:MI['s'],'concat':1},
         'Y':{0:MI['s'],1:MI['n'],'concat':0},
     },
 }
@@ -671,7 +671,11 @@ class AddSectors:
             change_type = inventory.loc[i, INC['change']]
 
             if change_type == 'Update':
-                slices[matrix].loc[input_item, (region_to, MI['a'], activity)] += quantity
+                if self.table == 'SUT':
+                    slices[matrix].loc[input_item, (region_to, MI['a'], activity)] += quantity
+                if self.table == 'IOT':
+                    slices[matrix].loc[input_item, (region_to, MI['s'], activity)] += quantity
+
             if change_type == 'Percentage':
                 if self.table == 'SUT':
                     if activity in self.parented_activities:
