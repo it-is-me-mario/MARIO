@@ -1583,6 +1583,9 @@ class Database(CoreModel):
                 _ENUM.e: self.get_data(matrices=[_ENUM.e],scenarios=[scenario])[scenario][0],
                 _ENUM.v: self.get_data(matrices=[_ENUM.v],scenarios=[scenario])[scenario][0],
                 _ENUM.Y: self.get_data(matrices=[_ENUM.Y],scenarios=[scenario])[scenario][0],
+                _ENUM.Z: self.get_data(matrices=[_ENUM.Z],scenarios=[scenario])[scenario][0],
+                _ENUM.E: self.get_data(matrices=[_ENUM.E],scenarios=[scenario])[scenario][0],
+                _ENUM.V: self.get_data(matrices=[_ENUM.V],scenarios=[scenario])[scenario][0],
             }
             
             if io != 'inventories':
@@ -1595,6 +1598,9 @@ class Database(CoreModel):
                 new_matrices, new_units, new_indeces = add_sectors_class.to_sut()
             
             new_matrices[_ENUM.EY] = self.get_data(matrices=[_ENUM.EY],scenarios=[scenario])[scenario][0]
+            del new_matrices[_ENUM.Z]
+            del new_matrices[_ENUM.E]
+            del new_matrices[_ENUM.V]
 
             # return a new mario Database instance
             new_matrices = {'baseline': new_matrices}  

@@ -324,6 +324,7 @@ class AddSectors:
                 parent_activity = self.db.add_sectors_master.query(f"`{MSC[self.table]['inv_sheet']}`==@sheet_name")[MSC[self.table]['ps']].values[0]
             
             if pd.isna(parent_activity) == False: 
+                # add check whether parent is a new sector/activity (raise error in case)
                 slices = self.copy_from_parent(activity,parent_activity,target_regions,slices,inventory)
 
             inventory = self.make_units_consistent_to_database(inventory) 
@@ -395,6 +396,9 @@ class AddSectors:
                             DB_unit = DB_units[0]
                         else:
                             raise ValueError(f"Commodities in cluster {inventory.loc[i, INC['db_item']]} have different units")
+                    else:
+                        raise ValueError(f"Issues in converting unit")
+
 
                 if self.table == 'IOT':
                     if inventory.loc[i, INC['db_item']] in self.sectors:
@@ -410,7 +414,8 @@ class AddSectors:
                             DB_unit = DB_units[0]
                         else:
                             raise ValueError(f"Sectors in cluster {inventory.loc[i, INC['db_item']]} have different units")
-
+                    else:
+                        raise ValueError(f"Issues in converting unit")
 
             elif item == MI['a']:
                 raise ValueError(f"{INC['item']} {item} is not recognized: activities cannot be supplied to other activities")
@@ -550,27 +555,27 @@ class AddSectors:
                     
                     if self.table == 'SUT':
                         if input_item in self.commodities or input_item in self.new_commodities:
-                            slices[_ENUM['u']].loc[(region_from,MI['c'],input_item),(region_to,MI['a'],activity)] += quantity
+                            slices[_ENUM['u']].loc[(region_from,MI['c'],input_item),(region_to,MI['a'],activity)] = quantity
                                                 
                         if input_item in self.db.commodities_clusters:
-                            com_use = self.matrices[_ENUM['u']].loc[(region_from,sn,self.db.commodities_clusters[input_item]),(region_to,sn,sn)]  
+                            com_use = self.matrices[_ENUM['Z']].loc[(region_from,MI['c'],self.db.commodities_clusters[input_item]),(region_to,MI['a'],sn)]  
                             u_share = com_use.sum(1)/com_use.sum().sum()*quantity
                             if isinstance(u_share,pd.Series):
                                 u_share = u_share.to_frame()
                             u_share.columns = pd.MultiIndex.from_arrays([[region_to],[MI['a']],[activity]])
-                            slices[_ENUM['u']].loc[u_share.index,u_share.columns] += u_share.values
+                            slices[_ENUM['u']].loc[u_share.index,u_share.columns] = u_share.values
 
                     if self.table == 'IOT':
                         if input_item in self.sectors or input_item in self.new_sectors:
                             slices[_ENUM['z']].loc[(region_from,MI['s'],input_item),(region_to,MI['s'],activity)] += quantity
                         
                         if input_item in self.db.sectors_clusters:
-                            com_use = self.matrices[_ENUM['z']].loc[(region_from,sn,self.db.sectors_clusters[input_item]),(region_to,sn,sn)]
+                            com_use = self.matrices[_ENUM['Z']].loc[(region_from,sn,self.db.sectors_clusters[input_item]),(region_to,sn,sn)]
                             z_share = com_use.sum(1)/com_use.sum().sum()*quantity
                             if isinstance(z_share,pd.Series):
                                 z_share = z_share.to_frame()
                             z_share.columns = pd.MultiIndex.from_arrays([[region_to],[MI['s']],[activity]])
-                            slices[_ENUM['z']].loc[z_share.index,z_share.columns] += z_share.values
+                            slices[_ENUM['z']].loc[z_share.index,z_share.columns] = z_share.values
 
 
                 elif region_from in self.db.regions_clusters:
@@ -578,43 +583,43 @@ class AddSectors:
 
                         if self.table == 'SUT':
                             if input_item in self.commodities:
-                                com_use = self.matrices[_ENUM['u']].loc[(self.db.regions_clusters[region_from],sn,input_item),(region_to,sn,sn)]                    
+                                com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],sn,input_item),(region_to,sn,sn)]                    
                                 u_share = com_use.sum(1)/com_use.sum().sum()*quantity
                                 if isinstance(u_share,pd.Series):
                                     u_share = u_share.to_frame()
                                 u_share.columns = pd.MultiIndex.from_arrays([[region_to],[MI['a']],[activity]])
-                                slices[_ENUM['u']].loc[u_share.index,u_share.columns] += u_share.values
+                                slices[_ENUM['u']].loc[u_share.index,u_share.columns] = u_share.values
                             
                             if input_item in self.db.commodities_clusters:
-                                com_use = self.matrices[_ENUM['u']].loc[(self.db.regions_clusters[region_from],sn,self.db.commodities_clusters[input_item]),(region_to,sn,sn)]                    
+                                com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],sn,self.db.commodities_clusters[input_item]),(region_to,sn,sn)]                    
                                 u_share = com_use.sum(1)/com_use.sum().sum()*quantity
                                 if isinstance(u_share,pd.Series):
                                     u_share = u_share.to_frame()
                                 u_share.columns = pd.MultiIndex.from_arrays([[region_to],[MI['a']],[activity]])
-                                slices[_ENUM['u']].loc[u_share.index,u_share.columns] += u_share.values
+                                slices[_ENUM['u']].loc[u_share.index,u_share.columns] = u_share.values
 
                             
                         if self.table == 'IOT':
                             if input_item in self.sectors:
-                                com_use = self.matrices[_ENUM['z']].loc[(self.db.regions_clusters[region_from],sn,input_item),(region_to,sn,sn)]
+                                com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],sn,input_item),(region_to,sn,sn)]
                                 z_share = com_use.sum(1)/com_use.sum().sum()*quantity
                                 if isinstance(z_share,pd.Series):
                                     z_share = z_share.to_frame()
                                 z_share.columns = pd.MultiIndex.from_arrays([[region_to],[MI['s']],[activity]])
-                                slices[_ENUM['z']].loc[z_share.index,z_share.columns] += z_share.values
+                                slices[_ENUM['z']].loc[z_share.index,z_share.columns] = z_share.values
 
                             if input_item in self.db.sectors_clusters:
-                                com_use = self.matrices[_ENUM['z']].loc[(self.db.regions_clusters[region_from],sn,self.db.sectors_clusters[input_item]),(region_to,sn,sn)]
+                                com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],sn,self.db.sectors_clusters[input_item]),(region_to,sn,sn)]
                                 z_share = com_use.sum(1)/com_use.sum().sum()*quantity
                                 if isinstance(z_share,pd.Series):
                                     z_share = z_share.to_frame()
                                 z_share.columns = pd.MultiIndex.from_arrays([[region_to],[MI['s']],[activity]])
-                                slices[_ENUM['z']].loc[z_share.index,z_share.columns] += z_share.values
+                                slices[_ENUM['z']].loc[z_share.index,z_share.columns] = z_share.values
                                 
                     else:
                         if self.table == 'SUT':
                             if input_item in self.commodities or input_item in self.new_commodities:
-                                slices[_ENUM['u']].loc[(region_to,MI['c'],input_item),(region_to,MI['a'],activity)] += quantity
+                                slices[_ENUM['u']].loc[(region_to,MI['c'],input_item),(region_to,MI['a'],activity)] = quantity
                             
                             if input_item in self.db.commodities_clusters:
                                 com_use = self.matrices[_ENUM['u']].loc[(region_to,sn,self.db.commodities_clusters[input_item]),(region_to,sn,sn)]                    
@@ -622,11 +627,11 @@ class AddSectors:
                                 if isinstance(u_share,pd.Series):
                                     u_share = u_share.to_frame()
                                 u_share.columns = pd.MultiIndex.from_arrays([[region_to],[MI['a']],[activity]])
-                                slices[_ENUM['u']].loc[u_share.index,u_share.columns] += u_share.values
+                                slices[_ENUM['u']].loc[u_share.index,u_share.columns] = u_share.values
                         
                         if self.table == 'IOT':
                             if input_item in self.sectors or input_item in self.new_sectors:
-                                slices[_ENUM['z']].loc[(region_to,MI['s'],input_item),(region_to,MI['s'],activity)] += quantity
+                                slices[_ENUM['z']].loc[(region_to,MI['s'],input_item),(region_to,MI['s'],activity)] = quantity
                             
                             if input_item in self.db.sectors_clusters:
                                 com_use = self.matrices[_ENUM['z']].loc[(region_to,sn,self.db.sectors_clusters[input_item]),(region_to,sn,sn)]                    
@@ -634,7 +639,7 @@ class AddSectors:
                                 if isinstance(z_share,pd.Series):
                                     z_share = z_share.to_frame()
                                 z_share.columns = pd.MultiIndex.from_arrays([[region_to],[MI['s']],[activity]])
-                                slices[_ENUM['z']].loc[z_share.index,z_share.columns] += z_share
+                                slices[_ENUM['z']].loc[z_share.index,z_share.columns] = z_share
 
         return slices
     
