@@ -1551,7 +1551,7 @@ def load_figaro_metadata():
     return pd.read_csv(f"{path}/figaro_metadata.csv", index_col=0, sep=",")
 
 
-def parser_figaro_e3(path):
+def parser_figaro_e3(path,doping_value):
 
     data = {}
     for file in _FIGAROE3_FILENAMES:
@@ -1673,6 +1673,13 @@ def parser_figaro_e3(path):
     EY = pd.DataFrame(0,index=E.index,columns=Y.columns)
     X = calc_X(Z, Y)
 
+
+    #Doping Z because it is singular
+    for r in sets[_MASTER_INDEX['r']]:
+        for a in sets[_MASTER_INDEX['a']]:
+            if Z.loc[(r,_MASTER_INDEX['a'],a),(r,_MASTER_INDEX['a'],a)] == 0:
+                Z.loc[(r,_MASTER_INDEX['a'],a),(r,_MASTER_INDEX['a'],a)] = doping_value
+
     matrices = {
         'baseline': {
             _ENUM['Z']: Z,
@@ -1683,11 +1690,6 @@ def parser_figaro_e3(path):
             _ENUM['X']: X,  
         }   
     }
-
-    # for key, df in matrices['baseline'].items():
-    #     df.sort_index(axis=0, level=list(range(df.index.nlevels)), inplace=True)
-    #     df.sort_index(axis=1, level=list(range(df.columns.nlevels)), inplace=True)
-    #     matrices['baseline'][key] = df
     
     rename_index(matrices["baseline"])
     sort_frames(matrices["baseline"])

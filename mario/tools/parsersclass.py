@@ -648,6 +648,7 @@ def parse_FIGARO_E3(
         path:str, 
         name:str = None, 
         calc_all:bool = False, 
+        doping_value = 1e-10,
         **kwargs
     ):
 
@@ -661,6 +662,8 @@ def parse_FIGARO_E3(
         a name for the database, by default None
     calc_all : bool, optional
         calacualtes all the missing matrices, by default False
+    doping_value : float, optional
+        a value to add to the diagonal of the Z matrix to avoid singularity issues, by default 1e-10
 
     Returns
     -------
@@ -668,7 +671,7 @@ def parse_FIGARO_E3(
         mario database object
     """
 
-    matrices, indeces, units = parser_figaro_e3(path)
+    matrices, indeces, units = parser_figaro_e3(path, doping_value)
 
     return models["Database"](
         name=name,
