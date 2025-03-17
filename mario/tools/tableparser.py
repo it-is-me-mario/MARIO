@@ -1675,6 +1675,7 @@ def parser_figaro_e3(path,doping_value):
 
 
     #Doping Z because it is singular
+    print(f"Replacing null values on Z diagional with {doping_value} to avoid singularity issues")
     for r in sets[_MASTER_INDEX['r']]:
         for a in sets[_MASTER_INDEX['a']]:
             if Z.loc[(r,_MASTER_INDEX['a'],a),(r,_MASTER_INDEX['a'],a)] == 0:

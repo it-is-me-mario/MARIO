@@ -671,7 +671,11 @@ def parse_FIGARO_E3(
         mario database object
     """
 
+    if doping_value == 0:
+        raise WrongInput("Doping value should not be zero")
+    
     matrices, indeces, units = parser_figaro_e3(path, doping_value)
+    notes = ['Null values on Z diagonal are replaced with {} to avoid singularity issues'.format(doping_value)]
 
     return models["Database"](
         name=name,
@@ -679,5 +683,6 @@ def parse_FIGARO_E3(
         source="eurostat (https://data.jrc.ec.europa.eu/collection/id-00403)",
         init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
         calc_all=calc_all,
+        notes = notes,
         **kwargs,
     )
