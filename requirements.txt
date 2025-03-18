@@ -8,4 +8,5 @@ pytest
 pandas == 2.2.3
 pyyaml
 xlsxwriter == 3.2.0
+pint == 0.24.3
 flexparser == 0.3.1 # due to issues in pint. check before releasing if pint was fixed meanwhile
