@@ -598,7 +598,7 @@ class AddSectors:
                                 slices[_ENUM['u']].loc[u_share.index,u_share.columns] += u_share.values
                             
                             if input_item in self.db.commodities_clusters:
-                                com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],MI['c'],self.db.commodities_clusters[input_item]),(region_to,MI['a'],sn)]                    
+                                com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],MI['s'],self.db.commodities_clusters[input_item]),(region_to,MI['a'],sn)]                    
                                 u_share = com_use.sum(1)/com_use.sum().sum()*quantity
                                 if isinstance(u_share,pd.Series):
                                     u_share = u_share.to_frame()
@@ -641,7 +641,7 @@ class AddSectors:
                                 slices[_ENUM['z']].loc[(region_to,MI['s'],input_item),(region_to,MI['s'],activity)] += quantity
                             
                             if input_item in self.db.sectors_clusters:
-                                com_use = self.matrices[_ENUM['z']].loc[(region_to,sn,self.db.sectors_clusters[input_item]),(region_to,sn,sn)]                    
+                                com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],sn,self.db.sectors_clusters[input_item]),(region_to,sn,sn)]                    
                                 z_share = com_use.sum(1)/com_use.sum().sum()*quantity
                                 if isinstance(z_share,pd.Series):
                                     z_share = z_share.to_frame()
