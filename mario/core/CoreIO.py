@@ -665,8 +665,8 @@ class CoreModel:
         matrix = matrix.loc[
             (sN, _MASTER_INDEX["a"], sN), (sN, _MASTER_INDEX["c"], sN)
         ]  # extract the supply side from z or Z
-        matrix = matrix.groupby(level=[_MASTER_INDEX["r"]]).sum()
-        matrix = matrix.T.groupby(level=[_MASTER_INDEX["r"]]).sum().T
+        matrix = matrix.groupby(level=[0]).sum()
+        matrix = matrix.T.groupby(level=[0]).sum().T
 
         is_diagonal = np.all(matrix.values == np.diag(np.diagonal(matrix)))
 

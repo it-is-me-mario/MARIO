@@ -30,8 +30,11 @@ from mario.tools.utilities import (
 from mario.tools.excelhandler import (
     database_excel,
     database_txt,
-    _add_sector_iot,
-    _add_sector_sut,
+    _add_sector,
+    _read_add_sectors,
+    _get_new_add_sectors_sets,
+    _inventory_templates,
+    _read_add_inventories,
     _sh_excel,
 )
 
@@ -64,7 +67,7 @@ from mario.tools.iomath import (
     linkages_calculation,
 )
 
-from mario.tools.sectoradd import add_new_sector
+from mario.tools.add_sectors import AddSectors
 
 from collections import namedtuple
 import plotly.offline as pltly
@@ -86,6 +89,10 @@ from mario.tools.constants import (
     _MATRICES_NAMES,
     _PYMRIO_MATRICES,
     _ENUM,
+    _ADD_SECTORS_MASTER_SHEET_COLUMNS,
+    _ADD_SECTORS_REGIONS_CLUSTERS_SHEET_COLUMNS,
+    _ADD_SECTORS_ITEMS_CLUSTERS_SHEET_COLUMNS,
+    _ADD_SECTORS_INVENTORY_SHEET_COLUMNS,
 )
 
 from mario.core.CoreIO import CoreModel
@@ -1390,179 +1397,237 @@ class Database(CoreModel):
 
         return io
 
-    def get_add_sectors_excel(self, new_sectors, regions, path=None, item=None):
-        """Generates an Excel file to add a sector/activity/commodity to the database
 
-        Parameters
-        ----------
-        new_sectors : list
-            new sectors/activities/commodities to be added to the database
+    def get_add_sectors_excel(
+        self,
+        path:str,
+        master_sheet = "Master",
+        regions_clusters_sheet = 'Regions Clusters',
+    ):
+        """
+        Generates an Excel file to add multiple sectors/activities/commodities to a mario.Database
 
-        regions : list
-            specific regions that the new technology will be specified
+        Args:
+            path (str): The path where the template will be generated.
+            master_sheet (str): The name of the sheet that will contain the master data. Default is 'Master'.
+            regions_clusters_sheet (str): The name of the sheet that will contain the clusters of regions. Default is 'Regions Clusters'.
+            commodities_clusters_sheet (str): The name of the sheet that will contain the clusters of commodities. Default is 'Commodities Clusters'.
 
-        path : str
-            the path in which the Excel file will be saved (path should contain the name of file like 'path\\add_sector.xlsx')
+        Returns:
+            None
+        """
 
-        item : str
-            the item to be added. Sector for IOT table and Activity or Commodity for SUT
+        if self.meta.table == "IOT":
+            items_clusters_sheet = 'Sectors Clusters'
+        if self.meta.table == "SUT":
+            items_clusters_sheet = 'Commodities Clusters'
+        
+        _add_sector(
+            self,
+            master_sheet,
+            _ADD_SECTORS_MASTER_SHEET_COLUMNS[self.meta.table],
+            regions_clusters_sheet,
+            _ADD_SECTORS_REGIONS_CLUSTERS_SHEET_COLUMNS,
+            items_clusters_sheet,
+            _ADD_SECTORS_ITEMS_CLUSTERS_SHEET_COLUMNS,
+            path
+        )
+        
+
+    def read_add_sectors_excel(
+        self,
+        path:str,
+        get_inventories:bool = False,
+        read_inventories:bool = False,
+        master_sheet = "Master",
+        regions_clusters_sheet = 'Regions Clusters',
+    ):
+        """
+        Reads the master template from the specified path and performs necessary operations.
+
+        Args:
+            path (str): The path to the master template file.
+            get_inventories (bool, optional): Flag indicating whether to get inventory templates. Defaults to False.
+            read_inventories (bool, optional): Flag indicating whether to read inventory templates if already filled. Defaults to False.
+            master_sheet (str, optional): The name of the sheet that contains the master data. Defaults to 'Master'.
+            regions_clusters_sheet (str, optional): The name of the sheet that contains the regions clusters. Defaults to 'Regions Clusters'.
+            commodities_clusters_sheet (str, optional): The name of the sheet that contains the commodities clusters. Defaults to 'Commodities Clusters'.
 
         """
 
-        if (not isinstance(regions, list)) and (not isinstance(new_sectors, list)):
-            raise WrongInput("'regions' and 'new_sectors' should be a list.")
-
-        difference = set(regions).difference(self.get_index(_MASTER_INDEX["r"]))
-
-        if difference:
-            raise WrongInput(
-                "Regions: {} do not exist in the database. Existing regions are:\n{}".format(
-                    difference,
-                    self.get_index(_MASTER_INDEX["r"]),
-                )
+        if self.meta.table == "IOT":
+            items_clusters_sheet = 'Sectors Clusters'
+            self.add_sectors_master, self.regions_clusters, self.sectors_clusters = _read_add_sectors(
+                path,
+                master_sheet,
+                regions_clusters_sheet,
+                items_clusters_sheet,
             )
 
         if self.meta.table == "SUT":
-            if item not in [_MASTER_INDEX["c"], _MASTER_INDEX["a"]]:
-                raise WrongInput(
-                    "For SUT, item should be {} or {}".format(
-                        _MASTER_INDEX["c"], _MASTER_INDEX["a"]
-                    )
-                )
-            _add_sector_sut(
-                self,
-                new_sectors,
-                regions,
-                self._getdir(path, "Excels", "add_sectors.xlsx"),
-                item,
-                num_validation=30,
+            items_clusters_sheet = 'Commodities Clusters'
+            self.add_sectors_master, self.regions_clusters, self.commodities_clusters = _read_add_sectors(
+                path,
+                master_sheet,
+                regions_clusters_sheet,
+                items_clusters_sheet,
             )
 
-        else:
-            _add_sector_iot(
-                self,
-                new_sectors,
-                regions,
-                self._getdir(path, "Excels", "add_sectors.xlsx"),
-                num_validation=30,
-            )
+        if self.meta.table == "IOT":
+            self.new_sectors, self.parented_sectors, self.non_parented_sectors = _get_new_add_sectors_sets(self)
 
+            for k,v in self.sectors_clusters.items():
+                for s in v:
+                    if s in self.new_sectors:
+                        raise ValueError(f"Error in definition of sectors cluster {k}: sector {s} is among the new ones added to the table and cannot be included in clusters")
+
+        if self.meta.table == "SUT":
+            self.new_activities, self.new_commodities, self.parented_activities, self.non_parented_activities = _get_new_add_sectors_sets(self)
+
+            for k,v in self.commodities_clusters.items():
+                for c in v:
+                    if c in self.new_commodities:
+                        raise ValueError(f"Error in definition of commodities cluster {k}: commodity {c} is among the new ones added to the table and cannot be included in clusters")
+
+        if get_inventories:
+            self.get_inventory_sheets(path)
+        if read_inventories:
+            self.read_inventory_sheets(path)
+
+
+    def get_inventory_sheets(
+            self, 
+            path:str,
+            overwrite:bool=True,
+        ):
+        """
+        Retrieves inventory templates from the master sheet and saves them to the specified path.
+
+        Args:
+            path (str): The path where the inventory templates will be saved.
+            overwrite (bool, optional): Specifies whether to overwrite existing templates. Defaults to True.
+        """
+        new_sheets = self.add_sectors_master[_ADD_SECTORS_MASTER_SHEET_COLUMNS[self.meta.table]['inv_sheet']].unique()
+        _inventory_templates(
+            self,
+            new_sheets,
+            _ADD_SECTORS_INVENTORY_SHEET_COLUMNS,
+            overwrite, 
+            path
+        )
+
+    def read_inventory_sheets(
+            self,
+            path: str
+        ):
+        """
+        Reads inventory templates from the specified path and stores them in the 'inventories' attribute.
+
+        Args:
+            path (str): The path to the inventory templates.
+        """
+        self.inventories = _read_add_inventories(self, path)
+
+   
     def add_sectors(
         self,
-        io,
-        new_sectors,
-        regions,
-        item,
-        inplace=True,
+        io:str = 'inventories',
+        scenario:str = 'baseline',
+        inplace: bool = True,
+        ignore_warnings: bool = True,
         notes=None,
-    ):
-        """Adds a Sector/Activity/Commodity to the database
-
-        .. note::
-
-            This function will delete all the scenarios in the datbase and overwirte
-            the new matrices to the baseline.
-
-        Parameters
-        ----------
-        io : str, Dict[pd.DataFrame]
-            the path of the Excel file containing the information or an equal dictionary with
-            keys as the names of the sheets and values as dataframes of the excel file
-
-        new_sectors : list
-            new sectors/activities/commodities to be added to the database
-
-        regions : list
-            specific regions that the new technology will be specified
-
-        item : str
-            the item to be added. Sector for IOT table and Activity or Commodity for SUT
-            Sector if IOT, Activity or Commodity if SUT
-        inplace : boolean
-            if True will implement the changes directly in the database else
-            returns a new new mario.Database
-
-        notes: list, Optional
-            notes to be recorded in the metadata
-
-        Returns
-        -------
-        mario.Database:
-            if inplace = True will return a new mario.Database
-        None:
-            if inplace = False returns None and implements the changes in the databases
+    ):        
         """
+        Adds inventories to the database as new sectors/commodities/activities.
+        N.B. This method will erase all other scenarios different from the provided one and will return a new instance with scenario named as "baseline".
+
+        Args:
+            io (str, optional): The path to the add sectors master file containing the inventories. If 'inventories' is passed (default), 
+                                the inventories will be read from the 'inventories' attribute. 
+            scenario (str, optional): The scenario to add the inventories to. Defaults to 'baseline'.
+            inplace (bool, optional): If True, the changes will be applied to the current instance. If False, a new instance will be returned. Defaults to False.
+
+        Raises:
+            ValueError: If the source is not one of the acceptable inventory sources.
+            AttributeError: If the inventories have not been parsed yet. Use read_inventories() first.
+            NotImplementedError: If the source is 'FIONA' (not implemented yet).
+
+        Returns:
+            mario.Database: A new mario.Database instance with the added sectors.
+            
+        """
+
         if not inplace:
             new = self.copy()
             new.add_sectors(
-                io=io, new_sectors=new_sectors, regions=regions, item=item, inplace=True
+                io=io,
+                scenario=scenario,
+                inplace=True,
+                ignore_warnings=ignore_warnings,
+                notes=notes,
             )
+
             return new
 
-        difference = set(regions).difference(self.get_index(_MASTER_INDEX["r"]))
-
-        if difference:
-            raise WrongInput(
-                "Regions: {} do not exist in the database. Existing regions are:\n{}".format(
-                    difference,
-                    self.get_index(_MASTER_INDEX["r"]),
-                )
-            )
-
-        if self.meta.table == "SUT":
-            if item not in [_MASTER_INDEX["c"], _MASTER_INDEX["a"]]:
-                raise WrongInput(
-                    "For SUT, item should be {} or {}".format(
-                        _MASTER_INDEX["c"], _MASTER_INDEX["a"]
-                    )
-                )
         else:
-            item = _MASTER_INDEX["s"]
+            err_msg = []
+            item_to_query = _MASTER_INDEX['a'] if self.meta.table == 'SUT' else _MASTER_INDEX['s']
+            for inventory in self.inventories:
+                if inventory in self.get_index(item_to_query):
+                    err_msg.append(inventory)
+            if len(err_msg) > 0:
+                raise ValueError(f"Some info already exist in the table: {sorted(list(set(err_msg)))} ")
 
-        log_time(
-            logger,
-            "Database: All the scenarios will be deleted from the database",
-            "warning",
-        )
+            matrices = {
+                _ENUM.z: self.get_data(matrices=[_ENUM.z],scenarios=[scenario])[scenario][0],
+                _ENUM.e: self.get_data(matrices=[_ENUM.e],scenarios=[scenario])[scenario][0],
+                _ENUM.v: self.get_data(matrices=[_ENUM.v],scenarios=[scenario])[scenario][0],
+                _ENUM.Y: self.get_data(matrices=[_ENUM.Y],scenarios=[scenario])[scenario][0],
+                _ENUM.Z: self.get_data(matrices=[_ENUM.Z],scenarios=[scenario])[scenario][0],
+                _ENUM.E: self.get_data(matrices=[_ENUM.E],scenarios=[scenario])[scenario][0],
+                _ENUM.V: self.get_data(matrices=[_ENUM.V],scenarios=[scenario])[scenario][0],
+            }
+            
+            if io != 'inventories':
+                self.read_inventory_sheets(io)
 
-        new_data, units = add_new_sector(self, io, new_sectors, item, regions)
+            add_sectors_class = AddSectors(self,matrices,ignore_warnings)
+            if self.meta.table == 'IOT':
+                new_matrices, new_units, new_indeces = add_sectors_class.to_iot()
+            if self.meta.table == 'SUT':
+                new_matrices, new_units, new_indeces = add_sectors_class.to_sut()
+            
+            new_matrices[_ENUM.EY] = self.get_data(matrices=[_ENUM.EY],scenarios=[scenario])[scenario][0]
+            del new_matrices[_ENUM.Z]
+            del new_matrices[_ENUM.E]
+            del new_matrices[_ENUM.V]
 
-        new_data["X"] = calc_X_from_z(new_data["z"], new_data["Y"])
-        new_data["E"] = calc_E(new_data["e"], new_data["X"])
-        new_data["V"] = calc_E(new_data["v"], new_data["X"])
-        new_data["Z"] = calc_Z(new_data["z"], new_data["X"])
+            # return a new mario Database instance
+            new_matrices = {'baseline': new_matrices}  
+            self.matrices = new_matrices
+            self.units = new_units
+            self._indeces = new_indeces
 
-        # add new sector in the index
-        index_take = [key for key, take in _MASTER_INDEX.items() if take == item][0]
-        for sec in new_sectors:
-            self.units[item].loc[sec, "unit"] = units.loc[sec, "unit"]
-            self._indeces[index_take]["main"].append(sec)
-            if index_take != "s":
-                self._indeces["s"]["main"].append(sec)
-
-        new_data["EY"] = self.EY
-
-        # Deleting old values
-        for matrix in ["z", "e", "v", "Y", "X", "Z", "E", "V", "EY"]:
-            self.matrices["baseline"][_ENUM[matrix]] = new_data[matrix]
 
         self.meta._add_history(
             "Scenarios: all the scenarios deleted from the database."
         )
-        self.meta._add_history(
-            f"Database: new {item}: {new_sectors} added to the database"
-            f" for regions: {regions} based on data imported from {io}"
-        )
 
-        log_time(
-            logger,
-            f"New {item}: {new_sectors} added to the database"
-            f" for regions: {regions} sucessfully.",
-        )
+        if self.meta.table == 'SUT':
+            self.meta._add_history(f"Database: new {_MASTER_INDEX['a']}: {self.new_activities} added to the database")
+            self.meta._add_history(f"Database: new {_MASTER_INDEX['c']}: {self.new_commodities} added to the database")
+
+            log_time(logger,f"New {_MASTER_INDEX['a']}: {self.new_activities} added to the database")
+            log_time(logger,f"New {_MASTER_INDEX['c']}: {self.new_commodities} added to the database")
+        
+        if self.meta.table == 'IOT':
+            self.meta._add_history(f"Database: new {_MASTER_INDEX['s']}: {self.new_sectors} added to the database")
+            log_time(logger,f"New {_MASTER_INDEX['s']}: {self.new_sectors} added to the database")
 
         if notes:
             for note in notes:
                 self.meta._add_history(f"User note: {note}")
+
 
     def query(
         self,
