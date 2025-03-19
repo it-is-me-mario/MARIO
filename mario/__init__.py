@@ -85,6 +85,7 @@ from mario.tools.parsersclass import (
     hybrid_sut_exiobase,
     parse_exiobase,
     parse_FIGARO_SUT,
+    parse_FIGARO_E3,
 )
 
 from mario.tools.plots import set_palette

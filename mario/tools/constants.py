@@ -52,7 +52,6 @@ _EXIO_FACTORS = [
     "Operating surplus: Remaining net operating surplus",
 ]
 
-
 _SHOCK_LEVELS = {"SUT": ["Activity", "Commodity"], "IOT": ["Sector"]}
 
 
