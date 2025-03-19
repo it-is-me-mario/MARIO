@@ -85,6 +85,7 @@ from mario.tools.parsersclass import (
     hybrid_sut_exiobase,
     parse_exiobase,
     parse_FIGARO_SUT,
+    parse_FIGARO_E3,
 )
 
 from mario.tools.plots import set_palette
@@ -100,6 +101,12 @@ from mario.settings.settings import (
     Nomenclature,
     Index,
 )
+
+from mario.tools.handshake_parsers import (
+    parse_exiobase_3_9_4,
+    parse_oecd
+    )
+
 from mario.tools.constants import IOT, SUT
 
 

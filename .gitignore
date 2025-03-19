@@ -8,6 +8,8 @@ __pycache__/
 *.zip
 doc/notebooks/exiobase_hybrid/Exiobase v3.3.18/
 amin_test.py
+temp_folder
+doc/build
 
 # os files
 .DS_Store

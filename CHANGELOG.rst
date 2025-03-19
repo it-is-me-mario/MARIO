@@ -2,11 +2,27 @@
 Release History
 ****************
 
+v 0.3.4
+-------
+
+Parsing functions error fixed
+~~~~~~~~
+Recent pandas versions have changed the way they interpret "None" in DataFrames indices and values, which are currently interpreted it as NaN. 
+This mario update fixes the issue by replacing NaN with the string "None" when parsing excel files.
+
+Deprecated functions
+~~~~~~~~
+Parser for old-fashioned Eurostat SUTs is deprecated. This function relied on peculiarly structured SUTs formats.
+In case you need to parse such SUTs, please rearrange them into the standard MARIO format.
+You can check the MARIO format from 'SUT.xlsx' file in the mario/test directory in this repository.
+
+
 v 0.3.3
 -------
 
 Settings
 ~~~~~~~~
+to_excel function bug in flow mode fixed.
 
 
 v 0.3.0

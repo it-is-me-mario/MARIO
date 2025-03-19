@@ -15,7 +15,12 @@ from mario.tools.tableparser import (
     parse_pymrio,
     hybrid_sut_exiobase_reader,
     parser_figaro_sut,
+    parser_figaro_e3,
 )
+from mario.tools.handshake_parsers import (
+    parse_exiobase_3_9_4,
+    parse_oecd
+    )
 
 from mario.log_exc.exceptions import WrongInput, LackOfInput
 from mario.tools.constants import _ACCEPTABLES, _HMRSUT_EXTENSIONS
@@ -230,7 +235,7 @@ def parse_exiobase_3(
     year: int = None,
     name: str = None,
     model: str = "Database",
-    version: str = "3.8.2",
+    version: str = "3.9.4",
     **kwargs,
 ):
     """Parsing Multi-Regional Input-Output Table from Exiobase
@@ -268,11 +273,14 @@ def parse_exiobase_3(
 
     # check the inputs to be correct
     errmsg = []
-    if version not in ["3.8.2", "3.8.1"]:
-        errmsg.append("Acceptable versions are {}".format(["3.8.2", "3.8.1"]))
+    if version not in ["3.9.4","3.8.2", "3.8.1"]:
+        errmsg.append("Acceptable versions are {}".format(["3.9.4","3.8.2", "3.8.1"]))
     if errmsg:
         raise WrongInput(errmsg)
-
+    
+    if version == "3.9.4":
+        return parse_exiobase_3_9_4(path)
+    
     matrices, indeces, units = exio3(path, version)
 
     return models[model](
@@ -284,6 +292,7 @@ def parse_exiobase_3(
         calc_all=calc_all,
         **kwargs,
     )
+
 
 
 def parse_eora(
@@ -643,3 +652,45 @@ def parse_FIGARO_SUT(
     )
 
 
+def parse_FIGARO_E3(
+        path:str, 
+        name:str = None, 
+        calc_all:bool = False, 
+        doping_value = 1e-10,
+        **kwargs
+    ):
+
+    """Download and parse a FIGARO SUT table
+
+    Parameters
+    ----------
+    path : str
+        the folder where the files are downloaded
+    name : str, optional
+        a name for the database, by default None
+    calc_all : bool, optional
+        calacualtes all the missing matrices, by default False
+    doping_value : float, optional
+        a value to add to the diagonal of the Z matrix to avoid singularity issues, by default 1e-10
+
+    Returns
+    -------
+    mario.Database
+        mario database object
+    """
+
+    if doping_value == 0:
+        raise WrongInput("Doping value should not be zero")
+    
+    matrices, indeces, units = parser_figaro_e3(path, doping_value)
+    notes = ['Null values on Z diagonal are replaced with {} to avoid singularity issues'.format(doping_value)]
+
+    return models["Database"](
+        name=name,
+        table="SUT",
+        source="eurostat (https://data.jrc.ec.europa.eu/collection/id-00403)",
+        init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
+        calc_all=calc_all,
+        notes = notes,
+        **kwargs,
+    )
