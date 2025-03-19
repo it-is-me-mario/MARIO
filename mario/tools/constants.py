@@ -52,16 +52,6 @@ _EXIO_FACTORS = [
     "Operating surplus: Remaining net operating surplus",
 ]
 
-
-_FIGAROE3_FILENAMES = {
-    'use': 'flatfile_FIGARO-e-ic-use_millionEUR_2015.csv',
-    'supply': 'flatfile_FIGARO-e-ic-supply_millionEUR_2015.csv',
-    'energy': 'flatfile_FIGARO-e_ENE_TJ_2015.csv',
-    'employment': 'flatfile_FIGARO-e_employment_2015.csv',
-    'emissions': 'flatfile_FIGARO-e_AEM_Gg_CO2e_2015.csv',
-}
-
-
 _SHOCK_LEVELS = {"SUT": ["Activity", "Commodity"], "IOT": ["Sector"]}
 
 

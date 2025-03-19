@@ -410,3 +410,11 @@ eurostat_id = {
     "supply": {"index_col": 0, "header": 10, "sheet_name": "Sheet 1"},
     "meta_info": {"year": (7, 2, int), "country": (6, 2, str), "table": (0, 1, str)},
 }
+
+_figaroE3_id = {
+    'use': 'flatfile_FIGARO-e-ic-use_millionEUR_2015.csv',
+    'supply': 'flatfile_FIGARO-e-ic-supply_millionEUR_2015.csv',
+    'energy': 'flatfile_FIGARO-e_ENE_TJ_2015.csv',
+    'employment': 'flatfile_FIGARO-e_employment_2015.csv',
+    'emissions': 'flatfile_FIGARO-e_AEM_Gg_CO2e_2015.csv',
+}

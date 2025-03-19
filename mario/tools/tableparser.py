@@ -24,7 +24,6 @@ from mario.tools.constants import (
     _MASTER_INDEX,
     _EXIO_INDEX,
     _PYMRIO_INDEXING,
-    _FIGAROE3_FILENAMES,
     _ENUM,
 )
 
@@ -36,6 +35,7 @@ from mario.tools.parsers_id import (
     eora_parser_id,
     hybrid_sut_exiobase_parser_id,
     eurostat_id,
+    _figaroE3_id,
 )
 
 from mario.tools.iomath import (
@@ -1554,8 +1554,8 @@ def load_figaro_metadata():
 def parser_figaro_e3(path,doping_value):
 
     data = {}
-    for file in _FIGAROE3_FILENAMES:
-        data[file] = pd.read_csv(f"{path}/{_FIGAROE3_FILENAMES[file]}")
+    for file in _figaroE3_id:
+        data[file] = pd.read_csv(f"{path}/{_figaroE3_id[file]}")
 
     # building sets
     sets = {
