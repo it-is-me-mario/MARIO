@@ -2038,6 +2038,7 @@ def parser_gtap_mrio(path):
             return matrix
 
     # Matrix Z and Y
+    print('Z and Y')
     Z_matrix_dom,Y_matrix_dom=csv_to_matrix(mrio_data['SRCxDST'],'DOM','dom',indeces,
                             pivot_index=['SRC','COMM'],pivot_columns=['DST','AGENT'])
     Z_matrix_imp,Y_matrix_imp=csv_to_matrix(mrio_data['SRCxDST'],'VFOB','general',indeces,
@@ -2046,6 +2047,7 @@ def parser_gtap_mrio(path):
     Y=Y_matrix_dom+Y_matrix_imp
 
     #Data from csv SRCxDST but to be included in V (9min->because of "general")
+    print('V')
     V_mtax,VY_mtax=csv_to_matrix_rowname(mrio_data['SRCxDST'],'MTAX','general',indeces,
                                 split_agent=True,row_name_setting='reg_comm',row_name_categ='MTX',row_name_reg='SRC',
                                 pivot_index=['row_name'],pivot_columns=['DST','AGENT'])
@@ -2081,6 +2083,7 @@ def parser_gtap_mrio(path):
 
     #Satellite account
     # Filter the data for 'E+EY - Emissions'
+    print("E and EY")
     Emi_dom,Emi_dom_Y=csv_to_matrix_rowname(mrio_data['E+EY - Emissions'],'DOM','emi_dom',indeces,row_name_setting='emi_dom',
                             row_name_categ='EMI',split_agent=True,pivot_index=['row_name'],pivot_columns=['DST','AGT'])
     Emi_imp,Emi_imp_Y=csv_to_matrix_rowname(mrio_data['E+EY - Emissions'],'IMP','emi_imp',indeces,row_name_setting='emi_imp',
@@ -2095,6 +2098,7 @@ def parser_gtap_mrio(path):
     E=pd.concat([Emi_dom,Emi_imp,Ene_dom,Ene_imp],axis=0)
     EY=pd.concat([Emi_dom_Y,Emi_imp_Y,Ene_dom_Y,Ene_imp_Y],axis=0)
 
+    print("Finalizing")
     indeces.update({
         "k": {"main": E.index.tolist()}, #16743 = 37 emission categories, different commodities, domestic and 162x162 exchanges 'EMI_category_REG_COM' or 'ENE_REG_commodity' 
         "f": {"main": V.index.tolist()} #25116 Categories for Value added and Tax types 'CAT_REG_COM' characters: 3_3_variable
