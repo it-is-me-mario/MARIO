@@ -2086,7 +2086,6 @@ def parser_gtap_mrio(path):
     Emi_imp,Emi_imp_Y=csv_to_matrix_rowname(mrio_data['E+EY - Emissions'],'IMP','emi_imp',indeces,row_name_setting='emi_imp',
                             row_name_categ='EMI',split_agent=True,pivot_index=['row_name'],pivot_columns=['DST','AGT'])
 
-    # %% 
     # Filter the data for 'E+EY - Energy'
     Ene_dom,Ene_dom_Y=csv_to_matrix_rowname(mrio_data['E+EY - Energy'],'DOM','ene_dom',indeces,row_name_setting='ene_dom',
                             row_name_categ='ENE',split_agent=True,pivot_index=['row_name'],pivot_columns=['DST','AGT'])
@@ -2133,17 +2132,35 @@ def parser_gtap_mrio(path):
         _MASTER_INDEX["k"]: extensions_unit,
     }
 
+    Z.index = pd.MultiIndex.from_arrays([
+        Z.index.get_level_values(0),
+        [_MASTER_INDEX['s']]*Z.shape[0],
+        Z.index.get_level_values(-1),
+    ])
+    Z.columns = Z.index
+    V.columns = Z.columns
+    E.columns = Z.columns
+
+    Y.columns = pd.MultiIndex.from_arrays([
+        Y.columns.get_level_values(0),
+        [_MASTER_INDEX['n']]*Y.shape[1],
+        Y.columns.get_level_values(-1),
+    ])
+    Y.index = Z.index
+    EY.columns = Y.columns
+
     # Calculate X matrix if not provided
     X = calc_X(Z, Y)
+    X.index = Z.index
 
     matrices = {
         "baseline": {
-            "Z": Z,
-            "V": V,
-            "E": E,
-            "EY": EY,
-            "Y": Y,
-            "X": X,
+            _ENUM['Z']: Z,
+            _ENUM['Y']: Y,
+            _ENUM['V']: V,
+            _ENUM['E']: E,
+            _ENUM['EY']: EY,
+            _ENUM['X']: X,  
         }
     }
 
