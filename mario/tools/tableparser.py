@@ -1747,18 +1747,19 @@ def parser_gtap_mrio(path):
                 ) -> pd.DataFrame:
         #to optimize, takes too long
         """
-        :param df: DataFrame originale
+        :param df: original DataFrame
         :param variant: string that specifies the possible treatment:
             - "general"
             - "dom"
             - "single_region"
+            - "single_region_va"
             - "tax"
-        :param indeces: Dizionario dei tuoi indici, es.:
-            {
-            "r": {"main": [...]},  # regioni
-            "n": {"main": [...]},  # final demand categories
-            "s": {"main": [...]},  # settori
-            }
+            - "emi_dom"
+            - "emi_imp"
+            - "ene_dom"
+            - "ene_imp"
+        :param indeces: Dictionary of indices
+
 
         Returns a DataFrame with missing values handled according to the selected mode.
         """
@@ -1768,71 +1769,114 @@ def parser_gtap_mrio(path):
         n = indeces['n']['main']
 
         if variant == 'dom':
-            all_combinations_no_dst = pd.MultiIndex.from_product([s, s+n, r], names=['COMM', 'AGENT', 'SRC'])
-            all_combinations = pd.MultiIndex.from_arrays([
-                all_combinations_no_dst.get_level_values(0), 
-                all_combinations_no_dst.get_level_values(1), 
-                all_combinations_no_dst.get_level_values(2), 
-                all_combinations_no_dst.get_level_values(2)], 
-                names=['COMM', 'AGENT', 'SRC', 'DST'])#Filled only for same countryxcountry, block diagonal
+            all_combinations = pd.MultiIndex.from_product([s, s+n, r], names=['COMM', 'AGENT', 'SRC']).to_frame(index=False)
+            all_combinations['DST'] = all_combinations['SRC'] #Filled only for same countryxcountry, block diagonal
+            
+            df_full = all_combinations.merge(df,on=['COMM','AGENT','SRC','DST'], how='left').fillna(0)
+            # Controllo dimensioni
+            expected_rows = len(s)*len(s+n)*len(r)
+            assert len(df_full) == expected_rows, f"[Variant Z] Expected {expected_rows} rows, got {len(df_full)}."
+            return df_full
 
-        elif variant == 'general':
-            all_combinations = pd.MultiIndex.from_product([s, s+n, r, r],names=['COMM', 'AGENT', 'SRC', 'DST'])
+        elif variant == 'general': #slow
+            c = s 
+            a = s + n
+            all_combinations = pd.MultiIndex.from_product([c, a, r, r],names=['COMM', 'AGENT', 'SRC', 'DST']).to_frame(index=False)
 
+            df_full = all_combinations.merge(df,on=['COMM','AGENT','SRC','DST'],how='left').fillna(0)
+
+            expected_rows = len(c)*len(a)*(len(r)**2)
+            assert len(df_full) == expected_rows, f"[Variant items] Expected {expected_rows} rows, got {len(df_full)}."
+            return df_full
+        
         elif variant == 'tax':
-            all_combinations = pd.MultiIndex.from_product([s, r, r],names=['COMM','SRC','DST'])
+            c = s  
+            a = s + n
+            all_combinations = pd.MultiIndex.from_product([c, r, r],names=['COMM','SRC','DST']).to_frame(index=False)
 
+            df_full = all_combinations.merge(df,on=['COMM','SRC','DST'],how='left').fillna(0)
+
+            expected_rows = len(c)*len(r)*len(r)
+            assert len(df_full) == expected_rows, \
+                f"[Variant tax] Expected {expected_rows} rows, got {len(df_full)}."
+            return df_full
+        
         elif variant == 'single_region':
-            all_combinations = pd.MultiIndex.from_product([s, s+n, r],names=['COMM','AGENT','REG'])
+            c = s  # oppure df['COMM'].unique()
+            a = s + n
+            all_combinations = pd.MultiIndex.from_product([c, a, r],names=['COMM','AGENT','REG']).to_frame(index=False)
 
+            df_full = all_combinations.merge(df,on=['COMM','AGENT','REG'],how='left').fillna(0)
+
+            expected_rows = len(c)*len(a)*len(r)
+
+            assert len(df_full) == expected_rows,f"[items_1reg] Expected {expected_rows} rows, got {len(df_full)}."
+            return df_full
+        
         elif variant == 'single_region_va':
             #when the commodities are the categories of value added
             c = df['COMM'].unique()
-            all_combinations = pd.MultiIndex.from_product([c, s, r],names=['COMM','AGENT','REG'])
+            all_combinations = pd.MultiIndex.from_product([c, s, r],names=['COMM','AGENT','REG']).to_frame(index=False)
+
+            df_full = all_combinations.merge(df,on=['COMM','AGENT','REG'],how='left').fillna(0)
+
+            expected_rows = len(c)*len(s)*len(r)
+            
+            assert len(df_full) == expected_rows,f"[items_1reg] Expected {expected_rows} rows, got {len(df_full)}."
+            return df_full
         
         elif variant == 'emi_dom':
-            c = df['COMM'].unique()
-            e = df['EM'].unique()
-            all_combinations_no_dst = pd.MultiIndex.from_product([e, c, s+n, r],names=['EM','COMM','AGT','SRC'])
-            all_combinations = pd.MultiIndex.from_arrays([
-                all_combinations_no_dst.get_level_values(0), 
-                all_combinations_no_dst.get_level_values(1), 
-                all_combinations_no_dst.get_level_values(2), 
-                all_combinations_no_dst.get_level_values(3),
-                all_combinations_no_dst.get_level_values(3)], 
-                names=['EM','COMM', 'AGT', 'SRC', 'DST']) #Filled only for same countryxcountry, block diagonal
-
+            #when the commodities are the categories of value added
+            df_full=pd.DataFrame(columns=['EM','COMM','AGT','SRC','DST','VALUE'])
+            for e in df['EM'].unique():
+                df_e=df[df['EM']==e]
+                c = df_e['COMM'].unique()
+                a = s+n
+                all_combinations = pd.MultiIndex.from_product([c, a, r],names=['COMM','AGT','SRC']).to_frame(index=False)
+                all_combinations['DST'] = all_combinations['SRC'] #Filled only for same countryxcountry, block diagonal
+                all_combinations['EM'] = e
+                df_full_e = all_combinations.merge(df_e,on=['EM','COMM','AGT','SRC','DST'],how='left').fillna(0)
+                df_full=pd.concat([df_full,df_full_e],ignore_index=True)
+                
+            return df_full
         elif variant == 'emi_imp':
-            c = df['COMM'].unique()
-            e = df['EM'].unique()
-            all_combinations = pd.MultiIndex.from_product([e, c, s+n,r, r],names=['EM','COMM','AGT','SRC','DST'])
+            #when the commodities are the categories of value added
+            df_full=pd.DataFrame(columns=['EM','COMM','AGT','SRC','DST','VALUE'])
+            for e in df['EM'].unique():
+                df_e=df[df['EM']==e]
+                c = df_e['COMM'].unique()
+                a = s+n
+                all_combinations = pd.MultiIndex.from_product([c, a, r,r],names=['COMM','AGT','SRC','DST']).to_frame(index=False)
+                all_combinations['EM'] = e
+                df_full_e = all_combinations.merge(df_e,on=['EM','COMM','AGT','SRC','DST'],how='left').fillna(0)
+                df_full=pd.concat([df_full,df_full_e],ignore_index=True)
+                
+            return df_full
 
         elif variant == 'ene_dom':
-            c = df['COMM'].unique()
-            all_combinations_no_dst = pd.MultiIndex.from_product([c, s+n, r],names=['COMM','AGT','SRC'])
-            all_combinations = pd.MultiIndex.from_arrays([
-                all_combinations_no_dst.get_level_values(0), 
-                all_combinations_no_dst.get_level_values(1), 
-                all_combinations_no_dst.get_level_values(2), 
-                all_combinations_no_dst.get_level_values(2)], 
-                names=['COMM', 'AGT', 'SRC', 'DST'])#Filled only for same countryxcountry, block diagonal
+            c=df['COMM'].unique()
+            all_combinations = pd.MultiIndex.from_product([c, s+n, r], names=['COMM', 'AGT', 'SRC']).to_frame(index=False)
+            all_combinations['DST'] = all_combinations['SRC'] #Filled only for same countryxcountry, block diagonal
+            
+            df_full = all_combinations.merge(df,on=['COMM','AGT','SRC','DST'], how='left').fillna(0)
+            # Controllo dimensioni
+            expected_rows = len(c)*len(s+n)*len(r)
+            assert len(df_full) == expected_rows, f"[Variant energy dom] Expected {expected_rows} rows, got {len(df_full)}."
+            return df_full
         
         elif variant == 'ene_imp':
-            c = df['COMM'].unique()
-            all_combinations = pd.MultiIndex.from_product([c, s+n,r, r],names=['COMM','AGT','SRC','DST'])
+            c=df['COMM'].unique()
+            all_combinations = pd.MultiIndex.from_product([c, s+n, r,r], names=['COMM', 'AGT', 'SRC','DST']).to_frame(index=False)
 
+            df_full = all_combinations.merge(df,on=['COMM','AGT','SRC','DST'], how='left').fillna(0)
+            # Controllo dimensioni
+            expected_rows = len(c)*len(s+n)*(len(r)**2)
+            assert len(df_full) == expected_rows, f"[Variant energy imp] Expected {expected_rows} rows, got {len(df_full)}."
+            return df_full
+        
         else:
             raise ValueError(f"Unrecognized variant '{variant}'.")
 
-        df_full = pd.DataFrame(
-            0,
-            index=all_combinations,
-            columns=['VALUE']
-            )
-            
-        df.set_index([c for c in df.columns if c != 'VALUE'], inplace=True)
-        df_full.update(df)
-        return df_full.reset_index()
         
     def csv_to_matrix(df: pd.DataFrame,
                     var: str,
