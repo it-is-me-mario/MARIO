@@ -421,7 +421,7 @@ _figaroE3_id = {
 
 _gtap_mrio_id = {
     "SRCxDST": {
-        "file": r"\GSDFSRCxDST.csv",  # File path for source-destination data
+        "file": "GSDFSRCxDST.csv",  # File path for source-destination data
         "note": "Source-Destination",
         "columns": {
             "VAR": {"title": "Factor of production", "description": "Domestic or other margin accounts"},
@@ -433,7 +433,7 @@ _gtap_mrio_id = {
         }
     },
     "V - Tax": {
-        "file": r"\GSDFXTAX.csv",  # File path for tax data
+        "file": "GSDFXTAX.csv",  # File path for tax data
         "columns": {
             "VAR": {"title": "Factor of production", "description": "ETAX or PTAX"},
             "COMM": {"title": "Commodity", "description": "76 different commodities"},
@@ -443,7 +443,7 @@ _gtap_mrio_id = {
         }
     },
     "V": {
-        "file": r"\GSDF.csv",  # File path for general data
+        "file": "GSDF.csv",  # File path for general data
         "note": "Value Added",
         "columns": {
             "VAR": {"title": "Factor of production", "description": "Value added or tax types"},
@@ -454,7 +454,7 @@ _gtap_mrio_id = {
         }
     },
     "E+EY - Emissions": {
-        "file": r"\GSDFEMI.csv",  # File path for emissions data
+        "file": "GSDFEMI.csv",  # File path for emissions data
         "note": "Emissions",
         "columns": {
             "VAR": {"title": "Origin", "description": "Domestic or imported"},
@@ -467,7 +467,7 @@ _gtap_mrio_id = {
         }
     },
     "E+EY - Energy": {
-        "file": r"\GSDFNRG.csv",  # File path for energy data
+        "file": "GSDFNRG.csv",  # File path for energy data
         "note": "Energy",
         "columns": {
             "VAR": {"title": "Origin", "description": "Domestic or imported"},

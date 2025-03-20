@@ -1726,7 +1726,7 @@ def parser_gtap_mrio(path):
     mrio_data = {}
     for key in _gtap_mrio_id.keys():
         file = _gtap_mrio_id[key]["file"]
-        mrio_file = path + file
+        mrio_file = os.path.join(path,file)
         mrio_data[key] = pd.read_csv(mrio_file)
 
     # Define indices
