@@ -36,6 +36,7 @@ from mario.tools.parsers_id import (
     hybrid_sut_exiobase_parser_id,
     eurostat_id,
     _figaroE3_id,
+    _gtap_mrio_id,
 )
 
 from mario.tools.iomath import (
@@ -1704,5 +1705,405 @@ def parser_figaro_e3(path,doping_value):
         'n':{'main': sets[_MASTER_INDEX['n']]},
         'k':{'main': sets[_MASTER_INDEX['k']]},
     }
+
+    return matrices, indeces, units
+
+def parser_gtap_mrio(path):
+    """
+    Parse GTAP-MRIO tables into MARIO format
+    
+    Parameters
+    ----------
+    path to csv files
+        
+    Returns
+    -------
+    tuple
+        (matrices, indeces, units)
+    """
+
+    #Importing from the 5 GTAP csv data as dictionary
+    mrio_data = {}
+    for key in _gtap_mrio_id.keys():
+        file = _gtap_mrio_id[key]["file"]
+        mrio_file = path + file
+        mrio_data[key] = pd.read_csv(mrio_file)
+
+    # Define indices
+    s = mrio_data['SRCxDST']['COMM'].unique() # sectors
+    n = np.setdiff1d(mrio_data['SRCxDST']['AGENT'].unique(), s)  # 4 final demand categories
+
+    indeces = {
+            "r": {"main": mrio_data['SRCxDST']['SRC'].unique().tolist()}, #Regions
+            "n": {"main": n.tolist()}, #4 final demand categories
+            "s": {"main": s.tolist()}, #Sectors
+            #k,f defined later
+        }
+    
+    # Functions definition
+    def missing(df: pd.DataFrame,
+                variant: str,
+                indeces: dict,
+                ) -> pd.DataFrame:
+        #to optimize, takes too long
+        """
+        :param df: DataFrame originale
+        :param variant: string that specifies the possible treatment:
+            - "general"
+            - "dom"
+            - "single_region"
+            - "tax"
+        :param indeces: Dizionario dei tuoi indici, es.:
+            {
+            "r": {"main": [...]},  # regioni
+            "n": {"main": [...]},  # final demand categories
+            "s": {"main": [...]},  # settori
+            }
+
+        Returns a DataFrame with missing values handled according to the selected mode.
+        """
+        # Extract useful lists
+        r = indeces['r']['main']
+        s = indeces['s']['main']
+        n = indeces['n']['main']
+
+        if variant == 'dom':
+            all_combinations_no_dst = pd.MultiIndex.from_product([s, s+n, r], names=['COMM', 'AGENT', 'SRC'])
+            all_combinations = pd.MultiIndex.from_arrays([
+                all_combinations_no_dst.get_level_values(0), 
+                all_combinations_no_dst.get_level_values(1), 
+                all_combinations_no_dst.get_level_values(2), 
+                all_combinations_no_dst.get_level_values(2)], 
+                names=['COMM', 'AGENT', 'SRC', 'DST'])#Filled only for same countryxcountry, block diagonal
+
+        elif variant == 'general':
+            all_combinations = pd.MultiIndex.from_product([s, s+n, r, r],names=['COMM', 'AGENT', 'SRC', 'DST'])
+
+        elif variant == 'tax':
+            all_combinations = pd.MultiIndex.from_product([s, r, r],names=['COMM','SRC','DST'])
+
+        elif variant == 'single_region':
+            all_combinations = pd.MultiIndex.from_product([s, s+n, r],names=['COMM','AGENT','REG'])
+
+        elif variant == 'single_region_va':
+            #when the commodities are the categories of value added
+            c = df['COMM'].unique()
+            all_combinations = pd.MultiIndex.from_product([c, s, r],names=['COMM','AGENT','REG'])
+        
+        elif variant == 'emi_dom':
+            c = df['COMM'].unique()
+            e = df['EM'].unique()
+            all_combinations_no_dst = pd.MultiIndex.from_product([e, c, s+n, r],names=['EM','COMM','AGT','SRC'])
+            all_combinations = pd.MultiIndex.from_arrays([
+                all_combinations_no_dst.get_level_values(0), 
+                all_combinations_no_dst.get_level_values(1), 
+                all_combinations_no_dst.get_level_values(2), 
+                all_combinations_no_dst.get_level_values(3),
+                all_combinations_no_dst.get_level_values(3)], 
+                names=['EM','COMM', 'AGT', 'SRC', 'DST']) #Filled only for same countryxcountry, block diagonal
+
+        elif variant == 'emi_imp':
+            c = df['COMM'].unique()
+            e = df['EM'].unique()
+            all_combinations = pd.MultiIndex.from_product([e, c, s+n,r, r],names=['EM','COMM','AGT','SRC','DST'])
+
+        elif variant == 'ene_dom':
+            c = df['COMM'].unique()
+            all_combinations_no_dst = pd.MultiIndex.from_product([c, s+n, r],names=['COMM','AGT','SRC'])
+            all_combinations = pd.MultiIndex.from_arrays([
+                all_combinations_no_dst.get_level_values(0), 
+                all_combinations_no_dst.get_level_values(1), 
+                all_combinations_no_dst.get_level_values(2), 
+                all_combinations_no_dst.get_level_values(2)], 
+                names=['COMM', 'AGT', 'SRC', 'DST'])#Filled only for same countryxcountry, block diagonal
+        
+        elif variant == 'ene_imp':
+            c = df['COMM'].unique()
+            all_combinations = pd.MultiIndex.from_product([c, s+n,r, r],names=['COMM','AGT','SRC','DST'])
+
+        else:
+            raise ValueError(f"Unrecognized variant '{variant}'.")
+
+        df_full = pd.DataFrame(
+            0,
+            index=all_combinations,
+            columns=['VALUE']
+            )
+            
+        df.set_index([c for c in df.columns if c != 'VALUE'], inplace=True)
+        df_full.update(df)
+        return df_full.reset_index()
+        
+    def csv_to_matrix(df: pd.DataFrame,
+                    var: str,
+                    variant_missing: str,
+                    indeces: dict,
+                    pivot_index: list = None,
+                    pivot_columns: list = None,
+                    ) -> pd.DataFrame or tuple:
+        #to optimize, takes too long
+        """
+
+        1) Filters DataFrame through column 'VAR' == var to obtain one specific matrix.
+        2) Drop the 'VAR' column
+        3) Executes function missing() with appropriate variant.
+        4) If 'split_agent' is True, separates in Z and Y and has 2 pivot as output.
+        5) If 'split_agent' is False, unique pivot on pivot_index e pivot_columns.
+        
+        Returns:
+        - A DataFrame if split_agent = False
+        - A tuple (pivot_1, pivot_2) if split_agent = False
+        """
+
+        # 1) Filtrs according to var
+        if var is not None and "VAR" in df.columns:
+            df_filtered = df.query("VAR == @var")
+        else:
+            print("Error in filtering with 'VAR'.")
+
+        # 2)Drop 'VAR' column
+        df_filtered = df_filtered.drop(columns='VAR')
+        # 
+        # 3) Apply missing with desired variant
+        df_filled = missing(df_filtered, variant_missing, indeces)
+    
+        df_Z = df_filled[df_filled['AGENT'].isin(indeces['s']['main'])]
+        df_Y = df_filled[df_filled['AGENT'].isin(indeces['n']['main'])]
+
+        # Pivot di part1
+        pivot_Z = df_Z.pivot_table(
+            index=pivot_index, 
+            columns=pivot_columns, 
+            values='VALUE', 
+            aggfunc='sum'
+        ).fillna(0)
+
+        # Pivot di part2
+        pivot_Y = df_Y.pivot_table(
+            index=pivot_index, 
+            columns=pivot_columns, 
+            values='VALUE', 
+            aggfunc='sum'
+        ).fillna(0)
+
+        return pivot_Z, pivot_Y
+
+    def csv_to_matrix_rowname(df: pd.DataFrame,
+                    var: str,
+                    variant_missing: str,
+                    indeces: dict,
+                    row_name_setting: str,
+                    row_name_categ: str,
+                    row_name_reg: str = "",
+                    pivot_index: list = None,
+                    pivot_columns: list = None,
+                    split_agent: bool = False,
+                    ) -> pd.DataFrame or tuple:
+        #to optimize, takes too long
+        """
+
+        1) Filters DataFrame through column 'VAR' == var to obtain one specific matrix.
+        2) Drop the 'VAR' column
+        3) Executes function missing() with appropriate variant.
+        4) If 'split_agent' is True, separates in Z and Y and has 2 pivot as output.
+        5) If 'split_agent' is False, unique pivot on pivot_index e pivot_columns.
+        
+        Returns:
+        - A DataFrame if split_agent = False
+        - A tuple (pivot_1, pivot_2) if split_agent = False
+        """
+
+        # 1) Filtrs according to var
+        if var is not None and "VAR" in df.columns:
+            df_filtered = df.query("VAR == @var")
+        else:
+            print("Error in filtering with 'VAR'.")
+
+        # 2)Drop 'VAR' column
+        df_filtered = df_filtered.drop(columns='VAR')
+        # 
+        # 3) Apply missing with desired variant
+        df_filled = missing(df_filtered, variant_missing, indeces)
+
+        # 4) Change row name
+        if row_name_setting=='only_region':
+            df_filled['row_name']=row_name_categ+'_'+df_filled[row_name_reg]
+        elif row_name_setting=='reg_comm':
+            df_filled['row_name']=row_name_categ+'_'+df_filled[row_name_reg]+'_'+df_filled['COMM']
+            df_filled.drop(columns='SRC',inplace=True)
+            df_filled.drop(columns='COMM',inplace=True)
+        elif row_name_setting=='only_comm':
+            df_filled['row_name']=row_name_categ+'_REG_'+df_filled['COMM']
+        elif row_name_setting=='emi_dom':
+            df_filled['row_name']=row_name_categ+'_'+df_filled['EM']+'_dom_'+df_filled['COMM'] #careful: 'EM' element has different lengths
+            df_filled.drop(columns='EM',inplace=True)
+            df_filled.drop(columns='SRC',inplace=True)
+            df_filled.drop(columns='COMM',inplace=True)
+        elif row_name_setting=='emi_imp':
+            df_filled['row_name']=row_name_categ+'_'+df_filled['EM']+'_'+df_filled['SRC']+'_'+df_filled['COMM']
+            df_filled.drop(columns='EM',inplace=True)
+            df_filled.drop(columns='SRC',inplace=True)
+            df_filled.drop(columns='COMM',inplace=True)
+        elif row_name_setting=='ene_dom':
+            df_filled['row_name']=row_name_categ+'_dom_'+df_filled['COMM']
+            df_filled.drop(columns='SRC',inplace=True)
+            df_filled.drop(columns='COMM',inplace=True)
+        elif row_name_setting=='ene_imp':
+            df_filled['row_name']=row_name_categ+'_'+df_filled['SRC']+'_'+df_filled['COMM']
+            df_filled.drop(columns='SRC',inplace=True)
+            df_filled.drop(columns='COMM',inplace=True)
+
+
+        # 5) If need to split_agent
+        if split_agent:
+            if 'AGENT' in df_filled.columns:
+                df_Z = df_filled[df_filled['AGENT'].isin(indeces['s']['main'])]
+                df_Y = df_filled[df_filled['AGENT'].isin(indeces['n']['main'])]
+            elif 'AGT' in df_filled.columns:
+                df_Z = df_filled[df_filled['AGT'].isin(indeces['s']['main'])]
+                df_Y = df_filled[df_filled['AGT'].isin(indeces['n']['main'])]
+
+            print('Starting pivoting now')
+            # Pivot di part1
+            pivot_Z = df_Z.pivot_table(
+                index=pivot_index, 
+                columns=pivot_columns, 
+                values='VALUE', 
+                aggfunc='sum'
+            ).fillna(0)
+
+            # Pivot di part2
+            pivot_Y = df_Y.pivot_table(
+                index=pivot_index, 
+                columns=pivot_columns, 
+                values='VALUE', 
+                aggfunc='sum'
+            ).fillna(0)
+
+            return pivot_Z, pivot_Y
+
+        else:
+            # Pivot unico
+            matrix = df_filled.pivot_table(
+                index=pivot_index, 
+                columns=pivot_columns, 
+                values='VALUE', 
+                aggfunc='sum'
+            ).fillna(0)
+
+            return matrix
+
+    # Matrix Z and Y
+    Z_matrix_dom,Y_matrix_dom=csv_to_matrix(mrio_data['SRCxDST'],'DOM','dom',indeces,
+                            pivot_index=['SRC','COMM'],pivot_columns=['DST','AGENT'])
+    Z_matrix_imp,Y_matrix_imp=csv_to_matrix(mrio_data['SRCxDST'],'VFOB','general',indeces,
+                            pivot_index=['SRC','COMM'],pivot_columns=['DST','AGENT'])
+    Z=Z_matrix_dom+Z_matrix_imp
+    Y=Y_matrix_dom+Y_matrix_imp
+
+    #Data from csv SRCxDST but to be included in V (9min->because of "general")
+    V_mtax,VY_mtax=csv_to_matrix_rowname(mrio_data['SRCxDST'],'MTAX','general',indeces,
+                                split_agent=True,row_name_setting='reg_comm',row_name_categ='MTX',row_name_reg='SRC',
+                                pivot_index=['row_name'],pivot_columns=['DST','AGENT'])
+    V_ittm,VY_ittm=csv_to_matrix_rowname(mrio_data['SRCxDST'],'ITTM','general',indeces,
+                                split_agent=True,row_name_setting='reg_comm',row_name_categ='TTM',row_name_reg='SRC',
+                                pivot_index=['row_name'],pivot_columns=['DST','AGENT'])
+    
+    V=pd.concat([V_mtax,V_ittm],axis=0)
+    VY=pd.concat([VY_mtax,VY_ittm],axis=0)
+
+    #Export and import taxes (3s)
+    V_etax=csv_to_matrix_rowname(mrio_data['V - Tax'],'ETAX','tax',indeces,
+                            row_name_setting='only_region',row_name_categ='ETX',row_name_reg='DST',
+                            pivot_index=['row_name'],pivot_columns=['SRC','COMM'])
+    V_ptax=csv_to_matrix_rowname(mrio_data['V - Tax'],'PTAX','tax',indeces,
+                            row_name_setting='only_region',row_name_categ='PTX',row_name_reg='SRC',
+                            pivot_index=['row_name'],pivot_columns=['DST','COMM'])
+
+    V=pd.concat([V,V_etax,V_ptax],axis=0)
+
+    #Value added and taxes from VA csv (2s)
+    V_va=csv_to_matrix_rowname(mrio_data['V'],'VA','single_region_va',indeces,row_name_setting='only_comm',
+                            row_name_categ='VAA',pivot_index=['row_name'],pivot_columns=['REG','AGENT'])
+    V_vtax=csv_to_matrix_rowname(mrio_data['V'],'VTAX','single_region_va',indeces,row_name_setting='only_comm',
+                                row_name_categ='VTX',pivot_index=['row_name'],pivot_columns=['REG','AGENT'])
+    V_idtax,VY_idtax=csv_to_matrix_rowname(mrio_data['V'],'IDTAX','single_region',indeces,row_name_setting='only_comm',
+                                row_name_categ='DTX',split_agent=True,pivot_index=['row_name'],pivot_columns=['REG','AGENT'])
+    V_imtax,VY_imtax=csv_to_matrix_rowname(mrio_data['V'],'IMTAX','single_region',indeces,row_name_setting='only_comm',
+                                row_name_categ='MTX',split_agent=True,pivot_index=['row_name'],pivot_columns=['REG','AGENT'])
+
+    V=pd.concat([V,V_va,V_vtax,V_idtax,V_imtax],axis=0)
+    VY=pd.concat([VY,VY_idtax,VY_imtax],axis=0)
+
+    #Satellite account
+    # Filter the data for 'E+EY - Emissions'
+    Emi_dom,Emi_dom_Y=csv_to_matrix_rowname(mrio_data['E+EY - Emissions'],'DOM','emi_dom',indeces,row_name_setting='emi_dom',
+                            row_name_categ='EMI',split_agent=True,pivot_index=['row_name'],pivot_columns=['DST','AGT'])
+    Emi_imp,Emi_imp_Y=csv_to_matrix_rowname(mrio_data['E+EY - Emissions'],'IMP','emi_imp',indeces,row_name_setting='emi_imp',
+                            row_name_categ='EMI',split_agent=True,pivot_index=['row_name'],pivot_columns=['DST','AGT'])
+
+    # %% 
+    # Filter the data for 'E+EY - Energy'
+    Ene_dom,Ene_dom_Y=csv_to_matrix_rowname(mrio_data['E+EY - Energy'],'DOM','ene_dom',indeces,row_name_setting='ene_dom',
+                            row_name_categ='ENE',split_agent=True,pivot_index=['row_name'],pivot_columns=['DST','AGT'])
+    Ene_imp,Ene_imp_Y=csv_to_matrix_rowname(mrio_data['E+EY - Energy'],'IMP','ene_imp',indeces,row_name_setting='ene_imp',
+                            row_name_categ='ENE',split_agent=True,pivot_index=['row_name'],pivot_columns=['DST','AGT'])
+
+    E=pd.concat([Emi_dom,Emi_imp,Ene_dom,Ene_imp],axis=0)
+    EY=pd.concat([Emi_dom_Y,Emi_imp_Y,Ene_dom_Y,Ene_imp_Y],axis=0)
+
+    indeces.update({
+        "k": {"main": E.index.tolist()}, #16743 = 37 emission categories, different commodities, domestic and 162x162 exchanges 'EMI_category_REG_COM' or 'ENE_REG_commodity' 
+        "f": {"main": V.index.tolist()} #25116 Categories for Value added and Tax types 'CAT_REG_COM' characters: 3_3_variable
+        })
+
+    #Creating units
+    sectors_unit = pd.DataFrame(
+        ["M USD"] * len(indeces["s"]["main"]),
+        index=indeces["s"]["main"],
+        columns=["unit"],
+    )
+    final_demand_unit = pd.DataFrame(
+        ["M USD"] * len(indeces["n"]["main"]),
+        index=indeces["n"]["main"],
+        columns=["unit"],
+    )
+    factors_unit = pd.DataFrame(
+        ["M USD"] * len(indeces["f"]["main"]),
+        index=indeces["f"]["main"],
+        columns=["unit"],
+    )
+
+    emi_series = ["M ton"] * sum(E.index.str[:3] == 'EMI')#not sure this is the correct unit
+    ene_series = ["M toe"] * sum(E.index.str[:3] == 'ENE')
+    extensions_unit=pd.DataFrame(
+        emi_series+ene_series,
+        index=indeces["k"]["main"],
+        columns=["unit"],
+    )
+
+    units = {
+        _MASTER_INDEX["s"]: sectors_unit,
+        _MASTER_INDEX["n"]: final_demand_unit,
+        _MASTER_INDEX["f"]: factors_unit,
+        _MASTER_INDEX["k"]: extensions_unit,
+    }
+
+    # Calculate X matrix if not provided
+    X = calc_X(Z, Y)
+
+    matrices = {
+        "baseline": {
+            "Z": Z,
+            "V": V,
+            "E": E,
+            "EY": EY,
+            "Y": Y,
+            "X": X,
+        }
+    }
+
+    rename_index(matrices["baseline"])
+    sort_frames(matrices["baseline"])
 
     return matrices, indeces, units
