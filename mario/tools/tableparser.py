@@ -2076,7 +2076,7 @@ def parser_gtap_mrio(path):
     V_idtax,VY_idtax=csv_to_matrix_rowname(mrio_data['V'],'IDTAX','single_region',indeces,row_name_setting='only_comm',
                                 row_name_categ='DTX',split_agent=True,pivot_index=['row_name'],pivot_columns=['REG','AGENT'])
     V_imtax,VY_imtax=csv_to_matrix_rowname(mrio_data['V'],'IMTAX','single_region',indeces,row_name_setting='only_comm',
-                                row_name_categ='MTX',split_agent=True,pivot_index=['row_name'],pivot_columns=['REG','AGENT'])
+                                row_name_categ='ITX',split_agent=True,pivot_index=['row_name'],pivot_columns=['REG','AGENT'])
 
     V=pd.concat([V,V_va,V_vtax,V_idtax,V_imtax],axis=0)
     VY=pd.concat([VY,VY_idtax,VY_imtax],axis=0)
