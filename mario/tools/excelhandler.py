@@ -517,7 +517,7 @@ def database_txt(instance, flows, coefficients, path, scenario, _format, sep):
         )
 
 
-def database_csv(
+def database_txt_flat(
         instance, 
         path,
         matrices,
@@ -594,9 +594,9 @@ def database_csv(
 
         if export:
             if matrix in _matrices_list['coefficients']:
-                df_all_scenarios.to_csv(os.path.join(path,f"{matrix}{matrix}.csv"),index=False)
+                df_all_scenarios.to_csv(os.path.join(path,f"{matrix}{matrix}.txt"),index=False)
             else:
-                df_all_scenarios.to_csv(os.path.join(path,f"{matrix}.csv"),index=False)
+                df_all_scenarios.to_csv(os.path.join(path,f"{matrix}.txt"),index=False)
 
             print(f"Exported")
         else:

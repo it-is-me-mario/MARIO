@@ -30,7 +30,7 @@ from mario.tools.utilities import (
 from mario.tools.excelhandler import (
     database_excel,
     database_txt,
-    database_csv,
+    database_txt_flat,
     _add_sector,
     _read_add_sectors,
     _get_new_add_sectors_sets,
@@ -1307,7 +1307,7 @@ class Database(CoreModel):
                 json.dump(meta, fp)
 
 
-    def to_flat_csv(
+    def to_flat_txt(
         self,
         path: str,
         matrices: list = 'all',
@@ -1333,7 +1333,7 @@ class Database(CoreModel):
             raise WrongInput("At least one of the flows or coefficients should be True")
         
         if not export:
-            self.matrices_flat = database_csv(
+            self.matrices_flat = database_txt_flat(
                 self, 
                 path,
                 matrices,
@@ -1344,7 +1344,7 @@ class Database(CoreModel):
             )
 
         else:
-            database_csv(
+            database_txt_flat(
                 self, 
                 path,
                 matrices,
@@ -1380,7 +1380,7 @@ class Database(CoreModel):
             include_meta (bool, optional): _description_. Defaults to False.
         """
 
-        self.to_flat_csv(
+        self.to_flat_txt(
             path = path,
             matrices = matrices,
             flows = flows,
