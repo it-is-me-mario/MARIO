@@ -619,40 +619,155 @@ _PYMRIO_INDEXING = {
 
 _SQL_COLUMNS = {
     'cases': {
-        _ENUM.Z: {
-            0: [f"{_MASTER_INDEX['r']}_from",f"{_INDEX_NAMES['3levels'][1]}_from",f"{_INDEX_NAMES['3levels'][2]}_from"],
-            1: [f"{_MASTER_INDEX['r']}_to",f"{_INDEX_NAMES['3levels'][1]}_to",f"{_INDEX_NAMES['3levels'][2]}_to"],
+        SUT: {
+            _ENUM.S: {
+                0: [f"{_MASTER_INDEX['r']}_from",f"{_MASTER_INDEX['a']}_from",],
+                1: [f"{_MASTER_INDEX['r']}_to",f"{_MASTER_INDEX['c']}_to"],
+            },
+            _ENUM.U: {
+                0: [f"{_MASTER_INDEX['r']}_from",f"{_MASTER_INDEX['c']}_from",],
+                1: [f"{_MASTER_INDEX['r']}_to",f"{_MASTER_INDEX['a']}_to"],
+            },
+            _ENUM.Y: {
+                0: [f"{_MASTER_INDEX['r']}_from",f"{_MASTER_INDEX['c']}_from",],
+                1: [f"{_MASTER_INDEX['r']}_to",f"{_MASTER_INDEX['n']}_to"],
+            },
+            _ENUM.V: {
+                "V_a": {
+                    0: [f"{_MASTER_INDEX['f']}"],
+                    1: [f"{_MASTER_INDEX['r']}_to",f"{_MASTER_INDEX['a']}_to"],
+                },
+                "V_c": {
+                    0: [f"{_MASTER_INDEX['f']}"],
+                    1: [f"{_MASTER_INDEX['r']}_to",f"{_MASTER_INDEX['c']}_to"],
+                },
+                "correspondance": {
+                    "v_a": "V_a",
+                    "v_c": "V_c",
+                }
+            },
+            _ENUM.E: {
+                0: [f"{_MASTER_INDEX['k']}_from"],
+                1: [f"{_MASTER_INDEX['r']}_to",f"{_MASTER_INDEX['a']}_to"],
+            },
+            _ENUM.X: {
+                "X_c": {
+                    0: [f"{_MASTER_INDEX['r']}_from",f"{_MASTER_INDEX['c']}_from",],
+                },
+                "X_a": {
+                    0: [f"{_MASTER_INDEX['r']}_from",f"{_MASTER_INDEX['a']}_from",],
+                },
+                "correspondance": {
+                    "p_a": "X_a",
+                    "p_c": "X_c",
+                }
+            },
+            _ENUM.EY: {
+                0: [f"{_MASTER_INDEX['k']}_from"],
+                1: [f"{_MASTER_INDEX['r']}_to",f"{_MASTER_INDEX['n']}_to"],
+            },
+            _ENUM.F: {
+                "F_c": {
+                    0: [f"{_MASTER_INDEX['k']}_from"],
+                    1: [f"{_MASTER_INDEX['r']}_to",f"{_MASTER_INDEX['c']}_to"],
+                },
+                "F_a": {
+                    0: [f"{_MASTER_INDEX['k']}_from"],
+                    1: [f"{_MASTER_INDEX['r']}_to",f"{_MASTER_INDEX['a']}_to"],
+                },
+                "correspondance": {
+                    "f_a": "F_a",
+                    "f_c": "F_c",
+                }
+            },
         },
-        _ENUM.Y: {
-            0: [f"{_MASTER_INDEX['r']}_from",f"{_INDEX_NAMES['3levels'][1]}_from",f"{_INDEX_NAMES['3levels'][2]}_from"],
-            1: [f"{_MASTER_INDEX['r']}_to",f"{_INDEX_NAMES['3levels'][1]}_to",f"{_INDEX_NAMES['3levels'][2]}_to"],
-        },
-        _ENUM.V: {
-            0: [f"{_INDEX_NAMES['1level']}_from"],
-            1: [f"{_MASTER_INDEX['r']}_to",f"{_INDEX_NAMES['3levels'][1]}_to",f"{_INDEX_NAMES['3levels'][2]}_to"],
-        },
-        _ENUM.X: {
-            0: [f"{_MASTER_INDEX['r']}_from",f"{_INDEX_NAMES['3levels'][1]}_from",f"{_INDEX_NAMES['3levels'][2]}_from"],
-            1: [f"{_INDEX_NAMES['3levels'][2]}_to"],
-        },
-        _ENUM.EY: {
-            0: [f"{_INDEX_NAMES['1level']}_from"],
-            1: [f"{_MASTER_INDEX['r']}_to",f"{_INDEX_NAMES['3levels'][1]}_to",f"{_INDEX_NAMES['3levels'][2]}_to"],
+        IOT: {
+            _ENUM.Z: {
+                0: [f"{_MASTER_INDEX['r']}_from",f"{_MASTER_INDEX['s']}_from",],
+                1: [f"{_MASTER_INDEX['r']}_to",f"{_MASTER_INDEX['s']}_to"],
+            },
+            _ENUM.Y: {
+                0: [f"{_MASTER_INDEX['r']}_from",f"{_MASTER_INDEX['s']}_from",],
+                1: [f"{_MASTER_INDEX['r']}_to",f"{_MASTER_INDEX['n']}_to"],
+            },
+            _ENUM.V: {
+                0: [f"{_MASTER_INDEX['f']}"],
+                1: [f"{_MASTER_INDEX['r']}_to",f"{_MASTER_INDEX['s']}_to"],
+            },
+            _ENUM.E: {
+                0: [f"{_MASTER_INDEX['k']}_from"],
+                1: [f"{_MASTER_INDEX['r']}_to",f"{_MASTER_INDEX['s']}_to"],
+            },
+            _ENUM.X: {
+                0: [f"{_MASTER_INDEX['r']}_from",f"{_MASTER_INDEX['s']}_from"],
+            },
+            _ENUM.EY: {
+                0: [f"{_MASTER_INDEX['k']}_from"],
+                1: [f"{_MASTER_INDEX['r']}_to",f"{_MASTER_INDEX['n']}_to"],
+            },
         },
     },
     'correspondances': {
-        _ENUM.z: _ENUM.Z,
-        _ENUM.E: _ENUM.V,
-        _ENUM.v: _ENUM.V,
-        _ENUM.e: _ENUM.V,
-        _ENUM.f: _ENUM.V,
-        _ENUM.p: _ENUM.X,
-        _ENUM.w: _ENUM.Z,
-        _ENUM.F: _ENUM.V,
-    }
+        SUT: {
+            _ENUM.s: _ENUM.S,
+            _ENUM.u: _ENUM.U,
+            _ENUM.v: _ENUM.V,
+            _ENUM.e: _ENUM.E,
+            _ENUM.p: _ENUM.X,
+            _ENUM.f: _ENUM.F,
+        },
+        IOT: {
+            _ENUM.z: _ENUM.Z,
+            _ENUM.v: _ENUM.V,
+            _ENUM.e: _ENUM.E,
+            _ENUM.p: _ENUM.X,
+            _ENUM.f: _ENUM.E,
+            _ENUM.F: _ENUM.E,
+        },
+    },
 }
 
 _matrices_list = {
-    'flows': ['Z','Y','V','E','EY','F',"X",],
-    'coefficients': ['z','v','e','f','p','w'],
+    SUT: {
+        'flows': ['S','U','Y','V','E','EY','F',"X"],
+        'coefficients': ['s','u','v','e','f','p'],
+    },
+    IOT: {
+        'flows': ['Z','Y','V','E','EY','F',"X"],
+        'coefficients': ['z','v','e','f','p'],
+    }
 }
+
+_export_names = {
+    'Z': 'Z',
+    'z': 'zz',
+    'S': 'S',
+    's': 'ss',
+    'U': 'U',
+    'u': 'uu',
+    'Y': 'Y',
+    'V': 'V',
+    'V_a':'V_a',
+    'V_c':'V_c',
+    'v': 'vv',
+    'v_a':'vv_a',
+    'v_c':'vv_c',
+    'E': 'E',
+    'e': 'ee',
+    'F': 'F',
+    'F_a':'F_a',
+    'F_c':'F_c',
+    'f': 'ff',
+    'f_a':'ff_a',
+    'f_c':'ff_c',
+    'p': 'pp',
+    'p_a':'p_a',
+    'p_c':'p_c',
+    'X':'X',
+    'X_a':'X_a',
+    'X_c':'X_c',
+    'EY': 'EY',
+}
+
+
+

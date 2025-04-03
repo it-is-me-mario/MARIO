@@ -15,9 +15,11 @@ from mario.tools.constants import (
     _SHOCK_LEVELS,
     _SHOCKS,
     _ENUM,
+    SUT,
+    IOT,
 )
 from mario.tools.constants import _ADD_SECTORS_MASTER_SHEET_COLUMNS as MSC
-from mario.tools.constants import _SQL_COLUMNS, _matrices_list
+from mario.tools.constants import _SQL_COLUMNS, _matrices_list, _export_names
 
 
 def _sh_excel(instance, num_shock, directory, clusters):
@@ -528,6 +530,7 @@ def database_txt_flat(
 ):
     
     flat_matrices = {}
+    table = instance.meta.table
 
     if scenario_split == None:
         scenario_split = {"separator": " - ", "Scenario":0}
@@ -535,77 +538,110 @@ def database_txt_flat(
     if matrices == 'all':
         matrices = []
         if flows:
-            matrices = _matrices_list['flows']
+            matrices = _matrices_list[table]['flows']
         if coefficients: 
             if len(matrices) != 0:
-                matrices += _matrices_list['coefficients']
+                matrices += _matrices_list[table]['coefficients']
             else:
-                matrices = _matrices_list['coefficients']
+                matrices = _matrices_list[table]['coefficients']
 
         matrices = sorted(list(set(matrices)))
 
+
     for matrix in matrices:
-        print(f"Matrix: {matrix}")
-        df_all_scenarios = pd.DataFrame()
+        print(f"\nMatrix: {matrix}",end=" | ")
 
-        for scenario in instance.scenarios:
-            print(f"   Scenario: {scenario}")
-
-            df = instance.query(matrices=[matrix],scenarios=[scenario]) 
-
-            if scenario == 'baseline':
-                if "rename_baseline" in scenario_split:
-                    scenario = scenario_split["rename_baseline"]
-
-          
-            if matrix in _SQL_COLUMNS['cases']:
-                info = _SQL_COLUMNS['cases'][matrix]
-            elif matrix not in _SQL_COLUMNS['correspondances']:
-                raise ValueError(f"Matrix {matrix} cannot be exported to SQL")
-            else:                
-                info = _SQL_COLUMNS['cases'][_SQL_COLUMNS['correspondances'][matrix]]
-            
-            df.index.names = info[0]
-            df.columns.names = info[1]
+        if matrix in _SQL_COLUMNS['cases'][table]:
+            info = _SQL_COLUMNS['cases'][table][matrix]
+        elif matrix not in _SQL_COLUMNS['correspondances'][table]:
+            raise ValueError(f"Matrix {matrix} cannot be exported to SQL")
+        else:                
+            info = _SQL_COLUMNS['cases'][table][_SQL_COLUMNS['correspondances'][table][matrix]]
         
-            for level in df.columns.names:
-                df = df.stack(future_stack=True) # silences warning
-            if isinstance(df,pd.Series):
-                df = df.to_frame()
-            df.columns = ['Value']
-            
-            scenarios_columns = []
-            for k,v in scenario_split.items():
-                if k not in  ["separator","rename_baseline"]:
-                    try:
-                        df[k] = scenario.split(scenario_split["separator"])[v]
-                        scenarios_columns += [k]
-                    except:
-                        pass
-            
-            scenarios_columns = scenarios_columns[::-1]
-            
-            df.reset_index(inplace=True)                
-            df.set_index(scenarios_columns,inplace=True)
-            df.reset_index(inplace=True)
-            df = df.query("Value<0 or Value>0")
-
-            df_all_scenarios = pd.concat([df_all_scenarios,df],axis=0)
-
-        if export:
-            if matrix in _matrices_list['coefficients']:
-                df_all_scenarios.to_csv(os.path.join(path,f"{matrix}{matrix}.txt"),index=False)
-            else:
-                df_all_scenarios.to_csv(os.path.join(path,f"{matrix}.txt"),index=False)
-
-            print(f"Exported")
+        if list(info.keys()) in [[0],[0,1],[0,1,"correspondance"]]:
+            sub_matrices = [matrix]
+            sub_info = {matrix:info}
         else:
-            if matrix in _matrices_list['coefficients']:
-                flat_matrices[f"{matrix}{matrix}"] = df_all_scenarios
-            else:
-                flat_matrices[matrix] = df_all_scenarios
+            sub_matrices = [f"{matrix[0]}_{name.split('_')[-1]}" for name in list(info.keys()) if name != 'correspondance']
+            sub_info = {}
+            for sm in sub_matrices:
+                try:
+                    sub_info[sm] = info[sm]
+                except:
+                    sub_info[sm] = info[info['correspondance'][sm]]
 
-            print(f"Stored")
+        df_all_scenarios = pd.DataFrame()
+        for sm,si in sub_info.items():
+            print(f"Sub-matrix: {sm}",end=" | ")
+
+            for scenario in instance.scenarios:
+                print(f"Scenario: {scenario}...",end=" ")
+
+                df = instance.query(matrices=[matrix],scenarios=[scenario]) 
+
+                if scenario == 'baseline':
+                    if "rename_baseline" in scenario_split:
+                        scenario = scenario_split["rename_baseline"]
+
+                if sm in ['V_a','F_a']:
+                    df_sm = df.loc[:,(slice(None),_MASTER_INDEX['a'],slice(None))]
+
+                elif sm in ['V_c','F_c']:
+                    df_sm = df.loc[:,(slice(None),_MASTER_INDEX['c'],slice(None))]
+
+                elif sm == 'X_c':
+                    df_sm = df.loc[(slice(None),_MASTER_INDEX['c'],slice(None))]
+
+                elif sm == 'X_a':
+                    df_sm = df.loc[(slice(None),_MASTER_INDEX['a'],slice(None))]
+                
+                else:
+                    df_sm = df.copy()
+                    
+                if len(df_sm.index.names) == 3 and len(df_sm.columns.names) == 3:
+                    df_sm = df_sm.droplevel(1,axis=0)
+                    df_sm = df_sm.droplevel(1,axis=1)
+                    df_sm.index.names = si[0]
+                    df_sm.columns.names = si[1]
+                    
+                if len(df_sm.index.names) == 1 and len(df_sm.columns.names) == 3:
+                    df_sm = df_sm.droplevel(1,axis=1)
+                    df_sm.index.names = si[0]
+                    df_sm.columns.names = si[1]
+                
+                if len(df_sm.index.names) == 3 and len(df_sm.columns.names) == 1:
+                    df_sm = df_sm.droplevel(1,axis=0)
+                    df_sm.index.names = si[0]
+
+                if len(df_sm.columns.names) != 1:
+                    for level in df_sm.columns.names:
+                        df_sm = df_sm.stack(future_stack=True) # future_stack = True silences pandas warnings
+                
+                if isinstance(df_sm,pd.Series):
+                    df_sm = df_sm.to_frame()
+                
+                df_sm.columns = ['Value']
+            
+                scenarios_columns = []
+                for k,v in scenario_split.items():
+                    if k not in  ["separator","rename_baseline"]:
+                        try:
+                            df_sm[k] = scenario.split(scenario_split["separator"])[v]
+                            scenarios_columns += [k]
+                        except:
+                            pass
+                            
+                df_sm.reset_index(inplace=True)                
+                df_sm.set_index(scenarios_columns,inplace=True)
+                df_sm.reset_index(inplace=True)
+                df_sm = df_sm.query("Value<0 or Value>0")
+
+                df_all_scenarios = pd.concat([df_all_scenarios,df_sm],axis=0)
+
+                if export:
+                    df_all_scenarios.to_csv(os.path.join(path,_export_names[sm]+".txt"),index=False)
+                else:
+                    flat_matrices[_export_names[sm]] = df_all_scenarios
 
     if not export:
         return flat_matrices
