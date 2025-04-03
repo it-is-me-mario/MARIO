@@ -528,17 +528,20 @@ def database_csv(
 ):
     
     flat_matrices = {}
+
+    if scenario_split == None:
+        scenario_split = {"separator": " - ", "Scenario":0}
+
     if matrices == 'all':
         matrices = []
         if flows:
             matrices = _matrices_list['flows']
         if coefficients: 
             if len(matrices) != 0:
-                matrices = matrices.append([i for i in _matrices_list['coefficients']])
+                matrices += _matrices_list['coefficients']
             else:
                 matrices = _matrices_list['coefficients']
 
-        instance.calc_all(matrices)
         matrices = sorted(list(set(matrices)))
 
     for matrix in matrices:
@@ -548,8 +551,13 @@ def database_csv(
         for scenario in instance.scenarios:
             print(f"   Scenario: {scenario}")
 
-            df = instance.query(matrices=[matrix],scenarios=[scenario])        
+            df = instance.query(matrices=[matrix],scenarios=[scenario]) 
 
+            if scenario == 'baseline':
+                if "rename_baseline" in scenario_split:
+                    scenario = scenario_split["rename_baseline"]
+
+          
             if matrix in _SQL_COLUMNS['cases']:
                 info = _SQL_COLUMNS['cases'][matrix]
             elif matrix not in _SQL_COLUMNS['correspondances']:
@@ -561,35 +569,38 @@ def database_csv(
             df.columns.names = info[1]
         
             for level in df.columns.names:
-                df = df.stack()
+                df = df.stack(future_stack=True) # silences warning
             if isinstance(df,pd.Series):
                 df = df.to_frame()
             df.columns = ['Value']
             
-            if scenario_split == None:
-                scenario_split = {"separator": " - ", "Scenario":0}
-
             scenarios_columns = []
             for k,v in scenario_split.items():
-                if k != "separator":
+                if k not in  ["separator","rename_baseline"]:
                     try:
                         df[k] = scenario.split(scenario_split["separator"])[v]
                         scenarios_columns += [k]
                     except:
                         pass
-                
+            
+            scenarios_columns = scenarios_columns[::-1]
+            
             df.reset_index(inplace=True)                
             df.set_index(scenarios_columns,inplace=True)
             df.reset_index(inplace=True)
-            df = df.query("Value!=0")
+            df = df.query("Value<0 or Value>0")
 
             df_all_scenarios = pd.concat([df_all_scenarios,df],axis=0)
 
         if export:
-            df.to_csv(os.path.join(path,f"{matrix}.csv"),index=False)
+            if matrix in _matrices_list['coefficients']:
+                df_all_scenarios.to_csv(os.path.join(path,f"{matrix}{matrix}.csv"),index=False)
+            else:
+                df_all_scenarios.to_csv(os.path.join(path,f"{matrix}.csv"),index=False)
+
             print(f"Exported")
         else:
-            flat_matrices[matrix]
+            flat_matrices[matrix] = df_all_scenarios
             print(f"Stored")
 
     if not export:

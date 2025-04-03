@@ -1357,15 +1357,27 @@ class Database(CoreModel):
         if flows==False and coefficients==False:
             raise WrongInput("At least one of the flows or coefficients should be True")
         
-        database_csv(
-            self, 
-            path,
-            matrices,
-            flows,
-            coefficients,
-            scenario_split,
-            export,
-        )
+        if not export:
+            self.matrices_flat = database_csv(
+                self, 
+                path,
+                matrices,
+                flows,
+                coefficients,
+                scenario_split,
+                export,
+            )
+
+        else:
+            database_csv(
+                self, 
+                path,
+                matrices,
+                flows,
+                coefficients,
+                scenario_split,
+                export,
+            )
 
         if include_meta:
             meta = self.meta._to_dict()
