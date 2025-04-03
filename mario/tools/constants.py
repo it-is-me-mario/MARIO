@@ -615,3 +615,38 @@ _PYMRIO_INDEXING = {
         "add_i": [_MASTER_INDEX["s"]],
     },
 }
+
+
+_SQL_COLUMNS = {
+    'cases': {
+        _ENUM.Z: {
+            0: [f"{_MASTER_INDEX['r']}_from",f"{_INDEX_NAMES['3levels'][1]}_from",f"{_INDEX_NAMES['3levels'][2]}_from"],
+            1: [f"{_MASTER_INDEX['r']}_to",f"{_INDEX_NAMES['3levels'][1]}_to",f"{_INDEX_NAMES['3levels'][2]}_to"],
+        },
+        _ENUM.Y: {
+            0: [f"{_MASTER_INDEX['r']}_from",f"{_INDEX_NAMES['3levels'][1]}_from",f"{_INDEX_NAMES['3levels'][2]}_from"],
+            1: [f"{_MASTER_INDEX['r']}_to",f"{_INDEX_NAMES['3levels'][1]}_to",f"{_INDEX_NAMES['3levels'][2]}_to"],
+        },
+        _ENUM.V: {
+            0: [_INDEX_NAMES['1level'][0]],
+            1: [f"{_MASTER_INDEX['r']}_to",f"{_INDEX_NAMES['3levels'][1]}_to",f"{_INDEX_NAMES['3levels'][2]}_to"],
+        },
+        _ENUM.EY: {
+            0: [_INDEX_NAMES['1level'][0]],
+            1: [f"{_MASTER_INDEX['r']}_to",f"{_INDEX_NAMES['3levels'][1]}_to",f"{_INDEX_NAMES['3levels'][2]}_to"],
+        },
+    },
+    'correspondances': {
+        _ENUM.z: _ENUM.Z,
+        _ENUM.E: _ENUM.V,
+        _ENUM.v: _ENUM.V,
+        _ENUM.e: _ENUM.V,
+        _ENUM.f: _ENUM.V,
+        _ENUM.F: _ENUM.V,
+    }
+}
+
+_matrices_list = {
+    'flows': ['Z','Y','V','E','EY','F'],
+    'coefficients': ['z','v','e','f','p','w'],
+}

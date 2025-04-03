@@ -30,6 +30,7 @@ from mario.tools.utilities import (
 from mario.tools.excelhandler import (
     database_excel,
     database_txt,
+    database_csv,
     _add_sector,
     _read_add_sectors,
     _get_new_add_sectors_sets,
@@ -1303,6 +1304,74 @@ class Database(CoreModel):
             meta = self.meta._to_dict()
             with open(self._getdir(path, "Database", "") + "/metadata.json", "w") as fp:
                 json.dump(meta, fp)
+
+
+    def to_flat_csv(
+        self,
+        path: str,
+        matrices: list = 'all',
+        flows:bool = True,
+        coefficients: bool = False,
+        scenario_split: str = None,
+        export:bool = True,
+        include_meta=False,
+    ):
+        """Saves the database multiple text file based on given inputs
+
+        .. note::
+            * The function will create multiple text files carring on the name of the matrices based on the given inputs.
+            * It is suggested to keep the units = True so the output file can be used to parse with MARIO again.
+
+        Parameters
+        ----------
+        path : str
+            the path that the Excel file should be saved. If it is None, MARIO
+            will try to use the default path and inform the user with a warning.
+
+        flows : boolean
+            if True, in the Excel file, a sheet will be created named flows containing
+            the data of the flows
+
+        coefficients : boolean
+            if True, in the Excel file, a sheet will be created named coefficients containing
+            the data of the coefficients
+
+        units : boolean
+            if True, in the Excel file, a sheet will be created named units containing
+            the data of the units
+
+        scenario : str
+            defines the scenario to print out the data
+
+        _format : str
+            * txt to save as txt files
+            * csv to save as csv files
+
+        include_meta : bool
+            saves the metadata as a json file along with the data
+
+        sep : str
+            txt file separator
+        """
+
+        if flows==False and coefficients==False:
+            raise WrongInput("At least one of the flows or coefficients should be True")
+        
+        database_csv(
+            self, 
+            path,
+            matrices,
+            flows,
+            coefficients,
+            scenario_split,
+            export,
+        )
+
+        if include_meta:
+            meta = self.meta._to_dict()
+            with open(self._getdir(path, "Database", "") + "/metadata.json", "w") as fp:
+                json.dump(meta, fp)
+
 
     def to_pymrio(
         self,

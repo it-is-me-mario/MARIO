@@ -17,6 +17,7 @@ from mario.tools.constants import (
     _ENUM,
 )
 from mario.tools.constants import _ADD_SECTORS_MASTER_SHEET_COLUMNS as MSC
+from mario.tools.constants import _SQL_COLUMNS, _matrices_list
 
 
 def _sh_excel(instance, num_shock, directory, clusters):
@@ -515,6 +516,85 @@ def database_txt(instance, flows, coefficients, path, scenario, _format, sep):
             mode="a",
         )
 
+
+def database_csv(
+        instance, 
+        path,
+        matrices,
+        flows,
+        coefficients,
+        scenario_split,
+        export,
+):
+    
+    flat_matrices = {}
+    if matrices == 'all':
+        matrices = []
+        if flows:
+            matrices = _matrices_list['flows']
+        if coefficients: 
+            if len(matrices) != 0:
+                matrices = matrices.append([i for i in _matrices_list['coefficients']])
+            else:
+                matrices = _matrices_list['coefficients']
+
+        instance.calc_all(matrices)
+        matrices = sorted(list(set(matrices)))
+
+    for matrix in matrices:
+        print(f"Matrix: {matrix}")
+        df_all_scenarios = pd.DataFrame()
+
+        for scenario in instance.scenarios:
+            print(f"   Scenario: {scenario}")
+
+            df = instance.query(matrices=[matrix],scenarios=[scenario])        
+
+            if matrix in _SQL_COLUMNS['cases']:
+                info = _SQL_COLUMNS['cases'][matrix]
+            elif matrix not in _SQL_COLUMNS['correspondances']:
+                raise ValueError(f"Matrix {matrix} cannot be exported to SQL")
+            else:                
+                info = _SQL_COLUMNS['cases'][_SQL_COLUMNS['correspondances'][matrix]]
+            
+            df.index.names = info[0]
+            df.columns.names = info[1]
+        
+            for level in df.columns.names:
+                df = df.stack()
+            if isinstance(df,pd.Series):
+                df = df.to_frame()
+            df.columns = ['Value']
+            
+            if scenario_split == None:
+                scenario_split = {"separator": " - ", "Scenario":0}
+
+            scenarios_columns = []
+            for k,v in scenario_split.items():
+                if k != "separator":
+                    try:
+                        df[k] = scenario.split(scenario_split["separator"])[v]
+                        scenarios_columns += [k]
+                    except:
+                        pass
+                
+            df.reset_index(inplace=True)                
+            df.set_index(scenarios_columns,inplace=True)
+            df.reset_index(inplace=True)
+            df = df.query("Value!=0")
+
+            df_all_scenarios = pd.concat([df_all_scenarios,df],axis=0)
+
+        if export:
+            df.to_csv(os.path.join(path,f"{matrix}.csv"),index=False)
+            print(f"Exported")
+        else:
+            flat_matrices[matrix]
+            print(f"Stored")
+
+    if not export:
+        return flat_matrices
+    
 
 def add_sector_writer(matrices, path):
     workbook = xlsxwriter.Workbook(path)
