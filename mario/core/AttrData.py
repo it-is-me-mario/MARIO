@@ -79,7 +79,8 @@ import logging
 import copy
 from typing import Dict
 import plotly.express as px
-
+import sqlite3
+import os
 
 # constants
 from mario.tools.constants import (
@@ -1316,42 +1317,16 @@ class Database(CoreModel):
         export:bool = True,
         include_meta=False,
     ):
-        """Saves the database multiple text file based on given inputs
+        """Saves the database multiple csv file based on given inputs
 
         .. note::
-            * The function will create multiple text files carring on the name of the matrices based on the given inputs.
+            * The function will create multiple csv files carring on the name of the matrices based on the given inputs.
             * It is suggested to keep the units = True so the output file can be used to parse with MARIO again.
 
         Parameters
         ----------
-        path : str
-            the path that the Excel file should be saved. If it is None, MARIO
-            will try to use the default path and inform the user with a warning.
+        TO DO
 
-        flows : boolean
-            if True, in the Excel file, a sheet will be created named flows containing
-            the data of the flows
-
-        coefficients : boolean
-            if True, in the Excel file, a sheet will be created named coefficients containing
-            the data of the coefficients
-
-        units : boolean
-            if True, in the Excel file, a sheet will be created named units containing
-            the data of the units
-
-        scenario : str
-            defines the scenario to print out the data
-
-        _format : str
-            * txt to save as txt files
-            * csv to save as csv files
-
-        include_meta : bool
-            saves the metadata as a json file along with the data
-
-        sep : str
-            txt file separator
         """
 
         if flows==False and coefficients==False:
@@ -1383,6 +1358,50 @@ class Database(CoreModel):
             meta = self.meta._to_dict()
             with open(self._getdir(path, "Database", "") + "/metadata.json", "w") as fp:
                 json.dump(meta, fp)
+
+
+    def to_sql(
+        self,
+        path: str,
+        matrices: list = 'all',
+        flows:bool = True,
+        coefficients: bool = False,
+        scenario_split: str = None,
+        include_meta=False, 
+    ):
+        """_summary_
+
+        Args:
+            path (str): _description_
+            matrices (list, optional): _description_. Defaults to 'all'.
+            flows (bool, optional): _description_. Defaults to True.
+            coefficients (bool, optional): _description_. Defaults to False.
+            scenario_split (str, optional): _description_. Defaults to None.
+            include_meta (bool, optional): _description_. Defaults to False.
+        """
+
+        self.to_flat_csv(
+            path = path,
+            matrices = matrices,
+            flows = flows,
+            coefficients = coefficients,
+            scenario_split = scenario_split,
+            include_meta = include_meta, 
+            export = False,
+        )
+
+        if not os.path.isfile(path):
+            path = os.path.join(path, "database.db")
+        else:
+            if path.split(".")[-1] != 'db':
+                raise ValueError("Extension of the file must be '.db'")
+
+        conn = sqlite3.connect(path)
+
+        for table_name, df in self.matrices_flat.items():
+            df.to_sql(table_name, conn, if_exists="replace", index=False)
+
+        conn.close()
 
 
     def to_pymrio(

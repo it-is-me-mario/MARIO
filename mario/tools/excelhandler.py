@@ -600,7 +600,11 @@ def database_csv(
 
             print(f"Exported")
         else:
-            flat_matrices[matrix] = df_all_scenarios
+            if matrix in _matrices_list['coefficients']:
+                flat_matrices[f"{matrix}{matrix}"] = df_all_scenarios
+            else:
+                flat_matrices[matrix] = df_all_scenarios
+
             print(f"Stored")
 
     if not export:
