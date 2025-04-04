@@ -780,7 +780,6 @@ def database_sql(instance, db_path, additional_common_cols=[]):
         # Drop the new table if it already exists
         safe_execute(cursor, f"DROP TABLE IF EXISTS {new_table}")
         # Create the new table with the modified schema
-        print(create_schema)
         safe_execute(cursor, create_schema)
 
         # Copy data from the temporary table into the new table
