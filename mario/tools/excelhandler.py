@@ -656,7 +656,7 @@ def database_sql(instance, db_path, additional_common_cols=[]):
     """
     Exports flattened matrices and related sets to an SQLite database while managing
     foreign key relationships and ensuring unique indexing for consistency.
-
+    
     Parameters:
     - instance: Object containing matrices (instance.matrices_flat) and indexing methods.
     - db_path: Path to the SQLite database file.
@@ -668,15 +668,10 @@ def database_sql(instance, db_path, additional_common_cols=[]):
         """
         Helper function to safely execute SQL commands and catch errors related
         to existing tables or indexes (to avoid breaking the execution).
-
-        Params:
-        - cursor: SQLite database cursor.
-        - sql_command: The SQL string to execute.
         """
         try:
             cursor.execute(sql_command)
         except sqlite3.OperationalError as e:
-            # Ignore "already exists" errors for tables/indexes
             if "already exists" not in str(e):
                 raise e
 
@@ -697,11 +692,25 @@ def database_sql(instance, db_path, additional_common_cols=[]):
 
     # --- STEP 2: Create SET tables based on relationships in _RELATIONSHIPS ---
     rels = _RELATIONSHIPS[table_type]  # Relationships define foreign key mappings for the instance.
+    
     for set_table_name, set_info in rels.items():
         set_label = set_info["set_list"]  # The column used as a set reference
+        
+        # Use `get_index` to retrieve unique values
         values = instance.get_index(set_label)  # Retrieve unique values for this set
+
+        # Create a DataFrame for the set
         df_set = pd.DataFrame({set_label: values})
 
+        # Check if units information exists for this set
+        if set_label in instance.units:
+            # Get the corresponding DataFrame from `instance.units`
+            df_units = instance.units[set_label]
+
+            # Add the "unit" column as a second column in the set table
+            unit_col_name = f"{set_label}_Unit"
+            df_set[unit_col_name] = df_units.iloc[:,0].values
+        
         # Sanitize table and column names to avoid conflicts
         safe_table_name = set_table_name.replace(" ", "_").replace("-", "_")
         safe_set_label = set_label.replace(" ", "_").replace("-", "_")
@@ -722,7 +731,6 @@ def database_sql(instance, db_path, additional_common_cols=[]):
 
     # --- STEP 3: Handle additional common columns ---
     if instance.matrices_flat:
-        # Use the first matrix as a sample to process common columns
         sample_df = next(iter(instance.matrices_flat.values()))
         for col in additional_common_cols:
             if col in sample_df.columns:
