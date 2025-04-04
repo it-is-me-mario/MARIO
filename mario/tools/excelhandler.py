@@ -7,6 +7,7 @@ import xlsxwriter
 import os
 import pandas as pd
 from copy import deepcopy as dc
+import sqlite3
 
 # import constants
 from mario.tools.constants import (
@@ -19,7 +20,7 @@ from mario.tools.constants import (
     IOT,
 )
 from mario.tools.constants import _ADD_SECTORS_MASTER_SHEET_COLUMNS as MSC
-from mario.tools.constants import _SQL_COLUMNS, _matrices_list, _export_names
+from mario.tools.sql_properties import _COLUMNS, _MATRICES_LIST, _EXPORT_NAMES, _RELATIONSHIPS
 
 
 def _sh_excel(instance, num_shock, directory, clusters):
@@ -538,12 +539,12 @@ def database_txt_flat(
     if matrices == 'all':
         matrices = []
         if flows:
-            matrices = _matrices_list[table]['flows']
+            matrices = _MATRICES_LIST[table]['flows']
         if coefficients: 
             if len(matrices) != 0:
-                matrices += _matrices_list[table]['coefficients']
+                matrices += _MATRICES_LIST[table]['coefficients']
             else:
-                matrices = _matrices_list[table]['coefficients']
+                matrices = _MATRICES_LIST[table]['coefficients']
 
         matrices = sorted(list(set(matrices)))
 
@@ -551,12 +552,12 @@ def database_txt_flat(
     for matrix in matrices:
         print(f"\nMatrix: {matrix}",end=" | ")
 
-        if matrix in _SQL_COLUMNS['cases'][table]:
-            info = _SQL_COLUMNS['cases'][table][matrix]
-        elif matrix not in _SQL_COLUMNS['correspondances'][table]:
+        if matrix in _COLUMNS['cases'][table]:
+            info = _COLUMNS['cases'][table][matrix]
+        elif matrix not in _COLUMNS['correspondances'][table]:
             raise ValueError(f"Matrix {matrix} cannot be exported to SQL")
         else:                
-            info = _SQL_COLUMNS['cases'][table][_SQL_COLUMNS['correspondances'][table][matrix]]
+            info = _COLUMNS['cases'][table][_COLUMNS['correspondances'][table][matrix]]
         
         if list(info.keys()) in [[0],[0,1],[0,1,"correspondance"]]:
             sub_matrices = [matrix]
@@ -570,9 +571,10 @@ def database_txt_flat(
                 except:
                     sub_info[sm] = info[info['correspondance'][sm]]
 
-        df_all_scenarios = pd.DataFrame()
         for sm,si in sub_info.items():
             print(f"Sub-matrix: {sm}",end=" | ")
+
+            df_all_scenarios = pd.DataFrame()
 
             for scenario in instance.scenarios:
                 print(f"Scenario: {scenario}...",end=" ")
@@ -583,16 +585,16 @@ def database_txt_flat(
                     if "rename_baseline" in scenario_split:
                         scenario = scenario_split["rename_baseline"]
 
-                if sm in ['V_a','F_a']:
+                if sm in ['V_a','F_a','v_a','f_a']:
                     df_sm = df.loc[:,(slice(None),_MASTER_INDEX['a'],slice(None))]
 
-                elif sm in ['V_c','F_c']:
+                elif sm in ['V_c','F_c','v_c','f_c']:
                     df_sm = df.loc[:,(slice(None),_MASTER_INDEX['c'],slice(None))]
 
-                elif sm == 'X_c':
+                elif sm in ['X_c','p_c']:
                     df_sm = df.loc[(slice(None),_MASTER_INDEX['c'],slice(None))]
 
-                elif sm == 'X_a':
+                elif sm in ['X_a','p_a']:
                     df_sm = df.loc[(slice(None),_MASTER_INDEX['a'],slice(None))]
                 
                 else:
@@ -611,6 +613,9 @@ def database_txt_flat(
                 
                 if len(df_sm.index.names) == 3 and len(df_sm.columns.names) == 1:
                     df_sm = df_sm.droplevel(1,axis=0)
+                    df_sm.index.names = si[0]
+
+                if len(df_sm.index.names) == 2 and len(df_sm.columns.names) == 1:
                     df_sm.index.names = si[0]
 
                 if len(df_sm.columns.names) != 1:
@@ -638,14 +643,161 @@ def database_txt_flat(
 
                 df_all_scenarios = pd.concat([df_all_scenarios,df_sm],axis=0)
 
-                if export:
-                    df_all_scenarios.to_csv(os.path.join(path,_export_names[sm]+".txt"),index=False)
-                else:
-                    flat_matrices[_export_names[sm]] = df_all_scenarios
+            if export:
+                df_all_scenarios.to_csv(os.path.join(path,_EXPORT_NAMES[sm]+".txt"),index=False)
+            else:
+                flat_matrices[_EXPORT_NAMES[sm]] = df_all_scenarios
 
     if not export:
         return flat_matrices
     
+
+def database_sql(instance, db_path, additional_common_cols=[]):
+    """
+    Exports flattened matrices and related sets to an SQLite database while managing
+    foreign key relationships and ensuring unique indexing for consistency.
+
+    Parameters:
+    - instance: Object containing matrices (instance.matrices_flat) and indexing methods.
+    - db_path: Path to the SQLite database file.
+    - additional_common_cols: List of column names (e.g., ['Scenario', 'Year']) shared
+                              across multiple matrices to be handled separately.
+    """
+
+    def safe_execute(cursor, sql_command):
+        """
+        Helper function to safely execute SQL commands and catch errors related
+        to existing tables or indexes (to avoid breaking the execution).
+
+        Params:
+        - cursor: SQLite database cursor.
+        - sql_command: The SQL string to execute.
+        """
+        try:
+            cursor.execute(sql_command)
+        except sqlite3.OperationalError as e:
+            # Ignore "already exists" errors for tables/indexes
+            if "already exists" not in str(e):
+                raise e
+
+    # Get the type of table (e.g., SUT or IOT) from the instance metadata
+    table_type = instance.meta.table
+
+    # Establish the SQLite connection and enable foreign key support
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("PRAGMA foreign_keys = ON;")
+
+    # --- STEP 1: Create temporary tables for matrices ---
+    for name, df in instance.matrices_flat.items():
+        # Drop the temporary table if it already exists (to avoid conflicts)
+        safe_execute(cursor, f'DROP TABLE IF EXISTS "_tmp_{name}"')
+        # Save the dataframe to the SQLite database as a temporary table
+        df.to_sql(f"_tmp_{name}", conn, if_exists='replace', index=False)
+
+    # --- STEP 2: Create SET tables based on relationships in _RELATIONSHIPS ---
+    rels = _RELATIONSHIPS[table_type]  # Relationships define foreign key mappings for the instance.
+    for set_table_name, set_info in rels.items():
+        set_label = set_info["set_list"]  # The column used as a set reference
+        values = instance.get_index(set_label)  # Retrieve unique values for this set
+        df_set = pd.DataFrame({set_label: values})
+
+        # Sanitize table and column names to avoid conflicts
+        safe_table_name = set_table_name.replace(" ", "_").replace("-", "_")
+        safe_set_label = set_label.replace(" ", "_").replace("-", "_")
+        safe_index_name = f'idx_{safe_table_name}_{safe_set_label}'  # Generate safe index name
+
+        # Drop the index if it already exists
+        safe_execute(cursor, f'DROP INDEX IF EXISTS "{safe_index_name}"')
+
+        # Save the set table to the SQLite database
+        df_set.to_sql(set_table_name, conn, if_exists='replace', index=False)
+
+        # Create a unique index on the set table
+        create_index_sql = (
+            f'CREATE UNIQUE INDEX IF NOT EXISTS "{safe_index_name}" '
+            f'ON "{set_table_name}" ("{set_label}")'
+        )
+        safe_execute(cursor, create_index_sql)
+
+    # --- STEP 3: Handle additional common columns ---
+    if instance.matrices_flat:
+        # Use the first matrix as a sample to process common columns
+        sample_df = next(iter(instance.matrices_flat.values()))
+        for col in additional_common_cols:
+            if col in sample_df.columns:
+                # Retrieve unique values for the common column
+                values = sample_df[col].unique().tolist()
+                df_set = pd.DataFrame({col: values})
+                set_table_name = f"_set_{col}"  # Define a table name for the set
+
+                # Sanitize table and column names
+                safe_table_name = set_table_name.replace(" ", "_").replace("-", "_")
+                safe_col = col.replace(" ", "_").replace("-", "_")
+                safe_index_name = f'idx_{safe_table_name}_{safe_col}'
+
+                # Drop the index if it already exists
+                safe_execute(cursor, f'DROP INDEX IF EXISTS "{safe_index_name}"')
+
+                # Save the set table to the database
+                df_set.to_sql(set_table_name, conn, if_exists='replace', index=False)
+
+                # Create a unique index on the column
+                create_index_sql = (
+                    f'CREATE UNIQUE INDEX IF NOT EXISTS "{safe_index_name}" '
+                    f'ON "{set_table_name}" ("{col}")'
+                )
+                safe_execute(cursor, create_index_sql)
+
+    # --- STEP 4: Recreate matrix tables with foreign key constraints ---
+    for table in instance.matrices_flat.keys():
+        new_table = f"_new_{table}"  # Name for the new table
+        tmp_table = f"_tmp_{table}"  # Temporary table containing raw data
+
+        # Retrieve the schema for the temporary table and modify it to include FK definitions
+        create_schema = pd.io.sql.get_schema(instance.matrices_flat[table], new_table, con=conn)
+        fk_clauses = []  # List to store foreign key constraints
+
+        # Add foreign key constraints based on relationships
+        for set_table_name, set_info in rels.items():
+            for matrix_name, col_name in set_info["tables"].items():
+                if matrix_name == table:  # Check if FK applies to the current table
+                    set_label = set_info["set_list"]
+                    fk_clause = f'FOREIGN KEY("{col_name}") REFERENCES "{set_table_name}"("{set_label}")'
+                    fk_clauses.append(fk_clause)
+
+        # Add foreign key constraints for common columns
+        for col in additional_common_cols:
+            if col in instance.matrices_flat[table].columns:
+                set_table_name = f"_set_{col}"
+                fk_clause = f'FOREIGN KEY("{col}") REFERENCES "{set_table_name}"("{col}")'
+                fk_clauses.append(fk_clause)
+
+        # If FK clauses exist, append them to the table schema
+        if fk_clauses:
+            create_schema = create_schema.rstrip(")") + ",\n  " + ",\n  ".join(fk_clauses) + "\n)"
+
+        # Drop the new table if it already exists
+        safe_execute(cursor, f"DROP TABLE IF EXISTS {new_table}")
+        # Create the new table with the modified schema
+        print(create_schema)
+        safe_execute(cursor, create_schema)
+
+        # Copy data from the temporary table into the new table
+        cols = instance.matrices_flat[table].columns
+        col_list = ', '.join(f'"{col}"' for col in cols)
+        safe_execute(cursor, f"INSERT INTO {new_table} ({col_list}) SELECT {col_list} FROM {tmp_table}")
+
+        # Drop the old table (if exists) and rename the new table to the original name
+        safe_execute(cursor, f"DROP TABLE IF EXISTS {table}")
+        safe_execute(cursor, f"ALTER TABLE {new_table} RENAME TO {table}")
+        # Drop the temporary table
+        safe_execute(cursor, f"DROP TABLE IF EXISTS {tmp_table}")
+
+    # Commit all changes and close the database connection
+    conn.commit()
+    conn.close()
+
 
 def add_sector_writer(matrices, path):
     workbook = xlsxwriter.Workbook(path)

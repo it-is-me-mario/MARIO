@@ -31,6 +31,7 @@ from mario.tools.excelhandler import (
     database_excel,
     database_txt,
     database_txt_flat,
+    database_sql,
     _add_sector,
     _read_add_sectors,
     _get_new_add_sectors_sets,
@@ -1396,12 +1397,21 @@ class Database(CoreModel):
             if path.split(".")[-1] != 'db':
                 raise ValueError("Extension of the file must be '.db'")
 
-        conn = sqlite3.connect(path)
+        if scenario_split == None:
+            additional_columns = ['Scenario']
+        else:
+            additional_columns = [k for k in scenario_split.keys() if k not in ['separator','rename_baseline']]
+        
+        database_sql(
+            self,
+            path,
+            additional_columns
+        )
 
-        for table_name, df in self.matrices_flat.items():
-            df.to_sql(table_name, conn, if_exists="replace", index=False)
-
-        conn.close()
+        if include_meta:
+            meta = self.meta._to_dict()
+            with open(self._getdir(path, "Database", "") + "/metadata.json", "w") as fp:
+                json.dump(meta, fp)
 
 
     def to_pymrio(
