@@ -585,10 +585,10 @@ def database_txt_flat(
                     if "rename_baseline" in scenario_split:
                         scenario = scenario_split["rename_baseline"]
 
-                if sm in ['V_a','F_a','v_a','f_a']:
+                if sm in ['E_a','V_a','F_a','e_a','v_a','f_a']:
                     df_sm = df.loc[:,(slice(None),_MASTER_INDEX['a'],slice(None))]
 
-                elif sm in ['V_c','F_c','v_c','f_c']:
+                elif sm in ['E_c','V_c','F_c','e_c','v_c','f_c']:
                     df_sm = df.loc[:,(slice(None),_MASTER_INDEX['c'],slice(None))]
 
                 elif sm in ['X_c','p_c']:
@@ -644,7 +644,8 @@ def database_txt_flat(
                 df_all_scenarios = pd.concat([df_all_scenarios,df_sm],axis=0)
 
             if export:
-                df_all_scenarios.to_csv(os.path.join(path,_EXPORT_NAMES[sm]+".txt"),index=False)
+                if not df_all_scenarios.empty:
+                    df_all_scenarios.to_csv(os.path.join(path,_EXPORT_NAMES[sm]+".txt"),index=False)
             else:
                 flat_matrices[_EXPORT_NAMES[sm]] = df_all_scenarios
 

@@ -1343,7 +1343,7 @@ class Database(CoreModel):
                 scenario_split,
                 export,
             )
-
+            self.matrices_flat = {k: v for k, v in self.matrices_flat.items() if not v.empty}
         else:
             database_txt_flat(
                 self, 
