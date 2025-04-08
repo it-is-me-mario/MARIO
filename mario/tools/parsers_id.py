@@ -419,7 +419,7 @@ _figaroE3_id = {
     'emissions': 'flatfile_FIGARO-e_AEM_Gg_CO2e_2015.csv',
 }
 
-_gtap_mrio_id = {
+_gtap_mrio_csv_id = {
     "SRCxDST": {
         "file": "GSDFSRCxDST.csv",  # File path for source-destination data
         "note": "Source-Destination",
@@ -478,4 +478,27 @@ _gtap_mrio_id = {
             "VALUE": {"title": "Values", "description": "Pandas Series of 498'290 values"}
         }
     }
+}
+
+_gtap_mrio_gdx_id={
+    "SRCxDST": {
+        "file": "GSDFSRCxDST.gdx",
+        "tables": {"VFOB","VDBA","MTAX","ITTM"}
+    },
+    "V": {
+        "file": "GSDF.gdx",
+        "tables": {"VA","VTAX","IDTAX","IMTAX"}
+    },
+    "V-Tax": {
+        "file": "GSDFXTAX.gdx",
+        "tables": {"ETAX","PTAX"}
+    },
+    "Emissions": {
+        "file": "GSDFEMI.gdx",
+        "tables": {"Emi","Emi_Proc"}
+    },
+    "Energy": {
+        "file": "GSDFNRG.gdx",
+        "tables": {"NRG"}
+    },
 }
