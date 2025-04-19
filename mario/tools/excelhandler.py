@@ -536,7 +536,7 @@ def database_txt_flat(
     table = instance.meta.table
 
     if scenario_split == None:
-        scenario_split = {"separator": " - ", "Scenario":0}
+        scenario_split = {"separator": None, "Scenario":0}
 
     if matrices == 'all':
         matrices = []
@@ -645,8 +645,12 @@ def database_txt_flat(
                 for k,v in scenario_split.items():
                     if k not in  ["separator","rename_baseline"]:
                         try:
-                            df_sm[k] = scenario.split(scenario_split["separator"])[v]
-                            scenarios_columns += [k]
+                            if scenario_split["separator"] == None:
+                                df_sm[k] = scenario
+                                scenarios_columns += [k]
+                            else:
+                                df_sm[k] = scenario.split(scenario_split["separator"])[v]
+                                scenarios_columns += [k]
                         except:
                             pass
                             
@@ -691,6 +695,17 @@ def database_txt_flat(
                                         df_set[f"Map{i}"] = ""
                             
                                 df_set.to_excel(writer, sheet_name=set_table_name, index=False)
+
+                            for sc in scenarios_columns:
+                                df_sc = pd.DataFrame({sc: df_all_scenarios[sc].unique()})
+
+                                # Add mapping columns if requested
+                                if mapping_cols > 0:
+                                    for i in range(1, mapping_cols + 1):
+                                        df_sc[f"Map{i}"] = ""
+                            
+                                df_sc.to_excel(writer, sheet_name=sc, index=False)
+
 
             else:
                 flat_matrices[_EXPORT_NAMES[sm]] = df_all_scenarios
@@ -755,7 +770,7 @@ def database_sql(instance, db_path, additional_common_cols, mapping_cols, overwr
         df_set = pd.DataFrame({set_label: values})
 
         # Check if units information exists for this set
-        if set_label.split("_")[0] in instance.units:
+        if set_label.split('_')[0] in instance.units:
             # Get the corresponding DataFrame from `instance.units`
             df_units = instance.units[set_label.split('_')[0]]
 
