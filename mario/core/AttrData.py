@@ -1316,6 +1316,8 @@ class Database(CoreModel):
         coefficients: bool = False,
         scenario_split: str = None,
         export:bool = True,
+        sets_to_excel: bool = True,
+        mapping_cols: int = 0,
         include_meta=False,
     ):
         """Saves the database multiple csv file based on given inputs
@@ -1342,6 +1344,8 @@ class Database(CoreModel):
                 coefficients,
                 scenario_split,
                 export,
+                sets_to_excel,
+                mapping_cols,
             )
             self.matrices_flat = {k: v for k, v in self.matrices_flat.items() if not v.empty}
         else:
@@ -1353,6 +1357,8 @@ class Database(CoreModel):
                 coefficients,
                 scenario_split,
                 export,
+                sets_to_excel,
+                mapping_cols,
             )
 
         if include_meta:
@@ -1393,6 +1399,8 @@ class Database(CoreModel):
             scenario_split = scenario_split,
             include_meta = include_meta, 
             export = False,
+            sets_to_excel = sets_to_excel,
+            mapping_cols = mapping_cols
         )
 
         if not os.path.isfile(path):

@@ -528,6 +528,8 @@ def database_txt_flat(
         coefficients,
         scenario_split,
         export,
+        sets_to_excel,
+        mapping_cols,
 ):
     
     flat_matrices = {}
@@ -658,6 +660,38 @@ def database_txt_flat(
             if export:
                 if not df_all_scenarios.empty:
                     df_all_scenarios.to_csv(os.path.join(path,_EXPORT_NAMES[sm]+".txt"),index=False)
+
+                    #Create SET tables based on relationships in _RELATIONSHIPS
+                    if sets_to_excel:
+                        rels = _RELATIONSHIPS[table] 
+
+                        with pd.ExcelWriter(os.path.join(path,"sets.xlsx")) as writer:
+                        
+                            for set_table_name, set_info in rels.items():
+                                set_label = set_info["set_list"]  # The column used as a set reference
+                                
+                                # Use `get_index` to retrieve unique values
+                                values = instance.get_index(set_label.split("_")[0])  # Retrieve unique values for this set
+
+                                # Create a DataFrame for the set
+                                df_set = pd.DataFrame({set_label: values})
+
+                                # Check if units information exists for this set
+                                if set_label.split("_")[0] in instance.units:
+                                    # Get the corresponding DataFrame from `instance.units`
+                                    df_units = instance.units[set_label.split('_')[0]]
+
+                                    # Add the "unit" column as a second column in the set table
+                                    unit_col_name = f"{set_label.split('_')[0]}_Unit"
+                                    df_set[unit_col_name] = df_units.iloc[:,0].values
+                                
+                                # Add mapping columns if requested
+                                if mapping_cols > 0:
+                                    for i in range(1, mapping_cols + 1):
+                                        df_set[f"Map{i}"] = ""
+                            
+                                df_set.to_excel(writer, sheet_name=set_table_name, index=False)
+
             else:
                 flat_matrices[_EXPORT_NAMES[sm]] = df_all_scenarios
 
@@ -721,7 +755,7 @@ def database_sql(instance, db_path, additional_common_cols, mapping_cols, overwr
         df_set = pd.DataFrame({set_label: values})
 
         # Check if units information exists for this set
-        if set_label in instance.units:
+        if set_label.split("_")[0] in instance.units:
             # Get the corresponding DataFrame from `instance.units`
             df_units = instance.units[set_label.split('_')[0]]
 
