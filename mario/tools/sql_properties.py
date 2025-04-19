@@ -179,49 +179,60 @@ _EXPORT_NAMES = {
 
 _RELATIONSHIPS = {
     SUT: {
-        f"_set_{_MASTER_INDEX['a']}": {
+        f"_set_{_MASTER_INDEX['a']}_from": {
+            "set_list": _MASTER_INDEX['a'],
+            "tables": {
+                'S': f"{_MASTER_INDEX['a']}_from",
+                'X_a': f"{_MASTER_INDEX['a']}_from",
+                'ss': f"{_MASTER_INDEX['a']}_from",
+            },
+        },
+        f"_set_{_MASTER_INDEX['a']}_to": {
             "set_list": _MASTER_INDEX['a'],
             "tables": {
                 'U': f"{_MASTER_INDEX['a']}_to",
-                'S': f"{_MASTER_INDEX['a']}_from",
                 'V_a': f"{_MASTER_INDEX['a']}_to",
                 'E_a': f"{_MASTER_INDEX['a']}_to",
                 'ee_a': f"{_MASTER_INDEX['a']}_to",
-                'X_a': f"{_MASTER_INDEX['a']}_from",
                 'F_a': f"{_MASTER_INDEX['a']}_to",
                 'uu': f"{_MASTER_INDEX['a']}_to",
-                'ss': f"{_MASTER_INDEX['a']}_from",
                 'vv_a': f"{_MASTER_INDEX['a']}_to",
                 'p_a': f"{_MASTER_INDEX['a']}_to",
                 'ff_a': f"{_MASTER_INDEX['a']}_to",
             },
         },
-        f"_set_{_MASTER_INDEX['c']}": {
+        f"_set_{_MASTER_INDEX['c']}_from": {
             "set_list": _MASTER_INDEX['c'],
             "tables": {
                 'U': f"{_MASTER_INDEX['c']}_from",
+                'Y': f"{_MASTER_INDEX['c']}_from",
+                'X_c': f"{_MASTER_INDEX['c']}_from",
+                'uu': f"{_MASTER_INDEX['c']}_from",
+
+            },
+        },
+        f"_set_{_MASTER_INDEX['c']}_to": {
+            "set_list": _MASTER_INDEX['c'],
+            "tables": {
                 'S': f"{_MASTER_INDEX['c']}_to",
                 'V_c': f"{_MASTER_INDEX['c']}_to",
                 'E_c': f"{_MASTER_INDEX['c']}_to",
                 'ee_c': f"{_MASTER_INDEX['c']}_to",
-                'Y': f"{_MASTER_INDEX['c']}_from",
-                'X_c': f"{_MASTER_INDEX['c']}_from",
                 'F_c': f"{_MASTER_INDEX['c']}_to",
-                'uu': f"{_MASTER_INDEX['c']}_from",
                 'ss': f"{_MASTER_INDEX['c']}_to",
                 'vv_c': f"{_MASTER_INDEX['c']}_to",
                 'p_c': f"{_MASTER_INDEX['c']}_to",
                 'ff_c': f"{_MASTER_INDEX['c']}_to",
             },
         },
-        f"_set_{_MASTER_INDEX['n']}": {
+        f"_set_{_MASTER_INDEX['n']}_to": {
             "set_list": _MASTER_INDEX['n'],
             "tables": {
                 'Y': f"{_MASTER_INDEX['n']}_to",
                 'EY': f"{_MASTER_INDEX['n']}_to",
             },
         },
-        f"_set_{_MASTER_INDEX['f']}": {
+        f"_set_{_MASTER_INDEX['f']}_from": {
             "set_list": _MASTER_INDEX['f'],
             "tables": {
                 'V_a': f"{_MASTER_INDEX['f']}_from",
@@ -230,7 +241,7 @@ _RELATIONSHIPS = {
                 'vv_c': f"{_MASTER_INDEX['f']}_from",
             },
         },
-        f"_set_{_MASTER_INDEX['k']}": {
+        f"_set_{_MASTER_INDEX['k']}_from": {
             "set_list": _MASTER_INDEX['k'],
             "tables": {
                 'E_a': f"{_MASTER_INDEX['k']}_from",
@@ -306,21 +317,21 @@ _RELATIONSHIPS = {
                 'ff': f"{_MASTER_INDEX['s']}_to",
             },
         },
-        f"_set_{_MASTER_INDEX['n']}": {
+        f"_set_{_MASTER_INDEX['n']}_to": {
             "set_list": _MASTER_INDEX['n'],
             'tables': {
                 'Y': f"{_MASTER_INDEX['n']}_to",
                 'EY': f"{_MASTER_INDEX['n']}_to",
             },
         },
-        f"_set_{_MASTER_INDEX['f']}": {
+        f"_set_{_MASTER_INDEX['f']}_from": {
             "set_list": _MASTER_INDEX['f'],
             "tables": {
                 'V': f"{_MASTER_INDEX['f']}_from",
                 'vv': f"{_MASTER_INDEX['f']}_from",
             },
         },
-        f"_set_{_MASTER_INDEX['k']}": {
+        f"_set_{_MASTER_INDEX['k']}_from": {
             "set_list": _MASTER_INDEX['k'],
             "tables": {
                 'E': f"{_MASTER_INDEX['k']}_from",

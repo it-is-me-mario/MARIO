@@ -653,7 +653,7 @@ def database_txt_flat(
         return flat_matrices
     
 
-def database_sql(instance, db_path, additional_common_cols=[]):
+def database_sql(instance, db_path, additional_common_cols, mapping_cols, overwrite):
     """
     Exports flattened matrices and related sets to an SQLite database while managing
     foreign key relationships and ensuring unique indexing for consistency.
@@ -663,6 +663,7 @@ def database_sql(instance, db_path, additional_common_cols=[]):
     - db_path: Path to the SQLite database file.
     - additional_common_cols: List of column names (e.g., ['Scenario', 'Year']) shared
                               across multiple matrices to be handled separately.
+    - mapping_cols: Integer, number of empty mapping columns (Map1, Map2, ...) to add to each set table.
     """
 
     def safe_execute(cursor, sql_command):
@@ -680,6 +681,10 @@ def database_sql(instance, db_path, additional_common_cols=[]):
     table_type = instance.meta.table
 
     # Establish the SQLite connection and enable foreign key support
+    if os.path.exists(db_path):
+        if overwrite:
+            os.remove(db_path)
+
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     cursor.execute("PRAGMA foreign_keys = ON;")
@@ -711,7 +716,12 @@ def database_sql(instance, db_path, additional_common_cols=[]):
             # Add the "unit" column as a second column in the set table
             unit_col_name = f"{set_label}_Unit"
             df_set[unit_col_name] = df_units.iloc[:,0].values
-        
+
+        # Add mapping columns if requested
+        if mapping_cols > 0:
+            for i in range(1, mapping_cols + 1):
+                df_set[f"Map{i}"] = ""
+
         # Sanitize table and column names to avoid conflicts
         safe_table_name = set_table_name.replace(" ", "_").replace("-", "_")
         safe_set_label = set_label.replace(" ", "_").replace("-", "_")
@@ -739,6 +749,11 @@ def database_sql(instance, db_path, additional_common_cols=[]):
                 values = sample_df[col].unique().tolist()
                 df_set = pd.DataFrame({col: values})
                 set_table_name = f"_set_{col}"  # Define a table name for the set
+
+                # Add mapping columns if requested
+                if mapping_cols > 0:
+                    for i in range(1, mapping_cols + 1):
+                        df_set[f"Map{i}"] = ""
 
                 # Sanitize table and column names
                 safe_table_name = set_table_name.replace(" ", "_").replace("-", "_")

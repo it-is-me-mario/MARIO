@@ -1367,8 +1367,11 @@ class Database(CoreModel):
         matrices: list = 'all',
         flows:bool = True,
         coefficients: bool = False,
+        mapping_cols = 0,
+        overwrite = True,
         scenario_split: str = None,
         include_meta=False, 
+        sets_to_excel=False,   # <-- new argument
     ):
         """_summary_
 
@@ -1379,6 +1382,7 @@ class Database(CoreModel):
             coefficients (bool, optional): _description_. Defaults to False.
             scenario_split (str, optional): _description_. Defaults to None.
             include_meta (bool, optional): _description_. Defaults to False.
+            sets_to_excel (bool, optional): If True, export all _set_ tables to Excel and remove them from the database.
         """
 
         self.to_flat_txt(
@@ -1405,8 +1409,26 @@ class Database(CoreModel):
         database_sql(
             self,
             path,
-            additional_columns
+            additional_columns,
+            mapping_cols,
+            overwrite,
         )
+
+        # --- Export _set_ tables to Excel and remove from DB if requested ---
+        if sets_to_excel:
+            excel_path = os.path.splitext(path)[0] + "_sets.xlsx"
+            with sqlite3.connect(path) as conn:
+                cursor = conn.cursor()
+                # Get all table names starting with _set_
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '_set_%'")
+                set_tables = [row[0] for row in cursor.fetchall()]
+                if set_tables:
+                    with pd.ExcelWriter(excel_path) as writer:
+                        for tbl in set_tables:
+                            df = pd.read_sql_query(f'SELECT * FROM "{tbl}"', conn)
+                            df.to_excel(writer, sheet_name=tbl, index=False)
+                            cursor.execute(f'DROP TABLE IF EXISTS "{tbl}"')
+                    conn.commit()
 
         if include_meta:
             meta = self.meta._to_dict()
@@ -2669,3 +2691,4 @@ class Database(CoreModel):
             shared_xaxes,
             filters,
         )
+
