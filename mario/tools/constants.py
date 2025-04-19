@@ -118,6 +118,10 @@ _CALC = {
         "calc_F(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'].sum(1))",
         dict(enum0=_ENUM.f, enum1=_ENUM.Y),
     ),
+    _ENUM.f_dis: (
+        "calc_f_dis(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.e, enum1=_ENUM.w),
+    ),
     _ENUM.M: (
         "calc_F(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'].sum(1))",
         dict(enum0=_ENUM.m, enum1=_ENUM.Y),
@@ -332,6 +336,7 @@ _ALL_MATRICES = {
         _ENUM.v,
         _ENUM.F,
         _ENUM.f,
+        _ENUM.f_dis,
         _ENUM.M,
         _ENUM.m,
         _ENUM.b,
@@ -352,6 +357,7 @@ _ALL_MATRICES = {
         _ENUM.v,
         _ENUM.F,
         _ENUM.f,
+        _ENUM.f_dis,
         _ENUM.M,
         _ENUM.m,
         _ENUM.b,

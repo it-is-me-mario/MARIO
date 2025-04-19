@@ -113,6 +113,7 @@ class Nomenclature(Setting):
             "v",
             "F",
             "f",
+            "f_dis",
             "M",
             "m",
             "b",
