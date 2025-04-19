@@ -9,7 +9,7 @@ from copy import deepcopy as dc
 from mario.log_exc.logger import log_time
 import logging
 
-from mario.tools.constants import _ENUM
+from mario.tools.constants import _ENUM,_MASTER_INDEX
 
 logger = logging.getLogger(__name__)
 
@@ -453,10 +453,55 @@ def calc_f_dis(e, w):
         Footprint coefficients matrix disaggregated by origin sector and region
     """
 
-    f_dis = np.diagflat(e.values) @ w
-    f_dis.index = e.columns
-
+    f_dis = pd.DataFrame()
+    for k in e.index:
+        f_dis_k = np.diagflat(e.loc[k,:].values) @ w.values
+        f_dis_k = pd.DataFrame(
+            f_dis_k, 
+            index = pd.MultiIndex.from_arrays(
+            [[k]*len(w.index), w.index.get_level_values(0), w.index.get_level_values(1), w.index.get_level_values(2)],
+            names = [_MASTER_INDEX.k, w.index.names[0], w.index.names[1], w.index.names[2]]
+            ),
+            columns=w.columns
+        )
+        f_dis = pd.concat([f_dis, f_dis_k], axis=0)
+        
     return f_dis
+
+
+def calc_p_dis(v, w):
+    """Calculates Footprint coefficients matrix disaggregated by origin sector and region
+
+    .. math::
+        f_dis = \hat{e} \cdot w
+
+    Parameters
+    ----------
+    e : pd.DataFrame
+        Satellite transaction coefficients matrix
+    w : pd.DataFrame
+        Leontief coefficients matrix
+
+    Returns
+    -------
+    pd.DataFrame
+        Footprint coefficients matrix disaggregated by origin sector and region
+    """
+
+    p_dis = pd.DataFrame()
+    for f in v.index:
+        p_dis_k = np.diagflat(v.loc[f,:].values) @ w.values
+        p_dis_k = pd.DataFrame(
+            p_dis_k, 
+            index = pd.MultiIndex.from_arrays(
+            [[f]*len(w.index), w.index.get_level_values(0), w.index.get_level_values(1), w.index.get_level_values(2)],
+            names = [_MASTER_INDEX.f, w.index.names[0], w.index.names[1], w.index.names[2]]
+            ),
+            columns=w.columns
+        )
+        p_dis = pd.concat([p_dis, p_dis_k], axis=0)
+        
+    return p_dis
 
 
 def calc_y(Y):
