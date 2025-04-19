@@ -180,7 +180,7 @@ _EXPORT_NAMES = {
 _RELATIONSHIPS = {
     SUT: {
         f"_set_{_MASTER_INDEX['a']}_from": {
-            "set_list": _MASTER_INDEX['a'],
+            "set_list": _MASTER_INDEX['a']+"_from",
             "tables": {
                 'S': f"{_MASTER_INDEX['a']}_from",
                 'X_a': f"{_MASTER_INDEX['a']}_from",
@@ -188,7 +188,7 @@ _RELATIONSHIPS = {
             },
         },
         f"_set_{_MASTER_INDEX['a']}_to": {
-            "set_list": _MASTER_INDEX['a'],
+            "set_list": _MASTER_INDEX['a']+"_to",
             "tables": {
                 'U': f"{_MASTER_INDEX['a']}_to",
                 'V_a': f"{_MASTER_INDEX['a']}_to",
@@ -202,7 +202,7 @@ _RELATIONSHIPS = {
             },
         },
         f"_set_{_MASTER_INDEX['c']}_from": {
-            "set_list": _MASTER_INDEX['c'],
+            "set_list": _MASTER_INDEX['c']+"_from",
             "tables": {
                 'U': f"{_MASTER_INDEX['c']}_from",
                 'Y': f"{_MASTER_INDEX['c']}_from",
@@ -212,7 +212,7 @@ _RELATIONSHIPS = {
             },
         },
         f"_set_{_MASTER_INDEX['c']}_to": {
-            "set_list": _MASTER_INDEX['c'],
+            "set_list": _MASTER_INDEX['c']+"_to",
             "tables": {
                 'S': f"{_MASTER_INDEX['c']}_to",
                 'V_c': f"{_MASTER_INDEX['c']}_to",
@@ -226,14 +226,14 @@ _RELATIONSHIPS = {
             },
         },
         f"_set_{_MASTER_INDEX['n']}_to": {
-            "set_list": _MASTER_INDEX['n'],
+            "set_list": _MASTER_INDEX['n']+"_to",
             "tables": {
                 'Y': f"{_MASTER_INDEX['n']}_to",
                 'EY': f"{_MASTER_INDEX['n']}_to",
             },
         },
         f"_set_{_MASTER_INDEX['f']}_from": {
-            "set_list": _MASTER_INDEX['f'],
+            "set_list": _MASTER_INDEX['f']+"_from",
             "tables": {
                 'V_a': f"{_MASTER_INDEX['f']}_from",
                 'V_c': f"{_MASTER_INDEX['f']}_from",
@@ -242,7 +242,7 @@ _RELATIONSHIPS = {
             },
         },
         f"_set_{_MASTER_INDEX['k']}_from": {
-            "set_list": _MASTER_INDEX['k'],
+            "set_list": _MASTER_INDEX['k']+"_from",
             "tables": {
                 'E_a': f"{_MASTER_INDEX['k']}_from",
                 'ee_a': f"{_MASTER_INDEX['k']}_from",
@@ -256,7 +256,7 @@ _RELATIONSHIPS = {
             },
         },
         f"_set_{_MASTER_INDEX['r']}_from": {
-            "set_list": _MASTER_INDEX['r'],
+            "set_list": _MASTER_INDEX['r']+"_from",
             "tables": {
                 'U': f"{_MASTER_INDEX['r']}_from",
                 'S': f"{_MASTER_INDEX['r']}_from",
@@ -268,7 +268,7 @@ _RELATIONSHIPS = {
             },
         },
         f"_set_{_MASTER_INDEX['r']}_to": {
-            "set_list": _MASTER_INDEX['r'],
+            "set_list": _MASTER_INDEX['r']+"_to",
             "tables": {
                 'U': f"{_MASTER_INDEX['r']}_to",
                 'S': f"{_MASTER_INDEX['r']}_to",
@@ -295,7 +295,7 @@ _RELATIONSHIPS = {
     },
     IOT: {
         f"_set_{_MASTER_INDEX['s']}_from": {
-            "set_list": _MASTER_INDEX['s'],
+            "set_list": _MASTER_INDEX['s']+"_from",
             "tables": {
                 'Z': f"{_MASTER_INDEX['s']}_from",
                 'zz': f"{_MASTER_INDEX['s']}_from",
@@ -304,7 +304,7 @@ _RELATIONSHIPS = {
             },
         },
         f"_set_{_MASTER_INDEX['s']}_to": {
-            "set_list": _MASTER_INDEX['s'],
+            "set_list": _MASTER_INDEX['s']+"_to",
             "tables": {
                 'Z': f"{_MASTER_INDEX['s']}_to",
                 'zz': f"{_MASTER_INDEX['s']}_to",
@@ -318,21 +318,21 @@ _RELATIONSHIPS = {
             },
         },
         f"_set_{_MASTER_INDEX['n']}_to": {
-            "set_list": _MASTER_INDEX['n'],
+            "set_list": _MASTER_INDEX['n']+"_to",
             'tables': {
                 'Y': f"{_MASTER_INDEX['n']}_to",
                 'EY': f"{_MASTER_INDEX['n']}_to",
             },
         },
         f"_set_{_MASTER_INDEX['f']}_from": {
-            "set_list": _MASTER_INDEX['f'],
+            "set_list": _MASTER_INDEX['f']+"_from",
             "tables": {
                 'V': f"{_MASTER_INDEX['f']}_from",
                 'vv': f"{_MASTER_INDEX['f']}_from",
             },
         },
         f"_set_{_MASTER_INDEX['k']}_from": {
-            "set_list": _MASTER_INDEX['k'],
+            "set_list": _MASTER_INDEX['k']+"_from",
             "tables": {
                 'E': f"{_MASTER_INDEX['k']}_from",
                 'ee': f"{_MASTER_INDEX['k']}_from",
@@ -342,7 +342,7 @@ _RELATIONSHIPS = {
             },
         },
         f"_set_{_MASTER_INDEX['r']}_from": {
-            'set_list': _MASTER_INDEX['r'],
+            'set_list': _MASTER_INDEX['r']+"_from",
             "tables": {
                 'Z': f"{_MASTER_INDEX['r']}_from",
                 'X': f"{_MASTER_INDEX['r']}_from",
@@ -351,7 +351,7 @@ _RELATIONSHIPS = {
             },
         },
         f"_set_{_MASTER_INDEX['r']}_to": {
-            "set_list": _MASTER_INDEX['r'],
+            "set_list": _MASTER_INDEX['r']+"_to",
             "tables": {
                 'Z': f"{_MASTER_INDEX['r']}_to",
                 'zz': f"{_MASTER_INDEX['r']}_to",

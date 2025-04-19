@@ -703,7 +703,7 @@ def database_sql(instance, db_path, additional_common_cols, mapping_cols, overwr
         set_label = set_info["set_list"]  # The column used as a set reference
         
         # Use `get_index` to retrieve unique values
-        values = instance.get_index(set_label)  # Retrieve unique values for this set
+        values = instance.get_index(set_label.split("_")[0])  # Retrieve unique values for this set
 
         # Create a DataFrame for the set
         df_set = pd.DataFrame({set_label: values})
@@ -711,10 +711,10 @@ def database_sql(instance, db_path, additional_common_cols, mapping_cols, overwr
         # Check if units information exists for this set
         if set_label in instance.units:
             # Get the corresponding DataFrame from `instance.units`
-            df_units = instance.units[set_label]
+            df_units = instance.units[set_label.split('_')[0]]
 
             # Add the "unit" column as a second column in the set table
-            unit_col_name = f"{set_label}_Unit"
+            unit_col_name = f"{set_label.split('_')[0]}_Unit"
             df_set[unit_col_name] = df_units.iloc[:,0].values
 
         # Add mapping columns if requested
