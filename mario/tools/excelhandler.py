@@ -563,7 +563,7 @@ def database_txt_flat(
             sub_matrices = [matrix]
             sub_info = {matrix:info}
         else:
-            sub_matrices = [f"{matrix[0]}_{name.split('_')[-1]}" for name in list(info.keys()) if name != 'correspondance']
+            sub_matrices = [f"{matrix[0]}_{'_'.join(name.split('_')[1:])}" for name in list(info.keys()) if name != 'correspondance']
             sub_info = {}
             for sm in sub_matrices:
                 try:
@@ -596,6 +596,12 @@ def database_txt_flat(
 
                 elif sm in ['X_a','p_a']:
                     df_sm = df.loc[(slice(None),_MASTER_INDEX['a'],slice(None))]
+                
+                elif sm in ['f_dis_a','p_dis_a']:
+                    df_sm = df.loc[(slice(None),slice(None),_MASTER_INDEX['a'],slice(None)),(slice(None),_MASTER_INDEX['a'],slice(None))]
+                    
+                elif sm in ['f_dis_c','p_dis_c']:
+                    df_sm = df.loc[(slice(None),slice(None),_MASTER_INDEX['a'],slice(None)),(slice(None),_MASTER_INDEX['c'],slice(None))]
                 
                 else:
                     df_sm = df.copy()
