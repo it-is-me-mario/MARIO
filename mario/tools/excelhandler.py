@@ -599,7 +599,13 @@ def database_txt_flat(
                 
                 else:
                     df_sm = df.copy()
-                    
+
+                if len(df_sm.index.names) == 4 and len(df_sm.columns.names) == 3:
+                    df_sm = df_sm.droplevel(2,axis=0)
+                    df_sm = df_sm.droplevel(1,axis=1)
+                    df_sm.index.names = si[0]
+                    df_sm.columns.names = si[1]
+
                 if len(df_sm.index.names) == 3 and len(df_sm.columns.names) == 3:
                     df_sm = df_sm.droplevel(1,axis=0)
                     df_sm = df_sm.droplevel(1,axis=1)

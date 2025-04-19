@@ -1427,6 +1427,58 @@ class Database(CoreModel):
                         for tbl in set_tables:
                             df = pd.read_sql_query(f'SELECT * FROM "{tbl}"', conn)
                             df.to_excel(writer, sheet_name=tbl, index=False)
+                            # --- Drop all foreign key constraints referencing this _set_ table ---
+                            cursor.execute("""
+                                SELECT m.name
+                                FROM sqlite_master m
+                                JOIN pragma_foreign_key_list(m.name) f
+                                WHERE f."table" = ?
+                                GROUP BY m.name
+                            """, (tbl,))
+                            referencing_tables = [row[0] for row in cursor.fetchall()]
+                            for ref_tbl in referencing_tables:
+                                # Get original schema
+                                cursor.execute(f"SELECT sql FROM sqlite_master WHERE type='table' AND name=?", (ref_tbl,))
+                                orig_schema = cursor.fetchone()[0]
+                                # Get columns
+                                cursor.execute(f"PRAGMA table_info('{ref_tbl}')")
+                                columns = [row[1] for row in cursor.fetchall()]
+                                columns_str = ", ".join([f'"{col}"' for col in columns])
+                                # Remove only the FK constraints referencing tbl
+                                lines = orig_schema.splitlines()
+                                # Find the opening parenthesis of the column/constraint list
+                                for i, line in enumerate(lines):
+                                    if "(" in line:
+                                        start_idx = i
+                                        break
+                                # Find the closing parenthesis
+                                for j in range(len(lines)-1, -1, -1):
+                                    if ")" in lines[j]:
+                                        end_idx = j
+                                        break
+                                # Remove lines with FK to tbl in the constraint section
+                                new_lines = []
+                                for idx, line in enumerate(lines):
+                                    if idx < start_idx or idx > end_idx:
+                                        new_lines.append(line)
+                                    else:
+                                        # Only skip FK constraints referencing tbl
+                                        if f"REFERENCES \"{tbl}\"" in line or f"REFERENCES {tbl}" in line:
+                                            continue
+                                        new_lines.append(line)
+                                # Remove trailing commas before closing parenthesis
+                                for k in range(end_idx-1, start_idx-1, -1):
+                                    if new_lines[k].strip().endswith(",") and new_lines[k+1].strip().startswith(")"):
+                                        new_lines[k] = new_lines[k].rstrip(",")
+                                        break
+                                new_schema = "\n".join(new_lines)
+                                # Only recreate if a constraint was actually removed
+                                if new_schema != orig_schema:
+                                    cursor.execute(f'ALTER TABLE "{ref_tbl}" RENAME TO "{ref_tbl}_old"')
+                                    cursor.execute(new_schema)
+                                    cursor.execute(f'INSERT INTO "{ref_tbl}" ({columns_str}) SELECT {columns_str} FROM "{ref_tbl}_old"')
+                                    cursor.execute(f'DROP TABLE "{ref_tbl}_old"')
+                            # Now drop the _set_ table
                             cursor.execute(f'DROP TABLE IF EXISTS "{tbl}"')
                     conn.commit()
 
