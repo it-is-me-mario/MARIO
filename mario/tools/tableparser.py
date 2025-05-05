@@ -1803,6 +1803,17 @@ def parser_gtap_mrio_csv(path):
                 f"[Variant tax] Expected {expected_rows} rows, got {len(df_full)}."
             return df_full
         
+        elif variant == 'ptax':
+            c = s  
+            all_combinations = pd.MultiIndex.from_product([c, r],names=['COMM','DST']).to_frame(index=False)
+
+            df_full = all_combinations.merge(df,on=['COMM','DST'],how='left').fillna(0)
+
+            expected_rows = len(c)*len(r)
+            assert len(df_full) == expected_rows, \
+                f"[Variant tax] Expected {expected_rows} rows, got {len(df_full)}."
+            return df_full
+        
         elif variant == 'single_region':
             c = s  # oppure df['COMM'].unique()
             a = s + n
@@ -1980,8 +1991,10 @@ def parser_gtap_mrio_csv(path):
             df_filled.drop(columns='COMM',inplace=True)
         elif row_name_setting=='only_comm':
             df_filled['row_name']=row_name_categ+'_REG_'+df_filled['COMM']
+        elif row_name_setting=='only_categ':
+            df_filled['row_name']=row_name_categ+'_REG'
         elif row_name_setting=='emi_dom':
-            df_filled['row_name']=row_name_categ+'_'+df_filled['EM']+'_dom_'+df_filled['COMM'] #careful: 'EM' element has different lengths
+            df_filled['row_name']=row_name_categ+'_'+df_filled['EM']+'_dms_'+df_filled['COMM'] #careful: 'EM' element has different lengths
             df_filled.drop(columns='EM',inplace=True)
             df_filled.drop(columns='SRC',inplace=True)
             df_filled.drop(columns='COMM',inplace=True)
@@ -1991,7 +2004,7 @@ def parser_gtap_mrio_csv(path):
             df_filled.drop(columns='SRC',inplace=True)
             df_filled.drop(columns='COMM',inplace=True)
         elif row_name_setting=='ene_dom':
-            df_filled['row_name']=row_name_categ+'_dom_'+df_filled['COMM']
+            df_filled['row_name']=row_name_categ+'_dms_'+df_filled['COMM'] #domestic
             df_filled.drop(columns='SRC',inplace=True)
             df_filled.drop(columns='COMM',inplace=True)
         elif row_name_setting=='ene_imp':
@@ -2040,7 +2053,7 @@ def parser_gtap_mrio_csv(path):
             return matrix
 
     # Matrix Z and Y
-    print('Z and Y')
+    print('Starting Z and Y')
     Z_matrix_dom,Y_matrix_dom=csv_to_matrix(mrio_data['SRCxDST'],'DOM','dom',indeces,
                             pivot_index=['SRC','COMM'],pivot_columns=['DST','AGENT'])
     Z_matrix_imp,Y_matrix_imp=csv_to_matrix(mrio_data['SRCxDST'],'VFOB','general',indeces,
@@ -2049,7 +2062,7 @@ def parser_gtap_mrio_csv(path):
     Y=Y_matrix_dom+Y_matrix_imp
 
     #Data from csv SRCxDST but to be included in V (9min->because of "general")
-    print('V')
+    print('Starting V')
     V_mtax,VY_mtax=csv_to_matrix_rowname(mrio_data['SRCxDST'],'MTAX','general',indeces,
                                 split_agent=True,row_name_setting='reg_comm',row_name_categ='MTX',row_name_reg='SRC',
                                 pivot_index=['row_name'],pivot_columns=['DST','AGENT'])
@@ -2064,8 +2077,8 @@ def parser_gtap_mrio_csv(path):
     V_etax=csv_to_matrix_rowname(mrio_data['V - Tax'],'ETAX','tax',indeces,
                             row_name_setting='only_region',row_name_categ='ETX',row_name_reg='DST',
                             pivot_index=['row_name'],pivot_columns=['SRC','COMM'])
-    V_ptax=csv_to_matrix_rowname(mrio_data['V - Tax'],'PTAX','tax',indeces,
-                            row_name_setting='only_region',row_name_categ='PTX',row_name_reg='SRC',
+    V_ptax=csv_to_matrix_rowname(mrio_data['V - Tax'],'PTAX','ptax',indeces,
+                            row_name_setting='only_categ',row_name_categ='PTX',
                             pivot_index=['row_name'],pivot_columns=['DST','COMM'])
 
     V=pd.concat([V,V_etax,V_ptax],axis=0)
@@ -2461,20 +2474,7 @@ def parser_gtap_mrio_gdx(path):
             df_filled['row_name']=row_name_categ+'_REG_'+df_filled['ENDW']
         elif row_name_setting=='only_comm':
             df_filled['row_name']=row_name_categ+'_REG_'+df_filled['COMM']
-        # elif row_name_setting=='emi_dom':
-        #     df_filled['row_name']=row_name_categ+'_'+df_filled['em']+'_dom_'+df_filled['input'] #careful: 'EM' element has different lengths
-        #     df_filled.drop(columns='em',inplace=True)
-        #     df_filled.drop(columns='SRC',inplace=True)
-        #     df_filled.drop(columns='input',inplace=True)
-        # elif row_name_setting=='emi_imp':
-        #     df_filled['row_name']=row_name_categ+'_'+df_filled['em']+'_'+df_filled['SRC']+'_'+df_filled['input']
-        #     df_filled.drop(columns='em',inplace=True)
-        #     df_filled.drop(columns='SRC',inplace=True)
-        #     df_filled.drop(columns='input',inplace=True)
-        # elif row_name_setting=='emi_proc':
-        #     df_filled['row_name']=row_name_categ+'_'+df_filled['em']+'_REG_'+df_filled['comm']
-        #     df_filled.drop(columns='em',inplace=True)
-        #     df_filled.drop(columns='comm',inplace=True)
+
 
         # 4) If need to split_agt
         if split_agt:
@@ -2558,7 +2558,7 @@ def parser_gtap_mrio_gdx(path):
 
         # 3) Change row name
         if row_name_setting=='emi_dom':
-            df_filled['row_name']=row_name_categ+'_'+df_filled['em']+'_dom_'+df_filled['inputs'] #careful: 'EM' element has different lengths
+            df_filled['row_name']=row_name_categ+'_'+df_filled['em']+'_dms_'+df_filled['inputs'] #careful: 'EM' element has different lengths
             df_filled.drop(columns='em',inplace=True)
             df_filled.drop(columns='SRC',inplace=True)
             df_filled.drop(columns='inputs',inplace=True)
@@ -2572,7 +2572,7 @@ def parser_gtap_mrio_gdx(path):
             df_filled.drop(columns='em',inplace=True)
             df_filled.drop(columns='comm',inplace=True)
         elif row_name_setting=='ene_dom':
-            df_filled['row_name']=row_name_categ+'_dom_'+df_filled['ERG']
+            df_filled['row_name']=row_name_categ+'_dms_'+df_filled['ERG'] #domestic
             df_filled.drop(columns='SRC',inplace=True)
             df_filled.drop(columns='ERG',inplace=True)
         elif row_name_setting=='ene_imp':
