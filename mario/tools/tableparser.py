@@ -2016,15 +2016,15 @@ def parser_gtap_mrio_csv(path):
         # 5) If need to split_agent
         if split_agent:
             if 'AGENT' in df_filled.columns:
-                df_Z = df_filled[df_filled['AGENT'].isin(indeces['s']['main'])]
-                df_Y = df_filled[df_filled['AGENT'].isin(indeces['n']['main'])]
+                df_V= df_filled[df_filled['AGENT'].isin(indeces['s']['main'])]
+                df_VY = df_filled[df_filled['AGENT'].isin(indeces['n']['main'])]
             elif 'AGT' in df_filled.columns:
-                df_Z = df_filled[df_filled['AGT'].isin(indeces['s']['main'])]
-                df_Y = df_filled[df_filled['AGT'].isin(indeces['n']['main'])]
+                df_V = df_filled[df_filled['AGT'].isin(indeces['s']['main'])]
+                df_VY = df_filled[df_filled['AGT'].isin(indeces['n']['main'])]
 
             print('Starting pivoting now')
             # Pivot di part1
-            pivot_Z = df_Z.pivot_table(
+            pivot_V = df_V.pivot_table(
                 index=pivot_index, 
                 columns=pivot_columns, 
                 values='VALUE', 
@@ -2032,14 +2032,14 @@ def parser_gtap_mrio_csv(path):
             ).fillna(0)
 
             # Pivot di part2
-            pivot_Y = df_Y.pivot_table(
+            pivot_VY = df_VY.pivot_table(
                 index=pivot_index, 
                 columns=pivot_columns, 
                 values='VALUE', 
                 aggfunc='sum'
             ).fillna(0)
 
-            return pivot_Z, pivot_Y
+            return pivot_V, pivot_VY
 
         else:
             # Pivot unico
@@ -2064,10 +2064,10 @@ def parser_gtap_mrio_csv(path):
     #Data from csv SRCxDST but to be included in V (9min->because of "general")
     print('Starting V')
     V_mtax,VY_mtax=csv_to_matrix_rowname(mrio_data['SRCxDST'],'MTAX','general',indeces,
-                                split_agent=True,row_name_setting='reg_comm',row_name_categ='MTX',row_name_reg='SRC',
+                                split_agent=True,row_name_setting='reg_comm',row_name_categ='MTAX',row_name_reg='SRC',
                                 pivot_index=['row_name'],pivot_columns=['DST','AGENT'])
     V_ittm,VY_ittm=csv_to_matrix_rowname(mrio_data['SRCxDST'],'ITTM','general',indeces,
-                                split_agent=True,row_name_setting='reg_comm',row_name_categ='TTM',row_name_reg='SRC',
+                                split_agent=True,row_name_setting='reg_comm',row_name_categ='ITTM',row_name_reg='SRC',
                                 pivot_index=['row_name'],pivot_columns=['DST','AGENT'])
     
     V=pd.concat([V_mtax,V_ittm],axis=0)
@@ -2075,23 +2075,23 @@ def parser_gtap_mrio_csv(path):
 
     #Export and import taxes (3s)
     V_etax=csv_to_matrix_rowname(mrio_data['V - Tax'],'ETAX','tax',indeces,
-                            row_name_setting='only_region',row_name_categ='ETX',row_name_reg='DST',
+                            row_name_setting='only_region',row_name_categ='ETAX',row_name_reg='DST',
                             pivot_index=['row_name'],pivot_columns=['SRC','COMM'])
     V_ptax=csv_to_matrix_rowname(mrio_data['V - Tax'],'PTAX','ptax',indeces,
-                            row_name_setting='only_categ',row_name_categ='PTX',
+                            row_name_setting='only_categ',row_name_categ='PTAX',
                             pivot_index=['row_name'],pivot_columns=['DST','COMM'])
 
     V=pd.concat([V,V_etax,V_ptax],axis=0)
 
     #Value added and taxes from VA csv (2s)
     V_va=csv_to_matrix_rowname(mrio_data['V'],'VA','single_region_va',indeces,row_name_setting='only_comm',
-                            row_name_categ='VAA',pivot_index=['row_name'],pivot_columns=['REG','AGENT'])
+                            row_name_categ='VAAD',pivot_index=['row_name'],pivot_columns=['REG','AGENT'])
     V_vtax=csv_to_matrix_rowname(mrio_data['V'],'VTAX','single_region_va',indeces,row_name_setting='only_comm',
-                                row_name_categ='VTX',pivot_index=['row_name'],pivot_columns=['REG','AGENT'])
+                                row_name_categ='VTAX',pivot_index=['row_name'],pivot_columns=['REG','AGENT'])
     V_idtax,VY_idtax=csv_to_matrix_rowname(mrio_data['V'],'IDTAX','single_region',indeces,row_name_setting='only_comm',
-                                row_name_categ='DTX',split_agent=True,pivot_index=['row_name'],pivot_columns=['REG','AGENT'])
+                                row_name_categ='DTAX',split_agent=True,pivot_index=['row_name'],pivot_columns=['REG','AGENT'])
     V_imtax,VY_imtax=csv_to_matrix_rowname(mrio_data['V'],'IMTAX','single_region',indeces,row_name_setting='only_comm',
-                                row_name_categ='ITX',split_agent=True,pivot_index=['row_name'],pivot_columns=['REG','AGENT'])
+                                row_name_categ='ITAX',split_agent=True,pivot_index=['row_name'],pivot_columns=['REG','AGENT'])
 
     V=pd.concat([V,V_va,V_vtax,V_idtax,V_imtax],axis=0)
     VY=pd.concat([VY,VY_idtax,VY_imtax],axis=0)
