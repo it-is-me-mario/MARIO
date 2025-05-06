@@ -2346,7 +2346,8 @@ def parser_gtap_mrio_gdx(path):
             for e in df['em'].unique().tolist():
                 df_e=df[df['em']==e]
                 c = df_e['comm'].unique().tolist()
-                all_combinations = pd.MultiIndex.from_product([c,s,r],names=['comm','acts','REG']).to_frame(index=False)
+                a = s+n
+                all_combinations = pd.MultiIndex.from_product([c,a,r],names=['comm','acts','REG']).to_frame(index=False)
                 all_combinations['em'] = e
                 df_full_e = all_combinations.merge(df_e,on=['em','comm','acts','REG'],how='left').fillna(0)
                 df_full=pd.concat([df_full,df_full_e],ignore_index=True)  
@@ -2582,8 +2583,12 @@ def parser_gtap_mrio_gdx(path):
 
         # 4) If need to split_agt
         if split_agt:
-            df_Z = df_filled[df_filled['agt'].isin(indeces['s']['main'])]
-            df_Y = df_filled[df_filled['agt'].isin(indeces['n']['main'])]
+            if row_name_setting=='emi_proc':
+                df_Z = df_filled[df_filled['acts'].isin(indeces['s']['main'])]
+                df_Y = df_filled[df_filled['acts'].isin(indeces['n']['main'])]
+            else:
+                df_Z = df_filled[df_filled['agt'].isin(indeces['s']['main'])]
+                df_Y = df_filled[df_filled['agt'].isin(indeces['n']['main'])]
 
             # Pivot di part1
             pivot_Z = df_Z.pivot_table(
@@ -2660,14 +2665,15 @@ def parser_gtap_mrio_gdx(path):
 
     #Satellite account
     # Filter the data for 'Emissions': Emi=from combustion Emi_proc=from processes
+    print("Stating: E and EY")
     #Emissions from combustion
     Emi_dom,Emi_dom_Y=gdx_to_matrix_satellite(mrio_data['Emissions'],'Emi','emi_dom',indeces,row_name_setting='emi_dom',
                             row_name_categ='EMI',split_agt=True,pivot_index=['row_name'],pivot_columns=['DST','agt'])
     Emi_imp,Emi_imp_Y=gdx_to_matrix_satellite(mrio_data['Emissions'],'Emi','emi_imp',indeces,row_name_setting='emi_imp',
                             row_name_categ='EMI',split_agt=True,pivot_index=['row_name'],pivot_columns=['DST','agt'])
     #Emissions from processes
-    Emi_proc=gdx_to_matrix_satellite(mrio_data['Emissions'],'Emi_Proc','emi_proc',indeces,row_name_setting='emi_proc',
-                            row_name_categ='E_P',split_agt=False,pivot_index=['row_name'],pivot_columns=['REG','acts'])
+    Emi_proc,Emi_proc_Y=gdx_to_matrix_satellite(mrio_data['Emissions'],'Emi_Proc','emi_proc',indeces,row_name_setting='emi_proc',
+                            row_name_categ='E_P',split_agt=True,pivot_index=['row_name'],pivot_columns=['REG','acts'])
 
     # Filter the data for 'E+EY - Energy'
     Ene_dom,Ene_dom_Y=gdx_to_matrix_satellite(mrio_data['Energy'],'NRG','ene_dom',indeces,row_name_setting='ene_dom',
@@ -2676,7 +2682,7 @@ def parser_gtap_mrio_gdx(path):
                             row_name_categ='ENE',split_agt=True,pivot_index=['row_name'],pivot_columns=['DST','agt'])
 
     E=pd.concat([Emi_dom,Emi_imp,Emi_proc,Ene_dom,Ene_imp],axis=0)
-    EY=pd.concat([Emi_dom_Y,Emi_imp_Y,Ene_dom_Y,Ene_imp_Y],axis=0)
+    EY=pd.concat([Emi_dom_Y,Emi_imp_Y,Emi_proc_Y,Ene_dom_Y,Ene_imp_Y],axis=0)
 
     print("Finalizing")
     indeces.update({
