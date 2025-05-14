@@ -1320,16 +1320,30 @@ class Database(CoreModel):
         mapping_cols: int = 0,
         include_meta=False,
     ):
-        """Saves the database multiple csv file based on given inputs
+        """
+        Saves matrices list into flat text file
 
-        .. note::
-            * The function will create multiple csv files carring on the name of the matrices based on the given inputs.
-            * It is suggested to keep the units = True so the output file can be used to parse with MARIO again.
+        Args:
+            path (str): path to save the flat text file_
+            matrices (list, optional): List of matrices to save. Defaults to 'all'.
+            flows (bool, optional): if True, it saves all flows matrices unless a list of matrices is given. Defaults to True.
+            coefficients (bool, optional): if True, it saves all coefficient matrices unless a list of matrices is given. Defaults to False.
+            scenario_split (str, optional): dictionary describing how scenarios' names should be split into multiple columns. Defaults to None. 
+                Example: if Database.scenarios = ['Shock - 2020', 'Shock - 2030', 'baseline'], scenarios_split may be set as follows: 
+                    scenario_split = {
+                        'separator': '_', 
+                        'Scenario': 0, 
+                        'Year': 1, 
+                        'rename_baseline': 'Baseline - 2020'
+                        }
 
-        Parameters
-        ----------
-        TO DO
+            export (bool, optional): if True, it saves the flat text file. Defaults to True. The False option is used into to_sql function.
+            sets_to_excel (bool, optional): if True, it exports all _set_ tables to Excel
+            mapping_cols (int, optional): number of columns to be used for mapping into the Excel _set_tables. Defaults to 0.
+            include_meta (bool, optional): if True, it saves the metadata as a json file along with the data. Defaults to False.
 
+        Raises:
+            WrongInput: if both flows and coefficients are False or if matrices is not a list of strings.
         """
 
         if flows==False and coefficients==False:

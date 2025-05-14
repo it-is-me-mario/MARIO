@@ -454,7 +454,19 @@ def calc_f_dis(e, w):
     """
 
     f_dis = pd.DataFrame()
-    for k in e.index:
+    sat_accounts = input("For which satellite accounts? (comma separated): ")
+    sat_accounts = [account.strip() for account in sat_accounts.split(",")]
+
+    err_msg = []
+    for k in sat_accounts:
+        if k not in e.index:
+            err_msg.append(f"'{k}' not found in satellite accounts")
+    if err_msg:
+        raise ValueError(
+            "The following satellite accounts were not found: " + ", ".join(err_msg)
+        )
+    
+    for k in sat_accounts:
         f_dis_k = np.diagflat(e.loc[k,:].values) @ w.values
         f_dis_k = pd.DataFrame(
             f_dis_k, 

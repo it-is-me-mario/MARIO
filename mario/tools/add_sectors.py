@@ -679,7 +679,7 @@ class AddSectors:
                         inputs = self.db.sectors_clusters[input_item]
 
                     if activity in self.parented_sectors:
-                        parent_sector = self.db.add_sectors_master.query(f"{MI['s']}==@activity")[MSC[self.table]['pa']].values[0]
+                        parent_sector = self.db.add_sectors_master.query(f"{MI['s']}==@activity")[MSC[self.table]['ps']].values[0]
                         old_values = self.matrices[_ENUM['z']].loc[(regs, MI['s'], inputs), (region_to, MI['s'], parent_sector)]
                         if isinstance(old_values,pd.Series):
                             old_values = old_values.to_frame()
