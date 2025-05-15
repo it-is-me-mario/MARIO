@@ -513,10 +513,16 @@ class AddSectors:
                             slices[_ENUM['z']].loc[(self.db.regions_clusters[r],MI['s'],self.db.sectors_clusters[c]),(region,MI['s'],activity)] = 0
 
             for k in satellites_to_nullify:
-                slices[_ENUM['e']].loc[k,(region,MI['a'],activity)] = 0
+                if self.table == 'SUT':
+                    slices[_ENUM['e']].loc[k,(region,MI['a'],activity)] = 0
+                if self.table == 'IOT':
+                    slices[_ENUM['e']].loc[k,(region,MI['s'],activity)] = 0
             
             for f in factors_to_nullify:
-                slices[_ENUM['v']].loc[f,(region,MI['a'],activity)] = 0
+                if self.table == 'SUT':
+                    slices[_ENUM['v']].loc[f,(region,MI['a'],activity)] = 0
+                if self.table == 'IOT':
+                    slices[_ENUM['v']].loc[f,(region,MI['s'],activity)] = 0
         
         return slices
 
