@@ -594,10 +594,10 @@ def database_txt_flat(
                     df_sm = df.loc[:,(slice(None),_MASTER_INDEX['c'],slice(None))]
 
                 elif sm in ['X_c','p_c']:
-                    df_sm = df.loc[(slice(None),_MASTER_INDEX['c'],slice(None))]
+                    df_sm = df.loc[(slice(None),_MASTER_INDEX['c'],slice(None)),:]
 
                 elif sm in ['X_a','p_a']:
-                    df_sm = df.loc[(slice(None),_MASTER_INDEX['a'],slice(None))]
+                    df_sm = df.loc[(slice(None),_MASTER_INDEX['a'],slice(None)),:]
                 
                 elif sm in ['f_dis_a','p_dis_a']:
                     df_sm = df.loc[(slice(None),slice(None),_MASTER_INDEX['a'],slice(None)),(slice(None),_MASTER_INDEX['a'],slice(None))]

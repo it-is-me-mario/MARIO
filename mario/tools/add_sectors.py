@@ -309,16 +309,20 @@ class AddSectors:
                 return
             
             # get the region where to add the activity
-            region = self.db.add_sectors_master.query(f"`{MSC[self.table]['inv_sheet']}`==@sheet_name")[MI['r']].values[0]
+            regions = self.db.add_sectors_master.query(f"`{MSC[self.table]['inv_sheet']}`==@sheet_name")[MI['r']].values
+            target_regions = []
 
-            # check if the region is in the SUT or in the regions maps
-            if region in self.regions:
-                target_regions = [region]
-            elif region not in self.regions:
-                if region in self.db.regions_clusters:
-                    target_regions = self.db.regions_clusters[region] 
+            for region in regions:
+                # check if the region is in the SUT or in the regions maps
+                if region in self.regions:
+                    target_regions += [region]
+                elif region in self.db.regions_clusters:
+                    for cluster_region in self.db.regions_clusters[region]:
+                        target_regions += [cluster_region]
                 else:
-                    raise ValueError(f"Activity {activity} is added in region {region} which is not in the SUT nor in the regions map")
+                    raise ValueError(f"Activity {activity} is added in region {region} which is not in the database nor in the regions map")
+
+            target_regions = list(set(target_regions))  # remove duplicates
 
             # in case the activity has a parent to be initialized from
             if self.table == 'SUT':
