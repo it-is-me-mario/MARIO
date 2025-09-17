@@ -89,6 +89,7 @@ class CoreModel:
         V=None,
         Y=None,
         EY=None,
+        VY=None,
         units=None,
         price=None,
         source=None,
@@ -103,6 +104,7 @@ class CoreModel:
         V: pd.DataFrame
         Y: pd.DataFrame
         EY: pd.DataFrame
+        VY: pd.DataFrame
         units: dict
         price: str
         source: str
@@ -151,8 +153,9 @@ class CoreModel:
                     "For building an instance using dataframes, all the data [Y,E,Z,V,EY,units,table] should be given."
                 )
             else:
+
                 self.matrices, self._indeces, self.units = dataframe_parser(
-                    Z, Y, E, V, EY, units, table
+                    Z, Y, E, V, EY,VY, units, table
                 )
 
                 matrices = self.matrices["baseline"]
@@ -174,6 +177,11 @@ class CoreModel:
 
         if calc_all:
             self.calc_all()
+
+        if not _ENUM.VY in self.matrices["baseline"]:
+            matrices = self.query([_ENUM.V,_ENUM.Y])
+            VY = pd.DataFrame(0,index=matrices[_ENUM.V].index,columns=matrices[_ENUM.Y].columns)
+            self.matrices["baseline"][_ENUM.VY] = VY
 
     def calc_all(
         self,
@@ -375,7 +383,7 @@ class CoreModel:
 
         """
 
-        keep = [_ENUM.Z, _ENUM.E, _ENUM.V, _ENUM.EY, _ENUM.Y]
+        keep = [_ENUM.Z, _ENUM.E, _ENUM.V, _ENUM.EY, _ENUM.Y,_ENUM.VY]
 
         if scenario not in self.scenarios:
             raise WrongInput(f"Acceptable scenarios are {self.scenarios}")
@@ -400,7 +408,7 @@ class CoreModel:
             the specific scenario to reset
 
         """
-        keep = [_ENUM.z, _ENUM.e, _ENUM.v, _ENUM.EY, _ENUM.Y]
+        keep = [_ENUM.z, _ENUM.e, _ENUM.v, _ENUM.EY, _ENUM.Y,_ENUM.VY]
 
         if scenario not in self.scenarios:
             raise WrongInput(f"Acceptable scenarios are {self.scenarios}")

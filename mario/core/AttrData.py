@@ -103,12 +103,7 @@ import pymrio
 
 logger = logging.getLogger(__name__)
 
-try:
-    import cvxpy as cp
 
-    __cvxpy__ = True
-except ModuleNotFoundError:
-    __cvxpy__ = False
 
 
 class Database(CoreModel):
@@ -187,6 +182,7 @@ class Database(CoreModel):
         V: pd.DataFrame = None,
         Y: pd.DataFrame = None,
         EY: pd.DataFrame = None,
+        VY: pd.DataFrame = None,
         units: Dict = None,
         price: str = None,
         source: str = None,
@@ -202,14 +198,13 @@ class Database(CoreModel):
             V=V,
             Y=Y,
             EY=EY,
+            VY = VY,
             units=units,
             price=price,
             source=source,
             **kwargs,
         )
 
-        if __cvxpy__:
-            self.__solver = cp.ECOS
 
         # A counter for saving the results in a dictionary
         self.__counter = 1  # Shock Counter
@@ -239,7 +234,7 @@ class Database(CoreModel):
             )
 
         data = self.query(
-            matrices=[_ENUM.Y, _ENUM.E, _ENUM.V, _ENUM.Z, _ENUM.EY],
+            matrices=[_ENUM.Y, _ENUM.E, _ENUM.V, _ENUM.Z, _ENUM.EY,_ENUM.VY],
             scenarios=scenario,
         )
 
@@ -249,6 +244,7 @@ class Database(CoreModel):
             V=data[_ENUM.V],
             Z=data[_ENUM.Z],
             EY=data[_ENUM.EY],
+            VY=data[_ENUM.VY],
             units=self.units,
             table=self.meta.table,
         )

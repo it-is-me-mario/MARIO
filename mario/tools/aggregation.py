@@ -84,9 +84,9 @@ def _aggregator(instance, drop):
 
     E_index = EY_index = org_indeces["k"]["k"]
 
-    V_index = org_indeces["f"]["f"]
+    V_index = VY_index = org_indeces["f"]["f"]
 
-    Y_columns = EY_columns = [
+    Y_columns = EY_columns = VY_columns = [
         org_indeces["r"]["n"],
         instance.query(_ENUM.Y).columns.get_level_values(1),
         org_indeces["n"]["n"],
@@ -115,7 +115,7 @@ def _aggregator(instance, drop):
     for scenario, values in instance:
         matrices[scenario] = {}
 
-        for matrix in [_ENUM.Z, _ENUM.E, _ENUM.V, _ENUM.EY, _ENUM.Y]:
+        for matrix in [_ENUM.Z, _ENUM.E, _ENUM.V, _ENUM.EY, _ENUM.Y,_ENUM.VY]:
             item = deepcopy(values[matrix])
 
             for level in ["index", "columns"]:

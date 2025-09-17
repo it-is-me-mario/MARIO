@@ -107,6 +107,7 @@ class Nomenclature(Setting):
             "E",
             "X",
             "EY",
+            "VY",
             "Y",
             "y",
             "V",
