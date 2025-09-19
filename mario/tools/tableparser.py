@@ -2669,8 +2669,13 @@ def parser_gtap_mrio_gdx(path):
     #Emissions from combustion
     Emi_dom,Emi_dom_Y=gdx_to_matrix_satellite(mrio_data['Emissions'],'Emi','emi_dom',indeces,row_name_setting='emi_dom',
                             row_name_categ='EMI',split_agt=True,pivot_index=['row_name'],pivot_columns=['DST','agt'])
+    Emi_dom_comb,Emi_dom_Y_comb=gdx_to_matrix_satellite(mrio_data['Emissions'],'Emi_COMB','emi_dom',indeces,row_name_setting='emi_dom',
+                            row_name_categ='EMI',split_agt=True,pivot_index=['row_name'],pivot_columns=['DST','agt'])
     Emi_imp,Emi_imp_Y=gdx_to_matrix_satellite(mrio_data['Emissions'],'Emi','emi_imp',indeces,row_name_setting='emi_imp',
                             row_name_categ='EMI',split_agt=True,pivot_index=['row_name'],pivot_columns=['DST','agt'])
+    Emi_imp_comb,Emi_imp_Y_comb=gdx_to_matrix_satellite(mrio_data['Emissions'],'Emi_COMB','emi_imp',indeces,row_name_setting='emi_imp',
+                            row_name_categ='EMI',split_agt=True,pivot_index=['row_name'],pivot_columns=['DST','agt'])
+    
     #Emissions from processes
     Emi_proc,Emi_proc_Y=gdx_to_matrix_satellite(mrio_data['Emissions'],'Emi_Proc','emi_proc',indeces,row_name_setting='emi_proc',
                             row_name_categ='E_P',split_agt=True,pivot_index=['row_name'],pivot_columns=['REG','acts'])
@@ -2681,8 +2686,8 @@ def parser_gtap_mrio_gdx(path):
     Ene_imp,Ene_imp_Y=gdx_to_matrix_satellite(mrio_data['Energy'],'NRG','ene_imp',indeces,row_name_setting='ene_imp',
                             row_name_categ='ENE',split_agt=True,pivot_index=['row_name'],pivot_columns=['DST','agt'])
 
-    E=pd.concat([Emi_dom,Emi_imp,Emi_proc,Ene_dom,Ene_imp],axis=0)
-    EY=pd.concat([Emi_dom_Y,Emi_imp_Y,Emi_proc_Y,Ene_dom_Y,Ene_imp_Y],axis=0)
+    E=pd.concat([Emi_dom,Emi_dom_comb,Emi_imp,Emi_imp_comb,Emi_proc,Ene_dom,Ene_imp],axis=0)
+    EY=pd.concat([Emi_dom_Y,Emi_dom_Y_comb,Emi_imp_Y,Emi_imp_Y_comb,Emi_proc_Y,Ene_dom_Y,Ene_imp_Y],axis=0)
 
     print("Finalizing")
     indeces.update({
