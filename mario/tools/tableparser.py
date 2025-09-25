@@ -2754,6 +2754,7 @@ def parser_gtap_mrio_gdx(path):
             _ENUM['Z']: Z,
             _ENUM['Y']: Y,
             _ENUM['V']: V,
+            _ENUM['VY']: VY,
             _ENUM['E']: E,
             _ENUM['EY']: EY,
             _ENUM['X']: X,  
