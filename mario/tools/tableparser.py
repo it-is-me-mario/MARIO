@@ -586,7 +586,7 @@ def exio3(path, version):
     return matrices, _indeces, read["units"]
 
 
-def dataframe_parser(Z, Y, E, V, EY, units, table):
+def dataframe_parser(Z, Y, E, V, EY, VY,units, table):
     if isinstance(units, dict):
         units = pd.concat(units.values(), keys=units.keys())
 
@@ -608,6 +608,9 @@ def dataframe_parser(Z, Y, E, V, EY, units, table):
             "EY": EY,
         }
     }
+
+    if VY is not None:
+        matrices["baseline"]["VY"] = VY
 
     rename_index(matrices["baseline"])
     sort_frames(matrices["baseline"])

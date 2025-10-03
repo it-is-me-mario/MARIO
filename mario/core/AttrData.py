@@ -30,6 +30,8 @@ from mario.tools.utilities import (
 from mario.tools.excelhandler import (
     database_excel,
     database_txt,
+    database_txt_flat,
+    database_sql,
     _add_sector,
     _read_add_sectors,
     _get_new_add_sectors_sets,
@@ -78,7 +80,8 @@ import logging
 import copy
 from typing import Dict
 import plotly.express as px
-
+import sqlite3
+import os
 
 # constants
 from mario.tools.constants import (
@@ -100,12 +103,7 @@ import pymrio
 
 logger = logging.getLogger(__name__)
 
-try:
-    import cvxpy as cp
 
-    __cvxpy__ = True
-except ModuleNotFoundError:
-    __cvxpy__ = False
 
 
 class Database(CoreModel):
@@ -184,6 +182,7 @@ class Database(CoreModel):
         V: pd.DataFrame = None,
         Y: pd.DataFrame = None,
         EY: pd.DataFrame = None,
+        VY: pd.DataFrame = None,
         units: Dict = None,
         price: str = None,
         source: str = None,
@@ -199,14 +198,13 @@ class Database(CoreModel):
             V=V,
             Y=Y,
             EY=EY,
+            VY = VY,
             units=units,
             price=price,
             source=source,
             **kwargs,
         )
 
-        if __cvxpy__:
-            self.__solver = cp.ECOS
 
         # A counter for saving the results in a dictionary
         self.__counter = 1  # Shock Counter
@@ -236,7 +234,7 @@ class Database(CoreModel):
             )
 
         data = self.query(
-            matrices=[_ENUM.Y, _ENUM.E, _ENUM.V, _ENUM.Z, _ENUM.EY],
+            matrices=[_ENUM.Y, _ENUM.E, _ENUM.V, _ENUM.Z, _ENUM.EY,_ENUM.VY],
             scenarios=scenario,
         )
 
@@ -246,6 +244,7 @@ class Database(CoreModel):
             V=data[_ENUM.V],
             Z=data[_ENUM.Z],
             EY=data[_ENUM.EY],
+            VY=data[_ENUM.VY],
             units=self.units,
             table=self.meta.table,
         )
@@ -1303,6 +1302,209 @@ class Database(CoreModel):
             meta = self.meta._to_dict()
             with open(self._getdir(path, "Database", "") + "/metadata.json", "w") as fp:
                 json.dump(meta, fp)
+
+
+    def to_flat_txt(
+        self,
+        path: str,
+        matrices: list = 'all',
+        flows:bool = True,
+        coefficients: bool = False,
+        scenario_split: str = None,
+        export:bool = True,
+        sets_to_excel: bool = True,
+        mapping_cols: int = 0,
+        include_meta=False,
+    ):
+        """
+        Saves matrices list into flat text file
+
+        Args:
+            path (str): path to save the flat text file_
+            matrices (list, optional): List of matrices to save. Defaults to 'all'.
+            flows (bool, optional): if True, it saves all flows matrices unless a list of matrices is given. Defaults to True.
+            coefficients (bool, optional): if True, it saves all coefficient matrices unless a list of matrices is given. Defaults to False.
+            scenario_split (str, optional): dictionary describing how scenarios' names should be split into multiple columns. Defaults to None. 
+                Example: if Database.scenarios = ['Shock - 2020', 'Shock - 2030', 'baseline'], scenarios_split may be set as follows: 
+                    scenario_split = {
+                        'separator': '_', 
+                        'Scenario': 0, 
+                        'Year': 1, 
+                        'rename_baseline': 'Baseline - 2020'
+                        }
+
+            export (bool, optional): if True, it saves the flat text file. Defaults to True. The False option is used into to_sql function.
+            sets_to_excel (bool, optional): if True, it exports all _set_ tables to Excel
+            mapping_cols (int, optional): number of columns to be used for mapping into the Excel _set_tables. Defaults to 0.
+            include_meta (bool, optional): if True, it saves the metadata as a json file along with the data. Defaults to False.
+
+        Raises:
+            WrongInput: if both flows and coefficients are False or if matrices is not a list of strings.
+        """
+
+        if flows==False and coefficients==False:
+            raise WrongInput("At least one of the flows or coefficients should be True")
+        
+        if not export:
+            self.matrices_flat = database_txt_flat(
+                self, 
+                path,
+                matrices,
+                flows,
+                coefficients,
+                scenario_split,
+                export,
+                sets_to_excel,
+                mapping_cols,
+            )
+            self.matrices_flat = {k: v for k, v in self.matrices_flat.items() if not v.empty}
+        else:
+            database_txt_flat(
+                self, 
+                path,
+                matrices,
+                flows,
+                coefficients,
+                scenario_split,
+                export,
+                sets_to_excel,
+                mapping_cols,
+            )
+
+        if include_meta:
+            meta = self.meta._to_dict()
+            with open(self._getdir(path, "Database", "") + "/metadata.json", "w") as fp:
+                json.dump(meta, fp)
+
+
+    def to_sql(
+        self,
+        path: str,
+        matrices: list = 'all',
+        flows:bool = True,
+        coefficients: bool = False,
+        mapping_cols = 0,
+        overwrite = True,
+        scenario_split: str = None,
+        include_meta=False, 
+        sets_to_excel=False,   # <-- new argument
+    ):
+        """_summary_
+
+        Args:
+            path (str): _description_
+            matrices (list, optional): _description_. Defaults to 'all'.
+            flows (bool, optional): _description_. Defaults to True.
+            coefficients (bool, optional): _description_. Defaults to False.
+            scenario_split (str, optional): _description_. Defaults to None.
+            include_meta (bool, optional): _description_. Defaults to False.
+            sets_to_excel (bool, optional): If True, export all _set_ tables to Excel and remove them from the database.
+        """
+
+        self.to_flat_txt(
+            path = path,
+            matrices = matrices,
+            flows = flows,
+            coefficients = coefficients,
+            scenario_split = scenario_split,
+            include_meta = include_meta, 
+            export = False,
+            sets_to_excel = sets_to_excel,
+            mapping_cols = mapping_cols
+        )
+
+        if not os.path.isfile(path):
+            path = os.path.join(path, "database.db")
+        else:
+            if path.split(".")[-1] != 'db':
+                raise ValueError("Extension of the file must be '.db'")
+
+        if scenario_split == None:
+            additional_columns = ['Scenario']
+        else:
+            additional_columns = [k for k in scenario_split.keys() if k not in ['separator','rename_baseline']]
+        
+        database_sql(
+            self,
+            path,
+            additional_columns,
+            mapping_cols,
+            overwrite,
+        )
+
+        # --- Export _set_ tables to Excel and remove from DB if requested ---
+        if sets_to_excel:
+            excel_path = os.path.splitext(path)[0] + "_sets.xlsx"
+            with sqlite3.connect(path) as conn:
+                cursor = conn.cursor()
+                # Get all table names starting with _set_
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '_set_%'")
+                set_tables = [row[0] for row in cursor.fetchall()]
+                if set_tables:
+                    with pd.ExcelWriter(excel_path) as writer:
+                        for tbl in set_tables:
+                            df = pd.read_sql_query(f'SELECT * FROM "{tbl}"', conn)
+                            df.to_excel(writer, sheet_name=tbl, index=False)
+                            # --- Drop all foreign key constraints referencing this _set_ table ---
+                            cursor.execute("""
+                                SELECT m.name
+                                FROM sqlite_master m
+                                JOIN pragma_foreign_key_list(m.name) f
+                                WHERE f."table" = ?
+                                GROUP BY m.name
+                            """, (tbl,))
+                            referencing_tables = [row[0] for row in cursor.fetchall()]
+                            for ref_tbl in referencing_tables:
+                                # Get original schema
+                                cursor.execute(f"SELECT sql FROM sqlite_master WHERE type='table' AND name=?", (ref_tbl,))
+                                orig_schema = cursor.fetchone()[0]
+                                # Get columns
+                                cursor.execute(f"PRAGMA table_info('{ref_tbl}')")
+                                columns = [row[1] for row in cursor.fetchall()]
+                                columns_str = ", ".join([f'"{col}"' for col in columns])
+                                # Remove only the FK constraints referencing tbl
+                                lines = orig_schema.splitlines()
+                                # Find the opening parenthesis of the column/constraint list
+                                for i, line in enumerate(lines):
+                                    if "(" in line:
+                                        start_idx = i
+                                        break
+                                # Find the closing parenthesis
+                                for j in range(len(lines)-1, -1, -1):
+                                    if ")" in lines[j]:
+                                        end_idx = j
+                                        break
+                                # Remove lines with FK to tbl in the constraint section
+                                new_lines = []
+                                for idx, line in enumerate(lines):
+                                    if idx < start_idx or idx > end_idx:
+                                        new_lines.append(line)
+                                    else:
+                                        # Only skip FK constraints referencing tbl
+                                        if f"REFERENCES \"{tbl}\"" in line or f"REFERENCES {tbl}" in line:
+                                            continue
+                                        new_lines.append(line)
+                                # Remove trailing commas before closing parenthesis
+                                for k in range(end_idx-1, start_idx-1, -1):
+                                    if new_lines[k].strip().endswith(",") and new_lines[k+1].strip().startswith(")"):
+                                        new_lines[k] = new_lines[k].rstrip(",")
+                                        break
+                                new_schema = "\n".join(new_lines)
+                                # Only recreate if a constraint was actually removed
+                                if new_schema != orig_schema:
+                                    cursor.execute(f'ALTER TABLE "{ref_tbl}" RENAME TO "{ref_tbl}_old"')
+                                    cursor.execute(new_schema)
+                                    cursor.execute(f'INSERT INTO "{ref_tbl}" ({columns_str}) SELECT {columns_str} FROM "{ref_tbl}_old"')
+                                    cursor.execute(f'DROP TABLE "{ref_tbl}_old"')
+                            # Now drop the _set_ table
+                            cursor.execute(f'DROP TABLE IF EXISTS "{tbl}"')
+                    conn.commit()
+
+        if include_meta:
+            meta = self.meta._to_dict()
+            with open(self._getdir(path, "Database", "") + "/metadata.json", "w") as fp:
+                json.dump(meta, fp)
+
 
     def to_pymrio(
         self,
@@ -2559,3 +2761,4 @@ class Database(CoreModel):
             shared_xaxes,
             filters,
         )
+

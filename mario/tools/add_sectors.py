@@ -309,16 +309,20 @@ class AddSectors:
                 return
             
             # get the region where to add the activity
-            region = self.db.add_sectors_master.query(f"`{MSC[self.table]['inv_sheet']}`==@sheet_name")[MI['r']].values[0]
+            regions = self.db.add_sectors_master.query(f"`{MSC[self.table]['inv_sheet']}`==@sheet_name")[MI['r']].values
+            target_regions = []
 
-            # check if the region is in the SUT or in the regions maps
-            if region in self.regions:
-                target_regions = [region]
-            elif region not in self.regions:
-                if region in self.db.regions_clusters:
-                    target_regions = self.db.regions_clusters[region] 
+            for region in regions:
+                # check if the region is in the SUT or in the regions maps
+                if region in self.regions:
+                    target_regions += [region]
+                elif region in self.db.regions_clusters:
+                    for cluster_region in self.db.regions_clusters[region]:
+                        target_regions += [cluster_region]
                 else:
-                    raise ValueError(f"Activity {activity} is added in region {region} which is not in the SUT nor in the regions map")
+                    raise ValueError(f"Activity {activity} is added in region {region} which is not in the database nor in the regions map")
+
+            target_regions = list(set(target_regions))  # remove duplicates
 
             # in case the activity has a parent to be initialized from
             if self.table == 'SUT':
@@ -333,7 +337,7 @@ class AddSectors:
             inventory = self.make_units_consistent_to_database(inventory,sheet_name) 
             
             for region_to in target_regions:
-                slices = self.fill_commodities_inputs(inventory,region_to,activity,slices)
+                slices = self.fill_commodities_inputs(inventory,region_to,activity,slices,parent_activity)
                 slices = self.fill_fact_sats_inputs(inventory,region_to,activity,'v',slices)
                 slices = self.fill_fact_sats_inputs(inventory,region_to,activity,'e',slices)
                 if self.table == 'SUT':
@@ -513,10 +517,16 @@ class AddSectors:
                             slices[_ENUM['z']].loc[(self.db.regions_clusters[r],MI['s'],self.db.sectors_clusters[c]),(region,MI['s'],activity)] = 0
 
             for k in satellites_to_nullify:
-                slices[_ENUM['e']].loc[k,(region,MI['a'],activity)] = 0
+                if self.table == 'SUT':
+                    slices[_ENUM['e']].loc[k,(region,MI['a'],activity)] = 0
+                if self.table == 'IOT':
+                    slices[_ENUM['e']].loc[k,(region,MI['s'],activity)] = 0
             
             for f in factors_to_nullify:
-                slices[_ENUM['v']].loc[f,(region,MI['a'],activity)] = 0
+                if self.table == 'SUT':
+                    slices[_ENUM['v']].loc[f,(region,MI['a'],activity)] = 0
+                if self.table == 'IOT':
+                    slices[_ENUM['v']].loc[f,(region,MI['s'],activity)] = 0
         
         return slices
 
@@ -527,6 +537,7 @@ class AddSectors:
         region_to:str,
         activity:str,
         slices:dict,
+        parent_activity:str,
     )->dict:
         """
         Fills the commodities inputs for a given region and activity.
@@ -537,6 +548,7 @@ class AddSectors:
             region_to (str): The target region.
             activity (str): The target activity.
             slices (dict): The slices to fill.
+            parent_activity (str): The parent activity to be used for filling.
 
         Returns:
             dict: The updated slices.
@@ -566,6 +578,8 @@ class AddSectors:
                                                 
                         if input_item in self.db.commodities_clusters:
                             com_use = self.matrices[_ENUM['Z']].loc[(region_from,MI['c'],self.db.commodities_clusters[input_item]),(region_to,MI['a'],sn)]  
+                            if isinstance(com_use,pd.Series):
+                                com_use = com_use.to_frame()
                             u_share = com_use.sum(1)/com_use.sum().sum()*quantity
                             if isinstance(u_share,pd.Series):
                                 u_share = u_share.to_frame()
@@ -578,6 +592,8 @@ class AddSectors:
                         
                         if input_item in self.db.sectors_clusters:
                             com_use = self.matrices[_ENUM['Z']].loc[(region_from,sn,self.db.sectors_clusters[input_item]),(region_to,sn,sn)]
+                            if isinstance(com_use,pd.Series):
+                                com_use = com_use.to_frame()
                             z_share = com_use.sum(1)/com_use.sum().sum()*quantity
                             if isinstance(z_share,pd.Series):
                                 z_share = z_share.to_frame()
@@ -590,7 +606,12 @@ class AddSectors:
 
                         if self.table == 'SUT':
                             if input_item in self.commodities:
-                                com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],MI['c'],input_item),(region_to,MI['a'],sn)]                    
+                                if pd.isna(parent_activity) == False:
+                                    com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],MI['c'],input_item),(region_to,MI['a'],parent_activity)]  
+                                else:
+                                    com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],MI['c'],input_item),(region_to,MI['a'],sn)]  
+                                if isinstance(com_use,pd.Series):
+                                    com_use = com_use.to_frame()                  
                                 u_share = com_use.sum(1)/com_use.sum().sum()*quantity
                                 if isinstance(u_share,pd.Series):
                                     u_share = u_share.to_frame()
@@ -598,7 +619,12 @@ class AddSectors:
                                 slices[_ENUM['u']].loc[u_share.index,u_share.columns] += u_share.values
                             
                             if input_item in self.db.commodities_clusters:
-                                com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],MI['s'],self.db.commodities_clusters[input_item]),(region_to,MI['a'],sn)]                    
+                                if pd.isna(parent_activity) == False:
+                                    com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],MI['s'],self.db.commodities_clusters[input_item]),(region_to,MI['a'],parent_activity)]  
+                                else:
+                                    com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],MI['s'],self.db.commodities_clusters[input_item]),(region_to,MI['a'],sn)]                    
+                                if isinstance(com_use,pd.Series):
+                                    com_use = com_use.to_frame()
                                 u_share = com_use.sum(1)/com_use.sum().sum()*quantity
                                 if isinstance(u_share,pd.Series):
                                     u_share = u_share.to_frame()
@@ -608,7 +634,12 @@ class AddSectors:
                             
                         if self.table == 'IOT':
                             if input_item in self.sectors:
-                                com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],sn,input_item),(region_to,sn,sn)]
+                                if pd.isna(parent_activity) == False:
+                                    com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],sn,input_item),(region_to,sn,parent_activity)]
+                                else:
+                                    com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],sn,input_item),(region_to,sn,sn)]
+                                if isinstance(com_use,pd.Series):
+                                    com_use = com_use.to_frame()
                                 z_share = com_use.sum(1)/com_use.sum().sum()*quantity
                                 if isinstance(z_share,pd.Series):
                                     z_share = z_share.to_frame()
@@ -616,7 +647,12 @@ class AddSectors:
                                 slices[_ENUM['z']].loc[z_share.index,z_share.columns] += z_share.values
 
                             if input_item in self.db.sectors_clusters:
-                                com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],sn,self.db.sectors_clusters[input_item]),(region_to,sn,sn)]
+                                if pd.isna(parent_activity) == False:
+                                    com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],sn,self.db.sectors_clusters[input_item]),(region_to,sn,parent_activity)]
+                                else:
+                                    com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],sn,self.db.sectors_clusters[input_item]),(region_to,sn,sn)]
+                                if isinstance(com_use,pd.Series):
+                                    com_use = com_use.to_frame()
                                 z_share = com_use.sum(1)/com_use.sum().sum()*quantity
                                 if isinstance(z_share,pd.Series):
                                     z_share = z_share.to_frame()
@@ -629,7 +665,12 @@ class AddSectors:
                                 slices[_ENUM['u']].loc[(region_to,MI['c'],input_item),(region_to,MI['a'],activity)] += quantity
                             
                             if input_item in self.db.commodities_clusters:
-                                com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],MI['c'],self.db.commodities_clusters[input_item]),(region_to,MI['a'],sn)]                    
+                                if pd.isna(parent_activity) == False:
+                                    com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],MI['c'],self.db.commodities_clusters[input_item]),(region_to,MI['a'],parent_activity)]
+                                else:
+                                    com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],MI['c'],self.db.commodities_clusters[input_item]),(region_to,MI['a'],sn)]                    
+                                if isinstance(com_use,pd.Series):
+                                    com_use = com_use.to_frame()
                                 u_share = com_use.sum(1)/com_use.sum().sum()*quantity
                                 if isinstance(u_share,pd.Series):
                                     u_share = u_share.to_frame()
@@ -641,7 +682,12 @@ class AddSectors:
                                 slices[_ENUM['z']].loc[(region_to,MI['s'],input_item),(region_to,MI['s'],activity)] += quantity
                             
                             if input_item in self.db.sectors_clusters:
-                                com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],sn,self.db.sectors_clusters[input_item]),(region_to,sn,sn)]                    
+                                if pd.isna(parent_activity) == False:
+                                    com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],sn,self.db.sectors_clusters[input_item]),(region_to,sn,parent_activity)]
+                                else:
+                                    com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],sn,self.db.sectors_clusters[input_item]),(region_to,sn,sn)]                    
+                                if isinstance(com_use,pd.Series):
+                                    com_use = com_use.to_frame()
                                 z_share = com_use.sum(1)/com_use.sum().sum()*quantity
                                 if isinstance(z_share,pd.Series):
                                     z_share = z_share.to_frame()
@@ -679,7 +725,7 @@ class AddSectors:
                         inputs = self.db.sectors_clusters[input_item]
 
                     if activity in self.parented_sectors:
-                        parent_sector = self.db.add_sectors_master.query(f"{MI['s']}==@activity")[MSC[self.table]['pa']].values[0]
+                        parent_sector = self.db.add_sectors_master.query(f"{MI['s']}==@activity")[MSC[self.table]['ps']].values[0]
                         old_values = self.matrices[_ENUM['z']].loc[(regs, MI['s'], inputs), (region_to, MI['s'], parent_sector)]
                         if isinstance(old_values,pd.Series):
                             old_values = old_values.to_frame()
