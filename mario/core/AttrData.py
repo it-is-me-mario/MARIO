@@ -38,6 +38,10 @@ from mario.tools.excelhandler import (
     _inventory_templates,
     _read_add_inventories,
     _sh_excel,
+    _output_templates,
+    _trade_templates,
+    _exclusion_templates,
+    _read_split_sheets,
 )
 
 from mario.tools import plots as plt
@@ -96,6 +100,9 @@ from mario.tools.constants import (
     _ADD_SECTORS_REGIONS_CLUSTERS_SHEET_COLUMNS,
     _ADD_SECTORS_ITEMS_CLUSTERS_SHEET_COLUMNS,
     _ADD_SECTORS_INVENTORY_SHEET_COLUMNS,
+    _ADD_SECTORS_OUTPUT_SHEET_COLUMNS,
+    _ADD_SECTORS_TRADE_SHEET_COLUMNS,
+    _ADD_SECTORS_EXCLUSION_SHEET_COLUMNS
 )
 
 from mario.core.CoreIO import CoreModel
@@ -1676,7 +1683,10 @@ class Database(CoreModel):
             )
 
         if self.meta.table == "IOT":
-            self.new_sectors, self.parented_sectors, self.non_parented_sectors = _get_new_add_sectors_sets(self)
+            self.new_sectors, self.parented_sectors, self.non_parented_sectors, self.to_split_sectors = _get_new_add_sectors_sets(
+                self,
+                _ADD_SECTORS_MASTER_SHEET_COLUMNS["IOT"]["add_mode"]
+                )
 
             for k,v in self.sectors_clusters.items():
                 for s in v:
@@ -1696,6 +1706,59 @@ class Database(CoreModel):
         if read_inventories:
             self.read_inventory_sheets(path)
 
+    def inventory_sanity_check(
+            self,
+            read=False,
+        ):
+        """
+        Performs a sanity check on the inventories stored in the 'inventories' attribute.
+        Raises an error if any inventory is missing or inconsistent.
+
+        reads (bool, optional): If True, performs the check considering also inventory sheets, not only master. Defaults to False.
+        """
+
+        # If regionalized multiple sheets for the same new sector, check that the parent is the same
+        # Check if rows with the same 'Sector' have the same 'Parent sector'
+        sector_column_label=_ADD_SECTORS_MASTER_SHEET_COLUMNS[self.meta.table]['s']
+        parent_sector_column_label=_ADD_SECTORS_MASTER_SHEET_COLUMNS[self.meta.table]['ps']
+        master_sheet=self.add_sectors_master
+        inconsistent_sectors = master_sheet.groupby(sector_column_label)[parent_sector_column_label].nunique()
+        inconsistent_sectors = inconsistent_sectors[inconsistent_sectors > 1]
+        inv_sheet_column_label = _ADD_SECTORS_MASTER_SHEET_COLUMNS[self.meta.table]['inv_sheet']
+
+        if not inconsistent_sectors.empty:
+            error_msg = "The following sectors have inconsistent parent sectors:\n"
+            for sector in inconsistent_sectors.index:
+                parents = master_sheet[master_sheet[sector_column_label] == sector][parent_sector_column_label].unique()
+                error_msg += f"  - Sector '{sector}' has parent sectors: {list(parents)}\n"
+            raise ValueError(error_msg)
+        
+        #When reading the add_sector excel file
+        if read:
+        #Check that all inventory sheets in the master sheet are present in the inventories attribute
+            missing_inventories = []
+            for sector in master_sheet[sector_column_label].unique():
+                sector_rows = master_sheet[master_sheet[sector_column_label] == sector]
+                
+                # Check if sector exists in self.inventories
+                if sector not in self.inventories:
+                    missing_inventories.append(f"Sector '{sector}' not found in inventories")
+                else:
+                    # Get all inventory sheets for this sector
+                    inv_sheets = sector_rows[inv_sheet_column_label].unique()
+        
+                    # Check which ones are missing
+                    for inv_sheet in inv_sheets:
+                        if inv_sheet not in self.inventories[sector]:
+                            missing_inventories.append(f"Inventory sheet '{inv_sheet}' not found for sector '{sector}'")
+
+            if missing_inventories:
+                error_msg = "The following inventory sheets are missing:\n"
+                for missing in missing_inventories:
+                    error_msg += f"  - {missing}\n"
+                raise ValueError(error_msg)
+
+        # Additional consistency checks can be added here as needed
 
     def get_inventory_sheets(
             self, 
@@ -1710,6 +1773,10 @@ class Database(CoreModel):
             overwrite (bool, optional): Specifies whether to overwrite existing templates. Defaults to True.
         """
         new_sheets = self.add_sectors_master[_ADD_SECTORS_MASTER_SHEET_COLUMNS[self.meta.table]['inv_sheet']].unique()
+        
+        #Sanity check for master sheet
+        self.inventory_sanity_check(read=False)
+
         _inventory_templates(
             self,
             new_sheets,
@@ -1717,6 +1784,24 @@ class Database(CoreModel):
             overwrite, 
             path
         )
+        
+        if self.meta.table == "IOT":
+            if self.to_split_sectors:
+                _output_templates(
+                    self,
+                    _ADD_SECTORS_OUTPUT_SHEET_COLUMNS,
+                    path
+                )
+                _trade_templates(
+                    self,
+                    _ADD_SECTORS_TRADE_SHEET_COLUMNS,
+                    path
+                )
+                _exclusion_templates(
+                    self,
+                    _ADD_SECTORS_EXCLUSION_SHEET_COLUMNS,
+                    path
+                )
 
     def read_inventory_sheets(
             self,
@@ -1728,9 +1813,15 @@ class Database(CoreModel):
         Args:
             path (str): The path to the inventory templates.
         """
+        
         self.inventories = _read_add_inventories(self, path)
+        #Sanity check for master and inventory sheets
+        self.inventory_sanity_check(read=True)
 
-   
+        if self.meta.table == "IOT":
+            if self.to_split_sectors:
+                self.split_info=_read_split_sheets(self,path) #read sheets for total output, trade, exclusions (to add more)
+        
     def add_sectors(
         self,
         io:str = 'inventories',

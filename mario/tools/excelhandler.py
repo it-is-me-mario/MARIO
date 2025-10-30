@@ -957,11 +957,23 @@ def _read_add_inventories(instance,path):
 
     return inventories_by_act
 
+def _read_split_sheets(instance,path):
+    split_info={}
+    for i in ['Total outputs','Trades','Exclusions']:
+        split_info[i] = pd.read_excel(path,sheet_name=i,header=0,)
+    
+    return split_info
+
 
 def _get_new_add_sectors_sets(
         instance,
+        add_mode_header
     ):
     """
+    Parameters:
+        instance: The main database instance containing the master sheet.
+        add_mode_header: The header name given in constants for the add_mode column.
+
     Retrieves new sets of activities and commodities from the master sheet.
 
     Returns:
@@ -1002,6 +1014,7 @@ def _get_new_add_sectors_sets(
 
         # excluding already existing sectors
         new_sectors = [sec for sec in new_sectors if sec not in instance.get_index(_MASTER_INDEX['s'])]
+        new_sectors = list(new_sectors) #moved from below
 
         # listing sectors that have a parent
         parented_sectors = []
@@ -1010,17 +1023,16 @@ def _get_new_add_sectors_sets(
             if isinstance(parent, str):
                 parented_sectors.append(sec)
 
-        # listing activities that don't have a parent
+        # listing sectors that don't have a parent
         non_parented_sectors = []
         for sec in new_sectors:
-            if sec not in non_parented_sectors:
+            if sec not in parented_sectors:
                 non_parented_sectors.append(sec)
 
-        parented_sectors = parented_sectors
-        non_parented_sectors = non_parented_sectors
-        new_sectors = list(new_sectors)
+        # listing sectors to be split
+        to_split_sectors = master_sheet[master_sheet[add_mode_header] == 'Split'][f'{_MASTER_INDEX["s"]}'].tolist()
 
-        return new_sectors, parented_sectors, non_parented_sectors
+        return new_sectors, parented_sectors, non_parented_sectors, to_split_sectors
 
 
 def _inventory_templates(
@@ -1049,6 +1061,43 @@ def _inventory_templates(
         for sheet in new_sheets:
             inventory_sheet.to_excel(writer, sheet_name=sheet, index=False)
         units_sheet.to_excel(writer, sheet_name='DB units',merge_cells=False)
+    
+def _output_templates(
+        instance,
+        output_columns,
+        path,
+    ):
+
+    output_sheet = pd.DataFrame(columns=list(output_columns.values()))
+
+    with pd.ExcelWriter(path, mode='a', engine='openpyxl') as writer:
+        output_sheet.to_excel(writer, sheet_name='Total outputs', index=False)
+
+    # add data validation...
+
+def _trade_templates(
+        instance,
+        trade_columns,
+        path,
+    ):
+
+    trade_sheet = pd.DataFrame(columns=list(trade_columns.values()))
+
+    with pd.ExcelWriter(path, mode='a', engine='openpyxl') as writer:
+        trade_sheet.to_excel(writer, sheet_name='Trades', index=False)
+
+    # add data validation...
+
+def _exclusion_templates(
+        instance,
+        exclusion_columns,
+        path,
+    ):
+
+    exclusion_sheet = pd.DataFrame(columns=list(exclusion_columns.values()))
+
+    with pd.ExcelWriter(path, mode='a', engine='openpyxl') as writer:
+        exclusion_sheet.to_excel(writer, sheet_name='Exclusions', index=False)
 
     # add data validation...
 

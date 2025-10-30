@@ -87,13 +87,14 @@ _ADD_SECTORS_MASTER_SHEET_COLUMNS = {
         'inv_sheet': 'Inventory sheet',
         'qt': 'Quantity',
         'unit': 'Unit',
-        'ms': 'Market share',
+        #'ms': 'Market share',
         'findem': 'Final consumption',
         'n': _MASTER_INDEX['n'],
         'ps': f'Parent {_MASTER_INDEX["s"]}',
         'empty': 'Leave empty',
         'source': 'Source',
         'note': 'Notes',
+        'add_mode': 'Add or Split'
     }
 }
 
@@ -107,6 +108,31 @@ _ADD_SECTORS_INVENTORY_SHEET_COLUMNS = { # if change order, change also data val
     'db_r': f"DB {_MASTER_INDEX['r']}",
     'change': 'Change type',
     'source': 'Source',
+    'note': 'Notes',
+}
+
+_ADD_SECTORS_OUTPUT_SHEET_COLUMNS ={ 
+    's': _MASTER_INDEX['s'],
+    'r': _MASTER_INDEX['r'],
+    'qt': 'Quantity',
+    'unit': 'Unit',
+    'source': 'Source',
+    'note': 'Notes',
+}
+
+_ADD_SECTORS_TRADE_SHEET_COLUMNS ={
+    's': _MASTER_INDEX['s'],
+    'r_from': 'Region from',
+    'r_to': 'Region to', 
+    'qt': 'Quantity',
+    'unit': 'Unit',
+    'source': 'Source',
+    'note': 'Notes',
+}
+
+_ADD_SECTORS_EXCLUSION_SHEET_COLUMNS ={
+    's_from': 'Sector from',
+    's_to': 'Sector to',
     'note': 'Notes',
 }
 
