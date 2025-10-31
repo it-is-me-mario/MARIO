@@ -1454,3 +1454,58 @@ def _add_sector_iot(instance, sectors, regions, path, num_validation=30):
         _ += 1
 
     file.close()
+
+
+def _inventory_sanity_check(
+            self,
+            read=False,
+        ):
+        """
+        Performs a sanity check on the inventories stored in the 'inventories' attribute.
+        Raises an error if any inventory is missing or inconsistent.
+
+        reads (bool, optional): If True, performs the check considering also inventory sheets, not only master. Defaults to False.
+        """
+
+        # If regionalized multiple sheets for the same new sector, check that the parent is the same
+        # Check if rows with the same 'Sector' have the same 'Parent sector'
+        sector_column_label=MSC[self.meta.table]['s']
+        parent_sector_column_label=MSC[self.meta.table]['ps']
+        master_sheet=self.add_sectors_master
+        inconsistent_sectors = master_sheet.groupby(sector_column_label)[parent_sector_column_label].nunique()
+        inconsistent_sectors = inconsistent_sectors[inconsistent_sectors > 1]
+        inv_sheet_column_label = MSC[self.meta.table]['inv_sheet']
+
+        if not inconsistent_sectors.empty:
+            error_msg = "The following sectors have inconsistent parent sectors:\n"
+            for sector in inconsistent_sectors.index:
+                parents = master_sheet[master_sheet[sector_column_label] == sector][parent_sector_column_label].unique()
+                error_msg += f"  - Sector '{sector}' has parent sectors: {list(parents)}\n"
+            raise ValueError(error_msg)
+        
+        #When reading the add_sector excel file
+        if read:
+        #Check that all inventory sheets in the master sheet are present in the inventories attribute
+            missing_inventories = []
+            for sector in master_sheet[sector_column_label].unique():
+                sector_rows = master_sheet[master_sheet[sector_column_label] == sector]
+                
+                # Check if sector exists in self.inventories
+                if sector not in self.inventories:
+                    missing_inventories.append(f"Sector '{sector}' not found in inventories")
+                else:
+                    # Get all inventory sheets for this sector
+                    inv_sheets = sector_rows[inv_sheet_column_label].unique()
+        
+                    # Check which ones are missing
+                    for inv_sheet in inv_sheets:
+                        if inv_sheet not in self.inventories[sector]:
+                            missing_inventories.append(f"Inventory sheet '{inv_sheet}' not found for sector '{sector}'")
+
+            if missing_inventories:
+                error_msg = "The following inventory sheets are missing:\n"
+                for missing in missing_inventories:
+                    error_msg += f"  - {missing}\n"
+                raise ValueError(error_msg)
+
+        # Additional consistency checks can be added here as needed

@@ -42,6 +42,11 @@ from mario.tools.excelhandler import (
     _trade_templates,
     _exclusion_templates,
     _read_split_sheets,
+    _inventory_sanity_check,
+)
+
+from mario.tools.new_sectors import (
+    _new_flow_columns,
 )
 
 from mario.tools import plots as plt
@@ -1706,60 +1711,6 @@ class Database(CoreModel):
         if read_inventories:
             self.read_inventory_sheets(path)
 
-    def inventory_sanity_check(
-            self,
-            read=False,
-        ):
-        """
-        Performs a sanity check on the inventories stored in the 'inventories' attribute.
-        Raises an error if any inventory is missing or inconsistent.
-
-        reads (bool, optional): If True, performs the check considering also inventory sheets, not only master. Defaults to False.
-        """
-
-        # If regionalized multiple sheets for the same new sector, check that the parent is the same
-        # Check if rows with the same 'Sector' have the same 'Parent sector'
-        sector_column_label=_ADD_SECTORS_MASTER_SHEET_COLUMNS[self.meta.table]['s']
-        parent_sector_column_label=_ADD_SECTORS_MASTER_SHEET_COLUMNS[self.meta.table]['ps']
-        master_sheet=self.add_sectors_master
-        inconsistent_sectors = master_sheet.groupby(sector_column_label)[parent_sector_column_label].nunique()
-        inconsistent_sectors = inconsistent_sectors[inconsistent_sectors > 1]
-        inv_sheet_column_label = _ADD_SECTORS_MASTER_SHEET_COLUMNS[self.meta.table]['inv_sheet']
-
-        if not inconsistent_sectors.empty:
-            error_msg = "The following sectors have inconsistent parent sectors:\n"
-            for sector in inconsistent_sectors.index:
-                parents = master_sheet[master_sheet[sector_column_label] == sector][parent_sector_column_label].unique()
-                error_msg += f"  - Sector '{sector}' has parent sectors: {list(parents)}\n"
-            raise ValueError(error_msg)
-        
-        #When reading the add_sector excel file
-        if read:
-        #Check that all inventory sheets in the master sheet are present in the inventories attribute
-            missing_inventories = []
-            for sector in master_sheet[sector_column_label].unique():
-                sector_rows = master_sheet[master_sheet[sector_column_label] == sector]
-                
-                # Check if sector exists in self.inventories
-                if sector not in self.inventories:
-                    missing_inventories.append(f"Sector '{sector}' not found in inventories")
-                else:
-                    # Get all inventory sheets for this sector
-                    inv_sheets = sector_rows[inv_sheet_column_label].unique()
-        
-                    # Check which ones are missing
-                    for inv_sheet in inv_sheets:
-                        if inv_sheet not in self.inventories[sector]:
-                            missing_inventories.append(f"Inventory sheet '{inv_sheet}' not found for sector '{sector}'")
-
-            if missing_inventories:
-                error_msg = "The following inventory sheets are missing:\n"
-                for missing in missing_inventories:
-                    error_msg += f"  - {missing}\n"
-                raise ValueError(error_msg)
-
-        # Additional consistency checks can be added here as needed
-
     def get_inventory_sheets(
             self, 
             path:str,
@@ -1775,7 +1726,7 @@ class Database(CoreModel):
         new_sheets = self.add_sectors_master[_ADD_SECTORS_MASTER_SHEET_COLUMNS[self.meta.table]['inv_sheet']].unique()
         
         #Sanity check for master sheet
-        self.inventory_sanity_check(read=False)
+        _inventory_sanity_check(self,read=False)
 
         _inventory_templates(
             self,
@@ -1816,7 +1767,7 @@ class Database(CoreModel):
         
         self.inventories = _read_add_inventories(self, path)
         #Sanity check for master and inventory sheets
-        self.inventory_sanity_check(read=True)
+        _inventory_sanity_check(self,read=True)
 
         if self.meta.table == "IOT":
             if self.to_split_sectors:
@@ -1920,6 +1871,48 @@ class Database(CoreModel):
         if notes:
             for note in notes:
                 self.meta._add_history(f"User note: {note}")
+
+    def split_sectors(
+        self,
+        scenario:str = 'baseline',
+        inplace: bool = True,
+        ignore_warnings: bool = True,
+        notes=None,
+    ):
+        """
+        Splits sectors (at the moment only for IOTs) in the database based on the information provided in the inventories.
+        """
+        if not inplace:
+            new = self.copy()
+            new.split_sectors(
+                scenario=scenario,
+                inplace=True,
+                ignore_warnings=ignore_warnings,
+                notes=notes,
+            )
+
+            return new
+    
+        else:
+            if self.meta.table != 'IOT':
+                raise NotImplementedError("Splitting sectors is only implemented for IOTs at the moment.")
+            
+            self.add_sectors()
+            matrices = {
+                _ENUM.z: self.get_data(matrices=[_ENUM.z],scenarios=[scenario])[scenario][0],
+                _ENUM.e: self.get_data(matrices=[_ENUM.e],scenarios=[scenario])[scenario][0],
+                _ENUM.v: self.get_data(matrices=[_ENUM.v],scenarios=[scenario])[scenario][0],
+                _ENUM.Y: self.get_data(matrices=[_ENUM.Y],scenarios=[scenario])[scenario][0],
+                _ENUM.Z: self.get_data(matrices=[_ENUM.Z],scenarios=[scenario])[scenario][0],
+                _ENUM.X: self.get_data(matrices=[_ENUM.E],scenarios=[scenario])[scenario][0],
+                _ENUM.V: self.get_data(matrices=[_ENUM.V],scenarios=[scenario])[scenario][0],
+            }
+
+            #Missing to implement E, V, X
+            self=_new_flow_columns(self)
+            
+            #check if output is the same unit of measure
+            #copy end from add_sectors function
 
 
     def query(
