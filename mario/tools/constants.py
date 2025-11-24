@@ -138,6 +138,23 @@ _ADD_SECTORS_EXCLUSION_SHEET_COLUMNS ={
 
 _ADD_SECTORS_REGIONS_CLUSTERS_SHEET_COLUMNS = ['GLOBAL']
 _ADD_SECTORS_ITEMS_CLUSTERS_SHEET_COLUMNS = ['Cluster1']
+_ADD_SECTORS_UNCERTAINTY_PARAMETERS ={
+    'certain': 1,
+    'original s specific, r cluster': 0.95,
+    'original s specific_no parent, r cluster': 0.9,
+    'original s cluster, r specific': 0.75,
+    'original s cluster_no parent, r specific': 0.7,
+    'original s cluster, r cluster': 0.65,
+    'original s cluster_no parent, r cluster': 0.6,
+    'disag s specific, r cluster': 0.55,
+    'disag s cluster, r specific': 0.4,
+    'disag s cluster_no parent, r specific': 0.35,
+    'disag s cluster, r cluster': 0.3,
+    'disag s specific_no parent, r cluster': 0.25, 
+    'disag s cluster_no parent, r cluster': 0.2,
+    'no info': 0.1,
+    'forced zero': 0.005,
+}
 
 _CALC = {
     _ENUM.F: (

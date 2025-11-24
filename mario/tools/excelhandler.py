@@ -18,8 +18,10 @@ from mario.tools.constants import (
     _ENUM,
     SUT,
     IOT,
+    _ADD_SECTORS_UNCERTAINTY_PARAMETERS,
 )
 from mario.tools.constants import _ADD_SECTORS_MASTER_SHEET_COLUMNS as MSC
+from mario.tools.constants import _ADD_SECTORS_INVENTORY_SHEET_COLUMNS as ISC
 from mario.tools.sql_properties import _COLUMNS, _MATRICES_LIST, _EXPORT_NAMES, _RELATIONSHIPS
 
 
@@ -907,17 +909,26 @@ def _add_sector(
         reg_map_columns,
         com_map_name,
         com_map_columns,
-        path
+        path,
+        redefine_uncertainties=False,
     ):
 
     master_sheet = pd.DataFrame(columns=list(master_columns.values()))
     regions_maps_sheet = pd.DataFrame(instance.get_index(_MASTER_INDEX['r']), columns=reg_map_columns) 
     commodity_maps_sheet = pd.DataFrame(columns=com_map_columns) 
+    if redefine_uncertainties:
+        #Uncertainty values for input data are predefined in constants, but can be redefined in this sheet
+        uncertainties_sheet = pd.DataFrame({
+            "Inventory data categories": list(_ADD_SECTORS_UNCERTAINTY_PARAMETERS.keys()),
+            "New uncertainty values": list(_ADD_SECTORS_UNCERTAINTY_PARAMETERS.values()) #1 for certain, 0 for unknown
+            })
 
     with pd.ExcelWriter(path) as writer:
         master_sheet.to_excel(writer, sheet_name=master_name, index=False)
         regions_maps_sheet.to_excel(writer, sheet_name=reg_map_name, index=False)
         commodity_maps_sheet.to_excel(writer, sheet_name=com_map_name, index=False)
+        if redefine_uncertainties:
+            uncertainties_sheet.to_excel(writer, sheet_name='Uncertainties', index=False)
 
     # add data validation...
 
@@ -933,8 +944,16 @@ def _read_add_sectors(path,master_name,reg_map_name,item_map_name):
     # check_for_errors_in_region_maps(instance,regions_maps)
     # check_for_errors_in_master_sheet(instance,master_sheet,regions_maps)
 
-    return master_sheet, regions_maps, item_maps
+    if 'Uncertainties' in pd.ExcelFile(path).sheet_names:
+        uncertainty_df = pd.read_excel(path,sheet_name='Uncertainties',header=0)
+        uncertainty_values = dict(zip(
+            uncertainty_df.iloc[:, 0], 
+            uncertainty_df.iloc[:, 1]
+            ))
+    else:
+        uncertainty_values = _ADD_SECTORS_UNCERTAINTY_PARAMETERS
 
+    return master_sheet, regions_maps, item_maps, uncertainty_values
 
 def _read_add_inventories(instance,path):
     inventories = pd.read_excel(path,sheet_name=None,header=0,)
@@ -1030,7 +1049,7 @@ def _get_new_add_sectors_sets(
                 non_parented_sectors.append(sec)
 
         # listing sectors to be split
-        to_split_sectors = master_sheet[master_sheet[add_mode_header] == 'Split'][f'{_MASTER_INDEX["s"]}'].tolist()
+        to_split_sectors = master_sheet[master_sheet[add_mode_header] == 'Split'][f'{_MASTER_INDEX["s"]}'].unique().tolist()
 
         return new_sectors, parented_sectors, non_parented_sectors, to_split_sectors
 
@@ -1483,7 +1502,7 @@ def _inventory_sanity_check(
                 error_msg += f"  - Sector '{sector}' has parent sectors: {list(parents)}\n"
             raise ValueError(error_msg)
         
-        #When reading the add_sector excel file
+        #Checks to perform when reading the add_sector excel file
         if read:
         #Check that all inventory sheets in the master sheet are present in the inventories attribute
             missing_inventories = []
@@ -1507,5 +1526,16 @@ def _inventory_sanity_check(
                 for missing in missing_inventories:
                     error_msg += f"  - {missing}\n"
                 raise ValueError(error_msg)
+
+            # Check that the column "Change type" is filled
+            for sector, inventory in self.inventories.items():
+                if isinstance(inventory, pd.DataFrame):
+                    if inventory[ISC['change']].isnull().any():
+                        raise ValueError(f"The column 'Change type' in the inventory sheet '{inventory}' is not filled for all sectors: fill with 'Update' or 'Percentage'")
+                elif isinstance(inventory, dict):
+                    # Nested dictionary
+                    for inv_sheet, inv_nested in inventory.items():
+                        if inv_nested[ISC['change']].isnull().any():
+                            raise ValueError(f"The column 'Change type' in the inventory sheet '{inv_sheet}' is not filled for all sectors: fill with 'Update' or 'Percentage'")
 
         # Additional consistency checks can be added here as needed

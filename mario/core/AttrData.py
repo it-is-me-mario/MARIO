@@ -1617,6 +1617,7 @@ class Database(CoreModel):
         path:str,
         master_sheet = "Master",
         regions_clusters_sheet = 'Regions Clusters',
+        redefine_uncertainties: bool = False,
     ):
         """
         Generates an Excel file to add multiple sectors/activities/commodities to a mario.Database
@@ -1626,6 +1627,7 @@ class Database(CoreModel):
             master_sheet (str): The name of the sheet that will contain the master data. Default is 'Master'.
             regions_clusters_sheet (str): The name of the sheet that will contain the clusters of regions. Default is 'Regions Clusters'.
             commodities_clusters_sheet (str): The name of the sheet that will contain the clusters of commodities. Default is 'Commodities Clusters'.
+            redefine_uncertainties (bool, optional): If True, provides sheet to redefine uncertainties for new sectors. Defaults to False.
 
         Returns:
             None
@@ -1644,7 +1646,8 @@ class Database(CoreModel):
             _ADD_SECTORS_REGIONS_CLUSTERS_SHEET_COLUMNS,
             items_clusters_sheet,
             _ADD_SECTORS_ITEMS_CLUSTERS_SHEET_COLUMNS,
-            path
+            path,
+            redefine_uncertainties
         )
         
 
@@ -1666,12 +1669,13 @@ class Database(CoreModel):
             master_sheet (str, optional): The name of the sheet that contains the master data. Defaults to 'Master'.
             regions_clusters_sheet (str, optional): The name of the sheet that contains the regions clusters. Defaults to 'Regions Clusters'.
             commodities_clusters_sheet (str, optional): The name of the sheet that contains the commodities clusters. Defaults to 'Commodities Clusters'.
+            redefine_uncertainties (bool, optional): If True, provides sheet to redefine uncertainties for new sectors. Defaults to False.
 
         """
 
         if self.meta.table == "IOT":
             items_clusters_sheet = 'Sectors Clusters'
-            self.add_sectors_master, self.regions_clusters, self.sectors_clusters = _read_add_sectors(
+            self.add_sectors_master, self.regions_clusters, self.sectors_clusters, self.uncertainty_values = _read_add_sectors(
                 path,
                 master_sheet,
                 regions_clusters_sheet,
@@ -1680,7 +1684,7 @@ class Database(CoreModel):
 
         if self.meta.table == "SUT":
             items_clusters_sheet = 'Commodities Clusters'
-            self.add_sectors_master, self.regions_clusters, self.commodities_clusters = _read_add_sectors(
+            self.add_sectors_master, self.regions_clusters, self.commodities_clusters, self.uncertainty_values = _read_add_sectors(
                 path,
                 master_sheet,
                 regions_clusters_sheet,
@@ -1778,11 +1782,13 @@ class Database(CoreModel):
         io:str = 'inventories',
         scenario:str = 'baseline',
         inplace: bool = True,
+        split: bool = False,
         ignore_warnings: bool = True,
         notes=None,
     ):        
         """
         Adds inventories to the database as new sectors/commodities/activities.
+        If Split=True, splits sectors (at the moment only for IOTs) in the database based on the information provided in the inventories.
         N.B. This method will erase all other scenarios different from the provided one and will return a new instance with scenario named as "baseline".
 
         Args:
@@ -1807,6 +1813,7 @@ class Database(CoreModel):
                 io=io,
                 scenario=scenario,
                 inplace=True,
+                split=split,
                 ignore_warnings=ignore_warnings,
                 notes=notes,
             )
@@ -1837,11 +1844,12 @@ class Database(CoreModel):
 
             add_sectors_class = AddSectors(self,matrices,ignore_warnings)
             if self.meta.table == 'IOT':
-                new_matrices, new_units, new_indeces = add_sectors_class.to_iot()
+                new_matrices, new_units, new_indeces, uncertainty_matrix= add_sectors_class.to_iot() 
             if self.meta.table == 'SUT':
                 new_matrices, new_units, new_indeces = add_sectors_class.to_sut()
             
             new_matrices[_ENUM.EY] = self.get_data(matrices=[_ENUM.EY],scenarios=[scenario])[scenario][0]
+            old_X=calc_X_from_w(calc_w(new_matrices[_ENUM.z]),new_matrices[_ENUM.Y])
             del new_matrices[_ENUM.Z]
             del new_matrices[_ENUM.E]
             del new_matrices[_ENUM.V]
@@ -1851,7 +1859,7 @@ class Database(CoreModel):
             self.matrices = new_matrices
             self.units = new_units
             self._indeces = new_indeces
-
+            self.uncertainty_matrix = uncertainty_matrix if self.meta.table == 'IOT' else None
 
         self.meta._add_history(
             "Scenarios: all the scenarios deleted from the database."
@@ -1871,45 +1879,12 @@ class Database(CoreModel):
         if notes:
             for note in notes:
                 self.meta._add_history(f"User note: {note}")
-
-    def split_sectors(
-        self,
-        scenario:str = 'baseline',
-        inplace: bool = True,
-        ignore_warnings: bool = True,
-        notes=None,
-    ):
-        """
-        Splits sectors (at the moment only for IOTs) in the database based on the information provided in the inventories.
-        """
-        if not inplace:
-            new = self.copy()
-            new.split_sectors(
-                scenario=scenario,
-                inplace=True,
-                ignore_warnings=ignore_warnings,
-                notes=notes,
-            )
-
-            return new
-    
-        else:
+        
+        if split:
             if self.meta.table != 'IOT':
                 raise NotImplementedError("Splitting sectors is only implemented for IOTs at the moment.")
-            
-            self.add_sectors()
-            matrices = {
-                _ENUM.z: self.get_data(matrices=[_ENUM.z],scenarios=[scenario])[scenario][0],
-                _ENUM.e: self.get_data(matrices=[_ENUM.e],scenarios=[scenario])[scenario][0],
-                _ENUM.v: self.get_data(matrices=[_ENUM.v],scenarios=[scenario])[scenario][0],
-                _ENUM.Y: self.get_data(matrices=[_ENUM.Y],scenarios=[scenario])[scenario][0],
-                _ENUM.Z: self.get_data(matrices=[_ENUM.Z],scenarios=[scenario])[scenario][0],
-                _ENUM.X: self.get_data(matrices=[_ENUM.E],scenarios=[scenario])[scenario][0],
-                _ENUM.V: self.get_data(matrices=[_ENUM.V],scenarios=[scenario])[scenario][0],
-            }
 
-            #Missing to implement E, V, X
-            self=_new_flow_columns(self)
+            self=_new_flow_columns(self,old_X,scenario)
             
             #check if output is the same unit of measure
             #copy end from add_sectors function
