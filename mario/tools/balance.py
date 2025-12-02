@@ -51,11 +51,13 @@ def ras(Z, target_rows, target_cols, tol=1e-8, max_iter=1000):
 
     return Z_new
 
-
+# FIXME --> Add get_excel, read_excel function to do the balance.
 
 def maxent(Z0, target_rows, target_cols, tol=1e-10):
     """
     Balance an input-output (transactions) matrix using the Maximum Entropy approach.
+
+    #FIXME ---> consider the possibility to use both z,Z
 
     Parameters
     ----------
