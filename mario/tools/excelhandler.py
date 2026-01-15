@@ -986,7 +986,7 @@ def _read_split_sheets(instance,path):
 
 def _get_new_add_sectors_sets(
         instance,
-        add_mode_header
+        add_mode_header = None
     ):
     """
     Parameters:

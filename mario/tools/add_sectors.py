@@ -304,7 +304,8 @@ class AddSectors:
         """
 
         slices = self.get_empty_table_slices()
-        slices_uncertainty = slices['z'] * 0  # Initialize uncertainty slices with 1s
+        if self.table == 'IOT':
+            slices_uncertainty = slices['z'] * 0  # Initialize uncertainty slices with 1s
 
         # get the inventory for the activity
         inventories = self.db.inventories[activity]
@@ -346,7 +347,11 @@ class AddSectors:
             inventory = self.make_units_consistent_to_database(inventory,sheet_name) 
             
             for region_to in target_regions:
-                slices, slices_uncertainty = self.fill_commodities_inputs(inventory,region_to,activity,slices,parent_activity,slices_uncertainty)
+                if self.table == 'SUT':
+                    slices = self.fill_commodities_inputs(inventory,region_to,activity,slices,parent_activity)
+                elif self.table == 'IOT':
+                    slices, slices_uncertainty = self.fill_commodities_inputs(inventory,region_to,activity,slices,parent_activity,slices_uncertainty)
+
                 slices = self.fill_fact_sats_inputs(inventory,region_to,activity,'v',slices)
                 slices = self.fill_fact_sats_inputs(inventory,region_to,activity,'e',slices)
                 if self.table == 'SUT':
@@ -357,7 +362,8 @@ class AddSectors:
             self.filled_slices[matrix] += slices[matrix]
 
         #Fill uncertainty slices
-        self.filled_uncertainty_slices += slices_uncertainty
+        if self.table == 'IOT':
+            self.filled_uncertainty_slices += slices_uncertainty
 
     def reindex_matrices(
             self,
@@ -375,8 +381,9 @@ class AddSectors:
                 self.matrices[matrix].sort_index(axis=ax, level=levels, inplace=True)
 
         #Uncertainty has the shape of z
-        for ax in [0, 1]:
-            self.uncertainty_matrix.sort_index(axis=ax, level=list(range(3)), inplace=True)
+        if self.table == 'IOT':
+            for ax in [0, 1]:
+                self.uncertainty_matrix.sort_index(axis=ax, level=list(range(3)), inplace=True)
             
 
     def make_units_consistent_to_database(
@@ -554,7 +561,7 @@ class AddSectors:
         activity:str,
         slices:dict,
         parent_activity:str,
-        slices_uncertainty:dict
+        slices_uncertainty:dict = None,
     )->dict:
         """
         Fills the commodities inputs for a given region and activity.
@@ -816,7 +823,10 @@ class AddSectors:
                     else:
                         raise ValueError(f"It's not possible to apply a percentage change to sector {activity} because it has no parent sector")
         
-        return slices, slices_uncertainty
+        if self.table == 'IOT':
+            return slices, slices_uncertainty
+        elif self.table == 'SUT':
+            return slices
     
 
     def fill_fact_sats_inputs(
@@ -996,9 +1006,10 @@ class AddSectors:
             self.matrices[matrix] = self.matrices[matrix].groupby(level=list(range(self.matrices[matrix].columns.nlevels)),axis=1).sum()
         
         #same for uncertainty matrix (only Z)
-        self.uncertainty_matrix = pd.concat([self.uncertainty_matrix,self.filled_uncertainty_slices],axis=1)
-        self.uncertainty_matrix = self.uncertainty_matrix.groupby(level=list(range(self.uncertainty_matrix.index.nlevels)),axis=0).sum()
-        self.uncertainty_matrix = self.uncertainty_matrix.groupby(level=list(range(self.uncertainty_matrix.columns.nlevels)),axis=1).sum()
+        if self.table == 'IOT':
+            self.uncertainty_matrix = pd.concat([self.uncertainty_matrix,self.filled_uncertainty_slices],axis=1)
+            self.uncertainty_matrix = self.uncertainty_matrix.groupby(level=list(range(self.uncertainty_matrix.index.nlevels)),axis=0).sum()
+            self.uncertainty_matrix = self.uncertainty_matrix.groupby(level=list(range(self.uncertainty_matrix.columns.nlevels)),axis=1).sum()
 
     def get_mario_indices(
             self

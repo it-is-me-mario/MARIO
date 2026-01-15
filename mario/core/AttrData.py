@@ -1730,7 +1730,8 @@ class Database(CoreModel):
         new_sheets = self.add_sectors_master[_ADD_SECTORS_MASTER_SHEET_COLUMNS[self.meta.table]['inv_sheet']].unique()
         
         #Sanity check for master sheet
-        _inventory_sanity_check(self,read=False)
+        if self.meta.table == "IOT":
+            _inventory_sanity_check(self,read=False)
 
         _inventory_templates(
             self,
@@ -1771,7 +1772,8 @@ class Database(CoreModel):
         
         self.inventories = _read_add_inventories(self, path)
         #Sanity check for master and inventory sheets
-        _inventory_sanity_check(self,read=True)
+        if self.meta.table == "IOT":
+            _inventory_sanity_check(self,read=True)
 
         if self.meta.table == "IOT":
             if self.to_split_sectors:
