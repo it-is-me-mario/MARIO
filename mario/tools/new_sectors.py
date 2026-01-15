@@ -48,15 +48,23 @@ def _new_flow_columns(
     scenario_split = f"split_{scenario}"
     new_sectors_list=list(self.inventories.keys())
     sector_to_parent_map=_sector_to_parent_map(self)
-    
-    #fill X with total outputs for new sectors from input sheet "Total outputs", and modify parents
+    regions=self.get_index('Region')
+
     Output_new_sectors =self.split_info['Total outputs']
+    #No negatives allowed in X (check 1)
+    negatives = Output_new_sectors['Quantity'] < 0
+    if negatives.any().any():
+        raise ValueError(f"Negative values found in input X: should be avoided by data pre-processing. {Output_new_sectors.loc[negatives[negatives['production']==True].index]}")
+    
+    #Check that new sectors' X is smaller than corresponding parent sector's X
+    #If condition respected, fill X with total outputs for new sectors from input sheet "Total outputs", and modify parents
     for s in new_sectors_list:
         if s not in Output_new_sectors[OSC['s']].unique():
             raise ValueError(f"Total output for sector {s} not found in the template sheets.")
+        else:
+            parent_sector=sector_to_parent_map[s]
         for r in Output_new_sectors[Output_new_sectors[OSC['s']] == s][OSC['r']]:
             # If X provided by region cluster
-            parent_sector=sector_to_parent_map[s]
             if r in self.regions_clusters:
                 warnings.warn(f"Using region-cluster output for sector {s} in region cluster {r}.")
                 # If sector s has a parent
@@ -69,28 +77,15 @@ def _new_flow_columns(
                 if isinstance(cluster_output,pd.Series):
                     cluster_output = cluster_output.to_frame()
             else:
-                #X in region cluster
                 X.loc[r, 'Sector', s] = Output_new_sectors[(Output_new_sectors[OSC['s']] == s) & (Output_new_sectors[OSC['r']] == r)][OSC['qt']].values[0]
                 if pd.isna(parent_sector) == False:
-                    #Subtract from parent output
-                    X.loc[r, 'Sector', parent_sector] -= X.loc[r, 'Sector', s]
-
-    self.matrices[scenario_split] = {}
-    for key, matrix in self.matrices[scenario].items():
-        if key in [_ENUM.z, _ENUM.e, _ENUM.v, _ENUM.EY,_ENUM.VY]:
-            self.matrices[scenario_split][key] = deepcopy(matrix)
-        else:
-            self.matrices[scenario_split][key] = pd.DataFrame(
-                0, 
-                index=matrix.index, 
-                columns=matrix.columns
-            )
-            
-    self.matrices[scenario_split][_ENUM.X] = X
-    #No negatives allowed in X
-    negatives = self.matrices[scenario_split][_ENUM.X] < 0
-    if negatives.any().any():
-        raise ValueError(f"Negative values found in X: should be avoided by data pre-processing.")
+                    if X.loc[r, 'Sector', s]['production'] > X.loc[r, 'Sector', parent_sector]['production']:
+                        print(f"Total output for new sector {s} in region {r} is {X.loc[r, 'Sector', s]['production']} exceeds that of parent sector {parent_sector} {X.loc[r, 'Sector', parent_sector]['production']}-> Parent=0 and {s}=parent.")
+                        X.loc[r, 'Sector', s] = X.loc[r, 'Sector', parent_sector] #INCONSISTENCIES HANDLING, may be changed
+                        X.loc[r, 'Sector', parent_sector] = 0 #INCONSISTENCIES HANDLING, may be changed
+                        
+    #Copy z,e,v,EY,VY from the output of the add_sectors function
+    self.matrices[scenario_split] =  self.matrices[scenario]
     
     # Compute Z, V and E from coefficients and new X
     self.matrices[scenario_split][_ENUM.Z] = calc_Z(self.matrices[scenario][_ENUM.z],X)
@@ -98,13 +93,22 @@ def _new_flow_columns(
     self.matrices[scenario_split][_ENUM.V] = calc_V(self.matrices[scenario][_ENUM.v],X)
     for s in new_sectors_list:
         parent_sector=sector_to_parent_map[s]
-        for r in self.get_index('Region'):
+        for r in regions:
             #Subtract from parent sector the new flows
             self.matrices[scenario_split][_ENUM.Z][r, 'Sector', parent_sector] -= self.matrices[scenario_split][_ENUM.Z][r, 'Sector', s]
             self.matrices[scenario_split][_ENUM.E][r, 'Sector', parent_sector] -= self.matrices[scenario_split][_ENUM.E][r, 'Sector', s]
             self.matrices[scenario_split][_ENUM.V][r, 'Sector', parent_sector] -= self.matrices[scenario_split][_ENUM.V][r, 'Sector', s]
+            #Not done before because the coefficients depend on original X
+            if X.loc[r, 'Sector', s]['production'] < X.loc[r, 'Sector', parent_sector]['production']:    
+                X.loc[r, 'Sector', parent_sector] -= X.loc[r, 'Sector', s]
+    self.matrices[scenario_split][_ENUM.X] = X
+
+    #No negatives allowed in X (check 2)
+    negatives = self.matrices[scenario_split][_ENUM.X] < 0
+    if negatives.any().any():
+        raise ValueError(f"Negative values found in X: should be avoided by data pre-processing. {X.loc[negatives[negatives['production']==True].index]}")
     
-    # Check for negatives in Z and handle them (with consequence on uncertainty matrix)
+    #No negatives allowed in Z
     negatives = self.matrices[scenario_split][_ENUM.Z] < 0
     
     if negatives.any().any():
@@ -131,9 +135,48 @@ def _new_flow_columns(
                     self.uncertainty_matrix.loc[parent_idx, cols_to_update] = self.uncertainty_values['forced zero']
 
     return self
-#hypothesis for rows
 
-#entropy minimization
+#hypothesis for rows
+def _row_hypothesis(
+        self,
+        oldX: pd.DataFrame,
+        scenario: str = 'baseline'
+    ):
+    """
+    Define row hypotheses for new sectors being added by splitting existing ones.
+    """
+    scenario_split = f"split_{scenario}"
+    new_sectors_list=list(self.inventories.keys())
+    sector_to_parent_map=_sector_to_parent_map(self)
+    all_sectors=list(self.matrices[scenario_split][_ENUM.X].index.get_level_values(2).unique())
+    old_sectors = sorted(set(all_sectors) - set(new_sectors_list))
+
+    for s in new_sectors_list:
+        parent_sector=sector_to_parent_map[s]
+        
+        for r in self.get_index('Region'):
+            if pd.isna(parent_sector) == False:
+                #Z rows for new
+                X_cut=self.matrices[scenario_split][_ENUM.X].loc[(slice(None),'Sector',old_sectors)].squeeze()
+                z_row=self.matrices[scenario_split][_ENUM.z].loc[(r, 'Sector', parent_sector),(slice(None),'Sector',old_sectors)]
+                X_cut.index=z_row.index
+                new_Z_row=z_row*X_cut
+                new_Z_row.name=(r, 'Sector', s)
+                self.matrices[scenario_split][_ENUM.Z].loc[(r, 'Sector', s),(slice(None),'Sector',old_sectors)]=new_Z_row
+                #Y rows for parent and new
+                new_Y_row= self.matrices[scenario_split][_ENUM.Y].loc[(r, 'Sector', parent_sector),:]*self.matrices[scenario_split][_ENUM.X].loc[(r, 'Sector', s)].values[0]/oldX.loc[(r, 'Sector', parent_sector)].values[0]
+                new_Y_row.name=(r, 'Sector', s)
+                self.matrices[scenario_split][_ENUM.Y].loc[(r, 'Sector', s),:] = new_Y_row
+                self.matrices[scenario_split][_ENUM.Y].loc[(r, 'Sector', parent_sector),:] = self.matrices[scenario_split][_ENUM.Y].loc[(r, 'Sector', parent_sector),:]*self.matrices[scenario_split][_ENUM.X].loc[(r, 'Sector', parent_sector)].values[0]/oldX.loc[(r, 'Sector', parent_sector)].values[0]
+            #If no parent?
+    
+    return self
+
+#Create files for cvxlab
+
+#Cvxlab optimization
+
+#analyze results
 
 #satellite accounts splitting
 

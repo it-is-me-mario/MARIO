@@ -47,6 +47,7 @@ from mario.tools.excelhandler import (
 
 from mario.tools.new_sectors import (
     _new_flow_columns,
+    _row_hypothesis,
 )
 
 from mario.tools import plots as plt
@@ -1327,6 +1328,7 @@ class Database(CoreModel):
         sets_to_excel: bool = True,
         mapping_cols: int = 0,
         include_meta=False,
+        exclude_zeroes: bool = True,
     ):
         """
         Saves matrices list into flat text file
@@ -1368,6 +1370,7 @@ class Database(CoreModel):
                 export,
                 sets_to_excel,
                 mapping_cols,
+                exclude_zeroes,
             )
             self.matrices_flat = {k: v for k, v in self.matrices_flat.items() if not v.empty}
         else:
@@ -1381,6 +1384,7 @@ class Database(CoreModel):
                 export,
                 sets_to_excel,
                 mapping_cols,
+                exclude_zeroes,
             )
 
         if include_meta:
@@ -1819,7 +1823,7 @@ class Database(CoreModel):
                 ignore_warnings=ignore_warnings,
                 notes=notes,
             )
-
+            
             return new
 
         else:
@@ -1886,11 +1890,15 @@ class Database(CoreModel):
             if self.meta.table != 'IOT':
                 raise NotImplementedError("Splitting sectors is only implemented for IOTs at the moment.")
 
-            self=_new_flow_columns(self,old_X,scenario)
+            old_X_copy=copy.deepcopy(old_X) #otherways it is changed in the first function and is not available for the second one
+            self=_new_flow_columns(self,old_X_copy,scenario)
+            self=_row_hypothesis(self,old_X,scenario)
+
+            self.meta._add_history(f"Database: new flow matrices computed including new {_MASTER_INDEX['s']}: {self.new_sectors}")
+            log_time(logger,f"New flow matrices computed including new {_MASTER_INDEX['s']}: {self.new_sectors}")
             
             #check if output is the same unit of measure
             #copy end from add_sectors function
-
 
     def query(
         self,

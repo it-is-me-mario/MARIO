@@ -532,6 +532,7 @@ def database_txt_flat(
         export,
         sets_to_excel,
         mapping_cols,
+        exclude_zeroes
 ):
     
     flat_matrices = {}
@@ -659,7 +660,8 @@ def database_txt_flat(
                 df_sm.reset_index(inplace=True)                
                 df_sm.set_index(scenarios_columns,inplace=True)
                 df_sm.reset_index(inplace=True)
-                df_sm = df_sm.query("Value<0 or Value>0")
+                if exclude_zeroes:
+                    df_sm = df_sm.query("Value<0 or Value>0")
 
                 df_all_scenarios = pd.concat([df_all_scenarios,df_sm],axis=0)
 
