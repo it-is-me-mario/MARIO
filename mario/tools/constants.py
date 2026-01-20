@@ -121,9 +121,9 @@ _ADD_SECTORS_OUTPUT_SHEET_COLUMNS ={
 }
 
 _ADD_SECTORS_TRADE_SHEET_COLUMNS ={
-    's': _MASTER_INDEX['s'],
-    'r_from': 'Region from',
-    'r_to': 'Region to', 
+    's': f"{_MASTER_INDEX['s']}_from",
+    'r_from': f"{_MASTER_INDEX['r']}_from",
+    'r_to': f"{_MASTER_INDEX['r']}_to", 
     'qt': 'Quantity',
     'unit': 'Unit',
     'source': 'Source',
@@ -131,8 +131,8 @@ _ADD_SECTORS_TRADE_SHEET_COLUMNS ={
 }
 
 _ADD_SECTORS_EXCLUSION_SHEET_COLUMNS ={
-    's_from': 'Sector from',
-    's_to': 'Sector to',
+    's_from': f"{_MASTER_INDEX['s']}_from",
+    's_to': f"{_MASTER_INDEX['s']}_to",
     'note': 'Notes',
 }
 

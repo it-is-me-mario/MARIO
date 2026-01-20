@@ -85,7 +85,7 @@ def _new_flow_columns(
                         X.loc[r, 'Sector', parent_sector] = 0 #INCONSISTENCIES HANDLING, may be changed
                         
     #Copy z,e,v,EY,VY from the output of the add_sectors function
-    self.matrices[scenario_split] =  self.matrices[scenario]
+    self.matrices[scenario_split] = deepcopy(self.matrices[scenario])
     
     # Compute Z, V and E from coefficients and new X
     self.matrices[scenario_split][_ENUM.Z] = calc_Z(self.matrices[scenario][_ENUM.z],X)

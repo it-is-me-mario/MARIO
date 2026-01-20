@@ -49,6 +49,10 @@ from mario.tools.new_sectors import (
     _new_flow_columns,
     _row_hypothesis,
 )
+from mario.tools.cvxlab.models import (
+    _optimize_in_cvxlab,
+    _check_cvxlab_parameters,
+)
 
 from mario.tools import plots as plt
 from mario.tools.plots import _plotter
@@ -1791,6 +1795,8 @@ class Database(CoreModel):
         split: bool = False,
         ignore_warnings: bool = True,
         notes=None,
+        cvxlab_path=None,
+        input_data_files_type: str = 'xlsx',
     ):        
         """
         Adds inventories to the database as new sectors/commodities/activities.
@@ -1822,11 +1828,17 @@ class Database(CoreModel):
                 split=split,
                 ignore_warnings=ignore_warnings,
                 notes=notes,
+                cvxlab_path=cvxlab_path,
+                input_data_files_type=input_data_files_type,
             )
             
             return new
 
         else:
+            #Sanity check for split parameters (to comunicate to the user in advance, avoiding wasting time in computations)
+            if split==True:
+                _check_cvxlab_parameters(cvxlab_path,input_data_files_type)
+
             err_msg = []
             item_to_query = _MASTER_INDEX['a'] if self.meta.table == 'SUT' else _MASTER_INDEX['s']
             for inventory in self.inventories:
@@ -1839,6 +1851,13 @@ class Database(CoreModel):
                 _ENUM.z: self.get_data(matrices=[_ENUM.z],scenarios=[scenario])[scenario][0],
                 _ENUM.e: self.get_data(matrices=[_ENUM.e],scenarios=[scenario])[scenario][0],
                 _ENUM.v: self.get_data(matrices=[_ENUM.v],scenarios=[scenario])[scenario][0],
+                _ENUM.Y: self.get_data(matrices=[_ENUM.Y],scenarios=[scenario])[scenario][0],
+                _ENUM.Z: self.get_data(matrices=[_ENUM.Z],scenarios=[scenario])[scenario][0],
+                _ENUM.E: self.get_data(matrices=[_ENUM.E],scenarios=[scenario])[scenario][0],
+                _ENUM.V: self.get_data(matrices=[_ENUM.V],scenarios=[scenario])[scenario][0],
+            }
+
+            original_matrices = {
                 _ENUM.Y: self.get_data(matrices=[_ENUM.Y],scenarios=[scenario])[scenario][0],
                 _ENUM.Z: self.get_data(matrices=[_ENUM.Z],scenarios=[scenario])[scenario][0],
                 _ENUM.E: self.get_data(matrices=[_ENUM.E],scenarios=[scenario])[scenario][0],
@@ -1861,7 +1880,7 @@ class Database(CoreModel):
             del new_matrices[_ENUM.V]
 
             # return a new mario Database instance
-            new_matrices = {'baseline': new_matrices}  
+            new_matrices = {'baseline': new_matrices,'original': original_matrices}  
             self.matrices = new_matrices
             self.units = new_units
             self._indeces = new_indeces
@@ -1897,8 +1916,21 @@ class Database(CoreModel):
             self.meta._add_history(f"Database: new flow matrices computed including new {_MASTER_INDEX['s']}: {self.new_sectors}")
             log_time(logger,f"New flow matrices computed including new {_MASTER_INDEX['s']}: {self.new_sectors}")
             
-            #check if output is the same unit of measure
-            #copy end from add_sectors function
+            #->check if output is the same unit of measure
+            if cvxlab_path:
+                _optimize_in_cvxlab(
+                    self,
+                    main_dir_path=cvxlab_path,
+                    model_dir="cvxlab test MARIO",
+                    default_model="Split_sectors",
+                    solver='MOSEK',
+                    model_settings_from="xlsx",
+                    scenario=scenario,
+                    input_data_files_type=input_data_files_type,)
+            else:
+                raise ValueError("cvxlab_path not provided: provide when calling add_sectors(cvxlab_path=)")
+        
+
 
     def query(
         self,
