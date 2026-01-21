@@ -1918,7 +1918,7 @@ class Database(CoreModel):
             
             #->check if output is the same unit of measure
             if cvxlab_path:
-                _optimize_in_cvxlab(
+                optimized_matrices=_optimize_in_cvxlab(
                     self,
                     main_dir_path=cvxlab_path,
                     model_dir="cvxlab test MARIO",
@@ -1927,9 +1927,21 @@ class Database(CoreModel):
                     model_settings_from="xlsx",
                     scenario=scenario,
                     input_data_files_type=input_data_files_type,)
+                
+                log_time(logger,f"Sector splitting optimization in cvxlab completed.")
+                
+                self.matrices['split_cvxlab'] = {}
+                for m_name, matrix in optimized_matrices.items():
+                    self.matrices['split_cvxlab'][m_name] = matrix
+                necessary_matrices = [_ENUM.Z, _ENUM.E, _ENUM.V, _ENUM.Y, _ENUM.EY]
+                for m in necessary_matrices:
+                    if m not in self.matrices['split_cvxlab']:
+                        self.matrices['split_cvxlab'][m] = self.matrices[f'split_{scenario}'][m]
+            
+                self.meta._add_history(f"Database: new scenario 'split_cvxlab' defined including new {_MASTER_INDEX['s']}: {self.new_sectors}")
+                log_time(logger,f"Matrices with new sectors updated in 'split_cvxlab' scenario")
             else:
                 raise ValueError("cvxlab_path not provided: provide when calling add_sectors(cvxlab_path=)")
-        
 
 
     def query(

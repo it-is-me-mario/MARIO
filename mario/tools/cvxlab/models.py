@@ -1,6 +1,7 @@
 #%%
 from importlib import resources
 import os
+import sqlite3
 import stat
 
 from matplotlib.table import table
@@ -191,8 +192,9 @@ def _optimize_in_cvxlab(
 
     print("Results loaded to database")
 
-    return
+    optimized_matrices = _cvxlab_results_parser(dest_dir,mapping,default_model)
 
+    return optimized_matrices
 
 
 def _inputs_to_cvxlab_split_sectors(
@@ -354,5 +356,94 @@ def _check_cvxlab_parameters(
     if input_data_files_type not in ['xlsx','csv']:
         raise ValueError("input_data_files_type can be either 'xlsx' or 'csv'")
 
+def _cvxlab_results_parser(
+        dest_dir,
+        mapping,
+        default_model
+):
 
+    if default_model=='Split_sectors':  
+        mario_matrices=_cvxlab_results_parser_split_sectors(dest_dir)
+
+    else:
+        # Reading mapping file
+        matrices=list(mapping['result matrices'].index)
+
+        result_matrices={}
+        conn = sqlite3.connect(os.path.join(dest_dir, "database.db"))
+        for matrix in matrices:
+            result_matrices[matrix]=pd.read_sql_query(f"SELECT * FROM {matrix}" , conn)
+        conn.close()
+
+        #map_cvxlab_mario_sets=dict(zip(mapping['sets']['cvxlab'],mapping['sets']['mario']))
+        mario_matrices={}
+        for matrix in matrices:
+            mario_name = mapping['result matrices'].loc[matrix, 'mario']
+            indeces = [s.strip(" '") for s in mapping['result matrices'].loc[matrix, 'indeces'].split(',')]
+            unstack=[s.strip(" '") for s in mapping['result matrices'].loc[matrix, 'unstack'].split(',')]
+            df=result_matrices[matrix].drop(columns=['id']).set_index(indeces)['values'].unstack(unstack)
+            df.index = pd.MultiIndex.from_tuples(
+                [(idx[0], str(mapping['result matrices'].loc[matrix, 'row label']), idx[1]) for idx in df.index],
+                names=['Region', 'Level', 'Item']
+            )
+            df.columns = pd.MultiIndex.from_tuples(
+                [(col[0], str(mapping['result matrices'].loc[matrix, 'col label']), col[1]) for col in df.columns],
+                names=['Region', 'Level', 'Item']
+            )
+            mario_matrices[mario_name]=df
+
+    return mario_matrices
+
+def _cvxlab_results_parser_split_sectors(
+        dest_dir,
+    ):
+
+    #Read from sql database
+    conn = sqlite3.connect(os.path.join(dest_dir, "database.db"))
+    db_Znew_supply = pd.read_sql_query("SELECT * FROM Znew_supply" , conn)
+    db_Znew_use = pd.read_sql_query("SELECT * FROM Znew_use" , conn)
+    db_Ynew = pd.read_sql_query("SELECT * FROM Ynew" , conn)
+    db_Zold = pd.read_sql_query("SELECT * FROM Zold" , conn)
+    db_Yold = pd.read_sql_query("SELECT * FROM Yold" , conn)
+    #db_Znew0=pd.read_sql_query("SELECT * FROM Znew0" , conn)
+    #db_Ynew0=pd.read_sql_query("SELECT * FROM Ynew0" , conn)
+    #db_VA=pd.read_sql_query("SELECT * FROM VA" , conn)
+    #db_Xexog=pd.read_sql_query("SELECT * FROM Xnew" , conn)
+    conn.close()
+
+    #Obtain sets info
+    sets=pd.read_excel(os.path.join(dest_dir, "sets.xlsx"), sheet_name=None)
+    regions=sets['_set_REGION_FROM']['region_from_Name'].to_list()
+    cons_categories=sets['_set_CONS_CATEG']['cons_categ_Name'].to_list()
+    sectors_df=sets['_set_SECTOR_FROM']
+    sectors_stable=[s for s in sectors_df[sectors_df['sector_from_category']=='stable']['sector_from_Name'].to_list()]
+    sectors_parent=[s for s in sectors_df[sectors_df['sector_from_category']=='parent']['sector_from_Name'].to_list()]
+    sectors_new=[s for s in sectors_df[sectors_df['sector_from_category']=='new']['sector_from_Name'].to_list()]
+
+    #Compose the complete Znew, taking stable values from Zold
+    Znew=pd.concat([db_Znew_supply,db_Znew_use,db_Zold[db_Zold['sector_from_Name'].isin(sectors_stable) & db_Zold['sector_to_Name'].isin(sectors_stable)]])
+    Znew=Znew.drop(columns=['id']).set_index(['region_from_Name', 'sector_from_Name', 'region_to_Name', 'sector_to_Name'])['values'].unstack(['region_to_Name', 'sector_to_Name'])
+    Znew.index = pd.MultiIndex.from_tuples(
+                [(idx[0], 'Sector', idx[1]) for idx in Znew.index],
+                names=['Region', 'Level', 'Item']
+            )
+    Znew.columns = pd.MultiIndex.from_tuples(
+                [(col[0], 'Sector', col[1]) for col in Znew.columns],
+                names=['Region', 'Level', 'Item']
+            )
     
+    #Compose the complete Ynew, taking stable values from Yold
+    Ynew=pd.concat([db_Ynew,db_Yold[db_Yold['sector_from_Name'].isin(sectors_stable)]])
+    Ynew=Ynew.drop(columns=['id']).set_index(['region_from_Name', 'sector_from_Name', 'region_to_Name', 'cons_categ_Name'])['values'].unstack(['region_to_Name', 'cons_categ_Name'])
+    Ynew.index = pd.MultiIndex.from_tuples(
+                [(idx[0], 'Sector', idx[1]) for idx in Ynew.index],
+                names=['Region', 'Level', 'Item']
+            )
+    Ynew.columns = pd.MultiIndex.from_tuples(
+                [(col[0], 'Consumption category', col[1]) for col in Ynew.columns],
+                names=['Region', 'Level', 'Item']
+            )
+    
+    return {
+        'Z': Znew,
+        'Y': Ynew,}
