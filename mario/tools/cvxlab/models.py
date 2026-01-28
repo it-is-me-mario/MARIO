@@ -74,6 +74,7 @@ def _optimize_in_cvxlab(
         path = "",
         matrices=mapping['matrices']['mario'].to_list(),
         export=False,
+        exclude_zeroes=False
         ) 
 
     # replace columns header of each matrix with cvxlab expected ones
