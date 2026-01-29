@@ -112,7 +112,8 @@ from mario.tools.constants import (
     _ADD_SECTORS_INVENTORY_SHEET_COLUMNS,
     _ADD_SECTORS_OUTPUT_SHEET_COLUMNS,
     _ADD_SECTORS_TRADE_SHEET_COLUMNS,
-    _ADD_SECTORS_EXCLUSION_SHEET_COLUMNS
+    _ADD_SECTORS_EXCLUSION_SHEET_COLUMNS,
+    _ADD_SECTORS_TOLERANCE_SHEET_COLUMNS,
 )
 
 from mario.core.CoreIO import CoreModel
@@ -1764,6 +1765,11 @@ class Database(CoreModel):
                 _exclusion_templates(
                     self,
                     _ADD_SECTORS_EXCLUSION_SHEET_COLUMNS,
+                    path
+                )
+                _tolerance_templates(
+                    self,
+                    _ADD_SECTORS_TOLERANCE_SHEET_COLUMNS,
                     path
                 )
 

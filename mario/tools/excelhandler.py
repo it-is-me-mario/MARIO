@@ -980,7 +980,7 @@ def _read_add_inventories(instance,path):
 
 def _read_split_sheets(instance,path):
     split_info={}
-    for i in ['Total outputs','Trades','Exclusions']:
+    for i in ['Total outputs','Trades','Exclusions','Tolerances']:
         split_info[i] = pd.read_excel(path,sheet_name=i,header=0,)
     
     return split_info
@@ -1107,7 +1107,9 @@ def _trade_templates(
     with pd.ExcelWriter(path, mode='a', engine='openpyxl') as writer:
         trade_sheet.to_excel(writer, sheet_name='Trades', index=False)
 
-    # add data validation...
+    # add data validation:
+    #-sum of trades from a region must be smaller than total output X
+    #-check presence of clusters?
 
 def _exclusion_templates(
         instance,
@@ -1122,6 +1124,16 @@ def _exclusion_templates(
 
     # add data validation...
 
+def _tolerance_templates(
+        instance,
+        tolerance_columns,
+        path,
+    ):
+
+    tolerance_sheet = pd.DataFrame(columns=list(tolerance_columns.values()))
+
+    with pd.ExcelWriter(path, mode='a', engine='openpyxl') as writer:
+        tolerance_sheet.to_excel(writer, sheet_name='Tolerances', index=False)
 
 def _add_sector_sut_old(instance, sectors, regions, path, item, num_validation=30):
     file = xlsxwriter.Workbook(path)

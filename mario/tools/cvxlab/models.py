@@ -8,7 +8,6 @@ from matplotlib.table import table
 import cvxlab as cl
 import shutil
 import pandas as pd
-from itertools import product
 
 from mario.tools.constants import (
     _ADD_SECTORS_MASTER_SHEET_COLUMNS
@@ -183,7 +182,7 @@ def _optimize_in_cvxlab(
     model.run_model(
         verbose=True,
         solver=solver,
-        integrated_problems=False,
+        integrated_problems=False,   
     )
 
     if model.core.problem.problem_status[''] != 'optimal':
@@ -238,6 +237,9 @@ def _inputs_to_cvxlab_split_sectors(
         else None
     )
     
+    sets['_set_SCALAR']['scalar_Name']=instance.split_info['Tolerances']['tol_Name']
+    sets['_set_SCALAR']['scalar_tolerance']=instance.split_info['Tolerances']['tol_Name']
+
     #Export sets excel
     with pd.ExcelWriter(os.path.join(main_dir_path, model_dir, 'sets.xlsx'), engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
         for sheet_name in sets:
@@ -317,12 +319,16 @@ def _inputs_to_cvxlab_split_sectors(
         input_data['I_sp_spn']['values'] = (
             input_data['I_sp_spn']['sector_from_Name'].map(map_new_parent) == input_data['I_sp_spn']['sector_to_Name']
             ).astype(int)
+        input_data['tol']['values']=instance.split_info['Tolerances']['values']
     elif input_data_files_type=='csv':
         I_sp_spn = pd.read_csv(f"{main_dir_path}\\{model_dir}\\input_data\\I_sp_spn.csv")
         I_sp_spn['values'] = (
             I_sp_spn['sector_from_Name'].map(map_new_parent) == I_sp_spn['sector_to_Name']
             ).astype(int)
         input_data['I_sp_spn'] = I_sp_spn
+        tol= pd.read_csv(f"{main_dir_path}\\{model_dir}\\input_data\\tol.csv")
+        tol['values']=instance.split_info['Tolerances']['values']
+        input_data['tol'] = tol
     
     #Create Trade variable
     Trade_db=instance.split_info['Trades']
@@ -331,12 +337,28 @@ def _inputs_to_cvxlab_split_sectors(
     Trade_db.columns = [col + "_Name" if col != "values" else col for col in Trade_db.columns]
     if input_data_files_type=='xlsx':
         Trade = input_data['Trade']
+        Trade_selector = input_data['Trade_selector']
     elif input_data_files_type=='csv':
         Trade = pd.read_csv(f"{main_dir_path}\\{model_dir}\\input_data\\Trade.csv")
+        Trade_selector = pd.read_csv(f"{main_dir_path}\\{model_dir}\\input_data\\Trade_selector.csv")
     join_cols = ['region_from_Name','region_to_Name','sector_from_Name']
     Trade=Trade.merge(Trade_db[join_cols+['values']], on=join_cols, how='left')
     Trade['values_y']=Trade['values_y'].fillna(0)
     input_data['Trade'] = Trade.drop(columns=["values_x"]).rename(columns={"values_y": "values"})
+
+    #Create trade selection matrix
+    Trade_selector['values']=0
+    for rf in instance.get_index('Region'):
+        for rt in instance.get_index('Region'):
+            for sf in new_sectors:
+                if not Trade_db[(Trade_db['region_from_Name']==rf) & (Trade_db['region_to_Name']==rt) & (Trade_db['sector_from_Name']==sf)].empty:
+                    Trade_selector.loc[
+                        (Trade_selector['region_from_Name']==rf) & 
+                        (Trade_selector['region_to_Name']==rt) & 
+                        (Trade_selector['sector_from_Name']==sf),
+                        'values'
+                    ]=1
+    input_data['Trade_selector'] = Trade_selector
     
     if input_data_files_type=='xlsx':
         with pd.ExcelWriter(os.path.join(main_dir_path, model_dir, "input_data\\input_data.xlsx"), engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
