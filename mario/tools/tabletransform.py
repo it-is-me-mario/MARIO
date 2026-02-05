@@ -48,6 +48,7 @@ def SUT_to_IOT(instance, method):
             _ENUM.S,
             _ENUM.U,
             _ENUM.EY,
+            _ENUM.VY,
         ],
     )
 
@@ -254,6 +255,7 @@ def SUT_to_IOT(instance, method):
             _ENUM.X: X,
             _ENUM.Y: Y,
             _ENUM.EY: data[_ENUM.EY],
+            _ENUM.VY: data[_ENUM.VY],
         }
     }
 

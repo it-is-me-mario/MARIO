@@ -383,7 +383,7 @@ class CoreModel:
 
         """
 
-        keep = [_ENUM.Z, _ENUM.E, _ENUM.V, _ENUM.EY, _ENUM.Y,_ENUM.VY]
+        keep = [_ENUM.Z, _ENUM.E, _ENUM.V, _ENUM.EY, _ENUM.Y]
 
         if scenario not in self.scenarios:
             raise WrongInput(f"Acceptable scenarios are {self.scenarios}")
@@ -408,7 +408,7 @@ class CoreModel:
             the specific scenario to reset
 
         """
-        keep = [_ENUM.z, _ENUM.e, _ENUM.v, _ENUM.EY, _ENUM.Y,_ENUM.VY]
+        keep = [_ENUM.z, _ENUM.e, _ENUM.v, _ENUM.EY, _ENUM.Y]
 
         if scenario not in self.scenarios:
             raise WrongInput(f"Acceptable scenarios are {self.scenarios}")
