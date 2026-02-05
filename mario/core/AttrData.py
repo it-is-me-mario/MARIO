@@ -38,6 +38,20 @@ from mario.tools.excelhandler import (
     _inventory_templates,
     _read_add_inventories,
     _sh_excel,
+    _output_templates,
+    _trade_templates,
+    _exclusion_templates,
+    _read_split_sheets,
+    _inventory_sanity_check,
+)
+
+from mario.tools.new_sectors import (
+    _new_flow_columns,
+    _row_hypothesis,
+)
+from mario.tools.cvxlab.models import (
+    _optimize_in_cvxlab,
+    _check_cvxlab_parameters,
 )
 
 from mario.tools import plots as plt
@@ -96,6 +110,10 @@ from mario.tools.constants import (
     _ADD_SECTORS_REGIONS_CLUSTERS_SHEET_COLUMNS,
     _ADD_SECTORS_ITEMS_CLUSTERS_SHEET_COLUMNS,
     _ADD_SECTORS_INVENTORY_SHEET_COLUMNS,
+    _ADD_SECTORS_OUTPUT_SHEET_COLUMNS,
+    _ADD_SECTORS_TRADE_SHEET_COLUMNS,
+    _ADD_SECTORS_EXCLUSION_SHEET_COLUMNS,
+    _ADD_SECTORS_TOLERANCE_SHEET_COLUMNS,
 )
 
 from mario.core.CoreIO import CoreModel
@@ -1315,6 +1333,7 @@ class Database(CoreModel):
         sets_to_excel: bool = True,
         mapping_cols: int = 0,
         include_meta=False,
+        exclude_zeroes: bool = True,
     ):
         """
         Saves matrices list into flat text file
@@ -1356,6 +1375,7 @@ class Database(CoreModel):
                 export,
                 sets_to_excel,
                 mapping_cols,
+                exclude_zeroes,
             )
             self.matrices_flat = {k: v for k, v in self.matrices_flat.items() if not v.empty}
         else:
@@ -1369,6 +1389,7 @@ class Database(CoreModel):
                 export,
                 sets_to_excel,
                 mapping_cols,
+                exclude_zeroes,
             )
 
         if include_meta:
@@ -1605,6 +1626,7 @@ class Database(CoreModel):
         path:str,
         master_sheet = "Master",
         regions_clusters_sheet = 'Regions Clusters',
+        redefine_uncertainties: bool = False,
     ):
         """
         Generates an Excel file to add multiple sectors/activities/commodities to a mario.Database
@@ -1614,6 +1636,7 @@ class Database(CoreModel):
             master_sheet (str): The name of the sheet that will contain the master data. Default is 'Master'.
             regions_clusters_sheet (str): The name of the sheet that will contain the clusters of regions. Default is 'Regions Clusters'.
             commodities_clusters_sheet (str): The name of the sheet that will contain the clusters of commodities. Default is 'Commodities Clusters'.
+            redefine_uncertainties (bool, optional): If True, provides sheet to redefine uncertainties for new sectors. Defaults to False.
 
         Returns:
             None
@@ -1632,7 +1655,8 @@ class Database(CoreModel):
             _ADD_SECTORS_REGIONS_CLUSTERS_SHEET_COLUMNS,
             items_clusters_sheet,
             _ADD_SECTORS_ITEMS_CLUSTERS_SHEET_COLUMNS,
-            path
+            path,
+            redefine_uncertainties
         )
         
 
@@ -1654,12 +1678,13 @@ class Database(CoreModel):
             master_sheet (str, optional): The name of the sheet that contains the master data. Defaults to 'Master'.
             regions_clusters_sheet (str, optional): The name of the sheet that contains the regions clusters. Defaults to 'Regions Clusters'.
             commodities_clusters_sheet (str, optional): The name of the sheet that contains the commodities clusters. Defaults to 'Commodities Clusters'.
+            redefine_uncertainties (bool, optional): If True, provides sheet to redefine uncertainties for new sectors. Defaults to False.
 
         """
 
         if self.meta.table == "IOT":
             items_clusters_sheet = 'Sectors Clusters'
-            self.add_sectors_master, self.regions_clusters, self.sectors_clusters = _read_add_sectors(
+            self.add_sectors_master, self.regions_clusters, self.sectors_clusters, self.uncertainty_values = _read_add_sectors(
                 path,
                 master_sheet,
                 regions_clusters_sheet,
@@ -1668,7 +1693,7 @@ class Database(CoreModel):
 
         if self.meta.table == "SUT":
             items_clusters_sheet = 'Commodities Clusters'
-            self.add_sectors_master, self.regions_clusters, self.commodities_clusters = _read_add_sectors(
+            self.add_sectors_master, self.regions_clusters, self.commodities_clusters, self.uncertainty_values = _read_add_sectors(
                 path,
                 master_sheet,
                 regions_clusters_sheet,
@@ -1676,7 +1701,10 @@ class Database(CoreModel):
             )
 
         if self.meta.table == "IOT":
-            self.new_sectors, self.parented_sectors, self.non_parented_sectors = _get_new_add_sectors_sets(self)
+            self.new_sectors, self.parented_sectors, self.non_parented_sectors, self.to_split_sectors = _get_new_add_sectors_sets(
+                self,
+                _ADD_SECTORS_MASTER_SHEET_COLUMNS["IOT"]["add_mode"]
+                )
 
             for k,v in self.sectors_clusters.items():
                 for s in v:
@@ -1696,7 +1724,6 @@ class Database(CoreModel):
         if read_inventories:
             self.read_inventory_sheets(path)
 
-
     def get_inventory_sheets(
             self, 
             path:str,
@@ -1710,6 +1737,11 @@ class Database(CoreModel):
             overwrite (bool, optional): Specifies whether to overwrite existing templates. Defaults to True.
         """
         new_sheets = self.add_sectors_master[_ADD_SECTORS_MASTER_SHEET_COLUMNS[self.meta.table]['inv_sheet']].unique()
+        
+        #Sanity check for master sheet
+        if self.meta.table == "IOT":
+            _inventory_sanity_check(self,read=False)
+
         _inventory_templates(
             self,
             new_sheets,
@@ -1717,6 +1749,29 @@ class Database(CoreModel):
             overwrite, 
             path
         )
+        
+        if self.meta.table == "IOT":
+            if self.to_split_sectors:
+                _output_templates(
+                    self,
+                    _ADD_SECTORS_OUTPUT_SHEET_COLUMNS,
+                    path
+                )
+                _trade_templates(
+                    self,
+                    _ADD_SECTORS_TRADE_SHEET_COLUMNS,
+                    path
+                )
+                _exclusion_templates(
+                    self,
+                    _ADD_SECTORS_EXCLUSION_SHEET_COLUMNS,
+                    path
+                )
+                _tolerance_templates(
+                    self,
+                    _ADD_SECTORS_TOLERANCE_SHEET_COLUMNS,
+                    path
+                )
 
     def read_inventory_sheets(
             self,
@@ -1728,19 +1783,30 @@ class Database(CoreModel):
         Args:
             path (str): The path to the inventory templates.
         """
+        
         self.inventories = _read_add_inventories(self, path)
+        #Sanity check for master and inventory sheets
+        if self.meta.table == "IOT":
+            _inventory_sanity_check(self,read=True)
 
-   
+        if self.meta.table == "IOT":
+            if self.to_split_sectors:
+                self.split_info=_read_split_sheets(self,path) #read sheets for total output, trade, exclusions (to add more)
+        
     def add_sectors(
         self,
         io:str = 'inventories',
         scenario:str = 'baseline',
         inplace: bool = True,
+        split: bool = False,
         ignore_warnings: bool = True,
         notes=None,
+        cvxlab_path=None,
+        input_data_files_type: str = 'xlsx',
     ):        
         """
         Adds inventories to the database as new sectors/commodities/activities.
+        If Split=True, splits sectors (at the moment only for IOTs) in the database based on the information provided in the inventories.
         N.B. This method will erase all other scenarios different from the provided one and will return a new instance with scenario named as "baseline".
 
         Args:
@@ -1765,13 +1831,20 @@ class Database(CoreModel):
                 io=io,
                 scenario=scenario,
                 inplace=True,
+                split=split,
                 ignore_warnings=ignore_warnings,
                 notes=notes,
+                cvxlab_path=cvxlab_path,
+                input_data_files_type=input_data_files_type,
             )
-
+            
             return new
 
         else:
+            #Sanity check for split parameters (to comunicate to the user in advance, avoiding wasting time in computations)
+            if split==True:
+                _check_cvxlab_parameters(cvxlab_path,input_data_files_type)
+
             err_msg = []
             item_to_query = _MASTER_INDEX['a'] if self.meta.table == 'SUT' else _MASTER_INDEX['s']
             for inventory in self.inventories:
@@ -1789,27 +1862,35 @@ class Database(CoreModel):
                 _ENUM.E: self.get_data(matrices=[_ENUM.E],scenarios=[scenario])[scenario][0],
                 _ENUM.V: self.get_data(matrices=[_ENUM.V],scenarios=[scenario])[scenario][0],
             }
+
+            original_matrices = {
+                _ENUM.Y: self.get_data(matrices=[_ENUM.Y],scenarios=[scenario])[scenario][0],
+                _ENUM.Z: self.get_data(matrices=[_ENUM.Z],scenarios=[scenario])[scenario][0],
+                _ENUM.E: self.get_data(matrices=[_ENUM.E],scenarios=[scenario])[scenario][0],
+                _ENUM.V: self.get_data(matrices=[_ENUM.V],scenarios=[scenario])[scenario][0],
+            }
             
             if io != 'inventories':
                 self.read_inventory_sheets(io)
 
             add_sectors_class = AddSectors(self,matrices,ignore_warnings)
             if self.meta.table == 'IOT':
-                new_matrices, new_units, new_indeces = add_sectors_class.to_iot()
+                new_matrices, new_units, new_indeces, uncertainty_matrix= add_sectors_class.to_iot() 
             if self.meta.table == 'SUT':
                 new_matrices, new_units, new_indeces = add_sectors_class.to_sut()
             
             new_matrices[_ENUM.EY] = self.get_data(matrices=[_ENUM.EY],scenarios=[scenario])[scenario][0]
+            old_X=calc_X_from_w(calc_w(new_matrices[_ENUM.z]),new_matrices[_ENUM.Y])
             del new_matrices[_ENUM.Z]
             del new_matrices[_ENUM.E]
             del new_matrices[_ENUM.V]
 
             # return a new mario Database instance
-            new_matrices = {'baseline': new_matrices}  
+            new_matrices = {'baseline': new_matrices,'original': original_matrices}  
             self.matrices = new_matrices
             self.units = new_units
             self._indeces = new_indeces
-
+            self.uncertainty_matrix = uncertainty_matrix if self.meta.table == 'IOT' else None
 
         self.meta._add_history(
             "Scenarios: all the scenarios deleted from the database."
@@ -1829,6 +1910,44 @@ class Database(CoreModel):
         if notes:
             for note in notes:
                 self.meta._add_history(f"User note: {note}")
+        
+        if split:
+            if self.meta.table != 'IOT':
+                raise NotImplementedError("Splitting sectors is only implemented for IOTs at the moment.")
+
+            old_X_copy=copy.deepcopy(old_X) #otherways it is changed in the first function and is not available for the second one
+            self=_new_flow_columns(self,old_X_copy,scenario)
+            self=_row_hypothesis(self,old_X,scenario)
+
+            self.meta._add_history(f"Database: new flow matrices computed including new {_MASTER_INDEX['s']}: {self.new_sectors}")
+            log_time(logger,f"New flow matrices computed including new {_MASTER_INDEX['s']}: {self.new_sectors}")
+            
+            #->check if output is the same unit of measure
+            if cvxlab_path:
+                optimized_matrices=_optimize_in_cvxlab(
+                    self,
+                    main_dir_path=cvxlab_path,
+                    model_dir="cvxlab test MARIO",
+                    default_model="Split_sectors",
+                    solver='MOSEK',
+                    model_settings_from="xlsx",
+                    scenario=scenario,
+                    input_data_files_type=input_data_files_type,)
+                
+                log_time(logger,f"Sector splitting optimization in cvxlab completed.")
+                
+                self.matrices['split_cvxlab'] = {}
+                for m_name, matrix in optimized_matrices.items():
+                    self.matrices['split_cvxlab'][m_name] = matrix
+                necessary_matrices = [_ENUM.Z, _ENUM.E, _ENUM.V, _ENUM.Y, _ENUM.EY]
+                for m in necessary_matrices:
+                    if m not in self.matrices['split_cvxlab']:
+                        self.matrices['split_cvxlab'][m] = self.matrices[f'split_{scenario}'][m]
+            
+                self.meta._add_history(f"Database: new scenario 'split_cvxlab' defined including new {_MASTER_INDEX['s']}: {self.new_sectors}")
+                log_time(logger,f"Matrices with new sectors updated in 'split_cvxlab' scenario")
+            else:
+                raise ValueError("cvxlab_path not provided: provide when calling add_sectors(cvxlab_path=)")
 
 
     def query(

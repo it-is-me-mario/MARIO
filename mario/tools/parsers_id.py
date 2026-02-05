@@ -418,3 +418,87 @@ _figaroE3_id = {
     'employment': 'flatfile_FIGARO-e_employment_2015.csv',
     'emissions': 'flatfile_FIGARO-e_AEM_Gg_CO2e_2015.csv',
 }
+
+_gtap_mrio_csv_id = {
+    "SRCxDST": {
+        "file": "GSDFSRCxDST.csv",  # File path for source-destination data
+        "note": "Source-Destination",
+        "columns": {
+            "VAR": {"title": "Factor of production", "description": "Domestic or other margin accounts"},
+            "COMM": {"title": "Commodity", "description": "76 different commodities"},
+            "AGENT": {"title": "Agent", "description": "80 different commodities - like COMM but with gov, hhd, inv e tmg..."},
+            "SRC": {"title": "Source Region", "description": "160 different regions"},
+            "DST": {"title": "Destination Region", "description": "160 different regions"},
+            "VALUE": {"title": "Value", "description": "Pandas Series of 24'422'560 values"}
+        }
+    },
+    "V - Tax": {
+        "file": "GSDFXTAX.csv",  # File path for tax data
+        "columns": {
+            "VAR": {"title": "Factor of production", "description": "ETAX or PTAX"},
+            "COMM": {"title": "Commodity", "description": "76 different commodities"},
+            "SRC": {"title": "Source Region", "description": "160 different regions"},
+            "DST": {"title": "Destination Region", "description": "160 different regions"},
+            "VALUE": {"title": "Value", "description": "Pandas Series of 194'298 values"}
+        }
+    },
+    "V": {
+        "file": "GSDF.csv",  # File path for general data
+        "note": "Value Added",
+        "columns": {
+            "VAR": {"title": "Factor of production", "description": "Value added or tax types"},
+            "COMM": {"title": "Categories", "description": "Categories for Value added and Tax types"},#rename this?
+            "AGENT": {"title": "Agent", "description": "79 different commodities - like COMM but without Capital, Land ..."},
+            "REG": {"title": "Region", "description": "160 different regions"},
+            "VALUE": {"title": "Value", "description": "Pandas Series of 779'351 values"}
+        }
+    },
+    "E+EY - Emissions": {
+        "file": "GSDFEMI.csv",  # File path for emissions data
+        "note": "Emissions",
+        "columns": {
+            "VAR": {"title": "Origin", "description": "Domestic or imported"},
+            "EM": {"title": "Emission", "description": "Type of emissions"},
+            "COMM": {"title": "Commodity", "description": "Fuels type"},
+            "AGT": {"title": "Activity", "description": "77 different activities"},
+            "SRC": {"title": "Source Region", "description": "163 different regions - 3 are ['Land', 'Capital', 'TOT']"},
+            "DST": {"title": "Destination Region", "description": "160 different regions"},
+            "VALUE": {"title": "Values", "description": "Pandas Series of 758'995 values"}
+        }
+    },
+    "E+EY - Energy": {
+        "file": "GSDFNRG.csv",  # File path for energy data
+        "note": "Energy",
+        "columns": {
+            "VAR": {"title": "Origin", "description": "Domestic or imported"},
+            "COMM": {"title": "Commodity", "description": "16 different energy-tech-related commodities"},
+            "AGT": {"title": "Activity", "description": "77 different activities"},
+            "SRC": {"title": "Source Region", "description": "160 different regions"},
+            "DST": {"title": "Destination Region", "description": "160 different regions"},
+            "VALUE": {"title": "Values", "description": "Pandas Series of 498'290 values"}
+        }
+    }
+}
+
+_gtap_mrio_gdx_id={
+    "SRCxDST": {
+        "file": "GSDFSRCxDST.gdx",
+        "tables": {"VFOB","VDBA","MTAX","ITTM"}
+    },
+    "V": {
+        "file": "GSDF.gdx",
+        "tables": {"VA","VTAX","IDTAX","IMTAX"}
+    },
+    "V-Tax": {
+        "file": "GSDFXTAX.gdx",
+        "tables": {"ETAX","PTAX"}
+    },
+    "Emissions": {
+        "file": "GSDFEMI.gdx",
+        "tables": {"Emi","Emi_Proc"}
+    },
+    "Energy": {
+        "file": "GSDFNRG.gdx",
+        "tables": {"NRG"}
+    },
+}

@@ -87,6 +87,8 @@ from mario.tools.parsersclass import (
     parse_exiobase,
     parse_FIGARO_SUT,
     parse_FIGARO_E3,
+    parse_GTAP_csv,
+    parse_GTAP_gdx,
 )
 
 from mario.tools.plots import set_palette

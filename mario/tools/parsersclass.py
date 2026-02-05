@@ -16,6 +16,8 @@ from mario.tools.tableparser import (
     hybrid_sut_exiobase_reader,
     parser_figaro_sut,
     parser_figaro_e3,
+    parser_gtap_mrio_csv,
+    parser_gtap_mrio_gdx,
 )
 from mario.tools.handshake_parsers import (
     parse_exiobase_3_9_4,
@@ -692,5 +694,88 @@ def parse_FIGARO_E3(
         init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
         calc_all=calc_all,
         notes = notes,
+        **kwargs,
+    )
+
+
+def parse_GTAP_csv(
+        path:str, 
+        name:str = "GTAP-MRIO",
+        year:int = None, 
+        calc_all:bool = False, 
+        **kwargs
+    ):
+
+    """A function for parsing GTAP-MRIO from csv files
+
+    Parameters
+    ----------
+    path : str
+        path to folder/file of the database in csv (varies by the type of database)
+    calc_all : boolean
+        if True, by default will calculate z,v,e after parsing
+    year : int, Optional
+        optional to the Database (just for recoding the metadata)
+    name : str, Optional
+        optional but suggested. is useful for visualization and metadata.
+    **kwargs: dict
+        all the specific configuation 
+
+    Returns
+    -------
+    mario.Database
+        mario database object
+    """
+
+    matrices, indeces, units = parser_gtap_mrio_csv(path)
+
+    return models["Database"](
+        name=name,
+        table='IOT',
+        year=year,
+        source="GTAP Data in a WIOD-style format",
+        init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
+        calc_all=calc_all,
+        **kwargs,
+    )
+
+def parse_GTAP_gdx(
+        path:str, 
+        name:str = "GTAP-MRIO",
+        year:int = None, 
+        calc_all:bool = False, 
+        **kwargs
+    ):
+
+    """A function for parsing GTAP-MRIO from gdx files
+
+    Parameters
+    ----------
+    path : str
+        path to folder/file of the database in gdx (varies by the type of database)
+    calc_all : boolean
+        if True, by default will calculate z,v,e after parsing
+    year : int, Optional
+        optional to the Database (just for recoding the metadata)
+    name : str, Optional
+        optional but suggested. is useful for visualization and metadata.
+    **kwargs: dict
+        all the specific configuation 
+
+    Returns
+    -------
+    mario.Database
+        mario database object
+    """
+
+    matrices, indeces, units = parser_gtap_mrio_gdx(path)
+
+    return models["Database"](
+        name=name,
+        table='IOT',
+        year=year,
+        source="GTAP Data in a WIOD-style format",
+        init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
+        calc_all=calc_all,
         **kwargs,
     )

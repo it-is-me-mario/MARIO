@@ -88,3 +88,11 @@ class DataMissing(Exception):
     """
 
     pass
+
+class FilteringError(Exception):
+
+    """
+    This can be raised if a filtering operation fails.
+    """
+
+    pass

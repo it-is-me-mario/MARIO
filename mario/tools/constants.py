@@ -87,13 +87,14 @@ _ADD_SECTORS_MASTER_SHEET_COLUMNS = {
         'inv_sheet': 'Inventory sheet',
         'qt': 'Quantity',
         'unit': 'Unit',
-        'ms': 'Market share',
+        #'ms': 'Market share',
         'findem': 'Final consumption',
         'n': _MASTER_INDEX['n'],
         'ps': f'Parent {_MASTER_INDEX["s"]}',
         'empty': 'Leave empty',
         'source': 'Source',
         'note': 'Notes',
+        'add_mode': 'Add or Split'
     }
 }
 
@@ -110,8 +111,55 @@ _ADD_SECTORS_INVENTORY_SHEET_COLUMNS = { # if change order, change also data val
     'note': 'Notes',
 }
 
+_ADD_SECTORS_OUTPUT_SHEET_COLUMNS ={ 
+    's': _MASTER_INDEX['s'],
+    'r': _MASTER_INDEX['r'],
+    'qt': 'Quantity',
+    'unit': 'Unit',
+    'source': 'Source',
+    'note': 'Notes',
+}
+
+_ADD_SECTORS_TRADE_SHEET_COLUMNS ={
+    's': f"{_MASTER_INDEX['s']}_from",
+    'r_from': f"{_MASTER_INDEX['r']}_from",
+    'r_to': f"{_MASTER_INDEX['r']}_to", 
+    'qt': 'Quantity',
+    'unit': 'Unit',
+    'source': 'Source',
+    'note': 'Notes',
+}
+
+_ADD_SECTORS_EXCLUSION_SHEET_COLUMNS ={
+    's_from': f"{_MASTER_INDEX['s']}_from",
+    's_to': f"{_MASTER_INDEX['s']}_to",
+    'note': 'Notes',
+}
+
+_ADD_SECTORS_TOLERANCE_SHEET_COLUMNS ={
+    'tol_Name': 'tol_Name',
+    'values': 'values',
+}
+
 _ADD_SECTORS_REGIONS_CLUSTERS_SHEET_COLUMNS = ['GLOBAL']
 _ADD_SECTORS_ITEMS_CLUSTERS_SHEET_COLUMNS = ['Cluster1']
+_ADD_SECTORS_UNCERTAINTY_PARAMETERS ={
+    'certain': 1,
+    'original s specific, r cluster': 0.95,
+    'original s specific_no parent, r cluster': 0.9,
+    'original s cluster, r specific': 0.75,
+    'original s cluster_no parent, r specific': 0.7,
+    'original s cluster, r cluster': 0.65,
+    'original s cluster_no parent, r cluster': 0.6,
+    'disag s specific, r cluster': 0.55,
+    'disag s cluster, r specific': 0.4,
+    'disag s cluster_no parent, r specific': 0.35,
+    'disag s cluster, r cluster': 0.3,
+    'disag s specific_no parent, r cluster': 0.25, 
+    'disag s cluster_no parent, r cluster': 0.2,
+    'no info': 0.1,
+    'forced zero': 0.005,
+}
 
 _CALC = {
     _ENUM.F: (

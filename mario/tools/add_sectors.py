@@ -2,8 +2,11 @@ import pandas as pd
 import pint 
 
 from copy import deepcopy
+
+from mario.tools.constants import (
+    _ENUM,
+    )
 from mario.tools.constants import _MASTER_INDEX as MI
-from mario.tools.constants import _ENUM
 from mario.tools.constants import _ADD_SECTORS_MASTER_SHEET_COLUMNS as MSC
 from mario.tools.constants import _ADD_SECTORS_INVENTORY_SHEET_COLUMNS as INC
 
@@ -61,6 +64,7 @@ class AddSectors:
         self.regions = instance.get_index(MI['r'])
         self.units = instance.units
         self.table = self.db.meta.table
+        self.uncertainty_values = instance.uncertainty_values
         if self.table == 'SUT':
             self.new_activities = instance.new_activities
             self.new_commodities = instance.new_commodities
@@ -81,12 +85,16 @@ class AddSectors:
         Add new sectors to the current IOT database.
         """
         if self.table != 'IOT':
-            raise ValueError("This method can only be used for SUT matrices")
+            raise ValueError("This method can only be used for IOT matrices")
 
         self.add_new_units(MI['s'])
         empty_slices = self.get_empty_table_slices()
 
         self.filled_slices = deepcopy(empty_slices)
+        #Structure for uncertainty matrix
+        self.filled_uncertainty_slices = empty_slices['z'] * 0 + 1
+        self.uncertainty_matrix = deepcopy(self.matrices[_ENUM['z']]) * 0 + 1
+
         for sector in self.new_sectors:
             self.fill_slices(sector)
 
@@ -95,7 +103,7 @@ class AddSectors:
         self.reindex_matrices()
         self.get_mario_indices() # to be deprecated when mario will allow to initialize database in coefficients
         
-        return self.matrices, self.units, self.indeces
+        return self.matrices, self.units, self.indeces, self.uncertainty_matrix
 
     def to_sut(
             self
@@ -296,6 +304,8 @@ class AddSectors:
         """
 
         slices = self.get_empty_table_slices()
+        if self.table == 'IOT':
+            slices_uncertainty = slices['z'] * 0  # Initialize uncertainty slices with 1s
 
         # get the inventory for the activity
         inventories = self.db.inventories[activity]
@@ -313,7 +323,7 @@ class AddSectors:
             target_regions = []
 
             for region in regions:
-                # check if the region is in the SUT or in the regions maps
+                # check if the region is in the table or in the regions maps
                 if region in self.regions:
                     target_regions += [region]
                 elif region in self.db.regions_clusters:
@@ -327,7 +337,7 @@ class AddSectors:
             # in case the activity has a parent to be initialized from
             if self.table == 'SUT':
                 parent_activity = self.db.add_sectors_master.query(f"`{MSC[self.table]['inv_sheet']}`==@sheet_name")[MSC[self.table]['pa']].values[0]
-            if self.table == 'IOT':
+            if self.table == 'IOT': #parent_sector
                 parent_activity = self.db.add_sectors_master.query(f"`{MSC[self.table]['inv_sheet']}`==@sheet_name")[MSC[self.table]['ps']].values[0]
             
             if pd.isna(parent_activity) == False: 
@@ -337,7 +347,11 @@ class AddSectors:
             inventory = self.make_units_consistent_to_database(inventory,sheet_name) 
             
             for region_to in target_regions:
-                slices = self.fill_commodities_inputs(inventory,region_to,activity,slices,parent_activity)
+                if self.table == 'SUT':
+                    slices = self.fill_commodities_inputs(inventory,region_to,activity,slices,parent_activity)
+                elif self.table == 'IOT':
+                    slices, slices_uncertainty = self.fill_commodities_inputs(inventory,region_to,activity,slices,parent_activity,slices_uncertainty)
+
                 slices = self.fill_fact_sats_inputs(inventory,region_to,activity,'v',slices)
                 slices = self.fill_fact_sats_inputs(inventory,region_to,activity,'e',slices)
                 if self.table == 'SUT':
@@ -346,6 +360,10 @@ class AddSectors:
 
         for matrix in slices:
             self.filled_slices[matrix] += slices[matrix]
+
+        #Fill uncertainty slices
+        if self.table == 'IOT':
+            self.filled_uncertainty_slices += slices_uncertainty
 
     def reindex_matrices(
             self,
@@ -361,6 +379,11 @@ class AddSectors:
             for ax in matrices_levels[matrix]:
                 levels = list(range(matrices_levels[matrix][ax]))
                 self.matrices[matrix].sort_index(axis=ax, level=levels, inplace=True)
+
+        #Uncertainty has the shape of z
+        if self.table == 'IOT':
+            for ax in [0, 1]:
+                self.uncertainty_matrix.sort_index(axis=ax, level=list(range(3)), inplace=True)
             
 
     def make_units_consistent_to_database(
@@ -538,6 +561,7 @@ class AddSectors:
         activity:str,
         slices:dict,
         parent_activity:str,
+        slices_uncertainty:dict = None,
     )->dict:
         """
         Fills the commodities inputs for a given region and activity.
@@ -554,29 +578,25 @@ class AddSectors:
             dict: The updated slices.
         """
         item_to_query = MI['c'] if self.table == 'SUT' else MI['s']
-        inventory = full_inventory.query(f"`{INC['item']}`=='{item_to_query}'") 
+        inventory = full_inventory.query(f"`{INC['item']}`=='{item_to_query}'")
 
         for i in inventory.index:
             
             # get all the necessary information of the input item
             input_item = inventory.loc[i,INC['db_item']]
-            if input_item in self.db.get_index(item_to_query):
-                is_new = False
-            else:
-                is_new = True
+            sec_com_clusters = self.db.commodities_clusters.keys() if self.table == 'SUT' else self.db.sectors_clusters.keys()
+            is_cluster = input_item in sec_com_clusters
+            is_new = input_item not in self.db.get_index(item_to_query) and not is_cluster
 
             quantity = inventory.loc[i,self.converted_quantity_column]
             region_from = inventory.loc[i,INC['db_r']]
             change_type = inventory.loc[i,INC['change']]
 
             if change_type == 'Update':
-                if region_from in self.regions:
-                    
-                    if self.table == 'SUT':
-                        if input_item in self.commodities or input_item in self.new_commodities:
-                            slices[_ENUM['u']].loc[(region_from,MI['c'],input_item),(region_to,MI['a'],activity)] += quantity
-                                                
-                        if input_item in self.db.commodities_clusters:
+                if region_from in self.regions: #region_from is a specific region
+                    #Uncertainty matrix for SUT is missing, to be implemented later
+                    if self.table == 'SUT':                     
+                        if is_cluster:
                             com_use = self.matrices[_ENUM['Z']].loc[(region_from,MI['c'],self.db.commodities_clusters[input_item]),(region_to,MI['a'],sn)]  
                             if isinstance(com_use,pd.Series):
                                 com_use = com_use.to_frame()
@@ -586,11 +606,11 @@ class AddSectors:
                             u_share.columns = pd.MultiIndex.from_arrays([[region_to],[MI['a']],[activity]])
                             slices[_ENUM['u']].loc[u_share.index,u_share.columns] += u_share.values
 
-                    if self.table == 'IOT':
-                        if input_item in self.sectors or input_item in self.new_sectors:
-                            slices[_ENUM['z']].loc[(region_from,MI['s'],input_item),(region_to,MI['s'],activity)] += quantity
-                        
-                        if input_item in self.db.sectors_clusters:
+                        else:
+                            slices[_ENUM['u']].loc[(region_from,MI['c'],input_item),(region_to,MI['a'],activity)] += quantity
+
+                    if self.table == 'IOT':               
+                        if is_cluster:
                             com_use = self.matrices[_ENUM['Z']].loc[(region_from,sn,self.db.sectors_clusters[input_item]),(region_to,sn,sn)]
                             if isinstance(com_use,pd.Series):
                                 com_use = com_use.to_frame()
@@ -599,11 +619,13 @@ class AddSectors:
                                 z_share = z_share.to_frame()
                             z_share.columns = pd.MultiIndex.from_arrays([[region_to],[MI['s']],[activity]])
                             slices[_ENUM['z']].loc[z_share.index,z_share.columns] += z_share.values
+                        else:
+                            slices[_ENUM['z']].loc[(region_from,sn,input_item),(region_to,sn,activity)] += quantity
+                        #No change in uncertainty matrix because defalut is 1
 
 
-                elif region_from in self.db.regions_clusters:
-                    if not is_new:
-
+                elif region_from in self.db.regions_clusters: #region_from is a cluster
+                    if not is_new: #existing sector/commodity
                         if self.table == 'SUT':
                             if input_item in self.commodities:
                                 if pd.isna(parent_activity) == False:
@@ -618,7 +640,7 @@ class AddSectors:
                                 u_share.columns = pd.MultiIndex.from_arrays([[region_to],[MI['a']],[activity]])
                                 slices[_ENUM['u']].loc[u_share.index,u_share.columns] += u_share.values
                             
-                            if input_item in self.db.commodities_clusters:
+                            elif is_cluster:
                                 if pd.isna(parent_activity) == False:
                                     com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],MI['s'],self.db.commodities_clusters[input_item]),(region_to,MI['a'],parent_activity)]  
                                 else:
@@ -633,11 +655,17 @@ class AddSectors:
 
                             
                         if self.table == 'IOT':
-                            if input_item in self.sectors:
-                                if pd.isna(parent_activity) == False:
+                            if input_item in self.sectors: #specific, existing sector
+                                if pd.isna(parent_activity) == False: #with parent sector
                                     com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],sn,input_item),(region_to,sn,parent_activity)]
-                                else:
+                                    #Set uncertainty level
+                                    slices_uncertainty.loc[(self.db.regions_clusters[region_from],sn,input_item),(region_to,sn,activity)] = -1 + self.uncertainty_values['original s specific, r cluster']
+                                    #Same level of uncertainty for parent sector column (direct assignment)
+                                    self.uncertainty_matrix.loc[(self.db.regions_clusters[region_from],sn,input_item),(region_to,sn,parent_activity)] = self.uncertainty_values['original s specific, r cluster']
+                                else: #without parent sector
                                     com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],sn,input_item),(region_to,sn,sn)]
+                                    #Set uncertainty level
+                                    slices_uncertainty.loc[(self.db.regions_clusters[region_from],sn,input_item),(region_to,sn,activity)] = -1 +self.uncertainty_values['original s specific_no parent, r cluster']
                                 if isinstance(com_use,pd.Series):
                                     com_use = com_use.to_frame()
                                 z_share = com_use.sum(1)/com_use.sum().sum()*quantity
@@ -646,11 +674,16 @@ class AddSectors:
                                 z_share.columns = pd.MultiIndex.from_arrays([[region_to],[MI['s']],[activity]])
                                 slices[_ENUM['z']].loc[z_share.index,z_share.columns] += z_share.values
 
-                            if input_item in self.db.sectors_clusters:
-                                if pd.isna(parent_activity) == False:
+                            elif is_cluster: #cluster of sectors
+                                if pd.isna(parent_activity) == False: #with parent sector
                                     com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],sn,self.db.sectors_clusters[input_item]),(region_to,sn,parent_activity)]
-                                else:
+                                    #Set uncertainty level for both activity and parent activity columns
+                                    slices_uncertainty.loc[(self.db.regions_clusters[region_from],sn,self.db.sectors_clusters[input_item]),(region_to,sn,activity)] = -1 + self.uncertainty_values['original s cluster, r cluster']
+                                    self.uncertainty_matrix.loc[(self.db.regions_clusters[region_from],sn,self.db.sectors_clusters[input_item]),(region_to,sn,parent_activity)] = self.uncertainty_values['original s cluster, r cluster']
+                                else: #without parent sector
                                     com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],sn,self.db.sectors_clusters[input_item]),(region_to,sn,sn)]
+                                    #Set uncertainty level
+                                    slices_uncertainty.loc[(self.db.regions_clusters[region_from],sn,self.db.sectors_clusters[input_item]),(region_to,sn,activity)] = -1 + self.uncertainty_values['original s cluster_no parent, r cluster']
                                 if isinstance(com_use,pd.Series):
                                     com_use = com_use.to_frame()
                                 z_share = com_use.sum(1)/com_use.sum().sum()*quantity
@@ -659,46 +692,87 @@ class AddSectors:
                                 z_share.columns = pd.MultiIndex.from_arrays([[region_to],[MI['s']],[activity]])
                                 slices[_ENUM['z']].loc[z_share.index,z_share.columns] += z_share.values
                                 
-                    else:
+                    else: #new sector/commodity
                         if self.table == 'SUT':
                             if input_item in self.commodities or input_item in self.new_commodities:
-                                slices[_ENUM['u']].loc[(region_to,MI['c'],input_item),(region_to,MI['a'],activity)] += quantity
-                            
-                            if input_item in self.db.commodities_clusters:
-                                if pd.isna(parent_activity) == False:
-                                    com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],MI['c'],self.db.commodities_clusters[input_item]),(region_to,MI['a'],parent_activity)]
+                                input_item_parent=self.db.add_sectors_master.query(f"{MI['a']}==@input_item")[MSC[self.table]['pa']].values[0]
+                                if pd.isna(input_item_parent):
+                                    slices[_ENUM['u']].loc[(region_to,MI['c'],input_item),(region_to,MI['a'],activity)] += quantity
+                                    warnings.warn(f"In region {region_to} for activity {activity} and input commodity {input_item}, no parent activity is defined. Therefore, only domestic consumption is assumed.")
                                 else:
-                                    com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],MI['c'],self.db.commodities_clusters[input_item]),(region_to,MI['a'],sn)]                    
-                                if isinstance(com_use,pd.Series):
-                                    com_use = com_use.to_frame()
-                                u_share = com_use.sum(1)/com_use.sum().sum()*quantity
-                                if isinstance(u_share,pd.Series):
-                                    u_share = u_share.to_frame()
-                                u_share.columns = pd.MultiIndex.from_arrays([[region_to],[MI['a']],[activity]])
-                                slices[_ENUM['u']].loc[u_share.index,u_share.columns] += u_share.values
+                                    com_use = self.matrices[_ENUM['U']].loc[(self.db.regions_clusters[region_from],sn,input_item_parent),(region_to,sn,parent_activity)]
+                                    if isinstance(com_use,pd.Series):
+                                        com_use = com_use.to_frame()
+                                    u_share = com_use.sum(1)/com_use.sum().sum()*quantity
+                                    if isinstance(u_share,pd.Series):
+                                        u_share = u_share.to_frame()
+                                    u_share.columns = pd.MultiIndex.from_arrays([[region_to],[MI['a']],[activity]])
+                                    u_share.index = pd.MultiIndex.from_arrays([z_share.index.get_level_values(0),z_share.index.get_level_values(1),[input_item]*len(z_share.index)])
+                                    slices[_ENUM['u']].loc[u_share.index,u_share.columns] += u_share
+
+                            #This case is incuded in the previous one since clusters cannot be new commodities
+                            # if input_item in self.db.commodities_clusters:
+                            #     if pd.isna(parent_activity) == False:
+                            #         com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],MI['c'],self.db.commodities_clusters[input_item]),(region_to,MI['a'],parent_activity)]
+                            #     else:
+                            #         com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],MI['c'],self.db.commodities_clusters[input_item]),(region_to,MI['a'],sn)]                    
+                            #     if isinstance(com_use,pd.Series):
+                            #         com_use = com_use.to_frame()
+                            #     u_share = com_use.sum(1)/com_use.sum().sum()*quantity
+                            #     if isinstance(u_share,pd.Series):
+                            #         u_share = u_share.to_frame()
+                            #     u_share.columns = pd.MultiIndex.from_arrays([[region_to],[MI['a']],[activity]])
+                            #     slices[_ENUM['u']].loc[u_share.index,u_share.columns] += u_share
                         
                         if self.table == 'IOT':
                             if input_item in self.sectors or input_item in self.new_sectors:
-                                slices[_ENUM['z']].loc[(region_to,MI['s'],input_item),(region_to,MI['s'],activity)] += quantity
-                            
-                            if input_item in self.db.sectors_clusters:
-                                if pd.isna(parent_activity) == False:
-                                    com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],sn,self.db.sectors_clusters[input_item]),(region_to,sn,parent_activity)]
-                                else:
-                                    com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],sn,self.db.sectors_clusters[input_item]),(region_to,sn,sn)]                    
-                                if isinstance(com_use,pd.Series):
-                                    com_use = com_use.to_frame()
-                                z_share = com_use.sum(1)/com_use.sum().sum()*quantity
-                                if isinstance(z_share,pd.Series):
-                                    z_share = z_share.to_frame()
-                                z_share.columns = pd.MultiIndex.from_arrays([[region_to],[MI['s']],[activity]])
-                                slices[_ENUM['z']].loc[z_share.index,z_share.columns] += z_share
+                                input_item_parent=self.db.add_sectors_master.query(f"{MI['s']}==@input_item")[MSC[self.table]['ps']].values[0]
+                                if pd.isna(input_item_parent): #without parent sector
+                                    slices[_ENUM['z']].loc[(region_to,MI['s'],input_item),(region_to,MI['s'],activity)] += quantity
+                                    #Set uncertainty level
+                                    slices_uncertainty.loc[(self.db.regions_clusters[region_from],sn,input_item),(region_to,sn,activity)] = -1 + self.uncertainty_values['disag s specific_no parent, r cluster']
+                                    warnings.warn(f"In region {region_to} for sector {activity} and input commodity {input_item}, no parent activity is defined. Therefore, only domestic consumption is assumed.")
+                                else: #with parent sector
+                                    com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],sn,input_item_parent),(region_to,sn,parent_activity)]
+                                    #Set uncertainty level (only for activity, the parent must be set in a subsequent step sicne it does not exist yet in uncertanity_matrix)
+                                    slices_uncertainty.loc[(self.db.regions_clusters[region_from],sn,input_item),(region_to,sn,activity)] = -1 + self.uncertainty_values['disag s specific, r cluster']
+                                    if isinstance(com_use,pd.Series):
+                                        com_use = com_use.to_frame()
+                                    z_share = com_use.sum(1)/com_use.sum().sum()*quantity
+                                    if isinstance(z_share,pd.Series):
+                                        z_share = z_share.to_frame()
+                                    z_share.columns = pd.MultiIndex.from_arrays([[region_to],[MI['s']],[activity]])
+                                    z_share.index = pd.MultiIndex.from_arrays([z_share.index.get_level_values(0),z_share.index.get_level_values(1),[input_item]*len(z_share.index)])
+                                    slices[_ENUM['z']].loc[z_share.index,z_share.columns] += z_share
+
+                            #This case is incuded in the previous one since clusters cannot be new sectors
+                            # if input_item in self.db.sectors_clusters: #Sector_from is in a cluster
+                            #     #->insert uncertainty
+                            #     if pd.isna(parent_activity) == False: #Using distribution of parent sector
+                            #         com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],sn,self.db.sectors_clusters[input_item]),(region_to,sn,parent_activity)]
+                            #         #Set uncertainty level for both activity and parent activity columns
+                            #         slices_uncertainty.loc[(self.db.regions_clusters[region_from],sn,self.db.sectors_clusters[input_item]),(region_to,sn,activity)] = self.uncertainty_values['disag s cluster, r cluster']
+                            #         self.uncertainty_matrix.loc[(self.db.regions_clusters[region_from],sn,self.db.sectors_clusters[input_item]),(region_to,sn,parent_activity)] = self.uncertainty_values['disag s cluster, r cluster']
+                            #     else:
+                            #         com_use = self.matrices[_ENUM['Z']].loc[(self.db.regions_clusters[region_from],sn,self.db.sectors_clusters[input_item]),(region_to,sn,sn)]
+                            #         #Set uncertainty level
+                            #         slices_uncertainty.loc[(self.db.regions_clusters[region_from],sn,self.db.sectors_clusters[input_item]),(region_to,sn,activity)] = self.uncertainty_values['disag s cluster_no parent, r cluster']                    
+                            #     if isinstance(com_use,pd.Series):
+                            #         com_use = com_use.to_frame()
+                            #     z_share = com_use.sum(1)/com_use.sum().sum()*quantity
+                            #     if isinstance(z_share,pd.Series):
+                            #         z_share = z_share.to_frame()
+                            #     z_share.columns = pd.MultiIndex.from_arrays([[region_to],[MI['s']],[activity]])
+                            #     slices[_ENUM['z']].loc[z_share.index,z_share.columns] += z_share
 
             if change_type == 'Percentage':
+                r_cluster=0
+                s_cluster=0
                 if region_from in self.regions:
                     regs = [region_from]
 
                 elif region_from in self.db.regions_clusters:
+                    r_cluster = self.db.regions_clusters[region_from]
                     regs = self.db.regions_clusters[region_from]
 
                 if self.table == 'SUT':
@@ -722,6 +796,7 @@ class AddSectors:
                     if input_item in self.sectors or input_item in self.new_sectors:
                         inputs = [input_item]
                     if input_item in self.db.sectors_clusters:
+                        s_cluster=1
                         inputs = self.db.sectors_clusters[input_item]
 
                     if activity in self.parented_sectors:
@@ -732,10 +807,26 @@ class AddSectors:
                         old_values *= (1+quantity)
                         old_values.columns = pd.MultiIndex.from_arrays([[region_to],[MI['s']],[activity]])
                         slices[_ENUM['z']].update(old_values)
+                        #Uncertainty matrix update
+                        if r_cluster==1:
+                            if s_cluster==1:
+                                slices_uncertainty.loc[(regs,MI['s'],inputs),(region_to,MI['s'],activity)] = -1 + self.uncertainty_values['original s cluster, r cluster']
+                                self.uncertainty_matrix.loc[(regs,MI['s'],inputs),(region_to,MI['s'],parent_sector)] = self.uncertainty_values['original s cluster, r cluster']
+                            else:
+                                slices_uncertainty.loc[(regs,MI['s'],inputs),(region_to,MI['s'],activity)] = -1 + self.uncertainty_values['original s specific, r cluster']
+                                self.uncertainty_matrix.loc[(regs,MI['s'],inputs),(region_to,MI['s'],parent_sector)] = self.uncertainty_values['original s specific, r cluster']
+                        else:
+                            if s_cluster==1:
+                                slices_uncertainty.loc[(regs,MI['s'],inputs),(region_to,MI['s'],activity)] = -1 + self.uncertainty_values['original s cluster, r specific']
+                                self.uncertainty_matrix.loc[(regs,MI['s'],inputs),(region_to,MI['s'],parent_sector)] = self.uncertainty_values['original s cluster, r specific']
+                            #else: keep 1
                     else:
                         raise ValueError(f"It's not possible to apply a percentage change to sector {activity} because it has no parent sector")
-
-        return slices
+        
+        if self.table == 'IOT':
+            return slices, slices_uncertainty
+        elif self.table == 'SUT':
+            return slices
     
 
     def fill_fact_sats_inputs(
@@ -913,6 +1004,12 @@ class AddSectors:
             self.matrices[matrix] = pd.concat([self.matrices[matrix],self.filled_slices[matrix]],axis=concat)
             self.matrices[matrix] = self.matrices[matrix].groupby(level=list(range(self.matrices[matrix].index.nlevels)),axis=0).sum()
             self.matrices[matrix] = self.matrices[matrix].groupby(level=list(range(self.matrices[matrix].columns.nlevels)),axis=1).sum()
+        
+        #same for uncertainty matrix (only Z)
+        if self.table == 'IOT':
+            self.uncertainty_matrix = pd.concat([self.uncertainty_matrix,self.filled_uncertainty_slices],axis=1)
+            self.uncertainty_matrix = self.uncertainty_matrix.groupby(level=list(range(self.uncertainty_matrix.index.nlevels)),axis=0).sum()
+            self.uncertainty_matrix = self.uncertainty_matrix.groupby(level=list(range(self.uncertainty_matrix.columns.nlevels)),axis=1).sum()
 
     def get_mario_indices(
             self

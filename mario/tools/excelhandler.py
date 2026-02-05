@@ -18,8 +18,10 @@ from mario.tools.constants import (
     _ENUM,
     SUT,
     IOT,
+    _ADD_SECTORS_UNCERTAINTY_PARAMETERS,
 )
 from mario.tools.constants import _ADD_SECTORS_MASTER_SHEET_COLUMNS as MSC
+from mario.tools.constants import _ADD_SECTORS_INVENTORY_SHEET_COLUMNS as ISC
 from mario.tools.sql_properties import _COLUMNS, _MATRICES_LIST, _EXPORT_NAMES, _RELATIONSHIPS
 
 
@@ -530,6 +532,7 @@ def database_txt_flat(
         export,
         sets_to_excel,
         mapping_cols,
+        exclude_zeroes
 ):
     
     flat_matrices = {}
@@ -657,7 +660,8 @@ def database_txt_flat(
                 df_sm.reset_index(inplace=True)                
                 df_sm.set_index(scenarios_columns,inplace=True)
                 df_sm.reset_index(inplace=True)
-                df_sm = df_sm.query("Value<0 or Value>0")
+                if exclude_zeroes:
+                    df_sm = df_sm.query("Value<0 or Value>0")
 
                 df_all_scenarios = pd.concat([df_all_scenarios,df_sm],axis=0)
 
@@ -907,17 +911,26 @@ def _add_sector(
         reg_map_columns,
         com_map_name,
         com_map_columns,
-        path
+        path,
+        redefine_uncertainties=False,
     ):
 
     master_sheet = pd.DataFrame(columns=list(master_columns.values()))
     regions_maps_sheet = pd.DataFrame(instance.get_index(_MASTER_INDEX['r']), columns=reg_map_columns) 
     commodity_maps_sheet = pd.DataFrame(columns=com_map_columns) 
+    if redefine_uncertainties:
+        #Uncertainty values for input data are predefined in constants, but can be redefined in this sheet
+        uncertainties_sheet = pd.DataFrame({
+            "Inventory data categories": list(_ADD_SECTORS_UNCERTAINTY_PARAMETERS.keys()),
+            "New uncertainty values": list(_ADD_SECTORS_UNCERTAINTY_PARAMETERS.values()) #1 for certain, 0 for unknown
+            })
 
     with pd.ExcelWriter(path) as writer:
         master_sheet.to_excel(writer, sheet_name=master_name, index=False)
         regions_maps_sheet.to_excel(writer, sheet_name=reg_map_name, index=False)
         commodity_maps_sheet.to_excel(writer, sheet_name=com_map_name, index=False)
+        if redefine_uncertainties:
+            uncertainties_sheet.to_excel(writer, sheet_name='Uncertainties', index=False)
 
     # add data validation...
 
@@ -933,8 +946,16 @@ def _read_add_sectors(path,master_name,reg_map_name,item_map_name):
     # check_for_errors_in_region_maps(instance,regions_maps)
     # check_for_errors_in_master_sheet(instance,master_sheet,regions_maps)
 
-    return master_sheet, regions_maps, item_maps
+    if 'Uncertainties' in pd.ExcelFile(path).sheet_names:
+        uncertainty_df = pd.read_excel(path,sheet_name='Uncertainties',header=0)
+        uncertainty_values = dict(zip(
+            uncertainty_df.iloc[:, 0], 
+            uncertainty_df.iloc[:, 1]
+            ))
+    else:
+        uncertainty_values = _ADD_SECTORS_UNCERTAINTY_PARAMETERS
 
+    return master_sheet, regions_maps, item_maps, uncertainty_values
 
 def _read_add_inventories(instance,path):
     inventories = pd.read_excel(path,sheet_name=None,header=0,)
@@ -957,11 +978,23 @@ def _read_add_inventories(instance,path):
 
     return inventories_by_act
 
+def _read_split_sheets(instance,path):
+    split_info={}
+    for i in ['Total outputs','Trades','Exclusions','Tolerances']:
+        split_info[i] = pd.read_excel(path,sheet_name=i,header=0,)
+    
+    return split_info
+
 
 def _get_new_add_sectors_sets(
         instance,
+        add_mode_header = None
     ):
     """
+    Parameters:
+        instance: The main database instance containing the master sheet.
+        add_mode_header: The header name given in constants for the add_mode column.
+
     Retrieves new sets of activities and commodities from the master sheet.
 
     Returns:
@@ -1002,6 +1035,7 @@ def _get_new_add_sectors_sets(
 
         # excluding already existing sectors
         new_sectors = [sec for sec in new_sectors if sec not in instance.get_index(_MASTER_INDEX['s'])]
+        new_sectors = list(new_sectors) #moved from below
 
         # listing sectors that have a parent
         parented_sectors = []
@@ -1010,17 +1044,16 @@ def _get_new_add_sectors_sets(
             if isinstance(parent, str):
                 parented_sectors.append(sec)
 
-        # listing activities that don't have a parent
+        # listing sectors that don't have a parent
         non_parented_sectors = []
         for sec in new_sectors:
-            if sec not in non_parented_sectors:
+            if sec not in parented_sectors:
                 non_parented_sectors.append(sec)
 
-        parented_sectors = parented_sectors
-        non_parented_sectors = non_parented_sectors
-        new_sectors = list(new_sectors)
+        # listing sectors to be split
+        to_split_sectors = master_sheet[master_sheet[add_mode_header] == 'Split'][f'{_MASTER_INDEX["s"]}'].unique().tolist()
 
-        return new_sectors, parented_sectors, non_parented_sectors
+        return new_sectors, parented_sectors, non_parented_sectors, to_split_sectors
 
 
 def _inventory_templates(
@@ -1049,9 +1082,58 @@ def _inventory_templates(
         for sheet in new_sheets:
             inventory_sheet.to_excel(writer, sheet_name=sheet, index=False)
         units_sheet.to_excel(writer, sheet_name='DB units',merge_cells=False)
+    
+def _output_templates(
+        instance,
+        output_columns,
+        path,
+    ):
+
+    output_sheet = pd.DataFrame(columns=list(output_columns.values()))
+
+    with pd.ExcelWriter(path, mode='a', engine='openpyxl') as writer:
+        output_sheet.to_excel(writer, sheet_name='Total outputs', index=False)
 
     # add data validation...
 
+def _trade_templates(
+        instance,
+        trade_columns,
+        path,
+    ):
+
+    trade_sheet = pd.DataFrame(columns=list(trade_columns.values()))
+
+    with pd.ExcelWriter(path, mode='a', engine='openpyxl') as writer:
+        trade_sheet.to_excel(writer, sheet_name='Trades', index=False)
+
+    # add data validation:
+    #-sum of trades from a region must be smaller than total output X
+    #-check presence of clusters?
+
+def _exclusion_templates(
+        instance,
+        exclusion_columns,
+        path,
+    ):
+
+    exclusion_sheet = pd.DataFrame(columns=list(exclusion_columns.values()))
+
+    with pd.ExcelWriter(path, mode='a', engine='openpyxl') as writer:
+        exclusion_sheet.to_excel(writer, sheet_name='Exclusions', index=False)
+
+    # add data validation...
+
+def _tolerance_templates(
+        instance,
+        tolerance_columns,
+        path,
+    ):
+
+    tolerance_sheet = pd.DataFrame(columns=list(tolerance_columns.values()))
+
+    with pd.ExcelWriter(path, mode='a', engine='openpyxl') as writer:
+        tolerance_sheet.to_excel(writer, sheet_name='Tolerances', index=False)
 
 def _add_sector_sut_old(instance, sectors, regions, path, item, num_validation=30):
     file = xlsxwriter.Workbook(path)
@@ -1405,3 +1487,69 @@ def _add_sector_iot(instance, sectors, regions, path, num_validation=30):
         _ += 1
 
     file.close()
+
+
+def _inventory_sanity_check(
+            self,
+            read=False,
+        ):
+        """
+        Performs a sanity check on the inventories stored in the 'inventories' attribute.
+        Raises an error if any inventory is missing or inconsistent.
+
+        reads (bool, optional): If True, performs the check considering also inventory sheets, not only master. Defaults to False.
+        """
+
+        # If regionalized multiple sheets for the same new sector, check that the parent is the same
+        # Check if rows with the same 'Sector' have the same 'Parent sector'
+        sector_column_label=MSC[self.meta.table]['s']
+        parent_sector_column_label=MSC[self.meta.table]['ps']
+        master_sheet=self.add_sectors_master
+        inconsistent_sectors = master_sheet.groupby(sector_column_label)[parent_sector_column_label].nunique()
+        inconsistent_sectors = inconsistent_sectors[inconsistent_sectors > 1]
+        inv_sheet_column_label = MSC[self.meta.table]['inv_sheet']
+
+        if not inconsistent_sectors.empty:
+            error_msg = "The following sectors have inconsistent parent sectors:\n"
+            for sector in inconsistent_sectors.index:
+                parents = master_sheet[master_sheet[sector_column_label] == sector][parent_sector_column_label].unique()
+                error_msg += f"  - Sector '{sector}' has parent sectors: {list(parents)}\n"
+            raise ValueError(error_msg)
+        
+        #Checks to perform when reading the add_sector excel file
+        if read:
+        #Check that all inventory sheets in the master sheet are present in the inventories attribute
+            missing_inventories = []
+            for sector in master_sheet[sector_column_label].unique():
+                sector_rows = master_sheet[master_sheet[sector_column_label] == sector]
+                
+                # Check if sector exists in self.inventories
+                if sector not in self.inventories:
+                    missing_inventories.append(f"Sector '{sector}' not found in inventories")
+                else:
+                    # Get all inventory sheets for this sector
+                    inv_sheets = sector_rows[inv_sheet_column_label].unique()
+        
+                    # Check which ones are missing
+                    for inv_sheet in inv_sheets:
+                        if inv_sheet not in self.inventories[sector]:
+                            missing_inventories.append(f"Inventory sheet '{inv_sheet}' not found for sector '{sector}'")
+
+            if missing_inventories:
+                error_msg = "The following inventory sheets are missing:\n"
+                for missing in missing_inventories:
+                    error_msg += f"  - {missing}\n"
+                raise ValueError(error_msg)
+
+            # Check that the column "Change type" is filled
+            for sector, inventory in self.inventories.items():
+                if isinstance(inventory, pd.DataFrame):
+                    if inventory[ISC['change']].isnull().any():
+                        raise ValueError(f"The column 'Change type' in the inventory sheet '{inventory}' is not filled for all sectors: fill with 'Update' or 'Percentage'")
+                elif isinstance(inventory, dict):
+                    # Nested dictionary
+                    for inv_sheet, inv_nested in inventory.items():
+                        if inv_nested[ISC['change']].isnull().any():
+                            raise ValueError(f"The column 'Change type' in the inventory sheet '{inv_sheet}' is not filled for all sectors: fill with 'Update' or 'Percentage'")
+
+        # Additional consistency checks can be added here as needed
