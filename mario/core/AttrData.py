@@ -1868,6 +1868,8 @@ class Database(CoreModel):
                 _ENUM.Z: self.get_data(matrices=[_ENUM.Z],scenarios=[scenario])[scenario][0],
                 _ENUM.E: self.get_data(matrices=[_ENUM.E],scenarios=[scenario])[scenario][0],
                 _ENUM.V: self.get_data(matrices=[_ENUM.V],scenarios=[scenario])[scenario][0],
+                _ENUM.EY: self.get_data(matrices=[_ENUM.EY],scenarios=[scenario])[scenario][0],
+                _ENUM.VY: self.get_data(matrices=[_ENUM.VY],scenarios=[scenario])[scenario][0],
             }
             
             if io != 'inventories':
@@ -1880,6 +1882,7 @@ class Database(CoreModel):
                 new_matrices, new_units, new_indeces = add_sectors_class.to_sut()
             
             new_matrices[_ENUM.EY] = self.get_data(matrices=[_ENUM.EY],scenarios=[scenario])[scenario][0]
+            new_matrices[_ENUM.VY] = self.get_data(matrices=[_ENUM.VY],scenarios=[scenario])[scenario][0]
             old_X=calc_X_from_w(calc_w(new_matrices[_ENUM.z]),new_matrices[_ENUM.Y])
             del new_matrices[_ENUM.Z]
             del new_matrices[_ENUM.E]
