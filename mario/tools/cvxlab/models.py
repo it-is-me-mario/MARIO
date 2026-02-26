@@ -21,7 +21,8 @@ def _optimize_in_cvxlab(
         model_settings_from,
         solver,
         scenario=None,
-        input_data_files_type: str = 'xlsx'
+        input_data_files_type: str = 'xlsx',
+        solver_parameter=None
     ):
 
     # check if destination folder exists and create it
@@ -179,11 +180,25 @@ def _optimize_in_cvxlab(
 
     model.initialize_problems()
 
-    model.run_model(
-        verbose=True,
-        solver=solver,
-        integrated_problems=False,   
-    )
+    if solver_parameter is not None:
+        model.run_model(
+            verbose=True,
+            solver=solver,
+            integrated_problems=False,
+            mosek_params={
+            # primal feasibility tolerance (default ~1e-8)
+            "MSK_DPAR_INTPNT_CO_TOL_PFEAS": solver_parameter,
+            # dual   feasibility tolerance (default ~1e-8)
+            "MSK_DPAR_INTPNT_CO_TOL_DFEAS": solver_parameter,
+            # relative optimality gap tolerance (default ~1e-8)
+            "MSK_DPAR_INTPNT_CO_TOL_REL_GAP": solver_parameter,
+            'MSK_DPAR_INTPNT_CO_TOL_MU_RED': solver_parameter}
+        )
+    else:
+         model.run_model(
+            verbose=True,
+            solver=solver,
+            integrated_problems=False)
 
     if model.core.problem.problem_status[''] != 'optimal':
         raise ValueError("Cvxlab optimization problem did not solve optimally, check cvxlab log for details.")
@@ -251,10 +266,7 @@ def _inputs_to_cvxlab_split_sectors(
     # initialize database
     model.initialize_blank_data_structure() 
 
-    #new: get X,Y,Z,V
-    #old: get Y,Z
-    
-    #->modify to csv input data
+    #Get input data structure
     if input_data_files_type=='xlsx':
         input_data = pd.read_excel(os.path.join(main_dir_path, model_dir, "input_data\\input_data.xlsx"), sheet_name=None)
     elif input_data_files_type=='csv':
@@ -470,3 +482,219 @@ def _cvxlab_results_parser_split_sectors(
     return {
         'Z': Znew,
         'Y': Ynew,}
+
+def _create_input_data_for_cvxlab(
+        instance,
+        main_dir_path,
+        model_dir,
+        default_model,
+        model_settings_from,
+        solver,
+        scenario=None,
+        input_data_files_type: str = 'xlsx',
+        solver_parameter=None
+    ):
+
+    # check if destination folder exists
+    dest_dir = os.path.join(main_dir_path, model_dir)
+    if not os.path.exists(dest_dir):
+        raise FileNotFoundError(f"Declared directory of cvxlab files '{dest_dir}' does not exist.")
+    
+    # default for attributes
+    import_custom_constants=False
+    import_custom_operators=False    
+
+    # reading mapping file
+    mapping = pd.read_excel(os.path.join(main_dir_path, model_dir, "mapping.xlsx"), sheet_name=None, index_col=0)
+
+    # get matrices in flat format 
+    instance.to_flat_txt(
+        path = "",
+        matrices=mapping['matrices']['mario'].to_list(),
+        export=False,
+        exclude_zeroes=False
+        ) 
+
+    # replace columns header of each matrix with cvxlab expected ones
+    for matrix in instance.matrices_flat:
+        instance.matrices_flat[matrix].rename(
+            columns=mapping['sets']['cvxlab'].to_dict(), 
+            inplace=True
+            )
+
+    if input_data_files_type=='xlsx':
+        multiple_input_files=False
+    elif input_data_files_type=='csv':
+        multiple_input_files=True
+    else:
+        raise ValueError("input_data_files_type can be either 'xlsx' or 'csv'")
+    
+    # Reading sets file
+    sets_file = cl.Defaults.ConfigFiles.SETS_FILE
+    sets = pd.read_excel(os.path.join(main_dir_path, model_dir, sets_file), sheet_name=None, index_col=None)
+
+    #Sectors filters
+    map_new_parent=dict(zip(
+        instance.add_sectors_master[_ADD_SECTORS_MASTER_SHEET_COLUMNS[instance.meta.table]['s']],
+        instance.add_sectors_master[_ADD_SECTORS_MASTER_SHEET_COLUMNS[instance.meta.table]['ps']]
+    ))
+    for value in set(map_new_parent.values()):
+        map_new_parent[str(value)] = value
+
+    new_sectors=list(set(instance.add_sectors_master[_ADD_SECTORS_MASTER_SHEET_COLUMNS[instance.meta.table]['s']]))
+    parent_sectors=list(set(instance.add_sectors_master[_ADD_SECTORS_MASTER_SHEET_COLUMNS[instance.meta.table]['ps']]))                        
+    
+    #parent_sectors=list(set(parent_sectors))
+    sectors_p_n=new_sectors+parent_sectors
+    stable_sectors=[s for s in instance.get_index('Sector') if s not in new_sectors and s not in parent_sectors]
+
+
+    #Get input data structure
+    if input_data_files_type=='xlsx':
+        input_data = pd.read_excel(os.path.join(main_dir_path, model_dir, "input_data\\input_data.xlsx"), sheet_name=None)
+    elif input_data_files_type=='csv':
+        input_data = {}
+    matrix_map = dict(zip( mapping['matrices'].index.to_list(),  mapping['matrices']["cvxlab"]))
+    matrix_map_old = dict(zip( mapping['matrices_old'].index.to_list(),  mapping['matrices_old']["cvxlab"]))
+    set_map = dict(zip(mapping['sets'].index.to_list(), mapping['sets']["cvxlab"]))    
+
+    #New matrices
+    for mario_matrix_name, mario_df in instance.matrices_flat.items():
+        cvxlab_table = matrix_map[mario_matrix_name]
+        if input_data_files_type=='xlsx':
+            cvxlab_df = input_data[cvxlab_table]
+        elif input_data_files_type=='csv':
+            cvxlab_df = pd.read_csv(f"{main_dir_path}\\{model_dir}\\input_data\\{cvxlab_table}.csv")
+        mario_df=mario_df[mario_df['scenarios']==f"split_{scenario}"]
+        mario_renamed = mario_df.rename(columns=set_map)
+        mario_renamed = mario_renamed.rename(columns={"Value":"values"})
+        mario_renamed.columns = [c+"_Name" for c in mario_renamed.columns if c != "values"] + ["values"]
+
+        join_cols = [c for c in mario_renamed.columns if c in cvxlab_df.columns if c != "values"]
+        
+        # Perform the merge
+        merged = cvxlab_df.merge(
+            mario_renamed[join_cols + ['values']],
+            on=join_cols,
+            how="left"
+        )
+
+        merged = merged.drop(columns=["values_x"]).rename(columns={"values_y": "values"})
+
+        input_data[cvxlab_table] = merged
+    
+    #Old matrices Zold and Yold
+    old_matrices_config = {
+            'Z': ('Zold', ['region_from_Name', 'region_to_Name', 'sector_from_Name', 'sector_to_Name']),
+            'Y': ('Yold', ['region_from_Name', 'sector_from_Name', 'region_to_Name', 'cons_categ_Name'])
+        }
+
+    for mario_name, (target_name, join_cols) in old_matrices_config.items():
+        # Filter and rename Mario data
+        mario_df = instance.matrices_flat[mario_name]
+        mario_df = mario_df[mario_df['scenarios'] == 'original'].rename(columns=set_map)
+        mario_df = mario_df.rename(columns={"Value": "values"})
+        mario_df.columns = [c + "_Name" if c != "values" else c for c in mario_df.columns]
+
+        # Load base data
+        if input_data_files_type == 'xlsx':
+            base_df = input_data[target_name]
+        elif input_data_files_type == 'csv':
+            csv_path = os.path.join(main_dir_path, model_dir, "input_data", f"{target_name}.csv")
+            base_df = pd.read_csv(csv_path)
+        else:
+            raise ValueError("input_data_files_type must be 'xlsx' or 'csv'")
+
+        # Merge and cleanup
+        merged = base_df.merge(mario_df[join_cols + ['values']], on=join_cols, how="left")
+        input_data[target_name] = merged.drop(columns=["values_x"]).rename(columns={"values_y": "values"})
+
+    #Create dataframe for I_sp_spn
+    if input_data_files_type=='xlsx':
+        input_data['I_sp_spn']['values'] = (
+            input_data['I_sp_spn']['sector_from_Name'].map(map_new_parent) == input_data['I_sp_spn']['sector_to_Name']
+            ).astype(int)
+        input_data['tol']['values']=instance.split_info['Tolerances']['values']
+    elif input_data_files_type=='csv':
+        I_sp_spn = pd.read_csv(f"{main_dir_path}\\{model_dir}\\input_data\\I_sp_spn.csv")
+        I_sp_spn['values'] = (
+            I_sp_spn['sector_from_Name'].map(map_new_parent) == I_sp_spn['sector_to_Name']
+            ).astype(int)
+        input_data['I_sp_spn'] = I_sp_spn
+        tol= pd.read_csv(f"{main_dir_path}\\{model_dir}\\input_data\\tol.csv")
+        tol['values']=instance.split_info['Tolerances']['values']
+        input_data['tol'] = tol
+    
+    #Create Trade variable
+    Trade_db=instance.split_info['Trades']
+    Trade_db=Trade_db.rename(columns={"Quantity":"values"})
+    Trade_db = Trade_db.rename(columns=mapping['sets']['cvxlab'].to_dict())
+    Trade_db.columns = [col + "_Name" if col != "values" else col for col in Trade_db.columns]
+    if input_data_files_type=='xlsx':
+        Trade = input_data['Trade']
+        Trade_selector = input_data['Trade_selector']
+    elif input_data_files_type=='csv':
+        Trade = pd.read_csv(f"{main_dir_path}\\{model_dir}\\input_data\\Trade.csv")
+        Trade_selector = pd.read_csv(f"{main_dir_path}\\{model_dir}\\input_data\\Trade_selector.csv")
+    join_cols = ['region_from_Name','region_to_Name','sector_from_Name']
+    Trade=Trade.merge(Trade_db[join_cols+['values']], on=join_cols, how='left')
+    Trade['values_y']=Trade['values_y'].fillna(0)
+    input_data['Trade'] = Trade.drop(columns=["values_x"]).rename(columns={"values_y": "values"})
+
+    #Create trade selection matrix
+    Trade_selector['values']=0
+    for rf in instance.get_index('Region'):
+        for rt in instance.get_index('Region'):
+            for sf in new_sectors:
+                if not Trade_db[(Trade_db['region_from_Name']==rf) & (Trade_db['region_to_Name']==rt) & (Trade_db['sector_from_Name']==sf)].empty:
+                    Trade_selector.loc[
+                        (Trade_selector['region_from_Name']==rf) & 
+                        (Trade_selector['region_to_Name']==rt) & 
+                        (Trade_selector['sector_from_Name']==sf),
+                        'values'
+                    ]=1
+    input_data['Trade_selector'] = Trade_selector
+    
+    if input_data_files_type=='xlsx':
+        with pd.ExcelWriter(os.path.join(main_dir_path, model_dir, "input_data\\input_data.xlsx"), engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+            for sheet_name in input_data:
+                input_data[sheet_name].to_excel(writer, sheet_name=sheet_name, index=False)
+    elif input_data_files_type=='csv':
+        for file_name, df in input_data.items():
+            df.to_csv(f'{main_dir_path}\\{model_dir}\\input_data\\{file_name}.csv', index=False)
+
+    # load data from excel to database 
+    # model.load_exogenous_data_to_sqlite_database(force_overwrite=True)
+
+    # model.initialize_problems()
+
+    # if solver_parameter is not None:
+    #     model.run_model(
+    #         verbose=True,
+    #         solver=solver,
+    #         integrated_problems=False,
+    #         mosek_params={
+    #         # primal feasibility tolerance (default ~1e-8)
+    #         "MSK_DPAR_INTPNT_CO_TOL_PFEAS": solver_parameter,
+    #         # dual   feasibility tolerance (default ~1e-8)
+    #         "MSK_DPAR_INTPNT_CO_TOL_DFEAS": solver_parameter,
+    #         # relative optimality gap tolerance (default ~1e-8)
+    #         "MSK_DPAR_INTPNT_CO_TOL_REL_GAP": solver_parameter,
+    #         'MSK_DPAR_INTPNT_CO_TOL_MU_RED': solver_parameter}
+    #     )
+    # else:
+    #      model.run_model(
+    #         verbose=True,
+    #         solver=solver,
+    #         integrated_problems=False)
+
+    # if model.core.problem.problem_status[''] != 'optimal':
+    #     raise ValueError("Cvxlab optimization problem did not solve optimally, check cvxlab log for details.")
+
+    # model.load_results_to_database(force_overwrite=True)
+
+    # print("Results loaded to database")
+
+    #optimized_matrices = _cvxlab_results_parser(dest_dir,mapping,default_model)
+
+    return #optimized_matrices

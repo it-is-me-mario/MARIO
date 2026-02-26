@@ -983,6 +983,13 @@ def _read_split_sheets(instance,path):
     for i in ['Total outputs','Trades','Exclusions','Tolerances']:
         split_info[i] = pd.read_excel(path,sheet_name=i,header=0,)
     
+    # Add data validation:
+    #Total outputs:
+    #check that all regions are present, singularly or in clusters
+    
+    #-sum of trades from a region must be smaller than total output X
+    #-check presence of clusters?
+    
     return split_info
 
 
@@ -1107,9 +1114,6 @@ def _trade_templates(
     with pd.ExcelWriter(path, mode='a', engine='openpyxl') as writer:
         trade_sheet.to_excel(writer, sheet_name='Trades', index=False)
 
-    # add data validation:
-    #-sum of trades from a region must be smaller than total output X
-    #-check presence of clusters?
 
 def _exclusion_templates(
         instance,

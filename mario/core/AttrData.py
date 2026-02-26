@@ -41,6 +41,7 @@ from mario.tools.excelhandler import (
     _output_templates,
     _trade_templates,
     _exclusion_templates,
+    _tolerance_templates,
     _read_split_sheets,
     _inventory_sanity_check,
 )
@@ -52,6 +53,7 @@ from mario.tools.new_sectors import (
 from mario.tools.cvxlab.models import (
     _optimize_in_cvxlab,
     _check_cvxlab_parameters,
+    _create_input_data_for_cvxlab,
 )
 
 from mario.tools import plots as plt
@@ -1803,6 +1805,8 @@ class Database(CoreModel):
         notes=None,
         cvxlab_path=None,
         input_data_files_type: str = 'xlsx',
+        only_input_data_gen: bool = False,
+        solver_parameter=None,
     ):        
         """
         Adds inventories to the database as new sectors/commodities/activities.
@@ -1836,6 +1840,8 @@ class Database(CoreModel):
                 notes=notes,
                 cvxlab_path=cvxlab_path,
                 input_data_files_type=input_data_files_type,
+                only_input_data_gen=only_input_data_gen,
+                solver_parameter=solver_parameter,
             )
             
             return new
@@ -1927,28 +1933,42 @@ class Database(CoreModel):
             
             #->check if output is the same unit of measure
             if cvxlab_path:
-                optimized_matrices=_optimize_in_cvxlab(
-                    self,
-                    main_dir_path=cvxlab_path,
-                    model_dir="cvxlab test MARIO",
-                    default_model="Split_sectors",
-                    solver='MOSEK',
-                    model_settings_from="xlsx",
-                    scenario=scenario,
-                    input_data_files_type=input_data_files_type,)
+                if only_input_data_gen==True:
+                    _create_input_data_for_cvxlab(
+                        self,
+                        main_dir_path=cvxlab_path,
+                        model_dir="cvxlab test MARIO",
+                        default_model="Split_sectors",
+                        solver='MOSEK',
+                        model_settings_from="xlsx",
+                        scenario=scenario,
+                        input_data_files_type=input_data_files_type,
+                        solver_parameter=solver_parameter)
+                    log_time(logger,f"Cvxlab files filling completed.")
+                else:
+                    optimized_matrices=_optimize_in_cvxlab(
+                        self,
+                        main_dir_path=cvxlab_path,
+                        model_dir="cvxlab test MARIO",
+                        default_model="Split_sectors",
+                        solver='MOSEK',
+                        model_settings_from="xlsx",
+                        scenario=scenario,
+                        input_data_files_type=input_data_files_type,
+                        solver_parameter=solver_parameter,)
+                    log_time(logger,f"Sector splitting optimization in cvxlab completed.")
+                    
+                    self.matrices['split_cvxlab'] = {}
+                    for m_name, matrix in optimized_matrices.items():
+                        self.matrices['split_cvxlab'][m_name] = matrix
+                    necessary_matrices = [_ENUM.Z, _ENUM.E, _ENUM.V, _ENUM.Y, _ENUM.EY]
+                    for m in necessary_matrices:
+                        if m not in self.matrices['split_cvxlab']:
+                            self.matrices['split_cvxlab'][m] = self.matrices[f'split_{scenario}'][m]
                 
-                log_time(logger,f"Sector splitting optimization in cvxlab completed.")
-                
-                self.matrices['split_cvxlab'] = {}
-                for m_name, matrix in optimized_matrices.items():
-                    self.matrices['split_cvxlab'][m_name] = matrix
-                necessary_matrices = [_ENUM.Z, _ENUM.E, _ENUM.V, _ENUM.Y, _ENUM.EY]
-                for m in necessary_matrices:
-                    if m not in self.matrices['split_cvxlab']:
-                        self.matrices['split_cvxlab'][m] = self.matrices[f'split_{scenario}'][m]
+                    self.meta._add_history(f"Database: new scenario 'split_cvxlab' defined including new {_MASTER_INDEX['s']}: {self.new_sectors}")
+                    log_time(logger,f"Matrices with new sectors updated in 'split_cvxlab' scenario")                   
             
-                self.meta._add_history(f"Database: new scenario 'split_cvxlab' defined including new {_MASTER_INDEX['s']}: {self.new_sectors}")
-                log_time(logger,f"Matrices with new sectors updated in 'split_cvxlab' scenario")
             else:
                 raise ValueError("cvxlab_path not provided: provide when calling add_sectors(cvxlab_path=)")
 
