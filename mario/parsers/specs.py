@@ -38,6 +38,18 @@ FIGARO_EXTENSION_PLACEHOLDER = "-"
 FIGARO_IOT_MODES = ("auto", "product", "industry")
 
 
+OECD_ICIO_SOURCE_URL = "https://www.oecd.org/en/data/datasets/inter-country-input-output-tables.html"
+OECD_ICIO_SOURCE = (
+    "OECD Inter-Country Input-Output tables page "
+    f"(2025 edition): {OECD_ICIO_SOURCE_URL}"
+)
+OECD_ICIO_FINAL_DEMAND_CODES = ("HFCE", "NPISH", "GGFC", "GFCF", "INVNT", "DPABR", "DIRP")
+OECD_ICIO_FACTOR_ROWS = ("TLS", "VA")
+OECD_ICIO_FACTOR_UNIT = "nominal million USD"
+OECD_ICIO_SATELLITE_UNIT = "None"
+OECD_ICIO_SATELLITE_PLACEHOLDER = "-"
+
+
 EUROSTAT_SDMX_BASE_URL = "https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data"
 EUROSTAT_SUT_DATAFLOWS = {
     "supply": "NAIO_10_CP15",

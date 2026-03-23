@@ -52,6 +52,7 @@ def __getattr__(name: str):
         "parse_from_parquet",
         "parse_from_pymrio",
         "parse_from_txt",
+        "parse_oecd",
         "register_parser",
         "validate_parse_request",
     }:
@@ -76,7 +77,7 @@ def __getattr__(name: str):
         module = import_module("mario.parsers.entrypoints")
         return getattr(module, name)
 
-    if name in {"parse_exiobase_3_9_4", "parse_oecd"}:
+    if name in {"parse_exiobase_3_9_4"}:
         module = import_module("mario.parsers.handshake")
         return getattr(module, name)
 

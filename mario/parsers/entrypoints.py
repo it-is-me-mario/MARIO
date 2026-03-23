@@ -24,11 +24,9 @@ from mario.parsers.eurostat_sdmx import (
     parse_eurostat_sut_sdmx,
 )
 from mario.parsers.figaro import parse_figaro_iot, parse_figaro_sut
+from mario.parsers.oecd_icio import parse_oecd_icio
 from mario.parsers.tabular import parse_pymrio
-from mario.parsers.handshake import (
-    parse_exiobase_3_9_4,
-    parse_oecd
-    )
+from mario.parsers.handshake import parse_exiobase_3_9_4
 
 from mario.parsers.specs import (
     HMRSUT_EXTENSIONS,
@@ -735,6 +733,54 @@ def parse_eurostat(
     return models[model](
         name=name or layout.dataset_name,
         table=table,
+        source=layout.source,
+        year=layout.year,
+        price=layout.price,
+        init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
+        calc_all=calc_all,
+        **kwargs,
+    )
+
+
+def parse_oecd(
+    path: str,
+    year: int | None = None,
+    model: str = "Database",
+    name: str | None = None,
+    calc_all: bool = False,
+    **kwargs,
+) -> object:
+    """Parse one locally downloaded OECD ICIO CSV bundle.
+
+    This parser targets the OECD ICIO 2025 edition flat CSV bundles published
+    on the official OECD dataset page. MARIO does not depend on automatic
+    download here: callers should point the parser to a local yearly ``.csv``
+    file or to a directory containing those files.
+
+    Parameters
+    ----------
+    path : str
+        path to a local OECD ICIO ``<year>.csv`` file or to a directory
+        containing one or more yearly csv files from the OECD 2025 edition
+        release.
+    year : int, optional
+        reference year to select when ``path`` points to a directory that
+        contains more than one yearly OECD ICIO file.
+    model : str, optional
+        public MARIO model class to instantiate. ``Database`` is the default
+        and the only supported value.
+    name : str, optional
+        dataset name stored in MARIO metadata. Defaults to the inferred OECD
+        dataset label.
+    calc_all : bool, optional
+        whether to materialize derived blocks immediately after parsing.
+    """
+    validate_parse_request(table="IOT", model=model)
+
+    matrices, indeces, units, layout = parse_oecd_icio(path=path, year=year)
+    return models[model](
+        name=name or layout.dataset_name,
+        table="IOT",
         source=layout.source,
         year=layout.year,
         price=layout.price,

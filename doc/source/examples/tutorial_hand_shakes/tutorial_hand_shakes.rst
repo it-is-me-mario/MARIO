@@ -10,9 +10,12 @@ In this example, we will look at how this function can be used.
 OECD
 ----
 
-Assuem you want to parse the oecd tables , and the oecd parser does not
-exist natively in mario. At the first step, let’s download and load the
-OECD data for 2011 using pymrio.
+This section shows the generic pymrio handshake for OECD tables. MARIO
+now also ships a direct file-based ``parse_oecd(...)`` parser for the
+OECD ICIO 2025 edition CSV bundles, but the handshake is still useful as
+an example of how to convert any ``pymrio.IOSystem`` into a MARIO
+database. At the first step, let’s download and load the OECD data for
+2011 using pymrio.
 
 .. code:: ipython3
 
@@ -194,8 +197,10 @@ now lets take a look to the mario data!
     
 
 
-⚠️ NOTE: You can alternatively use the parse_oecd function of mario
-which does this intermediate steps for you!
+⚠️ NOTE: For the OECD ICIO 2025 edition CSV bundles you can now use the
+direct ``mario.parse_oecd(...)`` parser instead of going through
+``pymrio``. This handshake example remains useful when you need to
+convert a different ``pymrio`` object into MARIO.
 
 Exiobase 3.9.4
 --------------

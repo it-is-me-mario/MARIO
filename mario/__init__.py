@@ -85,6 +85,7 @@ from mario.parsers.entrypoints import (
     hybrid_sut_exiobase,
     parse_exiobase,
     parse_figaro,
+    parse_oecd,
 )
 
 from mario.views.plots import set_palette
@@ -101,10 +102,7 @@ from mario.settings.settings import (
     Index,
 )
 
-from mario.parsers.handshake import (
-    parse_exiobase_3_9_4,
-    parse_oecd
-    )
+from mario.parsers.handshake import parse_exiobase_3_9_4
 
 from mario.model.conventions import IOT, SUT
 
