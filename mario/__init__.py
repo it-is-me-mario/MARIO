@@ -77,6 +77,7 @@ from mario.parsers.entrypoints import (
     parse_from_excel,
     parse_exiobase_3,
     parse_eora,
+    hybrid_iot_exiobase,
     parse_exiobase_sut,
     parse_eurostat_sut,
     parse_from_pymrio,

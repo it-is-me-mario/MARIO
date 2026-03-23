@@ -3,6 +3,10 @@
 
 from mario.api import Database
 from mario.log_exc.exceptions import WrongInput, LackOfInput
+from mario.parsers.exiobase_hybrid import (
+    parse_exiobase_hybrid_iot,
+    parse_exiobase_hybrid_sut,
+)
 from mario.parsers.exiobase_iot import parse_exiobase_iot_monetary
 from mario.parsers.exiobase_sut import parse_exiobase_sut_monetary
 from mario.parsers.tabular import (
@@ -11,7 +15,6 @@ from mario.parsers.tabular import (
     excel_parser,
     eora_multi_region,
     parse_pymrio,
-    hybrid_sut_exiobase_reader,
     parser_figaro_sut,
 )
 from mario.parsers.handshake import (
@@ -19,7 +22,7 @@ from mario.parsers.handshake import (
     parse_oecd
     )
 
-from mario.parsers.specs import HMRSUT_EXTENSIONS, INPUT_OPTIONS
+from mario.parsers.specs import HMRSUT_EXTENSIONS, HMIOT_EXTENSIONS, INPUT_OPTIONS
 import pandas as pd
 
 models = {"Database": Database}
@@ -443,7 +446,7 @@ def parse_exiobase(
         if unit == "Monetary":
             parser = parse_exiobase_3
         else:
-            raise WrongInput("Hybrid IOT exiobase is not supported by mario.")
+            parser = hybrid_iot_exiobase
     else:
         if unit == "Monetary":
             parser = parse_exiobase_sut
@@ -461,7 +464,7 @@ def parse_exiobase(
 
 def hybrid_sut_exiobase(
     path:str,
-    extensions: list = [], 
+    extensions: list | str | None = None,
     model: str = "Database", 
     name: str = None, 
     calc_all: bool = False, 
@@ -497,22 +500,17 @@ def hybrid_sut_exiobase(
     For more informatio refer to https://zenodo.org/record/7244919#.Y6hEfi8w2L1
     """
 
-    # check the inputs to be correct
-    errmsg = []
-    if extensions != 'all':
-        if extensions != None:
-            differnce = sorted(set(extensions).difference(set(HMRSUT_EXTENSIONS)))
-            if differnce:
-                errmsg.append(
-                    "Following items are not valid for extensions: \n {}.\n Valid items are: \n {}".format(
-                        differnce,
-                        HMRSUT_EXTENSIONS,
-                    )
+    if extensions not in (None, "all"):
+        differnce = sorted(set(extensions).difference(set(HMRSUT_EXTENSIONS)))
+        if differnce:
+            raise WrongInput(
+                "Following items are not valid for extensions: \n {}.\n Valid items are: \n {}".format(
+                    differnce,
+                    HMRSUT_EXTENSIONS,
                 )
-    if errmsg:
-        raise WrongInput(errmsg)
+            )
 
-    matrices, indeces, units = hybrid_sut_exiobase_reader(
+    matrices, indeces, units, layout = parse_exiobase_hybrid_sut(
         path=path,
         extensions=extensions,
     )
@@ -527,11 +525,49 @@ def hybrid_sut_exiobase(
     return models[model](
         name=name,
         table="SUT",
-        source="Merciai, Stefano, & Schmidt, Jannick. (2021). EXIOBASE HYBRID v3 - 2011 (3.3.18) [Data set]. Zenodo. https://doi.org/10.5281/zenodo.7244919",
-        year=2011,
+        source=layout.source,
+        year=layout.year,
         init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
         calc_all=calc_all,
         notes=notes,
+        **kwargs,
+    )
+
+
+def hybrid_iot_exiobase(
+    path: str,
+    extensions: list | str | None = None,
+    model: str = "Database",
+    name: str = None,
+    calc_all: bool = False,
+    **kwargs,
+):
+    """Parse the hybrid EXIOBASE 3.3.18 HIOT."""
+    if extensions not in (None, "all"):
+        differnce = sorted(set(extensions).difference(set(HMIOT_EXTENSIONS)))
+        if differnce:
+            raise WrongInput(
+                "Following items are not valid for extensions: \n {}.\n Valid items are: \n {}".format(
+                    differnce,
+                    HMIOT_EXTENSIONS,
+                )
+            )
+
+    matrices, indeces, units, layout = parse_exiobase_hybrid_iot(
+        path=path,
+        extensions=extensions,
+    )
+
+    if "year" in kwargs:
+        del kwargs["year"]
+
+    return models[model](
+        name=name,
+        table="IOT",
+        source=layout.source,
+        year=layout.year,
+        init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
+        calc_all=calc_all,
         **kwargs,
     )
 

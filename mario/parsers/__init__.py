@@ -6,6 +6,7 @@ from importlib import import_module
 
 
 __all__ = [
+    "hybrid_iot_exiobase",
     "hybrid_sut_exiobase",
     "parse_eora",
     "parse_eurostat_sut",
@@ -24,6 +25,7 @@ __all__ = [
 def __getattr__(name: str):
     """Lazily expose parser classes and entry points without eager imports."""
     if name in {
+        "hybrid_iot_exiobase",
         "hybrid_sut_exiobase",
         "parse_eora",
         "parse_eurostat_sut",

@@ -128,6 +128,22 @@ HMRSUT_EXTENSIONS = [
 ]
 
 
+HMIOT_EXTENSIONS = [
+    "resource",
+    "Land",
+    "Emiss",
+    "Emis_unreg_w",
+    "waste_sup",
+    "waste_use",
+    "pack_sup_waste",
+    "pack_use_waste",
+    "mach_sup_waste",
+    "mach_use_waste",
+    "stock_addition",
+    "crop_res",
+]
+
+
 PYMRIO_IMPORT_LAYOUTS = {
     "v": {"index": 1, "columns": 3, "add_c": [_MASTER_INDEX["s"]]},
     "e": {"index": 1, "columns": 3, "add_c": [_MASTER_INDEX["s"]]},

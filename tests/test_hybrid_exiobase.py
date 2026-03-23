@@ -12,16 +12,19 @@ sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 MAIN_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FILES_PATH = f"{MAIN_PATH}/tests/mocks/temp_files"
 
-from mario import hybrid_sut_exiobase
+from mario import hybrid_sut_exiobase, hybrid_iot_exiobase, parse_exiobase
 from mario.log_exc.exceptions import WrongInput
 from mario.model.conventions import _MASTER_INDEX
-from mario.parsers.identifiers import hybrid_sut_exiobase_parser_id
 
 exiobase_files = {
     "MR_HUSE_2011_v3_3_18.csv":"https://zenodo.org/record/7244919/files/MR_HUSE_2011_v3_3_18.csv?download=1",
     "MR_HSUTs_2011_v3_3_18_FD.csv":"https://zenodo.org/record/7244919/files/MR_HSUTs_2011_v3_3_18_FD.csv?download=1",
     "MR_HSUP_2011_v3_3_18.csv":"https://zenodo.org/record/7244919/files/MR_HSUP_2011_v3_3_18.csv?download=1",
     "MR_HSUTs_2011_v3_3_18_extensions.xlsx":"https://zenodo.org/record/7244919/files/MR_HSUTs_2011_v3_3_18_extensions.xlsx?download=1",
+    "MR_HIOT_2011_v3_3_18_by_product_technology.csv":"https://zenodo.org/record/7244919/files/MR_HIOT_2011_v3_3_18_by_product_technology.csv?download=1",
+    "MR_HIOT_2011_v3_3_18_FD.csv":"https://zenodo.org/record/7244919/files/MR_HIOT_2011_v3_3_18_FD.csv?download=1",
+    "MR_HIOT_2011_v3_3_18_principal_production.csv":"https://zenodo.org/record/7244919/files/MR_HIOT_2011_v3_3_18_principal_production.csv?download=1",
+    "MR_HIOT_2011_v3_3_18_extensions.xlsx":"https://zenodo.org/record/7244919/files/MR_HIOT_2011_v3_3_18_extensions.xlsx?download=1",
     "metadata.xlsx": "https://zenodo.org/record/7244919/files/Classifications_v_3_3_18.xlsx?download=1",
 }
 
@@ -84,12 +87,15 @@ def test_parse_main_data():
         ).fillna("None")
     )
 
-    # factor of production unit is None
-    pdt.assert_frame_equal(
-        db.units[_MASTER_INDEX["f"]],pd.DataFrame(
-            index = db.get_index(_MASTER_INDEX["f"],),columns=['unit']
-        ).fillna("None")
-    )
+    # factor rows and units come from HIOT VA_act metadata
+    value_added_info = pd.read_excel(f"{FILES_PATH}/metadata.xlsx", sheet_name="Value_added")
+    expected_factors = value_added_info["Category name"].tolist()
+    assert db.get_index(_MASTER_INDEX["f"]) == expected_factors
+
+    factor_units = value_added_info.set_index("Category name")[["Unit"]]
+    factor_units.columns = ["unit"]
+    factor_units.index.name = None
+    pdt.assert_frame_equal(db.units[_MASTER_INDEX["f"]], factor_units)
 
 
     # commodity production -> read from metadata
@@ -99,6 +105,40 @@ def test_parse_main_data():
     pdt.assert_frame_equal(
         db.units[_MASTER_INDEX["c"]], commodity_units
     )
+
+
+def test_parse_hybrid_iot_main_data():
+    download_exiobase_files(exiobase_files)
+
+    db = hybrid_iot_exiobase(FILES_PATH)
+
+    sector_info = pd.read_excel(f"{FILES_PATH}/metadata.xlsx", sheet_name="Products_HIOT")
+    expected_sectors = sector_info["Product name"].drop_duplicates().tolist()
+    assert sorted(db.get_index(_MASTER_INDEX["s"])) == sorted(expected_sectors)
+
+    value_added_info = pd.read_excel(f"{FILES_PATH}/metadata.xlsx", sheet_name="Value_added")
+    expected_factors = value_added_info["Category name"].tolist()
+    assert db.get_index(_MASTER_INDEX["f"]) == expected_factors
+
+    sector_units = sector_info.drop_duplicates(subset="Product name").set_index("Product name")[["Unit"]]
+    sector_units.columns = ["unit"]
+    sector_units.index.name = None
+    pdt.assert_frame_equal(db.units[_MASTER_INDEX["s"]], sector_units)
+
+    factor_units = value_added_info.set_index("Category name")[["Unit"]]
+    factor_units.columns = ["unit"]
+    factor_units.index.name = None
+    pdt.assert_frame_equal(db.units[_MASTER_INDEX["f"]], factor_units)
+    assert db.is_hybrid
+
+
+def test_parse_exiobase_supports_hybrid_iot():
+    download_exiobase_files(exiobase_files)
+
+    db = parse_exiobase(table="IOT", unit="Hybrid", path=FILES_PATH)
+
+    assert db.table_type == "IOT"
+    assert db.V.shape[0] == 21
 
 def test_read_extensions():
 
@@ -160,4 +200,3 @@ def test_read_extensions():
 
         # checking if units are correct
         assert db.units[_MASTER_INDEX['k']].loc[idx,"unit"].values.tolist() == units  
-
