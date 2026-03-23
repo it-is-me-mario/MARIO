@@ -54,6 +54,7 @@ from mario.ops import (
     aggregate_database,
     build_new_instance_from_scenario,
     export_database_to_excel,
+    export_database_to_parquet,
     export_database_to_pymrio,
     export_database_to_txt,
     transform_sut_to_iot,
@@ -675,8 +676,13 @@ class Database(CoreModel):
         _format="txt",
         include_meta=False,
         sep=",",
+        flat=False,
     ):
-        """Export one scenario as multiple text or CSV files."""
+        """Export one scenario as multiple text or CSV files.
+
+        ``flat=False`` keeps the historical matrix-per-file layout.
+        ``flat=True`` writes one long-format data file plus a units file.
+        """
 
         return export_database_to_txt(
             self,
@@ -687,6 +693,32 @@ class Database(CoreModel):
             _format=_format,
             include_meta=include_meta,
             sep=sep,
+            flat=flat,
+        )
+
+    def to_parquet(
+        self,
+        path=None,
+        flows=True,
+        coefficients=False,
+        scenario="baseline",
+        include_meta=False,
+        flat=False,
+    ):
+        """Export one scenario as parquet files.
+
+        ``flat=False`` writes one parquet file per matrix.
+        ``flat=True`` writes one long-format ``data.parquet`` plus ``units.parquet``.
+        """
+
+        return export_database_to_parquet(
+            self,
+            path=path,
+            flows=flows,
+            coefficients=coefficients,
+            scenario=scenario,
+            include_meta=include_meta,
+            flat=flat,
         )
 
     def to_pymrio(

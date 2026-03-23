@@ -1,7 +1,10 @@
+import pandas as pd
 import pandas.testing as pdt
+import pytest
 
 from mario.internal import ModelState, ModelStateMetadata
 from mario.model.enums import TableKind
+from mario.ops.export_specs import FLAT_DATA_COLUMNS, FLAT_UNIT_COLUMNS
 from mario.parsers.api import build_database_from_state
 from mario.parsers.excel import parse_state_from_excel
 from mario.parsers.txt import parse_state_from_txt
@@ -126,6 +129,80 @@ def test_parse_from_txt_sut_roundtrip_returns_split_native_blocks(tmp_path):
     pdt.assert_frame_equal(parsed.Y, database.Y)
     pdt.assert_frame_equal(parsed.V, database.V)
     pdt.assert_frame_equal(parsed.E, database.E)
+
+
+def test_to_txt_flat_exports_canonical_schema(tmp_path):
+    database = load_test("IOT")
+    database.to_txt(path=tmp_path, flows=True, coefficients=False, sep=",", flat=True)
+
+    data = pd.read_csv(tmp_path / "flows" / "data.txt", sep=",", keep_default_na=False)
+    units = pd.read_csv(tmp_path / "flows" / "units.txt", sep=",", keep_default_na=False)
+
+    assert list(data.columns) == list(FLAT_DATA_COLUMNS)
+    assert list(units.columns) == list(FLAT_UNIT_COLUMNS)
+    assert set(data["Matrix"]) == {"Z", "Y", "V", "E", "EY"}
+    assert set(data["Scenario"]) == {"baseline"}
+
+
+def test_parse_state_from_txt_iot_flat_roundtrip_preserves_blocks(tmp_path):
+    database = load_test("IOT")
+    database.to_txt(path=tmp_path, flows=True, coefficients=False, sep=",", flat=True)
+
+    state = parse_state_from_txt(
+        path=str(tmp_path / "flows"),
+        table="IOT",
+        mode="flows",
+        name="IOT flat txt dataset",
+        sep=",",
+        flat=True,
+    )
+
+    assert state.table_kind == TableKind.IOT
+    assert set(state.list_blocks()) == {"E", "EY", "V", "Y", "Z"}
+    assert not state.has_block("X")
+    pdt.assert_frame_equal(state.get_block("Z"), database.Z)
+    pdt.assert_frame_equal(state.get_block("Y"), database.Y)
+    pdt.assert_frame_equal(state.compute("X"), database.X)
+
+
+def test_parse_from_txt_sut_flat_roundtrip_uses_unified_export_and_split_parse(tmp_path):
+    database = load_test("SUT")
+    database.to_txt(path=tmp_path, flows=True, coefficients=False, sep=",", flat=True)
+
+    data = pd.read_csv(tmp_path / "flows" / "data.txt", sep=",", keep_default_na=False)
+    parsed = parse_from_txt(
+        path=str(tmp_path / "flows"),
+        table="SUT",
+        mode="flows",
+        sep=",",
+        name="SUT flat txt dataset",
+        flat=True,
+    )
+
+    assert "Z" in set(data["Matrix"])
+    assert "U" not in set(data["Matrix"])
+    assert "S" not in set(data["Matrix"])
+    assert "Z" not in parsed["baseline"]
+    assert "X" not in parsed["baseline"]
+    assert {"U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "EY"} <= set(parsed["baseline"])
+    pdt.assert_frame_equal(parsed.Z, database.Z)
+    pdt.assert_frame_equal(parsed.Y, database.Y)
+    pdt.assert_frame_equal(parsed.V, database.V)
+    pdt.assert_frame_equal(parsed.E, database.E)
+
+
+def test_to_parquet_flat_exports_canonical_schema(tmp_path):
+    pytest.importorskip("pyarrow")
+
+    database = load_test("IOT")
+    database.to_parquet(path=tmp_path, flows=True, coefficients=False, flat=True)
+
+    data = pd.read_parquet(tmp_path / "flows" / "data.parquet")
+    units = pd.read_parquet(tmp_path / "flows" / "units.parquet")
+
+    assert list(data.columns) == list(FLAT_DATA_COLUMNS)
+    assert list(units.columns) == list(FLAT_UNIT_COLUMNS)
+    assert set(data["Matrix"]) == {"Z", "Y", "V", "E", "EY"}
 
 
 def test_parser_registry_supports_third_party_registration():

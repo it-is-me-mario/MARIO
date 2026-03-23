@@ -2,6 +2,20 @@
 
 from __future__ import annotations
 
+FLAT_DATA_COLUMNS = (
+    "Scenario",
+    "Matrix",
+    "Region_from",
+    "Level_from",
+    "Item_from",
+    "Region_to",
+    "Level_to",
+    "Item_to",
+    "Value",
+)
+
+FLAT_UNIT_COLUMNS = ("Level", "Item", "Unit")
+
 
 PYMRIO_EXPORT_LAYOUTS = {
     "E": dict(

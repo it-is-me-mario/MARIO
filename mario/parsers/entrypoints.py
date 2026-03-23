@@ -42,6 +42,7 @@ def parse_from_txt(
     source:str =None,
     model: str ="Database",
     sep: str = ",",
+    flat: bool = False,
     **kwargs,
 ):
     """Parse a database from a folder of text files.
@@ -80,6 +81,11 @@ def parse_from_txt(
     sep : str, Optional
         txt file separator
 
+    flat : bool, Optional
+        if True, parse the canonical long-format MARIO text export made of one
+        ``data`` file plus one ``units`` file. Otherwise parse the historical
+        matrix-per-file layout.
+
     Returns
     -------
     mario.Database
@@ -91,6 +97,7 @@ def parse_from_txt(
         table=table,
         mode=mode,
         sep=sep,
+        flat=flat,
         name=name,
         source=source,
         year=year,

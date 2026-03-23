@@ -3,6 +3,7 @@
 from mario.ops.aggregation import aggregate_database
 from mario.ops.export import (
     export_database_to_excel,
+    export_database_to_parquet,
     export_database_to_pymrio,
     export_database_to_txt,
 )
@@ -16,6 +17,7 @@ __all__ = [
     "aggregate_database",
     "build_new_instance_from_scenario",
     "export_database_to_excel",
+    "export_database_to_parquet",
     "export_database_to_pymrio",
     "export_database_to_txt",
     "transform_sut_to_iot",
