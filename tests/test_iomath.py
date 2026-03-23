@@ -1,4 +1,4 @@
-"""Mathematical Engine Tests"""
+"""Compute primitive tests."""
 
 import warnings
 warnings.filterwarnings("ignore",category=DeprecationWarning)
@@ -12,13 +12,13 @@ import sys
 import pandas as pd
 import numpy as np
 
-from mario.tools.constants import _ENUM
+from mario.model.conventions import _ENUM
 
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 from mario.test.mario_test import load_dummy
-from mario.tools.iomath import (
+from mario.compute.primitives import (
     calc_X,
     calc_Z,
     calc_w,

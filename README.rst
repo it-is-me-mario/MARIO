@@ -1,20 +1,13 @@
-
-.. image:: https://avatars.githubusercontent.com/u/121170888?s=400&u=4cec21e036afea744bef6886998fa302fca02ce0&v=4
-   :width: 100
-   :align: right
-
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
-    
+
 .. image:: https://readthedocs.org/projects/mario-suite/badge/?version=latest
     :target: https://mario-suite.readthedocs.io/en/latest/index.html
-    :alt: Documentation Status  
-    
+    :alt: Documentation Status
+
 .. image:: https://badge.fury.io/py/mariopy.svg
     :target: https://badge.fury.io/py/mariopy
-    
 
-   
 .. image:: https://zenodo.org/badge/421900437.svg
    :target: https://zenodo.org/badge/latestdoi/421900437
 
@@ -22,214 +15,269 @@
 MARIO
 *******
 
-Multifunctional Analysis of Regions through Input-Output.  (`Documents <https://mario-suite.readthedocs.io/en/latest/intro.html>`_)
+**MARIO** stands for **Multifunctional Analysis of Regions through Input-Output**.
+It is a Python package for reading, transforming, aggregating and computing on
+input-output tables (IOT) and supply-use tables (SUT).
+
+MARIO is not being rebuilt by discarding its established semantics. The current codebase
+keeps the historical MARIO conventions for matrices, indexes and table structure,
+while progressively moving the implementation toward a cleaner internal architecture.
+Today the repository exposes both:
+
+* the historical ``Database`` API, still used as the main public surface;
+* the new ``Dataset`` core, designed for modular parsing, storage and compute work.
+
+Documentation is available on `Read the Docs <https://mario-suite.readthedocs.io/en/latest/index.html>`_.
+The current restructuring direction is documented in
+`doc/architecture/mario2_restructure_plan.md <doc/architecture/mario2_restructure_plan.md>`_.
 
 
-What is it
------------
-**MARIO** is a python package for handling input-output tables and models inspired by `Pymrio  <https://github.com/IndEcol/pymrio>`_ .
-MARIO aims to provide a *simple* & *intuitive* API for common IO tasks without
-needing in-depth programming knowledge. MARIO supporst automatic parsing of different
-structured tables such EXIOBASE, EORA, EUROSTAT, and FIGARO in different formats namely:
+What MARIO Covers
+-----------------
 
-* Single region 
-* Multi region
-* Hybrid tables
-* Monetary tables
-* Input-Output tables
-* Supply-Use tables
+MARIO is built for common IO workflows such as:
 
-When databases are not structured, MARIO supports parsing data from xlsx, csv, txt files
-or pandas.DataFrames.
-
-More than parsing data, MARIO includes some basic functionalities:
-
-* Aggregation of databases
-* SUT to IOT transformation
-* Modifying database in terms of adding:
-   * New sectors, activities or commodities to the database
-   * Adding new extensions to the satellite account
-* Scneario and shock analysis
-* Backward and forward linkages analysis
-* Extracting single region database from multi region databases
-* Balance test 
-* Productivity test
-* Exporting the databases into different formats for scenarios analyzed
-* Interactive visualization routines
+* reading structured IOT and SUT datasets;
+* working with single-region and multi-region tables;
+* handling monetary and hybrid systems when supported by the parser;
+* computing missing matrices from dependency rules;
+* aggregating tables;
+* transforming SUT into IOT;
+* exporting to Excel, text formats and ``pymrio`` objects;
+* managing scenarios and shock-style variations;
+* extending the parser layer without editing the core package.
 
 
-Requirements
+Project Status
+--------------
+
+The current package has two complementary layers.
+
+``mario.Database``
+   The main user-facing API. This remains the primary public entry point
+   and the base for the workflows already documented in the project.
+
+``mario.Dataset``
+   The newer modular core. It separates model, compute, parser, storage,
+   operations more cleanly, while preserving the
+   same domain grammar used by the existing package.
+
+This means MARIO can evolve internally without forcing a full rewrite of user code.
+
+
+Installation
 ------------
 
-MARIO has been tested on macOS and Windows.
+The package name on PyPI is ``mariopy``, while the import name is ``mario``.
 
-To run MARIO, a couple of things are needed:
+Install from PyPI:
 
-#. Being in love with Input-Output :-)
-#. The Python programming language
-#. A number of Python adds-on packages
-#. MARIO software itself
+.. code-block:: bash
 
-************
-Installation
-************
+   pip install mariopy
 
-The easiest way to make MARIO software working is to use the free
-conda package manager which can install the current and future MARIO
-depencies in an easy and user friendly way.
+Install from source:
 
-To get conda, `download and install "Anaconda Distribution" <https://www.anaconda.com/products/individual>`_ 
-. Between differnet options for running python codes, we strongly suggest, `Spyder <https://www.spyder-ide.org/>`_, 
-which is  a free and open source scientific environment written in Python, for Python, and designed by and for scientists,
-engineers and data analysts.
+.. code-block:: bash
 
-You can install mario using pip or from source code. It is suggested to create a new environment by running the following command in the anaconda prompt
+   git clone https://github.com/it-is-me-mario/MARIO.git
+   cd MARIO
+   pip install -e .
 
-.. code-block:: python
+The core package depends mainly on ``pandas``, ``numpy``, ``openpyxl`` and
+``pymrio``. Some newer helpers are optional:
 
-   conda create -n mario python=3.10
+* ``polars`` for ``Dataset.to_polars(...)``
+* ``scipy`` for ``Dataset.to_sparse(...)``
+* ``pyarrow`` for Parquet-backed storage
+* ``duckdb`` for the optional DuckDB helper layer
 
-If you create a new environment for mario, to use it, you need to activate the mario environment each time by writing
-the following line in *Anaconda Prompt*
+From source, you can install the full optional stack with:
 
-.. code-block:: python
+.. code-block:: bash
 
-   conda activate mario
+   pip install -e ".[all]"
 
-Now you can use pip to install mario on your environment as follow:
 
-.. code-block:: python
+Quickstart: Legacy API
+----------------------
 
-  pip install mariopy
-
-You can also install from the source code!
-     
-**********
-Quickstart
-**********
-
-A simple test for Input-Output Table (IOT) and Supply-Use Table (SUT) is included in mario.
-
-To use the IOT test, call
+The historical ``Database`` API is still available and remains the easiest way
+to start if you already know MARIO.
 
 .. code-block:: python
 
    import mario
-   test_iot = mario.load_test('IOT')
 
-and to use the SUT test, call
+   db = mario.load_test("IOT")
 
-.. code-block:: python
+   print(db)
+   print(db.get_index("Region"))
 
-   test_sut = mario.load_test('SUT')
+   db.calc_all(["w"])
+   w = db.query(matrices=["w"], scenarios=["baseline"])
 
-To see the configurations of the data, you can print them:
+   db.to_excel(path="output_folder")
 
-.. code-block:: python
-
-   print(test_iot)
-   print(test_sut)
-
-To see specific sets of the tables like regions or value added,
-get_index function can be used:
+For SUT workflows, the classic transformation methods are still available:
 
 .. code-block:: python
 
-   print(test_iot.get_index('Region'))
-   print(test_sut.get_index('Factor of production'))
+   import mario
 
-To visualize some data, various plot functions can be used:
+   sut = mario.load_test("SUT")
+   iot = sut.to_iot(method="B")
 
-.. code-block:: python
 
-   test_iot.plot_matrix(....)
+Quickstart: Dataset Core
+------------------------
 
-Specific modifications on the database can be done, such as
-SUT to IOT transformation:
+The new ``Dataset`` API is useful when you want a cleaner programmatic core,
+scenario inheritance, pluggable parsers, or alternative storage backends.
 
-.. code-block:: python
-
-   reformed_iot = test.to_iot(method='B')
-
-The changes can be tracked by metadata. The history can be checked by calling:
+Build a dataset from an existing database:
 
 .. code-block:: python
 
-   reformed_iot.meta_history
+   import mario
 
-The new database can be saved into excel,txt or csv file:
+   db = mario.load_test("IOT")
+   dataset = mario.Dataset.from_database(db)
+
+   w = dataset.compute("w")
+   print(dataset.list_blocks())
+   print(dataset.explain("w"))
+
+Parse directly into a ``Dataset``:
 
 .. code-block:: python
 
-   reformed_iot.to_excel(path='a folder//database.xlsx')
+   import mario
 
-********
+   dataset = mario.parse_dataset_from_excel(
+       "mario/test/SUT.xlsx",
+       table="SUT",
+       mode="flows",
+       name="Demo SUT",
+   )
+
+   Z = dataset.compute("Z")
+   X = dataset.compute("X")
+
+Use a repository explicitly when you want persistent block storage:
+
+.. code-block:: python
+
+   from mario.model import Dataset, DatasetMetadata, TableKind
+   from mario.storage import ParquetBlockRepository
+
+   dataset = Dataset(
+       metadata=DatasetMetadata(table_kind=TableKind.IOT, name="Parquet demo"),
+       repository=ParquetBlockRepository("data/mario_blocks"),
+   )
+
+
+Parsers and Extensibility
+-------------------------
+
+The new parser layer is intentionally small. Third-party parsers can register
+themselves without editing the MARIO core.
+
+.. code-block:: python
+
+   from mario.model import Dataset, DatasetMetadata, TableKind
+   from mario.parsers import register_parser
+
+
+   @register_parser("my_parser")
+   def parse_my_parser(**kwargs):
+       return Dataset(
+           metadata=DatasetMetadata(
+               table_kind=TableKind.IOT,
+               name=kwargs.get("name"),
+           )
+       )
+
+Built-in dataset-oriented entry points currently include:
+
+* ``mario.parse_dataset("excel", ...)``
+* ``mario.parse_dataset_from_excel(...)``
+* ``mario.parse_dataset_exiobase_sut(...)``
+
+Parsers such as ``parse_from_excel`` and the existing EXIOBASE / EORA /
+EUROSTAT entry points remain available as well.
+
+
+Architecture Snapshot
+---------------------
+
+The repository is now organized around a few explicit layers:
+
+``mario.model``
+   ``Dataset``, ``Scenario``, metadata, labels and table enums.
+
+``mario.compute``
+   Compute catalog, dependency resolution, views and formula implementations.
+
+``mario.parsers``
+   Parser base classes, registry and parser adapters.
+
+``mario.storage``
+   In-memory and Parquet-backed block repositories, with DuckDB helpers prepared
+   for future work.
+
+``mario.ops``
+   Aggregation, export and transformation wrappers extracted from the monolithic
+   database classes.
+
+``mario.views``
+   Output-oriented views such as tabular rendering.
+
+Logging
+-------
+
+MARIO now keeps logging intentionally quiet by default. When enabled, internal
+messages use a minimal format and external dependency noise stays suppressed.
+
+.. code-block:: python
+
+   import mario
+
+   mario.set_log_verbosity("info")
+
+
+Development
+-----------
+
+Run the test suite with:
+
+.. code-block:: bash
+
+   pytest
+
+Format code with:
+
+.. code-block:: bash
+
+   black mario tests
+
+The package is under active development. The most stable public surface is still
+the historical ``Database`` API, while the modular ``Dataset`` core is the main
+direction for internal and future-facing work.
+
+
 Citation
-********
+--------
 
-In case you use mario, you should use our peer reviewed publication (`Tahavori, Golinucci, Rinaldi, et al. <https://openresearchsoftware.metajnl.com/articles/10.5334/jors.473>`_) for citiation!
+If you use MARIO in academic work, please cite the software paper:
 
+* `Tahavori, Golinucci, Rinaldi, et al. <https://openresearchsoftware.metajnl.com/articles/10.5334/jors.473>`_
 
-.. _RST pckgs:
-
-
-*********
-Read more
-*********
-
-Testing MARIO
--------------
-The current version of Mario has achieved a test coverage of 49%. This coverage includes a comprehensive 100% assessment of the fundamental mathematical engine. 
-Additional tests are currently in active development to enhance the package's reliability. 
-Mario utilizes `pytest <https://docs.pytest.org/en/7.4.x/>`_  as its primary tool for conducting unit tests. For a more detailed analysis of the test coverage pertaining to mario's unit tests, 
-you can execute the following command:
-
-.. code-block:: python
-
-   pytest --cov=mario tests/ 
-
-.. note::
-   * This project is under active development. 
-   * More examples will be uploaded through time to the gallery.
-   * More parsers will be added to the next version.
-
-
-Publications
-------------
-
-* Assessing environmental and market implications of steel decarbonisation strategies: a hybrid input-output model for the European Union (`Rinaldi et al, Environmental Research Letters, 2024  <https://doi.org/10.1088/1748-9326/ad5bf1>`_ )
-* Assessing critical materials demand in global energy transition scenarios based on the Dynamic Extraction and Recycling Input-Output framework (DYNERIO) (`Rinaldi et al, Resources Conservation adn Recycling, 2023  <https://www.sciencedirect.com/science/article/pii/S092134492300037X?via%3Dihub>`_ )
-* Three different directions in which the European Union could replace Russian natural gas (`Nikas et al, Energy, 2024 <https://www.sciencedirect.com/science/article/pii/S0360544224000252?via%3Dihub>`_ )
-* Investigating the economic and environmental impacts of a technological shift towards hydrogen-based solutions for steel manufacture in high-renewable electricity mix scenarios for Italy (`Marco Conte et al, IOP Conf. Ser.: Earth Environ. Sci., 2022 <https://iopscience.iop.org/article/10.1088/1755-1315/1106/1/012008>`_)
-
-
-Support Materials
------------------
-
-* `Input-Output analysis and modelling with MARIO Open University Course  <https://www.open.edu/openlearncreate/course/view.php?id=11723>`_ 
-  
+Selected application papers are listed in the documentation and project history.
 
 
 License
 -------
 
-.. image:: https://www.gnu.org/graphics/gplv3-or-later.png
-    :target: https://www.gnu.org/licenses/gpl-3.0.en.html
-
-
-This work is licensed under a `GNU GENERAL PUBLIC LICENSE <https://www.gnu.org/licenses/gpl-3.0.en.html>`_
-
-
-Supporting Institutions
------------------------
-
-.. image:: https://github.com/it-is-me-mario/MARIO/blob/pre-releasev0.3.0/doc/source/_static/images/enextgen.png?raw=true
-   :width: 120
-   :align: left
-   :target: https://www.enextgen.it/
-
-.. image:: https://raw.githubusercontent.com/it-is-me-mario/MARIO/7cc701e2e0f23d2cdc0f01c05d6c6e33b30b682e/doc/source/_static/images/polimi.svg
-   :width: 200
-   :align: left
-   :target: https://polimi.it/
-   
+MARIO is distributed under the
+`GNU General Public License v3.0 <https://www.gnu.org/licenses/gpl-3.0.en.html>`_.

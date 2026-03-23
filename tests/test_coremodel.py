@@ -7,13 +7,13 @@ import pytest
 import pandas.testing as pdt
 import pandas as pd
 
-from mario.tools.constants import _ENUM, _MASTER_INDEX
+from mario.model.conventions import _ENUM, _MASTER_INDEX
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 MAIN_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-from mario.core.CoreIO import CoreModel
+from mario.api.core_model import CoreModel
 from mario.test.mario_test import load_test
 from mario.log_exc.exceptions import DataMissing, LackOfInput, WrongInput, NotImplementable
 from mario import calc_Z
@@ -397,7 +397,7 @@ def test_cvxpy_exist():
     except ModuleNotFoundError:
         _cvxpy_here = False
 
-    from mario.core.CoreIO import __cvxpy__
+    from mario.api.core_model import __cvxpy__
 
     assert __cvxpy__ == _cvxpy_here
 

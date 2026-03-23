@@ -1,14 +1,15 @@
 import warnings
 warnings.filterwarnings("ignore",category=DeprecationWarning)
 
-from mario.tools.sectoradd import get_corresponding_keys,matrix_concat,fill_matrix
-from mario.tools.constants import _MASTER_INDEX,_ADD_SECTOR_SHEETS
-from mario.tools.database_builder import MatrixBuilder
+from mario.ops.sectoradd import get_corresponding_keys,matrix_concat,fill_matrix
+from mario.model.conventions import _MASTER_INDEX
+from mario.model.builders import MatrixBuilder
+from mario.ops.workbook_specs import ADD_SECTOR_SHEETS
 import pandas.testing as pdt
 import pandas as pd
 import pytest
 from mario import load_test
-from mario.tools.constants import _ENUM,_MASTER_INDEX
+from mario.model.conventions import _ENUM,_MASTER_INDEX
 
 @pytest.fixture()
 def CoreDataIOT():
@@ -22,7 +23,7 @@ def test_get_corresponding_keys():
     keys,counter_item = get_corresponding_keys(item)
 
     assert counter_item == _MASTER_INDEX["s"]
-    assert set(keys) == set([key for key in _ADD_SECTOR_SHEETS.keys() if key not in ["of"]])
+    assert set(keys) == set([key for key in ADD_SECTOR_SHEETS.keys() if key not in ["of"]])
 
     # case 2, Activity
     item = _MASTER_INDEX["a"]
@@ -30,7 +31,7 @@ def test_get_corresponding_keys():
     keys,counter_item = get_corresponding_keys(item)
 
     assert counter_item == _MASTER_INDEX["c"]
-    assert set(keys) == set([key for key in _ADD_SECTOR_SHEETS.keys() if key not in ["sf","it"]])
+    assert set(keys) == set([key for key in ADD_SECTOR_SHEETS.keys() if key not in ["sf","it"]])
 
     # case 3, Commodity
     item = _MASTER_INDEX["c"]
@@ -38,7 +39,7 @@ def test_get_corresponding_keys():
     keys,counter_item = get_corresponding_keys(item)
 
     assert counter_item == _MASTER_INDEX["a"]
-    assert set(keys) == set([key for key in _ADD_SECTOR_SHEETS.keys() if key not in ["sf","if"]])
+    assert set(keys) == set([key for key in ADD_SECTOR_SHEETS.keys() if key not in ["sf","if"]])
 
 
 def test_matrix_concat():

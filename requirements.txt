@@ -8,3 +8,7 @@ pytest
 pandas == 2.2.3
 pyyaml
 xlsxwriter == 3.2.0
+polars
+scipy
+duckdb
+pyarrow

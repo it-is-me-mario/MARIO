@@ -772,9 +772,9 @@ recaulcuation of the new matrices!
 
 .. parsed-literal::
 
-    WARNING:mario.core.AttrData:Using add extensions will rewrite the new results on the baseline and delete other scenarios
-    WARNING:mario.core.AttrData:baseline deleted from the database
-    WARNING:mario.core.CoreIO:Database: to calculate z following matrices are need.
+    WARNING:mario.api.database:Using add extensions will rewrite the new results on the baseline and delete other scenarios
+    WARNING:mario.api.database:baseline deleted from the database
+    WARNING:mario.api.core_model:Database: to calculate z following matrices are need.
     ['X'].Trying to calculate dependencies.
 
 

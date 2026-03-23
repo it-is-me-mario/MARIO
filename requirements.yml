@@ -1,1 +1,21 @@
-
+name: mario
+channels:
+  - conda-forge
+dependencies:
+  - python>=3.11
+  - numpy==2.1.1
+  - pandas==2.2.3
+  - plotly
+  - tabulate
+  - openpyxl==3.1.0
+  - ipython>=8.27.0
+  - pyyaml
+  - xlsxwriter==3.2.0
+  - pytest
+  - polars
+  - scipy
+  - pyarrow
+  - pip
+  - pip:
+      - pymrio
+      - duckdb

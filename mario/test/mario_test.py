@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
-"""
-a test for mario.Database
-"""
+"""Small packaged fixtures used by MARIO tests and examples."""
 
 from numpy import dtype, float64
-from mario.tools.parsersclass import parse_from_excel
-from mario.tools.constants import _ENUM
+from mario.parsers.entrypoints import parse_from_excel
+from mario.model.conventions import _ENUM
 
 
 import os
@@ -39,16 +37,17 @@ path = os.path.abspath(
 
 
 def load_test(table):
-    """Loads an example of mario.Database
+    """Load one of the packaged test databases.
 
-        Parameters
-        -----------
-        table: str
-            type of the table. 'IOT' or 'SUT'
-    s
-        Returns
-        -------
-        mario.Database
+    Parameters
+    ----------
+    table : str
+        Table kind to load. Accepted values are ``"IOT"`` and ``"SUT"``.
+
+    Returns
+    -------
+    mario.Database
+        Parsed test database ready for examples or tests.
     """
 
     return parse_from_excel(

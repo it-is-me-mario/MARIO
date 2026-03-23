@@ -170,7 +170,7 @@ an account, or take all the rows!
     
     DataFrame.groupby with axis=1 is deprecated. Do `frame.T.groupby(...)` without axis instead.
     
-    WARNING:mario.core.CoreIO:Database: to calculate v following matrices are need.
+    WARNING:mario.api.core_model:Database: to calculate v following matrices are need.
     ['X'].Trying to calculate dependencies.
 
 
@@ -471,7 +471,7 @@ solved then!
     
     DataFrame.groupby with axis=1 is deprecated. Do `frame.T.groupby(...)` without axis instead.
     
-    WARNING:mario.core.CoreIO:Database: to calculate v following matrices are need.
+    WARNING:mario.api.core_model:Database: to calculate v following matrices are need.
     ['X'].Trying to calculate dependencies.
 
 

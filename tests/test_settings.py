@@ -9,7 +9,7 @@ from copy import deepcopy
 from mario.log_exc.exceptions import WrongFormat
 
 
-from mario.tools.constants import _ENUM
+from mario.model.conventions import _ENUM
 from mario.settings.settings import Index, reset_settings
 from mario.settings.settings import download_settings,upload_settings
 

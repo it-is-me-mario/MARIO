@@ -694,7 +694,7 @@ of mario, you will find two variabls called \**"_MASTER_INDEX"*\* and
 
 .. code:: ipython3
 
-    from mario.tools.constants import _MASTER_INDEX,_ENUM
+    from mario.model.conventions import _MASTER_INDEX,_ENUM
 
 .. code:: ipython3
 

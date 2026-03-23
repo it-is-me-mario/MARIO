@@ -14,8 +14,8 @@ FILES_PATH = f"{MAIN_PATH}/tests/mocks/temp_files"
 
 from mario import hybrid_sut_exiobase
 from mario.log_exc.exceptions import WrongInput
-from mario.tools.constants import _MASTER_INDEX
-from mario.tools.parsers_id import hybrid_sut_exiobase_parser_id
+from mario.model.conventions import _MASTER_INDEX
+from mario.parsers.identifiers import hybrid_sut_exiobase_parser_id
 
 exiobase_files = {
     "MR_HUSE_2011_v3_3_18.csv":"https://zenodo.org/record/7244919/files/MR_HUSE_2011_v3_3_18.csv?download=1",

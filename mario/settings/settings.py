@@ -1,3 +1,5 @@
+"""Load, validate and override MARIO settings."""
+
 import yaml
 from mario.log_exc.logger import log_time
 import logging
@@ -5,7 +7,6 @@ import os
 import shutil
 from mario.log_exc.exceptions import WrongFormat
 import importlib
-import mario
 
 logger = logging.getLogger(__name__)
 path = os.path.abspath(
@@ -16,6 +17,8 @@ path = os.path.abspath(
 
 
 class Setting:
+    """Base wrapper around a validated settings section."""
+
     def __init__(self):
         self.setting = self._validate_dict(self.key, self.vars)
         self._check_duplicates()
@@ -91,6 +94,8 @@ class Setting:
 
 
 class Index(Setting):
+    """Expose the configured short codes for MARIO index levels."""
+
     def __init__(self):
         self.vars = list("racskfn")
         self.key = "index"
@@ -98,8 +103,7 @@ class Index(Setting):
 
 
 class Nomenclature(Setting):
-
-    """Nomenclature class, containing the nomenclature enums"""
+    """Expose the configured matrix names used across MARIO."""
 
     def __init__(self):
         self.vars = [
@@ -131,7 +135,7 @@ class Nomenclature(Setting):
 
 
 def download_settings(destination_path=None):
-    """returns the mario setting config
+    """Return the current MARIO settings dictionary.
 
     Parameters
     -----------
@@ -156,7 +160,7 @@ def download_settings(destination_path=None):
 
 
 def upload_settings(source):
-    """uploads a custom config to mario settings
+    """Replace the active MARIO settings with a custom configuration.
 
     Parameteres
     -----------
@@ -176,14 +180,15 @@ def upload_settings(source):
     else:
         raise WrongFormat("Only dict or a yaml file directory can be passed")
 
-    importlib.reload(mario.tools.constants)
+    import mario.model.conventions as conventions
+
+    importlib.reload(conventions)
 
 
 def reset_settings():
-    """reset the settings to original settings"""
+    """Restore the packaged default settings."""
 
     with open(f"{path}/original_settings.yaml", "r") as yml_file:
         file = yaml.safe_load(yml_file)
 
     upload_settings(file)
-    importlib.reload(mario.tools.constants)

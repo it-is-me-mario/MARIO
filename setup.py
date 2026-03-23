@@ -16,17 +16,10 @@ setup(
     license="GNU General Public License v3.0",
     #python_requires=">.3.7.0",
     include_package_data=True,
-    packages=[
-        "mario",
-        'mario/core',
-        'mario/log_exc',
-        'mario/test',
-        'mario/tools',
-        "mario/settings"
-    ],
+    packages=find_packages(include=("mario", "mario.*")),
     package_data={
         "mario/settings": ["*.yaml"],
-        'mario/tools': ["*.csv"],
+        "mario/parsers": ["*.csv"],
         "mario/test":["*.xlsx"],
         },
     install_requires=[
@@ -41,6 +34,22 @@ setup(
         "pyyaml"
 
     ],
+    extras_require={
+        "dataset": [
+            "polars",
+            "scipy",
+        ],
+        "storage": [
+            "duckdb",
+            "pyarrow",
+        ],
+        "all": [
+            "polars",
+            "scipy",
+            "duckdb",
+            "pyarrow",
+        ],
+    },
     # classifiers=[
     #     "Programming Language :: Python :: 3.7",
     #     "Programming Language :: Python :: 3.8",

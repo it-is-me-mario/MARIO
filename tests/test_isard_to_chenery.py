@@ -12,15 +12,15 @@ from pymrio import Extension,IOSystem
 import warnings
 warnings.simplefilter(action='ignore')
 
-from mario.tools.constants import _ENUM
+from mario.model.conventions import _ENUM
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 MAIN_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MOCK_PATH = f"{MAIN_PATH}/tests/mocks"
 
-from mario.core.CoreIO import CoreModel
-from mario.core.AttrData import Database
+from mario.api.core_model import CoreModel
+from mario.api.database import Database
 from mario.test.mario_test import load_test
 from mario.log_exc.exceptions import (
     WrongInput, 

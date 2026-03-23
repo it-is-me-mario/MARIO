@@ -47,12 +47,8 @@ Package dependencies:
 import pandas as pd
 
 from mario.version import __version__
-from mario.core.AttrData import Database
-from mario.core.CoreIO import CoreModel
-from mario.log_exc.logger import set_log_verbosity
-from mario.tools.database_builder import MatrixBuilder, DataTemplate
-
-from mario.tools.iomath import (
+from mario.api import Database, CoreModel
+from mario.compute.primitives import (
     calc_X,
     calc_Z,
     calc_w,
@@ -73,8 +69,10 @@ from mario.tools.iomath import (
     calc_y,
     calc_p,
 )
+from mario.log_exc.logger import set_log_verbosity
+from mario.model.builders import MatrixBuilder, DataTemplate
 
-from mario.tools.parsersclass import (
+from mario.parsers.entrypoints import (
     parse_from_txt,
     parse_from_excel,
     parse_exiobase_3,
@@ -87,12 +85,12 @@ from mario.tools.parsersclass import (
     parse_FIGARO_SUT,
 )
 
-from mario.tools.plots import set_palette
+from mario.views.plots import set_palette
 
 from mario.log_exc import exceptions
 from mario.test.mario_test import load_test
-from mario.tools.utilities import slicer
-from mario.tools.iodownloader import *
+from mario.utils import slicer
+from mario.download import *
 from mario.settings.settings import (
     upload_settings,
     download_settings,
@@ -101,12 +99,12 @@ from mario.settings.settings import (
     Index,
 )
 
-from mario.tools.handshake_parsers import (
+from mario.parsers.handshake import (
     parse_exiobase_3_9_4,
     parse_oecd
     )
 
-from mario.tools.constants import IOT, SUT
+from mario.model.conventions import IOT, SUT
 
 
 __authors__ = " 'Mohammad Amin Tahavori', Lorenzo Rinaldi', 'Nicolò Golinucci' "

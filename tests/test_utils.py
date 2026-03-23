@@ -14,9 +14,10 @@ import numpy as np
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
-from mario.tools import utilities as ut
+import mario.utils as ut
 from mario import load_test
-from mario.tools.constants import _ENUM, _INDEX_NAMES
+from mario.model.conventions import INDEX_NAME_LAYOUTS
+from mario.model.conventions import _ENUM
 from mario.log_exc.exceptions import WrongInput
 
 MAIN_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -218,8 +219,8 @@ def test_rename_index():
     ut.rename_index(_dict)
 
     for df in _dict.values():
-        assert tuple(df.columns.names) ==  _INDEX_NAMES["3levels"]
-        assert df.index.name ==  _INDEX_NAMES["1level"]
+        assert tuple(df.columns.names) == INDEX_NAME_LAYOUTS["3levels"]
+        assert df.index.name == INDEX_NAME_LAYOUTS["1level"]
 
 def test_to_single_index():
     index = pd.Index(['r1','r2'])
@@ -400,4 +401,3 @@ def test_all_file_reader():
     assert output["set2"].keys() == simple_file_no_subfolder["set2"].keys()
 
     
-

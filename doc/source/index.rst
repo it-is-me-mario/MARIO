@@ -11,5 +11,7 @@ Contents:
    contributors
    terminology
    settings
+   developer_guide
+   tutorials
    examples
    api_refernces

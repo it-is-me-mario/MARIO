@@ -48,6 +48,7 @@ extensions = [
     "sphinx_copybutton",
  
 ]
+nbsphinx_execute = "never"
 source_suffix = {
     ".rst": "restructuredtext",
     ".txt": "markdown",

@@ -1,50 +1,114 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Nov 20 11:44:48 2020
-
-@author: Mario team
-
-the log fucntion are taken from calliope code @ https://github.com/calliope-project/calliope
-"""
+"""Logging helpers for MARIO."""
 import logging
-import datetime
 import sys
+import warnings
 
-_time_format = "%Y-%m-%d %H:%M:%S"
+_MARIO_LOGGER = "mario"
+_LOG_FORMAT = "%(levelname)s %(message)s"
+_DEPENDENCY_LOGGERS = (
+    "asyncio",
+    "fontTools",
+    "matplotlib",
+    "numexpr",
+    "openpyxl",
+    "pandas",
+    "PIL",
+    "plotly",
+    "pymrio",
+    "requests",
+    "urllib3",
+)
+_DEPENDENCY_WARNING_FILTERS = (
+    {
+        "action": "ignore",
+        "category": DeprecationWarning,
+        "module": r"openpyxl\..*",
+    },
+    {
+        "action": "ignore",
+        "category": FutureWarning,
+        "module": r"pandas\..*",
+    },
+    {
+        "action": "ignore",
+        "category": FutureWarning,
+        "module": r"pymrio\..*",
+    },
+)
+
+_library_logger = logging.getLogger(_MARIO_LOGGER)
+if not any(isinstance(handler, logging.NullHandler) for handler in _library_logger.handlers):
+    _library_logger.addHandler(logging.NullHandler())
 
 
-def setup_root_logger(verbosity, capture_warnings):
+def _clear_handlers(logger):
+    for handler in list(logger.handlers):
+        logger.removeHandler(handler)
+
+
+def _configure_dependency_logging(include_dependency_logs: bool) -> None:
+    level = logging.NOTSET if include_dependency_logs else logging.CRITICAL
+    for name in _DEPENDENCY_LOGGERS:
+        dependency_logger = logging.getLogger(name)
+        _clear_handlers(dependency_logger)
+        dependency_logger.setLevel(level)
+        dependency_logger.propagate = include_dependency_logs
+        if not include_dependency_logs:
+            dependency_logger.addHandler(logging.NullHandler())
+
+
+def _configure_dependency_warnings(include_dependency_logs: bool) -> None:
+    if include_dependency_logs:
+        return
+
+    for rule in _DEPENDENCY_WARNING_FILTERS:
+        warnings.filterwarnings(**rule)
+
+
+def setup_root_logger(verbosity, capture_warnings, include_dependency_logs=False):
     root_logger = logging.getLogger()
+    mario_logger = logging.getLogger(_MARIO_LOGGER)
 
-    # Removing all the existing handlers
-    if root_logger.hasHandlers():
-        for handler in root_logger.handlers:
-            root_logger.removeHandler(handler)
+    _clear_handlers(root_logger)
+    _clear_handlers(mario_logger)
 
-    # Defining the formatter
-    formatter = logging.Formatter(
-        "[%(asctime)s] %(levelname)-8s: %(message)s", datefmt=_time_format
-    )
+    formatter = logging.Formatter(_LOG_FORMAT)
 
     console = logging.StreamHandler(stream=sys.stdout)
     console.setFormatter(formatter)
-    root_logger.addHandler(console)
-    root_logger.setLevel(verbosity.upper())
+    mario_logger.addHandler(console)
+    mario_logger.setLevel(verbosity.upper())
+    mario_logger.propagate = False
+
+    root_logger.setLevel(logging.CRITICAL)
+    _configure_dependency_logging(include_dependency_logs=include_dependency_logs)
+    _configure_dependency_warnings(include_dependency_logs=include_dependency_logs)
 
     if capture_warnings:
         logging.captureWarnings(True)
         pywarning_logger = logging.getLogger("py.warnings")
-        pywarning_logger.setLevel(verbosity.upper())
+        _clear_handlers(pywarning_logger)
+        pywarning_logger.setLevel(logging.WARNING if include_dependency_logs else logging.CRITICAL)
+        pywarning_logger.propagate = include_dependency_logs
+        if not include_dependency_logs:
+            pywarning_logger.addHandler(logging.NullHandler())
+    else:
+        logging.captureWarnings(False)
 
-    return root_logger
+    return mario_logger
 
 
 def log_time(logger, comment, level="info"):
     getattr(logger, level)(comment)
 
 
-def set_log_verbosity(verbosity="info", capture_warnings=True):
-    """Sets the formatted logging level
+def set_log_verbosity(
+    verbosity="info",
+    capture_warnings=False,
+    include_dependency_logs=False,
+):
+    """Configure MARIO logging verbosity and warning capture.
 
     Parameters
     ----------
@@ -53,10 +117,15 @@ def set_log_verbosity(verbosity="info", capture_warnings=True):
 
     capture_warnings : boolean
         if True, will capture the warnings even if the verbosity level is lower than warning
+
+    include_dependency_logs : boolean
+        if True, allows logs and captured warnings coming from external dependencies
     """
 
     if verbosity.upper() == "WARN":
         verbosity = "WARNING"
-    backend_logger = logging.getLogger("mario.core.AttrData")
-    backend_logger.setLevel(verbosity.upper())
-    setup_root_logger(verbosity=verbosity, capture_warnings=capture_warnings)
+    setup_root_logger(
+        verbosity=verbosity,
+        capture_warnings=capture_warnings,
+        include_dependency_logs=include_dependency_logs,
+    )
