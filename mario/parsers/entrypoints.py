@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from mario.api import Database
-from mario.log_exc.exceptions import WrongInput, LackOfInput
+from mario.log_exc.exceptions import WrongInput
 from mario.parsers.api import (
     build_database_from_state,
     validate_parse_request,
@@ -17,9 +17,8 @@ from mario.parsers.exiobase_hybrid import (
 )
 from mario.parsers.exiobase_iot import parse_exiobase_iot_monetary
 from mario.parsers.exiobase_sut import parse_exiobase_sut_monetary
+from mario.parsers.eora import parse_eora_single_region, parse_eora26
 from mario.parsers.tabular import (
-    eora_single_region,
-    eora_multi_region,
     parse_pymrio,
     parser_figaro_sut,
 )
@@ -306,7 +305,7 @@ def parse_exiobase_3(
 def parse_eora(
     path: str,
     multi_region: bool,
-    table: str,
+    table: str | None = None,
     indeces: str = None,
     name_convention: str = "full_name",
     aggregate_trade: bool = True,
@@ -314,6 +313,8 @@ def parse_eora(
     name: str = None,
     calc_all: bool = False,
     model: str = "Database",
+    country: str | None = None,
+    price: str | None = None,
     **kwargs,
 ) -> object:
     """Parse EORA data into a ``Database`` instance.
@@ -327,14 +328,18 @@ def parse_eora(
     Parameters
     ----------
     path : str
-        path to the zip file containing the database
+        path to one EORA file or dataset directory
 
     multi_region : bool
         True for eora26 else False
 
+    table : str, Optional
+        for multi-region datasets only ``IOT`` is supported. Single-region
+        parsing can infer the table type automatically when omitted.
+
     indeces : str
-        in case of multi_region database, the indeces.zip file path should be
-        given
+        optional path to the Eora26 label files. If omitted, the parser looks
+        for ``labels_*.txt`` files in ``path`` itself.
 
     name_convension : str
         will take the full names of countries if `full_name` otherwise, takes
@@ -343,6 +348,13 @@ def parse_eora(
     aggregate_trade : boolean
         if True, will aggregated all the trades into total imports and exports
         in single region database
+
+    country : str, Optional
+        when ``multi_region=False`` and ``path`` points to a directory, selects
+        the country file to parse.
+
+    price : str, Optional
+        optional price filter for single-region folder parsing.
 
     year : int, Optional
         for recording on the metadata
@@ -362,39 +374,48 @@ def parse_eora(
         raise WrongInput("Available models are {}".format([*models]))
 
     if multi_region:
-        if year is None or indeces is None:
-            raise LackOfInput(
-                "For multi region Eora, the year and indeces path should be defined"
-            )
-
-        if table == "SUT":
-            raise NotImplemented(
+        if table is None:
+            table = "IOT"
+        elif table == "SUT":
+            raise NotImplementedError(
                 "No handling of multiregional SUT from EORA is implemented yet"
             )
 
-        matrices, indeces, units = eora_multi_region(
-            data_path=path, index_path=indeces, year=year, price="bp"
-        )
+        matrices, indeces, units, layout = parse_eora26(path, index_path=indeces)
+        if year is not None and layout.year != year:
+            raise WrongInput(
+                f"The selected Eora26 dataset is for year {layout.year}, not {year}."
+            )
 
-        kwargs["notes"] = [
-            "ROW deleted from database due to inconsistency.",
-            "Intermediate imports from ROW added to VA matrix",
-            "Intermediate exports to ROW added to Y matrix",
-        ]
+        kwargs.setdefault("notes", list(layout.notes))
+        year = layout.year if year is None else year
+        source = layout.source
+        name = name or layout.dataset_name
+        price = layout.price
 
     else:
-        matrices, indeces, units = eora_single_region(
+        matrices, indeces, units, layout = parse_eora_single_region(
             path=path,
             table=table,
             name_convention=name_convention,
             aggregate_trade=aggregate_trade,
+            country=country,
+            year=year,
+            price=price,
         )
+        if table is None:
+            table = "SUT" if "a" in indeces else "IOT"
+        year = layout.year if year is None else year
+        source = layout.source
+        name = name or layout.dataset_name
+        price = layout.price
 
     return models[model](
         name=name,
         table=table,
         year=year,
-        source="Eora website @ https://www.worldmrio.com/",
+        source=source,
+        price=price,
         init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
         calc_all=calc_all,
         **kwargs,

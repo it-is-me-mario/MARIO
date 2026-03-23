@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-module contains dictionaries guiding the file reader for structured databases
-"""
-
-from mario.model.conventions import _MASTER_INDEX
+"""Static identifiers used by parsers that still rely on named raw layouts."""
 
 txt_parser_id = {
     "flows": {
@@ -39,67 +35,6 @@ txt_parser_id = {
         },
     },
 }
-
-
-eora = {
-    _MASTER_INDEX["s"]: ["Industries"],
-    _MASTER_INDEX["a"]: ["Industries"],
-    _MASTER_INDEX["c"]: ["Commodities"],
-    _MASTER_INDEX["f"]: ["Primary Inputs", "ImportsFrom"],
-    _MASTER_INDEX["n"]: ["Final Demand", "ExportsTo"],
-}
-
-eora_parser_id = {
-    "matrices": {
-        "Z": {
-            "file_name": "Eora26_{year}_{price}_T.txt",
-            "index_col": None,
-            "header": None,
-        },
-        "Y": {
-            "file_name": "Eora26_{year}_{price}_FD.txt",
-            "index_col": None,
-            "header": None,
-        },
-        "V": {
-            "file_name": "Eora26_{year}_{price}_VA.txt",
-            "index_col": None,
-            "header": None,
-        },
-        "E": {
-            "file_name": "Eora26_{year}_{price}_Q.txt",
-            "index_col": None,
-            "header": None,
-        },
-        "EY": {
-            "file_name": "Eora26_{year}_{price}_QY.txt",
-            "index_col": None,
-            "header": None,
-        },
-    },
-    "labels": {
-        "Z_i": {"file_name": "labels_T.txt", "index_col": [1, 2, 3], "header": None},
-        "Y_c": {"file_name": "labels_FD.txt", "index_col": [1, 2, 3], "header": None},
-        "V_i": {
-            "file_name": "labels_VA.txt",
-            "index_col": [
-                1,
-            ],
-            "header": None,
-        },
-        "E_i": {
-            "file_name": "labels_Q.txt",
-            "index_col": [
-                0,
-                1,
-            ],
-            "header": None,
-        },
-    },
-}
-
-
-# letters follow the _MASTER_INDEX definitions
 eurostat_id = {
     "a": [
         "Crop and animal production, hunting and related service activities",
