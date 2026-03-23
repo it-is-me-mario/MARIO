@@ -42,6 +42,12 @@ except ModuleNotFoundError:
     __cvxpy__ = False
 
 
+def _prune_eager_parser_blocks(matrices: dict[str, object]) -> dict[str, object]:
+    """Drop blocks that should remain demand-driven after parsing."""
+    matrices.pop(_ENUM.X, None)
+    return matrices
+
+
 def _resolver_module():
     """Import the resolver lazily to avoid circular imports at module load time."""
     from mario.compute import resolver as resolver_module
@@ -100,6 +106,7 @@ class CoreModel:
             for m, v in matrices.items():
                 renamed_matrices[_ENUM[m]] = v
 
+            renamed_matrices = _prune_eager_parser_blocks(renamed_matrices)
             kwargs["init_by_parsers"]["matrices"]["baseline"] = renamed_matrices
 
             for item in ["matrices", "units", "_indeces"]:
@@ -130,6 +137,7 @@ class CoreModel:
                 for m, v in matrices.items():
                     renamed_matrices[_ENUM[m]] = v
 
+                renamed_matrices = _prune_eager_parser_blocks(renamed_matrices)
                 self.matrices["baseline"] = renamed_matrices
 
                 self.meta._add_attribute(table=table, price=price)

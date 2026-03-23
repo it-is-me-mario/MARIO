@@ -71,8 +71,14 @@ def copy_units(units: dict[str, object] | None) -> dict[str, object]:
 def extract_baseline_blocks(matrices: dict[str, object]) -> dict[str, object]:
     """Extract the baseline block mapping from parser output payloads."""
     if "baseline" in matrices and isinstance(matrices["baseline"], dict):
-        return _copy_blocks(matrices["baseline"])
-    return _copy_blocks(matrices)
+        blocks = _copy_blocks(matrices["baseline"])
+    else:
+        blocks = _copy_blocks(matrices)
+
+    # Keep derived production blocks demand-driven after parsing so both
+    # Database and Dataset follow the same compute path.
+    blocks.pop("X", None)
+    return blocks
 
 
 def promote_sut_blocks(blocks: dict[str, object]) -> dict[str, object]:

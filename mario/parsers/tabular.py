@@ -17,7 +17,6 @@ from mario.utils import (
     extract_metadata_from_eurostat,
 )
 
-from mario.compute.primitives import calc_X, calc_X_from_w, calc_w, calc_X_from_z
 from mario.model.conventions import TABLE_UNIT_LEVELS
 from mario.parsers.specs import (
     EXIO_FACTOR_ROWS,
@@ -378,18 +377,7 @@ def txt_parser(path, table, mode, sep):
 
     # sorting the matrices
     sort_frames(read["matrices"])
-    log_time(
-        logger, "Parser: Parsing database finished. Calculating missing matrices.."
-    )
-    if mode == "flows":
-        read["matrices"]["X"] = calc_X(read["matrices"]["Z"], read["matrices"]["Y"])
-
-    else:
-        read["matrices"]["X"] = calc_X_from_w(
-            calc_w(read["matrices"]["z"]), read["matrices"]["Y"]
-        )
-
-    log_time(logger, "Parser: Production matrix calculated and added.")
+    log_time(logger, "Parser: parsing database finished.", "info")
 
     if "EY" not in read["matrices"]:
         log_time(
@@ -481,7 +469,6 @@ def excel_parser(path, table, mode, sheet_name, unit_sheet):
                 "v": V,
                 "e": E,
                 "Y": Y,
-                "X": calc_X_from_z(Z, Y),
                 "EY": EY,
             }
         }
@@ -492,7 +479,6 @@ def excel_parser(path, table, mode, sheet_name, unit_sheet):
                 "V": V,
                 "E": E,
                 "Y": Y,
-                "X": calc_X(Z, Y),
                 "EY": EY,
             }
         }
@@ -561,8 +547,6 @@ def exio3(path, version):
         for level, newindex in value.items():
             exec("read['matrices']['{}'].{} = newindex".format(matrix, level))
 
-    read["matrices"]["X"] = calc_X(read["matrices"]["Z"], read["matrices"]["Y"])
-
     # adding the missing units
     for item in ["f", "s"]:
         read["units"][_MASTER_INDEX[item]] = pd.DataFrame(
@@ -594,15 +578,12 @@ def dataframe_parser(Z, Y, E, V, EY, units, table):
     if not EY.index.equals(E.index) or not EY.columns.equals(Y.columns):
         raise WrongInput("EY has not the correct format.")
 
-    X = calc_X(Z, Y)
-
     matrices = {
         "baseline": {
             "Z": Z,
             "Y": Y,
             "V": V,
             "E": E,
-            "X": X,
             "EY": EY,
         }
     }
@@ -684,8 +665,6 @@ def monetary_sut_exiobase(path):
     E = pd.DataFrame(0, index=["-"], columns=V.columns)
     EY = pd.DataFrame(0, index=["-"], columns=Y.columns)
 
-    X = calc_X(Z, Y)
-
     indeces = {
         "r": {"main": delete_duplicates(c_index[0].to_list())},
         "n": {"main": delete_duplicates(n_index[2].to_list())},
@@ -728,7 +707,6 @@ def monetary_sut_exiobase(path):
             "E": E,
             "EY": EY,
             "Y": Y,
-            "X": X,
         }
     }
 
@@ -865,7 +843,6 @@ def eora_single_region(path, table, name_convention="full_name", aggregate_trade
             "E": E,
             "EY": EY,
             "Y": Y,
-            "X": calc_X(Z, Y),
         }
     }
 
@@ -1056,7 +1033,6 @@ def eora_multi_region(data_path, index_path, year, price):
             "E": E,
             "EY": new_EY,
             "Y": new_Y,
-            "X": calc_X(Z, Y),
         }
     }
 
@@ -1368,8 +1344,6 @@ def hybrid_sut_exiobase_reader(path, extensions):
     )
     Y = pd.concat([Y, y_lower])
 
-    X = calc_X(Z, Y)
-
     indeces = {
         "r": {"main": a_index.unique(0).tolist()},
         "n": {"main": n_index.unique(-1).tolist()},
@@ -1387,7 +1361,6 @@ def hybrid_sut_exiobase_reader(path, extensions):
             "E": E,
             "EY": EY,
             "Y": Y,
-            "X": X,
         }
     }
 
@@ -1469,8 +1442,6 @@ def parser_figaro_sut(path):
 
     EY = pd.DataFrame(0, index=["None"], columns=Y.columns)
 
-    X = calc_X(Z, Y)
-
     activities = Z.xs(_MASTER_INDEX.a, level=1).index.unique(-1).tolist()
     commodities = Z.xs(_MASTER_INDEX.c, level=1).index.unique(-1).tolist()
     final_consumption = Y.columns.unique(-1).tolist()
@@ -1508,7 +1479,6 @@ def parser_figaro_sut(path):
             "E": E,
             "EY": EY,
             "Y": Y,
-            "X": X,
         }
     }
 

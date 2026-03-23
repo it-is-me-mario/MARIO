@@ -23,6 +23,7 @@ from mario.model.conventions import _ENUM, _MASTER_INDEX
 
 def test_calc_all_iot_uses_catalog_path_for_missing_blocks():
     database = load_test("IOT")
+    assert _ENUM.X not in database["baseline"]
 
     database.calc_all([_ENUM.w])
 
@@ -35,6 +36,7 @@ def test_calc_all_iot_uses_catalog_path_for_missing_blocks():
 
 def test_calc_all_sut_resolves_unified_blocks_from_split_dependencies():
     database = load_test("SUT")
+    assert _ENUM.X not in database["baseline"]
 
     database.calc_all([_ENUM.z, _ENUM.u, _ENUM.s, _ENUM.w])
 

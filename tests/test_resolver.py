@@ -17,8 +17,12 @@ def test_build_plan_iot_resolves_dependency_order():
     iot = load_test("IOT")
     plan = build_plan("w", iot)
 
-    assert [step.key.name for step in plan] == ["z", "w"]
-    assert [step.strategy_kind for step in plan] == [StrategyKind.FORMULA, StrategyKind.FORMULA]
+    assert [step.key.name for step in plan] == ["X", "z", "w"]
+    assert [step.strategy_kind for step in plan] == [
+        StrategyKind.FORMULA,
+        StrategyKind.FORMULA,
+        StrategyKind.FORMULA,
+    ]
 
 
 def test_resolve_iot_materializes_expected_result():

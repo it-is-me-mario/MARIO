@@ -18,11 +18,13 @@ def test_parse_dataset_from_excel_iot_preserves_blocks_indexes_and_units():
 
     assert dataset.table_kind == TableKind.IOT
     assert dataset.metadata.extra["parser"] == "excel"
-    assert set(dataset.list_blocks()) == {"E", "EY", "V", "X", "Y", "Z"}
+    assert set(dataset.list_blocks()) == {"E", "EY", "V", "Y", "Z"}
+    assert not dataset.has_block("X")
     assert dataset.get_index("s") == tuple(database._indeces["s"]["main"])
 
     pdt.assert_frame_equal(dataset.get_block("Z"), database.Z)
     pdt.assert_frame_equal(dataset.get_block("Y"), database.Y)
+    pdt.assert_frame_equal(dataset.compute("X"), database.X)
     pdt.assert_frame_equal(dataset.get_units("s"), database.units["Sector"])
 
 
@@ -37,13 +39,18 @@ def test_parse_dataset_from_excel_sut_promotes_split_native_blocks():
 
     assert dataset.table_kind == TableKind.SUT
     assert not dataset.has_block("Z")
-    assert {"U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "Xa", "Xc", "EY"} <= set(dataset.list_blocks())
+    assert not dataset.has_block("X")
+    assert {"U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "EY"} <= set(dataset.list_blocks())
+    assert "Xa" not in dataset.list_blocks()
+    assert "Xc" not in dataset.list_blocks()
     assert dataset.get_index("a") == tuple(database._indeces["a"]["main"])
 
     pdt.assert_frame_equal(dataset.compute("Z"), database.Z)
     pdt.assert_frame_equal(dataset.compute("Y"), database.Y)
     pdt.assert_frame_equal(dataset.compute("V"), database.V)
     pdt.assert_frame_equal(dataset.compute("E"), database.E)
+    pdt.assert_frame_equal(dataset.compute("Xa"), database.Xa)
+    pdt.assert_frame_equal(dataset.compute("Xc"), database.Xc)
     pdt.assert_frame_equal(dataset.compute("X"), database.X)
     pdt.assert_frame_equal(dataset.get_units("a"), database.units["Activity"])
 
