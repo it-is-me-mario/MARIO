@@ -3,7 +3,9 @@ import pandas.testing as pdt
 from mario.internal import ModelState, ModelStateMetadata
 from mario.model.enums import TableKind
 from mario.parsers.excel import parse_state_from_excel
+from mario.parsers.txt import parse_state_from_txt
 from mario.parsers.registry import ParserRegistry, get_parser_registry, register_parser
+from mario.parsers.entrypoints import parse_from_excel, parse_from_txt
 from mario.test.mario_test import load_test
 
 
@@ -27,6 +29,20 @@ def test_parse_state_from_excel_iot_preserves_blocks_indexes_and_units():
     pdt.assert_frame_equal(state.get_block("Y"), database.Y)
     pdt.assert_frame_equal(state.compute("X"), database.X)
     pdt.assert_frame_equal(state.get_units("s"), database.units["Sector"])
+
+
+def test_parse_from_excel_sut_returns_split_native_baseline_blocks():
+    database = parse_from_excel(
+        path="mario/test/SUT.xlsx",
+        table="SUT",
+        mode="flows",
+        name="SUT dataset",
+    )
+
+    assert not database.is_hybrid
+    assert "Z" not in database["baseline"]
+    assert "X" not in database["baseline"]
+    assert {"U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "EY"} <= set(database["baseline"])
 
 
 def test_parse_state_from_excel_sut_promotes_split_native_blocks():
@@ -54,6 +70,47 @@ def test_parse_state_from_excel_sut_promotes_split_native_blocks():
     pdt.assert_frame_equal(state.compute("Xc"), database.Xc)
     pdt.assert_frame_equal(state.compute("X"), database.X)
     pdt.assert_frame_equal(state.get_units("a"), database.units["Activity"])
+
+
+def test_parse_state_from_txt_iot_roundtrip_preserves_blocks(tmp_path):
+    database = load_test("IOT")
+    database.to_txt(path=tmp_path, flows=True, coefficients=False, sep=",")
+
+    state = parse_state_from_txt(
+        path=str(tmp_path / "flows"),
+        table="IOT",
+        mode="flows",
+        name="IOT txt dataset",
+        sep=",",
+    )
+
+    assert state.table_kind == TableKind.IOT
+    assert set(state.list_blocks()) == {"E", "EY", "V", "Y", "Z"}
+    assert not state.has_block("X")
+    pdt.assert_frame_equal(state.get_block("Z"), database.Z)
+    pdt.assert_frame_equal(state.get_block("Y"), database.Y)
+    pdt.assert_frame_equal(state.compute("X"), database.X)
+
+
+def test_parse_from_txt_sut_roundtrip_returns_split_native_blocks(tmp_path):
+    database = load_test("SUT")
+    database.to_txt(path=tmp_path, flows=True, coefficients=False, sep=",")
+
+    parsed = parse_from_txt(
+        path=str(tmp_path / "flows"),
+        table="SUT",
+        mode="flows",
+        sep=",",
+        name="SUT txt dataset",
+    )
+
+    assert "Z" not in parsed["baseline"]
+    assert "X" not in parsed["baseline"]
+    assert {"U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "EY"} <= set(parsed["baseline"])
+    pdt.assert_frame_equal(parsed.Z, database.Z)
+    pdt.assert_frame_equal(parsed.Y, database.Y)
+    pdt.assert_frame_equal(parsed.V, database.V)
+    pdt.assert_frame_equal(parsed.E, database.E)
 
 
 def test_parser_registry_supports_third_party_registration():

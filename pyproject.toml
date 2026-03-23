@@ -4,3 +4,12 @@ requires = [
     "wheel"
 ]
 build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore:datetime\\.datetime\\.utcnow\\(\\) is deprecated.*:DeprecationWarning:openpyxl\\..*",
+    "ignore:Data Validation extension is not supported and will be removed:UserWarning",
+    "ignore:The 'axis' keyword in DataFrame\\.groupby is deprecated.*:FutureWarning",
+    "ignore:DataFrame\\.groupby with axis=1 is deprecated.*:FutureWarning",
+    "ignore:indexing past lexsort depth may impact performance\\.:pandas.errors.PerformanceWarning",
+]

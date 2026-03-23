@@ -20,12 +20,6 @@ import os
 import copy
 import re
 
-import warnings
-
-# Filter out the specific warning from openpyxl
-warning_message = "Data Validation extension is not supported and will be removed"
-warnings.filterwarnings("ignore", message=warning_message)
-
 # constants
 from mario.model.conventions import (
     _MASTER_INDEX,
@@ -562,7 +556,7 @@ class CoreModel:
         ):  # this avoid to calculate z or Z in case one of them is missing, to avoid losing time
             matrix = self.matrices[scenario][_ENUM.z]
         else:
-            matrix = self.matrices[scenario][_ENUM.Z]
+            matrix = self._get_matrix(_ENUM.Z, scenario=scenario, auto_calc=True)
 
         sN = slice(None)
         matrix = matrix.loc[
@@ -605,7 +599,7 @@ class CoreModel:
         ):  # this avoid to calculate z or Z in case one of them is missing, to avoid losing time
             matrix = self.matrices[scenario][_ENUM.z]
         else:
-            matrix = self.matrices[scenario][_ENUM.Z]
+            matrix = self._get_matrix(_ENUM.Z, scenario=scenario, auto_calc=True)
 
         sN = slice(None)
         matrix = matrix.loc[

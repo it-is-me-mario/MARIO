@@ -4,6 +4,11 @@ import logging
 import sys
 import warnings
 
+try:
+    from pandas.errors import PerformanceWarning as PandasPerformanceWarning
+except Exception:  # pragma: no cover - pandas is a hard dependency, this is just defensive
+    PandasPerformanceWarning = Warning
+
 _MARIO_LOGGER = "mario"
 _LOG_FORMAT = "%(levelname)s %(message)s"
 _DEPENDENCY_LOGGERS = (
@@ -34,6 +39,31 @@ _DEPENDENCY_WARNING_FILTERS = (
         "action": "ignore",
         "category": FutureWarning,
         "module": r"pymrio\..*",
+    },
+    {
+        "action": "ignore",
+        "category": UserWarning,
+        "message": r"Data Validation extension is not supported and will be removed",
+    },
+    {
+        "action": "ignore",
+        "category": DeprecationWarning,
+        "message": r".*datetime\.datetime\.utcnow\(\) is deprecated.*",
+        "module": r"openpyxl\..*",
+    },
+    {
+        "action": "ignore",
+        "category": FutureWarning,
+        "message": r"The 'axis' keyword in DataFrame\.groupby is deprecated.*",
+    },
+    {
+        "action": "ignore",
+        "category": FutureWarning,
+        "message": r"DataFrame\.groupby with axis=1 is deprecated.*",
+    },
+    {
+        "action": "ignore",
+        "category": PandasPerformanceWarning,
     },
 )
 
@@ -67,6 +97,15 @@ def _configure_dependency_warnings(include_dependency_logs: bool) -> None:
 
     for rule in _DEPENDENCY_WARNING_FILTERS:
         warnings.filterwarnings(**rule)
+
+
+def suppress_dependency_warnings(include_dependency_logs: bool = False) -> None:
+    """Apply MARIO's default warning suppression without configuring logging.
+
+    This keeps the package quiet even when users import and use MARIO without
+    ever calling ``set_log_verbosity(...)``.
+    """
+    _configure_dependency_warnings(include_dependency_logs=include_dependency_logs)
 
 
 def setup_root_logger(verbosity, capture_warnings, include_dependency_logs=False):
@@ -134,3 +173,6 @@ def set_log_verbosity(
         capture_warnings=capture_warnings,
         include_dependency_logs=include_dependency_logs,
     )
+
+
+suppress_dependency_warnings()
