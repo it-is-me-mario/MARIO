@@ -1,16 +1,13 @@
-"""Core model primitives for the parallel MARIO 2 architecture."""
+"""Public domain conventions and builders used by MARIO."""
 
 from __future__ import annotations
 
 from importlib import import_module
 
 __all__ = [
-    "Block",
     "BlockRole",
     "COMMODITY_ACTIVITY_LABEL",
     "DataTemplate",
-    "Dataset",
-    "DatasetMetadata",
     "INDEX_LABELS",
     "IOT",
     "ITEM_LABEL",
@@ -19,7 +16,6 @@ __all__ = [
     "SUT",
     "PRICE_INDEX_LABEL",
     "PRODUCTION_LABEL",
-    "Scenario",
     "TABLE_LEVEL_CODES",
     "TABLE_UNIT_CODES",
     "TableKind",
@@ -32,26 +28,6 @@ __all__ = [
 
 def __getattr__(name: str):
     """Resolve model exports lazily to keep import cost and cycles low."""
-    if name == "Block":
-        from mario.model.block import Block
-
-        return Block
-
-    if name == "Dataset":
-        from mario.model.dataset import Dataset
-
-        return Dataset
-
-    if name == "DatasetMetadata":
-        from mario.model.metadata import DatasetMetadata
-
-        return DatasetMetadata
-
-    if name == "Scenario":
-        from mario.model.scenario import Scenario
-
-        return Scenario
-
     if name in {"DataTemplate", "MatrixBuilder"}:
         module = import_module("mario.model.builders")
         return getattr(module, name)

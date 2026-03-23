@@ -1,13 +1,13 @@
-"""Simple registry for pluggable MARIO 2 parsers."""
+"""Simple registry for internal pluggable MARIO parsers."""
 
 from __future__ import annotations
 
 from collections.abc import Callable
 
-from mario.model import Dataset
+from mario.internal import ModelState
 from mario.parsers.base import BaseParser
 
-ParserEntry = BaseParser | Callable[..., Dataset]
+ParserEntry = BaseParser | Callable[..., ModelState]
 
 
 class ParserRegistry:
@@ -48,7 +48,7 @@ class ParserRegistry:
         """List registered parser names."""
         return tuple(sorted(self._parsers))
 
-    def parse(self, parser_name: str, **kwargs) -> Dataset:
+    def parse(self, parser_name: str, **kwargs) -> ModelState:
         """Resolve a parser and execute it."""
         parser = self.get(parser_name)
         parse_method = getattr(parser, "parse", None)

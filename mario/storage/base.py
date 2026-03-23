@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 
 
 class BlockRepository(ABC):
-    """Minimal repository interface used by the new Dataset model."""
+    """Minimal repository interface used by the internal block-state model."""
 
     @abstractmethod
     def has(self, key: str) -> bool:

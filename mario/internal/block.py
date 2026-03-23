@@ -1,4 +1,4 @@
-"""Block metadata for the new MARIO 2 model."""
+"""Stored block metadata used by the internal state model."""
 
 from __future__ import annotations
 
@@ -23,8 +23,8 @@ def _infer_role(name: str) -> BlockRole | None:
 
 
 @dataclass(frozen=True)
-class Block:
-    """Immutable metadata record describing one stored dataset block."""
+class StoredBlock:
+    """Immutable metadata record describing one stored internal block."""
 
     name: str
     scenario: str
@@ -43,8 +43,8 @@ class Block:
         storage_key: str,
         table_kind: TableKind,
         metadata: dict[str, object] | None = None,
-    ) -> "Block":
-        """Build a block record from a block name and dataset context."""
+    ) -> "StoredBlock":
+        """Build a stored-block record from context and a block name."""
         axes = None
         try:
             axes = get_matrix_spec(table_kind, name).axes

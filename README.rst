@@ -22,10 +22,9 @@ input-output tables (IOT) and supply-use tables (SUT).
 MARIO is not being rebuilt by discarding its established semantics. The current codebase
 keeps the historical MARIO conventions for matrices, indexes and table structure,
 while progressively moving the implementation toward a cleaner internal architecture.
-Today the repository exposes both:
-
-* the historical ``Database`` API, still used as the main public surface;
-* the new ``Dataset`` core, designed for modular parsing, storage and compute work.
+The public surface remains centered on ``mario.Database``. Internal restructuring
+is intentionally kept behind that facade instead of introducing a second primary
+user object.
 
 Documentation is available on `Read the Docs <https://mario-suite.readthedocs.io/en/latest/index.html>`_.
 The current restructuring direction is documented in
@@ -51,18 +50,14 @@ MARIO is built for common IO workflows such as:
 Project Status
 --------------
 
-The current package has two complementary layers.
+The current package has one official user-facing object model.
 
 ``mario.Database``
-   The main user-facing API. This remains the primary public entry point
-   and the base for the workflows already documented in the project.
+   The main public API. Parsing, computing, querying, transforming, aggregating,
+   exporting and scenario workflows should all be understood from this surface.
 
-``mario.Dataset``
-   The newer modular core. It separates model, compute, parser, storage,
-   operations more cleanly, while preserving the
-   same domain grammar used by the existing package.
-
-This means MARIO can evolve internally without forcing a full rewrite of user code.
+Internally, MARIO now uses more modular compute, parser, storage and operation
+layers, but those are implementation details rather than a second public API.
 
 
 Installation
@@ -87,10 +82,10 @@ Install from source:
 The core package depends mainly on ``pandas``, ``numpy``, ``openpyxl`` and
 ``pymrio``. Some newer helpers are optional:
 
-* ``polars`` for ``Dataset.to_polars(...)``
-* ``scipy`` for ``Dataset.to_sparse(...)``
-* ``pyarrow`` for Parquet-backed storage
-* ``duckdb`` for the optional DuckDB helper layer
+* ``polars`` for internal developer-facing dataframe conversions
+* ``scipy`` for internal sparse conversions
+* ``pyarrow`` for Parquet-backed storage helpers
+* ``duckdb`` for the optional DuckDB helper layer used in future storage/parser work
 
 From source, you can install the full optional stack with:
 
@@ -102,8 +97,7 @@ From source, you can install the full optional stack with:
 Quickstart: Legacy API
 ----------------------
 
-The historical ``Database`` API is still available and remains the easiest way
-to start if you already know MARIO.
+``Database`` remains the main and recommended way to use MARIO.
 
 .. code-block:: python
 
@@ -129,83 +123,21 @@ For SUT workflows, the classic transformation methods are still available:
    iot = sut.to_iot(method="B")
 
 
-Quickstart: Dataset Core
-------------------------
-
-The new ``Dataset`` API is useful when you want a cleaner programmatic core,
-scenario inheritance, pluggable parsers, or alternative storage backends.
-
-Build a dataset from an existing database:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.load_test("IOT")
-   dataset = mario.Dataset.from_database(db)
-
-   w = dataset.compute("w")
-   print(dataset.list_blocks())
-   print(dataset.explain("w"))
-
-Parse directly into a ``Dataset``:
-
-.. code-block:: python
-
-   import mario
-
-   dataset = mario.parse_dataset_from_excel(
-       "mario/test/SUT.xlsx",
-       table="SUT",
-       mode="flows",
-       name="Demo SUT",
-   )
-
-   Z = dataset.compute("Z")
-   X = dataset.compute("X")
-
-Use a repository explicitly when you want persistent block storage:
-
-.. code-block:: python
-
-   from mario.model import Dataset, DatasetMetadata, TableKind
-   from mario.storage import ParquetBlockRepository
-
-   dataset = Dataset(
-       metadata=DatasetMetadata(table_kind=TableKind.IOT, name="Parquet demo"),
-       repository=ParquetBlockRepository("data/mario_blocks"),
-   )
-
-
 Parsers and Extensibility
 -------------------------
 
-The new parser layer is intentionally small. Third-party parsers can register
-themselves without editing the MARIO core.
+The parser surface documented for users is still the ``Database``-returning one.
+The main entry points are:
 
-.. code-block:: python
+* ``mario.parse_from_excel(...)``
+* ``mario.parse_from_txt(...)``
+* ``mario.parse_exiobase_sut(...)``
+* ``mario.parse_exiobase_3(...)``
+* ``mario.parse_eora(...)``
+* ``mario.parse_eurostat_sut(...)``
 
-   from mario.model import Dataset, DatasetMetadata, TableKind
-   from mario.parsers import register_parser
-
-
-   @register_parser("my_parser")
-   def parse_my_parser(**kwargs):
-       return Dataset(
-           metadata=DatasetMetadata(
-               table_kind=TableKind.IOT,
-               name=kwargs.get("name"),
-           )
-       )
-
-Built-in dataset-oriented entry points currently include:
-
-* ``mario.parse_dataset("excel", ...)``
-* ``mario.parse_dataset_from_excel(...)``
-* ``mario.parse_dataset_exiobase_sut(...)``
-
-Parsers such as ``parse_from_excel`` and the existing EXIOBASE / EORA /
-EUROSTAT entry points remain available as well.
+Parser restructuring is ongoing internally, but user workflows should continue
+to target ``Database`` objects.
 
 
 Architecture Snapshot
@@ -214,17 +146,16 @@ Architecture Snapshot
 The repository is now organized around a few explicit layers:
 
 ``mario.model``
-   ``Dataset``, ``Scenario``, metadata, labels and table enums.
+   Shared domain conventions, labels, builders and table enums.
 
 ``mario.compute``
    Compute catalog, dependency resolution, views and formula implementations.
 
 ``mario.parsers``
-   Parser base classes, registry and parser adapters.
+   Database parser entry points plus lower-level parser adapters.
 
 ``mario.storage``
-   In-memory and Parquet-backed block repositories, with DuckDB helpers prepared
-   for future work.
+   Repository abstractions and storage helpers used internally by the modular core.
 
 ``mario.ops``
    Aggregation, export and transformation wrappers extracted from the monolithic
@@ -262,8 +193,9 @@ Format code with:
    black mario tests
 
 The package is under active development. The most stable public surface is still
-the historical ``Database`` API, while the modular ``Dataset`` core is the main
-direction for internal and future-facing work.
+``mario.Database``. Internal restructuring is focused on making that public API
+cleaner, faster and easier to maintain rather than replacing it with a new
+user-facing object.
 
 
 Citation

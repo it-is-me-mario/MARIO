@@ -1,4 +1,4 @@
-"""Dataset metadata for the new MARIO 2 model."""
+"""Metadata attached to the internal block-state model."""
 
 from __future__ import annotations
 
@@ -8,8 +8,8 @@ from mario.model.enums import TableKind
 
 
 @dataclass
-class DatasetMetadata:
-    """Serializable metadata attached to a ``Dataset``."""
+class ModelStateMetadata:
+    """Serializable metadata attached to an internal ``ModelState``."""
 
     table_kind: TableKind
     name: str | None = None
@@ -36,8 +36,8 @@ class DatasetMetadata:
         }
 
     @classmethod
-    def from_database_metadata(cls, metadata) -> "DatasetMetadata":
-        """Translate ``Database.meta`` into dataset metadata."""
+    def from_database_metadata(cls, metadata) -> "ModelStateMetadata":
+        """Translate ``Database.meta`` into internal state metadata."""
         return cls(
             table_kind=TableKind.coerce(metadata.table),
             name=getattr(metadata, "name", None),

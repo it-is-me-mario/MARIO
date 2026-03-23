@@ -1,13 +1,13 @@
-"""Dataset-oriented wrappers for EXIOBASE parsers."""
+"""Internal state-oriented wrappers for EXIOBASE parsers."""
 
 from __future__ import annotations
 
 import logging
 
 from mario.log_exc.logger import log_time
-from mario.model import Dataset
+from mario.internal import ModelState
 from mario.parsers.base import BaseParser
-from mario.parsers.helpers import build_dataset_from_parser_output
+from mario.parsers.helpers import build_state_from_parser_output
 from mario.parsers.registry import register_parser
 from mario.storage.base import BlockRepository
 from mario.parsers.tabular import monetary_sut_exiobase
@@ -21,7 +21,7 @@ EXIOBASE_SUT_SOURCE = (
 
 
 class ExiobaseSUTParser(BaseParser):
-    """Dataset parser for the monetary EXIOBASE SUT source format."""
+    """State parser for the monetary EXIOBASE SUT source format."""
 
     name = "exiobase_sut"
 
@@ -34,11 +34,11 @@ class ExiobaseSUTParser(BaseParser):
         year: int | None = None,
         price: str | None = None,
         repository: BlockRepository | None = None,
-    ) -> Dataset:
-        """Parse a monetary EXIOBASE SUT source into a canonical ``Dataset``."""
+    ) -> ModelState:
+        """Parse a monetary EXIOBASE SUT source into a canonical ``ModelState``."""
         log_time(logger, f"Parser: exiobase_sut reading from {path}.", "info")
         matrices, indexes, units = monetary_sut_exiobase(path)
-        dataset = build_dataset_from_parser_output(
+        state = build_state_from_parser_output(
             table="SUT",
             matrices=matrices,
             indexes=indexes,
@@ -52,12 +52,12 @@ class ExiobaseSUTParser(BaseParser):
             source_path=path,
             repository=repository,
         )
-        log_time(logger, "Parser: exiobase_sut dataset ready.", "info")
-        return dataset
+        log_time(logger, "Parser: exiobase_sut state ready.", "info")
+        return state
 
 
-def parse_dataset_exiobase_sut(path: str, **kwargs) -> Dataset:
-    """Convenience wrapper around ``ExiobaseSUTParser``."""
+def parse_state_exiobase_sut(path: str, **kwargs) -> ModelState:
+    """Convenience wrapper around ``ExiobaseSUTParser`` for internal use."""
     return ExiobaseSUTParser().parse(path=path, **kwargs)
 
 

@@ -13,17 +13,18 @@ currently works.
 Scope
 -----
 
-At the moment MARIO exposes two main object families:
+At the moment MARIO has one official public object family and one internal
+state substrate:
 
 ``mario.Database``
    The main public API. This is the object normal users interact with for
    parsing, computing, querying, transforming, aggregating, exporting and
    scenario management.
 
-``mario.Dataset``
-   The newer modular object used by the new internal core. It is the cleaner
-   abstraction for storage, block-level compute, repository backends and future
-   parser work.
+``mario.internal.ModelState``
+   The internal block-oriented state model used behind ``Database``. It is
+   useful for developers working on storage, block-level compute and parser
+   restructuring, but it is not presented as a second public API.
 
 The package is intentionally arranged so that:
 
@@ -58,8 +59,8 @@ The main modules to know are:
    Catalog-driven compute system. This is the current computational core.
 
 ``mario/parsers/``
-   Parser layer. Contains both the current ``Database`` parsers and the newer
-   pluggable ``Dataset`` parser stack.
+   Parser layer. Contains the current ``Database`` parsers plus the internal
+   parser components that materialize block-state objects.
 
 ``mario/ops/``
    Operations extracted from the old monolithic class methods. This is where
@@ -69,12 +70,13 @@ The main modules to know are:
    Tabular and plotting presentation helpers.
 
 ``mario/model/``
-   Domain-level conventions and shared data objects. This includes labels,
-   table conventions, block objects, scenarios, metadata and the ``Dataset``
-   abstraction.
+   Domain-level conventions and shared labels/builders.
+
+``mario/internal/``
+   Internal block records, scenarios, metadata and ``ModelState``.
 
 ``mario/storage/``
-   Repository abstractions for ``Dataset`` block storage.
+   Repository abstractions for internal block storage.
 
 ``mario/utils.py``
    Shared helper functions that do not belong to compute, parser or ops.
@@ -121,20 +123,20 @@ The most important public behaviors are:
 If a behavior is primarily about matrix/state management rather than a concrete
 business operation, it usually belongs in ``CoreModel``.
 
-``mario.Dataset``
-~~~~~~~~~~~~~~~~~
+``mario.internal.ModelState``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``Dataset`` is the block-oriented model introduced by the restructuring. It is
-not yet the default user object, but it already matters for developers because
-it expresses the architecture more cleanly:
+``ModelState`` is the block-oriented state object introduced by the
+restructuring. It matters for developers because it expresses the internal
+architecture more cleanly:
 
 * blocks are stored through a repository abstraction;
 * scenarios are explicit objects;
 * compute goes through the same resolver logic;
 * optional conversions exist for pandas, Polars and sparse matrices.
 
-Today ``Dataset`` is best understood as the new internal core and an advanced
-API surface, not as the primary public surface.
+Today ``ModelState`` should be understood as internal implementation substrate,
+not as a second public surface next to ``Database``.
 
 
 How ``Database`` Is Built
@@ -428,8 +430,8 @@ These entry points live in ``mario.parsers.entrypoints`` and mostly:
 2. delegate to lower-level parser functions in ``mario.parsers.tabular``;
 3. wrap the resulting matrices/indexes/units into a ``Database``.
 
-Dataset parsers
-~~~~~~~~~~~~~~~
+Internal state parsers
+~~~~~~~~~~~~~~~~~~~~~~
 
 The newer parser stack lives in:
 
@@ -439,9 +441,10 @@ The newer parser stack lives in:
 * ``mario.parsers.exiobase``
 * ``mario.parsers.helpers``
 
-This stack returns ``Dataset`` objects and supports parser registration. It is
-the right place for future parser restructuring work, especially once Polars
-and DuckDB become more central in the parser/storage path.
+This stack returns ``ModelState`` objects and supports internal parser
+registration. It is the right place for future parser restructuring work,
+especially once Polars and DuckDB become more central in the parser/storage
+path.
 
 Important current rule
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -458,10 +461,10 @@ For that reason, parser work should preserve the current domain grammar even if
 the internal mechanics change substantially.
 
 
-How ``Dataset`` and Storage Work
---------------------------------
+How Internal State and Storage Work
+-----------------------------------
 
-``Dataset`` stores named blocks through a repository abstraction.
+``ModelState`` stores named blocks through a repository abstraction.
 
 Current repositories:
 
@@ -477,14 +480,15 @@ Optional helpers:
    Currently only exposes an optional import helper. DuckDB is not yet a
    primary execution backend.
 
-``Dataset`` is therefore already useful for:
+``ModelState`` is therefore already useful for:
 
 * block-oriented storage;
 * explainable compute;
 * alternative repositories;
 * future parser/storage work.
 
-But it is not yet the default path for everyday users.
+But it is not a user-facing path. Everyday workflows should still be described
+through ``Database``.
 
 
 Optional Dependencies
@@ -493,10 +497,10 @@ Optional Dependencies
 Some newer dependencies are currently optional and only used in specific places.
 
 ``polars``
-   Used by ``Dataset.to_polars(...)``.
+   Used by ``ModelState.to_polars(...)``.
 
 ``scipy``
-   Used by ``Dataset.to_sparse(...)``.
+   Used by ``ModelState.to_sparse(...)``.
 
 ``pyarrow``
    Required in practice for Parquet-backed repositories through pandas parquet
@@ -537,11 +541,11 @@ Add a new high-level database operation
    Implement it in ``mario.ops`` and keep ``Database`` as a thin facade.
 
 Add a new parser
-   Prefer the ``Dataset`` parser registry in ``mario.parsers`` unless the
+   Prefer the internal parser registry in ``mario.parsers.registry`` unless the
    feature explicitly belongs to the current ``Database`` parser surface.
 
 Add a new storage backend
-   Implement a repository in ``mario.storage`` and keep ``Dataset`` as the
+   Implement a repository in ``mario.storage`` and keep ``ModelState`` as the
    consumer.
 
 Add a new public convenience import
@@ -698,21 +702,21 @@ Polars, DuckDB and Parquet usage, but only after preserving the existing domain
 grammar first.
 
 
-Dataset Notes for Developers
-----------------------------
+Internal State Notes for Developers
+-----------------------------------
 
-``Dataset`` is already useful today as a clearer expression of the internal
+``ModelState`` is already useful today as a clearer expression of the internal
 architecture, even though ``Database`` remains the main user object.
 
-Developers should reach for ``Dataset`` when they want:
+Developers should reach for ``ModelState`` when they want:
 
 * repository-backed block storage;
-* scenario inheritance with explicit ``Scenario`` objects;
+* scenario inheritance with explicit scenario objects;
 * block-by-block compute without the heavier ``Database`` facade;
 * experimental storage backends or parser outputs.
 
 Developers should not yet assume that all ``Database``-level workflows have
-equivalent high-level ``Dataset`` convenience methods. ``Dataset`` is the
+equivalent high-level ``ModelState`` convenience methods. ``ModelState`` is the
 cleaner internal core, but the richest user experience still lives in
 ``Database``.
 

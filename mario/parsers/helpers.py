@@ -1,4 +1,4 @@
-"""Helpers that adapt parser outputs into the MARIO 2 Dataset model."""
+"""Helpers that adapt parser outputs into the internal MARIO state model."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ from mario.compute.views import (
     extract_vc_from_v,
 )
 from mario.log_exc.logger import log_time
-from mario.model import Dataset, DatasetMetadata
+from mario.internal import ModelState, ModelStateMetadata
 from mario.model.enums import TableKind
 from mario.storage.base import BlockRepository
 from mario.storage.repository import InMemoryBlockRepository
@@ -76,7 +76,7 @@ def extract_baseline_blocks(matrices: dict[str, object]) -> dict[str, object]:
         blocks = _copy_blocks(matrices)
 
     # Keep derived production blocks demand-driven after parsing so both
-    # Database and Dataset follow the same compute path.
+    # Database and the internal state follow the same compute path.
     blocks.pop("X", None)
     return blocks
 
@@ -133,7 +133,7 @@ def promote_sut_blocks(blocks: dict[str, object]) -> dict[str, object]:
     return promoted
 
 
-def build_dataset_from_parser_output(
+def build_state_from_parser_output(
     *,
     table: TableKind | str,
     matrices: dict[str, object],
@@ -147,12 +147,12 @@ def build_dataset_from_parser_output(
     price: str | None = None,
     source_path: str | Path | None = None,
     repository: BlockRepository | None = None,
-) -> Dataset:
-    """Build a canonical ``Dataset`` from normalized parser output."""
+) -> ModelState:
+    """Build a canonical internal ``ModelState`` from normalized parser output."""
     table_kind = TableKind.coerce(table)
-    log_time(logger, f"Parser: building dataset payload for {table_kind.value}.", "debug")
+    log_time(logger, f"Parser: building state payload for {table_kind.value}.", "debug")
 
-    metadata = DatasetMetadata(
+    metadata = ModelStateMetadata(
         table_kind=table_kind,
         name=name,
         source=source,
@@ -166,7 +166,7 @@ def build_dataset_from_parser_output(
         metadata.extra["source_path"] = str(Path(source_path))
     metadata.add_history(f"Parsed with {parser_name}.")
 
-    dataset = Dataset(
+    state = ModelState(
         metadata=metadata,
         repository=repository or InMemoryBlockRepository(),
         indexes=copy_indexes(indexes),
@@ -177,11 +177,11 @@ def build_dataset_from_parser_output(
     canonical_blocks = parsed_blocks if table_kind == TableKind.IOT else promote_sut_blocks(parsed_blocks)
 
     for block_name, value in canonical_blocks.items():
-        dataset.set_block(block_name, value)
+        state.set_block(block_name, value)
 
     log_time(
         logger,
-        f"Parser: dataset payload ready with {len(canonical_blocks)} canonical blocks.",
+        f"Parser: state payload ready with {len(canonical_blocks)} canonical blocks.",
         "info",
     )
-    return dataset
+    return state

@@ -1,4 +1,4 @@
-"""Dataset model for the new MARIO 2 architecture."""
+"""Internal block-oriented state model backing the new MARIO core."""
 
 from __future__ import annotations
 
@@ -9,12 +9,12 @@ import pandas as pd
 
 from mario.compute.resolver import Resolver
 from mario.compute.types import ResolutionContext
+from mario.internal.block import StoredBlock
+from mario.internal.metadata import ModelStateMetadata
+from mario.internal.scenario import ScenarioState
 from mario.log_exc.logger import log_time
-from mario.model.block import Block
 from mario.model.enums import TableKind
 from mario.model.labels import INDEX_LABELS
-from mario.model.metadata import DatasetMetadata
-from mario.model.scenario import Scenario
 from mario.storage.base import BlockRepository
 from mario.storage.repository import InMemoryBlockRepository
 
@@ -55,12 +55,12 @@ def _copy_units(units: dict[str, object] | None) -> dict[str, object]:
 
 
 @dataclass
-class Dataset:
-    """Block-oriented data model backing the new MARIO core."""
+class ModelState:
+    """Internal block-oriented state model used behind public MARIO APIs."""
 
-    metadata: DatasetMetadata
+    metadata: ModelStateMetadata
     repository: BlockRepository = field(default_factory=InMemoryBlockRepository)
-    scenarios: dict[str, Scenario] = field(default_factory=dict)
+    scenarios: dict[str, ScenarioState] = field(default_factory=dict)
     indexes: dict[str, dict[str, tuple[object, ...]]] = field(default_factory=dict)
     units: dict[str, object] = field(default_factory=dict)
 
@@ -69,19 +69,19 @@ class Dataset:
         self.indexes = _normalize_indexes(self.indexes)
         self.units = _copy_units(self.units)
         if "baseline" not in self.scenarios:
-            self.scenarios["baseline"] = Scenario(name="baseline")
-        log_time(logger, f"Dataset: initialized for {self.table_kind.value}.", "debug")
+            self.scenarios["baseline"] = ScenarioState(name="baseline")
+        log_time(logger, f"ModelState: initialized for {self.table_kind.value}.", "debug")
 
     @property
     def table_kind(self) -> TableKind:
-        """Return the table kind declared by the dataset metadata."""
+        """Return the table kind declared by the state metadata."""
         return self.metadata.table_kind
 
     def list_scenarios(self) -> tuple[str, ...]:
-        """List all scenario names currently defined on the dataset."""
+        """List all scenario names currently defined on the state."""
         return tuple(self.scenarios)
 
-    def create_scenario(self, name: str, parent: str | None = "baseline") -> Scenario:
+    def create_scenario(self, name: str, parent: str | None = "baseline") -> ScenarioState:
         """Create a new scenario with optional parent inheritance."""
         if name in self.scenarios:
             raise ValueError(f"Scenario {name!r} already exists.")
@@ -89,17 +89,17 @@ class Dataset:
         if parent is not None and parent not in self.scenarios:
             raise KeyError(parent)
 
-        scenario = Scenario(name=name, parent=parent)
+        scenario = ScenarioState(name=name, parent=parent)
         self.scenarios[name] = scenario
-        log_time(logger, f"Dataset: scenario {name} created.", "info")
+        log_time(logger, f"ModelState: scenario {name} created.", "info")
         return scenario
 
-    def _scenario_chain(self, scenario: str) -> list[Scenario]:
+    def _scenario_chain(self, scenario: str) -> list[ScenarioState]:
         """Return the inheritance chain used to resolve scenario-local blocks."""
         if scenario not in self.scenarios:
             raise KeyError(scenario)
 
-        chain: list[Scenario] = []
+        chain: list[ScenarioState] = []
         current = self.scenarios[scenario]
         seen: set[str] = set()
         while current is not None:
@@ -128,11 +128,11 @@ class Dataset:
         return False
 
     def get_index(self, code: str, level: str = "main") -> tuple[object, ...]:
-        """Return one logical index level stored on the dataset."""
+        """Return one logical index level stored on the state."""
         return tuple(self.indexes[code][level])
 
     def set_index(self, code: str, values, level: str = "main") -> None:
-        """Store one logical index level on the dataset."""
+        """Store one logical index level on the state."""
         levels = self.indexes.setdefault(code, {})
         levels[level] = tuple(values)
 
@@ -147,7 +147,7 @@ class Dataset:
         label = INDEX_LABELS.get(code_or_label, code_or_label)
         self.units[label] = value.copy(deep=True) if hasattr(value, "copy") else value
 
-    def _resolve_block_record(self, name: str, scenario: str = "baseline") -> Block:
+    def _resolve_block_record(self, name: str, scenario: str = "baseline") -> StoredBlock:
         """Return the block metadata record visible from one scenario chain."""
         for item in self._scenario_chain(scenario):
             if item.has_local_block(name):
@@ -165,14 +165,14 @@ class Dataset:
         value,
         scenario: str = "baseline",
         metadata: dict[str, object] | None = None,
-    ) -> Block:
+    ) -> StoredBlock:
         """Store a block value and register its metadata in the scenario."""
         if scenario not in self.scenarios:
             self.create_scenario(scenario, parent="baseline" if scenario != "baseline" else None)
 
         storage_key = _storage_key(scenario, name)
         self.repository.put(storage_key, value)
-        block = Block.from_name(
+        block = StoredBlock.from_name(
             name=name,
             scenario=scenario,
             storage_key=storage_key,
@@ -180,7 +180,7 @@ class Dataset:
             metadata=metadata,
         )
         self.scenarios[scenario].set_block(block)
-        log_time(logger, f"Dataset: block {name} stored in {scenario}.", "debug")
+        log_time(logger, f"ModelState: block {name} stored in {scenario}.", "debug")
         return block
 
     def compute(
@@ -191,7 +191,7 @@ class Dataset:
     ):
         """Resolve one or more blocks through the compute resolver."""
         requested = name if isinstance(name, str) else ", ".join(name)
-        log_time(logger, f"Dataset: compute {requested} for {scenario}.", "info")
+        log_time(logger, f"ModelState: compute {requested} for {scenario}.", "info")
         resolver = Resolver(self, scenario=scenario, context=context)
         if isinstance(name, str):
             return resolver.resolve(name)
@@ -199,7 +199,7 @@ class Dataset:
 
     def explain(self, name: str, scenario: str = "baseline", context: ResolutionContext | None = None) -> str:
         """Return a dependency explanation for one block."""
-        log_time(logger, f"Dataset: explain {name} for {scenario}.", "debug")
+        log_time(logger, f"ModelState: explain {name} for {scenario}.", "debug")
         return Resolver(self, scenario=scenario, context=context).explain(name)
 
     def to_pandas(self, name: str, scenario: str = "baseline"):
@@ -219,49 +219,44 @@ class Dataset:
         return pl.from_pandas(value)
 
     def to_sparse(self, name: str, scenario: str = "baseline"):
-        """Convert a numeric block into a SciPy CSR sparse matrix."""
+        """Convert a pandas-backed block into a SciPy sparse matrix."""
         from scipy import sparse
 
         value = self.to_pandas(name, scenario=scenario)
         if isinstance(value, pd.Series):
-            return sparse.csr_matrix(value.to_numpy().reshape(-1, 1))
+            value = value.to_frame(name=value.name if value.name is not None else "__value__")
         return sparse.csr_matrix(value.to_numpy())
 
     def validate(self) -> dict[str, object]:
-        """Return a lightweight structural validation report."""
-        report = {
+        """Return a lightweight validation summary of the current state."""
+        return {
             "table_kind": self.table_kind.value,
+            "scenarios": self.list_scenarios(),
             "indexes": tuple(sorted(self.indexes)),
-            "scenarios": {},
             "units": tuple(sorted(self.units)),
+            "blocks": {scenario: self.list_blocks(scenario) for scenario in self.list_scenarios()},
         }
-        for scenario in self.list_scenarios():
-            report["scenarios"][scenario] = {
-                "parent": self.scenarios[scenario].parent,
-                "blocks": self.list_blocks(scenario),
-            }
-        return report
 
     @classmethod
-    def from_database(cls, database, repository: BlockRepository | None = None) -> "Dataset":
-        """Build a dataset by importing all materialized blocks from a Database."""
-        log_time(logger, "Dataset: importing database.", "info")
-        metadata = DatasetMetadata.from_database_metadata(database.meta)
-        dataset = cls(
+    def from_database(cls, database, repository: BlockRepository | None = None) -> "ModelState":
+        """Build an internal state object by importing a ``Database``."""
+        log_time(logger, "ModelState: importing database.", "info")
+        metadata = ModelStateMetadata.from_database_metadata(database.meta)
+        state = cls(
             metadata=metadata,
             repository=repository or InMemoryBlockRepository(),
-            indexes=_normalize_indexes(getattr(database, "_indeces", {})),
-            units=_copy_units(getattr(database, "units", {})),
+            indexes=database._indeces,
+            units=database.units,
         )
-        dataset.scenarios = {}
 
-        for scenario_name in database.scenarios:
-            dataset.scenarios[scenario_name] = Scenario(name=scenario_name)
-            for block_name, value in database[scenario_name].items():
-                dataset.set_block(block_name, value, scenario=scenario_name)
+        for scenario_name, blocks in database.matrices.items():
+            if scenario_name not in state.scenarios:
+                state.scenarios[scenario_name] = ScenarioState(name=scenario_name)
+            for block_name, value in blocks.items():
+                state.set_block(block_name, value, scenario=scenario_name)
 
-        if "baseline" not in dataset.scenarios:
-            dataset.scenarios["baseline"] = Scenario(name="baseline")
+        if "baseline" not in state.scenarios:
+            state.scenarios["baseline"] = ScenarioState(name="baseline")
 
-        log_time(logger, "Dataset: database import completed.", "info")
-        return dataset
+        log_time(logger, "ModelState: database import completed.", "info")
+        return state
