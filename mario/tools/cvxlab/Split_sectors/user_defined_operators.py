@@ -81,6 +81,7 @@ Example implementation::
 """
 import numpy as np
 import cvxpy as cp
+from scipy import sparse as sp
 
 
 def entropy(A,A0):
@@ -93,4 +94,66 @@ def entropy(A,A0):
         entropy(A,A0) = rel_entr(A,A0) = A * log(A / A0)
     """
     #Not used kl_div because it includes -A + A0 terms
-    return cp.rel_entr(A,A0) 
+    #Scipy function rel_entr is equivalent to A * log(A / A0) and is 0 when A=0
+    return cp.rel_entr(A+0.00001,A0+0.00001) 
+
+
+def block_diag(
+        matrix: cp.Parameter | cp.Expression,
+        n: cp.Parameter | None = None,
+) -> cp.Parameter:
+    """Return the matrix itself, or a block-diagonal matrix with the matrix repeated n times.
+
+    Args:
+        matrix (cp.Parameter | cp.Expression): The input matrix (must be 2-D).
+        n (int | None): Number of times to repeat the matrix on the diagonal.
+            If None or not provided, the matrix is returned unchanged.
+
+    Returns:
+        cp.Parameter: The original matrix if n is None, otherwise
+            a block-diagonal cp.Parameter of shape (rows*n, cols*n) with the input
+            matrix on each diagonal block and zeros elsewhere.
+
+    Raises:
+        ValueError: If matrix is not 2-D or n is not a positive integer.
+    """
+    if n is None:
+        return matrix
+    
+    if hasattr(n, 'value'):
+        n = n.value  # unwrap cp.Constant / cp.Parameter
+    if not len(n) == 1:
+        raise ValueError(
+            f"N must be a scalar. Passed dimension: '{len(n)}'.")
+    n = int(n[0][0])
+
+    # --- validation ---
+    if matrix.ndim != 2:
+        raise ValueError(
+            f"matrix must be 2-D, got shape {matrix.shape}"
+        )
+    if not isinstance(n, int) or n < 1:
+        raise ValueError(
+            f"n must be a positive integer, got {n!r}"
+        )
+
+    if n == 1:
+        return matrix
+
+    # --- build the block-diagonal value ---
+    raw = matrix.value  # scipy sparse or numpy array
+
+    if raw is None:
+        raise ValueError(
+            "matrix.value is None — the Parameter must have a value assigned "
+            "before calling block_diag."
+        )
+
+    # Normalise to sparse so block_diag always returns a sparse matrix.
+    # This preserves efficiency for large, mostly-zero matrices.
+    if not sp.issparse(raw):
+        raw = sp.csr_matrix(raw)
+
+    result = sp.block_diag([raw] * n, format="csr").toarray()
+    
+    return cp.Constant(result)

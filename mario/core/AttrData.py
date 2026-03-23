@@ -1806,7 +1806,7 @@ class Database(CoreModel):
         cvxlab_path=None,
         input_data_files_type: str = 'xlsx',
         only_input_data_gen: bool = False,
-        solver_parameter=None,
+        solver_parameters=None,
     ):        
         """
         Adds inventories to the database as new sectors/commodities/activities.
@@ -1841,7 +1841,7 @@ class Database(CoreModel):
                 cvxlab_path=cvxlab_path,
                 input_data_files_type=input_data_files_type,
                 only_input_data_gen=only_input_data_gen,
-                solver_parameter=solver_parameter,
+                solver_parameters=solver_parameters,
             )
             
             return new
@@ -1943,7 +1943,7 @@ class Database(CoreModel):
                         model_settings_from="xlsx",
                         scenario=scenario,
                         input_data_files_type=input_data_files_type,
-                        solver_parameter=solver_parameter)
+                        solver_parameters=solver_parameters)
                     log_time(logger,f"Cvxlab files filling completed.")
                 else:
                     optimized_matrices=_optimize_in_cvxlab(
@@ -1955,7 +1955,7 @@ class Database(CoreModel):
                         model_settings_from="xlsx",
                         scenario=scenario,
                         input_data_files_type=input_data_files_type,
-                        solver_parameter=solver_parameter,)
+                        solver_parameters=solver_parameters,)
                     log_time(logger,f"Sector splitting optimization in cvxlab completed.")
                     
                     self.matrices['split_cvxlab'] = {}

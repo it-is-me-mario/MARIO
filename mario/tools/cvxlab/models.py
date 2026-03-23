@@ -22,7 +22,7 @@ def _optimize_in_cvxlab(
         solver,
         scenario=None,
         input_data_files_type: str = 'xlsx',
-        solver_parameter=None
+        solver_parameters=None
     ):
 
     # check if destination folder exists and create it
@@ -147,11 +147,14 @@ def _optimize_in_cvxlab(
 
         # fill input data
         input_data = pd.read_excel(os.path.join(main_dir_path, model_dir, "input_data\\input_data.xlsx"), sheet_name=None)
+        #Remove rows with missing values, to avoid searching for non-existing cvxlab files
+        mapping['matrices'] = mapping['matrices'].dropna(subset=['cvxlab'])
         matrix_map = dict(zip( mapping['matrices'].index.to_list(),  mapping['matrices']["cvxlab"]))
-        set_map = dict(zip(mapping['sets'].index.to_list(), mapping['sets']["cvxlab"]))    
+        set_map = dict(zip(mapping['sets'].index.to_list(), mapping['sets']["cvxlab"]))
 
         for mario_matrix_name, mario_df in instance.matrices_flat.items():
-
+            if matrix_map[mario_matrix_name]:
+                pass
             cvxlab_sheet = matrix_map[mario_matrix_name]
             cvxlab_df = input_data[cvxlab_sheet]
             mario_renamed = mario_df.rename(columns=set_map)
@@ -180,19 +183,12 @@ def _optimize_in_cvxlab(
 
     model.initialize_problems()
 
-    if solver_parameter is not None:
+    if solver_parameters is not None:
         model.run_model(
             verbose=True,
             solver=solver,
             integrated_problems=False,
-            mosek_params={
-            # primal feasibility tolerance (default ~1e-8)
-            "MSK_DPAR_INTPNT_CO_TOL_PFEAS": solver_parameter,
-            # dual   feasibility tolerance (default ~1e-8)
-            "MSK_DPAR_INTPNT_CO_TOL_DFEAS": solver_parameter,
-            # relative optimality gap tolerance (default ~1e-8)
-            "MSK_DPAR_INTPNT_CO_TOL_REL_GAP": solver_parameter,
-            'MSK_DPAR_INTPNT_CO_TOL_MU_RED': solver_parameter}
+            mosek_params=solver_parameters,
         )
     else:
          model.run_model(
@@ -207,7 +203,7 @@ def _optimize_in_cvxlab(
 
     print("Results loaded to database")
 
-    optimized_matrices = _cvxlab_results_parser(dest_dir,mapping,default_model)
+    optimized_matrices = _cvxlab_results_parser(dest_dir,mapping,default_model,instance.matrices_flat)
 
     return optimized_matrices
 
@@ -271,12 +267,16 @@ def _inputs_to_cvxlab_split_sectors(
         input_data = pd.read_excel(os.path.join(main_dir_path, model_dir, "input_data\\input_data.xlsx"), sheet_name=None)
     elif input_data_files_type=='csv':
         input_data = {}
+    #Remove rows with missing values, to avoid searching for non-existing cvxlab files
+    mapping['matrices'] = mapping['matrices'].dropna(subset=['cvxlab'])
     matrix_map = dict(zip( mapping['matrices'].index.to_list(),  mapping['matrices']["cvxlab"]))
     matrix_map_old = dict(zip( mapping['matrices_old'].index.to_list(),  mapping['matrices_old']["cvxlab"]))
     set_map = dict(zip(mapping['sets'].index.to_list(), mapping['sets']["cvxlab"]))    
 
     #New matrices
     for mario_matrix_name, mario_df in instance.matrices_flat.items():
+        if mario_matrix_name not in matrix_map.keys():
+            continue
         cvxlab_table = matrix_map[mario_matrix_name]
         if input_data_files_type=='xlsx':
             cvxlab_df = input_data[cvxlab_table]
@@ -326,18 +326,18 @@ def _inputs_to_cvxlab_split_sectors(
         merged = base_df.merge(mario_df[join_cols + ['values']], on=join_cols, how="left")
         input_data[target_name] = merged.drop(columns=["values_x"]).rename(columns={"values_y": "values"})
 
-    #Create dataframe for I_sp_spn
+    #Create dataframe for I_p_pn
     if input_data_files_type=='xlsx':
-        input_data['I_sp_spn']['values'] = (
-            input_data['I_sp_spn']['sector_from_Name'].map(map_new_parent) == input_data['I_sp_spn']['sector_to_Name']
+        input_data['I_p_pn']['values'] = (
+            input_data['I_p_pn']['sector_from_Name'].map(map_new_parent) == input_data['I_p_pn']['sector_to_Name']
             ).astype(int)
         input_data['tol']['values']=instance.split_info['Tolerances']['values']
     elif input_data_files_type=='csv':
-        I_sp_spn = pd.read_csv(f"{main_dir_path}\\{model_dir}\\input_data\\I_sp_spn.csv")
-        I_sp_spn['values'] = (
-            I_sp_spn['sector_from_Name'].map(map_new_parent) == I_sp_spn['sector_to_Name']
+        I_p_pn = pd.read_csv(f"{main_dir_path}\\{model_dir}\\input_data\\I_p_pn.csv")
+        I_p_pn['values'] = (
+            I_p_pn['sector_from_Name'].map(map_new_parent) == I_p_pn['sector_to_Name']
             ).astype(int)
-        input_data['I_sp_spn'] = I_sp_spn
+        input_data['I_p_pn'] = I_p_pn
         tol= pd.read_csv(f"{main_dir_path}\\{model_dir}\\input_data\\tol.csv")
         tol['values']=instance.split_info['Tolerances']['values']
         input_data['tol'] = tol
@@ -394,11 +394,12 @@ def _check_cvxlab_parameters(
 def _cvxlab_results_parser(
         dest_dir,
         mapping,
-        default_model
+        default_model,
+        flat_matrices
 ):
 
     if default_model=='Split_sectors':  
-        mario_matrices=_cvxlab_results_parser_split_sectors(dest_dir)
+        mario_matrices=_cvxlab_results_parser_split_sectors(dest_dir,flat_matrices)
 
     else:
         # Reading mapping file
@@ -431,19 +432,15 @@ def _cvxlab_results_parser(
 
 def _cvxlab_results_parser_split_sectors(
         dest_dir,
+        flat_matrices
     ):
 
     #Read from sql database
     conn = sqlite3.connect(os.path.join(dest_dir, "database.db"))
-    db_Znew_supply = pd.read_sql_query("SELECT * FROM Znew_supply" , conn)
-    db_Znew_use = pd.read_sql_query("SELECT * FROM Znew_use" , conn)
-    db_Ynew = pd.read_sql_query("SELECT * FROM Ynew" , conn)
-    db_Zold = pd.read_sql_query("SELECT * FROM Zold" , conn)
-    db_Yold = pd.read_sql_query("SELECT * FROM Yold" , conn)
-    #db_Znew0=pd.read_sql_query("SELECT * FROM Znew0" , conn)
-    #db_Ynew0=pd.read_sql_query("SELECT * FROM Ynew0" , conn)
-    #db_VA=pd.read_sql_query("SELECT * FROM VA" , conn)
-    #db_Xexog=pd.read_sql_query("SELECT * FROM Xnew" , conn)
+    db_Znew_supply = pd.read_sql_query("SELECT * FROM Znew_supply" , conn).drop(columns=['id'])
+    db_Znew_use = pd.read_sql_query("SELECT * FROM Znew_use" , conn).drop(columns=['id'])
+    db_Ynew = pd.read_sql_query("SELECT * FROM Ynew" , conn).drop(columns=['id'])
+    db_VA=pd.read_sql_query("SELECT * FROM VA" , conn).drop(columns=['id'])
     conn.close()
 
     #Obtain sets info
@@ -456,8 +453,14 @@ def _cvxlab_results_parser_split_sectors(
     sectors_new=[s for s in sectors_df[sectors_df['sector_from_category']=='new']['sector_from_Name'].to_list()]
 
     #Compose the complete Znew, taking stable values from Zold
-    Znew=pd.concat([db_Znew_supply,db_Znew_use,db_Zold[db_Zold['sector_from_Name'].isin(sectors_stable) & db_Zold['sector_to_Name'].isin(sectors_stable)]])
-    Znew=Znew.drop(columns=['id']).set_index(['region_from_Name', 'sector_from_Name', 'region_to_Name', 'sector_to_Name'])['values'].unstack(['region_to_Name', 'sector_to_Name'])
+    if 'original' in flat_matrices['Z']['scenarios'].unique():
+        scenario_to_extract='original'
+    else:
+        scenario_to_extract='baseline'
+    flat_Zold=flat_matrices['Z'][flat_matrices['Z']['scenarios'] == scenario_to_extract].drop(columns='scenarios')
+    flat_Zold.columns = [f"{col}_Name" if col != "values" else col for col in flat_Zold.columns]
+    Znew=pd.concat([db_Znew_supply,db_Znew_use,flat_Zold[flat_Zold['sector_from_Name'].isin(sectors_stable) & flat_Zold['sector_to_Name'].isin(sectors_stable)]])
+    Znew=Znew.set_index(['region_from_Name', 'sector_from_Name', 'region_to_Name', 'sector_to_Name'])['values'].unstack(['region_to_Name', 'sector_to_Name'])
     Znew.index = pd.MultiIndex.from_tuples(
                 [(idx[0], 'Sector', idx[1]) for idx in Znew.index],
                 names=['Region', 'Level', 'Item']
@@ -466,10 +469,21 @@ def _cvxlab_results_parser_split_sectors(
                 [(col[0], 'Sector', col[1]) for col in Znew.columns],
                 names=['Region', 'Level', 'Item']
             )
+    # Reorder columns to match regions first, then sectors within each region
+    sector_order = sectors_df['sector_from_Name'].to_list()
+    Znew = Znew.reindex(
+        columns=sorted(
+            Znew.columns, 
+            key=lambda x: (x[0], sector_order.index(x[2]) if x[2] in sector_order else float('inf'))
+        )
+    )
     
     #Compose the complete Ynew, taking stable values from Yold
-    Ynew=pd.concat([db_Ynew,db_Yold[db_Yold['sector_from_Name'].isin(sectors_stable)]])
-    Ynew=Ynew.drop(columns=['id']).set_index(['region_from_Name', 'sector_from_Name', 'region_to_Name', 'cons_categ_Name'])['values'].unstack(['region_to_Name', 'cons_categ_Name'])
+    flat_Yold=flat_matrices['Y'][flat_matrices['Y']['scenarios'] == scenario_to_extract].drop(columns='scenarios')
+    flat_Yold=flat_Yold.rename(columns={'Value': 'values'})
+    flat_Yold.columns = [f"{col}_Name" if col != "values" else col for col in flat_Yold.columns]
+    Ynew=pd.concat([db_Ynew,flat_Yold[flat_Yold['sector_from_Name'].isin(sectors_stable)]])
+    Ynew=Ynew.set_index(['region_from_Name', 'sector_from_Name', 'region_to_Name', 'cons_categ_Name'])['values'].unstack(['region_to_Name', 'cons_categ_Name'])
     Ynew.index = pd.MultiIndex.from_tuples(
                 [(idx[0], 'Sector', idx[1]) for idx in Ynew.index],
                 names=['Region', 'Level', 'Item']
@@ -478,10 +492,39 @@ def _cvxlab_results_parser_split_sectors(
                 [(col[0], 'Consumption category', col[1]) for col in Ynew.columns],
                 names=['Region', 'Level', 'Item']
             )
+    # Reorder columns to match regions first, then sectors within each region
+    Ynew = Ynew.reindex(
+        columns=sorted(
+            Ynew.columns, 
+            key=lambda x: (x[0], sector_order.index(x[2]) if x[2] in sector_order else float('inf'))
+        )
+    )
+    
+    #Compose the complete V
+    flat_V=flat_matrices['V'][flat_matrices['V']['scenarios'] == scenario_to_extract].drop(columns='scenarios')
+    flat_V=flat_V.rename(columns={'Value': 'values'})
+    flat_V.columns = [f"{col}_Name" if col != "values" else col for col in flat_V.columns]
+    V=pd.concat([db_VA,flat_V[flat_V['sector_to_Name'].isin(sectors_stable) | flat_V['sector_to_Name'].isin(sectors_parent)]])
+    V["Factor_of_production"]="VA"
+    V=V.set_index(['Factor_of_production','region_to_Name', 'sector_to_Name'])['values'].unstack(['region_to_Name', 'sector_to_Name'])
+    V.index.name="Item"
+    V.columns = pd.MultiIndex.from_tuples(
+                [(col[0], 'Sector', col[1]) for col in V.columns],
+                names=['Region', 'Level', 'Item']
+            )
+    # Reorder columns to match regions first, then sectors within each region
+    V = V.reindex(
+        columns=sorted(
+            V.columns, 
+            key=lambda x: (x[0], sector_order.index(x[2]) if x[2] in sector_order else float('inf'))
+        )
+    )
     
     return {
         'Z': Znew,
-        'Y': Ynew,}
+        'Y': Ynew,
+        'V': V
+        }
 
 def _create_input_data_for_cvxlab(
         instance,
@@ -495,14 +538,12 @@ def _create_input_data_for_cvxlab(
         solver_parameter=None
     ):
 
+    #Only for split problem, to implement in general?
+
     # check if destination folder exists
     dest_dir = os.path.join(main_dir_path, model_dir)
     if not os.path.exists(dest_dir):
-        raise FileNotFoundError(f"Declared directory of cvxlab files '{dest_dir}' does not exist.")
-    
-    # default for attributes
-    import_custom_constants=False
-    import_custom_operators=False    
+        raise FileNotFoundError(f"Declared directory of cvxlab files '{dest_dir}' does not exist.") 
 
     # reading mapping file
     mapping = pd.read_excel(os.path.join(main_dir_path, model_dir, "mapping.xlsx"), sheet_name=None, index_col=0)
@@ -544,18 +585,12 @@ def _create_input_data_for_cvxlab(
     new_sectors=list(set(instance.add_sectors_master[_ADD_SECTORS_MASTER_SHEET_COLUMNS[instance.meta.table]['s']]))
     parent_sectors=list(set(instance.add_sectors_master[_ADD_SECTORS_MASTER_SHEET_COLUMNS[instance.meta.table]['ps']]))                        
     
-    #parent_sectors=list(set(parent_sectors))
-    sectors_p_n=new_sectors+parent_sectors
-    stable_sectors=[s for s in instance.get_index('Sector') if s not in new_sectors and s not in parent_sectors]
-
-
     #Get input data structure
     if input_data_files_type=='xlsx':
         input_data = pd.read_excel(os.path.join(main_dir_path, model_dir, "input_data\\input_data.xlsx"), sheet_name=None)
     elif input_data_files_type=='csv':
         input_data = {}
     matrix_map = dict(zip( mapping['matrices'].index.to_list(),  mapping['matrices']["cvxlab"]))
-    matrix_map_old = dict(zip( mapping['matrices_old'].index.to_list(),  mapping['matrices_old']["cvxlab"]))
     set_map = dict(zip(mapping['sets'].index.to_list(), mapping['sets']["cvxlab"]))    
 
     #New matrices
@@ -663,38 +698,11 @@ def _create_input_data_for_cvxlab(
         for file_name, df in input_data.items():
             df.to_csv(f'{main_dir_path}\\{model_dir}\\input_data\\{file_name}.csv', index=False)
 
-    # load data from excel to database 
-    # model.load_exogenous_data_to_sqlite_database(force_overwrite=True)
+    return
 
-    # model.initialize_problems()
-
-    # if solver_parameter is not None:
-    #     model.run_model(
-    #         verbose=True,
-    #         solver=solver,
-    #         integrated_problems=False,
-    #         mosek_params={
-    #         # primal feasibility tolerance (default ~1e-8)
-    #         "MSK_DPAR_INTPNT_CO_TOL_PFEAS": solver_parameter,
-    #         # dual   feasibility tolerance (default ~1e-8)
-    #         "MSK_DPAR_INTPNT_CO_TOL_DFEAS": solver_parameter,
-    #         # relative optimality gap tolerance (default ~1e-8)
-    #         "MSK_DPAR_INTPNT_CO_TOL_REL_GAP": solver_parameter,
-    #         'MSK_DPAR_INTPNT_CO_TOL_MU_RED': solver_parameter}
-    #     )
-    # else:
-    #      model.run_model(
-    #         verbose=True,
-    #         solver=solver,
-    #         integrated_problems=False)
-
-    # if model.core.problem.problem_status[''] != 'optimal':
-    #     raise ValueError("Cvxlab optimization problem did not solve optimally, check cvxlab log for details.")
-
-    # model.load_results_to_database(force_overwrite=True)
-
-    # print("Results loaded to database")
-
-    #optimized_matrices = _cvxlab_results_parser(dest_dir,mapping,default_model)
-
-    return #optimized_matrices
+# def _split_sector_consistency_checK(
+        
+#     ):
+#     #check that for each region, the trade of new commodity is smaller than X of commodity
+    
+#     return
