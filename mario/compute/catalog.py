@@ -40,14 +40,17 @@ CATALOG_OPEN_QUESTIONS = (
 
 
 def _axes(rows: tuple[str, ...], cols: tuple[str, ...]) -> AxisSpec:
+    """Build a lightweight axis specification for one matrix."""
     return AxisSpec(rows=rows, cols=cols)
 
 
 def _parsed(required: bool, *notes: str) -> ParsedStrategy:
+    """Declare a strategy that only accepts already-materialized blocks."""
     return ParsedStrategy(required=required, notes=tuple(notes))
 
 
 def _extract(source: str, extractor: str, expr: str, *notes: str) -> ExtractStrategy:
+    """Declare a strategy that extracts one block from an existing source."""
     return ExtractStrategy(
         source=source,
         extractor=extractor,
@@ -62,6 +65,7 @@ def _concat(
     expr: str,
     *notes: str,
 ) -> ConcatStrategy:
+    """Declare a strategy that concatenates pre-resolved source blocks."""
     return ConcatStrategy(
         sources=sources,
         builder=builder,
@@ -76,6 +80,7 @@ def _formula(
     expr: str,
     *notes: str,
 ) -> FormulaStrategy:
+    """Declare a strategy backed by a named pure formula implementation."""
     return FormulaStrategy(
         inputs=inputs,
         function=function,
@@ -94,6 +99,7 @@ def _spec(
     notes: tuple[str, ...] = (),
     todo: str | None = None,
 ) -> MatrixSpec:
+    """Build one matrix specification entry for the authoritative catalog."""
     return MatrixSpec(
         key=MatrixKey(table_kind=table, name=name),
         status=status,
@@ -749,10 +755,12 @@ COMPUTE_CATALOG = {
 
 
 def get_matrix_spec(table: "TableKind | str", name: str) -> MatrixSpec:
+    """Return the catalog entry for one matrix on one table kind."""
     table_kind = TableKind.coerce(table)
     return COMPUTE_CATALOG[table_kind][name]
 
 
 def available_matrix_names(table: "TableKind | str") -> tuple[str, ...]:
+    """Return the matrix names exposed by the catalog for a table kind."""
     table_kind = TableKind.coerce(table)
     return tuple(COMPUTE_CATALOG[table_kind].keys())

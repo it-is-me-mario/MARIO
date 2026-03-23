@@ -20,16 +20,19 @@ class Setting:
     """Base wrapper around a validated settings section."""
 
     def __init__(self):
+        """Load and validate the configured subsection for this settings object."""
         self.setting = self._validate_dict(self.key, self.vars)
         self._check_duplicates()
 
     def _read_yaml(self, path):
+        """Read a YAML file from disk and return its parsed object."""
         with open(path, "r") as yml_file:
             file = yaml.safe_load(yml_file)
 
         return file
 
     def _validate_dict(self, key, vars):
+        """Load the requested settings section, falling back to packaged defaults."""
         setting = self._read_yaml(f"{path}/settings.yaml")
 
         correct_setting = True
@@ -58,9 +61,11 @@ class Setting:
         return setting[key]
 
     def __getitem__(self, var):
+        """Return one configured value by key."""
         return self.setting[var]
 
     def __getattr__(self, attr):
+        """Expose configured values as attributes as well as mapping entries."""
         if attr in self.__dict__:
             return self.__dict__[attr]
 
@@ -71,21 +76,26 @@ class Setting:
                 raise AttributeError(attr)
 
     def items(self):
+        """Return the underlying key-value pairs."""
         return self.setting.items()
 
     def _check_duplicates(self):
+        """Reject settings sections that map multiple keys to the same value."""
         vars = list(self.setting.values())
 
         if len(vars) != len(set(vars)):
             raise ValueError(f"Settings for {self.key} has duplicate values.")
 
     def __getstate__(self):
+        """Return the instance state for pickle serialization."""
         return self.__dict__
 
     def __setstate__(self, value):
+        """Restore the instance state after pickle deserialization."""
         self.__dict__ = value
 
     def reverse(self, var):
+        """Return the configuration key that maps to ``var``."""
         for k, v in self.setting.items():
             if var == v:
                 return k
@@ -97,6 +107,7 @@ class Index(Setting):
     """Expose the configured short codes for MARIO index levels."""
 
     def __init__(self):
+        """Load the configured index-level short codes."""
         self.vars = list("racskfn")
         self.key = "index"
         super().__init__()
@@ -106,6 +117,7 @@ class Nomenclature(Setting):
     """Expose the configured matrix names used across MARIO."""
 
     def __init__(self):
+        """Load the configured matrix nomenclature used by the public API."""
         self.vars = [
             "e",
             "E",

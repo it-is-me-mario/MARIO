@@ -15,6 +15,8 @@ from mario.model.enums import TableKind
 
 
 class StrategyKind(str, Enum):
+    """Kinds of resolution strategy supported by the compute planner."""
+
     PARSED = "parsed"
     EXTRACT = "extract"
     CONCAT = "concat"
@@ -22,38 +24,50 @@ class StrategyKind(str, Enum):
 
 
 class MatrixStatus(str, Enum):
+    """Migration status of a matrix specification within the catalog."""
+
     KEEP = "keep"
     ADD = "add"
 
 
 @dataclass(frozen=True)
 class MatrixKey:
+    """Unique matrix identifier inside the compute catalog."""
+
     table_kind: TableKind
     name: str
 
 
 @dataclass(frozen=True)
 class AxisSpec:
+    """Semantic labels expected on the row and column axes of a matrix."""
+
     rows: tuple[str, ...]
     cols: tuple[str, ...]
 
 
 @dataclass(frozen=True)
 class ParsedStrategy:
+    """Strategy stating that a block must already exist in dataset storage."""
+
     required: bool
     notes: tuple[str, ...] = ()
 
     @property
     def kind(self) -> StrategyKind:
+        """Return the planner tag used for parsed blocks."""
         return StrategyKind.PARSED
 
     @property
     def dependencies(self) -> tuple[str, ...]:
+        """Return the blocks required before execution of this strategy."""
         return ()
 
 
 @dataclass(frozen=True)
 class ExtractStrategy:
+    """Strategy that derives a split or unified view from one source block."""
+
     source: str
     extractor: str
     spreadsheet_expr: str
@@ -61,15 +75,19 @@ class ExtractStrategy:
 
     @property
     def kind(self) -> StrategyKind:
+        """Return the planner tag used for view extraction."""
         return StrategyKind.EXTRACT
 
     @property
     def dependencies(self) -> tuple[str, ...]:
+        """Return the source block required for extraction."""
         return (self.source,)
 
 
 @dataclass(frozen=True)
 class ConcatStrategy:
+    """Strategy that concatenates already resolved sub-blocks into one view."""
+
     sources: tuple[str, ...]
     builder: str
     spreadsheet_expr: str
@@ -77,15 +95,19 @@ class ConcatStrategy:
 
     @property
     def kind(self) -> StrategyKind:
+        """Return the planner tag used for block concatenation."""
         return StrategyKind.CONCAT
 
     @property
     def dependencies(self) -> tuple[str, ...]:
+        """Return the ordered inputs required by the concat builder."""
         return self.sources
 
 
 @dataclass(frozen=True)
 class FormulaStrategy:
+    """Strategy that materializes a block through a pure numerical formula."""
+
     inputs: tuple[str, ...]
     function: str
     spreadsheet_expr: str
@@ -93,10 +115,12 @@ class FormulaStrategy:
 
     @property
     def kind(self) -> StrategyKind:
+        """Return the planner tag used for formula execution."""
         return StrategyKind.FORMULA
 
     @property
     def dependencies(self) -> tuple[str, ...]:
+        """Return the ordered inputs required by the formula."""
         return self.inputs
 
 
@@ -105,6 +129,8 @@ Strategy: TypeAlias = ParsedStrategy | ExtractStrategy | ConcatStrategy | Formul
 
 @dataclass(frozen=True)
 class MatrixSpec:
+    """Full compute specification for one matrix on one table kind."""
+
     key: MatrixKey
     status: MatrixStatus
     axes: AxisSpec
@@ -116,6 +142,8 @@ class MatrixSpec:
 
 @dataclass(frozen=True)
 class ResolutionContext:
+    """Planner options that influence strategy selection and explanation."""
+
     table_kind: TableKind | None = None
     materialized: frozenset[str] = frozenset()
     prefer_materialized_views: bool = True
@@ -124,6 +152,8 @@ class ResolutionContext:
 
 @dataclass(frozen=True)
 class ResolutionResult:
+    """One planned materialization step emitted by the planner."""
+
     key: MatrixKey
     strategy_kind: StrategyKind
     dependencies: tuple[str, ...] = ()

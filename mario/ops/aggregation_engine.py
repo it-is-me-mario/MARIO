@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def return_pdIndex(Y, E, V, table):
+    """Build aggregation-ready index arrays from matrix labels."""
     Y = deepcopy(Y)
     E = deepcopy(E)
     V = deepcopy(V)
@@ -50,6 +51,7 @@ def return_pdIndex(Y, E, V, table):
 
 
 def index_replacer(indeces: dict, mapper, level=None):
+    """Rewrite original index labels according to an aggregation mapping."""
     for target, index in indeces.items():
         index = pd.DataFrame(index, index=index, columns=["Aggregation"])
 
@@ -60,6 +62,7 @@ def index_replacer(indeces: dict, mapper, level=None):
 
 
 def _aggregator(instance, drop):
+    """Aggregate all scenarios of a database using prepared mapping tables."""
     data = instance.query(matrices=[_ENUM.Y, _ENUM.V, _ENUM.E])
 
     # checking the consistencey of units at first

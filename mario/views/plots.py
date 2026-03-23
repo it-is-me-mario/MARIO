@@ -62,6 +62,7 @@ def _plot_linkages(
     auto_open: bool = False,
     **config,
 ):
+    """Build linkage plots from one dataframe or a scenario mapping."""
     if isinstance(data, pd.DataFrame):
         links = {"Baseline": data}
     elif isinstance(data, dict):
@@ -243,6 +244,7 @@ def _plot_linkages(
 
 
 def _plotter(fig, directory, auto_open):
+    """Render a figure inline in notebooks and always persist it to HTML."""
     if run_from_jupyter():
         pltly.init_notebook_mode(connected=False)
         pltly.iplot({"data": fig.data, "layout": fig.layout})
@@ -251,6 +253,7 @@ def _plotter(fig, directory, auto_open):
 
 
 def _set_layout(fig, layout, mode, counter, iterator, prefix, x, y):
+    """Attach slider or update-menu controls to a multi-scenario figure."""
     steps = []
     for index, item in enumerate(iterator):
         if index == 0:
@@ -320,6 +323,7 @@ def _plotX(
     shared_xaxes,
     filters,
 ):
+    """Build plots for production-like one-axis matrices."""
     # Extracting raw data
     scenarios = instance.scenarios
     if base_scenario != None:
@@ -506,6 +510,7 @@ def _plotZYUS(
     shared_xaxes,
     filters,
 ):
+    """Build plots for transaction-style matrices with origin and destination axes."""
     # Extracting raw data
     scenarios = instance.scenarios
     if base_scenario != None:
@@ -748,6 +753,7 @@ def _plotVEMF(
     shared_xaxes,
     filters,
 ):
+    """Build plots for value-added, extension and footprint-style matrices."""
     # Extracting raw data
     scenarios = instance.scenarios
     if base_scenario != None:

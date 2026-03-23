@@ -27,6 +27,7 @@ class ResolutionError(LookupError):
 
 
 def _lookup_callable(name: str):
+    """Look up a compute implementation by name across compute modules."""
     for module in (views, iot_formulas, sut_formulas, ghosh_formulas):
         function = getattr(module, name, None)
         if callable(function):
@@ -35,6 +36,7 @@ def _lookup_callable(name: str):
 
 
 def _collect_blocks(store: ResolutionStore):
+    """Read all materialized blocks visible through the store."""
     blocks = {}
     for name in store.names():
         try:
@@ -45,6 +47,7 @@ def _collect_blocks(store: ResolutionStore):
 
 
 def _build_ordering(store: ResolutionStore, extra_blocks: dict[str, object] | None = None):
+    """Build the unified SUT ordering policy from visible blocks and overrides."""
     blocks = _collect_blocks(store)
     if extra_blocks:
         blocks.update(extra_blocks)
@@ -54,6 +57,7 @@ def _build_ordering(store: ResolutionStore, extra_blocks: dict[str, object] | No
 
 
 def _execute_strategy(strategy, target: str, store: ResolutionStore, table_kind: TableKind, dependencies: dict[str, object]):
+    """Execute one selected strategy against the current store state."""
     if isinstance(strategy, ParsedStrategy):
         if store.has(target):
             return store.get(target)
@@ -92,7 +96,10 @@ def _execute_strategy(strategy, target: str, store: ResolutionStore, table_kind:
 
 
 class Resolver:
+    """Resolve matrices from the compute catalog against one scenario state."""
+
     def __init__(self, dataset, scenario: str = "baseline", context: ResolutionContext | None = None) -> None:
+        """Initialize a resolver bound to one dataset-like object."""
         self.dataset = dataset
         self.scenario = scenario
         self.context = context or ResolutionContext()
@@ -102,6 +109,7 @@ class Resolver:
         self._active: list[str] = []
 
     def resolve(self, target: str):
+        """Materialize one target block and store it back into the dataset."""
         root_request = not self._active
         if target in self._memo:
             return self._memo[target]
@@ -122,6 +130,7 @@ class Resolver:
         errors: list[str] = []
 
         try:
+            # Strategies are attempted in planner order until one succeeds.
             for strategy in candidate_strategies(target, self.dataset, self.scenario, self.context):
                 try:
                     if isinstance(strategy, ParsedStrategy):
@@ -162,17 +171,21 @@ class Resolver:
         raise ResolutionError(f"Unable to resolve {target}.\n" + "\n".join(errors) + "\n" + explanation)
 
     def resolve_many(self, targets: list[str] | tuple[str, ...]):
+        """Resolve several targets and return them as a name-to-block mapping."""
         return {target: self.resolve(target) for target in targets}
 
     def explain(self, target: str) -> str:
+        """Return a human-readable dependency explanation for one target."""
         graph = build_dependency_graph(target, self.dataset, self.scenario, self.context)
         return render_dependency_graph(graph)
 
     def build_plan(self, target: str):
+        """Return the planned execution steps for one target."""
         return build_plan(target, self.dataset, self.scenario, self.context)
 
 
 def resolve(target: str, dataset, scenario: str = "baseline", context: ResolutionContext | None = None):
+    """Convenience wrapper that resolves one block with a temporary resolver."""
     return Resolver(dataset, scenario=scenario, context=context).resolve(target)
 
 
@@ -182,8 +195,10 @@ def resolve_many(
     scenario: str = "baseline",
     context: ResolutionContext | None = None,
 ):
+    """Convenience wrapper that resolves several blocks with one resolver."""
     return Resolver(dataset, scenario=scenario, context=context).resolve_many(targets)
 
 
 def explain(target: str, dataset, scenario: str = "baseline", context: ResolutionContext | None = None) -> str:
+    """Convenience wrapper that explains how one target would be resolved."""
     return Resolver(dataset, scenario=scenario, context=context).explain(target)

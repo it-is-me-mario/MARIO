@@ -31,6 +31,7 @@ SUT_TO_IOT_METHODS = ["A", "B", "C", "D"]
 
 
 def SUT_to_IOT(instance, method):
+    """Convert a SUT database to an IOT using Eurostat methods ``A`` to ``D``."""
     if method not in SUT_TO_IOT_METHODS:
         raise WrongInput(
             "'{}' is not an accpetable input for 'method'. "

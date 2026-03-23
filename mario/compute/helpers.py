@@ -7,6 +7,7 @@ import pandas as pd
 
 
 def _as_series(vector: pd.DataFrame | pd.Series | np.ndarray | list[float] | tuple[float, ...]) -> pd.Series:
+    """Coerce a 1D value container into a pandas ``Series``."""
     if isinstance(vector, pd.Series):
         return vector.copy()
 
@@ -23,11 +24,13 @@ def as_column_frame(
     vector: pd.DataFrame | pd.Series | np.ndarray | list[float] | tuple[float, ...],
     column_name: str,
 ) -> pd.DataFrame:
+    """Return a single-column dataframe preserving the vector index."""
     series = _as_series(vector)
     return pd.DataFrame(series.values, index=series.index, columns=[column_name])
 
 
 def sum_final_demand(block: pd.DataFrame | pd.Series) -> pd.Series:
+    """Collapse a final-demand block to one total per producing row."""
     if isinstance(block, pd.Series):
         return block.copy()
 
@@ -40,6 +43,7 @@ def sum_final_demand(block: pd.DataFrame | pd.Series) -> pd.Series:
 def diag_from_vector(
     vector: pd.DataFrame | pd.Series | np.ndarray | list[float] | tuple[float, ...]
 ) -> np.ndarray:
+    """Return a dense diagonal matrix built from a vector-like input."""
     series = _as_series(vector)
     return np.diagflat(series.to_numpy(dtype=float))
 
@@ -47,6 +51,7 @@ def diag_from_vector(
 def inverse_vector(
     vector: pd.DataFrame | pd.Series | np.ndarray | list[float] | tuple[float, ...]
 ) -> pd.Series:
+    """Return the element-wise inverse, preserving zeros as zeros."""
     series = _as_series(vector).astype(float)
     values = series.to_numpy(copy=True)
     mask = values != 0
@@ -56,6 +61,7 @@ def inverse_vector(
 
 
 def identity_like(square_block: pd.DataFrame) -> pd.DataFrame:
+    """Return an identity matrix with the same labels as ``square_block``."""
     validate_square(square_block)
     return pd.DataFrame(
         np.eye(square_block.shape[0], dtype=float),
@@ -65,6 +71,7 @@ def identity_like(square_block: pd.DataFrame) -> pd.DataFrame:
 
 
 def safe_inverse(matrix: pd.DataFrame) -> pd.DataFrame:
+    """Invert a square dataframe, falling back to a pseudo-inverse if needed."""
     validate_square(matrix)
     values = matrix.to_numpy(dtype=float)
     try:
@@ -79,6 +86,7 @@ def safe_solve(
     lhs: pd.DataFrame,
     rhs: pd.DataFrame | pd.Series | np.ndarray | list[float] | tuple[float, ...],
 ) -> pd.DataFrame | pd.Series:
+    """Solve ``lhs * x = rhs`` with a pseudo-inverse fallback for singular cases."""
     validate_square(lhs)
     rhs_is_series = isinstance(rhs, pd.Series)
 
@@ -110,6 +118,7 @@ def safe_solve(
 
 
 def validate_square(block: pd.DataFrame) -> None:
+    """Validate that a dataframe is square and perfectly label-aligned."""
     if not isinstance(block, pd.DataFrame):
         raise TypeError("Expected a pandas DataFrame.")
 
@@ -127,6 +136,7 @@ def require_same_index(
     lhs_name: str = "lhs",
     rhs_name: str = "rhs",
 ) -> None:
+    """Validate that two objects expose the same pandas index."""
     lhs_index = lhs if isinstance(lhs, pd.Index) else lhs.index
     rhs_index = rhs if isinstance(rhs, pd.Index) else rhs.index
 
@@ -141,6 +151,7 @@ def require_same_columns(
     lhs_name: str = "lhs",
     rhs_name: str = "rhs",
 ) -> None:
+    """Validate that two objects expose the same pandas column labels."""
     rhs_columns = rhs if isinstance(rhs, pd.Index) else rhs.columns
     if not lhs.columns.equals(rhs_columns):
         raise ValueError(f"{lhs_name} and {rhs_name} columns do not match.")

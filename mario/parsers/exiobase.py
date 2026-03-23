@@ -21,6 +21,8 @@ EXIOBASE_SUT_SOURCE = (
 
 
 class ExiobaseSUTParser(BaseParser):
+    """Dataset parser for the monetary EXIOBASE SUT source format."""
+
     name = "exiobase_sut"
 
     def parse(
@@ -33,6 +35,7 @@ class ExiobaseSUTParser(BaseParser):
         price: str | None = None,
         repository: BlockRepository | None = None,
     ) -> Dataset:
+        """Parse a monetary EXIOBASE SUT source into a canonical ``Dataset``."""
         log_time(logger, f"Parser: exiobase_sut reading from {path}.", "info")
         matrices, indexes, units = monetary_sut_exiobase(path)
         dataset = build_dataset_from_parser_output(
@@ -54,6 +57,7 @@ class ExiobaseSUTParser(BaseParser):
 
 
 def parse_dataset_exiobase_sut(path: str, **kwargs) -> Dataset:
+    """Convenience wrapper around ``ExiobaseSUTParser``."""
     return ExiobaseSUTParser().parse(path=path, **kwargs)
 
 

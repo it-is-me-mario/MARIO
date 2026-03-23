@@ -17,6 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 class ExcelParser(BaseParser):
+    """Dataset parser for generic Excel workbooks following MARIO conventions."""
+
     name = "excel"
 
     def parse(
@@ -33,6 +35,7 @@ class ExcelParser(BaseParser):
         price: str | None = None,
         repository: BlockRepository | None = None,
     ) -> Dataset:
+        """Parse a generic Excel workbook into a canonical ``Dataset``."""
         log_time(logger, f"Parser: excel reading {table} {mode} from {path}.", "info")
         matrices, indexes, units = excel_parser(path, table, mode, data_sheet, unit_sheet)
         dataset = build_dataset_from_parser_output(
@@ -61,6 +64,7 @@ def parse_dataset_from_excel(
     unit_sheet: str | int = "units",
     **kwargs,
 ) -> Dataset:
+    """Convenience wrapper around ``ExcelParser``."""
     return ExcelParser().parse(
         path=path,
         table=table,

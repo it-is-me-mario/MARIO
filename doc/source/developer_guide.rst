@@ -549,6 +549,174 @@ Add a new public convenience import
    public API.
 
 
+API Surface by Responsibility
+-----------------------------
+
+This section summarizes where a developer should expect to find the main public
+methods and what they are responsible for.
+
+``CoreModel`` methods
+~~~~~~~~~~~~~~~~~~~~~
+
+These methods mostly manage matrix state, scenarios and compute orchestration.
+
+Compute and retrieval
+   ``calc_all(...)``, ``resolve(...)``, ``resolve_many(...)``,
+   ``explain(...)``, ``query(...)`` and ``get_data(...)``.
+
+Scenario lifecycle
+   ``clone_scenario(...)``, ``update_scenarios(...)``,
+   ``reset_to_flows(...)`` and ``reset_to_coefficients(...)``.
+
+Structural inspection
+   ``get_index(...)``, ``search(...)``, ``is_balanced(...)``,
+   ``is_isard(...)``, ``is_chenerymoses(...)`` and convenience properties like
+   ``scenarios``, ``table_type``, ``sets`` and ``is_hybrid``.
+
+Persistence and utilities
+   ``save_meta(...)``, ``copy(...)``, ``backup`` and directory management.
+
+``Database`` methods
+~~~~~~~~~~~~~~~~~~~~
+
+``Database`` inherits everything above and adds user-visible operations that
+compose the lower-level modules.
+
+Transformations
+   ``to_iot(...)`` and ``to_chenery_moses(...)`` delegate to ``mario.ops``.
+
+Aggregation
+   ``get_aggregation_excel(...)``, ``read_aggregated_index(...)`` and
+   ``aggregate(...)`` coordinate the aggregation engine and workbook helpers.
+
+Exports
+   ``to_excel(...)``, ``to_txt(...)`` and ``to_pymrio(...)`` delegate to the
+   export layer.
+
+Shock workflows
+   ``get_shock_excel(...)`` and ``shock_calc(...)`` coordinate workbook-driven
+   shocks and recomputation.
+
+Sector extension
+   ``get_add_sectors_excel(...)`` and ``add_sectors(...)`` delegate to the
+   add-sector engine and workbook writers.
+
+Plotting
+   Bubble, linkage and matrix plot methods delegate to ``mario.views.plots``.
+
+The practical rule is simple: if a method changes user-visible behavior but is
+not fundamentally about matrix storage or dependency resolution, it probably
+belongs in ``Database`` as a thin wrapper over another module.
+
+
+Tracing a ``calc_all`` Request
+------------------------------
+
+For developers debugging the compute path, this is the concrete sequence when a
+user calls something like:
+
+.. code-block:: python
+
+   db.calc_all(["w", "fa"], scenario="baseline")
+
+1. ``CoreModel.calc_all(...)`` normalizes the requested names and validates the
+   scenario.
+2. ``available_matrices(table_type)`` consults only the compute catalog to
+   decide whether the names are valid for the current table kind.
+3. ``CoreModel._resolve_one(...)`` calls ``mario.compute.resolver.resolve(...)``
+   for each requested matrix.
+4. The resolver asks the planner for candidate strategies defined in
+   ``mario.compute.catalog``.
+5. The selected strategy recursively resolves its dependencies.
+6. If the matrix is SUT and the strategy is an extract/concat that depends on
+   unified activity/commodity ordering, the resolver builds a
+   ``SUTUnifiedOrderingPolicy`` from visible blocks.
+7. The resolved block is written back into the scenario storage so later calls
+   can reuse it as a materialized dependency.
+
+This means that debugging a compute issue usually requires checking, in order:
+
+* the matrix specification in ``catalog.py``;
+* the selected strategy order in ``planner.py``;
+* the callable implementation in ``views.py`` or one of the formula modules;
+* the scenario state seen by ``ResolutionStore``.
+
+
+How to Add a New Matrix Safely
+------------------------------
+
+When adding a new matrix to MARIO, the safest workflow is:
+
+1. Decide whether the matrix is native-parsed, extracted, concatenated or
+   formula-driven.
+2. Add the matrix entry to ``mario.compute.catalog`` with the correct axis
+   labels and strategy order.
+3. Implement the callable in exactly one place:
+
+   * ``mario.compute.views`` for pure extract/concat logic;
+   * ``mario.compute.iot_formulas`` for IOT formulas;
+   * ``mario.compute.sut_formulas`` for SUT split formulas;
+   * ``mario.compute.ghosh_formulas`` for Ghosh-side formulas.
+
+4. Add tests for:
+
+   * the pure callable itself;
+   * resolver behavior for the matrix;
+   * compatibility through ``Database.calc_all(...)`` or ``query(...)`` if the
+     matrix is part of the public surface.
+
+For SUT matrices, prefer split-native definitions when possible. If the matrix
+has meaningful activity and commodity sub-blocks, define and compute those
+first, then expose the unified block through concat/extract logic instead of a
+single dense unified shortcut.
+
+
+Parser Maintenance Notes
+------------------------
+
+Parser code is still the most convention-sensitive part of the package. When a
+developer changes parser behavior, there are several things to verify beyond
+simple file I/O.
+
+Index grammar
+   Multi-index levels must still match MARIO's configured labels and ordering.
+
+Native vs derived blocks
+   Parsers should materialize the blocks that are truly native in the source
+   dataset, not eagerly compute everything that the resolver can derive later.
+
+Units
+   Units have to be aligned with the correct semantic set
+   (sector/activity/commodity/factor/satellite).
+
+Scenario shape
+   Parser output must still fit the ``Database`` constructor contract:
+   ``matrices``, ``units`` and ``_indeces``.
+
+This is why parser refactoring is the right future place to introduce more
+Polars, DuckDB and Parquet usage, but only after preserving the existing domain
+grammar first.
+
+
+Dataset Notes for Developers
+----------------------------
+
+``Dataset`` is already useful today as a clearer expression of the internal
+architecture, even though ``Database`` remains the main user object.
+
+Developers should reach for ``Dataset`` when they want:
+
+* repository-backed block storage;
+* scenario inheritance with explicit ``Scenario`` objects;
+* block-by-block compute without the heavier ``Database`` facade;
+* experimental storage backends or parser outputs.
+
+Developers should not yet assume that all ``Database``-level workflows have
+equivalent high-level ``Dataset`` convenience methods. ``Dataset`` is the
+cleaner internal core, but the richest user experience still lives in
+``Database``.
+
+
 Current Status Summary
 ----------------------
 

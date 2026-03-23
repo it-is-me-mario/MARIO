@@ -43,11 +43,13 @@ if not any(isinstance(handler, logging.NullHandler) for handler in _library_logg
 
 
 def _clear_handlers(logger):
+    """Remove all handlers from a logger before reconfiguration."""
     for handler in list(logger.handlers):
         logger.removeHandler(handler)
 
 
 def _configure_dependency_logging(include_dependency_logs: bool) -> None:
+    """Mute or re-enable selected third-party library loggers."""
     level = logging.NOTSET if include_dependency_logs else logging.CRITICAL
     for name in _DEPENDENCY_LOGGERS:
         dependency_logger = logging.getLogger(name)
@@ -59,6 +61,7 @@ def _configure_dependency_logging(include_dependency_logs: bool) -> None:
 
 
 def _configure_dependency_warnings(include_dependency_logs: bool) -> None:
+    """Apply warning filters for noisy dependencies when requested."""
     if include_dependency_logs:
         return
 
@@ -67,6 +70,7 @@ def _configure_dependency_warnings(include_dependency_logs: bool) -> None:
 
 
 def setup_root_logger(verbosity, capture_warnings, include_dependency_logs=False):
+    """Configure MARIO logging and dependency-noise suppression."""
     root_logger = logging.getLogger()
     mario_logger = logging.getLogger(_MARIO_LOGGER)
 
@@ -100,6 +104,7 @@ def setup_root_logger(verbosity, capture_warnings, include_dependency_logs=False
 
 
 def log_time(logger, comment, level="info"):
+    """Log one message using a dynamic standard logging level name."""
     getattr(logger, level)(comment)
 
 

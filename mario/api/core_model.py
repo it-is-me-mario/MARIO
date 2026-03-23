@@ -43,18 +43,21 @@ except ModuleNotFoundError:
 
 
 def _resolver_module():
+    """Import the resolver lazily to avoid circular imports at module load time."""
     from mario.compute import resolver as resolver_module
 
     return resolver_module
 
 
 def _normalize_requested_matrices(matrices) -> list[str]:
+    """Normalize one or many matrix names to a plain list."""
     if isinstance(matrices, str):
         return [matrices]
     return list(matrices)
 
 
 def available_matrices(table_type: str) -> tuple[str, ...]:
+    """Return the catalog-backed matrix names accepted by the public API."""
     from mario.compute.catalog import available_matrix_names
 
     return available_matrix_names(table_type)
@@ -159,10 +162,12 @@ class CoreModel:
             self._resolve_one(item, scenario=scenario, force_rewrite=force_rewrite)
 
     def _validate_scenario(self, scenario: str) -> None:
+        """Ensure that the requested scenario exists on the database."""
         if scenario not in self.scenarios:
             raise WrongInput(f"Acceptable scenarios are {self.scenarios}")
 
     def _validate_matrices(self, matrices: list[str]) -> None:
+        """Ensure that all requested matrix names are valid for the table kind."""
         acceptable = list(available_matrices(self.table_type))
         for item in matrices:
             if item not in acceptable:
@@ -172,9 +177,11 @@ class CoreModel:
                 )
 
     def _resolver_failure_types(self):
+        """Return the exception types that indicate a resolution failure."""
         return (_resolver_module().ResolutionError, LookupError, NotImplementedError)
 
     def _resolve_one(self, item: str, *, scenario: str, force_rewrite: bool):
+        """Resolve one matrix and restore previous state if forced recompute fails."""
         removed = False
         previous = None
 
@@ -192,6 +199,7 @@ class CoreModel:
             ) from exc
 
     def resolve(self, matrix: str, *, scenario: str = "baseline", force_rewrite: bool = False):
+        """Resolve and materialize one matrix through the compute resolver."""
         self._validate_scenario(scenario)
         self._validate_matrices([matrix])
         return self._resolve_one(matrix, scenario=scenario, force_rewrite=force_rewrite)
@@ -203,6 +211,7 @@ class CoreModel:
         scenario: str = "baseline",
         force_rewrite: bool = False,
     ) -> dict[str, object]:
+        """Resolve and materialize several matrices through the compute resolver."""
         requested = _normalize_requested_matrices(matrices)
         self._validate_scenario(scenario)
         self._validate_matrices(requested)
@@ -212,9 +221,11 @@ class CoreModel:
         }
 
     def explain(self, matrix: str, *, scenario: str = "baseline") -> str:
+        """Return a dependency explanation for one matrix."""
         return _resolver_module().explain(matrix, self, scenario=scenario)
 
     def _get_matrix(self, matrix: str, *, scenario: str, auto_calc: bool):
+        """Return a deep copy of one matrix, computing it when allowed."""
         if matrix not in self.matrices[scenario]:
             if not auto_calc:
                 raise DataMissing(
@@ -610,6 +621,7 @@ class CoreModel:
         self.meta._save(path, format)
 
     def __str__(self):
+        """Render a compact structural summary of the database."""
         to_print = (
             "name = {}\n"
             "table = {}\n"
@@ -621,6 +633,7 @@ class CoreModel:
         return to_print
 
     def __repr__(self):
+        """Return the same structural summary used by ``__str__``."""
         return self.__str__()
 
     def GDP(
@@ -758,6 +771,7 @@ class CoreModel:
 
     @directory.setter
     def directory(self, _dir):
+        """Set and create, when needed, the default output directory."""
         _dir = r"{}".format(_dir)
         if os.path.exists(_dir):
             self._dir = _dir
@@ -788,6 +802,7 @@ class CoreModel:
         return self.matrices[key]
 
     def __iter__(self):
+        """Start iteration over available scenarios."""
         self.__it__ = self.scenarios
         return self
 
@@ -805,6 +820,7 @@ class CoreModel:
             raise StopIteration
 
     def __getattr__(self, attr):
+        """Auto-compute matrix attributes requested through dotted access."""
         if attr in self.__dict__:
             return self.__dict__[attr]
         else:
@@ -818,9 +834,11 @@ class CoreModel:
                 raise AttributeError(attr)
 
     def __getstate__(self):
+        """Return the instance state for pickle serialization."""
         return self.__dict__
 
     def __setstate__(self, value):
+        """Restore the instance state after pickle deserialization."""
         self.__dict__ = value
 
     def __eq__(self, other):

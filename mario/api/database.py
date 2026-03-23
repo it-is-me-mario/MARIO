@@ -950,6 +950,7 @@ class Database(CoreModel):
         _sh_excel(self, num_shock, self._getdir(path, "Excels", "shock.xlsx"), clusters)
 
     def replace_units_name(self, level, names):
+        """Rename unit labels inside one unit table without touching matrix data."""
         if level not in [*TABLE_LEVELS[self.meta.table]]:
             raise WrongInput(
                 "'{}' is not a valid index. Valid indeces are: \n{}".format(

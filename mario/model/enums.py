@@ -13,6 +13,7 @@ class TableKind(str, Enum):
 
     @classmethod
     def coerce(cls, value: "TableKind | str") -> "TableKind":
+        """Convert a string or enum-like value into a ``TableKind``."""
         if isinstance(value, cls):
             return value
 

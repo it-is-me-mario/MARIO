@@ -4,6 +4,7 @@ from __future__ import annotations
 
 
 def require_duckdb():
+    """Import and return ``duckdb`` or raise a focused missing-dependency error."""
     try:
         import duckdb
     except ModuleNotFoundError as exc:

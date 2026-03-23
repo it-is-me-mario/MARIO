@@ -1,3 +1,5 @@
+"""Helpers for building empty canonical MARIO matrices and templates."""
+
 import pandas as pd
 from mario.log_exc.exceptions import WrongInput
 from mario.model.conventions import TABLE_LEVELS, TABLE_UNIT_LEVELS
@@ -5,12 +7,16 @@ from mario.model.conventions import _MASTER_INDEX
 
 
 class MatrixBuilder:
+    """Create empty canonical matrices from a table kind and level values."""
+
     def __init__(self, table, levels, sort=False):
+        """Store table metadata used to generate empty block skeletons."""
         self.table = table
         self.levels = levels
 
     @property
     def Z(self):
+        """Return an empty transaction matrix with canonical MARIO axes."""
         region = _MASTER_INDEX.r
         if self.table == "IOT":
             sector = _MASTER_INDEX.s
@@ -38,6 +44,7 @@ class MatrixBuilder:
 
     @property
     def Y(self):
+        """Return an empty final-demand matrix aligned with the current table."""
         region = _MASTER_INDEX.r
         consumption = _MASTER_INDEX.n
 
@@ -52,6 +59,7 @@ class MatrixBuilder:
 
     @property
     def E(self):
+        """Return an empty satellite extension matrix."""
         region = _MASTER_INDEX.r
         satellite = _MASTER_INDEX.k
 
@@ -64,6 +72,7 @@ class MatrixBuilder:
 
     @property
     def V(self):
+        """Return an empty value-added matrix."""
         region = _MASTER_INDEX.r
         factor = _MASTER_INDEX.f
 
@@ -76,6 +85,7 @@ class MatrixBuilder:
 
     @property
     def EY(self):
+        """Return an empty final-demand extension matrix."""
         index = self.E.index
         columns = self.Y.columns
 
@@ -85,6 +95,7 @@ class MatrixBuilder:
 
     @property
     def X(self):
+        """Return an empty production vector."""
         index = self.Z.index
         columns = ["production"]
 
@@ -97,6 +108,7 @@ class DataTemplate:
     """Build an IO or SUT table from tabular data inputs."""
 
     def __init__(self, table) -> None:
+        """Initialize a tabular template builder for one table kind."""
         if table not in TABLE_LEVELS:
             raise WrongInput("Only SUT and IOT are acceptable table types.")
 
@@ -162,6 +174,7 @@ class DataTemplate:
                 self._levels[level] = df.values.tolist()
 
     def _get_data_format(self):
+        """Build the empty tabular format expected by ``read_template``."""
         idx_0 = pd.MultiIndex.from_product([self.non_unit_levels, ["value"]])
         idx_1 = pd.MultiIndex.from_product([self.unit_levels, ["value", "unit"]])
 
@@ -170,14 +183,17 @@ class DataTemplate:
 
     @property
     def levels(self):
+        """Return the logical levels required by the current table kind."""
         return [*TABLE_LEVELS[self._table]]
 
     @property
     def unit_levels(self):
+        """Return the levels that must carry unit metadata."""
         return [*TABLE_UNIT_LEVELS[self._table]]
 
     @property
     def non_unit_levels(self):
+        """Return the levels that only require value lists."""
         non_unit_levels = []
 
         for i in self.levels:

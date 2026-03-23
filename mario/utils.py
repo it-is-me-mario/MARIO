@@ -81,6 +81,7 @@ def slicer(matrix, axis, **levels):
 
 
 def run_from_jupyter():
+    """Return ``True`` when MARIO is running inside a Jupyter kernel."""
     if get_ipython() is not None:
         ipy_str = str(type(get_ipython()))
         if "zmqshell" in ipy_str:
@@ -90,6 +91,7 @@ def run_from_jupyter():
 
 
 def sort_frames(_dict):
+    """Sort matrix axes in-place using MARIO's expected level ordering."""
     for key, value in _dict.items():
         if key.upper() in [_ENUM.E, _ENUM.V, _ENUM.EY]:
             _dict[key] = value.sort_index(axis=1, level=1)
@@ -99,10 +101,12 @@ def sort_frames(_dict):
 
 
 def delete_duplicates(_list: [list, tuple]) -> list:
+    """Remove duplicates from a sequence while preserving first occurrence order."""
     return list(dict.fromkeys(_list))
 
 
 def _manage_indeces(instance, case, **kwargs):
+    """Mutate the database index mapping after structural operations."""
     if case == "aggregation":
         for index in instance._indeces.keys():
             if "aggregated" in instance._indeces[index]:
@@ -119,6 +123,7 @@ def _manage_indeces(instance, case, **kwargs):
 
 
 def check_clusters(index_dict, table, clusters):
+    """Validate user-provided cluster definitions against database indexes."""
     differences = set(clusters).difference(set(TABLE_LEVELS[table]))
 
     if differences:
@@ -142,6 +147,7 @@ def check_clusters(index_dict, table, clusters):
 def all_file_reader(
     path, guide, sub_folder=False, sep="\t", exceptions=[], engine=None
 ):
+    """Read a structured collection of CSV/TXT/Excel files from a folder or zip."""
     read = {}
 
     def readers(file_to_read, file):
@@ -199,6 +205,7 @@ def all_file_reader(
 
 
 def return_index(df, item, multi_index, del_duplicate, reindex=None, level=None):
+    """Extract one index or column level from a dataframe-like object."""
     if multi_index:
         index = list(getattr(df, item).get_level_values(level))
 
@@ -212,6 +219,7 @@ def return_index(df, item, multi_index, del_duplicate, reindex=None, level=None)
 
 
 def multiindex_contain(inner_index, outer_index, file, check_levels=None):
+    """Check whether one pandas index structure is contained in another."""
     if type(inner_index) != type(outer_index):
         raise WrongInput(
             f"Incorrect indexing for {file}. the indexing should be with a {type(outer_index)} format."
@@ -248,6 +256,7 @@ def multiindex_contain(inner_index, outer_index, file, check_levels=None):
 
 
 def rename_index(_dict):
+    """Apply canonical MARIO axis names to a mapping of dataframes."""
     for key, value in _dict.items():
         for item in ["index", "columns"]:
             if isinstance(getattr(value, item), pd.MultiIndex):
@@ -257,6 +266,7 @@ def rename_index(_dict):
 
 
 def filtering(instance, filters):
+    """Validate and normalize plotting or query filters against database sets."""
     for item, value in filters.items():
         splitter = item.split("_")
         if item == "filter_{}".format(_MASTER_INDEX["n"].replace(" ", "_")):
@@ -288,6 +298,7 @@ def filtering(instance, filters):
 
 
 def pymrio_styling(df, keep_index, keep_columns, index_name, columns_name):
+    """Project a MARIO matrix into the index layout expected by ``pymrio``."""
     index = [df.index.get_level_values(i) for i in keep_index]
     columns = [df.columns.get_level_values(i) for i in keep_columns]
 

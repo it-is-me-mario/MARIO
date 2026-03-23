@@ -23,10 +23,12 @@ class ResolutionStore:
     """Minimal adapter over databases and in-memory mappings."""
 
     def __init__(self, dataset, scenario: str = "baseline") -> None:
+        """Bind the planner to one dataset-like object and scenario."""
         self.dataset = dataset
         self.scenario = scenario
 
     def _scenario_mapping(self) -> MutableMapping:
+        """Return the mutable mapping that stores blocks for the scenario."""
         dataset = self.dataset
 
         if hasattr(dataset, "list_blocks") and hasattr(dataset, "get_block"):
@@ -43,18 +45,21 @@ class ResolutionStore:
         raise TypeError("Unsupported dataset type for resolution store.")
 
     def has(self, name: str) -> bool:
+        """Return ``True`` when the scenario already materializes ``name``."""
         dataset = self.dataset
         if hasattr(dataset, "has_block"):
             return bool(dataset.has_block(name, scenario=self.scenario))
         return name in self._scenario_mapping()
 
     def get(self, name: str):
+        """Read one block from the wrapped dataset or mapping."""
         dataset = self.dataset
         if hasattr(dataset, "get_block"):
             return dataset.get_block(name, scenario=self.scenario)
         return self._scenario_mapping()[name]
 
     def set(self, name: str, value) -> None:
+        """Persist one materialized block back to the wrapped dataset."""
         dataset = self.dataset
         if hasattr(dataset, "set_block"):
             dataset.set_block(name, value, scenario=self.scenario)
@@ -62,6 +67,7 @@ class ResolutionStore:
         self._scenario_mapping()[name] = value
 
     def names(self) -> tuple[str, ...]:
+        """Return the block names already present in the scenario."""
         dataset = self.dataset
         if hasattr(dataset, "list_blocks"):
             return tuple(dataset.list_blocks(self.scenario))
@@ -69,6 +75,7 @@ class ResolutionStore:
 
 
 def resolve_table_kind(dataset, context: ResolutionContext | None = None) -> TableKind:
+    """Infer the table kind from explicit context or dataset metadata."""
     if context is not None and context.table_kind is not None:
         return TableKind.coerce(context.table_kind)
 
@@ -96,6 +103,7 @@ def strategy_is_immediately_available(
     scenario: str = "baseline",
     context: ResolutionContext | None = None,
 ) -> bool:
+    """Return ``True`` when a strategy can run without resolving dependencies."""
     store = ResolutionStore(dataset, scenario=scenario)
 
     if isinstance(strategy, ParsedStrategy):
@@ -120,6 +128,7 @@ def strategy_cost_hint(
     scenario: str = "baseline",
     context: ResolutionContext | None = None,
 ) -> tuple[int, int, int]:
+    """Return a sortable hint used to rank candidate strategies."""
     priority = {
         StrategyKind.PARSED: 1,
         StrategyKind.EXTRACT: 2,
@@ -136,6 +145,7 @@ def candidate_strategies(
     scenario: str = "baseline",
     context: ResolutionContext | None = None,
 ) -> tuple[Strategy, ...]:
+    """Return candidate strategies ordered by the planner priority rules."""
     table_kind = resolve_table_kind(dataset, context)
     spec = get_matrix_spec(table_kind, target)
     return tuple(
@@ -152,6 +162,7 @@ def build_plan(
     scenario: str = "baseline",
     context: ResolutionContext | None = None,
 ) -> list[ResolutionResult]:
+    """Build the ordered execution plan needed to materialize ``target``."""
     context = context or ResolutionContext()
     store = ResolutionStore(dataset, scenario=scenario)
     table_kind = resolve_table_kind(dataset, context)
@@ -170,6 +181,8 @@ def build_plan(
         if strategy is None:
             raise LookupError(f"No viable strategy found while planning {name}.")
 
+        # The planner resolves recursive dependencies for formula and concat
+        # strategies so the executor can materialize them in-order later on.
         if isinstance(strategy, FormulaStrategy):
             for dependency in strategy.inputs:
                 plan_for(dependency, stack + (name,))
@@ -205,6 +218,7 @@ def _select_strategy(
     context: ResolutionContext,
     stack: tuple[str, ...],
 ) -> Strategy | None:
+    """Select the first viable strategy for ``target`` under the current context."""
     store = ResolutionStore(dataset, scenario=scenario)
 
     for strategy in candidate_strategies(target, dataset, scenario, context):

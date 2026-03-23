@@ -56,6 +56,7 @@ def load_test(table):
 
 
 def load_dummy(test):
+    """Load a raw workbook fixture as a mapping of matrix names to dataframes."""
     file = pd.ExcelFile(f"{path}/{test}.xlsx")
 
     return {

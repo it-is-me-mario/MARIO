@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 def check_replace_clusters(userValue, dataValues, clusters):
+    """Resolve a user value directly or through the optional cluster mapping."""
     if userValue in dataValues:
         return userValue
 
@@ -27,12 +28,14 @@ def check_replace_clusters(userValue, dataValues, clusters):
 
 
 def get_value(given):
+    """Return a scalar/array view for either pandas or plain Python inputs."""
     if isinstance(given, (pd.DataFrame, pd.Series)):
         return given.values
     return given
 
 
 def nan_check(dataframe, row, shock_type):
+    """Detect whether a shock row is effectively incomplete."""
     dataframe = copy.deepcopy(dataframe)
 
     if shock_type != "Switch":
@@ -44,6 +47,7 @@ def nan_check(dataframe, row, shock_type):
 
 
 def Y_shock(instance, path, boolean, clusters, to_baseline):
+    """Apply final-demand shocks and return the updated block plus notes."""
     Y = instance.query(_ENUM.Y)
     notes = []
 
@@ -162,6 +166,7 @@ def Y_shock(instance, path, boolean, clusters, to_baseline):
 
 
 def V_shock(instance, path, matrix, boolean, clusters, to_baseline):
+    """Apply value-added or extension shocks in coefficient space."""
     notes = []
     if matrix == "V":
         v = instance.query(_ENUM.v)
@@ -281,6 +286,7 @@ def V_shock(instance, path, matrix, boolean, clusters, to_baseline):
 
 
 def Z_shock(instance, path, boolean, clusters, to_baseline):
+    """Apply shocks to the inter-industry coefficient matrix ``z``."""
     z = instance.query(_ENUM.z)
 
     notes = []

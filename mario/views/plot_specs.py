@@ -304,7 +304,10 @@ _NON_ACCEPTABLE_FILTERS = {
 
 
 class Color(list):
+    """Palette container that can extend itself with random colors on demand."""
+
     def __init__(self):
+        """Initialize the palette from configured defaults."""
         palette = _PLOTS_LAYOUT["palette"]
 
         if palette:
@@ -313,6 +316,7 @@ class Color(list):
             self.extend(_PALETTES["mario"])
 
     def __getitem__(self, i):
+        """Return one color, growing the palette if the index is out of range."""
         try:
             return super().__getitem__(i)
         except IndexError:
@@ -325,6 +329,7 @@ class Color(list):
             return color
 
     def random_color(self):
+        """Generate one random hex color."""
         return "#" + "".join([random.choice("0123456789ABCDEF") for j in range(6)])
 
     def has_enough_colors(self, check):

@@ -14,7 +14,9 @@ class BaseParser(ABC):
 
     @abstractmethod
     def parse(self, **kwargs) -> Dataset:
+        """Parse the input payload into a ``Dataset`` instance."""
         raise NotImplementedError
 
     def __call__(self, **kwargs) -> Dataset:
+        """Delegate call syntax to ``parse`` for registry convenience."""
         return self.parse(**kwargs)

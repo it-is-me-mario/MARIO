@@ -31,6 +31,7 @@ __all__ = [
 
 
 def __getattr__(name: str):
+    """Resolve model exports lazily to keep import cost and cycles low."""
     if name == "Block":
         from mario.model.block import Block
 

@@ -27,6 +27,7 @@ def add_new_sector(
     item: str,
     regions: list,
 ) -> tuple:
+    """Build the new matrices and units required to append sectors."""
     table = instance.table_type
 
     # get the original baseline data
@@ -115,6 +116,7 @@ def check_unit_consistency(units_df: pd.DataFrame, new_sectors: list) -> list:
 
 
 def get_corresponding_keys(item):
+    """Return the workbook sheets required for the selected item type."""
     keys = [*ADD_SECTOR_SHEETS]
 
     # if sector, output from not needed
@@ -147,6 +149,7 @@ def parse_add_sector_excels(
     counter_item: str,
     regions,
 ):
+    """Read one add-sector worksheet or create its empty default frame."""
     _ACCEPTABLE_EMPTY_SHEETS = ["fd", "it", "of"]
     # only accept str for io
 
@@ -188,6 +191,7 @@ def parse_add_sector_excels(
 
 
 def get_empty_frame(key, new_sectors, instance, item, counter_item, regions):
+    """Build a default empty dataframe for optional add-sector sheets."""
     if key in ["it", "of"]:
         return pd.DataFrame(
             0,
@@ -212,6 +216,7 @@ def get_empty_frame(key, new_sectors, instance, item, counter_item, regions):
 
 
 def build_additional_matrix(table, instance, new_sectors, item):
+    """Return a ``MatrixBuilder`` extended with the requested sector labels."""
     levels = {k: instance.get_index(k) for k in instance.sets}
 
     # update the new set of info
@@ -224,6 +229,7 @@ def build_additional_matrix(table, instance, new_sectors, item):
 
 
 def fill_matrix(empty_df, user_df):
+    """Overlay user-entered values on the empty add-sector template frame."""
     # if there is no user value passed, just skip any operation
     if (user_df == 0).all().all():
         return empty_df
@@ -234,6 +240,7 @@ def fill_matrix(empty_df, user_df):
 
 
 def _infer_new_sector_names(data: Dict, empty_matrices: Dict) -> list:
+    """Infer newly added sector names by comparing filled and empty blocks."""
     for key, frame in empty_matrices.items():
         if key == "EY":
             continue

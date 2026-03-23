@@ -6,6 +6,7 @@ from importlib import import_module
 
 
 def parse_dataset(parser: str, **kwargs):
+    """Parse a ``Dataset`` through the named parser registered in the default registry."""
     from mario.parsers.registry import get_parser_registry
 
     return get_parser_registry().parse(parser, **kwargs)
@@ -37,6 +38,7 @@ __all__ = [
 
 
 def __getattr__(name: str):
+    """Lazily expose parser classes and entry points without eager imports."""
     if name == "BaseParser":
         module = import_module("mario.parsers.base")
         return getattr(module, name)

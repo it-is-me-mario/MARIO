@@ -18,6 +18,7 @@ from mario.ops.workbook_specs import (
 
 
 def _sh_excel(instance, num_shock, directory, clusters):
+    """Write the Excel template used to define database shocks."""
     # Defining the headers
     levels = SHOCK_LEVEL_NAMES[instance.meta.table]
 
@@ -203,6 +204,7 @@ def _sh_excel(instance, num_shock, directory, clusters):
 
 
 def dataframe_to_xlsx(path, **kwargs):
+    """Write arbitrary dataframes to a workbook while preserving labels."""
     file = xlsxwriter.Workbook(path)
 
     for sheet, data in kwargs.items():
@@ -235,6 +237,7 @@ def dataframe_to_xlsx(path, **kwargs):
 
 
 def wrirte_matrices(sheet, Z, V, E, Y, EY, flow_format, header_format):
+    """Write the canonical MARIO block layout to one worksheet."""
     row_counter = 0
     col_counter = 0
     # indeces
@@ -341,6 +344,7 @@ def wrirte_matrices(sheet, Z, V, E, Y, EY, flow_format, header_format):
 
 
 def database_excel(instance, flows, coefficients, directory, scenario):
+    """Export one scenario to the standard MARIO Excel workbook format."""
     file = directory
     workbook = xlsxwriter.Workbook(file)
 
@@ -429,6 +433,7 @@ def database_excel(instance, flows, coefficients, directory, scenario):
 
 
 def database_txt(instance, flows, coefficients, path, scenario, _format, sep):
+    """Export one scenario to a directory tree of delimited text files."""
     if flows:
         flows = instance.query(
             matrices=[_ENUM.V, _ENUM.E, _ENUM.Z, _ENUM.Y, _ENUM.X, _ENUM.EY],
@@ -515,6 +520,7 @@ def database_txt(instance, flows, coefficients, path, scenario, _format, sep):
 
 
 def add_sector_writer(matrices, path):
+    """Write helper workbook content for add-sector templates."""
     workbook = xlsxwriter.Workbook(path)
 
     # Add a format for the header cells.
@@ -531,6 +537,7 @@ def add_sector_writer(matrices, path):
 
 
 def _add_sector_sut(instance, sectors, regions, path, item, num_validation=30):
+    """Write the SUT add-sector workbook with validation lists."""
     file = xlsxwriter.Workbook(path)
     header_format = file.add_format(HEADER_CELL_FORMAT)
 
@@ -734,6 +741,7 @@ def _add_sector_sut(instance, sectors, regions, path, item, num_validation=30):
 
 
 def _add_sector_iot(instance, sectors, regions, path, num_validation=30):
+    """Write the IOT add-sector workbook with validation lists."""
     file = xlsxwriter.Workbook(path)
     header_format = file.add_format(HEADER_CELL_FORMAT)
 

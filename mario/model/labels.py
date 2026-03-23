@@ -16,11 +16,13 @@ COMMODITY_ACTIVITY_LABEL = "Commodity/Activity"
 
 @lru_cache(maxsize=1)
 def _index_labels() -> dict[str, str]:
+    """Load configured index labels once and cache them for reuse."""
     return dict(Index().items())
 
 
 @lru_cache(maxsize=1)
 def _matrix_labels() -> dict[str, str]:
+    """Load configured matrix labels once and cache them for reuse."""
     return dict(Nomenclature().items())
 
 
@@ -48,22 +50,27 @@ class TableSchemaLabels:
 
     @property
     def dimension_labels(self) -> tuple[str, ...]:
+        """Return human-readable labels for the logical dimensions."""
         return tuple(level_name(code) for code in self.dimension_codes)
 
     @property
     def unit_labels(self) -> tuple[str, ...]:
+        """Return human-readable labels for the unit-bearing dimensions."""
         return tuple(level_name(code) for code in self.unit_codes)
 
 
 def level_name(code: str) -> str:
+    """Translate an index code into its configured display label."""
     return INDEX_LABELS[code]
 
 
 def matrix_name(code: str) -> str:
+    """Translate a matrix code into its configured display label."""
     return MATRIX_LABELS[code]
 
 
 def get_table_schema_labels(table: "TableKind | str") -> TableSchemaLabels:
+    """Return the label schema object associated with one table kind."""
     kind = TableKind.coerce(table)
     return TableSchemaLabels(
         table=kind,

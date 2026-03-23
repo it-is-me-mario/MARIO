@@ -11,6 +11,8 @@ from mario.compute.types import ResolutionContext, Strategy, StrategyKind
 
 @dataclass(frozen=True)
 class DependencyNode:
+    """One node in a dependency explanation tree."""
+
     name: str
     status: str
     strategy_kind: StrategyKind | None = None
@@ -19,6 +21,7 @@ class DependencyNode:
 
 
 def _has_implementation(name: str) -> bool:
+    """Return ``True`` when a named compute callable exists in the engine."""
     for module in (views, iot_formulas, sut_formulas, ghosh_formulas):
         value = getattr(module, name, None)
         if callable(value):
@@ -32,6 +35,7 @@ def build_dependency_graph(
     scenario: str = "baseline",
     context: ResolutionContext | None = None,
 ) -> DependencyNode:
+    """Build a dependency tree explaining how ``target`` would be resolved."""
     context = context or ResolutionContext()
     store = ResolutionStore(dataset, scenario=scenario)
     _ = resolve_table_kind(dataset, context)
@@ -75,6 +79,7 @@ def _visit_strategy(
     stack: tuple[str, ...],
     visit,
 ) -> DependencyNode:
+    """Evaluate one strategy branch inside the dependency explanation tree."""
     store = ResolutionStore(dataset, scenario=scenario)
 
     if strategy.kind == StrategyKind.PARSED:
@@ -164,6 +169,7 @@ def _visit_strategy(
 
 
 def render_dependency_graph(node: DependencyNode, indent: int = 0) -> str:
+    """Render a dependency tree into a readable multi-line text explanation."""
     prefix = "  " * indent
     strategy = f" [{node.strategy_kind.value}]" if node.strategy_kind is not None else ""
     detail = f": {node.detail}" if node.detail else ""

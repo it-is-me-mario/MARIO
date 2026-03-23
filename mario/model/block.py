@@ -10,6 +10,7 @@ from mario.model.enums import BlockRole, TableKind
 
 
 def _infer_role(name: str) -> BlockRole | None:
+    """Infer a coarse semantic role for a block name."""
     if name in {"w", "g", "b"}:
         return BlockRole.OPERATOR
     if name in {"X", "M", "F", "p"}:
@@ -23,6 +24,8 @@ def _infer_role(name: str) -> BlockRole | None:
 
 @dataclass(frozen=True)
 class Block:
+    """Immutable metadata record describing one stored dataset block."""
+
     name: str
     scenario: str
     storage_key: str
@@ -41,6 +44,7 @@ class Block:
         table_kind: TableKind,
         metadata: dict[str, object] | None = None,
     ) -> "Block":
+        """Build a block record from a block name and dataset context."""
         axes = None
         try:
             axes = get_matrix_spec(table_kind, name).axes

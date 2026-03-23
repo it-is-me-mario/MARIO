@@ -15,6 +15,7 @@ from mario.compute.helpers import (
 
 
 def build_ghosh_b_from_X_Z(X: pd.DataFrame, Z: pd.DataFrame) -> pd.DataFrame:
+    """Build the direct-output coefficients ``b`` from flows and production."""
     validate_square(Z)
     require_same_index(Z, X, lhs_name="Z", rhs_name="X")
     x_inv = inverse_vector(X)
@@ -27,21 +28,26 @@ def build_ghosh_b_from_X_Z(X: pd.DataFrame, Z: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_ghosh_g_from_b(b: pd.DataFrame) -> pd.DataFrame:
+    """Build the Ghosh inverse ``g = (I - b)^-1``."""
     validate_square(b)
     return safe_inverse(identity_like(b) - b)
 
 
 def build_iot_b_from_X_Z(X: pd.DataFrame, Z: pd.DataFrame) -> pd.DataFrame:
+    """IOT alias for building direct-output coefficients."""
     return build_ghosh_b_from_X_Z(X, Z)
 
 
 def build_iot_g_from_b(b: pd.DataFrame) -> pd.DataFrame:
+    """IOT alias for building the Ghosh inverse."""
     return build_ghosh_g_from_b(b)
 
 
 def build_sut_b_from_X_Z(X: pd.DataFrame, Z: pd.DataFrame) -> pd.DataFrame:
+    """SUT alias for building direct-output coefficients."""
     return build_ghosh_b_from_X_Z(X, Z)
 
 
 def build_sut_g_from_b(b: pd.DataFrame) -> pd.DataFrame:
+    """SUT alias for building the Ghosh inverse."""
     return build_ghosh_g_from_b(b)

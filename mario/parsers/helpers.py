@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 
 
 def _copy_blocks(blocks: dict[str, object]) -> dict[str, object]:
+    """Return defensive copies of parser-produced block values."""
     copied: dict[str, object] = {}
     for name, value in blocks.items():
         copied[name] = value.copy(deep=True) if hasattr(value, "copy") else value
@@ -43,6 +44,7 @@ def _copy_blocks(blocks: dict[str, object]) -> dict[str, object]:
 def copy_indexes(
     indexes: dict[str, dict[str, object]] | None,
 ) -> dict[str, dict[str, tuple[object, ...]]]:
+    """Normalize parser index mappings into tuple-based containers."""
     normalized: dict[str, dict[str, tuple[object, ...]]] = {}
     if not indexes:
         return normalized
@@ -56,6 +58,7 @@ def copy_indexes(
 
 
 def copy_units(units: dict[str, object] | None) -> dict[str, object]:
+    """Return defensive copies of parser-produced unit tables."""
     if not units:
         return {}
 
@@ -66,12 +69,14 @@ def copy_units(units: dict[str, object] | None) -> dict[str, object]:
 
 
 def extract_baseline_blocks(matrices: dict[str, object]) -> dict[str, object]:
+    """Extract the baseline block mapping from parser output payloads."""
     if "baseline" in matrices and isinstance(matrices["baseline"], dict):
         return _copy_blocks(matrices["baseline"])
     return _copy_blocks(matrices)
 
 
 def promote_sut_blocks(blocks: dict[str, object]) -> dict[str, object]:
+    """Convert unified SUT parser blocks into split-native canonical blocks."""
     log_time(logger, "Parser: promoting unified SUT blocks to split-native blocks.", "debug")
     ordering = SUTUnifiedOrderingPolicy.from_blocks(
         Z=blocks.get("Z"),
@@ -137,6 +142,7 @@ def build_dataset_from_parser_output(
     source_path: str | Path | None = None,
     repository: BlockRepository | None = None,
 ) -> Dataset:
+    """Build a canonical ``Dataset`` from normalized parser output."""
     table_kind = TableKind.coerce(table)
     log_time(logger, f"Parser: building dataset payload for {table_kind.value}.", "debug")
 

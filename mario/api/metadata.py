@@ -28,6 +28,7 @@ class MARIOMetaData:
             self._add_history("metadata file uploaded from {}".format(meta))
 
     def _add_attribute(self, **kwargs):
+        """Set metadata attributes while recording history for changes."""
         for attribute, value in kwargs.items():
             if hasattr(self, attribute):
                 if getattr(self, attribute) != value:
@@ -55,6 +56,7 @@ class MARIOMetaData:
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     def __str__(self):
+        """Render a compact textual view of the most recent history items."""
         history_lines_2_show = 15
         history = "\n".join(self._history[:history_lines_2_show])
 
@@ -67,6 +69,7 @@ class MARIOMetaData:
         return history
 
     def __repr__(self):
+        """Return the same compact history preview used by ``__str__``."""
         return self.__str__()
 
     def _save(self, location, _format="binary"):
@@ -86,6 +89,7 @@ class MARIOMetaData:
                 json.dump(meta, fp)
 
     def _to_dict(self):
+        """Serialize core metadata fields and history into a dictionary."""
         meta_as_dict = {}
 
         for attr in ["price", "name", "year", "source"]:
@@ -98,6 +102,7 @@ class MARIOMetaData:
         return meta_as_dict
 
     def load(self, location):
+        """Load a previously pickled metadata object from disk."""
         with open(location, "rb") as load_file:
             meta = pickle.load(load_file)
 
@@ -122,10 +127,12 @@ class MARIOMetaData:
 
     @property
     def table(self):
+        """Return the validated table kind stored in metadata."""
         return self.__table
 
     @table.setter
     def table(self, var):
+        """Validate and store the table kind."""
         if var not in [*TABLE_LEVELS]:
             raise WrongInput("table can be: {}".format(*TABLE_LEVELS))
 

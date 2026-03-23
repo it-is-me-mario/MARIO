@@ -13,6 +13,7 @@ COMMODITY = INDEX_LABELS["c"]
 
 
 def _require_multiindex(axis: pd.Index, label: str) -> pd.MultiIndex:
+    """Require a canonical 3-level ``MultiIndex`` for SUT axes."""
     if not isinstance(axis, pd.MultiIndex) or axis.nlevels != 3:
         raise TypeError(f"{label} must be a 3-level pandas.MultiIndex.")
 
@@ -20,6 +21,7 @@ def _require_multiindex(axis: pd.Index, label: str) -> pd.MultiIndex:
 
 
 def _slice_level(axis: pd.MultiIndex, level_value: str) -> pd.MultiIndex:
+    """Return the subset of a unified SUT axis matching one middle-level label."""
     mask = axis.get_level_values(1) == level_value
     values = axis[mask]
 
@@ -30,6 +32,7 @@ def _slice_level(axis: pd.MultiIndex, level_value: str) -> pd.MultiIndex:
 
 
 def _take_axis(block: pd.DataFrame | pd.Series | None, axis_name: str) -> pd.MultiIndex | None:
+    """Extract a ``MultiIndex`` axis from a block when present."""
     if block is None:
         return None
 
@@ -41,6 +44,7 @@ def _take_axis(block: pd.DataFrame | pd.Series | None, axis_name: str) -> pd.Mul
 
 
 def _first_multiindex(*candidates: pd.MultiIndex | None) -> pd.MultiIndex | None:
+    """Return the first non-null ``MultiIndex`` candidate."""
     for candidate in candidates:
         if candidate is not None:
             return candidate
@@ -57,6 +61,7 @@ class SUTUnifiedOrderingPolicy:
     final_demand_columns: pd.MultiIndex | None = None
 
     def __post_init__(self) -> None:
+        """Validate that the stored indexes are canonical activity/commodity axes."""
         activity_index = _require_multiindex(self.activity_index, "activity_index")
         commodity_index = _require_multiindex(self.commodity_index, "commodity_index")
 
@@ -71,6 +76,7 @@ class SUTUnifiedOrderingPolicy:
 
     @property
     def unified_index(self) -> pd.MultiIndex:
+        """Return the canonical unified activity+commodity index ordering."""
         return self.activity_index.append(self.commodity_index)
 
     @classmethod
@@ -95,6 +101,7 @@ class SUTUnifiedOrderingPolicy:
         Ea: pd.DataFrame | None = None,
         Ec: pd.DataFrame | None = None,
     ) -> "SUTUnifiedOrderingPolicy":
+        """Infer canonical split and unified ordering from available SUT blocks."""
         unified_axis = _first_multiindex(
             _take_axis(Z, "index"),
             _take_axis(z, "index"),
@@ -147,13 +154,17 @@ class SUTUnifiedOrderingPolicy:
         )
 
     def activity_rows(self, block: pd.DataFrame) -> pd.DataFrame:
+        """Return the activity-row slice of a unified SUT block."""
         return block.loc[self.activity_index, :]
 
     def commodity_rows(self, block: pd.DataFrame) -> pd.DataFrame:
+        """Return the commodity-row slice of a unified SUT block."""
         return block.loc[self.commodity_index, :]
 
     def activity_columns(self, block: pd.DataFrame) -> pd.DataFrame:
+        """Return the activity-column slice of a unified SUT block."""
         return block.loc[:, self.activity_index]
 
     def commodity_columns(self, block: pd.DataFrame) -> pd.DataFrame:
+        """Return the commodity-column slice of a unified SUT block."""
         return block.loc[:, self.commodity_index]

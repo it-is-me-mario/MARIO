@@ -30,6 +30,7 @@ def parse_oecd(path,year):
 
 
 def parse_exiobase_3_9_4(path):
+    """Parse an EXIOBASE 3.9.4 directory through ``pymrio`` and MARIO adapters."""
 
 
     sat_acc = {  

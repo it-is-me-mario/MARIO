@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 def calc_all_shock(z, e, v, Y):
+    """Recompute the main IOT blocks after shocking direct coefficients."""
     w = calc_w(z)
     X = calc_X_from_w(w, Y)
     E = calc_E(e, X)
@@ -51,74 +52,92 @@ def calc_all_shock(z, e, v, Y):
 
 
 def calc_X(Z, Y):
+    """Public wrapper for building production totals from ``Z`` and ``Y``."""
     return build_iot_X_from_Z_Y(Z, Y)
 
 
 def calc_Z(z, X):
+    """Public wrapper for building flows ``Z`` from coefficients and output."""
     return build_iot_Z_from_z_X(z, X)
 
 
 def calc_w(z):
+    """Public wrapper for building the Leontief inverse ``w``."""
     return build_iot_w_from_z(z)
 
 
 def calc_g(b):
+    """Public wrapper for building the Ghosh inverse ``g``."""
     return build_iot_g_from_b(b)
 
 
 def calc_X_from_w(w, Y):
+    """Public wrapper for building production from ``w`` and final demand."""
     return build_iot_X_from_w_Y(w, Y)
 
 
 def calc_X_from_z(z, Y):
+    """Build production from ``z`` by first deriving the Leontief inverse."""
     return calc_X_from_w(calc_w(z), Y)
 
 
 def calc_E(e, X):
+    """Public wrapper for building extension flows from coefficients."""
     return build_iot_E_from_e_X(e, X)
 
 
 def calc_V(v, X):
+    """Public wrapper for building value-added flows from coefficients."""
     return build_iot_V_from_v_X(v, X)
 
 
 def calc_e(E, X):
+    """Public wrapper for building extension coefficients from flows."""
     return build_iot_e_from_E_X(E, X)
 
 
 def calc_p(v, w):
+    """Public wrapper for building the price index."""
     return build_iot_p_from_v_w(v, w)
 
 
 def calc_v(V, X):
+    """Public wrapper for building value-added coefficients from flows."""
     return build_iot_v_from_V_X(V, X)
 
 
 def calc_m(v, w):
+    """Public wrapper for building value-added multipliers."""
     return build_iot_m_from_v_w(v, w)
 
 
 def calc_M(m, Y):
+    """Public wrapper for building value-added footprints."""
     return build_iot_M_from_m_Y(m, Y)
 
 
 def calc_z(Z, X):
+    """Public wrapper for building technical coefficients from flows."""
     return build_iot_z_from_Z_X(Z, X)
 
 
 def calc_b(X, Z):
+    """Public wrapper for building direct-output coefficients ``b``."""
     return build_iot_b_from_X_Z(X, Z)
 
 
 def calc_F(f, Y):
+    """Public wrapper for building satellite footprints."""
     return build_iot_F_from_f_Y(f, Y)
 
 
 def calc_f(e, w):
+    """Public wrapper for building satellite multipliers."""
     return build_iot_f_from_e_w(e, w)
 
 
 def calc_f_dis(e, w):
+    """Build a diagonalized form of ``f`` from direct coefficients and ``w``."""
     values = np.diagflat(np.asarray(e, dtype=float)) @ w.to_numpy(dtype=float)
     result = pd.DataFrame(values, index=w.index, columns=w.columns)
     result.index = getattr(e, "columns", w.index)
@@ -126,10 +145,12 @@ def calc_f_dis(e, w):
 
 
 def calc_y(Y):
+    """Normalize a final-demand block by its grand total."""
     return Y / Y.sum().sum()
 
 
 def X_inverse(X):
+    """Return the inverse-production vector as a dense NumPy array."""
     return inverse_vector(X).to_numpy(dtype=float)
 
 

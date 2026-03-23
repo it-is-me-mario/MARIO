@@ -52,6 +52,7 @@ import re
 
 
 def get_index_txt(Z, V, Y, E, table):
+    """Infer canonical MARIO indexes from text-parsed matrix blocks."""
     if table == "SUT":
         regions_main = delete_duplicates(Z.columns.get_level_values(0))
         satellite_main = delete_duplicates(E.index)
@@ -138,6 +139,7 @@ def get_index_txt(Z, V, Y, E, table):
 
 
 def get_index_excel(data, table, mode):
+    """Infer canonical MARIO indexes from the standard Excel workbook layout."""
     if table == "SUT":
         # first level of the columns should represent the regions
         regions_main = delete_duplicates(data.columns.get_level_values(0))
@@ -262,6 +264,7 @@ def get_index_excel(data, table, mode):
 
 
 def get_units(units, table, indeces):
+    """Normalize the units sheet into per-level MARIO unit dataframes."""
     if set(units.index.get_level_values(0)) != set([*TABLE_UNIT_LEVELS[table]]):
         raise WrongFormat(
             "the units should contain {} levels for {}.".format([*TABLE_UNIT_LEVELS[table]], table)
@@ -300,6 +303,7 @@ def get_units(units, table, indeces):
     return _
 
 def replace_nan_indices(matrix):
+    """Replace NaN labels in matrix axes with string sentinels before parsing."""
     for axis in [0,1]:
         if axis == 0:
             n_levels = matrix.index.nlevels
@@ -327,6 +331,7 @@ def replace_nan_indices(matrix):
     return matrix
 
 def replace_nan_units_indices(units):
+    """Replace NaN labels in the units index with stable string sentinels."""
 
     new_levels = [[],[]]
     for level in range(len(units.index.names)):
@@ -339,6 +344,7 @@ def replace_nan_units_indices(units):
     return units
 
 def txt_parser(path, table, mode, sep):
+    """Parse a database stored as delimited text files in MARIO layout."""
     if mode == "coefficients":
         v, e, z = list("vez")
     else:
@@ -405,6 +411,7 @@ def txt_parser(path, table, mode, sep):
 
 
 def excel_parser(path, table, mode, sheet_name, unit_sheet):
+    """Parse a database stored in the standard MARIO Excel workbook layout."""
     if table not in INPUT_OPTIONS["table"]:
         raise WrongInput(
             "{} is not an acceptable value for table. Acceptable valuse are \n{}".format(
@@ -505,6 +512,7 @@ def excel_parser(path, table, mode, sheet_name, unit_sheet):
 
 
 def exio3(path, version):
+    """Parse an EXIOBASE 3 package into canonical MARIO blocks."""
     log_time(logger, "Parser: Parsing exiobase database from {}".format(path))
     read = all_file_reader(path, exiobase_version_3[version], sub_folder=True)
 
@@ -576,6 +584,7 @@ def exio3(path, version):
 
 
 def dataframe_parser(Z, Y, E, V, EY, units, table):
+    """Normalize explicit dataframe inputs into canonical parser output objects."""
     if isinstance(units, dict):
         units = pd.concat(units.values(), keys=units.keys())
 
@@ -605,6 +614,7 @@ def dataframe_parser(Z, Y, E, V, EY, units, table):
 
 
 def monetary_sut_exiobase(path):
+    """Parse a monetary EXIOBASE SUT package from text exports."""
     # reading the files
     read = all_file_reader(path, exiobase_mrsut, sub_folder=True)
 
@@ -1197,6 +1207,7 @@ def parse_pymrio(io, value_added, satellite_account):
 
 
 def hybrid_sut_exiobase_reader(path, extensions):
+    """Parse the hybrid EXIOBASE SUT layout with selected extensions."""
     _ACCEPTABLE_EXIOBASE_EXTENSIONS = [*hybrid_sut_exiobase_parser_id]
 
     _ACCEPTABLE_EXIOBASE_EXTENSIONS.remove("matrices")
@@ -1393,6 +1404,7 @@ def hybrid_sut_exiobase_reader(path, extensions):
 
 
 def parser_figaro_sut(path):
+    """Parse a FIGARO SUT package into canonical MARIO blocks."""
 
     all_files = os.listdir(path)
 
@@ -1509,6 +1521,7 @@ def parser_figaro_sut(path):
 
 
 def figar_mapper(lvl0, lvl1):
+    """Map FIGARO metadata labels to canonical MARIO level identifiers."""
     if lvl0.index[0] == "r":
         return (lvl0.Name.iloc[0], _MASTER_INDEX[lvl1.index[0]], lvl1.Name.iloc[0])
 
@@ -1517,6 +1530,7 @@ def figar_mapper(lvl0, lvl1):
 
 
 def figaro_get_new_index(iter, metadata):
+    """Build one canonical FIGARO multi-index tuple from metadata rows."""
     index = []
     for idx in iter:
         split = idx.split("_")
@@ -1535,6 +1549,7 @@ def figaro_get_new_index(iter, metadata):
 
 
 def load_figaro_metadata():
+    """Load the packaged FIGARO metadata workbook used by the parser."""
     path = os.path.abspath(
         os.path.join(
             os.path.dirname(__file__),

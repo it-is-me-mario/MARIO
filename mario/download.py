@@ -15,6 +15,7 @@ from mario.log_exc.exceptions import WrongInput
 
 
 def download_hybrid_exiobase(path):
+    """Download the hybrid EXIOBASE 3.3.18 files into a local directory."""
     exiobase_files = {
         "MR_HUSE_2011_v3_3_18.csv": "https://zenodo.org/record/7244919/files/MR_HUSE_2011_v3_3_18.csv?download=1",
         "MR_HSUTs_2011_v3_3_18_FD.csv": "https://zenodo.org/record/7244919/files/MR_HSUTs_2011_v3_3_18_FD.csv?download=1",
@@ -145,7 +146,6 @@ def download_figaro(table, year, path, format=None):
                     
                     # Rename the file
                     os.rename(extracted_path, new_file_path)
-
 
 
 
