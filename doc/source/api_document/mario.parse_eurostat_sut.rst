@@ -1,6 +1,6 @@
-﻿mario.parse\_eurostat\_sut
-==========================
+﻿mario.parse\_eurostat
+=====================
 
 .. currentmodule:: mario
 
-.. autofunction:: parse_eurostat_sut
+.. autofunction:: parse_eurostat

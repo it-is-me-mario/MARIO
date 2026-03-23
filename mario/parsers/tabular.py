@@ -14,7 +14,6 @@ from mario.utils import (
     rename_index,
     sort_frames,
     to_single_index,
-    extract_metadata_from_eurostat,
 )
 
 from mario.model.conventions import TABLE_UNIT_LEVELS
@@ -28,7 +27,6 @@ from mario.model.conventions import _MASTER_INDEX
 
 from mario.parsers.identifiers import (
     txt_parser_id,
-    eurostat_id,
 )
 
 import pandas as pd

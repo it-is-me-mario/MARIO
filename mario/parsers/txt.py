@@ -25,15 +25,16 @@ _FLAT_COEFFICIENT_MATRICES = ("z", "Y", "v", "e", "EY")
 _FLAT_ROW_SIMPLE = {"V", "v", "E", "e", "EY"}
 
 
-def _find_flat_payload(path: Path, stem: str) -> Path:
-    """Resolve one flat payload file by stem regardless of txt/csv extension."""
+def _find_flat_payload(path: Path, stem: str, suffixes: set[str]) -> Path:
+    """Resolve one flat payload file by stem regardless of file extension."""
     candidates = [
         item
         for item in path.iterdir()
-        if item.is_file() and item.stem == stem and item.suffix in {".txt", ".csv"}
+        if item.is_file() and item.stem == stem and item.suffix in suffixes
     ]
     if not candidates:
-        raise FileNotFoundError(path / f"{stem}.txt")
+        expected = ", ".join(sorted(suffixes))
+        raise FileNotFoundError(f"No {stem!r} payload found in {path} with suffixes {expected}.")
     if len(candidates) > 1:
         raise ValueError(f"More than one flat payload matches {stem!r}: {candidates}")
     return candidates[0]
@@ -48,8 +49,8 @@ def _flat_axis_columns(side: str) -> list[str]:
 def _read_flat_text_frames(path: str, sep: str) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Read the flat long-format data and unit tables."""
     root = Path(path)
-    data_path = _find_flat_payload(root, "data")
-    units_path = _find_flat_payload(root, "units")
+    data_path = _find_flat_payload(root, "data", {".txt", ".csv"})
+    units_path = _find_flat_payload(root, "units", {".txt", ".csv"})
 
     data = pd.read_csv(data_path, sep=sep, keep_default_na=False)
     units = pd.read_csv(units_path, sep=sep, keep_default_na=False)
@@ -107,11 +108,11 @@ def _flat_units_to_legacy(units: pd.DataFrame) -> pd.DataFrame:
     return values
 
 
-def flat_txt_parser(path: str, table: str, mode: str, sep: str):
-    """Parse the canonical flat long-format txt/csv export."""
-    log_time(logger, f"Parser: reading {mode} from flat txt files.", "info")
-    data, unit_table = _read_flat_text_frames(path, sep)
-    expected_matrices = _FLAT_COEFFICIENT_MATRICES if mode == "coefficients" else _FLAT_FLOW_MATRICES
+def parse_flat_frames(data: pd.DataFrame, unit_table: pd.DataFrame, table: str, mode: str):
+    """Parse canonical flat frames into MARIO matrices, indexes and units."""
+    expected_matrices = (
+        _FLAT_COEFFICIENT_MATRICES if mode == "coefficients" else _FLAT_FLOW_MATRICES
+    )
 
     matrices = {
         matrix_name: _flat_matrix_to_frame(data, matrix_name)
@@ -133,6 +134,13 @@ def flat_txt_parser(path: str, table: str, mode: str, sep: str):
     units = get_units(_flat_units_to_legacy(unit_table), table, indeces)
     rename_index(matrices)
     return {"baseline": matrices}, indeces, units
+
+
+def flat_txt_parser(path: str, table: str, mode: str, sep: str):
+    """Parse the canonical flat long-format txt/csv export."""
+    log_time(logger, f"Parser: reading {mode} from flat txt files.", "info")
+    data, unit_table = _read_flat_text_frames(path, sep)
+    return parse_flat_frames(data, unit_table, table, mode)
 
 
 class TxtParser(BaseParser):

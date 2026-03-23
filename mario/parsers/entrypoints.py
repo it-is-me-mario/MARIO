@@ -4,12 +4,13 @@
 from __future__ import annotations
 
 from mario.api import Database
-from mario.log_exc.exceptions import WrongInput
+from mario.log_exc.exceptions import NotImplementable, WrongInput
 from mario.parsers.api import (
     build_database_from_state,
     validate_parse_request,
 )
 from mario.parsers.excel import parse_state_from_excel
+from mario.parsers.parquet import parse_state_from_parquet
 from mario.parsers.txt import parse_state_from_txt
 from mario.parsers.exiobase_hybrid import (
     parse_exiobase_hybrid_iot,
@@ -18,6 +19,7 @@ from mario.parsers.exiobase_hybrid import (
 from mario.parsers.exiobase_iot import parse_exiobase_iot_monetary
 from mario.parsers.exiobase_sut import parse_exiobase_sut_monetary
 from mario.parsers.eora import parse_eora_single_region, parse_eora26
+from mario.parsers.eurostat_sdmx import parse_eurostat_sut_sdmx
 from mario.parsers.tabular import (
     parse_pymrio,
     parser_figaro_sut,
@@ -27,7 +29,12 @@ from mario.parsers.handshake import (
     parse_oecd
     )
 
-from mario.parsers.specs import HMRSUT_EXTENSIONS, HMIOT_EXTENSIONS, INPUT_OPTIONS
+from mario.parsers.specs import (
+    HMRSUT_EXTENSIONS,
+    HMIOT_EXTENSIONS,
+    INPUT_OPTIONS,
+    EUROSTAT_SUT_UNITS,
+)
 import pandas as pd
 
 models = {"Database": Database}
@@ -97,6 +104,55 @@ def parse_from_txt(
         table=table,
         mode=mode,
         sep=sep,
+        flat=flat,
+        name=name,
+        source=source,
+        year=year,
+    )
+    return build_database_from_state(
+        state,
+        model=model,
+        calc_all=calc_all,
+        name=name,
+        source=source,
+        year=year,
+        **kwargs,
+    )
+
+
+def parse_from_parquet(
+    path: str,
+    table: str,
+    mode: str,
+    calc_all: bool = False,
+    year: int = None,
+    name: str = None,
+    source: str = None,
+    model: str = "Database",
+    flat: bool = False,
+    **kwargs,
+):
+    """Parse a database from a folder of parquet files.
+
+    Parameters
+    ----------
+    path : str
+        directory containing either one parquet file per matrix or one flat
+        ``data.parquet`` plus ``units.parquet`` payload.
+    table : str
+        acceptable options are 'IOT' & 'SUT'
+    mode : str
+        acceptable options are ``flows`` and ``coefficients``
+    flat : bool, Optional
+        if True, parse the canonical long-format MARIO parquet export.
+        Otherwise parse the matrix-per-file parquet layout.
+    """
+    validate_parse_request(table=table, mode=mode, model=model)
+
+    state = parse_state_from_parquet(
+        path=path,
+        table=table,
+        mode=mode,
         flat=flat,
         name=name,
         source=source,
@@ -605,42 +661,96 @@ def hybrid_iot_exiobase(
     )
 
 
-def parse_eurostat_sut(
-    supply_path:str,
-    use_path:str,
-    model:str="Database",
-    name:str=None,
-    calc_all:bool=False,
+def parse_eurostat(
+    country: str,
+    year: int,
+    table: str = "SUT",
+    unit: str = "MIO_EUR",
+    model: str = "Database",
+    name: str = None,
+    calc_all: bool = False,
+    timeout: int = 60,
     **kwargs,
 ) -> object:
-    """Parse a Eurostat SUT pair.
-
-    .. note::
-
-        * this function is not generally applicable to any Eurostat table: it works only for specific table formats. Please refer to the example on the website
-        * first rule: it is not possible to parse file different from .xls format
-        * second rule: in each .xsl file, be sure data are referring to only one region
-        * third rule: use only "total" as stock/flow parameter, and only one unit of measure
-        * forth rule: supply must be provided in activity by commodity, use must be provided in commodity by activitiy formats
+    """Parse Eurostat national tables directly from the official SDMX API.
 
     Parameters
     ----------
-    supply_path : str
-        path to the .xls file containing the supply table
-    use_path : str
-        path to the .xls file containing the use table
-    name : str, Optional
-        for recording on the metadata
-
-    calc_all : bool, Optional
-        if True, will calculate the main missing matrices
-
-    Returns
-    -------
-    mario.Database
+    country : str
+        Eurostat geo code, for example ``IT`` or ``DE``.
+    year : int
+        reference year to download.
+    table : str, optional
+        target table family. ``SUT`` is implemented. ``IOT`` is reserved for a
+        future parser and currently raises ``NotImplementable``.
+    unit : str, optional
+        Eurostat SDMX unit code. Supported values are ``MIO_EUR`` and
+        ``MIO_NAC``.
+    model : str, optional
+        currently only ``Database`` is supported.
+    name : str, optional
+        optional database name stored in metadata.
+    calc_all : bool, optional
+        if True, calculate missing derived matrices after parsing.
+    timeout : int, optional
+        request timeout in seconds used for each SDMX call.
     """
+    if model not in models:
+        raise WrongInput("Available models are {}".format([*models]))
 
-    raise NotImplemented("This function was deprecated since the parser was too dependent on Eurostat web interface. Downgrade to mariopy==v.3.3.3 in case you need it")
+    validate_parse_request(table=table, model=model)
+
+    if unit not in EUROSTAT_SUT_UNITS:
+        raise WrongInput(
+            f"Eurostat unit should be one of {list(EUROSTAT_SUT_UNITS)}."
+        )
+
+    if table == "IOT":
+        raise NotImplementable(
+            "Eurostat SDMX IOT parsing is not implemented yet. Use table='SUT'."
+        )
+
+    matrices, indeces, units, layout = parse_eurostat_sut_sdmx(
+        country=country,
+        year=year,
+        unit=unit,
+        timeout=timeout,
+    )
+
+    return models[model](
+        name=name or layout.dataset_name,
+        table=table,
+        source=layout.source,
+        year=layout.year,
+        price=layout.price,
+        init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
+        calc_all=calc_all,
+        **kwargs,
+    )
+
+
+def parse_eurostat_sut(
+    country: str,
+    year: int,
+    unit: str = "MIO_EUR",
+    model: str = "Database",
+    name: str = None,
+    calc_all: bool = False,
+    timeout: int = 60,
+    **kwargs,
+) -> object:
+    """Compatibility alias for ``parse_eurostat(..., table='SUT')``."""
+    return parse_eurostat(
+        country=country,
+        year=year,
+        table="SUT",
+        unit=unit,
+        model=model,
+        name=name,
+        calc_all=calc_all,
+        timeout=timeout,
+        **kwargs,
+    )
 
 
 def parse_from_pymrio(

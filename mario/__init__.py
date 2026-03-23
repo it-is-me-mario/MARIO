@@ -74,12 +74,13 @@ from mario.model.builders import MatrixBuilder, DataTemplate
 
 from mario.parsers.entrypoints import (
     parse_from_txt,
+    parse_from_parquet,
     parse_from_excel,
     parse_exiobase_3,
     parse_eora,
+    parse_eurostat,
     hybrid_iot_exiobase,
     parse_exiobase_sut,
-    parse_eurostat_sut,
     parse_from_pymrio,
     hybrid_sut_exiobase,
     parse_exiobase,

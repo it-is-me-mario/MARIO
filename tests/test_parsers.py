@@ -7,9 +7,10 @@ from mario.model.enums import TableKind
 from mario.ops.export_specs import FLAT_DATA_COLUMNS, FLAT_UNIT_COLUMNS
 from mario.parsers.api import build_database_from_state
 from mario.parsers.excel import parse_state_from_excel
+from mario.parsers.parquet import parse_state_from_parquet
 from mario.parsers.txt import parse_state_from_txt
 from mario.parsers.registry import ParserRegistry, get_parser_registry, register_parser
-from mario.parsers.entrypoints import parse_from_excel, parse_from_txt
+from mario.parsers.entrypoints import parse_from_excel, parse_from_parquet, parse_from_txt
 from mario.test.mario_test import load_test
 
 
@@ -203,6 +204,50 @@ def test_to_parquet_flat_exports_canonical_schema(tmp_path):
     assert list(data.columns) == list(FLAT_DATA_COLUMNS)
     assert list(units.columns) == list(FLAT_UNIT_COLUMNS)
     assert set(data["Matrix"]) == {"Z", "Y", "V", "E", "EY"}
+
+
+def test_parse_state_from_parquet_iot_matrix_roundtrip_preserves_blocks(tmp_path):
+    pytest.importorskip("pyarrow")
+
+    database = load_test("IOT")
+    database.to_parquet(path=tmp_path, flows=True, coefficients=False, flat=False)
+
+    state = parse_state_from_parquet(
+        path=str(tmp_path / "flows"),
+        table="IOT",
+        mode="flows",
+        name="IOT parquet dataset",
+    )
+
+    assert state.table_kind == TableKind.IOT
+    assert set(state.list_blocks()) == {"E", "EY", "V", "Y", "Z"}
+    assert not state.has_block("X")
+    pdt.assert_frame_equal(state.get_block("Z"), database.Z)
+    pdt.assert_frame_equal(state.get_block("Y"), database.Y)
+    pdt.assert_frame_equal(state.compute("X"), database.X)
+
+
+def test_parse_from_parquet_sut_flat_roundtrip_returns_split_native_blocks(tmp_path):
+    pytest.importorskip("pyarrow")
+
+    database = load_test("SUT")
+    database.to_parquet(path=tmp_path, flows=True, coefficients=False, flat=True)
+
+    parsed = parse_from_parquet(
+        path=str(tmp_path / "flows"),
+        table="SUT",
+        mode="flows",
+        flat=True,
+        name="SUT flat parquet dataset",
+    )
+
+    assert "Z" not in parsed["baseline"]
+    assert "X" not in parsed["baseline"]
+    assert {"U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "EY"} <= set(parsed["baseline"])
+    pdt.assert_frame_equal(parsed.Z, database.Z)
+    pdt.assert_frame_equal(parsed.Y, database.Y)
+    pdt.assert_frame_equal(parsed.V, database.V)
+    pdt.assert_frame_equal(parsed.E, database.E)
 
 
 def test_parser_registry_supports_third_party_registration():
