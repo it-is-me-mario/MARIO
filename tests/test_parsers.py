@@ -2,6 +2,7 @@ import pandas.testing as pdt
 
 from mario.internal import ModelState, ModelStateMetadata
 from mario.model.enums import TableKind
+from mario.parsers.api import build_database_from_state
 from mario.parsers.excel import parse_state_from_excel
 from mario.parsers.txt import parse_state_from_txt
 from mario.parsers.registry import ParserRegistry, get_parser_registry, register_parser
@@ -43,6 +44,20 @@ def test_parse_from_excel_sut_returns_split_native_baseline_blocks():
     assert "Z" not in database["baseline"]
     assert "X" not in database["baseline"]
     assert {"U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "EY"} <= set(database["baseline"])
+
+
+def test_parser_authoring_api_builds_database_from_state():
+    state = parse_state_from_excel(
+        "mario/test/IOT.xlsx",
+        table="IOT",
+        mode="flows",
+        name="IOT dataset",
+    )
+    database = build_database_from_state(state, calc_all=False)
+
+    assert database.table_type == "IOT"
+    assert set(database["baseline"]) == {"E", "EY", "V", "Y", "Z"}
+    pdt.assert_frame_equal(database.Z, state.get_block("Z"))
 
 
 def test_parse_state_from_excel_sut_promotes_split_native_blocks():

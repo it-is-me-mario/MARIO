@@ -7,8 +7,8 @@ import logging
 
 from mario.log_exc.logger import log_time
 from mario.internal import ModelState
+from mario.parsers.api import build_parser_state
 from mario.parsers.base import BaseParser
-from mario.parsers.helpers import build_state_from_parser_output
 from mario.parsers.registry import register_parser
 from mario.storage.base import BlockRepository
 from mario.parsers.tabular import excel_parser
@@ -38,7 +38,7 @@ class ExcelParser(BaseParser):
         """Parse a generic Excel workbook into a canonical ``ModelState``."""
         log_time(logger, f"Parser: excel reading {table} {mode} from {path}.", "info")
         matrices, indexes, units = excel_parser(path, table, mode, data_sheet, unit_sheet)
-        state = build_state_from_parser_output(
+        state = build_parser_state(
             table=table,
             matrices=matrices,
             indexes=indexes,

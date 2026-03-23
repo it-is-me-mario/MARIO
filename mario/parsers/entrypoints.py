@@ -3,11 +3,12 @@
 
 from __future__ import annotations
 
-import copy
-
 from mario.api import Database
 from mario.log_exc.exceptions import WrongInput, LackOfInput
-from mario.model.enums import TableKind
+from mario.parsers.api import (
+    build_database_from_state,
+    validate_parse_request,
+)
 from mario.parsers.excel import parse_state_from_excel
 from mario.parsers.txt import parse_state_from_txt
 from mario.parsers.exiobase_hybrid import (
@@ -31,62 +32,6 @@ from mario.parsers.specs import HMRSUT_EXTENSIONS, HMIOT_EXTENSIONS, INPUT_OPTIO
 import pandas as pd
 
 models = {"Database": Database}
-
-
-def _copy_state_payload(state) -> tuple[dict[str, dict[str, object]], dict[str, dict[str, object]], dict[str, object]]:
-    """Translate a ``ModelState`` into the parser payload accepted by ``Database``.
-
-    Public parser entry points still return ``Database`` instances, but the
-    canonical parsing path should now pass through the internal state parser.
-    This adapter keeps the public API stable while avoiding divergent parse
-    logic between `parse_state_*` and `parse_from_*`.
-    """
-    baseline_blocks: dict[str, object] = {}
-    for name in state.list_blocks("baseline", include_inherited=False):
-        value = state.get_block(name)
-        baseline_blocks[name] = value.copy(deep=True) if hasattr(value, "copy") else value
-
-    matrices = {"baseline": baseline_blocks}
-    indexes = {
-        code: {level_name: list(values) for level_name, values in levels.items()}
-        for code, levels in state.indexes.items()
-    }
-    units = {
-        label: value.copy(deep=True) if hasattr(value, "copy") else copy.deepcopy(value)
-        for label, value in state.units.items()
-    }
-    return matrices, indexes, units
-
-
-def _database_from_state(
-    state,
-    *,
-    model: str,
-    calc_all: bool,
-    name: str | None = None,
-    source: str | None = None,
-    year: int | None = None,
-    price: str | None = None,
-    **kwargs,
-):
-    """Build a public ``Database`` from a canonical internal parser state."""
-    if model not in models:
-        raise WrongInput("Available models are {}".format([*models]))
-
-    matrices, indexes, units = _copy_state_payload(state)
-    metadata = state.metadata
-
-    return models[model](
-        name=name if name is not None else metadata.name,
-        table=TableKind.coerce(metadata.table_kind).value,
-        source=source if source is not None else metadata.source,
-        year=year if year is not None else metadata.year,
-        price=price if price is not None else metadata.price,
-        init_by_parsers={"matrices": matrices, "_indeces": indexes, "units": units},
-        calc_all=calc_all,
-        notes=list(metadata.history),
-        **kwargs,
-    )
 
 def parse_from_txt(
     path: str,
@@ -140,13 +85,7 @@ def parse_from_txt(
     -------
     mario.Database
     """
-    errmsg = []
-    if table not in INPUT_OPTIONS["table"]:
-        errmsg.append(f"Table should be in {INPUT_OPTIONS['table']}")
-    if mode not in INPUT_OPTIONS["mode"]:
-        errmsg.append(f"Mode should be in {INPUT_OPTIONS['mode']}")
-    if errmsg:
-        raise WrongInput(errmsg)
+    validate_parse_request(table=table, mode=mode, model=model)
 
     state = parse_state_from_txt(
         path=path,
@@ -157,7 +96,7 @@ def parse_from_txt(
         source=source,
         year=year,
     )
-    return _database_from_state(
+    return build_database_from_state(
         state,
         model=model,
         calc_all=calc_all,
@@ -224,13 +163,7 @@ def parse_from_excel(
     -------
     mario.Database
     """
-    errmsg = []
-    if table not in INPUT_OPTIONS["table"]:
-        errmsg.append(f"Table should be in {INPUT_OPTIONS['table']}")
-    if mode not in INPUT_OPTIONS["mode"]:
-        errmsg.append(f"Mode should be in {INPUT_OPTIONS['mode']}")
-    if errmsg:
-        raise WrongInput(errmsg)
+    validate_parse_request(table=table, mode=mode, model=model)
 
     state = parse_state_from_excel(
         path=path,
@@ -242,7 +175,7 @@ def parse_from_excel(
         source=source,
         year=year,
     )
-    return _database_from_state(
+    return build_database_from_state(
         state,
         model=model,
         calc_all=calc_all,

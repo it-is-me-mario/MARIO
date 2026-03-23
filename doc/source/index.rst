@@ -12,6 +12,7 @@ Contents:
    terminology
    settings
    developer_guide
+   parser_development
    tutorials
    examples
    api_refernces

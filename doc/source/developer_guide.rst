@@ -409,7 +409,8 @@ For developers, this means:
 How Parsing Is Structured Today
 -------------------------------
 
-There are currently two parser surfaces.
+There are currently two parser surfaces, but parser authors should not need to
+touch both.
 
 Database parsers
 ~~~~~~~~~~~~~~~~
@@ -424,11 +425,12 @@ The historical parser entry points such as:
 
 return ``Database`` objects.
 
-These entry points live in ``mario.parsers.entrypoints`` and mostly:
+These entry points live in ``mario.parsers.entrypoints``. For newer code they
+should be kept as thin wrappers that:
 
-1. validate the high-level input arguments;
-2. delegate to lower-level parser functions in ``mario.parsers.tabular``;
-3. wrap the resulting matrices/indexes/units into a ``Database``.
+1. validate high-level arguments through ``mario.parsers.api``;
+2. delegate to one parser module;
+3. build the ``Database`` through the parser-authoring helpers.
 
 Internal state parsers
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -445,6 +447,27 @@ This stack returns ``ModelState`` objects and supports internal parser
 registration. It is the right place for future parser restructuring work,
 especially once Polars and DuckDB become more central in the parser/storage
 path.
+
+Recommended parser-authoring surface
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+New parser code should primarily go through ``mario.parsers.api``.
+
+That module now provides:
+
+* ``validate_parse_request(...)``
+* ``build_parser_state(...)``
+* ``build_database_from_state(...)``
+* ``build_database_from_parser_output(...)``
+
+The practical intent is that a parser author should be able to add a parser by
+touching only:
+
+* one parser module;
+* one test;
+* optionally one public entry point.
+
+For a step-by-step workflow, see :doc:`parser_development`.
 
 Important current rule
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -541,8 +564,8 @@ Add a new high-level database operation
    Implement it in ``mario.ops`` and keep ``Database`` as a thin facade.
 
 Add a new parser
-   Prefer the internal parser registry in ``mario.parsers.registry`` unless the
-   feature explicitly belongs to the current ``Database`` parser surface.
+   Start from ``mario.parsers.api`` and only use the internal parser registry
+   if you actually need registry-based parsing.
 
 Add a new storage backend
    Implement a repository in ``mario.storage`` and keep ``ModelState`` as the
