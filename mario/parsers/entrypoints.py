@@ -2,13 +2,13 @@
 """Parser entry points that return ``mario.Database`` objects."""
 
 from mario.api import Database
-import pymrio
+from mario.log_exc.exceptions import WrongInput, LackOfInput
+from mario.parsers.exiobase_iot import parse_exiobase_iot_monetary
+from mario.parsers.exiobase_sut import parse_exiobase_sut_monetary
 from mario.parsers.tabular import (
     eora_single_region,
     txt_parser,
     excel_parser,
-    exio3,
-    monetary_sut_exiobase,
     eora_multi_region,
     parse_pymrio,
     hybrid_sut_exiobase_reader,
@@ -19,7 +19,6 @@ from mario.parsers.handshake import (
     parse_oecd
     )
 
-from mario.log_exc.exceptions import WrongInput, LackOfInput
 from mario.parsers.specs import HMRSUT_EXTENSIONS, INPUT_OPTIONS
 import pandas as pd
 
@@ -184,6 +183,7 @@ def parse_exiobase_sut(
     calc_all: bool =False,
     name: str = None,
     year: int = None,
+    add_extensions: str | None = None,
     model: str = "Database",
     **kwargs,
 ):
@@ -192,13 +192,18 @@ def parse_exiobase_sut(
     Parameters
     ----------
     path : str
-        defined the zip file containing data
+        path to the EXIOBASE SUT directory
 
     calc_all : boolean
         if True, by default will calculate z,v,e after parsing
 
     year : int, Optional
         optional to the Database (just for recoding the metadata)
+
+    add_extensions : str, Optional
+        optional path to the corresponding EXIOBASE IOT. When provided, the
+        parser reads only the IOT extension blocks and uses them to populate
+        ``Ea`` and ``EY`` for the SUT.
 
     name : str, Optional
         optional but suggested. is useful for visualization and metadata.
@@ -211,15 +216,17 @@ def parse_exiobase_sut(
     if model not in models:
         raise WrongInput("Available models are {}".format([*models]))
 
-    matrices, indeces, units = monetary_sut_exiobase(
+    matrices, indeces, units, layout = parse_exiobase_sut_monetary(
         path,
+        add_extensions=add_extensions,
     )
 
     return models[model](
-        name=name,
+        name=name or layout.dataset_name,
         table="SUT",
-        source="Exiobase Monetary Multi Regional Supply and Use Table (https://www.exiobase.eu/)",
-        year=year,
+        source=layout.source,
+        year=year if year is not None else layout.year,
+        price=layout.price,
         init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
         calc_all=calc_all,
         **kwargs,
@@ -232,20 +239,22 @@ def parse_exiobase_3(
     year: int = None,
     name: str = None,
     model: str = "Database",
-    version: str = "3.9.4",
+    version: str | None = None,
     **kwargs,
 ):
-    """Parse an EXIOBASE IOT archive into a ``Database`` instance.
+    """Parse a monetary EXIOBASE IOT folder into a ``Database`` instance.
 
     .. note::
 
-        pxp & ixi does not make any difference for the parser.
+        The parser auto-detects the EXIOBASE layout from the folder contents and
+        ``metadata.json``. The ``version`` argument is kept only as an optional
+        compatibility check.
 
     Parameters
     ----------
 
     path : str
-        defined the zip file containing data
+        path to the EXIOBASE IOT directory
 
     calc_all : boolean
         if True, by default will calculate z,v,e after parsing
@@ -256,11 +265,9 @@ def parse_exiobase_3(
     name : str, Optional
         optional but suggested. is useful for visualization and metadata.
 
-    version : str
-        accpetable versions are:
-
-            * 3.8.2: F_Y for the final demand satellite account
-            * 3.8.1: F_hh for the final demand satellite account
+    version : str, Optional
+        optional compatibility check against the version detected from the
+        dataset metadata and folder layout
 
     Returns
     -------
@@ -268,23 +275,19 @@ def parse_exiobase_3(
 
     """
 
-    # check the inputs to be correct
-    errmsg = []
-    if version not in ["3.9.4","3.8.2", "3.8.1"]:
-        errmsg.append("Acceptable versions are {}".format(["3.9.4","3.8.2", "3.8.1"]))
-    if errmsg:
-        raise WrongInput(errmsg)
-    
-    if version == "3.9.4":
-        return parse_exiobase_3_9_4(path)
-    
-    matrices, indeces, units = exio3(path, version)
+    if model not in models:
+        raise WrongInput("Available models are {}".format([*models]))
+
+    matrices, indeces, units, layout = parse_exiobase_iot_monetary(
+        path,
+        version=version,
+    )
 
     return models[model](
-        name=name,
+        name=name or layout.dataset_name,
         table="IOT",
-        source="Exiobase3",
-        year=year,
+        source=layout.source,
+        year=year if year is not None else layout.year,
         init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
         calc_all=calc_all,
         **kwargs,

@@ -30,23 +30,7 @@ def parse_oecd(path,year):
 
 
 def parse_exiobase_3_9_4(path):
-    """Parse an EXIOBASE 3.9.4 directory through ``pymrio`` and MARIO adapters."""
+    """Compatibility wrapper for the EXIOBASE 3.9.4 monetary IOT parser."""
+    from mario.parsers.entrypoints import parse_exiobase_3
 
-
-    sat_acc = {  
-    'material': 'all',
-    'water': 'all',
-    'employment': 'all',
-    'air_emissions': 'all',
-    'energy': 'all',
-    'land': 'all',
-    'nutrients': 'all'
-    } 
-
-
-    value_added = {'factor_inputs': 'all'} 
-
-    exio3 = pymrio.parse_exiobase3(path)
-    from mario.parsers.entrypoints import parse_from_pymrio
-
-    return parse_from_pymrio(exio3, satellite_account=sat_acc, value_added=value_added)
+    return parse_exiobase_3(path=path, version="3.9.4")

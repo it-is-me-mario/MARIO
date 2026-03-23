@@ -62,6 +62,14 @@ def _normalize_requested_matrices(matrices) -> list[str]:
     return list(matrices)
 
 
+def _normalize_parsed_matrix_name(name: str) -> str:
+    """Map parser block names through MARIO nomenclature when available."""
+    try:
+        return _ENUM[name]
+    except Exception:
+        return name
+
+
 def available_matrices(table_type: str) -> tuple[str, ...]:
     """Return the catalog-backed matrix names accepted by the public API."""
     from mario.compute.catalog import available_matrix_names
@@ -104,7 +112,7 @@ class CoreModel:
             renamed_matrices = {}
 
             for m, v in matrices.items():
-                renamed_matrices[_ENUM[m]] = v
+                renamed_matrices[_normalize_parsed_matrix_name(m)] = v
 
             renamed_matrices = _prune_eager_parser_blocks(renamed_matrices)
             kwargs["init_by_parsers"]["matrices"]["baseline"] = renamed_matrices
@@ -135,7 +143,7 @@ class CoreModel:
                 renamed_matrices = {}
 
                 for m, v in matrices.items():
-                    renamed_matrices[_ENUM[m]] = v
+                    renamed_matrices[_normalize_parsed_matrix_name(m)] = v
 
                 renamed_matrices = _prune_eager_parser_blocks(renamed_matrices)
                 self.matrices["baseline"] = renamed_matrices

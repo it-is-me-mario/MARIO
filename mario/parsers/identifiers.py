@@ -5,59 +5,6 @@ module contains dictionaries guiding the file reader for structured databases
 
 from mario.model.conventions import _MASTER_INDEX
 
-
-exiobase_mrsut = {
-    "matrices": {
-        "Y": {"file_name": "final_demand.csv", "index_col": [0, 1], "header": [0, 1]},
-        "U": {"file_name": "use.csv", "index_col": [0, 1], "header": [0, 1]},
-        "S": {"file_name": "supply.csv", "index_col": [0, 1], "header": [0, 1]},
-        "V": {"file_name": "value_added.csv", "index_col": [0], "header": [0, 1]},
-    }
-}
-
-
-exiobase_version_3 = {
-    "3.8.2": {
-        "matrices": {
-            "Y": {"file_name": "Y.txt", "index_col": [0, 1], "header": [0, 1]},
-            "Z": {"file_name": "Z.txt", "index_col": [0, 1], "header": [0, 1]},
-            "F": {"file_name": r"satellite/F.txt", "index_col": [0], "header": [0, 1]},
-            "EY": {
-                "file_name": r"satellite/F_Y.txt",
-                "index_col": [0],
-                "header": [0, 1],
-            },
-        },
-        "units": {
-            _MASTER_INDEX["k"]: {
-                "file_name": r"satellite/unit.txt",
-                "index_col": [0],
-                "header": [0],
-            }
-        },
-    },
-    "3.8.1": {
-        "matrices": {
-            "Y": {"file_name": "Y.txt", "index_col": [0, 1], "header": [0, 1]},
-            "Z": {"file_name": "Z.txt", "index_col": [0, 1], "header": [0, 1]},
-            "F": {"file_name": r"satellite/F.txt", "index_col": [0], "header": [0, 1]},
-            "EY": {
-                "file_name": r"satellite/F_hh.txt",
-                "index_col": [0],
-                "header": [0, 1],
-            },
-        },
-        "units": {
-            _MASTER_INDEX["k"]: {
-                "file_name": r"satellite/unit.txt",
-                "index_col": [0],
-                "header": [0],
-            }
-        },
-    },
-}
-
-
 txt_parser_id = {
     "flows": {
         "matrices": {

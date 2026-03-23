@@ -174,7 +174,14 @@ def build_state_from_parser_output(
     )
 
     parsed_blocks = extract_baseline_blocks(matrices)
-    canonical_blocks = parsed_blocks if table_kind == TableKind.IOT else promote_sut_blocks(parsed_blocks)
+    has_native_sut_blocks = any(
+        name in parsed_blocks for name in ("U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec")
+    )
+    canonical_blocks = (
+        parsed_blocks
+        if table_kind == TableKind.IOT or has_native_sut_blocks
+        else promote_sut_blocks(parsed_blocks)
+    )
 
     for block_name, value in canonical_blocks.items():
         state.set_block(block_name, value)

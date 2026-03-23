@@ -10,7 +10,7 @@ from mario.parsers.base import BaseParser
 from mario.parsers.helpers import build_state_from_parser_output
 from mario.parsers.registry import register_parser
 from mario.storage.base import BlockRepository
-from mario.parsers.tabular import monetary_sut_exiobase
+from mario.parsers.exiobase_sut import parse_exiobase_sut_monetary
 
 logger = logging.getLogger(__name__)
 
@@ -33,11 +33,15 @@ class ExiobaseSUTParser(BaseParser):
         source: str | None = None,
         year: int | None = None,
         price: str | None = None,
+        add_extensions: str | None = None,
         repository: BlockRepository | None = None,
     ) -> ModelState:
         """Parse a monetary EXIOBASE SUT source into a canonical ``ModelState``."""
         log_time(logger, f"Parser: exiobase_sut reading from {path}.", "info")
-        matrices, indexes, units = monetary_sut_exiobase(path)
+        matrices, indexes, units, layout = parse_exiobase_sut_monetary(
+            path,
+            add_extensions=add_extensions,
+        )
         state = build_state_from_parser_output(
             table="SUT",
             matrices=matrices,
@@ -45,10 +49,10 @@ class ExiobaseSUTParser(BaseParser):
             units=units,
             parser_name=self.name,
             mode="flows",
-            name=name,
-            source=source or EXIOBASE_SUT_SOURCE,
-            year=year,
-            price=price,
+            name=name or layout.dataset_name,
+            source=source or layout.source,
+            year=year if year is not None else layout.year,
+            price=price or layout.price,
             source_path=path,
             repository=repository,
         )
