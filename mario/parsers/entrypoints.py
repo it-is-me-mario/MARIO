@@ -23,10 +23,8 @@ from mario.parsers.eurostat_sdmx import (
     parse_eurostat_iot_sdmx,
     parse_eurostat_sut_sdmx,
 )
-from mario.parsers.tabular import (
-    parse_pymrio,
-    parser_figaro_sut,
-)
+from mario.parsers.figaro import parse_figaro_iot, parse_figaro_sut
+from mario.parsers.tabular import parse_pymrio
 from mario.parsers.handshake import (
     parse_exiobase_3_9_4,
     parse_oecd
@@ -36,6 +34,7 @@ from mario.parsers.specs import (
     HMRSUT_EXTENSIONS,
     HMIOT_EXTENSIONS,
     INPUT_OPTIONS,
+    FIGARO_IOT_MODES,
     EUROSTAT_IOT_MODES,
     EUROSTAT_SUT_UNITS,
 )
@@ -813,36 +812,55 @@ def parse_from_pymrio(
     )
 
 
-def parse_FIGARO_SUT(
-        path:str, 
-        name:str = None, 
-        calc_all:bool = False, 
-        **kwargs
-    ):
-    """Parse a FIGARO SUT folder into a ``Database`` instance.
+def parse_figaro(
+    path: str,
+    table: str = "SUT",
+    year: int | None = None,
+    iot_mode: str = "auto",
+    model: str = "Database",
+    name: str = None,
+    calc_all: bool = False,
+    **kwargs,
+) -> object:
+    """Parse FIGARO tables from locally downloaded CIRCABC files.
+
+    As of March 23, 2026, the FIGARO supply and use flat files are published in
+    the two public CIRCABC libraries referenced by ``mario.parsers.specs``.
+    MARIO does not rely on automatic download here: callers should point this
+    parser to a local directory containing the FIGARO flat files, either as
+    ``.zip`` bundles or extracted ``.csv`` files.
 
     Parameters
     ----------
-    path : str
-        the folder where the files are downloaded
-    name : str, optional
-        a name for the database, by default None
-    calc_all : bool, optional
-        calacualtes all the missing matrices, by default False
-
-    Returns
-    -------
-    mario.Database
-        mario database object
+    table : str, optional
+        either ``SUT`` or ``IOT``.
+    iot_mode : str, optional
+        FIGARO IOT variant. Supported values are ``auto``, ``product`` and
+        ``industry``. When both IOT variants are present and ``auto`` is used,
+        MARIO defaults to the product-by-product file.
     """
+    if model not in models:
+        raise WrongInput("Available models are {}".format([*models]))
 
-    matrices, indeces, units, year = parser_figaro_sut(path)
-
-    return models["Database"](
-        name=name,
-        table="SUT",
-        source="eurostat (https://ec.europa.eu/eurostat/web/esa-supply-use-input-tables/database)",
-        year=year,
+    validate_parse_request(table=table, model=model)
+    if table == "IOT":
+        if iot_mode not in FIGARO_IOT_MODES:
+            raise WrongInput(
+                f"FIGARO iot_mode should be one of {list(FIGARO_IOT_MODES)}."
+            )
+        matrices, indeces, units, layout = parse_figaro_iot(
+            path=path,
+            year=year,
+            mode=iot_mode,
+        )
+    else:
+        matrices, indeces, units, layout = parse_figaro_sut(path=path, year=year)
+    return models[model](
+        name=name or layout.dataset_name,
+        table=table,
+        source=layout.source,
+        year=layout.year,
+        price=layout.price,
         init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
         calc_all=calc_all,
         **kwargs,

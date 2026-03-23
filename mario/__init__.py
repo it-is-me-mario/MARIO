@@ -84,7 +84,7 @@ from mario.parsers.entrypoints import (
     parse_from_pymrio,
     hybrid_sut_exiobase,
     parse_exiobase,
-    parse_FIGARO_SUT,
+    parse_figaro,
 )
 
 from mario.views.plots import set_palette

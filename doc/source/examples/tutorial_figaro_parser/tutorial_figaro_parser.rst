@@ -1,30 +1,31 @@
 Figaro Parser
 =============
 
-In this example we will see how you can download FIGARO database and
-parse it using mario. Pleae note that the current version of mario only
-supports parsing Supply and Use Tables!
+In this example we will see how to parse locally downloaded FIGARO
+Supply and Use Tables with MARIO.
+
+As of March 23, 2026, the public CIRCABC folders for the flat files are:
+
+- supply:
+  `https://circabc.europa.eu/ui/group/cec66924-a924-4f91-a0ef-600a0531e3ba/library/651e74b4-ff35-445b-9427-5b3ed9ec5ca9?p=1&n=10&sort=name_ASC`
+- use:
+  `https://circabc.europa.eu/ui/group/cec66924-a924-4f91-a0ef-600a0531e3ba/library/093bfbed-142f-47c8-a151-d9fd3f95a507?p=1&n=10&sort=name_ASC`
+
+Download the files manually and place the resulting ``.zip`` bundles or
+extracted ``.csv`` files in one local directory. The current version of
+MARIO supports parsing FIGARO Supply and Use Tables from those local
+files.
 
 .. code:: ipython3
 
     import mario
     
-    # download database
-    mario.download_figaro(
-        table = "SUT",
-        year = 2021,
-        path = "database"
+    figaro = mario.parse_figaro(
+        path="database",
+        table="SUT",
     )
 
-This code downloades the data required to parse the tables into
-“databaes” folder that is the path specified in download function. Now
-to read the database, you can use
-
-.. code:: ipython3
-
-    figaro = mario.parse_FIGARO_SUT(
-        "database"
-    )
+Now you can work with the parsed database directly.
 
 .. code:: ipython3
 

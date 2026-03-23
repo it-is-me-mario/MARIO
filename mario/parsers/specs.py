@@ -20,6 +20,24 @@ INPUT_OPTIONS = {
 }
 
 
+FIGARO_SUPPLY_URL = (
+    "https://circabc.europa.eu/ui/group/cec66924-a924-4f91-a0ef-600a0531e3ba/"
+    "library/651e74b4-ff35-445b-9427-5b3ed9ec5ca9?p=1&n=10&sort=name_ASC"
+)
+FIGARO_USE_URL = (
+    "https://circabc.europa.eu/ui/group/cec66924-a924-4f91-a0ef-600a0531e3ba/"
+    "library/093bfbed-142f-47c8-a151-d9fd3f95a507?p=1&n=10&sort=name_ASC"
+)
+FIGARO_SOURCE = (
+    "FIGARO database via CIRCABC "
+    f"(supply: {FIGARO_SUPPLY_URL}; use: {FIGARO_USE_URL})"
+)
+FIGARO_FACTOR_UNIT = "nominal million euros"
+FIGARO_SATELLITE_UNIT = "None"
+FIGARO_EXTENSION_PLACEHOLDER = "-"
+FIGARO_IOT_MODES = ("auto", "product", "industry")
+
+
 EUROSTAT_SDMX_BASE_URL = "https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data"
 EUROSTAT_SUT_DATAFLOWS = {
     "supply": "NAIO_10_CP15",
