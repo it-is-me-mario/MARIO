@@ -1,4 +1,4 @@
-"""Direct Eurostat SUT parser backed by the official SDMX API."""
+"""Direct Eurostat SUT/IOT parsers backed by the official SDMX API."""
 
 from __future__ import annotations
 
@@ -14,6 +14,8 @@ from mario.log_exc.exceptions import WrongInput
 from mario.log_exc.logger import log_time
 from mario.model.conventions import _MASTER_INDEX
 from mario.parsers.specs import (
+    EUROSTAT_IOT_DATAFLOWS,
+    EUROSTAT_IOT_MODES,
     EUROSTAT_SATELLITE_PLACEHOLDER,
     EUROSTAT_SDMX_BASE_URL,
     EUROSTAT_SOURCE,
@@ -53,14 +55,51 @@ class EurostatSUTLayout:
         return EUROSTAT_SOURCE
 
 
-def _sdmx_key(country: str, unit: str) -> str:
-    """Return the Eurostat SDMX wildcard key for one country/unit slice."""
+@dataclass(frozen=True)
+class EurostatIOTLayout:
+    """Resolved metadata for one Eurostat IOT SDMX pull."""
+
+    country: str
+    year: int
+    unit: str
+    mode: str
+
+    @property
+    def dataset_name(self) -> str:
+        """Return a compact default name for one Eurostat IOT dataset."""
+        return f"Eurostat IOT {self.country} {self.year} {self.mode}"
+
+    @property
+    def price(self) -> str:
+        """Return the price system label recorded in MARIO metadata."""
+        return "Current prices"
+
+    @property
+    def source(self) -> str:
+        """Return the canonical source string stored in metadata."""
+        if self.mode == "industry":
+            detail = "industry-by-industry"
+        else:
+            detail = "product-by-product"
+        return f"{EUROSTAT_SOURCE} ({detail})"
+
+
+def _sdmx_key_sut(country: str, unit: str) -> str:
+    """Return the Eurostat SDMX wildcard key for one SUT country/unit slice."""
+    return f"A.{unit}.TOTAL...{country}"
+
+
+def _sdmx_key_iot(country: str, unit: str, mode: str) -> str:
+    """Return the Eurostat SDMX wildcard key for one IOT country/unit slice."""
+    if mode == "industry":
+        return f"A.{unit}...TOTAL.{country}"
     return f"A.{unit}.TOTAL...{country}"
 
 
 def _read_sdmx_csv(
     dataflow: str,
     *,
+    key: str,
     country: str,
     year: int,
     unit: str,
@@ -68,7 +107,7 @@ def _read_sdmx_csv(
     session: requests.Session | None = None,
 ) -> pd.DataFrame:
     """Download one Eurostat SDMX-CSV slice and return it as a dataframe."""
-    url = f"{EUROSTAT_SDMX_BASE_URL}/{dataflow}/{_sdmx_key(country, unit)}"
+    url = f"{EUROSTAT_SDMX_BASE_URL}/{dataflow}/{key}"
     params = {
         "startPeriod": year,
         "endPeriod": year,
@@ -164,6 +203,27 @@ def _aggregate_final_demand(use_block: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(aggregated, index=use_block.index)
 
 
+def _aggregate_final_demand_rows(block: pd.DataFrame) -> pd.DataFrame:
+    """Aggregate detailed Eurostat final-demand rows to MARIO's compact triad."""
+    aggregated: dict[str, pd.Series] = {}
+    for spec in EUROSTAT_SUT_FINAL_DEMAND:
+        preferred = spec["preferred"]
+        fallback = [code for code in spec["fallback"] if code in block.index]
+        label = spec["label"]
+        if preferred in block.index:
+            aggregated[label] = block.loc[preferred, :]
+        elif fallback:
+            aggregated[label] = block.loc[fallback, :].sum(axis=0)
+        else:
+            log_time(
+                logger,
+                f"Parser: missing final-demand code {preferred}; filling {label} with zeros.",
+                "debug",
+            )
+            aggregated[label] = pd.Series(0.0, index=block.columns)
+    return pd.DataFrame(aggregated, index=block.columns)
+
+
 def _three_level_index(country: str, level_label: str, items: list[str]) -> pd.MultiIndex:
     """Build one canonical MARIO three-level axis for a single-region dataset."""
     return pd.MultiIndex.from_arrays(
@@ -191,6 +251,20 @@ def _build_units(
     return {
         _MASTER_INDEX["a"]: pd.DataFrame({"unit": [unit] * len(activity_labels)}, index=activity_labels),
         _MASTER_INDEX["c"]: pd.DataFrame({"unit": [unit] * len(commodity_labels)}, index=commodity_labels),
+        _MASTER_INDEX["f"]: pd.DataFrame({"unit": [unit] * len(factor_labels)}, index=factor_labels),
+        _MASTER_INDEX["k"]: pd.DataFrame({"unit": ["-"]}, index=[EUROSTAT_SATELLITE_PLACEHOLDER]),
+    }
+
+
+def _build_iot_units(
+    *,
+    sector_labels: list[str],
+    factor_labels: list[str],
+    unit: str,
+) -> dict[str, pd.DataFrame]:
+    """Build MARIO unit tables for the compact Eurostat IOT payload."""
+    return {
+        _MASTER_INDEX["s"]: pd.DataFrame({"unit": [unit] * len(sector_labels)}, index=sector_labels),
         _MASTER_INDEX["f"]: pd.DataFrame({"unit": [unit] * len(factor_labels)}, index=factor_labels),
         _MASTER_INDEX["k"]: pd.DataFrame({"unit": ["-"]}, index=[EUROSTAT_SATELLITE_PLACEHOLDER]),
     }
@@ -332,6 +406,112 @@ def build_eurostat_sut_from_frames(
     return matrices, indexes, units, layout
 
 
+def build_eurostat_iot_from_frame(
+    iot_frame: pd.DataFrame,
+    *,
+    country: str,
+    year: int,
+    unit: str,
+    mode: str = "product",
+) -> tuple[
+    dict[str, dict[str, pd.DataFrame]],
+    dict[str, dict[str, list[str]]],
+    dict[str, pd.DataFrame],
+    EurostatIOTLayout,
+]:
+    """Transform one Eurostat SDMX IOT frame into canonical MARIO IOT blocks."""
+    if mode not in EUROSTAT_IOT_MODES:
+        raise WrongInput(f"Eurostat IOT mode should be one of {list(EUROSTAT_IOT_MODES)}.")
+
+    geo = str(country).upper()
+    layout = EurostatIOTLayout(country=geo, year=int(year), unit=str(unit), mode=mode)
+
+    factor_codes = [code for code, _label in EUROSTAT_SUT_FACTOR_ROWS]
+    factor_labels = [label for _code, label in EUROSTAT_SUT_FACTOR_ROWS]
+    final_demand_codes = [spec["preferred"] for spec in EUROSTAT_SUT_FINAL_DEMAND] + [
+        code for spec in EUROSTAT_SUT_FINAL_DEMAND for code in spec["fallback"]
+    ]
+    final_demand_labels = [spec["label"] for spec in EUROSTAT_SUT_FINAL_DEMAND]
+
+    if mode == "industry":
+        row_dim = "ind_use"
+        column_dim = "ind_ava"
+        sector_codes = EUROSTAT_SUT_ACTIVITY_CODES
+        sector_labels = [EUROSTAT_SUT_ACTIVITY_LABELS[code] for code in sector_codes]
+    else:
+        row_dim = "prd_use"
+        column_dim = "prd_ava"
+        sector_codes = EUROSTAT_SUT_COMMODITY_CODES
+        sector_labels = [EUROSTAT_SUT_COMMODITY_LABELS[code] for code in sector_codes]
+
+    iot_matrix = _pivot_observations(
+        iot_frame,
+        index=row_dim,
+        columns=column_dim,
+        row_codes=sector_codes + final_demand_codes,
+        column_codes=sector_codes + factor_codes,
+        label=f"Eurostat IOT {mode}",
+    )
+
+    sector_axis = _three_level_index(geo, _MASTER_INDEX["s"], sector_labels)
+    final_demand_axis = _three_level_index(geo, _MASTER_INDEX["n"], final_demand_labels)
+    factor_axis = pd.Index(factor_labels, name=None)
+    satellite_axis = pd.Index([EUROSTAT_SATELLITE_PLACEHOLDER], name=None)
+
+    Z = iot_matrix.loc[sector_codes, sector_codes].copy()
+    Z.index = sector_axis
+    Z.columns = sector_axis
+    Z = Z.astype(float)
+
+    Y_raw = iot_matrix.loc[final_demand_codes, sector_codes].copy()
+    Y = _aggregate_final_demand_rows(Y_raw)
+    Y.index = sector_axis
+    Y.columns = final_demand_axis
+    Y = Y.astype(float)
+
+    V_raw = iot_matrix.loc[sector_codes, factor_codes].copy()
+    V = V_raw.rename(columns=dict(EUROSTAT_SUT_FACTOR_ROWS)).T
+    V = V.reindex(index=factor_labels, fill_value=0.0)
+    V.index = factor_axis
+    V.columns = sector_axis
+    V = V.astype(float)
+
+    E = _zero_frame(satellite_axis, sector_axis)
+    EY = _zero_frame(satellite_axis, final_demand_axis)
+
+    matrices = {
+        "baseline": {
+            "Z": Z,
+            "Y": Y,
+            "V": V,
+            "E": E,
+            "EY": EY,
+        }
+    }
+    indexes = {
+        "r": {"main": [geo]},
+        "s": {"main": sector_labels},
+        "f": {"main": factor_labels},
+        "k": {"main": satellite_axis.tolist()},
+        "n": {"main": final_demand_labels},
+    }
+    units = _build_iot_units(
+        sector_labels=sector_labels,
+        factor_labels=factor_labels,
+        unit=layout.unit,
+    )
+
+    log_time(
+        logger,
+        (
+            "Parser: Eurostat IOT payload ready with shapes "
+            f"Z={Z.shape}, Y={Y.shape}, V={V.shape}, mode={mode}."
+        ),
+        "info",
+    )
+    return matrices, indexes, units, layout
+
+
 def parse_eurostat_sut_sdmx(
     *,
     country: str,
@@ -349,6 +529,7 @@ def parse_eurostat_sut_sdmx(
     geo = str(country).upper()
     supply = _read_sdmx_csv(
         EUROSTAT_SUT_DATAFLOWS["supply"],
+        key=_sdmx_key_sut(geo, unit),
         country=geo,
         year=year,
         unit=unit,
@@ -357,6 +538,7 @@ def parse_eurostat_sut_sdmx(
     )
     use = _read_sdmx_csv(
         EUROSTAT_SUT_DATAFLOWS["use"],
+        key=_sdmx_key_sut(geo, unit),
         country=geo,
         year=year,
         unit=unit,
@@ -369,4 +551,41 @@ def parse_eurostat_sut_sdmx(
         country=geo,
         year=year,
         unit=unit,
+    )
+
+
+def parse_eurostat_iot_sdmx(
+    *,
+    country: str,
+    year: int,
+    unit: str = "MIO_EUR",
+    mode: str = "product",
+    timeout: int = 60,
+    session: requests.Session | None = None,
+) -> tuple[
+    dict[str, dict[str, pd.DataFrame]],
+    dict[str, dict[str, list[str]]],
+    dict[str, pd.DataFrame],
+    EurostatIOTLayout,
+]:
+    """Download one Eurostat IOT via SDMX and convert it to MARIO blocks."""
+    if mode not in EUROSTAT_IOT_MODES:
+        raise WrongInput(f"Eurostat IOT mode should be one of {list(EUROSTAT_IOT_MODES)}.")
+
+    geo = str(country).upper()
+    iot = _read_sdmx_csv(
+        EUROSTAT_IOT_DATAFLOWS[mode],
+        key=_sdmx_key_iot(geo, unit, mode),
+        country=geo,
+        year=year,
+        unit=unit,
+        timeout=timeout,
+        session=session,
+    )
+    return build_eurostat_iot_from_frame(
+        iot,
+        country=geo,
+        year=year,
+        unit=unit,
+        mode=mode,
     )

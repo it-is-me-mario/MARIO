@@ -2,9 +2,12 @@ import pandas as pd
 import pytest
 
 from mario import parse_eurostat
-from mario.log_exc.exceptions import NotImplementable
+from mario.log_exc.exceptions import WrongInput
 from mario.model.conventions import _MASTER_INDEX
-from mario.parsers.eurostat_sdmx import build_eurostat_sut_from_frames
+from mario.parsers.eurostat_sdmx import (
+    build_eurostat_iot_from_frame,
+    build_eurostat_sut_from_frames,
+)
 from mario.parsers.specs import (
     EUROSTAT_SATELLITE_PLACEHOLDER,
     EUROSTAT_SUT_ACTIVITY_LABELS,
@@ -208,6 +211,167 @@ def _use_frame():
     )
 
 
+def _iot_product_frame():
+    return pd.DataFrame(
+        [
+            {
+                "DATAFLOW": "ESTAT:NAIO_10_CP1700(1.0)",
+                "LAST UPDATE": "16/03/26 11:00:00",
+                "freq": "A",
+                "unit": "MIO_EUR",
+                "stk_flow": "TOTAL",
+                "prd_use": "CPA_A01",
+                "prd_ava": "CPA_A01",
+                "geo": "IT",
+                "TIME_PERIOD": 2015,
+                "OBS_VALUE": 10.0,
+                "OBS_FLAG": None,
+                "CONF_STATUS": None,
+            },
+            {
+                "DATAFLOW": "ESTAT:NAIO_10_CP1700(1.0)",
+                "LAST UPDATE": "16/03/26 11:00:00",
+                "freq": "A",
+                "unit": "MIO_EUR",
+                "stk_flow": "TOTAL",
+                "prd_use": "CPA_A02",
+                "prd_ava": "CPA_A02",
+                "geo": "IT",
+                "TIME_PERIOD": 2015,
+                "OBS_VALUE": 20.0,
+                "OBS_FLAG": None,
+                "CONF_STATUS": None,
+            },
+            {
+                "DATAFLOW": "ESTAT:NAIO_10_CP1700(1.0)",
+                "LAST UPDATE": "16/03/26 11:00:00",
+                "freq": "A",
+                "unit": "MIO_EUR",
+                "stk_flow": "TOTAL",
+                "prd_use": "P3",
+                "prd_ava": "CPA_A01",
+                "geo": "IT",
+                "TIME_PERIOD": 2015,
+                "OBS_VALUE": 40.0,
+                "OBS_FLAG": None,
+                "CONF_STATUS": None,
+            },
+            {
+                "DATAFLOW": "ESTAT:NAIO_10_CP1700(1.0)",
+                "LAST UPDATE": "16/03/26 11:00:00",
+                "freq": "A",
+                "unit": "MIO_EUR",
+                "stk_flow": "TOTAL",
+                "prd_use": "P5",
+                "prd_ava": "CPA_A01",
+                "geo": "IT",
+                "TIME_PERIOD": 2015,
+                "OBS_VALUE": 50.0,
+                "OBS_FLAG": None,
+                "CONF_STATUS": None,
+            },
+            {
+                "DATAFLOW": "ESTAT:NAIO_10_CP1700(1.0)",
+                "LAST UPDATE": "16/03/26 11:00:00",
+                "freq": "A",
+                "unit": "MIO_EUR",
+                "stk_flow": "TOTAL",
+                "prd_use": "P6",
+                "prd_ava": "CPA_A01",
+                "geo": "IT",
+                "TIME_PERIOD": 2015,
+                "OBS_VALUE": 60.0,
+                "OBS_FLAG": None,
+                "CONF_STATUS": None,
+            },
+            {
+                "DATAFLOW": "ESTAT:NAIO_10_CP1700(1.0)",
+                "LAST UPDATE": "16/03/26 11:00:00",
+                "freq": "A",
+                "unit": "MIO_EUR",
+                "stk_flow": "TOTAL",
+                "prd_use": "CPA_A01",
+                "prd_ava": "D1",
+                "geo": "IT",
+                "TIME_PERIOD": 2015,
+                "OBS_VALUE": 30.0,
+                "OBS_FLAG": None,
+                "CONF_STATUS": None,
+            },
+            {
+                "DATAFLOW": "ESTAT:NAIO_10_CP1700(1.0)",
+                "LAST UPDATE": "16/03/26 11:00:00",
+                "freq": "A",
+                "unit": "MIO_EUR",
+                "stk_flow": "TOTAL",
+                "prd_use": "CPA_A01",
+                "prd_ava": "D11",
+                "geo": "IT",
+                "TIME_PERIOD": 2015,
+                "OBS_VALUE": 31.0,
+                "OBS_FLAG": None,
+                "CONF_STATUS": None,
+            },
+            {
+                "DATAFLOW": "ESTAT:NAIO_10_CP1700(1.0)",
+                "LAST UPDATE": "16/03/26 11:00:00",
+                "freq": "A",
+                "unit": "MIO_EUR",
+                "stk_flow": "TOTAL",
+                "prd_use": "CPA_A01",
+                "prd_ava": "D29X39",
+                "geo": "IT",
+                "TIME_PERIOD": 2015,
+                "OBS_VALUE": 32.0,
+                "OBS_FLAG": None,
+                "CONF_STATUS": None,
+            },
+            {
+                "DATAFLOW": "ESTAT:NAIO_10_CP1700(1.0)",
+                "LAST UPDATE": "16/03/26 11:00:00",
+                "freq": "A",
+                "unit": "MIO_EUR",
+                "stk_flow": "TOTAL",
+                "prd_use": "CPA_A01",
+                "prd_ava": "P51C",
+                "geo": "IT",
+                "TIME_PERIOD": 2015,
+                "OBS_VALUE": 33.0,
+                "OBS_FLAG": None,
+                "CONF_STATUS": None,
+            },
+            {
+                "DATAFLOW": "ESTAT:NAIO_10_CP1700(1.0)",
+                "LAST UPDATE": "16/03/26 11:00:00",
+                "freq": "A",
+                "unit": "MIO_EUR",
+                "stk_flow": "TOTAL",
+                "prd_use": "CPA_A01",
+                "prd_ava": "B2A3N",
+                "geo": "IT",
+                "TIME_PERIOD": 2015,
+                "OBS_VALUE": 34.0,
+                "OBS_FLAG": None,
+                "CONF_STATUS": None,
+            },
+            {
+                "DATAFLOW": "ESTAT:NAIO_10_CP1700(1.0)",
+                "LAST UPDATE": "16/03/26 11:00:00",
+                "freq": "A",
+                "unit": "MIO_EUR",
+                "stk_flow": "TOTAL",
+                "prd_use": "CPA_A01",
+                "prd_ava": "P7",
+                "geo": "IT",
+                "TIME_PERIOD": 2015,
+                "OBS_VALUE": 5.0,
+                "OBS_FLAG": None,
+                "CONF_STATUS": None,
+            },
+        ]
+    )
+
+
 def test_build_eurostat_sut_from_frames_returns_split_native_payload():
     matrices, indexes, units, layout = build_eurostat_sut_from_frames(
         _supply_frame(),
@@ -267,6 +431,57 @@ def test_parse_eurostat_uses_sdmx_backend(monkeypatch):
     assert database.get_index(_MASTER_INDEX["k"]) == [EUROSTAT_SATELLITE_PLACEHOLDER]
 
 
-def test_parse_eurostat_iot_is_not_implemented_yet():
-    with pytest.raises(NotImplementable):
-        parse_eurostat("IT", 2017, table="IOT", calc_all=False)
+def test_build_eurostat_iot_from_frame_returns_canonical_payload():
+    matrices, indexes, units, layout = build_eurostat_iot_from_frame(
+        _iot_product_frame(),
+        country="IT",
+        year=2015,
+        unit="MIO_EUR",
+        mode="product",
+    )
+
+    baseline = matrices["baseline"]
+    sector_1 = EUROSTAT_SUT_COMMODITY_LABELS["CPA_A01"]
+
+    assert layout.dataset_name == "Eurostat IOT IT 2015 product"
+    assert set(baseline) == {"Z", "Y", "V", "E", "EY"}
+    assert indexes["r"]["main"] == ["IT"]
+    assert len(indexes["s"]["main"]) == 65
+    assert indexes["k"]["main"] == [EUROSTAT_SATELLITE_PLACEHOLDER]
+    assert baseline["Z"].loc[("IT", _MASTER_INDEX["s"], sector_1), ("IT", _MASTER_INDEX["s"], sector_1)] == 10.0
+    assert baseline["Y"].loc[("IT", _MASTER_INDEX["s"], sector_1), ("IT", _MASTER_INDEX["n"], "Final consumption expenditure")] == 40.0
+    assert baseline["V"].loc["Compensation of employees", ("IT", _MASTER_INDEX["s"], sector_1)] == 30.0
+    assert baseline["V"].loc["Imports of goods and services", ("IT", _MASTER_INDEX["s"], sector_1)] == 5.0
+    assert units[_MASTER_INDEX["s"]].loc[sector_1, "unit"] == "MIO_EUR"
+
+
+def test_parse_eurostat_iot_uses_sdmx_backend(monkeypatch):
+    iot_csv = _iot_product_frame().to_csv(index=False)
+
+    class FakeResponse:
+        def __init__(self, text):
+            self.text = text
+
+        def raise_for_status(self):
+            return None
+
+    def fake_get(url, params=None, timeout=None):
+        if "NAIO_10_CP1700" in url:
+            return FakeResponse(iot_csv)
+        raise AssertionError(url)
+
+    monkeypatch.setattr("mario.parsers.eurostat_sdmx.requests.get", fake_get)
+
+    database = parse_eurostat("IT", 2015, table="IOT", calc_all=False)
+
+    assert database.table_type == "IOT"
+    assert database.meta.year == 2015
+    assert database.meta.price == "Current prices"
+    assert set(database["baseline"]) == {"E", "EY", "V", "Y", "Z"}
+    assert database.get_index(_MASTER_INDEX["r"]) == ["IT"]
+    assert database.get_index(_MASTER_INDEX["k"]) == [EUROSTAT_SATELLITE_PLACEHOLDER]
+
+
+def test_parse_eurostat_rejects_unknown_iot_mode():
+    with pytest.raises(WrongInput):
+        parse_eurostat("IT", 2015, table="IOT", iot_mode="unknown", calc_all=False)

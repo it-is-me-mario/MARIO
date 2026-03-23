@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from mario.api import Database
-from mario.log_exc.exceptions import NotImplementable, WrongInput
+from mario.log_exc.exceptions import WrongInput
 from mario.parsers.api import (
     build_database_from_state,
     validate_parse_request,
@@ -19,7 +19,10 @@ from mario.parsers.exiobase_hybrid import (
 from mario.parsers.exiobase_iot import parse_exiobase_iot_monetary
 from mario.parsers.exiobase_sut import parse_exiobase_sut_monetary
 from mario.parsers.eora import parse_eora_single_region, parse_eora26
-from mario.parsers.eurostat_sdmx import parse_eurostat_sut_sdmx
+from mario.parsers.eurostat_sdmx import (
+    parse_eurostat_iot_sdmx,
+    parse_eurostat_sut_sdmx,
+)
 from mario.parsers.tabular import (
     parse_pymrio,
     parser_figaro_sut,
@@ -33,6 +36,7 @@ from mario.parsers.specs import (
     HMRSUT_EXTENSIONS,
     HMIOT_EXTENSIONS,
     INPUT_OPTIONS,
+    EUROSTAT_IOT_MODES,
     EUROSTAT_SUT_UNITS,
 )
 import pandas as pd
@@ -665,6 +669,7 @@ def parse_eurostat(
     country: str,
     year: int,
     table: str = "SUT",
+    iot_mode: str = "product",
     unit: str = "MIO_EUR",
     model: str = "Database",
     name: str = None,
@@ -681,8 +686,11 @@ def parse_eurostat(
     year : int
         reference year to download.
     table : str, optional
-        target table family. ``SUT`` is implemented. ``IOT`` is reserved for a
-        future parser and currently raises ``NotImplementable``.
+        target table family, either ``SUT`` or ``IOT``.
+    iot_mode : str, optional
+        Eurostat IOT layout when ``table='IOT'``. Supported values are
+        ``product`` for product-by-product and ``industry`` for
+        industry-by-industry tables.
     unit : str, optional
         Eurostat SDMX unit code. Supported values are ``MIO_EUR`` and
         ``MIO_NAC``.
@@ -706,16 +714,24 @@ def parse_eurostat(
         )
 
     if table == "IOT":
-        raise NotImplementable(
-            "Eurostat SDMX IOT parsing is not implemented yet. Use table='SUT'."
+        if iot_mode not in EUROSTAT_IOT_MODES:
+            raise WrongInput(
+                f"Eurostat iot_mode should be one of {list(EUROSTAT_IOT_MODES)}."
+            )
+        matrices, indeces, units, layout = parse_eurostat_iot_sdmx(
+            country=country,
+            year=year,
+            unit=unit,
+            mode=iot_mode,
+            timeout=timeout,
         )
-
-    matrices, indeces, units, layout = parse_eurostat_sut_sdmx(
-        country=country,
-        year=year,
-        unit=unit,
-        timeout=timeout,
-    )
+    else:
+        matrices, indeces, units, layout = parse_eurostat_sut_sdmx(
+            country=country,
+            year=year,
+            unit=unit,
+            timeout=timeout,
+        )
 
     return models[model](
         name=name or layout.dataset_name,

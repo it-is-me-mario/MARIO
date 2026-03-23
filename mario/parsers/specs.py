@@ -25,7 +25,12 @@ EUROSTAT_SUT_DATAFLOWS = {
     "supply": "NAIO_10_CP15",
     "use": "NAIO_10_CP16",
 }
+EUROSTAT_IOT_DATAFLOWS = {
+    "product": "NAIO_10_CP1700",
+    "industry": "NAIO_10_CP1750",
+}
 EUROSTAT_SUT_UNITS = ("MIO_EUR", "MIO_NAC")
+EUROSTAT_IOT_MODES = ("product", "industry")
 EUROSTAT_SOURCE = (
     "Eurostat SDMX API @ https://ec.europa.eu/eurostat/web/"
     "user-guides/data-browser/api-data-access/api-introduction"
