@@ -230,6 +230,32 @@ def _empty_extensions(columns: pd.MultiIndex, fd_columns: pd.MultiIndex) -> tupl
     return E, EY, units
 
 
+def _merge_extension_blocks(
+    *,
+    base_E: pd.DataFrame,
+    base_EY: pd.DataFrame,
+    base_units: pd.DataFrame,
+    extra_E: pd.DataFrame,
+    extra_EY: pd.DataFrame,
+    extra_units: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Merge extension blocks while dropping the placeholder row when real rows exist.
+
+    The hybrid bundle can expose satellite rows through ``VA_act`` even when no
+    additional extension workbook sheets are requested. In that case the
+    ``_empty_extensions`` placeholder (``"-"``) must disappear so the parsed
+    blocks contain only real satellite accounts.
+    """
+    if base_E.index.tolist() == ["-"] and not extra_E.empty:
+        return extra_E, extra_EY, extra_units
+
+    return (
+        pd.concat([extra_E, base_E], axis=0),
+        pd.concat([extra_EY, base_EY], axis=0),
+        pd.concat([extra_units, base_units], axis=0),
+    )
+
+
 def _parse_extension_bundle(
     workbook: Path,
     *,
@@ -287,20 +313,22 @@ def _parse_value_added(
     *,
     raw_activity_columns: pd.MultiIndex,
     target_columns: pd.MultiIndex,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Parse the hybrid HIOT ``VA_act`` sheet and map its row labels and units."""
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Parse ``VA_act`` and split monetary factors from non-monetary satellites."""
     workbook = root / "MR_HIOT_2011_v3_3_18_extensions.xlsx"
     metadata = _metadata_workbook(root)
 
     if not workbook.exists():
         V = pd.DataFrame(np.zeros((1, len(target_columns))), index=["-"], columns=target_columns)
-        units = pd.DataFrame({"unit": ["None"]}, index=["-"])
+        V_units = pd.DataFrame({"unit": ["None"]}, index=["-"])
+        E = pd.DataFrame(np.zeros((1, len(target_columns))), index=["-"], columns=target_columns)
+        E_units = pd.DataFrame({"unit": ["None"]}, index=["-"])
         log_time(
             logger,
             "Parser: hybrid value added metadata is missing; using placeholder V block.",
             "warning",
         )
-        return V, units
+        return V, V_units, E, E_units
 
     va = pd.read_excel(workbook, sheet_name="VA_act", index_col=[0], header=[0, 1, 2, 3]).fillna(0)
     va = _drop_unnamed_columns(va).reindex(columns=raw_activity_columns, fill_value=0)
@@ -310,12 +338,31 @@ def _parse_value_added(
     labels = dict(zip(value_added_meta["Code 1"], value_added_meta["Category name"]))
     units = dict(zip(value_added_meta["Code 1"], value_added_meta["Unit"]))
 
-    row_labels = [labels.get(code, code) for code in va.index]
+    row_labels = pd.Index([labels.get(code, code) for code in va.index], name=None)
     row_units = [units.get(code, "None") for code in va.index]
+    monetary_mask = pd.Series(
+        [str(unit).strip().lower() == "meuro" for unit in row_units],
+        index=va.index,
+    )
 
-    va.index = pd.Index(row_labels)
-    unit_table = pd.DataFrame({"unit": row_units}, index=pd.Index(row_labels))
-    return va, unit_table
+    factor_codes = monetary_mask[monetary_mask].index.tolist()
+    satellite_codes = monetary_mask[~monetary_mask].index.tolist()
+
+    V = va.loc[factor_codes].copy()
+    V.index = pd.Index([labels.get(code, code) for code in factor_codes], name=None)
+    V_units = pd.DataFrame(
+        {"unit": [units.get(code, "None") for code in factor_codes]},
+        index=V.index,
+    )
+
+    E = va.loc[satellite_codes].copy()
+    E.index = pd.Index([labels.get(code, code) for code in satellite_codes], name=None)
+    E_units = pd.DataFrame(
+        {"unit": [units.get(code, "None") for code in satellite_codes]},
+        index=E.index,
+    )
+
+    return V, V_units, E, E_units
 
 
 def _read_principal_product_axis(root: Path, raw_activity_columns: pd.MultiIndex) -> pd.MultiIndex:
@@ -380,7 +427,7 @@ def parse_exiobase_hybrid_sut(
 
     Ya = pd.DataFrame(np.zeros((len(activity_axis), len(final_demand_axis))), index=activity_axis, columns=final_demand_axis)
 
-    Va, factor_units = _parse_value_added(
+    Va, factor_units, satellite_from_va, satellite_from_va_units = _parse_value_added(
         layout.root,
         raw_activity_columns=supply.columns,
         target_columns=activity_axis,
@@ -395,6 +442,19 @@ def parse_exiobase_hybrid_sut(
         activity_columns=activity_axis,
         raw_fd_columns=final_demand.columns,
         final_demand_columns=final_demand_axis,
+    )
+    satellite_ey = pd.DataFrame(
+        np.zeros((len(satellite_from_va.index), len(final_demand_axis))),
+        index=satellite_from_va.index,
+        columns=final_demand_axis,
+    )
+    Ea, EY, extension_units = _merge_extension_blocks(
+        base_E=Ea,
+        base_EY=EY,
+        base_units=extension_units,
+        extra_E=satellite_from_va,
+        extra_EY=satellite_ey,
+        extra_units=satellite_from_va_units,
     )
     Ec = pd.DataFrame(np.zeros((len(Ea.index), len(commodity_axis))), index=Ea.index, columns=commodity_axis)
 
@@ -477,7 +537,7 @@ def parse_exiobase_hybrid_iot(
     sector_axis = _sector_axis(raw_product_index)
     final_demand_axis = _final_demand_axis(Y.columns)
 
-    V, factor_units = _parse_value_added(
+    V, factor_units, satellite_from_va, satellite_from_va_units = _parse_value_added(
         layout.root,
         raw_activity_columns=Z.columns,
         target_columns=sector_axis,
@@ -490,6 +550,19 @@ def parse_exiobase_hybrid_iot(
         activity_columns=sector_axis,
         raw_fd_columns=Y.columns,
         final_demand_columns=final_demand_axis,
+    )
+    satellite_ey = pd.DataFrame(
+        np.zeros((len(satellite_from_va.index), len(final_demand_axis))),
+        index=satellite_from_va.index,
+        columns=final_demand_axis,
+    )
+    E, EY, extension_units = _merge_extension_blocks(
+        base_E=E,
+        base_EY=EY,
+        base_units=extension_units,
+        extra_E=satellite_from_va,
+        extra_EY=satellite_ey,
+        extra_units=satellite_from_va_units,
     )
 
     Z.index = sector_axis

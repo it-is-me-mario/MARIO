@@ -87,15 +87,29 @@ def test_parse_main_data():
         ).fillna("None")
     )
 
-    # factor rows and units come from HIOT VA_act metadata
+    # factor rows and units come from the monetary subset of HIOT VA_act metadata
     value_added_info = pd.read_excel(f"{FILES_PATH}/metadata.xlsx", sheet_name="Value_added")
-    expected_factors = value_added_info["Category name"].tolist()
+    expected_factors = value_added_info.loc[
+        value_added_info["Unit"] == "Meuro", "Category name"
+    ].tolist()
     assert db.get_index(_MASTER_INDEX["f"]) == expected_factors
 
-    factor_units = value_added_info.set_index("Category name")[["Unit"]]
+    factor_units = value_added_info.loc[
+        value_added_info["Unit"] == "Meuro", ["Category name", "Unit"]
+    ].set_index("Category name")
     factor_units.columns = ["unit"]
-    factor_units.index.name = None
+    factor_units.index.name = db.units[_MASTER_INDEX["f"]].index.name
     pdt.assert_frame_equal(db.units[_MASTER_INDEX["f"]], factor_units)
+
+    expected_satellites = value_added_info.loc[
+        value_added_info["Unit"] != "Meuro", "Category name"
+    ].tolist()
+    assert all(item in db.get_index(_MASTER_INDEX["k"]) for item in expected_satellites)
+    assert all(item in db.Ea.index for item in expected_satellites)
+    assert all(item in db.EY.index for item in expected_satellites)
+    assert db.Ea.shape[0] == len(expected_satellites)
+    assert "-" not in db.Ea.index
+    assert "-" not in db.EY.index
 
 
     # commodity production -> read from metadata
@@ -117,7 +131,9 @@ def test_parse_hybrid_iot_main_data():
     assert sorted(db.get_index(_MASTER_INDEX["s"])) == sorted(expected_sectors)
 
     value_added_info = pd.read_excel(f"{FILES_PATH}/metadata.xlsx", sheet_name="Value_added")
-    expected_factors = value_added_info["Category name"].tolist()
+    expected_factors = value_added_info.loc[
+        value_added_info["Unit"] == "Meuro", "Category name"
+    ].tolist()
     assert db.get_index(_MASTER_INDEX["f"]) == expected_factors
 
     sector_units = sector_info.drop_duplicates(subset="Product name").set_index("Product name")[["Unit"]]
@@ -125,10 +141,21 @@ def test_parse_hybrid_iot_main_data():
     sector_units.index.name = None
     pdt.assert_frame_equal(db.units[_MASTER_INDEX["s"]], sector_units)
 
-    factor_units = value_added_info.set_index("Category name")[["Unit"]]
+    factor_units = value_added_info.loc[
+        value_added_info["Unit"] == "Meuro", ["Category name", "Unit"]
+    ].set_index("Category name")
     factor_units.columns = ["unit"]
-    factor_units.index.name = None
+    factor_units.index.name = db.units[_MASTER_INDEX["f"]].index.name
     pdt.assert_frame_equal(db.units[_MASTER_INDEX["f"]], factor_units)
+    expected_satellites = value_added_info.loc[
+        value_added_info["Unit"] != "Meuro", "Category name"
+    ].tolist()
+    assert all(item in db.get_index(_MASTER_INDEX["k"]) for item in expected_satellites)
+    assert all(item in db.E.index for item in expected_satellites)
+    assert all(item in db.EY.index for item in expected_satellites)
+    assert db.E.shape[0] == len(expected_satellites)
+    assert "-" not in db.E.index
+    assert "-" not in db.EY.index
     assert db.is_hybrid
 
 
@@ -138,7 +165,7 @@ def test_parse_exiobase_supports_hybrid_iot():
     db = parse_exiobase(table="IOT", unit="Hybrid", path=FILES_PATH)
 
     assert db.table_type == "IOT"
-    assert db.V.shape[0] == 21
+    assert db.V.shape[0] == 7
 
 def test_read_extensions():
 
