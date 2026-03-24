@@ -19,6 +19,17 @@ from mario.ops.add_sector_workbook import (
     write_add_sector_workbook,
 )
 from mario.ops.add_sector_engine import run_add_sector_engine
+from mario.ops.add_sector_engine import collect_add_sector_matrices
+from mario.ops.add_sector_split import (
+    build_split_flow_scenario,
+    log_split_scenario,
+    prepare_split_support,
+    validate_split_parameters,
+)
+from mario.ops.cvxlab_bridge import (
+    create_split_input_data,
+    optimize_split_in_cvxlab,
+)
 from mario.utils import (
     _manage_indeces,
     check_clusters,
@@ -863,12 +874,14 @@ class Database(CoreModel):
 
         if self.meta.table == "IOT":
             self.sectors_clusters = workbook.item_clusters
+            self.split_info = workbook.split_info or {}
             derived = derive_add_sector_sets(
                 workbook,
                 existing_sectors=self.get_index(_MASTER_INDEX["s"]),
             )
         else:
             self.commodities_clusters = workbook.item_clusters
+            self.split_info = {}
             derived = derive_add_sector_sets(
                 workbook,
                 existing_activities=self.get_index(_MASTER_INDEX["a"]),
@@ -904,8 +917,14 @@ class Database(CoreModel):
         io="inventories",
         scenario="baseline",
         inplace=True,
+        split=False,
         notes=None,
         ignore_warnings=True,
+        cvxlab_path=None,
+        input_data_files_type="xlsx",
+        only_input_data_gen=False,
+        solver=None,
+        solver_parameters=None,
     ):
         """Apply the add-sectors workbook to the selected scenario.
 
@@ -920,17 +939,36 @@ class Database(CoreModel):
         scenario:
             Scenario to read the source coefficient blocks from.
         inplace:
-            When ``False``, return a modified copy.
+            When ``False``, return a modified copy. When ``True``, the method
+            mutates the current database and returns ``None``.
         notes:
             Optional metadata notes appended to the database history.
         ignore_warnings:
             Passed through to the engine for the handful of cases where the
             historical workflow intentionally muted warnings.
+        split:
+            When ``True`` and the table is an IOT, run the split workflow after
+            the standard coefficient-side insertion.
+        cvxlab_path:
+            Directory where MARIO should generate the CVXLab model directory.
+        input_data_files_type:
+            Format for the generated CVXLab input files. ``"xlsx"`` is fully
+            supported. ``"csv"`` is available only for input-data generation.
+        only_input_data_gen:
+            When ``True``, stop after generating the CVXLab model directory and
+            input data. No optimization run is executed.
+        solver:
+            Optional solver passed through to CVXLab.
+        solver_parameters:
+            Optional solver keyword arguments passed to CVXLab. When provided,
+            they are forwarded as ``mosek_params`` to preserve the historical
+            MARIO split workflow.
 
         Notes
         -----
-        The current implementation covers the non-split workbook workflow. Split
-        insertion is intentionally left out for now.
+        The workbook-driven non-split insertion always runs first. If
+        ``split=True`` for an IOT, MARIO then builds a deterministic
+        ``split_<scenario>`` flow scenario and optionally hands it to CVXLab.
         """
         if not inplace:
             new = self.copy()
@@ -938,8 +976,14 @@ class Database(CoreModel):
                 io=io,
                 scenario=scenario,
                 inplace=True,
+                split=split,
                 notes=notes,
                 ignore_warnings=ignore_warnings,
+                cvxlab_path=cvxlab_path,
+                input_data_files_type=input_data_files_type,
+                only_input_data_gen=only_input_data_gen,
+                solver=solver,
+                solver_parameters=solver_parameters,
             )
             return new
 
@@ -953,6 +997,15 @@ class Database(CoreModel):
                 "or call read_inventory_sheets(...) first."
             )
 
+        if split:
+            validate_split_parameters(
+                self,
+                cvxlab_path=cvxlab_path,
+                input_data_files_type=input_data_files_type,
+                only_input_data_gen=only_input_data_gen,
+            )
+            prepare_split_support(self)
+
         item_to_query = _MASTER_INDEX["a"] if self.meta.table == "SUT" else _MASTER_INDEX["s"]
         duplicates = sorted(set(name for name in self.inventories if name in self.get_index(item_to_query)))
         if duplicates:
@@ -963,6 +1016,8 @@ class Database(CoreModel):
             "Database: All scenarios will be deleted from the database after add_sectors.",
             "warning",
         )
+
+        original_reference = collect_add_sector_matrices(self, scenario=scenario) if split else None
 
         result = run_add_sector_engine(
             self,
@@ -1000,7 +1055,19 @@ class Database(CoreModel):
             }
             added_label = None
 
-        self.matrices = {"baseline": baseline}
+        if split and self.meta.table == "IOT":
+            self.matrices = {
+                "baseline": baseline,
+                "original": {
+                    _ENUM["Z"]: original_reference[_ENUM["Z"]],
+                    _ENUM["E"]: original_reference[_ENUM["E"]],
+                    _ENUM["V"]: original_reference[_ENUM["V"]],
+                    _ENUM["Y"]: original_reference[_ENUM["Y"]],
+                    _ENUM["EY"]: original_reference[_ENUM["EY"]],
+                },
+            }
+        else:
+            self.matrices = {"baseline": baseline}
         self.units = new_units
         self._indeces = new_indeces
 
@@ -1024,7 +1091,53 @@ class Database(CoreModel):
             for note in notes if isinstance(notes, list) else [notes]:
                 self.meta._add_history(f"User note: {note}")
 
-        return self
+        if split:
+            split_scenario = build_split_flow_scenario(
+                self,
+                base_scenario="baseline",
+                scenario_label=scenario,
+            )
+            log_split_scenario(logger, split_scenario, getattr(self, "to_split_sectors", []))
+            self.meta._add_history(
+                f"Database: split flow scenario '{split_scenario}' generated for sectors {getattr(self, 'to_split_sectors', [])}"
+            )
+
+            if only_input_data_gen:
+                dest_dir = create_split_input_data(
+                    self,
+                    main_dir_path=cvxlab_path,
+                    scenario_label=scenario,
+                    input_data_files_type=input_data_files_type,
+                )
+                self.meta._add_history(
+                    f"Database: CVXLab split input data generated in '{dest_dir}'."
+                )
+            else:
+                optimized = optimize_split_in_cvxlab(
+                    self,
+                    main_dir_path=cvxlab_path,
+                    scenario_label=scenario,
+                    input_data_files_type=input_data_files_type,
+                    solver=solver,
+                    solver_parameters=solver_parameters,
+                )
+                split_cvxlab = {
+                    _ENUM["Z"]: optimized.get(_ENUM["Z"], self.matrices[split_scenario][_ENUM["Z"]]),
+                    _ENUM["E"]: self.matrices[split_scenario][_ENUM["E"]],
+                    _ENUM["V"]: optimized.get(_ENUM["V"], self.matrices[split_scenario][_ENUM["V"]]),
+                    _ENUM["Y"]: optimized.get(_ENUM["Y"], self.matrices[split_scenario][_ENUM["Y"]]),
+                    _ENUM["EY"]: self.matrices[split_scenario][_ENUM["EY"]],
+                }
+                split_cvxlab[_ENUM["X"]] = calc_X(
+                    split_cvxlab[_ENUM["Z"]],
+                    split_cvxlab[_ENUM["Y"]],
+                )
+                self.matrices["split_cvxlab"] = split_cvxlab
+                self.meta._add_history(
+                    "Database: new scenario 'split_cvxlab' defined with optimized split-sector flows."
+                )
+
+        return None
 
     def query(
         self,
@@ -1405,10 +1518,11 @@ class Database(CoreModel):
             and item_from == _MASTER_INDEX["c"]
         ):
             matrix = "U"
-            print(
-                "Warning: according to the set combination of 'matrix' and 'item_from', matrix has been changed to '{}'".format(
-                    matrix
-                )
+            log_time(
+                logger,
+                "Warning: according to the set combination of 'matrix' and 'item_from', "
+                "matrix has been changed to '{}'".format(matrix),
+                "warning",
             )
         if (
             self.table_type == "SUT"
@@ -1416,10 +1530,11 @@ class Database(CoreModel):
             and item_from == _MASTER_INDEX["c"]
         ):
             matrix = "u"
-            print(
-                "Warning: according to the set combination of 'matrix' and 'item_from', matrix has been changed to '{}'".format(
-                    matrix
-                )
+            log_time(
+                logger,
+                "Warning: according to the set combination of 'matrix' and 'item_from', "
+                "matrix has been changed to '{}'".format(matrix),
+                "warning",
             )
         if (
             self.table_type == "SUT"
@@ -1427,10 +1542,11 @@ class Database(CoreModel):
             and item_from == _MASTER_INDEX["a"]
         ):
             matrix = "S"
-            print(
-                "Warning: according to the set combination of 'matrix' and 'item_from', matrix has been changed to '{}'".format(
-                    matrix
-                )
+            log_time(
+                logger,
+                "Warning: according to the set combination of 'matrix' and 'item_from', "
+                "matrix has been changed to '{}'".format(matrix),
+                "warning",
             )
         if (
             self.table_type == "SUT"
@@ -1438,10 +1554,11 @@ class Database(CoreModel):
             and item_from == _MASTER_INDEX["a"]
         ):
             matrix = "s"
-            print(
-                "Warning: according to the set combination of 'matrix' and 'item_from', matrix has been changed to '{}'".format(
-                    matrix
-                )
+            log_time(
+                logger,
+                "Warning: according to the set combination of 'matrix' and 'item_from', "
+                "matrix has been changed to '{}'".format(matrix),
+                "warning",
             )
 
         ### Preparing filters

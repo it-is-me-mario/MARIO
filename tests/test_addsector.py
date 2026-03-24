@@ -1,18 +1,31 @@
 import warnings
 warnings.filterwarnings("ignore",category=DeprecationWarning)
 
+import inspect
+
 from mario.ops.add_sector_specs import (
+    ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS,
+    ADD_SECTOR_SPLIT_EXCLUSION_SHEET,
+    ADD_SECTOR_SPLIT_OUTPUT_COLUMNS,
+    ADD_SECTOR_SPLIT_OUTPUT_SHEET,
+    ADD_SECTOR_SPLIT_TOLERANCE_COLUMNS,
+    ADD_SECTOR_SPLIT_TOLERANCE_DEFAULTS,
+    ADD_SECTOR_SPLIT_TOLERANCE_SHEET,
+    ADD_SECTOR_SPLIT_TRADE_COLUMNS,
+    ADD_SECTOR_SPLIT_TRADE_SHEET,
     ADVANCED_ADD_SECTOR_ITEMS_CLUSTERS_SHEET,
     ADVANCED_ADD_SECTOR_MASTER_SHEET,
     ADVANCED_ADD_SECTOR_MASTER_SHEET_COLUMNS,
     ADVANCED_ADD_SECTOR_REGIONS_CLUSTERS_SHEET,
     ADVANCED_ADD_SECTOR_UNCERTAINTIES_SHEET,
 )
+from mario.ops.cvxlab_bridge import CVXLAB_SPLIT_MODEL_NAME
 from mario.ops.add_sector_workbook import (
     derive_advanced_add_sector_sets,
     group_advanced_inventories_by_target,
     read_advanced_add_sector_workbook,
 )
+from mario.log_exc.exceptions import WrongInput
 from mario.ops.sectoradd import get_corresponding_keys,matrix_concat,fill_matrix
 from mario.model.conventions import _MASTER_INDEX
 from mario.model.builders import MatrixBuilder
@@ -20,6 +33,7 @@ from mario.ops.workbook_specs import ADD_SECTOR_SHEETS
 import pandas.testing as pdt
 import pandas as pd
 import pytest
+from mario.api import database as database_module
 from mario import load_test
 from mario.model.conventions import _ENUM,_MASTER_INDEX
 
@@ -31,6 +45,75 @@ def CoreDataIOT():
 @pytest.fixture()
 def CoreDataSUT():
     return load_test("SUT")
+
+
+def _configure_split_workbook(instance, path, *, new_sector="Split sector", quantity=0.1):
+    region = instance.get_index(_MASTER_INDEX["r"])[0]
+    other_region = (
+        instance.get_index(_MASTER_INDEX["r"])[1]
+        if len(instance.get_index(_MASTER_INDEX["r"])) > 1
+        else region
+    )
+    parent_sector = instance.get_index(_MASTER_INDEX["s"])[0]
+    unit = instance.units[_MASTER_INDEX["s"]].loc[parent_sector, "unit"]
+
+    master = pd.read_excel(path, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET).astype(object)
+    master.loc[0, "Unit"] = unit
+    master.loc[0, "Parent Sector"] = parent_sector
+    master.loc[0, "Add or Split"] = "Split"
+
+    split_outputs = pd.DataFrame(
+        [
+            {
+                ADD_SECTOR_SPLIT_OUTPUT_COLUMNS["sector"]: new_sector,
+                ADD_SECTOR_SPLIT_OUTPUT_COLUMNS["region"]: region,
+                ADD_SECTOR_SPLIT_OUTPUT_COLUMNS["quantity"]: quantity,
+                ADD_SECTOR_SPLIT_OUTPUT_COLUMNS["unit"]: unit,
+                ADD_SECTOR_SPLIT_OUTPUT_COLUMNS["source"]: "test",
+                ADD_SECTOR_SPLIT_OUTPUT_COLUMNS["notes"]: "",
+            }
+        ]
+    )
+    split_trades = pd.DataFrame(
+        [
+            {
+                ADD_SECTOR_SPLIT_TRADE_COLUMNS["sector_from"]: new_sector,
+                ADD_SECTOR_SPLIT_TRADE_COLUMNS["region_from"]: region,
+                ADD_SECTOR_SPLIT_TRADE_COLUMNS["region_to"]: other_region,
+                ADD_SECTOR_SPLIT_TRADE_COLUMNS["quantity"]: quantity,
+                ADD_SECTOR_SPLIT_TRADE_COLUMNS["unit"]: unit,
+                ADD_SECTOR_SPLIT_TRADE_COLUMNS["source"]: "test",
+                ADD_SECTOR_SPLIT_TRADE_COLUMNS["notes"]: "",
+            }
+        ]
+    )
+    split_exclusions = pd.DataFrame(columns=list(ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS.values()))
+    split_tolerances = pd.DataFrame(
+        ADD_SECTOR_SPLIT_TOLERANCE_DEFAULTS,
+        columns=list(ADD_SECTOR_SPLIT_TOLERANCE_COLUMNS.values()),
+    )
+
+    with pd.ExcelWriter(path, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+        master.to_excel(writer, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET, index=False)
+        split_outputs.to_excel(writer, sheet_name=ADD_SECTOR_SPLIT_OUTPUT_SHEET, index=False)
+        split_trades.to_excel(writer, sheet_name=ADD_SECTOR_SPLIT_TRADE_SHEET, index=False)
+        split_exclusions.to_excel(writer, sheet_name=ADD_SECTOR_SPLIT_EXCLUSION_SHEET, index=False)
+        split_tolerances.to_excel(writer, sheet_name=ADD_SECTOR_SPLIT_TOLERANCE_SHEET, index=False)
+
+    return {
+        "region": region,
+        "other_region": other_region,
+        "parent_sector": parent_sector,
+        "unit": unit,
+        "new_sector": new_sector,
+    }
+
+
+def _cvxlab_supports_csv_input_files():
+    cvxlab = pytest.importorskip("cvxlab")
+    from cvxlab.backend.model import Model
+
+    return "input_data_files_type" in inspect.signature(Model.__init__).parameters
 
 def test_get_corresponding_keys():
 
@@ -165,6 +248,10 @@ def test_get_add_sectors_excel_supports_advanced_iot_workbook(tmp_path, CoreData
     assert ADVANCED_ADD_SECTOR_UNCERTAINTIES_SHEET in workbook
     assert item_sheet in workbook
     assert "DB units" in workbook
+    assert ADD_SECTOR_SPLIT_OUTPUT_SHEET in workbook
+    assert ADD_SECTOR_SPLIT_TRADE_SHEET in workbook
+    assert ADD_SECTOR_SPLIT_EXCLUSION_SHEET in workbook
+    assert ADD_SECTOR_SPLIT_TOLERANCE_SHEET in workbook
 
     master = workbook[ADVANCED_ADD_SECTOR_MASTER_SHEET]
     assert master.columns.tolist() == list(
@@ -463,6 +550,30 @@ def test_add_sectors_advanced_engine_adds_iot_sector_from_workbook(tmp_path, Cor
     assert new.uncertainty_matrix.loc[(region, _MASTER_INDEX["s"], existing_sector), (region, _MASTER_INDEX["s"], "New sector")] == 1
 
 
+def test_add_sectors_returns_none_when_inplace_true(tmp_path, CoreDataIOT):
+    region = CoreDataIOT.get_index(_MASTER_INDEX["r"])[0]
+    existing_sector = CoreDataIOT.get_index(_MASTER_INDEX["s"])[0]
+    unit = CoreDataIOT.units[_MASTER_INDEX["s"]].loc[existing_sector, "unit"]
+    path = tmp_path / "inplace_iot.xlsx"
+
+    CoreDataIOT.get_add_sectors_excel(
+        items=["Inplace sector"],
+        regions=[region],
+        path=path,
+    )
+
+    master = pd.read_excel(path, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET).astype(object)
+    master.loc[0, "Unit"] = unit
+    master.loc[0, "Parent Sector"] = existing_sector
+    with pd.ExcelWriter(path, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+        master.to_excel(writer, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET, index=False)
+
+    result = CoreDataIOT.add_sectors(io=path, inplace=True)
+
+    assert result is None
+    assert "Inplace sector" in CoreDataIOT.get_index(_MASTER_INDEX["s"])
+
+
 def test_add_sectors_advanced_engine_adds_sut_activity_and_commodity(tmp_path, CoreDataSUT):
     region = CoreDataSUT.get_index(_MASTER_INDEX["r"])[0]
     existing_activity = CoreDataSUT.get_index(_MASTER_INDEX["a"])[0]
@@ -759,4 +870,165 @@ def test_add_sectors_advanced_engine_supports_sut_final_demand_from_master(tmp_p
     assert new.s.loc[new_supply_row, new_use_row] == pytest.approx(0.75)
     assert new.Y.loc[new_use_row, final_demand_col] == pytest.approx(2.5)
 
-    
+
+def test_read_add_sectors_excel_attaches_split_metadata(tmp_path, CoreDataIOT):
+    path = tmp_path / "split_iot.xlsx"
+
+    CoreDataIOT.get_add_sectors_excel(
+        items=["Split sector"],
+        regions=[CoreDataIOT.get_index(_MASTER_INDEX["r"])[0]],
+        path=path,
+    )
+    split_setup = _configure_split_workbook(CoreDataIOT, path)
+
+    CoreDataIOT.read_add_sectors_excel(path)
+
+    assert CoreDataIOT.to_split_sectors == [split_setup["new_sector"]]
+    assert ADD_SECTOR_SPLIT_OUTPUT_SHEET in CoreDataIOT.split_info
+    assert ADD_SECTOR_SPLIT_TRADE_SHEET in CoreDataIOT.split_info
+    assert (
+        CoreDataIOT.split_info[ADD_SECTOR_SPLIT_OUTPUT_SHEET].iloc[0][
+            ADD_SECTOR_SPLIT_OUTPUT_COLUMNS["sector"]
+        ]
+        == split_setup["new_sector"]
+    )
+
+
+def test_add_sectors_split_fails_before_engine_on_invalid_total_output_sheet(
+    tmp_path, CoreDataIOT, monkeypatch
+):
+    path = tmp_path / "invalid_split_iot.xlsx"
+    region = CoreDataIOT.get_index(_MASTER_INDEX["r"])[0]
+    parent_sector = CoreDataIOT.get_index(_MASTER_INDEX["s"])[0]
+    unit = CoreDataIOT.units[_MASTER_INDEX["s"]].loc[parent_sector, "unit"]
+
+    CoreDataIOT.get_add_sectors_excel(
+        items=["Split sector"],
+        regions=[region],
+        path=path,
+    )
+
+    master = pd.read_excel(path, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET).astype(object)
+    master.loc[0, "Unit"] = unit
+    master.loc[0, "Parent Sector"] = parent_sector
+    master.loc[0, "Add or Split"] = "Split"
+    split_trades = pd.DataFrame(
+        [
+            {
+                ADD_SECTOR_SPLIT_TRADE_COLUMNS["sector_from"]: "Split sector",
+                ADD_SECTOR_SPLIT_TRADE_COLUMNS["region_from"]: region,
+                ADD_SECTOR_SPLIT_TRADE_COLUMNS["region_to"]: region,
+                ADD_SECTOR_SPLIT_TRADE_COLUMNS["quantity"]: 0.1,
+                ADD_SECTOR_SPLIT_TRADE_COLUMNS["unit"]: unit,
+                ADD_SECTOR_SPLIT_TRADE_COLUMNS["source"]: "test",
+                ADD_SECTOR_SPLIT_TRADE_COLUMNS["notes"]: "",
+            }
+        ]
+    )
+
+    with pd.ExcelWriter(path, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+        master.to_excel(writer, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET, index=False)
+        pd.DataFrame(columns=list(ADD_SECTOR_SPLIT_OUTPUT_COLUMNS.values())).to_excel(
+            writer, sheet_name=ADD_SECTOR_SPLIT_OUTPUT_SHEET, index=False
+        )
+        split_trades.to_excel(writer, sheet_name=ADD_SECTOR_SPLIT_TRADE_SHEET, index=False)
+
+    def _should_not_run(*args, **kwargs):
+        raise AssertionError("run_add_sector_engine should not be called for invalid split support")
+
+    monkeypatch.setattr(database_module, "run_add_sector_engine", _should_not_run)
+
+    with pytest.raises(WrongInput, match="missing total output rows"):
+        CoreDataIOT.add_sectors(
+            io=path,
+            inplace=False,
+            split=True,
+            cvxlab_path=tmp_path,
+            only_input_data_gen=True,
+        )
+
+
+def test_add_sectors_split_can_generate_cvxlab_input_data(tmp_path, CoreDataIOT):
+    pytest.importorskip("cvxlab")
+    path = tmp_path / "split_iot.xlsx"
+
+    CoreDataIOT.get_add_sectors_excel(
+        items=["Split sector"],
+        regions=[CoreDataIOT.get_index(_MASTER_INDEX["r"])[0]],
+        path=path,
+    )
+    split_setup = _configure_split_workbook(CoreDataIOT, path)
+
+    new = CoreDataIOT.add_sectors(
+        io=path,
+        inplace=False,
+        split=True,
+        cvxlab_path=tmp_path,
+        only_input_data_gen=True,
+    )
+
+    model_dir = tmp_path / CVXLAB_SPLIT_MODEL_NAME
+    assert "original" in new.matrices
+    assert "split_baseline" in new.matrices
+    assert split_setup["new_sector"] in new.get_index(_MASTER_INDEX["s"])
+    assert model_dir.exists()
+    assert (model_dir / "input_data" / "input_data.xlsx").exists()
+
+
+def test_add_sectors_split_can_generate_cvxlab_csv_input_data(tmp_path, CoreDataIOT):
+    if not _cvxlab_supports_csv_input_files():
+        pytest.skip("Installed CVXLab build does not support csv input files.")
+
+    path = tmp_path / "split_iot_csv.xlsx"
+
+    CoreDataIOT.get_add_sectors_excel(
+        items=["Split sector"],
+        regions=[CoreDataIOT.get_index(_MASTER_INDEX["r"])[0]],
+        path=path,
+    )
+    _configure_split_workbook(CoreDataIOT, path)
+
+    new = CoreDataIOT.add_sectors(
+        io=path,
+        inplace=False,
+        split=True,
+        cvxlab_path=tmp_path,
+        only_input_data_gen=True,
+        input_data_files_type="csv",
+    )
+
+    model_dir = tmp_path / CVXLAB_SPLIT_MODEL_NAME / "input_data"
+    assert "split_baseline" in new.matrices
+    assert (model_dir / "Trade.csv").exists()
+    assert (model_dir / "tol.csv").exists()
+
+
+def test_add_sectors_split_can_attach_mocked_cvxlab_results(tmp_path, CoreDataIOT, monkeypatch):
+    path = tmp_path / "split_iot_optimized.xlsx"
+
+    CoreDataIOT.get_add_sectors_excel(
+        items=["Split sector"],
+        regions=[CoreDataIOT.get_index(_MASTER_INDEX["r"])[0]],
+        path=path,
+    )
+    _configure_split_workbook(CoreDataIOT, path)
+
+    def _fake_optimize(instance, **kwargs):
+        split_baseline = instance.matrices["split_baseline"]
+        return {
+            _ENUM["Z"]: split_baseline[_ENUM["Z"]].copy(),
+            _ENUM["Y"]: split_baseline[_ENUM["Y"]].copy(),
+            _ENUM["V"]: split_baseline[_ENUM["V"]].copy(),
+        }
+
+    monkeypatch.setattr(database_module, "optimize_split_in_cvxlab", _fake_optimize)
+
+    new = CoreDataIOT.add_sectors(
+        io=path,
+        inplace=False,
+        split=True,
+        cvxlab_path=tmp_path,
+    )
+
+    assert "split_cvxlab" in new.matrices
+    assert _ENUM["X"] in new.matrices["split_cvxlab"]

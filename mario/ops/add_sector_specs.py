@@ -1,4 +1,4 @@
-"""Schemas and defaults for the advanced add-sector workbook workflow."""
+"""Schemas and defaults for the workbook-driven add-sector workflow."""
 
 from __future__ import annotations
 
@@ -89,3 +89,44 @@ ADVANCED_ADD_SECTOR_UNCERTAINTY_COLUMNS = [
     "New uncertainty values",
 ]
 
+
+ADD_SECTOR_SPLIT_OUTPUT_SHEET = "Total outputs"
+ADD_SECTOR_SPLIT_OUTPUT_COLUMNS = {
+    "sector": _MASTER_INDEX["s"],
+    "region": _MASTER_INDEX["r"],
+    "quantity": "Quantity",
+    "unit": "Unit",
+    "source": "Source",
+    "notes": "Notes",
+}
+
+
+ADD_SECTOR_SPLIT_TRADE_SHEET = "Trades"
+ADD_SECTOR_SPLIT_TRADE_COLUMNS = {
+    "sector_from": f"{_MASTER_INDEX['s']}_from",
+    "region_from": f"{_MASTER_INDEX['r']}_from",
+    "region_to": f"{_MASTER_INDEX['r']}_to",
+    "quantity": "Quantity",
+    "unit": "Unit",
+    "source": "Source",
+    "notes": "Notes",
+}
+
+
+ADD_SECTOR_SPLIT_EXCLUSION_SHEET = "Exclusions"
+ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS = {
+    "sector_from": f"{_MASTER_INDEX['s']}_from",
+    "sector_to": f"{_MASTER_INDEX['s']}_to",
+    "notes": "Notes",
+}
+
+
+ADD_SECTOR_SPLIT_TOLERANCE_SHEET = "Tolerances"
+ADD_SECTOR_SPLIT_TOLERANCE_COLUMNS = {
+    "name": "tol_Name",
+    "value": "values",
+}
+ADD_SECTOR_SPLIT_TOLERANCE_DEFAULTS = (
+    ("delta", 1e-5),
+    ("eps", 1e-5),
+)

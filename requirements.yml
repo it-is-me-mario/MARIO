@@ -21,3 +21,4 @@ dependencies:
   - pip:
       - pymrio
       - duckdb
+      - cvxlab>=1.0.0b1

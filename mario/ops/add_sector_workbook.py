@@ -11,6 +11,15 @@ import pandas as pd
 from mario.log_exc.exceptions import WrongExcelFormat, WrongInput
 from mario.model.conventions import IOT, SUT, _MASTER_INDEX
 from mario.ops.add_sector_specs import (
+    ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS,
+    ADD_SECTOR_SPLIT_EXCLUSION_SHEET,
+    ADD_SECTOR_SPLIT_OUTPUT_COLUMNS,
+    ADD_SECTOR_SPLIT_OUTPUT_SHEET,
+    ADD_SECTOR_SPLIT_TOLERANCE_COLUMNS,
+    ADD_SECTOR_SPLIT_TOLERANCE_DEFAULTS,
+    ADD_SECTOR_SPLIT_TOLERANCE_SHEET,
+    ADD_SECTOR_SPLIT_TRADE_COLUMNS,
+    ADD_SECTOR_SPLIT_TRADE_SHEET,
     ADVANCED_ADD_SECTOR_DB_UNITS_SHEET,
     ADVANCED_ADD_SECTOR_INVENTORY_SHEET_COLUMNS,
     ADVANCED_ADD_SECTOR_ITEMS_CLUSTERS_COLUMNS,
@@ -47,6 +56,7 @@ class AddSectorWorkbook:
     item_clusters: dict[str, list[str]]
     uncertainty_values: dict[str, float]
     inventories_by_sheet: dict[str, pd.DataFrame]
+    split_info: dict[str, pd.DataFrame] | None = None
 
 
 def build_add_sector_master_sheet(
@@ -150,6 +160,33 @@ def build_inventory_template() -> pd.DataFrame:
     )
 
 
+def build_split_total_outputs_template() -> pd.DataFrame:
+    """Build the split-specific total-output sheet."""
+
+    return pd.DataFrame(columns=list(ADD_SECTOR_SPLIT_OUTPUT_COLUMNS.values()))
+
+
+def build_split_trades_template() -> pd.DataFrame:
+    """Build the split-specific trade sheet."""
+
+    return pd.DataFrame(columns=list(ADD_SECTOR_SPLIT_TRADE_COLUMNS.values()))
+
+
+def build_split_exclusions_template() -> pd.DataFrame:
+    """Build the split-specific exclusions sheet."""
+
+    return pd.DataFrame(columns=list(ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS.values()))
+
+
+def build_split_tolerances_template() -> pd.DataFrame:
+    """Build the split-specific tolerance sheet with default scalar rows."""
+
+    return pd.DataFrame(
+        ADD_SECTOR_SPLIT_TOLERANCE_DEFAULTS,
+        columns=list(ADD_SECTOR_SPLIT_TOLERANCE_COLUMNS.values()),
+    )
+
+
 def build_db_units_sheet(instance) -> pd.DataFrame:
     """Build a flat view of database units for workbook reference."""
 
@@ -222,6 +259,19 @@ def write_add_sector_workbook(
             )
         for sheet_name in master["Inventory sheet"].tolist():
             inventory.to_excel(writer, sheet_name=sheet_name, index=False)
+        if table == IOT:
+            build_split_total_outputs_template().to_excel(
+                writer, sheet_name=ADD_SECTOR_SPLIT_OUTPUT_SHEET, index=False
+            )
+            build_split_trades_template().to_excel(
+                writer, sheet_name=ADD_SECTOR_SPLIT_TRADE_SHEET, index=False
+            )
+            build_split_exclusions_template().to_excel(
+                writer, sheet_name=ADD_SECTOR_SPLIT_EXCLUSION_SHEET, index=False
+            )
+            build_split_tolerances_template().to_excel(
+                writer, sheet_name=ADD_SECTOR_SPLIT_TOLERANCE_SHEET, index=False
+            )
 
 
 def read_add_sector_workbook(
@@ -282,6 +332,7 @@ def read_add_sector_workbook(
     inventories_by_sheet = {
         sheet_name: sheets[sheet_name] for sheet_name in inventory_names
     }
+    split_info = _parse_split_sheets(sheets) if table == IOT else None
 
     return AddSectorWorkbook(
         table=table,
@@ -290,6 +341,7 @@ def read_add_sector_workbook(
         item_clusters=item_clusters,
         uncertainty_values=uncertainty_values,
         inventories_by_sheet=inventories_by_sheet,
+        split_info=split_info,
     )
 
 
@@ -390,6 +442,55 @@ def _parse_uncertainties_sheet(sheet: pd.DataFrame | None) -> dict[str, float]:
             "Add-sectors uncertainties sheet should expose the expected two columns."
         )
     return dict(zip(sheet.iloc[:, 0], sheet.iloc[:, 1]))
+
+
+def _parse_split_sheet(
+    sheets: dict[str, pd.DataFrame],
+    *,
+    sheet_name: str,
+    columns: dict[str, str],
+) -> pd.DataFrame:
+    """Return one normalized split-support sheet."""
+
+    if sheet_name not in sheets:
+        raise WrongExcelFormat(
+            f"Missing required split-support sheet in add-sectors workbook: {sheet_name}"
+        )
+    sheet = sheets[sheet_name].copy()
+    expected = list(columns.values())
+    missing_columns = [column for column in expected if column not in sheet.columns]
+    if missing_columns:
+        raise WrongExcelFormat(
+            f"Split-support sheet '{sheet_name}' is missing columns: {missing_columns}"
+        )
+    return sheet.loc[:, expected]
+
+
+def _parse_split_sheets(sheets: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
+    """Return the normalized split-support payload for IOT workbooks."""
+
+    return {
+        ADD_SECTOR_SPLIT_OUTPUT_SHEET: _parse_split_sheet(
+            sheets,
+            sheet_name=ADD_SECTOR_SPLIT_OUTPUT_SHEET,
+            columns=ADD_SECTOR_SPLIT_OUTPUT_COLUMNS,
+        ),
+        ADD_SECTOR_SPLIT_TRADE_SHEET: _parse_split_sheet(
+            sheets,
+            sheet_name=ADD_SECTOR_SPLIT_TRADE_SHEET,
+            columns=ADD_SECTOR_SPLIT_TRADE_COLUMNS,
+        ),
+        ADD_SECTOR_SPLIT_EXCLUSION_SHEET: _parse_split_sheet(
+            sheets,
+            sheet_name=ADD_SECTOR_SPLIT_EXCLUSION_SHEET,
+            columns=ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS,
+        ),
+        ADD_SECTOR_SPLIT_TOLERANCE_SHEET: _parse_split_sheet(
+            sheets,
+            sheet_name=ADD_SECTOR_SPLIT_TOLERANCE_SHEET,
+            columns=ADD_SECTOR_SPLIT_TOLERANCE_COLUMNS,
+        ),
+    }
 
 
 def group_inventories_by_target(

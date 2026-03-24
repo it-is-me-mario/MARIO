@@ -21,6 +21,10 @@ setup(
         "mario/settings": ["*.yaml"],
         "mario/parsers": ["*.csv"],
         "mario/test":["*.xlsx"],
+        "mario.ops.cvxlab_models": [
+            "Split_sectors/*.xlsx",
+            "Split_sectors/*.py",
+        ],
         },
     install_requires=[
         "pandas == 2.2.3",
@@ -32,6 +36,7 @@ setup(
         "pyxlsb",
         "h5py",
         "scipy",
+        "cvxlab>=1.0.0b1",
         "IPython >= 8.27.0",
         "pymrio",
         "pyyaml"
@@ -42,6 +47,7 @@ setup(
             "polars",
             "scipy",
             "pyxlsb",
+            "cvxlab>=1.0.0b1",
         ],
         "storage": [
             "duckdb",
@@ -53,6 +59,7 @@ setup(
             "duckdb",
             "pyarrow",
             "pyxlsb",
+            "cvxlab>=1.0.0b1",
         ],
     },
     # classifiers=[
