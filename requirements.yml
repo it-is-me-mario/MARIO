@@ -14,6 +14,7 @@ dependencies:
   - pytest
   - polars
   - scipy
+  - h5py
   - pyarrow
   - pyxlsb
   - pip

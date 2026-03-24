@@ -62,6 +62,32 @@ ADB_FACTOR_LABELS = {
 }
 
 
+EMERGING_ZENODO_URL = "https://doi.org/10.5281/zenodo.14258422"
+EMERGING_SOURCE = (
+    "EMERGING V2.5 MATLAB bundle via Zenodo "
+    f"({EMERGING_ZENODO_URL})"
+)
+EMERGING_PAPER_CITATION = (
+    "Huo, J., Chen, P., Hubacek, K., Zheng, H., Meng, J., & Guan, D. (2022). "
+    "Full-scale, near real-time multi-regional input-output table for the global "
+    "emerging economies (EMERGING). Journal of Industrial Ecology, 26, 1218–1232. "
+    "https://doi.org/10.1111/jiec.13264"
+)
+EMERGING_MONETARY_UNIT = "current million US$"
+EMERGING_SATELLITE_UNIT = "Mt CO2eq"
+EMERGING_SATELLITE_PLACEHOLDER = "-"
+EMERGING_FACTOR_LABEL = "Value added at basic prices"
+EMERGING_CO2_LABELS = (
+    "Coal",
+    "Natural gas",
+    "Oil products",
+    "Crude, NGL, Ref Feeds.",
+    "Other",
+    "Oil shale & oil sands",
+    "Peat & Peat products",
+)
+
+
 OECD_ICIO_SOURCE_URL = "https://www.oecd.org/en/data/datasets/inter-country-input-output-tables.html"
 OECD_ICIO_SOURCE = (
     "OECD Inter-Country Input-Output tables page "

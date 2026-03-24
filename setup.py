@@ -30,6 +30,8 @@ setup(
         "tabulate",
         "openpyxl == 3.1.0",
         "pyxlsb",
+        "h5py",
+        "scipy",
         "IPython >= 8.27.0",
         "pymrio",
         "pyyaml"

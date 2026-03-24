@@ -17,6 +17,7 @@ from mario.parsers.api import (
     validate_parse_request,
 )
 from mario.parsers.adb import parse_adb_iot
+from mario.parsers.emerging import parse_emerging_iot
 from mario.parsers.excel import parse_state_from_excel
 from mario.parsers.parquet import parse_state_from_parquet
 from mario.parsers.txt import parse_state_from_txt
@@ -1057,6 +1058,92 @@ def parse_adb(
         raise NotImplementable("ADB MRIO parsing currently supports only IOT tables.")
 
     matrices, indeces, units, layout = parse_adb_iot(path=path, year=year, economies=economies)
+    return models[model](
+        name=name or layout.dataset_name,
+        table="IOT",
+        source=layout.source,
+        year=layout.year,
+        price=layout.price,
+        init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
+        calc_all=calc_all,
+        **kwargs,
+    )
+
+
+def parse_emerging(
+    path: str,
+    table: str = "IOT",
+    year: int | None = None,
+    regions=None,
+    load_co2: bool = True,
+    co2_path: str | None = None,
+    model: str = "Database",
+    name: str | None = None,
+    calc_all: bool = False,
+    **kwargs,
+) -> object:
+    """Parse one EMERGING Zenodo v1 MATLAB bundle.
+
+    This parser targets the MATLAB files distributed in the Zenodo record
+    ``https://doi.org/10.5281/zenodo.14258422`` for the dataset
+    *Multi-regional Input-output Table for the Global Emerging Economies
+    (EMERGING V2.5)*, published there as record version ``v1``. In the local
+    bundle this typically means a main file like ``EMERGING_V2_2018.mat`` plus
+    an optional companion file ``EMERGING_CO2_2018_IEA.mat`` and the optional
+    workbook ``EMERGING2.5_Sector&Country list.xlsx``.
+
+    The associated paper is:
+
+    Huo, J., Chen, P., Hubacek, K., Zheng, H., Meng, J., & Guan, D. (2022).
+    Full-scale, near real-time multi-regional input-output table for the
+    global emerging economies (EMERGING). *Journal of Industrial Ecology*,
+    26, 1218-1232. https://doi.org/10.1111/jiec.13264
+
+    MARIO currently supports only the multiregional IOT bundle, not any future
+    alternative table layouts.
+
+    Parameters
+    ----------
+    path : str
+        path to one local EMERGING main ``.mat`` file or to a directory
+        containing one or more EMERGING yearly bundles.
+    table : str, optional
+        EMERGING parsing currently supports only ``IOT`` tables.
+    year : int, optional
+        reference year to select when ``path`` points to a directory that
+        contains more than one EMERGING main MATLAB file.
+    regions : sequence[str] or str, optional
+        optional ISO3 subset. When omitted, parse all regions in the bundle.
+        This is useful because the full EMERGING matrix is very large.
+    load_co2 : bool, optional
+        when ``True``, auto-detect and parse the companion
+        ``EMERGING_CO2_<year>_IEA.mat`` file if it is present next to the main
+        bundle. When ``False``, keep satellite accounts as placeholders.
+    co2_path : str, optional
+        explicit path to the companion CO2 MATLAB file. When provided it
+        overrides sibling auto-detection.
+    model : str, optional
+        public MARIO model class to instantiate. ``Database`` is the default
+        and the only supported value.
+    name : str, optional
+        optional dataset name stored in metadata.
+    calc_all : bool, optional
+        whether to materialize derived blocks immediately after parsing.
+    """
+    if model not in models:
+        raise WrongInput("Available models are {}".format([*models]))
+
+    validate_parse_request(table=table, model=model)
+    if table != "IOT":
+        raise NotImplementable("EMERGING parsing currently supports only IOT tables.")
+
+    matrices, indeces, units, layout = parse_emerging_iot(
+        path=path,
+        year=year,
+        regions=regions,
+        load_co2=load_co2,
+        co2_path=co2_path,
+    )
     return models[model](
         name=name or layout.dataset_name,
         table="IOT",
