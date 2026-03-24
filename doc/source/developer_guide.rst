@@ -1,805 +1,769 @@
 Developer Guide
 ===============
 
-This page documents the current internal logic of MARIO for developers working
-on the package. It is intentionally focused on the code that exists today,
-especially the main public APIs, the compute path, and the separation between
-user-facing objects and lower-level modules.
+This page is the working map of the MARIO codebase for developers. It is meant
+to answer four practical questions:
 
-This is not a speculative architecture note. It describes how the package
-currently works.
+* what the main runtime layers are;
+* where each responsibility lives in the repository;
+* which file to edit for a given type of change;
+* which modules are current architecture, compatibility shims, or legacy paths.
 
-
-Scope
------
-
-At the moment MARIO has one official public object family and one internal
-state substrate:
-
-``mario.Database``
-   The main public API. This is the object normal users interact with for
-   parsing, computing, querying, transforming, aggregating, exporting and
-   scenario management.
-
-``mario.internal.ModelState``
-   The internal block-oriented state model used behind ``Database``. It is
-   useful for developers working on storage, block-level compute and parser
-   restructuring, but it is not presented as a second public API.
-
-The package is intentionally arranged so that:
-
-* the user-facing API remains centered on ``Database``;
-* the compute engine is catalog-driven and lives in ``mario.compute``;
-* parser logic lives in ``mario.parsers``;
-* operational algorithms live in ``mario.ops``;
-* display-oriented helpers live in ``mario.views``;
-* shared domain conventions live in ``mario.model``.
+The guide is intentionally broad, but each file description is kept short. The
+goal is orientation, not line-by-line commentary.
 
 
-Current Module Map
-------------------
+Reading Order
+-------------
 
-The main modules to know are:
+If you are new to the project, read the codebase in this order:
 
-``mario/__init__.py``
-   Public import surface. Re-exports the main classes, parser entry points,
-   matrix primitives, settings helpers, plotting helpers and test loaders.
-
-``mario/api/core_model.py``
-   Base class for database-like objects. Owns matrix storage, scenario logic,
-   matrix validation, compute entry points, query/get_data behavior and most of
-   the shared model mechanics.
-
-``mario/api/database.py``
-   User-facing ``Database`` implementation. Adds higher-level operations such as
-   aggregation, exports, SUT to IOT transforms, shock calculations, sector
-   addition and plotting.
-
-``mario/compute/``
-   Catalog-driven compute system. This is the current computational core.
-
-``mario/parsers/``
-   Parser layer. Contains the current ``Database`` parsers plus the internal
-   parser components that materialize block-state objects.
-
-``mario/ops/``
-   Operations extracted from the old monolithic class methods. This is where
-   transformation, export, shock and aggregation logic should live.
-
-``mario/views/``
-   Tabular and plotting presentation helpers.
-
-``mario/model/``
-   Domain-level conventions and shared labels/builders.
-
-``mario/internal/``
-   Internal block records, scenarios, metadata and ``ModelState``.
-
-``mario/storage/``
-   Repository abstractions for internal block storage.
-
-``mario/utils.py``
-   Shared helper functions that do not belong to compute, parser or ops.
+1. ``mario/__init__.py`` to see the public surface.
+2. ``mario/api/core_model.py`` and ``mario/api/database.py`` to understand the
+   public object model.
+3. ``mario/compute/`` to understand how matrices are resolved.
+4. ``mario/parsers/`` to understand how raw data becomes a ``Database``.
+5. ``mario/ops/`` to understand mutations, export, aggregation and transforms.
+6. ``mario/internal/`` and ``mario/storage/`` if you need the newer block-state
+   substrate or alternative storage backends.
 
 
-Main Public APIs
-----------------
+Repository Map
+--------------
+
+At the repository root, the main folders and files are:
+
+``README.rst``
+   User-facing project overview.
+
+``CHANGELOG.rst``
+   Release notes and change history.
+
+``setup.py``, ``pyproject.toml``, ``requirements.txt``, ``requirements.yml``
+   Packaging and dependency definitions.
+
+``doc/``
+   Sphinx documentation source and built tutorial assets.
+
+``mario/``
+   The library itself.
+
+``tests/``
+   Test suite for runtime behavior, parser coverage and compute correctness.
+
+``Output/``
+   Local output artifacts used in tests/examples. Not core source code.
+
+``dummy/`` and ``mariopy.egg-info/``
+   Local/dev packaging artifacts. Not part of the core architecture.
+
+``test.py``
+   Ad hoc local script; not part of the packaged API.
+
+
+Runtime Architecture
+--------------------
+
+MARIO currently has one public runtime object family and one internal
+implementation substrate:
 
 ``mario.Database``
-~~~~~~~~~~~~~~~~~~
-
-``Database`` is still the main public entry point. A developer should think of
-it as a rich facade over:
-
-* matrix/scenario state from ``CoreModel``;
-* compute resolution from ``mario.compute``;
-* operational algorithms from ``mario.ops``;
-* parser outputs from ``mario.parsers``.
-
-The most important public behaviors are:
-
-* construction from dataframes or parser output;
-* ``calc_all(...)`` and ``resolve(...)`` for matrix materialization;
-* ``query(...)`` and ``get_data(...)`` for retrieval;
-* scenario mutation methods such as ``clone_scenario(...)`` and
-  ``update_scenarios(...)``;
-* transforms such as ``to_iot(...)`` and ``to_chenery_moses(...)``;
-* export methods such as ``to_excel(...)``, ``to_txt(...)`` and
-  ``to_pymrio(...)``;
-* shock, plotting, aggregation, sector and extension methods.
-
-``mario.CoreModel``
-~~~~~~~~~~~~~~~~~~~
-
-``CoreModel`` is the shared base class that owns the common model mechanics:
-
-* matrix storage in ``self.matrices``;
-* index storage in ``self._indeces``;
-* unit storage in ``self.units``;
-* metadata in ``self.meta``;
-* scenario lifecycle and reset logic;
-* compute and retrieval entry points.
-
-If a behavior is primarily about matrix/state management rather than a concrete
-business operation, it usually belongs in ``CoreModel``.
+   The public object that users parse, query, transform, aggregate, export and
+   mutate.
 
 ``mario.internal.ModelState``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   The internal block-oriented state model used by the newer parser/storage
+   architecture. It is an implementation layer, not a second user API.
 
-``ModelState`` is the block-oriented state object introduced by the
-restructuring. It matters for developers because it expresses the internal
-architecture more cleanly:
+The codebase is organized around that split:
 
-* blocks are stored through a repository abstraction;
-* scenarios are explicit objects;
-* compute goes through the same resolver logic;
-* optional conversions exist for pandas, Polars and sparse matrices.
+``mario.api``
+   Public object model.
 
-Today ``ModelState`` should be understood as internal implementation substrate,
-not as a second public surface next to ``Database``.
+``mario.compute``
+   Catalog-driven matrix resolution.
 
+``mario.parsers``
+   Raw-data parsing and parser infrastructure.
 
-How ``Database`` Is Built
--------------------------
+``mario.ops``
+   Mutating and export operations.
 
-There are two main initialization paths.
+``mario.views``
+   Presentation helpers.
 
-Construction from parser output
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+``mario.model``
+   Shared conventions, labels and empty builders.
 
-Parsers call ``Database(..., init_by_parsers=...)``.
-
-That payload contains:
-
-* ``matrices`` grouped by scenario, usually with a ``baseline`` entry;
-* ``_indeces``;
-* ``units``.
-
-During initialization, ``CoreModel``:
-
-* renames matrix keys using the configured nomenclature;
-* stores the parser payload into ``self.matrices``, ``self._indeces`` and
-  ``self.units``;
-* initializes metadata;
-* optionally runs ``calc_all()`` if requested by the caller.
-
-Construction from explicit dataframes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-When users pass ``Z``, ``Y``, ``E``, ``V``, ``EY``, ``units`` and ``table``
-directly, ``CoreModel`` delegates normalization to
-``mario.parsers.tabular.dataframe_parser``. The parser returns canonical
-matrices, indexes and units, and then initialization proceeds exactly as above.
+``mario.internal`` and ``mario.storage``
+   Internal state/storage abstractions introduced by the newer architecture.
 
 
-How Matrix Computation Works
-----------------------------
-
-The current compute flow is entirely centered on the catalog-driven resolver.
-
-High-level flow
-~~~~~~~~~~~~~~~
-
-When a user calls:
-
-.. code-block:: python
-
-   db.calc_all(["w", "f"], scenario="baseline")
-
-the call path is:
-
-1. ``Database.calc_all(...)`` is inherited from ``CoreModel``.
-2. The requested matrix names are normalized.
-3. The scenario is validated.
-4. The matrix names are validated against the compute catalog through
-   ``available_matrices(table_type)``.
-5. For each missing matrix, ``_resolve_one(...)`` calls
-   ``mario.compute.resolver.resolve(...)``.
-
-At that point the new compute engine takes over.
-
-Planner and resolver
-~~~~~~~~~~~~~~~~~~~~
-
-The compute engine is split into two responsibilities:
-
-``mario.compute.catalog``
-   Declares what each matrix means and which strategies are available for
-   building it.
-
-``mario.compute.planner``
-   Selects candidate strategies and determines dependency order.
-
-``mario.compute.resolver``
-   Executes the selected strategies and materializes results into the current
-   dataset/database state.
-
-Strategy types
-~~~~~~~~~~~~~~
-
-Each matrix can be resolved through one of four strategy families:
-
-``parsed``
-   The block already exists as a source block and should simply be present.
-
-``extract``
-   The block is a view extracted from an already materialized parent block.
-
-``concat``
-   The block is assembled from already defined sub-blocks. This is especially
-   important for SUT unified matrices.
-
-``formula``
-   The block is computed numerically from dependencies.
-
-The current planner order is deliberate:
-
-1. parsed
-2. extract
-3. concat
-4. formula
-
-This means MARIO prefers not to recompute data if an equivalent block can be
-reused or built cheaply from existing materialized blocks.
-
-SUT-specific behavior
-~~~~~~~~~~~~~~~~~~~~~
-
-The SUT path is intentionally different from the IOT path where needed.
-
-The key rule is that unified SUT matrices should follow the split-block logic
-defined in the catalog. For example, ``w`` in SUT is not treated as a monolithic
-formula-first matrix. Instead, the resolver computes the four quadrants
-(``wcc``, ``wca``, ``wac``, ``waa``) and then concatenates them.
-
-This is important because:
-
-* it matches the intended economic decomposition;
-* it avoids unnecessary dense unified calculations for large systems;
-* it keeps the compute graph explicit and inspectable.
-
-In practice, the resolver now recursively resolves concat dependencies, so a
-request for a unified SUT block automatically triggers the split computations
-that the catalog declares.
-
-Formula implementations
-~~~~~~~~~~~~~~~~~~~~~~~
-
-The formulas are distributed by concern:
-
-``mario.compute.iot_formulas``
-   IOT-specific formulas.
-
-``mario.compute.sut_formulas``
-   SUT split and unified formulas.
-
-``mario.compute.ghosh_formulas``
-   Ghosh-related formulas.
-
-``mario.compute.views``
-   Pure extract/concat view logic.
-
-``mario.compute.ordering``
-   SUT unified ordering policy used to keep concatenation and extraction
-   deterministic.
-
-Developers should add new computational logic here, not in ``Database``.
-
-
-How Retrieval APIs Work
+Top-Level Package Files
 -----------------------
 
-``query(...)``
-~~~~~~~~~~~~~~
+``mario/__init__.py``
+   Public import surface. Re-exports ``Database``, ``CoreModel``, parser
+   entrypoints, matrix primitives, settings helpers, plotting helpers and test
+   loaders.
 
-``query(...)`` is the lightweight retrieval API.
+``mario/version.py``
+   Package version constant.
 
-It delegates to ``get_data(...)`` with:
+``mario/utils.py``
+   Shared low-level helpers that do not fit cleanly elsewhere. This is still a
+   mixed utility module, so changes here should be conservative.
 
-* ``units=False``
-* ``indeces=False``
-* ``format="dict"``
+``mario/download.py``
+   Downloader helpers for some historical data sources. Useful as convenience,
+   but not the architectural center of current parser work.
 
-and then simplifies the result shape:
 
-* one matrix + one scenario returns a dataframe/series directly;
-* one matrix + many scenarios returns a scenario dictionary;
-* many matrices returns a nested structure.
+``mario/api/``
+--------------
 
-``get_data(...)``
-~~~~~~~~~~~~~~~~~
+This folder contains the public object model.
 
-``get_data(...)`` is the structured retrieval API.
+``mario/api/__init__.py``
+   Canonical exports for the API layer.
 
-It can:
+``mario/api/core_model.py``
+   Shared base class for database-like objects. Owns:
 
-* auto-compute missing matrices through ``auto_calc=True``;
-* include units and indexes;
-* return absolute or relative differences against a base scenario;
-* return either dicts or lightweight namedtuple objects.
+   * matrix and scenario storage;
+   * ``calc_all(...)``, ``resolve(...)``, ``query(...)``, ``get_data(...)``;
+   * block access adapters;
+   * scenario reset logic;
+   * a large part of the public read/update contract.
 
-The important thing for developers is that retrieval is compute-aware. If a
-requested block is missing and ``auto_calc=True``, MARIO will resolve it before
-returning it.
+   If a change is about matrix lifecycle rather than a specific operation, it
+   usually belongs here.
 
-``resolve(...)`` and ``explain(...)``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+``mario/api/database.py``
+   User-facing ``Database`` implementation. Adds higher-level workflows on top
+   of ``CoreModel``:
 
-These are developer-useful APIs that expose the new compute engine more
-directly.
+   * aggregation;
+   * SUT/IOT transforms;
+   * exports;
+   * shocks;
+   * plotting;
+   * add-sectors and split/CVXLab integration;
+   * single-region extraction.
 
-``resolve(...)``
-   Materializes a single matrix through the catalog-driven resolver.
+   If a method is explicitly exposed to users, this is usually where the public
+   wrapper lives.
 
-``resolve_many(...)``
-   Materializes several matrices.
+``mario/api/metadata.py``
+   ``MARIOMetaData`` container used by ``Database.meta``. Handles metadata,
+   persistence and history log entries.
 
-``explain(...)``
-   Builds a dependency explanation from the compute graph.
 
-These methods are useful whenever the developer wants to inspect the compute
-logic explicitly rather than just relying on ``calc_all(...)``.
+``mario/compute/``
+------------------
 
+This folder is the computational core. The current compute path is catalog
+driven.
 
-How Scenario Logic Works
-------------------------
+``mario/compute/__init__.py``
+   Public exports for the compute layer.
 
-Scenarios live in ``self.matrices`` at the ``Database`` level. Each scenario is
-basically a dictionary of materialized matrices.
+``mario/compute/catalog.py``
+   Authoritative description of all matrix blocks known by MARIO. Each block
+   declares:
 
-The most important operations are:
+   * its axes;
+   * whether it is parsed, extracted, concatenated or formula-based;
+   * which dependencies or strategies exist.
 
-``clone_scenario(...)``
-   Deep-copies an existing scenario into a new scenario name.
+   If you add a new canonical matrix, start here.
 
-``update_scenarios(...)``
-   Replaces selected materialized matrices in an existing scenario.
+``mario/compute/types.py``
+   Typed metadata objects for catalog/planner/resolver internals:
+   ``MatrixSpec``, strategy classes, axis specs and planning context types.
 
-``reset_to_flows(...)``
-   Drops coefficient matrices and keeps only the flow-side core.
+``mario/compute/planner.py``
+   Converts catalog declarations into an ordered plan of candidate strategies
+   for a requested matrix.
 
-``reset_to_coefficients(...)``
-   Drops flow matrices and keeps only the coefficient-side core.
+``mario/compute/resolver.py``
+   Executes the selected plan, resolves dependencies and materializes results
+   back into the current dataset state.
 
-These are not passive operations. They directly change which blocks are
-materialized in a scenario, and therefore they affect what the resolver sees as
-already available for future computations.
+``mario/compute/helpers.py``
+   Shared numerical helpers used by formulas.
 
+``mario/compute/primitives.py``
+   Public numerical wrappers such as ``calc_Z``, ``calc_X`` and related helper
+   functions exposed from ``mario`` top level.
 
-How Operational Methods Are Structured
---------------------------------------
+``mario/compute/iot_formulas.py``
+   Numerical implementations specific to IOT formulas.
 
-The large user-visible operations have been extracted out of ``Database`` into
-dedicated modules under ``mario.ops``. ``Database`` is now mostly a facade that
-delegates to them.
+``mario/compute/sut_formulas.py``
+   Numerical implementations specific to SUT formulas.
 
-Current mapping:
+``mario/compute/ghosh_formulas.py``
+   Ghosh-side formulas and related operator calculations.
 
-``mario.ops.aggregation``
-   High-level aggregation entry point.
+``mario/compute/views.py``
+   Cheap extract/concat builders for split and unified views, especially on
+   SUTs. This is where many “derived without recomputing” blocks live.
 
-``mario.ops.aggregation_engine``
-   Core aggregation algorithm.
+``mario/compute/ordering.py``
+   SUT ordering policy logic that defines how unified and split SUT blocks are
+   aligned and concatenated.
 
-``mario.ops.transforms``
-   High-level wrappers for table transformations and scenario-to-instance
-   conversion.
+``mario/compute/graph.py``
+   Dependency graph rendering and explanation helpers used for introspection.
 
-``mario.ops.transform_engine``
-   Low-level transformation algorithms.
 
-``mario.ops.export``
-   High-level export entry points.
+``mario/internal/``
+-------------------
 
-``mario.ops.excel``
-   Excel and text workbook writing helpers.
+This folder contains the newer internal state model. It matters mainly for
+developers working on parsers, storage and the long-term move away from a pure
+``dict[str, DataFrame]`` mindset.
 
-``mario.ops.shocks``
-   Shock matrix algorithms.
+``mario/internal/__init__.py``
+   Internal state exports.
 
-``mario.ops.sectoradd``
-   Sector extension/addition logic.
+``mario/internal/state.py``
+   ``ModelState`` implementation: scenarios, blocks, indexes, units, repository
+   access and resolver integration.
 
-For developers, this means:
+``mario/internal/scenario.py``
+   ``ScenarioState`` container for locally owned blocks and provenance.
 
-* API shape stays in ``Database``;
-* algorithmic work should usually be implemented in ``mario.ops``.
+``mario/internal/block.py``
+   ``StoredBlock`` metadata record for one persisted block.
 
+``mario/internal/metadata.py``
+   ``ModelStateMetadata`` container used by internal parser/state flows.
 
-How Parsing Is Structured Today
--------------------------------
+``mario/internal/access.py``
+   Access adapters that convert a stored block to pandas, a tabular backend or
+   a numeric matrix backend. This is the main seam for future non-pandas
+   storage.
 
-There are currently two parser surfaces, but parser authors should not need to
-touch both.
 
-Database parsers
-~~~~~~~~~~~~~~~~
+``mario/log_exc/``
+------------------
 
-The historical parser entry points such as:
+Cross-cutting exceptions and logging helpers.
 
-* ``mario.parse_from_excel(...)``
-* ``mario.parse_from_txt(...)``
-* ``mario.parse_exiobase_3(...)``
-* ``mario.parse_exiobase_sut(...)``
-* ``mario.parse_eora(...)``
+``mario/log_exc/__init__.py``
+   Namespace marker.
 
-return ``Database`` objects.
+``mario/log_exc/exceptions.py``
+   Custom exception classes used across the library.
 
-These entry points live in ``mario.parsers.entrypoints``. For newer code they
-should be kept as thin wrappers that:
+``mario/log_exc/logger.py``
+   Shared logging helpers, verbosity setup and warning suppression.
 
-1. validate high-level arguments through ``mario.parsers.api``;
-2. delegate to one parser module;
-3. build the ``Database`` through the parser-authoring helpers.
 
-Internal state parsers
-~~~~~~~~~~~~~~~~~~~~~~
+``mario/model/``
+----------------
 
-The newer parser stack lives in:
+This folder contains domain-level conventions that should stay stable across
+parsers and operations.
 
-* ``mario.parsers.registry``
-* ``mario.parsers.base``
-* ``mario.parsers.excel``
-* ``mario.parsers.exiobase``
-* ``mario.parsers.helpers``
+``mario/model/__init__.py``
+   Lazy exports for builders, labels and enums.
 
-This stack returns ``ModelState`` objects and supports internal parser
-registration. It is the right place for future parser restructuring work,
-especially once Polars and DuckDB become more central in the parser/storage
-path.
+``mario/model/conventions.py``
+   Core structural conventions:
 
-Recommended parser-authoring surface
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   * table kinds;
+   * matrix titles;
+   * canonical index/column layouts;
+   * configured nomenclature aliases.
 
-New parser code should primarily go through ``mario.parsers.api``.
+``mario/model/labels.py``
+   Cached human-readable labels derived from settings. Used heavily by the new
+   compute/core code.
 
-That module now provides:
+``mario/model/enums.py``
+   Lightweight enums such as ``TableKind`` and ``BlockRole``.
 
-* ``validate_parse_request(...)``
-* ``build_parser_state(...)``
-* ``build_database_from_state(...)``
-* ``build_database_from_parser_output(...)``
+``mario/model/builders.py``
+   Empty matrix builders and ``DataTemplate``. Useful for tests, examples and
+   minimal user-created databases.
 
-The practical intent is that a parser author should be able to add a parser by
-touching only:
 
-* one parser module;
-* one test;
-* optionally one public entry point.
+``mario/ops/``
+--------------
 
-For a step-by-step workflow, see :doc:`parser_development`.
+This folder holds business operations that mutate databases or export them.
+When an algorithm is not “core matrix resolution” and not “raw parsing”, it
+usually belongs here.
 
-Important current rule
-~~~~~~~~~~~~~~~~~~~~~~
+``mario/ops/__init__.py``
+   Exports for the operations layer.
 
-Parser refactoring should be done carefully because parser code does more than
-I/O:
+``mario/ops/aggregation.py``
+   Public aggregation wrapper used by ``Database.aggregate(...)``.
 
-* it normalizes matrix names;
-* it infers indexes;
-* it enforces table shape conventions;
-* it decides which blocks are native and which blocks are derived later.
+``mario/ops/aggregation_engine.py``
+   Lower-level aggregation logic over matrices, indexes and units.
 
-For that reason, parser work should preserve the current domain grammar even if
-the internal mechanics change substantially.
+``mario/ops/transforms.py``
+   Public wrappers for scenario cloning and SUT/IOT transforms.
 
+``mario/ops/transform_engine.py``
+   Numerical implementation of SUT-to-IOT and Isard-to-Chenery-Moses logic.
 
-How Internal State and Storage Work
------------------------------------
+``mario/ops/shocks.py``
+   Shock application helpers used by ``Database.shock_calc(...)``.
 
-``ModelState`` stores named blocks through a repository abstraction.
+``mario/ops/export.py``
+   Main export entrypoints for Excel, TXT, Parquet and pymrio.
 
-Current repositories:
+``mario/ops/excel.py``
+   Historical Excel/TXT layout writers and workbook-specific helpers.
 
-``InMemoryBlockRepository``
-   Default in-memory storage.
+``mario/ops/export_specs.py``
+   Shared export schemas, especially for flat/tidy exports.
 
-``ParquetBlockRepository``
-   Parquet-backed persistence for pandas blocks.
+``mario/ops/workbook_specs.py``
+   Workbook layout constants for shock and add-sector spreadsheets.
 
-Optional helpers:
+``mario/ops/sectoradd.py``
+   Legacy/simple add-sector helpers that still support parts of the add-sector
+   workflow and backward-compatible utilities.
 
-``mario.storage.duckdb``
-   Currently only exposes an optional import helper. DuckDB is not yet a
-   primary execution backend.
+``mario/ops/add_sector_specs.py``
+   Canonical constants for the current workbook-driven add-sector workflow.
 
-``ModelState`` is therefore already useful for:
+``mario/ops/add_sector_workbook.py``
+   Workbook writer/reader for add-sectors templates, clusters, inventories and
+   split sheets.
 
-* block-oriented storage;
-* explainable compute;
-* alternative repositories;
-* future parser/storage work.
+``mario/ops/add_sector_engine.py``
+   Current non-split add-sectors engine. Handles parent copy, updates,
+   percentage rules, clusters, units, final demand, factors and satellites.
 
-But it is not a user-facing path. Everyday workflows should still be described
-through ``Database``.
+``mario/ops/add_sector_split.py``
+   Deterministic pre-optimization split logic and validation for
+   ``split=True``.
 
+``mario/ops/cvxlab_bridge.py``
+   Integration layer between MARIO and CVXLab. Prepares model directories,
+   writes input data, calls CVXLab and parses optimization results back into
+   MARIO scenarios.
 
-Backend-Aware Block Access
---------------------------
+``mario/ops/cvxlab_models/``
+   Packaged model assets owned by MARIO and copied into CVXLab runs.
 
-One practical rule now guides backend work:
 
-*the user should always keep using the same ``Database`` methods, regardless of
-whether the underlying blocks are small pandas tables or very large
-repository-backed datasets.*
+``mario/parsers/``
+------------------
 
-For that reason, ``Database`` and ``ModelState`` now expose the same internal
-block contract:
+This folder contains both dataset-specific parsers and the generic parser
+infrastructure. The current direction is:
 
-* ``list_blocks(...)``
-* ``has_block(...)``
-* ``get_block(...)``
-* ``set_block(...)``
-* ``get_block_as_pandas(...)``
-* ``get_block_as_table(...)``
-* ``get_block_as_matrix(...)``
+* parser authors read raw files;
+* build canonical MARIO blocks, indexes and units;
+* use the parser API helpers to build a state or database.
 
-The intent is:
-
-* public API stays stable on ``Database``;
-* block storage can evolve independently;
-* compute code asks for matrix form;
-* query/export code asks for tabular form;
-* compatibility paths can still ask for pandas form.
-
-Today the default implementation still returns pandas-backed blocks in most
-cases. However, these adapter methods are now the correct internal boundary for
-future work on Polars, DuckDB, sparse matrices and large repository-backed
-datasets such as GLORIA.
-
-Developers should therefore avoid introducing new direct reads of
-``self.matrices[scenario][name]`` in new code. Instead:
-
-* use ``get_block(...)`` when storage identity matters;
-* use ``get_block_as_pandas(...)`` when a public pandas result is required;
-* use ``get_block_as_table(...)`` for query/export oriented logic;
-* use ``get_block_as_matrix(...)`` for numerical compute paths.
-
-
-Optional Dependencies
----------------------
-
-Some newer dependencies are currently optional and only used in specific places.
-
-``polars``
-   Used by ``ModelState.to_polars(...)``.
-
-``scipy``
-   Used by ``ModelState.to_sparse(...)``.
-
-``pyarrow``
-   Required in practice for Parquet-backed repositories through pandas parquet
-   support.
-
-``duckdb``
-   Only used in the optional DuckDB helper layer today.
-
-This means the current core compute path of ``Database`` does not yet depend on
-Polars or DuckDB directly.
-
-
-Developer Rules of Thumb
-------------------------
-
-When adding or changing code, the current design intent is:
-
-* keep ``Database`` as the main public API;
-* move algorithmic logic out of ``Database`` and into ``compute``, ``ops`` or
-  ``parsers``;
-* keep domain labels and matrix conventions centralized in ``mario.model``;
-* add new matrix logic through the compute catalog and formula/view modules;
-* do not reintroduce string-based dynamic compute rules;
-* treat SUT split-block logic as first-class, not as an afterthought;
-* treat parser work as high-risk and convention-sensitive.
-
-
-Recommended Entry Points for New Development
---------------------------------------------
-
-If you need to add a new feature, the preferred landing zones are:
-
-Add a new derived matrix
-   Update ``mario.compute.catalog`` and implement the logic in
-   ``mario.compute.views`` or one of the formula modules.
-
-Add a new high-level database operation
-   Implement it in ``mario.ops`` and keep ``Database`` as a thin facade.
-
-Add a new parser
-   Start from ``mario.parsers.api`` and only use the internal parser registry
-   if you actually need registry-based parsing.
-
-Add a new storage backend
-   Implement a repository in ``mario.storage`` and keep ``ModelState`` as the
-   consumer.
-
-Add a new public convenience import
-   Re-export it from ``mario/__init__.py`` only if it is genuinely part of the
-   public API.
-
-
-API Surface by Responsibility
------------------------------
-
-This section summarizes where a developer should expect to find the main public
-methods and what they are responsible for.
-
-``CoreModel`` methods
-~~~~~~~~~~~~~~~~~~~~~
-
-These methods mostly manage matrix state, scenarios and compute orchestration.
-
-Compute and retrieval
-   ``calc_all(...)``, ``resolve(...)``, ``resolve_many(...)``,
-   ``explain(...)``, ``query(...)`` and ``get_data(...)``.
-
-Scenario lifecycle
-   ``clone_scenario(...)``, ``update_scenarios(...)``,
-   ``reset_to_flows(...)`` and ``reset_to_coefficients(...)``.
-
-Structural inspection
-   ``get_index(...)``, ``search(...)``, ``is_balanced(...)``,
-   ``is_isard(...)``, ``is_chenerymoses(...)`` and convenience properties like
-   ``scenarios``, ``table_type``, ``sets`` and ``is_hybrid``.
-
-Persistence and utilities
-   ``save_meta(...)``, ``copy(...)``, ``backup`` and directory management.
-
-``Database`` methods
+Infrastructure files
 ~~~~~~~~~~~~~~~~~~~~
 
-``Database`` inherits everything above and adds user-visible operations that
-compose the lower-level modules.
+``mario/parsers/__init__.py``
+   Lazy parser exports.
 
-Transformations
-   ``to_iot(...)`` and ``to_chenery_moses(...)`` delegate to ``mario.ops``.
+``mario/parsers/api.py``
+   Developer-facing parser helpers. This is the preferred landing surface for
+   new parser code.
 
-Aggregation
-   ``get_aggregation_excel(...)``, ``read_aggregated_index(...)`` and
-   ``aggregate(...)`` coordinate the aggregation engine and workbook helpers.
+``mario/parsers/base.py``
+   Minimal parser protocol for internal state-based parsers.
 
-Exports
-   ``to_excel(...)``, ``to_txt(...)`` and ``to_pymrio(...)`` delegate to the
-   export layer.
+``mario/parsers/registry.py``
+   Pluggable parser registry used by the state-based parser layer.
 
-Shock workflows
-   ``get_shock_excel(...)`` and ``shock_calc(...)`` coordinate workbook-driven
-   shocks and recomputation.
+``mario/parsers/helpers.py``
+   Adapters between normalized parser output and ``ModelState``.
 
-Sector extension
-   ``get_add_sectors_excel(...)`` and ``add_sectors(...)`` delegate to the
-   add-sector engine and workbook writers.
+``mario/parsers/specs.py``
+   Parser constants, dataset-specific source metadata and small naming catalogs.
 
-   The historical richer workflow and the recommended porting strategy are
-   documented in ``add_sector_refactor.rst``.
+``mario/parsers/identifiers.py``
+   Static layouts for older parser paths, especially generic txt/excel layouts.
 
-Plotting
-   Bubble, linkage and matrix plot methods delegate to ``mario.views.plots``.
+``mario/parsers/tabular.py``
+   Historical generic parsing helpers still used by dataframe/excel/txt and
+   pymrio compatibility flows.
 
-The practical rule is simple: if a method changes user-visible behavior but is
-not fundamentally about matrix storage or dependency resolution, it probably
-belongs in ``Database`` as a thin wrapper over another module.
+``mario/parsers/entrypoints.py``
+   Public ``parse_*`` functions that return ``Database`` objects.
 
+``mario/parsers/excel.py``, ``mario/parsers/txt.py``, ``mario/parsers/parquet.py``
+   Generic state-based parsers for MARIO-native exports.
 
-Tracing a ``calc_all`` Request
-------------------------------
+Dataset parsers
+~~~~~~~~~~~~~~~
 
-For developers debugging the compute path, this is the concrete sequence when a
-user calls something like:
+``mario/parsers/adb.py``
+   ADB MRIO Excel parser.
 
-.. code-block:: python
+``mario/parsers/emerging.py``
+   EMERGING MATLAB/HDF5 parser.
 
-   db.calc_all(["w", "fa"], scenario="baseline")
+``mario/parsers/eora.py``
+   EORA single-region and Eora26 parser.
 
-1. ``CoreModel.calc_all(...)`` normalizes the requested names and validates the
-   scenario.
-2. ``available_matrices(table_type)`` consults only the compute catalog to
-   decide whether the names are valid for the current table kind.
-3. ``CoreModel._resolve_one(...)`` calls ``mario.compute.resolver.resolve(...)``
-   for each requested matrix.
-4. The resolver asks the planner for candidate strategies defined in
-   ``mario.compute.catalog``.
-5. The selected strategy recursively resolves its dependencies.
-6. If the matrix is SUT and the strategy is an extract/concat that depends on
-   unified activity/commodity ordering, the resolver builds a
-   ``SUTUnifiedOrderingPolicy`` from visible blocks.
-7. The resolved block is written back into the scenario storage so later calls
-   can reuse it as a materialized dependency.
+``mario/parsers/eurostat_sdmx.py``
+   Eurostat SDMX-backed SUT/IOT parser.
 
-This means that debugging a compute issue usually requires checking, in order:
+``mario/parsers/exiobase.py``
+   Internal EXIOBASE compatibility/state helpers.
 
-* the matrix specification in ``catalog.py``;
-* the selected strategy order in ``planner.py``;
-* the callable implementation in ``views.py`` or one of the formula modules;
-* the scenario state seen by ``ResolutionStore``.
+``mario/parsers/exiobase_iot.py``
+   EXIOBASE monetary IOT parser and lightweight extension reader.
 
+``mario/parsers/exiobase_sut.py``
+   EXIOBASE monetary SUT parser, including optional extension import from IOT.
 
-How to Add a New Matrix Safely
-------------------------------
+``mario/parsers/exiobase_hybrid.py``
+   EXIOBASE hybrid SUT and HIOT parser.
 
-When adding a new matrix to MARIO, the safest workflow is:
+``mario/parsers/figaro.py``
+   FIGARO local flat-file parser for SUT and IOT.
 
-1. Decide whether the matrix is native-parsed, extracted, concatenated or
-   formula-driven.
-2. Add the matrix entry to ``mario.compute.catalog`` with the correct axis
-   labels and strategy order.
-3. Implement the callable in exactly one place:
+``mario/parsers/gloria.py``
+   GLORIA SUT parser, including caching and optional satellite filtering.
 
-   * ``mario.compute.views`` for pure extract/concat logic;
-   * ``mario.compute.iot_formulas`` for IOT formulas;
-   * ``mario.compute.sut_formulas`` for SUT split formulas;
-   * ``mario.compute.ghosh_formulas`` for Ghosh-side formulas.
+``mario/parsers/oecd_icio.py``
+   OECD ICIO local CSV parser.
 
-4. Add tests for:
+``mario/parsers/statcan_wds.py``
+   StatCan WDS-backed SUT/IOT parser.
 
-   * the pure callable itself;
-   * resolver behavior for the matrix;
-   * compatibility through ``Database.calc_all(...)`` or ``query(...)`` if the
-     matrix is part of the public surface.
+``mario/parsers/wiod.py``
+   WIOD 2016 multiregional workbook parser.
 
-For SUT matrices, prefer split-native definitions when possible. If the matrix
-has meaningful activity and commodity sub-blocks, define and compute those
-first, then expose the unified block through concat/extract logic instead of a
-single dense unified shortcut.
+Compatibility and resources
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``mario/parsers/handshake.py``
+   Small compatibility shim. Today it mainly keeps an EXIOBASE entrypoint alias
+   alive.
+
+``mario/parsers/figaro_metadata.csv``
+   Packaged metadata lookup used by the FIGARO parser.
 
 
-Parser Maintenance Notes
-------------------------
+``mario/settings/``
+-------------------
 
-Parser code is still the most convention-sensitive part of the package. When a
-developer changes parser behavior, there are several things to verify beyond
-simple file I/O.
+This folder defines configurable labels and nomenclature.
 
-Index grammar
-   Multi-index levels must still match MARIO's configured labels and ordering.
+``mario/settings/settings.py``
+   Loader/validator for current settings plus upload/reset helpers.
 
-Native vs derived blocks
-   Parsers should materialize the blocks that are truly native in the source
-   dataset, not eagerly compute everything that the resolver can derive later.
+``mario/settings/settings.yaml``
+   Active settings used by the package.
 
-Units
-   Units have to be aligned with the correct semantic set
-   (sector/activity/commodity/factor/satellite).
-
-Scenario shape
-   Parser output must still fit the ``Database`` constructor contract:
-   ``matrices``, ``units`` and ``_indeces``.
-
-This is why parser refactoring is the right future place to introduce more
-Polars, DuckDB and Parquet usage, but only after preserving the existing domain
-grammar first.
+``mario/settings/original_settings.yaml``
+   Packaged fallback/default settings.
 
 
-Internal State Notes for Developers
------------------------------------
+``mario/storage/``
+------------------
 
-``ModelState`` is already useful today as a clearer expression of the internal
-architecture, even though ``Database`` remains the main user object.
+This folder is the storage abstraction layer used mainly by the internal
+state-based architecture.
 
-Developers should reach for ``ModelState`` when they want:
+``mario/storage/__init__.py``
+   Storage exports.
 
-* repository-backed block storage;
-* scenario inheritance with explicit scenario objects;
-* block-by-block compute without the heavier ``Database`` facade;
-* experimental storage backends or parser outputs.
+``mario/storage/base.py``
+   Abstract repository contract.
 
-Developers should not yet assume that all ``Database``-level workflows have
-equivalent high-level ``ModelState`` convenience methods. ``ModelState`` is the
-cleaner internal core, but the richest user experience still lives in
-``Database``.
+``mario/storage/repository.py``
+   In-memory repository implementation.
+
+``mario/storage/parquet.py``
+   Parquet-backed repository implementation for pandas blocks.
+
+``mario/storage/duckdb.py``
+   Optional helper for future DuckDB-backed storage/query work. Intentionally
+   thin for now.
 
 
-Current Status Summary
-----------------------
+``mario/views/``
+----------------
 
-The package has already been re-centered around:
+Presentation helpers live here.
 
-* ``mario.api`` for public object implementations;
-* ``mario.compute`` for matrix resolution;
-* ``mario.ops`` for operations;
-* ``mario.parsers`` for parser logic;
-* ``mario.model`` for shared conventions and data abstractions.
+``mario/views/__init__.py``
+   View exports.
 
-The next major area of careful work is parser restructuring, especially if the
-goal is to make Polars, DuckDB and Parquet more central in the ingestion and
-storage path without changing MARIO's domain semantics.
+``mario/views/tabular.py``
+   Historical single-dataframe view builder.
+
+``mario/views/plots.py``
+   Plot construction logic.
+
+``mario/views/plot_specs.py``
+   Plot/filter layout configuration and palette helpers.
+
+
+``mario/test/``
+---------------
+
+This folder contains packaged fixtures that ship with the library itself.
+
+``mario/test/mario_test.py``
+   Loader helpers for packaged example/test databases.
+
+``mario/test/IOT.xlsx``, ``mario/test/SUT.xlsx``, ``mario/test/IOT_dummy.xlsx``
+   Packaged fixtures used by examples and tests.
+
+
+``tests/``
+----------
+
+This is the external test suite. It is organized mostly by subsystem or data
+source.
+
+``tests/test_coremodel.py``
+   CoreModel contract and scenario behavior.
+
+``tests/test_database_api.py``
+   Public ``Database`` behavior and high-level query paths.
+
+``tests/test_dataset_model.py``
+   Internal ``ModelState`` and dataset-like behavior.
+
+``tests/test_compute_catalog.py``
+   Coverage and invariants for the compute catalog.
+
+``tests/test_compute_views.py``
+   Split/unified view builders.
+
+``tests/test_iot_formulas.py`` and ``tests/test_sut_formulas.py``
+   Formula-level regression tests.
+
+``tests/test_resolver.py``
+   Resolver and dependency behavior.
+
+``tests/test_iomath.py``
+   Low-level IO math regressions.
+
+``tests/test_ops.py``
+   Operational flows that cross multiple modules.
+
+``tests/test_utils.py``
+   Generic utility behavior.
+
+``tests/test_settings.py``
+   Settings loading and validation.
+
+``tests/test_logging.py``
+   Logging/warning behavior.
+
+``tests/test_attrdata.py``
+   Legacy-style attribute/dataframe behavior and exports.
+
+``tests/test_isard_to_chenery.py``
+   Chenery-Moses transform behavior.
+
+``tests/test_addsector.py``
+   Add-sectors workbook, engine and split/CVXLab integration.
+
+Parser coverage is split by source:
+
+* ``tests/test_parsers.py`` for generic excel/txt/parquet parser roundtrips;
+* ``tests/test_exiobase_iot_parser.py`` and ``tests/test_exiobase_sut_parser.py``;
+* ``tests/test_hybrid_exiobase.py``;
+* ``tests/test_eurostat_sdmx_parser.py``;
+* ``tests/test_eora_parser.py``;
+* ``tests/test_figaro_parser.py``;
+* ``tests/test_gloria_parser.py``;
+* ``tests/test_oecd_parser.py``;
+* ``tests/test_statcan_parser.py``;
+* ``tests/test_wiod_parser.py``;
+* ``tests/test_adb_parser.py``;
+* ``tests/test_emerging_parser.py``.
+
+
+``doc/source/``
+---------------
+
+The documentation source is Sphinx-based.
+
+``doc/source/index.rst``
+   Main docs entrypoint.
+
+``doc/source/intro.rst``, ``terminology.rst``, ``settings.rst``
+   User-facing conceptual docs.
+
+``doc/source/developer_guide.rst``
+   This page.
+
+``doc/source/parser_development.rst``
+   Focused guide for writing new parsers.
+
+``doc/source/add_sector_refactor.rst``
+   Design note for the workbook-driven add-sector workflow.
+
+``doc/source/tutorials.rst`` and ``doc/source/tutorials/*.ipynb``
+   Notebook-based tutorials.
+
+``doc/source/examples.rst`` and ``doc/source/htmls/``
+   Example material and historical rendered tutorial assets.
+
+``doc/source/api_document/``
+   One stub page per public API symbol.
+
+``doc/source/conf.py``
+   Sphinx configuration.
+
+
+Main Runtime Flows
+------------------
+
+Parser flow
+~~~~~~~~~~~
+
+The intended modern parser flow is:
+
+1. Read raw files in a dataset-specific parser.
+2. Build canonical matrices, indexes and units.
+3. Call ``mario.parsers.api.build_parser_state(...)`` or
+   ``build_database_from_parser_output(...)``.
+4. Let ``Database`` initialize from parser payload.
+
+The key modules are:
+
+* dataset parser in ``mario/parsers/*.py``;
+* ``mario/parsers/helpers.py`` for state adaptation;
+* ``mario/parsers/entrypoints.py`` for public wrappers.
+
+Compute flow
+~~~~~~~~~~~~
+
+When a block is missing and a user asks for it:
+
+1. ``CoreModel`` validates the request.
+2. ``mario.compute.catalog`` declares legal strategies.
+3. ``mario.compute.planner`` orders candidate strategies.
+4. ``mario.compute.resolver`` executes them.
+5. The resolved block is stored back into the scenario.
+
+If you add or change a canonical matrix, the normal touchpoints are:
+
+* ``mario/model/conventions.py``;
+* ``mario/compute/catalog.py``;
+* one of ``iot_formulas.py``, ``sut_formulas.py`` or ``views.py``.
+
+Operational mutation flow
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Most high-level mutations follow the same pattern:
+
+1. ``Database`` method in ``mario/api/database.py`` validates the public call.
+2. The implementation is delegated to ``mario/ops``.
+3. Resulting matrices, units and indexes are written back into the database.
+4. Metadata history is updated.
+
+This applies to aggregation, transforms, exports, shocks and add-sectors.
+
+Add-sectors and split flow
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The current add-sectors path is workbook-driven:
+
+1. ``Database.get_add_sectors_excel(...)`` writes a workbook.
+2. ``read_add_sectors_excel(...)`` reads metadata sheets.
+3. ``read_inventory_sheets(...)`` attaches inventories.
+4. ``run_add_sector_engine(...)`` applies the non-split insertion.
+5. If ``split=True``:
+
+   * ``add_sector_split.py`` prepares deterministic split data;
+   * ``cvxlab_bridge.py`` writes CVXLab input data or runs optimization;
+   * optimized results are imported into a dedicated scenario.
+
+
+Where To Edit What
+------------------
+
+Use this quick routing table when deciding where to work:
+
+* New parser: start in ``mario/parsers/`` and use ``mario/parsers/api.py``.
+* New canonical matrix: update ``mario/model/conventions.py`` and
+  ``mario/compute/catalog.py`` first.
+* New compute formula: implement it in ``mario/compute/*_formulas.py`` and wire
+  it in the catalog.
+* New extraction/concat view: implement it in ``mario/compute/views.py``.
+* Public API behavior change: usually ``mario/api/core_model.py`` or
+  ``mario/api/database.py``.
+* Export/import layout change: ``mario/ops/export.py``, ``mario/ops/excel.py``,
+  ``mario/parsers/txt.py`` and ``mario/parsers/parquet.py``.
+* Add-sectors workbook change: ``mario/ops/add_sector_specs.py`` and
+  ``mario/ops/add_sector_workbook.py``.
+* Add-sectors algorithm change: ``mario/ops/add_sector_engine.py``.
+* Split/CVXLab integration change: ``mario/ops/add_sector_split.py`` and
+  ``mario/ops/cvxlab_bridge.py``.
+* New storage backend: ``mario/storage/`` plus ``mario/internal/access.py``.
+* Plot/filter behavior: ``mario/views/plots.py`` and
+  ``mario/views/plot_specs.py``.
+
+
+What Is Current vs Transitional
+-------------------------------
+
+The codebase is partly modernized and partly transitional. The practical split
+is:
+
+Current architecture
+~~~~~~~~~~~~~~~~~~~~
+
+* catalog-driven compute in ``mario.compute``;
+* state-based parser infrastructure in ``mario.parsers.api`` and
+  ``mario.internal``;
+* workbook-driven add-sectors flow in ``mario.ops.add_sector_*``;
+* flat txt/parquet import/export;
+* direct dataset parsers for EXIOBASE, Eurostat, FIGARO, WIOD, ADB, EMERGING,
+  GLORIA, OECD, EORA and StatCan.
+
+Transitional or compatibility-heavy areas
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* ``mario/parsers/tabular.py`` and parts of ``mario/ops/excel.py``;
+* ``mario/ops/sectoradd.py`` legacy helpers still used by compatibility paths;
+* downloader helpers in ``mario/download.py``;
+* historical single-sheet dataframe views and older workbook conventions.
+
+When touching transitional modules, prefer small, well-contained changes unless
+you are explicitly refactoring that area.
+
+
+Developer Advice
+----------------
+
+Three patterns make the codebase easier to extend safely:
+
+1. Keep canonical MARIO blocks authoritative.
+   Raw dataset structure can vary wildly, but parsers should normalize early.
+
+2. Prefer central seams over one-off fixes.
+   If a change affects many parsers or exports, first look at:
+
+   * ``mario/model/conventions.py``
+   * ``mario/parsers/helpers.py``
+   * ``mario/ops/export.py``
+   * ``mario/api/core_model.py``
+
+3. Treat ``Database`` as the stable user facade.
+   Internal storage or execution backends may evolve, but public workflows
+   should stay centered on the same object and method names.
+
+
+See Also
+--------
+
+* :doc:`parser_development`
+* :doc:`add_sector_refactor`
