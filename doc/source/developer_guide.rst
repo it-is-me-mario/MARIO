@@ -670,6 +670,9 @@ Sector extension
    ``get_add_sectors_excel(...)`` and ``add_sectors(...)`` delegate to the
    add-sector engine and workbook writers.
 
+   The historical richer workflow and the recommended porting strategy are
+   documented in ``add_sector_refactor.rst``.
+
 Plotting
    Bubble, linkage and matrix plot methods delegate to ``mario.views.plots``.
 

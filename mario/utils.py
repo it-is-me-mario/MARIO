@@ -124,12 +124,15 @@ def _manage_indeces(instance, case, **kwargs):
 
 def check_clusters(index_dict, table, clusters):
     """Validate user-provided cluster definitions against database indexes."""
+    def _format_items(items):
+        return "{" + ", ".join(repr(item) for item in sorted(items)) + "}"
+
     differences = set(clusters).difference(set(TABLE_LEVELS[table]))
 
     if differences:
         raise WrongInput(
             "{} is/are not valid level/s. Valid items are {}".format(
-                differences, [*TABLE_LEVELS[table]]
+                _format_items(differences), [*TABLE_LEVELS[table]]
             )
         )
 
@@ -139,7 +142,7 @@ def check_clusters(index_dict, table, clusters):
             if differences:
                 raise WrongInput(
                     "{} in cluster {} for level {} is/are not a valid item/s.".format(
-                        differences, cluster, level
+                        _format_items(differences), cluster, level
                     )
                 )
 

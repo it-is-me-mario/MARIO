@@ -12,6 +12,7 @@ Contents:
    terminology
    settings
    developer_guide
+   add_sector_refactor
    parser_development
    tutorials
    examples

@@ -235,6 +235,8 @@ def fill_matrix(empty_df, user_df):
         return empty_df
 
     # otherwise fille the data
+    if any(pd.api.types.is_integer_dtype(dtype) for dtype in empty_df.dtypes):
+        empty_df = empty_df.astype(float)
     empty_df.loc[user_df.index, user_df.columns] = user_df.values
     return empty_df
 

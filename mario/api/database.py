@@ -2,6 +2,7 @@
 """``Database`` implementation and high-level user operations."""
 
 from mario.log_exc.exceptions import (
+    LackOfInput,
     WrongInput,
     WrongExcelFormat,
     NotImplementable,
@@ -11,13 +12,20 @@ from mario.log_exc.exceptions import (
 from mario.log_exc.logger import log_time
 
 from mario.ops.shocks import Y_shock, V_shock, Z_shock
+from mario.ops.add_sector_workbook import (
+    derive_add_sector_sets,
+    group_inventories_by_target,
+    read_add_sector_workbook,
+    write_add_sector_workbook,
+)
+from mario.ops.add_sector_engine import run_add_sector_engine
 from mario.utils import (
     _manage_indeces,
     check_clusters,
     filtering,
 )
 
-from mario.ops.excel import _add_sector_iot, _add_sector_sut, _sh_excel
+from mario.ops.excel import _sh_excel
 
 from mario.views import plots as plt
 from mario.views.plots import _plotter
@@ -30,18 +38,15 @@ from mario.views.plot_specs import (
 from mario.compute.primitives import (
     calc_all_shock,
     calc_X,
-    calc_Z,
-    calc_E,
-    calc_X_from_z,
     linkages_calculation,
 )
-
-from mario.ops.sectoradd import add_new_sector
 
 import numpy as np
 import pandas as pd
 import logging
 import copy
+import os
+import tempfile
 from typing import Dict
 import plotly.express as px
 
@@ -160,12 +165,28 @@ class Database(CoreModel):
         elif levels == "all":
             levels = [*TABLE_LEVELS[self.meta.table]]
 
-        with pd.ExcelWriter(self._getdir(path, "Excels", "Aggregation.xlsx")) as writer:
-            for level in levels:
-                data = pd.DataFrame(
-                    index=self.get_index(level), columns=["Aggregation"]
-                )
-                data.to_excel(writer, level)
+        output_path = self._getdir(path, "Excels", "Aggregation.xlsx")
+        output_dir = os.path.dirname(output_path) or "."
+        temp_handle = tempfile.NamedTemporaryFile(
+            suffix=".xlsx",
+            dir=output_dir,
+            delete=False,
+        )
+        temp_path = temp_handle.name
+        temp_handle.close()
+
+        try:
+            with pd.ExcelWriter(temp_path, engine="openpyxl") as writer:
+                for level in levels:
+                    data = pd.DataFrame(
+                        index=self.get_index(level), columns=["Aggregation"]
+                    )
+                    data.to_excel(writer, sheet_name=level)
+            os.replace(temp_path, output_path)
+        except Exception:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+            raise
 
     def read_aggregated_index(
         self,
@@ -740,11 +761,58 @@ class Database(CoreModel):
             **kwargs,
         )
 
-    def get_add_sectors_excel(self, new_sectors, regions, path=None, item=None):
-        """Write an Excel template for adding sectors, activities or commodities."""
+    def get_add_sectors_excel(
+        self,
+        path=None,
+        items=None,
+        regions=None,
+        item=None,
+        redefine_uncertainties=False,
+    ):
+        """Write the add-sectors workbook template.
 
-        if (not isinstance(regions, list)) and (not isinstance(new_sectors, list)):
-            raise WrongInput("'regions' and 'new_sectors' should be a list.")
+        Parameters
+        ----------
+        path:
+            Output path for the workbook. When omitted, MARIO writes to the
+            default Excel output folder.
+        items:
+            Optional item names to pre-populate in the master sheet. For IOT the
+            items are sectors. For SUT they are interpreted according to
+            ``item``. When omitted, an empty workbook skeleton is written.
+        regions:
+            Optional regions to pre-populate in the master sheet. When omitted
+            and ``items`` are provided, all database regions are used.
+        item:
+            SUT-only selector that controls whether ``items`` should be written
+            as activities, commodities, or both. ``None`` means both.
+        redefine_uncertainties:
+            When ``True``, include the editable uncertainties sheet in the
+            workbook.
+
+        Notes
+        -----
+        The old simple workbook is deprecated. This method now always writes the
+        single workbook format consumed by ``read_add_sectors_excel(...)`` and
+        ``add_sectors(...)``.
+        """
+
+        if items is None:
+            items = []
+        elif isinstance(items, str):
+            items = [items]
+        elif isinstance(items, tuple):
+            items = list(items)
+
+        if regions is None:
+            regions = self.get_index(_MASTER_INDEX["r"]) if items else []
+        elif isinstance(regions, str):
+            regions = [regions]
+        elif isinstance(regions, tuple):
+            regions = list(regions)
+
+        if not isinstance(items, list) or not isinstance(regions, list):
+            raise WrongInput("'items' and 'regions' should be a list.")
 
         difference = set(regions).difference(self.get_index(_MASTER_INDEX["r"]))
 
@@ -756,112 +824,207 @@ class Database(CoreModel):
                 )
             )
 
-        if self.meta.table == "SUT":
-            if item not in [_MASTER_INDEX["c"], _MASTER_INDEX["a"]]:
-                raise WrongInput(
-                    "For SUT, item should be {} or {}".format(
-                        _MASTER_INDEX["c"], _MASTER_INDEX["a"]
-                    )
+        if self.meta.table == "SUT" and item not in [
+            _MASTER_INDEX["c"],
+            _MASTER_INDEX["a"],
+            None,
+        ]:
+            raise WrongInput(
+                "For SUT, item should be {}, {} or None".format(
+                    _MASTER_INDEX["c"], _MASTER_INDEX["a"]
                 )
-            _add_sector_sut(
-                self,
-                new_sectors,
-                regions,
-                self._getdir(path, "Excels", "add_sectors.xlsx"),
-                item,
-                num_validation=30,
             )
 
-        else:
-            _add_sector_iot(
-                self,
-                new_sectors,
-                regions,
-                self._getdir(path, "Excels", "add_sectors.xlsx"),
-                num_validation=30,
+        target = self._getdir(path, "Excels", "add_sectors.xlsx")
+        write_add_sector_workbook(
+            self,
+            target,
+            new_items=items,
+            regions=regions,
+            item=item,
+            redefine_uncertainties=redefine_uncertainties,
+        )
+
+    def read_add_sectors_excel(self, path, read_inventories=False):
+        """Read one add-sectors workbook and attach its metadata to the database.
+
+        This method always stores the normalized master sheet, cluster maps and
+        derived item sets on the database instance. When ``read_inventories`` is
+        true it also groups the referenced inventory sheets by target item and
+        stores them on ``self.inventories``.
+        """
+
+        workbook = read_add_sector_workbook(path, table=self.meta.table)
+        self.add_sectors_workbook = workbook
+        self.add_sectors_workbook_path = str(path)
+        self.add_sectors_master = workbook.master_sheet
+        self.regions_clusters = workbook.regions_clusters
+        self.uncertainty_values = workbook.uncertainty_values
+
+        if self.meta.table == "IOT":
+            self.sectors_clusters = workbook.item_clusters
+            derived = derive_add_sector_sets(
+                workbook,
+                existing_sectors=self.get_index(_MASTER_INDEX["s"]),
             )
+        else:
+            self.commodities_clusters = workbook.item_clusters
+            derived = derive_add_sector_sets(
+                workbook,
+                existing_activities=self.get_index(_MASTER_INDEX["a"]),
+                existing_commodities=self.get_index(_MASTER_INDEX["c"]),
+            )
+
+        for key, value in derived.items():
+            setattr(self, key, value)
+
+        if read_inventories:
+            self.inventories = group_inventories_by_target(workbook)
+
+    def read_inventory_sheets(self, path):
+        """Read and group inventory sheets from an add-sectors workbook.
+
+        The returned mapping is keyed by target item name and each value is a
+        ``{sheet_name: dataframe}`` dictionary ready for the add-sectors engine.
+        """
+
+        workbook = getattr(self, "add_sectors_workbook", None)
+        workbook_path = getattr(self, "add_sectors_workbook_path", None)
+
+        if workbook is None or workbook_path != str(path):
+            self.read_add_sectors_excel(path, read_inventories=False)
+            workbook = self.add_sectors_workbook
+
+        self.add_sectors_workbook_path = str(path)
+        self.inventories = group_inventories_by_target(workbook)
+        return self.inventories
 
     def add_sectors(
         self,
-        io,
-        new_sectors,
-        regions,
-        item,
+        io="inventories",
+        scenario="baseline",
         inplace=True,
         notes=None,
+        ignore_warnings=True,
     ):
-        """Add sectors, activities or commodities to the database."""
+        """Apply the add-sectors workbook to the selected scenario.
+
+        Parameters
+        ----------
+        io:
+            Either a workbook path or the special value ``"inventories"``.
+            When a path is provided, MARIO reads workbook metadata and grouped
+            inventory sheets from that file first. When ``"inventories"`` is
+            used, the caller is expected to have already loaded workbook state
+            with ``read_add_sectors_excel(...)`` / ``read_inventory_sheets(...)``.
+        scenario:
+            Scenario to read the source coefficient blocks from.
+        inplace:
+            When ``False``, return a modified copy.
+        notes:
+            Optional metadata notes appended to the database history.
+        ignore_warnings:
+            Passed through to the engine for the handful of cases where the
+            historical workflow intentionally muted warnings.
+
+        Notes
+        -----
+        The current implementation covers the non-split workbook workflow. Split
+        insertion is intentionally left out for now.
+        """
         if not inplace:
             new = self.copy()
             new.add_sectors(
-                io=io, new_sectors=new_sectors, regions=regions, item=item, inplace=True
+                io=io,
+                scenario=scenario,
+                inplace=True,
+                notes=notes,
+                ignore_warnings=ignore_warnings,
             )
             return new
 
-        difference = set(regions).difference(self.get_index(_MASTER_INDEX["r"]))
+        self._validate_scenario(scenario)
 
-        if difference:
-            raise WrongInput(
-                "Regions: {} do not exist in the database. Existing regions are:\n{}".format(
-                    difference,
-                    self.get_index(_MASTER_INDEX["r"]),
-                )
+        if io != "inventories":
+            self.read_add_sectors_excel(io, read_inventories=True)
+        elif not hasattr(self, "inventories"):
+            raise LackOfInput(
+                "Inventory sheets are not loaded. Pass an add-sectors workbook path "
+                "or call read_inventory_sheets(...) first."
             )
 
-        if self.meta.table == "SUT":
-            if item not in [_MASTER_INDEX["c"], _MASTER_INDEX["a"]]:
-                raise WrongInput(
-                    "For SUT, item should be {} or {}".format(
-                        _MASTER_INDEX["c"], _MASTER_INDEX["a"]
-                    )
-                )
-        else:
-            item = _MASTER_INDEX["s"]
+        item_to_query = _MASTER_INDEX["a"] if self.meta.table == "SUT" else _MASTER_INDEX["s"]
+        duplicates = sorted(set(name for name in self.inventories if name in self.get_index(item_to_query)))
+        if duplicates:
+            raise WrongInput(f"Some items already exist in the table: {duplicates}")
 
         log_time(
             logger,
-            "Database: All the scenarios will be deleted from the database",
+            "Database: All scenarios will be deleted from the database after add_sectors.",
             "warning",
         )
 
-        new_data, units = add_new_sector(self, io, new_sectors, item, regions)
-
-        new_data["X"] = calc_X_from_z(new_data["z"], new_data["Y"])
-        new_data["E"] = calc_E(new_data["e"], new_data["X"])
-        new_data["V"] = calc_E(new_data["v"], new_data["X"])
-        new_data["Z"] = calc_Z(new_data["z"], new_data["X"])
-
-        # add new sector in the index
-        index_take = [key for key, take in _MASTER_INDEX.items() if take == item][0]
-        for sec in new_sectors:
-            self.units[item].loc[sec, "unit"] = units.loc[sec, "unit"]
-            self._indeces[index_take]["main"].append(sec)
-            if index_take != "s":
-                self._indeces["s"]["main"].append(sec)
-
-        new_data["EY"] = self.EY
-
-        # Deleting old values
-        for matrix in ["z", "e", "v", "Y", "X", "Z", "E", "V", "EY"]:
-            self.matrices["baseline"][_ENUM[matrix]] = new_data[matrix]
-
-        self.meta._add_history(
-            "Scenarios: all the scenarios deleted from the database."
-        )
-        self.meta._add_history(
-            f"Database: new {item}: {new_sectors} added to the database"
-            f" for regions: {regions} based on data imported from {io}"
+        result = run_add_sector_engine(
+            self,
+            scenario=scenario,
+            ignore_warnings=ignore_warnings,
         )
 
-        log_time(
-            logger,
-            f"New {item}: {new_sectors} added to the database"
-            f" for regions: {regions} sucessfully.",
-        )
+        if self.meta.table == "IOT":
+            new_matrices, new_units, new_indeces, uncertainty_matrix = result
+            baseline = {
+                _ENUM["z"]: new_matrices[_ENUM["z"]],
+                _ENUM["e"]: new_matrices[_ENUM["e"]],
+                _ENUM["v"]: new_matrices[_ENUM["v"]],
+                _ENUM["Y"]: new_matrices[_ENUM["Y"]],
+                _ENUM["EY"]: new_matrices[_ENUM["EY"]],
+            }
+            self.uncertainty_matrix = uncertainty_matrix
+            added_items = getattr(self, "new_sectors", [])
+            added_label = _MASTER_INDEX["s"]
+        else:
+            new_matrices, new_units, new_indeces = result
+            baseline = {
+                _ENUM["z"]: new_matrices[_ENUM["z"]],
+                _ENUM["u"]: new_matrices[_ENUM["u"]],
+                _ENUM["s"]: new_matrices[_ENUM["s"]],
+                _ENUM["e"]: new_matrices[_ENUM["e"]],
+                _ENUM["v"]: new_matrices[_ENUM["v"]],
+                _ENUM["Y"]: new_matrices[_ENUM["Y"]],
+                _ENUM["EY"]: self.EY,
+            }
+            self.uncertainty_matrix = None
+            added_items = {
+                _MASTER_INDEX["a"]: getattr(self, "new_activities", []),
+                _MASTER_INDEX["c"]: getattr(self, "new_commodities", []),
+            }
+            added_label = None
+
+        self.matrices = {"baseline": baseline}
+        self.units = new_units
+        self._indeces = new_indeces
+
+        self.meta._add_history("Scenarios: all scenarios deleted from the database.")
+        if self.meta.table == "IOT":
+            self.meta._add_history(
+                f"Database: new {added_label}: {added_items} added to the database"
+            )
+            log_time(logger, f"New {added_label}: {added_items} added to the database")
+        else:
+            self.meta._add_history(
+                f"Database: new {_MASTER_INDEX['a']}: {added_items[_MASTER_INDEX['a']]} added to the database"
+            )
+            self.meta._add_history(
+                f"Database: new {_MASTER_INDEX['c']}: {added_items[_MASTER_INDEX['c']]} added to the database"
+            )
+            log_time(logger, f"New {_MASTER_INDEX['a']}: {added_items[_MASTER_INDEX['a']]} added to the database")
+            log_time(logger, f"New {_MASTER_INDEX['c']}: {added_items[_MASTER_INDEX['c']]} added to the database")
 
         if notes:
-            for note in notes:
+            for note in notes if isinstance(notes, list) else [notes]:
                 self.meta._add_history(f"User note: {note}")
+
+        return self
 
     def query(
         self,

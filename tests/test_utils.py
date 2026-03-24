@@ -288,9 +288,10 @@ def test_check_clusters():
                 }
         )
 
-    assert "{} in cluster {} for level {} is/are not a valid item/s.".format(
-                            {'sec4','sec5'}, 'Sec.2', "Sector"
-    ) == str(msg.value)
+    assert (
+        "{'sec4', 'sec5'} in cluster Sec.2 for level Sector is/are not a valid item/s."
+        == str(msg.value)
+    )
 
 
 def test_all_file_reader():
