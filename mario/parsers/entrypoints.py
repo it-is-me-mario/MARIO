@@ -3,10 +3,17 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
+import logging
+from pathlib import Path
+
 from mario.api import Database
-from mario.log_exc.exceptions import WrongInput
+from mario.log_exc.exceptions import NotImplementable, WrongInput
+from mario.log_exc.logger import log_time
 from mario.parsers.api import (
     build_database_from_state,
+    validate_named_selection,
     validate_parse_request,
 )
 from mario.parsers.excel import parse_state_from_excel
@@ -24,6 +31,12 @@ from mario.parsers.eurostat_sdmx import (
     parse_eurostat_sut_sdmx,
 )
 from mario.parsers.figaro import parse_figaro_iot, parse_figaro_sut
+from mario.parsers.gloria import (
+    detect_gloria_layout,
+    parse_gloria_sut,
+    _normalize_satellite_request as _normalize_gloria_satellites,
+    _select_gloria_satellites,
+)
 from mario.parsers.oecd_icio import parse_oecd_icio
 from mario.parsers.tabular import parse_pymrio
 from mario.parsers.handshake import parse_exiobase_3_9_4
@@ -39,6 +52,113 @@ from mario.parsers.specs import (
 import pandas as pd
 
 models = {"Database": Database}
+logger = logging.getLogger(__name__)
+_GLORIA_CACHE_VERSION = "2026-03-25"
+
+
+def _normalize_gloria_regions(regions):
+    """Normalize a region selector into a stable list used for cache keys."""
+    if regions is None or regions == "all":
+        return "all"
+    if isinstance(regions, str):
+        return [regions]
+    return list(regions)
+
+
+def _gloria_cache_satellites(satellites):
+    """Normalize a satellite selector into a stable cache payload."""
+    return _normalize_gloria_satellites(satellites)
+
+
+def _gloria_cache_signature(layout, *, regions, satellites, dtype):
+    """Build a deterministic signature for one GLORIA parse request."""
+    file_inputs = []
+    for candidate in [layout.T_path, layout.Y_path, layout.V_path, layout.TQ_path, layout.YQ_path]:
+        if candidate is None:
+            continue
+        stats = candidate.stat()
+        file_inputs.append(
+            {
+                "path": str(candidate),
+                "size": stats.st_size,
+                "mtime_ns": stats.st_mtime_ns,
+            }
+        )
+
+    payload = {
+        "version": _GLORIA_CACHE_VERSION,
+        "table": "SUT",
+        "year": layout.year,
+        "release": layout.release,
+        "markup": layout.markup,
+        "valuation": layout.valuation_name,
+        "dtype": str(dtype),
+        "regions": _normalize_gloria_regions(regions),
+        "satellites": _gloria_cache_satellites(satellites),
+        "files": file_inputs,
+    }
+    encoded = json.dumps(payload, sort_keys=True).encode()
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _default_gloria_cache_dir(layout, *, regions, satellites, dtype):
+    """Return the default on-disk cache directory for one GLORIA parse request."""
+    region_part = _normalize_gloria_regions(regions)
+    if isinstance(region_part, list):
+        region_token = "-".join(region_part)
+    else:
+        region_token = region_part
+    satellite_part = _gloria_cache_satellites(satellites)
+    if isinstance(satellite_part, list):
+        satellite_token = "-".join(satellite_part)
+    else:
+        satellite_token = satellite_part
+    safe_region_token = (region_token or "all").replace("/", "_").replace(" ", "_")
+    safe_satellite_token = (satellite_token or "all").replace("/", "_").replace(" ", "_").replace("|", "_")
+    return (
+        Path(layout.root)
+        / ".mario_cache"
+        / f"gloria_sut_{layout.year}_{layout.release}_{layout.markup:03d}_{safe_region_token}_{safe_satellite_token}_{dtype}"
+    )
+
+
+def _read_json_file(path: Path) -> dict:
+    """Read one small json file from disk."""
+    with path.open("r") as stream:
+        return json.load(stream)
+
+
+def _write_json_file(path: Path, payload: dict) -> None:
+    """Write one small json file to disk."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w") as stream:
+        json.dump(payload, stream, indent=2, sort_keys=True)
+
+
+def _build_gloria_database(
+    *,
+    matrices,
+    indeces,
+    units,
+    layout,
+    model,
+    name,
+    calc_all,
+    notes,
+    kwargs,
+):
+    """Build the public database returned by ``parse_gloria``."""
+    return models[model](
+        name=name or layout.dataset_name,
+        table="SUT",
+        source=layout.source,
+        year=layout.year,
+        price=layout.price,
+        init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
+        calc_all=calc_all,
+        notes=list(notes),
+        **kwargs,
+    )
 
 def parse_from_txt(
     path: str,
@@ -590,15 +710,11 @@ def hybrid_sut_exiobase(
     For more informatio refer to https://zenodo.org/record/7244919#.Y6hEfi8w2L1
     """
 
-    if extensions not in (None, "all"):
-        differnce = sorted(set(extensions).difference(set(HMRSUT_EXTENSIONS)))
-        if differnce:
-            raise WrongInput(
-                "Following items are not valid for extensions: \n {}.\n Valid items are: \n {}".format(
-                    differnce,
-                    HMRSUT_EXTENSIONS,
-                )
-            )
+    validate_named_selection(
+        extensions,
+        valid_options=HMRSUT_EXTENSIONS,
+        option_name="extensions",
+    )
 
     matrices, indeces, units, layout = parse_exiobase_hybrid_sut(
         path=path,
@@ -633,15 +749,11 @@ def hybrid_iot_exiobase(
     **kwargs,
 ):
     """Parse the hybrid EXIOBASE 3.3.18 HIOT."""
-    if extensions not in (None, "all"):
-        differnce = sorted(set(extensions).difference(set(HMIOT_EXTENSIONS)))
-        if differnce:
-            raise WrongInput(
-                "Following items are not valid for extensions: \n {}.\n Valid items are: \n {}".format(
-                    differnce,
-                    HMIOT_EXTENSIONS,
-                )
-            )
+    validate_named_selection(
+        extensions,
+        valid_options=HMIOT_EXTENSIONS,
+        option_name="extensions",
+    )
 
     matrices, indeces, units, layout = parse_exiobase_hybrid_iot(
         path=path,
@@ -911,3 +1023,148 @@ def parse_figaro(
         calc_all=calc_all,
         **kwargs,
     )
+
+
+def parse_gloria(
+    path: str,
+    table: str = "SUT",
+    valuation: str | int = "basic",
+    year: int | None = None,
+    regions: str | list[str] | tuple[str, ...] | None = None,
+    satellites: str | list[str] | tuple[str, ...] | None = "all",
+    dtype: str = "float32",
+    cache: bool | str | Path = False,
+    model: str = "Database",
+    name: str | None = None,
+    calc_all: bool = False,
+    **kwargs,
+) -> object:
+    """Parse a locally downloaded GLORIA release.
+
+    The current GLORIA backend targets the monetary multi-regional SUT bundles
+    shipped as raw ``T``, ``Y`` and ``V`` csv files together with the GLORIA
+    ReadMe workbook. GLORIA IOT parsing is intentionally left for a later step.
+
+    Parameters
+    ----------
+    path : str
+        path to the GLORIA release root or directly to the ``GLORIA_MRIOs_*``
+        directory containing the raw csv files.
+    table : str, optional
+        currently only ``SUT`` is supported.
+    valuation : str or int, optional
+        one of ``basic``, ``trade``, ``transport``, ``taxes`` or
+        ``subsidies`` (or the corresponding markup number ``1``-``5``).
+    year : int, optional
+        reference year when the selected folder contains more than one yearly
+        GLORIA bundle.
+    regions : sequence of str, optional
+        optional subset of GLORIA region acronyms to keep.
+    satellites : str or sequence of str, optional
+        satellite filter. Use ``\"all\"`` for the full satellite account
+        payload, pass one full label such as ``\"Emissions | CO2\"``, or one
+        group name from the GLORIA ReadMe such as ``\"Emissions\"``.
+    dtype : str, optional
+        numeric dtype used for dense GLORIA blocks. ``float32`` is the default
+        because GLORIA use matrices are large.
+    cache : bool or path-like, optional
+        if ``True``, cache the parsed result as parquet under the GLORIA root
+        and reuse it on subsequent calls when the raw file signature matches.
+        A custom directory can also be provided.
+    """
+    if model not in models:
+        raise WrongInput("Available models are {}".format([*models]))
+
+    validate_parse_request(table=table, model=model)
+    if table != "SUT":
+        raise NotImplementable("GLORIA parsing currently supports only SUT tables.")
+
+    layout, metadata = detect_gloria_layout(
+        path=path,
+        valuation=valuation,
+        year=year,
+    )
+    _select_gloria_satellites(metadata, satellites)
+    cache_dir = None
+    cache_signature = None
+    cache_info_path = None
+    if cache:
+        cache_dir = (
+            _default_gloria_cache_dir(layout, regions=regions, satellites=satellites, dtype=dtype)
+            if cache is True
+            else Path(cache)
+        )
+        cache_signature = _gloria_cache_signature(
+            layout,
+            regions=regions,
+            satellites=satellites,
+            dtype=dtype,
+        )
+        cache_info_path = cache_dir / "gloria_cache.json"
+        flows_dir = cache_dir / "flows"
+
+        if cache_info_path.exists() and flows_dir.exists():
+            cache_info = _read_json_file(cache_info_path)
+            if cache_info.get("signature") == cache_signature:
+                log_time(logger, f"Parser: loading GLORIA parquet cache from {cache_dir}.", "info")
+                state = parse_state_from_parquet(
+                    path=str(flows_dir),
+                    table="SUT",
+                    mode="flows",
+                    flat=True,
+                    name=name or cache_info.get("name") or layout.dataset_name,
+                    source=cache_info.get("source") or layout.source,
+                    year=cache_info.get("year", layout.year),
+                    price=cache_info.get("price", layout.price),
+                )
+                return build_database_from_state(
+                    state,
+                    model=model,
+                    calc_all=calc_all,
+                    name=name or cache_info.get("name") or layout.dataset_name,
+                    source=cache_info.get("source") or layout.source,
+                    year=cache_info.get("year", layout.year),
+                    price=cache_info.get("price", layout.price),
+                    **kwargs,
+                )
+
+    matrices, indeces, units, layout = parse_gloria_sut(
+        path=path,
+        valuation=valuation,
+        year=year,
+        regions=regions,
+        satellites=satellites,
+        dtype=dtype,
+        layout=layout,
+        metadata=metadata,
+    )
+    database = _build_gloria_database(
+        matrices=matrices,
+        indeces=indeces,
+        units=units,
+        layout=layout,
+        model=model,
+        name=name,
+        calc_all=False,
+        notes=layout.notes,
+        kwargs=kwargs,
+    )
+
+    if cache_dir is not None:
+        log_time(logger, f"Parser: writing GLORIA parquet cache to {cache_dir}.", "info")
+        database.to_parquet(path=str(cache_dir), flows=True, coefficients=False, flat=True, include_meta=True)
+        _write_json_file(
+            cache_info_path,
+            {
+                "signature": cache_signature,
+                "name": database.meta.name,
+                "source": database.meta.source,
+                "year": database.meta.year,
+                "price": database.meta.price,
+                "notes": list(layout.notes),
+            },
+        )
+
+    if calc_all:
+        database.calc_all()
+    return database

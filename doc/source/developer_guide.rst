@@ -514,6 +514,48 @@ But it is not a user-facing path. Everyday workflows should still be described
 through ``Database``.
 
 
+Backend-Aware Block Access
+--------------------------
+
+One practical rule now guides backend work:
+
+*the user should always keep using the same ``Database`` methods, regardless of
+whether the underlying blocks are small pandas tables or very large
+repository-backed datasets.*
+
+For that reason, ``Database`` and ``ModelState`` now expose the same internal
+block contract:
+
+* ``list_blocks(...)``
+* ``has_block(...)``
+* ``get_block(...)``
+* ``set_block(...)``
+* ``get_block_as_pandas(...)``
+* ``get_block_as_table(...)``
+* ``get_block_as_matrix(...)``
+
+The intent is:
+
+* public API stays stable on ``Database``;
+* block storage can evolve independently;
+* compute code asks for matrix form;
+* query/export code asks for tabular form;
+* compatibility paths can still ask for pandas form.
+
+Today the default implementation still returns pandas-backed blocks in most
+cases. However, these adapter methods are now the correct internal boundary for
+future work on Polars, DuckDB, sparse matrices and large repository-backed
+datasets such as GLORIA.
+
+Developers should therefore avoid introducing new direct reads of
+``self.matrices[scenario][name]`` in new code. Instead:
+
+* use ``get_block(...)`` when storage identity matters;
+* use ``get_block_as_pandas(...)`` when a public pandas result is required;
+* use ``get_block_as_table(...)`` for query/export oriented logic;
+* use ``get_block_as_matrix(...)`` for numerical compute paths.
+
+
 Optional Dependencies
 ---------------------
 

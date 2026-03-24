@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 
 from mario.compute.helpers import (
+    as_dense_series,
     as_column_frame,
     diag_from_vector,
     identity_like,
@@ -37,6 +38,12 @@ def _production_frame(vector: pd.Series) -> pd.DataFrame:
     frame = as_column_frame(vector, PRODUCTION_LABEL)
     frame.columns = pd.Index([PRODUCTION_LABEL], name=ITEM_LABEL)
     return frame
+
+
+def _dense_matmul(left: pd.DataFrame, right: pd.DataFrame) -> pd.DataFrame:
+    """Multiply two aligned dataframes through NumPy to avoid pandas sparse internals."""
+    values = left.to_numpy(dtype=float) @ right.to_numpy(dtype=float)
+    return pd.DataFrame(values, index=left.index, columns=right.columns)
 
 
 def build_sut_wcc_from_u_s(u: pd.DataFrame, s: pd.DataFrame) -> pd.DataFrame:
@@ -73,7 +80,11 @@ def build_sut_Xa_from_S_Ya(S: pd.DataFrame, Ya: pd.DataFrame) -> pd.DataFrame:
     """Build activity output from supply flows and activity final demand."""
     y_total = sum_final_demand(Ya)
     require_same_index(S, y_total, lhs_name="S", rhs_name="Ya_total")
-    total = S.sum(axis=1) + y_total
+    s_total = as_dense_series(S.sum(axis=1))
+    total = pd.Series(
+        s_total.to_numpy(dtype=float) + y_total.to_numpy(dtype=float),
+        index=S.index,
+    )
     return _production_frame(total)
 
 
@@ -89,7 +100,11 @@ def build_sut_Xc_from_U_Yc(U: pd.DataFrame, Yc: pd.DataFrame) -> pd.DataFrame:
     """Build commodity output from use flows and commodity final demand."""
     y_total = sum_final_demand(Yc)
     require_same_index(U, y_total, lhs_name="U", rhs_name="Yc_total")
-    total = U.sum(axis=1) + y_total
+    u_total = as_dense_series(U.sum(axis=1))
+    total = pd.Series(
+        u_total.to_numpy(dtype=float) + y_total.to_numpy(dtype=float),
+        index=U.index,
+    )
     return _production_frame(total)
 
 
@@ -218,7 +233,7 @@ def build_sut_ma_from_va_waa(va: pd.DataFrame, waa: pd.DataFrame) -> pd.DataFram
     """Build activity-side value-added multipliers from direct coefficients."""
     validate_square(waa)
     require_same_columns(va, waa.index, lhs_name="va", rhs_name="waa")
-    return va.dot(waa)
+    return _dense_matmul(va, waa)
 
 
 def build_sut_mc_from_va_s_wcc(va: pd.DataFrame, s: pd.DataFrame, wcc: pd.DataFrame) -> pd.DataFrame:
@@ -226,7 +241,7 @@ def build_sut_mc_from_va_s_wcc(va: pd.DataFrame, s: pd.DataFrame, wcc: pd.DataFr
     validate_square(wcc)
     require_same_columns(va, s.index, lhs_name="va", rhs_name="s.index")
     require_same_columns(s, wcc.index, lhs_name="s", rhs_name="wcc")
-    return va.dot(s).dot(wcc)
+    return _dense_matmul(_dense_matmul(va, s), wcc)
 
 
 def build_sut_Fc_from_fc_Yc(fc: pd.DataFrame, Yc: pd.DataFrame) -> pd.DataFrame:
@@ -249,7 +264,7 @@ def build_sut_fa_from_ea_waa(ea: pd.DataFrame, waa: pd.DataFrame) -> pd.DataFram
     """Build activity-side satellite multipliers from direct coefficients."""
     validate_square(waa)
     require_same_columns(ea, waa.index, lhs_name="ea", rhs_name="waa")
-    return ea.dot(waa)
+    return _dense_matmul(ea, waa)
 
 
 def build_sut_fc_from_ea_s_wcc(ea: pd.DataFrame, s: pd.DataFrame, wcc: pd.DataFrame) -> pd.DataFrame:
@@ -257,7 +272,7 @@ def build_sut_fc_from_ea_s_wcc(ea: pd.DataFrame, s: pd.DataFrame, wcc: pd.DataFr
     validate_square(wcc)
     require_same_columns(ea, s.index, lhs_name="ea", rhs_name="s.index")
     require_same_columns(s, wcc.index, lhs_name="s", rhs_name="wcc")
-    return ea.dot(s).dot(wcc)
+    return _dense_matmul(_dense_matmul(ea, s), wcc)
 
 
 def build_sut_pc_from_vc(

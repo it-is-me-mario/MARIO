@@ -40,6 +40,8 @@ def test_resolve_iot_materializes_expected_result():
 
 def test_build_plan_prefers_extract_for_materialized_sut_source():
     sut = load_test("SUT")
+    sut["baseline"]["Z"] = sut.Z.copy()
+    sut["baseline"].pop("U", None)
     assert "U" not in sut["baseline"]
 
     plan = build_plan("U", sut)

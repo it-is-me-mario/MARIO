@@ -94,18 +94,21 @@ def test_to_chenery_moses(CoreDataSUT,transformated):
 
     # test inplace= False
     new = CoreDataSUT.to_chenery_moses(inplace=False)
+    new_z = new.Z.sort_index().sort_index(axis=1)
+    transformed_z = transformated.Z.sort_index().sort_index(axis=1)
+    original_z = CoreDataSUT.Z.sort_index().sort_index(axis=1)
 
-    print(new["baseline"][_ENUM.Z].sort_index().sort_index(axis=1))
-    print(transformated["baseline"][_ENUM.Z].sort_index().sort_index(axis=1))
+    print(new_z)
+    print(transformed_z)
     pdt.assert_frame_equal(
-        new["baseline"][_ENUM.Z].sort_index().sort_index(axis=1),
-        transformated["baseline"][_ENUM.Z].sort_index().sort_index(axis=1)
+        new_z,
+        transformed_z
         )
 
     with pytest.raises(AssertionError):
         pdt.assert_frame_equal(
-            new["baseline"][_ENUM.Z].sort_index().sort_index(axis=1), 
-            CoreDataSUT["baseline"][_ENUM.Z].sort_index().sort_index(axis=1)
+            new_z,
+            original_z
             )
         
     # a scenario which is alreayd chennery

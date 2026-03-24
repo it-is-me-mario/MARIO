@@ -2,13 +2,16 @@ import json
 
 import pandas as pd
 import pandas.testing as pdt
+import pytest
 
 from mario import parse_exiobase_sut
+from mario.log_exc.exceptions import WrongInput
 from mario.compute.ordering import SUTUnifiedOrderingPolicy
 from mario.compute.views import concat_sut_V, concat_sut_Y, concat_sut_Z
 from mario.model.conventions import _MASTER_INDEX
 from mario.model.enums import TableKind
 from mario.parsers.exiobase import parse_state_exiobase_sut
+from mario.parsers import exiobase_sut as exiobase_sut_parser
 from mario.parsers.exiobase_sut import detect_exiobase_sut_layout
 from mario.parsers.specs import EXIO_FACTOR_ROWS
 
@@ -238,6 +241,23 @@ def test_parse_exiobase_sut_can_import_extensions_from_matching_iot(tmp_path):
     assert (db.Ec == 0).all().all()
     assert db.get_index(_MASTER_INDEX["k"]) == ["CO2", "Water use"]
     assert db.units[_MASTER_INDEX["k"]].loc["CO2", "unit"] == "kg"
+
+
+def test_parse_exiobase_sut_rejects_invalid_extension_path_before_reading_sut(tmp_path, monkeypatch):
+    sut_root = tmp_path / "Exiobase 3.8.2 - MRSUT_2011_ixi"
+    _write_exiobase_sut(sut_root)
+
+    def _unexpected_read(*args, **kwargs):
+        raise AssertionError("SUT matrices should not be read when add_extensions is invalid")
+
+    monkeypatch.setattr(exiobase_sut_parser, "_read_numeric_matrix", _unexpected_read)
+
+    with pytest.raises((WrongInput, FileNotFoundError)):
+        parse_exiobase_sut(
+            str(sut_root),
+            add_extensions=str(tmp_path / "missing_iot"),
+            calc_all=False,
+        )
 
 
 def test_parse_state_exiobase_sut_builds_internal_split_native_state(tmp_path):

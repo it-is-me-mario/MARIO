@@ -6,6 +6,12 @@ import numpy as np
 import pandas as pd
 
 
+def as_dense_series(vector: pd.DataFrame | pd.Series | np.ndarray | list[float] | tuple[float, ...]) -> pd.Series:
+    """Coerce a vector-like input to a dense float ``Series``."""
+    series = _as_series(vector)
+    return pd.Series(series.to_numpy(dtype=float), index=series.index, name=series.name)
+
+
 def _as_series(vector: pd.DataFrame | pd.Series | np.ndarray | list[float] | tuple[float, ...]) -> pd.Series:
     """Coerce a 1D value container into a pandas ``Series``."""
     if isinstance(vector, pd.Series):
@@ -32,10 +38,10 @@ def as_column_frame(
 def sum_final_demand(block: pd.DataFrame | pd.Series) -> pd.Series:
     """Collapse a final-demand block to one total per producing row."""
     if isinstance(block, pd.Series):
-        return block.copy()
+        return as_dense_series(block)
 
     if isinstance(block, pd.DataFrame):
-        return block.sum(axis=1)
+        return as_dense_series(block.sum(axis=1))
 
     raise TypeError("Final demand block must be a pandas Series or DataFrame.")
 

@@ -1,4 +1,7 @@
+import numpy as np
+import pandas as pd
 import pandas.testing as pdt
+from scipy import sparse
 
 from mario.compute.ordering import SUTUnifiedOrderingPolicy
 from mario.compute.sut_formulas import (
@@ -149,3 +152,71 @@ def test_sut_split_flow_formulas_match_database_views_when_final_demand_is_commo
     pdt.assert_frame_equal(build_sut_Mc_from_mc_Yc(mc, Yc), extract_Mc_from_M(sut.M, ordering))
     pdt.assert_frame_equal(build_sut_Fc_from_fc_Yc(fc, Yc), extract_Fc_from_F(sut.F, ordering))
     pdt.assert_frame_equal(build_sut_fa_from_ea_waa(ea, waa), extract_fa_from_f(sut.f, ordering))
+
+
+def test_sut_satellite_multiplier_formulas_handle_pandas_sparse_float32_inputs():
+    ea = pd.DataFrame.sparse.from_spmatrix(
+        sparse.csr_matrix(np.array([[1, 0], [0, 2]], dtype=np.float32)),
+        index=["k1", "k2"],
+        columns=["a1", "a2"],
+    )
+    s = pd.DataFrame(
+        np.array([[1, 3], [2, 4]], dtype=np.float32),
+        index=["a1", "a2"],
+        columns=["c1", "c2"],
+    )
+    wcc = pd.DataFrame(
+        np.array([[1, 2], [0, 1]], dtype=np.float32),
+        index=["c1", "c2"],
+        columns=["c1", "c2"],
+    )
+    waa = pd.DataFrame(
+        np.array([[1, 1], [0, 1]], dtype=np.float32),
+        index=["a1", "a2"],
+        columns=["a1", "a2"],
+    )
+
+    expected_fc = pd.DataFrame(
+        ea.to_numpy(dtype=float) @ s.to_numpy(dtype=float) @ wcc.to_numpy(dtype=float),
+        index=ea.index,
+        columns=wcc.columns,
+    )
+    expected_fa = pd.DataFrame(
+        ea.to_numpy(dtype=float) @ waa.to_numpy(dtype=float),
+        index=ea.index,
+        columns=waa.columns,
+    )
+
+    pdt.assert_frame_equal(build_sut_fc_from_ea_s_wcc(ea, s, wcc), expected_fc)
+    pdt.assert_frame_equal(build_sut_fa_from_ea_waa(ea, waa), expected_fa)
+
+
+def test_sut_production_formulas_handle_pandas_sparse_float32_inputs():
+    S = pd.DataFrame.sparse.from_spmatrix(
+        sparse.csr_matrix(np.array([[1, 0], [0, 2]], dtype=np.float32)),
+        index=["a1", "a2"],
+        columns=["c1", "c2"],
+    )
+    U = pd.DataFrame.sparse.from_spmatrix(
+        sparse.csr_matrix(np.array([[3, 0], [0, 4]], dtype=np.float32)),
+        index=["c1", "c2"],
+        columns=["a1", "a2"],
+    )
+    Ya = pd.DataFrame.sparse.from_spmatrix(
+        sparse.csr_matrix(np.array([[5, 0], [0, 6]], dtype=np.float32)),
+        index=["a1", "a2"],
+        columns=["n1", "n2"],
+    )
+    Yc = pd.DataFrame.sparse.from_spmatrix(
+        sparse.csr_matrix(np.array([[7, 0], [0, 8]], dtype=np.float32)),
+        index=["c1", "c2"],
+        columns=["n1", "n2"],
+    )
+
+    expected_xa = pd.DataFrame({"production": [6.0, 8.0]}, index=["a1", "a2"])
+    expected_xc = pd.DataFrame({"production": [10.0, 12.0]}, index=["c1", "c2"])
+    expected_xa.columns = pd.Index(["production"], name="Item")
+    expected_xc.columns = pd.Index(["production"], name="Item")
+
+    pdt.assert_frame_equal(build_sut_Xa_from_S_Ya(S, Ya), expected_xa)
+    pdt.assert_frame_equal(build_sut_Xc_from_U_Yc(U, Yc), expected_xc)

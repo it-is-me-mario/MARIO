@@ -85,6 +85,7 @@ from mario.parsers.entrypoints import (
     hybrid_sut_exiobase,
     parse_exiobase,
     parse_figaro,
+    parse_gloria,
     parse_oecd,
 )
 

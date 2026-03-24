@@ -43,12 +43,17 @@ def download_exiobase_files(exiobase_files):
 
 
 def test_parse_wrong_extension():
-    download_exiobase_files(exiobase_files)
-
     with pytest.raises(WrongInput) as msg:
-        world = hybrid_sut_exiobase('dummy',["dummy"])
+        hybrid_sut_exiobase("dummy", ["dummy"])
 
     assert "Following items are not valid for extensions" in str(msg.value)
+
+
+def test_parse_wrong_extension_string_is_not_split_into_characters():
+    with pytest.raises(WrongInput) as msg:
+        hybrid_sut_exiobase("dummy", "dummy")
+
+    assert "dummy" in str(msg.value)
 
 def test_parse_main_data():
 

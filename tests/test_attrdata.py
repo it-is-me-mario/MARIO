@@ -27,6 +27,47 @@ from mario.log_exc.exceptions import (
 )
 from mario import parse_from_excel
 
+
+def _write_sut_aggregation_workbook(path):
+    """Create a temporary SUT workbook with embedded aggregation sheets."""
+    data = load_test("SUT").copy()
+    data.calc_all(["E", "EY"])
+
+    e = data["baseline"]["E"]
+    ey = data["baseline"]["EY"]
+    sat_names = ["sat.1", "sat.2"]
+
+    expanded_e = pd.concat(
+        [
+            e.rename(index={e.index[0]: sat_names[0]}),
+            (e * 2).rename(index={e.index[0]: sat_names[1]}),
+        ]
+    )
+    expanded_ey = pd.concat(
+        [
+            ey.rename(index={ey.index[0]: sat_names[0]}),
+            (ey * 2).rename(index={ey.index[0]: sat_names[1]}),
+        ]
+    )
+
+    data.matrices["baseline"]["E"] = expanded_e
+    data.matrices["baseline"]["EY"] = expanded_ey
+    data._indeces["k"]["main"] = sat_names
+    data.units["Satellite account"] = pd.DataFrame(
+        {"unit": ["kg", "m3"]},
+        index=sat_names,
+    )
+    data.to_excel(path=str(path), flows=True, coefficients=False)
+
+    with pd.ExcelWriter(path, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+        for level in data.sets:
+            items = data.get_index(level)
+            if level == "Satellite account":
+                values = ["unused", "sats"]
+            else:
+                values = items
+            pd.DataFrame(values, index=items, columns=["aggregation"]).to_excel(writer, sheet_name=level)
+
 @pytest.fixture()
 def CoreDataIOT():
 
@@ -52,15 +93,18 @@ def agg_IOT():
     return data
 
 @pytest.fixture()
-def agg_SUT():
+def agg_SUT(tmp_path):
+
+    path = tmp_path / "SUT_aggregation.xlsx"
+    _write_sut_aggregation_workbook(path)
 
     data = parse_from_excel(
-        path = f"{MOCK_PATH}/SUT_aggregation.xlsx",
-        table = 'SUT',
-        mode = "flows"
+        path=str(path),
+        table='SUT',
+        mode="flows"
     )
 
-    data.path = f"{MOCK_PATH}/SUT_aggregation.xlsx"
+    data.path = str(path)
 
     return data
 
@@ -110,7 +154,7 @@ def test_get_aggregation_excel(CoreDataIOT, CoreDataSUT):
             file = pd.ExcelFile(path)
             assert file.sheet_names == [level]
             pdt.assert_index_equal(
-                file.parse(sheet_name=level, index_col=0).index,
+                file.parse(sheet_name=level, index_col=0).index.fillna("None"),
                 pd.Index(db.get_index(level)),
             )
 

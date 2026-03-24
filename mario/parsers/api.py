@@ -51,6 +51,40 @@ def validate_parse_request(
         raise WrongInput(errors)
 
 
+def normalize_parser_selection(selection) -> str | list[str]:
+    """Normalize a parser selector argument into ``\"all\"`` or a list of tokens."""
+    if selection is None or selection == "all":
+        return "all"
+    if isinstance(selection, str):
+        return [selection]
+    return [str(value) for value in selection]
+
+
+def validate_named_selection(
+    selection,
+    *,
+    valid_options,
+    option_name: str,
+) -> str | list[str]:
+    """Validate a parser selector against a known list of accepted names.
+
+    The helper accepts ``None``/``\"all\"`` and treats a plain string as one
+    option, not as an iterable of characters.
+    """
+    normalized = normalize_parser_selection(selection)
+    if normalized == "all":
+        return normalized
+
+    allowed = set(valid_options)
+    invalid = sorted(set(normalized).difference(allowed))
+    if invalid:
+        raise WrongInput(
+            f"Following items are not valid for {option_name}: {invalid}. "
+            f"Valid items are: {sorted(allowed)}"
+        )
+    return normalized
+
+
 def build_parser_state(
     *,
     table: TableKind | str,

@@ -8,6 +8,7 @@ from mario.log_exc.exceptions import (
 )
 from mario.log_exc.logger import log_time
 from mario.api.metadata import MARIOMetaData
+from mario.internal.access import block_to_matrix, block_to_pandas, block_to_table
 from mario.parsers.tabular import dataframe_parser
 from mario.model.conventions import TABLE_LEVELS
 from tabulate import tabulate
@@ -236,13 +237,62 @@ class CoreModel:
 
     def _get_matrix(self, matrix: str, *, scenario: str, auto_calc: bool):
         """Return a deep copy of one matrix, computing it when allowed."""
-        if matrix not in self.matrices[scenario]:
+        if not self.has_block(matrix, scenario=scenario):
             if not auto_calc:
                 raise DataMissing(
                     f"{matrix} is not calculated. Using auto_calc = True, can track the missing data and calculate them"
                 )
             self.calc_all([matrix], scenario=scenario)
-        return copy.deepcopy(self.matrices[scenario][matrix])
+        return self.get_block_as_pandas(matrix, scenario=scenario)
+
+    def list_blocks(self, scenario: str = "baseline") -> tuple[str, ...]:
+        """List all blocks materialized for one scenario."""
+        self._validate_scenario(scenario)
+        return tuple(sorted(self.matrices[scenario]))
+
+    def has_block(self, name: str, scenario: str = "baseline") -> bool:
+        """Return whether one block is materialized for the scenario."""
+        self._validate_scenario(scenario)
+        return name in self.matrices[scenario]
+
+    def get_block(self, name: str, scenario: str = "baseline"):
+        """Return the stored block object for the scenario without conversion."""
+        self._validate_scenario(scenario)
+        return self.matrices[scenario][name]
+
+    def set_block(self, name: str, value, scenario: str = "baseline") -> None:
+        """Store one block in the selected scenario."""
+        self._validate_scenario(scenario)
+        self.matrices[scenario][name] = value
+
+    def get_block_as_pandas(self, name: str, scenario: str = "baseline"):
+        """Return one block as a pandas object."""
+        return block_to_pandas(self.get_block(name, scenario=scenario))
+
+    def get_block_as_table(
+        self,
+        name: str,
+        scenario: str = "baseline",
+        *,
+        backend: str = "auto",
+    ):
+        """Return one block in the requested tabular backend."""
+        return block_to_table(self.get_block(name, scenario=scenario), backend=backend)
+
+    def get_block_as_matrix(
+        self,
+        name: str,
+        scenario: str = "baseline",
+        *,
+        backend: str = "numpy",
+        prefer_sparse: bool = False,
+    ):
+        """Return one block in a numeric matrix backend."""
+        return block_to_matrix(
+            self.get_block(name, scenario=scenario),
+            backend=backend,
+            prefer_sparse=prefer_sparse,
+        )
 
     def get_data(
         self,
@@ -374,7 +424,7 @@ class CoreModel:
             raise WrongInput("items should be DataFrame")
 
         for matrix, value in matrices.items():
-            self.matrices[scenario][matrix] = value
+            self.set_block(matrix, value, scenario=scenario)
 
     def clone_scenario(
         self,
@@ -407,11 +457,11 @@ class CoreModel:
 
         matrices = {}
         for key in keep:
-            if key in self.matrices[scenario]:
-                matrices[key] = copy.deepcopy(self.matrices[scenario][key])
+            if self.has_block(key, scenario=scenario):
+                matrices[key] = self.get_block_as_pandas(key, scenario=scenario)
             else:
                 self.calc_all(matrices=[key], scenario=scenario)
-                matrices[key] = copy.deepcopy(self.matrices[scenario][key])
+                matrices[key] = self.get_block_as_pandas(key, scenario=scenario)
 
         log_time(logger, "Databases: reset to flows.")
         self.matrices[scenario] = matrices
@@ -425,11 +475,11 @@ class CoreModel:
 
         matrices = {}
         for key in keep:
-            if key in self.matrices[scenario]:
-                matrices[key] = copy.deepcopy(self.matrices[scenario][key])
+            if self.has_block(key, scenario=scenario):
+                matrices[key] = self.get_block_as_pandas(key, scenario=scenario)
             else:
                 self.calc_all(matrices=[key], scenario=scenario)
-                matrices[key] = copy.deepcopy(self.matrices[scenario][key])
+                matrices[key] = self.get_block_as_pandas(key, scenario=scenario)
 
         log_time(logger, "Databases: reset to coefficients.")
         self.matrices[scenario] = matrices
@@ -551,10 +601,10 @@ class CoreModel:
         if scenario not in self.scenarios:
             raise WrongInput("Acceptable data_sets are:\n{}".format(self.scenarios))
 
-        if (
-            _ENUM.z in self.matrices[scenario]
+        if self.has_block(
+            _ENUM.z, scenario=scenario
         ):  # this avoid to calculate z or Z in case one of them is missing, to avoid losing time
-            matrix = self.matrices[scenario][_ENUM.z]
+            matrix = self.get_block_as_pandas(_ENUM.z, scenario=scenario)
         else:
             matrix = self._get_matrix(_ENUM.Z, scenario=scenario, auto_calc=True)
 
@@ -594,10 +644,10 @@ class CoreModel:
                 )
             )
 
-        if (
-            _ENUM.z in self.matrices[scenario]
+        if self.has_block(
+            _ENUM.z, scenario=scenario
         ):  # this avoid to calculate z or Z in case one of them is missing, to avoid losing time
-            matrix = self.matrices[scenario][_ENUM.z]
+            matrix = self.get_block_as_pandas(_ENUM.z, scenario=scenario)
         else:
             matrix = self._get_matrix(_ENUM.Z, scenario=scenario, auto_calc=True)
 
@@ -838,7 +888,7 @@ class CoreModel:
 
             if attr in all_mat:
                 self.calc_all(matrices=[attr])
-                return self["baseline"][attr]
+                return self.get_block(attr, scenario="baseline")
 
             else:
                 raise AttributeError(attr)

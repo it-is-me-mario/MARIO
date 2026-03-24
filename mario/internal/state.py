@@ -9,6 +9,7 @@ import pandas as pd
 
 from mario.compute.resolver import Resolver
 from mario.compute.types import ResolutionContext
+from mario.internal.access import block_to_matrix, block_to_pandas, block_to_table
 from mario.internal.block import StoredBlock
 from mario.internal.metadata import ModelStateMetadata
 from mario.internal.scenario import ScenarioState
@@ -183,6 +184,35 @@ class ModelState:
         log_time(logger, f"ModelState: block {name} stored in {scenario}.", "debug")
         return block
 
+    def get_block_as_pandas(self, name: str, scenario: str = "baseline"):
+        """Return one block as a pandas object."""
+        return block_to_pandas(self.get_block(name, scenario=scenario))
+
+    def get_block_as_table(
+        self,
+        name: str,
+        scenario: str = "baseline",
+        *,
+        backend: str = "auto",
+    ):
+        """Return one block in the tabular backend requested by the caller."""
+        return block_to_table(self.get_block(name, scenario=scenario), backend=backend)
+
+    def get_block_as_matrix(
+        self,
+        name: str,
+        scenario: str = "baseline",
+        *,
+        backend: str = "numpy",
+        prefer_sparse: bool = False,
+    ):
+        """Return one block in a matrix backend suitable for compute code."""
+        return block_to_matrix(
+            self.get_block(name, scenario=scenario),
+            backend=backend,
+            prefer_sparse=prefer_sparse,
+        )
+
     def compute(
         self,
         name: str | list[str] | tuple[str, ...],
@@ -204,28 +234,20 @@ class ModelState:
 
     def to_pandas(self, name: str, scenario: str = "baseline"):
         """Return a block as a pandas object."""
-        value = self.get_block(name, scenario=scenario)
-        if isinstance(value, (pd.DataFrame, pd.Series)):
-            return value.copy()
-        raise TypeError(f"Block {name!r} is not a pandas object.")
+        return self.get_block_as_pandas(name, scenario=scenario)
 
     def to_polars(self, name: str, scenario: str = "baseline"):
         """Convert a pandas-backed block into a Polars dataframe."""
-        import polars as pl
-
-        value = self.to_pandas(name, scenario=scenario)
-        if isinstance(value, pd.Series):
-            value = value.to_frame(name=value.name if value.name is not None else "__value__")
-        return pl.from_pandas(value)
+        return self.get_block_as_table(name, scenario=scenario, backend="polars")
 
     def to_sparse(self, name: str, scenario: str = "baseline"):
         """Convert a pandas-backed block into a SciPy sparse matrix."""
-        from scipy import sparse
-
-        value = self.to_pandas(name, scenario=scenario)
-        if isinstance(value, pd.Series):
-            value = value.to_frame(name=value.name if value.name is not None else "__value__")
-        return sparse.csr_matrix(value.to_numpy())
+        return self.get_block_as_matrix(
+            name,
+            scenario=scenario,
+            backend="scipy",
+            prefer_sparse=True,
+        )
 
     def validate(self) -> dict[str, object]:
         """Return a lightweight validation summary of the current state."""

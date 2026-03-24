@@ -327,12 +327,22 @@ def replace_nan_units_indices(units):
     new_levels = [[],[]]
     for level in range(len(units.index.names)):
         for i in units.index.get_level_values(level):
-            if pd.isna(i) or i == '-':
+            if pd.isna(i):
                 i = "None"
             new_levels[level].append(i)
     units.index = pd.MultiIndex.from_arrays(new_levels)
     units.fillna("None", inplace=True)
     return units
+
+
+def _collapse_duplicate_index_rows(frame):
+    """Collapse duplicate row labels produced by merged placeholder rows in Excel."""
+    if not frame.index.has_duplicates:
+        return frame
+
+    levels = list(range(frame.index.nlevels)) if isinstance(frame.index, pd.MultiIndex) else 0
+    collapsed = frame.groupby(level=levels, sort=False).sum(min_count=1)
+    return collapsed.fillna(0)
 
 def txt_parser(path, table, mode, sep):
     """Parse a database stored as delimited text files in MARIO layout."""
@@ -451,6 +461,8 @@ def excel_parser(path, table, mode, sheet_name, unit_sheet):
         ]
 
     V.index = indeces['f']['main']
+    E = _collapse_duplicate_index_rows(E)
+    EY = _collapse_duplicate_index_rows(EY)
     E.index = indeces['k']['main']
     EY.index = indeces['k']['main']
 

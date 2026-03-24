@@ -139,7 +139,11 @@ def _write_text_frame(frame: pd.DataFrame, path: Path, *, sep: str) -> None:
 
 def _write_parquet_frame(frame: pd.DataFrame, path: Path) -> None:
     """Write one dataframe payload as parquet."""
-    frame.to_parquet(path, index=False)
+    payload = frame.copy()
+    for column in payload.columns:
+        if isinstance(payload[column].dtype, pd.SparseDtype):
+            payload[column] = payload[column].sparse.to_dense()
+    payload.to_parquet(path, index=False)
 
 
 def _write_metadata_file(database, root: Path) -> None:

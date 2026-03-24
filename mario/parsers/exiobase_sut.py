@@ -14,7 +14,7 @@ import pandas as pd
 from mario.log_exc.exceptions import WrongInput
 from mario.log_exc.logger import log_time
 from mario.model.conventions import _MASTER_INDEX
-from mario.parsers.exiobase_iot import read_exiobase_iot_extensions
+from mario.parsers.exiobase_iot import detect_exiobase_iot_layout, read_exiobase_iot_extensions
 from mario.utils import delete_duplicates, rename_index
 
 logger = logging.getLogger(__name__)
@@ -235,6 +235,8 @@ def parse_exiobase_sut_monetary(
     activity/final-demand axes.
     """
     layout = detect_exiobase_sut_layout(path)
+    if add_extensions is not None:
+        detect_exiobase_iot_layout(add_extensions)
     log_time(logger, f"Parser: reading EXIOBASE SUT from {layout.root}.", "info")
 
     supply = _read_numeric_matrix(layout.root / "supply.csv", index_col=[0, 1], header=[0, 1])

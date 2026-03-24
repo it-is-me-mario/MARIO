@@ -49,6 +49,18 @@ OECD_ICIO_FACTOR_UNIT = "nominal million USD"
 OECD_ICIO_SATELLITE_UNIT = "None"
 OECD_ICIO_SATELLITE_PLACEHOLDER = "-"
 
+GLORIA_SOURCE = "GLORIA MRIO release local files"
+GLORIA_MONETARY_UNIT = "current 000 US$"
+GLORIA_SATELLITE_UNIT = "None"
+GLORIA_SATELLITE_PLACEHOLDER = "-"
+GLORIA_VALUATION_MARKUPS = {
+    1: "Basic prices",
+    2: "Trade margins",
+    3: "Transport margins",
+    4: "Taxes on products",
+    5: "Subsidies on products",
+}
+
 
 EUROSTAT_SDMX_BASE_URL = "https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data"
 EUROSTAT_SUT_DATAFLOWS = {

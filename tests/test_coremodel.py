@@ -6,6 +6,7 @@ import os
 import pytest
 import pandas.testing as pdt
 import pandas as pd
+from scipy import sparse
 
 from mario.model.conventions import _ENUM, _MASTER_INDEX
 
@@ -230,6 +231,29 @@ def test_scenarios(CoreDataIOT):
     )
 
     assert set(CoreDataIOT.scenarios) == {'baseline','dummy'}
+
+
+def test_block_access_adapters(CoreDataIOT):
+
+    assert CoreDataIOT.has_block(_ENUM.Z)
+    assert _ENUM.Z in CoreDataIOT.list_blocks()
+
+    raw = CoreDataIOT.get_block(_ENUM.Z)
+    pandas_block = CoreDataIOT.get_block_as_pandas(_ENUM.Z)
+    table_block = CoreDataIOT.get_block_as_table(_ENUM.Z, backend="pandas")
+    dense_matrix = CoreDataIOT.get_block_as_matrix(_ENUM.Z)
+    sparse_matrix = CoreDataIOT.get_block_as_matrix(
+        _ENUM.Z,
+        backend="scipy",
+        prefer_sparse=True,
+    )
+
+    pdt.assert_frame_equal(raw, CoreDataIOT["baseline"][_ENUM.Z])
+    pdt.assert_frame_equal(pandas_block, CoreDataIOT["baseline"][_ENUM.Z])
+    pdt.assert_frame_equal(table_block, CoreDataIOT["baseline"][_ENUM.Z])
+    assert dense_matrix.shape == CoreDataIOT.Z.shape
+    assert sparse.isspmatrix_csr(sparse_matrix)
+    assert sparse_matrix.shape == CoreDataIOT.Z.shape
 
 def test_table_type(CoreDataIOT,CoreDataSUT):
 
