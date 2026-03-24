@@ -8,6 +8,7 @@ from importlib import import_module
 __all__ = [
     "BaseParser",
     "ParserRegistry",
+    "parse_adb",
     "build_database_from_parser_output",
     "build_database_from_state",
     "build_parser_state",
@@ -39,6 +40,7 @@ def __getattr__(name: str):
     if name in {
         "BaseParser",
         "ParserRegistry",
+        "parse_adb",
         "build_database_from_parser_output",
         "build_database_from_state",
         "build_parser_state",

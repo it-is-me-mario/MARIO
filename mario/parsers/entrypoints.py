@@ -16,6 +16,7 @@ from mario.parsers.api import (
     validate_named_selection,
     validate_parse_request,
 )
+from mario.parsers.adb import parse_adb_iot
 from mario.parsers.excel import parse_state_from_excel
 from mario.parsers.parquet import parse_state_from_parquet
 from mario.parsers.txt import parse_state_from_txt
@@ -987,6 +988,75 @@ def parse_oecd(
     validate_parse_request(table="IOT", model=model)
 
     matrices, indeces, units, layout = parse_oecd_icio(path=path, year=year)
+    return models[model](
+        name=name or layout.dataset_name,
+        table="IOT",
+        source=layout.source,
+        year=layout.year,
+        price=layout.price,
+        init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
+        calc_all=calc_all,
+        **kwargs,
+    )
+
+
+def parse_adb(
+    path: str,
+    table: str = "IOT",
+    year: int | None = None,
+    economies: int | None = None,
+    model: str = "Database",
+    name: str | None = None,
+    calc_all: bool = False,
+    **kwargs,
+) -> object:
+    """Parse one locally downloaded ADB MRIO Excel workbook.
+
+    This parser targets the Asian Development Bank MRIO Excel workbooks
+    distributed on the official ADB MRIO page at
+    ``https://kidb.adb.org/globalization/current``. MARIO does not implement
+    any automatic download here: callers should point the parser to one local
+    ``.xlsx`` workbook or to a directory containing one or more of those
+    workbooks.
+
+    The current ADB release family mixes closely related workbook variants
+    (for example the 2017 LAC release and the 2024 ``62/72/74 economies``
+    releases). ``parse_adb`` auto-detects the header layout used by each
+    workbook. When ``path`` points to a directory that contains more than one
+    candidate workbook, use ``year=`` and/or ``economies=`` to disambiguate or
+    point directly to one file.
+
+    Parameters
+    ----------
+    path : str
+        path to one local ADB MRIO ``.xlsx`` workbook or to a directory
+        containing one or more ADB MRIO workbooks.
+    table : str, optional
+        ADB MRIO parsing currently supports only ``IOT`` tables.
+    year : int, optional
+        reference year used to select one workbook when ``path`` points to a
+        directory containing multiple yearly releases.
+    economies : int, optional
+        workbook variant selector used when a directory contains more than one
+        release for the same year. This matches the folder/file marker values
+        commonly used by the downloaded workbooks, such as ``62``, ``71``,
+        ``72`` or ``74``.
+    model : str, optional
+        public MARIO model class to instantiate. ``Database`` is the default
+        and the only supported value.
+    name : str, optional
+        optional dataset name stored in metadata.
+    calc_all : bool, optional
+        whether to materialize derived blocks immediately after parsing.
+    """
+    if model not in models:
+        raise WrongInput("Available models are {}".format([*models]))
+
+    validate_parse_request(table=table, model=model)
+    if table != "IOT":
+        raise NotImplementable("ADB MRIO parsing currently supports only IOT tables.")
+
+    matrices, indeces, units, layout = parse_adb_iot(path=path, year=year, economies=economies)
     return models[model](
         name=name or layout.dataset_name,
         table="IOT",

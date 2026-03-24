@@ -38,6 +38,30 @@ FIGARO_EXTENSION_PLACEHOLDER = "-"
 FIGARO_IOT_MODES = ("auto", "product", "industry")
 
 
+ADB_SOURCE_URL = "https://kidb.adb.org/globalization/current"
+ADB_SOURCE = f"Asian Development Bank MRIO Excel workbooks via {ADB_SOURCE_URL}"
+ADB_MONETARY_UNIT = "millions of US$"
+ADB_SATELLITE_UNIT = "None"
+ADB_SATELLITE_PLACEHOLDER = "-"
+ADB_FINAL_DEMAND_CODES = ("F1", "F2", "F3", "F4", "F5")
+ADB_FINAL_DEMAND_LABELS = {
+    "F1": "Households",
+    "F2": "NPISH",
+    "F3": "Government",
+    "F4": "Gross fixed capital formation",
+    "F5": "Changes in inventories and valuables",
+}
+ADB_FACTOR_ROWS = ("r99", "r61", "r62", "r63", "r64", "trs")
+ADB_FACTOR_LABELS = {
+    "r99": "Taxes less subsidies on products",
+    "r61": "CIF / FOB adjustments",
+    "r62": "Direct purchases abroad by residents",
+    "r63": "Purchases on the domestic territory by non-residents",
+    "r64": "Value added at basic prices",
+    "trs": "International Transport Margins",
+}
+
+
 OECD_ICIO_SOURCE_URL = "https://www.oecd.org/en/data/datasets/inter-country-input-output-tables.html"
 OECD_ICIO_SOURCE = (
     "OECD Inter-Country Input-Output tables page "
