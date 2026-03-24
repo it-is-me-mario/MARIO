@@ -84,6 +84,7 @@ class CoreModel:
         V=None,
         Y=None,
         EY=None,
+        VY=None,
         units=None,
         price=None,
         source=None,
@@ -127,11 +128,11 @@ class CoreModel:
                 [matrix is not None for matrix in [Y, E, Z, V, EY, units, table]]
             ):
                 raise LackOfInput(
-                    "For building an instance using dataframes, all the data [Y,E,Z,V,EY,units,table] should be given."
+                    "For building an instance using dataframes, all the data [Y,E,Z,V,EY,units,table] should be given. VY is optional."
                 )
             else:
                 self.matrices, self._indeces, self.units = dataframe_parser(
-                    Z, Y, E, V, EY, units, table
+                    Z, Y, E, V, EY, units, table, VY=VY
                 )
 
                 matrices = self.matrices["baseline"]
@@ -450,7 +451,7 @@ class CoreModel:
     ):
         """Drop coefficient matrices for a scenario and keep only flow matrices."""
 
-        keep = [_ENUM.Z, _ENUM.E, _ENUM.V, _ENUM.EY, _ENUM.Y]
+        keep = [_ENUM.Z, _ENUM.E, _ENUM.V, _ENUM.EY, _ENUM.VY, _ENUM.Y]
 
         if scenario not in self.scenarios:
             raise WrongInput(f"Acceptable scenarios are {self.scenarios}")
@@ -468,7 +469,7 @@ class CoreModel:
 
     def reset_to_coefficients(self, scenario):
         """Drop flow matrices for a scenario and keep only coefficient matrices."""
-        keep = [_ENUM.z, _ENUM.e, _ENUM.v, _ENUM.EY, _ENUM.Y]
+        keep = [_ENUM.z, _ENUM.e, _ENUM.v, _ENUM.EY, _ENUM.VY, _ENUM.Y]
 
         if scenario not in self.scenarios:
             raise WrongInput(f"Acceptable scenarios are {self.scenarios}")

@@ -9,6 +9,7 @@ txt_parser_id = {
             "V": {"file_name": "V.txt", "index_col": [0], "header": [0, 1, 2]},
             "E": {"file_name": "E.txt", "index_col": [0], "header": [0, 1, 2]},
             "EY": {"file_name": "EY.txt", "index_col": [0], "header": [0, 1, 2]},
+            "VY": {"file_name": "VY.txt", "index_col": [0], "header": [0, 1, 2]},
         },
         "units": {
             "all": {
@@ -25,6 +26,7 @@ txt_parser_id = {
             "v": {"file_name": "v.txt", "index_col": [0], "header": [0, 1, 2]},
             "e": {"file_name": "e.txt", "index_col": [0], "header": [0, 1, 2]},
             "EY": {"file_name": "EY.txt", "index_col": [0], "header": [0, 1, 2]},
+            "VY": {"file_name": "VY.txt", "index_col": [0], "header": [0, 1, 2]},
         },
         "units": {
             "all": {

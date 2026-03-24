@@ -101,7 +101,7 @@ def test_reset_to_flows(CoreDataIOT):
 
         kept = [*CoreDataIOT[ss]]
 
-        assert set(kept) == {_ENUM.E,_ENUM.V,_ENUM.Y,_ENUM.Z,_ENUM.EY}
+        assert set(kept) == {_ENUM.E,_ENUM.V,_ENUM.Y,_ENUM.Z,_ENUM.EY,_ENUM.VY}
 
 
     with pytest.raises(WrongInput) as msg:
@@ -122,7 +122,7 @@ def test_reset_to_coefficients(CoreDataIOT):
 
         kept = [*CoreDataIOT[ss]]
 
-        assert set(kept) == {_ENUM.e,_ENUM.v,_ENUM.Y,_ENUM.z,_ENUM.EY}
+        assert set(kept) == {_ENUM.e,_ENUM.v,_ENUM.Y,_ENUM.z,_ENUM.EY,_ENUM.VY}
 
     with pytest.raises(WrongInput) as msg:
         CoreDataIOT.reset_to_coefficients('so dummy')
@@ -487,10 +487,23 @@ def test_build_core_from_dfs_missing_data(CoreDataIOT):
         CoreModel(Z=Z,E=E,Y=Y,EY=EY,table=table,units=units)
 
     assert all(
-        ["all the data [Y,E,Z,V,EY,units,table] should be given." in str(msg.value) 
+        ["all the data [Y,E,Z,V,EY,units,table] should be given. VY is optional." in str(msg.value) 
         for msg in [msg1,msg2,msg3]
         ]
         )
+
+
+def test_vy_defaults_to_zero_when_not_materialized(CoreDataIOT):
+
+    CoreDataIOT["baseline"].pop(_ENUM.VY, None)
+
+    expected = pd.DataFrame(
+        0.0,
+        index=CoreDataIOT.V.index,
+        columns=CoreDataIOT.Y.columns,
+    )
+
+    pdt.assert_frame_equal(CoreDataIOT.VY, expected)
 
 
 def test_core_model_init_nots(CoreDataIOT):

@@ -1102,6 +1102,7 @@ def collect_add_sector_matrices(instance, scenario: str = "baseline") -> dict[st
         _ENUM["v"]: instance.get_block_as_pandas("v", scenario=scenario) if instance.has_block("v", scenario=scenario) else instance.resolve("v", scenario=scenario),
         _ENUM["Y"]: instance.get_block_as_pandas("Y", scenario=scenario) if instance.has_block("Y", scenario=scenario) else instance.resolve("Y", scenario=scenario),
         _ENUM["EY"]: instance.get_block_as_pandas("EY", scenario=scenario) if instance.has_block("EY", scenario=scenario) else instance.resolve("EY", scenario=scenario),
+        _ENUM["VY"]: instance.get_block_as_pandas("VY", scenario=scenario) if instance.has_block("VY", scenario=scenario) else instance.resolve("VY", scenario=scenario),
         _ENUM["Z"]: instance.get_block_as_pandas("Z", scenario=scenario) if instance.has_block("Z", scenario=scenario) else instance.resolve("Z", scenario=scenario),
         _ENUM["E"]: instance.get_block_as_pandas("E", scenario=scenario) if instance.has_block("E", scenario=scenario) else instance.resolve("E", scenario=scenario),
         _ENUM["V"]: instance.get_block_as_pandas("V", scenario=scenario) if instance.has_block("V", scenario=scenario) else instance.resolve("V", scenario=scenario),

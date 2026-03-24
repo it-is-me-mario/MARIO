@@ -129,6 +129,8 @@ def promote_sut_blocks(blocks: dict[str, object]) -> dict[str, object]:
 
     if "EY" in blocks:
         promoted["EY"] = blocks["EY"].copy(deep=True) if hasattr(blocks["EY"], "copy") else blocks["EY"]
+    if "VY" in blocks:
+        promoted["VY"] = blocks["VY"].copy(deep=True) if hasattr(blocks["VY"], "copy") else blocks["VY"]
 
     return promoted
 

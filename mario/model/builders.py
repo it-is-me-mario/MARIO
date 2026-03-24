@@ -94,6 +94,16 @@ class MatrixBuilder:
         return df
 
     @property
+    def VY(self):
+        """Return an empty final-demand factor matrix."""
+        index = self.V.index
+        columns = self.Y.columns
+
+        df = pd.DataFrame(0, index=index, columns=columns)
+
+        return df
+
+    @property
     def X(self):
         """Return an empty production vector."""
         index = self.Z.index
@@ -221,6 +231,7 @@ class DataTemplate:
             V=matrix_builder.V,
             Y=matrix_builder.Y,
             EY=matrix_builder.EY,
+            VY=matrix_builder.VY,
             units=self._units,
         )
 

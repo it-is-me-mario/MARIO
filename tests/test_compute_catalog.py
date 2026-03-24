@@ -24,16 +24,18 @@ def test_model_labels_still_derive_from_settings():
 
 
 def test_catalog_covers_iot_and_sut_blocks():
-    assert len(COMPUTE_CATALOG[TableKind.IOT]) == 17
-    assert len(COMPUTE_CATALOG[TableKind.SUT]) == 47
+    assert len(COMPUTE_CATALOG[TableKind.IOT]) == 18
+    assert len(COMPUTE_CATALOG[TableKind.SUT]) == 48
 
     sut_wcc = get_matrix_spec("SUT", "wcc")
     sut_xc = get_matrix_spec("SUT", "Xc")
     iot_p = get_matrix_spec("IOT", "p")
+    iot_vy = get_matrix_spec("IOT", "VY")
 
     assert len(sut_wcc.strategies) == 2
     assert sut_xc.axes.cols == (PRODUCTION_LABEL,)
     assert iot_p.strategies[0].function == "build_iot_p_from_v_w"
+    assert iot_vy.strategies[-1].function == "build_zero_VY_from_V_Y"
 
 
 def test_catalog_keeps_known_compute_todos_visible():

@@ -21,13 +21,13 @@ logger = logging.getLogger(__name__)
 
 
 _MATRIX_EXPORT_MATRICES = {
-    "flows": [_ENUM.V, _ENUM.E, _ENUM.Z, _ENUM.Y, _ENUM.X, _ENUM.EY],
-    "coefficients": [_ENUM.v, _ENUM.e, _ENUM.z, _ENUM.Y, _ENUM.EY],
+    "flows": [_ENUM.V, _ENUM.E, _ENUM.Z, _ENUM.Y, _ENUM.X, _ENUM.EY, _ENUM.VY],
+    "coefficients": [_ENUM.v, _ENUM.e, _ENUM.z, _ENUM.Y, _ENUM.EY, _ENUM.VY],
 }
 
 _FLAT_EXPORT_MATRICES = {
-    "flows": [_ENUM.V, _ENUM.E, _ENUM.Z, _ENUM.Y, _ENUM.EY],
-    "coefficients": [_ENUM.v, _ENUM.e, _ENUM.z, _ENUM.Y, _ENUM.EY],
+    "flows": [_ENUM.V, _ENUM.E, _ENUM.Z, _ENUM.Y, _ENUM.EY, _ENUM.VY],
+    "coefficients": [_ENUM.v, _ENUM.e, _ENUM.z, _ENUM.Y, _ENUM.EY, _ENUM.VY],
 }
 
 _FLAT_AXIS_LEVELS = {
@@ -38,6 +38,7 @@ _FLAT_AXIS_LEVELS = {
     _ENUM.E: {"from": _MASTER_INDEX["k"]},
     _ENUM.e: {"from": _MASTER_INDEX["k"]},
     _ENUM.EY: {"from": _MASTER_INDEX["k"], "to": _MASTER_INDEX["n"]},
+    _ENUM.VY: {"from": _MASTER_INDEX["f"], "to": _MASTER_INDEX["n"]},
     _ENUM.F: {"from": _MASTER_INDEX["k"]},
     _ENUM.f: {"from": _MASTER_INDEX["k"]},
     _ENUM.Y: {"to": _MASTER_INDEX["n"]},

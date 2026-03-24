@@ -237,6 +237,7 @@ def build_split_flow_scenario(
     v = instance.get_block_as_pandas(_ENUM["v"], scenario=base_scenario)
     Y = instance.get_block_as_pandas(_ENUM["Y"], scenario=base_scenario).copy()
     EY = instance.get_block_as_pandas(_ENUM["EY"], scenario=base_scenario).copy()
+    VY = instance.get_block_as_pandas(_ENUM["VY"], scenario=base_scenario).copy()
 
     Z = calc_Z(z, X)
     E = calc_E(e, X)
@@ -275,6 +276,7 @@ def build_split_flow_scenario(
         _ENUM["V"]: V,
         _ENUM["Y"]: Y,
         _ENUM["EY"]: EY,
+        _ENUM["VY"]: VY,
         _ENUM["X"]: X,
     }
 

@@ -26,7 +26,7 @@ def test_parse_state_from_excel_iot_preserves_blocks_indexes_and_units():
 
     assert state.table_kind == TableKind.IOT
     assert state.metadata.extra["parser"] == "excel"
-    assert set(state.list_blocks()) == {"E", "EY", "V", "Y", "Z"}
+    assert set(state.list_blocks()) == {"E", "EY", "V", "VY", "Y", "Z"}
     assert not state.has_block("X")
     assert state.get_index("s") == tuple(database._indeces["s"]["main"])
 
@@ -47,7 +47,7 @@ def test_parse_from_excel_sut_returns_split_native_baseline_blocks():
     assert not database.is_hybrid
     assert "Z" not in database["baseline"]
     assert "X" not in database["baseline"]
-    assert {"U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "EY"} <= set(database["baseline"])
+    assert {"U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "EY", "VY"} <= set(database["baseline"])
 
 
 def test_parser_authoring_api_builds_database_from_state():
@@ -60,7 +60,7 @@ def test_parser_authoring_api_builds_database_from_state():
     database = build_database_from_state(state, calc_all=False)
 
     assert database.table_type == "IOT"
-    assert set(database["baseline"]) == {"E", "EY", "V", "Y", "Z"}
+    assert set(database["baseline"]) == {"E", "EY", "V", "VY", "Y", "Z"}
     pdt.assert_frame_equal(database.Z, state.get_block("Z"))
 
 
@@ -76,7 +76,7 @@ def test_parse_state_from_excel_sut_promotes_split_native_blocks():
     assert state.table_kind == TableKind.SUT
     assert not state.has_block("Z")
     assert not state.has_block("X")
-    assert {"U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "EY"} <= set(state.list_blocks())
+    assert {"U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "EY", "VY"} <= set(state.list_blocks())
     assert "Xa" not in state.list_blocks()
     assert "Xc" not in state.list_blocks()
     assert state.get_index("a") == tuple(database._indeces["a"]["main"])
@@ -104,7 +104,7 @@ def test_parse_state_from_txt_iot_roundtrip_preserves_blocks(tmp_path):
     )
 
     assert state.table_kind == TableKind.IOT
-    assert set(state.list_blocks()) == {"E", "EY", "V", "Y", "Z"}
+    assert set(state.list_blocks()) == {"E", "EY", "V", "VY", "Y", "Z"}
     assert not state.has_block("X")
     pdt.assert_frame_equal(state.get_block("Z"), database.Z)
     pdt.assert_frame_equal(state.get_block("Y"), database.Y)
@@ -125,7 +125,7 @@ def test_parse_from_txt_sut_roundtrip_returns_split_native_blocks(tmp_path):
 
     assert "Z" not in parsed["baseline"]
     assert "X" not in parsed["baseline"]
-    assert {"U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "EY"} <= set(parsed["baseline"])
+    assert {"U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "EY", "VY"} <= set(parsed["baseline"])
     pdt.assert_frame_equal(parsed.Z, database.Z)
     pdt.assert_frame_equal(parsed.Y, database.Y)
     pdt.assert_frame_equal(parsed.V, database.V)
@@ -141,7 +141,7 @@ def test_to_txt_flat_exports_canonical_schema(tmp_path):
 
     assert list(data.columns) == list(FLAT_DATA_COLUMNS)
     assert list(units.columns) == list(FLAT_UNIT_COLUMNS)
-    assert set(data["Matrix"]) == {"Z", "Y", "V", "E", "EY"}
+    assert set(data["Matrix"]) == {"Z", "Y", "V", "E", "EY", "VY"}
     assert set(data["Scenario"]) == {"baseline"}
 
 
@@ -159,7 +159,7 @@ def test_parse_state_from_txt_iot_flat_roundtrip_preserves_blocks(tmp_path):
     )
 
     assert state.table_kind == TableKind.IOT
-    assert set(state.list_blocks()) == {"E", "EY", "V", "Y", "Z"}
+    assert set(state.list_blocks()) == {"E", "EY", "V", "VY", "Y", "Z"}
     assert not state.has_block("X")
     pdt.assert_frame_equal(state.get_block("Z"), database.Z)
     pdt.assert_frame_equal(state.get_block("Y"), database.Y)
@@ -185,7 +185,7 @@ def test_parse_from_txt_sut_flat_roundtrip_uses_unified_export_and_split_parse(t
     assert "S" not in set(data["Matrix"])
     assert "Z" not in parsed["baseline"]
     assert "X" not in parsed["baseline"]
-    assert {"U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "EY"} <= set(parsed["baseline"])
+    assert {"U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "EY", "VY"} <= set(parsed["baseline"])
     pdt.assert_frame_equal(parsed.Z, database.Z)
     pdt.assert_frame_equal(parsed.Y, database.Y)
     pdt.assert_frame_equal(parsed.V, database.V)
@@ -203,7 +203,7 @@ def test_to_parquet_flat_exports_canonical_schema(tmp_path):
 
     assert list(data.columns) == list(FLAT_DATA_COLUMNS)
     assert list(units.columns) == list(FLAT_UNIT_COLUMNS)
-    assert set(data["Matrix"]) == {"Z", "Y", "V", "E", "EY"}
+    assert set(data["Matrix"]) == {"Z", "Y", "V", "E", "EY", "VY"}
 
 
 def test_parse_state_from_parquet_iot_matrix_roundtrip_preserves_blocks(tmp_path):
@@ -220,7 +220,7 @@ def test_parse_state_from_parquet_iot_matrix_roundtrip_preserves_blocks(tmp_path
     )
 
     assert state.table_kind == TableKind.IOT
-    assert set(state.list_blocks()) == {"E", "EY", "V", "Y", "Z"}
+    assert set(state.list_blocks()) == {"E", "EY", "V", "VY", "Y", "Z"}
     assert not state.has_block("X")
     pdt.assert_frame_equal(state.get_block("Z"), database.Z)
     pdt.assert_frame_equal(state.get_block("Y"), database.Y)
@@ -243,7 +243,7 @@ def test_parse_from_parquet_sut_flat_roundtrip_returns_split_native_blocks(tmp_p
 
     assert "Z" not in parsed["baseline"]
     assert "X" not in parsed["baseline"]
-    assert {"U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "EY"} <= set(parsed["baseline"])
+    assert {"U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "EY", "VY"} <= set(parsed["baseline"])
     pdt.assert_frame_equal(parsed.Z, database.Z)
     pdt.assert_frame_equal(parsed.Y, database.Y)
     pdt.assert_frame_equal(parsed.V, database.V)

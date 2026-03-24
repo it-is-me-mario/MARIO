@@ -178,6 +178,12 @@ def concat_sut_p(pa: pd.DataFrame, pc: pd.DataFrame, ordering: SUTUnifiedOrderin
     return _concat_two_part_rows(pa, pc, ordering, "p")
 
 
+def build_zero_VY_from_V_Y(V: pd.DataFrame, Y: pd.DataFrame) -> pd.DataFrame:
+    """Build a zero-filled factor-by-final-demand block aligned with ``V`` and ``Y``."""
+    dtype = _common_dtype(V, Y)
+    return _zeros(V.index, Y.columns, dtype)
+
+
 def extract_U_from_Z(Z: pd.DataFrame, ordering: SUTUnifiedOrderingPolicy) -> pd.DataFrame:
     """Extract split use flows ``U`` from unified ``Z``."""
     return _reindex_exact(Z, index=ordering.unified_index, columns=ordering.unified_index, label="Z").loc[

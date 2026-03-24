@@ -357,7 +357,7 @@ def txt_parser(path, table, mode, sep):
         guide=txt_parser_id[mode],
         sub_folder=False,
         sep=sep,
-        exceptions=("EY"),
+        exceptions=("EY", "VY"),
     )
 
     log_time(logger, "Parser: Reading files finished.")
@@ -389,6 +389,12 @@ def txt_parser(path, table, mode, sep):
         )
         read["matrices"]["EY"] = pd.DataFrame(
             0, index=read["matrices"][e].index, columns=read["matrices"]["Y"].columns
+        )
+    if "VY" not in read["matrices"]:
+        log_time(
+            logger,
+            "Parser: VY matrix is not present in the database. A VY matrix with 0 values will be resolved on demand",
+            "debug",
         )
 
     units = get_units(_units, table, indeces)
@@ -438,6 +444,9 @@ def excel_parser(path, table, mode, sheet_name, unit_sheet):
         EY = data.loc[
             (slice(None), _MASTER_INDEX["k"]), (slice(None), _MASTER_INDEX["n"])
         ]
+        VY = data.loc[
+            (slice(None), _MASTER_INDEX["f"]), (slice(None), _MASTER_INDEX["n"])
+        ]
 
     else:
         Z = data.loc[
@@ -459,12 +468,17 @@ def excel_parser(path, table, mode, sheet_name, unit_sheet):
         EY = data.loc[
             (slice(None), _MASTER_INDEX["k"]), (slice(None), _MASTER_INDEX["n"])
         ]
+        VY = data.loc[
+            (slice(None), _MASTER_INDEX["f"]), (slice(None), _MASTER_INDEX["n"])
+        ]
 
     V.index = indeces['f']['main']
     E = _collapse_duplicate_index_rows(E)
     EY = _collapse_duplicate_index_rows(EY)
+    VY = _collapse_duplicate_index_rows(VY)
     E.index = indeces['k']['main']
     EY.index = indeces['k']['main']
+    VY.index = indeces['f']['main']
 
     if mode == "coefficients":
         matrices = {
@@ -474,6 +488,7 @@ def excel_parser(path, table, mode, sheet_name, unit_sheet):
                 "e": E,
                 "Y": Y,
                 "EY": EY,
+                "VY": VY,
             }
         }
     else:
@@ -484,6 +499,7 @@ def excel_parser(path, table, mode, sheet_name, unit_sheet):
                 "E": E,
                 "Y": Y,
                 "EY": EY,
+                "VY": VY,
             }
         }
 
@@ -501,7 +517,7 @@ def excel_parser(path, table, mode, sheet_name, unit_sheet):
     return matrices, indeces, units
 
 
-def dataframe_parser(Z, Y, E, V, EY, units, table):
+def dataframe_parser(Z, Y, E, V, EY, units, table, VY=None):
     """Normalize explicit dataframe inputs into canonical parser output objects."""
     if isinstance(units, dict):
         units = pd.concat(units.values(), keys=units.keys())
@@ -511,6 +527,8 @@ def dataframe_parser(Z, Y, E, V, EY, units, table):
 
     if not EY.index.equals(E.index) or not EY.columns.equals(Y.columns):
         raise WrongInput("EY has not the correct format.")
+    if VY is not None and (not VY.index.equals(V.index) or not VY.columns.equals(Y.columns)):
+        raise WrongInput("VY has not the correct format.")
 
     matrices = {
         "baseline": {
@@ -521,6 +539,8 @@ def dataframe_parser(Z, Y, E, V, EY, units, table):
             "EY": EY,
         }
     }
+    if VY is not None:
+        matrices["baseline"]["VY"] = VY
 
     rename_index(matrices["baseline"])
     sort_frames(matrices["baseline"])

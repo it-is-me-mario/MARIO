@@ -63,7 +63,7 @@ def slicer(matrix, axis, **levels):
         data.Y.loc[Y_rows,Y_cols]
     """
 
-    if matrix.upper() in [_ENUM.V, _ENUM.E] and axis == 0:
+    if matrix.upper() in [_ENUM.V, _ENUM.E, _ENUM.EY, _ENUM.VY] and axis == 0:
         acceptable_levels = ["Item"]
     else:
         acceptable_levels = ["Region", "Level", "Item"]
@@ -93,7 +93,7 @@ def run_from_jupyter():
 def sort_frames(_dict):
     """Sort matrix axes in-place using MARIO's expected level ordering."""
     for key, value in _dict.items():
-        if key.upper() in [_ENUM.E, _ENUM.V, _ENUM.EY]:
+        if key.upper() in [_ENUM.E, _ENUM.V, _ENUM.EY, _ENUM.VY]:
             _dict[key] = value.sort_index(axis=1, level=1)
 
         else:

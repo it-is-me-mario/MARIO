@@ -100,6 +100,7 @@ class Database(CoreModel):
         V: pd.DataFrame = None,
         Y: pd.DataFrame = None,
         EY: pd.DataFrame = None,
+        VY: pd.DataFrame = None,
         units: Dict = None,
         price: str = None,
         source: str = None,
@@ -115,6 +116,7 @@ class Database(CoreModel):
             V=V,
             Y=Y,
             EY=EY,
+            VY=VY,
             units=units,
             price=price,
             source=source,
@@ -479,7 +481,7 @@ class Database(CoreModel):
         )
 
         data = self.query(
-            matrices=[_ENUM.Y, _ENUM.X, _ENUM.Z, _ENUM.V, _ENUM.E, _ENUM.EY],
+            matrices=[_ENUM.Y, _ENUM.X, _ENUM.Z, _ENUM.V, _ENUM.E, _ENUM.EY, _ENUM.VY],
         )
 
         Z = data[_ENUM.Z]
@@ -487,6 +489,7 @@ class Database(CoreModel):
         Y = data[_ENUM.Y]
         E = data[_ENUM.E]
         EY = data[_ENUM.EY]
+        VY = data[_ENUM.VY]
 
         # Take the regions!=region
         rest_reg = self.get_index(_MASTER_INDEX["r"])
@@ -554,6 +557,18 @@ class Database(CoreModel):
         EY = EY.loc[:, (region, slice(None), slice(None))]
         EY = pd.concat([EY, EYX], axis=1)
 
+        VYX = pd.DataFrame(
+            0,
+            index=VY.index,
+            columns=[
+                [region] * 2,
+                [_MASTER_INDEX["n"]] * 2,
+                ["Final Demand exports", "Intermediate exports"],
+            ],
+        )
+        VY = VY.loc[:, (region, slice(None), slice(None))]
+        VY = pd.concat([VY, VYX], axis=1)
+
         # Taking the E matrix
         E = E.loc[:, (region, slice(None), slice(None))]
 
@@ -574,7 +589,7 @@ class Database(CoreModel):
             log_time(logger, f"Transformation: {scenario} deleted from the database.")
 
         self.matrices = {"baseline": {}}
-        for matrix in ["Y", "Z", "E", "EY", "Y", "V", "X"]:
+        for matrix in ["Y", "Z", "E", "EY", "VY", "V", "X"]:
             self.matrices["baseline"][_ENUM[matrix]] = eval(matrix)
         log_time(logger, "Transformation: New baseline added to the database")
 
@@ -1025,6 +1040,12 @@ class Database(CoreModel):
             ignore_warnings=ignore_warnings,
         )
 
+        baseline_vy = (
+            self.get_block_as_pandas(_ENUM["VY"], scenario=scenario)
+            if self.has_block(_ENUM["VY"], scenario=scenario)
+            else self.resolve(_ENUM["VY"], scenario=scenario)
+        )
+
         if self.meta.table == "IOT":
             new_matrices, new_units, new_indeces, uncertainty_matrix = result
             baseline = {
@@ -1033,6 +1054,7 @@ class Database(CoreModel):
                 _ENUM["v"]: new_matrices[_ENUM["v"]],
                 _ENUM["Y"]: new_matrices[_ENUM["Y"]],
                 _ENUM["EY"]: new_matrices[_ENUM["EY"]],
+                _ENUM["VY"]: baseline_vy,
             }
             self.uncertainty_matrix = uncertainty_matrix
             added_items = getattr(self, "new_sectors", [])
@@ -1047,6 +1069,7 @@ class Database(CoreModel):
                 _ENUM["v"]: new_matrices[_ENUM["v"]],
                 _ENUM["Y"]: new_matrices[_ENUM["Y"]],
                 _ENUM["EY"]: self.EY,
+                _ENUM["VY"]: baseline_vy,
             }
             self.uncertainty_matrix = None
             added_items = {
@@ -1064,6 +1087,7 @@ class Database(CoreModel):
                     _ENUM["V"]: original_reference[_ENUM["V"]],
                     _ENUM["Y"]: original_reference[_ENUM["Y"]],
                     _ENUM["EY"]: original_reference[_ENUM["EY"]],
+                    _ENUM["VY"]: original_reference[_ENUM["VY"]],
                 },
             }
         else:
@@ -1127,6 +1151,7 @@ class Database(CoreModel):
                     _ENUM["V"]: optimized.get(_ENUM["V"], self.matrices[split_scenario][_ENUM["V"]]),
                     _ENUM["Y"]: optimized.get(_ENUM["Y"], self.matrices[split_scenario][_ENUM["Y"]]),
                     _ENUM["EY"]: self.matrices[split_scenario][_ENUM["EY"]],
+                    _ENUM["VY"]: self.matrices[split_scenario][_ENUM["VY"]],
                 }
                 split_cvxlab[_ENUM["X"]] = calc_X(
                     split_cvxlab[_ENUM["Z"]],
@@ -1220,9 +1245,11 @@ class Database(CoreModel):
         v_c, note_v = V_shock(self, io, "V", v, clusters, 1)
         Y_c, note_y = Y_shock(self, io, Y, clusters, 1)
         EY_c = self.query([_ENUM.EY])
+        VY_c = self.query([_ENUM.VY])
 
         _results = calc_all_shock(z_c, e_c, v_c, Y_c)
         _results["EY"] = EY_c
+        _results["VY"] = VY_c
 
         if scenario is None:
             scenario = f"shock {self.__counter}"

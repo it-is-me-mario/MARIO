@@ -19,19 +19,28 @@ from mario.storage.base import BlockRepository
 logger = logging.getLogger(__name__)
 
 
-_MATRIX_FLOW_FILES = ("Z", "Y", "V", "E", "EY")
-_MATRIX_COEFFICIENT_FILES = ("z", "Y", "v", "e", "EY")
+_MATRIX_FLOW_FILES = ("Z", "Y", "V", "E", "EY", "VY")
+_MATRIX_COEFFICIENT_FILES = ("z", "Y", "v", "e", "EY", "VY")
+_MATRIX_REQUIRED_FLOW_FILES = ("Z", "Y", "V", "E", "EY")
+_MATRIX_REQUIRED_COEFFICIENT_FILES = ("z", "Y", "v", "e", "EY")
 
 
 def matrix_parquet_parser(path: str, table: str, mode: str):
     """Parse the matrix-per-file parquet layout exported by ``Database.to_parquet``."""
     root = Path(path)
     expected = _MATRIX_COEFFICIENT_FILES if mode == "coefficients" else _MATRIX_FLOW_FILES
+    required = (
+        _MATRIX_REQUIRED_COEFFICIENT_FILES
+        if mode == "coefficients"
+        else _MATRIX_REQUIRED_FLOW_FILES
+    )
 
     matrices = {}
     for matrix_name in expected:
         target = root / f"{matrix_name}.parquet"
         if not target.exists():
+            if matrix_name not in required:
+                continue
             raise FileNotFoundError(target)
         matrices[matrix_name] = pd.read_parquet(target)
 

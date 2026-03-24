@@ -856,6 +856,24 @@ def _plotVEMF(
             ),
             :,
         ]
+    elif matrix in ["VY"]:
+        data.index.names = [
+            f"{_MASTER_INDEX['f']}",
+            f"{_MASTER_INDEX['r']}_to",
+            "Level_to",
+            f"{_MASTER_INDEX['n']}".replace(" ", "_"),
+            "Scenario",
+        ]
+        data = data.loc[
+            (
+                filters[f"filter_{_MASTER_INDEX['f']}".replace(" ", "_")],
+                filters[f"filter_{_MASTER_INDEX['r']}_to"],
+                slice(None),
+                filters[f"filter_{_MASTER_INDEX['n']}_to"],
+                slice(None),
+            ),
+            :,
+        ]
     data.reset_index(inplace=True)
 
     item_units = []

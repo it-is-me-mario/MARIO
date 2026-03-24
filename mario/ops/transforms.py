@@ -24,7 +24,7 @@ def build_new_instance_from_scenario(database, scenario):
         )
 
     data = database.query(
-        matrices=[_ENUM.Y, _ENUM.E, _ENUM.V, _ENUM.Z, _ENUM.EY],
+        matrices=[_ENUM.Y, _ENUM.E, _ENUM.V, _ENUM.Z, _ENUM.EY, _ENUM.VY],
         scenarios=scenario,
     )
 
@@ -34,6 +34,7 @@ def build_new_instance_from_scenario(database, scenario):
         V=data[_ENUM.V],
         Z=data[_ENUM.Z],
         EY=data[_ENUM.EY],
+        VY=data[_ENUM.VY],
         units=database.units,
         table=database.meta.table,
     )

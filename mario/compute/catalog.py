@@ -209,6 +209,15 @@ COMPUTE_CATALOG = {
             IOT_FINAL_USE_AXIS,
             _parsed(True),
         ),
+        "VY": _spec(
+            IOT,
+            "VY",
+            ADD,
+            (FACTOR,),
+            IOT_FINAL_USE_AXIS,
+            _parsed(False),
+            _formula(("V", "Y"), "build_zero_VY_from_V_Y", "VY = 0[V.index, Y.columns]"),
+        ),
         "M": _spec(
             IOT,
             "M",
@@ -470,6 +479,15 @@ COMPUTE_CATALOG = {
             (SATELLITE,),
             IOT_FINAL_USE_AXIS,
             _parsed(True),
+        ),
+        "VY": _spec(
+            SUT,
+            "VY",
+            ADD,
+            (FACTOR,),
+            IOT_FINAL_USE_AXIS,
+            _parsed(False),
+            _formula(("V", "Y"), "build_zero_VY_from_V_Y", "VY = 0[V.index, Y.columns]"),
         ),
         "M": _spec(
             SUT,

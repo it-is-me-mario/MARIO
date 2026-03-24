@@ -45,6 +45,7 @@ MATRIX_TITLES = {
     "E": "Satellite transaction flows",
     "e": "Satellite transaction coefficients",
     "EY": "Satellite transaction flows for final use",
+    "VY": "Value added transaction flows for final use",
     "U": "Use transaction flows",
     "u": "Use transaction coefficients",
     "S": "Supply transaction flows",
@@ -96,6 +97,10 @@ TABLE_MATRIX_INDEX_LAYOUTS = {
         },
         "EY": {
             "indices": [_MASTER_INDEX["k"]],
+            "columns": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["n"]],
+        },
+        "VY": {
+            "indices": [_MASTER_INDEX["f"]],
             "columns": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["n"]],
         },
         "F": {
@@ -228,6 +233,10 @@ TABLE_MATRIX_INDEX_LAYOUTS = {
         },
         "EY": {
             "indices": [_MASTER_INDEX["k"]],
+            "columns": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["n"]],
+        },
+        "VY": {
+            "indices": [_MASTER_INDEX["f"]],
             "columns": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["n"]],
         },
         "F": {

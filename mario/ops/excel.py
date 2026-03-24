@@ -236,7 +236,7 @@ def dataframe_to_xlsx(path, **kwargs):
     file.close()
 
 
-def wrirte_matrices(sheet, Z, V, E, Y, EY, flow_format, header_format):
+def wrirte_matrices(sheet, Z, V, E, Y, EY, VY, flow_format, header_format):
     """Write the canonical MARIO block layout to one worksheet."""
     row_counter = 0
     col_counter = 0
@@ -327,6 +327,16 @@ def wrirte_matrices(sheet, Z, V, E, Y, EY, flow_format, header_format):
         for col in range(Y.shape[1]):
             sheet.write(row + 3, col + 3 + col_counter, Y.iloc[row, col], flow_format)
 
+    # Filling VY
+    for row in range(VY.shape[0]):
+        for col in range(VY.shape[1]):
+            sheet.write(
+                Z.shape[0] + 3 + row,
+                Z.shape[1] + 3 + col,
+                VY.iloc[row, col],
+                flow_format,
+            )
+
     # Filling EY
     for row in range(EY.shape[0]):
         for col in range(EY.shape[1]):
@@ -336,11 +346,6 @@ def wrirte_matrices(sheet, Z, V, E, Y, EY, flow_format, header_format):
                 EY.iloc[row, col],
                 flow_format,
             )
-
-    # Filling zeros
-    for row in range(Z.shape[0] + 3, Z.shape[0] + V.shape[0] + 3):
-        for col in range(Z.shape[1] + 3, Z.shape[1] + Y.shape[1] + 3):
-            sheet.write(row, col, 0, flow_format)
 
 
 def database_excel(instance, flows, coefficients, directory, scenario):
@@ -353,7 +358,7 @@ def database_excel(instance, flows, coefficients, directory, scenario):
 
     if flows:
         data = instance.query(
-            matrices=[_ENUM.V, _ENUM.E, _ENUM.Z, _ENUM.Y, _ENUM.EY],
+            matrices=[_ENUM.V, _ENUM.E, _ENUM.Z, _ENUM.Y, _ENUM.EY, _ENUM.VY],
             scenarios=scenario,
         )
 
@@ -362,6 +367,7 @@ def database_excel(instance, flows, coefficients, directory, scenario):
         Z = data[_ENUM.Z]
         Y = data[_ENUM.Y]
         EY = data[_ENUM.EY]
+        VY = data[_ENUM.VY]
 
         V_index = V.index.to_list()
         V.index = [["-"] * len(V_index), [_MASTER_INDEX["f"]] * len(V_index), V_index]
@@ -373,10 +379,10 @@ def database_excel(instance, flows, coefficients, directory, scenario):
         flows = workbook.add_worksheet("flows")
         flow_format = workbook.add_format({"num_format": "0.0;-0.0;-"})
 
-        wrirte_matrices(flows, Z, V, E, Y, EY, flow_format, header_format)
+        wrirte_matrices(flows, Z, V, E, Y, EY, VY, flow_format, header_format)
 
     if coefficients:
-        matrices = [_ENUM.v, _ENUM.e, _ENUM.z, _ENUM.Y, _ENUM.EY]
+        matrices = [_ENUM.v, _ENUM.e, _ENUM.z, _ENUM.Y, _ENUM.EY, _ENUM.VY]
         data = instance.query(
             matrices=matrices,
             scenarios=scenario,
@@ -387,6 +393,7 @@ def database_excel(instance, flows, coefficients, directory, scenario):
         Z = data[_ENUM.z]
         Y = data[_ENUM.Y]
         EY = data[_ENUM.EY]
+        VY = data[_ENUM.VY]
 
         V_index = V.index.to_list()
         V.index = [["-"] * len(V_index), [_MASTER_INDEX["f"]] * len(V_index), V_index]
@@ -398,7 +405,7 @@ def database_excel(instance, flows, coefficients, directory, scenario):
         coefficients = workbook.add_worksheet("coefficients")
         coeff_format = workbook.add_format({"num_format": "0.000;-0.000;-"})
 
-        wrirte_matrices(coefficients, Z, V, E, Y, EY, coeff_format, header_format)
+        wrirte_matrices(coefficients, Z, V, E, Y, EY, VY, coeff_format, header_format)
 
     units = workbook.add_worksheet("units")
 
@@ -436,7 +443,7 @@ def database_txt(instance, flows, coefficients, path, scenario, _format, sep):
     """Export one scenario to a directory tree of delimited text files."""
     if flows:
         flows = instance.query(
-            matrices=[_ENUM.V, _ENUM.E, _ENUM.Z, _ENUM.Y, _ENUM.X, _ENUM.EY],
+            matrices=[_ENUM.V, _ENUM.E, _ENUM.Z, _ENUM.Y, _ENUM.X, _ENUM.EY, _ENUM.VY],
             scenarios=[scenario],
         )
         if not os.path.exists(r"{}/{}".format(path, "flows")):
@@ -456,7 +463,7 @@ def database_txt(instance, flows, coefficients, path, scenario, _format, sep):
 
     if coefficients:
         coefficients = instance.query(
-            matrices=[_ENUM.v, _ENUM.e, _ENUM.z, _ENUM.Y, _ENUM.EY],
+            matrices=[_ENUM.v, _ENUM.e, _ENUM.z, _ENUM.Y, _ENUM.EY, _ENUM.VY],
             scenarios=[scenario],
         )
 

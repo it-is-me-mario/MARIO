@@ -300,6 +300,20 @@ _NON_ACCEPTABLE_FILTERS = {
             f"filter_{_MASTER_INDEX['f']}".replace(" ", "_"),
         ],
     },
+    "VY": {
+        "IOT": [
+            f"filter_{_MASTER_INDEX['r']}_from".replace(" ", "_"),
+            f"filter_{_MASTER_INDEX['s']}_from".replace(" ", "_"),
+            f"filter_{_MASTER_INDEX['f']}".replace(" ", "_"),
+            f"filter_{_MASTER_INDEX['s']}_to".replace(" ", "_"),
+        ],
+        "SUT": [
+            f"filter_{_MASTER_INDEX['r']}_from".replace(" ", "_"),
+            f"filter_{_MASTER_INDEX['s']}_from".replace(" ", "_"),
+            f"filter_{_MASTER_INDEX['s']}_to".replace(" ", "_"),
+            f"filter_{_MASTER_INDEX['f']}".replace(" ", "_"),
+        ],
+    },
 }
 
 

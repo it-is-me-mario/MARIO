@@ -20,9 +20,11 @@ from mario.parsers.tabular import get_index_txt, get_units, rename_index, sort_f
 logger = logging.getLogger(__name__)
 
 
-_FLAT_FLOW_MATRICES = ("Z", "Y", "V", "E", "EY")
-_FLAT_COEFFICIENT_MATRICES = ("z", "Y", "v", "e", "EY")
-_FLAT_ROW_SIMPLE = {"V", "v", "E", "e", "EY"}
+_FLAT_FLOW_MATRICES = ("Z", "Y", "V", "E", "EY", "VY")
+_FLAT_COEFFICIENT_MATRICES = ("z", "Y", "v", "e", "EY", "VY")
+_FLAT_REQUIRED_FLOW_MATRICES = ("Z", "Y", "V", "E", "EY")
+_FLAT_REQUIRED_COEFFICIENT_MATRICES = ("z", "Y", "v", "e", "EY")
+_FLAT_ROW_SIMPLE = {"V", "v", "E", "e", "EY", "VY"}
 
 
 def _find_flat_payload(path: Path, stem: str, suffixes: set[str]) -> Path:
@@ -113,14 +115,19 @@ def parse_flat_frames(data: pd.DataFrame, unit_table: pd.DataFrame, table: str, 
     expected_matrices = (
         _FLAT_COEFFICIENT_MATRICES if mode == "coefficients" else _FLAT_FLOW_MATRICES
     )
+    required_matrices = (
+        _FLAT_REQUIRED_COEFFICIENT_MATRICES
+        if mode == "coefficients"
+        else _FLAT_REQUIRED_FLOW_MATRICES
+    )
 
     matrices = {
         matrix_name: _flat_matrix_to_frame(data, matrix_name)
         for matrix_name in expected_matrices
         if matrix_name in set(data["Matrix"])
     }
-    if set(expected_matrices) - set(matrices):
-        missing = sorted(set(expected_matrices) - set(matrices))
+    if set(required_matrices) - set(matrices):
+        missing = sorted(set(required_matrices) - set(matrices))
         raise ValueError(f"Flat payload is missing required matrices: {missing}")
 
     sort_frames(matrices)
