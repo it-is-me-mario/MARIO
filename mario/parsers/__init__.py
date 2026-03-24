@@ -27,6 +27,8 @@ __all__ = [
     "parse_from_pymrio",
     "parse_from_txt",
     "parse_oecd",
+    "parse_statcan",
+    "parse_wiod",
     "register_parser",
     "validate_parse_request",
 ]
@@ -55,6 +57,8 @@ def __getattr__(name: str):
         "parse_from_pymrio",
         "parse_from_txt",
         "parse_oecd",
+        "parse_statcan",
+        "parse_wiod",
         "register_parser",
         "validate_parse_request",
     }:

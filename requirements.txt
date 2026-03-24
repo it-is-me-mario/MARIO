@@ -12,3 +12,4 @@ polars
 scipy
 duckdb
 pyarrow
+pyxlsb

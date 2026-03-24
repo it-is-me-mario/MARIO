@@ -38,8 +38,10 @@ from mario.parsers.gloria import (
     _select_gloria_satellites,
 )
 from mario.parsers.oecd_icio import parse_oecd_icio
+from mario.parsers.statcan_wds import parse_statcan_iot_wds, parse_statcan_sut_wds
 from mario.parsers.tabular import parse_pymrio
 from mario.parsers.handshake import parse_exiobase_3_9_4
+from mario.parsers.wiod import parse_wiod_iot, parse_wiod_sut
 
 from mario.parsers.specs import (
     HMRSUT_EXTENSIONS,
@@ -48,6 +50,8 @@ from mario.parsers.specs import (
     FIGARO_IOT_MODES,
     EUROSTAT_IOT_MODES,
     EUROSTAT_SUT_UNITS,
+    STATCAN_TABLES,
+    STATCAN_VALUATIONS,
 )
 import pandas as pd
 
@@ -854,6 +858,99 @@ def parse_eurostat(
     )
 
 
+def parse_statcan(
+    year: int,
+    table: str = "SUT",
+    level: str = "summary",
+    geo: str = "Canada",
+    valuation: str = "basic",
+    model: str = "Database",
+    name: str | None = None,
+    calc_all: bool = False,
+    timeout: int = 60,
+    **kwargs,
+) -> object:
+    """Parse Statistics Canada supply-use or symmetric I-O tables via WDS.
+
+    Parameters
+    ----------
+    year : int
+        reference year to download.
+    table : str, optional
+        table family, either ``SUT`` or ``IOT``.
+    level : str, optional
+        StatCan table level. Supported values are:
+
+        * ``summary`` for both ``SUT`` and ``IOT``
+        * ``detail`` for both ``SUT`` and ``IOT``
+        * ``link1997`` only for ``SUT``
+
+    geo : str, optional
+        geography label as published by Statistics Canada. ``Canada`` is the
+        default. SUT tables expose provinces and territories as well.
+    valuation : str, optional
+        price system for ``IOT`` tables. Supported values are ``basic`` and
+        ``purchaser``. SUT parsing currently supports only ``basic`` because
+        supply rows are published at basic prices.
+    model : str, optional
+        public MARIO model class to instantiate. ``Database`` is the default
+        and the only supported value.
+    name : str, optional
+        optional dataset name stored in metadata.
+    calc_all : bool, optional
+        whether to materialize derived blocks immediately after parsing.
+    timeout : int, optional
+        request timeout in seconds used for each WDS call.
+    """
+    if model not in models:
+        raise WrongInput("Available models are {}".format([*models]))
+
+    validate_parse_request(table=table, model=model)
+
+    if table == "SUT":
+        if level not in STATCAN_TABLES["SUT"]:
+            raise WrongInput(
+                f"StatCan SUT level should be one of {list(STATCAN_TABLES['SUT'])}."
+            )
+        if valuation != "basic":
+            raise NotImplementable(
+                "Statistics Canada SUT parsing currently supports only valuation='basic'."
+            )
+        matrices, indeces, units, layout = parse_statcan_sut_wds(
+            year=year,
+            level=level,
+            geo=geo,
+            timeout=timeout,
+        )
+    else:
+        if level not in STATCAN_TABLES["IOT"]:
+            raise WrongInput(
+                f"StatCan IOT level should be one of {list(STATCAN_TABLES['IOT'])}."
+            )
+        if valuation not in STATCAN_VALUATIONS:
+            raise WrongInput(
+                f"StatCan valuation should be one of {list(STATCAN_VALUATIONS)}."
+            )
+        matrices, indeces, units, layout = parse_statcan_iot_wds(
+            year=year,
+            level=level,
+            geo=geo,
+            valuation=valuation,
+            timeout=timeout,
+        )
+
+    return models[model](
+        name=name or layout.dataset_name,
+        table=table,
+        source=layout.source,
+        year=layout.year,
+        price=layout.price,
+        init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
+        calc_all=calc_all,
+        **kwargs,
+    )
+
+
 def parse_oecd(
     path: str,
     year: int | None = None,
@@ -893,6 +990,69 @@ def parse_oecd(
     return models[model](
         name=name or layout.dataset_name,
         table="IOT",
+        source=layout.source,
+        year=layout.year,
+        price=layout.price,
+        init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
+        calc_all=calc_all,
+        **kwargs,
+    )
+
+
+def parse_wiod(
+    path: str,
+    table: str = "IOT",
+    year: int | None = None,
+    model: str = "Database",
+    name: str | None = None,
+    calc_all: bool = False,
+    **kwargs,
+) -> object:
+    """Parse one WIOD 2016 multiregional Excel workbook from the official release.
+
+    This parser targets the multiregional WIOD 2016 Excel workbooks distributed
+    on the official GGDC release page at
+    ``https://www.rug.nl/ggdc/valuechain/wiod/wiod-2016-release?lang=en``.
+    The direct file links used there are currently:
+
+    - IOT: ``https://dataverse.nl/api/access/datafile/199104``
+    - SUT: ``https://dataverse.nl/api/access/datafile/199100``
+
+    MARIO currently supports only the multiregional ``.xlsb`` workbooks
+    (for example ``WIOT2014_Nov16_ROW.xlsb`` and ``intsut14_nov16.xlsb``),
+    not the national WIOD IO tables.
+
+    Parameters
+    ----------
+    path : str
+        path to one local WIOD 2016 multiregional ``.xlsb`` workbook or to a
+        directory containing one or more WIOD 2016 multiregional workbooks.
+    table : str, optional
+        choose between ``IOT`` and ``SUT``.
+    year : int, optional
+        reference year to select when ``path`` points to a directory that
+        contains more than one WIOD 2016 workbook.
+    model : str, optional
+        public MARIO model class to instantiate. ``Database`` is the default
+        and the only supported value.
+    name : str, optional
+        optional dataset name stored in metadata.
+    calc_all : bool, optional
+        whether to materialize derived blocks immediately after parsing.
+    """
+    if model not in models:
+        raise WrongInput("Available models are {}".format([*models]))
+
+    validate_parse_request(table=table, model=model)
+    if table == "IOT":
+        matrices, indeces, units, layout = parse_wiod_iot(path=path, year=year)
+    elif table == "SUT":
+        matrices, indeces, units, layout = parse_wiod_sut(path=path, year=year)
+    else:
+        raise NotImplementable("WIOD parsing currently supports only IOT and SUT tables.")
+    return models[model](
+        name=name or layout.dataset_name,
+        table=table,
         source=layout.source,
         year=layout.year,
         price=layout.price,

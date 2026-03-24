@@ -15,6 +15,7 @@ dependencies:
   - polars
   - scipy
   - pyarrow
+  - pyxlsb
   - pip
   - pip:
       - pymrio

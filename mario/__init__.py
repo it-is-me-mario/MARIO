@@ -87,6 +87,8 @@ from mario.parsers.entrypoints import (
     parse_figaro,
     parse_gloria,
     parse_oecd,
+    parse_statcan,
+    parse_wiod,
 )
 
 from mario.views.plots import set_palette

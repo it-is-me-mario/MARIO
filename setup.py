@@ -29,6 +29,7 @@ setup(
         "plotly",
         "tabulate",
         "openpyxl == 3.1.0",
+        "pyxlsb",
         "IPython >= 8.27.0",
         "pymrio",
         "pyyaml"
@@ -38,6 +39,7 @@ setup(
         "dataset": [
             "polars",
             "scipy",
+            "pyxlsb",
         ],
         "storage": [
             "duckdb",
@@ -48,6 +50,7 @@ setup(
             "scipy",
             "duckdb",
             "pyarrow",
+            "pyxlsb",
         ],
     },
     # classifiers=[

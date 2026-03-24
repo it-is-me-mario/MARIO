@@ -62,6 +62,94 @@ GLORIA_VALUATION_MARKUPS = {
 }
 
 
+STATCAN_WDS_BASE_URL = "https://www150.statcan.gc.ca/t1/wds/rest"
+STATCAN_WDS_USER_GUIDE_URL = "https://www.statcan.gc.ca/en/developers/wds/user-guide"
+STATCAN_SDMX_USER_GUIDE_URL = "https://www.statcan.gc.ca/en/developers/sdmx/user-guide"
+STATCAN_SOURCE = (
+    "Statistics Canada WDS full-table API "
+    f"({STATCAN_WDS_USER_GUIDE_URL}; SDMX guide: {STATCAN_SDMX_USER_GUIDE_URL})"
+)
+STATCAN_SATELLITE_PLACEHOLDER = "-"
+STATCAN_SATELLITE_UNIT = "None"
+STATCAN_VALUATIONS = {
+    "basic": "Basic price",
+    "purchaser": "Purchaser price",
+}
+STATCAN_ACTIVITY_CODE_PREFIXES = ("BS", "NP", "GS")
+STATCAN_FINAL_DEMAND_CODE_PREFIXES = ("PEC", "CEN", "CEG", "CO", "ME", "IP", "INV", "INTEX", "INTRX")
+STATCAN_IMPORT_CODE_PREFIXES = ("INTIM", "IPTIM")
+STATCAN_TABLES = {
+    "SUT": {
+        "summary": {
+            "pid": "36100438",
+            "title": "Supply and use tables, summary level, provincial and territorial",
+            "catalogue_url": "https://www150.statcan.gc.ca/n1/en/catalogue/36100438",
+        },
+        "detail": {
+            "pid": "36100478",
+            "title": "Supply and use tables, detail level, provincial and territorial",
+            "catalogue_url": "https://www150.statcan.gc.ca/n1/en/catalogue/36100478",
+        },
+        "link1997": {
+            "pid": "36100479",
+            "title": "Supply and use tables, link-1997 level",
+            "catalogue_url": "https://www150.statcan.gc.ca/n1/en/catalogue/36100479",
+        },
+    },
+    "IOT": {
+        "summary": {
+            "pid": "36100084",
+            "title": "Symmetric input-output tables, summary level",
+            "catalogue_url": "https://www150.statcan.gc.ca/n1/en/catalogue/36100084",
+        },
+        "detail": {
+            "pid": "36100001",
+            "title": "Symmetric input-output tables, detail level",
+            "catalogue_url": "https://www150.statcan.gc.ca/n1/en/catalogue/36100001",
+        },
+    },
+}
+
+WIOD_2016_RELEASE_URL = "https://www.rug.nl/ggdc/valuechain/wiod/wiod-2016-release?lang=en"
+WIOD_IOT_FILE_URL = "https://dataverse.nl/api/access/datafile/199104"
+WIOD_SUT_FILE_URL = "https://dataverse.nl/api/access/datafile/199100"
+WIOD_SOURCE = (
+    "WIOD 2016 Release Excel workbook via GGDC/University of Groningen "
+    f"({WIOD_2016_RELEASE_URL})"
+)
+WIOD_MONETARY_UNIT = "millions of US$"
+WIOD_SATELLITE_UNIT = "None"
+WIOD_SATELLITE_PLACEHOLDER = "-"
+WIOD_FINAL_DEMAND_CODES = ("CONS_h", "CONS_np", "CONS_g", "GFCF", "INVEN")
+WIOD_SUT_FINAL_DEMAND_CODES = ("CONS_h", "CONS_np", "CONS_g", "GFCF", "INVEN", "EXP")
+WIOD_SUT_USE_TOTAL_COLUMNS = ("INTC", "CONS", "GCF", "FU_bas", "USE_bas", "ReEXP", "IntTTM")
+WIOD_SUT_SUPPLY_TOTAL_COLUMNS = ("DSUP_bas", "IMP", "SUP_bas", "ExpTTM", "ReEXP", "IntTTM")
+WIOD_FACTOR_ROWS = (
+    "TXSP",
+    "EXP_adj",
+    "PURR",
+    "PURNR",
+    "VA",
+    "IntTTM",
+)
+WIOD_FACTOR_LABELS = {
+    "TXSP": "taxes less subsidies on products",
+    "EXP_adj": "Cif/ fob adjustments on exports",
+    "PURR": "Direct purchases abroad by residents",
+    "PURNR": "Purchases on the domestic territory by non-residents ",
+    "VA": "Value added at basic prices",
+    "IntTTM": "International Transport Margins",
+}
+WIOD_SUT_FINAL_DEMAND_LABELS = {
+    "CONS_h": "Households",
+    "CONS_np": "NPISH",
+    "CONS_g": "Government",
+    "GFCF": "Gross fixed capital formation",
+    "INVEN": "Changes in inventories and valuables",
+    "EXP": "Exports",
+}
+
+
 EUROSTAT_SDMX_BASE_URL = "https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data"
 EUROSTAT_SUT_DATAFLOWS = {
     "supply": "NAIO_10_CP15",
