@@ -62,6 +62,44 @@ ADB_FACTOR_LABELS = {
 }
 
 
+EXIOBASE_HYBRID_3318_ZENODO_URL = "https://doi.org/10.5281/zenodo.7244919"
+EXIOBASE_HYBRID_3318_RECORD_ID = "7244919"
+EXIOBASE_HYBRID_3318_SOURCE = (
+    "EXIOBASE HYBRID v3.3.18 via Zenodo "
+    f"({EXIOBASE_HYBRID_3318_ZENODO_URL})"
+)
+EXIOBASE_MONETARY_ZENODO_RECORDS = {
+    "3.10.1": {
+        "record_id": "18937492",
+        "doi": "https://doi.org/10.5281/zenodo.18937492",
+        "tables": ("IOT",),
+    },
+    "3.9.6": {
+        "record_id": "15689391",
+        "doi": "https://doi.org/10.5281/zenodo.15689391",
+        "tables": ("IOT",),
+    },
+    "3.9.5": {
+        "record_id": "14869924",
+        "doi": "https://doi.org/10.5281/zenodo.14869924",
+        "tables": ("IOT",),
+    },
+    "3.9.4": {
+        "record_id": "14614930",
+        "doi": "https://doi.org/10.5281/zenodo.14614930",
+        "tables": ("IOT",),
+    },
+    "3.8.2": {
+        "record_id": "5589597",
+        "doi": "https://doi.org/10.5281/zenodo.5589597",
+        "tables": ("IOT", "SUT"),
+    },
+}
+
+
+EMERGING_V1_CONCEPT_DOI = "https://doi.org/10.5281/zenodo.14258421"
+EMERGING_V1_ZENODO_URL = "https://doi.org/10.5281/zenodo.14258422"
+EMERGING_V1_RECORD_ID = "14258422"
 EMERGING_ZENODO_URL = "https://doi.org/10.5281/zenodo.14258422"
 EMERGING_SOURCE = (
     "EMERGING V2.5 MATLAB bundle via Zenodo "

@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from io import StringIO
 import logging
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -120,6 +121,24 @@ def _read_sdmx_csv(
     response.raise_for_status()
 
     frame = pd.read_csv(StringIO(response.text))
+    return _normalize_sdmx_frame(
+        frame,
+        dataflow=dataflow,
+        country=country,
+        year=year,
+        unit=unit,
+    )
+
+
+def _normalize_sdmx_frame(
+    frame: pd.DataFrame,
+    *,
+    dataflow: str,
+    country: str,
+    year: int,
+    unit: str,
+) -> pd.DataFrame:
+    """Validate and normalize one Eurostat SDMX dataframe."""
     if frame.empty:
         raise WrongInput(
             f"Eurostat returned no observations for {dataflow} ({country}, {year}, {unit})."
@@ -143,6 +162,29 @@ def _read_sdmx_csv(
         "debug",
     )
     return frame
+
+
+def _read_sdmx_csv_file(
+    path: str | Path,
+    *,
+    dataflow: str,
+    country: str,
+    year: int,
+    unit: str,
+) -> pd.DataFrame:
+    """Read one previously downloaded Eurostat SDMX-CSV slice."""
+    csv_path = Path(path)
+    if not csv_path.exists():
+        raise FileNotFoundError(csv_path)
+    log_time(logger, f"Parser: reading local Eurostat SDMX CSV {csv_path.name}.", "info")
+    frame = pd.read_csv(csv_path)
+    return _normalize_sdmx_frame(
+        frame,
+        dataflow=dataflow,
+        country=country,
+        year=year,
+        unit=unit,
+    )
 
 
 def _pivot_observations(
@@ -517,6 +559,8 @@ def parse_eurostat_sut_sdmx(
     country: str,
     year: int,
     unit: str = "MIO_EUR",
+    supply_path: str | Path | None = None,
+    use_path: str | Path | None = None,
     timeout: int = 60,
     session: requests.Session | None = None,
 ) -> tuple[
@@ -527,24 +571,42 @@ def parse_eurostat_sut_sdmx(
 ]:
     """Download one Eurostat SUT via SDMX and convert it to MARIO blocks."""
     geo = str(country).upper()
-    supply = _read_sdmx_csv(
-        EUROSTAT_SUT_DATAFLOWS["supply"],
-        key=_sdmx_key_sut(geo, unit),
-        country=geo,
-        year=year,
-        unit=unit,
-        timeout=timeout,
-        session=session,
-    )
-    use = _read_sdmx_csv(
-        EUROSTAT_SUT_DATAFLOWS["use"],
-        key=_sdmx_key_sut(geo, unit),
-        country=geo,
-        year=year,
-        unit=unit,
-        timeout=timeout,
-        session=session,
-    )
+    if (supply_path is None) ^ (use_path is None):
+        raise WrongInput("Eurostat SUT local parsing requires both supply_path and use_path.")
+    if supply_path is not None and use_path is not None:
+        supply = _read_sdmx_csv_file(
+            supply_path,
+            dataflow=EUROSTAT_SUT_DATAFLOWS["supply"],
+            country=geo,
+            year=year,
+            unit=unit,
+        )
+        use = _read_sdmx_csv_file(
+            use_path,
+            dataflow=EUROSTAT_SUT_DATAFLOWS["use"],
+            country=geo,
+            year=year,
+            unit=unit,
+        )
+    else:
+        supply = _read_sdmx_csv(
+            EUROSTAT_SUT_DATAFLOWS["supply"],
+            key=_sdmx_key_sut(geo, unit),
+            country=geo,
+            year=year,
+            unit=unit,
+            timeout=timeout,
+            session=session,
+        )
+        use = _read_sdmx_csv(
+            EUROSTAT_SUT_DATAFLOWS["use"],
+            key=_sdmx_key_sut(geo, unit),
+            country=geo,
+            year=year,
+            unit=unit,
+            timeout=timeout,
+            session=session,
+        )
     return build_eurostat_sut_from_frames(
         supply,
         use,
@@ -560,6 +622,7 @@ def parse_eurostat_iot_sdmx(
     year: int,
     unit: str = "MIO_EUR",
     mode: str = "product",
+    iot_path: str | Path | None = None,
     timeout: int = 60,
     session: requests.Session | None = None,
 ) -> tuple[
@@ -573,15 +636,24 @@ def parse_eurostat_iot_sdmx(
         raise WrongInput(f"Eurostat IOT mode should be one of {list(EUROSTAT_IOT_MODES)}.")
 
     geo = str(country).upper()
-    iot = _read_sdmx_csv(
-        EUROSTAT_IOT_DATAFLOWS[mode],
-        key=_sdmx_key_iot(geo, unit, mode),
-        country=geo,
-        year=year,
-        unit=unit,
-        timeout=timeout,
-        session=session,
-    )
+    if iot_path is not None:
+        iot = _read_sdmx_csv_file(
+            iot_path,
+            dataflow=EUROSTAT_IOT_DATAFLOWS[mode],
+            country=geo,
+            year=year,
+            unit=unit,
+        )
+    else:
+        iot = _read_sdmx_csv(
+            EUROSTAT_IOT_DATAFLOWS[mode],
+            key=_sdmx_key_iot(geo, unit, mode),
+            country=geo,
+            year=year,
+            unit=unit,
+            timeout=timeout,
+            session=session,
+        )
     return build_eurostat_iot_from_frame(
         iot,
         country=geo,

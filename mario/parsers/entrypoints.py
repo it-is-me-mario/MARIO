@@ -9,6 +9,12 @@ import logging
 from pathlib import Path
 
 from mario.api import Database
+from mario.download import (
+    _eurostat_local_paths,
+    _statcan_local_csv_path,
+    download_eurostat,
+    download_statcan,
+)
 from mario.log_exc.exceptions import NotImplementable, WrongInput
 from mario.log_exc.logger import log_time
 from mario.parsers.api import (
@@ -786,6 +792,9 @@ def parse_eurostat(
     table: str = "SUT",
     iot_mode: str = "product",
     unit: str = "MIO_EUR",
+    path: str | None = None,
+    download: bool = False,
+    overwrite_download: bool = False,
     model: str = "Database",
     name: str = None,
     calc_all: bool = False,
@@ -809,6 +818,13 @@ def parse_eurostat(
     unit : str, optional
         Eurostat SDMX unit code. Supported values are ``MIO_EUR`` and
         ``MIO_NAC``.
+    path : str, optional
+        optional directory for locally stored raw Eurostat CSV slices.
+    download : bool, optional
+        when ``True``, download the raw CSV slice into ``path`` and then parse
+        it locally.
+    overwrite_download : bool, optional
+        when ``download=True``, overwrite already downloaded raw files.
     model : str, optional
         currently only ``Database`` is supported.
     name : str, optional
@@ -827,26 +843,84 @@ def parse_eurostat(
         raise WrongInput(
             f"Eurostat unit should be one of {list(EUROSTAT_SUT_UNITS)}."
         )
+    if download and path is None:
+        raise WrongInput("Eurostat raw downloads require 'path' to be provided.")
+
+    local_paths = None
+    if path is not None:
+        local_paths = _eurostat_local_paths(
+            path,
+            country=country,
+            year=year,
+            table=table,
+            unit=unit,
+            iot_mode=iot_mode,
+        )
+        if download:
+            info = download_eurostat(
+                path,
+                country=country,
+                year=year,
+                table=table,
+                iot_mode=iot_mode,
+                unit=unit,
+                timeout=timeout,
+                overwrite=overwrite_download,
+            )
+            local_paths = {key: Path(value) for key, value in info["files"].items()}
 
     if table == "IOT":
         if iot_mode not in EUROSTAT_IOT_MODES:
             raise WrongInput(
                 f"Eurostat iot_mode should be one of {list(EUROSTAT_IOT_MODES)}."
             )
-        matrices, indeces, units, layout = parse_eurostat_iot_sdmx(
-            country=country,
-            year=year,
-            unit=unit,
-            mode=iot_mode,
-            timeout=timeout,
-        )
+        if local_paths is not None:
+            if not local_paths["iot"].exists():
+                raise WrongInput(
+                    f"Eurostat local raw file not found: {local_paths['iot']}. "
+                    "Pass download=True to fetch it or omit 'path' for direct online parsing."
+                )
+            matrices, indeces, units, layout = parse_eurostat_iot_sdmx(
+                country=country,
+                year=year,
+                unit=unit,
+                mode=iot_mode,
+                iot_path=local_paths["iot"],
+                timeout=timeout,
+            )
+        else:
+            matrices, indeces, units, layout = parse_eurostat_iot_sdmx(
+                country=country,
+                year=year,
+                unit=unit,
+                mode=iot_mode,
+                timeout=timeout,
+            )
     else:
-        matrices, indeces, units, layout = parse_eurostat_sut_sdmx(
-            country=country,
-            year=year,
-            unit=unit,
-            timeout=timeout,
-        )
+        if local_paths is not None:
+            missing = [
+                item for item in (local_paths["supply"], local_paths["use"]) if not item.exists()
+            ]
+            if missing:
+                raise WrongInput(
+                    f"Eurostat local raw files not found: {[str(item) for item in missing]}. "
+                    "Pass download=True to fetch them or omit 'path' for direct online parsing."
+                )
+            matrices, indeces, units, layout = parse_eurostat_sut_sdmx(
+                country=country,
+                year=year,
+                unit=unit,
+                supply_path=local_paths["supply"],
+                use_path=local_paths["use"],
+                timeout=timeout,
+            )
+        else:
+            matrices, indeces, units, layout = parse_eurostat_sut_sdmx(
+                country=country,
+                year=year,
+                unit=unit,
+                timeout=timeout,
+            )
 
     return models[model](
         name=name or layout.dataset_name,
@@ -866,6 +940,9 @@ def parse_statcan(
     level: str = "summary",
     geo: str = "Canada",
     valuation: str = "basic",
+    path: str | None = None,
+    download: bool = False,
+    overwrite_download: bool = False,
     model: str = "Database",
     name: str | None = None,
     calc_all: bool = False,
@@ -894,6 +971,13 @@ def parse_statcan(
         price system for ``IOT`` tables. Supported values are ``basic`` and
         ``purchaser``. SUT parsing currently supports only ``basic`` because
         supply rows are published at basic prices.
+    path : str, optional
+        optional directory for locally stored StatCan raw CSV files.
+    download : bool, optional
+        when ``True``, download the raw full-table CSV into ``path`` and then
+        parse it locally.
+    overwrite_download : bool, optional
+        when ``download=True``, overwrite already downloaded raw files.
     model : str, optional
         public MARIO model class to instantiate. ``Database`` is the default
         and the only supported value.
@@ -908,6 +992,21 @@ def parse_statcan(
         raise WrongInput("Available models are {}".format([*models]))
 
     validate_parse_request(table=table, model=model)
+    if download and path is None:
+        raise WrongInput("StatCan raw downloads require 'path' to be provided.")
+
+    local_csv = None
+    if path is not None:
+        local_csv = _statcan_local_csv_path(path, table=table, level=level)
+        if download:
+            info = download_statcan(
+                path,
+                table=table,
+                level=level,
+                timeout=timeout,
+                overwrite=overwrite_download,
+            )
+            local_csv = Path(info["csv"])
 
     if table == "SUT":
         if level not in STATCAN_TABLES["SUT"]:
@@ -918,12 +1017,26 @@ def parse_statcan(
             raise NotImplementable(
                 "Statistics Canada SUT parsing currently supports only valuation='basic'."
             )
-        matrices, indeces, units, layout = parse_statcan_sut_wds(
-            year=year,
-            level=level,
-            geo=geo,
-            timeout=timeout,
-        )
+        if local_csv is not None:
+            if not local_csv.exists():
+                raise WrongInput(
+                    f"StatCan local raw file not found: {local_csv}. "
+                    "Pass download=True to fetch it or omit 'path' for direct online parsing."
+                )
+            matrices, indeces, units, layout = parse_statcan_sut_wds(
+                year=year,
+                level=level,
+                geo=geo,
+                csv_path=local_csv,
+                timeout=timeout,
+            )
+        else:
+            matrices, indeces, units, layout = parse_statcan_sut_wds(
+                year=year,
+                level=level,
+                geo=geo,
+                timeout=timeout,
+            )
     else:
         if level not in STATCAN_TABLES["IOT"]:
             raise WrongInput(
@@ -933,13 +1046,28 @@ def parse_statcan(
             raise WrongInput(
                 f"StatCan valuation should be one of {list(STATCAN_VALUATIONS)}."
             )
-        matrices, indeces, units, layout = parse_statcan_iot_wds(
-            year=year,
-            level=level,
-            geo=geo,
-            valuation=valuation,
-            timeout=timeout,
-        )
+        if local_csv is not None:
+            if not local_csv.exists():
+                raise WrongInput(
+                    f"StatCan local raw file not found: {local_csv}. "
+                    "Pass download=True to fetch it or omit 'path' for direct online parsing."
+                )
+            matrices, indeces, units, layout = parse_statcan_iot_wds(
+                year=year,
+                level=level,
+                geo=geo,
+                valuation=valuation,
+                csv_path=local_csv,
+                timeout=timeout,
+            )
+        else:
+            matrices, indeces, units, layout = parse_statcan_iot_wds(
+                year=year,
+                level=level,
+                geo=geo,
+                valuation=valuation,
+                timeout=timeout,
+            )
 
     return models[model](
         name=name or layout.dataset_name,

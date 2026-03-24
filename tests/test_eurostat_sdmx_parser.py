@@ -485,3 +485,27 @@ def test_parse_eurostat_iot_uses_sdmx_backend(monkeypatch):
 def test_parse_eurostat_rejects_unknown_iot_mode():
     with pytest.raises(WrongInput):
         parse_eurostat("IT", 2015, table="IOT", iot_mode="unknown", calc_all=False)
+
+
+def test_parse_eurostat_uses_local_raw_files_when_path_is_provided(tmp_path, monkeypatch):
+    supply_path = tmp_path / "NAIO_10_CP15_IT_2017_MIO_EUR.csv"
+    use_path = tmp_path / "NAIO_10_CP16_IT_2017_MIO_EUR.csv"
+    _supply_frame().to_csv(supply_path, index=False)
+    _use_frame().to_csv(use_path, index=False)
+
+    def fail_get(*args, **kwargs):
+        raise AssertionError("network should not be used when local Eurostat files exist")
+
+    monkeypatch.setattr("mario.parsers.eurostat_sdmx.requests.get", fail_get)
+
+    database = parse_eurostat(
+        "IT",
+        2017,
+        table="SUT",
+        path=tmp_path,
+        calc_all=False,
+    )
+
+    assert database.table_type == "SUT"
+    assert database.meta.year == 2017
+    assert database.get_index(_MASTER_INDEX["r"]) == ["IT"]

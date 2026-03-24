@@ -233,6 +233,19 @@ def _download_statcan_csv_table(
     return frame, csv_url
 
 
+def _read_statcan_csv_table(path: str | Path) -> pd.DataFrame:
+    """Read one previously downloaded StatCan CSV file."""
+    csv_path = Path(path)
+    if not csv_path.exists():
+        raise FileNotFoundError(csv_path)
+    log_time(logger, f"Parser: reading local StatCan CSV {csv_path.name}.", "info")
+    frame = pd.read_csv(csv_path, low_memory=False)
+    if frame.empty:
+        raise WrongInput(f"Statistics Canada local CSV payload is empty: {csv_path}.")
+    frame["VALUE"] = pd.to_numeric(frame["VALUE"], errors="coerce").fillna(0.0)
+    return frame
+
+
 def _filter_statcan_slice(frame: pd.DataFrame, *, year: int, geo: str) -> pd.DataFrame:
     """Return one StatCan year/geo slice with clear validation errors."""
     available_years = sorted(pd.Series(frame["REF_DATE"]).dropna().astype(int).unique().tolist())
@@ -533,6 +546,7 @@ def parse_statcan_sut_wds(
     year: int,
     level: str = "summary",
     geo: str = "Canada",
+    csv_path: str | Path | None = None,
     timeout: int = 60,
     session: requests.Session | None = None,
 ) -> tuple[
@@ -544,11 +558,15 @@ def parse_statcan_sut_wds(
     """Download one StatCan SUT table via WDS and convert it to MARIO blocks."""
     if level not in STATCAN_TABLES["SUT"]:
         raise WrongInput(f"StatCan SUT level should be one of {list(STATCAN_TABLES['SUT'])}.")
-    frame, csv_url = _download_statcan_csv_table(
-        STATCAN_TABLES["SUT"][level]["pid"],
-        timeout=timeout,
-        session=session,
-    )
+    if csv_path is not None:
+        frame = _read_statcan_csv_table(csv_path)
+        csv_url = str(csv_path)
+    else:
+        frame, csv_url = _download_statcan_csv_table(
+            STATCAN_TABLES["SUT"][level]["pid"],
+            timeout=timeout,
+            session=session,
+        )
     return build_statcan_sut_from_frame(
         frame,
         year=year,
@@ -564,6 +582,7 @@ def parse_statcan_iot_wds(
     level: str = "summary",
     geo: str = "Canada",
     valuation: str = "basic",
+    csv_path: str | Path | None = None,
     timeout: int = 60,
     session: requests.Session | None = None,
 ) -> tuple[
@@ -577,11 +596,15 @@ def parse_statcan_iot_wds(
         raise WrongInput(f"StatCan IOT level should be one of {list(STATCAN_TABLES['IOT'])}.")
     if valuation not in STATCAN_VALUATIONS:
         raise WrongInput(f"StatCan valuation should be one of {list(STATCAN_VALUATIONS)}.")
-    frame, csv_url = _download_statcan_csv_table(
-        STATCAN_TABLES["IOT"][level]["pid"],
-        timeout=timeout,
-        session=session,
-    )
+    if csv_path is not None:
+        frame = _read_statcan_csv_table(csv_path)
+        csv_url = str(csv_path)
+    else:
+        frame, csv_url = _download_statcan_csv_table(
+            STATCAN_TABLES["IOT"][level]["pid"],
+            timeout=timeout,
+            session=session,
+        )
     return build_statcan_iot_from_frame(
         frame,
         year=year,

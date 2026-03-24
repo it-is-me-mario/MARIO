@@ -408,3 +408,25 @@ def test_public_parse_statcan_validates_sut_valuation_and_available_geo(monkeypa
     with pytest.raises(WrongInput):
         mario.parse_statcan(2023, table="SUT", geo="Ontario", calc_all=False)
 
+
+def test_parse_statcan_uses_local_csv_when_path_is_provided(tmp_path, monkeypatch):
+    csv_path = tmp_path / "statcan_36100438_sut_summary.csv"
+    _statcan_sut_frame().to_csv(csv_path, index=False)
+
+    def fail_download(*args, **kwargs):
+        raise AssertionError("network should not be used when local StatCan CSV exists")
+
+    monkeypatch.setattr("mario.parsers.statcan_wds._download_statcan_csv_table", fail_download)
+
+    database = mario.parse_statcan(
+        2023,
+        table="SUT",
+        level="summary",
+        geo="Canada",
+        path=tmp_path,
+        calc_all=False,
+    )
+
+    assert database.table_type == "SUT"
+    assert database.meta.year == 2023
+    assert "Statistics Canada WDS full-table API" in database.meta.source
