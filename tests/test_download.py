@@ -12,6 +12,7 @@ from mario.download import (
     download_emerging,
     download_exiobase3,
     download_hybrid_exiobase,
+    download_istat_io,
     download_statcan,
     download_wiod2016,
 )
@@ -237,6 +238,28 @@ def test_download_statcan_downloads_and_extracts_csv(monkeypatch, tmp_path):
     csv_path = Path(info["csv"])
     assert csv_path.exists()
     assert csv_path.read_text() == csv_bytes.decode()
+
+
+def test_download_istat_io_resolves_zip_from_release_page(monkeypatch, tmp_path):
+    workbook_bytes = io.BytesIO()
+    with zipfile.ZipFile(workbook_bytes, "w") as archive:
+        archive.writestr("Tavole_I_O/SIMM_TOT_63PxP.xlsx", b"xlsx")
+    page_html = '<html><body><a href="/files/Tavole_I_O.zip">Tavole</a></body></html>'
+
+    def fake_get(url, **kwargs):
+        if "tavole-di-dati" in url:
+            return FakeResponse(text=page_html)
+        if "Tavole_I_O.zip" in url:
+            return FakeResponse(content=workbook_bytes.getvalue())
+        raise AssertionError(url)
+
+    monkeypatch.setattr("mario.download.requests.get", fake_get)
+
+    info = download_istat_io(tmp_path, edition="2020-2022")
+
+    assert info["page_url"].endswith("2020-2022/")
+    assert info["archive_url"].endswith("Tavole_I_O.zip")
+    assert any(Path(path).name == "SIMM_TOT_63PxP.xlsx" for path in info["files"])
 
 
 def test_mario_does_not_export_legacy_pymrio_downloaders():

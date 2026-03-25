@@ -13,6 +13,7 @@ from mario.download import (
     _eurostat_local_paths,
     _statcan_local_csv_path,
     download_eurostat,
+    download_istat_io,
     download_statcan,
 )
 from mario.log_exc.exceptions import NotImplementable, WrongInput
@@ -45,6 +46,7 @@ from mario.parsers.gloria import (
     _normalize_satellite_request as _normalize_gloria_satellites,
     _select_gloria_satellites,
 )
+from mario.parsers.istat import parse_istat_iot, parse_istat_sut
 from mario.parsers.oecd_icio import parse_oecd_icio
 from mario.parsers.statcan_wds import parse_statcan_iot_wds, parse_statcan_sut_wds
 from mario.parsers.tabular import parse_pymrio
@@ -58,6 +60,10 @@ from mario.parsers.specs import (
     FIGARO_IOT_MODES,
     EUROSTAT_IOT_MODES,
     EUROSTAT_SUT_UNITS,
+    ISTAT_IOT_MODES,
+    ISTAT_SUT_LEVELS,
+    ISTAT_SUT_PRICES,
+    ISTAT_SUT_VALUATIONS,
     STATCAN_TABLES,
     STATCAN_VALUATIONS,
 )
@@ -1123,6 +1129,117 @@ def parse_oecd(
         source=layout.source,
         year=layout.year,
         price=layout.price,
+        init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
+        calc_all=calc_all,
+        **kwargs,
+    )
+
+
+def parse_istat(
+    path: str,
+    *,
+    year: int,
+    table: str = "IOT",
+    iot_mode: str = "product",
+    level: str = "63",
+    price: str = "current",
+    valuation: str = "basic",
+    download: bool = False,
+    overwrite_download: bool = False,
+    edition: str = "latest",
+    page_url: str | None = None,
+    model: str = "Database",
+    name: str | None = None,
+    calc_all: bool = False,
+    **kwargs,
+) -> object:
+    """Parse official ISTAT input-output workbooks from local files or a downloaded release.
+
+    This parser targets the official ISTAT release bundles published on the
+    public release pages for the Italian input-output system. The supported
+    source format is the Excel content distributed inside the official release
+    zip, not other ad hoc spreadsheets.
+
+    Parameters
+    ----------
+    path : str
+        local workbook, extracted release directory, or release zip. When
+        ``download=True``, this should be the destination directory where the
+        official ISTAT release zip will be stored and extracted.
+    year : int
+        reference year to select from the multi-year workbook.
+    table : str, optional
+        one of ``"IOT"`` or ``"SUT"``.
+    iot_mode : str, optional
+        ISTAT symmetric table layout when ``table='IOT'``. Supported values are
+        ``product`` for product-by-product and ``industry`` for branch-by-branch.
+    level : str, optional
+        SUT aggregation level when ``table='SUT'``. Supported values are ``"63"``
+        and ``"20"``.
+    price : str, optional
+        SUT price system when ``table='SUT'``. Supported values are ``current``
+        and ``pyp``.
+    valuation : str, optional
+        SUT use-table valuation when ``table='SUT'``. Supported values are
+        ``basic`` and ``purchaser``.
+    download : bool, optional
+        when ``True``, download the official ISTAT release zip into ``path``
+        before parsing it locally.
+    overwrite_download : bool, optional
+        when ``download=True``, overwrite an existing local archive/extraction.
+    edition : str, optional
+        known ISTAT release page label used by the downloader, for example
+        ``"2020-2022"`` or ``"2015-2020"``. Ignored when ``download=False``.
+    page_url : str, optional
+        explicit ISTAT release page URL for the downloader. Ignored when
+        ``download=False``.
+    """
+    if model not in models:
+        raise WrongInput("Available models are {}".format([*models]))
+
+    validate_parse_request(table=table, model=model)
+
+    effective_path = path
+    if download:
+        info = download_istat_io(
+            path,
+            edition=edition,
+            page_url=page_url,
+            overwrite=overwrite_download,
+        )
+        effective_path = info["extracted_path"] or info["archive"]
+
+    if table == "IOT":
+        if iot_mode not in ISTAT_IOT_MODES:
+            raise WrongInput(f"ISTAT iot_mode should be one of {list(ISTAT_IOT_MODES)}.")
+        matrices, indeces, units, layout = parse_istat_iot(
+            effective_path,
+            year=year,
+            mode=iot_mode,
+        )
+    else:
+        if level not in ISTAT_SUT_LEVELS:
+            raise WrongInput(f"ISTAT SUT level should be one of {list(ISTAT_SUT_LEVELS)}.")
+        if price not in ISTAT_SUT_PRICES:
+            raise WrongInput(f"ISTAT SUT price should be one of {list(ISTAT_SUT_PRICES)}.")
+        if valuation not in ISTAT_SUT_VALUATIONS:
+            raise WrongInput(
+                f"ISTAT SUT valuation should be one of {list(ISTAT_SUT_VALUATIONS)}."
+            )
+        matrices, indeces, units, layout = parse_istat_sut(
+            effective_path,
+            year=year,
+            level=level,
+            price=price,
+            valuation=valuation,
+        )
+
+    return models[model](
+        name=name or layout.dataset_name,
+        table=table,
+        source=layout.source,
+        year=layout.year,
+        price=layout.price_label,
         init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
         calc_all=calc_all,
         **kwargs,

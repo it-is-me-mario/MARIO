@@ -150,6 +150,46 @@ GLORIA_VALUATION_MARKUPS = {
 }
 
 
+ISTAT_IO_RELEASE_TAG_URL = "https://www.istat.it/tag/sistema-input-output/"
+ISTAT_IO_RELEASE_PAGES = {
+    "2020-2022": "https://www.istat.it/tavole-di-dati/il-sistema-di-tavole-input-output-anni-2020-2022/",
+    "2015-2020": "https://www.istat.it/tavole-di-dati/il-sistema-di-tavole-input-output-anni-2015-2020/",
+}
+ISTAT_IO_SOURCE = (
+    "ISTAT sistema di tavole input-output via official release pages "
+    f"({ISTAT_IO_RELEASE_TAG_URL})"
+)
+ISTAT_MONETARY_UNIT = "Milioni di euro"
+ISTAT_SATELLITE_UNIT = "None"
+ISTAT_SATELLITE_PLACEHOLDER = "-"
+ISTAT_IOT_MODES = ("product", "industry")
+ISTAT_SUT_LEVELS = ("63", "20")
+ISTAT_SUT_PRICES = ("current", "pyp")
+ISTAT_SUT_VALUATIONS = ("basic", "purchaser")
+ISTAT_IOT_FINAL_DEMAND_EXCLUDE = (
+    "Spesa per consumi finali",
+    "Variazione delle scorte e oggetti di valore",
+    "Investimenti lordi",
+)
+ISTAT_SUT_FINAL_DEMAND_EXCLUDE = ISTAT_IOT_FINAL_DEMAND_EXCLUDE
+ISTAT_FINAL_DEMAND_TOTAL_PREFIX = "Totale impieghi"
+ISTAT_IOT_FACTOR_EXCLUDE = (
+    "Consumi intermedi ai prezzi base",
+    "Totale consumi intermedi/Impieghi finali ai prezzi di acquisto",
+    "Produzione ai prezzi base",
+    "Totale risorse ai prezzi base",
+)
+ISTAT_SUT_FACTOR_EXCLUDE = (
+    "Consumi intermedi ai prezzi base",
+    "Totale consumi intermedi/Impieghi finali ai prezzi di acquisto",
+    "Produzione ai prezzi base",
+    "Investimenti fissi lordi",
+    "Stock di capitale fisso",
+    "Ore lavorate (migliaia)",
+)
+ISTAT_IMPORT_FACTOR_LABEL = "Importazioni cif"
+
+
 STATCAN_WDS_BASE_URL = "https://www150.statcan.gc.ca/t1/wds/rest"
 STATCAN_WDS_USER_GUIDE_URL = "https://www.statcan.gc.ca/en/developers/wds/user-guide"
 STATCAN_SDMX_USER_GUIDE_URL = "https://www.statcan.gc.ca/en/developers/sdmx/user-guide"

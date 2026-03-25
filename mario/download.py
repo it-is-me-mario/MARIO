@@ -8,10 +8,12 @@ supporting directly.
 from __future__ import annotations
 
 from email.message import Message
+from html.parser import HTMLParser
 import io
 from pathlib import Path
 import re
 import shutil
+from urllib.parse import urljoin
 import zipfile
 
 import requests
@@ -31,6 +33,8 @@ from mario.parsers.specs import (
     EXIOBASE_HYBRID_3318_ZENODO_URL,
     EXIOBASE_MONETARY_ZENODO_RECORDS,
     FIGARO_SOURCE,
+    ISTAT_IO_RELEASE_PAGES,
+    ISTAT_IO_SOURCE,
     OECD_ICIO_SOURCE_URL,
     STATCAN_TABLES,
     STATCAN_WDS_BASE_URL,
@@ -43,6 +47,7 @@ __all__ = [
     "download_eurostat",
     "download_statcan",
     "download_figaro",
+    "download_istat_io",
     "download_wiod2016",
     "download_emerging",
     "download_hybrid_exiobase",
@@ -74,6 +79,36 @@ _HYBRID_REQUIRED_FILES = {
         "Classifications_v_3_3_18.xlsx",
     ),
 }
+
+
+class _AnchorCollector(HTMLParser):
+    """Collect anchor text and href pairs from one HTML document."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.links: list[tuple[str, str]] = []
+        self._current_href: str | None = None
+        self._text_parts: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs) -> None:
+        if tag != "a":
+            return
+        href = dict(attrs).get("href")
+        if href:
+            self._current_href = href
+            self._text_parts = []
+
+    def handle_data(self, data: str) -> None:
+        if self._current_href is not None:
+            self._text_parts.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag != "a" or self._current_href is None:
+            return
+        text = " ".join(part.strip() for part in self._text_parts if part.strip())
+        self.links.append((text, self._current_href))
+        self._current_href = None
+        self._text_parts = []
 
 
 def _coerce_years(years) -> list[int]:
@@ -148,6 +183,13 @@ def _download_json(url: str) -> dict[str, object]:
     response = requests.get(url, timeout=_REQUEST_TIMEOUT)
     response.raise_for_status()
     return response.json()
+
+
+def _download_text(url: str) -> str:
+    """Download one text document."""
+    response = requests.get(url, timeout=_REQUEST_TIMEOUT)
+    response.raise_for_status()
+    return response.text
 
 
 def _zenodo_record(record_id: str) -> dict[str, object]:
@@ -230,6 +272,48 @@ def _download_zenodo_selection(
             _download_to_path(item["links"]["self"], destination, overwrite=overwrite)
         )
     return downloaded
+
+
+def _sanitize_stem(value: str) -> str:
+    """Return one filesystem-friendly stem."""
+    return re.sub(r"[^A-Za-z0-9._-]+", "_", value).strip("_") or "download"
+
+
+def _find_zip_link_in_page(page_url: str, html: str) -> str:
+    """Extract the preferred zip link from one ISTAT release page."""
+    parser = _AnchorCollector()
+    parser.feed(html)
+
+    preferred: list[str] = []
+    fallback: list[str] = []
+    for text, href in parser.links:
+        if ".zip" not in href.lower():
+            continue
+        absolute = urljoin(page_url, href)
+        fallback.append(absolute)
+        normalized_text = " ".join(text.split()).casefold()
+        if "tavole" in normalized_text:
+            preferred.append(absolute)
+
+    if preferred:
+        return preferred[0]
+    if fallback:
+        return fallback[0]
+    raise WrongInput(f"Could not find a zip download link in {page_url}.")
+
+
+def _istat_release_page(edition: str | None = None, page_url: str | None = None) -> tuple[str, str]:
+    """Resolve one ISTAT release page from either a known edition or an explicit URL."""
+    if page_url is not None:
+        return page_url, "custom"
+
+    normalized = "2020-2022" if edition in {None, "latest"} else str(edition)
+    try:
+        return ISTAT_IO_RELEASE_PAGES[normalized], normalized
+    except KeyError as exc:
+        raise WrongInput(
+            f"Unsupported ISTAT IO edition: {edition}. Valid options are: {['latest', *ISTAT_IO_RELEASE_PAGES]}."
+        ) from exc
 
 
 def _eurostat_sut_key(country: str, unit: str) -> str:
@@ -421,6 +505,71 @@ def download_figaro(*args, **kwargs):
         "Automatic FIGARO download is intentionally not supported. "
         f"Use the CIRCABC links documented in the parser docs/specs ({FIGARO_SOURCE})."
     )
+
+
+def download_istat_io(
+    path: str | Path,
+    *,
+    edition: str = "latest",
+    page_url: str | None = None,
+    extract: bool = True,
+    keep_archive: bool = False,
+    overwrite: bool = False,
+) -> dict[str, object]:
+    """Download one official ISTAT input-output release zip from the public release page.
+
+    The downloader resolves the zip link from the official ISTAT release page
+    instead of hardcoding the current wp-content file URL.
+    """
+    page, edition_label = _istat_release_page(edition=edition, page_url=page_url)
+    root = _ensure_directory(path)
+    stem = f"istat_io_{_sanitize_stem(edition_label)}"
+    archive_path = root / f"{stem}.zip"
+    extract_dir = root / stem
+
+    if extract and extract_dir.exists() and not overwrite:
+        return {
+            "source": ISTAT_IO_SOURCE,
+            "page_url": page,
+            "archive_url": None,
+            "archive": str(archive_path) if archive_path.exists() else None,
+            "extracted_path": str(extract_dir),
+            "files": sorted(str(item) for item in extract_dir.rglob("*.xlsx")),
+        }
+    if not extract and archive_path.exists() and not overwrite:
+        return {
+            "source": ISTAT_IO_SOURCE,
+            "page_url": page,
+            "archive_url": None,
+            "archive": str(archive_path),
+            "extracted_path": None,
+            "files": [],
+        }
+
+    html = _download_text(page)
+    zip_url = _find_zip_link_in_page(page, html)
+    _download_to_path(zip_url, archive_path, overwrite=overwrite)
+
+    extracted_path = None
+    files: list[str] = []
+    if extract:
+        extracted = _extract_zip(
+            archive_path,
+            extract_dir,
+            overwrite=overwrite,
+            keep_archive=keep_archive,
+        )
+        extracted_path = str(extracted)
+        files = sorted(str(item) for item in extracted.rglob("*.xlsx"))
+
+    return {
+        "source": ISTAT_IO_SOURCE,
+        "page_url": page,
+        "archive_url": zip_url,
+        "archive": str(archive_path) if archive_path.exists() else None,
+        "extracted_path": extracted_path,
+        "files": files,
+    }
 
 
 def download_wiod2016(
