@@ -277,10 +277,68 @@ def write_add_sector_workbook(
             )
 
 
+def write_inventory_templates_to_workbook(
+    instance,
+    workbook: AddSectorWorkbook,
+    path: str | Path,
+    *,
+    overwrite: bool = True,
+) -> list[str]:
+    """Create missing inventory templates referenced by one add-sectors workbook.
+
+    This mirrors the old ``get_inventory_sheets(...)`` workflow: it inspects the
+    master sheet, creates one empty inventory tab per referenced sheet name,
+    refreshes the ``DB units`` sheet, and for IOT workbooks also ensures the
+    split-support tabs exist when at least one row is marked as ``Split``.
+
+    Returns
+    -------
+    list[str]
+        The inventory sheet names referenced by the workbook master sheet.
+    """
+
+    inventory_names = [
+        sheet
+        for sheet in workbook.master_sheet["Inventory sheet"].dropna().astype(str).tolist()
+        if sheet
+    ]
+    inventory_names = list(dict.fromkeys(inventory_names))
+    existing_sheets = set(load_workbook(path, data_only=False).sheetnames)
+    inventory_template = build_inventory_template()
+    db_units = build_db_units_sheet(instance)
+
+    def _write_sheet(writer, sheet_name: str, frame: pd.DataFrame):
+        if sheet_name in existing_sheets and not overwrite:
+            return
+        frame.to_excel(writer, sheet_name=sheet_name, index=False)
+
+    split_sheets_needed = _workbook_has_split_rows(workbook)
+
+    with pd.ExcelWriter(
+        path,
+        engine="openpyxl",
+        mode="a",
+        if_sheet_exists="replace",
+    ) as writer:
+        for sheet_name in inventory_names:
+            _write_sheet(writer, sheet_name, inventory_template)
+
+        _write_sheet(writer, ADVANCED_ADD_SECTOR_DB_UNITS_SHEET, db_units)
+
+        if split_sheets_needed:
+            _write_sheet(writer, ADD_SECTOR_SPLIT_OUTPUT_SHEET, build_split_total_outputs_template())
+            _write_sheet(writer, ADD_SECTOR_SPLIT_TRADE_SHEET, build_split_trades_template())
+            _write_sheet(writer, ADD_SECTOR_SPLIT_EXCLUSION_SHEET, build_split_exclusions_template())
+            _write_sheet(writer, ADD_SECTOR_SPLIT_TOLERANCE_SHEET, build_split_tolerances_template())
+
+    return inventory_names
+
+
 def read_add_sector_workbook(
     path: str | Path,
     *,
     table: str,
+    require_inventory_sheets: bool = False,
 ) -> AddSectorWorkbook:
     """Read and validate one add-sectors workbook.
 
@@ -288,6 +346,12 @@ def read_add_sector_workbook(
     ``new_sectors`` or ``parented_activities``. It only parses the workbook
     structure into a normalized object. The database layer derives those sets
     later because they depend on the current database contents.
+
+    When ``require_inventory_sheets`` is false, the workbook may reference
+    inventory sheet names in the master sheet even if those sheets have not
+    been created yet. This supports the workflow where users first fill the
+    master sheet and only later add the inventory tabs. When it is true, all
+    referenced inventory sheets must exist.
     """
 
     sheets = _read_excel_workbook(path)
@@ -327,13 +391,14 @@ def read_add_sector_workbook(
         if sheet
     ]
     missing_inventories = [sheet for sheet in inventory_names if sheet not in sheets]
-    if missing_inventories:
+    if missing_inventories and require_inventory_sheets:
         raise WrongExcelFormat(
             f"Add-sectors workbook is missing inventory sheets: {missing_inventories}"
         )
 
     inventories_by_sheet = {
         sheet_name: sheets[sheet_name] for sheet_name in inventory_names
+        if sheet_name in sheets
     }
     split_info = _parse_split_sheets(sheets) if table == IOT else None
 
@@ -739,6 +804,23 @@ def _parse_split_sheets(sheets: dict[str, pd.DataFrame]) -> dict[str, pd.DataFra
             columns=ADD_SECTOR_SPLIT_TOLERANCE_COLUMNS,
         ),
     }
+
+
+def _workbook_has_split_rows(workbook: AddSectorWorkbook) -> bool:
+    """Return whether an IOT add-sectors workbook contains split rows."""
+    if workbook.table != IOT:
+        return False
+    add_mode_column = ADVANCED_ADD_SECTOR_MASTER_SHEET_COLUMNS[IOT]["add_mode"]
+    if add_mode_column not in workbook.master_sheet.columns:
+        return False
+    values = (
+        workbook.master_sheet[add_mode_column]
+        .dropna()
+        .astype(str)
+        .str.strip()
+        .str.lower()
+    )
+    return values.eq("split").any()
 
 
 def group_inventories_by_target(

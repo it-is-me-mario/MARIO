@@ -1,119 +1,144 @@
 # -*- coding: utf-8 -*-
-"""
-the module contains the functions used for databases aggregation
-"""
+"""Aggregation helpers used by the public ``Database.aggregate`` API."""
+
+from __future__ import annotations
+
 import copy
 import logging
-import pandas as pd
-from mario.log_exc.logger import log_time
-from mario.log_exc.exceptions import WrongInput
 from copy import deepcopy
-from mario.compute.primitives import calc_X
-from mario.utils import delete_duplicates, rename_index
 
-from mario.model.conventions import _MASTER_INDEX, _ENUM
+import pandas as pd
+
+from mario.compute.primitives import calc_X
+from mario.log_exc.exceptions import WrongInput
+from mario.log_exc.logger import log_time
+from mario.model.conventions import _ENUM, _MASTER_INDEX
+from mario.utils import delete_duplicates
 
 logger = logging.getLogger(__name__)
 
+_LEGACY_AXIS_NAMES = (_MASTER_INDEX["r"], "Level", "Item")
 
-def return_pdIndex(Y, E, V, table):
-    """Build aggregation-ready index arrays from matrix labels."""
-    Y = deepcopy(Y)
-    E = deepcopy(E)
-    V = deepcopy(V)
 
-    indeces = {
-        "r": {
-            "s": Y.index.get_level_values(0),
-            "n": Y.columns.get_level_values(0),
-        },
-        "n": {"n": Y.columns.get_level_values(-1)},
-        "f": {"f": V.index},
-        "k": {"k": E.index},
-    }
-
-    if table == "IOT":
-        indeces["s"] = {"s": Y.index.get_level_values(-1)}
-
+def _aggregation_mapping(mapping):
+    """Normalize one stored aggregation table to a plain source->target dict."""
+    if mapping is None:
+        return None
+    if isinstance(mapping, pd.DataFrame):
+        if mapping.shape[1] > 1:
+            mapping = mapping.iloc[:, [0]]
+        series = mapping.iloc[:, 0]
     else:
-        indeces["a"] = {
-            "a": Y.loc[
-                slice(None), _MASTER_INDEX["a"], slice(None)
-            ].index.get_level_values(-1),
-        }
-        indeces["c"] = {
-            "c": Y.loc[
-                slice(None), _MASTER_INDEX["c"], slice(None)
-            ].index.get_level_values(-1),
-        }
-
-    return indeces
+        series = mapping
+    return series.to_dict()
 
 
-def index_replacer(indeces: dict, mapper, level=None):
-    """Rewrite original index labels according to an aggregation mapping."""
-    for target, index in indeces.items():
-        index = pd.DataFrame(index, index=index, columns=["Aggregation"])
+def _map_values(values, mapping):
+    """Apply an optional aggregation mapping while preserving original labels."""
+    if mapping is None:
+        return list(values)
+    return [mapping.get(value, value) for value in values]
 
-        for item, aggregation in mapper.iterrows():
-            index.loc[item, "Aggregation"] = aggregation["Aggregation"]
 
-        indeces[target] = index["Aggregation"].values
+def _axis_semantic_names(instance, matrix_name: str, labels, side: str):
+    """Return semantic names for one matrix axis or ``None`` for legacy 3-level axes."""
+    if isinstance(labels, pd.MultiIndex):
+        names = tuple(labels.names)
+        if names == _LEGACY_AXIS_NAMES or "Level" in names or "Item" in names:
+            return None
+        return names
+
+    if getattr(labels, "name", None) not in {None, "Item"}:
+        return (labels.name,)
+
+    spec = instance.get_block_spec(matrix_name)
+    axes = spec.row_axes if side == "index" else spec.col_axes
+    return tuple(axis.id for axis in axes)
+
+
+def _aggregate_legacy_axis(labels: pd.MultiIndex, agg_indeces: dict) -> pd.MultiIndex:
+    """Aggregate one historical ``Region/Level/Item`` axis."""
+    regions = _map_values(
+        labels.get_level_values(0),
+        _aggregation_mapping(agg_indeces.get(_MASTER_INDEX["r"])),
+    )
+    levels = list(labels.get_level_values(1))
+
+    items = []
+    for level_label, value in zip(levels, labels.get_level_values(2)):
+        level_mapping = _aggregation_mapping(agg_indeces.get(level_label))
+        items.append(level_mapping.get(value, value) if level_mapping else value)
+
+    return pd.MultiIndex.from_arrays(
+        [regions, levels, items],
+        names=list(labels.names),
+    )
+
+
+def _aggregate_semantic_axis(labels, semantic_names: tuple[str, ...], agg_indeces: dict):
+    """Aggregate one axis already expressed with semantic MARIO set names."""
+    if isinstance(labels, pd.MultiIndex):
+        arrays = []
+        for position, level_name in enumerate(semantic_names):
+            arrays.append(
+                _map_values(
+                    labels.get_level_values(position),
+                    _aggregation_mapping(agg_indeces.get(level_name)),
+                )
+            )
+        return pd.MultiIndex.from_arrays(arrays, names=list(semantic_names))
+
+    return pd.Index(
+        _map_values(
+            labels.tolist(),
+            _aggregation_mapping(agg_indeces.get(semantic_names[0])),
+        ),
+        name=semantic_names[0],
+    )
+
+
+def _aggregate_axis(instance, matrix_name: str, labels, *, side: str, agg_indeces: dict):
+    """Return one aggregated axis for one matrix block."""
+    semantic_names = _axis_semantic_names(instance, matrix_name, labels, side)
+    if semantic_names is None:
+        return _aggregate_legacy_axis(labels, agg_indeces)
+    return _aggregate_semantic_axis(labels, semantic_names, agg_indeces)
+
+
+def _group_axis(frame: pd.DataFrame, *, axis: int) -> pd.DataFrame:
+    """Group one dataframe axis after relabeling aggregation targets."""
+    labels = frame.index if axis == 0 else frame.columns
+    if isinstance(labels, pd.MultiIndex):
+        return frame.groupby(axis=axis, level=list(range(labels.nlevels)), sort=False).sum()
+    return frame.groupby(axis=axis, level=[0], sort=False).sum()
+
+
+def _drop_extension_rows(instance, frame: pd.DataFrame, matrix_name: str, drop):
+    """Drop selected satellite-account labels from ``E``-family rows."""
+    if not drop:
+        return frame
+
+    semantic_names = _axis_semantic_names(instance, matrix_name, frame.index, "index")
+    if semantic_names is None:
+        return frame.drop(drop, axis=0, errors="ignore")
+
+    if _MASTER_INDEX["k"] not in semantic_names:
+        return frame
+
+    position = semantic_names.index(_MASTER_INDEX["k"])
+    if isinstance(frame.index, pd.MultiIndex):
+        mask = ~frame.index.get_level_values(position).isin(drop)
+        return frame.loc[mask, :]
+    return frame.drop(drop, axis=0, errors="ignore")
 
 
 def _aggregator(instance, drop):
     """Aggregate all scenarios of a database using prepared mapping tables."""
-    data = instance.query(matrices=[_ENUM.Y, _ENUM.V, _ENUM.E])
-
-    # checking the consistencey of units at first
+    instance.query(matrices=[_ENUM.Y, _ENUM.V, _ENUM.E])
     units = unit_aggregation_check(instance, drop)
-
     agg_indeces = instance.get_index("all", "aggregated")
-    org_indeces = return_pdIndex(
-        data[_ENUM.Y], data[_ENUM.E], data[_ENUM.V], instance.table_type
-    )
 
-    """
-    check the consistency of the databasess
-    """
     matrices = {}
-
-    for item in [*_MASTER_INDEX.setting]:
-        if agg_indeces.get(_MASTER_INDEX[item]) is not None:
-            index_replacer(
-                indeces=org_indeces[item],
-                mapper=agg_indeces[_MASTER_INDEX[item]],
-            )
-
-    E_index = EY_index = org_indeces["k"]["k"]
-
-    V_index = VY_index = org_indeces["f"]["f"]
-
-    Y_columns = EY_columns = VY_columns = [
-        org_indeces["r"]["n"],
-        instance.query(_ENUM.Y).columns.get_level_values(1),
-        org_indeces["n"]["n"],
-    ]
-
-    # finding last level index (defined for Sector,Activity,Commodity)
-    if "s" in org_indeces:
-        last_index = org_indeces["s"]["s"]
-
-    else:
-        reverse_MI = {value: key for key, value in _MASTER_INDEX.items()}
-
-        items = delete_duplicates(instance.Y.index.get_level_values(1))
-
-        last_index = org_indeces[reverse_MI[items[0]]][reverse_MI[items[0]]].tolist()
-        last_index.extend(
-            org_indeces[reverse_MI[items[1]]][reverse_MI[items[1]]].tolist()
-        )
-
-    Y_index = V_columns = E_columns = Z_index = Z_columns = [
-        org_indeces["r"]["s"],
-        getattr(instance, _ENUM.Y).index.get_level_values(1),
-        last_index,
-    ]
 
     for scenario, values in instance:
         matrices[scenario] = {}
@@ -125,42 +150,33 @@ def _aggregator(instance, drop):
                 else instance.query([matrix], scenarios=[scenario])
             )
 
-            for level in ["index", "columns"]:
-                setattr(item, level, eval(f"{_ENUM.reverse(matrix)}_{level}"))
+            item.index = _aggregate_axis(
+                instance,
+                matrix,
+                item.index,
+                side="index",
+                agg_indeces=agg_indeces,
+            )
+            item = _group_axis(item, axis=0)
 
-                if isinstance(getattr(item, level), pd.MultiIndex):
-                    item = item.groupby(
-                        axis=0 if level == "index" else 1,
-                        level=[0, 1, 2],
-                        sort=False,
-                    ).sum()
-                else:
-                    item = item.groupby(
-                        axis=0 if level == "index" else 1,
-                        level=[0],
-                        sort=False,
-                    ).sum()
+            if matrix in [_ENUM.E, _ENUM.EY] and drop is not None:
+                before = item.shape[0]
+                item = _drop_extension_rows(instance, item, matrix, drop)
+                if item.shape[0] != before:
+                    log_time(
+                        logger,
+                        "{} removed from {}.".format(drop, _MASTER_INDEX["k"]),
+                        "info",
+                    )
 
-                if (
-                    level == "index"
-                    and matrix in [_ENUM.E, _ENUM.EY]
-                    and drop is not None
-                ):
-                    try:
-                        item = item.drop(drop, axis=0)
-                        log_time(
-                            logger,
-                            "{} removed from {}.".format(drop, _MASTER_INDEX["k"]),
-                            "info",
-                        )
-                    except KeyError:
-                        log_time(
-                            logger,
-                            "{} does not found in {} and can not be removed.".format(
-                                drop, _MASTER_INDEX["k"]
-                            ),
-                            "warning",
-                        )
+            item.columns = _aggregate_axis(
+                instance,
+                matrix,
+                item.columns,
+                side="columns",
+                agg_indeces=agg_indeces,
+            )
+            item = _group_axis(item, axis=1)
 
             matrices[scenario][matrix] = item
 
@@ -169,10 +185,6 @@ def _aggregator(instance, drop):
         )
 
         log_time(logger, f"Aggregation: scenario: `{scenario}` aggregated.")
-
-    # Refixing the index/columns names
-    for ss in matrices:
-        rename_index(matrices[ss])
 
     return matrices, units
 
@@ -200,7 +212,6 @@ def unit_aggregation_check(instance, drop):
             aggregated = aggregation.index.unique()
 
             _new_units = {}
-            # make a loop over the new items
 
             for index in aggregated:
                 if index in drop:
@@ -218,15 +229,12 @@ def unit_aggregation_check(instance, drop):
                             item, index
                         )
                     )
-                # if everything is fine, store the units.
                 _new_units[index] = take_units[0]
 
-            # finally make a new dataframe of indeces for the given item
             _new_units = pd.DataFrame.from_dict(
                 _new_units, orient="index", columns=["unit"]
             )
 
-            # update the dictionary of units
             new_units[item] = _new_units
 
         else:

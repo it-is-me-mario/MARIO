@@ -9,7 +9,7 @@ from copy import deepcopy
 import pandas as pd
 import pint
 
-from mario.log_exc.exceptions import LackOfInput
+from mario.log_exc.exceptions import LackOfInput, NotImplementable
 from mario.model.conventions import IOT, SUT, _ENUM, _MASTER_INDEX as MI
 from mario.ops.add_sector_specs import (
     ADVANCED_ADD_SECTOR_INVENTORY_SHEET_COLUMNS as INC,
@@ -51,6 +51,7 @@ class AddSectorEngine:
         """Cache the database state and the coefficient matrices to be extended."""
         self.db = instance
         self.matrices = matrices
+        self._iot_public_axis_names: dict[tuple[str, str], tuple[object, ...]] = {}
         self.regions = instance.get_index(MI["r"])
         self.units = copy.deepcopy(instance.units)
         self.table = self.db.meta.table
@@ -73,6 +74,287 @@ class AddSectorEngine:
         if ignore_warnings:
             warnings.filterwarnings("ignore")
 
+        if self.table == IOT:
+            self._prepare_iot_working_layout()
+
+    @staticmethod
+    def _axis_names(axis) -> tuple[object, ...]:
+        """Return the public level names exposed by one pandas axis."""
+        if isinstance(axis, pd.MultiIndex):
+            return tuple(axis.names)
+        return (axis.name,)
+
+    def _coerce_iot_axis_to_working(
+        self,
+        axis,
+        *,
+        matrix: str,
+        side: str,
+        marker: str,
+    ):
+        """Convert explicit IOT public axes to the legacy working layout used by add-sectors.
+
+        The historical engine assumes productive and final-demand axes always use
+        ``Region / Level / Item``. For explicit parser layouts we normalize those
+        axes internally before running the engine, then restore the original
+        public layout on return.
+        """
+        names = self._axis_names(axis)
+        self._iot_public_axis_names[(matrix, side)] = names
+
+        if isinstance(axis, pd.MultiIndex) and names == ("Region", "Level", "Item"):
+            return axis
+
+        if isinstance(axis, pd.MultiIndex) and names == ("Region", marker):
+            return pd.MultiIndex.from_tuples(
+                [(region, marker, item) for region, item in axis.tolist()],
+                names=["Region", "Level", "Item"],
+            )
+
+        if side == "index" and isinstance(axis, pd.MultiIndex):
+            return axis
+        if side == "index" and not isinstance(axis, pd.MultiIndex):
+            return axis
+
+        raise NotImplementable(
+            "add_sectors currently supports only IOT productive/final-demand public axes "
+            "with regions, either in legacy form ('Region', 'Level', 'Item') or in "
+            f"explicit form ('Region', '{marker}')."
+        )
+
+    def _restore_iot_public_axis(
+        self,
+        axis,
+        *,
+        matrix: str,
+        side: str,
+        marker: str,
+    ):
+        """Restore one working IOT axis to the public layout originally exposed by the database."""
+        original_names = self._iot_public_axis_names.get((matrix, side))
+        if not original_names:
+            return axis
+
+        if isinstance(axis, pd.MultiIndex) and original_names == ("Region", "Level", "Item") and axis.nlevels == 3:
+            return pd.MultiIndex.from_tuples(axis.tolist(), names=["Region", "Level", "Item"])
+
+        if original_names == ("Region", marker) and isinstance(axis, pd.MultiIndex) and axis.nlevels == 3:
+            return pd.MultiIndex.from_tuples(
+                [(region, item) for region, _level, item in axis.tolist()],
+                names=["Region", marker],
+            )
+
+        if isinstance(axis, pd.MultiIndex) and len(original_names) == axis.nlevels:
+            return pd.MultiIndex.from_tuples(axis.tolist(), names=list(original_names))
+
+        if not isinstance(axis, pd.MultiIndex) and len(original_names) == 1:
+            return pd.Index(axis.tolist(), name=original_names[0])
+
+        return axis
+
+    def _prepare_iot_working_layout(self) -> None:
+        """Normalize explicit IOT axes to the legacy working layout expected by add-sectors."""
+        productive_matrices = (_ENUM["z"], _ENUM["Z"], _ENUM["e"], _ENUM["E"], _ENUM["v"], _ENUM["V"])
+        for matrix in productive_matrices:
+            if matrix not in self.matrices:
+                continue
+            frame = self.matrices[matrix]
+            if matrix in {_ENUM["z"], _ENUM["Z"]}:
+                frame.index = self._coerce_iot_axis_to_working(
+                    frame.index,
+                    matrix=matrix,
+                    side="index",
+                    marker=MI["s"],
+                )
+            frame.columns = self._coerce_iot_axis_to_working(
+                frame.columns,
+                matrix=matrix,
+                side="columns",
+                marker=MI["s"],
+            )
+
+        demand_matrices = (_ENUM["Y"], _ENUM["EY"], _ENUM["VY"])
+        for matrix in demand_matrices:
+            if matrix not in self.matrices:
+                continue
+            frame = self.matrices[matrix]
+            if matrix == _ENUM["Y"]:
+                frame.index = self._coerce_iot_axis_to_working(
+                    frame.index,
+                    matrix=matrix,
+                    side="index",
+                    marker=MI["s"],
+                )
+            frame.columns = self._coerce_iot_axis_to_working(
+                frame.columns,
+                matrix=matrix,
+                side="columns",
+                marker=MI["n"],
+            )
+
+    def _restore_iot_public_layout(self) -> None:
+        """Restore the original IOT public axes after the legacy working pass."""
+        productive_matrices = (_ENUM["z"], _ENUM["Z"], _ENUM["e"], _ENUM["E"], _ENUM["v"], _ENUM["V"])
+        for matrix in productive_matrices:
+            if matrix not in self.matrices:
+                continue
+            frame = self.matrices[matrix]
+            if matrix in {_ENUM["z"], _ENUM["Z"]}:
+                frame.index = self._restore_iot_public_axis(
+                    frame.index,
+                    matrix=matrix,
+                    side="index",
+                    marker=MI["s"],
+                )
+            frame.columns = self._restore_iot_public_axis(
+                frame.columns,
+                matrix=matrix,
+                side="columns",
+                marker=MI["s"],
+            )
+
+        demand_matrices = (_ENUM["Y"], _ENUM["EY"], _ENUM["VY"])
+        for matrix in demand_matrices:
+            if matrix not in self.matrices:
+                continue
+            frame = self.matrices[matrix]
+            if matrix == _ENUM["Y"]:
+                frame.index = self._restore_iot_public_axis(
+                    frame.index,
+                    matrix=matrix,
+                    side="index",
+                    marker=MI["s"],
+                )
+            frame.columns = self._restore_iot_public_axis(
+                frame.columns,
+                matrix=matrix,
+                side="columns",
+                marker=MI["n"],
+            )
+
+        if hasattr(self, "uncertainty_matrix") and self.uncertainty_matrix is not None:
+            self.uncertainty_matrix.index = self._restore_iot_public_axis(
+                self.uncertainty_matrix.index,
+                matrix=_ENUM["z"],
+                side="index",
+                marker=MI["s"],
+            )
+            self.uncertainty_matrix.columns = self._restore_iot_public_axis(
+                self.uncertainty_matrix.columns,
+                matrix=_ENUM["z"],
+                side="columns",
+                marker=MI["s"],
+            )
+
+    def _matrix_row_semantic_axes(self, matrix: str) -> tuple[str, ...]:
+        """Return semantic row-axis ids for one matrix, even with legacy public axes."""
+        try:
+            spec = self.db.get_block_spec(matrix)
+            return tuple(axis.id for axis in spec.row_axes)
+        except Exception:
+            labels = self.matrices[matrix].index
+            if isinstance(labels, pd.MultiIndex):
+                names = tuple(name for name in labels.names if name is not None)
+                if "Level" in names and "Item" in names:
+                    extras = tuple(name for name in names if name not in {"Level", "Item"})
+                    natural = MI["f"] if matrix == _ENUM["v"] else MI["k"]
+                    return extras + (natural,)
+                return names
+            natural = MI["f"] if matrix == _ENUM["v"] else MI["k"]
+            return (getattr(labels, "name", None) or natural,)
+
+    def _matrix_row_terminal_position(self, matrix: str) -> int:
+        """Return the positional level that stores the natural factor/satellite item."""
+        labels = self.matrices[matrix].index
+        if isinstance(labels, pd.MultiIndex):
+            return labels.nlevels - 1
+        return 0
+
+    def _matrix_row_region_position(self, matrix: str) -> int | None:
+        """Return the positional level that stores the row-region, if any."""
+        semantic_axes = self._matrix_row_semantic_axes(matrix)
+        if MI["r"] not in semantic_axes:
+            return None
+        return semantic_axes.index(MI["r"])
+
+    def _matching_factor_sat_rows(
+        self,
+        matrix: str,
+        input_item: str,
+        row_region: str | None,
+    ):
+        """Return row labels matching one factor/satellite item and optional row-region."""
+        labels = self.matrices[matrix].index
+        terminal_position = self._matrix_row_terminal_position(matrix)
+        region_position = self._matrix_row_region_position(matrix)
+
+        if isinstance(labels, pd.MultiIndex):
+            mask = labels.get_level_values(terminal_position) == input_item
+            if region_position is not None and not (row_region in (None, "") or pd.isna(row_region)):
+                if row_region in self.regions:
+                    region_values = {row_region}
+                elif row_region in self.db.regions_clusters:
+                    region_values = set(self.db.regions_clusters[row_region])
+                else:
+                    raise ValueError(f"Unknown DB region {row_region}.")
+                mask &= labels.get_level_values(region_position).isin(region_values)
+            return labels[mask]
+
+        if not (row_region in (None, "") or pd.isna(row_region)) and self._matrix_row_region_position(matrix) is not None:
+            raise ValueError(f"Unknown DB region {row_region}.")
+        if input_item not in labels:
+            return pd.Index([], name=labels.name)
+        return pd.Index([input_item], name=labels.name)
+
+    def _target_output_column(self, region_to: str, activity: str):
+        """Return the target productive column key for the new item."""
+        return (region_to, MI["a" if self.table == SUT else "s"], activity)
+
+    def _parent_output_column(self, region_to: str, activity: str):
+        """Return the parent productive column key for one new target item."""
+        if self.table == SUT:
+            if activity not in self.parented_activities:
+                return None
+            parent = self.db.add_sectors_master.query(f"{MI['a']}==@activity")[
+                MSC[self.table]["parent_activity"]
+            ].values[0]
+            if pd.isna(parent):
+                return None
+            return (region_to, MI["a"], parent)
+
+        if activity not in self.parented_sectors:
+            return None
+        parent = self.db.add_sectors_master.query(f"{MI['s']}==@activity")[
+            MSC[self.table]["parent_sector"]
+        ].values[0]
+        if pd.isna(parent):
+            return None
+        return (region_to, MI["s"], parent)
+
+    def _factor_sat_allocation_weights(
+        self,
+        matrix: str,
+        row_labels,
+        region_to: str,
+        activity: str,
+    ) -> pd.Series:
+        """Return allocation weights for one factor/satellite update across matching rows."""
+        if len(row_labels) == 0:
+            return pd.Series(dtype=float)
+
+        parent_column = self._parent_output_column(region_to, activity)
+        if parent_column is not None:
+            reference = self.matrices[matrix].loc[row_labels, parent_column]
+            if isinstance(reference, pd.DataFrame):
+                reference = reference.iloc[:, 0]
+            reference = reference.astype(float)
+            total = reference.sum()
+            if total > 0:
+                return reference / total
+
+        weight = 1 / len(row_labels)
+        return pd.Series(weight, index=row_labels, dtype=float)
+
     def to_iot(self):
         """Return an IOT with the new sectors inserted in coefficient form."""
 
@@ -92,6 +374,7 @@ class AddSectorEngine:
         self.add_slices()
         self.reindex_matrices()
         self.get_mario_indices()
+        self._restore_iot_public_layout()
 
         return self.matrices, self.units, self.indeces, self.uncertainty_matrix
 
@@ -363,18 +646,16 @@ class AddSectorEngine:
 
     def reindex_matrices(self) -> None:
         """Sort index and columns after concatenating the new slices."""
-
-        matrices_levels = {
-            "z": {0: 3, 1: 3},
-            "e": {0: 1, 1: 3},
-            "v": {0: 1, 1: 3},
-            "Y": {0: 3, 1: 3},
-        }
-
-        for matrix, axes in matrices_levels.items():
-            for axis, nlevels in axes.items():
-                levels = list(range(nlevels))
-                self.matrices[matrix].sort_index(axis=axis, level=levels, inplace=True)
+        for matrix in ("z", "e", "v", "Y"):
+            for axis, labels in ((0, self.matrices[matrix].index), (1, self.matrices[matrix].columns)):
+                if isinstance(labels, pd.MultiIndex):
+                    self.matrices[matrix].sort_index(
+                        axis=axis,
+                        level=list(range(labels.nlevels)),
+                        inplace=True,
+                    )
+                else:
+                    self.matrices[matrix].sort_index(axis=axis, inplace=True)
 
         if self.table == IOT:
             for axis in [0, 1]:
@@ -509,10 +790,10 @@ class AddSectorEngine:
             ]
             satellites_to_nullify = inventory.query(
                 f"`{INC['item_type']}`=='{MI['k']}' & `{INC['change_type']}`=='Update'"
-            )[INC["db_item"]].values
+            )[[INC["db_item"], INC["db_region"]]].itertuples(index=False, name=None)
             factors_to_nullify = inventory.query(
                 f"`{INC['item_type']}`=='{MI['f']}' & `{INC['change_type']}`=='Update'"
-            )[INC["db_item"]].values
+            )[[INC["db_item"], INC["db_region"]]].itertuples(index=False, name=None)
 
             for c, r in commodities_to_nullify:
                 if r in self.regions:
@@ -560,11 +841,15 @@ class AddSectorEngine:
                                 (region, MI["s"], activity),
                             ] = 0
 
-            for k in satellites_to_nullify:
-                slices[_ENUM["e"]].loc[k, (region, MI["a" if self.table == SUT else "s"], activity)] = 0
+            for k, row_region in satellites_to_nullify:
+                row_labels = self._matching_factor_sat_rows(_ENUM["e"], k, row_region)
+                if len(row_labels):
+                    slices[_ENUM["e"]].loc[row_labels, (region, MI["a" if self.table == SUT else "s"], activity)] = 0
 
-            for f in factors_to_nullify:
-                slices[_ENUM["v"]].loc[f, (region, MI["a" if self.table == SUT else "s"], activity)] = 0
+            for f, row_region in factors_to_nullify:
+                row_labels = self._matching_factor_sat_rows(_ENUM["v"], f, row_region)
+                if len(row_labels):
+                    slices[_ENUM["v"]].loc[row_labels, (region, MI["a" if self.table == SUT else "s"], activity)] = 0
 
         return slices
 
@@ -770,9 +1055,10 @@ class AddSectorEngine:
                                         "no parent activity is defined. Therefore, only domestic consumption is assumed."
                                     )
                                 else:
+                                    parent_selector = parent_activity if pd.isna(parent_activity) is False else sn
                                     com_use = self.matrices[_ENUM["U"]].loc[
                                         (self.db.regions_clusters[region_from], sn, input_item_parent),
-                                        (region_to, sn, parent_activity),
+                                        (region_to, sn, parent_selector),
                                     ]
                                     if isinstance(com_use, pd.Series):
                                         com_use = com_use.to_frame()
@@ -804,9 +1090,10 @@ class AddSectorEngine:
                                         "no parent sector is defined. Therefore, only domestic consumption is assumed."
                                     )
                                 else:
+                                    parent_selector = parent_activity if pd.isna(parent_activity) is False else sn
                                     com_use = self.matrices[_ENUM["Z"]].loc[
                                         (self.db.regions_clusters[region_from], sn, input_item_parent),
-                                        (region_to, sn, parent_activity),
+                                        (region_to, sn, parent_selector),
                                     ]
                                     slices_uncertainty.loc[
                                         (self.db.regions_clusters[region_from], sn, input_item),
@@ -921,19 +1208,27 @@ class AddSectorEngine:
 
         for i in inventory.index:
             input_item = inventory.loc[i, INC["db_item"]]
+            row_region = inventory.loc[i, INC["db_region"]]
             quantity = inventory.loc[i, self.converted_quantity_column]
             change_type = inventory.loc[i, INC["change_type"]]
+            row_labels = self._matching_factor_sat_rows(matrix, input_item, row_region)
+            target_column = self._target_output_column(region_to, activity)
 
             if change_type == "Update":
-                slices[matrix].loc[input_item, (region_to, MI["a" if self.table == SUT else "s"], activity)] += quantity
+                if len(row_labels) == 0:
+                    continue
+                weights = self._factor_sat_allocation_weights(matrix, row_labels, region_to, activity)
+                slices[matrix].loc[row_labels, target_column] += weights * quantity
             elif change_type == "Percentage":
+                if len(row_labels) == 0:
+                    continue
                 if self.table == SUT:
                     if activity in self.parented_activities:
                         parent = self.db.add_sectors_master.query(f"{MI['a']}==@activity")[
                             MSC[self.table]["parent_activity"]
                         ].values[0]
-                        old_value = self.matrices[matrix].loc[input_item, (region_to, MI["a"], parent)]
-                        slices[matrix].loc[input_item, (region_to, MI["a"], activity)] = old_value * (1 + quantity)
+                        old_value = self.matrices[matrix].loc[row_labels, (region_to, MI["a"], parent)]
+                        slices[matrix].loc[row_labels, target_column] = old_value * (1 + quantity)
                     else:
                         raise ValueError(
                             f"It's not possible to apply a percentage change to activity {activity} "
@@ -944,8 +1239,8 @@ class AddSectorEngine:
                         parent = self.db.add_sectors_master.query(f"{MI['s']}==@activity")[
                             MSC[self.table]["parent_sector"]
                         ].values[0]
-                        old_value = self.matrices[matrix].loc[input_item, (region_to, MI["s"], parent)]
-                        slices[matrix].loc[input_item, (region_to, MI["s"], activity)] = old_value * (1 + quantity)
+                        old_value = self.matrices[matrix].loc[row_labels, (region_to, MI["s"], parent)]
+                        slices[matrix].loc[row_labels, target_column] = old_value * (1 + quantity)
                     else:
                         raise ValueError(
                             f"It's not possible to apply a percentage change to sector {activity} "
@@ -1088,9 +1383,19 @@ class AddSectorEngine:
             elif item == "n":
                 mario_indices[item] = {"main": sorted(set(self.matrices[_ENUM["Y"]].columns.get_level_values(2)))}
             elif item == "k":
-                mario_indices[item] = {"main": sorted(set(self.matrices[_ENUM["e"]].index))}
+                if isinstance(self.matrices[_ENUM["e"]].index, pd.MultiIndex):
+                    mario_indices[item] = {
+                        "main": sorted(set(self.matrices[_ENUM["e"]].index.get_level_values(-1)))
+                    }
+                else:
+                    mario_indices[item] = {"main": sorted(set(self.matrices[_ENUM["e"]].index))}
             elif item == "f":
-                mario_indices[item] = {"main": sorted(set(self.matrices[_ENUM["v"]].index))}
+                if isinstance(self.matrices[_ENUM["v"]].index, pd.MultiIndex):
+                    mario_indices[item] = {
+                        "main": sorted(set(self.matrices[_ENUM["v"]].index.get_level_values(-1)))
+                    }
+                else:
+                    mario_indices[item] = {"main": sorted(set(self.matrices[_ENUM["v"]].index))}
 
         self.indeces = mario_indices
 

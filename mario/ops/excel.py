@@ -8,6 +8,7 @@ import os
 import pandas as pd
 from copy import deepcopy as dc
 
+from mario.log_exc.exceptions import NotImplementable
 from mario.model.conventions import _MASTER_INDEX, _ENUM
 from mario.ops.workbook_specs import (
     ADD_SECTOR_SHEETS,
@@ -236,6 +237,215 @@ def dataframe_to_xlsx(path, **kwargs):
     file.close()
 
 
+def _iot_historical_terminal_level(matrix_name, side):
+    """Return the historical ``Level`` label used by the Excel exporter."""
+    if side == "index":
+        if matrix_name in {_ENUM.Z, _ENUM.z, _ENUM.Y}:
+            return _MASTER_INDEX["s"]
+        if matrix_name in {_ENUM.V, _ENUM.v, _ENUM.VY}:
+            return _MASTER_INDEX["f"]
+        if matrix_name in {_ENUM.E, _ENUM.e, _ENUM.EY}:
+            return _MASTER_INDEX["k"]
+    elif side == "columns":
+        if matrix_name in {_ENUM.Z, _ENUM.z, _ENUM.V, _ENUM.v, _ENUM.E, _ENUM.e}:
+            return _MASTER_INDEX["s"]
+        if matrix_name in {_ENUM.Y, _ENUM.EY, _ENUM.VY}:
+            return _MASTER_INDEX["n"]
+
+    raise NotImplementable(
+        f"Historical Excel export does not support matrix {matrix_name!r} on axis {side!r}."
+    )
+
+
+def _axis_labels(axis):
+    """Return raw axis tuples and public names from a pandas axis."""
+    if isinstance(axis, pd.MultiIndex):
+        return [tuple(value) for value in axis.tolist()], tuple(axis.names)
+    return [(value,) for value in axis.tolist()], (axis.name,)
+
+
+def _to_historical_iot_axis(axis, *, matrix_name, side):
+    """Convert one IOT axis to the historical ``Region/Level/Item`` layout."""
+    raw_values, names = _axis_labels(axis)
+    clean_names = tuple(name if name is not None else "Item" for name in names)
+    historical_names = (_MASTER_INDEX["r"], "Level", "Item")
+    terminal_level = _iot_historical_terminal_level(matrix_name, side)
+
+    if clean_names == historical_names:
+        return pd.MultiIndex.from_tuples(raw_values, names=list(historical_names))
+
+    tuples = []
+    for value in raw_values:
+        if len(value) == 2 and clean_names == (_MASTER_INDEX["r"], terminal_level):
+            tuples.append((value[0], terminal_level, value[1]))
+            continue
+        if len(value) == 1 and clean_names in {(terminal_level,), ("Item",), (None,)}:
+            tuples.append(("-", terminal_level, value[0]))
+            continue
+        if len(value) == 2 and clean_names == ("Level", "Item"):
+            tuples.append(("-", value[0], value[1]))
+            continue
+        if len(value) == 2 and clean_names == (_MASTER_INDEX["r"], "Item"):
+            tuples.append((value[0], terminal_level, value[1]))
+            continue
+        raise NotImplementable(
+            "Historical Excel export supports only classic or by-region IOT axes. "
+            f"Matrix {matrix_name!r} on {side!r} has axis names {clean_names} and values like {value}."
+        )
+
+    return pd.MultiIndex.from_tuples(tuples, names=list(historical_names))
+
+
+def _prepare_iot_excel_export_frame(frame, *, matrix_name):
+    """Return one IOT matrix with historical public axes for Excel export."""
+    exported = frame.copy(deep=True)
+    exported.index = _to_historical_iot_axis(
+        exported.index,
+        matrix_name=matrix_name,
+        side="index",
+    )
+    exported.columns = _to_historical_iot_axis(
+        exported.columns,
+        matrix_name=matrix_name,
+        side="columns",
+    )
+    return exported
+
+
+def _is_historical_iot_axis(axis, *, matrix_name, side):
+    """Return whether one IOT axis already fits the historical Excel surface."""
+    _, names = _axis_labels(axis)
+    clean_names = tuple(name if name is not None else "Item" for name in names)
+    terminal_level = _iot_historical_terminal_level(matrix_name, side)
+    historical_names = (_MASTER_INDEX["r"], "Level", "Item")
+
+    if clean_names == historical_names:
+        return True
+
+    if side == "index" and matrix_name in {_ENUM.V, _ENUM.v, _ENUM.VY, _ENUM.E, _ENUM.e, _ENUM.EY}:
+        return len(clean_names) == 1 and clean_names[0] in {terminal_level, "Item"}
+
+    return False
+
+
+def _needs_explicit_iot_excel_export(matrices):
+    """Return whether the queried IOT blocks require explicit no-Level export."""
+    for matrix_name, frame in matrices.items():
+        if matrix_name not in {_ENUM.Z, _ENUM.z, _ENUM.Y, _ENUM.V, _ENUM.v, _ENUM.E, _ENUM.e, _ENUM.EY, _ENUM.VY}:
+            continue
+        if not _is_historical_iot_axis(frame.index, matrix_name=matrix_name, side="index"):
+            return True
+        if not _is_historical_iot_axis(frame.columns, matrix_name=matrix_name, side="columns"):
+            return True
+    return False
+
+
+def _pad_axis_tokens(tokens, *, total_levels, axis_names):
+    """Pad one axis tuple for explicit Excel export while preserving region-first semantics."""
+    values = tuple(tokens)
+    if len(values) >= total_levels:
+        return values
+
+    clean_names = tuple(name if name is not None else "Item" for name in axis_names)
+    pad = (None,) * (total_levels - len(values))
+    if clean_names and clean_names[0] == _MASTER_INDEX["r"]:
+        return values + pad
+    return pad + values
+
+
+def _write_header_value(sheet, row, col, value, header_format):
+    """Write one header token while preserving blank placeholders."""
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        sheet.write_blank(row, col, None, header_format)
+    else:
+        sheet.write(row, col, value, header_format)
+
+
+def _write_explicit_iot_matrices(sheet, Z, V, E, Y, EY, VY, value_format, header_format):
+    """Write the explicit no-Level IOT workbook layout."""
+    row_meta_cols = max(Z.index.nlevels, V.index.nlevels, E.index.nlevels)
+    header_rows = max(Z.columns.nlevels, Y.columns.nlevels)
+
+    productive_columns, productive_names = _axis_labels(Z.columns)
+    final_demand_columns, final_demand_names = _axis_labels(Y.columns)
+
+    for col_offset, tokens in enumerate(productive_columns):
+        padded = _pad_axis_tokens(
+            tokens,
+            total_levels=header_rows,
+            axis_names=productive_names,
+        )
+        for row_offset, value in enumerate(padded):
+            _write_header_value(
+                sheet,
+                row_offset,
+                row_meta_cols + col_offset,
+                value,
+                header_format,
+            )
+
+    for col_offset, tokens in enumerate(final_demand_columns):
+        padded = _pad_axis_tokens(
+            tokens,
+            total_levels=header_rows,
+            axis_names=final_demand_names,
+        )
+        for row_offset, value in enumerate(padded):
+            _write_header_value(
+                sheet,
+                row_offset,
+                row_meta_cols + Z.shape[1] + col_offset,
+                value,
+                header_format,
+            )
+
+    block_specs = [
+        (Z, 0),
+        (V, Z.shape[0]),
+        (E, Z.shape[0] + V.shape[0]),
+    ]
+    for frame, row_offset_base in block_specs:
+        labels, names = _axis_labels(frame.index)
+        for row_offset, tokens in enumerate(labels):
+            padded = _pad_axis_tokens(
+                tokens,
+                total_levels=row_meta_cols,
+                axis_names=names,
+            )
+            for col_offset, value in enumerate(padded):
+                _write_header_value(
+                    sheet,
+                    header_rows + row_offset_base + row_offset,
+                    col_offset,
+                    value,
+                    header_format,
+                )
+
+    for row in range(Z.shape[0]):
+        for col in range(Z.shape[1]):
+            sheet.write(header_rows + row, row_meta_cols + col, Z.iloc[row, col], value_format)
+
+    for row in range(V.shape[0]):
+        for col in range(V.shape[1]):
+            sheet.write(header_rows + Z.shape[0] + row, row_meta_cols + col, V.iloc[row, col], value_format)
+
+    for row in range(E.shape[0]):
+        for col in range(E.shape[1]):
+            sheet.write(header_rows + Z.shape[0] + V.shape[0] + row, row_meta_cols + col, E.iloc[row, col], value_format)
+
+    for row in range(Y.shape[0]):
+        for col in range(Y.shape[1]):
+            sheet.write(header_rows + row, row_meta_cols + Z.shape[1] + col, Y.iloc[row, col], value_format)
+
+    for row in range(VY.shape[0]):
+        for col in range(VY.shape[1]):
+            sheet.write(header_rows + Z.shape[0] + row, row_meta_cols + Z.shape[1] + col, VY.iloc[row, col], value_format)
+
+    for row in range(EY.shape[0]):
+        for col in range(EY.shape[1]):
+            sheet.write(header_rows + Z.shape[0] + V.shape[0] + row, row_meta_cols + Z.shape[1] + col, EY.iloc[row, col], value_format)
+
+
 def wrirte_matrices(sheet, Z, V, E, Y, EY, VY, flow_format, header_format):
     """Write the canonical MARIO block layout to one worksheet."""
     row_counter = 0
@@ -362,24 +572,29 @@ def database_excel(instance, flows, coefficients, directory, scenario):
             scenarios=scenario,
         )
 
-        V = data[_ENUM.V]
-        E = data[_ENUM.E]
-        Z = data[_ENUM.Z]
-        Y = data[_ENUM.Y]
-        EY = data[_ENUM.EY]
-        VY = data[_ENUM.VY]
-
-        V_index = V.index.to_list()
-        V.index = [["-"] * len(V_index), [_MASTER_INDEX["f"]] * len(V_index), V_index]
-
-        E_index = E.index.to_list()
-        E.index = [["-"] * len(E_index), [_MASTER_INDEX["k"]] * len(E_index), E_index]
-
         # Filling the index indeces sheet
         flows = workbook.add_worksheet("flows")
         flow_format = workbook.add_format({"num_format": "0.0;-0.0;-"})
-
-        wrirte_matrices(flows, Z, V, E, Y, EY, VY, flow_format, header_format)
+        if instance.table_type == "IOT" and _needs_explicit_iot_excel_export(data):
+            _write_explicit_iot_matrices(
+                flows,
+                data[_ENUM.Z],
+                data[_ENUM.V],
+                data[_ENUM.E],
+                data[_ENUM.Y],
+                data[_ENUM.EY],
+                data[_ENUM.VY],
+                flow_format,
+                header_format,
+            )
+        else:
+            Z = _prepare_iot_excel_export_frame(data[_ENUM.Z], matrix_name=_ENUM.Z)
+            Y = _prepare_iot_excel_export_frame(data[_ENUM.Y], matrix_name=_ENUM.Y)
+            V = _prepare_iot_excel_export_frame(data[_ENUM.V], matrix_name=_ENUM.V)
+            E = _prepare_iot_excel_export_frame(data[_ENUM.E], matrix_name=_ENUM.E)
+            EY = _prepare_iot_excel_export_frame(data[_ENUM.EY], matrix_name=_ENUM.EY)
+            VY = _prepare_iot_excel_export_frame(data[_ENUM.VY], matrix_name=_ENUM.VY)
+            wrirte_matrices(flows, Z, V, E, Y, EY, VY, flow_format, header_format)
 
     if coefficients:
         matrices = [_ENUM.v, _ENUM.e, _ENUM.z, _ENUM.Y, _ENUM.EY, _ENUM.VY]
@@ -388,24 +603,29 @@ def database_excel(instance, flows, coefficients, directory, scenario):
             scenarios=scenario,
         )
 
-        V = data[_ENUM.v]
-        E = data[_ENUM.e]
-        Z = data[_ENUM.z]
-        Y = data[_ENUM.Y]
-        EY = data[_ENUM.EY]
-        VY = data[_ENUM.VY]
-
-        V_index = V.index.to_list()
-        V.index = [["-"] * len(V_index), [_MASTER_INDEX["f"]] * len(V_index), V_index]
-
-        E_index = E.index.to_list()
-        E.index = [["-"] * len(E_index), [_MASTER_INDEX["k"]] * len(E_index), E_index]
-
         # Filling the index indeces sheet
         coefficients = workbook.add_worksheet("coefficients")
         coeff_format = workbook.add_format({"num_format": "0.000;-0.000;-"})
-
-        wrirte_matrices(coefficients, Z, V, E, Y, EY, VY, coeff_format, header_format)
+        if instance.table_type == "IOT" and _needs_explicit_iot_excel_export(data):
+            _write_explicit_iot_matrices(
+                coefficients,
+                data[_ENUM.z],
+                data[_ENUM.v],
+                data[_ENUM.e],
+                data[_ENUM.Y],
+                data[_ENUM.EY],
+                data[_ENUM.VY],
+                coeff_format,
+                header_format,
+            )
+        else:
+            Z = _prepare_iot_excel_export_frame(data[_ENUM.z], matrix_name=_ENUM.z)
+            Y = _prepare_iot_excel_export_frame(data[_ENUM.Y], matrix_name=_ENUM.Y)
+            V = _prepare_iot_excel_export_frame(data[_ENUM.v], matrix_name=_ENUM.v)
+            E = _prepare_iot_excel_export_frame(data[_ENUM.e], matrix_name=_ENUM.e)
+            EY = _prepare_iot_excel_export_frame(data[_ENUM.EY], matrix_name=_ENUM.EY)
+            VY = _prepare_iot_excel_export_frame(data[_ENUM.VY], matrix_name=_ENUM.VY)
+            wrirte_matrices(coefficients, Z, V, E, Y, EY, VY, coeff_format, header_format)
 
     units = workbook.add_worksheet("units")
 

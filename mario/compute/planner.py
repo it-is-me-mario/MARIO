@@ -5,11 +5,13 @@ from __future__ import annotations
 from collections.abc import Mapping, MutableMapping
 
 from mario.compute.catalog import get_matrix_spec
+from mario.compute.operators import get_registered_operator
 from mario.compute.types import (
     ConcatStrategy,
     ExtractStrategy,
     FormulaStrategy,
     MatrixKey,
+    OperatorStrategy,
     ParsedStrategy,
     ResolutionContext,
     ResolutionResult,
@@ -118,6 +120,9 @@ def strategy_is_immediately_available(
     if isinstance(strategy, FormulaStrategy):
         return all(store.has(source) for source in strategy.inputs)
 
+    if isinstance(strategy, OperatorStrategy):
+        return all(store.has(source) for source in strategy.inputs)
+
     return False
 
 
@@ -134,6 +139,7 @@ def strategy_cost_hint(
         StrategyKind.EXTRACT: 2,
         StrategyKind.CONCAT: 3,
         StrategyKind.FORMULA: 4,
+        StrategyKind.OPERATOR: 4,
     }[strategy.kind]
     available_penalty = 0 if strategy_is_immediately_available(strategy, target, dataset, scenario, context) else 10
     return (priority + available_penalty, len(strategy.dependencies), 0)
@@ -147,7 +153,19 @@ def candidate_strategies(
 ) -> tuple[Strategy, ...]:
     """Return candidate strategies ordered by the planner priority rules."""
     table_kind = resolve_table_kind(dataset, context)
-    spec = get_matrix_spec(table_kind, target)
+    try:
+        spec = get_matrix_spec(table_kind, target)
+    except KeyError:
+        operator = get_registered_operator(dataset, target)
+        if operator is None:
+            raise
+        return (
+            OperatorStrategy(
+                inputs=operator.inputs,
+                operator_kind=operator.kind.value,
+                notes=operator.notes,
+            ),
+        )
     return tuple(
         sorted(
             spec.strategies,
@@ -184,6 +202,9 @@ def build_plan(
         # The planner resolves recursive dependencies for formula and concat
         # strategies so the executor can materialize them in-order later on.
         if isinstance(strategy, FormulaStrategy):
+            for dependency in strategy.inputs:
+                plan_for(dependency, stack + (name,))
+        elif isinstance(strategy, OperatorStrategy):
             for dependency in strategy.inputs:
                 plan_for(dependency, stack + (name,))
         elif isinstance(strategy, ConcatStrategy):
@@ -240,6 +261,11 @@ def _select_strategy(
         if isinstance(strategy, FormulaStrategy):
             if not context.allow_formula:
                 continue
+            if any(dependency in stack for dependency in strategy.inputs):
+                continue
+            return strategy
+
+        if isinstance(strategy, OperatorStrategy):
             if any(dependency in stack for dependency in strategy.inputs):
                 continue
             return strategy

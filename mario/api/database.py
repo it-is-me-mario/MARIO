@@ -17,6 +17,7 @@ from mario.ops.add_sector_workbook import (
     group_inventories_by_target,
     read_add_sector_workbook,
     write_add_sector_workbook,
+    write_inventory_templates_to_workbook,
 )
 from mario.ops.add_sector_engine import run_add_sector_engine
 from mario.ops.add_sector_engine import collect_add_sector_matrices
@@ -871,7 +872,7 @@ class Database(CoreModel):
             redefine_uncertainties=redefine_uncertainties,
         )
 
-    def read_add_sectors_excel(self, path, read_inventories=False):
+    def read_add_sectors_excel(self, path, get_inventories=False, read_inventories=False):
         """Read one add-sectors workbook and attach its metadata to the database.
 
         This method always stores the normalized master sheet, cluster maps and
@@ -880,7 +881,11 @@ class Database(CoreModel):
         stores them on ``self.inventories``.
         """
 
-        workbook = read_add_sector_workbook(path, table=self.meta.table)
+        workbook = read_add_sector_workbook(
+            path,
+            table=self.meta.table,
+            require_inventory_sheets=read_inventories,
+        )
         self.add_sectors_workbook = workbook
         self.add_sectors_workbook_path = str(path)
         self.add_sectors_master = workbook.master_sheet
@@ -906,8 +911,41 @@ class Database(CoreModel):
         for key, value in derived.items():
             setattr(self, key, value)
 
+        if get_inventories:
+            self.get_inventory_sheets(path)
+            workbook = read_add_sector_workbook(
+                path,
+                table=self.meta.table,
+                require_inventory_sheets=False,
+            )
+            self.add_sectors_workbook = workbook
+
         if read_inventories:
             self.inventories = group_inventories_by_target(workbook)
+
+    def get_inventory_sheets(self, path, overwrite=True):
+        """Create inventory-sheet templates referenced by one add-sectors workbook."""
+
+        workbook = getattr(self, "add_sectors_workbook", None)
+        workbook_path = getattr(self, "add_sectors_workbook_path", None)
+
+        if workbook is None or workbook_path != str(path):
+            self.read_add_sectors_excel(path, read_inventories=False)
+            workbook = self.add_sectors_workbook
+
+        write_inventory_templates_to_workbook(
+            self,
+            workbook,
+            path,
+            overwrite=overwrite,
+        )
+        workbook = read_add_sector_workbook(
+            path,
+            table=self.meta.table,
+            require_inventory_sheets=False,
+        )
+        self.add_sectors_workbook = workbook
+        self.add_sectors_workbook_path = str(path)
 
     def read_inventory_sheets(self, path):
         """Read and group inventory sheets from an add-sectors workbook.
@@ -922,6 +960,14 @@ class Database(CoreModel):
         if workbook is None or workbook_path != str(path):
             self.read_add_sectors_excel(path, read_inventories=False)
             workbook = self.add_sectors_workbook
+
+        if not workbook.inventories_by_sheet:
+            workbook = read_add_sector_workbook(
+                path,
+                table=self.meta.table,
+                require_inventory_sheets=True,
+            )
+            self.add_sectors_workbook = workbook
 
         self.add_sectors_workbook_path = str(path)
         self.inventories = group_inventories_by_target(workbook)

@@ -154,7 +154,7 @@ def build_database_from_state(
     matrices, indexes, units = state_to_database_payload(state)
     metadata = state.metadata
 
-    return _MODELS[model](
+    database = _MODELS[model](
         name=name if name is not None else metadata.name,
         table=TableKind.coerce(metadata.table_kind).value,
         source=source if source is not None else metadata.source,
@@ -165,6 +165,14 @@ def build_database_from_state(
         notes=list(metadata.history),
         **kwargs,
     )
+
+    for spec in metadata.extra.get("block_specs", ()):
+        database.register_block_spec(spec, replace=True)
+
+    for operator in metadata.extra.get("operators", ()):
+        database.register_operator(operator, replace=True)
+
+    return database
 
 
 def build_database_from_parser_output(

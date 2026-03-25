@@ -8,12 +8,19 @@ import logging
 import pandas as pd
 
 from mario.internal import ModelState
+from mario.log_exc.exceptions import WrongInput
 from mario.log_exc.logger import log_time
 from mario.parsers.api import build_parser_state
 from mario.parsers.base import BaseParser
+from mario.parsers.matrix_layouts import (
+    build_iot_indexes_from_units_and_y,
+    iot_block_specs_for_matrix_layouts,
+    iot_units_from_frame,
+    normalize_matrix_layouts,
+)
 from mario.parsers.registry import register_parser
 from mario.parsers.tabular import get_index_txt, get_units, rename_index, sort_frames
-from mario.parsers.txt import _find_flat_payload, parse_flat_frames
+from mario.parsers.txt import _find_flat_payload, _flat_units_to_legacy, _normalize_iot_matrix, parse_flat_frames
 from mario.storage.base import BlockRepository
 
 logger = logging.getLogger(__name__)
@@ -36,6 +43,7 @@ def matrix_parquet_parser(path: str, table: str, mode: str):
     )
 
     matrices = {}
+    final_demand_axis_names: tuple[str, ...] | None = None
     for matrix_name in expected:
         target = root / f"{matrix_name}.parquet"
         if not target.exists():
@@ -62,14 +70,79 @@ def matrix_parquet_parser(path: str, table: str, mode: str):
     return {"baseline": matrices}, indeces, units
 
 
-def flat_parquet_parser(path: str, table: str, mode: str):
+def matrix_parquet_parser_with_layouts(
+    path: str,
+    *,
+    mode: str,
+    matrix_layouts: dict[str, tuple[str, ...]],
+):
+    """Parse matrix-per-file parquet payloads with semantic matrix layouts."""
+    root = Path(path)
+    expected = _MATRIX_COEFFICIENT_FILES if mode == "coefficients" else _MATRIX_FLOW_FILES
+    required = (
+        _MATRIX_REQUIRED_COEFFICIENT_FILES
+        if mode == "coefficients"
+        else _MATRIX_REQUIRED_FLOW_FILES
+    )
+
+    matrices = {}
+    final_demand_axis_names: tuple[str, ...] | None = None
+    for matrix_name in expected:
+        target = root / f"{matrix_name}.parquet"
+        if not target.exists():
+            if matrix_name not in required:
+                continue
+            raise FileNotFoundError(target)
+        matrices[matrix_name], current_fd_axis_names = _normalize_iot_matrix(
+            pd.read_parquet(target),
+            matrix_name,
+            matrix_layouts,
+        )
+        if current_fd_axis_names is not None:
+            if final_demand_axis_names is None:
+                final_demand_axis_names = current_fd_axis_names
+            elif final_demand_axis_names != current_fd_axis_names:
+                raise WrongInput(
+                    f"Mixed semantic final-demand axes are not supported: {final_demand_axis_names} and {current_fd_axis_names}."
+                )
+
+    if "EY" not in matrices:
+        matrices["EY"] = pd.DataFrame(0, index=matrices["E"].index, columns=matrices["Y"].columns)
+    if "VY" not in matrices:
+        matrices["VY"] = pd.DataFrame(0, index=matrices["V"].index, columns=matrices["Y"].columns)
+
+    units_path = root / "units.parquet"
+    if not units_path.exists():
+        raise FileNotFoundError(units_path)
+    units_frame = pd.read_parquet(units_path)
+    units_frame.columns = ["unit"]
+    units_frame.index.names = ["level", "item"]
+
+    sort_frames(matrices)
+    indexes = build_iot_indexes_from_units_and_y(units_frame, matrices)
+    units = iot_units_from_frame(units_frame)
+    extra = {
+        "block_specs": iot_block_specs_for_matrix_layouts(
+            matrix_layouts,
+            final_demand_axis_names=final_demand_axis_names or ("Region", "Consumption category"),
+        )
+    }
+    return {"baseline": matrices}, indexes, units, extra
+
+
+def flat_parquet_parser(
+    path: str,
+    table: str,
+    mode: str,
+    matrix_layouts: dict[str, tuple[str, ...]] | None = None,
+):
     """Parse the flat parquet layout exported by ``Database.to_parquet(flat=True)``."""
     root = Path(path)
     data_path = _find_flat_payload(root, "data", {".parquet"})
     units_path = _find_flat_payload(root, "units", {".parquet"})
     data = pd.read_parquet(data_path)
     units = pd.read_parquet(units_path)
-    return parse_flat_frames(data, units, table, mode)
+    return parse_flat_frames(data, units, table, mode, matrix_layouts=matrix_layouts)
 
 
 class ParquetParser(BaseParser):
@@ -84,6 +157,7 @@ class ParquetParser(BaseParser):
         mode: str,
         *,
         flat: bool = False,
+        matrix_layouts: dict[str, object] | None = None,
         name: str | None = None,
         source: str | None = None,
         year: int | None = None,
@@ -97,8 +171,27 @@ class ParquetParser(BaseParser):
             f"Parser: parquet reading {table} {mode} from {path} in {layout} mode.",
             "info",
         )
-        parser = flat_parquet_parser if flat else matrix_parquet_parser
-        matrices, indexes, units = parser(path, table, mode)
+        normalized_layouts = normalize_matrix_layouts(matrix_layouts)
+        if normalized_layouts:
+            if table != "IOT":
+                raise WrongInput("matrix_layouts are currently supported only for IOT parquet parsers.")
+            if flat:
+                matrices, indexes, units, extra = flat_parquet_parser(
+                    path,
+                    table,
+                    mode,
+                    matrix_layouts=normalized_layouts,
+                )
+            else:
+                matrices, indexes, units, extra = matrix_parquet_parser_with_layouts(
+                    path,
+                    mode=mode,
+                    matrix_layouts=normalized_layouts,
+                )
+        else:
+            parser = flat_parquet_parser if flat else matrix_parquet_parser
+            matrices, indexes, units = parser(path, table, mode)
+            extra = {}
         state = build_parser_state(
             table=table,
             matrices=matrices,
@@ -113,6 +206,7 @@ class ParquetParser(BaseParser):
             source_path=path,
             repository=repository,
         )
+        state.metadata.extra.update(extra)
         log_time(logger, f"Parser: parquet state ready for {table}.", "info")
         return state
 
@@ -123,6 +217,7 @@ def parse_state_from_parquet(
     mode: str,
     *,
     flat: bool = False,
+    matrix_layouts: dict[str, object] | None = None,
     **kwargs,
 ) -> ModelState:
     """Convenience wrapper around ``ParquetParser`` for internal use."""
@@ -131,6 +226,7 @@ def parse_state_from_parquet(
         table=table,
         mode=mode,
         flat=flat,
+        matrix_layouts=matrix_layouts,
         **kwargs,
     )
 
