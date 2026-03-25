@@ -252,6 +252,8 @@ def _prepare_split_model_directory(*, main_dir_path, model_dir_name: str) -> Pat
         source = template_dir / filename
         target = dest_dir / filename
         shutil.copy2(source, target)
+        if filename == "model_settings.xlsx":
+            _maybe_rewrite_incompatible_model_settings(target)
 
     return dest_dir
 
@@ -269,6 +271,31 @@ def _normalize_main_dir_path(main_dir_path) -> Path:
     """
 
     return Path(main_dir_path).expanduser().resolve()
+
+
+def _maybe_rewrite_incompatible_model_settings(path: Path) -> None:
+    """Adapt the copied settings workbook only for older CVXLab builds.
+
+    The packaged template should be copied as-is so user changes to the split
+    model are preserved. Some older CVXLab builds, however, do not know the
+    ``nonneg`` column in ``structure_variables``. In that case we rewrite only
+    the copied file in the generated model directory, leaving the repository
+    template untouched.
+    """
+
+    if getattr(cl.Defaults.Labels, "NONNEG_KEY", None) is not None:
+        return
+
+    workbook = pd.ExcelFile(path, engine="openpyxl")
+    sheets = {
+        sheet: pd.read_excel(path, sheet_name=sheet, engine="openpyxl")
+        for sheet in workbook.sheet_names
+    }
+    with pd.ExcelWriter(path, engine="openpyxl") as writer:
+        for sheet, frame in sheets.items():
+            if sheet == "structure_variables" and "nonneg" in frame.columns:
+                frame = frame.drop(columns=["nonneg"])
+            frame.to_excel(writer, sheet_name=sheet, index=False)
 
 
 def _handle_remove_readonly(func, path, exc_info) -> None:

@@ -488,6 +488,39 @@ def test_database_can_group_inventories_from_advanced_workbook(tmp_path, CoreDat
     assert inventories["New sector A"]["INV_001"].iloc[0]["Input"] == "demo input"
 
 
+def test_read_inventory_sheets_evaluates_excel_formulas(tmp_path, CoreDataIOT):
+    regions = CoreDataIOT.get_index(_MASTER_INDEX["r"])[:1]
+    path = tmp_path / "advanced_add_sector_iot_formulas.xlsx"
+
+    CoreDataIOT.get_add_sectors_excel(
+        items=["New sector A"],
+        regions=regions,
+        path=path,
+    )
+
+    with pd.ExcelWriter(path, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+        pd.DataFrame({"Value": [3]}).to_excel(writer, sheet_name="Helper", index=False)
+        pd.DataFrame(
+            [
+                {
+                    "Quantity": "='Helper'!A2*2",
+                    "Unit": CoreDataIOT.units[_MASTER_INDEX["s"]].iloc[0, 0],
+                    "Input": "demo input",
+                    "Item type": _MASTER_INDEX["s"],
+                    "DB Item": CoreDataIOT.get_index(_MASTER_INDEX["s"])[0],
+                    "DB Region": regions[0],
+                    "Change type": "Update",
+                    "Source": "test",
+                    "Notes": "note",
+                }
+            ]
+        ).to_excel(writer, sheet_name="INV_001", index=False)
+
+    inventories = CoreDataIOT.read_inventory_sheets(path)
+
+    assert inventories["New sector A"]["INV_001"].iloc[0]["Quantity"] == 6
+
+
 def test_add_sectors_advanced_engine_adds_iot_sector_from_workbook(tmp_path, CoreDataIOT):
     region = CoreDataIOT.get_index(_MASTER_INDEX["r"])[0]
     existing_sector = CoreDataIOT.get_index(_MASTER_INDEX["s"])[0]
@@ -1041,8 +1074,13 @@ def test_split_bridge_copies_model_settings_verbatim(tmp_path):
         model_dir_name=CVXLAB_SPLIT_MODEL_NAME,
     )
     copied = dest / "model_settings.xlsx"
-
-    assert hashlib.md5(source.read_bytes()).hexdigest() == hashlib.md5(copied.read_bytes()).hexdigest()
+    if getattr(bridge_module.cl.Defaults.Labels, "NONNEG_KEY", None) is not None:
+        assert hashlib.md5(source.read_bytes()).hexdigest() == hashlib.md5(copied.read_bytes()).hexdigest()
+    else:
+        source_df = pd.read_excel(source, sheet_name="structure_variables")
+        copied_df = pd.read_excel(copied, sheet_name="structure_variables")
+        assert "nonneg" in source_df.columns
+        assert "nonneg" not in copied_df.columns
 
 
 def test_split_bridge_normalizes_relative_cvxlab_root(monkeypatch):

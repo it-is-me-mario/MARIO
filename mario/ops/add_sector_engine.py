@@ -1025,6 +1025,8 @@ class AddSectorEngine:
         )[MSC[self.table]["leave_empty"]].values[0]
         if empty in (True, False):
             return bool(empty)
+        if empty in (None, ""):
+            return False
         if isinstance(empty, float):
             if empty == 1:
                 return True

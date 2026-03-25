@@ -7,6 +7,9 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
+from openpyxl import load_workbook
+from openpyxl.formula.tokenizer import Tokenizer
+from openpyxl.utils.cell import range_boundaries
 
 from mario.log_exc.exceptions import WrongExcelFormat, WrongInput
 from mario.model.conventions import IOT, SUT, _MASTER_INDEX
@@ -287,7 +290,7 @@ def read_add_sector_workbook(
     later because they depend on the current database contents.
     """
 
-    sheets = pd.read_excel(path, sheet_name=None, header=0)
+    sheets = _read_excel_workbook(path)
     item_clusters_sheet = ADVANCED_ADD_SECTOR_ITEMS_CLUSTERS_SHEET[table]
 
     required = {
@@ -343,6 +346,251 @@ def read_add_sector_workbook(
         inventories_by_sheet=inventories_by_sheet,
         split_info=split_info,
     )
+
+
+def _read_excel_workbook(path: str | Path) -> dict[str, pd.DataFrame]:
+    """Read one workbook while preserving cached Excel formulas when available.
+
+    ``pandas.read_excel(...)`` reads formula cells through openpyxl's
+    ``data_only`` path. When a workbook has not been recalculated by Excel yet,
+    formula cells are therefore returned as ``NaN``. The add-sectors workflow
+    needs a more robust behavior because inventories often contain formulas.
+
+    This helper loads the workbook twice:
+    - one view with formulas;
+    - one view with cached values.
+
+    It prefers cached values when present and otherwise evaluates a practical
+    subset of Excel formulas directly from the formula text.
+    """
+
+    formula_book = load_workbook(path, data_only=False)
+    values_book = load_workbook(path, data_only=True)
+    cache: dict[tuple[str, str], Any] = {}
+    sheets: dict[str, pd.DataFrame] = {}
+
+    for sheet_name in formula_book.sheetnames:
+        formula_sheet = formula_book[sheet_name]
+        values_sheet = values_book[sheet_name]
+        rows = []
+        for row in formula_sheet.iter_rows():
+            rows.append(
+                [
+                    _resolve_excel_cell(
+                        sheet_name=sheet_name,
+                        cell_coordinate=cell.coordinate,
+                        formula_book=formula_book,
+                        values_book=values_book,
+                        cache=cache,
+                        stack=set(),
+                    )
+                    for cell in row
+                ]
+            )
+
+        rows = _trim_empty_excel_rows(rows)
+        if not rows:
+            sheets[sheet_name] = pd.DataFrame()
+            continue
+
+        header = rows[0]
+        data = rows[1:]
+        sheets[sheet_name] = pd.DataFrame(data, columns=header)
+
+    return sheets
+
+
+def _resolve_excel_cell(
+    *,
+    sheet_name: str,
+    cell_coordinate: str,
+    formula_book,
+    values_book,
+    cache: dict[tuple[str, str], Any],
+    stack: set[tuple[str, str]],
+):
+    key = (sheet_name, cell_coordinate)
+    if key in cache:
+        return cache[key]
+    if key in stack:
+        raise WrongExcelFormat(f"Circular reference detected while reading formulas in {sheet_name}!{cell_coordinate}.")
+
+    stack.add(key)
+    formula_cell = formula_book[sheet_name][cell_coordinate]
+    values_cell = values_book[sheet_name][cell_coordinate]
+    raw_value = formula_cell.value
+    cached_value = values_cell.value
+
+    if isinstance(raw_value, str) and raw_value.startswith("="):
+        if cached_value is not None:
+            value = cached_value
+        else:
+            value = _evaluate_excel_formula(
+                raw_value,
+                current_sheet=sheet_name,
+                formula_book=formula_book,
+                values_book=values_book,
+                cache=cache,
+                stack=stack,
+            )
+    else:
+        value = raw_value
+
+    cache[key] = value
+    stack.remove(key)
+    return value
+
+
+def _evaluate_excel_formula(
+    formula: str,
+    *,
+    current_sheet: str,
+    formula_book,
+    values_book,
+    cache: dict[tuple[str, str], Any],
+    stack: set[tuple[str, str]],
+):
+    tokens = Tokenizer(formula).items
+    parts: list[str] = []
+
+    for token in tokens:
+        if token.type == "FUNC":
+            if token.subtype == "OPEN":
+                parts.append(f"{token.value[:-1].upper()}(")
+            else:
+                parts.append(")")
+        elif token.type == "OPERAND":
+            if token.subtype == "RANGE":
+                ref_sheet, ref_value = _split_excel_reference(token.value, current_sheet)
+                if ":" in ref_value:
+                    parts.append(f'_R("{ref_sheet}", "{ref_value}")')
+                else:
+                    parts.append(f'_C("{ref_sheet}", "{ref_value}")')
+            elif token.subtype == "NUMBER":
+                parts.append(token.value)
+            elif token.subtype == "LOGICAL":
+                parts.append("True" if token.value.upper() == "TRUE" else "False")
+            elif token.subtype == "TEXT":
+                parts.append(repr(token.value))
+            else:
+                parts.append(repr(token.value))
+        elif token.type == "OPERATOR-INFIX":
+            parts.append(
+                {
+                    "^": "**",
+                    "=": "==",
+                    "<>": "!=",
+                    "&": "+",
+                }.get(token.value, token.value)
+            )
+        elif token.type == "OPERATOR-PREFIX":
+            parts.append(token.value)
+        elif token.type == "OPERATOR-POSTFIX":
+            continue
+        elif token.type == "SEP":
+            parts.append(",")
+        elif token.type == "PAREN":
+            parts.append(token.value)
+        elif token.type == "WHITE-SPACE":
+            continue
+        else:
+            raise WrongExcelFormat(f"Unsupported Excel token '{token.value}' while reading add-sectors formulas.")
+
+    expression = "".join(parts)
+
+    def _cell(sheet: str, ref: str):
+        value = _resolve_excel_cell(
+            sheet_name=sheet,
+            cell_coordinate=ref,
+            formula_book=formula_book,
+            values_book=values_book,
+            cache=cache,
+            stack=stack,
+        )
+        return 0 if value in (None, "") else value
+
+    def _range(sheet: str, ref: str):
+        min_col, min_row, max_col, max_row = range_boundaries(ref)
+        values = []
+        for row in range(min_row, max_row + 1):
+            for col in range(min_col, max_col + 1):
+                coord = f"{_column_name(col)}{row}"
+                values.append(_cell(sheet, coord))
+        return values
+
+    env = {
+        "_C": _cell,
+        "_R": _range,
+        "SUM": lambda *args: sum(_flatten_formula_args(args)),
+        "AVERAGE": lambda *args: _average_formula_args(args),
+        "MIN": lambda *args: min(_flatten_formula_args(args)),
+        "MAX": lambda *args: max(_flatten_formula_args(args)),
+        "ABS": abs,
+        "ROUND": round,
+        "IF": lambda cond, yes, no: yes if cond else no,
+        "AND": lambda *args: all(_flatten_formula_args(args)),
+        "OR": lambda *args: any(_flatten_formula_args(args)),
+        "NOT": lambda arg: not arg,
+    }
+
+    try:
+        return eval(expression, {"__builtins__": {}}, env)
+    except Exception as exc:
+        raise WrongExcelFormat(
+            f"Could not evaluate Excel formula '{formula}' in add-sectors workbook."
+        ) from exc
+
+
+def _split_excel_reference(reference: str, current_sheet: str) -> tuple[str, str]:
+    if "!" in reference:
+        sheet_name, cell_ref = reference.split("!", 1)
+        sheet_name = sheet_name.strip("'")
+    else:
+        sheet_name = current_sheet
+        cell_ref = reference
+    return sheet_name, cell_ref.replace("$", "")
+
+
+def _trim_empty_excel_rows(rows: list[list[Any]]) -> list[list[Any]]:
+    def _is_empty(value: Any) -> bool:
+        return value is None or value == ""
+
+    max_row = 0
+    max_col = 0
+    for row_index, row in enumerate(rows, start=1):
+        if any(not _is_empty(value) for value in row):
+            max_row = row_index
+        for col_index, value in enumerate(row, start=1):
+            if not _is_empty(value):
+                max_col = max(max_col, col_index)
+
+    if max_row == 0 or max_col == 0:
+        return []
+
+    return [row[:max_col] for row in rows[:max_row]]
+
+
+def _flatten_formula_args(args) -> list[Any]:
+    values: list[Any] = []
+    for arg in args:
+        if isinstance(arg, list):
+            values.extend(_flatten_formula_args(arg))
+        else:
+            values.append(0 if arg in (None, "") else arg)
+    return values
+
+
+def _average_formula_args(args) -> float:
+    values = _flatten_formula_args(args)
+    return sum(values) / len(values) if values else 0
+
+
+def _column_name(index: int) -> str:
+    result = []
+    while index:
+        index, remainder = divmod(index - 1, 26)
+        result.append(chr(65 + remainder))
+    return "".join(reversed(result))
 
 
 def derive_add_sector_sets(

@@ -396,15 +396,16 @@ def test__getdir(CoreDataIOT):
     )
 
 
-def test_directory(CoreDataIOT):
+def test_directory(CoreDataIOT, tmp_path):
 
     path = f'{MAIN_PATH}/Output'
 
     assert path == CoreDataIOT.directory
 
-    CoreDataIOT.directory = 'dummy'
+    dummy_dir = tmp_path / "dummy"
+    CoreDataIOT.directory = str(dummy_dir)
 
-    assert 'dummy' == CoreDataIOT.directory
+    assert str(dummy_dir) == CoreDataIOT.directory
 
     # Set impossible path
     with pytest.raises(ValueError) as msg:
