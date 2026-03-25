@@ -162,17 +162,10 @@ def _prepare_split_model_inputs(
         model_dir_name=model_dir_name,
         input_data_files_type=input_data_files_type,
     )
+    _ensure_sets_file(model, dest_dir=dest_dir)
     _populate_sets_file(instance, dest_dir=dest_dir, scenario_label=scenario_label)
-    with _model_workdir(dest_dir):
-        if hasattr(model, "initialize_model_environment"):
-            model.initialize_model_environment()
-        else:
-            _call_model_method(model, "load_model_coordinates", "_load_model_coordinates")
-            _call_model_method(
-                model,
-                "initialize_blank_data_structure",
-                "_initialize_blank_data_structure",
-            )
+    _ensure_sets_file(model, dest_dir=dest_dir)
+    _load_model_coordinates_and_initialize_database(model, dest_dir=dest_dir)
 
     flat_matrices = _collect_flat_matrices(
         instance,
@@ -186,10 +179,11 @@ def _build_cvxlab_model(*, main_dir_path, model_dir_name: str, input_data_files_
 
     model_signature = inspect.signature(cl.Model.__init__).parameters
     multiple_input_files = input_data_files_type == "csv"
+    normalized_root = _normalize_main_dir_path(main_dir_path)
 
     kwargs = {
         "model_dir_name": model_dir_name,
-        "main_dir_path": str(main_dir_path),
+        "main_dir_path": str(normalized_root),
         "model_settings_from": "xlsx",
         "use_existing_data": False,
         "detailed_validation": True,
@@ -242,7 +236,7 @@ def _model_workdir(model_dir: Path):
 def _prepare_split_model_directory(*, main_dir_path, model_dir_name: str) -> Path:
     """Create a clean split-model directory and copy MARIO-owned template assets."""
 
-    root = Path(main_dir_path)
+    root = _normalize_main_dir_path(main_dir_path)
     dest_dir = root / model_dir_name
     if dest_dir.exists():
         shutil.rmtree(dest_dir, onerror=_handle_remove_readonly)
@@ -257,12 +251,24 @@ def _prepare_split_model_directory(*, main_dir_path, model_dir_name: str) -> Pat
     ]:
         source = template_dir / filename
         target = dest_dir / filename
-        if filename == "model_settings.xlsx":
-            _write_compatible_model_settings(source, target)
-        else:
-            shutil.copy2(source, target)
+        shutil.copy2(source, target)
 
     return dest_dir
+
+
+def _normalize_main_dir_path(main_dir_path) -> Path:
+    """Return an absolute CVXLab root path.
+
+    The split bridge temporarily changes the working directory while interacting
+    with CVXLab. Relative ``main_dir_path`` values therefore become unsafe,
+    because CVXLab stores them in ``model.paths`` and later resolves files such
+    as ``sets.xlsx`` against the *current* working directory.
+
+    Normalizing early keeps the generated model directory stable regardless of
+    the caller's current cwd or later cwd changes inside the bridge.
+    """
+
+    return Path(main_dir_path).expanduser().resolve()
 
 
 def _handle_remove_readonly(func, path, exc_info) -> None:
@@ -272,16 +278,57 @@ def _handle_remove_readonly(func, path, exc_info) -> None:
     func(path)
 
 
-def _write_compatible_model_settings(source: Path, target: Path) -> None:
-    """Rewrite the historical split model settings into the current CVXLab xlsx shape."""
+def _ensure_sets_file(model, *, dest_dir: Path) -> Path:
+    """Ensure the model-specific CVXLab ``sets.xlsx`` file exists.
 
-    workbook = pd.ExcelFile(source)
-    with pd.ExcelWriter(target, engine="openpyxl") as writer:
-        for sheet in workbook.sheet_names:
-            frame = pd.read_excel(source, sheet_name=sheet)
-            if sheet == "structure_variables":
-                frame = frame.drop(columns=[c for c in ("blank_fill", "nonneg") if c in frame.columns])
-            frame.to_excel(writer, sheet_name=sheet, index=False)
+    The split workflow relies on the ``Split_sectors`` model files copied in the
+    generated model directory. In the historical MARIO flow, CVXLab first
+    created the blank workbook implied by those model settings and only after
+    that MARIO filled it with sector, region and tolerance values.
+
+    Different CVXLab builds expose that generation step differently, so the
+    bridge makes sure the workbook exists before it tries to populate it.
+    """
+
+    sets_file = dest_dir / cl.Defaults.ConfigFiles.SETS_FILE
+    if sets_file.exists():
+        return sets_file
+
+    database = getattr(getattr(model, "core", None), "database", None)
+    creator = getattr(database, "create_blank_sets_xlsx_file", None)
+    if callable(creator):
+        with _model_workdir(dest_dir):
+            creator()
+
+    if not sets_file.exists():
+        raise FileNotFoundError(
+            f"CVXLab did not provide the required sets workbook '{sets_file.name}' in '{dest_dir}'."
+        )
+    return sets_file
+
+
+def _load_model_coordinates_and_initialize_database(model, *, dest_dir: Path) -> None:
+    """Load coordinates and initialize the blank database following the historical split flow.
+
+    MARIO intentionally avoids ``initialize_model_environment()`` here. That
+    higher-level helper assumes the whole CVXLab environment already exists,
+    while the add-sector workflow needs to:
+
+    1. create the model-specific ``sets.xlsx`` workbook,
+    2. populate it with MARIO split data,
+    3. only then load coordinates and initialize blank input tables.
+
+    This mirrors the legacy workflow used by the original split model assets and
+    keeps MARIO responsible for the pre-solve data preparation.
+    """
+
+    with _model_workdir(dest_dir):
+        _call_model_method(model, "load_model_coordinates", "_load_model_coordinates")
+        _call_model_method(
+            model,
+            "initialize_blank_data_structure",
+            "_initialize_blank_data_structure",
+        )
 
 
 def _populate_sets_file(instance, *, dest_dir: Path, scenario_label: str) -> None:

@@ -2,6 +2,8 @@ import warnings
 warnings.filterwarnings("ignore",category=DeprecationWarning)
 
 import inspect
+import hashlib
+from pathlib import Path
 
 from mario.ops.add_sector_specs import (
     ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS,
@@ -19,7 +21,12 @@ from mario.ops.add_sector_specs import (
     ADVANCED_ADD_SECTOR_REGIONS_CLUSTERS_SHEET,
     ADVANCED_ADD_SECTOR_UNCERTAINTIES_SHEET,
 )
-from mario.ops.cvxlab_bridge import CVXLAB_SPLIT_MODEL_NAME
+from mario.ops import cvxlab_bridge as bridge_module
+from mario.ops.cvxlab_bridge import (
+    CVXLAB_SPLIT_MODEL_NAME,
+    _build_cvxlab_model,
+    _load_model_coordinates_and_initialize_database,
+)
 from mario.ops.add_sector_workbook import (
     derive_advanced_add_sector_sets,
     group_advanced_inventories_by_target,
@@ -1001,6 +1008,62 @@ def test_add_sectors_split_can_generate_cvxlab_csv_input_data(tmp_path, CoreData
     assert "split_baseline" in new.matrices
     assert (model_dir / "Trade.csv").exists()
     assert (model_dir / "tol.csv").exists()
+
+
+def test_split_bridge_uses_historical_coordinate_loading_flow(tmp_path):
+    class _FakeModel:
+        def __init__(self):
+            self.called = []
+
+        def initialize_model_environment(self):
+            raise AssertionError("MARIO should not delegate split setup to initialize_model_environment().")
+
+        def load_model_coordinates(self):
+            self.called.append("load_model_coordinates")
+
+        def initialize_blank_data_structure(self):
+            self.called.append("initialize_blank_data_structure")
+
+    model = _FakeModel()
+
+    _load_model_coordinates_and_initialize_database(model, dest_dir=tmp_path)
+
+    assert model.called == [
+        "load_model_coordinates",
+        "initialize_blank_data_structure",
+    ]
+
+
+def test_split_bridge_copies_model_settings_verbatim(tmp_path):
+    source = Path("mario/ops/cvxlab_models/Split_sectors/model_settings.xlsx")
+    dest = bridge_module._prepare_split_model_directory(
+        main_dir_path=tmp_path,
+        model_dir_name=CVXLAB_SPLIT_MODEL_NAME,
+    )
+    copied = dest / "model_settings.xlsx"
+
+    assert hashlib.md5(source.read_bytes()).hexdigest() == hashlib.md5(copied.read_bytes()).hexdigest()
+
+
+def test_split_bridge_normalizes_relative_cvxlab_root(monkeypatch):
+    captured = {}
+
+    class _FakeModel:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+    class _FakeCL:
+        Model = _FakeModel
+
+    monkeypatch.setattr(bridge_module, "cl", _FakeCL)
+
+    _build_cvxlab_model(
+        main_dir_path="relative_split_root",
+        model_dir_name="model_dir",
+        input_data_files_type="xlsx",
+    )
+
+    assert captured["main_dir_path"] == str((Path.cwd() / "relative_split_root").resolve())
 
 
 def test_add_sectors_split_can_attach_mocked_cvxlab_results(tmp_path, CoreDataIOT, monkeypatch):

@@ -46,6 +46,7 @@ setup(
         "dataset": [
             "polars",
             "scipy",
+            "h5py",
             "pyxlsb",
             "cvxlab>=1.0.0b1",
         ],
@@ -53,9 +54,21 @@ setup(
             "duckdb",
             "pyarrow",
         ],
-        "all": [
+        "dev": [
+            "pytest",
             "polars",
             "scipy",
+            "h5py",
+            "duckdb",
+            "pyarrow",
+            "pyxlsb",
+            "cvxlab>=1.0.0b1",
+        ],
+        "all": [
+            "pytest",
+            "polars",
+            "scipy",
+            "h5py",
             "duckdb",
             "pyarrow",
             "pyxlsb",
