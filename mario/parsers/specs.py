@@ -20,6 +20,27 @@ INPUT_OPTIONS = {
 }
 
 
+GTAP_VARIANTS = ("power",)
+GTAP_LAYOUTS = ("MRIO",)
+GTAP_INPUT_FORMATS = ("auto", "csv", "gdx")
+GTAP_MONETARY_UNIT = "M USD"
+GTAP_POWER_MRIO_SOURCE = "GTAP Power MRIO local bundle"
+GTAP_POWER_MRIO_CSV_FILES = {
+    "SRCxDST": "GSDFSRCxDST.csv",
+    "V - Tax": "GSDFXTAX.csv",
+    "V": "GSDF.csv",
+    "E+EY - Emissions": "GSDFEMI.csv",
+    "E+EY - Energy": "GSDFNRG.csv",
+}
+GTAP_POWER_MRIO_GDX_FILES = {
+    "SRCxDST": "GSDFSRCxDST.gdx",
+    "V": "GSDF.gdx",
+    "V-Tax": "GSDFXTAX.gdx",
+    "Emissions": "GSDFEMI.gdx",
+    "Energy": "GSDFNRG.gdx",
+}
+
+
 FIGARO_SUPPLY_URL = (
     "https://circabc.europa.eu/ui/group/cec66924-a924-4f91-a0ef-600a0531e3ba/"
     "library/651e74b4-ff35-445b-9427-5b3ed9ec5ca9?p=1&n=10&sort=name_ASC"

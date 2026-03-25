@@ -88,6 +88,7 @@ from mario.parsers.entrypoints import (
     parse_exiobase,
     parse_figaro,
     parse_gloria,
+    parse_gtap,
     parse_istat,
     parse_oecd,
     parse_statcan,

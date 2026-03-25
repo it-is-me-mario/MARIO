@@ -46,6 +46,10 @@ from mario.parsers.gloria import (
     _normalize_satellite_request as _normalize_gloria_satellites,
     _select_gloria_satellites,
 )
+from mario.parsers.gtap import (
+    parse_gtap_mrio_csv,
+    parse_gtap_mrio_gdx,
+)
 from mario.parsers.istat import parse_istat_iot, parse_istat_sut
 from mario.parsers.oecd_icio import parse_oecd_icio
 from mario.parsers.statcan_wds import parse_statcan_iot_wds, parse_statcan_sut_wds
@@ -60,6 +64,9 @@ from mario.parsers.specs import (
     FIGARO_IOT_MODES,
     EUROSTAT_IOT_MODES,
     EUROSTAT_SUT_UNITS,
+    GTAP_INPUT_FORMATS,
+    GTAP_LAYOUTS,
+    GTAP_VARIANTS,
     ISTAT_IOT_MODES,
     ISTAT_SUT_LEVELS,
     ISTAT_SUT_PRICES,
@@ -1581,6 +1588,86 @@ def parse_figaro(
         source=layout.source,
         year=layout.year,
         price=layout.price,
+        init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
+        calc_all=calc_all,
+        **kwargs,
+    )
+
+
+def parse_gtap(
+    path: str,
+    table: str = "IOT",
+    variant: str = "power",
+    layout: str = "MRIO",
+    input_format: str = "auto",
+    model: str = "Database",
+    name: str | None = None,
+    year: int | None = None,
+    calc_all: bool = False,
+    **kwargs,
+) -> object:
+    """Parse a locally downloaded GTAP bundle.
+
+    The current backend supports the GTAP Power multi-regional input-output
+    bundle used in the Horizon collaboration. The parser is structured with
+    explicit ``variant`` and ``layout`` arguments so more GTAP branches can be
+    added later without changing the public API.
+
+    Parameters
+    ----------
+    path : str
+        directory containing the GTAP bundle, or one file inside that
+        directory.
+    table : str, optional
+        currently only ``IOT`` is supported.
+    variant : str, optional
+        GTAP family. The only supported value today is ``power``.
+    layout : str, optional
+        GTAP layout. The only supported value today is ``MRIO``.
+    input_format : str, optional
+        one of ``auto``, ``csv`` or ``gdx``. ``auto`` prefers the CSV bundle
+        when both bundles are present in the same directory.
+
+    Notes
+    -----
+    The GDX path requires the GAMS Python API in the active environment
+    because MARIO relies on ``gams.transfer`` to read the GDX containers.
+    """
+    if model not in models:
+        raise WrongInput("Available models are {}".format([*models]))
+
+    validate_parse_request(table=table, model=model)
+    normalized_variant = str(variant).strip().lower()
+    normalized_layout = str(layout).strip().upper()
+    normalized_input_format = str(input_format).strip().lower()
+
+    if normalized_variant not in {item.lower() for item in GTAP_VARIANTS}:
+        raise WrongInput(f"GTAP variant should be one of {list(GTAP_VARIANTS)}.")
+    if normalized_layout not in {item.upper() for item in GTAP_LAYOUTS}:
+        raise WrongInput(f"GTAP layout should be one of {list(GTAP_LAYOUTS)}.")
+    if normalized_input_format not in {item.lower() for item in GTAP_INPUT_FORMATS}:
+        raise WrongInput(f"GTAP input_format should be one of {list(GTAP_INPUT_FORMATS)}.")
+    if table != "IOT":
+        raise NotImplementable("GTAP parsing currently supports only IOT tables.")
+
+    if normalized_layout != "MRIO" or normalized_variant != "power":
+        raise NotImplementable("Only GTAP Power MRIO is currently implemented.")
+
+    if normalized_input_format == "gdx":
+        matrices, indeces, units, parsed_layout = parse_gtap_mrio_gdx(path)
+    else:
+        try:
+            matrices, indeces, units, parsed_layout = parse_gtap_mrio_csv(path)
+        except WrongInput:
+            if normalized_input_format != "auto":
+                raise
+            matrices, indeces, units, parsed_layout = parse_gtap_mrio_gdx(path)
+
+    return models[model](
+        name=name or parsed_layout.dataset_name,
+        table="IOT",
+        source=parsed_layout.source,
+        year=year,
         init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
         calc_all=calc_all,
         **kwargs,
