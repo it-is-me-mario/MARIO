@@ -12,9 +12,11 @@ from mario.api import Database
 from mario.download import (
     _eurostat_local_paths,
     _statcan_local_csv_path,
+    _statcan_openio_local_xlsx_path,
     download_eurostat,
     download_istat_io,
     download_statcan,
+    download_statcan_openio_canada,
 )
 from mario.log_exc.exceptions import NotImplementable, WrongInput
 from mario.log_exc.logger import log_time
@@ -72,6 +74,8 @@ from mario.parsers.specs import (
     ISTAT_SUT_PRICES,
     ISTAT_SUT_VALUATIONS,
     STATCAN_TABLES,
+    STATCAN_OPENIO_CANADA_SATELLITE_ACCOUNT,
+    STATCAN_OPENIO_CANADA_SOURCE,
     STATCAN_VALUATIONS,
 )
 import pandas as pd
@@ -953,6 +957,7 @@ def parse_statcan(
     level: str = "summary",
     geo: str = "Canada",
     valuation: str = "basic",
+    satellite_account: str | None = None,
     path: str | None = None,
     download: bool = False,
     overwrite_download: bool = False,
@@ -984,6 +989,14 @@ def parse_statcan(
         price system for ``IOT`` tables. Supported values are ``basic`` and
         ``purchaser``. SUT parsing currently supports only ``basic`` because
         supply rows are published at basic prices.
+    satellite_account : str, optional
+        optional external satellite-account bundle. The currently supported
+        value is ``"openio_canada"``, which uses the OpenIO-Canada emission
+        factors published on Zenodo at ``10.5281/zenodo.18304088``. This path
+        is currently supported only for ``table="SUT"``, ``level="detail"``,
+        reference year ``2022``, and provincial/territorial geographies.
+        When ``download=True``, MARIO downloads the same fixed 2022 workbook
+        into ``path`` and reuses it on later parses.
     path : str, optional
         optional directory for locally stored StatCan raw CSV files.
     download : bool, optional
@@ -1007,10 +1020,33 @@ def parse_statcan(
     validate_parse_request(table=table, model=model)
     if download and path is None:
         raise WrongInput("StatCan raw downloads require 'path' to be provided.")
+    if satellite_account not in {None, False, STATCAN_OPENIO_CANADA_SATELLITE_ACCOUNT}:
+        raise WrongInput(
+            f"StatCan satellite_account should be None or {STATCAN_OPENIO_CANADA_SATELLITE_ACCOUNT!r}."
+        )
+    if satellite_account == STATCAN_OPENIO_CANADA_SATELLITE_ACCOUNT and table != "SUT":
+        raise NotImplementable(
+            "OpenIO-Canada emission factors are currently supported only with StatCan SUT detail tables."
+        )
+    if satellite_account == STATCAN_OPENIO_CANADA_SATELLITE_ACCOUNT and path is None:
+        raise WrongInput(
+            "StatCan OpenIO-Canada satellite parsing requires 'path' so MARIO can find or download the local workbook."
+        )
+    if satellite_account == STATCAN_OPENIO_CANADA_SATELLITE_ACCOUNT and level != "detail":
+        raise WrongInput(
+            "OpenIO-Canada emission factors are currently compatible only with StatCan SUT level='detail'."
+        )
+    if satellite_account == STATCAN_OPENIO_CANADA_SATELLITE_ACCOUNT and int(year) != 2022:
+        raise WrongInput(
+            "OpenIO-Canada emission factors are currently available only for reference year 2022."
+        )
 
     local_csv = None
+    local_satellite = None
     if path is not None:
         local_csv = _statcan_local_csv_path(path, table=table, level=level)
+        if satellite_account == STATCAN_OPENIO_CANADA_SATELLITE_ACCOUNT:
+            local_satellite = _statcan_openio_local_xlsx_path(path)
         if download:
             info = download_statcan(
                 path,
@@ -1020,6 +1056,12 @@ def parse_statcan(
                 overwrite=overwrite_download,
             )
             local_csv = Path(info["csv"])
+            if satellite_account == STATCAN_OPENIO_CANADA_SATELLITE_ACCOUNT:
+                sat_info = download_statcan_openio_canada(
+                    path,
+                    overwrite=overwrite_download,
+                )
+                local_satellite = Path(sat_info["xlsx"])
 
     if table == "SUT":
         if level not in STATCAN_TABLES["SUT"]:
@@ -1029,6 +1071,11 @@ def parse_statcan(
         if valuation != "basic":
             raise NotImplementable(
                 "Statistics Canada SUT parsing currently supports only valuation='basic'."
+            )
+        if satellite_account == STATCAN_OPENIO_CANADA_SATELLITE_ACCOUNT and local_satellite is not None and not local_satellite.exists():
+            raise WrongInput(
+                f"StatCan local OpenIO-Canada workbook not found: {local_satellite}. "
+                "Pass download=True to fetch it or omit 'satellite_account'."
             )
         if local_csv is not None:
             if not local_csv.exists():
@@ -1041,6 +1088,8 @@ def parse_statcan(
                 level=level,
                 geo=geo,
                 csv_path=local_csv,
+                satellite_account=satellite_account,
+                satellite_path=local_satellite,
                 timeout=timeout,
             )
         else:
@@ -1048,6 +1097,8 @@ def parse_statcan(
                 year=year,
                 level=level,
                 geo=geo,
+                satellite_account=satellite_account,
+                satellite_path=local_satellite,
                 timeout=timeout,
             )
     else:
@@ -1082,10 +1133,14 @@ def parse_statcan(
                 timeout=timeout,
             )
 
+    source = layout.source
+    if satellite_account == STATCAN_OPENIO_CANADA_SATELLITE_ACCOUNT:
+        source = f"{source}; satellite account: {STATCAN_OPENIO_CANADA_SOURCE}"
+
     return models[model](
         name=name or layout.dataset_name,
         table=table,
-        source=layout.source,
+        source=source,
         year=layout.year,
         price=layout.price,
         init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},

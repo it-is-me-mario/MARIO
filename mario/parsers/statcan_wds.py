@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 from dataclasses import dataclass
 import logging
 from pathlib import Path
@@ -20,6 +21,7 @@ from mario.parsers.specs import (
     STATCAN_ACTIVITY_CODE_PREFIXES,
     STATCAN_FINAL_DEMAND_CODE_PREFIXES,
     STATCAN_IMPORT_CODE_PREFIXES,
+    STATCAN_OPENIO_CANADA_SATELLITE_ACCOUNT,
     STATCAN_SATELLITE_PLACEHOLDER,
     STATCAN_SATELLITE_UNIT,
     STATCAN_SOURCE,
@@ -31,6 +33,22 @@ from mario.parsers.specs import (
 logger = logging.getLogger(__name__)
 
 _CODE_PATTERN = re.compile(r"\[([^\]]+)\]\s*$")
+_STATCAN_OPENIO_PROVINCE_CODES = {
+    "alberta": "CA-AB",
+    "british columbia": "CA-BC",
+    "manitoba": "CA-MB",
+    "new brunswick": "CA-NB",
+    "newfoundland and labrador": "CA-NL",
+    "nova scotia": "CA-NS",
+    "northwest territories": "CA-NT",
+    "nunavut": "CA-NU",
+    "ontario": "CA-ON",
+    "prince edward island": "CA-PE",
+    "quebec": "CA-QC",
+    "saskatchewan": "CA-SK",
+    "yukon": "CA-YT",
+    "yukon territory": "CA-YT",
+}
 
 
 @dataclass(frozen=True)
@@ -139,6 +157,133 @@ def _compose_unit(frame: pd.DataFrame) -> str:
     if not scalar or scalar.lower() in {"nan", "units"}:
         return uom or "value"
     return f"{scalar} {uom}".strip()
+
+
+def _normalize_statcan_label(label: str) -> str:
+    """Normalize one StatCan label so it can be matched against external sources."""
+    base = re.sub(r"\s+\[[^\]]+\]\s*$", "", str(label))
+    return " ".join(base.strip().casefold().split())
+
+
+def _statcan_geo_to_openio_code(geo: str) -> str:
+    """Map one StatCan geography label to the OpenIO-Canada province code."""
+    normalized = " ".join(str(geo).strip().casefold().split())
+    try:
+        return _STATCAN_OPENIO_PROVINCE_CODES[normalized]
+    except KeyError as exc:
+        raise WrongInput(
+            "OpenIO-Canada emission factors are available only for the 13 provinces and territories, "
+            f"not for geography {geo!r}."
+        ) from exc
+
+
+def _parse_openio_indicator(column) -> tuple[str, str]:
+    """Return indicator label and unit from one OpenIO workbook column name."""
+    if isinstance(column, tuple) and len(column) == 2:
+        return str(column[0]), str(column[1])
+    text = str(column)
+    if text.startswith("(") and text.endswith(")"):
+        try:
+            parsed = ast.literal_eval(text)
+        except (SyntaxError, ValueError):
+            parsed = None
+        if isinstance(parsed, tuple) and len(parsed) == 2:
+            return str(parsed[0]), str(parsed[1])
+    return text, STATCAN_SATELLITE_UNIT
+
+
+def _read_statcan_openio_canada_factors(path: str | Path) -> pd.DataFrame:
+    """Read the local OpenIO-Canada 2022 workbook into a tidy dataframe.
+
+    The parser does not try to support multiple OpenIO-Canada vintages here.
+    The file shape and label mapping below are written specifically for the
+    2022 Zenodo workbook that MARIO downloads through
+    ``download_statcan_openio_canada(...)``.
+    """
+    xlsx_path = Path(path)
+    if not xlsx_path.exists():
+        raise FileNotFoundError(xlsx_path)
+    log_time(logger, f"Parser: reading local OpenIO-Canada workbook {xlsx_path.name}.", "info")
+    frame = pd.read_excel(xlsx_path, sheet_name="Emission factors")
+    expected = {"province", "commodity"}
+    missing = expected.difference(frame.columns)
+    if missing:
+        raise WrongInput(
+            f"OpenIO-Canada workbook {xlsx_path.name} is missing required columns {sorted(missing)}."
+        )
+    return frame
+
+
+def _build_statcan_openio_extensions(
+    *,
+    use_purchaser_matrix: pd.DataFrame,
+    commodity_labels: list[str],
+    activity_labels: list[str],
+    final_demand_labels: list[str],
+    geo: str,
+    factors_path: str | Path,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Build ``Ea/Ec/EY`` blocks from the OpenIO-Canada purchaser-price factors.
+
+    Compatibility is intentionally narrow:
+    - StatCan SUT only
+    - detail level
+    - year 2022
+    - one province/territory at a time
+
+    In other words, this helper is not a generic extension importer for every
+    OpenIO-Canada release. It is the matrix builder for the single 2022
+    workbook currently supported by MARIO.
+    """
+    factors = _read_statcan_openio_canada_factors(factors_path)
+    province_code = _statcan_geo_to_openio_code(geo)
+    factors = factors.loc[factors["province"].astype(str) == province_code].copy()
+    if factors.empty:
+        raise WrongInput(
+            f"OpenIO-Canada workbook contains no rows for province code {province_code!r}."
+        )
+
+    factors["__commodity_key__"] = factors["commodity"].map(_normalize_statcan_label)
+    commodity_lookup = {
+        _normalize_statcan_label(label): label
+        for label in commodity_labels
+    }
+    missing = sorted(set(factors["__commodity_key__"]).difference(commodity_lookup))
+    if missing:
+        preview = missing[:10]
+        suffix = " ..." if len(missing) > 10 else ""
+        raise WrongInput(
+            "OpenIO-Canada commodity labels do not fully match the selected StatCan SUT detail table. "
+            f"First unmatched labels: {preview}{suffix}"
+        )
+
+    ordered = (
+        factors.assign(__commodity_label__=factors["__commodity_key__"].map(commodity_lookup))
+        .set_index("__commodity_label__")
+        .reindex(commodity_labels)
+    )
+    indicator_columns = [column for column in ordered.columns if column not in {"province", "commodity", "__commodity_key__"}]
+    indicator_labels: list[str] = []
+    indicator_units: list[str] = []
+    for column in indicator_columns:
+        label, unit = _parse_openio_indicator(column)
+        indicator_labels.append(label)
+        indicator_units.append(unit)
+
+    factor_matrix = ordered[indicator_columns].astype(float).to_numpy().T
+    use_activity = use_purchaser_matrix.reindex(index=commodity_labels, columns=activity_labels, fill_value=0.0).astype(float)
+    use_final = use_purchaser_matrix.reindex(index=commodity_labels, columns=final_demand_labels, fill_value=0.0).astype(float)
+
+    commodity_axis = _three_level_index(str(geo), _MASTER_INDEX["c"], commodity_labels)
+    activity_axis = _three_level_index(str(geo), _MASTER_INDEX["a"], activity_labels)
+    final_demand_axis = _three_level_index(str(geo), _MASTER_INDEX["n"], final_demand_labels)
+    satellite_axis = pd.Index(indicator_labels, name=None)
+
+    Ec = pd.DataFrame(factor_matrix @ use_activity.to_numpy(), index=satellite_axis, columns=activity_axis)
+    EY = pd.DataFrame(factor_matrix @ use_final.to_numpy(), index=satellite_axis, columns=final_demand_axis)
+    Ea = _zero_frame(satellite_axis, activity_axis)
+    units = pd.DataFrame({"unit": indicator_units}, index=satellite_axis)
+    return Ea, Ec, EY, units
 
 
 def _build_sut_units(
@@ -277,13 +422,21 @@ def build_statcan_sut_from_frame(
     geo: str = "Canada",
     level: str = "summary",
     csv_url: str = "",
+    satellite_account: str | None = None,
+    satellite_path: str | Path | None = None,
 ) -> tuple[
     dict[str, dict[str, pd.DataFrame]],
     dict[str, dict[str, list[str]]],
     dict[str, pd.DataFrame],
     StatCanLayout,
 ]:
-    """Transform one StatCan SUT full-table frame into split-native MARIO blocks."""
+    """Transform one StatCan SUT full-table frame into split-native MARIO blocks.
+
+    When ``satellite_account="openio_canada"``, the integration is restricted
+    to the 2022 StatCan detail SUT tables for one province/territory at a
+    time. In all other cases, satellite blocks are returned as zero
+    placeholders.
+    """
     spec = _resolve_spec("SUT", level)
     subset = _filter_statcan_slice(frame, year=year, geo=geo)
 
@@ -376,9 +529,36 @@ def build_statcan_sut_from_frame(
             import_values = use_purchaser_matrix.reindex(index=commodity_labels, columns=[label], fill_value=0.0).astype(float)
             Vc.loc[label, :] = import_values.iloc[:, 0].to_numpy()
 
-    Ea = _zero_frame(satellite_axis, activity_axis)
-    Ec = _zero_frame(satellite_axis, commodity_axis)
-    EY = _zero_frame(satellite_axis, final_demand_axis)
+    if satellite_account in {None, False}:
+        Ea = _zero_frame(satellite_axis, activity_axis)
+        Ec = _zero_frame(satellite_axis, commodity_axis)
+        EY = _zero_frame(satellite_axis, final_demand_axis)
+        satellite_units = pd.DataFrame(
+            {"unit": [STATCAN_SATELLITE_UNIT]},
+            index=[STATCAN_SATELLITE_PLACEHOLDER],
+        )
+    else:
+        if satellite_account != STATCAN_OPENIO_CANADA_SATELLITE_ACCOUNT:
+            raise WrongInput(
+                f"StatCan satellite_account should be None or {STATCAN_OPENIO_CANADA_SATELLITE_ACCOUNT!r}."
+            )
+        if year != 2022:
+            raise WrongInput("OpenIO-Canada emission factors are currently available only for reference year 2022.")
+        if level != "detail":
+            raise WrongInput("OpenIO-Canada emission factors are currently compatible only with StatCan SUT level='detail'.")
+        if satellite_path is None:
+            raise WrongInput(
+                f"StatCan satellite_account={STATCAN_OPENIO_CANADA_SATELLITE_ACCOUNT!r} requires a local workbook path."
+            )
+        Ea, Ec, EY, satellite_units = _build_statcan_openio_extensions(
+            use_purchaser_matrix=use_purchaser_matrix,
+            commodity_labels=commodity_labels,
+            activity_labels=activity_labels,
+            final_demand_labels=final_demand_labels,
+            geo=geo,
+            factors_path=satellite_path,
+        )
+        satellite_axis = satellite_units.index
 
     layout = StatCanLayout(
         table="SUT",
@@ -411,7 +591,7 @@ def build_statcan_sut_from_frame(
         "a": {"main": activity_labels},
         "c": {"main": commodity_labels},
         "f": {"main": factor_labels},
-        "k": {"main": [STATCAN_SATELLITE_PLACEHOLDER]},
+        "k": {"main": list(satellite_axis)},
         "n": {"main": final_demand_labels},
         "s": {"main": activity_labels + commodity_labels},
     }
@@ -421,6 +601,7 @@ def build_statcan_sut_from_frame(
         factor_labels=factor_labels,
         unit=unit,
     )
+    units[_MASTER_INDEX["k"]] = satellite_units
 
     log_time(
         logger,
@@ -547,6 +728,8 @@ def parse_statcan_sut_wds(
     level: str = "summary",
     geo: str = "Canada",
     csv_path: str | Path | None = None,
+    satellite_account: str | None = None,
+    satellite_path: str | Path | None = None,
     timeout: int = 60,
     session: requests.Session | None = None,
 ) -> tuple[
@@ -573,6 +756,8 @@ def parse_statcan_sut_wds(
         geo=geo,
         level=level,
         csv_url=csv_url,
+        satellite_account=satellite_account,
+        satellite_path=satellite_path,
     )
 
 

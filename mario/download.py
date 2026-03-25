@@ -36,6 +36,10 @@ from mario.parsers.specs import (
     ISTAT_IO_RELEASE_PAGES,
     ISTAT_IO_SOURCE,
     OECD_ICIO_SOURCE_URL,
+    STATCAN_OPENIO_CANADA_DOI_URL,
+    STATCAN_OPENIO_CANADA_FILE_NAME,
+    STATCAN_OPENIO_CANADA_FILE_URL,
+    STATCAN_OPENIO_CANADA_RECORD_ID,
     STATCAN_TABLES,
     STATCAN_WDS_BASE_URL,
     WIOD_2016_RELEASE_URL,
@@ -46,6 +50,7 @@ from mario.parsers.specs import (
 __all__ = [
     "download_eurostat",
     "download_statcan",
+    "download_statcan_openio_canada",
     "download_figaro",
     "download_istat_io",
     "download_wiod2016",
@@ -361,6 +366,11 @@ def _statcan_local_csv_path(root: str | Path, *, table: str, level: str) -> Path
     return _ensure_directory(root) / f"statcan_{pid}_{table.lower()}_{level}.csv"
 
 
+def _statcan_openio_local_xlsx_path(root: str | Path) -> Path:
+    """Return the deterministic local path for the OpenIO-Canada 2022 workbook."""
+    return _ensure_directory(root) / STATCAN_OPENIO_CANADA_FILE_NAME
+
+
 def download_eurostat(
     path: str | Path,
     *,
@@ -493,6 +503,49 @@ def download_statcan(
     destination.write_bytes(content)
 
     return {"table": table, "level": level, "pid": spec["pid"], "csv": str(destination)}
+
+
+def download_statcan_openio_canada(
+    path: str | Path,
+    *,
+    overwrite: bool = False,
+) -> dict[str, object]:
+    """Download the OpenIO-Canada emission-factor workbook for 2022 only.
+
+    This helper is intentionally narrow. It downloads the single workbook
+    currently supported by MARIO for Statistics Canada satellite-account
+    parsing: the 2022 purchaser-price emission factors for 473 commodities
+    across 13 Canadian provinces and territories, published on Zenodo at:
+    https://doi.org/10.5281/zenodo.18304088
+
+    Notes
+    -----
+    - This downloader does not resolve arbitrary OpenIO-Canada releases.
+    - It is hard-wired to the 2022 workbook because the current MARIO parser
+      integration is compatible only with StatCan ``table="SUT"``,
+      ``level="detail"``, and reference year ``2022``.
+    """
+    destination = _statcan_openio_local_xlsx_path(path)
+    if destination.exists() and not overwrite:
+        return {
+            "satellite_account": "openio_canada",
+            "doi": STATCAN_OPENIO_CANADA_DOI_URL,
+            "xlsx": str(destination),
+        }
+
+    response = requests.get(STATCAN_OPENIO_CANADA_FILE_URL, timeout=_REQUEST_TIMEOUT)
+    response.raise_for_status()
+    if destination.exists() and overwrite:
+        _reset_target(destination, overwrite=True)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_bytes(response.content)
+
+    return {
+        "satellite_account": "openio_canada",
+        "doi": STATCAN_OPENIO_CANADA_DOI_URL,
+        "record_id": STATCAN_OPENIO_CANADA_RECORD_ID,
+        "xlsx": str(destination),
+    }
 
 
 def download_figaro(*args, **kwargs):

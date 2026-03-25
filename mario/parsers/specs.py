@@ -214,12 +214,25 @@ ISTAT_IMPORT_FACTOR_LABEL = "Importazioni cif"
 STATCAN_WDS_BASE_URL = "https://www150.statcan.gc.ca/t1/wds/rest"
 STATCAN_WDS_USER_GUIDE_URL = "https://www.statcan.gc.ca/en/developers/wds/user-guide"
 STATCAN_SDMX_USER_GUIDE_URL = "https://www.statcan.gc.ca/en/developers/sdmx/user-guide"
+STATCAN_OPENIO_CANADA_DOI_URL = "https://doi.org/10.5281/zenodo.18304088"
+STATCAN_OPENIO_CANADA_RECORD_URL = "https://zenodo.org/records/18304088"
+STATCAN_OPENIO_CANADA_RECORD_ID = "18304088"
+STATCAN_OPENIO_CANADA_FILE_NAME = "openiov2.11_emission_factors_purchaser_price_endogenized_2022.xlsx"
+STATCAN_OPENIO_CANADA_FILE_URL = (
+    "https://zenodo.org/api/records/18304088/files/"
+    "openiov2.11_emission_factors_purchaser_price_endogenized_2022.xlsx/content"
+)
 STATCAN_SOURCE = (
     "Statistics Canada WDS full-table API "
     f"({STATCAN_WDS_USER_GUIDE_URL}; SDMX guide: {STATCAN_SDMX_USER_GUIDE_URL})"
 )
+STATCAN_OPENIO_CANADA_SOURCE = (
+    "OpenIO-Canada emission factors via Zenodo "
+    f"({STATCAN_OPENIO_CANADA_DOI_URL})"
+)
 STATCAN_SATELLITE_PLACEHOLDER = "-"
 STATCAN_SATELLITE_UNIT = "None"
+STATCAN_OPENIO_CANADA_SATELLITE_ACCOUNT = "openio_canada"
 STATCAN_VALUATIONS = {
     "basic": "Basic price",
     "purchaser": "Purchaser price",

@@ -14,6 +14,7 @@ from mario.download import (
     download_hybrid_exiobase,
     download_istat_io,
     download_statcan,
+    download_statcan_openio_canada,
     download_wiod2016,
 )
 from mario.log_exc.exceptions import NotImplementable
@@ -32,6 +33,7 @@ class FakeResponse:
     ) -> None:
         self._json_data = json_data
         self._content = content
+        self.content = content
         self.text = text if text is not None else content.decode("utf-8", errors="ignore")
         self.headers = headers or {}
         self.status_code = status_code
@@ -240,6 +242,23 @@ def test_download_statcan_downloads_and_extracts_csv(monkeypatch, tmp_path):
     assert csv_path.read_text() == csv_bytes.decode()
 
 
+def test_download_statcan_openio_canada_downloads_workbook(monkeypatch, tmp_path):
+    workbook_bytes = b"fake-openio-workbook"
+
+    def fake_get(url, **kwargs):
+        assert "zenodo.org/api/records/18304088/files" in url
+        return FakeResponse(content=workbook_bytes)
+
+    monkeypatch.setattr("mario.download.requests.get", fake_get)
+
+    info = download_statcan_openio_canada(tmp_path)
+
+    xlsx_path = Path(info["xlsx"])
+    assert xlsx_path.exists()
+    assert xlsx_path.read_bytes() == workbook_bytes
+    assert info["satellite_account"] == "openio_canada"
+
+
 def test_download_istat_io_resolves_zip_from_release_page(monkeypatch, tmp_path):
     workbook_bytes = io.BytesIO()
     with zipfile.ZipFile(workbook_bytes, "w") as archive:
@@ -264,6 +283,7 @@ def test_download_istat_io_resolves_zip_from_release_page(monkeypatch, tmp_path)
 
 def test_mario_does_not_export_legacy_pymrio_downloaders():
     assert hasattr(mario, "download_wiod2016")
+    assert hasattr(mario, "download_statcan_openio_canada")
     assert not hasattr(mario, "download_wiod2013")
     assert not hasattr(mario, "download_eora26")
     assert not hasattr(mario, "download_exiobase1")

@@ -3,6 +3,7 @@ import pytest
 
 import mario
 from mario.log_exc.exceptions import NotImplementable, WrongInput
+from mario.parsers.specs import STATCAN_OPENIO_CANADA_FILE_NAME
 from mario.parsers.statcan_wds import (
     build_statcan_iot_from_frame,
     build_statcan_sut_from_frame,
@@ -315,6 +316,288 @@ def _statcan_iot_frame() -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def _statcan_sut_openio_frame() -> pd.DataFrame:
+    rows = [
+        {
+            "REF_DATE": 2022,
+            "GEO": "Alberta",
+            "DGUID": "2016A000248",
+            "Supply and use": "Supply",
+            "Valuation": "Basic price",
+            "Industry": "Crop and animal production [BS11A]",
+            "Product": "Grains and other crop products [M111B]",
+            "UOM": "Dollars",
+            "UOM_ID": 81,
+            "SCALAR_FACTOR": "millions",
+            "SCALAR_ID": 6,
+            "VECTOR": "v1",
+            "COORDINATE": "1",
+            "VALUE": 10.0,
+            "STATUS": "",
+            "SYMBOL": "",
+            "TERMINATED": "",
+            "DECIMALS": 1,
+        },
+        {
+            "REF_DATE": 2022,
+            "GEO": "Alberta",
+            "DGUID": "2016A000248",
+            "Supply and use": "Supply",
+            "Valuation": "Basic price",
+            "Industry": "Manufacturing [BS3A0]",
+            "Product": "Food and non-alcoholic beverages [M31C0]",
+            "UOM": "Dollars",
+            "UOM_ID": 81,
+            "SCALAR_FACTOR": "millions",
+            "SCALAR_ID": 6,
+            "VECTOR": "v2",
+            "COORDINATE": "2",
+            "VALUE": 20.0,
+            "STATUS": "",
+            "SYMBOL": "",
+            "TERMINATED": "",
+            "DECIMALS": 1,
+        },
+        {
+            "REF_DATE": 2022,
+            "GEO": "Alberta",
+            "DGUID": "2016A000248",
+            "Supply and use": "Use",
+            "Valuation": "Basic price",
+            "Industry": "Crop and animal production [BS11A]",
+            "Product": "Grains and other crop products [M111B]",
+            "UOM": "Dollars",
+            "UOM_ID": 81,
+            "SCALAR_FACTOR": "millions",
+            "SCALAR_ID": 6,
+            "VECTOR": "v3",
+            "COORDINATE": "3",
+            "VALUE": 1.0,
+            "STATUS": "",
+            "SYMBOL": "",
+            "TERMINATED": "",
+            "DECIMALS": 1,
+        },
+        {
+            "REF_DATE": 2022,
+            "GEO": "Alberta",
+            "DGUID": "2016A000248",
+            "Supply and use": "Use",
+            "Valuation": "Basic price",
+            "Industry": "Manufacturing [BS3A0]",
+            "Product": "Food and non-alcoholic beverages [M31C0]",
+            "UOM": "Dollars",
+            "UOM_ID": 81,
+            "SCALAR_FACTOR": "millions",
+            "SCALAR_ID": 6,
+            "VECTOR": "v4",
+            "COORDINATE": "4",
+            "VALUE": 2.0,
+            "STATUS": "",
+            "SYMBOL": "",
+            "TERMINATED": "",
+            "DECIMALS": 1,
+        },
+        {
+            "REF_DATE": 2022,
+            "GEO": "Alberta",
+            "DGUID": "2016A000248",
+            "Supply and use": "Use",
+            "Valuation": "Basic price",
+            "Industry": "Household final consumption expenditure [PEC00]",
+            "Product": "Grains and other crop products [M111B]",
+            "UOM": "Dollars",
+            "UOM_ID": 81,
+            "SCALAR_FACTOR": "millions",
+            "SCALAR_ID": 6,
+            "VECTOR": "v5",
+            "COORDINATE": "5",
+            "VALUE": 3.0,
+            "STATUS": "",
+            "SYMBOL": "",
+            "TERMINATED": "",
+            "DECIMALS": 1,
+        },
+        {
+            "REF_DATE": 2022,
+            "GEO": "Alberta",
+            "DGUID": "2016A000248",
+            "Supply and use": "Use",
+            "Valuation": "Basic price",
+            "Industry": "International exports [INTEX]",
+            "Product": "Food and non-alcoholic beverages [M31C0]",
+            "UOM": "Dollars",
+            "UOM_ID": 81,
+            "SCALAR_FACTOR": "millions",
+            "SCALAR_ID": 6,
+            "VECTOR": "v6",
+            "COORDINATE": "6",
+            "VALUE": 4.0,
+            "STATUS": "",
+            "SYMBOL": "",
+            "TERMINATED": "",
+            "DECIMALS": 1,
+        },
+        {
+            "REF_DATE": 2022,
+            "GEO": "Alberta",
+            "DGUID": "2016A000248",
+            "Supply and use": "Use",
+            "Valuation": "Basic price",
+            "Industry": "Crop and animal production [BS11A]",
+            "Product": "Wages and salaries [P5000]",
+            "UOM": "Dollars",
+            "UOM_ID": 81,
+            "SCALAR_FACTOR": "millions",
+            "SCALAR_ID": 6,
+            "VECTOR": "v7",
+            "COORDINATE": "7",
+            "VALUE": 5.0,
+            "STATUS": "",
+            "SYMBOL": "",
+            "TERMINATED": "",
+            "DECIMALS": 1,
+        },
+        {
+            "REF_DATE": 2022,
+            "GEO": "Alberta",
+            "DGUID": "2016A000248",
+            "Supply and use": "Use",
+            "Valuation": "Basic price",
+            "Industry": "Manufacturing [BS3A0]",
+            "Product": "Gross operating surplus [P8000]",
+            "UOM": "Dollars",
+            "UOM_ID": 81,
+            "SCALAR_FACTOR": "millions",
+            "SCALAR_ID": 6,
+            "VECTOR": "v8",
+            "COORDINATE": "8",
+            "VALUE": 6.0,
+            "STATUS": "",
+            "SYMBOL": "",
+            "TERMINATED": "",
+            "DECIMALS": 1,
+        },
+        {
+            "REF_DATE": 2022,
+            "GEO": "Alberta",
+            "DGUID": "2016A000248",
+            "Supply and use": "Use",
+            "Valuation": "Purchaser price",
+            "Industry": "Crop and animal production [BS11A]",
+            "Product": "Grains and other crop products [M111B]",
+            "UOM": "Dollars",
+            "UOM_ID": 81,
+            "SCALAR_FACTOR": "millions",
+            "SCALAR_ID": 6,
+            "VECTOR": "v9",
+            "COORDINATE": "9",
+            "VALUE": 10.0,
+            "STATUS": "",
+            "SYMBOL": "",
+            "TERMINATED": "",
+            "DECIMALS": 1,
+        },
+        {
+            "REF_DATE": 2022,
+            "GEO": "Alberta",
+            "DGUID": "2016A000248",
+            "Supply and use": "Use",
+            "Valuation": "Purchaser price",
+            "Industry": "Manufacturing [BS3A0]",
+            "Product": "Food and non-alcoholic beverages [M31C0]",
+            "UOM": "Dollars",
+            "UOM_ID": 81,
+            "SCALAR_FACTOR": "millions",
+            "SCALAR_ID": 6,
+            "VECTOR": "v10",
+            "COORDINATE": "10",
+            "VALUE": 20.0,
+            "STATUS": "",
+            "SYMBOL": "",
+            "TERMINATED": "",
+            "DECIMALS": 1,
+        },
+        {
+            "REF_DATE": 2022,
+            "GEO": "Alberta",
+            "DGUID": "2016A000248",
+            "Supply and use": "Use",
+            "Valuation": "Purchaser price",
+            "Industry": "Household final consumption expenditure [PEC00]",
+            "Product": "Grains and other crop products [M111B]",
+            "UOM": "Dollars",
+            "UOM_ID": 81,
+            "SCALAR_FACTOR": "millions",
+            "SCALAR_ID": 6,
+            "VECTOR": "v11",
+            "COORDINATE": "11",
+            "VALUE": 30.0,
+            "STATUS": "",
+            "SYMBOL": "",
+            "TERMINATED": "",
+            "DECIMALS": 1,
+        },
+        {
+            "REF_DATE": 2022,
+            "GEO": "Alberta",
+            "DGUID": "2016A000248",
+            "Supply and use": "Use",
+            "Valuation": "Purchaser price",
+            "Industry": "International exports [INTEX]",
+            "Product": "Food and non-alcoholic beverages [M31C0]",
+            "UOM": "Dollars",
+            "UOM_ID": 81,
+            "SCALAR_FACTOR": "millions",
+            "SCALAR_ID": 6,
+            "VECTOR": "v12",
+            "COORDINATE": "12",
+            "VALUE": 40.0,
+            "STATUS": "",
+            "SYMBOL": "",
+            "TERMINATED": "",
+            "DECIMALS": 1,
+        },
+        {
+            "REF_DATE": 2022,
+            "GEO": "Alberta",
+            "DGUID": "2016A000248",
+            "Supply and use": "Use",
+            "Valuation": "Purchaser price",
+            "Industry": "International imports [INTIM]",
+            "Product": "Grains and other crop products [M111B]",
+            "UOM": "Dollars",
+            "UOM_ID": 81,
+            "SCALAR_FACTOR": "millions",
+            "SCALAR_ID": 6,
+            "VECTOR": "v13",
+            "COORDINATE": "13",
+            "VALUE": 7.0,
+            "STATUS": "",
+            "SYMBOL": "",
+            "TERMINATED": "",
+            "DECIMALS": 1,
+        },
+    ]
+    return pd.DataFrame(rows)
+
+
+def _write_openio_canada_workbook(path):
+    frame = pd.DataFrame(
+        {
+            "province": ["CA-AB", "CA-AB"],
+            "commodity": [
+                "Grains and other crop products",
+                "Food and non-alcoholic beverages",
+            ],
+            "('CO2', 'kg/$')": [0.5, 2.0],
+            "('CH4', 'kg/$')": [1.0, 4.0],
+        }
+    )
+    with pd.ExcelWriter(path, engine="openpyxl") as writer:
+        frame.to_excel(writer, sheet_name="Emission factors", index=False)
+
+
 def test_build_statcan_sut_from_frame_returns_split_native_blocks():
     matrices, indeces, units, layout = build_statcan_sut_from_frame(
         _statcan_sut_frame(),
@@ -430,3 +713,87 @@ def test_parse_statcan_uses_local_csv_when_path_is_provided(tmp_path, monkeypatc
     assert database.table_type == "SUT"
     assert database.meta.year == 2023
     assert "Statistics Canada WDS full-table API" in database.meta.source
+
+
+def test_build_statcan_sut_from_frame_supports_openio_canada_extensions(tmp_path):
+    workbook = tmp_path / STATCAN_OPENIO_CANADA_FILE_NAME
+    _write_openio_canada_workbook(workbook)
+
+    matrices, indeces, units, _layout = build_statcan_sut_from_frame(
+        _statcan_sut_openio_frame(),
+        year=2022,
+        geo="Alberta",
+        level="detail",
+        csv_url="https://example.test/statcan.csv",
+        satellite_account="openio_canada",
+        satellite_path=workbook,
+    )
+    base = matrices["baseline"]
+
+    assert indeces["k"]["main"] == ["CO2", "CH4"]
+    assert list(units["Satellite account"].index) == ["CO2", "CH4"]
+    assert units["Satellite account"].loc["CO2", "unit"] == "kg/$"
+    assert float(base["Ec"].loc["CO2"].iloc[0]) == 5.0
+    assert float(base["Ec"].loc["CO2"].iloc[1]) == 40.0
+    assert float(base["EY"].loc["CO2"].iloc[0]) == 15.0
+    assert float(base["EY"].loc["CO2"].iloc[1]) == 80.0
+    assert float(base["Ea"].to_numpy().sum()) == 0.0
+
+
+def test_public_parse_statcan_supports_local_openio_canada_satellite_account(tmp_path, monkeypatch):
+    csv_path = tmp_path / "statcan_36100478_sut_detail.csv"
+    _statcan_sut_openio_frame().to_csv(csv_path, index=False)
+    workbook = tmp_path / STATCAN_OPENIO_CANADA_FILE_NAME
+    _write_openio_canada_workbook(workbook)
+
+    def fail_download(*args, **kwargs):
+        raise AssertionError("network should not be used when local StatCan files exist")
+
+    monkeypatch.setattr("mario.parsers.statcan_wds._download_statcan_csv_table", fail_download)
+
+    database = mario.parse_statcan(
+        2022,
+        table="SUT",
+        level="detail",
+        geo="Alberta",
+        satellite_account="openio_canada",
+        path=tmp_path,
+        calc_all=False,
+    )
+
+    assert database.table_type == "SUT"
+    assert list(database.get_index("Satellite account")) == ["CO2", "CH4"]
+    assert float(database["baseline"]["Ec"].loc["CO2"].iloc[0]) == 5.0
+    assert "OpenIO-Canada emission factors via Zenodo" in database.meta.source
+
+
+def test_public_parse_statcan_validates_openio_canada_scope(tmp_path):
+    with pytest.raises(NotImplementable):
+        mario.parse_statcan(
+            2022,
+            table="IOT",
+            level="detail",
+            satellite_account="openio_canada",
+            path=tmp_path,
+            calc_all=False,
+        )
+
+    with pytest.raises(WrongInput):
+        mario.parse_statcan(
+            2022,
+            table="SUT",
+            level="summary",
+            satellite_account="openio_canada",
+            path=tmp_path,
+            calc_all=False,
+        )
+
+    with pytest.raises(WrongInput):
+        mario.parse_statcan(
+            2023,
+            table="SUT",
+            level="detail",
+            satellite_account="openio_canada",
+            path=tmp_path,
+            calc_all=False,
+        )
