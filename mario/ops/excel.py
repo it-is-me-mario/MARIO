@@ -575,7 +575,7 @@ def database_excel(instance, flows, coefficients, directory, scenario):
         # Filling the index indeces sheet
         flows = workbook.add_worksheet("flows")
         flow_format = workbook.add_format({"num_format": "0.0;-0.0;-"})
-        if instance.table_type == "IOT" and _needs_explicit_iot_excel_export(data):
+        if _needs_explicit_iot_excel_export(data):
             _write_explicit_iot_matrices(
                 flows,
                 data[_ENUM.Z],
@@ -606,7 +606,7 @@ def database_excel(instance, flows, coefficients, directory, scenario):
         # Filling the index indeces sheet
         coefficients = workbook.add_worksheet("coefficients")
         coeff_format = workbook.add_format({"num_format": "0.000;-0.000;-"})
-        if instance.table_type == "IOT" and _needs_explicit_iot_excel_export(data):
+        if _needs_explicit_iot_excel_export(data):
             _write_explicit_iot_matrices(
                 coefficients,
                 data[_ENUM.z],

@@ -13,6 +13,31 @@ from mario.utils import sort_frames
 logger = logging.getLogger(__name__)
 
 
+def _capture_custom_transform_block_specs(database):
+    """Capture custom SUT extension/factor block specs before SUT->IOT transforms."""
+    captured = {}
+    for name in ("V", "v", "VY", "E", "e", "EY"):
+        if name in database.list_custom_block_specs():
+            captured[name] = database.get_block_spec(name)
+    return captured
+
+
+def _restore_iot_transform_block_specs(database, captured_specs):
+    """Re-register custom block specs after SUT->IOT using IOT output columns."""
+    productive_cols = (("Region", "Region"), ("Sector", "Sector"))
+    final_demand_cols = (("Region", "Region"), ("Consumption category", "Consumption category"))
+
+    for name, spec in captured_specs.items():
+        row_axes = tuple((axis.id, axis.base) for axis in spec.row_axes)
+        col_axes = final_demand_cols if name in {"EY", "VY"} else productive_cols
+        database.register_block_spec(
+            name=name,
+            row_axes=row_axes,
+            col_axes=col_axes,
+            replace=True,
+        )
+
+
 def build_new_instance_from_scenario(database, scenario):
     """Return a new database whose baseline is the requested scenario."""
 
@@ -57,6 +82,7 @@ def transform_sut_to_iot(database, method, inplace: bool = True):
             method
         ),
     )
+    captured_specs = _capture_custom_transform_block_specs(database)
     matrices, indeces, units = SUT_to_IOT(database, method)
 
     for scenario in database.scenarios:
@@ -68,6 +94,8 @@ def transform_sut_to_iot(database, method, inplace: bool = True):
     database.units = units
 
     database.meta.table = "IOT"
+    if captured_specs:
+        _restore_iot_transform_block_specs(database, captured_specs)
     database.meta._add_history(
         "Transformation of the database from SUT to IOT via method {}".format(
             method

@@ -14,6 +14,7 @@ from mario.parsers.api import build_parser_state
 from mario.parsers.base import BaseParser
 from mario.parsers.matrix_layouts import (
     build_iot_indexes_from_units_and_y,
+    build_sut_indexes_from_units_and_y,
     interpret_axis_tokens,
     interpret_iot_axis,
     interpret_iot_final_demand_tokens,
@@ -21,6 +22,9 @@ from mario.parsers.matrix_layouts import (
     iot_block_specs_for_matrix_layouts,
     iot_units_from_frame,
     normalize_matrix_layouts,
+    sut_axis_names,
+    sut_block_specs_for_matrix_layouts,
+    sut_units_from_frame,
 )
 from mario.parsers.registry import register_parser
 from mario.ops.export_specs import (
@@ -269,6 +273,31 @@ def _tokens_for_expected_row(row: pd.Series, expected_names: tuple[str, ...], *,
     )
 
 
+def _legacy_sut_final_demand_public(tokens: tuple[object, ...]) -> tuple[object, ...]:
+    """Convert semantic final-demand tokens back to the public SUT 3-level layout."""
+    semantic, semantic_names, _, _ = interpret_iot_final_demand_tokens(tokens)
+    if semantic_names == ("Region", "Consumption category"):
+        return (semantic[0], "Consumption category", semantic[1])
+    return ("-", "Consumption category", semantic[0])
+
+
+def _sut_unified_tokens_from_flat(row: pd.Series, *, side: str) -> tuple[object, ...]:
+    """Extract one unified SUT productive tuple from flat set-specific columns."""
+    region = row.get(f"{_MASTER_INDEX['r']}_{side}", "")
+    activity = row.get(f"{_MASTER_INDEX['a']}_{side}", "")
+    commodity = row.get(f"{_MASTER_INDEX['c']}_{side}", "")
+
+    if region not in ("", None) and not pd.isna(region):
+        if activity not in ("", None) and not pd.isna(activity):
+            return (region, _MASTER_INDEX["a"], activity)
+        if commodity not in ("", None) and not pd.isna(commodity):
+            return (region, _MASTER_INDEX["c"], commodity)
+
+    raise WrongInput(
+        f"Unable to rebuild a unified SUT productive axis from flat columns on side {side!r}."
+    )
+
+
 def _build_public_axis(labels, *, side: str, matrix_name: str):
     """Build one public pandas axis from ordered flat labels."""
     if not labels:
@@ -344,6 +373,83 @@ def _normalize_iot_matrix(frame: pd.DataFrame, matrix_name: str, matrix_layouts:
     )
     if matrix_name in {"Y", "EY", "VY"}:
         return normalized, semantic_col_names
+    return normalized, None
+
+
+def _normalize_sut_unified_axis(index) -> pd.MultiIndex:
+    """Normalize one unified SUT productive axis to ``Region/Level/Item``."""
+    if not isinstance(index, pd.MultiIndex) or index.nlevels != 3:
+        raise WrongInput("Unified SUT productive axes must expose three levels.")
+    return pd.MultiIndex.from_tuples(index.tolist(), names=["Region", "Level", "Item"])
+
+
+def _interpret_sut_extension_axis(index, matrix_name: str, matrix_layouts: dict[str, tuple[str, ...]]):
+    """Interpret one SUT factor/satellite row axis under ``matrix_layouts``."""
+    raw_values = index.tolist() if isinstance(index, pd.MultiIndex) else [(value,) for value in index.tolist()]
+    semantic_values: list[tuple[object, ...]] = []
+    public_values: list[tuple[object, ...]] = []
+    semantic_names: tuple[str, ...] | None = None
+    public_names: tuple[str, ...] | None = None
+    expected_names = sut_axis_names(matrix_name, "from", matrix_layouts)
+
+    for value in raw_values:
+        current_semantic, current_semantic_names, current_public, current_public_names = interpret_axis_tokens(
+            value,
+            expected_names,
+            matrix_name=matrix_name,
+            side="from",
+        )
+        if semantic_names is None:
+            semantic_names = current_semantic_names
+            public_names = current_public_names
+        semantic_values.append(current_semantic)
+        public_values.append(current_public)
+
+    assert semantic_names is not None
+    assert public_names is not None
+    if len(public_names) == 1:
+        return pd.Index([value[0] for value in public_values], name=public_names[0]), semantic_names, public_names
+    return pd.MultiIndex.from_tuples(public_values, names=list(public_names)), semantic_names, public_names
+
+
+def _normalize_sut_matrix(frame: pd.DataFrame, matrix_name: str, matrix_layouts: dict[str, tuple[str, ...]]) -> pd.DataFrame:
+    """Normalize one SUT matrix axis layout according to ``matrix_layouts``."""
+    normalized = frame.copy()
+
+    if matrix_name in {"Z", "z", "Y"}:
+        normalized.index = _normalize_sut_unified_axis(normalized.index)
+    elif matrix_name in {"V", "v", "VY", "E", "e", "EY"}:
+        normalized.index, _, _ = _interpret_sut_extension_axis(
+            normalized.index,
+            matrix_name,
+            matrix_layouts,
+        )
+
+    if matrix_name in {"Y", "EY", "VY"}:
+        raw_values = normalized.columns.tolist() if isinstance(normalized.columns, pd.MultiIndex) else [
+            (value,) for value in normalized.columns.tolist()
+        ]
+        public_values: list[tuple[object, ...]] = []
+        public_names: tuple[str, ...] | None = None
+        semantic_col_names: tuple[str, ...] | None = None
+        for value in raw_values:
+            current_semantic, current_semantic_names, current_public, current_public_names = (
+                interpret_iot_final_demand_tokens(value)
+            )
+            if public_names is None:
+                public_names = current_public_names
+                semantic_col_names = current_semantic_names
+            public_values.append(current_public)
+
+        assert public_names is not None
+        assert semantic_col_names is not None
+        if len(public_names) == 1:
+            normalized.columns = pd.Index([value[0] for value in public_values], name=public_names[0])
+        else:
+            normalized.columns = pd.MultiIndex.from_tuples(public_values, names=list(public_names))
+        return normalized, semantic_col_names
+
+    normalized.columns = _normalize_sut_unified_axis(normalized.columns)
     return normalized, None
 
 
@@ -446,6 +552,108 @@ def parse_iot_text_frames_with_layouts(
     return {"baseline": matrices}, indexes, units, extra
 
 
+def _read_sut_matrix_text_with_layout(
+    path: Path,
+    *,
+    matrix_name: str,
+    sep: str,
+    matrix_layouts: dict[str, tuple[str, ...]],
+) -> tuple[pd.DataFrame, tuple[str, ...] | None]:
+    """Read one matrix-per-file txt/csv payload with SUT semantic matrix layouts."""
+    file_path = _find_flat_payload(path, matrix_name, {".txt", ".csv"})
+
+    if matrix_name in {"Z", "z", "Y"}:
+        row_levels = 3
+    else:
+        row_levels = len(sut_axis_names(matrix_name, "from", matrix_layouts))
+
+    if matrix_name in {"Y", "EY", "VY"}:
+        header_candidates = (3, 2, 1)
+    else:
+        header_candidates = (3,)
+
+    attempts = []
+    for index_levels in (row_levels + 1, row_levels):
+        for header_levels in header_candidates:
+            candidate = (index_levels, header_levels)
+            if candidate not in attempts:
+                attempts.append(candidate)
+
+    last_error = None
+    for index_levels, header_levels in attempts:
+        try:
+            frame = pd.read_csv(
+                file_path,
+                sep=sep,
+                index_col=list(range(index_levels)),
+                header=list(range(header_levels)),
+                keep_default_na=False,
+            )
+            return _normalize_sut_matrix(frame, matrix_name, matrix_layouts)
+        except Exception as exc:  # pragma: no cover - diagnostic fallback path
+            last_error = exc
+
+    raise WrongInput(
+        f"Unable to read {file_path.name} with SUT matrix_layouts. Last parser error: {last_error}"
+    )
+
+
+def parse_sut_text_frames_with_layouts(
+    path: str,
+    *,
+    mode: str,
+    sep: str,
+    matrix_layouts: dict[str, tuple[str, ...]],
+):
+    """Parse matrix-per-file txt/csv SUT payloads using semantic matrix layouts."""
+    root = Path(path)
+    expected_matrices = _FLAT_COEFFICIENT_MATRICES if mode == "coefficients" else _FLAT_FLOW_MATRICES
+    required_matrices = _FLAT_REQUIRED_COEFFICIENT_MATRICES if mode == "coefficients" else _FLAT_REQUIRED_FLOW_MATRICES
+
+    matrices = {}
+    final_demand_axis_names: tuple[str, ...] | None = None
+    for matrix_name in expected_matrices:
+        try:
+            matrices[matrix_name], current_fd_axis_names = _read_sut_matrix_text_with_layout(
+                root,
+                matrix_name=matrix_name,
+                sep=sep,
+                matrix_layouts=matrix_layouts,
+            )
+            if current_fd_axis_names is not None:
+                if final_demand_axis_names is None:
+                    final_demand_axis_names = current_fd_axis_names
+                elif final_demand_axis_names != current_fd_axis_names:
+                    raise WrongInput(
+                        f"Mixed semantic final-demand axes are not supported: {final_demand_axis_names} and {current_fd_axis_names}."
+                    )
+        except FileNotFoundError:
+            if matrix_name not in required_matrices:
+                continue
+            raise
+
+    if "EY" not in matrices:
+        matrices["EY"] = pd.DataFrame(0, index=matrices["E"].index, columns=matrices["Y"].columns)
+    if "VY" not in matrices:
+        matrices["VY"] = pd.DataFrame(0, index=matrices["V"].index, columns=matrices["Y"].columns)
+
+    units_path = _find_flat_payload(root, "units", {".txt", ".csv"})
+    units_frame = pd.read_csv(units_path, sep=sep, index_col=[0, 1], header=[0], keep_default_na=False)
+    units_frame.columns = ["unit"]
+    units_frame.index.names = ["level", "item"]
+
+    sort_frames(matrices)
+    indexes = build_sut_indexes_from_units_and_y(units_frame, matrices)
+    units = sut_units_from_frame(units_frame)
+    extra = {
+        "block_specs": sut_block_specs_for_matrix_layouts(
+            matrix_layouts,
+            final_demand_axis_names=final_demand_axis_names or ("Region", "Consumption category"),
+        )
+    }
+    return {"baseline": matrices}, indexes, units, extra
+
+
 def parse_flat_frames(
     data: pd.DataFrame,
     unit_table: pd.DataFrame,
@@ -460,34 +668,127 @@ def parse_flat_frames(
         data = _coerce_sparse_flat_data(data)
 
     if matrix_layouts:
-        if table != "IOT":
-            raise WrongInput("matrix_layouts are currently supported only for IOT flat payloads.")
+        if table == "IOT":
+            expected_matrices = (
+                _FLAT_COEFFICIENT_MATRICES if mode == "coefficients" else _FLAT_FLOW_MATRICES
+            )
+            required_matrices = (
+                _FLAT_REQUIRED_COEFFICIENT_MATRICES
+                if mode == "coefficients"
+                else _FLAT_REQUIRED_FLOW_MATRICES
+            )
 
-        expected_matrices = (
-            _FLAT_COEFFICIENT_MATRICES if mode == "coefficients" else _FLAT_FLOW_MATRICES
-        )
-        required_matrices = (
-            _FLAT_REQUIRED_COEFFICIENT_MATRICES
-            if mode == "coefficients"
-            else _FLAT_REQUIRED_FLOW_MATRICES
-        )
+            matrices = {}
+            final_demand_axis_names: tuple[str, ...] | None = None
+            final_demand_public_axis_names: tuple[str, ...] | None = None
+            for matrix_name in expected_matrices:
+                subset = data.loc[data["Matrix"] == matrix_name].copy()
+                if subset.empty:
+                    if matrix_name in required_matrices:
+                        raise ValueError(f"Flat payload is missing required matrix {matrix_name!r}.")
+                    continue
 
-        matrices = {}
-        final_demand_axis_names: tuple[str, ...] | None = None
-        final_demand_public_axis_names: tuple[str, ...] | None = None
-        for matrix_name in expected_matrices:
-            subset = data.loc[data["Matrix"] == matrix_name].copy()
-            if subset.empty:
-                if matrix_name in required_matrices:
-                    raise ValueError(f"Flat payload is missing required matrix {matrix_name!r}.")
-                continue
+                subset["Value"] = pd.to_numeric(subset["Value"], errors="raise")
+                expected_from = iot_axis_names(matrix_name, "from", matrix_layouts)
+                subset["from_key"] = [
+                    interpret_axis_tokens(
+                        _tuple_from_set_columns(
+                            row,
+                            expected_from,
+                            side="from",
+                            borrow_from_other_side=True,
+                        ),
+                        expected_from,
+                        matrix_name=matrix_name,
+                        side="from",
+                    )[0]
+                    for _, row in subset.iterrows()
+                ]
+                subset["from_public_key"] = [
+                    interpret_axis_tokens(
+                        _tuple_from_set_columns(
+                            row,
+                            expected_from,
+                            side="from",
+                            borrow_from_other_side=True,
+                        ),
+                        expected_from,
+                        matrix_name=matrix_name,
+                        side="from",
+                    )[2]
+                    for _, row in subset.iterrows()
+                ]
+                expected_to = iot_axis_names(matrix_name, "to", matrix_layouts)
+                subset["to_key"] = [
+                    (
+                        interpret_iot_final_demand_tokens(
+                            _tokens_for_expected_row(
+                                row,
+                                _final_demand_expected_names(subset, side="to"),
+                                side="to",
+                            )
+                        )[0]
+                        if matrix_name in {"Y", "EY", "VY"}
+                        else interpret_axis_tokens(
+                            _tokens_for_expected_row(row, expected_to, side="to"),
+                            expected_to,
+                            matrix_name=matrix_name,
+                            side="to",
+                        )[0]
+                    )
+                    for _, row in subset.iterrows()
+                ]
+                subset["to_public_key"] = [
+                    (
+                        interpret_iot_final_demand_tokens(
+                            _tokens_for_expected_row(
+                                row,
+                                _final_demand_expected_names(subset, side="to"),
+                                side="to",
+                            )
+                        )[2]
+                        if matrix_name in {"Y", "EY", "VY"}
+                        else interpret_axis_tokens(
+                            _tokens_for_expected_row(row, expected_to, side="to"),
+                            expected_to,
+                            matrix_name=matrix_name,
+                            side="to",
+                        )[2]
+                    )
+                    for _, row in subset.iterrows()
+                ]
+                if matrix_name in {"Y", "EY", "VY"} and final_demand_axis_names is None and not subset.empty:
+                    final_demand_axis_names = interpret_iot_final_demand_tokens(
+                        _tokens_for_expected_row(
+                            subset.iloc[0],
+                            _final_demand_expected_names(subset, side="to"),
+                            side="to",
+                        )
+                    )[1]
+                if matrix_name in {"Y", "EY", "VY"} and not subset.empty:
+                    final_demand_public_axis_names = interpret_iot_final_demand_tokens(
+                        _tokens_for_expected_row(
+                            subset.iloc[0],
+                            _final_demand_expected_names(subset, side="to"),
+                            side="to",
+                        )
+                    )[3]
 
-            subset["Value"] = pd.to_numeric(subset["Value"], errors="raise")
-            expected_from = iot_axis_names(matrix_name, "from", matrix_layouts)
-            subset["from_key"] = [
-                interpret_axis_tokens(
+                row_order = list(dict.fromkeys(subset["from_key"].tolist()))
+                column_order = list(dict.fromkeys(subset["to_key"].tolist()))
+                row_public_order = list(dict.fromkeys(subset["from_public_key"].tolist()))
+                column_public_order = list(dict.fromkeys(subset["to_public_key"].tolist()))
+                frame = subset.pivot(index="from_key", columns="to_key", values="Value")
+                frame = frame.reindex(index=row_order, columns=column_order)
+                frame = frame.fillna(0)
+                expected_to = (
+                    final_demand_axis_names
+                    if matrix_name in {"Y", "EY", "VY"}
+                    else expected_to
+                )
+                row_sample = interpret_axis_tokens(
                     _tuple_from_set_columns(
-                        row,
+                        subset.iloc[0],
                         expected_from,
                         side="from",
                         borrow_from_other_side=True,
@@ -495,158 +796,210 @@ def parse_flat_frames(
                     expected_from,
                     matrix_name=matrix_name,
                     side="from",
-                )[0]
-                for _, row in subset.iterrows()
-            ]
-            subset["from_public_key"] = [
-                interpret_axis_tokens(
-                    _tuple_from_set_columns(
-                        row,
+                )
+                row_public_names = row_sample[3]
+                if len(row_public_names) == 1:
+                    frame.index = pd.Index([value[0] for value in row_public_order], name=row_public_names[0])
+                else:
+                    frame.index = pd.MultiIndex.from_tuples(row_public_order, names=list(row_public_names))
+
+                if matrix_name in {"Y", "EY", "VY"}:
+                    if len(final_demand_public_axis_names) == 1:
+                        frame.columns = pd.Index(
+                            [value[0] for value in column_public_order],
+                            name=final_demand_public_axis_names[0],
+                        )
+                    else:
+                        frame.columns = pd.MultiIndex.from_tuples(
+                            column_public_order,
+                            names=list(final_demand_public_axis_names),
+                        )
+                else:
+                    col_sample = interpret_axis_tokens(
+                        _tokens_for_expected_row(subset.iloc[0], expected_to, side="to"),
+                        expected_to,
+                        matrix_name=matrix_name,
+                        side="to",
+                    )
+                    col_public_names = col_sample[3]
+                    if len(col_public_names) == 1:
+                        frame.columns = pd.Index([value[0] for value in column_public_order], name=col_public_names[0])
+                    else:
+                        frame.columns = pd.MultiIndex.from_tuples(
+                            column_public_order,
+                            names=list(col_public_names),
+                        )
+                matrices[matrix_name] = frame
+
+            extension_matrix = matrices.get("E", matrices.get("e"))
+            factor_matrix = matrices.get("V", matrices.get("v"))
+            if "EY" not in matrices:
+                matrices["EY"] = pd.DataFrame(0, index=extension_matrix.index, columns=matrices["Y"].columns)
+            if "VY" not in matrices:
+                matrices["VY"] = pd.DataFrame(0, index=factor_matrix.index, columns=matrices["Y"].columns)
+
+            sort_frames(matrices)
+            units_frame = _flat_units_to_legacy(unit_table)
+            index_matrices = dict(matrices)
+            for legacy_name, coefficient_name in (("Z", "z"), ("V", "v"), ("E", "e")):
+                if legacy_name not in index_matrices and coefficient_name in index_matrices:
+                    index_matrices[legacy_name] = index_matrices[coefficient_name]
+            indexes = build_iot_indexes_from_units_and_y(units_frame, index_matrices)
+            units = iot_units_from_frame(units_frame)
+            extra = {
+                "block_specs": iot_block_specs_for_matrix_layouts(
+                    matrix_layouts,
+                    final_demand_axis_names=final_demand_axis_names or ("Region", "Consumption category"),
+                )
+            }
+            return {"baseline": matrices}, indexes, units, extra
+
+        if table == "SUT":
+            expected_matrices = (
+                _FLAT_COEFFICIENT_MATRICES if mode == "coefficients" else _FLAT_FLOW_MATRICES
+            )
+            required_matrices = (
+                _FLAT_REQUIRED_COEFFICIENT_MATRICES
+                if mode == "coefficients"
+                else _FLAT_REQUIRED_FLOW_MATRICES
+            )
+
+            matrices = {}
+            for matrix_name in expected_matrices:
+                subset = data.loc[data["Matrix"] == matrix_name].copy()
+                if subset.empty:
+                    if matrix_name in required_matrices:
+                        raise ValueError(f"Flat payload is missing required matrix {matrix_name!r}.")
+                    continue
+
+                subset["Value"] = pd.to_numeric(subset["Value"], errors="raise")
+                if matrix_name in {"Z", "z", "Y"}:
+                    subset["from_key"] = [
+                        _sut_unified_tokens_from_flat(row, side="from")
+                        for _, row in subset.iterrows()
+                    ]
+                    subset["from_public_key"] = subset["from_key"]
+                else:
+                    expected_from = sut_axis_names(matrix_name, "from", matrix_layouts)
+                    subset["from_key"] = [
+                        interpret_axis_tokens(
+                            _tuple_from_set_columns(
+                                row,
+                                expected_from,
+                                side="from",
+                            ),
+                            expected_from,
+                            matrix_name=matrix_name,
+                            side="from",
+                        )[0]
+                        for _, row in subset.iterrows()
+                    ]
+                    subset["from_public_key"] = [
+                        interpret_axis_tokens(
+                            _tuple_from_set_columns(
+                                row,
+                                expected_from,
+                                side="from",
+                            ),
+                            expected_from,
+                            matrix_name=matrix_name,
+                            side="from",
+                        )[2]
+                        for _, row in subset.iterrows()
+                    ]
+
+                if matrix_name in {"Y", "EY", "VY"}:
+                    subset["to_key"] = [
+                        interpret_iot_final_demand_tokens(
+                            _tokens_for_expected_row(
+                                row,
+                                _final_demand_expected_names(subset, side="to"),
+                                side="to",
+                            )
+                        )[0]
+                        for _, row in subset.iterrows()
+                    ]
+                    subset["to_public_key"] = [
+                        _legacy_sut_final_demand_public(
+                            _tokens_for_expected_row(
+                                row,
+                                _final_demand_expected_names(subset, side="to"),
+                                side="to",
+                            )
+                        )
+                        for _, row in subset.iterrows()
+                    ]
+                else:
+                    subset["to_key"] = [
+                        _sut_unified_tokens_from_flat(row, side="to")
+                        for _, row in subset.iterrows()
+                    ]
+                    subset["to_public_key"] = subset["to_key"]
+
+                row_order = list(dict.fromkeys(subset["from_key"].tolist()))
+                column_order = list(dict.fromkeys(subset["to_key"].tolist()))
+                row_public_order = list(dict.fromkeys(subset["from_public_key"].tolist()))
+                column_public_order = list(dict.fromkeys(subset["to_public_key"].tolist()))
+                frame = subset.pivot(index="from_key", columns="to_key", values="Value")
+                frame = frame.reindex(index=row_order, columns=column_order)
+                frame = frame.fillna(0)
+
+                if matrix_name in {"Z", "z", "Y"}:
+                    frame.index = pd.MultiIndex.from_tuples(row_public_order, names=["Region", "Level", "Item"])
+                else:
+                    expected_from = sut_axis_names(matrix_name, "from", matrix_layouts)
+                    row_sample = interpret_axis_tokens(
+                        _tuple_from_set_columns(subset.iloc[0], expected_from, side="from"),
                         expected_from,
+                        matrix_name=matrix_name,
                         side="from",
-                        borrow_from_other_side=True,
+                    )
+                    row_public_names = row_sample[3]
+                    if len(row_public_names) == 1:
+                        frame.index = pd.Index([value[0] for value in row_public_order], name=row_public_names[0])
+                    else:
+                        frame.index = pd.MultiIndex.from_tuples(row_public_order, names=list(row_public_names))
+
+                if matrix_name in {"Y", "EY", "VY"}:
+                    frame.columns = pd.MultiIndex.from_tuples(
+                        column_public_order,
+                        names=["Region", "Level", "Item"],
+                    )
+                else:
+                    frame.columns = pd.MultiIndex.from_tuples(column_public_order, names=["Region", "Level", "Item"])
+                matrices[matrix_name] = frame
+
+            extension_matrix = matrices.get("E", matrices.get("e"))
+            factor_matrix = matrices.get("V", matrices.get("v"))
+            if "EY" not in matrices:
+                matrices["EY"] = pd.DataFrame(0, index=extension_matrix.index, columns=matrices["Y"].columns)
+            if "VY" not in matrices:
+                matrices["VY"] = pd.DataFrame(0, index=factor_matrix.index, columns=matrices["Y"].columns)
+
+            sort_frames(matrices)
+            units_frame = _flat_units_to_legacy(unit_table)
+            index_matrices = dict(matrices)
+            for legacy_name, coefficient_name in (("Z", "z"), ("V", "v"), ("E", "e")):
+                if legacy_name not in index_matrices and coefficient_name in index_matrices:
+                    index_matrices[legacy_name] = index_matrices[coefficient_name]
+            indexes = build_sut_indexes_from_units_and_y(units_frame, index_matrices)
+            units = sut_units_from_frame(units_frame)
+            extra = {
+                "block_specs": sut_block_specs_for_matrix_layouts(
+                    matrix_layouts,
+                    final_demand_axis_names=(
+                        _final_demand_expected_names(
+                            data.loc[data["Matrix"].isin({"Y", "EY", "VY"})],
+                            side="to",
+                        )
+                        if not data.loc[data["Matrix"].isin({"Y", "EY", "VY"})].empty
+                        else ("Region", "Consumption category")
                     ),
-                    expected_from,
-                    matrix_name=matrix_name,
-                    side="from",
-                )[2]
-                for _, row in subset.iterrows()
-            ]
-            expected_to = iot_axis_names(matrix_name, "to", matrix_layouts)
-            subset["to_key"] = [
-                (
-                    interpret_iot_final_demand_tokens(
-                        _tokens_for_expected_row(
-                            row,
-                            _final_demand_expected_names(subset, side="to"),
-                            side="to",
-                        )
-                    )[0]
-                    if matrix_name in {"Y", "EY", "VY"}
-                    else interpret_axis_tokens(
-                        _tokens_for_expected_row(row, expected_to, side="to"),
-                        expected_to,
-                        matrix_name=matrix_name,
-                        side="to",
-                    )[0]
                 )
-                for _, row in subset.iterrows()
-            ]
-            subset["to_public_key"] = [
-                (
-                    interpret_iot_final_demand_tokens(
-                        _tokens_for_expected_row(
-                            row,
-                            _final_demand_expected_names(subset, side="to"),
-                            side="to",
-                        )
-                    )[2]
-                    if matrix_name in {"Y", "EY", "VY"}
-                    else interpret_axis_tokens(
-                        _tokens_for_expected_row(row, expected_to, side="to"),
-                        expected_to,
-                        matrix_name=matrix_name,
-                        side="to",
-                    )[2]
-                )
-                for _, row in subset.iterrows()
-            ]
-            if matrix_name in {"Y", "EY", "VY"} and final_demand_axis_names is None and not subset.empty:
-                final_demand_axis_names = interpret_iot_final_demand_tokens(
-                    _tokens_for_expected_row(
-                        subset.iloc[0],
-                        _final_demand_expected_names(subset, side="to"),
-                        side="to",
-                    )
-                )[1]
-            if matrix_name in {"Y", "EY", "VY"} and not subset.empty:
-                final_demand_public_axis_names = interpret_iot_final_demand_tokens(
-                    _tokens_for_expected_row(
-                        subset.iloc[0],
-                        _final_demand_expected_names(subset, side="to"),
-                        side="to",
-                    )
-                )[3]
+            }
+            return {"baseline": matrices}, indexes, units, extra
 
-            row_order = list(dict.fromkeys(subset["from_key"].tolist()))
-            column_order = list(dict.fromkeys(subset["to_key"].tolist()))
-            row_public_order = list(dict.fromkeys(subset["from_public_key"].tolist()))
-            column_public_order = list(dict.fromkeys(subset["to_public_key"].tolist()))
-            frame = subset.pivot(index="from_key", columns="to_key", values="Value")
-            frame = frame.reindex(index=row_order, columns=column_order)
-            frame = frame.fillna(0)
-            expected_to = (
-                final_demand_axis_names
-                if matrix_name in {"Y", "EY", "VY"}
-                else expected_to
-            )
-            row_sample = interpret_axis_tokens(
-                _tuple_from_set_columns(
-                    subset.iloc[0],
-                    expected_from,
-                    side="from",
-                    borrow_from_other_side=True,
-                ),
-                expected_from,
-                matrix_name=matrix_name,
-                side="from",
-            )
-            row_public_names = row_sample[3]
-            if len(row_public_names) == 1:
-                frame.index = pd.Index([value[0] for value in row_public_order], name=row_public_names[0])
-            else:
-                frame.index = pd.MultiIndex.from_tuples(row_public_order, names=list(row_public_names))
-
-            if matrix_name in {"Y", "EY", "VY"}:
-                if len(final_demand_public_axis_names) == 1:
-                    frame.columns = pd.Index(
-                        [value[0] for value in column_public_order],
-                        name=final_demand_public_axis_names[0],
-                    )
-                else:
-                    frame.columns = pd.MultiIndex.from_tuples(
-                        column_public_order,
-                        names=list(final_demand_public_axis_names),
-                    )
-            else:
-                col_sample = interpret_axis_tokens(
-                    _tokens_for_expected_row(subset.iloc[0], expected_to, side="to"),
-                    expected_to,
-                    matrix_name=matrix_name,
-                    side="to",
-                )
-                col_public_names = col_sample[3]
-                if len(col_public_names) == 1:
-                    frame.columns = pd.Index([value[0] for value in column_public_order], name=col_public_names[0])
-                else:
-                    frame.columns = pd.MultiIndex.from_tuples(
-                        column_public_order,
-                        names=list(col_public_names),
-                    )
-            matrices[matrix_name] = frame
-
-        extension_matrix = matrices.get("E", matrices.get("e"))
-        factor_matrix = matrices.get("V", matrices.get("v"))
-        if "EY" not in matrices:
-            matrices["EY"] = pd.DataFrame(0, index=extension_matrix.index, columns=matrices["Y"].columns)
-        if "VY" not in matrices:
-            matrices["VY"] = pd.DataFrame(0, index=factor_matrix.index, columns=matrices["Y"].columns)
-
-        sort_frames(matrices)
-        units_frame = _flat_units_to_legacy(unit_table)
-        index_matrices = dict(matrices)
-        for legacy_name, coefficient_name in (("Z", "z"), ("V", "v"), ("E", "e")):
-            if legacy_name not in index_matrices and coefficient_name in index_matrices:
-                index_matrices[legacy_name] = index_matrices[coefficient_name]
-        indexes = build_iot_indexes_from_units_and_y(units_frame, index_matrices)
-        units = iot_units_from_frame(units_frame)
-        extra = {
-            "block_specs": iot_block_specs_for_matrix_layouts(
-                matrix_layouts,
-                final_demand_axis_names=final_demand_axis_names or ("Region", "Consumption category"),
-            )
-        }
-        return {"baseline": matrices}, indexes, units, extra
+        raise WrongInput("matrix_layouts are currently supported only for IOT or SUT flat payloads.")
 
     expected_matrices = (
         _FLAT_COEFFICIENT_MATRICES if mode == "coefficients" else _FLAT_FLOW_MATRICES
@@ -717,14 +1070,19 @@ class TxtParser(BaseParser):
         log_time(logger, f"Parser: txt reading {table} {mode} from {path} in {layout} mode.", "info")
         normalized_layouts = normalize_matrix_layouts(matrix_layouts)
         if normalized_layouts:
-            if table != "IOT":
-                raise WrongInput("matrix_layouts are currently supported only for IOT txt parsers.")
             if flat:
                 matrices, indexes, units, extra = flat_txt_parser(
                     path,
                     table,
                     mode,
                     sep,
+                    matrix_layouts=normalized_layouts,
+                )
+            elif table == "SUT":
+                matrices, indexes, units, extra = parse_sut_text_frames_with_layouts(
+                    path,
+                    mode=mode,
+                    sep=sep,
                     matrix_layouts=normalized_layouts,
                 )
             else:

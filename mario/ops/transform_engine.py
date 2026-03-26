@@ -30,6 +30,15 @@ logger = logging.getLogger(__name__)
 SUT_TO_IOT_METHODS = ["A", "B", "C", "D"]
 
 
+def _restore_public_axis_names(axis, original):
+    """Restore axis names after legacy helpers overwrite them."""
+    if isinstance(original, pd.MultiIndex) and isinstance(axis, pd.MultiIndex) and axis.nlevels == original.nlevels:
+        return pd.MultiIndex.from_tuples(axis.tolist(), names=list(original.names))
+    if not isinstance(original, pd.MultiIndex) and not isinstance(axis, pd.MultiIndex):
+        return pd.Index(axis.tolist(), name=original.name)
+    return axis
+
+
 def SUT_to_IOT(instance, method):
     """Convert a SUT database to an IOT using Eurostat methods ``A`` to ``D``."""
     if method not in SUT_TO_IOT_METHODS:
@@ -52,6 +61,13 @@ def SUT_to_IOT(instance, method):
             _ENUM.VY,
         ],
     )
+
+    original_public_axes = {
+        _ENUM.V: data[_ENUM.V].index.copy(deep=True),
+        _ENUM.E: data[_ENUM.E].index.copy(deep=True),
+        _ENUM.EY: data[_ENUM.EY].index.copy(deep=True),
+        _ENUM.VY: data[_ENUM.VY].index.copy(deep=True),
+    }
 
     data[_ENUM.V] = data[_ENUM.V].loc[:, (slice(None), _MASTER_INDEX["a"], slice(None))]
     data[_ENUM.E] = data[_ENUM.E].loc[:, (slice(None), _MASTER_INDEX["a"], slice(None))]
@@ -262,6 +278,11 @@ def SUT_to_IOT(instance, method):
 
     indeces = {item: value for item, value in _indeces.items()}
     rename_index(matrices["baseline"])
+    for matrix_name, original_axis in original_public_axes.items():
+        matrices["baseline"][matrix_name].index = _restore_public_axis_names(
+            matrices["baseline"][matrix_name].index,
+            original_axis,
+        )
 
     return matrices, indeces, units
 

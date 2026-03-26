@@ -14,7 +14,9 @@ from mario.ops import (
 )
 from mario.test.mario_test import load_test
 from mario.model.conventions import _ENUM
+from mario.parsers.api import build_database_from_state, build_parser_state
 from mario.parsers.entrypoints import parse_from_excel
+from mario.parsers.matrix_layouts import sut_block_specs_for_matrix_layouts
 from mario.views import build_database_frame
 
 
@@ -81,6 +83,101 @@ def _aggregate_expected_standard_axis(frame, *, region_target=None, item_target=
     return expected
 
 
+def _build_custom_sut_database():
+    productive = pd.MultiIndex.from_tuples(
+        [
+            ("r1", "Activity", "a1"),
+            ("r1", "Activity", "a2"),
+            ("r1", "Commodity", "c1"),
+            ("r1", "Commodity", "c2"),
+        ],
+        names=["Region", "Level", "Item"],
+    )
+    final_demand = pd.MultiIndex.from_tuples(
+        [("r1", "Consumption category", "hh")],
+        names=["Region", "Level", "Item"],
+    )
+    factors = pd.MultiIndex.from_tuples(
+        [
+            ("r1", "a1", "taxes"),
+            ("r1", "a1", "capital"),
+            ("r1", "a2", "taxes"),
+            ("r1", "a2", "capital"),
+        ],
+        names=["Region", "Activity", "Factor of production"],
+    )
+    satellites = pd.MultiIndex.from_tuples(
+        [("r1", "a1", "CO2"), ("r1", "a2", "CO2")],
+        names=["Region", "Activity", "Satellite account"],
+    )
+
+    blocks = {
+        "Z": pd.DataFrame(
+            [
+                [0.0, 0.0, 40.0, 10.0],
+                [0.0, 0.0, 20.0, 30.0],
+                [5.0, 7.0, 0.0, 0.0],
+                [3.0, 9.0, 0.0, 0.0],
+            ],
+            index=productive,
+            columns=productive,
+        ),
+        "Y": pd.DataFrame(
+            [[0.0], [0.0], [50.0], [60.0]],
+            index=productive,
+            columns=final_demand,
+        ),
+        "V": pd.DataFrame(
+            [
+                [4.0, 0.0, 0.0, 0.0],
+                [6.0, 0.0, 0.0, 0.0],
+                [0.0, 5.0, 0.0, 0.0],
+                [0.0, 8.0, 0.0, 0.0],
+            ],
+            index=factors,
+            columns=productive,
+        ),
+        "E": pd.DataFrame(
+            [
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 2.0, 0.0, 0.0],
+            ],
+            index=satellites,
+            columns=productive,
+        ),
+        "EY": pd.DataFrame([[0.5], [1.5]], index=satellites, columns=final_demand),
+        "VY": pd.DataFrame([[0.0], [0.0], [0.0], [0.0]], index=factors, columns=final_demand),
+    }
+    indexes = {
+        "r": {"main": ["r1"]},
+        "n": {"main": ["hh"]},
+        "a": {"main": ["a1", "a2"]},
+        "c": {"main": ["c1", "c2"]},
+        "s": {"main": ["a1", "a2", "c1", "c2"]},
+        "f": {"main": ["taxes", "capital"]},
+        "k": {"main": ["CO2"]},
+    }
+    units = {
+        "Activity": pd.DataFrame({"unit": ["EUR", "EUR"]}, index=pd.Index(["a1", "a2"], name="Item")),
+        "Commodity": pd.DataFrame({"unit": ["EUR", "EUR"]}, index=pd.Index(["c1", "c2"], name="Item")),
+        "Factor of production": pd.DataFrame({"unit": ["EUR", "EUR"]}, index=pd.Index(["taxes", "capital"], name="Item")),
+        "Satellite account": pd.DataFrame({"unit": ["ton"]}, index=pd.Index(["CO2"], name="Item")),
+    }
+    state = build_parser_state(
+        table="SUT",
+        matrices={"baseline": blocks},
+        indexes=indexes,
+        units=units,
+        parser_name="tests",
+        mode="flows",
+        name="custom SUT",
+    )
+    state.metadata.extra["block_specs"] = sut_block_specs_for_matrix_layouts(
+        {"V": ("Region", "Activity"), "E": ("Region", "Activity")}
+    )
+    return build_database_from_state(state, calc_all=False)
+
+
 def test_build_new_instance_from_scenario_returns_baseline_clone():
     database = load_test("IOT")
     database.calc_all([_ENUM.X])
@@ -103,6 +200,34 @@ def test_transform_wrappers_match_database_results():
     assert iot.table_type == "IOT"
     assert chenery.scenarios == ["baseline"]
     assert iot.scenarios == ["baseline"]
+
+
+def test_transform_sut_to_iot_preserves_custom_extension_and_factor_rows():
+    sut = _build_custom_sut_database()
+
+    iot = transform_sut_to_iot(sut, "C", inplace=False)
+
+    assert iot.table_type == "IOT"
+    assert iot.V.index.names == ["Region", "Activity", "Factor of production"]
+    assert iot.E.index.names == ["Region", "Activity", "Satellite account"]
+    assert tuple(axis.id for axis in iot.get_block_spec("V").row_axes) == (
+        "Region",
+        "Activity",
+        "Factor of production",
+    )
+    assert tuple(axis.id for axis in iot.get_block_spec("V").col_axes) == (
+        "Region",
+        "Sector",
+    )
+    assert tuple(axis.id for axis in iot.get_block_spec("E").row_axes) == (
+        "Region",
+        "Activity",
+        "Satellite account",
+    )
+    assert tuple(axis.id for axis in iot.get_block_spec("E").col_axes) == (
+        "Region",
+        "Sector",
+    )
 
 
 def test_aggregate_database_wrapper_returns_aggregated_copy():
@@ -194,6 +319,39 @@ def test_aggregate_database_supports_custom_matrix_layouts(tmp_path):
 
     pdt.assert_frame_equal(aggregated.E, expected_e)
     pdt.assert_frame_equal(aggregated.V, expected_v)
+
+
+def test_aggregate_database_supports_custom_sut_matrix_layouts():
+    database = _build_custom_sut_database()
+
+    mappings = {
+        "Region": pd.DataFrame({"Aggregation": ["world"]}, index=["r1"]),
+        "Activity": pd.DataFrame({"Aggregation": ["act", "act"]}, index=["a1", "a2"]),
+        "Commodity": pd.DataFrame({"Aggregation": ["com", "com"]}, index=["c1", "c2"]),
+    }
+    aggregated = aggregate_database(
+        database,
+        io=mappings,
+        levels=["Region", "Activity", "Commodity"],
+        inplace=False,
+        calc_all=False,
+    )
+
+    assert aggregated.get_index("Region") == ["world"]
+    assert aggregated.get_index("Activity") == ["act"]
+    assert aggregated.get_index("Commodity") == ["com"]
+    assert aggregated.V.index.names == ["Region", "Activity", "Factor of production"]
+    assert aggregated.E.index.names == ["Region", "Activity", "Satellite account"]
+    assert tuple(axis.id for axis in aggregated.get_block_spec("V").row_axes) == (
+        "Region",
+        "Activity",
+        "Factor of production",
+    )
+    assert tuple(axis.id for axis in aggregated.get_block_spec("E").row_axes) == (
+        "Region",
+        "Activity",
+        "Satellite account",
+    )
 
 
 def test_export_to_pymrio_and_tabular_view_work_from_new_modules():

@@ -437,3 +437,169 @@ def iot_units_from_frame(units_frame: pd.DataFrame) -> dict[str, pd.DataFrame]:
         if level_name in units_frame.index.get_level_values(0):
             units[level_name] = units_frame.loc[[level_name]].droplevel(0).copy()
     return units
+
+
+def sut_row_layout(matrix_name: str, matrix_layouts: dict[str, tuple[str, ...]]) -> tuple[str, ...]:
+    """Return the configured extra row layout for one SUT extension/factor matrix."""
+    if matrix_name in {"EY"}:
+        return matrix_layouts.get("EY", matrix_layouts.get("E", matrix_layouts.get("e", ())))
+    if matrix_name in {"e"}:
+        return matrix_layouts.get("e", matrix_layouts.get("E", ()))
+    if matrix_name in {"E", "f", "F"}:
+        return matrix_layouts.get("E", matrix_layouts.get("e", ()))
+    if matrix_name in {"VY"}:
+        return matrix_layouts.get("VY", matrix_layouts.get("V", matrix_layouts.get("v", ())))
+    if matrix_name in {"v"}:
+        return matrix_layouts.get("v", matrix_layouts.get("V", ()))
+    if matrix_name in {"V", "m", "M"}:
+        return matrix_layouts.get("V", matrix_layouts.get("v", ()))
+    return ()
+
+
+def sut_axis_names(matrix_name: str, side: str, matrix_layouts: dict[str, tuple[str, ...]]) -> tuple[str, ...]:
+    """Return the semantic axis names expected for one SUT matrix side.
+
+    Unified productive SUT axes intentionally remain anchored to the historical
+    public structure because ``Activity`` and ``Commodity`` can overlap in item
+    labels. Extra matrix layouts are currently supported only on factor and
+    satellite row axes.
+    """
+    if side not in {"from", "to"}:
+        raise WrongInput("side should be either 'from' or 'to'.")
+
+    if side == "from":
+        if matrix_name in {"Z", "z", "Y"}:
+            return ("Region", "Level", "Item")
+        if matrix_name in {"V", "v", "M", "m", "VY"}:
+            return sut_row_layout(matrix_name, matrix_layouts) + ("Factor of production",)
+        if matrix_name in {"E", "e", "F", "f", "EY"}:
+            return sut_row_layout(matrix_name, matrix_layouts) + ("Satellite account",)
+    else:
+        if matrix_name in {"Z", "z", "V", "v", "E", "e", "M", "m", "F", "f"}:
+            return ("Region", "Level", "Item")
+        if matrix_name in {"Y", "EY", "VY"}:
+            return ("Region", "Consumption category")
+
+    raise WrongInput(f"No SUT axis definition is known for matrix {matrix_name!r} on side {side!r}.")
+
+
+def build_sut_indexes_from_units_and_y(units_frame: pd.DataFrame, matrices: dict[str, pd.DataFrame]) -> dict[str, dict[str, list[object]]]:
+    """Build canonical SUT indexes from units and unified parser blocks."""
+    def _dedupe(values):
+        seen = []
+        for value in values:
+            if value not in seen:
+                seen.append(value)
+        return seen
+
+    def _regions_from_axis(axis) -> list[object]:
+        if isinstance(axis, pd.MultiIndex):
+            return _dedupe(axis.get_level_values(0).tolist())
+        return []
+
+    productive = matrices["Z"]
+    regions = (
+        _regions_from_axis(productive.index)
+        or _regions_from_axis(productive.columns)
+        or _regions_from_axis(matrices["Y"].index)
+        or _regions_from_axis(matrices["Y"].columns)
+    )
+
+    productive_axis = productive.index if isinstance(productive.index, pd.MultiIndex) else productive.columns
+    activities = _dedupe(
+        [
+            item
+            for level_name, item in zip(
+                productive_axis.get_level_values(1),
+                productive_axis.get_level_values(2),
+            )
+            if level_name == "Activity"
+        ]
+    )
+    commodities = _dedupe(
+        [
+            item
+            for level_name, item in zip(
+                productive_axis.get_level_values(1),
+                productive_axis.get_level_values(2),
+            )
+            if level_name == "Commodity"
+        ]
+    )
+
+    final_demand_axis = matrices["Y"].columns
+    if isinstance(final_demand_axis, pd.MultiIndex):
+        final_use = _dedupe(final_demand_axis.get_level_values(-1).tolist())
+    else:
+        final_use = _dedupe(final_demand_axis.tolist())
+
+    factor_values = (
+        units_frame.loc[["Factor of production"]].droplevel(0).index.tolist()
+        if "Factor of production" in units_frame.index.get_level_values(0)
+        else []
+    )
+    satellite_values = (
+        units_frame.loc[["Satellite account"]].droplevel(0).index.tolist()
+        if "Satellite account" in units_frame.index.get_level_values(0)
+        else []
+    )
+
+    return {
+        "r": {"main": regions},
+        "n": {"main": final_use},
+        "k": {"main": satellite_values},
+        "f": {"main": factor_values},
+        "a": {"main": activities},
+        "c": {"main": commodities},
+        "s": {"main": activities + commodities},
+    }
+
+
+def sut_units_from_frame(units_frame: pd.DataFrame) -> dict[str, pd.DataFrame]:
+    """Convert one canonical two-level units frame into MARIO's SUT unit dictionary."""
+    units: dict[str, pd.DataFrame] = {}
+    for level_name in ("Activity", "Commodity", "Factor of production", "Satellite account"):
+        if level_name in units_frame.index.get_level_values(0):
+            units[level_name] = units_frame.loc[[level_name]].droplevel(0).copy()
+    return units
+
+
+def sut_block_specs_for_matrix_layouts(
+    matrix_layouts: dict[str, tuple[str, ...]],
+    *,
+    final_demand_axis_names: tuple[str, ...] = ("Region", "Consumption category"),
+) -> list:
+    """Return built-in block specs implied by custom SUT matrix layouts.
+
+    Unified productive SUT axes stay on the public ``Region/Level/Item`` surface,
+    so only extension/factor row layouts need custom semantic specs.
+    """
+    specs = []
+
+    e_layout = matrix_layouts.get("E", ())
+    ey_layout = matrix_layouts.get("EY", e_layout)
+    if e_layout or ey_layout:
+        specs.extend(
+            [
+                block_spec("E", row_axes=sut_axis_names("E", "from", matrix_layouts), col_axes=sut_axis_names("E", "to", matrix_layouts)),
+                block_spec("EY", row_axes=sut_axis_names("EY", "from", matrix_layouts), col_axes=final_demand_axis_names),
+                block_spec("e", row_axes=sut_axis_names("e", "from", matrix_layouts), col_axes=sut_axis_names("e", "to", matrix_layouts)),
+                block_spec("f", row_axes=sut_axis_names("f", "from", matrix_layouts), col_axes=sut_axis_names("f", "to", matrix_layouts)),
+                block_spec("F", row_axes=sut_axis_names("F", "from", matrix_layouts), col_axes=sut_axis_names("F", "to", matrix_layouts)),
+            ]
+        )
+
+    v_layout = matrix_layouts.get("V", ())
+    vy_layout = matrix_layouts.get("VY", v_layout)
+    if v_layout or vy_layout:
+        specs.extend(
+            [
+                block_spec("V", row_axes=sut_axis_names("V", "from", matrix_layouts), col_axes=sut_axis_names("V", "to", matrix_layouts)),
+                block_spec("VY", row_axes=sut_axis_names("VY", "from", matrix_layouts), col_axes=final_demand_axis_names),
+                block_spec("v", row_axes=sut_axis_names("v", "from", matrix_layouts), col_axes=sut_axis_names("v", "to", matrix_layouts)),
+                block_spec("m", row_axes=sut_axis_names("m", "from", matrix_layouts), col_axes=sut_axis_names("m", "to", matrix_layouts)),
+                block_spec("M", row_axes=sut_axis_names("M", "from", matrix_layouts), col_axes=sut_axis_names("M", "to", matrix_layouts)),
+            ]
+        )
+
+    return specs

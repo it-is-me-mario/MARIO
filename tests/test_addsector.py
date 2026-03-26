@@ -44,7 +44,9 @@ import pandas as pd
 import pytest
 from mario.api import database as database_module
 from mario import load_test
+from mario.parsers.api import build_database_from_state, build_parser_state
 from mario.parsers.entrypoints import parse_from_excel
+from mario.parsers.matrix_layouts import sut_block_specs_for_matrix_layouts
 from mario.model.conventions import _ENUM,_MASTER_INDEX
 
 @pytest.fixture()
@@ -255,6 +257,101 @@ def _write_legacy_layout_iot_with_regional_factors(path):
     with pd.ExcelWriter(path, engine="openpyxl") as writer:
         flows.to_excel(writer, sheet_name="flows", header=False, index=False)
         units.to_excel(writer, sheet_name="units", header=False, index=False)
+
+
+def _build_custom_sut_database():
+    productive = pd.MultiIndex.from_tuples(
+        [
+            ("r1", "Activity", "a1"),
+            ("r1", "Activity", "a2"),
+            ("r1", "Commodity", "c1"),
+            ("r1", "Commodity", "c2"),
+        ],
+        names=["Region", "Level", "Item"],
+    )
+    final_demand = pd.MultiIndex.from_tuples(
+        [("r1", "Consumption category", "hh")],
+        names=["Region", "Level", "Item"],
+    )
+    factors = pd.MultiIndex.from_tuples(
+        [
+            ("r1", "a1", "taxes"),
+            ("r1", "a1", "capital"),
+            ("r1", "a2", "taxes"),
+            ("r1", "a2", "capital"),
+        ],
+        names=["Region", "Activity", "Factor of production"],
+    )
+    satellites = pd.MultiIndex.from_tuples(
+        [("r1", "a1", "CO2"), ("r1", "a2", "CO2")],
+        names=["Region", "Activity", "Satellite account"],
+    )
+
+    blocks = {
+        "Z": pd.DataFrame(
+            [
+                [0.0, 0.0, 40.0, 10.0],
+                [0.0, 0.0, 20.0, 30.0],
+                [5.0, 7.0, 0.0, 0.0],
+                [3.0, 9.0, 0.0, 0.0],
+            ],
+            index=productive,
+            columns=productive,
+        ),
+        "Y": pd.DataFrame(
+            [[0.0], [0.0], [50.0], [60.0]],
+            index=productive,
+            columns=final_demand,
+        ),
+        "V": pd.DataFrame(
+            [
+                [4.0, 0.0, 0.0, 0.0],
+                [6.0, 0.0, 0.0, 0.0],
+                [0.0, 5.0, 0.0, 0.0],
+                [0.0, 8.0, 0.0, 0.0],
+            ],
+            index=factors,
+            columns=productive,
+        ),
+        "E": pd.DataFrame(
+            [
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 2.0, 0.0, 0.0],
+            ],
+            index=satellites,
+            columns=productive,
+        ),
+        "EY": pd.DataFrame([[0.5], [1.5]], index=satellites, columns=final_demand),
+        "VY": pd.DataFrame([[0.0], [0.0], [0.0], [0.0]], index=factors, columns=final_demand),
+    }
+    indexes = {
+        "r": {"main": ["r1"]},
+        "n": {"main": ["hh"]},
+        "a": {"main": ["a1", "a2"]},
+        "c": {"main": ["c1", "c2"]},
+        "s": {"main": ["a1", "a2", "c1", "c2"]},
+        "f": {"main": ["taxes", "capital"]},
+        "k": {"main": ["CO2"]},
+    }
+    units = {
+        "Activity": pd.DataFrame({"unit": ["EUR", "EUR"]}, index=pd.Index(["a1", "a2"], name="Item")),
+        "Commodity": pd.DataFrame({"unit": ["EUR", "EUR"]}, index=pd.Index(["c1", "c2"], name="Item")),
+        "Factor of production": pd.DataFrame({"unit": ["EUR", "EUR"]}, index=pd.Index(["taxes", "capital"], name="Item")),
+        "Satellite account": pd.DataFrame({"unit": ["ton"]}, index=pd.Index(["CO2"], name="Item")),
+    }
+    state = build_parser_state(
+        table="SUT",
+        matrices={"baseline": blocks},
+        indexes=indexes,
+        units=units,
+        parser_name="tests",
+        mode="flows",
+        name="custom SUT",
+    )
+    state.metadata.extra["block_specs"] = sut_block_specs_for_matrix_layouts(
+        {"V": ("Region", "Activity"), "E": ("Region", "Activity")}
+    )
+    return build_database_from_state(state, calc_all=False)
 
 
 def _cvxlab_supports_csv_input_files():
@@ -1063,6 +1160,75 @@ def test_add_sectors_advanced_engine_adds_sut_activity_and_commodity(tmp_path, C
     assert new.units[_MASTER_INDEX["c"]].loc["New commodity", "unit"] == unit
     assert new.u.loc[(region, _MASTER_INDEX["c"], existing_commodity), (region, _MASTER_INDEX["a"], "New activity")] == pytest.approx(0.4)
     assert new.s.loc[(region, _MASTER_INDEX["a"], "New activity"), (region, _MASTER_INDEX["c"], "New commodity")] == pytest.approx(1.0)
+
+
+def test_add_sectors_advanced_engine_supports_custom_sut_factor_and_extension_rows(tmp_path):
+    database = _build_custom_sut_database()
+    region = database.get_index(_MASTER_INDEX["r"])[0]
+    existing_activity = database.get_index(_MASTER_INDEX["a"])[0]
+    existing_commodity = database.get_index(_MASTER_INDEX["c"])[0]
+    unit = database.units[_MASTER_INDEX["a"]].loc[existing_activity, "unit"]
+    path = tmp_path / "advanced_custom_sut.xlsx"
+
+    database.get_add_sectors_excel(
+        items=["New activity"],
+        regions=[region],
+        path=path,
+        item=_MASTER_INDEX["a"],
+    )
+
+    master = pd.read_excel(path, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET).astype(object)
+    master.loc[0, "Commodity"] = "New commodity"
+    master.loc[0, "Unit"] = unit
+    master.loc[0, "Parent Activity"] = existing_activity
+    master.loc[0, "Market share"] = 1.0
+    with pd.ExcelWriter(path, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+        master.to_excel(writer, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET, index=False)
+        pd.DataFrame(
+            [
+                {
+                    "Quantity": 0.4,
+                    "Unit": database.units[_MASTER_INDEX["c"]].loc[existing_commodity, "unit"],
+                    "Input": "commodity row",
+                    "Item type": _MASTER_INDEX["c"],
+                    "DB Item": existing_commodity,
+                    "DB Region": region,
+                    "Change type": "Update",
+                    "Source": "test",
+                    "Notes": "",
+                },
+                {
+                    "Quantity": 0.7,
+                    "Unit": database.units[_MASTER_INDEX["f"]].loc["taxes", "unit"],
+                    "Input": "factor row",
+                    "Item type": _MASTER_INDEX["f"],
+                    "DB Item": "taxes",
+                    "DB Region": region,
+                    "Change type": "Update",
+                    "Source": "test",
+                    "Notes": "",
+                },
+                {
+                    "Quantity": 0.2,
+                    "Unit": database.units[_MASTER_INDEX["k"]].loc["CO2", "unit"],
+                    "Input": "sat row",
+                    "Item type": _MASTER_INDEX["k"],
+                    "DB Item": "CO2",
+                    "DB Region": region,
+                    "Change type": "Update",
+                    "Source": "test",
+                    "Notes": "",
+                },
+            ]
+        ).to_excel(writer, sheet_name="INV_001", index=False)
+
+    new = database.add_sectors(io=path, inplace=False)
+
+    assert new.V.index.names == ["Region", "Activity", "Factor of production"]
+    assert new.E.index.names == ["Region", "Activity", "Satellite account"]
+    assert new.u.loc[(region, _MASTER_INDEX["c"], existing_commodity), (region, _MASTER_INDEX["a"], "New activity")] == pytest.approx(0.4)
+    assert new.v.loc[(region, existing_activity, "taxes"), (region, _MASTER_INDEX["a"], "New activity")] == pytest.approx(0.7)
+    assert new.e.loc[(region, existing_activity, "CO2"), (region, _MASTER_INDEX["a"], "New activity")] == pytest.approx(0.2)
 
 
 def test_add_sectors_advanced_engine_honors_leave_empty_iot(tmp_path, CoreDataIOT):

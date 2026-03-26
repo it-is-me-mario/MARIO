@@ -11,12 +11,13 @@ from mario.ops.export_specs import (
     LEGACY_FLAT_DATA_COLUMNS,
     flat_data_columns_for_sets,
 )
-from mario.parsers.api import build_database_from_state
+from mario.parsers.api import build_database_from_state, build_parser_state
 from mario.parsers.excel import parse_state_from_excel
 from mario.parsers.parquet import parse_state_from_parquet
 from mario.parsers.txt import parse_state_from_txt
 from mario.parsers.registry import ParserRegistry, get_parser_registry, register_parser
 from mario.parsers.entrypoints import parse_from_excel, parse_from_parquet, parse_from_txt
+from mario.parsers.matrix_layouts import sut_block_specs_for_matrix_layouts
 from mario.test.mario_test import load_test
 
 
@@ -133,6 +134,222 @@ def _write_units_from_state(state, path, fmt):
         units.to_csv(path)
     else:
         units.to_parquet(path)
+
+
+def _build_custom_sut_unified_blocks():
+    productive = pd.MultiIndex.from_tuples(
+        [
+            ("r1", "Activity", "a1"),
+            ("r1", "Activity", "a2"),
+            ("r1", "Commodity", "c1"),
+            ("r1", "Commodity", "c2"),
+        ],
+        names=["Region", "Level", "Item"],
+    )
+    final_demand = pd.MultiIndex.from_tuples(
+        [("r1", "Consumption category", "hh")],
+        names=["Region", "Level", "Item"],
+    )
+    factors = pd.MultiIndex.from_tuples(
+        [
+            ("r1", "a1", "taxes"),
+            ("r1", "a1", "capital"),
+            ("r1", "a2", "taxes"),
+            ("r1", "a2", "capital"),
+        ],
+        names=["Region", "Activity", "Factor of production"],
+    )
+    satellites = pd.MultiIndex.from_tuples(
+        [
+            ("r1", "a1", "CO2"),
+            ("r1", "a2", "CO2"),
+        ],
+        names=["Region", "Activity", "Satellite account"],
+    )
+
+    blocks = {
+        "Z": pd.DataFrame(
+            [
+                [0.0, 0.0, 40.0, 10.0],
+                [0.0, 0.0, 20.0, 30.0],
+                [5.0, 7.0, 0.0, 0.0],
+                [3.0, 9.0, 0.0, 0.0],
+            ],
+            index=productive,
+            columns=productive,
+        ),
+        "Y": pd.DataFrame(
+            [[0.0], [0.0], [50.0], [60.0]],
+            index=productive,
+            columns=final_demand,
+        ),
+        "V": pd.DataFrame(
+            [
+                [4.0, 0.0, 0.0, 0.0],
+                [6.0, 0.0, 0.0, 0.0],
+                [0.0, 5.0, 0.0, 0.0],
+                [0.0, 8.0, 0.0, 0.0],
+            ],
+            index=factors,
+            columns=productive,
+        ),
+        "E": pd.DataFrame(
+            [
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 2.0, 0.0, 0.0],
+            ],
+            index=satellites,
+            columns=productive,
+        ),
+        "EY": pd.DataFrame(
+            [[0.5], [1.5]],
+            index=satellites,
+            columns=final_demand,
+        ),
+        "VY": pd.DataFrame(
+            [[0.0], [0.0], [0.0], [0.0]],
+            index=factors,
+            columns=final_demand,
+        ),
+    }
+    indexes = {
+        "r": {"main": ["r1"]},
+        "n": {"main": ["hh"]},
+        "a": {"main": ["a1", "a2"]},
+        "c": {"main": ["c1", "c2"]},
+        "s": {"main": ["a1", "a2", "c1", "c2"]},
+        "f": {"main": ["taxes", "capital"]},
+        "k": {"main": ["CO2"]},
+    }
+    units = {
+        "Activity": pd.DataFrame({"unit": ["EUR", "EUR"]}, index=pd.Index(["a1", "a2"], name="Item")),
+        "Commodity": pd.DataFrame({"unit": ["EUR", "EUR"]}, index=pd.Index(["c1", "c2"], name="Item")),
+        "Factor of production": pd.DataFrame(
+            {"unit": ["EUR", "EUR"]},
+            index=pd.Index(["taxes", "capital"], name="Item"),
+        ),
+        "Satellite account": pd.DataFrame(
+            {"unit": ["ton"]},
+            index=pd.Index(["CO2"], name="Item"),
+        ),
+    }
+    return blocks, indexes, units
+
+
+def _write_matrix_payload_from_blocks(blocks, units, root, fmt):
+    root.mkdir(parents=True, exist_ok=True)
+    for matrix_name, frame in blocks.items():
+        target = root / f"{matrix_name}.{fmt}"
+        if fmt == "txt":
+            frame.to_csv(target)
+        else:
+            frame.to_parquet(target)
+
+    combined_units = pd.concat(
+        [
+            units["Activity"].rename_axis(index="item").assign(level="Activity").set_index("level", append=True).reorder_levels(["level", "item"]),
+            units["Commodity"].rename_axis(index="item").assign(level="Commodity").set_index("level", append=True).reorder_levels(["level", "item"]),
+            units["Factor of production"].rename_axis(index="item").assign(level="Factor of production").set_index("level", append=True).reorder_levels(["level", "item"]),
+            units["Satellite account"].rename_axis(index="item").assign(level="Satellite account").set_index("level", append=True).reorder_levels(["level", "item"]),
+        ]
+    )
+    if fmt == "txt":
+        combined_units.to_csv(root / "units.txt")
+    else:
+        combined_units.to_parquet(root / "units.parquet")
+
+
+def _flat_units_from_sut_units(units):
+    rows = []
+    for label in ("Activity", "Commodity", "Factor of production", "Satellite account"):
+        for item, unit in units[label].iloc[:, 0].items():
+            rows.append((label, item, unit))
+    return pd.DataFrame(rows, columns=FLAT_UNIT_COLUMNS)
+
+
+def _write_flat_payload_from_blocks(blocks, units, root, fmt):
+    root.mkdir(parents=True, exist_ok=True)
+    data = pd.concat(
+        [
+            _matrix_to_flat_frame(matrix_name, frame, scenario="baseline")
+            for matrix_name, frame in blocks.items()
+        ],
+        ignore_index=True,
+    )
+    data = _trim_flat_frame_columns(data)
+    if fmt == "txt":
+        data.to_csv(root / "data.txt", index=False)
+        _flat_units_from_sut_units(units).to_csv(root / "units.txt", index=False)
+    else:
+        data.to_parquet(root / "data.parquet", index=False)
+        _flat_units_from_sut_units(units).to_parquet(root / "units.parquet", index=False)
+
+
+def _build_custom_sut_database():
+    blocks, indexes, units = _build_custom_sut_unified_blocks()
+    state = build_parser_state(
+        table="SUT",
+        matrices={"baseline": blocks},
+        indexes=indexes,
+        units=units,
+        parser_name="tests",
+        mode="flows",
+        name="custom SUT",
+    )
+    state.metadata.extra["block_specs"] = sut_block_specs_for_matrix_layouts(
+        {"V": ("Region", "Activity"), "E": ("Region", "Activity")}
+    )
+    return build_database_from_state(state, calc_all=False)
+
+
+def _write_custom_sut_explicit_no_level_workbook(path):
+    database = _build_custom_sut_database()
+    Z = database.Z
+    Y = database.Y
+    V = database.V
+    E = database.E
+    EY = database.EY
+    VY = database.VY
+
+    productive_columns = list(Z.columns)
+    final_demand_columns = list(Y.columns)
+
+    rows = [
+        [None, None, None]
+        + [column[0] for column in productive_columns]
+        + [column[0] for column in final_demand_columns],
+        [None, None, None]
+        + [column[2] for column in productive_columns]
+        + ["Final Demand" for _ in final_demand_columns],
+    ]
+
+    for row in Z.index:
+        rows.append(
+            [row[0], row[2], None]
+            + Z.loc[row, productive_columns].tolist()
+            + Y.loc[row, final_demand_columns].tolist()
+        )
+    for row in V.index:
+        rows.append(
+            [row[0], row[1], row[2]]
+            + V.loc[row, productive_columns].tolist()
+            + VY.loc[row, final_demand_columns].tolist()
+        )
+    for row in E.index:
+        rows.append(
+            [row[0], row[1], row[2]]
+            + E.loc[row, productive_columns].tolist()
+            + EY.loc[row, final_demand_columns].tolist()
+        )
+
+    units_rows = [[None, None, "unit"]]
+    for set_name in ("Activity", "Commodity", "Factor of production", "Satellite account"):
+        for item, unit in database.units[set_name].iloc[:, 0].items():
+            units_rows.append([set_name, item, unit])
+
+    with pd.ExcelWriter(path, engine="openpyxl") as writer:
+        pd.DataFrame(rows).to_excel(writer, sheet_name="flows", header=False, index=False)
+        pd.DataFrame(units_rows).to_excel(writer, sheet_name="units", header=False, index=False)
 
 
 def _flat_units_from_state(state):
@@ -296,6 +513,89 @@ def test_parse_state_from_excel_sut_promotes_split_native_blocks():
     pdt.assert_frame_equal(state.compute("Xc"), database.Xc)
     pdt.assert_frame_equal(state.compute("X"), database.X)
     pdt.assert_frame_equal(state.get_units("a"), database.units["Activity"])
+
+
+def test_to_excel_exports_custom_sut_layouts_and_parse_from_excel_roundtrips_them(tmp_path):
+    database = _build_custom_sut_database()
+
+    export_path = tmp_path / "custom_sut.xlsx"
+    database.to_excel(path=str(export_path), flows=True, coefficients=False)
+
+    exported = pd.read_excel(export_path, sheet_name="flows", header=None)
+    assert tuple(exported.iloc[0, 3:7]) == ("r1", "r1", "r1", "r1")
+    assert tuple(exported.iloc[1, 3:7]) == ("Activity", "Activity", "Commodity", "Commodity")
+    left_rows = {tuple(row) for row in exported.iloc[:, 0:3].dropna(how="all").itertuples(index=False, name=None)}
+    assert ("r1", "a1", "taxes") in left_rows
+    assert ("r1", "a1", "CO2") in left_rows
+
+    roundtrip = parse_from_excel(
+        path=str(export_path),
+        table="SUT",
+        mode="flows",
+        matrix_layouts={"V": ("Region", "Activity"), "E": ("Region", "Activity")},
+        calc_all=False,
+    )
+
+    assert roundtrip.V.index.names == ["Region", "Activity", "Factor of production"]
+    assert roundtrip.E.index.names == ["Region", "Activity", "Satellite account"]
+    pdt.assert_frame_equal(_sorted_matrix(roundtrip.Z), _sorted_matrix(database.Z))
+    pdt.assert_frame_equal(_sorted_matrix(roundtrip.V), _sorted_matrix(database.V))
+    pdt.assert_frame_equal(_sorted_matrix(roundtrip.E), _sorted_matrix(database.E))
+    pdt.assert_frame_equal(_sorted_matrix(roundtrip.Y), _sorted_matrix(database.Y))
+
+
+def test_parse_from_excel_supports_custom_sut_coefficient_workbooks(tmp_path):
+    database = _build_custom_sut_database()
+
+    export_path = tmp_path / "custom_sut_coeffs.xlsx"
+    database.to_excel(path=str(export_path), flows=False, coefficients=True)
+
+    roundtrip = parse_from_excel(
+        path=str(export_path),
+        table="SUT",
+        mode="coefficients",
+        matrix_layouts={"V": ("Region", "Activity"), "E": ("Region", "Activity")},
+        calc_all=False,
+    )
+
+    assert roundtrip.v.index.names == ["Region", "Activity", "Factor of production"]
+    assert roundtrip.e.index.names == ["Region", "Activity", "Satellite account"]
+    pdt.assert_frame_equal(_sorted_matrix(roundtrip.z), _sorted_matrix(database.z))
+    pdt.assert_frame_equal(_sorted_matrix(roundtrip.v), _sorted_matrix(database.v))
+    pdt.assert_frame_equal(_sorted_matrix(roundtrip.e), _sorted_matrix(database.e))
+    pdt.assert_frame_equal(_sorted_matrix(roundtrip.Y), _sorted_matrix(database.Y))
+
+
+def test_parse_from_excel_supports_explicit_no_level_sut_productive_axes(tmp_path):
+    path = tmp_path / "custom_sut_explicit_no_level.xlsx"
+    _write_custom_sut_explicit_no_level_workbook(path)
+
+    database = parse_from_excel(
+        path=str(path),
+        table="SUT",
+        mode="flows",
+        matrix_layouts={"V": ("Region", "Activity"), "E": ("Region", "Activity")},
+        calc_all=False,
+    )
+
+    assert database.Z.index.names == ["Region", "Level", "Item"]
+    assert database.Z.columns.names == ["Region", "Level", "Item"]
+    assert database.V.index.names == ["Region", "Activity", "Factor of production"]
+    assert database.E.index.names == ["Region", "Activity", "Satellite account"]
+    assert database.Y.columns.get_level_values("Item").tolist() == ["Final Demand"]
+    assert database.Y.columns.get_level_values("Level").tolist() == ["Consumption category"]
+
+    expected = _build_custom_sut_database()
+    expected_y = expected.Y.copy()
+    expected_y.columns = pd.MultiIndex.from_tuples(
+        [(region, "Consumption category", "Final Demand") for region, _, _ in expected_y.columns.tolist()],
+        names=["Region", "Level", "Item"],
+    )
+
+    pdt.assert_frame_equal(_sorted_matrix(database.Z), _sorted_matrix(expected.Z))
+    pdt.assert_frame_equal(_sorted_matrix(database.V), _sorted_matrix(expected.V))
+    pdt.assert_frame_equal(_sorted_matrix(database.E), _sorted_matrix(expected.E))
+    pdt.assert_frame_equal(_sorted_matrix(database.Y), _sorted_matrix(expected_y))
 
 
 def test_parse_state_from_excel_supports_mriot_regional_extensions_layout(tmp_path):
@@ -571,6 +871,25 @@ def test_to_txt_matrix_exports_custom_iot_layouts_without_level_markers(tmp_path
     assert tuple(y_matrix.iloc[0, 2:4]) == ("hh", "investment")
 
 
+def test_to_txt_roundtrip_preserves_custom_sut_matrix_layouts(tmp_path):
+    database = _build_custom_sut_database()
+    database.to_txt(path=tmp_path, flows=True, coefficients=False, sep=",", flat=False)
+
+    parsed = parse_from_txt(
+        path=str(tmp_path / "flows"),
+        table="SUT",
+        mode="flows",
+        sep=",",
+        matrix_layouts={"V": ("Region", "Activity"), "E": ("Region", "Activity")},
+        calc_all=False,
+    )
+
+    pdt.assert_frame_equal(_sorted_matrix(parsed.Z), _sorted_matrix(database.Z))
+    pdt.assert_frame_equal(_sorted_matrix(parsed.V), _sorted_matrix(database.V))
+    pdt.assert_frame_equal(_sorted_matrix(parsed.E), _sorted_matrix(database.E))
+    pdt.assert_frame_equal(_sorted_matrix(parsed.Y), _sorted_matrix(database.Y))
+
+
 def test_parse_from_txt_sut_roundtrip_returns_split_native_blocks(tmp_path):
     database = load_test("SUT")
     database.to_txt(path=tmp_path, flows=True, coefficients=False, sep=",")
@@ -590,6 +909,49 @@ def test_parse_from_txt_sut_roundtrip_returns_split_native_blocks(tmp_path):
     pdt.assert_frame_equal(parsed.Y, database.Y)
     pdt.assert_frame_equal(parsed.V, database.V)
     pdt.assert_frame_equal(parsed.E, database.E)
+
+
+def test_parse_state_from_txt_supports_sut_matrix_layouts_on_matrix_payloads(tmp_path):
+    blocks, _, units = _build_custom_sut_unified_blocks()
+    root = tmp_path / "sut_txt_matrix_layout"
+    _write_matrix_payload_from_blocks(blocks, units, root, "txt")
+
+    parsed = parse_state_from_txt(
+        path=str(root),
+        table="SUT",
+        mode="flows",
+        sep=",",
+        matrix_layouts={"V": ("Region", "Activity"), "E": ("Region", "Activity")},
+        name="SUT txt custom layout",
+    )
+
+    assert parsed.compute("V").index.names == ["Region", "Activity", "Factor of production"]
+    assert parsed.compute("E").index.names == ["Region", "Activity", "Satellite account"]
+    pdt.assert_frame_equal(_sorted_matrix(parsed.compute("Z")), _sorted_matrix(blocks["Z"]))
+    pdt.assert_frame_equal(_sorted_matrix(parsed.compute("V")), _sorted_matrix(blocks["V"]))
+    pdt.assert_frame_equal(_sorted_matrix(parsed.compute("E")), _sorted_matrix(blocks["E"]))
+
+
+def test_parse_state_from_txt_supports_sut_matrix_layouts_on_flat_payloads(tmp_path):
+    blocks, _, units = _build_custom_sut_unified_blocks()
+    root = tmp_path / "sut_txt_flat_layout"
+    _write_flat_payload_from_blocks(blocks, units, root, "txt")
+
+    parsed = parse_state_from_txt(
+        path=str(root),
+        table="SUT",
+        mode="flows",
+        sep=",",
+        flat=True,
+        matrix_layouts={"V": ("Region", "Activity"), "E": ("Region", "Activity")},
+        name="SUT flat txt custom layout",
+    )
+
+    assert parsed.compute("V").index.names == ["Region", "Activity", "Factor of production"]
+    assert parsed.compute("E").index.names == ["Region", "Activity", "Satellite account"]
+    pdt.assert_frame_equal(_sorted_matrix(parsed.compute("Y")), _sorted_matrix(blocks["Y"]))
+    pdt.assert_frame_equal(_sorted_matrix(parsed.compute("V")), _sorted_matrix(blocks["V"]))
+    pdt.assert_frame_equal(_sorted_matrix(parsed.compute("E")), _sorted_matrix(blocks["E"]))
 
 
 def test_to_txt_flat_exports_canonical_schema(tmp_path):
@@ -694,6 +1056,33 @@ def test_parse_from_txt_sut_flat_roundtrip_uses_unified_export_and_split_parse(t
     pdt.assert_frame_equal(parsed.E, database.E)
 
 
+def test_to_txt_flat_roundtrip_preserves_custom_sut_layouts(tmp_path):
+    database = _build_custom_sut_database()
+    database.to_txt(path=tmp_path, flows=True, coefficients=False, sep=",", flat=True)
+
+    data = pd.read_csv(tmp_path / "flows" / "data.txt", sep=",", keep_default_na=False)
+    assert "Sector_from" not in data.columns
+    assert "Activity_from" in data.columns
+    assert "Commodity_from" in data.columns
+    assert "Factor of production_from" in data.columns
+    assert "Satellite account_from" in data.columns
+
+    parsed = parse_from_txt(
+        path=str(tmp_path / "flows"),
+        table="SUT",
+        mode="flows",
+        sep=",",
+        flat=True,
+        matrix_layouts={"V": ("Region", "Activity"), "E": ("Region", "Activity")},
+        calc_all=False,
+    )
+
+    pdt.assert_frame_equal(_sorted_matrix(parsed.Z), _sorted_matrix(database.Z))
+    pdt.assert_frame_equal(_sorted_matrix(parsed.V), _sorted_matrix(database.V))
+    pdt.assert_frame_equal(_sorted_matrix(parsed.E), _sorted_matrix(database.E))
+    pdt.assert_frame_equal(_sorted_matrix(parsed.Y), _sorted_matrix(database.Y))
+
+
 def test_to_parquet_flat_exports_canonical_schema(tmp_path):
     pytest.importorskip("pyarrow")
 
@@ -772,6 +1161,32 @@ def test_to_parquet_flat_roundtrip_preserves_custom_iot_layouts_without_level_va
     pdt.assert_frame_equal(_sorted_matrix(parsed.Y), _sorted_matrix(database.Y))
 
 
+def test_to_parquet_flat_roundtrip_preserves_custom_sut_layouts(tmp_path):
+    pytest.importorskip("pyarrow")
+
+    database = _build_custom_sut_database()
+    database.to_parquet(path=tmp_path, flows=True, coefficients=False, flat=True)
+
+    data = pd.read_parquet(tmp_path / "flows" / "data.parquet")
+    assert "Sector_from" not in data.columns
+    assert "Activity_from" in data.columns
+    assert "Commodity_from" in data.columns
+
+    parsed = parse_from_parquet(
+        path=str(tmp_path / "flows"),
+        table="SUT",
+        mode="flows",
+        flat=True,
+        matrix_layouts={"V": ("Region", "Activity"), "E": ("Region", "Activity")},
+        calc_all=False,
+    )
+
+    pdt.assert_frame_equal(_sorted_matrix(parsed.Z), _sorted_matrix(database.Z))
+    pdt.assert_frame_equal(_sorted_matrix(parsed.V), _sorted_matrix(database.V))
+    pdt.assert_frame_equal(_sorted_matrix(parsed.E), _sorted_matrix(database.E))
+    pdt.assert_frame_equal(_sorted_matrix(parsed.Y), _sorted_matrix(database.Y))
+
+
 def test_parse_state_from_parquet_supports_matrix_layouts_on_matrix_payloads(tmp_path):
     pytest.importorskip("pyarrow")
 
@@ -840,6 +1255,51 @@ def test_parse_from_parquet_sut_flat_roundtrip_returns_split_native_blocks(tmp_p
     pdt.assert_frame_equal(parsed.Y, database.Y)
     pdt.assert_frame_equal(parsed.V, database.V)
     pdt.assert_frame_equal(parsed.E, database.E)
+
+
+def test_parse_state_from_parquet_supports_sut_matrix_layouts_on_matrix_payloads(tmp_path):
+    pytest.importorskip("pyarrow")
+
+    blocks, _, units = _build_custom_sut_unified_blocks()
+    root = tmp_path / "sut_parquet_matrix_layout"
+    _write_matrix_payload_from_blocks(blocks, units, root, "parquet")
+
+    parsed = parse_state_from_parquet(
+        path=str(root),
+        table="SUT",
+        mode="flows",
+        matrix_layouts={"V": ("Region", "Activity"), "E": ("Region", "Activity")},
+        name="SUT parquet custom layout",
+    )
+
+    assert parsed.compute("V").index.names == ["Region", "Activity", "Factor of production"]
+    assert parsed.compute("E").index.names == ["Region", "Activity", "Satellite account"]
+    pdt.assert_frame_equal(_sorted_matrix(parsed.compute("Z")), _sorted_matrix(blocks["Z"]))
+    pdt.assert_frame_equal(_sorted_matrix(parsed.compute("V")), _sorted_matrix(blocks["V"]))
+    pdt.assert_frame_equal(_sorted_matrix(parsed.compute("E")), _sorted_matrix(blocks["E"]))
+
+
+def test_parse_state_from_parquet_supports_sut_matrix_layouts_on_flat_payloads(tmp_path):
+    pytest.importorskip("pyarrow")
+
+    blocks, _, units = _build_custom_sut_unified_blocks()
+    root = tmp_path / "sut_parquet_flat_layout"
+    _write_flat_payload_from_blocks(blocks, units, root, "parquet")
+
+    parsed = parse_state_from_parquet(
+        path=str(root),
+        table="SUT",
+        mode="flows",
+        flat=True,
+        matrix_layouts={"V": ("Region", "Activity"), "E": ("Region", "Activity")},
+        name="SUT flat parquet custom layout",
+    )
+
+    assert parsed.compute("V").index.names == ["Region", "Activity", "Factor of production"]
+    assert parsed.compute("E").index.names == ["Region", "Activity", "Satellite account"]
+    pdt.assert_frame_equal(_sorted_matrix(parsed.compute("Y")), _sorted_matrix(blocks["Y"]))
+    pdt.assert_frame_equal(_sorted_matrix(parsed.compute("V")), _sorted_matrix(blocks["V"]))
+    pdt.assert_frame_equal(_sorted_matrix(parsed.compute("E")), _sorted_matrix(blocks["E"]))
 
 
 def test_parser_registry_supports_third_party_registration():

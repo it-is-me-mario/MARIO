@@ -14,13 +14,22 @@ from mario.parsers.api import build_parser_state
 from mario.parsers.base import BaseParser
 from mario.parsers.matrix_layouts import (
     build_iot_indexes_from_units_and_y,
+    build_sut_indexes_from_units_and_y,
     iot_block_specs_for_matrix_layouts,
     iot_units_from_frame,
     normalize_matrix_layouts,
+    sut_block_specs_for_matrix_layouts,
+    sut_units_from_frame,
 )
 from mario.parsers.registry import register_parser
 from mario.parsers.tabular import get_index_txt, get_units, rename_index, sort_frames
-from mario.parsers.txt import _find_flat_payload, _flat_units_to_legacy, _normalize_iot_matrix, parse_flat_frames
+from mario.parsers.txt import (
+    _find_flat_payload,
+    _flat_units_to_legacy,
+    _normalize_iot_matrix,
+    _normalize_sut_matrix,
+    parse_flat_frames,
+)
 from mario.storage.base import BlockRepository
 
 logger = logging.getLogger(__name__)
@@ -73,6 +82,7 @@ def matrix_parquet_parser(path: str, table: str, mode: str):
 def matrix_parquet_parser_with_layouts(
     path: str,
     *,
+    table: str,
     mode: str,
     matrix_layouts: dict[str, tuple[str, ...]],
 ):
@@ -93,7 +103,8 @@ def matrix_parquet_parser_with_layouts(
             if matrix_name not in required:
                 continue
             raise FileNotFoundError(target)
-        matrices[matrix_name], current_fd_axis_names = _normalize_iot_matrix(
+        normalizer = _normalize_iot_matrix if table == "IOT" else _normalize_sut_matrix
+        matrices[matrix_name], current_fd_axis_names = normalizer(
             pd.read_parquet(target),
             matrix_name,
             matrix_layouts,
@@ -119,14 +130,24 @@ def matrix_parquet_parser_with_layouts(
     units_frame.index.names = ["level", "item"]
 
     sort_frames(matrices)
-    indexes = build_iot_indexes_from_units_and_y(units_frame, matrices)
-    units = iot_units_from_frame(units_frame)
-    extra = {
-        "block_specs": iot_block_specs_for_matrix_layouts(
-            matrix_layouts,
-            final_demand_axis_names=final_demand_axis_names or ("Region", "Consumption category"),
-        )
-    }
+    if table == "IOT":
+        indexes = build_iot_indexes_from_units_and_y(units_frame, matrices)
+        units = iot_units_from_frame(units_frame)
+        extra = {
+            "block_specs": iot_block_specs_for_matrix_layouts(
+                matrix_layouts,
+                final_demand_axis_names=final_demand_axis_names or ("Region", "Consumption category"),
+            )
+        }
+    else:
+        indexes = build_sut_indexes_from_units_and_y(units_frame, matrices)
+        units = sut_units_from_frame(units_frame)
+        extra = {
+            "block_specs": sut_block_specs_for_matrix_layouts(
+                matrix_layouts,
+                final_demand_axis_names=final_demand_axis_names or ("Region", "Consumption category"),
+            )
+        }
     return {"baseline": matrices}, indexes, units, extra
 
 
@@ -173,8 +194,6 @@ class ParquetParser(BaseParser):
         )
         normalized_layouts = normalize_matrix_layouts(matrix_layouts)
         if normalized_layouts:
-            if table != "IOT":
-                raise WrongInput("matrix_layouts are currently supported only for IOT parquet parsers.")
             if flat:
                 matrices, indexes, units, extra = flat_parquet_parser(
                     path,
@@ -185,6 +204,7 @@ class ParquetParser(BaseParser):
             else:
                 matrices, indexes, units, extra = matrix_parquet_parser_with_layouts(
                     path,
+                    table=table,
                     mode=mode,
                     matrix_layouts=normalized_layouts,
                 )
