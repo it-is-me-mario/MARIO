@@ -19,6 +19,8 @@ Export/re-import mismatches
 CVXLab split issues
    ``split=True`` is stricter than the normal ``add_sectors`` workflow and
    currently expects the classical IOT layout for extension and factor rows.
+   See the `CVXLab documentation <https://cvxlab.readthedocs.io/>`_ when the
+   issue is related to model setup or solver configuration.
 
 Recommended references
 ----------------------
@@ -26,3 +28,4 @@ Recommended references
 * :doc:`../concepts/matrix_layouts`
 * :doc:`../concepts/add_sectors_model`
 * :doc:`../reference/file_formats`
+* `CVXLab documentation <https://cvxlab.readthedocs.io/>`_

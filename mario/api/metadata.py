@@ -13,7 +13,17 @@ class MARIOMetaData:
     """Store metadata and history entries for MARIO database objects."""
 
     def __init__(self, name=None, meta=None, **kwargs):
-        """Initialize metadata from explicit values or an existing metadata file."""
+        """Initialize metadata from explicit values or an existing metadata file.
+
+        Parameters
+        ----------
+        name:
+            Optional database name.
+        meta:
+            Optional path to a previously serialized metadata object.
+        **kwargs:
+            Additional metadata attributes to set on initialization.
+        """
         if meta is None:
             self._history = []
             self.name = name
@@ -102,14 +112,39 @@ class MARIOMetaData:
         return meta_as_dict
 
     def load(self, location):
-        """Load a previously pickled metadata object from disk."""
+        """Load a previously pickled metadata object from disk.
+
+        Parameters
+        ----------
+        location:
+            Path to the binary metadata file.
+
+        Returns
+        -------
+        MARIOMetaData
+            Deserialized metadata object.
+        """
         with open(location, "rb") as load_file:
             meta = pickle.load(load_file)
 
         return meta
 
     def meta_check(self, **kwargs):
-        """Check whether explicit metadata values conflict with stored metadata."""
+        """Check whether explicit metadata values conflict with stored metadata.
+
+        Parameters
+        ----------
+        **kwargs:
+            Metadata attributes and values to compare against the stored
+            metadata object.
+
+        Returns
+        -------
+        tuple[bool, list[str]]
+            A ``(contrast, warnings)`` tuple where ``contrast`` is ``True`` if
+            at least one mismatch is found and ``warnings`` contains the
+            mismatch messages.
+        """
         warnings = []
         contrast = False
 
@@ -127,12 +162,24 @@ class MARIOMetaData:
 
     @property
     def table(self):
-        """Return the validated table kind stored in metadata."""
+        """Return the validated table kind stored in metadata.
+
+        Returns
+        -------
+        str
+            Table kind currently stored in metadata.
+        """
         return self.__table
 
     @table.setter
     def table(self, var):
-        """Validate and store the table kind."""
+        """Validate and store the table kind.
+
+        Parameters
+        ----------
+        var:
+            Table kind to store, typically ``"IOT"`` or ``"SUT"``.
+        """
         if var not in [*TABLE_LEVELS]:
             raise WrongInput("table can be: {}".format(*TABLE_LEVELS))
 

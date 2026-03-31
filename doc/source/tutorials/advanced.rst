@@ -10,7 +10,7 @@ Current advanced topics
 * layout-aware IOT and SUT parsing with ``matrix_layouts``;
 * roundtrip testing across Excel, TXT and Parquet exports;
 * workbook-driven ``add_sectors`` flows;
-* CVXLab-backed IOT split workflows.
+* `CVXLab <https://cvxlab.readthedocs.io/>`_-backed IOT split workflows.
 
 The codebase also contains real-data regression fixtures under
 ``tests/fixtures/realdata``. These are useful when you want to validate parser,

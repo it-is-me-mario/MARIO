@@ -66,7 +66,19 @@ def _normalize_parsed_matrix_name(name: str) -> str:
 
 
 def available_matrices(table_type: str) -> tuple[str, ...]:
-    """Return the catalog-backed matrix names accepted by the public API."""
+    """Return the built-in matrix names accepted for one table type.
+
+    Parameters
+    ----------
+    table_type:
+        Table kind understood by MARIO, typically ``"IOT"`` or ``"SUT"``.
+
+    Returns
+    -------
+    tuple[str, ...]
+        Matrix and block names exposed by the built-in compute catalog for the
+        requested table type.
+    """
     from mario.compute.catalog import available_matrix_names
 
     return available_matrix_names(table_type)
@@ -92,7 +104,33 @@ class CoreModel:
         year=None,
         **kwargs,
     ):
-        """Initialize the core model from parser output or explicit dataframes."""
+        """Initialize the core data container behind ``Database``.
+
+        Parameters
+        ----------
+        name:
+            Human-readable database name stored in metadata.
+        table:
+            Table kind, usually ``"IOT"`` or ``"SUT"``.
+        Z, E, V, Y, EY, VY:
+            Baseline matrices used when constructing an instance directly from
+            pandas objects. ``VY`` is optional.
+        units:
+            Units mapping matching the table structure.
+        price:
+            Price system label stored in metadata.
+        source:
+            Source label stored in metadata.
+        calc_all:
+            When ``True``, compute the standard dependent matrices right after
+            initialization.
+        year:
+            Optional reference year stored in metadata.
+        **kwargs:
+            Additional initialization options. Parsers pass
+            ``init_by_parsers=...`` to build the instance from parsed matrices
+            without re-running dataframe parsing.
+        """
         self._dir = ""
         self._custom_operator_registry = None
         self._custom_block_specs = {}
@@ -165,7 +203,26 @@ class CoreModel:
         force_rewrite=False,
         **kwargs,
     ):
-        """Compute one or more matrices for a scenario."""
+        """Compute one or more matrices for a scenario.
+
+        Parameters
+        ----------
+        matrices:
+            One matrix name or an iterable of matrix names to materialize.
+        scenario:
+            Scenario from which dependencies should be read and where the
+            computed matrices should be stored.
+        force_rewrite:
+            When ``True``, recompute requested matrices even if they already
+            exist in the scenario.
+        **kwargs:
+            Reserved for backward compatibility with historical callers.
+
+        Returns
+        -------
+        None
+            The method materializes matrices in ``self.matrices``.
+        """
         requested = _normalize_requested_matrices(matrices)
         self._validate_scenario(scenario)
         self._validate_matrices(requested)
@@ -191,7 +248,14 @@ class CoreModel:
                 )
 
     def available_blocks(self) -> tuple[str, ...]:
-        """Return built-in and custom block names visible on the instance."""
+        """Return all block names available on the current instance.
+
+        Returns
+        -------
+        tuple[str, ...]
+            Sorted union of built-in matrices, registered custom operators and
+            registered custom block specifications.
+        """
         from mario.compute.operators import (
             list_registered_block_specs,
             list_registered_operator_names,
@@ -225,7 +289,22 @@ class CoreModel:
             ) from exc
 
     def resolve(self, matrix: str, *, scenario: str = "baseline", force_rewrite: bool = False):
-        """Resolve and materialize one matrix through the compute resolver."""
+        """Resolve and materialize one matrix through the compute resolver.
+
+        Parameters
+        ----------
+        matrix:
+            Matrix or block name to compute.
+        scenario:
+            Scenario used as the resolution context.
+        force_rewrite:
+            When ``True``, drop and recompute an already materialized block.
+
+        Returns
+        -------
+        object
+            The resolved block as stored in ``self.matrices[scenario]``.
+        """
         self._validate_scenario(scenario)
         self._validate_matrices([matrix])
         return self._resolve_one(matrix, scenario=scenario, force_rewrite=force_rewrite)
@@ -237,7 +316,22 @@ class CoreModel:
         scenario: str = "baseline",
         force_rewrite: bool = False,
     ) -> dict[str, object]:
-        """Resolve and materialize several matrices through the compute resolver."""
+        """Resolve and materialize several matrices through the compute resolver.
+
+        Parameters
+        ----------
+        matrices:
+            One matrix name or an iterable of names to compute.
+        scenario:
+            Scenario used as the resolution context.
+        force_rewrite:
+            When ``True``, recompute already materialized blocks as well.
+
+        Returns
+        -------
+        dict[str, object]
+            Mapping from requested matrix name to resolved block.
+        """
         requested = _normalize_requested_matrices(matrices)
         self._validate_scenario(scenario)
         self._validate_matrices(requested)
@@ -247,7 +341,20 @@ class CoreModel:
         }
 
     def explain(self, matrix: str, *, scenario: str = "baseline") -> str:
-        """Return a dependency explanation for one matrix."""
+        """Explain how MARIO would resolve one matrix.
+
+        Parameters
+        ----------
+        matrix:
+            Matrix or block name to explain.
+        scenario:
+            Scenario used to inspect available dependencies.
+
+        Returns
+        -------
+        str
+            Human-readable dependency explanation from the resolver.
+        """
         return _resolver_module().explain(matrix, self, scenario=scenario)
 
     def register_block_spec(
@@ -259,10 +366,25 @@ class CoreModel:
         col_axes=None,
         replace: bool = False,
     ):
-        """Register one semantic block specification on the current database.
+        """Register a semantic block specification on the current database.
 
-        The simplest form is either passing a pre-built ``BlockSpec`` or
-        passing ``name``, ``row_axes`` and ``col_axes`` directly.
+        Parameters
+        ----------
+        spec:
+            Pre-built block specification. When omitted, ``name``,
+            ``row_axes`` and ``col_axes`` are used to build one.
+        name:
+            Name of the custom block to register when ``spec`` is not passed.
+        row_axes, col_axes:
+            Axis descriptors used to build a block specification on the fly.
+        replace:
+            When ``True``, replace an already registered custom specification
+            with the same name.
+
+        Returns
+        -------
+        object
+            The registered block specification.
         """
         from mario.compute.operators import register_block_spec
         from mario.compute.semantics import block_spec
@@ -275,7 +397,19 @@ class CoreModel:
         return register_block_spec(self, spec, replace=replace)
 
     def get_block_spec(self, name: str):
-        """Return the semantic block specification for one block name."""
+        """Return the semantic block specification for a block name.
+
+        Parameters
+        ----------
+        name:
+            Built-in or custom block name.
+
+        Returns
+        -------
+        object
+            Block specification describing the row and column axes of the
+            requested block.
+        """
         from mario.compute.catalog import get_matrix_spec
         from mario.compute.operators import get_registered_block_spec
         from mario.compute.semantics import axis_ref, block_spec
@@ -296,16 +430,39 @@ class CoreModel:
         )
 
     def list_custom_block_specs(self) -> tuple[str, ...]:
-        """List the custom block specifications registered on the instance."""
+        """List custom block specifications registered on the instance.
+
+        Returns
+        -------
+        tuple[str, ...]
+            Names of custom block specifications currently attached to the
+            database.
+        """
         from mario.compute.operators import list_registered_block_specs
 
         return list_registered_block_specs(self)
 
     def register_operator(self, spec, *, replace: bool = False):
-        """Register one custom operator on the current database.
+        """Register a custom compute operator on the current database.
 
-        Custom operators complement the built-in compute catalog. They are best
-        created through the helper builders in ``mario.compute``, such as
+        Parameters
+        ----------
+        spec:
+            Operator specification describing the output block and the function
+            used to compute it.
+        replace:
+            When ``True``, replace an already registered operator with the same
+            name.
+
+        Returns
+        -------
+        object
+            The registered operator specification.
+
+        Notes
+        -----
+        Custom operators complement the built-in compute catalog. They are
+        typically created through helpers in ``mario.compute``, such as
         ``ratio_operator(...)`` or ``matrix_product_operator(...)``.
         """
         from mario.compute.operators import register_operator
@@ -317,7 +474,13 @@ class CoreModel:
         return register_operator(self, spec, replace=replace)
 
     def list_custom_operators(self) -> tuple[str, ...]:
-        """List the custom operators registered on the instance."""
+        """List custom compute operators registered on the instance.
+
+        Returns
+        -------
+        tuple[str, ...]
+            Names of custom operators currently attached to the database.
+        """
         from mario.compute.operators import list_registered_operator_names
 
         return list_registered_operator_names(self)
@@ -333,27 +496,87 @@ class CoreModel:
         return self.get_block_as_pandas(matrix, scenario=scenario)
 
     def list_blocks(self, scenario: str = "baseline") -> tuple[str, ...]:
-        """List all blocks materialized for one scenario."""
+        """List all blocks currently materialized for one scenario.
+
+        Parameters
+        ----------
+        scenario:
+            Scenario whose stored blocks should be listed.
+
+        Returns
+        -------
+        tuple[str, ...]
+            Sorted block names already materialized for the scenario.
+        """
         self._validate_scenario(scenario)
         return tuple(sorted(self.matrices[scenario]))
 
     def has_block(self, name: str, scenario: str = "baseline") -> bool:
-        """Return whether one block is materialized for the scenario."""
+        """Return whether one block is materialized for a scenario.
+
+        Parameters
+        ----------
+        name:
+            Block name to test.
+        scenario:
+            Scenario to inspect.
+
+        Returns
+        -------
+        bool
+            ``True`` when the block is already stored in the scenario.
+        """
         self._validate_scenario(scenario)
         return name in self.matrices[scenario]
 
     def get_block(self, name: str, scenario: str = "baseline"):
-        """Return the stored block object for the scenario without conversion."""
+        """Return the stored block object for a scenario without conversion.
+
+        Parameters
+        ----------
+        name:
+            Block name to retrieve.
+        scenario:
+            Scenario to read from.
+
+        Returns
+        -------
+        object
+            Raw stored block object as kept in ``self.matrices``.
+        """
         self._validate_scenario(scenario)
         return self.matrices[scenario][name]
 
     def set_block(self, name: str, value, scenario: str = "baseline") -> None:
-        """Store one block in the selected scenario."""
+        """Store one block in the selected scenario.
+
+        Parameters
+        ----------
+        name:
+            Block name to store.
+        value:
+            Block payload to assign.
+        scenario:
+            Scenario to update.
+        """
         self._validate_scenario(scenario)
         self.matrices[scenario][name] = value
 
     def get_block_as_pandas(self, name: str, scenario: str = "baseline"):
-        """Return one block as a pandas object."""
+        """Return one block converted to a pandas object.
+
+        Parameters
+        ----------
+        name:
+            Block name to retrieve.
+        scenario:
+            Scenario to read from.
+
+        Returns
+        -------
+        pandas.DataFrame | pandas.Series
+            Pandas representation of the requested block.
+        """
         return block_to_pandas(self.get_block(name, scenario=scenario))
 
     def get_block_as_table(
@@ -363,7 +586,23 @@ class CoreModel:
         *,
         backend: str = "auto",
     ):
-        """Return one block in the requested tabular backend."""
+        """Return one block in the requested tabular backend.
+
+        Parameters
+        ----------
+        name:
+            Block name to retrieve.
+        scenario:
+            Scenario to read from.
+        backend:
+            Tabular backend passed to ``block_to_table(...)``.
+
+        Returns
+        -------
+        object
+            Table representation of the requested block in the selected
+            backend.
+        """
         return block_to_table(self.get_block(name, scenario=scenario), backend=backend)
 
     def get_block_as_matrix(
@@ -374,7 +613,24 @@ class CoreModel:
         backend: str = "numpy",
         prefer_sparse: bool = False,
     ):
-        """Return one block in a numeric matrix backend."""
+        """Return one block in a numeric matrix backend.
+
+        Parameters
+        ----------
+        name:
+            Block name to retrieve.
+        scenario:
+            Scenario to read from.
+        backend:
+            Matrix backend passed to ``block_to_matrix(...)``.
+        prefer_sparse:
+            When ``True``, prefer sparse output when supported by the backend.
+
+        Returns
+        -------
+        object
+            Numeric matrix representation of the requested block.
+        """
         return block_to_matrix(
             self.get_block(name, scenario=scenario),
             backend=backend,
@@ -392,7 +648,38 @@ class CoreModel:
         base_scenario=None,
         type="absolute",
     ):
-        """Return matrices, units and indexes in a structured payload."""
+        """Return matrices, units and indexes in a structured payload.
+
+        Parameters
+        ----------
+        matrices:
+            One matrix name or an iterable of names to retrieve.
+        units:
+            When ``True``, include the database unit tables in the returned
+            payload.
+        indeces:
+            When ``True``, include the index dictionaries in the returned
+            payload.
+        auto_calc:
+            When ``True``, automatically compute missing matrices before
+            returning them.
+        format:
+            ``"object"`` returns namedtuples; ``"dict"`` returns nested
+            dictionaries keyed by scenario.
+        scenarios:
+            Scenario name or iterable of scenario names to retrieve.
+        base_scenario:
+            Optional reference scenario used to return scenario differences
+            instead of absolute values.
+        type:
+            Difference type used with ``base_scenario``. Accepted values are
+            ``"absolute"`` and ``"relative"``.
+
+        Returns
+        -------
+        object | dict
+            Namedtuple payload or nested dictionary, depending on ``format``.
+        """
         requested = _normalize_requested_matrices(matrices)
         options = list(available_matrices(self.table_type))
 
@@ -466,7 +753,27 @@ class CoreModel:
         base_scenario=None,
         type="absolute",
     ):
-        """Query matrices from one or more scenarios."""
+        """Return matrices from one or more scenarios with a compact shape.
+
+        Parameters
+        ----------
+        matrices:
+            One matrix name or an iterable of names to retrieve.
+        scenarios:
+            Scenario name or iterable of scenario names to query.
+        base_scenario:
+            Optional reference scenario used to return scenario differences.
+        type:
+            Difference type used with ``base_scenario``. Accepted values are
+            ``"absolute"`` and ``"relative"``.
+
+        Returns
+        -------
+        pandas object | dict
+            If one matrix and one scenario are requested, return the matrix
+            directly. Otherwise return a dictionary keyed by scenario and
+            possibly matrix name.
+        """
         requested = _normalize_requested_matrices(matrices)
         data = self.get_data(
             matrices=requested,
@@ -493,7 +800,14 @@ class CoreModel:
         return data
 
     def add_note(self, notes):
-        """Append one or more user notes to the metadata history."""
+        """Append one or more user notes to the metadata history.
+
+        Parameters
+        ----------
+        notes:
+            A single string or an iterable of strings to append to metadata
+            history.
+        """
 
         if isinstance(notes, str):
             notes = [notes]
@@ -502,7 +816,20 @@ class CoreModel:
             self.meta._add_history(f"User Note: {note}")
 
     def update_scenarios(self, scenario, **matrices):
-        """Replace selected matrices in an existing scenario."""
+        """Replace selected matrices in an existing scenario.
+
+        Parameters
+        ----------
+        scenario:
+            Existing scenario name to update.
+        **matrices:
+            Keyword mapping ``matrix_name=dataframe`` for the blocks to replace.
+
+        Returns
+        -------
+        None
+            The method mutates the stored scenario in place.
+        """
 
         if scenario not in self.scenarios:
             raise WrongInput(f"Existing scenarios are {self.scenarios}")
@@ -518,7 +845,20 @@ class CoreModel:
         scenario,
         name,
     ):
-        """Clone an existing scenario into a new scenario name."""
+        """Clone an existing scenario into a new scenario name.
+
+        Parameters
+        ----------
+        scenario:
+            Source scenario to copy.
+        name:
+            Name for the new scenario.
+
+        Returns
+        -------
+        None
+            The new scenario is stored on the current instance.
+        """
 
         if scenario not in self.scenarios:
             raise WrongInput("f{scenario} does not exist.")
@@ -535,7 +875,18 @@ class CoreModel:
         self,
         scenario,
     ):
-        """Drop coefficient matrices for a scenario and keep only flow matrices."""
+        """Reset a scenario so only flow-side matrices remain materialized.
+
+        Parameters
+        ----------
+        scenario:
+            Scenario to rewrite.
+
+        Returns
+        -------
+        None
+            The selected scenario is replaced with its flow blocks only.
+        """
 
         keep = [_ENUM.Z, _ENUM.E, _ENUM.V, _ENUM.EY, _ENUM.VY, _ENUM.Y]
 
@@ -554,7 +905,18 @@ class CoreModel:
         self.matrices[scenario] = matrices
 
     def reset_to_coefficients(self, scenario):
-        """Drop flow matrices for a scenario and keep only coefficient matrices."""
+        """Reset a scenario so only coefficient-side matrices remain materialized.
+
+        Parameters
+        ----------
+        scenario:
+            Scenario to rewrite.
+
+        Returns
+        -------
+        None
+            The selected scenario is replaced with its coefficient blocks only.
+        """
         keep = [_ENUM.z, _ENUM.e, _ENUM.v, _ENUM.EY, _ENUM.VY, _ENUM.Y]
 
         if scenario not in self.scenarios:
@@ -572,7 +934,22 @@ class CoreModel:
         self.matrices[scenario] = matrices
 
     def get_index(self, index, level="main"):
-        """Return one index level or the full index mapping for the database."""
+        """Return one index level or the full index mapping for the database.
+
+        Parameters
+        ----------
+        index:
+            Set name such as ``Region`` or ``Sector``. Pass ``"all"`` to
+            retrieve every available set for the table type.
+        level:
+            Index variant to return, typically ``"main"`` or ``"aggregated"``.
+
+        Returns
+        -------
+        list | dict
+            Requested index labels, or a dictionary of all labels when
+            ``index="all"``.
+        """
 
         if index == "all":
             return {
@@ -603,7 +980,26 @@ class CoreModel:
         margin=0.05,
         as_dataframe=False,
     ):
-        """Check whether a scenario is balanced under the requested criterion."""
+        """Check whether a scenario is balanced under a chosen criterion.
+
+        Parameters
+        ----------
+        method:
+            Balance criterion. Accepted values are ``"flows"``,
+            ``"coefficients"`` and ``"prices"``.
+        data_set:
+            Scenario to test.
+        margin:
+            Allowed tolerance around the expected balance condition.
+        as_dataframe:
+            When ``True``, return the imbalance table instead of printing it.
+
+        Returns
+        -------
+        bool | pandas.DataFrame
+            ``True`` when balanced, ``False`` when imbalances are found, or the
+            imbalance dataframe when ``as_dataframe=True``.
+        """
 
         methods = {
             "flows": {"matrices": [_ENUM.V, _ENUM.Z, _ENUM.X], "header": ["\u0394X"]},
@@ -676,7 +1072,18 @@ class CoreModel:
         return True
 
     def is_isard(self, scenario: str = "baseline") -> bool:
-        """Return ``True`` if a multi-regional SUT is in Isard format."""
+        """Test whether a multi-regional SUT follows the Isard format.
+
+        Parameters
+        ----------
+        scenario:
+            Scenario whose use-side block should be tested.
+
+        Returns
+        -------
+        bool
+            ``True`` when the table is in Isard format, ``False`` otherwise.
+        """
 
         if self.meta.table != "SUT":
             raise NotImplementable("This test is implementable only on SUT tables")
@@ -715,7 +1122,19 @@ class CoreModel:
             return True
 
     def is_chenerymoses(self, scenario: str = "baseline") -> bool:
-        """Return ``True`` if a multi-regional SUT is in Chenery-Moses format."""
+        """Test whether a multi-regional SUT follows the Chenery-Moses format.
+
+        Parameters
+        ----------
+        scenario:
+            Scenario whose supply-side block should be tested.
+
+        Returns
+        -------
+        bool
+            ``True`` when the table is in Chenery-Moses format, ``False``
+            otherwise.
+        """
 
         if self.meta.table != "SUT":
             raise NotImplementable("This test is implementable only on SUT tables")
@@ -758,13 +1177,29 @@ class CoreModel:
             return True
 
     def copy(self):
-        """Return a deep copy of the database object."""
+        """Return a deep copy of the database object.
+
+        Returns
+        -------
+        CoreModel
+            Independent copy of the current object with copied matrices,
+            indices, units and metadata.
+        """
         new = copy.deepcopy(self)
         new.meta._add_history("deep copy created from object")
         return new
 
     def save_meta(self, path, format="txt"):
-        """Persist metadata history to disk."""
+        """Persist metadata history to disk.
+
+        Parameters
+        ----------
+        path:
+            Output path prefix or file path, depending on ``format``.
+        format:
+            Metadata output format accepted by ``MARIOMetaData._save``:
+            ``"txt"``, ``"json"`` or ``"binary"``.
+        """
         self.meta._save(path, format)
 
     def __str__(self):
@@ -790,7 +1225,26 @@ class CoreModel:
         total=True,
         share=False,
     ):
-        """Return GDP totals or sectoral GDP for a scenario."""
+        """Return GDP totals or sector-level GDP for a scenario.
+
+        Parameters
+        ----------
+        exclude:
+            Factor-of-production labels to exclude from the GDP sum.
+        scenario:
+            Scenario used to compute GDP.
+        total:
+            When ``True``, aggregate GDP by region. When ``False``, keep one row
+            per region and sector or activity.
+        share:
+            When ``True``, append the share of each sector or activity within
+            its region.
+
+        Returns
+        -------
+        pandas.DataFrame
+            GDP table indexed by region, and optionally by sector/activity.
+        """
         differnce = set(exclude).difference(set(self.get_index(_MASTER_INDEX["f"])))
         if differnce:
             raise WrongInput(
@@ -832,7 +1286,22 @@ class CoreModel:
         return GDP
 
     def search(self, item, search, ignore_case=True):
-        """Search index values matching a pattern within one set."""
+        """Search index values matching a pattern within one set.
+
+        Parameters
+        ----------
+        item:
+            Set name to search in, such as ``Region`` or ``Sector``.
+        search:
+            Regular-expression fragment matched against the labels.
+        ignore_case:
+            When ``True``, perform a case-insensitive search.
+
+        Returns
+        -------
+        list
+            Matching labels in their stored order.
+        """
 
         if item not in self.sets:
             raise WrongInput(f"Acceptable items are {self.sets}")
@@ -850,17 +1319,35 @@ class CoreModel:
 
     @property
     def scenarios(self):
-        """Return the list of available scenario names."""
+        """Return the list of available scenario names.
+
+        Returns
+        -------
+        list[str]
+            Scenario names in storage order.
+        """
         return [*self.matrices]
 
     @property
     def table_type(self):
-        """Return the database table type."""
+        """Return the database table type.
+
+        Returns
+        -------
+        str
+            Table kind stored in metadata, typically ``"IOT"`` or ``"SUT"``.
+        """
         return self.meta.table
 
     @property
     def is_multi_region(self):
-        """Return ``True`` when the database contains more than one region."""
+        """Return whether the database contains more than one region.
+
+        Returns
+        -------
+        bool
+            ``True`` for multi-regional databases, ``False`` otherwise.
+        """
         if len(self.get_index(_MASTER_INDEX["r"])) - 1:
             return True
 
@@ -868,12 +1355,24 @@ class CoreModel:
 
     @property
     def sets(self):
-        """Return the named index levels exposed by the current table type."""
+        """Return the named index levels exposed by the current table type.
+
+        Returns
+        -------
+        list[str]
+            Set names available for the current table structure.
+        """
         return [*TABLE_LEVELS[self.table_type]]
 
     @property
     def is_hybrid(self):
-        """Return ``True`` when the database mixes multiple measurement units."""
+        """Return whether the database mixes multiple measurement units.
+
+        Returns
+        -------
+        bool
+            ``True`` when more than one unit is found across the core accounts.
+        """
         if self.table_type == "IOT":
             check = set(self.units[_MASTER_INDEX["s"]]["unit"].unique())
             check.update(set(self.units[_MASTER_INDEX["f"]]["unit"].unique()))
@@ -909,7 +1408,14 @@ class CoreModel:
 
     @property
     def directory(self):
-        """Return the default output directory used by the database."""
+        """Return the default output directory used by the database.
+
+        Returns
+        -------
+        str
+            Absolute or relative directory used by helper exporters when no
+            explicit path is provided.
+        """
 
         if self._dir == "":
             self.directory = r"{}/Output".format(os.getcwd())
@@ -918,7 +1424,13 @@ class CoreModel:
 
     @directory.setter
     def directory(self, _dir):
-        """Set and create, when needed, the default output directory."""
+        """Set and create, when needed, the default output directory.
+
+        Parameters
+        ----------
+        _dir:
+            Directory path to use as the new default output location.
+        """
         _dir = r"{}".format(_dir)
         if os.path.exists(_dir):
             self._dir = _dir
@@ -933,7 +1445,13 @@ class CoreModel:
 
     @property
     def meta_history(self):
-        """Print the full metadata history."""
+        """Print the full metadata history.
+
+        Returns
+        -------
+        None
+            The method prints the history to stdout for interactive use.
+        """
         history = "\n".join(self.meta._history[:])
         print(history)
 
@@ -1006,7 +1524,13 @@ class CoreModel:
         return True
 
     def backup(self):
-        """Store a deep-copy backup of matrices, indexes and units."""
+        """Store a deep-copy backup of matrices, indexes and units.
+
+        Returns
+        -------
+        None
+            Backup data is stored on ``self._backup``.
+        """
         self._backup = self._backup_(
             copy.deepcopy(self.matrices),
             copy.deepcopy(self._indeces),

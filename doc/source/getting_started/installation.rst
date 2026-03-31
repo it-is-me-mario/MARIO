@@ -9,7 +9,7 @@ Minimal installation
 
 .. code-block:: bash
 
-   pip install mario
+   pip install mariopy
 
 Repository environment
 ----------------------
@@ -19,18 +19,6 @@ If you are working from the MARIO repository, the two main environment files are
 * ``requirements.txt`` for a pip-oriented workflow;
 * ``requirements.yml`` for a Conda/Mamba-oriented workflow.
 
-Documentation build
--------------------
-
-To build the local documentation:
-
-.. code-block:: bash
-
-   pip install -r doc/docs-requirements.txt
-   make -C doc html
-
-Then open ``doc/build/html/index.html`` in your browser.
-
 Optional dependencies
 ---------------------
 
@@ -38,5 +26,4 @@ Some workflows need extra dependencies:
 
 * plotting relies on Plotly and related packages;
 * parser-specific workflows may need optional reader dependencies;
-* ``add_sectors(split=True)`` requires CVXLab;
-* notebook rendering in the documentation requires Pandoc.
+* ``add_sectors(split=True)`` requires `CVXLab <https://cvxlab.readthedocs.io/>`_.

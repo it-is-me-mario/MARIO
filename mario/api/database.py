@@ -107,7 +107,27 @@ class Database(CoreModel):
         source: str = None,
         **kwargs,
     ):
-        """Initialize a MARIO database object."""
+        """Initialize a MARIO database object.
+
+        Parameters
+        ----------
+        name:
+            Human-readable database name stored in metadata.
+        table:
+            Table kind, usually ``"IOT"`` or ``"SUT"``.
+        Z, E, V, Y, EY, VY:
+            Baseline matrices used when building the object directly from
+            pandas objects. ``VY`` is optional.
+        units:
+            Units mapping consistent with the database structure.
+        price:
+            Price system label stored in metadata.
+        source:
+            Source label stored in metadata.
+        **kwargs:
+            Extra options forwarded to ``CoreModel``. Parsers typically use
+            these to bootstrap the instance from parsed matrices.
+        """
 
         super().__init__(
             name=name,
@@ -131,7 +151,18 @@ class Database(CoreModel):
         self.__counter = 1  # Shock Counter
 
     def build_new_instance(self, scenario):
-        """Return a new database whose baseline is the selected scenario."""
+        """Build a new database whose baseline is the selected scenario.
+
+        Parameters
+        ----------
+        scenario:
+            Scenario to promote as the baseline of the returned object.
+
+        Returns
+        -------
+        Database
+            New database instance containing the selected scenario as baseline.
+        """
 
         return build_new_instance_from_scenario(self, scenario)
 
@@ -140,7 +171,22 @@ class Database(CoreModel):
         method,
         inplace=True,
     ):
-        """Transform a SUT database into an IOT database."""
+        """Transform a SUT database into an IOT database.
+
+        Parameters
+        ----------
+        method:
+            SUT-to-IOT transformation method understood by the transformation
+            engine.
+        inplace:
+            When ``True``, mutate the current database. When ``False``, return
+            a transformed copy.
+
+        Returns
+        -------
+        Database | None
+            Transformed database when ``inplace=False``, otherwise ``None``.
+        """
         return transform_sut_to_iot(self, method, inplace=inplace)
 
     def to_chenery_moses(
@@ -148,7 +194,22 @@ class Database(CoreModel):
         inplace: bool = True,
         scenarios: list = None,
     ):
-        """Transform an Isard SUT into a Chenery-Moses SUT."""
+        """Transform an Isard SUT into a Chenery-Moses SUT.
+
+        Parameters
+        ----------
+        inplace:
+            When ``True``, mutate the current database. When ``False``, return
+            a transformed copy.
+        scenarios:
+            Optional subset of scenarios to transform. When omitted, the
+            transformation applies to all available scenarios.
+
+        Returns
+        -------
+        Database | None
+            Transformed database when ``inplace=False``, otherwise ``None``.
+        """
         return transform_to_chenery_moses(
             self,
             inplace=inplace,
@@ -161,7 +222,24 @@ class Database(CoreModel):
         levels="all",
         overwrite=False,
     ):
-        """Write an aggregation template workbook for the selected levels."""
+        """Write an aggregation template workbook for the selected levels.
+
+        Parameters
+        ----------
+        path:
+            Output path for the workbook. When omitted, MARIO writes to the
+            default Excel output directory.
+        levels:
+            One classification level, an iterable of levels, or ``"all"`` to
+            include every aggregable level for the current table type.
+        overwrite:
+            When ``True``, replace an existing workbook at ``path``.
+
+        Returns
+        -------
+        None
+            The workbook is written to disk.
+        """
 
         if levels != "all":
             # To avoid any issue, in case that levels is a string, return a list instead of str
@@ -214,7 +292,26 @@ class Database(CoreModel):
         levels="all",
         ignore_nan=False,
     ):
-        """Load aggregation mappings without applying them yet."""
+        """Load aggregation mappings without applying them yet.
+
+        Parameters
+        ----------
+        io:
+            Either the path to an aggregation workbook or a
+            ``{level: dataframe}`` mapping shaped like that workbook.
+        levels:
+            One classification level, an iterable of levels, or ``"all"`` to
+            read every aggregable level for the current table type.
+        ignore_nan:
+            When ``True``, missing aggregation targets are interpreted as
+            identity mappings for those labels.
+
+        Returns
+        -------
+        None
+            Aggregation mappings are stored on ``self._indeces`` under the
+            ``"aggregated"`` level.
+        """
 
         if levels != "all":
             # To avoid any issue, in case that levels is a string, return a list instead of str
@@ -294,7 +391,38 @@ class Database(CoreModel):
         zero_output_epsilon: float | None = 1e-30,
         inplace=True,
     ):
-        """Aggregate one or more classification levels in the database."""
+        """Aggregate one or more classification levels in the database.
+
+        Parameters
+        ----------
+        io:
+            Aggregation definition, either as workbook path or as an in-memory
+            mapping shaped like ``get_aggregation_excel(...)`` output.
+        drop:
+            Labels to drop after aggregation. The historical default
+            ``["unused"]`` removes placeholder groups created during workbook
+            editing.
+        levels:
+            One classification level, an iterable of levels, or ``"all"``.
+        calc_all:
+            When ``True``, recompute the standard dependent matrices after
+            aggregation.
+        ignore_nan:
+            When ``True``, missing aggregation targets are treated as
+            no-aggregation identity mappings.
+        zero_output_epsilon:
+            Positive fallback used to preserve non-zero coefficients for
+            zero-output columns during aggregation. Pass ``None`` to disable
+            the fallback.
+        inplace:
+            When ``True``, mutate the current database. When ``False``, return
+            an aggregated copy.
+
+        Returns
+        -------
+        Database | None
+            Aggregated database when ``inplace=False``, otherwise ``None``.
+        """
 
         return aggregate_database(
             self,
@@ -312,7 +440,21 @@ class Database(CoreModel):
         matrix,
         path=None,
     ):
-        """Write an Excel template for adding extensions to ``E`` or ``V``."""
+        """Write an Excel template for adding extensions to ``E`` or ``V``.
+
+        Parameters
+        ----------
+        matrix:
+            Target extension matrix. Accepted values are ``"E"`` and ``"V"``.
+        path:
+            Output path for the workbook. When omitted, MARIO writes to the
+            default Excel output directory.
+
+        Returns
+        -------
+        None
+            The template workbook is written to disk.
+        """
 
         aceptables = [_ENUM.E, _ENUM.V]
 
@@ -338,7 +480,35 @@ class Database(CoreModel):
         notes=None,
         EY=None,
     ):
-        """Add new extensions to value added or satellite accounts."""
+        """Add new extensions to value added or satellite accounts.
+
+        Parameters
+        ----------
+        io:
+            Extension data as either a dataframe or a path to the Excel
+            template generated by ``get_extensions_excel(...)``.
+        matrix:
+            Target matrix to extend. Accepted values are ``v``, ``V``, ``e``
+            and ``E``.
+        units:
+            Unit table for the newly added rows.
+        inplace:
+            When ``True``, mutate the current database. When ``False``, return
+            a modified copy.
+        calc_all:
+            When ``True``, recompute dependent matrices after inserting the new
+            rows.
+        notes:
+            Optional user notes appended to metadata history.
+        EY:
+            Optional final-demand satellite account rows used when extending the
+            environmental account side.
+
+        Returns
+        -------
+        Database | None
+            Modified database when ``inplace=False``, otherwise ``None``.
+        """
 
         if not inplace:
             new = self.copy()
@@ -467,7 +637,21 @@ class Database(CoreModel):
                 self.meta._add_history(f"User note: {note}")
 
     def to_single_region(self, region, inplace=True):
-        """Extract a single region from a multi-regional database."""
+        """Extract one region from a multi-regional database.
+
+        Parameters
+        ----------
+        region:
+            Region label to keep.
+        inplace:
+            When ``True``, mutate the current database. When ``False``, return
+            a transformed copy.
+
+        Returns
+        -------
+        Database | None
+            Single-region database when ``inplace=False``, otherwise ``None``.
+        """
         if not inplace:
             new = self.copy()
             new.to_single_region(region=region, inplace=True)
@@ -631,7 +815,26 @@ class Database(CoreModel):
         cut_diag=True,
         multi_mode=True,
     ):
-        r"""Calculate backward and forward linkages for an IOT scenario."""
+        r"""Calculate backward and forward linkages for an IOT scenario.
+
+        Parameters
+        ----------
+        scenario:
+            Scenario to analyse.
+        normalized:
+            When ``True``, normalize linkage indicators using the standard
+            linkages convention.
+        cut_diag:
+            When ``True``, exclude diagonal terms from the calculation.
+        multi_mode:
+            When ``True``, preserve the multi-regional interpretation of the
+            linkages. This is valid only for multi-regional IOT databases.
+
+        Returns
+        -------
+        object
+            Linkages payload returned by ``linkages_calculation(...)``.
+        """
 
         if not self.is_multi_region and multi_mode:
             raise NotImplementable(
@@ -665,7 +868,34 @@ class Database(CoreModel):
         auto_open=True,
         **config,
     ):
-        """Plot linkage indicators for one or more scenarios."""
+        """Plot linkage indicators for one or more scenarios.
+
+        Parameters
+        ----------
+        scenarios:
+            Scenario name or iterable of scenario names to plot.
+        normalized:
+            Forwarded to ``calc_linkages(...)``.
+        cut_diag:
+            Forwarded to ``calc_linkages(...)``.
+        multi_mode:
+            Forwarded to ``calc_linkages(...)``.
+        path:
+            Output HTML path. When omitted, MARIO writes to the default plots
+            directory.
+        plot:
+            Linkage flavor to visualize. Accepted values are ``"Total"`` and
+            ``"Direct"``.
+        auto_open:
+            When ``True``, open the generated HTML plot automatically.
+        **config:
+            Extra plotting options forwarded to the plotting backend.
+
+        Returns
+        -------
+        None
+            The plot is written to disk.
+        """
         if plot not in ["Total", "Direct"]:
             raise WrongInput(
                 "{} is not an acceptable value. Acceptable values are:\n{}".format(
@@ -712,7 +942,26 @@ class Database(CoreModel):
         scenario="baseline",
         include_meta=False,
     ):
-        """Export one scenario to the historical MARIO Excel format."""
+        """Export one scenario to the historical MARIO Excel format.
+
+        Parameters
+        ----------
+        path:
+            Output path or directory, depending on the exporter backend.
+        flows:
+            When ``True``, include flow matrices.
+        coefficients:
+            When ``True``, include coefficient matrices.
+        scenario:
+            Scenario to export.
+        include_meta:
+            When ``True``, export metadata together with matrices.
+
+        Returns
+        -------
+        None
+            Export files are written to disk.
+        """
 
         return export_database_to_excel(
             self,
@@ -736,8 +985,31 @@ class Database(CoreModel):
     ):
         """Export one scenario as multiple text or CSV files.
 
-        ``flat=False`` keeps the historical matrix-per-file layout.
-        ``flat=True`` writes one long-format data file plus a units file.
+        Parameters
+        ----------
+        path:
+            Output path or directory.
+        flows:
+            When ``True``, include flow matrices.
+        coefficients:
+            When ``True``, include coefficient matrices.
+        scenario:
+            Scenario to export.
+        _format:
+            File format label accepted by the text exporter, typically
+            ``"txt"`` or ``"csv"``.
+        include_meta:
+            When ``True``, export metadata together with matrices.
+        sep:
+            Column separator used by delimited exports.
+        flat:
+            ``False`` keeps the historical matrix-per-file layout.
+            ``True`` writes one long-format data file plus a units file.
+
+        Returns
+        -------
+        None
+            Export files are written to disk.
         """
 
         return export_database_to_txt(
@@ -763,8 +1035,27 @@ class Database(CoreModel):
     ):
         """Export one scenario as parquet files.
 
-        ``flat=False`` writes one parquet file per matrix.
-        ``flat=True`` writes one long-format ``data.parquet`` plus ``units.parquet``.
+        Parameters
+        ----------
+        path:
+            Output path or directory.
+        flows:
+            When ``True``, include flow matrices.
+        coefficients:
+            When ``True``, include coefficient matrices.
+        scenario:
+            Scenario to export.
+        include_meta:
+            When ``True``, export metadata together with matrices.
+        flat:
+            ``False`` writes one parquet file per matrix.
+            ``True`` writes one long-format ``data.parquet`` plus
+            ``units.parquet``.
+
+        Returns
+        -------
+        None
+            Export files are written to disk.
         """
 
         return export_database_to_parquet(
@@ -785,7 +1076,26 @@ class Database(CoreModel):
         scenario="baseline",
         **kwargs,
     ):
-        """Export an IOT database as a ``pymrio.IOSystem``."""
+        """Export an IOT database as a ``pymrio.IOSystem``.
+
+        Parameters
+        ----------
+        satellite_account:
+            Label used for the exported environmental extension account.
+        factor_of_production:
+            Label used for the exported value-added account.
+        include_meta:
+            When ``True``, attach MARIO metadata to the exported object.
+        scenario:
+            Scenario to export.
+        **kwargs:
+            Additional keyword arguments forwarded to the pymrio exporter.
+
+        Returns
+        -------
+        object
+            ``pymrio.IOSystem`` instance created from the selected scenario.
+        """
 
         return export_database_to_pymrio(
             self,
@@ -889,10 +1199,28 @@ class Database(CoreModel):
     def read_add_sectors_excel(self, path, get_inventories=False, read_inventories=False):
         """Read one add-sectors workbook and attach its metadata to the database.
 
-        This method always stores the normalized master sheet, cluster maps and
-        derived item sets on the database instance. When ``read_inventories`` is
-        true it also groups the referenced inventory sheets by target item and
-        stores them on ``self.inventories``.
+        Parameters
+        ----------
+        path:
+            Path to the add-sectors workbook.
+        get_inventories:
+            When ``True``, create any missing inventory-sheet templates in the
+            workbook after reading the master sheet.
+        read_inventories:
+            When ``True``, also read and group the inventory sheets referenced
+            by the workbook.
+
+        Returns
+        -------
+        None
+            Workbook metadata is stored on the current instance.
+
+        Notes
+        -----
+        The method always stores the normalized master sheet, cluster maps and
+        derived item sets on the database instance. When
+        ``read_inventories=True`` it also groups the inventory sheets by target
+        item and stores them on ``self.inventories``.
         """
 
         workbook = read_add_sector_workbook(
@@ -938,7 +1266,21 @@ class Database(CoreModel):
             self.inventories = group_inventories_by_target(workbook)
 
     def get_inventory_sheets(self, path, overwrite=False):
-        """Create inventory-sheet templates referenced by one add-sectors workbook."""
+        """Create inventory-sheet templates referenced by an add-sectors workbook.
+
+        Parameters
+        ----------
+        path:
+            Path to the add-sectors workbook.
+        overwrite:
+            When ``True``, replace inventory sheets that already exist in the
+            workbook.
+
+        Returns
+        -------
+        None
+            Inventory templates are written into the workbook in place.
+        """
 
         workbook = getattr(self, "add_sectors_workbook", None)
         workbook_path = getattr(self, "add_sectors_workbook_path", None)
@@ -964,8 +1306,17 @@ class Database(CoreModel):
     def read_inventory_sheets(self, path):
         """Read and group inventory sheets from an add-sectors workbook.
 
-        The returned mapping is keyed by target item name and each value is a
-        ``{sheet_name: dataframe}`` dictionary ready for the add-sectors engine.
+        Parameters
+        ----------
+        path:
+            Path to the add-sectors workbook.
+
+        Returns
+        -------
+        dict
+            Mapping keyed by target item name. Each value is a
+            ``{sheet_name: dataframe}`` dictionary ready for the add-sectors
+            engine.
         """
 
         workbook = getattr(self, "add_sectors_workbook", None)
@@ -1231,7 +1582,25 @@ class Database(CoreModel):
         base_scenario=None,
         type="absolute",
     ):
-        """Query matrices from one or more scenarios."""
+        """Return matrices from one or more scenarios with a compact shape.
+
+        Parameters
+        ----------
+        matrices:
+            One matrix name or an iterable of names to retrieve.
+        scenarios:
+            Scenario name or iterable of scenario names to query.
+        base_scenario:
+            Optional reference scenario used to return scenario differences.
+        type:
+            Difference type used with ``base_scenario``. Accepted values are
+            ``"absolute"`` and ``"relative"``.
+
+        Returns
+        -------
+        pandas object | dict
+            Same compact payload shape as ``CoreModel.query(...)``.
+        """
         return super().query(
             matrices=matrices,
             scenarios=scenarios,
@@ -1250,7 +1619,36 @@ class Database(CoreModel):
         base_scenario=None,
         type="absolute",
     ):
-        """Return matrices, units and indexes in a structured payload."""
+        """Return matrices, units and indexes in a structured payload.
+
+        Parameters
+        ----------
+        matrices:
+            One matrix name or an iterable of names to retrieve.
+        units:
+            When ``True``, include unit tables in the returned payload.
+        indeces:
+            When ``True``, include the index dictionaries in the returned
+            payload.
+        auto_calc:
+            When ``True``, automatically compute missing matrices before
+            returning them.
+        format:
+            ``"object"`` returns namedtuples; ``"dict"`` returns nested
+            dictionaries keyed by scenario.
+        scenarios:
+            Scenario name or iterable of scenario names to retrieve.
+        base_scenario:
+            Optional reference scenario used to return scenario differences.
+        type:
+            Difference type used with ``base_scenario``. Accepted values are
+            ``"absolute"`` and ``"relative"``.
+
+        Returns
+        -------
+        object | dict
+            Same payload shape as ``CoreModel.get_data(...)``.
+        """
         return super().get_data(
             matrices=matrices,
             units=units,
@@ -1266,7 +1664,18 @@ class Database(CoreModel):
         self,
         scenario="baseline",
     ):
-        """Return a single dataframe view of the selected scenario."""
+        """Return a single dataframe view of one scenario.
+
+        Parameters
+        ----------
+        scenario:
+            Scenario to flatten into a dataframe.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Long-form dataframe view built by ``build_database_frame(...)``.
+        """
 
         return build_database_frame(self, scenario=scenario)
 
@@ -1282,7 +1691,31 @@ class Database(CoreModel):
         force_rewrite=False,
         **clusters,
     ):
-        """Apply shocks to coefficients or demand and store the result as a scenario."""
+        """Apply shocks to coefficients or demand and store the result as a scenario.
+
+        Parameters
+        ----------
+        io:
+            Shock definition source understood by the shock readers, typically
+            an Excel workbook path.
+        z, e, v, Y:
+            Select which shock blocks should be read and applied from ``io``.
+        notes:
+            Optional metadata notes attached to the created scenario.
+        scenario:
+            Name of the output scenario. When omitted, MARIO creates
+            ``shock <n>`` automatically.
+        force_rewrite:
+            When ``True``, allow overwriting an existing non-baseline scenario.
+        **clusters:
+            Optional cluster mappings used to aggregate shock definitions across
+            regions or other classifications.
+
+        Returns
+        -------
+        None
+            The shocked scenario is materialized on the current database.
+        """
 
         # be sure that all the data exist
 
@@ -1336,7 +1769,24 @@ class Database(CoreModel):
         num_shock=10,
         **clusters,
     ):
-        """Write an Excel template for defining shocks."""
+        """Write an Excel template for defining shocks.
+
+        Parameters
+        ----------
+        path:
+            Output path for the workbook. When omitted, MARIO writes to the
+            default Excel output directory.
+        num_shock:
+            Number of shock rows to pre-create in the workbook template.
+        **clusters:
+            Optional cluster mappings used to pre-configure grouped shock
+            dimensions.
+
+        Returns
+        -------
+        None
+            The template workbook is written to disk.
+        """
 
         check_clusters(
             index_dict=self.get_index("all"), table=self.table_type, clusters=clusters
@@ -1345,7 +1795,20 @@ class Database(CoreModel):
         _sh_excel(self, num_shock, self._getdir(path, "Excels", "shock.xlsx"), clusters)
 
     def replace_units_name(self, level, names):
-        """Rename unit labels inside one unit table without touching matrix data."""
+        """Rename unit labels inside one unit table without touching matrix data.
+
+        Parameters
+        ----------
+        level:
+            Classification level whose unit table should be updated.
+        names:
+            Mapping ``old_unit -> new_unit`` applied to the selected unit table.
+
+        Returns
+        -------
+        None
+            The unit labels are updated in place.
+        """
         if level not in [*TABLE_LEVELS[self.meta.table]]:
             raise WrongInput(
                 "'{}' is not a valid index. Valid indeces are: \n{}".format(
@@ -1374,7 +1837,29 @@ class Database(CoreModel):
         log_x=False,
         log_y=False,
     ):
-        """Create a bubble chart from GDP or extension indicators."""
+        """Create a bubble chart from GDP or extension indicators.
+
+        Parameters
+        ----------
+        x, y, size:
+            Variables mapped to the chart axes and bubble size. Each value can
+            be ``"GDP"``, a satellite-account label, or a factor-of-production
+            label.
+        path:
+            Output HTML path. When omitted, MARIO writes to the default plots
+            directory.
+        auto_open:
+            When ``True``, open the generated HTML plot automatically.
+        scenario:
+            Scenario to plot.
+        log_x, log_y:
+            When ``True``, use logarithmic scaling on the corresponding axis.
+
+        Returns
+        -------
+        None
+            The plot is written to disk.
+        """
 
         items = ["x", "y", "size"]
 
@@ -1457,7 +1942,36 @@ class Database(CoreModel):
         drop_reg=None,
         title=None,
     ):
-        """Plot sectoral GDP as a treemap or sunburst chart."""
+        """Plot sectoral GDP as a treemap or sunburst chart.
+
+        Parameters
+        ----------
+        path:
+            Output HTML path. When omitted, MARIO writes to the default plots
+            directory.
+        plot:
+            Plot type. Accepted values are ``"treemap"`` and ``"sunburst"``.
+        scenario:
+            Scenario to plot.
+        extension:
+            Optional satellite-account label used to color GDP tiles by an
+            extension indicator.
+        extension_value:
+            Extension measure used for coloring. Accepted values are
+            ``"relative"``, ``"absolute"``, ``"specific footprint"`` and
+            ``"absolute footprint"``.
+        auto_open:
+            When ``True``, open the generated HTML plot automatically.
+        drop_reg:
+            Optional region label to exclude from the visualization.
+        title:
+            Optional custom plot title.
+
+        Returns
+        -------
+        None
+            The plot is written to disk.
+        """
 
         plots = ["treemap", "sunburst"]
         extension_values = [
@@ -1570,7 +2084,48 @@ class Database(CoreModel):
         shared_xaxes=True,
         **filters,
     ):
-        """Generate a general-purpose HTML bar plot for a selected matrix."""
+        """Generate a general-purpose HTML bar plot for a selected matrix.
+
+        Parameters
+        ----------
+        matrix:
+            Matrix or block name to visualize.
+        x:
+            Column used on the x axis in the generated long-form plot.
+        color:
+            Column used to color bars.
+        y:
+            Column used on the y axis. The default is ``"Value"``.
+        item:
+            Item dimension used to interpret the matrix for plotting. For SUT
+            tables this controls whether the commodity or activity side is
+            shown.
+        facet_row, facet_col:
+            Optional columns used to facet the plot.
+        animation_frame:
+            Column used to animate the plot, typically ``"Scenario"``.
+        base_scenario:
+            Optional reference scenario used to plot differences.
+        path:
+            Output HTML path. When omitted, MARIO writes to the default plots
+            directory.
+        mode:
+            Plotly bar mode, such as ``"stack"`` or ``"group"``.
+        layout:
+            Optional layout dictionary overriding the default plot layout.
+        auto_open:
+            When ``True``, open the generated HTML plot automatically.
+        shared_yaxes, shared_xaxes:
+            Axis-sharing options forwarded to the plotting backend.
+        **filters:
+            Named plot filters such as ``filter_region_from`` or
+            ``filter_satellite_account``.
+
+        Returns
+        -------
+        None
+            The plot is written to disk.
+        """
 
         ### Inputs handling
         item_from = item

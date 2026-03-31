@@ -10,6 +10,7 @@ The current public API revolves around:
 * ``read_add_sectors_excel(...)`` and ``get_inventory_sheets(...)`` to prepare
   and validate the workbook;
 * ``add_sectors(...)`` to execute the structural update;
-* optional CVXLab-backed ``split=True`` for richer IOT split workflows.
+* optional ``split=True`` workflows backed by
+  `CVXLab <https://cvxlab.readthedocs.io/>`_ for richer IOT split cases.
 
 For a more detailed implementation note, see :doc:`../add_sector_refactor`.
