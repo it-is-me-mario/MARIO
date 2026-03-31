@@ -1,7 +1,4 @@
-.. MARIO documentation master file, created by
-   sphinx-quickstart on Thu Oct 14 17:00:18 2021.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+:orphan:
 
 Terminology
 =================================
@@ -84,5 +81,4 @@ Following table represents the variables and their explanations in MARIO:
    * - p
      - ...
      - Price index coefficients vector
-
 

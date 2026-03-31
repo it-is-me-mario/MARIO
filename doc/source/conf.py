@@ -44,8 +44,8 @@ extensions = [
     "sphinx.ext.napoleon",
     'sphinx.ext.duration',
     'sphinx.ext.doctest',
-    "sphinx_rtd_theme",
     "sphinx_copybutton",
+    "sphinxcontrib.bibtex",
  
 ]
 nbsphinx_execute = "never"
@@ -61,7 +61,14 @@ templates_path = ["_templates"]
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = []
+exclude_patterns = [
+    "__pycache__",
+    "htmls/**",
+    "examples/**",
+    "api_document/mario.CoreModel.is_productive.rst",
+    "api_document/mario.Database.reset_to_backup.rst",
+    "api_document/mario.parse_eurostat_sut.rst",
+]
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -71,15 +78,33 @@ exclude_patterns = []
 #
 
 
-html_theme = 'sphinx_rtd_theme'
-html_theme_options = dict(
-    project_name="MARIO Documentation",
-)
+html_theme = "pydata_sphinx_theme"
+html_title = "MARIO Documentation"
+html_logo = "_static/images/mario-logo.png"
+html_theme_options = {
+    "logo": {
+        "text": "MARIO",
+    },
+    "navbar_align": "content",
+    "header_links_before_dropdown": 5,
+    "navigation_with_keys": True,
+    "show_toc_level": 2,
+    "secondary_sidebar_items": ["page-toc"],
+    "icon_links": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/it-is-me-mario/MARIO",
+            "icon": "fa-brands fa-github",
+        },
+    ],
+}
 # html_theme_path = [sphinx_pdj_theme.get_html_theme_path()]
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
+html_css_files = ["custom.css"]
+bibtex_bibfiles = ["publications/mario.bib"]
 
 # copy btn settings
 copybutton_prompt_text = "<AxesSubplot:>"

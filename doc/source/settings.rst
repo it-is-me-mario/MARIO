@@ -1,3 +1,5 @@
+:orphan:
+
 Changing mario settings
 =======================
 
@@ -711,4 +713,3 @@ of mario, you will find two variabls called \**"_MASTER_INDEX"*\* and
 
 Using these two instances, all over the software, we encapsulated the
 code 👩‍💻 and the naming convensions.
-

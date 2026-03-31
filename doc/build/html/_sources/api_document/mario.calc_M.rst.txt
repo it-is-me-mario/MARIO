@@ -1,6 +1,6 @@
-﻿mario.calc\_m
+﻿mario.calc\_M
 =============
 
 .. currentmodule:: mario
 
-.. autofunction:: calc_m
+.. autofunction:: calc_M

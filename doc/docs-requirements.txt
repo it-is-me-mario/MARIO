@@ -6,7 +6,7 @@ tabulate >= 0.8.9
 openpyxl >= 3.0.6
 IPython >= 7.22.0
 sphinx >= 1.6.4
-sphinx_rtd_theme >= 0.2.4
+pydata-sphinx-theme
 nbsphinx
 ipykernel
 sphinx-autobuild
@@ -16,3 +16,4 @@ nbformat
 sphinx_wagtail_theme
 sphinx-copybutton
 myst_parser
+sphinxcontrib-bibtex
