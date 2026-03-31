@@ -144,6 +144,44 @@ def _compact_tokens(values) -> tuple[object, ...]:
     return tuple(value for value in values if not pd.isna(value) and value != "None" and value != "")
 
 
+def _select_explicit_excel_body(
+    raw: pd.DataFrame,
+    *,
+    header_rows: int,
+    mode: str,
+) -> pd.DataFrame:
+    """Select the relevant body section from an explicit-layout workbook.
+
+    Some hand-authored test workbooks keep both flows and coefficients in the
+    same sheet, separated by one completely empty row. When that happens, MARIO
+    should read only the section requested by ``mode``.
+    """
+    body = raw.iloc[header_rows:, :].reset_index(drop=True)
+    blank_rows = [position for position in range(len(body)) if body.iloc[position].isna().all()]
+    if not blank_rows:
+        return body
+
+    split = blank_rows[0]
+    if mode == "coefficients" and split + 1 < len(body):
+        return body.iloc[split + 1 :].reset_index(drop=True)
+    return body.iloc[:split].reset_index(drop=True)
+
+
+def _units_memberships(units_frame: pd.DataFrame) -> dict[object, set[str]]:
+    """Return the set memberships declared by one units table."""
+    memberships: dict[object, set[str]] = {}
+    for set_name, item in units_frame.index.tolist():
+        memberships.setdefault(item, set()).add(set_name)
+    return memberships
+
+
+def _items_for_set(units_frame: pd.DataFrame, set_name: str) -> list[object]:
+    """Return items for one set, preserving their workbook order."""
+    if set_name not in units_frame.index.get_level_values(0):
+        return []
+    return units_frame.loc[[set_name]].droplevel(0).index.tolist()
+
+
 def _legacy_sut_final_demand_public(tokens: tuple[object, ...]) -> tuple[tuple[object, ...], tuple[str, ...], tuple[object, ...], tuple[str, ...]]:
     """Interpret one SUT final-demand axis while keeping the public 3-level layout."""
     semantic, semantic_names, _, _ = interpret_iot_final_demand_tokens(tokens)
@@ -154,7 +192,7 @@ def _legacy_sut_final_demand_public(tokens: tuple[object, ...]) -> tuple[tuple[o
 
 def _interpret_sut_productive_public(
     tokens: tuple[object, ...],
-    item_sets: dict[object, str],
+    item_memberships: dict[object, set[str]],
 ) -> tuple[tuple[object, ...], tuple[str, ...], tuple[object, ...], tuple[str, ...]]:
     """Interpret one SUT productive axis while keeping the public 3-level layout.
 
@@ -170,14 +208,98 @@ def _interpret_sut_productive_public(
         return compact, ("Region", "Level", "Item"), compact, ("Region", "Level", "Item")
 
     if len(compact) == 2:
-        set_name = item_sets.get(compact[1])
-        if set_name in {"Activity", "Commodity"}:
-            public = (compact[0], set_name, compact[1])
+        memberships = item_memberships.get(compact[1], set())
+        activity = "Activity" in memberships
+        commodity = "Commodity" in memberships
+        if activity ^ commodity:
+            public = (compact[0], "Activity" if activity else "Commodity", compact[1])
             return public, ("Region", "Level", "Item"), public, ("Region", "Level", "Item")
 
     raise WrongInput(
         f"Unable to interpret SUT productive axis {compact}. Expected either legacy Region/Level/Item semantics or an explicit Region/Item pair classified by units."
     )
+
+
+def _resolve_sut_productive_public_sequence(
+    raw_tokens: list[tuple[object, ...]],
+    *,
+    units_frame: pd.DataFrame,
+) -> list[tuple[object, object, object]]:
+    """Resolve productive SUT rows/columns, including ambiguous no-Level layouts.
+
+    When ``Activity`` and ``Commodity`` labels overlap, explicit no-Level SUT
+    workbooks still remain readable if they respect the exported block order:
+    all commodity rows/columns first, then all activity rows/columns.
+    """
+    item_memberships = _units_memberships(units_frame)
+    activity_items = _items_for_set(units_frame, "Activity")
+    commodity_items = _items_for_set(units_frame, "Commodity")
+    activity_set = set(activity_items)
+    commodity_set = set(commodity_items)
+
+    resolved: list[tuple[object, object, object] | None] = []
+    unresolved_positions: list[int] = []
+    regions: list[object] = []
+    commodity_assigned = 0
+    activity_assigned = 0
+
+    for tokens in raw_tokens:
+        compact = _compact_tokens(tokens)
+        if len(compact) == 3 and compact[1] in {"Activity", "Commodity"}:
+            resolved.append((compact[0], compact[1], compact[2]))
+            if compact[1] == "Commodity":
+                commodity_assigned += 1
+            else:
+                activity_assigned += 1
+            if compact[0] not in regions:
+                regions.append(compact[0])
+            continue
+
+        if len(compact) != 2:
+            raise WrongInput(
+                f"Unable to interpret productive SUT axis {compact}. Expected either Region/Item or Region/Level/Item."
+            )
+
+        region, item = compact
+        if region not in regions:
+            regions.append(region)
+
+        in_activity = item in activity_set
+        in_commodity = item in commodity_set
+        if in_activity and not in_commodity:
+            resolved.append((region, "Activity", item))
+            activity_assigned += 1
+        elif in_commodity and not in_activity:
+            resolved.append((region, "Commodity", item))
+            commodity_assigned += 1
+        elif in_activity and in_commodity:
+            resolved.append(None)
+            unresolved_positions.append(len(resolved) - 1)
+        else:
+            raise WrongInput(
+                f"Unable to classify productive SUT item {item!r}. It is not listed in units as Activity or Commodity."
+            )
+
+    expected_commodities = len(regions) * len(commodity_items)
+    expected_activities = len(regions) * len(activity_items)
+    remaining_commodities = expected_commodities - commodity_assigned
+    remaining_activities = expected_activities - activity_assigned
+
+    if remaining_commodities < 0 or remaining_activities < 0:
+        raise WrongInput(
+            "The explicit SUT productive layout contains more Activity/Commodity rows or columns than expected from units."
+        )
+    if len(unresolved_positions) != remaining_commodities + remaining_activities:
+        raise WrongInput(
+            "Unable to resolve ambiguous Activity/Commodity labels in the explicit SUT productive layout from units and block ordering."
+        )
+
+    for offset, position in enumerate(unresolved_positions):
+        region, item = _compact_tokens(raw_tokens[position])
+        level = "Commodity" if offset < remaining_commodities else "Activity"
+        resolved[position] = (region, level, item)
+
+    return [item for item in resolved if item is not None]
 
 
 def parse_explicit_iot_excel_layout(
@@ -190,8 +312,8 @@ def parse_explicit_iot_excel_layout(
 ):
     """Parse a no-Level flat IOT workbook driven by ``units`` and ``matrix_layouts``."""
     raw = pd.read_excel(path, sheet_name=data_sheet, header=None)
-    raw = raw.dropna(axis=0, how="all").dropna(axis=1, how="all")
-    if raw.empty:
+    raw = raw.dropna(axis=1, how="all")
+    if raw.dropna(axis=0, how="all").empty:
         raise WrongExcelFormat("The Excel data sheet is empty.")
 
     units_frame = _build_units_from_mriot_sheet(path, unit_sheet)
@@ -225,6 +347,8 @@ def parse_explicit_iot_excel_layout(
     final_demand_axis_names: tuple[str, ...] | None = None
     final_demand_public_axis_names: tuple[str, ...] | None = None
     for position, tokens in enumerate(raw_column_tokens):
+        if not tokens:
+            continue
         try:
             productive_tuple, _, productive_public_tuple, productive_public_names = interpret_axis_tokens(
                 tokens,
@@ -289,7 +413,7 @@ def parse_explicit_iot_excel_layout(
     if not productive_positions or not final_demand_positions:
         raise WrongExcelFormat("The explicit Excel layout should contain both productive and final-demand columns.")
 
-    body = raw.iloc[header_rows:, :].reset_index(drop=True)
+    body = _select_explicit_excel_body(raw, header_rows=header_rows, mode=mode)
     row_meta = body.iloc[:, :row_meta_cols]
     values = body.iloc[:, row_meta_cols:].reset_index(drop=True)
 
@@ -452,12 +576,14 @@ def parse_explicit_sut_excel_layout(
     unambiguous. ``matrix_layouts`` therefore applies only to ``V/E`` row axes.
     """
     raw = pd.read_excel(path, sheet_name=data_sheet, header=None)
-    raw = raw.dropna(axis=0, how="all").dropna(axis=1, how="all")
-    if raw.empty:
+    raw = raw.dropna(axis=1, how="all")
+    if raw.dropna(axis=0, how="all").empty:
         raise WrongExcelFormat("The Excel data sheet is empty.")
 
     units_frame = _build_units_from_mriot_sheet(path, unit_sheet)
-    item_sets = infer_item_sets_from_units(units_frame)
+    item_memberships = _units_memberships(units_frame)
+    factor_items = set(_items_for_set(units_frame, "Factor of production"))
+    satellite_items = set(_items_for_set(units_frame, "Satellite account"))
 
     row_meta_cols = 0
     first_row = raw.iloc[0, :]
@@ -479,23 +605,32 @@ def parse_explicit_sut_excel_layout(
     raw_column_tokens = [_compact_tokens(row) for row in columns_raw.itertuples(index=False, name=None)]
 
     productive_positions: list[int] = []
-    productive_public_columns: list[tuple] = []
+    productive_raw_columns: list[tuple[object, ...]] = []
     final_demand_positions: list[int] = []
     final_demand_public_columns: list[tuple] = []
     final_demand_axis_names: tuple[str, ...] | None = None
     for position, tokens in enumerate(raw_column_tokens):
+        if not tokens:
+            continue
         try:
-            _, _, productive_public, _ = _interpret_sut_productive_public(tokens, item_sets)
+            _, _, productive_public, _ = _interpret_sut_productive_public(tokens, item_memberships)
         except WrongInput:
             productive_public = None
 
         if productive_public is not None:
             productive_positions.append(position)
-            productive_public_columns.append(productive_public)
+            productive_raw_columns.append(tokens)
             continue
 
+        if len(tokens) in {2, 3}:
+            memberships = item_memberships.get(tokens[-1], set())
+            if memberships.intersection({"Activity", "Commodity"}):
+                productive_positions.append(position)
+                productive_raw_columns.append(tokens)
+                continue
+
         try:
-            semantic_fd, current_fd_axis_names, public_fd, _ = _legacy_sut_final_demand_public(tokens)
+            _, current_fd_axis_names, public_fd, _ = _legacy_sut_final_demand_public(tokens)
         except WrongInput as exc:
             raise WrongExcelFormat(
                 f"Unable to interpret explicit SUT column {tokens}. Expected either unified productive or final-demand semantics."
@@ -513,11 +648,17 @@ def parse_explicit_sut_excel_layout(
     if not productive_positions or not final_demand_positions:
         raise WrongExcelFormat("The explicit SUT Excel layout should contain both productive and final-demand columns.")
 
-    body = raw.iloc[header_rows:, :].reset_index(drop=True)
+    productive_public_columns = _resolve_sut_productive_public_sequence(
+        productive_raw_columns,
+        units_frame=units_frame,
+    )
+
+    body = _select_explicit_excel_body(raw, header_rows=header_rows, mode=mode)
     row_meta = body.iloc[:, :row_meta_cols]
     values = body.iloc[:, row_meta_cols:].reset_index(drop=True)
 
-    productive_rows: list[dict[str, object]] = []
+    productive_raw_rows: list[tuple[object, ...]] = []
+    productive_row_positions: list[int] = []
     factor_rows: list[dict[str, object]] = []
     satellite_rows: list[dict[str, object]] = []
     for position, tokens in enumerate(_compact_tokens(row) for row in row_meta.itertuples(index=False, name=None)):
@@ -525,12 +666,19 @@ def parse_explicit_sut_excel_layout(
             continue
 
         try:
-            _, _, productive_public, _ = _interpret_sut_productive_public(tokens, item_sets)
+            _, _, productive_public, _ = _interpret_sut_productive_public(tokens, item_memberships)
         except WrongInput:
             productive_public = None
 
         if productive_public is not None:
-            productive_rows.append({"public": productive_public, "position": position})
+            productive_raw_rows.append(tokens)
+            productive_row_positions.append(position)
+            continue
+
+        memberships = item_memberships.get(tokens[-1], set())
+        if memberships.intersection({"Activity", "Commodity"}):
+            productive_raw_rows.append(tokens)
+            productive_row_positions.append(position)
             continue
 
         try:
@@ -556,7 +704,7 @@ def parse_explicit_sut_excel_layout(
             satellite_public_tuple = None
             satellite_public_names = None
 
-        if factor_tuple is not None and item_sets.get(factor_tuple[-1]) == "Factor of production":
+        if factor_tuple is not None and factor_tuple[-1] in factor_items:
             factor_rows.append(
                 {
                     "public": factor_public_tuple,
@@ -564,7 +712,7 @@ def parse_explicit_sut_excel_layout(
                     "public_names": factor_public_names,
                 }
             )
-        elif satellite_tuple is not None and item_sets.get(satellite_tuple[-1]) == "Satellite account":
+        elif satellite_tuple is not None and satellite_tuple[-1] in satellite_items:
             satellite_rows.append(
                 {
                     "public": satellite_public_tuple,
@@ -576,6 +724,14 @@ def parse_explicit_sut_excel_layout(
             raise WrongExcelFormat(
                 f"Unable to classify explicit SUT row {tokens}. Expected unified productive rows or factor/satellite rows listed in units."
             )
+
+    productive_rows = [
+        {"public": public, "position": position}
+        for public, position in zip(
+            _resolve_sut_productive_public_sequence(productive_raw_rows, units_frame=units_frame),
+            productive_row_positions,
+        )
+    ]
 
     if not productive_rows or not factor_rows or not satellite_rows:
         raise WrongExcelFormat("Explicit SUT layout should contain productive, factor, and satellite rows.")

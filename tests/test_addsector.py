@@ -537,6 +537,22 @@ def test_get_add_sectors_excel_accepts_positional_path(tmp_path, CoreDataIOT):
     assert ADVANCED_ADD_SECTOR_MASTER_SHEET in workbook
 
 
+def test_get_add_sectors_excel_refuses_to_overwrite_existing_workbook_by_default(
+    tmp_path, CoreDataIOT
+):
+    path = tmp_path / "existing_add_sector_iot.xlsx"
+
+    CoreDataIOT.get_add_sectors_excel(path=path)
+
+    with pytest.raises(WrongInput, match="already exists"):
+        CoreDataIOT.get_add_sectors_excel(path=path)
+
+    CoreDataIOT.get_add_sectors_excel(path=path, overwrite=True)
+
+    workbook = pd.read_excel(path, sheet_name=None)
+    assert ADVANCED_ADD_SECTOR_MASTER_SHEET in workbook
+
+
 def test_get_add_sectors_excel_uses_all_regions_when_only_items_are_given(tmp_path, CoreDataIOT):
     path = tmp_path / "prefilled_all_regions_iot.xlsx"
 
@@ -737,6 +753,30 @@ def test_get_inventory_sheets_creates_missing_inventory_tabs_from_master(tmp_pat
 
     workbook = load_workbook(path, data_only=False)
     assert {"INV_001", "INV_002", "DB units"} <= set(workbook.sheetnames)
+
+
+def test_get_inventory_sheets_does_not_overwrite_existing_inventory_tabs_by_default(
+    tmp_path, CoreDataIOT
+):
+    regions = CoreDataIOT.get_index(_MASTER_INDEX["r"])[:1]
+    path = tmp_path / "advanced_add_sector_iot_preserve_inventories.xlsx"
+
+    CoreDataIOT.get_add_sectors_excel(
+        items=["New sector A"],
+        regions=regions,
+        path=path,
+    )
+
+    workbook = load_workbook(path)
+    worksheet = workbook["INV_001"]
+    worksheet["A2"] = "KEEP"
+    workbook.save(path)
+
+    CoreDataIOT.read_add_sectors_excel(path)
+    CoreDataIOT.get_inventory_sheets(path)
+
+    workbook = load_workbook(path, data_only=False)
+    assert workbook["INV_001"]["A2"].value == "KEEP"
 
 
 def test_read_add_sectors_excel_can_generate_inventory_templates(tmp_path, CoreDataIOT):

@@ -102,7 +102,10 @@ def _aggregate_axis(instance, matrix_name: str, labels, *, side: str, agg_indece
     semantic_names = _axis_semantic_names(instance, matrix_name, labels, side)
     if semantic_names is None:
         return _aggregate_legacy_axis(labels, agg_indeces)
-    return _aggregate_semantic_axis(labels, semantic_names, agg_indeces)
+    aggregated = _aggregate_semantic_axis(labels, semantic_names, agg_indeces)
+    if not isinstance(labels, pd.MultiIndex) and getattr(labels, "name", None) in {None, "Item"}:
+        aggregated = aggregated.rename(labels.name)
+    return aggregated
 
 
 def _group_axis(frame: pd.DataFrame, *, axis: int) -> pd.DataFrame:

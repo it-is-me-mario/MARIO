@@ -465,13 +465,13 @@ def _read_matrix_text_with_layout(
     row_levels = len(iot_axis_names(matrix_name, "from", matrix_layouts))
     if matrix_name in {"Y", "EY", "VY"}:
         col_levels = 1
-        header_candidates = (3, 2, 1)
+        header_candidates = (1, 2, 3)
     else:
         col_levels = len(iot_axis_names(matrix_name, "to", matrix_layouts))
         header_candidates = (col_levels + 1, col_levels)
 
     attempts = []
-    for index_levels in (row_levels + 1, row_levels):
+    for index_levels in (row_levels, row_levels + 1):
         for header_levels in header_candidates:
             candidate = (index_levels, header_levels)
             if candidate not in attempts:
@@ -568,18 +568,19 @@ def _read_sut_matrix_text_with_layout(
         row_levels = len(sut_axis_names(matrix_name, "from", matrix_layouts))
 
     if matrix_name in {"Y", "EY", "VY"}:
-        header_candidates = (3, 2, 1)
+        header_candidates = (1, 2, 3)
     else:
         header_candidates = (3,)
 
     attempts = []
-    for index_levels in (row_levels + 1, row_levels):
+    for index_levels in (row_levels, row_levels + 1):
         for header_levels in header_candidates:
             candidate = (index_levels, header_levels)
             if candidate not in attempts:
                 attempts.append(candidate)
 
     last_error = None
+    successful_reads: list[tuple[tuple[int, ...], pd.DataFrame, tuple[str, ...] | None]] = []
     for index_levels, header_levels in attempts:
         try:
             frame = pd.read_csv(
@@ -589,9 +590,30 @@ def _read_sut_matrix_text_with_layout(
                 header=list(range(header_levels)),
                 keep_default_na=False,
             )
-            return _normalize_sut_matrix(frame, matrix_name, matrix_layouts)
+            normalized, final_demand_axis_names = _normalize_sut_matrix(
+                frame,
+                matrix_name,
+                matrix_layouts,
+            )
+            successful_reads.append(
+                (
+                    (
+                        len(final_demand_axis_names or ()),
+                        normalized.columns.nlevels if isinstance(normalized.columns, pd.MultiIndex) else 1,
+                        header_levels,
+                        -abs(index_levels - row_levels),
+                    ),
+                    normalized,
+                    final_demand_axis_names,
+                )
+            )
         except Exception as exc:  # pragma: no cover - diagnostic fallback path
             last_error = exc
+
+    if successful_reads:
+        successful_reads.sort(key=lambda item: item[0], reverse=True)
+        _, normalized, final_demand_axis_names = successful_reads[0]
+        return normalized, final_demand_axis_names
 
     raise WrongInput(
         f"Unable to read {file_path.name} with SUT matrix_layouts. Last parser error: {last_error}"

@@ -159,6 +159,7 @@ class Database(CoreModel):
         self,
         path=None,
         levels="all",
+        overwrite=False,
     ):
         """Write an aggregation template workbook for the selected levels."""
 
@@ -180,6 +181,11 @@ class Database(CoreModel):
             levels = [*TABLE_LEVELS[self.meta.table]]
 
         output_path = self._getdir(path, "Excels", "Aggregation.xlsx")
+        if os.path.exists(output_path) and not overwrite:
+            raise WrongInput(
+                f"Aggregation workbook '{output_path}' already exists. "
+                "Pass overwrite=True to replace it."
+            )
         output_dir = os.path.dirname(output_path) or "."
         temp_handle = tempfile.NamedTemporaryFile(
             suffix=".xlsx",
@@ -795,6 +801,7 @@ class Database(CoreModel):
         regions=None,
         item=None,
         redefine_uncertainties=False,
+        overwrite=False,
     ):
         """Write the add-sectors workbook template.
 
@@ -863,6 +870,11 @@ class Database(CoreModel):
             )
 
         target = self._getdir(path, "Excels", "add_sectors.xlsx")
+        if os.path.exists(target) and not overwrite:
+            raise WrongInput(
+                f"Add-sectors workbook '{target}' already exists. "
+                "Pass overwrite=True to replace it."
+            )
         write_add_sector_workbook(
             self,
             target,
@@ -923,7 +935,7 @@ class Database(CoreModel):
         if read_inventories:
             self.inventories = group_inventories_by_target(workbook)
 
-    def get_inventory_sheets(self, path, overwrite=True):
+    def get_inventory_sheets(self, path, overwrite=False):
         """Create inventory-sheet templates referenced by one add-sectors workbook."""
 
         workbook = getattr(self, "add_sectors_workbook", None)
