@@ -15,6 +15,7 @@ def aggregate_database(
     levels="all",
     calc_all: bool = True,
     ignore_nan: bool = False,
+    zero_output_epsilon: float | None = 1e-30,
     inplace: bool = True,
 ):
     """Aggregate a database while keeping the public Database API stable."""
@@ -31,6 +32,7 @@ def aggregate_database(
             levels=levels,
             calc_all=calc_all,
             ignore_nan=ignore_nan,
+            zero_output_epsilon=zero_output_epsilon,
             inplace=True,
         )
         return new
@@ -41,14 +43,22 @@ def aggregate_database(
         drop = list(drop)
 
     if io is None:
-        new_matrices, units = _aggregator(database, drop)
+        new_matrices, units = _aggregator(
+            database,
+            drop,
+            zero_output_epsilon=zero_output_epsilon,
+        )
     else:
         database.read_aggregated_index(
             levels=levels,
             io=io,
             ignore_nan=ignore_nan,
         )
-        new_matrices, units = _aggregator(database, drop)
+        new_matrices, units = _aggregator(
+            database,
+            drop,
+            zero_output_epsilon=zero_output_epsilon,
+        )
 
     for scenario in database.scenarios:
         database.matrices[scenario] = new_matrices[scenario]

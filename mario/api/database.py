@@ -291,6 +291,7 @@ class Database(CoreModel):
         levels="all",
         calc_all=True,
         ignore_nan=False,
+        zero_output_epsilon: float | None = 1e-30,
         inplace=True,
     ):
         """Aggregate one or more classification levels in the database."""
@@ -302,6 +303,7 @@ class Database(CoreModel):
             levels=levels,
             calc_all=calc_all,
             ignore_nan=ignore_nan,
+            zero_output_epsilon=zero_output_epsilon,
             inplace=inplace,
         )
 

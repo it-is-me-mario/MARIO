@@ -44,6 +44,9 @@ Aggregation and transforms
 
 * Made aggregation robust to layout-aware ``V`` and ``E`` blocks without
   breaking the legacy public surface.
+* Added a default ``zero_output_epsilon`` fallback during aggregation so
+  zero-output items with non-zero stored coefficients do not lose their
+  reconstructed ``z``/``v``/``e`` columns after aggregation.
 * Added ``VY`` as a first-class factor-of-production final-demand block across
   MARIO.
 * Kept transformation utilities in the new ``ops`` layout and aligned them with

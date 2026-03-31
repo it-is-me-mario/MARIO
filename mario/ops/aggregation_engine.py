@@ -9,7 +9,7 @@ from copy import deepcopy
 
 import pandas as pd
 
-from mario.compute.primitives import calc_X
+from mario.compute.primitives import calc_E, calc_V, calc_X, calc_Z
 from mario.log_exc.exceptions import WrongInput
 from mario.log_exc.logger import log_time
 from mario.model.conventions import _ENUM, _MASTER_INDEX
@@ -135,7 +135,134 @@ def _drop_extension_rows(instance, frame: pd.DataFrame, matrix_name: str, drop):
     return frame.drop(drop, axis=0, errors="ignore")
 
 
-def _aggregator(instance, drop):
+def _scenario_block(instance, values, scenario: str, matrix_name: str) -> pd.DataFrame:
+    """Return one scenario block either from the iterator payload or by resolving it."""
+    if matrix_name in values:
+        return deepcopy(values[matrix_name])
+    return deepcopy(instance.query([matrix_name], scenarios=[scenario]))
+
+
+def _single_output_series(block: pd.DataFrame | pd.Series) -> pd.Series:
+    """Return the scalar production vector behind one ``X``-like block."""
+    if isinstance(block, pd.Series):
+        return block.astype(float).copy()
+
+    if isinstance(block, pd.DataFrame):
+        if block.shape[1] != 1:
+            raise ValueError("Expected a single-column output block.")
+        return block.iloc[:, 0].astype(float).copy()
+
+    raise TypeError("Expected a pandas Series or single-column DataFrame.")
+
+
+def _zero_output_labels(X: pd.DataFrame | pd.Series) -> pd.Index:
+    """Return labels whose output is exactly zero."""
+    series = _single_output_series(X)
+    return series.index[series == 0]
+
+
+def _nonzero_coefficient_columns(block: pd.DataFrame, labels: pd.Index) -> pd.Index:
+    """Return zero-output labels that still expose non-zero stored coefficients."""
+    if len(labels) == 0:
+        return labels
+
+    columns = block.columns.intersection(labels)
+    if len(columns) == 0:
+        return columns
+
+    mask = (block.loc[:, columns].to_numpy(dtype=float) != 0).any(axis=0)
+    return columns[mask]
+
+
+def _build_zero_output_flow_overrides(instance, values, scenario: str, epsilon: float | None):
+    """Re-materialize tiny flow columns for zero-output items that still carry coefficients."""
+    if epsilon is None:
+        return {}, pd.Index([])
+
+    if epsilon <= 0:
+        raise WrongInput("zero_output_epsilon must be greater than zero.")
+
+    X = _scenario_block(instance, values, scenario, _ENUM.X)
+    zero_outputs = _zero_output_labels(X)
+    if len(zero_outputs) == 0:
+        return {}, pd.Index([])
+
+    coefficient_blocks = {}
+    preserved_labels = pd.Index([])
+    for coefficient in (_ENUM.z, _ENUM.v, _ENUM.e):
+        try:
+            block = _scenario_block(instance, values, scenario, coefficient)
+        except Exception:
+            continue
+        coefficient_blocks[coefficient] = block
+        preserved_labels = preserved_labels.union(
+            _nonzero_coefficient_columns(block, zero_outputs)
+        )
+
+    if len(preserved_labels) == 0:
+        return {}, pd.Index([])
+
+    adjusted_X = X.copy()
+    adjusted_X.loc[preserved_labels, :] = float(epsilon)
+
+    overrides = {}
+    for flow_name, coefficient_name, calculator in (
+        (_ENUM.Z, _ENUM.z, calc_Z),
+        (_ENUM.V, _ENUM.v, calc_V),
+        (_ENUM.E, _ENUM.e, calc_E),
+    ):
+        coefficient_block = coefficient_blocks.get(coefficient_name)
+        if coefficient_block is None:
+            continue
+
+        flow_block = _scenario_block(instance, values, scenario, flow_name)
+        rebuilt = calculator(coefficient_block, adjusted_X)
+        columns = flow_block.columns.intersection(preserved_labels)
+        if len(columns):
+            flow_block.loc[:, columns] = rebuilt.loc[:, columns]
+        overrides[flow_name] = flow_block
+
+    return overrides, preserved_labels
+
+
+def _floor_aggregated_output_for_preserved_coefficients(
+    matrices: dict[str, pd.DataFrame],
+    epsilon: float | None,
+) -> pd.Index:
+    """Keep non-zero reconstructed flow columns from collapsing during coefficient recovery."""
+    if epsilon is None:
+        return pd.Index([])
+
+    X = matrices.get(_ENUM.X)
+    if X is None:
+        return pd.Index([])
+
+    zero_outputs = _zero_output_labels(X)
+    if len(zero_outputs) == 0:
+        return zero_outputs
+
+    supported = pd.Index([])
+    for matrix_name in (_ENUM.Z, _ENUM.V, _ENUM.E):
+        block = matrices.get(matrix_name)
+        if block is None:
+            continue
+        totals = pd.Series(
+            block.abs().sum(axis=0).to_numpy(dtype=float),
+            index=block.columns,
+        )
+        supported = supported.union(totals.index[totals > 0])
+
+    floored = zero_outputs.intersection(supported)
+    if len(floored) == 0:
+        return floored
+
+    X = X.copy()
+    X.loc[floored, :] = float(epsilon)
+    matrices[_ENUM.X] = X
+    return floored
+
+
+def _aggregator(instance, drop, *, zero_output_epsilon: float | None = None):
     """Aggregate all scenarios of a database using prepared mapping tables."""
     instance.query(matrices=[_ENUM.Y, _ENUM.V, _ENUM.E])
     units = unit_aggregation_check(instance, drop)
@@ -145,12 +272,18 @@ def _aggregator(instance, drop):
 
     for scenario, values in instance:
         matrices[scenario] = {}
+        flow_overrides, preserved_labels = _build_zero_output_flow_overrides(
+            instance,
+            values,
+            scenario,
+            zero_output_epsilon,
+        )
 
         for matrix in [_ENUM.Z, _ENUM.E, _ENUM.V, _ENUM.EY, _ENUM.VY, _ENUM.Y]:
             item = deepcopy(
-                values[matrix]
-                if matrix in values
-                else instance.query([matrix], scenarios=[scenario])
+                flow_overrides[matrix]
+                if matrix in flow_overrides
+                else _scenario_block(instance, values, scenario, matrix)
             )
 
             item.index = _aggregate_axis(
@@ -186,6 +319,31 @@ def _aggregator(instance, drop):
         matrices[scenario][_ENUM.X] = calc_X(
             matrices[scenario][_ENUM.Z], matrices[scenario][_ENUM.Y]
         )
+        floored_outputs = _floor_aggregated_output_for_preserved_coefficients(
+            matrices[scenario],
+            zero_output_epsilon,
+        )
+
+        if len(preserved_labels):
+            log_time(
+                logger,
+                (
+                    f"Aggregation: scenario `{scenario}` preserved coefficients for "
+                    f"{len(preserved_labels)} zero-output item(s) using "
+                    f"zero_output_epsilon={zero_output_epsilon}."
+                ),
+                "warning",
+            )
+        if len(floored_outputs):
+            log_time(
+                logger,
+                (
+                    f"Aggregation: scenario `{scenario}` floored aggregated output for "
+                    f"{len(floored_outputs)} item(s) with non-zero reconstructed flow "
+                    f"columns using zero_output_epsilon={zero_output_epsilon}."
+                ),
+                "warning",
+            )
 
         log_time(logger, f"Aggregation: scenario: `{scenario}` aggregated.")
 

@@ -354,6 +354,53 @@ def test_aggregate_database_supports_custom_sut_matrix_layouts():
     )
 
 
+def test_aggregate_database_preserves_zero_output_sut_coefficients_with_epsilon(caplog):
+    database = _build_custom_sut_database()
+    database.clone_scenario("baseline", "policy")
+    database.calc_all(
+        [_ENUM.z, _ENUM.e, _ENUM.v, _ENUM.X, _ENUM.Z, _ENUM.V, _ENUM.E],
+        scenario="policy",
+    )
+
+    target = ("r1", "Activity", "a1")
+    policy = database.matrices["policy"]
+    assert float(policy[_ENUM.z].loc[:, target].abs().sum()) > 0.0
+
+    policy[_ENUM.X].loc[target, :] = 0.0
+    policy[_ENUM.Z].loc[target, :] = 0.0
+    policy[_ENUM.Z].loc[:, target] = 0.0
+    policy[_ENUM.V].loc[:, target] = 0.0
+    policy[_ENUM.E].loc[:, target] = 0.0
+    if _ENUM.Y not in policy:
+        policy[_ENUM.Y] = database.query([_ENUM.Y], scenarios=["policy"])
+    policy[_ENUM.Y].loc[target, :] = 0.0
+
+    mapping = {
+        "Region": pd.DataFrame({"Aggregation": ["world"]}, index=["r1"]),
+    }
+
+    without_epsilon = database.copy().aggregate(
+        io=mapping,
+        levels=["Region"],
+        inplace=False,
+        zero_output_epsilon=None,
+    )
+
+    with caplog.at_level("WARNING"):
+        with_epsilon = database.copy().aggregate(
+            io=mapping,
+            levels=["Region"],
+            inplace=False,
+        )
+
+    aggregated_target = ("world", "Activity", "a1")
+    without_epsilon_z = without_epsilon.query([_ENUM.z], scenarios=["policy"])
+    with_epsilon_z = with_epsilon.query([_ENUM.z], scenarios=["policy"])
+    assert float(without_epsilon_z.loc[:, aggregated_target].abs().sum()) == 0.0
+    assert float(with_epsilon_z.loc[:, aggregated_target].abs().sum()) > 0.0
+    assert any("zero_output_epsilon" in record.message for record in caplog.records)
+
+
 def test_export_to_pymrio_and_tabular_view_work_from_new_modules():
     iot = load_test("IOT")
     sut = load_test("SUT")
