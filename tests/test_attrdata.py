@@ -145,12 +145,12 @@ def test_to_iot(CoreDataSUT, CoreDataIOT):
     assert cpy.units.keys() == CoreDataIOT.units.keys()
 
 
-def test_get_aggregation_excel(CoreDataIOT, CoreDataSUT):
-    path = f"{CoreDataIOT.directory}/agg.xlsx"
+def test_get_aggregation_excel(CoreDataIOT, CoreDataSUT, tmp_path):
+    path = tmp_path / "agg.xlsx"
 
     for db in [CoreDataIOT, CoreDataSUT]:
         for level in db.sets:
-            db.get_aggregation_excel(path, levels=level)
+            db.get_aggregation_excel(path, levels=level, overwrite=True)
             file = pd.ExcelFile(path)
             assert file.sheet_names == [level]
             pdt.assert_index_equal(
@@ -158,7 +158,7 @@ def test_get_aggregation_excel(CoreDataIOT, CoreDataSUT):
                 pd.Index(db.get_index(level)),
             )
 
-        db.get_aggregation_excel(path, levels="all")
+        db.get_aggregation_excel(path, levels="all", overwrite=True)
         file = pd.ExcelFile(path)
         assert set(file.sheet_names) == set(db.sets)
 
@@ -166,6 +166,13 @@ def test_get_aggregation_excel(CoreDataIOT, CoreDataSUT):
             db.get_aggregation_excel(path, levels="dummy")
 
         assert "acceptable level/s" in str(msg.value)
+
+    CoreDataIOT.get_aggregation_excel(path, levels="all", overwrite=True)
+
+    with pytest.raises(WrongInput, match="already exists"):
+        CoreDataIOT.get_aggregation_excel(path, levels="all")
+
+    CoreDataIOT.get_aggregation_excel(path, levels="all", overwrite=True)
 
 def test_read_aggregated_index(CoreDataIOT,CoreDataSUT):
 

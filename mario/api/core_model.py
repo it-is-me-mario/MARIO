@@ -94,6 +94,8 @@ class CoreModel:
     ):
         """Initialize the core model from parser output or explicit dataframes."""
         self._dir = ""
+        self._custom_operator_registry = None
+        self._custom_block_specs = {}
         # A dictionary for storing info if it is given.
         self.info = {}
 
@@ -180,13 +182,25 @@ class CoreModel:
 
     def _validate_matrices(self, matrices: list[str]) -> None:
         """Ensure that all requested matrix names are valid for the table kind."""
-        acceptable = list(available_matrices(self.table_type))
+        acceptable = list(self.available_blocks())
         for item in matrices:
             if item not in acceptable:
                 raise WrongInput(
                     f"{item} not present in acceptable item for calc_all. "
                     f"Acceptable matrices are {acceptable}"
                 )
+
+    def available_blocks(self) -> tuple[str, ...]:
+        """Return built-in and custom block names visible on the instance."""
+        from mario.compute.operators import (
+            list_registered_block_specs,
+            list_registered_operator_names,
+        )
+
+        available = set(available_matrices(self.table_type))
+        available.update(list_registered_operator_names(self))
+        available.update(list_registered_block_specs(self))
+        return tuple(sorted(available))
 
     def _resolver_failure_types(self):
         """Return the exception types that indicate a resolution failure."""
@@ -235,6 +249,78 @@ class CoreModel:
     def explain(self, matrix: str, *, scenario: str = "baseline") -> str:
         """Return a dependency explanation for one matrix."""
         return _resolver_module().explain(matrix, self, scenario=scenario)
+
+    def register_block_spec(
+        self,
+        spec=None,
+        *,
+        name: str | None = None,
+        row_axes=None,
+        col_axes=None,
+        replace: bool = False,
+    ):
+        """Register one semantic block specification on the current database.
+
+        The simplest form is either passing a pre-built ``BlockSpec`` or
+        passing ``name``, ``row_axes`` and ``col_axes`` directly.
+        """
+        from mario.compute.operators import register_block_spec
+        from mario.compute.semantics import block_spec
+
+        if spec is None:
+            if name is None or row_axes is None or col_axes is None:
+                raise WrongInput("Pass either a BlockSpec or name/row_axes/col_axes.")
+            spec = block_spec(name=name, row_axes=row_axes, col_axes=col_axes)
+
+        return register_block_spec(self, spec, replace=replace)
+
+    def get_block_spec(self, name: str):
+        """Return the semantic block specification for one block name."""
+        from mario.compute.catalog import get_matrix_spec
+        from mario.compute.operators import get_registered_block_spec
+        from mario.compute.semantics import axis_ref, block_spec
+
+        spec = get_registered_block_spec(self, name)
+        if spec is not None:
+            return spec
+
+        try:
+            matrix_spec = get_matrix_spec(self.table_type, name)
+        except KeyError as exc:
+            raise WrongInput(f"No block specification is known for {name!r}.") from exc
+
+        return block_spec(
+            name=name,
+            row_axes=tuple(axis_ref(axis, axis) for axis in matrix_spec.axes.rows),
+            col_axes=tuple(axis_ref(axis, axis) for axis in matrix_spec.axes.cols),
+        )
+
+    def list_custom_block_specs(self) -> tuple[str, ...]:
+        """List the custom block specifications registered on the instance."""
+        from mario.compute.operators import list_registered_block_specs
+
+        return list_registered_block_specs(self)
+
+    def register_operator(self, spec, *, replace: bool = False):
+        """Register one custom operator on the current database.
+
+        Custom operators complement the built-in compute catalog. They are best
+        created through the helper builders in ``mario.compute``, such as
+        ``ratio_operator(...)`` or ``matrix_product_operator(...)``.
+        """
+        from mario.compute.operators import register_operator
+
+        if spec.name in available_matrices(self.table_type) and not replace:
+            raise WrongInput(
+                f"{spec.name} is already a built-in block. Use another output name or replace=True."
+            )
+        return register_operator(self, spec, replace=replace)
+
+    def list_custom_operators(self) -> tuple[str, ...]:
+        """List the custom operators registered on the instance."""
+        from mario.compute.operators import list_registered_operator_names
+
+        return list_registered_operator_names(self)
 
     def _get_matrix(self, matrix: str, *, scenario: str, auto_calc: bool):
         """Return a deep copy of one matrix, computing it when allowed."""
@@ -885,7 +971,7 @@ class CoreModel:
         if attr in self.__dict__:
             return self.__dict__[attr]
         else:
-            all_mat = list(available_matrices(self.table_type))
+            all_mat = list(self.available_blocks())
 
             if attr in all_mat:
                 self.calc_all(matrices=[attr])

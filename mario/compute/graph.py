@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from mario.compute import ghosh_formulas, iot_formulas, sut_formulas, views
+from mario.compute.operators import get_registered_operator
 from mario.compute.planner import ResolutionStore, candidate_strategies, resolve_table_kind
 from mario.compute.types import ResolutionContext, Strategy, StrategyKind
 
@@ -131,6 +132,39 @@ def _visit_strategy(
             status="planned",
             strategy_kind=strategy.kind,
             detail=f"concat from {', '.join(strategy.dependencies)}",
+            children=children,
+        )
+
+    if strategy.kind == StrategyKind.OPERATOR:
+        operator = get_registered_operator(dataset, name)
+        children = tuple(
+            visit(dep, stack + (name,)) if dep not in stack else DependencyNode(
+                name=dep,
+                status="cycle",
+                detail=" -> ".join(stack + (name, dep)),
+            )
+            for dep in strategy.dependencies
+        )
+        if operator is None:
+            return DependencyNode(
+                name=name,
+                status="blocked",
+                strategy_kind=strategy.kind,
+                detail="custom operator is not registered",
+            )
+        if any(child.status in {"unresolved", "blocked", "cycle"} for child in children):
+            return DependencyNode(
+                name=name,
+                status="blocked",
+                strategy_kind=strategy.kind,
+                detail=f"operator {operator.kind.value} has unresolved dependencies",
+                children=children,
+            )
+        return DependencyNode(
+            name=name,
+            status="planned",
+            strategy_kind=strategy.kind,
+            detail=f"operator {operator.kind.value}",
             children=children,
         )
 

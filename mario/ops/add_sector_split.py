@@ -29,6 +29,35 @@ from mario.ops.add_sector_specs import (
 sn = slice(None)
 
 
+def _classic_split_row_layouts(instance) -> None:
+    """Fail fast when the current split CVXLab model cannot represent row layouts.
+
+    The packaged ``Split_sectors`` CVXLab model only knows the historical MARIO
+    split input structure, where:
+
+    - ``V`` rows are just ``Factor of production``
+    - ``E`` rows are just ``Satellite account``
+
+    New parser-side ``matrix_layouts`` can expose richer row axes for those
+    matrices, but that requires a different optimization model. Until such a
+    model exists, ``split=True`` should reject those databases explicitly.
+    """
+
+    incompatible = {}
+    for matrix_name, expected in ((_ENUM["V"], (MI["f"],)), (_ENUM["E"], (MI["k"],))):
+        spec = instance.get_block_spec(matrix_name)
+        row_axes = tuple(axis.id for axis in spec.row_axes)
+        if row_axes != expected:
+            incompatible[matrix_name] = row_axes
+
+    if incompatible:
+        details = ", ".join(f"{name}: {axes}" for name, axes in incompatible.items())
+        raise NotImplementable(
+            "split=True currently supports only classic CVXLab row layouts for E and V. "
+            f"Unsupported row layouts detected: {details}. Use the standard layout or a different split model."
+        )
+
+
 def validate_split_parameters(
     instance,
     *,
@@ -40,6 +69,8 @@ def validate_split_parameters(
 
     if instance.table_type != IOT:
         raise NotImplementable("Splitting sectors is currently supported only for IOT databases.")
+
+    _classic_split_row_layouts(instance)
 
     if not getattr(instance, "to_split_sectors", []):
         raise WrongInput(

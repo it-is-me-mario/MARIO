@@ -5,6 +5,8 @@ import inspect
 import hashlib
 from pathlib import Path
 
+from openpyxl import load_workbook
+
 from mario.ops.add_sector_specs import (
     ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS,
     ADD_SECTOR_SPLIT_EXCLUSION_SHEET,
@@ -32,7 +34,7 @@ from mario.ops.add_sector_workbook import (
     group_advanced_inventories_by_target,
     read_advanced_add_sector_workbook,
 )
-from mario.log_exc.exceptions import WrongInput
+from mario.log_exc.exceptions import NotImplementable, WrongExcelFormat, WrongInput
 from mario.ops.sectoradd import get_corresponding_keys,matrix_concat,fill_matrix
 from mario.model.conventions import _MASTER_INDEX
 from mario.model.builders import MatrixBuilder
@@ -42,6 +44,9 @@ import pandas as pd
 import pytest
 from mario.api import database as database_module
 from mario import load_test
+from mario.parsers.api import build_database_from_state, build_parser_state
+from mario.parsers.entrypoints import parse_from_excel
+from mario.parsers.matrix_layouts import sut_block_specs_for_matrix_layouts
 from mario.model.conventions import _ENUM,_MASTER_INDEX
 
 @pytest.fixture()
@@ -114,6 +119,239 @@ def _configure_split_workbook(instance, path, *, new_sector="Split sector", quan
         "unit": unit,
         "new_sector": new_sector,
     }
+
+
+def _write_legacy_regional_extension_iot(path):
+    flows = pd.DataFrame(
+        [
+            [None, None, None, "r1", "r1", "r2", "r2", "r1", "r2"],
+            [None, None, None, "Sector", "Sector", "Sector", "Sector", "Consumption category", "Consumption category"],
+            [None, None, None, "s1", "s2", "s1", "s2", "CC", "CC"],
+            ["r1", "Sector", "s1", 20, 15, 4, 5, 15, 25],
+            ["r1", "Sector", "s2", 10, 54, 5, 5, 20, 45],
+            ["r2", "Sector", "s1", 5, 5, 18, 11, 15, 30],
+            ["r2", "Sector", "s2", 3, 5, 9, 41, 35, 30],
+            [None, "Factor of production", "VA", 46, 60, 48, 61, 0, 0],
+            ["r1", "Satellite account", "CO2", 10, 5, 20, 10, 4, 0],
+            ["r2", "Satellite account", "CO2", 23, 6, 5, 2, 1, 2],
+        ]
+    )
+    units = pd.DataFrame(
+        [
+            [None, None, "unit"],
+            ["Sector", "s1", "EUR"],
+            ["Sector", "s2", "EUR"],
+            ["Factor of production", "VA", "EUR"],
+            ["Satellite account", "CO2", "ton"],
+        ]
+    )
+    with pd.ExcelWriter(path, engine="openpyxl") as writer:
+        flows.to_excel(writer, sheet_name="flows", header=False, index=False)
+        units.to_excel(writer, sheet_name="units", header=False, index=False)
+
+
+def _write_explicit_layout_iot(path):
+    flows = pd.DataFrame(
+        [
+            [None, None, None, "r1", "r1", "r2", "r2", None, None],
+            [None, None, None, "s1", "s2", "s1", "s2", "hh", "investment"],
+            ["r1", "s1", None, 20, 15, 4, 5, 15, 25],
+            ["r1", "s2", None, 10, 54, 5, 5, 20, 45],
+            ["r2", "s1", None, 5, 5, 18, 11, 15, 30],
+            ["r2", "s2", None, 3, 5, 9, 41, 35, 30],
+            ["r1", "s1", "taxes", 10, 5, 2, 1, 0, 0],
+            ["r1", "s1", "capital", 18, 4, 1, 1, 0, 0],
+            ["r1", "s2", "taxes", 1, 21, 4, 2, 0, 0],
+            ["r1", "s2", "capital", 5, 15, 2, 3, 0, 0],
+            ["r2", "s1", "taxes", 2, 0, 12, 7, 0, 0],
+            ["r2", "s1", "capital", 1, 0, 8, 10, 0, 0],
+            ["r2", "s2", "taxes", 3, 2, 2, 32, 0, 0],
+            ["r2", "s2", "capital", 2, 4, 6, 18, 0, 0],
+            ["r1", "CO2", None, 10, 5, 20, 10, 4, 0],
+            ["r2", "CO2", None, 23, 6, 5, 2, 1, 2],
+        ]
+    )
+    units = pd.DataFrame(
+        [
+            [None, None, "unit"],
+            ["Sector", "s1", "EUR"],
+            ["Sector", "s2", "EUR"],
+            ["Factor of production", "taxes", "EUR"],
+            ["Factor of production", "capital", "EUR"],
+            ["Satellite account", "CO2", "ton"],
+        ]
+    )
+    with pd.ExcelWriter(path, engine="openpyxl") as writer:
+        flows.to_excel(writer, sheet_name="flows", header=False, index=False)
+        units.to_excel(writer, sheet_name="units", header=False, index=False)
+
+
+def _write_explicit_layout_iot_with_regional_final_demand(path):
+    flows = pd.DataFrame(
+        [
+            [None, None, None, "r1", "r1", "r2", "r2", "r1", "r2"],
+            [None, None, None, "s1", "s2", "s1", "s2", "hh", "investment"],
+            ["r1", "s1", None, 20, 15, 4, 5, 15, 25],
+            ["r1", "s2", None, 10, 54, 5, 5, 20, 45],
+            ["r2", "s1", None, 5, 5, 18, 11, 15, 30],
+            ["r2", "s2", None, 3, 5, 9, 41, 35, 30],
+            ["r1", "s1", "taxes", 10, 5, 2, 1, 0, 0],
+            ["r1", "s1", "capital", 18, 4, 1, 1, 0, 0],
+            ["r1", "s2", "taxes", 1, 21, 4, 2, 0, 0],
+            ["r1", "s2", "capital", 5, 15, 2, 3, 0, 0],
+            ["r2", "s1", "taxes", 2, 0, 12, 7, 0, 0],
+            ["r2", "s1", "capital", 1, 0, 8, 10, 0, 0],
+            ["r2", "s2", "taxes", 3, 2, 2, 32, 0, 0],
+            ["r2", "s2", "capital", 2, 4, 6, 18, 0, 0],
+            ["r1", "CO2", None, 10, 5, 20, 10, 4, 0],
+            ["r2", "CO2", None, 23, 6, 5, 2, 1, 2],
+        ]
+    )
+    units = pd.DataFrame(
+        [
+            [None, None, "unit"],
+            ["Sector", "s1", "EUR"],
+            ["Sector", "s2", "EUR"],
+            ["Factor of production", "taxes", "EUR"],
+            ["Factor of production", "capital", "EUR"],
+            ["Satellite account", "CO2", "ton"],
+        ]
+    )
+    with pd.ExcelWriter(path, engine="openpyxl") as writer:
+        flows.to_excel(writer, sheet_name="flows", header=False, index=False)
+        units.to_excel(writer, sheet_name="units", header=False, index=False)
+
+
+def _write_legacy_layout_iot_with_regional_factors(path):
+    flows = pd.DataFrame(
+        [
+            [None, None, None, None, "r1", "r1", "r2", "r2", "r1", "r2"],
+            [None, None, None, None, "Sector", "Sector", "Sector", "Sector", "Consumption category", "Consumption category"],
+            [None, None, None, None, "s1", "s2", "s1", "s2", "CC", "CC"],
+            ["r1", "Sector", "s1", None, 20, 15, 4, 5, 15, 25],
+            ["r1", "Sector", "s2", None, 10, 54, 5, 5, 20, 45],
+            ["r2", "Sector", "s1", None, 5, 5, 18, 11, 15, 30],
+            ["r2", "Sector", "s2", None, 3, 5, 9, 41, 35, 30],
+            ["r1", "s1", "Factor of production", "taxes", 10, 5, 2, 1, 0, 0],
+            ["r1", "s1", "Factor of production", "capital", 18, 4, 1, 1, 0, 0],
+            ["r1", "s2", "Factor of production", "taxes", 1, 21, 4, 2, 0, 0],
+            ["r1", "s2", "Factor of production", "capital", 5, 15, 2, 3, 0, 0],
+            ["r2", "s1", "Factor of production", "taxes", 2, 0, 12, 7, 0, 0],
+            ["r2", "s1", "Factor of production", "capital", 1, 0, 8, 10, 0, 0],
+            ["r2", "s2", "Factor of production", "taxes", 3, 2, 2, 32, 0, 0],
+            ["r2", "s2", "Factor of production", "capital", 2, 4, 6, 18, 0, 0],
+            ["r1", "Satellite account", "CO2", None, 10, 5, 20, 10, 4, 0],
+            ["r2", "Satellite account", "CO2", None, 23, 6, 5, 2, 1, 2],
+        ]
+    )
+    units = pd.DataFrame(
+        [
+            [None, None, "unit"],
+            ["Sector", "s1", "EUR"],
+            ["Sector", "s2", "EUR"],
+            ["Factor of production", "taxes", "EUR"],
+            ["Factor of production", "capital", "EUR"],
+            ["Satellite account", "CO2", "ton"],
+        ]
+    )
+    with pd.ExcelWriter(path, engine="openpyxl") as writer:
+        flows.to_excel(writer, sheet_name="flows", header=False, index=False)
+        units.to_excel(writer, sheet_name="units", header=False, index=False)
+
+
+def _build_custom_sut_database():
+    productive = pd.MultiIndex.from_tuples(
+        [
+            ("r1", "Activity", "a1"),
+            ("r1", "Activity", "a2"),
+            ("r1", "Commodity", "c1"),
+            ("r1", "Commodity", "c2"),
+        ],
+        names=["Region", "Level", "Item"],
+    )
+    final_demand = pd.MultiIndex.from_tuples(
+        [("r1", "Consumption category", "hh")],
+        names=["Region", "Level", "Item"],
+    )
+    factors = pd.MultiIndex.from_tuples(
+        [
+            ("r1", "a1", "taxes"),
+            ("r1", "a1", "capital"),
+            ("r1", "a2", "taxes"),
+            ("r1", "a2", "capital"),
+        ],
+        names=["Region", "Activity", "Factor of production"],
+    )
+    satellites = pd.MultiIndex.from_tuples(
+        [("r1", "a1", "CO2"), ("r1", "a2", "CO2")],
+        names=["Region", "Activity", "Satellite account"],
+    )
+
+    blocks = {
+        "Z": pd.DataFrame(
+            [
+                [0.0, 0.0, 40.0, 10.0],
+                [0.0, 0.0, 20.0, 30.0],
+                [5.0, 7.0, 0.0, 0.0],
+                [3.0, 9.0, 0.0, 0.0],
+            ],
+            index=productive,
+            columns=productive,
+        ),
+        "Y": pd.DataFrame(
+            [[0.0], [0.0], [50.0], [60.0]],
+            index=productive,
+            columns=final_demand,
+        ),
+        "V": pd.DataFrame(
+            [
+                [4.0, 0.0, 0.0, 0.0],
+                [6.0, 0.0, 0.0, 0.0],
+                [0.0, 5.0, 0.0, 0.0],
+                [0.0, 8.0, 0.0, 0.0],
+            ],
+            index=factors,
+            columns=productive,
+        ),
+        "E": pd.DataFrame(
+            [
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 2.0, 0.0, 0.0],
+            ],
+            index=satellites,
+            columns=productive,
+        ),
+        "EY": pd.DataFrame([[0.5], [1.5]], index=satellites, columns=final_demand),
+        "VY": pd.DataFrame([[0.0], [0.0], [0.0], [0.0]], index=factors, columns=final_demand),
+    }
+    indexes = {
+        "r": {"main": ["r1"]},
+        "n": {"main": ["hh"]},
+        "a": {"main": ["a1", "a2"]},
+        "c": {"main": ["c1", "c2"]},
+        "s": {"main": ["a1", "a2", "c1", "c2"]},
+        "f": {"main": ["taxes", "capital"]},
+        "k": {"main": ["CO2"]},
+    }
+    units = {
+        "Activity": pd.DataFrame({"unit": ["EUR", "EUR"]}, index=pd.Index(["a1", "a2"], name="Item")),
+        "Commodity": pd.DataFrame({"unit": ["EUR", "EUR"]}, index=pd.Index(["c1", "c2"], name="Item")),
+        "Factor of production": pd.DataFrame({"unit": ["EUR", "EUR"]}, index=pd.Index(["taxes", "capital"], name="Item")),
+        "Satellite account": pd.DataFrame({"unit": ["ton"]}, index=pd.Index(["CO2"], name="Item")),
+    }
+    state = build_parser_state(
+        table="SUT",
+        matrices={"baseline": blocks},
+        indexes=indexes,
+        units=units,
+        parser_name="tests",
+        mode="flows",
+        name="custom SUT",
+    )
+    state.metadata.extra["block_specs"] = sut_block_specs_for_matrix_layouts(
+        {"V": ("Region", "Activity"), "E": ("Region", "Activity")}
+    )
+    return build_database_from_state(state, calc_all=False)
 
 
 def _cvxlab_supports_csv_input_files():
@@ -299,6 +537,22 @@ def test_get_add_sectors_excel_accepts_positional_path(tmp_path, CoreDataIOT):
     assert ADVANCED_ADD_SECTOR_MASTER_SHEET in workbook
 
 
+def test_get_add_sectors_excel_refuses_to_overwrite_existing_workbook_by_default(
+    tmp_path, CoreDataIOT
+):
+    path = tmp_path / "existing_add_sector_iot.xlsx"
+
+    CoreDataIOT.get_add_sectors_excel(path=path)
+
+    with pytest.raises(WrongInput, match="already exists"):
+        CoreDataIOT.get_add_sectors_excel(path=path)
+
+    CoreDataIOT.get_add_sectors_excel(path=path, overwrite=True)
+
+    workbook = pd.read_excel(path, sheet_name=None)
+    assert ADVANCED_ADD_SECTOR_MASTER_SHEET in workbook
+
+
 def test_get_add_sectors_excel_uses_all_regions_when_only_items_are_given(tmp_path, CoreDataIOT):
     path = tmp_path / "prefilled_all_regions_iot.xlsx"
 
@@ -456,6 +710,115 @@ def test_database_can_attach_inventories_via_read_add_sectors_excel(tmp_path, Co
     assert set(CoreDataIOT.inventories) == {"New sector A", "New sector B"}
 
 
+def test_database_can_read_add_sectors_master_without_inventory_sheets(tmp_path, CoreDataIOT):
+    regions = CoreDataIOT.get_index(_MASTER_INDEX["r"])[:2]
+    path = tmp_path / "advanced_add_sector_iot_master_only.xlsx"
+
+    CoreDataIOT.get_add_sectors_excel(
+        items=["New sector A", "New sector B"],
+        regions=regions,
+        path=path,
+    )
+
+    workbook = load_workbook(path)
+    for sheet_name in [name for name in workbook.sheetnames if name.startswith("INV_")]:
+        workbook.remove(workbook[sheet_name])
+    workbook.save(path)
+
+    CoreDataIOT.read_add_sectors_excel(path, read_inventories=False)
+
+    assert hasattr(CoreDataIOT, "add_sectors_workbook")
+    assert CoreDataIOT.new_sectors == ["New sector A", "New sector B"]
+    assert CoreDataIOT.add_sectors_workbook.inventories_by_sheet == {}
+    assert not hasattr(CoreDataIOT, "inventories")
+
+
+def test_get_inventory_sheets_creates_missing_inventory_tabs_from_master(tmp_path, CoreDataIOT):
+    regions = CoreDataIOT.get_index(_MASTER_INDEX["r"])[:2]
+    path = tmp_path / "advanced_add_sector_iot_generate_inventories.xlsx"
+
+    CoreDataIOT.get_add_sectors_excel(
+        items=["New sector A", "New sector B"],
+        regions=regions,
+        path=path,
+    )
+
+    workbook = load_workbook(path)
+    for sheet_name in [name for name in workbook.sheetnames if name.startswith("INV_")]:
+        workbook.remove(workbook[sheet_name])
+    workbook.save(path)
+
+    CoreDataIOT.read_add_sectors_excel(path)
+    CoreDataIOT.get_inventory_sheets(path)
+
+    workbook = load_workbook(path, data_only=False)
+    assert {"INV_001", "INV_002", "DB units"} <= set(workbook.sheetnames)
+
+
+def test_get_inventory_sheets_does_not_overwrite_existing_inventory_tabs_by_default(
+    tmp_path, CoreDataIOT
+):
+    regions = CoreDataIOT.get_index(_MASTER_INDEX["r"])[:1]
+    path = tmp_path / "advanced_add_sector_iot_preserve_inventories.xlsx"
+
+    CoreDataIOT.get_add_sectors_excel(
+        items=["New sector A"],
+        regions=regions,
+        path=path,
+    )
+
+    workbook = load_workbook(path)
+    worksheet = workbook["INV_001"]
+    worksheet["A2"] = "KEEP"
+    workbook.save(path)
+
+    CoreDataIOT.read_add_sectors_excel(path)
+    CoreDataIOT.get_inventory_sheets(path)
+
+    workbook = load_workbook(path, data_only=False)
+    assert workbook["INV_001"]["A2"].value == "KEEP"
+
+
+def test_read_add_sectors_excel_can_generate_inventory_templates(tmp_path, CoreDataIOT):
+    regions = CoreDataIOT.get_index(_MASTER_INDEX["r"])[:1]
+    path = tmp_path / "advanced_add_sector_iot_get_inventories_flag.xlsx"
+
+    CoreDataIOT.get_add_sectors_excel(
+        items=["New sector A"],
+        regions=regions,
+        path=path,
+    )
+
+    workbook = load_workbook(path)
+    for sheet_name in [name for name in workbook.sheetnames if name.startswith("INV_")]:
+        workbook.remove(workbook[sheet_name])
+    workbook.save(path)
+
+    CoreDataIOT.read_add_sectors_excel(path, get_inventories=True)
+
+    workbook = load_workbook(path, data_only=False)
+    assert "INV_001" in workbook.sheetnames
+
+
+def test_read_inventory_sheets_requires_missing_inventory_tabs(tmp_path, CoreDataIOT):
+    regions = CoreDataIOT.get_index(_MASTER_INDEX["r"])[:1]
+    path = tmp_path / "advanced_add_sector_iot_missing_inventories.xlsx"
+
+    CoreDataIOT.get_add_sectors_excel(
+        items=["New sector A"],
+        regions=regions,
+        path=path,
+    )
+
+    workbook = load_workbook(path)
+    for sheet_name in [name for name in workbook.sheetnames if name.startswith("INV_")]:
+        workbook.remove(workbook[sheet_name])
+    workbook.save(path)
+
+    with pytest.raises(WrongExcelFormat, match="missing inventory sheets"):
+        CoreDataIOT.read_inventory_sheets(path)
+
+
 def test_database_can_group_inventories_from_advanced_workbook(tmp_path, CoreDataIOT):
     regions = CoreDataIOT.get_index(_MASTER_INDEX["r"])[:2]
     path = tmp_path / "advanced_add_sector_iot.xlsx"
@@ -590,6 +953,183 @@ def test_add_sectors_advanced_engine_adds_iot_sector_from_workbook(tmp_path, Cor
     assert new.uncertainty_matrix.loc[(region, _MASTER_INDEX["s"], existing_sector), (region, _MASTER_INDEX["s"], "New sector")] == 1
 
 
+def test_add_sectors_supports_legacy_regional_extension_rows_iot(tmp_path):
+    source_path = tmp_path / "legacy_regional_iot.xlsx"
+    _write_legacy_regional_extension_iot(source_path)
+    database = parse_from_excel(
+        path=str(source_path),
+        table="IOT",
+        mode="flows",
+        matrix_layouts={"E": "Region", "EY": "Region"},
+        calc_all=False,
+    )
+
+    region = database.get_index(_MASTER_INDEX["r"])[0]
+    other_region = database.get_index(_MASTER_INDEX["r"])[1]
+    parent_sector = database.get_index(_MASTER_INDEX["s"])[0]
+    factor = database.get_index(_MASTER_INDEX["f"])[0]
+    satellite = database.get_index(_MASTER_INDEX["k"])[0]
+    unit = database.units[_MASTER_INDEX["s"]].loc[parent_sector, "unit"]
+    path = tmp_path / "legacy_regional_add.xlsx"
+
+    database.get_add_sectors_excel(items=["New sector"], regions=[region], path=path)
+    master = pd.read_excel(path, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET).astype(object)
+    master.loc[0, "Unit"] = unit
+    master.loc[0, "Parent Sector"] = parent_sector
+    with pd.ExcelWriter(path, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+        master.to_excel(writer, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET, index=False)
+        pd.DataFrame(
+            [
+                {
+                    "Quantity": 0.1,
+                    "Unit": database.units[_MASTER_INDEX["f"]].loc[factor, "unit"],
+                    "Input": "factor row",
+                    "Item type": _MASTER_INDEX["f"],
+                    "DB Item": factor,
+                    "DB Region": "",
+                    "Change type": "Update",
+                    "Source": "test",
+                    "Notes": "",
+                },
+                {
+                    "Quantity": 7.0,
+                    "Unit": database.units[_MASTER_INDEX["k"]].loc[satellite, "unit"],
+                    "Input": "sat row",
+                    "Item type": _MASTER_INDEX["k"],
+                    "DB Item": satellite,
+                    "DB Region": region,
+                    "Change type": "Update",
+                    "Source": "test",
+                    "Notes": "",
+                },
+            ]
+        ).to_excel(writer, sheet_name="INV_001", index=False)
+
+    new = database.add_sectors(io=path, inplace=False)
+    new_col = (region, _MASTER_INDEX["s"], "New sector")
+    parent_col = (region, _MASTER_INDEX["s"], parent_sector)
+
+    assert new.E.index.names == ["Region", "Level", "Item"]
+    assert new.v.loc[factor, new_col] == pytest.approx(0.1)
+    assert new.e.loc[(region, "Satellite account", satellite), new_col] == pytest.approx(7.0)
+    assert new.e.loc[(other_region, "Satellite account", satellite), new_col] == pytest.approx(
+        database.e.loc[(other_region, "Satellite account", satellite), parent_col]
+    )
+
+
+def test_add_sectors_supports_factor_rows_with_region_sector_layout_iot(tmp_path):
+    source_path = tmp_path / "legacy_layout_iot.xlsx"
+    _write_legacy_layout_iot_with_regional_factors(source_path)
+    database = parse_from_excel(
+        path=str(source_path),
+        table="IOT",
+        mode="flows",
+        matrix_layouts={"V": ("Region", "Sector"), "E": "Region", "EY": "Region"},
+        calc_all=False,
+    )
+
+    region = database.get_index(_MASTER_INDEX["r"])[0]
+    parent_sector = database.get_index(_MASTER_INDEX["s"])[0]
+    factor = "taxes"
+    unit = database.units[_MASTER_INDEX["s"]].loc[parent_sector, "unit"]
+    path = tmp_path / "explicit_layout_add.xlsx"
+
+    database.get_add_sectors_excel(items=["New sector"], regions=[region], path=path)
+    master = pd.read_excel(path, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET).astype(object)
+    master.loc[0, "Unit"] = unit
+    master.loc[0, "Parent Sector"] = parent_sector
+    with pd.ExcelWriter(path, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+        master.to_excel(writer, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET, index=False)
+        pd.DataFrame(
+            [
+                {
+                    "Quantity": 11.0,
+                    "Unit": database.units[_MASTER_INDEX["f"]].loc[factor, "unit"],
+                    "Input": "factor row",
+                    "Item type": _MASTER_INDEX["f"],
+                    "DB Item": factor,
+                    "DB Region": region,
+                    "Change type": "Update",
+                    "Source": "test",
+                    "Notes": "",
+                }
+            ]
+        ).to_excel(writer, sheet_name="INV_001", index=False)
+
+    new = database.add_sectors(io=path, inplace=False)
+    new_col = (region, _MASTER_INDEX["s"], "New sector")
+    parent_col = (region, _MASTER_INDEX["s"], parent_sector)
+
+    expected = database.v.loc[(region, slice(None), "Factor of production", factor), parent_col]
+    expected = expected / expected.sum() * 11.0
+    allocated = new.v.loc[(region, slice(None), "Factor of production", factor), new_col]
+
+    assert new.V.index.names == ["Region", "Sector", "Level", "Item"]
+    assert set(new.V.index.tolist()) == set(database.V.index.tolist())
+    assert allocated.sum() == pytest.approx(11.0)
+    pdt.assert_series_equal(allocated.sort_index(), expected.sort_index(), check_names=False)
+
+
+def test_add_sectors_supports_explicit_iot_axes_without_level_markers(tmp_path):
+    source_path = tmp_path / "explicit_layout_iot_regional_fd.xlsx"
+    _write_explicit_layout_iot_with_regional_final_demand(source_path)
+    database = parse_from_excel(
+        path=str(source_path),
+        table="IOT",
+        mode="flows",
+        matrix_layouts={"V": ("Region", "Sector"), "E": "Region", "EY": "Region"},
+        calc_all=False,
+    )
+
+    region = database.get_index(_MASTER_INDEX["r"])[0]
+    parent_sector = database.get_index(_MASTER_INDEX["s"])[0]
+    factor = "taxes"
+    unit = database.units[_MASTER_INDEX["s"]].loc[parent_sector, "unit"]
+    path = tmp_path / "explicit_axes_add.xlsx"
+
+    database.get_add_sectors_excel(items=["New sector"], regions=[region], path=path)
+    master = pd.read_excel(path, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET).astype(object)
+    master.loc[0, "Unit"] = unit
+    master.loc[0, "Parent Sector"] = parent_sector
+    with pd.ExcelWriter(path, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+        master.to_excel(writer, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET, index=False)
+        pd.DataFrame(
+            [
+                {
+                    "Quantity": 11.0,
+                    "Unit": database.units[_MASTER_INDEX["f"]].loc[factor, "unit"],
+                    "Input": "factor row",
+                    "Item type": _MASTER_INDEX["f"],
+                    "DB Item": factor,
+                    "DB Region": region,
+                    "Change type": "Update",
+                    "Source": "test",
+                    "Notes": "",
+                }
+            ]
+        ).to_excel(writer, sheet_name="INV_001", index=False)
+
+    new = database.add_sectors(io=path, inplace=False)
+    new_col = (region, "New sector")
+    parent_col = (region, parent_sector)
+
+    expected = database.v.loc[(region, slice(None), factor), parent_col]
+    expected = expected / expected.sum() * 11.0
+    allocated = new.v.loc[(region, slice(None), factor), new_col]
+
+    assert new.z.index.names == ["Region", "Sector"]
+    assert new.z.columns.names == ["Region", "Sector"]
+    assert new.Y.index.names == ["Region", "Sector"]
+    assert new.Y.columns.names == ["Region", "Consumption category"]
+    assert new.v.index.names == ["Region", "Sector", "Factor of production"]
+    assert new.v.columns.names == ["Region", "Sector"]
+    assert new.e.index.names == ["Region", "Satellite account"]
+    assert new.e.columns.names == ["Region", "Sector"]
+    assert ("r1", "New sector") in new.z.columns.tolist()
+    assert allocated.sum() == pytest.approx(11.0)
+    pdt.assert_series_equal(allocated.sort_index(), expected.sort_index(), check_names=False)
+
+
 def test_add_sectors_returns_none_when_inplace_true(tmp_path, CoreDataIOT):
     region = CoreDataIOT.get_index(_MASTER_INDEX["r"])[0]
     existing_sector = CoreDataIOT.get_index(_MASTER_INDEX["s"])[0]
@@ -660,6 +1200,75 @@ def test_add_sectors_advanced_engine_adds_sut_activity_and_commodity(tmp_path, C
     assert new.units[_MASTER_INDEX["c"]].loc["New commodity", "unit"] == unit
     assert new.u.loc[(region, _MASTER_INDEX["c"], existing_commodity), (region, _MASTER_INDEX["a"], "New activity")] == pytest.approx(0.4)
     assert new.s.loc[(region, _MASTER_INDEX["a"], "New activity"), (region, _MASTER_INDEX["c"], "New commodity")] == pytest.approx(1.0)
+
+
+def test_add_sectors_advanced_engine_supports_custom_sut_factor_and_extension_rows(tmp_path):
+    database = _build_custom_sut_database()
+    region = database.get_index(_MASTER_INDEX["r"])[0]
+    existing_activity = database.get_index(_MASTER_INDEX["a"])[0]
+    existing_commodity = database.get_index(_MASTER_INDEX["c"])[0]
+    unit = database.units[_MASTER_INDEX["a"]].loc[existing_activity, "unit"]
+    path = tmp_path / "advanced_custom_sut.xlsx"
+
+    database.get_add_sectors_excel(
+        items=["New activity"],
+        regions=[region],
+        path=path,
+        item=_MASTER_INDEX["a"],
+    )
+
+    master = pd.read_excel(path, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET).astype(object)
+    master.loc[0, "Commodity"] = "New commodity"
+    master.loc[0, "Unit"] = unit
+    master.loc[0, "Parent Activity"] = existing_activity
+    master.loc[0, "Market share"] = 1.0
+    with pd.ExcelWriter(path, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+        master.to_excel(writer, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET, index=False)
+        pd.DataFrame(
+            [
+                {
+                    "Quantity": 0.4,
+                    "Unit": database.units[_MASTER_INDEX["c"]].loc[existing_commodity, "unit"],
+                    "Input": "commodity row",
+                    "Item type": _MASTER_INDEX["c"],
+                    "DB Item": existing_commodity,
+                    "DB Region": region,
+                    "Change type": "Update",
+                    "Source": "test",
+                    "Notes": "",
+                },
+                {
+                    "Quantity": 0.7,
+                    "Unit": database.units[_MASTER_INDEX["f"]].loc["taxes", "unit"],
+                    "Input": "factor row",
+                    "Item type": _MASTER_INDEX["f"],
+                    "DB Item": "taxes",
+                    "DB Region": region,
+                    "Change type": "Update",
+                    "Source": "test",
+                    "Notes": "",
+                },
+                {
+                    "Quantity": 0.2,
+                    "Unit": database.units[_MASTER_INDEX["k"]].loc["CO2", "unit"],
+                    "Input": "sat row",
+                    "Item type": _MASTER_INDEX["k"],
+                    "DB Item": "CO2",
+                    "DB Region": region,
+                    "Change type": "Update",
+                    "Source": "test",
+                    "Notes": "",
+                },
+            ]
+        ).to_excel(writer, sheet_name="INV_001", index=False)
+
+    new = database.add_sectors(io=path, inplace=False)
+
+    assert new.V.index.names == ["Region", "Activity", "Factor of production"]
+    assert new.E.index.names == ["Region", "Activity", "Satellite account"]
+    assert new.u.loc[(region, _MASTER_INDEX["c"], existing_commodity), (region, _MASTER_INDEX["a"], "New activity")] == pytest.approx(0.4)
+    assert new.v.loc[(region, existing_activity, "taxes"), (region, _MASTER_INDEX["a"], "New activity")] == pytest.approx(0.7)
+    assert new.e.loc[(region, existing_activity, "CO2"), (region, _MASTER_INDEX["a"], "New activity")] == pytest.approx(0.2)
 
 
 def test_add_sectors_advanced_engine_honors_leave_empty_iot(tmp_path, CoreDataIOT):
@@ -1041,6 +1650,56 @@ def test_add_sectors_split_can_generate_cvxlab_csv_input_data(tmp_path, CoreData
     assert "split_baseline" in new.matrices
     assert (model_dir / "Trade.csv").exists()
     assert (model_dir / "tol.csv").exists()
+
+
+def test_add_sectors_split_rejects_custom_extension_layouts(tmp_path):
+    source_path = tmp_path / "legacy_regional_iot.xlsx"
+    _write_legacy_regional_extension_iot(source_path)
+    database = parse_from_excel(
+        path=str(source_path),
+        table="IOT",
+        mode="flows",
+        matrix_layouts={"E": "Region", "EY": "Region"},
+        calc_all=False,
+    )
+
+    path = tmp_path / "split_custom_e.xlsx"
+    database.get_add_sectors_excel(items=["Split sector"], regions=[database.get_index(_MASTER_INDEX["r"])[0]], path=path)
+    _configure_split_workbook(database, path)
+
+    with pytest.raises(NotImplementable, match="split=True currently supports only classic CVXLab row layouts"):
+        database.add_sectors(
+            io=path,
+            inplace=False,
+            split=True,
+            cvxlab_path=tmp_path,
+            only_input_data_gen=True,
+        )
+
+
+def test_add_sectors_split_rejects_custom_factor_layouts(tmp_path):
+    source_path = tmp_path / "legacy_layout_iot.xlsx"
+    _write_legacy_layout_iot_with_regional_factors(source_path)
+    database = parse_from_excel(
+        path=str(source_path),
+        table="IOT",
+        mode="flows",
+        matrix_layouts={"V": ("Region", "Sector"), "E": "Region", "EY": "Region"},
+        calc_all=False,
+    )
+
+    path = tmp_path / "split_custom_v.xlsx"
+    database.get_add_sectors_excel(items=["Split sector"], regions=[database.get_index(_MASTER_INDEX["r"])[0]], path=path)
+    _configure_split_workbook(database, path)
+
+    with pytest.raises(NotImplementable, match="split=True currently supports only classic CVXLab row layouts"):
+        database.add_sectors(
+            io=path,
+            inplace=False,
+            split=True,
+            cvxlab_path=tmp_path,
+            only_input_data_gen=True,
+        )
 
 
 def test_split_bridge_uses_historical_coordinate_loading_flow(tmp_path):

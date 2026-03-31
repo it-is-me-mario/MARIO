@@ -7,12 +7,14 @@ import logging
 
 from mario.compute import ghosh_formulas, iot_formulas, sut_formulas, views
 from mario.compute.graph import build_dependency_graph, render_dependency_graph
+from mario.compute.operators import execute_registered_operator
 from mario.compute.ordering import SUTUnifiedOrderingPolicy
 from mario.compute.planner import ResolutionStore, build_plan, candidate_strategies, resolve_table_kind
 from mario.compute.types import (
     ConcatStrategy,
     ExtractStrategy,
     FormulaStrategy,
+    OperatorStrategy,
     ParsedStrategy,
     ResolutionContext,
 )
@@ -92,6 +94,12 @@ def _execute_strategy(strategy, target: str, store: ResolutionStore, table_kind:
         args = [dependencies[name] for name in strategy.inputs]
         return function(*args)
 
+    if isinstance(strategy, OperatorStrategy):
+        try:
+            return execute_registered_operator(store.dataset, target, dependencies)
+        except KeyError as exc:
+            raise ResolutionError(f"Custom operator {target} is not registered.") from exc
+
     raise ResolutionError(f"Unsupported strategy for {target}.")
 
 
@@ -144,6 +152,11 @@ class Resolver:
                         for dependency in strategy.sources:
                             self.resolve(dependency)
                         value = _execute_strategy(strategy, target, self.store, self.table_kind, {})
+                    elif isinstance(strategy, OperatorStrategy):
+                        dependencies = {}
+                        for dependency in strategy.inputs:
+                            dependencies[dependency] = self.resolve(dependency)
+                        value = _execute_strategy(strategy, target, self.store, self.table_kind, dependencies)
                     else:
                         dependencies = {}
                         for dependency in strategy.inputs:

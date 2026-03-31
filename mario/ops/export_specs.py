@@ -2,7 +2,37 @@
 
 from __future__ import annotations
 
+FLAT_AXIS_SETS = (
+    "Region",
+    "Sector",
+    "Activity",
+    "Commodity",
+    "Factor of production",
+    "Satellite account",
+    "Consumption category",
+)
+
+
 FLAT_DATA_COLUMNS = (
+    "Scenario",
+    "Matrix",
+    *(f"{item}_from" for item in FLAT_AXIS_SETS),
+    *(f"{item}_to" for item in FLAT_AXIS_SETS),
+    "Value",
+)
+
+
+def flat_data_columns_for_sets(*, from_sets=(), to_sets=()):
+    """Return the flat export column order for one concrete set subset."""
+    return (
+        "Scenario",
+        "Matrix",
+        *(f"{item}_from" for item in from_sets),
+        *(f"{item}_to" for item in to_sets),
+        "Value",
+    )
+
+LEGACY_FLAT_DATA_COLUMNS = (
     "Scenario",
     "Matrix",
     "Region_from",

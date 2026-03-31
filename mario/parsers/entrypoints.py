@@ -200,6 +200,7 @@ def parse_from_txt(
     model: str ="Database",
     sep: str = ",",
     flat: bool = False,
+    matrix_layouts: dict[str, object] | None = None,
     **kwargs,
 ):
     """Parse a database from a folder of text files.
@@ -242,6 +243,9 @@ def parse_from_txt(
         if True, parse the canonical long-format MARIO text export made of one
         ``data`` file plus one ``units`` file. Otherwise parse the historical
         matrix-per-file layout.
+    matrix_layouts : dict, Optional
+        optional per-matrix semantic layout declarations for IOT parsers.
+        Accepted values are the same as in :func:`parse_from_excel`.
 
     Returns
     -------
@@ -255,6 +259,7 @@ def parse_from_txt(
         mode=mode,
         sep=sep,
         flat=flat,
+        matrix_layouts=matrix_layouts,
         name=name,
         source=source,
         year=year,
@@ -280,6 +285,7 @@ def parse_from_parquet(
     source: str = None,
     model: str = "Database",
     flat: bool = False,
+    matrix_layouts: dict[str, object] | None = None,
     **kwargs,
 ):
     """Parse a database from a folder of parquet files.
@@ -296,6 +302,8 @@ def parse_from_parquet(
     flat : bool, Optional
         if True, parse the canonical long-format MARIO parquet export.
         Otherwise parse the matrix-per-file parquet layout.
+    matrix_layouts : dict, Optional
+        optional per-matrix semantic layout declarations for IOT parsers.
     """
     validate_parse_request(table=table, mode=mode, model=model)
 
@@ -304,6 +312,7 @@ def parse_from_parquet(
         table=table,
         mode=mode,
         flat=flat,
+        matrix_layouts=matrix_layouts,
         name=name,
         source=source,
         year=year,
@@ -325,6 +334,7 @@ def parse_from_excel(
     mode: str,
     data_sheet: str = 0,
     unit_sheet: str = "units",
+    matrix_layouts: dict[str, object] | None = None,
     calc_all: bool = False,
     year: int = None,
     name: str = None,
@@ -337,7 +347,8 @@ def parse_from_excel(
     .. note::
 
         * This function works with a a single excel that contains data & units
-        * Please look at the tutorials to understand the format/shape of the data
+        * The table kind remains ``IOT`` or ``SUT``; ``matrix_layouts`` can be
+          used to override the semantic layout of selected matrices
 
     Parameters
     ----------
@@ -358,6 +369,15 @@ def parse_from_excel(
 
     units_sheet : str,int
         defines the sheet index/name in which the units are located (by default in a sheet named units )
+
+    matrix_layouts : dict, Optional
+        optional per-matrix semantic layout declarations. Values can be:
+
+            * a single set name, for example ``{\"E\": \"Region\"}``
+            * a tuple/list of set names, for example ``{\"E\": (\"Region\", \"Sector\")}``
+
+        Only canonical MARIO set names are accepted. Matrices omitted from the
+        dictionary are treated as standard layouts.
 
     calc_all : boolean
         if True, by default will calculate z,v,e,Z,V,E after parsing
@@ -383,6 +403,7 @@ def parse_from_excel(
         mode=mode,
         data_sheet=data_sheet,
         unit_sheet=unit_sheet,
+        matrix_layouts=matrix_layouts,
         name=name,
         source=source,
         year=year,

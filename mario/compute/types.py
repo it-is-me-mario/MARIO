@@ -21,6 +21,7 @@ class StrategyKind(str, Enum):
     EXTRACT = "extract"
     CONCAT = "concat"
     FORMULA = "formula"
+    OPERATOR = "operator"
 
 
 class MatrixStatus(str, Enum):
@@ -124,7 +125,26 @@ class FormulaStrategy:
         return self.inputs
 
 
-Strategy: TypeAlias = ParsedStrategy | ExtractStrategy | ConcatStrategy | FormulaStrategy
+@dataclass(frozen=True)
+class OperatorStrategy:
+    """Strategy that materializes a block through a registered custom operator."""
+
+    inputs: tuple[str, ...]
+    operator_kind: str
+    notes: tuple[str, ...] = ()
+
+    @property
+    def kind(self) -> StrategyKind:
+        """Return the planner tag used for custom operators."""
+        return StrategyKind.OPERATOR
+
+    @property
+    def dependencies(self) -> tuple[str, ...]:
+        """Return the ordered inputs required by the operator."""
+        return self.inputs
+
+
+Strategy: TypeAlias = ParsedStrategy | ExtractStrategy | ConcatStrategy | FormulaStrategy | OperatorStrategy
 
 
 @dataclass(frozen=True)

@@ -12,7 +12,12 @@ import pymrio
 
 from mario.log_exc.exceptions import NotImplementable, WrongInput
 from mario.log_exc.logger import log_time
-from mario.ops.export_specs import FLAT_DATA_COLUMNS, FLAT_UNIT_COLUMNS, PYMRIO_EXPORT_LAYOUTS
+from mario.ops.export_specs import (
+    FLAT_AXIS_SETS,
+    FLAT_DATA_COLUMNS,
+    FLAT_UNIT_COLUMNS,
+    PYMRIO_EXPORT_LAYOUTS,
+)
 from mario.model.conventions import _ENUM, _MASTER_INDEX
 from mario.ops.excel import database_excel, database_txt
 from mario.utils import pymrio_styling
@@ -29,21 +34,6 @@ _FLAT_EXPORT_MATRICES = {
     "flows": [_ENUM.V, _ENUM.E, _ENUM.Z, _ENUM.Y, _ENUM.EY, _ENUM.VY],
     "coefficients": [_ENUM.v, _ENUM.e, _ENUM.z, _ENUM.Y, _ENUM.EY, _ENUM.VY],
 }
-
-_FLAT_AXIS_LEVELS = {
-    _ENUM.V: {"from": _MASTER_INDEX["f"]},
-    _ENUM.v: {"from": _MASTER_INDEX["f"]},
-    "M": {"from": _MASTER_INDEX["f"]},
-    "m": {"from": _MASTER_INDEX["f"]},
-    _ENUM.E: {"from": _MASTER_INDEX["k"]},
-    _ENUM.e: {"from": _MASTER_INDEX["k"]},
-    _ENUM.EY: {"from": _MASTER_INDEX["k"], "to": _MASTER_INDEX["n"]},
-    _ENUM.VY: {"from": _MASTER_INDEX["f"], "to": _MASTER_INDEX["n"]},
-    _ENUM.F: {"from": _MASTER_INDEX["k"]},
-    _ENUM.f: {"from": _MASTER_INDEX["k"]},
-    _ENUM.Y: {"to": _MASTER_INDEX["n"]},
-}
-
 
 def _unit_keys(database) -> list[str]:
     """Return the logical unit-bearing levels for one database."""
@@ -85,33 +75,52 @@ def _flat_units_frame(database) -> pd.DataFrame:
 def _axis_column_names(side: str) -> list[str]:
     """Return the canonical flat column names for one matrix axis."""
     suffix = "from" if side == "from" else "to"
-    return [f"Region_{suffix}", f"Level_{suffix}", f"Item_{suffix}"]
+    return [f"{item}_{suffix}" for item in FLAT_AXIS_SETS]
+
+
+def _infer_axis_mapping(index, *, matrix_name: str, side: str) -> list[dict[str, object]]:
+    """Map one public axis to flat set-specific columns."""
+    if isinstance(index, pd.MultiIndex):
+        names = tuple(name if name is not None else "Item" for name in index.names)
+        values = [tuple(item) for item in index.tolist()]
+    else:
+        names = (index.name if index.name is not None else "Item",)
+        values = [(item,) for item in index.tolist()]
+
+    rows: list[dict[str, object]] = []
+    for item in values:
+        mapping = {label: "" for label in FLAT_AXIS_SETS}
+        if names == (_MASTER_INDEX["r"], "Level", "Item"):
+            region, level_name, entry = item
+            if region not in ("", None) and not pd.isna(region):
+                mapping[_MASTER_INDEX["r"]] = region
+            mapping[level_name] = entry
+        elif names == ("Level", "Item"):
+            mapping[item[0]] = item[1]
+        else:
+            for name, value in zip(names, item):
+                if name in FLAT_AXIS_SETS and value not in ("", None) and not pd.isna(value):
+                    mapping[name] = value
+                elif name == "Item":
+                    # Legacy simple axes, mostly factors/extensions.
+                    if matrix_name in {_ENUM.V, _ENUM.v, "M", "m", _ENUM.VY} and side == "from":
+                        mapping[_MASTER_INDEX["f"]] = value
+                    elif matrix_name in {_ENUM.E, _ENUM.e, _ENUM.EY, _ENUM.F, _ENUM.f} and side == "from":
+                        mapping[_MASTER_INDEX["k"]] = value
+                    elif matrix_name in {_ENUM.Y, _ENUM.EY, _ENUM.VY} and side == "to":
+                        mapping[_MASTER_INDEX["n"]] = value
+                    else:
+                        mapping["Item"] = value
+        rows.append(mapping)
+    return rows
 
 
 def _flat_axis_index(index, *, side: str, matrix_name: str) -> pd.MultiIndex:
-    """Normalize one matrix axis to the canonical flat three-column schema."""
+    """Normalize one matrix axis to the canonical flat set-specific schema."""
     names = _axis_column_names(side)
-
-    if isinstance(index, pd.MultiIndex):
-        if index.nlevels != 3:
-            raise WrongInput(
-                f"Flat export supports only 1-level or 3-level axes, got {index.nlevels} for {matrix_name}."
-            )
-        arrays = [
-            ["" if pd.isna(value) else value for value in index.get_level_values(level)]
-            for level in range(3)
-        ]
-        return pd.MultiIndex.from_arrays(arrays, names=names)
-
-    level = _FLAT_AXIS_LEVELS.get(matrix_name, {}).get(side)
-    if level is None:
-        raise WrongInput(f"Flat export does not know how to map the {side} axis of matrix {matrix_name}.")
-
-    items = ["" if pd.isna(value) else value for value in index.tolist()]
-    return pd.MultiIndex.from_arrays(
-        [[""] * len(items), [level] * len(items), items],
-        names=names,
-    )
+    mappings = _infer_axis_mapping(index, matrix_name=matrix_name, side=side)
+    arrays = [[mapping[label] for mapping in mappings] for label in FLAT_AXIS_SETS]
+    return pd.MultiIndex.from_arrays(arrays, names=names)
 
 
 def _matrix_to_flat_frame(matrix_name: str, frame: pd.DataFrame, *, scenario: str) -> pd.DataFrame:
@@ -131,6 +140,18 @@ def _matrix_to_flat_frame(matrix_name: str, frame: pd.DataFrame, *, scenario: st
     flat.insert(0, FLAT_DATA_COLUMNS[0], scenario)
     flat.columns = list(FLAT_DATA_COLUMNS)
     return flat
+
+
+def _trim_flat_frame_columns(frame: pd.DataFrame) -> pd.DataFrame:
+    """Drop flat axis columns that are empty for the whole export payload."""
+    keep_columns = ["Scenario", "Matrix"]
+    for side in ("from", "to"):
+        for set_name in FLAT_AXIS_SETS:
+            column = f"{set_name}_{side}"
+            if column in frame.columns and frame[column].replace("", pd.NA).dropna().any():
+                keep_columns.append(column)
+    keep_columns.append("Value")
+    return frame.loc[:, keep_columns]
 
 
 def _write_text_frame(frame: pd.DataFrame, path: Path, *, sep: str) -> None:
@@ -176,6 +197,7 @@ def _export_flat_directory(
         ],
         ignore_index=True,
     )
+    flat_data = _trim_flat_frame_columns(flat_data)
     units = _flat_units_frame(database)
 
     data_path = root / f"data.{suffix}"
