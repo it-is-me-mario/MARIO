@@ -166,8 +166,8 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../contribute/index.html">
-    Contribute to MARIO
+  <a class="nav-link nav-internal" href="../resources/index.html">
+    Resources
   </a>
 </li>
 
@@ -180,22 +180,8 @@
                 <ul id="pst-nav-more-links" class="dropdown-menu">
                     
 <li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../resources/index.html">
-    Resources
-  </a>
-</li>
-
-
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../publications/index.html">
-    Publications
-  </a>
-</li>
-
-
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../changelog.html">
-    Changelog
+  <a class="nav-link dropdown-item nav-internal" href="../getting_started/index.html">
+    Getting Started
   </a>
 </li>
 
@@ -320,13 +306,6 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../contribute/index.html">
-    Contribute to MARIO
-  </a>
-</li>
-
-
-<li class="nav-item ">
   <a class="nav-link nav-internal" href="../resources/index.html">
     Resources
   </a>
@@ -334,15 +313,8 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../publications/index.html">
-    Publications
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../changelog.html">
-    Changelog
+  <a class="nav-link nav-internal" href="../getting_started/index.html">
+    Getting Started
   </a>
 </li>
 
@@ -547,6 +519,30 @@
 <dt class="sig sig-object py" id="mario.Database.shock_calc">
 <span class="sig-prename descclassname"><span class="pre">Database.</span></span><span class="sig-name descname"><span class="pre">shock_calc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">io</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">e</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">notes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scenario</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_rewrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">clusters</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mario.Database.shock_calc" title="Link to this definition">#</a></dt>
 <dd><p>Apply shocks to coefficients or demand and store the result as a scenario.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>io</strong> – Shock definition source understood by the shock readers, typically
+an Excel workbook path.</p></li>
+<li><p><strong>z</strong> – Select which shock blocks should be read and applied from <code class="docutils literal notranslate"><span class="pre">io</span></code>.</p></li>
+<li><p><strong>e</strong> – Select which shock blocks should be read and applied from <code class="docutils literal notranslate"><span class="pre">io</span></code>.</p></li>
+<li><p><strong>v</strong> – Select which shock blocks should be read and applied from <code class="docutils literal notranslate"><span class="pre">io</span></code>.</p></li>
+<li><p><strong>Y</strong> – Select which shock blocks should be read and applied from <code class="docutils literal notranslate"><span class="pre">io</span></code>.</p></li>
+<li><p><strong>notes</strong> – Optional metadata notes attached to the created scenario.</p></li>
+<li><p><strong>scenario</strong> – Name of the output scenario. When omitted, MARIO creates
+<code class="docutils literal notranslate"><span class="pre">shock</span> <span class="pre">&lt;n&gt;</span></code> automatically.</p></li>
+<li><p><strong>force_rewrite</strong> – When <code class="docutils literal notranslate"><span class="pre">True</span></code>, allow overwriting an existing non-baseline scenario.</p></li>
+<li><p><strong>**clusters</strong> – Optional cluster mappings used to aggregate shock definitions across
+regions or other classifications.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The shocked scenario is materialized on the current database.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>

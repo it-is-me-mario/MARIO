@@ -166,8 +166,8 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../contribute/index.html">
-    Contribute to MARIO
+  <a class="nav-link nav-internal" href="../resources/index.html">
+    Resources
   </a>
 </li>
 
@@ -180,22 +180,8 @@
                 <ul id="pst-nav-more-links" class="dropdown-menu">
                     
 <li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../resources/index.html">
-    Resources
-  </a>
-</li>
-
-
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../publications/index.html">
-    Publications
-  </a>
-</li>
-
-
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../changelog.html">
-    Changelog
+  <a class="nav-link dropdown-item nav-internal" href="../getting_started/index.html">
+    Getting Started
   </a>
 </li>
 
@@ -320,13 +306,6 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../contribute/index.html">
-    Contribute to MARIO
-  </a>
-</li>
-
-
-<li class="nav-item ">
   <a class="nav-link nav-internal" href="../resources/index.html">
     Resources
   </a>
@@ -334,15 +313,8 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../publications/index.html">
-    Publications
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../changelog.html">
-    Changelog
+  <a class="nav-link nav-internal" href="../getting_started/index.html">
+    Getting Started
   </a>
 </li>
 
@@ -547,6 +519,38 @@
 <dt class="sig sig-object py" id="mario.Database.plot_matrix">
 <span class="sig-prename descclassname"><span class="pre">Database.</span></span><span class="sig-name descname"><span class="pre">plot_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Value'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Sector'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facet_row</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facet_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">animation_frame</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Scenario'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base_scenario</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'stack'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">auto_open</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shared_yaxes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'all'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shared_xaxes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">filters</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mario.Database.plot_matrix" title="Link to this definition">#</a></dt>
 <dd><p>Generate a general-purpose HTML bar plot for a selected matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>matrix</strong> – Matrix or block name to visualize.</p></li>
+<li><p><strong>x</strong> – Column used on the x axis in the generated long-form plot.</p></li>
+<li><p><strong>color</strong> – Column used to color bars.</p></li>
+<li><p><strong>y</strong> – Column used on the y axis. The default is <code class="docutils literal notranslate"><span class="pre">&quot;Value&quot;</span></code>.</p></li>
+<li><p><strong>item</strong> – Item dimension used to interpret the matrix for plotting. For SUT
+tables this controls whether the commodity or activity side is
+shown.</p></li>
+<li><p><strong>facet_row</strong> – Optional columns used to facet the plot.</p></li>
+<li><p><strong>facet_col</strong> – Optional columns used to facet the plot.</p></li>
+<li><p><strong>animation_frame</strong> – Column used to animate the plot, typically <code class="docutils literal notranslate"><span class="pre">&quot;Scenario&quot;</span></code>.</p></li>
+<li><p><strong>base_scenario</strong> – Optional reference scenario used to plot differences.</p></li>
+<li><p><strong>path</strong> – Output HTML path. When omitted, MARIO writes to the default plots
+directory.</p></li>
+<li><p><strong>mode</strong> – Plotly bar mode, such as <code class="docutils literal notranslate"><span class="pre">&quot;stack&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;group&quot;</span></code>.</p></li>
+<li><p><strong>layout</strong> – Optional layout dictionary overriding the default plot layout.</p></li>
+<li><p><strong>auto_open</strong> – When <code class="docutils literal notranslate"><span class="pre">True</span></code>, open the generated HTML plot automatically.</p></li>
+<li><p><strong>shared_yaxes</strong> – Axis-sharing options forwarded to the plotting backend.</p></li>
+<li><p><strong>shared_xaxes</strong> – Axis-sharing options forwarded to the plotting backend.</p></li>
+<li><p><strong>**filters</strong> – Named plot filters such as <code class="docutils literal notranslate"><span class="pre">filter_region_from</span></code> or
+<code class="docutils literal notranslate"><span class="pre">filter_satellite_account</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The plot is written to disk.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>

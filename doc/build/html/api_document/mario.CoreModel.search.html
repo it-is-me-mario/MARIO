@@ -166,8 +166,8 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../contribute/index.html">
-    Contribute to MARIO
+  <a class="nav-link nav-internal" href="../resources/index.html">
+    Resources
   </a>
 </li>
 
@@ -180,22 +180,8 @@
                 <ul id="pst-nav-more-links" class="dropdown-menu">
                     
 <li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../resources/index.html">
-    Resources
-  </a>
-</li>
-
-
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../publications/index.html">
-    Publications
-  </a>
-</li>
-
-
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../changelog.html">
-    Changelog
+  <a class="nav-link dropdown-item nav-internal" href="../getting_started/index.html">
+    Getting Started
   </a>
 </li>
 
@@ -320,13 +306,6 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../contribute/index.html">
-    Contribute to MARIO
-  </a>
-</li>
-
-
-<li class="nav-item ">
   <a class="nav-link nav-internal" href="../resources/index.html">
     Resources
   </a>
@@ -334,15 +313,8 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../publications/index.html">
-    Publications
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../changelog.html">
-    Changelog
+  <a class="nav-link nav-internal" href="../getting_started/index.html">
+    Getting Started
   </a>
 </li>
 
@@ -547,6 +519,21 @@
 <dt class="sig sig-object py" id="mario.CoreModel.search">
 <span class="sig-prename descclassname"><span class="pre">CoreModel.</span></span><span class="sig-name descname"><span class="pre">search</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">search</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_case</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mario.CoreModel.search" title="Link to this definition">#</a></dt>
 <dd><p>Search index values matching a pattern within one set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>item</strong> – Set name to search in, such as <code class="docutils literal notranslate"><span class="pre">Region</span></code> or <code class="docutils literal notranslate"><span class="pre">Sector</span></code>.</p></li>
+<li><p><strong>search</strong> – Regular-expression fragment matched against the labels.</p></li>
+<li><p><strong>ignore_case</strong> – When <code class="docutils literal notranslate"><span class="pre">True</span></code>, perform a case-insensitive search.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Matching labels in their stored order.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>

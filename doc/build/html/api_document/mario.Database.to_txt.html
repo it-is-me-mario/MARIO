@@ -166,8 +166,8 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../contribute/index.html">
-    Contribute to MARIO
+  <a class="nav-link nav-internal" href="../resources/index.html">
+    Resources
   </a>
 </li>
 
@@ -180,22 +180,8 @@
                 <ul id="pst-nav-more-links" class="dropdown-menu">
                     
 <li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../resources/index.html">
-    Resources
-  </a>
-</li>
-
-
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../publications/index.html">
-    Publications
-  </a>
-</li>
-
-
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../changelog.html">
-    Changelog
+  <a class="nav-link dropdown-item nav-internal" href="../getting_started/index.html">
+    Getting Started
   </a>
 </li>
 
@@ -320,13 +306,6 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../contribute/index.html">
-    Contribute to MARIO
-  </a>
-</li>
-
-
-<li class="nav-item ">
   <a class="nav-link nav-internal" href="../resources/index.html">
     Resources
   </a>
@@ -334,15 +313,8 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../publications/index.html">
-    Publications
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../changelog.html">
-    Changelog
+  <a class="nav-link nav-internal" href="../getting_started/index.html">
+    Getting Started
   </a>
 </li>
 
@@ -547,8 +519,28 @@
 <dt class="sig sig-object py" id="mario.Database.to_txt">
 <span class="sig-prename descclassname"><span class="pre">Database.</span></span><span class="sig-name descname"><span class="pre">to_txt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flows</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coefficients</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scenario</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'baseline'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'txt'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_meta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sep</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">','</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mario.Database.to_txt" title="Link to this definition">#</a></dt>
 <dd><p>Export one scenario as multiple text or CSV files.</p>
-<p><code class="docutils literal notranslate"><span class="pre">flat=False</span></code> keeps the historical matrix-per-file layout.
-<code class="docutils literal notranslate"><span class="pre">flat=True</span></code> writes one long-format data file plus a units file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> – Output path or directory.</p></li>
+<li><p><strong>flows</strong> – When <code class="docutils literal notranslate"><span class="pre">True</span></code>, include flow matrices.</p></li>
+<li><p><strong>coefficients</strong> – When <code class="docutils literal notranslate"><span class="pre">True</span></code>, include coefficient matrices.</p></li>
+<li><p><strong>scenario</strong> – Scenario to export.</p></li>
+<li><p><strong>_format</strong> – File format label accepted by the text exporter, typically
+<code class="docutils literal notranslate"><span class="pre">&quot;txt&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;csv&quot;</span></code>.</p></li>
+<li><p><strong>include_meta</strong> – When <code class="docutils literal notranslate"><span class="pre">True</span></code>, export metadata together with matrices.</p></li>
+<li><p><strong>sep</strong> – Column separator used by delimited exports.</p></li>
+<li><p><strong>flat</strong> – <code class="docutils literal notranslate"><span class="pre">False</span></code> keeps the historical matrix-per-file layout.
+<code class="docutils literal notranslate"><span class="pre">True</span></code> writes one long-format data file plus a units file.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Export files are written to disk.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>

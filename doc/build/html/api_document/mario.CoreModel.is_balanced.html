@@ -166,8 +166,8 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../contribute/index.html">
-    Contribute to MARIO
+  <a class="nav-link nav-internal" href="../resources/index.html">
+    Resources
   </a>
 </li>
 
@@ -180,22 +180,8 @@
                 <ul id="pst-nav-more-links" class="dropdown-menu">
                     
 <li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../resources/index.html">
-    Resources
-  </a>
-</li>
-
-
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../publications/index.html">
-    Publications
-  </a>
-</li>
-
-
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../changelog.html">
-    Changelog
+  <a class="nav-link dropdown-item nav-internal" href="../getting_started/index.html">
+    Getting Started
   </a>
 </li>
 
@@ -320,13 +306,6 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../contribute/index.html">
-    Contribute to MARIO
-  </a>
-</li>
-
-
-<li class="nav-item ">
   <a class="nav-link nav-internal" href="../resources/index.html">
     Resources
   </a>
@@ -334,15 +313,8 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../publications/index.html">
-    Publications
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../changelog.html">
-    Changelog
+  <a class="nav-link nav-internal" href="../getting_started/index.html">
+    Getting Started
   </a>
 </li>
 
@@ -546,7 +518,25 @@
 <dl class="py method">
 <dt class="sig sig-object py" id="mario.CoreModel.is_balanced">
 <span class="sig-prename descclassname"><span class="pre">CoreModel.</span></span><span class="sig-name descname"><span class="pre">is_balanced</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_set</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'baseline'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">margin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">as_dataframe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mario.CoreModel.is_balanced" title="Link to this definition">#</a></dt>
-<dd><p>Check whether a scenario is balanced under the requested criterion.</p>
+<dd><p>Check whether a scenario is balanced under a chosen criterion.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>method</strong> – Balance criterion. Accepted values are <code class="docutils literal notranslate"><span class="pre">&quot;flows&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&quot;coefficients&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;prices&quot;</span></code>.</p></li>
+<li><p><strong>data_set</strong> – Scenario to test.</p></li>
+<li><p><strong>margin</strong> – Allowed tolerance around the expected balance condition.</p></li>
+<li><p><strong>as_dataframe</strong> – When <code class="docutils literal notranslate"><span class="pre">True</span></code>, return the imbalance table instead of printing it.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> when balanced, <code class="docutils literal notranslate"><span class="pre">False</span></code> when imbalances are found, or the
+imbalance dataframe when <code class="docutils literal notranslate"><span class="pre">as_dataframe=True</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool | pandas.DataFrame</p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>
