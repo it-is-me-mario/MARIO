@@ -22,15 +22,23 @@ def _write_ref_list(handle: h5py.File, group: h5py.Group, name: str, values: lis
     group.create_dataset(name, data=refs, dtype=h5py.ref_dtype)
 
 
-def _write_emerging_bundle(root: Path, *, year: int = 2018) -> tuple[Path, Path, Path]:
+def _write_emerging_bundle(
+    root: Path,
+    *,
+    year: int = 2018,
+    main_name: str | None = None,
+    co2_name: str | None = None,
+    grouped: bool = True,
+    country_vertical: bool = False,
+) -> tuple[Path, Path, Path]:
     """Write one compact EMERGING-like local bundle."""
     root.mkdir(parents=True, exist_ok=True)
-    main_path = root / f"EMERGING_V2_{year}.mat"
-    co2_path = root / f"EMERGING_CO2_{year}_IEA.mat"
+    main_path = root / (main_name or f"EMERGING_V2_{year}.mat")
+    co2_path = root / (co2_name or f"EMERGING_CO2_{year}_IEA.mat")
     labels_path = root / "EMERGING2.5_Sector&Country list.xlsx"
 
     with h5py.File(main_path, "w") as handle:
-        group = handle.create_group(f"EMERGING_V2_{year}")
+        group = handle.create_group(f"EMERGING_V2_{year}") if grouped else handle
         z = np.array(
             [
                 [1.0, 0.0, 2.0, 0.0],
@@ -56,7 +64,16 @@ def _write_emerging_bundle(root: Path, *, year: int = 2018) -> tuple[Path, Path,
         group.create_dataset("f", data=f)
         group.create_dataset("va", data=va)
         group.create_dataset("X", data=X)
-        _write_ref_list(handle, group, "country_list", ["AAA", "BBB"])
+        if country_vertical:
+            refs_group = handle.require_group("#refs#")
+            refs = np.empty((2, 1), dtype=h5py.ref_dtype)
+            for idx, value in enumerate(["AAA", "BBB"]):
+                data = np.array([[ord(char)] for char in value], dtype=np.uint16)
+                dataset = refs_group.create_dataset(f"country_list_{idx}", data=data)
+                refs[idx, 0] = dataset.ref
+            group.create_dataset("country_list", data=refs, dtype=h5py.ref_dtype)
+        else:
+            _write_ref_list(handle, group, "country_list", ["AAA", "BBB"])
         _write_ref_list(handle, group, "sector_list", ["01 sector one", "02 sector two"])
         _write_ref_list(handle, group, "final_list", ["household", "government", "capital"])
 
@@ -114,6 +131,52 @@ def test_parse_emerging_iot_reads_iot_blocks_and_co2(tmp_path):
     assert units["Satellite account"].iloc[0, 0] == "Mt CO2eq"
 
 
+def test_parse_emerging_iot_reads_root_level_v1_bundle_with_new_file_names(tmp_path):
+    main_path, _, _ = _write_emerging_bundle(
+        tmp_path,
+        year=2017,
+        main_name="global_mrio_2017.mat",
+        co2_name="EMERGING_CO2_2017.mat",
+        grouped=False,
+        country_vertical=True,
+    )
+
+    matrices, indeces, units, layout = parse_emerging_iot(main_path, regions=["BBB"])
+    base = matrices["baseline"]
+
+    assert layout.year == 2017
+    assert layout.bundle_version == "1.0"
+    assert layout.record_url is not None and layout.record_url.endswith("10956623")
+    assert base["Z"].shape == (2, 2)
+    assert base["Y"].shape == (2, 3)
+    assert base["V"].shape == (1, 2)
+    assert base["E"].shape == (7, 2)
+    assert indeces["r"]["main"] == ["BBB"]
+    assert units["Satellite account"].iloc[0, 0] == "Mt CO2eq"
+
+
+def test_parse_emerging_iot_reads_root_level_v21_bundle_without_labels_workbook(tmp_path):
+    main_path, co2_path, labels_path = _write_emerging_bundle(
+        tmp_path,
+        year=2023,
+        main_name="EMERGING_V2_2023_m.mat",
+        co2_name="EMERGING_CO2_2023.mat",
+        grouped=False,
+        country_vertical=True,
+    )
+    labels_path.unlink()
+
+    matrices, indeces, _, layout = parse_emerging_iot(main_path, co2_path=co2_path, load_co2=True)
+    base = matrices["baseline"]
+
+    assert layout.bundle_version == "2.1"
+    assert layout.record_url is not None and layout.record_url.endswith("18518911")
+    assert layout.labels_path is None
+    assert indeces["s"]["main"] == ["sector one", "sector two"]
+    assert base["Z"].shape == (4, 4)
+    assert base["E"].shape == (7, 4)
+
+
 def test_parse_emerging_iot_supports_region_subset_and_placeholder_satellites(tmp_path):
     main_path, _, _ = _write_emerging_bundle(tmp_path)
 
@@ -130,8 +193,8 @@ def test_parse_emerging_iot_supports_region_subset_and_placeholder_satellites(tm
 
 
 def test_detect_emerging_layout_requires_year_when_directory_contains_multiple_bundles(tmp_path):
-    _write_emerging_bundle(tmp_path / "2018", year=2018)
-    _write_emerging_bundle(tmp_path / "2019", year=2019)
+    _write_emerging_bundle(tmp_path / "2018", year=2018, main_name="global_mrio_2018.mat", grouped=False)
+    _write_emerging_bundle(tmp_path / "2019", year=2019, main_name="EMERGING_V2_2019_m.mat", grouped=False)
 
     with pytest.raises(WrongInput):
         detect_emerging_layout(tmp_path)

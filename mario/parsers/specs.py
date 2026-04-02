@@ -118,14 +118,12 @@ EXIOBASE_MONETARY_ZENODO_RECORDS = {
 }
 
 
-EMERGING_V1_CONCEPT_DOI = "https://doi.org/10.5281/zenodo.14258421"
-EMERGING_V1_ZENODO_URL = "https://doi.org/10.5281/zenodo.14258422"
-EMERGING_V1_RECORD_ID = "14258422"
-EMERGING_ZENODO_URL = "https://doi.org/10.5281/zenodo.14258422"
-EMERGING_SOURCE = (
-    "EMERGING V2.5 MATLAB bundle via Zenodo "
-    f"({EMERGING_ZENODO_URL})"
-)
+EMERGING_CONCEPT_DOI = "https://doi.org/10.5281/zenodo.10956622"
+EMERGING_V1_ZENODO_URL = "https://doi.org/10.5281/zenodo.10956623"
+EMERGING_V1_RECORD_ID = "10956623"
+EMERGING_V21_ZENODO_URL = "https://doi.org/10.5281/zenodo.18518911"
+EMERGING_V21_RECORD_ID = "18518911"
+EMERGING_SOURCE = "EMERGING MATLAB bundle via Zenodo"
 EMERGING_PAPER_CITATION = (
     "Huo, J., Chen, P., Hubacek, K., Zheng, H., Meng, J., & Guan, D. (2022). "
     "Full-scale, near real-time multi-regional input-output table for the global "

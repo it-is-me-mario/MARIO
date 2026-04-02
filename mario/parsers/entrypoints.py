@@ -1410,15 +1410,21 @@ def parse_emerging(
     calc_all: bool = False,
     **kwargs,
 ) -> object:
-    """Parse one EMERGING Zenodo v1 MATLAB bundle.
+    """Parse one EMERGING MATLAB bundle from the supported Zenodo releases.
 
-    This parser targets the MATLAB files distributed in the Zenodo record
-    ``https://doi.org/10.5281/zenodo.14258422`` for the dataset
-    *Multi-regional Input-output Table for the Global Emerging Economies
-    (EMERGING V2.5)*, published there as record version ``v1``. In the local
-    bundle this typically means a main file like ``EMERGING_V2_2018.mat`` plus
-    an optional companion file ``EMERGING_CO2_2018_IEA.mat`` and the optional
-    workbook ``EMERGING2.5_Sector&Country list.xlsx``.
+    This parser supports the EMERGING bundles currently distributed through the
+    Zenodo concept DOI ``https://doi.org/10.5281/zenodo.10956622``. In
+    practice this includes at least two naming conventions:
+
+    * the older record ``https://doi.org/10.5281/zenodo.10956623`` with main
+      files like ``global_mrio_2017.mat`` and companion CO2 files like
+      ``EMERGING_CO2_2017.mat``;
+    * the newer record ``https://doi.org/10.5281/zenodo.18518911`` with main
+      files like ``EMERGING_V2_2023_m.mat`` and companion CO2 files like
+      ``EMERGING_CO2_2023.mat``.
+
+    MARIO also keeps accepting local files named like ``EMERGING_V2_<year>.mat``
+    when they expose the same internal MATLAB structure.
 
     The associated paper is:
 
@@ -1445,8 +1451,9 @@ def parse_emerging(
         This is useful because the full EMERGING matrix is very large.
     load_co2 : bool, optional
         when ``True``, auto-detect and parse the companion
-        ``EMERGING_CO2_<year>_IEA.mat`` file if it is present next to the main
-        bundle. When ``False``, keep satellite accounts as placeholders.
+        ``EMERGING_CO2_<year>.mat`` or ``EMERGING_CO2_<year>_IEA.mat`` file if
+        it is present next to the main bundle. When ``False``, keep satellite
+        accounts as placeholders.
     co2_path : str, optional
         explicit path to the companion CO2 MATLAB file. When provided it
         overrides sibling auto-detection.

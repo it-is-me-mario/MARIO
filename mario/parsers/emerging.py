@@ -18,19 +18,38 @@ from mario.log_exc.logger import log_time
 from mario.model.conventions import _MASTER_INDEX
 from mario.parsers.specs import (
     EMERGING_CO2_LABELS,
+    EMERGING_CONCEPT_DOI,
     EMERGING_FACTOR_LABEL,
     EMERGING_MONETARY_UNIT,
     EMERGING_PAPER_CITATION,
     EMERGING_SATELLITE_PLACEHOLDER,
     EMERGING_SATELLITE_UNIT,
     EMERGING_SOURCE,
+    EMERGING_V1_ZENODO_URL,
+    EMERGING_V21_ZENODO_URL,
 )
 from mario.utils import rename_index
 
 logger = logging.getLogger(__name__)
 
-_EMERGING_MAIN_RE = re.compile(r"EMERGING_V\d+_(?P<year>\d{4})\.mat$", flags=re.IGNORECASE)
-_EMERGING_CO2_RE = re.compile(r"EMERGING_CO2_(?P<year>\d{4})_IEA\.mat$", flags=re.IGNORECASE)
+_EMERGING_MAIN_PATTERNS = (
+    (
+        re.compile(r"global_mrio_(?P<year>\d{4})\.mat$", flags=re.IGNORECASE),
+        "1.0",
+        EMERGING_V1_ZENODO_URL,
+    ),
+    (
+        re.compile(r"EMERGING_V\d+_(?P<year>\d{4})_m\.mat$", flags=re.IGNORECASE),
+        "2.1",
+        EMERGING_V21_ZENODO_URL,
+    ),
+    (
+        re.compile(r"EMERGING_V\d+_(?P<year>\d{4})\.mat$", flags=re.IGNORECASE),
+        "2.x",
+        None,
+    ),
+)
+_EMERGING_CO2_RE = re.compile(r"EMERGING_CO2_(?P<year>\d{4})(?:_IEA)?\.mat$", flags=re.IGNORECASE)
 _EMERGING_LABELS_RE = re.compile(r"EMERGING.*Sector&Country list\.xlsx$", flags=re.IGNORECASE)
 
 
@@ -41,6 +60,8 @@ class EMERGINGLayout:
     root: Path
     data_path: Path
     year: int
+    bundle_version: str
+    record_url: str | None = None
     co2_path: Path | None = None
     labels_path: Path | None = None
 
@@ -57,7 +78,11 @@ class EMERGINGLayout:
     @property
     def source(self) -> str:
         """Return the canonical source string stored in MARIO metadata."""
-        return f"{EMERGING_SOURCE}; {EMERGING_PAPER_CITATION}"
+        source_parts = [EMERGING_SOURCE]
+        if self.record_url is not None:
+            source_parts.append(f"({self.record_url}; concept DOI {EMERGING_CONCEPT_DOI})")
+        source_parts.append(EMERGING_PAPER_CITATION)
+        return "; ".join(source_parts)
 
 
 def _normalize_region_request(regions) -> list[str] | None:
@@ -81,17 +106,19 @@ def detect_emerging_layout(
     if not source.exists():
         raise FileNotFoundError(source)
 
-    def _match_year(candidate: Path) -> int:
-        match = _EMERGING_MAIN_RE.match(candidate.name)
-        if match is None:
-            raise WrongInput(
-                "EMERGING parsing expects the Zenodo v1 main MATLAB file named "
-                "like EMERGING_V2_<year>.mat."
-            )
-        return int(match.group("year"))
+    def _match_layout(candidate: Path) -> tuple[int, str, str | None]:
+        for pattern, bundle_version, record_url in _EMERGING_MAIN_PATTERNS:
+            match = pattern.match(candidate.name)
+            if match is not None:
+                return int(match.group("year")), bundle_version, record_url
+        raise WrongInput(
+            "EMERGING parsing expects a main MATLAB file named like "
+            "'global_mrio_<year>.mat', 'EMERGING_V2_<year>_m.mat' or "
+            "'EMERGING_V2_<year>.mat'."
+        )
 
     def _build(candidate: Path) -> EMERGINGLayout:
-        parsed_year = _match_year(candidate)
+        parsed_year, bundle_version, record_url = _match_layout(candidate)
         if year is not None and parsed_year != int(year):
             raise WrongInput(
                 f"The selected EMERGING file contains year {parsed_year}, not {year}."
@@ -102,9 +129,14 @@ def detect_emerging_layout(
             if not detected_co2.exists():
                 raise FileNotFoundError(detected_co2)
         elif load_co2:
-            sibling = candidate.parent / f"EMERGING_CO2_{parsed_year}_IEA.mat"
-            if sibling.exists():
-                detected_co2 = sibling
+            for other in candidate.parent.iterdir():
+                if (
+                    other.is_file()
+                    and _EMERGING_CO2_RE.match(other.name)
+                    and int(_EMERGING_CO2_RE.match(other.name).group("year")) == parsed_year
+                ):
+                    detected_co2 = other
+                    break
         labels_path = None
         for other in candidate.parent.iterdir():
             if other.is_file() and _EMERGING_LABELS_RE.match(other.name):
@@ -114,6 +146,8 @@ def detect_emerging_layout(
             root=candidate.parent,
             data_path=candidate,
             year=parsed_year,
+            bundle_version=bundle_version,
+            record_url=record_url,
             co2_path=detected_co2,
             labels_path=labels_path,
         )
@@ -124,19 +158,20 @@ def detect_emerging_layout(
     candidates = sorted(
         child
         for child in source.rglob("*.mat")
-        if child.is_file() and _EMERGING_MAIN_RE.match(child.name)
+        if child.is_file() and any(pattern.match(child.name) for pattern, _, _ in _EMERGING_MAIN_PATTERNS)
     )
     if not candidates:
         raise WrongInput(
-            "No EMERGING Zenodo v1 main MATLAB file matching EMERGING_V2_<year>.mat "
-            "was found in the selected directory."
+            "No EMERGING main MATLAB file matching 'global_mrio_<year>.mat', "
+            "'EMERGING_V2_<year>_m.mat' or 'EMERGING_V2_<year>.mat' was found "
+            "in the selected directory."
         )
     if year is not None:
-        candidates = [child for child in candidates if _match_year(child) == int(year)]
+        candidates = [child for child in candidates if _match_layout(child)[0] == int(year)]
         if not candidates:
             raise WrongInput(f"No EMERGING MATLAB bundle was found for year {year}.")
     if len(candidates) > 1:
-        years = sorted(_match_year(child) for child in candidates)
+        years = sorted(_match_layout(child)[0] for child in candidates)
         raise WrongInput(
             "More than one EMERGING MATLAB bundle matches the selected directory. "
             f"Please specify year or point to one file. Available years: {years}"
@@ -151,11 +186,26 @@ def _read_hdf5_string(file_handle: h5py.File, ref) -> str:
     return "".join(chr(int(item)) for item in values.reshape(-1) if int(item) != 0)
 
 
-def _read_hdf5_string_list(group: h5py.Group, name: str) -> list[str]:
+def _read_hdf5_string_list(group: h5py.Group | h5py.File, name: str) -> list[str]:
     """Read one MATLAB cellstr list stored as object references."""
-    refs = group[name][0]
+    refs = group[name][()].reshape(-1)
     file_handle = group.file
     return [_read_hdf5_string(file_handle, ref) for ref in refs]
+
+
+def _resolve_emerging_container(handle: h5py.File) -> h5py.Group | h5py.File:
+    """Return the HDF5 object that actually stores the EMERGING datasets."""
+    required = {"z", "f", "va", "X", "country_list", "sector_list", "final_list"}
+    if required.issubset(handle.keys()):
+        return handle
+
+    group_candidates = [
+        item for key, item in handle.items() if key != "#refs#" and isinstance(item, h5py.Group)
+    ]
+    if len(group_candidates) == 1 and required.issubset(group_candidates[0].keys()):
+        return group_candidates[0]
+
+    raise WrongFormat("The EMERGING MATLAB bundle contains an unexpected top-level structure.")
 
 
 def _read_emerging_labels(layout: EMERGINGLayout, sector_count: int) -> tuple[list[str] | None, list[str] | None]:
@@ -297,11 +347,7 @@ def parse_emerging_iot(
     log_time(logger, f"Parser: reading EMERGING bundle {layout.data_path.name}.", "info")
 
     with h5py.File(layout.data_path, "r") as handle:
-        top_level = [key for key in handle.keys() if key != "#refs#"]
-        if len(top_level) != 1:
-            raise WrongFormat("The EMERGING MATLAB bundle contains an unexpected top-level structure.")
-        group = handle[top_level[0]]
-
+        group = _resolve_emerging_container(handle)
         required = {"z", "f", "va", "X", "country_list", "sector_list", "final_list"}
         missing = required.difference(group.keys())
         if missing:
