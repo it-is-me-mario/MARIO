@@ -13,6 +13,7 @@ from mario.log_exc.exceptions import (
 from mario.log_exc.logger import log_time
 from mario.core.mariometadata import MARIOMetaData
 from mario.tools.tableparser import dataframe_parser
+from mario.tools.constants import IOT, SUT, INDUSTRY_BASED_ASSUMPTION, PRODUCT_BASED_ASSUMPTION
 
 
 from mario.tools.iomath import (
@@ -34,6 +35,12 @@ from mario.tools.iomath import (
     calc_p_dis,
     calc_y,
     calc_p,
+    calc_Xa,
+    calc_Xc,
+    calc_s,
+    calc_M,
+    calc_m,
+    calc_u,
 )
 
 from tabulate import tabulate
@@ -58,7 +65,8 @@ from mario.tools.constants import (
     _LEVELS,
     _MASTER_INDEX,
     _ENUM,
-    _CALC,
+    _CALC_IOT,
+    _CALC_SUT,
     _ALL_MATRICES,
 )
 
@@ -95,6 +103,7 @@ class CoreModel:
         source=None,
         calc_all=True,
         year=None,
+        assumption=INDUSTRY_BASED_ASSUMPTION,
         **kwargs,
     ):
         name: str
@@ -183,6 +192,11 @@ class CoreModel:
             VY = pd.DataFrame(0,index=matrices[_ENUM.V].index,columns=matrices[_ENUM.Y].columns)
             self.matrices["baseline"][_ENUM.VY] = VY
 
+        if table == SUT:
+            log_time(logger,"technology assumption defualt of {INDUSTRY_BASED_ASSUMPTION} assigned. You can change than by setting 'assumption' property to acceptable values.")
+
+        self.assumption = assumption
+
     def calc_all(
         self,
         matrices=[_ENUM.z, _ENUM.v, _ENUM.e, _ENUM.Z, _ENUM.V, _ENUM.E],
@@ -211,6 +225,11 @@ class CoreModel:
         force_rewrite : bool
             False if over-write is not allowed (faster)
         """
+
+        if self.table_type == "IOT":
+            _CALC = _CALC_IOT
+        else:
+            _CALC = _CALC_SUT
 
         _OPTIONS = copy.deepcopy(_ALL_MATRICES[self.table_type])
 
@@ -1051,3 +1070,24 @@ class CoreModel:
             copy.deepcopy(self._indeces),
             copy.deepcopy(self.units),
         )
+
+
+    @property
+    def assumption(self):
+        return self._assumption
+    
+    @assumption.setter
+    def assumption(self,_attr):
+
+        if self.table_type != SUT:
+            log_time(logger,f"technology assumption is only implementeable for {SUT} tables.","warning")
+            _attr = None
+
+        else:
+            if _attr not in [INDUSTRY_BASED_ASSUMPTION, PRODUCT_BASED_ASSUMPTION]:
+                raise WrongInput(f"{_attr} is not an acceptbal input. acceptable inputs are {[INDUSTRY_BASED_ASSUMPTION, PRODUCT_BASED_ASSUMPTION]}")
+            
+            for scenario in self.scenarios:
+                self.reset_to_coefficients(scenario)
+        
+        self._assumption = _attr

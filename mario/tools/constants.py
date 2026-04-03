@@ -17,6 +17,9 @@ COEFFICIENTS = "coefficients"
 MONETARY = "Monetary"
 HYBRID = "Hybrid"
 
+INDUSTRY_BASED_ASSUMPTION = "industry-based"
+PRODUCT_BASED_ASSUMPTION = "product-based"
+
 # represents different levels of aggregation
 _LEVELS = {
     SUT: {_MASTER_INDEX[i]: i for i in ["a", "c", "f", "k", "n", "r"]},
@@ -113,7 +116,7 @@ _ADD_SECTORS_INVENTORY_SHEET_COLUMNS = { # if change order, change also data val
 _ADD_SECTORS_REGIONS_CLUSTERS_SHEET_COLUMNS = ['GLOBAL']
 _ADD_SECTORS_ITEMS_CLUSTERS_SHEET_COLUMNS = ['Cluster1']
 
-_CALC = {
+_CALC_IOT = {
     _ENUM.F: (
         "calc_F(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'].sum(1))",
         dict(enum0=_ENUM.f, enum1=_ENUM.Y),
@@ -169,6 +172,20 @@ _CALC = {
     _ENUM.w: ("calc_w(self.matrices['{scenario}']['{enum0}'])", dict(enum0=_ENUM.z)),
     _ENUM.g: ("calc_w(self.matrices['{scenario}']['{enum0}'])", dict(enum0=_ENUM.b)),
     _ENUM.y: ("calc_y(self.matrices['{scenario}']['{enum0}'])", dict(enum0=_ENUM.Y)),
+    _ENUM.p: (
+        "calc_p(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.v, enum1=_ENUM.w),
+    ),
+    "X_Z": (
+        "calc_X(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.Z, enum1=_ENUM.Y),
+    ),
+    "X_z": (
+        "calc_X_from_z(self.matrices['{}']['{enum0}'],self.matrices['{}']['{enum1}'])",
+        dict(enum0=_ENUM.z, enum1=_ENUM.Y),
+    ),
+
+    # here we need to specify specific cases
     _ENUM.s: (
         "self.matrices['{scenario}']['{enum0}'].loc[(slice(None),_MASTER_INDEX['a'],slice(None)),(slice(None),_MASTER_INDEX['c'],slice(None))]",
         dict(enum0=_ENUM.z),
@@ -185,6 +202,65 @@ _CALC = {
         "self.matrices['{scenario}']['{enum0}'].loc[(slice(None),_MASTER_INDEX['c'],slice(None)),(slice(None),_MASTER_INDEX['a'],slice(None))]",
         dict(enum0=_ENUM.Z),
     ),
+}
+
+
+_CALC_SUT = {
+    _ENUM.F: (
+        "calc_F(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'].sum(1))",
+        dict(enum0=_ENUM.f, enum1=_ENUM.Y),
+    ),
+    _ENUM.f_dis: (
+        "calc_f_dis(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.e, enum1=_ENUM.w),
+    ),
+    _ENUM.p_dis: (
+        "calc_p_dis(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.v, enum1=_ENUM.w),
+    ),
+    _ENUM.M: (
+        "calc_F(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'].sum(1))",
+        dict(enum0=_ENUM.m, enum1=_ENUM.Y),
+    ),
+    _ENUM.m: (
+        "calc_f(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.v, enum1=_ENUM.w),
+    ),
+    _ENUM.V: (
+        "calc_E(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.v, enum1=_ENUM.X),
+    ),
+    _ENUM.v: (
+        "calc_e(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.V, enum1=_ENUM.X),
+    ),
+    _ENUM.f: (
+        "calc_f(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.e, enum1=_ENUM.w),
+    ),
+    _ENUM.e: (
+        "calc_e(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.E, enum1=_ENUM.X),
+    ),
+    _ENUM.E: (
+        "calc_E(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.e, enum1=_ENUM.X),
+    ),
+    _ENUM.z: (
+        "calc_z(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.Z, enum1=_ENUM.X),
+    ),
+    _ENUM.Z: (
+        "calc_Z(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.z, enum1=_ENUM.X),
+    ),
+    _ENUM.b: (
+        "calc_b(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+        dict(enum0=_ENUM.X, enum1=_ENUM.Z),
+    ),
+    _ENUM.w: ("calc_w(self.matrices['{scenario}']['{enum0}'])", dict(enum0=_ENUM.z)),
+    _ENUM.g: ("calc_w(self.matrices['{scenario}']['{enum0}'])", dict(enum0=_ENUM.b)),
+    _ENUM.y: ("calc_y(self.matrices['{scenario}']['{enum0}'])", dict(enum0=_ENUM.Y)),
     _ENUM.p: (
         "calc_p(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
         dict(enum0=_ENUM.v, enum1=_ENUM.w),
@@ -197,6 +273,37 @@ _CALC = {
         "calc_X_from_z(self.matrices['{}']['{enum0}'],self.matrices['{}']['{enum1}'])",
         dict(enum0=_ENUM.z, enum1=_ENUM.Y),
     ),
+
+    # here we need to specify specific cases
+    _ENUM.s: (
+         "calc_s(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'],self.assumption)",
+         dict(enum0=_ENUM.S, enum1=_ENUM.Xc),
+    ),
+    _ENUM.S: (
+        "self.matrices['{scenario}']['{enum0}'].loc[(slice(None),_MASTER_INDEX['a'],slice(None)),(slice(None),_MASTER_INDEX['c'],slice(None))]",
+        dict(enum0=_ENUM.Z),
+    ),
+    _ENUM.u: (
+         "calc_u(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+         dict(enum0=_ENUM.U, enum1=_ENUM.Xa),
+    ),
+    _ENUM.U: (
+        "self.matrices['{scenario}']['{enum0}'].loc[(slice(None),_MASTER_INDEX['c'],slice(None)),(slice(None),_MASTER_INDEX['a'],slice(None))]",
+        dict(enum0=_ENUM.Z),
+    ),
+
+    _ENUM.Xa: (
+         "calc_Xa(self.matrices['{scenario}']['{enum0}'])",
+         dict(enum0=_ENUM.S,),
+    ),
+    _ENUM.Xc: (
+         "calc_Xc(self.matrices['{scenario}']['{enum0}'],self.matrices['{scenario}']['{enum1}'])",
+         dict(enum0=_ENUM.U,enum1=_ENUM.Yc),
+    ),
+    _ENUM.Yc: (
+        "self.matrices['{scenario}']['{enum0}'].loc[(slice(None),_MASTER_INDEX['c'],slice(None)),:]",
+        dict(enum0=_ENUM.Y),
+    ), 
 }
 
 
@@ -380,6 +487,9 @@ _ALL_MATRICES = {
         _ENUM.U,
         _ENUM.s,
         _ENUM.S,
+        _ENUM.Xa,
+        _ENUM.Xc,
+        _ENUM.Yc,
     ],
 }
 

@@ -632,3 +632,74 @@ def linkages_calculation(cut_diag, matrices, multi_mode, normalized):
         links = pd.concat([_forward_t, _backward_t, _forward_d, _backward_d], axis=1)
 
     return links
+
+
+import numpy as np
+
+def calc_s(S,Xc,assumption):
+    """
+    Compute use-coefficient matrix u under the 
+    industry-based technology assumption.
+
+    Parameters
+    ----------
+    S : pd.DataFrame
+        Make matrix (industries × products).
+        Element m[i,p] is output of product p by industry i.
+
+    Xa : pd.DataFrame
+        Industry output vector.
+
+    Returns
+    -------
+    S : pd.DataFrame
+        Make-coefficient matrix, same shape as M.
+        u[i,p] = U[i,p] / X[i], where X[i] is industry output.
+
+    """
+    if assumption == "industry-based":
+        return calc_z(S,Xc)
+    
+    elif assumption == "product-based":   # FIXME --> use Xa instead of Xc
+        x_inverse = np.linalg.inv(np.diagflat(Xc.values))
+
+        s = np.linalg.inv( S.T.values @ x_inverse)
+
+        return pd.DataFrame(
+            s,index = S.index,columns=S.columns
+        )
+    
+    else:
+        raise ValueError("....") #FIXME
+
+
+def calc_u(U,Xa):
+    """
+    Compute use-coefficient matrix m under the 
+    industry-based technology assumption.
+
+    Parameters
+    ----------
+    U : pd.DataFrame
+
+    Xc : pd.DataFrame
+        Industry output vector.
+
+    Returns
+    -------
+    u : pd.DataFrame
+        Use-coefficient matrix, same shape as M.
+        m[i,p] = M[i,p] / X[i], where X[i] is industry output.
+
+    """
+
+    return calc_z(U,Xa)
+
+def calc_Xc(U,Yc):
+    
+    return calc_X(U,Yc)
+
+def calc_Xa(S):
+    return  S.sum(1).to_frame("production")
+
+
