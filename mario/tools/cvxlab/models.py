@@ -203,7 +203,16 @@ def _optimize_in_cvxlab(
 
     print("Results loaded to database")
 
-    optimized_matrices = _cvxlab_results_parser(dest_dir,mapping,default_model,instance.matrices_flat)
+    if default_model=="Split_sectors":
+        map_new_parent=dict(zip(
+        instance.add_sectors_master[_ADD_SECTORS_MASTER_SHEET_COLUMNS[instance.meta.table]['s']],
+        instance.add_sectors_master[_ADD_SECTORS_MASTER_SHEET_COLUMNS[instance.meta.table]['ps']]
+        ))
+        for value in set(map_new_parent.values()):
+            map_new_parent[str(value)] = value
+        optimized_matrices=_cvxlab_results_parser_split_sectors(dest_dir,instance.matrices_flat,map_new_parent)
+    else:
+        optimized_matrices = _cvxlab_results_parser(dest_dir,mapping,default_model,instance.matrices_flat)
 
     return optimized_matrices
 
@@ -346,6 +355,28 @@ def _inputs_to_cvxlab_split_sectors(
     Trade_db=instance.split_info['Trades']
     Trade_db=Trade_db.rename(columns={"Quantity":"values"})
     Trade_db = Trade_db.rename(columns=mapping['sets']['cvxlab'].to_dict())
+    
+    #Check trade data consistency with original table
+    regions=sets['_set_REGION_FROM']['region_from_Name'].to_list()
+    Trade_inconsistency=False
+    for new_sector in new_sectors:
+        parent_sector=map_new_parent[new_sector]
+        for rf in regions:
+            for rt in regions:
+                if rf==rt:
+                    continue
+                trade_row = Trade_db.loc[(Trade_db['sector_from']==new_sector) & (Trade_db['region_from']==rf) & (Trade_db['region_to']==rt)]
+                if trade_row.empty:
+                    continue
+                Zsum=instance.Z.loc[(rf, 'Sector',parent_sector), (rt, 'Sector',slice(None))].sum()
+                Ysum=instance.Y.loc[(rf, 'Sector',parent_sector), (rt, 'Consumption category',slice(None))].sum()
+                trade_value=trade_row['values'].values[0]  
+                if trade_value>Zsum+Ysum:
+                    Trade_inconsistency=True
+                    print(f"Trade inconsistency: for {rf} to {rt} new sector trade {trade_value} is larger than parent Z and Y row sum: {Zsum+Ysum}")
+    if Trade_inconsistency:
+        raise ValueError(f"Trade inconsistencies found, fix before contininuing")
+
     Trade_db.columns = [col + "_Name" if col != "values" else col for col in Trade_db.columns]
     if input_data_files_type=='xlsx':
         Trade = input_data['Trade']
@@ -356,6 +387,9 @@ def _inputs_to_cvxlab_split_sectors(
     join_cols = ['region_from_Name','region_to_Name','sector_from_Name']
     Trade=Trade.merge(Trade_db[join_cols+['values']], on=join_cols, how='left')
     Trade['values_y']=Trade['values_y'].fillna(0)
+    #Set to 0 trades within the same region, as could cause inconsistencies
+    same_region_mask = Trade['region_from_Name'] == Trade['region_to_Name']
+    Trade.loc[same_region_mask, 'values_y'] = 0
     input_data['Trade'] = Trade.drop(columns=["values_x"]).rename(columns={"values_y": "values"})
 
     #Create trade selection matrix
@@ -395,11 +429,12 @@ def _cvxlab_results_parser(
         dest_dir,
         mapping,
         default_model,
-        flat_matrices
+        flat_matrices,
+        map_new_parent=None,
 ):
 
     if default_model=='Split_sectors':  
-        mario_matrices=_cvxlab_results_parser_split_sectors(dest_dir,flat_matrices)
+        mario_matrices=_cvxlab_results_parser_split_sectors(dest_dir,flat_matrices,map_new_parent)
 
     else:
         # Reading mapping file
@@ -432,7 +467,8 @@ def _cvxlab_results_parser(
 
 def _cvxlab_results_parser_split_sectors(
         dest_dir,
-        flat_matrices
+        flat_matrices,
+        map_new_parent,
     ):
 
     #Read from sql database
@@ -519,6 +555,9 @@ def _cvxlab_results_parser_split_sectors(
             key=lambda x: (x[0], sector_order.index(x[2]) if x[2] in sector_order else float('inf'))
         )
     )
+    for new_sector in sectors_new:
+        parent_sector=map_new_parent[new_sector]
+        V.loc[:, (slice(None),'Sector', parent_sector)] -= V.loc[:, (slice(None), 'Sector', new_sector)].values
     
     return {
         'Z': Znew,
@@ -664,6 +703,31 @@ def _create_input_data_for_cvxlab(
     Trade_db=instance.split_info['Trades']
     Trade_db=Trade_db.rename(columns={"Quantity":"values"})
     Trade_db = Trade_db.rename(columns=mapping['sets']['cvxlab'].to_dict())
+
+    #Check trade data consistency with original table
+    regions=sets['_set_REGION_FROM']['region_from_Name'].to_list()
+    for new_sector in new_sectors:
+        parent_sector=map_new_parent[new_sector]
+        Trade_inconsistencies=pd.DataFrame(columns=['Region_from','Region_to','Trade_value','Z_Y_sum'])
+        for rf in regions:
+            for rt in regions:
+                if rf==rt:
+                    continue
+                trade_row = Trade_db.loc[(Trade_db['Region_from']==rf) & (Trade_db['Region_to']==rt)]
+                if trade_row.empty:
+                    continue
+                Zsum=instance.Z.loc[(rf, 'Sector',parent_sector), (rt, 'Sector',slice(None))].sum()
+                Ysum=instance.Y.loc[(rf, 'Sector',parent_sector), (rt, 'Consumption category',slice(None))].sum()
+                trade_value=trade_row['Quantity'].values[0]  
+                if trade_value>Zsum+Ysum:
+                    print(f"Trade inconsistency: for {rf} to {rt} new sector trade {trade_value} is larger than parent Z and Y row sum: {Zsum+Ysum}")
+                    Trade_inconsistencies = pd.concat([Trade_inconsistencies, new_row], ignore_index=True)
+                    new_row = pd.DataFrame([{'Region_from':rf,'Region_to':rt,'Trade_value':trade_value,'Z_Y_sum':Zsum+Ysum}])
+        if not Trade_inconsistencies.empty:
+            print(Trade_inconsistencies)
+            raise ValueError(f"Trade inconsistencies found for new sector {new_sector}")
+
+
     Trade_db.columns = [col + "_Name" if col != "values" else col for col in Trade_db.columns]
     if input_data_files_type=='xlsx':
         Trade = input_data['Trade']
@@ -674,6 +738,8 @@ def _create_input_data_for_cvxlab(
     join_cols = ['region_from_Name','region_to_Name','sector_from_Name']
     Trade=Trade.merge(Trade_db[join_cols+['values']], on=join_cols, how='left')
     Trade['values_y']=Trade['values_y'].fillna(0)
+    same_region_mask = Trade['region_from_Name'] == Trade['region_to_Name']
+    Trade.loc[same_region_mask, 'values_y'] = 0
     input_data['Trade'] = Trade.drop(columns=["values_x"]).rename(columns={"values_y": "values"})
 
     #Create trade selection matrix
