@@ -361,28 +361,34 @@ def gdx_to_matrix_satellite(df: pd.DataFrame,
     df_filled = missing(df_filtered, variant_missing, indeces)
 
     # 3) Change row name
-    if row_name_setting=='emi_dom':
-        df_filled['row_name']=row_name_categ+'_'+df_filled['em']+'_dms_'+df_filled['inputs'] #careful: 'EM' element has different lengths
-        df_filled.drop(columns='em',inplace=True)
-        df_filled.drop(columns='SRC',inplace=True)
-        df_filled.drop(columns='inputs',inplace=True)
-    elif row_name_setting=='emi_imp':
-        df_filled['row_name']=row_name_categ+'_'+df_filled['em']+'_'+df_filled['SRC']+'_'+df_filled['inputs']
-        df_filled.drop(columns='em',inplace=True)
-        df_filled.drop(columns='SRC',inplace=True)
-        df_filled.drop(columns='inputs',inplace=True)
-    elif row_name_setting=='emi_proc':
-        df_filled['row_name']=row_name_categ+'_'+df_filled['em']+'_REG_'+df_filled['comm']
-        df_filled.drop(columns='em',inplace=True)
-        df_filled.drop(columns='comm',inplace=True)
-    elif row_name_setting=='ene_dom':
-        df_filled['row_name']=row_name_categ+'_dms_'+df_filled['ERG'] #domestic
-        df_filled.drop(columns='SRC',inplace=True)
-        df_filled.drop(columns='ERG',inplace=True)
-    elif row_name_setting=='ene_imp':
-        df_filled['row_name']=row_name_categ+'_'+df_filled['SRC']+'_'+df_filled['ERG']
-        df_filled.drop(columns='SRC',inplace=True)
-        df_filled.drop(columns='ERG',inplace=True)
+    if var=='Emi_COMB':
+        if row_name_setting=='emi_dom':
+            df_filled['row_name']=row_name_categ+'_'+df_filled['em']+'comb_dms_'+df_filled['inputs']
+        elif row_name_setting=='emi_imp':
+            df_filled['row_name']=row_name_categ+'_'+df_filled['em']+'comb_'+df_filled['SRC']+'_'+df_filled['inputs']
+    else:
+        if row_name_setting=='emi_dom':
+            df_filled['row_name']=row_name_categ+'_'+df_filled['em']+'_dms_'+df_filled['inputs'] #careful: 'EM' element has different lengths
+            df_filled.drop(columns='em',inplace=True)
+            df_filled.drop(columns='SRC',inplace=True)
+            df_filled.drop(columns='inputs',inplace=True)
+        elif row_name_setting=='emi_imp':
+            df_filled['row_name']=row_name_categ+'_'+df_filled['em']+'_'+df_filled['SRC']+'_'+df_filled['inputs']
+            df_filled.drop(columns='em',inplace=True)
+            df_filled.drop(columns='SRC',inplace=True)
+            df_filled.drop(columns='inputs',inplace=True)
+        elif row_name_setting=='emi_proc':
+            df_filled['row_name']=row_name_categ+'_'+df_filled['em']+'_REG_'+df_filled['comm']
+            df_filled.drop(columns='em',inplace=True)
+            df_filled.drop(columns='comm',inplace=True)
+        elif row_name_setting=='ene_dom':
+            df_filled['row_name']=row_name_categ+'_dms_'+df_filled['ERG'] #domestic
+            df_filled.drop(columns='SRC',inplace=True)
+            df_filled.drop(columns='ERG',inplace=True)
+        elif row_name_setting=='ene_imp':
+            df_filled['row_name']=row_name_categ+'_'+df_filled['SRC']+'_'+df_filled['ERG']
+            df_filled.drop(columns='SRC',inplace=True)
+            df_filled.drop(columns='ERG',inplace=True)
 
     # 4) If need to split_agt
     if split_agt:
