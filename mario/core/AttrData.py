@@ -1807,6 +1807,7 @@ class Database(CoreModel):
         input_data_files_type: str = 'xlsx',
         only_input_data_gen: bool = False,
         solver_parameters=None,
+        parent_names=None,
     ):        
         """
         Adds inventories to the database as new sectors/commodities/activities.
@@ -1842,6 +1843,7 @@ class Database(CoreModel):
                 input_data_files_type=input_data_files_type,
                 only_input_data_gen=only_input_data_gen,
                 solver_parameters=solver_parameters,
+                parent_names=parent_names,
             )
             
             return new
@@ -1942,21 +1944,24 @@ class Database(CoreModel):
                         solver='MOSEK',
                         model_settings_from="xlsx",
                         scenario=scenario,
-                        input_data_files_type=input_data_files_type,
-                        solver_parameters=solver_parameters)
+                        input_data_files_type=input_data_files_type,)
                     log_time(logger,f"Cvxlab files filling completed.")
                 else:
-                    optimized_matrices=_optimize_in_cvxlab(
-                        self,
-                        main_dir_path=cvxlab_path,
-                        model_dir="cvxlab test MARIO",
-                        default_model="Split_sectors",
-                        solver='MOSEK',
-                        model_settings_from="xlsx",
-                        scenario=scenario,
-                        input_data_files_type=input_data_files_type,
-                        solver_parameters=solver_parameters,)
-                    log_time(logger,f"Sector splitting optimization in cvxlab completed.")
+                    if parent_names is not None:
+                        optimized_matrices=_optimize_in_cvxlab(
+                            self,
+                            main_dir_path=cvxlab_path,
+                            model_dir="cvxlab test MARIO",
+                            default_model="Split_sectors",
+                            solver='MOSEK',
+                            model_settings_from="xlsx",
+                            scenario=scenario,
+                            input_data_files_type=input_data_files_type,
+                            solver_parameters=solver_parameters,
+                            parent_names=parent_names)
+                        log_time(logger,f"Sector splitting optimization in cvxlab completed.")
+                    else:
+                        raise KeyError("parent_names must be provided for sector splits, to change the name of the parent sector")
                     
                     self.matrices['split_cvxlab'] = {}
                     for m_name, matrix in optimized_matrices.items():
