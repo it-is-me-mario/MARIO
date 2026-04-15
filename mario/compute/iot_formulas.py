@@ -11,13 +11,17 @@ from mario.compute.helpers import (
     as_column_frame,
     identity_like,
     inverse_vector,
+    matmul,
+    matvec,
     require_same_columns,
     require_same_index,
     safe_inverse,
     safe_solve,
     scale_columns,
     sum_final_demand,
+    sum_columns,
     sum_rows,
+    transpose_matvec,
     validate_square,
 )
 from mario.compute.runtime import choose_linear_strategy, effective_compute_options
@@ -298,7 +302,7 @@ def build_iot_X_from_w_Y(w: pd.DataFrame, Y: pd.DataFrame) -> pd.DataFrame:
     validate_square(w)
     y_total = sum_final_demand(Y)
     require_same_index(w, y_total, lhs_name="w", rhs_name="Y_total")
-    total = w.dot(y_total)
+    total = matvec(w, y_total)
     return as_column_frame(total, PRODUCTION_LABEL)
 
 
@@ -346,7 +350,7 @@ def build_iot_m_from_v_w(v: pd.DataFrame, w: pd.DataFrame) -> pd.DataFrame:
     """Build total value-added multipliers from direct coefficients and ``w``."""
     validate_square(w)
     require_same_columns(v, w.index, lhs_name="v", rhs_name="w")
-    return v.dot(w)
+    return matmul(v, w)
 
 
 def build_iot_m_from_v_z(
@@ -382,7 +386,7 @@ def build_iot_f_from_e_w(e: pd.DataFrame, w: pd.DataFrame) -> pd.DataFrame:
     """Build total satellite multipliers from direct coefficients and ``w``."""
     validate_square(w)
     require_same_columns(e, w.index, lhs_name="e", rhs_name="w")
-    return e.dot(w)
+    return matmul(e, w)
 
 
 def build_iot_f_from_e_z(
@@ -418,8 +422,8 @@ def build_iot_p_from_v_w(v: pd.DataFrame, w: pd.DataFrame) -> pd.DataFrame:
     """Build the price index from direct value-added coefficients and ``w``."""
     validate_square(w)
     require_same_columns(v, w.index, lhs_name="v", rhs_name="w")
-    direct_value_added = v.sum(axis=0)
-    values = w.T.dot(direct_value_added)
+    direct_value_added = sum_columns(v)
+    values = transpose_matvec(w, direct_value_added)
     return pd.DataFrame(values.to_numpy(dtype=float), index=w.columns, columns=[PRICE_INDEX_LABEL])
 
 
@@ -437,6 +441,6 @@ def build_iot_p_from_v_z(
     """
     validate_square(z)
     require_same_columns(v, z.index, lhs_name="v", rhs_name="z")
-    direct_value_added = v.sum(axis=0)
+    direct_value_added = sum_columns(v)
     values = _solve_iot_system(z, direct_value_added, transpose=True, context=context, resolver=resolver)
     return pd.DataFrame(values.to_numpy(dtype=float), index=z.columns, columns=[PRICE_INDEX_LABEL])

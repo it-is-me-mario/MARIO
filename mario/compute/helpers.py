@@ -6,6 +6,13 @@ import numpy as np
 import pandas as pd
 
 
+def _is_sparse_backed_dataframe(frame: pd.DataFrame) -> bool:
+    """Return whether a dataframe stores every column as pandas sparse dtype."""
+    return isinstance(frame, pd.DataFrame) and all(
+        isinstance(dtype, pd.SparseDtype) for dtype in frame.dtypes
+    )
+
+
 def as_dense_series(vector: pd.DataFrame | pd.Series | np.ndarray | list[float] | tuple[float, ...]) -> pd.Series:
     """Coerce a vector-like input to a dense float ``Series``."""
     series = _as_series(vector)
@@ -50,7 +57,7 @@ def sum_rows(block: pd.DataFrame | pd.Series) -> pd.Series:
         return as_dense_series(block)
 
     if isinstance(block, pd.DataFrame):
-        if all(isinstance(dtype, pd.SparseDtype) for dtype in block.dtypes):
+        if _is_sparse_backed_dataframe(block):
             matrix = block.sparse.to_coo().tocsr()
             summed = np.asarray(matrix.sum(axis=1)).reshape(-1)
             return pd.Series(summed, index=block.index, dtype=float)
@@ -58,6 +65,22 @@ def sum_rows(block: pd.DataFrame | pd.Series) -> pd.Series:
         return as_dense_series(block.sum(axis=1))
 
     raise TypeError("Final demand block must be a pandas Series or DataFrame.")
+
+
+def sum_columns(block: pd.DataFrame | pd.Series) -> pd.Series:
+    """Return one total per column, preserving labels and sparse efficiency."""
+    if isinstance(block, pd.Series):
+        return as_dense_series(block)
+
+    if isinstance(block, pd.DataFrame):
+        if _is_sparse_backed_dataframe(block):
+            matrix = block.sparse.to_coo().tocsc()
+            summed = np.asarray(matrix.sum(axis=0)).reshape(-1)
+            return pd.Series(summed, index=block.columns, dtype=float)
+
+        return as_dense_series(block.sum(axis=0))
+
+    raise TypeError("Block must be a pandas Series or DataFrame.")
 
 
 def diag_from_vector(
@@ -84,7 +107,7 @@ def scale_columns(
     if not frame.columns.equals(series.index):
         raise ValueError("frame columns and vector index do not match.")
 
-    if all(isinstance(dtype, pd.SparseDtype) for dtype in frame.dtypes):
+    if _is_sparse_backed_dataframe(frame):
         from scipy import sparse
 
         matrix = frame.sparse.to_coo().tocsc()
@@ -110,7 +133,7 @@ def scale_rows(
     if not frame.index.equals(series.index):
         raise ValueError("frame index and vector index do not match.")
 
-    if all(isinstance(dtype, pd.SparseDtype) for dtype in frame.dtypes):
+    if _is_sparse_backed_dataframe(frame):
         from scipy import sparse
 
         matrix = frame.sparse.to_coo().tocsc()
@@ -118,6 +141,91 @@ def scale_rows(
         return pd.DataFrame.sparse.from_spmatrix(scaled, index=frame.index, columns=frame.columns)
 
     return frame.mul(series, axis=0)
+
+
+def matmul(left: pd.DataFrame, right: pd.DataFrame) -> pd.DataFrame:
+    """Multiply two labelled dataframes using a sparse-aware backend when useful."""
+    if not isinstance(left, pd.DataFrame) or not isinstance(right, pd.DataFrame):
+        raise TypeError("Expected pandas DataFrames.")
+    if not left.columns.equals(right.index):
+        raise ValueError("left columns and right index do not match.")
+
+    left_is_sparse = _is_sparse_backed_dataframe(left)
+    right_is_sparse = _is_sparse_backed_dataframe(right)
+
+    if left_is_sparse or right_is_sparse:
+        from scipy import sparse
+
+        left_matrix = (
+            left.sparse.to_coo().tocsr()
+            if left_is_sparse
+            else sparse.csr_matrix(left.to_numpy(dtype=float))
+        )
+        right_matrix = (
+            right.sparse.to_coo().tocsc()
+            if right_is_sparse
+            else right.to_numpy(dtype=float)
+        )
+        product = left_matrix @ right_matrix
+
+        if sparse.issparse(product):
+            return pd.DataFrame.sparse.from_spmatrix(
+                product,
+                index=left.index,
+                columns=right.columns,
+            )
+
+        return pd.DataFrame(
+            np.asarray(product, dtype=float),
+            index=left.index,
+            columns=right.columns,
+        )
+
+    return pd.DataFrame(
+        left.to_numpy(dtype=float) @ right.to_numpy(dtype=float),
+        index=left.index,
+        columns=right.columns,
+    )
+
+
+def matvec(
+    frame: pd.DataFrame,
+    vector: pd.DataFrame | pd.Series | np.ndarray | list[float] | tuple[float, ...],
+) -> pd.Series:
+    """Multiply one labelled dataframe by one labelled vector."""
+    if not isinstance(frame, pd.DataFrame):
+        raise TypeError("Expected a pandas DataFrame.")
+    series = _as_series(vector).astype(float)
+    if not frame.columns.equals(series.index):
+        raise ValueError("frame columns and vector index do not match.")
+
+    if _is_sparse_backed_dataframe(frame):
+        matrix = frame.sparse.to_coo().tocsr()
+        values = matrix @ series.to_numpy(dtype=float)
+        return pd.Series(np.asarray(values).reshape(-1), index=frame.index, dtype=float)
+
+    values = frame.to_numpy(dtype=float) @ series.to_numpy(dtype=float)
+    return pd.Series(values, index=frame.index, dtype=float)
+
+
+def transpose_matvec(
+    frame: pd.DataFrame,
+    vector: pd.DataFrame | pd.Series | np.ndarray | list[float] | tuple[float, ...],
+) -> pd.Series:
+    """Multiply the transpose of one labelled dataframe by one labelled vector."""
+    if not isinstance(frame, pd.DataFrame):
+        raise TypeError("Expected a pandas DataFrame.")
+    series = _as_series(vector).astype(float)
+    if not frame.index.equals(series.index):
+        raise ValueError("frame index and vector index do not match.")
+
+    if _is_sparse_backed_dataframe(frame):
+        matrix = frame.sparse.to_coo().tocsc()
+        values = matrix.T @ series.to_numpy(dtype=float)
+        return pd.Series(np.asarray(values).reshape(-1), index=frame.columns, dtype=float)
+
+    values = frame.to_numpy(dtype=float).T @ series.to_numpy(dtype=float)
+    return pd.Series(values, index=frame.columns, dtype=float)
 
 
 def inverse_vector(

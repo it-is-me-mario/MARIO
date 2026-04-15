@@ -111,6 +111,30 @@ def test_reset_to_flows(CoreDataIOT):
     assert 'Acceptable scenarios are' in str(msg.value)
 
 
+def test_reset_to_flows_sut_keeps_split_blocks(CoreDataSUT):
+
+    CoreDataSUT.calc_all([_ENUM.Z, _ENUM.Y, _ENUM.E, _ENUM.V])
+    CoreDataSUT.clone_scenario(
+        scenario='baseline',
+        name='dummy'
+    )
+
+    del CoreDataSUT['baseline']['U']
+    del CoreDataSUT['baseline']['S']
+
+    for ss in CoreDataSUT.scenarios:
+        CoreDataSUT.reset_to_flows(ss)
+
+        kept = [*CoreDataSUT[ss]]
+
+        assert set(kept) == {'U', 'S', 'Ea', 'Ec', 'Va', 'Vc', 'Ya', 'Yc', _ENUM.EY, _ENUM.VY}
+
+    with pytest.raises(WrongInput) as msg:
+        CoreDataSUT.reset_to_flows('so dummy')
+
+    assert 'Acceptable scenarios are' in str(msg.value)
+
+
 def test_reset_to_coefficients(CoreDataIOT):
 
     CoreDataIOT.clone_scenario(
@@ -127,6 +151,26 @@ def test_reset_to_coefficients(CoreDataIOT):
 
     with pytest.raises(WrongInput) as msg:
         CoreDataIOT.reset_to_coefficients('so dummy')
+
+    assert 'Acceptable scenarios are' in str(msg.value)
+
+
+def test_reset_to_coefficients_sut_keeps_split_blocks(CoreDataSUT):
+
+    CoreDataSUT.clone_scenario(
+        scenario='baseline',
+        name='dummy'
+    )
+
+    for ss in CoreDataSUT.scenarios:
+        CoreDataSUT.reset_to_coefficients(ss)
+
+        kept = [*CoreDataSUT[ss]]
+
+        assert set(kept) == {'u', 's', 'ea', 'ec', 'va', 'vc', 'Ya', 'Yc', _ENUM.EY, _ENUM.VY}
+
+    with pytest.raises(WrongInput) as msg:
+        CoreDataSUT.reset_to_coefficients('so dummy')
 
     assert 'Acceptable scenarios are' in str(msg.value)
 
@@ -234,18 +278,19 @@ def test_change_assumption_resets_all_sut_scenarios_to_flows(CoreDataSUT):
     CoreDataSUT.reset_to_coefficients("baseline")
     CoreDataSUT.clone_scenario("baseline", "dummy")
 
-    assert _ENUM.z in CoreDataSUT["baseline"]
+    assert "u" in CoreDataSUT["baseline"]
     assert _ENUM.Z not in CoreDataSUT["baseline"]
 
     CoreDataSUT.change_assumption("PT")
 
-    expected_keep = {_ENUM.E, _ENUM.V, _ENUM.Y, _ENUM.Z, _ENUM.EY, _ENUM.VY}
+    expected_keep = {'U', 'S', 'Ea', 'Ec', 'Va', 'Vc', 'Ya', 'Yc', _ENUM.EY, _ENUM.VY}
 
     assert CoreDataSUT.tech_assumption == "product-based"
     for scenario in CoreDataSUT.scenarios:
         assert set(CoreDataSUT[scenario]) == expected_keep
         assert "c" not in CoreDataSUT[scenario]
         assert _ENUM.s not in CoreDataSUT[scenario]
+        assert _ENUM.Z not in CoreDataSUT[scenario]
 
     expected_c = build_sut_c_from_S_Xa(CoreDataSUT.S, CoreDataSUT.Xa, tech_assumption="PT")
     pdt.assert_frame_equal(CoreDataSUT.c, expected_c)

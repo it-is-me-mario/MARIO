@@ -116,3 +116,41 @@ def test_iot_production_formulas_handle_pandas_sparse_float32_inputs():
     expected = pd.DataFrame({"production": [4.0, 6.0]}, index=["s1", "s2"])
 
     pdt.assert_frame_equal(build_iot_X_from_Z_Y(Z, Y), expected)
+
+
+def test_iot_multiplier_and_price_formulas_handle_pandas_sparse_float32_inputs():
+    v = pd.DataFrame.sparse.from_spmatrix(
+        sparse.csr_matrix(np.array([[1, 0], [0, 2]], dtype=np.float32)),
+        index=["f1", "f2"],
+        columns=["s1", "s2"],
+    )
+    e = pd.DataFrame.sparse.from_spmatrix(
+        sparse.csr_matrix(np.array([[3, 0], [0, 4]], dtype=np.float32)),
+        index=["k1", "k2"],
+        columns=["s1", "s2"],
+    )
+    w = pd.DataFrame.sparse.from_spmatrix(
+        sparse.csr_matrix(np.array([[1, 2], [0, 1]], dtype=np.float32)),
+        index=["s1", "s2"],
+        columns=["s1", "s2"],
+    )
+
+    expected_m = pd.DataFrame.sparse.from_spmatrix(
+        sparse.csr_matrix(v.to_numpy(dtype=float) @ w.to_numpy(dtype=float)),
+        index=v.index,
+        columns=w.columns,
+    )
+    expected_f = pd.DataFrame.sparse.from_spmatrix(
+        sparse.csr_matrix(e.to_numpy(dtype=float) @ w.to_numpy(dtype=float)),
+        index=e.index,
+        columns=w.columns,
+    )
+    expected_p = pd.DataFrame(
+        (w.to_numpy(dtype=float).T @ v.to_numpy(dtype=float).sum(axis=0)).reshape(-1, 1),
+        index=w.columns,
+        columns=["price index"],
+    )
+
+    pdt.assert_frame_equal(build_iot_m_from_v_w(v, w), expected_m, check_dtype=False)
+    pdt.assert_frame_equal(build_iot_f_from_e_w(e, w), expected_f, check_dtype=False)
+    pdt.assert_frame_equal(build_iot_p_from_v_w(v, w), expected_p)

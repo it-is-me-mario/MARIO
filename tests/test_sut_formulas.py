@@ -217,6 +217,59 @@ def test_sut_satellite_multiplier_formulas_handle_pandas_sparse_float32_inputs()
     pdt.assert_frame_equal(build_sut_fa_from_ea_waa(ea, waa), expected_fa)
 
 
+def test_sut_price_formulas_handle_pandas_sparse_float32_inputs():
+    va = pd.DataFrame.sparse.from_spmatrix(
+        sparse.csr_matrix(np.array([[1, 0], [0, 2]], dtype=np.float32)),
+        index=["f1", "f2"],
+        columns=["a1", "a2"],
+    )
+    vc = pd.DataFrame.sparse.from_spmatrix(
+        sparse.csr_matrix(np.array([[3, 0], [0, 4]], dtype=np.float32)),
+        index=["f1", "f2"],
+        columns=["c1", "c2"],
+    )
+    wac = pd.DataFrame.sparse.from_spmatrix(
+        sparse.csr_matrix(np.array([[1, 2], [0, 1]], dtype=np.float32)),
+        index=["a1", "a2"],
+        columns=["c1", "c2"],
+    )
+    wcc = pd.DataFrame.sparse.from_spmatrix(
+        sparse.csr_matrix(np.array([[2, 0], [1, 1]], dtype=np.float32)),
+        index=["c1", "c2"],
+        columns=["c1", "c2"],
+    )
+    waa = pd.DataFrame.sparse.from_spmatrix(
+        sparse.csr_matrix(np.array([[1, 0], [3, 1]], dtype=np.float32)),
+        index=["a1", "a2"],
+        columns=["a1", "a2"],
+    )
+    wca = pd.DataFrame.sparse.from_spmatrix(
+        sparse.csr_matrix(np.array([[1, 1], [0, 2]], dtype=np.float32)),
+        index=["c1", "c2"],
+        columns=["a1", "a2"],
+    )
+
+    expected_pc = pd.DataFrame(
+        (
+            wac.to_numpy(dtype=float).T @ va.to_numpy(dtype=float).sum(axis=0)
+            + wcc.to_numpy(dtype=float).T @ vc.to_numpy(dtype=float).sum(axis=0)
+        ).reshape(-1, 1),
+        index=wcc.columns,
+        columns=["price index"],
+    )
+    expected_pa = pd.DataFrame(
+        (
+            waa.to_numpy(dtype=float).T @ va.to_numpy(dtype=float).sum(axis=0)
+            + wca.to_numpy(dtype=float).T @ vc.to_numpy(dtype=float).sum(axis=0)
+        ).reshape(-1, 1),
+        index=waa.columns,
+        columns=["price index"],
+    )
+
+    pdt.assert_frame_equal(build_sut_pc_from_vc(va, vc, wac, wcc), expected_pc)
+    pdt.assert_frame_equal(build_sut_pa_from_va(va, vc, waa, wca), expected_pa)
+
+
 def test_product_based_sut_c_s_and_S_formulas_roundtrip():
     S = pd.DataFrame(
         [[6.0, 1.0], [2.0, 8.0]],

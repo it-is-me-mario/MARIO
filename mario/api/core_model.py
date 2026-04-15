@@ -1046,7 +1046,10 @@ class CoreModel:
             The selected scenario is replaced with its flow blocks only.
         """
 
-        keep = [_ENUM.Z, _ENUM.E, _ENUM.V, _ENUM.EY, _ENUM.VY, _ENUM.Y]
+        if self.table_type == "SUT":
+            keep = ["U", "S", "Ea", "Ec", "Va", "Vc", "Ya", "Yc", _ENUM.EY, _ENUM.VY]
+        else:
+            keep = [_ENUM.Z, _ENUM.E, _ENUM.V, _ENUM.EY, _ENUM.VY, _ENUM.Y]
 
         if scenario not in self.scenarios:
             raise WrongInput(f"Acceptable scenarios are {self.scenarios}")
@@ -1075,7 +1078,10 @@ class CoreModel:
         None
             The selected scenario is replaced with its coefficient blocks only.
         """
-        keep = [_ENUM.z, _ENUM.e, _ENUM.v, _ENUM.EY, _ENUM.VY, _ENUM.Y]
+        if self.table_type == "SUT":
+            keep = ["u", "s", "ea", "ec", "va", "vc", "Ya", "Yc", _ENUM.EY, _ENUM.VY]
+        else:
+            keep = [_ENUM.z, _ENUM.e, _ENUM.v, _ENUM.EY, _ENUM.VY, _ENUM.Y]
 
         if scenario not in self.scenarios:
             raise WrongInput(f"Acceptable scenarios are {self.scenarios}")

@@ -11,13 +11,17 @@ from mario.compute.helpers import (
     as_column_frame,
     identity_like,
     inverse_vector,
+    matmul,
+    matvec,
     require_same_columns,
     require_same_index,
     safe_inverse,
     safe_solve,
     scale_columns,
     sum_final_demand,
+    sum_columns,
     sum_rows,
+    transpose_matvec,
     validate_square,
 )
 from mario.compute.runtime import choose_linear_strategy, effective_compute_options
@@ -51,12 +55,6 @@ def _production_frame(vector: pd.Series) -> pd.DataFrame:
     frame = as_column_frame(vector, PRODUCTION_LABEL)
     frame.columns = pd.Index([PRODUCTION_LABEL], name=ITEM_LABEL)
     return frame
-
-
-def _dense_matmul(left: pd.DataFrame, right: pd.DataFrame) -> pd.DataFrame:
-    """Multiply two aligned dataframes through NumPy to avoid pandas sparse internals."""
-    values = left.to_numpy(dtype=float) @ right.to_numpy(dtype=float)
-    return pd.DataFrame(values, index=left.index, columns=right.columns)
 
 
 def _resolver_linear_cache(resolver) -> dict | None:
@@ -298,7 +296,7 @@ def build_sut_wcc_from_u_s(u: pd.DataFrame, s: pd.DataFrame) -> pd.DataFrame:
     """Build the commodity-to-commodity Leontief quadrant ``wcc``."""
     require_same_columns(u, s.index, lhs_name="u", rhs_name="s.index")
     require_same_index(u, s.columns, lhs_name="u", rhs_name="s.columns")
-    product = u.dot(s)
+    product = matmul(u, s)
     validate_square(product)
     return safe_inverse(identity_like(product) - product)
 
@@ -306,20 +304,20 @@ def build_sut_wcc_from_u_s(u: pd.DataFrame, s: pd.DataFrame) -> pd.DataFrame:
 def build_sut_wca_from_u_s(u: pd.DataFrame, s: pd.DataFrame) -> pd.DataFrame:
     """Build the commodity-to-activity quadrant ``wca`` from ``u`` and ``s``."""
     require_same_columns(u, s.index, lhs_name="u", rhs_name="s.index")
-    return build_sut_wcc_from_u_s(u, s).dot(u)
+    return matmul(build_sut_wcc_from_u_s(u, s), u)
 
 
 def build_sut_wac_from_s_u(s: pd.DataFrame, u: pd.DataFrame) -> pd.DataFrame:
     """Build the activity-to-commodity quadrant ``wac`` from ``s`` and ``u``."""
     require_same_columns(s, u.index, lhs_name="s", rhs_name="u.index")
-    return build_sut_waa_from_s_u(s, u).dot(s)
+    return matmul(build_sut_waa_from_s_u(s, u), s)
 
 
 def build_sut_waa_from_s_u(s: pd.DataFrame, u: pd.DataFrame) -> pd.DataFrame:
     """Build the activity-to-activity Leontief quadrant ``waa``."""
     require_same_columns(s, u.index, lhs_name="s", rhs_name="u.index")
     require_same_index(s, u.columns, lhs_name="s", rhs_name="u.columns")
-    product = s.dot(u)
+    product = matmul(s, u)
     validate_square(product)
     return safe_inverse(identity_like(product) - product)
 
@@ -340,7 +338,7 @@ def build_sut_Xa_from_s_Xc(s: pd.DataFrame, Xc: pd.DataFrame | pd.Series) -> pd.
     """Build activity output from supply coefficients and commodity output."""
     x_c = _vector_series(Xc, label="Xc")
     require_same_columns(s, x_c.index, lhs_name="s", rhs_name="Xc")
-    total = s.dot(x_c)
+    total = matvec(s, x_c)
     return _production_frame(total)
 
 
@@ -361,7 +359,7 @@ def build_sut_Xc_from_wcc_Yc(wcc: pd.DataFrame, Yc: pd.DataFrame) -> pd.DataFram
     validate_square(wcc)
     y_total = sum_final_demand(Yc)
     require_same_index(wcc, y_total, lhs_name="wcc", rhs_name="Yc_total")
-    total = wcc.dot(y_total)
+    total = matvec(wcc, y_total)
     return _production_frame(total)
 
 
@@ -380,7 +378,7 @@ def build_sut_Xc_from_u_s_Yc(
     """
     require_same_columns(u, s.index, lhs_name="u", rhs_name="s.index")
     require_same_index(u, s.columns, lhs_name="u", rhs_name="s.columns")
-    product = _dense_matmul(u, s)
+    product = matmul(u, s)
     y_total = sum_final_demand(Yc)
     require_same_index(product, y_total, lhs_name="u@s", rhs_name="Yc_total")
     total = _solve_sut_system(product, y_total, context=context, resolver=resolver)
@@ -665,7 +663,7 @@ def build_sut_ma_from_va_waa(va: pd.DataFrame, waa: pd.DataFrame) -> pd.DataFram
     """Build activity-side value-added multipliers from direct coefficients."""
     validate_square(waa)
     require_same_columns(va, waa.index, lhs_name="va", rhs_name="waa")
-    return _dense_matmul(va, waa)
+    return matmul(va, waa)
 
 
 def build_sut_ma_from_va_s_u(
@@ -680,7 +678,7 @@ def build_sut_ma_from_va_s_u(
     require_same_columns(s, u.index, lhs_name="s", rhs_name="u.index")
     require_same_index(s, u.columns, lhs_name="s", rhs_name="u.columns")
     require_same_columns(va, s.index, lhs_name="va", rhs_name="s.index")
-    product = _dense_matmul(s, u)
+    product = matmul(s, u)
     solved = _solve_sut_system(product, va.T, transpose=True, context=context, resolver=resolver)
     return solved.T
 
@@ -690,7 +688,7 @@ def build_sut_mc_from_va_s_wcc(va: pd.DataFrame, s: pd.DataFrame, wcc: pd.DataFr
     validate_square(wcc)
     require_same_columns(va, s.index, lhs_name="va", rhs_name="s.index")
     require_same_columns(s, wcc.index, lhs_name="s", rhs_name="wcc")
-    return _dense_matmul(_dense_matmul(va, s), wcc)
+    return matmul(matmul(va, s), wcc)
 
 
 def build_sut_mc_from_va_s_u(
@@ -705,8 +703,8 @@ def build_sut_mc_from_va_s_u(
     require_same_columns(va, s.index, lhs_name="va", rhs_name="s.index")
     require_same_columns(u, s.index, lhs_name="u", rhs_name="s.index")
     require_same_index(u, s.columns, lhs_name="u", rhs_name="s.columns")
-    product = _dense_matmul(u, s)
-    direct = _dense_matmul(va, s)
+    product = matmul(u, s)
+    direct = matmul(va, s)
     solved = _solve_sut_system(product, direct.T, transpose=True, context=context, resolver=resolver)
     return solved.T
 
@@ -737,7 +735,7 @@ def build_sut_fa_from_ea_waa(ea: pd.DataFrame, waa: pd.DataFrame) -> pd.DataFram
     """Build activity-side satellite multipliers from direct coefficients."""
     validate_square(waa)
     require_same_columns(ea, waa.index, lhs_name="ea", rhs_name="waa")
-    return _dense_matmul(ea, waa)
+    return matmul(ea, waa)
 
 
 def build_sut_fa_from_ea_s_u(
@@ -752,7 +750,7 @@ def build_sut_fa_from_ea_s_u(
     require_same_columns(s, u.index, lhs_name="s", rhs_name="u.index")
     require_same_index(s, u.columns, lhs_name="s", rhs_name="u.columns")
     require_same_columns(ea, s.index, lhs_name="ea", rhs_name="s.index")
-    product = _dense_matmul(s, u)
+    product = matmul(s, u)
     solved = _solve_sut_system(product, ea.T, transpose=True, context=context, resolver=resolver)
     return solved.T
 
@@ -762,7 +760,7 @@ def build_sut_fc_from_ea_s_wcc(ea: pd.DataFrame, s: pd.DataFrame, wcc: pd.DataFr
     validate_square(wcc)
     require_same_columns(ea, s.index, lhs_name="ea", rhs_name="s.index")
     require_same_columns(s, wcc.index, lhs_name="s", rhs_name="wcc")
-    return _dense_matmul(_dense_matmul(ea, s), wcc)
+    return matmul(matmul(ea, s), wcc)
 
 
 def build_sut_fc_from_ea_s_u(
@@ -777,8 +775,8 @@ def build_sut_fc_from_ea_s_u(
     require_same_columns(ea, s.index, lhs_name="ea", rhs_name="s.index")
     require_same_columns(u, s.index, lhs_name="u", rhs_name="s.index")
     require_same_index(u, s.columns, lhs_name="u", rhs_name="s.columns")
-    product = _dense_matmul(u, s)
-    direct = _dense_matmul(ea, s)
+    product = matmul(u, s)
+    direct = matmul(ea, s)
     solved = _solve_sut_system(product, direct.T, transpose=True, context=context, resolver=resolver)
     return solved.T
 
@@ -790,11 +788,11 @@ def build_sut_pc_from_vc(
     wcc: pd.DataFrame,
 ) -> pd.DataFrame:
     """Build the commodity-side price index from split direct value-added blocks."""
-    direct_a = va.sum(axis=0)
-    direct_c = vc.sum(axis=0)
+    direct_a = sum_columns(va)
+    direct_c = sum_columns(vc)
     require_same_index(wac, direct_a, lhs_name="wac", rhs_name="va.sum(0)")
     require_same_index(wcc, direct_c, lhs_name="wcc", rhs_name="vc.sum(0)")
-    values = wac.T.dot(direct_a) + wcc.T.dot(direct_c)
+    values = transpose_matvec(wac, direct_a) + transpose_matvec(wcc, direct_c)
     return as_column_frame(values, PRICE_INDEX_LABEL)
 
 
@@ -811,10 +809,10 @@ def build_sut_pc_from_v_s_u(
     require_same_columns(va, s.index, lhs_name="va", rhs_name="s.index")
     require_same_columns(u, s.index, lhs_name="u", rhs_name="s.index")
     require_same_index(u, s.columns, lhs_name="u", rhs_name="s.columns")
-    direct_a = va.sum(axis=0)
-    direct_c = vc.sum(axis=0)
-    rhs = s.T.dot(direct_a) + direct_c
-    product = _dense_matmul(u, s)
+    direct_a = sum_columns(va)
+    direct_c = sum_columns(vc)
+    rhs = transpose_matvec(s, direct_a) + direct_c
+    product = matmul(u, s)
     values = _solve_sut_system(product, rhs, transpose=True, context=context, resolver=resolver)
     return as_column_frame(values, PRICE_INDEX_LABEL)
 
@@ -826,11 +824,11 @@ def build_sut_pa_from_va(
     wca: pd.DataFrame,
 ) -> pd.DataFrame:
     """Build the activity-side price index from split direct value-added blocks."""
-    direct_a = va.sum(axis=0)
-    direct_c = vc.sum(axis=0)
+    direct_a = sum_columns(va)
+    direct_c = sum_columns(vc)
     require_same_index(waa, direct_a, lhs_name="waa", rhs_name="va.sum(0)")
     require_same_index(wca, direct_c, lhs_name="wca", rhs_name="vc.sum(0)")
-    values = waa.T.dot(direct_a) + wca.T.dot(direct_c)
+    values = transpose_matvec(waa, direct_a) + transpose_matvec(wca, direct_c)
     return as_column_frame(values, PRICE_INDEX_LABEL)
 
 
@@ -847,9 +845,9 @@ def build_sut_pa_from_v_s_u(
     require_same_columns(s, u.index, lhs_name="s", rhs_name="u.index")
     require_same_index(s, u.columns, lhs_name="s", rhs_name="u.columns")
     require_same_columns(va, s.index, lhs_name="va", rhs_name="s.index")
-    direct_a = va.sum(axis=0)
-    direct_c = vc.sum(axis=0)
-    rhs = direct_a + u.T.dot(direct_c)
-    product = _dense_matmul(s, u)
+    direct_a = sum_columns(va)
+    direct_c = sum_columns(vc)
+    rhs = direct_a + transpose_matvec(u, direct_c)
+    product = matmul(s, u)
     values = _solve_sut_system(product, rhs, transpose=True, context=context, resolver=resolver)
     return as_column_frame(values, PRICE_INDEX_LABEL)
