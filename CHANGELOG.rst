@@ -14,6 +14,8 @@ Architecture and public API
   public surface around ``Database``.
 * Added a more explicit compute layer with planner, resolver, primitives,
   formula modules and dependency graph utilities.
+* Configured MARIO to default to ``INFO`` logging on import while preserving
+  explicit ``set_log_verbosity(...)`` overrides.
 
 Parsing and export
 ~~~~~~~~~~~~~~~~~~
@@ -25,6 +27,9 @@ Parsing and export
   ``Sector``/``Activity`` levels.
 * Preserved legacy public axes for historical workbooks while allowing newer
   explicit layouts without forcing ``Level`` markers back into exports.
+* Added structural ``tech_assumption`` support for SUT parsing with
+  ``industry-based`` / ``product-based`` modes, including automatic fallback to
+  ``industry-based`` for non-square SUT tables.
 
 Add sectors and structural operations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -51,6 +56,23 @@ Aggregation and transforms
   MARIO.
 * Kept transformation utilities in the new ``ops`` layout and aligned them with
   the refactored parser/database flow.
+* Added SUT-native structural assumption management, including a public
+  ``change_assumption(...)`` workflow and table-aware reset operations that now
+  preserve split SUT blocks instead of rebuilding unified placeholders first.
+
+Compute and SUT semantics
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Added product-based SUT support to the compute layer, including the public
+  matrix ``c`` and the corresponding supply-side formulas alongside the
+  historical industry-based path.
+* Made SUT technology assumptions a first-class database property that is
+  stored in metadata, shown in database summaries, preserved by test fixtures,
+  and cleared when transforming SUT databases into IOT form.
+* Introduced sparse-aware helper routines for shared compute operations such as
+  row/column sums, matrix-matrix products, and matrix-vector products, and
+  routed more IOT/SUT formulas through those helpers instead of direct
+  pandas/NumPy calls.
 
 Parsers and downloaders
 ~~~~~~~~~~~~~~~~~~~~~~~
