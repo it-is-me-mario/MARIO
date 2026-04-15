@@ -517,8 +517,8 @@
 <h1>mario.CoreModel.calc_all<a class="headerlink" href="#mario-coremodel-calc-all" title="Link to this heading">#</a></h1>
 <dl class="py method">
 <dt class="sig sig-object py" id="mario.CoreModel.calc_all">
-<span class="sig-prename descclassname"><span class="pre">CoreModel.</span></span><span class="sig-name descname"><span class="pre">calc_all</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">matrices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['z',</span> <span class="pre">'v',</span> <span class="pre">'e',</span> <span class="pre">'Z',</span> <span class="pre">'V',</span> <span class="pre">'E']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scenario</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'baseline'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_rewrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mario.CoreModel.calc_all" title="Link to this definition">#</a></dt>
-<dd><p>Compute one or more matrices for a scenario.</p>
+<span class="sig-prename descclassname"><span class="pre">CoreModel.</span></span><span class="sig-name descname"><span class="pre">calc_all</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">matrices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['z',</span> <span class="pre">'v',</span> <span class="pre">'e',</span> <span class="pre">'Z',</span> <span class="pre">'V',</span> <span class="pre">'E']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scenario</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'baseline'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_rewrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compute_method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linear_solver</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linear_strategy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mario.CoreModel.calc_all" title="Link to this definition">#</a></dt>
+<dd><p>Compute and materialize one or more matrices for a scenario.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -527,6 +527,17 @@
 computed matrices should be stored.</p></li>
 <li><p><strong>force_rewrite</strong> – When <code class="docutils literal notranslate"><span class="pre">True</span></code>, recompute requested matrices even if they already
 exist in the scenario.</p></li>
+<li><p><strong>compute_method</strong> – Optional per-call override for demand-driven calculations.
+Accepted values are <code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;inverse&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;solve&quot;</span></code>.
+When omitted, MARIO uses the globally configured default from
+<code class="xref py py-func docutils literal notranslate"><span class="pre">mario.set_compute_method()</span></code>.</p></li>
+<li><p><strong>linear_solver</strong> – Optional per-call override for solve-based formulas. When
+omitted, MARIO uses the globally configured default from
+<code class="xref py py-func docutils literal notranslate"><span class="pre">mario.set_linear_solver()</span></code>.</p></li>
+<li><p><strong>linear_strategy</strong> – Optional per-call override for the sparse solve strategy used under
+<code class="docutils literal notranslate"><span class="pre">compute_method=&quot;solve&quot;</span></code>. Accepted values are <code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&quot;direct&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;iterative&quot;</span></code>. When omitted, MARIO uses the
+globally configured default from <code class="xref py py-func docutils literal notranslate"><span class="pre">mario.set_linear_strategy()</span></code>.</p></li>
 <li><p><strong>**kwargs</strong> – Reserved for backward compatibility with historical callers.</p></li>
 </ul>
 </dd>
@@ -537,6 +548,10 @@ exist in the scenario.</p></li>
 <dd class="field-odd"><p>None</p>
 </dd>
 </dl>
+<p class="rubric">Notes</p>
+<p>The runtime options above matter mainly for large IOT databases, where
+MARIO can compute <code class="docutils literal notranslate"><span class="pre">X</span></code>, <code class="docutils literal notranslate"><span class="pre">f</span></code>, <code class="docutils literal notranslate"><span class="pre">F</span></code>, <code class="docutils literal notranslate"><span class="pre">m</span></code>, <code class="docutils literal notranslate"><span class="pre">M</span></code> and <code class="docutils literal notranslate"><span class="pre">p</span></code> without
+materializing the full Leontief inverse <code class="docutils literal notranslate"><span class="pre">w</span></code>.</p>
 </dd></dl>
 
 </section>

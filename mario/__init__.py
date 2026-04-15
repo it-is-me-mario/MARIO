@@ -122,3 +122,8 @@ from mario.model.conventions import IOT, SUT
 
 
 __authors__ = " 'Mohammad Amin Tahavori', Lorenzo Rinaldi', 'Nicolò Golinucci' "
+
+
+# Configure a usable default logging surface on import so users see MARIO's
+# informational messages without needing an explicit setup call first.
+set_log_verbosity("info")

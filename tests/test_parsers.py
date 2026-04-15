@@ -3,6 +3,8 @@ import pandas.testing as pdt
 import pytest
 
 from mario.internal import ModelState, ModelStateMetadata
+from mario.log_exc.exceptions import DataMissing
+from mario.compute.sut_formulas import build_sut_c_from_S_Xa
 from mario.model.enums import TableKind
 from mario.ops.export import _matrix_to_flat_frame, _trim_flat_frame_columns
 from mario.ops.export_specs import (
@@ -236,6 +238,49 @@ def _build_custom_sut_unified_blocks():
     return blocks, indexes, units
 
 
+def _build_non_square_sut_split_blocks():
+    activity = pd.MultiIndex.from_tuples(
+        [("r1", "Activity", "a1")],
+        names=["Region", "Level", "Item"],
+    )
+    commodity = pd.MultiIndex.from_tuples(
+        [("r1", "Commodity", "c1"), ("r1", "Commodity", "c2")],
+        names=["Region", "Level", "Item"],
+    )
+    final_demand = pd.MultiIndex.from_tuples(
+        [("r1", "Consumption category", "hh")],
+        names=["Region", "Level", "Item"],
+    )
+
+    blocks = {
+        "S": pd.DataFrame([[4.0, 1.0]], index=activity, columns=commodity),
+        "U": pd.DataFrame([[2.0], [3.0]], index=commodity, columns=activity),
+        "Yc": pd.DataFrame([[1.0], [2.0]], index=commodity, columns=final_demand),
+        "Va": pd.DataFrame([[5.0]], index=pd.Index(["taxes"], name="Item"), columns=activity),
+        "Vc": pd.DataFrame([[0.0, 0.0]], index=pd.Index(["taxes"], name="Item"), columns=commodity),
+        "Ea": pd.DataFrame([[0.5]], index=pd.Index(["CO2"], name="Item"), columns=activity),
+        "Ec": pd.DataFrame([[0.0, 0.0]], index=pd.Index(["CO2"], name="Item"), columns=commodity),
+        "EY": pd.DataFrame([[0.0]], index=pd.Index(["CO2"], name="Item"), columns=final_demand),
+        "VY": pd.DataFrame([[0.0]], index=pd.Index(["taxes"], name="Item"), columns=final_demand),
+    }
+    indexes = {
+        "r": {"main": ["r1"]},
+        "n": {"main": ["hh"]},
+        "a": {"main": ["a1"]},
+        "c": {"main": ["c1", "c2"]},
+        "s": {"main": ["a1", "c1", "c2"]},
+        "f": {"main": ["taxes"]},
+        "k": {"main": ["CO2"]},
+    }
+    units = {
+        "Activity": pd.DataFrame({"unit": ["EUR"]}, index=pd.Index(["a1"], name="Item")),
+        "Commodity": pd.DataFrame({"unit": ["EUR", "EUR"]}, index=pd.Index(["c1", "c2"], name="Item")),
+        "Factor of production": pd.DataFrame({"unit": ["EUR"]}, index=pd.Index(["taxes"], name="Item")),
+        "Satellite account": pd.DataFrame({"unit": ["ton"]}, index=pd.Index(["CO2"], name="Item")),
+    }
+    return blocks, indexes, units
+
+
 def _write_matrix_payload_from_blocks(blocks, units, root, fmt):
     root.mkdir(parents=True, exist_ok=True)
     for matrix_name, frame in blocks.items():
@@ -350,6 +395,54 @@ def _write_custom_sut_explicit_no_level_workbook(path):
     with pd.ExcelWriter(path, engine="openpyxl") as writer:
         pd.DataFrame(rows).to_excel(writer, sheet_name="flows", header=False, index=False)
         pd.DataFrame(units_rows).to_excel(writer, sheet_name="units", header=False, index=False)
+
+
+def test_build_parser_state_falls_back_to_industry_based_for_non_square_sut_pt():
+    blocks, indexes, units = _build_non_square_sut_split_blocks()
+
+    state = build_parser_state(
+        table="SUT",
+        matrices={"baseline": blocks},
+        indexes=indexes,
+        units=units,
+        parser_name="tests",
+        mode="flows",
+        tech_assumption="PT",
+    )
+
+    assert state.metadata.tech_assumption == "industry-based"
+    assert any("falling back to industry-based" in note for note in state.metadata.history)
+
+    database = build_database_from_state(state, calc_all=False)
+    assert database.tech_assumption == "industry-based"
+
+
+def test_parse_from_excel_preserves_product_based_sut_assumption_and_exposes_c(tmp_path):
+    path = tmp_path / "custom_sut_pt.xlsx"
+    _write_custom_sut_explicit_no_level_workbook(path)
+
+    database = parse_from_excel(
+        path=str(path),
+        table="SUT",
+        mode="flows",
+        matrix_layouts={"V": ("Region", "Activity"), "E": ("Region", "Activity")},
+        tech_assumption="PT",
+        calc_all=False,
+    )
+
+    assert database.tech_assumption == "product-based"
+    pdt.assert_frame_equal(
+        database.c,
+        build_sut_c_from_S_Xa(database.S, database.Xa, tech_assumption="PT"),
+    )
+
+
+def test_public_sut_c_is_unavailable_under_industry_based_assumption():
+    database = _build_custom_sut_database()
+
+    assert database.tech_assumption == "industry-based"
+    with pytest.raises(DataMissing):
+        database.resolve("c")
 
 
 def _flat_units_from_state(state):

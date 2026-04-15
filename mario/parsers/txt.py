@@ -510,6 +510,28 @@ def parse_iot_text_frames_with_layouts(
 
     matrices = {}
     final_demand_axis_names: tuple[str, ...] | None = None
+
+    def _merge_final_demand_axes(
+        existing: tuple[str, ...] | None,
+        current: tuple[str, ...] | None,
+    ) -> tuple[str, ...] | None:
+        if current is None:
+            return existing
+        if existing is None or existing == current:
+            return current if existing is None else existing
+
+        shorter, longer = (
+            (existing, current)
+            if len(existing) <= len(current)
+            else (current, existing)
+        )
+        if longer[-len(shorter) :] == shorter:
+            return longer
+
+        raise WrongInput(
+            f"Mixed semantic final-demand axes are not supported: {existing} and {current}."
+        )
+
     for matrix_name in expected_matrices:
         try:
             matrices[matrix_name], current_fd_axis_names = _read_matrix_text_with_layout(
@@ -518,13 +540,10 @@ def parse_iot_text_frames_with_layouts(
                 sep=sep,
                 matrix_layouts=matrix_layouts,
             )
-            if current_fd_axis_names is not None:
-                if final_demand_axis_names is None:
-                    final_demand_axis_names = current_fd_axis_names
-                elif final_demand_axis_names != current_fd_axis_names:
-                    raise WrongInput(
-                        f"Mixed semantic final-demand axes are not supported: {final_demand_axis_names} and {current_fd_axis_names}."
-                    )
+            final_demand_axis_names = _merge_final_demand_axes(
+                final_demand_axis_names,
+                current_fd_axis_names,
+            )
         except FileNotFoundError:
             if matrix_name not in required_matrices:
                 continue
@@ -1085,6 +1104,7 @@ class TxtParser(BaseParser):
         source: str | None = None,
         year: int | None = None,
         price: str | None = None,
+        tech_assumption: str | None = None,
         repository: BlockRepository | None = None,
     ) -> ModelState:
         """Parse a folder of text files into a canonical ``ModelState``."""
@@ -1129,6 +1149,7 @@ class TxtParser(BaseParser):
             source=source or str(Path(path)),
             year=year,
             price=price,
+            tech_assumption=tech_assumption,
             source_path=path,
             repository=repository,
         )

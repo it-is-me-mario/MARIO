@@ -26,6 +26,7 @@ from mario.compute.types import (
     ResolutionContext,
 )
 from mario.log_exc.logger import log_time
+from mario.log_exc.exceptions import NotImplementable
 from mario.model.enums import TableKind
 
 logger = logging.getLogger(__name__)
@@ -274,7 +275,7 @@ class Resolver:
                             "info",
                         )
                     return value
-                except ResolutionError as exc:
+                except (ResolutionError, NotImplementable) as exc:
                     errors.append(f"{strategy.kind.value}: {exc}")
                     continue
         finally:

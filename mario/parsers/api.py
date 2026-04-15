@@ -97,6 +97,7 @@ def build_parser_state(
     source: str | None = None,
     year: int | None = None,
     price: str | None = None,
+    tech_assumption: str | None = None,
     source_path: str | None = None,
     repository=None,
 ) -> ModelState:
@@ -112,6 +113,7 @@ def build_parser_state(
         source=source,
         year=year,
         price=price,
+        tech_assumption=tech_assumption,
         source_path=source_path,
         repository=repository,
     )
@@ -160,6 +162,7 @@ def build_database_from_state(
         source=source if source is not None else metadata.source,
         year=year if year is not None else metadata.year,
         price=price if price is not None else metadata.price,
+        tech_assumption=metadata.tech_assumption,
         init_by_parsers={"matrices": matrices, "_indeces": indexes, "units": units},
         calc_all=calc_all,
         notes=list(metadata.history),
@@ -187,6 +190,7 @@ def build_database_from_parser_output(
     source: str | None = None,
     year: int | None = None,
     price: str | None = None,
+    tech_assumption: str | None = None,
     source_path: str | None = None,
     repository=None,
     model: str = "Database",
@@ -209,6 +213,7 @@ def build_database_from_parser_output(
         source=source,
         year=year,
         price=price,
+        tech_assumption=tech_assumption,
         source_path=source_path,
         repository=repository,
     )

@@ -54,6 +54,7 @@ def build_new_instance_from_scenario(database, scenario):
     )
 
     return database.__class__(
+        name=getattr(database.meta, "name", None),
         Y=data[_ENUM.Y],
         E=data[_ENUM.E],
         V=data[_ENUM.V],
@@ -62,6 +63,10 @@ def build_new_instance_from_scenario(database, scenario):
         VY=data[_ENUM.VY],
         units=database.units,
         table=database.meta.table,
+        price=getattr(database.meta, "price", None),
+        source=getattr(database.meta, "source", None),
+        year=getattr(database.meta, "year", None),
+        tech_assumption=getattr(database.meta, "tech_assumption", None),
     )
 
 
@@ -94,6 +99,7 @@ def transform_sut_to_iot(database, method, inplace: bool = True):
     database.units = units
 
     database.meta.table = "IOT"
+    database.meta._add_attribute(tech_assumption=None)
     if captured_specs:
         _restore_iot_transform_block_specs(database, captured_specs)
     database.meta._add_history(

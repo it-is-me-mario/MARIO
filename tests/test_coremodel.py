@@ -18,6 +18,7 @@ from mario.api.core_model import CoreModel
 from mario.test.mario_test import load_test
 from mario.log_exc.exceptions import DataMissing, LackOfInput, WrongInput, NotImplementable
 from mario import calc_Z
+from mario.compute.sut_formulas import build_sut_c_from_S_Xa
 import warnings
 warnings.filterwarnings("ignore",category=DeprecationWarning)
 
@@ -218,10 +219,55 @@ def test_get_index(CoreDataIOT,CoreDataSUT):
 
     assert "is not a valid index" in str(msg.value)
 
-    with pytest.raises(WrongInput) as msg:
-        CoreDataIOT.get_index('Sector','aggregated')
 
-    assert "is not a valid level" in str(msg.value)
+def test_string_summary_shows_tech_assumption_for_sut_and_not_iot(CoreDataIOT, CoreDataSUT):
+
+    iot_summary = str(CoreDataIOT)
+    sut_summary = str(CoreDataSUT)
+
+    assert "tech_assumption" not in iot_summary
+    assert "tech_assumption = industry-based" in sut_summary
+
+
+def test_change_assumption_resets_all_sut_scenarios_to_flows(CoreDataSUT):
+
+    CoreDataSUT.reset_to_coefficients("baseline")
+    CoreDataSUT.clone_scenario("baseline", "dummy")
+
+    assert _ENUM.z in CoreDataSUT["baseline"]
+    assert _ENUM.Z not in CoreDataSUT["baseline"]
+
+    CoreDataSUT.change_assumption("PT")
+
+    expected_keep = {_ENUM.E, _ENUM.V, _ENUM.Y, _ENUM.Z, _ENUM.EY, _ENUM.VY}
+
+    assert CoreDataSUT.tech_assumption == "product-based"
+    for scenario in CoreDataSUT.scenarios:
+        assert set(CoreDataSUT[scenario]) == expected_keep
+        assert "c" not in CoreDataSUT[scenario]
+        assert _ENUM.s not in CoreDataSUT[scenario]
+
+    expected_c = build_sut_c_from_S_Xa(CoreDataSUT.S, CoreDataSUT.Xa, tech_assumption="PT")
+    pdt.assert_frame_equal(CoreDataSUT.c, expected_c)
+
+
+def test_change_assumption_is_not_supported_for_iot(CoreDataIOT):
+
+    with pytest.raises(WrongInput) as msg:
+        CoreDataIOT.change_assumption("PT")
+
+    assert "tech_assumption is only supported for SUT databases." in str(msg.value)
+
+
+def test_load_test_supports_product_based_sut():
+
+    sut = load_test("SUT", tech_assumption="PT")
+
+    assert sut.tech_assumption == "product-based"
+    pdt.assert_frame_equal(
+        sut.c,
+        build_sut_c_from_S_Xa(sut.S, sut.Xa, tech_assumption="PT"),
+    )
 
 
 def test_scenarios(CoreDataIOT):

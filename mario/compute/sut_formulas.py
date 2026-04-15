@@ -21,7 +21,13 @@ from mario.compute.helpers import (
     validate_square,
 )
 from mario.compute.runtime import choose_linear_strategy, effective_compute_options
+from mario.log_exc.exceptions import NotImplementable
 from mario.log_exc.logger import log_time
+from mario.model.assumptions import (
+    INDUSTRY_BASED_TECH,
+    PRODUCT_BASED_TECH,
+    normalize_tech_assumption,
+)
 from mario.model.labels import ITEM_LABEL, PRICE_INDEX_LABEL, PRODUCTION_LABEL
 
 logger = logging.getLogger(__name__)
@@ -62,6 +68,36 @@ def _resolver_linear_cache(resolver) -> dict | None:
         cache = {}
         resolver._linear_solver_cache = cache
     return cache
+
+
+def _effective_sut_tech_assumption(*, tech_assumption=None, resolver=None) -> str:
+    """Return the effective SUT technology assumption for one formula call."""
+    if tech_assumption is None and resolver is not None:
+        tech_assumption = getattr(resolver.dataset, "tech_assumption", None)
+    return normalize_tech_assumption(tech_assumption) or INDUSTRY_BASED_TECH
+
+
+def _require_product_based(assumption: str, matrix_name: str) -> None:
+    """Raise a clear error when a PT-only SUT matrix is requested under IT."""
+    if assumption != PRODUCT_BASED_TECH:
+        raise NotImplementable(
+            f"{matrix_name} is only defined for SUT databases using "
+            "the product-based technology assumption."
+        )
+
+
+def _safe_inverse_swapped_axes(matrix: pd.DataFrame) -> pd.DataFrame:
+    """Invert a square dataframe and swap row/column labels on the result."""
+    if not isinstance(matrix, pd.DataFrame):
+        raise TypeError("Expected a pandas DataFrame.")
+    if matrix.shape[0] != matrix.shape[1]:
+        raise ValueError("Expected a square matrix.")
+    values = matrix.to_numpy(dtype=float)
+    try:
+        inverse = np.linalg.inv(values)
+    except np.linalg.LinAlgError:
+        inverse = np.linalg.pinv(values)
+    return pd.DataFrame(inverse, index=matrix.columns, columns=matrix.index)
 
 
 def _solve_sut_system(
@@ -373,23 +409,143 @@ def build_sut_u_from_U_Xa(U: pd.DataFrame, Xa: pd.DataFrame | pd.Series) -> pd.D
     return scale_columns(U, inverse_vector(x_a))
 
 
-def build_sut_S_from_s_Xc(s: pd.DataFrame, Xc: pd.DataFrame | pd.Series) -> pd.DataFrame:
-    """Build supply flows from supply coefficients and commodity output.
+def build_sut_c_from_S_Xa(
+    S: pd.DataFrame,
+    Xa: pd.DataFrame | pd.Series,
+    *,
+    tech_assumption: str | None = None,
+    resolver=None,
+) -> pd.DataFrame:
+    """Build product-based commodity technology coefficients from supply flows."""
+    assumption = _effective_sut_tech_assumption(
+        tech_assumption=tech_assumption,
+        resolver=resolver,
+    )
+    _require_product_based(assumption, "c")
+    x_a = _vector_series(Xa, label="Xa")
+    require_same_index(S, x_a.index, lhs_name="S", rhs_name="Xa")
+    return scale_columns(S.T, inverse_vector(x_a))
+
+
+def build_sut_c_from_s(
+    s: pd.DataFrame,
+    *,
+    tech_assumption: str | None = None,
+    resolver=None,
+) -> pd.DataFrame:
+    """Build product-based commodity technology coefficients from ``s``."""
+    assumption = _effective_sut_tech_assumption(
+        tech_assumption=tech_assumption,
+        resolver=resolver,
+    )
+    _require_product_based(assumption, "c")
+    return _safe_inverse_swapped_axes(s)
+
+
+def build_sut_s_from_c(
+    c: pd.DataFrame,
+    *,
+    tech_assumption: str | None = None,
+    resolver=None,
+) -> pd.DataFrame:
+    """Build supply coefficients from product-based commodity technology coefficients."""
+    assumption = _effective_sut_tech_assumption(
+        tech_assumption=tech_assumption,
+        resolver=resolver,
+    )
+    _require_product_based(assumption, "s")
+    return _safe_inverse_swapped_axes(c)
+
+
+def build_sut_S_from_c_Xa(
+    c: pd.DataFrame,
+    Xa: pd.DataFrame | pd.Series,
+    *,
+    tech_assumption: str | None = None,
+    resolver=None,
+) -> pd.DataFrame:
+    """Build supply flows from product-based commodity technology coefficients."""
+    assumption = _effective_sut_tech_assumption(
+        tech_assumption=tech_assumption,
+        resolver=resolver,
+    )
+    _require_product_based(assumption, "S")
+    x_a = _vector_series(Xa, label="Xa")
+    require_same_columns(c, x_a.index, lhs_name="c", rhs_name="Xa")
+    return scale_columns(c, x_a).T
+
+
+def build_sut_S_from_s_Xc(
+    s: pd.DataFrame,
+    Xc: pd.DataFrame | pd.Series,
+    Xa: pd.DataFrame | pd.Series | None = None,
+    *,
+    tech_assumption: str | None = None,
+    resolver=None,
+) -> pd.DataFrame:
+    """Build supply flows from coefficients and output.
+
+    Under the industry-based assumption this uses the historical ``S = s @ diag(Xc)``
+    definition. Under the product-based assumption it reconstructs ``c = s^-1``
+    and then uses ``S = transpose(c @ diag(Xa))``.
 
     The implementation scales columns directly instead of materializing
-    ``diag(Xc)``.
+    dense diagonal matrices.
     """
+    assumption = _effective_sut_tech_assumption(
+        tech_assumption=tech_assumption,
+        resolver=resolver,
+    )
+    if assumption == PRODUCT_BASED_TECH:
+        if Xa is None:
+            if resolver is not None:
+                Xa = resolver.resolve("Xa")
+            else:
+                raise ValueError("Xa is required to build S under product-based technology assumption.")
+        return build_sut_S_from_c_Xa(
+            build_sut_c_from_s(s, tech_assumption=assumption),
+            Xa,
+            tech_assumption=assumption,
+        )
+
     x_c = _vector_series(Xc, label="Xc")
     require_same_columns(s, x_c.index, lhs_name="s", rhs_name="Xc")
     return scale_columns(s, x_c)
 
 
-def build_sut_s_from_S_Xc(S: pd.DataFrame, Xc: pd.DataFrame | pd.Series) -> pd.DataFrame:
-    """Build supply coefficients from supply flows and commodity output.
+def build_sut_s_from_S_Xc(
+    S: pd.DataFrame,
+    Xc: pd.DataFrame | pd.Series,
+    Xa: pd.DataFrame | pd.Series | None = None,
+    *,
+    tech_assumption: str | None = None,
+    resolver=None,
+) -> pd.DataFrame:
+    """Build supply coefficients from supply flows and output.
+
+    Under the industry-based assumption this uses the historical
+    ``s = S @ minverse(diag(Xc))`` definition. Under the product-based
+    assumption it first builds ``c = transpose(S) @ minverse(diag(Xa))`` and
+    then returns ``s = c^-1``.
 
     The implementation scales columns directly by ``1 / Xc`` instead of
-    materializing ``diag(1 / Xc)``.
+    dense diagonal matrices.
     """
+    assumption = _effective_sut_tech_assumption(
+        tech_assumption=tech_assumption,
+        resolver=resolver,
+    )
+    if assumption == PRODUCT_BASED_TECH:
+        if Xa is None:
+            if resolver is not None:
+                Xa = resolver.resolve("Xa")
+            else:
+                raise ValueError("Xa is required to build s under product-based technology assumption.")
+        return build_sut_s_from_c(
+            build_sut_c_from_S_Xa(S, Xa, tech_assumption=assumption),
+            tech_assumption=assumption,
+        )
+
     x_c = _vector_series(Xc, label="Xc")
     require_same_columns(S, x_c.index, lhs_name="S", rhs_name="Xc")
     return scale_columns(S, inverse_vector(x_c))

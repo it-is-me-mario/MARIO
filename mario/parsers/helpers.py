@@ -26,6 +26,7 @@ from mario.compute.views import (
 )
 from mario.log_exc.logger import log_time
 from mario.internal import ModelState, ModelStateMetadata
+from mario.model.assumptions import resolve_tech_assumption
 from mario.model.enums import TableKind
 from mario.storage.base import BlockRepository
 from mario.storage.repository import InMemoryBlockRepository
@@ -66,6 +67,43 @@ def copy_units(units: dict[str, object] | None) -> dict[str, object]:
     for label, value in units.items():
         copied[label] = value.copy(deep=True) if hasattr(value, "copy") else value
     return copied
+
+
+def _index_count(indexes: dict[str, dict[str, tuple[object, ...]]], code: str) -> int | None:
+    """Return the number of items declared for one canonical parser index code."""
+    levels = indexes.get(code)
+    if not levels:
+        return None
+
+    seen = []
+    for values in levels.values():
+        for value in values:
+            if value not in seen:
+                seen.append(value)
+    return len(seen)
+
+
+def _infer_sut_dimensions(
+    indexes: dict[str, dict[str, tuple[object, ...]]],
+    blocks: dict[str, object],
+) -> tuple[int | None, int | None]:
+    """Infer activity and commodity counts for one SUT parser payload."""
+    activity_count = _index_count(indexes, "a")
+    commodity_count = _index_count(indexes, "c")
+    if activity_count is not None and commodity_count is not None:
+        return activity_count, commodity_count
+
+    for name in ("S", "s"):
+        block = blocks.get(name)
+        if block is not None:
+            return block.shape[0], block.shape[1]
+
+    for name in ("U", "u"):
+        block = blocks.get(name)
+        if block is not None:
+            return block.shape[1], block.shape[0]
+
+    return activity_count, commodity_count
 
 
 def extract_baseline_blocks(matrices: dict[str, object]) -> dict[str, object]:
@@ -147,6 +185,7 @@ def build_state_from_parser_output(
     source: str | None = None,
     year: int | None = None,
     price: str | None = None,
+    tech_assumption: str | None = None,
     source_path: str | Path | None = None,
     repository: BlockRepository | None = None,
 ) -> ModelState:
@@ -154,26 +193,8 @@ def build_state_from_parser_output(
     table_kind = TableKind.coerce(table)
     log_time(logger, f"Parser: building state payload for {table_kind.value}.", "debug")
 
-    metadata = ModelStateMetadata(
-        table_kind=table_kind,
-        name=name,
-        source=source,
-        year=year,
-        price=price,
-    )
-    metadata.extra["parser"] = parser_name
-    if mode is not None:
-        metadata.extra["mode"] = mode
-    if source_path is not None:
-        metadata.extra["source_path"] = str(Path(source_path))
-    metadata.add_history(f"Parsed with {parser_name}.")
-
-    state = ModelState(
-        metadata=metadata,
-        repository=repository or InMemoryBlockRepository(),
-        indexes=copy_indexes(indexes),
-        units=copy_units(units),
-    )
+    normalized_indexes = copy_indexes(indexes)
+    normalized_units = copy_units(units)
 
     parsed_blocks = extract_baseline_blocks(matrices)
     has_native_sut_blocks = any(
@@ -183,6 +204,38 @@ def build_state_from_parser_output(
         parsed_blocks
         if table_kind == TableKind.IOT or has_native_sut_blocks
         else promote_sut_blocks(parsed_blocks)
+    )
+    activity_count, commodity_count = _infer_sut_dimensions(normalized_indexes, canonical_blocks)
+    resolved_tech_assumption, tech_note = resolve_tech_assumption(
+        table=table_kind,
+        tech_assumption=tech_assumption,
+        activity_count=activity_count,
+        commodity_count=commodity_count,
+    )
+
+    metadata = ModelStateMetadata(
+        table_kind=table_kind,
+        name=name,
+        source=source,
+        year=year,
+        price=price,
+        tech_assumption=resolved_tech_assumption,
+    )
+    metadata.extra["parser"] = parser_name
+    if mode is not None:
+        metadata.extra["mode"] = mode
+    if source_path is not None:
+        metadata.extra["source_path"] = str(Path(source_path))
+    metadata.add_history(f"Parsed with {parser_name}.")
+    if tech_note is not None:
+        log_time(logger, f"Parser: {tech_note}", "warning")
+        metadata.add_history(tech_note)
+
+    state = ModelState(
+        metadata=metadata,
+        repository=repository or InMemoryBlockRepository(),
+        indexes=normalized_indexes,
+        units=normalized_units,
     )
 
     for block_name, value in canonical_blocks.items():

@@ -9,6 +9,7 @@ from mario.log_exc.exceptions import (
 from mario.log_exc.logger import log_time
 from mario.api.metadata import MARIOMetaData
 from mario.internal.access import block_to_matrix, block_to_pandas, block_to_table
+from mario.model.assumptions import resolve_tech_assumption
 from mario.parsers.tabular import dataframe_parser
 from mario.model.conventions import TABLE_LEVELS
 from tabulate import tabulate
@@ -65,6 +66,17 @@ def _normalize_parsed_matrix_name(name: str) -> str:
         return name
 
 
+def _main_index_count(indeces: dict[str, dict[str, list[object]]], code: str) -> int | None:
+    """Return the size of one main database index when available."""
+    levels = indeces.get(code)
+    if not levels:
+        return None
+    values = levels.get("main")
+    if values is None:
+        return None
+    return len(values)
+
+
 def available_matrices(table_type: str) -> tuple[str, ...]:
     """Return the built-in matrix names accepted for one table type.
 
@@ -100,6 +112,7 @@ class CoreModel:
         units=None,
         price=None,
         source=None,
+        tech_assumption: str | None = None,
         calc_all=True,
         year=None,
         **kwargs,
@@ -121,6 +134,10 @@ class CoreModel:
             Price system label stored in metadata.
         source:
             Source label stored in metadata.
+        tech_assumption:
+            Optional technology assumption for SUT databases. Accepted values
+            are ``"industry-based"``, ``"product-based"``, ``"IT"`` and
+            ``"PT"``. IOT databases do not accept this argument.
         calc_all:
             When ``True``, compute the standard dependent matrices right after
             initialization.
@@ -161,7 +178,6 @@ class CoreModel:
                 raise ValueError(f"NaN values found in the following matrices: {nan_keys}")
 
             log_time(logger, "Metadata: initialized.")
-            self.meta._add_attribute(table=table, price=price, source=source, year=year)
 
         else:
             if not all(
@@ -184,9 +200,22 @@ class CoreModel:
                 renamed_matrices = _prune_eager_parser_blocks(renamed_matrices)
                 self.matrices["baseline"] = renamed_matrices
 
-                self.meta._add_attribute(table=table, price=price)
-
                 log_time(logger, "Metadata: initialized by dataframes.")
+
+        resolved_tech_assumption, tech_note = self._resolve_structural_tech_assumption(
+            table=table,
+            tech_assumption=tech_assumption,
+        )
+        self.meta._add_attribute(
+            table=table,
+            price=price,
+            source=source,
+            year=year,
+            tech_assumption=resolved_tech_assumption,
+        )
+        if tech_note is not None:
+            log_time(logger, f"Metadata: {tech_note}", "warning")
+            self.meta._add_history(tech_note)
 
         # Adding notes if passed by user or the parsers
         if kwargs.get("notes"):
@@ -315,6 +344,20 @@ class CoreModel:
     def _resolver_failure_types(self):
         """Return the exception types that indicate a resolution failure."""
         return (_resolver_module().ResolutionError, LookupError, NotImplementedError)
+
+    def _resolve_structural_tech_assumption(
+        self,
+        *,
+        table: str,
+        tech_assumption: str | None,
+    ) -> tuple[str | None, str | None]:
+        """Resolve the effective technology assumption for the current data shape."""
+        return resolve_tech_assumption(
+            table=table,
+            tech_assumption=tech_assumption,
+            activity_count=_main_index_count(self._indeces, "a"),
+            commodity_count=_main_index_count(self._indeces, "c"),
+        )
 
     def _resolve_one(
         self,
@@ -1048,6 +1091,54 @@ class CoreModel:
         log_time(logger, "Databases: reset to coefficients.")
         self.matrices[scenario] = matrices
 
+    def change_assumption(self, tech_assumption: str) -> None:
+        """Change the structural SUT technology assumption.
+
+        The technology assumption is a dataset-level property, so the change is
+        applied to the whole database rather than to one scenario only. Before
+        updating the metadata, all scenarios are reset to their flow-side
+        matrices so any coefficient-side blocks can be rebuilt consistently
+        under the new assumption on demand.
+
+        Parameters
+        ----------
+        tech_assumption:
+            Target technology assumption. Accepted values are
+            ``"industry-based"``, ``"product-based"``, ``"IT"`` and ``"PT"``.
+
+        Returns
+        -------
+        None
+            The database is updated in place.
+        """
+        resolved_tech_assumption, tech_note = self._resolve_structural_tech_assumption(
+            table=self.table_type,
+            tech_assumption=tech_assumption,
+        )
+
+        current_tech_assumption = self.tech_assumption
+
+        if current_tech_assumption == resolved_tech_assumption:
+            if tech_note is not None:
+                log_time(logger, f"Database: {tech_note}", "warning")
+                self.meta._add_history(tech_note)
+            return
+
+        scenarios = list(self.scenarios)
+        for scenario in scenarios:
+            self.reset_to_flows(scenario=scenario)
+
+        self.meta._add_attribute(tech_assumption=resolved_tech_assumption)
+        self.meta._add_history(
+            "Database: technology assumption changed from "
+            f"{current_tech_assumption} to {resolved_tech_assumption}. "
+            "All scenarios were reset to flows."
+        )
+
+        if tech_note is not None:
+            log_time(logger, f"Database: {tech_note}", "warning")
+            self.meta._add_history(tech_note)
+
     def get_index(self, index, level="main"):
         """Return one index level or the full index mapping for the database.
 
@@ -1321,9 +1412,12 @@ class CoreModel:
         """Render a compact structural summary of the database."""
         to_print = (
             "name = {}\n"
-            "table = {}\n"
-            "scenarios = {}\n".format(self.meta.name, self.meta.table, self.scenarios)
+            "table = {}\n".format(self.meta.name, self.meta.table)
         )
+        tech_assumption = getattr(self.meta, "tech_assumption", None)
+        if tech_assumption is not None:
+            to_print += f"tech_assumption = {tech_assumption}\n"
+        to_print += "scenarios = {}\n".format(self.scenarios)
         for item in TABLE_LEVELS[self.meta.table]:
             to_print += "{} = {}\n".format(item, len(self.get_index(item)))
 
@@ -1453,6 +1547,11 @@ class CoreModel:
             Table kind stored in metadata, typically ``"IOT"`` or ``"SUT"``.
         """
         return self.meta.table
+
+    @property
+    def tech_assumption(self):
+        """Return the structural technology assumption stored on the database."""
+        return getattr(self.meta, "tech_assumption", None)
 
     @property
     def is_multi_region(self):

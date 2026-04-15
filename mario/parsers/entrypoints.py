@@ -201,6 +201,7 @@ def parse_from_txt(
     sep: str = ",",
     flat: bool = False,
     matrix_layouts: dict[str, object] | None = None,
+    tech_assumption: str | None = None,
     **kwargs,
 ):
     """Parse a database from a folder of text files.
@@ -263,6 +264,7 @@ def parse_from_txt(
         name=name,
         source=source,
         year=year,
+        tech_assumption=tech_assumption,
     )
     return build_database_from_state(
         state,
@@ -286,6 +288,7 @@ def parse_from_parquet(
     model: str = "Database",
     flat: bool = False,
     matrix_layouts: dict[str, object] | None = None,
+    tech_assumption: str | None = None,
     **kwargs,
 ):
     """Parse a database from a folder of parquet files.
@@ -316,6 +319,7 @@ def parse_from_parquet(
         name=name,
         source=source,
         year=year,
+        tech_assumption=tech_assumption,
     )
     return build_database_from_state(
         state,
@@ -335,6 +339,7 @@ def parse_from_excel(
     data_sheet: str = 0,
     unit_sheet: str = "units",
     matrix_layouts: dict[str, object] | None = None,
+    tech_assumption: str | None = None,
     calc_all: bool = False,
     year: int = None,
     name: str = None,
@@ -407,6 +412,7 @@ def parse_from_excel(
         name=name,
         source=source,
         year=year,
+        tech_assumption=tech_assumption,
     )
     return build_database_from_state(
         state,

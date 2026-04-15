@@ -5,10 +5,13 @@ from scipy import sparse
 
 from mario.compute.ordering import SUTUnifiedOrderingPolicy
 from mario.compute.sut_formulas import (
+    build_sut_c_from_S_Xa,
+    build_sut_c_from_s,
     build_sut_Ea_from_ea_Xa,
     build_sut_Ec_from_ec_Xc,
     build_sut_Fc_from_fc_Yc,
     build_sut_Mc_from_mc_Yc,
+    build_sut_S_from_c_Xa,
     build_sut_S_from_s_Xc,
     build_sut_U_from_u_Xa,
     build_sut_Va_from_va_Xa,
@@ -33,6 +36,7 @@ from mario.compute.sut_formulas import (
     build_sut_pc_from_v_s_u,
     build_sut_pc_from_vc,
     build_sut_s_from_S_Xc,
+    build_sut_s_from_c,
     build_sut_u_from_U_Xa,
     build_sut_va_from_Va_Xa,
     build_sut_vc_from_Vc_Xc,
@@ -211,6 +215,36 @@ def test_sut_satellite_multiplier_formulas_handle_pandas_sparse_float32_inputs()
 
     pdt.assert_frame_equal(build_sut_fc_from_ea_s_wcc(ea, s, wcc), expected_fc)
     pdt.assert_frame_equal(build_sut_fa_from_ea_waa(ea, waa), expected_fa)
+
+
+def test_product_based_sut_c_s_and_S_formulas_roundtrip():
+    S = pd.DataFrame(
+        [[6.0, 1.0], [2.0, 8.0]],
+        index=["a1", "a2"],
+        columns=["c1", "c2"],
+    )
+    Xa = pd.DataFrame([7.0, 10.0], index=["a1", "a2"], columns=["production"])
+    Xc = pd.DataFrame([8.0, 9.0], index=["c1", "c2"], columns=["production"])
+
+    c = build_sut_c_from_S_Xa(S, Xa, tech_assumption="PT")
+    expected_c = pd.DataFrame(
+        [[6.0 / 7.0, 2.0 / 10.0], [1.0 / 7.0, 8.0 / 10.0]],
+        index=["c1", "c2"],
+        columns=["a1", "a2"],
+    )
+    pdt.assert_frame_equal(c, expected_c)
+
+    s = build_sut_s_from_c(c, tech_assumption="product-based")
+    pdt.assert_frame_equal(s, build_sut_s_from_S_Xc(S, Xc, Xa=Xa, tech_assumption="PT"))
+
+    rebuilt_c = build_sut_c_from_s(s, tech_assumption="product-based")
+    rebuilt_S = build_sut_S_from_c_Xa(c, Xa, tech_assumption="PT")
+    pdt.assert_frame_equal(rebuilt_c, c)
+    pdt.assert_frame_equal(rebuilt_S, S)
+    pdt.assert_frame_equal(
+        build_sut_S_from_s_Xc(s, Xc, Xa=Xa, tech_assumption="product-based"),
+        S,
+    )
 
 
 def test_sut_production_formulas_handle_pandas_sparse_float32_inputs():

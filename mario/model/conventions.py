@@ -48,6 +48,7 @@ MATRIX_TITLES = {
     "VY": "Value added transaction flows for final use",
     "U": "Use transaction flows",
     "u": "Use transaction coefficients",
+    "c": "Commodity technology coefficients",
     "S": "Supply transaction flows",
     "s": "Supply transaction coefficients",
     "X": "Production vector",
@@ -150,6 +151,10 @@ TABLE_MATRIX_INDEX_LAYOUTS = {
             "columns": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["a"], "Item"],
         },
         "u": {
+            "indices": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["c"], "Item"],
+            "columns": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["a"], "Item"],
+        },
+        "c": {
             "indices": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["c"], "Item"],
             "columns": [_MASTER_INDEX["r"], "Level", _MASTER_INDEX["a"], "Item"],
         },

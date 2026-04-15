@@ -16,6 +16,7 @@ class ModelStateMetadata:
     source: str | None = None
     year: int | None = None
     price: str | None = None
+    tech_assumption: str | None = None
     history: list[str] = field(default_factory=list)
     extra: dict[str, object] = field(default_factory=dict)
 
@@ -31,6 +32,7 @@ class ModelStateMetadata:
             "source": self.source,
             "year": self.year,
             "price": self.price,
+            "tech_assumption": self.tech_assumption,
             "history": list(self.history),
             "extra": dict(self.extra),
         }
@@ -44,5 +46,6 @@ class ModelStateMetadata:
             source=getattr(metadata, "source", None),
             year=getattr(metadata, "year", None),
             price=getattr(metadata, "price", None),
+            tech_assumption=getattr(metadata, "tech_assumption", None),
             history=list(getattr(metadata, "_history", [])),
         )

@@ -517,8 +517,20 @@
 <h1>mario.calc_X_from_z<a class="headerlink" href="#mario-calc-x-from-z" title="Link to this heading">#</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="mario.calc_X_from_z">
-<span class="sig-prename descclassname"><span class="pre">mario.</span></span><span class="sig-name descname"><span class="pre">calc_X_from_z</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mario.calc_X_from_z" title="Link to this definition">#</a></dt>
-<dd><p>Build production from <code class="docutils literal notranslate"><span class="pre">z</span></code> by first deriving the Leontief inverse.</p>
+<span class="sig-prename descclassname"><span class="pre">mario.</span></span><span class="sig-name descname"><span class="pre">calc_X_from_z</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solver</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strategy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mario.calc_X_from_z" title="Link to this definition">#</a></dt>
+<dd><p>Build production directly from <code class="docutils literal notranslate"><span class="pre">z</span></code> and final demand.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>z</strong> – Technical coefficients and final demand.</p></li>
+<li><p><strong>Y</strong> – Technical coefficients and final demand.</p></li>
+<li><p><strong>method</strong> – Optional runtime compute method override. Accepted values are
+<code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;inverse&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;solve&quot;</span></code>.</p></li>
+<li><p><strong>solver</strong> – Optional linear solver backend used when the solve path is selected.</p></li>
+<li><p><strong>strategy</strong> – Optional sparse linear strategy used when the solve path is selected.</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 </section>

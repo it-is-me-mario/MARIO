@@ -36,13 +36,17 @@ path = os.path.abspath(
 )
 
 
-def load_test(table):
+def load_test(table, tech_assumption=None):
     """Load one of the packaged test databases.
 
     Parameters
     ----------
     table : str
         Table kind to load. Accepted values are ``"IOT"`` and ``"SUT"``.
+    tech_assumption : str, optional
+        Optional SUT technology assumption forwarded to the parser. Accepted
+        values are ``"industry-based"``, ``"product-based"``, ``"IT"`` and
+        ``"PT"``.
 
     Returns
     -------
@@ -51,7 +55,11 @@ def load_test(table):
     """
 
     return parse_from_excel(
-        path=f"{path}/{table}.xlsx", table=table, name=f"{table} test", mode="flows"
+        path=f"{path}/{table}.xlsx",
+        table=table,
+        name=f"{table} test",
+        mode="flows",
+        tech_assumption=tech_assumption,
     )
 
 

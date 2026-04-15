@@ -105,6 +105,7 @@ class Database(CoreModel):
         units: Dict = None,
         price: str = None,
         source: str = None,
+        tech_assumption: str | None = None,
         **kwargs,
     ):
         """Initialize a MARIO database object.
@@ -124,6 +125,10 @@ class Database(CoreModel):
             Price system label stored in metadata.
         source:
             Source label stored in metadata.
+        tech_assumption:
+            Optional SUT technology assumption stored on the database
+            metadata. Accepted values are ``"industry-based"``,
+            ``"product-based"``, ``"IT"`` and ``"PT"``.
         **kwargs:
             Extra options forwarded to ``CoreModel``. Parsers typically use
             these to bootstrap the instance from parsed matrices.
@@ -141,6 +146,7 @@ class Database(CoreModel):
             units=units,
             price=price,
             source=source,
+            tech_assumption=tech_assumption,
             **kwargs,
         )
 

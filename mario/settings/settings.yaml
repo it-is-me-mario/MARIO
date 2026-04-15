@@ -1,7 +1,7 @@
 compute:
   auto_w_memory_fraction: 0.25
   auto_w_overhead_factor: 3.0
-  compute_method: inverse
+  compute_method: auto
   linear_solver: scipy
   linear_strategy: auto
 index:

@@ -122,7 +122,7 @@ def setup_root_logger(verbosity, capture_warnings, include_dependency_logs=False
     console.setFormatter(formatter)
     mario_logger.addHandler(console)
     mario_logger.setLevel(verbosity.upper())
-    mario_logger.propagate = False
+    mario_logger.propagate = True
 
     root_logger.setLevel(logging.CRITICAL)
     _configure_dependency_logging(include_dependency_logs=include_dependency_logs)
@@ -144,6 +144,21 @@ def setup_root_logger(verbosity, capture_warnings, include_dependency_logs=False
 
 def log_time(logger, comment, level="info"):
     """Log one message using a dynamic standard logging level name."""
+    current = logger
+    while current is not None:
+        for handler in getattr(current, "handlers", ()):
+            stream = getattr(handler, "stream", None)
+            if stream is not None and getattr(stream, "closed", False):
+                try:
+                    handler.setStream(sys.stdout)
+                except Exception:
+                    try:
+                        handler.stream = sys.stdout
+                    except Exception:
+                        pass
+        if not getattr(current, "propagate", False):
+            break
+        current = current.parent
     getattr(logger, level)(comment)
 
 

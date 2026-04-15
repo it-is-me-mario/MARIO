@@ -468,6 +468,25 @@ COMPUTE_CATALOG = {
             _extract("z", "extract_u_from_z", "Extracted from z, only if available"),
             _formula(("U", "Xa"), "build_sut_u_from_U_Xa", "u = U @ minverse(diag(Xa))"),
         ),
+        "c": _spec(
+            SUT,
+            "c",
+            ADD,
+            SUT_COMMODITY_AXIS,
+            SUT_ACTIVITY_AXIS,
+            _formula(
+                ("S", "Xa"),
+                "build_sut_c_from_S_Xa",
+                "c = transpose(S) @ minverse(diag(Xa))",
+                "Available only under the product-based technology assumption.",
+            ),
+            _formula(
+                ("s",),
+                "build_sut_c_from_s",
+                "c = minverse(s)",
+                "Available only under the product-based technology assumption.",
+            ),
+        ),
         "S": _spec(
             SUT,
             "S",
@@ -475,7 +494,17 @@ COMPUTE_CATALOG = {
             SUT_ACTIVITY_AXIS,
             SUT_COMMODITY_AXIS,
             _extract("Z", "extract_S_from_Z", "Extracted from Z, only if available"),
-            _formula(("s", "Xc"), "build_sut_S_from_s_Xc", "S = s @ diag(Xc)"),
+            _formula(
+                ("s", "Xc"),
+                "build_sut_S_from_s_Xc",
+                "S = s @ diag(Xc) [IT] | transpose(inv(s) @ diag(Xa)) [PT]",
+            ),
+            _formula(
+                ("c", "Xa"),
+                "build_sut_S_from_c_Xa",
+                "S = transpose(c @ diag(Xa))",
+                "Available only under the product-based technology assumption.",
+            ),
         ),
         "s": _spec(
             SUT,
@@ -484,7 +513,11 @@ COMPUTE_CATALOG = {
             SUT_ACTIVITY_AXIS,
             SUT_COMMODITY_AXIS,
             _extract("z", "extract_s_from_z", "Extracted from z, only if available"),
-            _formula(("S", "Xc"), "build_sut_s_from_S_Xc", "s = S @ minverse(diag(Xc))"),
+            _formula(
+                ("S", "Xc"),
+                "build_sut_s_from_S_Xc",
+                "s = S @ minverse(diag(Xc)) [IT] | inv(transpose(S) @ minverse(diag(Xa))) [PT]",
+            ),
         ),
         "EY": _spec(
             SUT,

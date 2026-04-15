@@ -52,6 +52,7 @@ class ExcelParser(BaseParser):
         source: str | None = None,
         year: int | None = None,
         price: str | None = None,
+        tech_assumption: str | None = None,
         repository: BlockRepository | None = None,
     ) -> ModelState:
         """Parse a generic Excel workbook into a canonical ``ModelState``."""
@@ -91,6 +92,7 @@ class ExcelParser(BaseParser):
             source=source or str(Path(path)),
             year=year,
             price=price,
+            tech_assumption=tech_assumption,
             source_path=path,
             repository=repository,
         )
