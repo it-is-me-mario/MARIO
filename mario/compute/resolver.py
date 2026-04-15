@@ -9,7 +9,14 @@ from mario.compute import ghosh_formulas, iot_formulas, sut_formulas, views
 from mario.compute.graph import build_dependency_graph, render_dependency_graph
 from mario.compute.operators import execute_registered_operator
 from mario.compute.ordering import SUTUnifiedOrderingPolicy
-from mario.compute.planner import ResolutionStore, build_plan, candidate_strategies, resolve_table_kind
+from mario.compute.planner import (
+    ResolutionStore,
+    build_plan,
+    candidate_strategies,
+    classify_iot_formula_strategy,
+    resolve_table_kind,
+)
+from mario.compute.runtime import effective_compute_options
 from mario.compute.types import (
     ConcatStrategy,
     ExtractStrategy,
@@ -58,7 +65,15 @@ def _build_ordering(store: ResolutionStore, extra_blocks: dict[str, object] | No
     return SUTUnifiedOrderingPolicy.from_blocks(**kwargs)
 
 
-def _execute_strategy(strategy, target: str, store: ResolutionStore, table_kind: TableKind, dependencies: dict[str, object]):
+def _execute_strategy(
+    strategy,
+    target: str,
+    store: ResolutionStore,
+    table_kind: TableKind,
+    dependencies: dict[str, object],
+    *,
+    resolver=None,
+):
     """Execute one selected strategy against the current store state."""
     if isinstance(strategy, ParsedStrategy):
         if store.has(target):
@@ -92,7 +107,13 @@ def _execute_strategy(strategy, target: str, store: ResolutionStore, table_kind:
         if function is None:
             raise ResolutionError(f"Formula implementation {strategy.function} is missing.")
         args = [dependencies[name] for name in strategy.inputs]
-        return function(*args)
+        parameters = inspect.signature(function).parameters
+        kwargs = {}
+        if "context" in parameters:
+            kwargs["context"] = getattr(resolver, "context", None)
+        if "resolver" in parameters:
+            kwargs["resolver"] = resolver
+        return function(*args, **kwargs)
 
     if isinstance(strategy, OperatorStrategy):
         try:
@@ -101,6 +122,55 @@ def _execute_strategy(strategy, target: str, store: ResolutionStore, table_kind:
             raise ResolutionError(f"Custom operator {target} is not registered.") from exc
 
     raise ResolutionError(f"Unsupported strategy for {target}.")
+
+
+def _format_root_resolution_log(strategy, target: str, table_kind: TableKind, context) -> str:
+    """Return a human-readable info log for one resolved target."""
+    if isinstance(strategy, FormulaStrategy):
+        message = f"Resolver: resolved {target} via formula {strategy.function}."
+        runtime_kind = classify_iot_formula_strategy(strategy)
+        if runtime_kind is not None and table_kind in {TableKind.IOT, TableKind.SUT}:
+            options = effective_compute_options(context)
+            if runtime_kind == "solve":
+                message = (
+                    f"{message[:-1]} "
+                    f"(compute_method={options.compute_method}, runtime={runtime_kind})."
+                )
+            else:
+                message = (
+                    f"{message[:-1]} "
+                    f"(compute_method={options.compute_method}, runtime={runtime_kind})."
+                )
+        return message
+    return f"Resolver: resolved {target} via {strategy.kind.value}."
+
+
+def _should_emit_info_resolution_log(*, root_request: bool, strategy) -> bool:
+    """Return whether one successful resolution step should be logged at info level."""
+    if root_request:
+        return True
+    return classify_iot_formula_strategy(strategy) is not None
+
+
+def _format_root_attempt_log(strategy, target: str, table_kind: TableKind, context) -> str:
+    """Return a human-readable info log before one root strategy starts."""
+    if not isinstance(strategy, FormulaStrategy):
+        return f"Resolver: trying {target} via {strategy.kind.value}."
+
+    message = f"Resolver: trying {target} via formula {strategy.function}."
+    runtime_kind = classify_iot_formula_strategy(strategy)
+    if runtime_kind is not None and table_kind in {TableKind.IOT, TableKind.SUT}:
+        options = effective_compute_options(context)
+        if runtime_kind == "solve":
+            return (
+                f"{message[:-1]} "
+                f"(compute_method={options.compute_method}, runtime={runtime_kind})."
+            )
+        return (
+            f"{message[:-1]} "
+            f"(compute_method={options.compute_method}, runtime={runtime_kind})."
+        )
+    return message
 
 
 class Resolver:
@@ -115,6 +185,7 @@ class Resolver:
         self.table_kind = resolve_table_kind(dataset, self.context)
         self._memo: dict[str, object] = {}
         self._active: list[str] = []
+        self._linear_solver_cache: dict[tuple[object, ...], object] = {}
 
     def resolve(self, target: str):
         """Materialize one target block and store it back into the dataset."""
@@ -136,39 +207,70 @@ class Resolver:
             log_time(logger, f"Resolver: resolving {target} for {self.scenario}.", "info")
         self._active.append(target)
         errors: list[str] = []
+        strategies = candidate_strategies(target, self.dataset, self.scenario, self.context)
 
         try:
             # Strategies are attempted in planner order until one succeeds.
-            for strategy in candidate_strategies(target, self.dataset, self.scenario, self.context):
+            for strategy in strategies:
                 try:
+                    if root_request:
+                        log_time(
+                            logger,
+                            _format_root_attempt_log(
+                                strategy,
+                                target,
+                                self.table_kind,
+                                self.context,
+                            ),
+                            "info",
+                        )
                     if isinstance(strategy, ParsedStrategy):
-                        value = _execute_strategy(strategy, target, self.store, self.table_kind, {})
+                        value = _execute_strategy(strategy, target, self.store, self.table_kind, {}, resolver=self)
                     elif isinstance(strategy, ExtractStrategy):
                         if not self.store.has(strategy.source):
                             errors.append(f"{strategy.kind.value}: source {strategy.source} is not materialized")
                             continue
-                        value = _execute_strategy(strategy, target, self.store, self.table_kind, {})
+                        value = _execute_strategy(strategy, target, self.store, self.table_kind, {}, resolver=self)
                     elif isinstance(strategy, ConcatStrategy):
                         for dependency in strategy.sources:
                             self.resolve(dependency)
-                        value = _execute_strategy(strategy, target, self.store, self.table_kind, {})
+                        value = _execute_strategy(strategy, target, self.store, self.table_kind, {}, resolver=self)
                     elif isinstance(strategy, OperatorStrategy):
                         dependencies = {}
                         for dependency in strategy.inputs:
                             dependencies[dependency] = self.resolve(dependency)
-                        value = _execute_strategy(strategy, target, self.store, self.table_kind, dependencies)
+                        value = _execute_strategy(
+                            strategy,
+                            target,
+                            self.store,
+                            self.table_kind,
+                            dependencies,
+                            resolver=self,
+                        )
                     else:
                         dependencies = {}
                         for dependency in strategy.inputs:
                             dependencies[dependency] = self.resolve(dependency)
-                        value = _execute_strategy(strategy, target, self.store, self.table_kind, dependencies)
+                        value = _execute_strategy(
+                            strategy,
+                            target,
+                            self.store,
+                            self.table_kind,
+                            dependencies,
+                            resolver=self,
+                        )
 
                     self.store.set(target, value)
                     self._memo[target] = value
-                    if root_request:
+                    if _should_emit_info_resolution_log(root_request=root_request, strategy=strategy):
                         log_time(
                             logger,
-                            f"Resolver: resolved {target} via {strategy.kind.value}.",
+                            _format_root_resolution_log(
+                                strategy,
+                                target,
+                                self.table_kind,
+                                self.context,
+                            ),
                             "info",
                         )
                     return value

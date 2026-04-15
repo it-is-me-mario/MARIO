@@ -10,21 +10,20 @@ from mario.compute.helpers import (
     inverse_vector,
     require_same_index,
     safe_inverse,
+    scale_rows,
     validate_square,
 )
 
 
 def build_ghosh_b_from_X_Z(X: pd.DataFrame, Z: pd.DataFrame) -> pd.DataFrame:
-    """Build the direct-output coefficients ``b`` from flows and production."""
+    """Build the direct-output coefficients ``b`` from flows and production.
+
+    The implementation scales rows directly by ``1 / X`` instead of
+    materializing ``diag(1 / X)``.
+    """
     validate_square(Z)
     require_same_index(Z, X, lhs_name="Z", rhs_name="X")
-    x_inv = inverse_vector(X)
-    values = pd.DataFrame(
-        np.diagflat(x_inv.to_numpy(dtype=float)) @ Z.to_numpy(dtype=float),
-        index=Z.index,
-        columns=Z.columns,
-    )
-    return values
+    return scale_rows(Z, inverse_vector(X))
 
 
 def build_ghosh_g_from_b(b: pd.DataFrame) -> pd.DataFrame:

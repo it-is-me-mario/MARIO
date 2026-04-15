@@ -63,11 +63,14 @@ from mario.compute.primitives import (
     calc_b,
     calc_F,
     calc_f,
+    calc_f_from_z,
     calc_f_dis,
     calc_m,
+    calc_m_from_z,
     calc_M,
     calc_y,
     calc_p,
+    calc_p_from_z,
 )
 from mario.log_exc.logger import set_log_verbosity
 from mario.model.builders import MatrixBuilder, DataTemplate
@@ -105,8 +108,12 @@ from mario.settings.settings import (
     upload_settings,
     download_settings,
     reset_settings,
+    set_compute_method,
+    set_linear_solver,
+    set_linear_strategy,
     Nomenclature,
     Index,
+    Compute,
 )
 
 from mario.parsers.handshake import parse_exiobase_3_9_4

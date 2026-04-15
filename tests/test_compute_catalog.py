@@ -34,7 +34,10 @@ def test_catalog_covers_iot_and_sut_blocks():
 
     assert len(sut_wcc.strategies) == 2
     assert sut_xc.axes.cols == (PRODUCTION_LABEL,)
-    assert iot_p.strategies[0].function == "build_iot_p_from_v_w"
+    assert {strategy.function for strategy in iot_p.strategies} == {
+        "build_iot_p_from_v_z",
+        "build_iot_p_from_v_w",
+    }
     assert iot_vy.strategies[-1].function == "build_zero_VY_from_V_Y"
 
 

@@ -2,22 +2,29 @@
 
 from __future__ import annotations
 
+import logging
 import numpy as np
 import pandas as pd
 
 from mario.compute.helpers import (
     as_dense_series,
     as_column_frame,
-    diag_from_vector,
     identity_like,
     inverse_vector,
     require_same_columns,
     require_same_index,
     safe_inverse,
+    safe_solve,
+    scale_columns,
     sum_final_demand,
+    sum_rows,
     validate_square,
 )
+from mario.compute.runtime import choose_linear_strategy, effective_compute_options
+from mario.log_exc.logger import log_time
 from mario.model.labels import ITEM_LABEL, PRICE_INDEX_LABEL, PRODUCTION_LABEL
+
+logger = logging.getLogger(__name__)
 
 
 def _vector_series(vector: pd.DataFrame | pd.Series, *, label: str) -> pd.Series:
@@ -44,6 +51,211 @@ def _dense_matmul(left: pd.DataFrame, right: pd.DataFrame) -> pd.DataFrame:
     """Multiply two aligned dataframes through NumPy to avoid pandas sparse internals."""
     values = left.to_numpy(dtype=float) @ right.to_numpy(dtype=float)
     return pd.DataFrame(values, index=left.index, columns=right.columns)
+
+
+def _resolver_linear_cache(resolver) -> dict | None:
+    """Return the per-resolver linear solver cache when available."""
+    if resolver is None:
+        return None
+    cache = getattr(resolver, "_linear_solver_cache", None)
+    if cache is None:
+        cache = {}
+        resolver._linear_solver_cache = cache
+    return cache
+
+
+def _solve_sut_system(
+    product: pd.DataFrame,
+    rhs: pd.DataFrame | pd.Series,
+    *,
+    transpose: bool = False,
+    context=None,
+    resolver=None,
+) -> pd.DataFrame | pd.Series:
+    """Solve one SUT linear system without materializing the full inverse block."""
+    validate_square(product)
+    options = effective_compute_options(context)
+    if options.linear_solver == "scipy":
+        from scipy import sparse
+        from scipy.sparse.linalg import LinearOperator, factorized, lgmres, lsmr
+
+        if all(isinstance(dtype, pd.SparseDtype) for dtype in product.dtypes):
+            system = product.sparse.to_coo().tocsc()
+        else:
+            system = sparse.csc_matrix(product.to_numpy(dtype=float))
+
+        lhs_sparse = sparse.identity(product.shape[0], format="csc") - (system.T if transpose else system)
+        rhs_count = 1 if isinstance(rhs, pd.Series) else int(rhs.shape[1])
+        linear_strategy = choose_linear_strategy(size=product.shape[0], rhs_count=rhs_count, context=context)
+        diagonal = np.asarray(lhs_sparse.diagonal(), dtype=float)
+        safe_diagonal = diagonal.copy()
+        safe_diagonal[np.abs(safe_diagonal) < 1e-12] = 1.0
+        preconditioner = LinearOperator(
+            lhs_sparse.shape,
+            matvec=lambda x: np.asarray(x, dtype=float) / safe_diagonal,
+            rmatvec=lambda x: np.asarray(x, dtype=float) / safe_diagonal,
+            dtype=float,
+        )
+        log_time(
+            logger,
+            (
+                "Compute: solving SUT linear system "
+                f"(linear_solver={options.linear_solver}, linear_strategy={linear_strategy}, "
+                f"requested_strategy={options.linear_strategy}, size={product.shape[0]}, rhs={rhs_count})."
+            ),
+            "debug",
+        )
+        cache = _resolver_linear_cache(resolver)
+        cache_key = ("sut", id(product), bool(transpose), options.linear_solver)
+
+        def _get_factor():
+            factor = cache.get(cache_key) if cache is not None else None
+            if factor is None:
+                factor = factorized(lhs_sparse)
+                if cache is not None:
+                    cache[cache_key] = factor
+            return factor
+
+        def _solve_least_squares(rhs_array):
+            def _solve_one(vector):
+                vector = np.asarray(vector, dtype=float)
+                if not np.any(vector):
+                    return np.zeros_like(vector)
+                solved, istop, *_ = lsmr(
+                    lhs_sparse,
+                    vector,
+                    atol=1e-8,
+                    btol=1e-8,
+                    maxiter=4000,
+                )
+                if istop not in {0, 1, 2}:
+                    raise RuntimeError(
+                        "Sparse least-squares SUT solve did not converge to an acceptable solution."
+                    )
+                return solved
+
+            if rhs_array.ndim == 1:
+                return _solve_one(rhs_array)
+            return np.column_stack([_solve_one(rhs_array[:, idx]) for idx in range(rhs_array.shape[1])])
+
+        def _solve_direct(
+            rhs_array,
+            *,
+            allow_iterative_fallback: bool = True,
+            allow_least_squares_fallback: bool = True,
+        ):
+            try:
+                factor = _get_factor()
+            except Exception as exc:
+                if allow_iterative_fallback:
+                    log_time(
+                        logger,
+                        (
+                            "Compute: sparse direct SUT factorization failed; "
+                            f"falling back to iterative solve ({exc})."
+                        ),
+                        "warning",
+                    )
+                    return _solve_iterative(
+                        rhs_array,
+                        allow_direct_fallback=False,
+                        allow_least_squares_fallback=allow_least_squares_fallback,
+                    )
+                if allow_least_squares_fallback:
+                    log_time(
+                        logger,
+                        (
+                            "Compute: sparse direct SUT factorization failed and iterative fallback is disabled; "
+                            f"falling back to sparse least-squares solve ({exc})."
+                        ),
+                        "warning",
+                    )
+                    return _solve_least_squares(rhs_array)
+                raise
+            if rhs_array.ndim == 1:
+                return factor(rhs_array)
+            return np.column_stack([factor(rhs_array[:, idx]) for idx in range(rhs_array.shape[1])])
+
+        def _solve_iterative(
+            rhs_array,
+            *,
+            allow_direct_fallback: bool = True,
+            allow_least_squares_fallback: bool = True,
+        ):
+            def _solve_one(vector):
+                solved, info = lgmres(
+                    lhs_sparse,
+                    vector,
+                    M=preconditioner,
+                    atol=0.0,
+                    rtol=1e-8,
+                    maxiter=500,
+                )
+                if info != 0:
+                    log_time(
+                        logger,
+                        (
+                            "Compute: iterative SUT linear solve did not converge cleanly; "
+                            f"falling back to sparse direct factorization (info={info})."
+                        ),
+                        "warning",
+                    )
+                    if allow_direct_fallback:
+                        try:
+                            return _solve_direct(
+                                vector,
+                                allow_iterative_fallback=False,
+                                allow_least_squares_fallback=allow_least_squares_fallback,
+                            )
+                        except Exception as exc:
+                            if allow_least_squares_fallback:
+                                log_time(
+                                    logger,
+                                    (
+                                        "Compute: sparse direct SUT fallback also failed; "
+                                        f"falling back to sparse least-squares solve ({exc})."
+                                    ),
+                                    "warning",
+                                )
+                                return _solve_least_squares(vector)
+                            raise
+                    if allow_least_squares_fallback:
+                        log_time(
+                            logger,
+                            (
+                                "Compute: iterative SUT linear solve did not converge and direct fallback is disabled; "
+                                "falling back to sparse least-squares solve."
+                            ),
+                            "warning",
+                        )
+                        return _solve_least_squares(vector)
+                    raise RuntimeError(
+                        "Iterative SUT linear solve did not converge and no fallback is enabled."
+                    )
+                return solved
+
+            if rhs_array.ndim == 1:
+                return _solve_one(rhs_array)
+            return np.column_stack([_solve_one(rhs_array[:, idx]) for idx in range(rhs_array.shape[1])])
+
+        rhs_values = rhs.to_numpy(dtype=float) if isinstance(rhs, (pd.DataFrame, pd.Series)) else np.asarray(rhs, dtype=float)
+        solved = _solve_iterative(rhs_values) if linear_strategy == "iterative" else _solve_direct(rhs_values)
+
+        if isinstance(rhs, pd.DataFrame):
+            return pd.DataFrame(solved, index=product.index, columns=rhs.columns)
+        if isinstance(rhs, pd.Series):
+            return pd.Series(solved, index=product.index)
+
+    lhs = identity_like(product) - product
+    if transpose:
+        lhs = lhs.T
+    return safe_solve(
+        lhs,
+        rhs,
+        solver=options.linear_solver,
+        cache=_resolver_linear_cache(resolver),
+        cache_key=("sut", id(product), bool(transpose), options.linear_solver),
+    )
 
 
 def build_sut_wcc_from_u_s(u: pd.DataFrame, s: pd.DataFrame) -> pd.DataFrame:
@@ -80,7 +292,7 @@ def build_sut_Xa_from_S_Ya(S: pd.DataFrame, Ya: pd.DataFrame) -> pd.DataFrame:
     """Build activity output from supply flows and activity final demand."""
     y_total = sum_final_demand(Ya)
     require_same_index(S, y_total, lhs_name="S", rhs_name="Ya_total")
-    s_total = as_dense_series(S.sum(axis=1))
+    s_total = sum_rows(S)
     total = pd.Series(
         s_total.to_numpy(dtype=float) + y_total.to_numpy(dtype=float),
         index=S.index,
@@ -100,7 +312,7 @@ def build_sut_Xc_from_U_Yc(U: pd.DataFrame, Yc: pd.DataFrame) -> pd.DataFrame:
     """Build commodity output from use flows and commodity final demand."""
     y_total = sum_final_demand(Yc)
     require_same_index(U, y_total, lhs_name="U", rhs_name="Yc_total")
-    u_total = as_dense_series(U.sum(axis=1))
+    u_total = sum_rows(U)
     total = pd.Series(
         u_total.to_numpy(dtype=float) + y_total.to_numpy(dtype=float),
         index=U.index,
@@ -117,116 +329,180 @@ def build_sut_Xc_from_wcc_Yc(wcc: pd.DataFrame, Yc: pd.DataFrame) -> pd.DataFram
     return _production_frame(total)
 
 
+def build_sut_Xc_from_u_s_Yc(
+    u: pd.DataFrame,
+    s: pd.DataFrame,
+    Yc: pd.DataFrame,
+    *,
+    context=None,
+    resolver=None,
+) -> pd.DataFrame:
+    """Build commodity output directly from coefficients and final demand.
+
+    This solves the commodity-side SUT system ``(I - u @ s) Xc = Yc_total``
+    instead of materializing ``wcc = (I - u @ s)^-1``.
+    """
+    require_same_columns(u, s.index, lhs_name="u", rhs_name="s.index")
+    require_same_index(u, s.columns, lhs_name="u", rhs_name="s.columns")
+    product = _dense_matmul(u, s)
+    y_total = sum_final_demand(Yc)
+    require_same_index(product, y_total, lhs_name="u@s", rhs_name="Yc_total")
+    total = _solve_sut_system(product, y_total, context=context, resolver=resolver)
+    return _production_frame(total)
+
+
 def build_sut_U_from_u_Xa(u: pd.DataFrame, Xa: pd.DataFrame | pd.Series) -> pd.DataFrame:
-    """Build use flows from use coefficients and activity output."""
+    """Build use flows from use coefficients and activity output.
+
+    The implementation scales columns directly instead of materializing
+    ``diag(Xa)``.
+    """
     x_a = _vector_series(Xa, label="Xa")
     require_same_columns(u, x_a.index, lhs_name="u", rhs_name="Xa")
-    values = u.to_numpy(dtype=float) @ diag_from_vector(x_a)
-    return pd.DataFrame(values, index=u.index, columns=u.columns)
+    return scale_columns(u, x_a)
 
 
 def build_sut_u_from_U_Xa(U: pd.DataFrame, Xa: pd.DataFrame | pd.Series) -> pd.DataFrame:
-    """Build use coefficients from use flows and activity output."""
+    """Build use coefficients from use flows and activity output.
+
+    The implementation scales columns directly by ``1 / Xa`` instead of
+    materializing ``diag(1 / Xa)``.
+    """
     x_a = _vector_series(Xa, label="Xa")
     require_same_columns(U, x_a.index, lhs_name="U", rhs_name="Xa")
-    values = U.to_numpy(dtype=float) @ np.diagflat(inverse_vector(x_a).to_numpy(dtype=float))
-    return pd.DataFrame(values, index=U.index, columns=U.columns)
+    return scale_columns(U, inverse_vector(x_a))
 
 
 def build_sut_S_from_s_Xc(s: pd.DataFrame, Xc: pd.DataFrame | pd.Series) -> pd.DataFrame:
-    """Build supply flows from supply coefficients and commodity output."""
+    """Build supply flows from supply coefficients and commodity output.
+
+    The implementation scales columns directly instead of materializing
+    ``diag(Xc)``.
+    """
     x_c = _vector_series(Xc, label="Xc")
     require_same_columns(s, x_c.index, lhs_name="s", rhs_name="Xc")
-    values = s.to_numpy(dtype=float) @ diag_from_vector(x_c)
-    return pd.DataFrame(values, index=s.index, columns=s.columns)
+    return scale_columns(s, x_c)
 
 
 def build_sut_s_from_S_Xc(S: pd.DataFrame, Xc: pd.DataFrame | pd.Series) -> pd.DataFrame:
-    """Build supply coefficients from supply flows and commodity output."""
+    """Build supply coefficients from supply flows and commodity output.
+
+    The implementation scales columns directly by ``1 / Xc`` instead of
+    materializing ``diag(1 / Xc)``.
+    """
     x_c = _vector_series(Xc, label="Xc")
     require_same_columns(S, x_c.index, lhs_name="S", rhs_name="Xc")
-    values = S.to_numpy(dtype=float) @ np.diagflat(inverse_vector(x_c).to_numpy(dtype=float))
-    return pd.DataFrame(values, index=S.index, columns=S.columns)
+    return scale_columns(S, inverse_vector(x_c))
 
 
 def build_sut_Va_from_va_Xa(va: pd.DataFrame, Xa: pd.DataFrame | pd.Series) -> pd.DataFrame:
-    """Build activity-side value-added flows from coefficients and output."""
+    """Build activity-side value-added flows from coefficients and output.
+
+    The implementation scales columns directly instead of materializing
+    ``diag(Xa)``.
+    """
     x_a = _vector_series(Xa, label="Xa")
     require_same_columns(va, x_a.index, lhs_name="va", rhs_name="Xa")
-    values = va.to_numpy(dtype=float) @ diag_from_vector(x_a)
-    return pd.DataFrame(values, index=va.index, columns=va.columns)
+    return scale_columns(va, x_a)
 
 
 def build_sut_Vc_from_vc_Xc(vc: pd.DataFrame, Xc: pd.DataFrame | pd.Series) -> pd.DataFrame:
-    """Build commodity-side value-added flows from coefficients and output."""
+    """Build commodity-side value-added flows from coefficients and output.
+
+    The implementation scales columns directly instead of materializing
+    ``diag(Xc)``.
+    """
     x_c = _vector_series(Xc, label="Xc")
     require_same_columns(vc, x_c.index, lhs_name="vc", rhs_name="Xc")
-    values = vc.to_numpy(dtype=float) @ diag_from_vector(x_c)
-    return pd.DataFrame(values, index=vc.index, columns=vc.columns)
+    return scale_columns(vc, x_c)
 
 
 def build_sut_va_from_Va_Xa(Va: pd.DataFrame, Xa: pd.DataFrame | pd.Series) -> pd.DataFrame:
-    """Build activity-side value-added coefficients from flows and output."""
+    """Build activity-side value-added coefficients from flows and output.
+
+    The implementation scales columns directly by ``1 / Xa`` instead of
+    materializing ``diag(1 / Xa)``.
+    """
     x_a = _vector_series(Xa, label="Xa")
     require_same_columns(Va, x_a.index, lhs_name="Va", rhs_name="Xa")
-    values = Va.to_numpy(dtype=float) @ np.diagflat(inverse_vector(x_a).to_numpy(dtype=float))
-    return pd.DataFrame(values, index=Va.index, columns=Va.columns)
+    return scale_columns(Va, inverse_vector(x_a))
 
 
 def build_sut_vc_from_Vc_Xc(Vc: pd.DataFrame, Xc: pd.DataFrame | pd.Series) -> pd.DataFrame:
-    """Build commodity-side value-added coefficients from flows and output."""
+    """Build commodity-side value-added coefficients from flows and output.
+
+    The implementation scales columns directly by ``1 / Xc`` instead of
+    materializing ``diag(1 / Xc)``.
+    """
     x_c = _vector_series(Xc, label="Xc")
     require_same_columns(Vc, x_c.index, lhs_name="Vc", rhs_name="Xc")
-    values = Vc.to_numpy(dtype=float) @ np.diagflat(inverse_vector(x_c).to_numpy(dtype=float))
-    return pd.DataFrame(values, index=Vc.index, columns=Vc.columns)
+    return scale_columns(Vc, inverse_vector(x_c))
 
 
 def build_sut_Ea_from_ea_Xa(ea: pd.DataFrame, Xa: pd.DataFrame | pd.Series) -> pd.DataFrame:
-    """Build activity-side extension flows from coefficients and output."""
+    """Build activity-side extension flows from coefficients and output.
+
+    The implementation scales columns directly instead of materializing
+    ``diag(Xa)``.
+    """
     x_a = _vector_series(Xa, label="Xa")
     require_same_columns(ea, x_a.index, lhs_name="ea", rhs_name="Xa")
-    values = ea.to_numpy(dtype=float) @ diag_from_vector(x_a)
-    return pd.DataFrame(values, index=ea.index, columns=ea.columns)
+    return scale_columns(ea, x_a)
 
 
 def build_sut_Ec_from_ec_Xc(ec: pd.DataFrame, Xc: pd.DataFrame | pd.Series) -> pd.DataFrame:
-    """Build commodity-side extension flows from coefficients and output."""
+    """Build commodity-side extension flows from coefficients and output.
+
+    The implementation scales columns directly instead of materializing
+    ``diag(Xc)``.
+    """
     x_c = _vector_series(Xc, label="Xc")
     require_same_columns(ec, x_c.index, lhs_name="ec", rhs_name="Xc")
-    values = ec.to_numpy(dtype=float) @ diag_from_vector(x_c)
-    return pd.DataFrame(values, index=ec.index, columns=ec.columns)
+    return scale_columns(ec, x_c)
 
 
 def build_sut_ea_from_Ea_Xa(Ea: pd.DataFrame, Xa: pd.DataFrame | pd.Series) -> pd.DataFrame:
-    """Build activity-side extension coefficients from flows and output."""
+    """Build activity-side extension coefficients from flows and output.
+
+    The implementation scales columns directly by ``1 / Xa`` instead of
+    materializing ``diag(1 / Xa)``.
+    """
     x_a = _vector_series(Xa, label="Xa")
     require_same_columns(Ea, x_a.index, lhs_name="Ea", rhs_name="Xa")
-    values = Ea.to_numpy(dtype=float) @ np.diagflat(inverse_vector(x_a).to_numpy(dtype=float))
-    return pd.DataFrame(values, index=Ea.index, columns=Ea.columns)
+    return scale_columns(Ea, inverse_vector(x_a))
 
 
 def build_sut_ec_from_Ec_Xc(Ec: pd.DataFrame, Xc: pd.DataFrame | pd.Series) -> pd.DataFrame:
-    """Build commodity-side extension coefficients from flows and output."""
+    """Build commodity-side extension coefficients from flows and output.
+
+    The implementation scales columns directly by ``1 / Xc`` instead of
+    materializing ``diag(1 / Xc)``.
+    """
     x_c = _vector_series(Xc, label="Xc")
     require_same_columns(Ec, x_c.index, lhs_name="Ec", rhs_name="Xc")
-    values = Ec.to_numpy(dtype=float) @ np.diagflat(inverse_vector(x_c).to_numpy(dtype=float))
-    return pd.DataFrame(values, index=Ec.index, columns=Ec.columns)
+    return scale_columns(Ec, inverse_vector(x_c))
 
 
 def build_sut_Mc_from_mc_Yc(mc: pd.DataFrame, Yc: pd.DataFrame) -> pd.DataFrame:
-    """Build commodity-side value-added footprints from multipliers and demand."""
+    """Build commodity-side value-added footprints from multipliers and demand.
+
+    The implementation scales columns directly by final-demand totals instead
+    of materializing ``diag(Yc_total)``.
+    """
     y_total = sum_final_demand(Yc)
     require_same_columns(mc, y_total.index, lhs_name="mc", rhs_name="Yc_total")
-    values = mc.to_numpy(dtype=float) @ np.diagflat(y_total.to_numpy(dtype=float))
-    return pd.DataFrame(values, index=mc.index, columns=mc.columns)
+    return scale_columns(mc, y_total)
 
 
 def build_sut_Ma_from_ma_Ya(ma: pd.DataFrame, Ya: pd.DataFrame) -> pd.DataFrame:
-    """Build activity-side value-added footprints from multipliers and demand."""
+    """Build activity-side value-added footprints from multipliers and demand.
+
+    The implementation scales columns directly by final-demand totals instead
+    of materializing ``diag(Ya_total)``.
+    """
     y_total = sum_final_demand(Ya)
     require_same_columns(ma, y_total.index, lhs_name="ma", rhs_name="Ya_total")
-    values = ma.to_numpy(dtype=float) @ np.diagflat(y_total.to_numpy(dtype=float))
-    return pd.DataFrame(values, index=ma.index, columns=ma.columns)
+    return scale_columns(ma, y_total)
 
 
 def build_sut_ma_from_va_waa(va: pd.DataFrame, waa: pd.DataFrame) -> pd.DataFrame:
@@ -234,6 +510,23 @@ def build_sut_ma_from_va_waa(va: pd.DataFrame, waa: pd.DataFrame) -> pd.DataFram
     validate_square(waa)
     require_same_columns(va, waa.index, lhs_name="va", rhs_name="waa")
     return _dense_matmul(va, waa)
+
+
+def build_sut_ma_from_va_s_u(
+    va: pd.DataFrame,
+    s: pd.DataFrame,
+    u: pd.DataFrame,
+    *,
+    context=None,
+    resolver=None,
+) -> pd.DataFrame:
+    """Build activity-side value-added multipliers without materializing ``waa``."""
+    require_same_columns(s, u.index, lhs_name="s", rhs_name="u.index")
+    require_same_index(s, u.columns, lhs_name="s", rhs_name="u.columns")
+    require_same_columns(va, s.index, lhs_name="va", rhs_name="s.index")
+    product = _dense_matmul(s, u)
+    solved = _solve_sut_system(product, va.T, transpose=True, context=context, resolver=resolver)
+    return solved.T
 
 
 def build_sut_mc_from_va_s_wcc(va: pd.DataFrame, s: pd.DataFrame, wcc: pd.DataFrame) -> pd.DataFrame:
@@ -244,20 +537,44 @@ def build_sut_mc_from_va_s_wcc(va: pd.DataFrame, s: pd.DataFrame, wcc: pd.DataFr
     return _dense_matmul(_dense_matmul(va, s), wcc)
 
 
+def build_sut_mc_from_va_s_u(
+    va: pd.DataFrame,
+    s: pd.DataFrame,
+    u: pd.DataFrame,
+    *,
+    context=None,
+    resolver=None,
+) -> pd.DataFrame:
+    """Build commodity-side value-added multipliers without materializing ``wcc``."""
+    require_same_columns(va, s.index, lhs_name="va", rhs_name="s.index")
+    require_same_columns(u, s.index, lhs_name="u", rhs_name="s.index")
+    require_same_index(u, s.columns, lhs_name="u", rhs_name="s.columns")
+    product = _dense_matmul(u, s)
+    direct = _dense_matmul(va, s)
+    solved = _solve_sut_system(product, direct.T, transpose=True, context=context, resolver=resolver)
+    return solved.T
+
+
 def build_sut_Fc_from_fc_Yc(fc: pd.DataFrame, Yc: pd.DataFrame) -> pd.DataFrame:
-    """Build commodity-side satellite footprints from multipliers and demand."""
+    """Build commodity-side satellite footprints from multipliers and demand.
+
+    The implementation scales columns directly by final-demand totals instead
+    of materializing ``diag(Yc_total)``.
+    """
     y_total = sum_final_demand(Yc)
     require_same_columns(fc, y_total.index, lhs_name="fc", rhs_name="Yc_total")
-    values = fc.to_numpy(dtype=float) @ np.diagflat(y_total.to_numpy(dtype=float))
-    return pd.DataFrame(values, index=fc.index, columns=fc.columns)
+    return scale_columns(fc, y_total)
 
 
 def build_sut_Fa_from_fa_Ya(fa: pd.DataFrame, Ya: pd.DataFrame) -> pd.DataFrame:
-    """Build activity-side satellite footprints from multipliers and demand."""
+    """Build activity-side satellite footprints from multipliers and demand.
+
+    The implementation scales columns directly by final-demand totals instead
+    of materializing ``diag(Ya_total)``.
+    """
     y_total = sum_final_demand(Ya)
     require_same_columns(fa, y_total.index, lhs_name="fa", rhs_name="Ya_total")
-    values = fa.to_numpy(dtype=float) @ np.diagflat(y_total.to_numpy(dtype=float))
-    return pd.DataFrame(values, index=fa.index, columns=fa.columns)
+    return scale_columns(fa, y_total)
 
 
 def build_sut_fa_from_ea_waa(ea: pd.DataFrame, waa: pd.DataFrame) -> pd.DataFrame:
@@ -267,12 +584,47 @@ def build_sut_fa_from_ea_waa(ea: pd.DataFrame, waa: pd.DataFrame) -> pd.DataFram
     return _dense_matmul(ea, waa)
 
 
+def build_sut_fa_from_ea_s_u(
+    ea: pd.DataFrame,
+    s: pd.DataFrame,
+    u: pd.DataFrame,
+    *,
+    context=None,
+    resolver=None,
+) -> pd.DataFrame:
+    """Build activity-side satellite multipliers without materializing ``waa``."""
+    require_same_columns(s, u.index, lhs_name="s", rhs_name="u.index")
+    require_same_index(s, u.columns, lhs_name="s", rhs_name="u.columns")
+    require_same_columns(ea, s.index, lhs_name="ea", rhs_name="s.index")
+    product = _dense_matmul(s, u)
+    solved = _solve_sut_system(product, ea.T, transpose=True, context=context, resolver=resolver)
+    return solved.T
+
+
 def build_sut_fc_from_ea_s_wcc(ea: pd.DataFrame, s: pd.DataFrame, wcc: pd.DataFrame) -> pd.DataFrame:
     """Build commodity-side satellite multipliers from activity-side inputs."""
     validate_square(wcc)
     require_same_columns(ea, s.index, lhs_name="ea", rhs_name="s.index")
     require_same_columns(s, wcc.index, lhs_name="s", rhs_name="wcc")
     return _dense_matmul(_dense_matmul(ea, s), wcc)
+
+
+def build_sut_fc_from_ea_s_u(
+    ea: pd.DataFrame,
+    s: pd.DataFrame,
+    u: pd.DataFrame,
+    *,
+    context=None,
+    resolver=None,
+) -> pd.DataFrame:
+    """Build commodity-side satellite multipliers without materializing ``wcc``."""
+    require_same_columns(ea, s.index, lhs_name="ea", rhs_name="s.index")
+    require_same_columns(u, s.index, lhs_name="u", rhs_name="s.index")
+    require_same_index(u, s.columns, lhs_name="u", rhs_name="s.columns")
+    product = _dense_matmul(u, s)
+    direct = _dense_matmul(ea, s)
+    solved = _solve_sut_system(product, direct.T, transpose=True, context=context, resolver=resolver)
+    return solved.T
 
 
 def build_sut_pc_from_vc(
@@ -290,6 +642,27 @@ def build_sut_pc_from_vc(
     return as_column_frame(values, PRICE_INDEX_LABEL)
 
 
+def build_sut_pc_from_v_s_u(
+    va: pd.DataFrame,
+    vc: pd.DataFrame,
+    s: pd.DataFrame,
+    u: pd.DataFrame,
+    *,
+    context=None,
+    resolver=None,
+) -> pd.DataFrame:
+    """Build the commodity-side price index without materializing ``wac`` or ``wcc``."""
+    require_same_columns(va, s.index, lhs_name="va", rhs_name="s.index")
+    require_same_columns(u, s.index, lhs_name="u", rhs_name="s.index")
+    require_same_index(u, s.columns, lhs_name="u", rhs_name="s.columns")
+    direct_a = va.sum(axis=0)
+    direct_c = vc.sum(axis=0)
+    rhs = s.T.dot(direct_a) + direct_c
+    product = _dense_matmul(u, s)
+    values = _solve_sut_system(product, rhs, transpose=True, context=context, resolver=resolver)
+    return as_column_frame(values, PRICE_INDEX_LABEL)
+
+
 def build_sut_pa_from_va(
     va: pd.DataFrame,
     vc: pd.DataFrame,
@@ -302,4 +675,25 @@ def build_sut_pa_from_va(
     require_same_index(waa, direct_a, lhs_name="waa", rhs_name="va.sum(0)")
     require_same_index(wca, direct_c, lhs_name="wca", rhs_name="vc.sum(0)")
     values = waa.T.dot(direct_a) + wca.T.dot(direct_c)
+    return as_column_frame(values, PRICE_INDEX_LABEL)
+
+
+def build_sut_pa_from_v_s_u(
+    va: pd.DataFrame,
+    vc: pd.DataFrame,
+    s: pd.DataFrame,
+    u: pd.DataFrame,
+    *,
+    context=None,
+    resolver=None,
+) -> pd.DataFrame:
+    """Build the activity-side price index without materializing ``waa`` or ``wca``."""
+    require_same_columns(s, u.index, lhs_name="s", rhs_name="u.index")
+    require_same_index(s, u.columns, lhs_name="s", rhs_name="u.columns")
+    require_same_columns(va, s.index, lhs_name="va", rhs_name="s.index")
+    direct_a = va.sum(axis=0)
+    direct_c = vc.sum(axis=0)
+    rhs = direct_a + u.T.dot(direct_c)
+    product = _dense_matmul(s, u)
+    values = _solve_sut_system(product, rhs, transpose=True, context=context, resolver=resolver)
     return as_column_frame(values, PRICE_INDEX_LABEL)

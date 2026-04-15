@@ -6,6 +6,10 @@ from collections.abc import Mapping, MutableMapping
 
 from mario.compute.catalog import get_matrix_spec
 from mario.compute.operators import get_registered_operator
+from mario.compute.runtime import (
+    should_prefer_solve_for_iot_target,
+    should_prefer_solve_for_sut_target,
+)
 from mario.compute.types import (
     ConcatStrategy,
     ExtractStrategy,
@@ -19,6 +23,37 @@ from mario.compute.types import (
     StrategyKind,
 )
 from mario.model.enums import TableKind
+
+_IOT_SOLVE_FORMULAS = {
+    "build_iot_X_from_z_Y",
+    "build_iot_m_from_v_z",
+    "build_iot_f_from_e_z",
+    "build_iot_p_from_v_z",
+}
+_IOT_INVERSE_FORMULAS = {
+    "build_iot_X_from_w_Y",
+    "build_iot_m_from_v_w",
+    "build_iot_f_from_e_w",
+    "build_iot_p_from_v_w",
+}
+_SUT_SOLVE_FORMULAS = {
+    "build_sut_Xc_from_u_s_Yc",
+    "build_sut_ma_from_va_s_u",
+    "build_sut_mc_from_va_s_u",
+    "build_sut_fa_from_ea_s_u",
+    "build_sut_fc_from_ea_s_u",
+    "build_sut_pc_from_v_s_u",
+    "build_sut_pa_from_v_s_u",
+}
+_SUT_INVERSE_FORMULAS = {
+    "build_sut_Xc_from_wcc_Yc",
+    "build_sut_ma_from_va_waa",
+    "build_sut_mc_from_va_s_wcc",
+    "build_sut_fa_from_ea_waa",
+    "build_sut_fc_from_ea_s_wcc",
+    "build_sut_pc_from_vc",
+    "build_sut_pa_from_va",
+}
 
 
 class ResolutionStore:
@@ -142,7 +177,75 @@ def strategy_cost_hint(
         StrategyKind.OPERATOR: 4,
     }[strategy.kind]
     available_penalty = 0 if strategy_is_immediately_available(strategy, target, dataset, scenario, context) else 10
-    return (priority + available_penalty, len(strategy.dependencies), 0)
+    method_penalty = 0
+    if isinstance(strategy, FormulaStrategy):
+        table_kind = resolve_table_kind(dataset, context)
+        if table_kind == TableKind.IOT:
+            size = _estimate_iot_entity_size(dataset, scenario=scenario)
+            prefer_solve = should_prefer_solve_for_iot_target(target, size=size, context=context)
+            if strategy.function in _IOT_SOLVE_FORMULAS:
+                method_penalty = 0 if prefer_solve else 5
+            elif strategy.function in _IOT_INVERSE_FORMULAS:
+                method_penalty = 5 if prefer_solve else 0
+        elif table_kind == TableKind.SUT:
+            size = _estimate_sut_system_size(dataset, target=target, scenario=scenario)
+            prefer_solve = should_prefer_solve_for_sut_target(target, size=size, context=context)
+            if strategy.function in _SUT_SOLVE_FORMULAS:
+                method_penalty = 0 if prefer_solve else 5
+            elif strategy.function in _SUT_INVERSE_FORMULAS:
+                method_penalty = 5 if prefer_solve else 0
+    return (priority + available_penalty, method_penalty, len(strategy.dependencies))
+
+
+def classify_iot_formula_strategy(strategy: Strategy) -> str | None:
+    """Classify one formula strategy as ``solve`` or ``inverse`` when relevant."""
+    if not isinstance(strategy, FormulaStrategy):
+        return None
+    if strategy.function in _IOT_SOLVE_FORMULAS:
+        return "solve"
+    if strategy.function in _IOT_INVERSE_FORMULAS:
+        return "inverse"
+    if strategy.function in _SUT_SOLVE_FORMULAS:
+        return "solve"
+    if strategy.function in _SUT_INVERSE_FORMULAS:
+        return "inverse"
+    return None
+
+
+def _estimate_iot_entity_size(dataset, *, scenario: str = "baseline") -> int | None:
+    """Estimate the square IOT entity size from visible blocks."""
+    store = ResolutionStore(dataset, scenario=scenario)
+    for name in ("w", "z", "Z", "X"):
+        if not store.has(name):
+            continue
+        block = store.get(name)
+        if hasattr(block, "shape"):
+            return int(block.shape[0])
+        if hasattr(block, "index"):
+            return int(len(block.index))
+    return None
+
+
+def _estimate_sut_system_size(dataset, *, target: str, scenario: str = "baseline") -> int | None:
+    """Estimate the relevant square SUT system size for one target."""
+    store = ResolutionStore(dataset, scenario=scenario)
+
+    if target in {"Xc", "mc", "fc", "pc", "wcc", "wca"}:
+        candidates = ("wcc", "Xc", "Yc", "U", "u")
+    elif target in {"ma", "fa", "pa", "waa", "wac"}:
+        candidates = ("waa", "Xa", "Ya", "S", "s")
+    else:
+        return None
+
+    for name in candidates:
+        if not store.has(name):
+            continue
+        block = store.get(name)
+        if hasattr(block, "shape"):
+            return int(block.shape[0])
+        if hasattr(block, "index"):
+            return int(len(block.index))
+    return None
 
 
 def candidate_strategies(

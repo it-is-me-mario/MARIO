@@ -37,10 +37,24 @@ def as_column_frame(
 
 def sum_final_demand(block: pd.DataFrame | pd.Series) -> pd.Series:
     """Collapse a final-demand block to one total per producing row."""
+    return sum_rows(block)
+
+
+def sum_rows(block: pd.DataFrame | pd.Series) -> pd.Series:
+    """Return one total per row, preserving labels and sparse efficiency.
+
+    For sparse-backed dataframes this avoids pandas' row-wise reduction path and
+    performs the aggregation directly on the underlying SciPy sparse matrix.
+    """
     if isinstance(block, pd.Series):
         return as_dense_series(block)
 
     if isinstance(block, pd.DataFrame):
+        if all(isinstance(dtype, pd.SparseDtype) for dtype in block.dtypes):
+            matrix = block.sparse.to_coo().tocsr()
+            summed = np.asarray(matrix.sum(axis=1)).reshape(-1)
+            return pd.Series(summed, index=block.index, dtype=float)
+
         return as_dense_series(block.sum(axis=1))
 
     raise TypeError("Final demand block must be a pandas Series or DataFrame.")
@@ -52,6 +66,58 @@ def diag_from_vector(
     """Return a dense diagonal matrix built from a vector-like input."""
     series = _as_series(vector)
     return np.diagflat(series.to_numpy(dtype=float))
+
+
+def scale_columns(
+    frame: pd.DataFrame,
+    vector: pd.DataFrame | pd.Series | np.ndarray | list[float] | tuple[float, ...],
+) -> pd.DataFrame:
+    """Scale each dataframe column by the matching vector element.
+
+    This is algebraically equivalent to ``frame @ diag(vector)`` but avoids
+    materializing a dense diagonal matrix. When ``frame`` is sparse-backed, the
+    operation stays on sparse matrices.
+    """
+    if not isinstance(frame, pd.DataFrame):
+        raise TypeError("Expected a pandas DataFrame.")
+    series = _as_series(vector).astype(float)
+    if not frame.columns.equals(series.index):
+        raise ValueError("frame columns and vector index do not match.")
+
+    if all(isinstance(dtype, pd.SparseDtype) for dtype in frame.dtypes):
+        from scipy import sparse
+
+        matrix = frame.sparse.to_coo().tocsc()
+        scaled = matrix @ sparse.diags(series.to_numpy(dtype=float))
+        return pd.DataFrame.sparse.from_spmatrix(scaled, index=frame.index, columns=frame.columns)
+
+    return frame.mul(series, axis=1)
+
+
+def scale_rows(
+    frame: pd.DataFrame,
+    vector: pd.DataFrame | pd.Series | np.ndarray | list[float] | tuple[float, ...],
+) -> pd.DataFrame:
+    """Scale each dataframe row by the matching vector element.
+
+    This is algebraically equivalent to ``diag(vector) @ frame`` but avoids
+    materializing a dense diagonal matrix. When ``frame`` is sparse-backed, the
+    operation stays on sparse matrices.
+    """
+    if not isinstance(frame, pd.DataFrame):
+        raise TypeError("Expected a pandas DataFrame.")
+    series = _as_series(vector).astype(float)
+    if not frame.index.equals(series.index):
+        raise ValueError("frame index and vector index do not match.")
+
+    if all(isinstance(dtype, pd.SparseDtype) for dtype in frame.dtypes):
+        from scipy import sparse
+
+        matrix = frame.sparse.to_coo().tocsc()
+        scaled = sparse.diags(series.to_numpy(dtype=float)) @ matrix
+        return pd.DataFrame.sparse.from_spmatrix(scaled, index=frame.index, columns=frame.columns)
+
+    return frame.mul(series, axis=0)
 
 
 def inverse_vector(
@@ -91,6 +157,10 @@ def safe_inverse(matrix: pd.DataFrame) -> pd.DataFrame:
 def safe_solve(
     lhs: pd.DataFrame,
     rhs: pd.DataFrame | pd.Series | np.ndarray | list[float] | tuple[float, ...],
+    *,
+    solver: str = "numpy",
+    cache: dict | None = None,
+    cache_key=None,
 ) -> pd.DataFrame | pd.Series:
     """Solve ``lhs * x = rhs`` with a pseudo-inverse fallback for singular cases."""
     validate_square(lhs)
@@ -109,10 +179,39 @@ def safe_solve(
         rhs_index = lhs.index
         rhs_columns = None
 
-    try:
-        solved = np.linalg.solve(lhs.to_numpy(dtype=float), rhs_values)
-    except np.linalg.LinAlgError:
-        solved = np.linalg.pinv(lhs.to_numpy(dtype=float)) @ rhs_values
+    if solver == "numpy":
+        try:
+            solved = np.linalg.solve(lhs.to_numpy(dtype=float), rhs_values)
+        except np.linalg.LinAlgError:
+            solved = np.linalg.pinv(lhs.to_numpy(dtype=float)) @ rhs_values
+    elif solver == "scipy":
+        from scipy import sparse
+        from scipy.sparse.linalg import factorized
+
+        factor = None
+        if cache is not None and cache_key is not None:
+            factor = cache.get(cache_key)
+        if factor is None:
+            try:
+                if all(isinstance(dtype, pd.SparseDtype) for dtype in lhs.dtypes):
+                    lhs_sparse = lhs.sparse.to_coo().tocsc()
+                else:
+                    lhs_sparse = sparse.csc_matrix(lhs.to_numpy(dtype=float))
+                factor = factorized(lhs_sparse)
+                if cache is not None and cache_key is not None:
+                    cache[cache_key] = factor
+            except Exception:
+                solved = np.linalg.pinv(lhs.to_numpy(dtype=float)) @ np.asarray(rhs_values, dtype=float)
+                factor = None
+
+        if factor is not None:
+            rhs_array = np.asarray(rhs_values, dtype=float)
+            if rhs_array.ndim == 1:
+                solved = factor(rhs_array)
+            else:
+                solved = np.column_stack([factor(rhs_array[:, idx]) for idx in range(rhs_array.shape[1])])
+    else:
+        raise ValueError(f"Unsupported linear solver {solver!r}.")
 
     if rhs_is_series:
         return pd.Series(solved, index=rhs_index)

@@ -162,6 +162,7 @@ COMPUTE_CATALOG = {
             IOT_ENTITY_AXIS,
             (PRODUCTION_LABEL,),
             _formula(("Z", "Y"), "build_iot_X_from_Z_Y", "X = Z.sum(1) + Y.sum(1)"),
+            _formula(("z", "Y"), "build_iot_X_from_z_Y", "X = solve(identity - z, Y)"),
             _formula(
                 ("w", "Y"),
                 "build_iot_X_from_w_Y",
@@ -237,6 +238,7 @@ COMPUTE_CATALOG = {
             KEEP,
             (FACTOR,),
             IOT_ENTITY_AXIS,
+            _formula(("v", "z"), "build_iot_m_from_v_z", "m = solve(transpose(identity - z), transpose(v))"),
             _formula(("v", "w"), "build_iot_m_from_v_w", "m = v @ w"),
         ),
         "F": _spec(
@@ -258,6 +260,7 @@ COMPUTE_CATALOG = {
             KEEP,
             (SATELLITE,),
             IOT_ENTITY_AXIS,
+            _formula(("e", "z"), "build_iot_f_from_e_z", "f = solve(transpose(identity - z), transpose(e))"),
             _formula(("e", "w"), "build_iot_f_from_e_w", "f = e @ w"),
         ),
         "g": _spec(
@@ -283,6 +286,11 @@ COMPUTE_CATALOG = {
             KEEP,
             IOT_ENTITY_AXIS,
             (PRICE_INDEX_LABEL,),
+            _formula(
+                ("v", "z"),
+                "build_iot_p_from_v_z",
+                "p = solve(transpose(identity - z), transpose(v.sum(0)))",
+            ),
             _formula(
                 ("v", "w"),
                 "build_iot_p_from_v_w",
@@ -397,6 +405,12 @@ COMPUTE_CATALOG = {
             (PRODUCTION_LABEL,),
             _extract("X", "extract_Xc_from_X", "Extracted from X, only if available"),
             _formula(("U", "Yc"), "build_sut_Xc_from_U_Yc", "Xc = U.sum(1) + Yc.sum(1)"),
+            _formula(
+                ("u", "s", "Yc"),
+                "build_sut_Xc_from_u_s_Yc",
+                "Xc = solve(identity - u @ s, Yc)",
+                "Use final-demand totals instead of the full Yc matrix.",
+            ),
             _formula(
                 ("wcc", "Yc"),
                 "build_sut_Xc_from_wcc_Yc",
@@ -683,6 +697,11 @@ COMPUTE_CATALOG = {
             (FACTOR,),
             SUT_ACTIVITY_AXIS,
             _extract("m", "extract_ma_from_m", "Extracted from m, only if available"),
+            _formula(
+                ("va", "s", "u"),
+                "build_sut_ma_from_va_s_u",
+                "ma = solve(transpose(identity - s @ u), transpose(va))",
+            ),
             _formula(("va", "waa"), "build_sut_ma_from_va_waa", "ma = va @ waa"),
         ),
         "mc": _spec(
@@ -692,6 +711,11 @@ COMPUTE_CATALOG = {
             (FACTOR,),
             SUT_COMMODITY_AXIS,
             _extract("m", "extract_mc_from_m", "Extracted from m, only if available"),
+            _formula(
+                ("va", "s", "u"),
+                "build_sut_mc_from_va_s_u",
+                "mc = solve(transpose(identity - u @ s), transpose(va @ s))",
+            ),
             _formula(("va", "s", "wcc"), "build_sut_mc_from_va_s_wcc", "mc = va @ s @ wcc"),
         ),
         "Fc": _spec(
@@ -729,6 +753,11 @@ COMPUTE_CATALOG = {
             (SATELLITE,),
             SUT_ACTIVITY_AXIS,
             _extract("f", "extract_fa_from_f", "Extracted from f, only if available"),
+            _formula(
+                ("ea", "s", "u"),
+                "build_sut_fa_from_ea_s_u",
+                "fa = solve(transpose(identity - s @ u), transpose(ea))",
+            ),
             _formula(("ea", "waa"), "build_sut_fa_from_ea_waa", "fa = ea @ waa"),
         ),
         "fc": _spec(
@@ -738,6 +767,11 @@ COMPUTE_CATALOG = {
             (SATELLITE,),
             SUT_COMMODITY_AXIS,
             _extract("f", "extract_fc_from_f", "Extracted from f, only if available"),
+            _formula(
+                ("ea", "s", "u"),
+                "build_sut_fc_from_ea_s_u",
+                "fc = solve(transpose(identity - u @ s), transpose(ea @ s))",
+            ),
             _formula(("ea", "s", "wcc"), "build_sut_fc_from_ea_s_wcc", "fc = ea @ s @ wcc"),
         ),
         "pc": _spec(
@@ -747,6 +781,12 @@ COMPUTE_CATALOG = {
             SUT_COMMODITY_AXIS,
             (PRICE_INDEX_LABEL,),
             _extract("p", "extract_pc_from_p", "Extracted from p, only if available"),
+            _formula(
+                ("va", "vc", "s", "u"),
+                "build_sut_pc_from_v_s_u",
+                "pc = solve(transpose(identity - u @ s), transpose(s) @ transpose(va.sum(0)) + transpose(vc.sum(0)))",
+                "Solve the commodity-side price system without materializing wac or wcc.",
+            ),
             _formula(
                 ("va", "vc", "wac", "wcc"),
                 "build_sut_pc_from_vc",
@@ -761,6 +801,12 @@ COMPUTE_CATALOG = {
             SUT_ACTIVITY_AXIS,
             (PRICE_INDEX_LABEL,),
             _extract("p", "extract_pa_from_p", "Extracted from p, only if available"),
+            _formula(
+                ("va", "vc", "s", "u"),
+                "build_sut_pa_from_v_s_u",
+                "pa = solve(transpose(identity - s @ u), transpose(va.sum(0)) + transpose(u) @ transpose(vc.sum(0)))",
+                "Solve the activity-side price system without materializing waa or wca.",
+            ),
             _formula(
                 ("va", "vc", "waa", "wca"),
                 "build_sut_pa_from_va",

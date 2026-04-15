@@ -168,6 +168,11 @@ class ResolutionContext:
     materialized: frozenset[str] = frozenset()
     prefer_materialized_views: bool = True
     allow_formula: bool = True
+    compute_method: str | None = None
+    linear_solver: str | None = None
+    linear_strategy: str | None = None
+    auto_w_memory_fraction: float | None = None
+    auto_w_overhead_factor: float | None = None
 
 
 @dataclass(frozen=True)

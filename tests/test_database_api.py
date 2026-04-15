@@ -1,6 +1,7 @@
 import pandas as pd
 import pandas.testing as pdt
 
+from mario.log_exc.logger import set_log_verbosity
 from mario.compute.ordering import SUTUnifiedOrderingPolicy
 from mario.compute.primitives import calc_w, calc_z
 from mario.compute.views import (
@@ -17,6 +18,12 @@ from mario.compute.views import (
     extract_va_from_v,
     extract_vc_from_v,
 )
+from mario.settings.settings import (
+    reset_settings,
+    set_compute_method,
+    set_linear_solver,
+    set_linear_strategy,
+)
 from mario.test.mario_test import load_test
 from mario.model.conventions import _ENUM, _MASTER_INDEX
 
@@ -32,6 +39,81 @@ def test_calc_all_iot_uses_catalog_path_for_missing_blocks():
 
     pdt.assert_frame_equal(database.z, expected_z)
     pdt.assert_frame_equal(database.w, expected_w)
+
+
+def test_calc_all_iot_solve_method_resolves_f_without_materializing_w():
+    database = load_test("IOT")
+    assert _ENUM.w not in database["baseline"]
+
+    database.calc_all([_ENUM.f], compute_method="solve", linear_solver="scipy")
+
+    expected_z = calc_z(database.Z, database.X)
+    expected_w = calc_w(expected_z)
+    expected_f = database.e.dot(expected_w)
+
+    pdt.assert_frame_equal(database.f, expected_f)
+    assert _ENUM.w not in database["baseline"]
+
+
+def test_dotted_access_logs_selected_iot_runtime_method(capsys):
+    try:
+        reset_settings()
+        set_compute_method("solve")
+        set_linear_solver("scipy")
+        set_linear_strategy("auto")
+        set_log_verbosity("info", capture_warnings=False, include_dependency_logs=False)
+
+        database = load_test("IOT")
+        _ = database.f
+
+        captured = capsys.readouterr().out
+        assert "build_iot_f_from_e_z" in captured
+        assert "compute_method=solve" in captured
+        assert "runtime=solve" in captured
+        assert "Compute: solving IOT linear system" not in captured
+    finally:
+        reset_settings()
+
+
+def test_dotted_access_logs_selected_sut_runtime_method(capsys):
+    try:
+        reset_settings()
+        set_compute_method("solve")
+        set_linear_solver("scipy")
+        set_linear_strategy("auto")
+        set_log_verbosity("info", capture_warnings=False, include_dependency_logs=False)
+
+        database = load_test("SUT")
+        _ = database.f
+
+        captured = capsys.readouterr().out
+        assert "runtime=solve" in captured
+        assert "Compute: solving SUT linear system" not in captured
+        assert (
+            "build_sut_fa_from_ea_s_u" in captured
+            or "build_sut_fc_from_ea_s_u" in captured
+        )
+    finally:
+        reset_settings()
+
+
+def test_debug_logs_include_linear_strategy_details_for_solve_backend(capsys):
+    try:
+        reset_settings()
+        set_compute_method("solve")
+        set_linear_solver("scipy")
+        set_linear_strategy("auto")
+        set_log_verbosity("debug", capture_warnings=False, include_dependency_logs=False)
+
+        database = load_test("IOT")
+        _ = database.f
+
+        captured = capsys.readouterr().out
+        assert "Compute: solving IOT linear system" in captured
+        assert "linear_solver=scipy" in captured
+        assert "linear_strategy=" in captured
+    finally:
+        reset_settings()
 
 
 def test_calc_all_sut_resolves_unified_blocks_from_split_dependencies():

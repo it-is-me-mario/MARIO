@@ -16,14 +16,21 @@ from mario.compute.sut_formulas import (
     build_sut_Xa_from_S_Ya,
     build_sut_Xa_from_s_Xc,
     build_sut_Xc_from_U_Yc,
+    build_sut_Xc_from_u_s_Yc,
     build_sut_Xc_from_wcc_Yc,
     build_sut_ea_from_Ea_Xa,
     build_sut_ec_from_Ec_Xc,
+    build_sut_fa_from_ea_s_u,
     build_sut_fa_from_ea_waa,
+    build_sut_fc_from_ea_s_u,
     build_sut_fc_from_ea_s_wcc,
+    build_sut_ma_from_va_s_u,
     build_sut_ma_from_va_waa,
+    build_sut_mc_from_va_s_u,
     build_sut_mc_from_va_s_wcc,
+    build_sut_pa_from_v_s_u,
     build_sut_pa_from_va,
+    build_sut_pc_from_v_s_u,
     build_sut_pc_from_vc,
     build_sut_s_from_S_Xc,
     build_sut_u_from_U_Xa,
@@ -102,6 +109,7 @@ def test_sut_split_formulas_match_database_views():
     pdt.assert_frame_equal(wac, extract_wac_from_w(sut.w, ordering))
     pdt.assert_frame_equal(waa, extract_waa_from_w(sut.w, ordering))
     pdt.assert_frame_equal(build_sut_Xc_from_wcc_Yc(wcc, Yc), Xc)
+    pdt.assert_frame_equal(build_sut_Xc_from_u_s_Yc(sut.u, sut.s, Yc), Xc)
 
     va = build_sut_va_from_Va_Xa(Va, Xa)
     vc = build_sut_vc_from_Vc_Xc(Vc, Xc)
@@ -121,13 +129,23 @@ def test_sut_split_formulas_match_database_views():
     mc = build_sut_mc_from_va_s_wcc(va, sut.s, wcc)
     fa = build_sut_fa_from_ea_waa(ea, waa)
     fc = build_sut_fc_from_ea_s_wcc(ea, sut.s, wcc)
+    ma_solve = build_sut_ma_from_va_s_u(va, sut.s, sut.u)
+    mc_solve = build_sut_mc_from_va_s_u(va, sut.s, sut.u)
+    fa_solve = build_sut_fa_from_ea_s_u(ea, sut.s, sut.u)
+    fc_solve = build_sut_fc_from_ea_s_u(ea, sut.s, sut.u)
 
     pdt.assert_frame_equal(ma, extract_ma_from_m(sut.m, ordering))
     pdt.assert_frame_equal(mc, extract_mc_from_m(sut.m, ordering))
     pdt.assert_frame_equal(fa, extract_fa_from_f(sut.f, ordering))
     pdt.assert_frame_equal(fc, extract_fc_from_f(sut.f, ordering))
+    pdt.assert_frame_equal(ma_solve, ma)
+    pdt.assert_frame_equal(mc_solve, mc)
+    pdt.assert_frame_equal(fa_solve, fa)
+    pdt.assert_frame_equal(fc_solve, fc)
     pdt.assert_frame_equal(build_sut_pa_from_va(va, vc, waa, wca), extract_pa_from_p(sut.p, ordering))
     pdt.assert_frame_equal(build_sut_pc_from_vc(va, vc, wac, wcc), extract_pc_from_p(sut.p, ordering))
+    pdt.assert_frame_equal(build_sut_pa_from_v_s_u(va, vc, sut.s, sut.u), extract_pa_from_p(sut.p, ordering))
+    pdt.assert_frame_equal(build_sut_pc_from_v_s_u(va, vc, sut.s, sut.u), extract_pc_from_p(sut.p, ordering))
 
 
 def test_sut_split_flow_formulas_match_database_views_when_final_demand_is_commodity_side():
@@ -149,9 +167,13 @@ def test_sut_split_flow_formulas_match_database_views_when_final_demand_is_commo
     fc = build_sut_fc_from_ea_s_wcc(ea, sut.s, wcc)
 
     pdt.assert_frame_equal(build_sut_Xc_from_wcc_Yc(wcc, Yc), Xc)
+    pdt.assert_frame_equal(build_sut_Xc_from_u_s_Yc(sut.u, sut.s, Yc), Xc)
     pdt.assert_frame_equal(build_sut_Mc_from_mc_Yc(mc, Yc), extract_Mc_from_M(sut.M, ordering))
     pdt.assert_frame_equal(build_sut_Fc_from_fc_Yc(fc, Yc), extract_Fc_from_F(sut.F, ordering))
     pdt.assert_frame_equal(build_sut_fa_from_ea_waa(ea, waa), extract_fa_from_f(sut.f, ordering))
+    pdt.assert_frame_equal(build_sut_mc_from_va_s_u(va, sut.s, sut.u), mc)
+    pdt.assert_frame_equal(build_sut_fc_from_ea_s_u(ea, sut.s, sut.u), fc)
+    pdt.assert_frame_equal(build_sut_fa_from_ea_s_u(ea, sut.s, sut.u), extract_fa_from_f(sut.f, ordering))
 
 
 def test_sut_satellite_multiplier_formulas_handle_pandas_sparse_float32_inputs():

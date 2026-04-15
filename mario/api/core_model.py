@@ -201,9 +201,12 @@ class CoreModel:
         matrices=[_ENUM.z, _ENUM.v, _ENUM.e, _ENUM.Z, _ENUM.V, _ENUM.E],
         scenario="baseline",
         force_rewrite=False,
+        compute_method: str | None = None,
+        linear_solver: str | None = None,
+        linear_strategy: str | None = None,
         **kwargs,
     ):
-        """Compute one or more matrices for a scenario.
+        """Compute and materialize one or more matrices for a scenario.
 
         Parameters
         ----------
@@ -215,6 +218,20 @@ class CoreModel:
         force_rewrite:
             When ``True``, recompute requested matrices even if they already
             exist in the scenario.
+        compute_method:
+            Optional per-call override for demand-driven calculations.
+            Accepted values are ``"auto"``, ``"inverse"`` and ``"solve"``.
+            When omitted, MARIO uses the globally configured default from
+            :func:`mario.set_compute_method`.
+        linear_solver:
+            Optional per-call override for solve-based formulas. When
+            omitted, MARIO uses the globally configured default from
+            :func:`mario.set_linear_solver`.
+        linear_strategy:
+            Optional per-call override for the sparse solve strategy used under
+            ``compute_method="solve"``. Accepted values are ``"auto"``,
+            ``"direct"`` and ``"iterative"``. When omitted, MARIO uses the
+            globally configured default from :func:`mario.set_linear_strategy`.
         **kwargs:
             Reserved for backward compatibility with historical callers.
 
@@ -222,15 +239,44 @@ class CoreModel:
         -------
         None
             The method materializes matrices in ``self.matrices``.
+
+        Notes
+        -----
+        The runtime options above matter mainly for large IOT databases, where
+        MARIO can compute ``X``, ``f``, ``F``, ``m``, ``M`` and ``p`` without
+        materializing the full Leontief inverse ``w``.
         """
         requested = _normalize_requested_matrices(matrices)
         self._validate_scenario(scenario)
         self._validate_matrices(requested)
 
+        from mario.compute.types import ResolutionContext
+
+        context = ResolutionContext(
+            compute_method=compute_method,
+            linear_solver=linear_solver,
+            linear_strategy=linear_strategy,
+        )
+        resolver = _resolver_module().Resolver(self, scenario=scenario, context=context)
+
         for item in requested:
             if item in self.matrices[scenario] and not force_rewrite:
                 continue
-            self._resolve_one(item, scenario=scenario, force_rewrite=force_rewrite)
+
+            removed = False
+            previous = None
+            if force_rewrite and item in self.matrices[scenario]:
+                previous = self.matrices[scenario].pop(item)
+                removed = True
+
+            try:
+                resolver.resolve(item)
+            except self._resolver_failure_types() as exc:
+                if removed:
+                    self.matrices[scenario][item] = previous
+                raise DataMissing(
+                    f"MARIO is not able to calculate {item} because of missing or unresolved dependencies.\n{exc}"
+                ) from exc
 
     def _validate_scenario(self, scenario: str) -> None:
         """Ensure that the requested scenario exists on the database."""
@@ -270,8 +316,19 @@ class CoreModel:
         """Return the exception types that indicate a resolution failure."""
         return (_resolver_module().ResolutionError, LookupError, NotImplementedError)
 
-    def _resolve_one(self, item: str, *, scenario: str, force_rewrite: bool):
+    def _resolve_one(
+        self,
+        item: str,
+        *,
+        scenario: str,
+        force_rewrite: bool,
+        compute_method: str | None = None,
+        linear_solver: str | None = None,
+        linear_strategy: str | None = None,
+    ):
         """Resolve one matrix and restore previous state if forced recompute fails."""
+        from mario.compute.types import ResolutionContext
+
         removed = False
         previous = None
 
@@ -280,7 +337,12 @@ class CoreModel:
             removed = True
 
         try:
-            return _resolver_module().resolve(item, self, scenario=scenario)
+            context = ResolutionContext(
+                compute_method=compute_method,
+                linear_solver=linear_solver,
+                linear_strategy=linear_strategy,
+            )
+            return _resolver_module().resolve(item, self, scenario=scenario, context=context)
         except self._resolver_failure_types() as exc:
             if removed:
                 self.matrices[scenario][item] = previous
@@ -288,7 +350,16 @@ class CoreModel:
                 f"MARIO is not able to calculate {item} because of missing or unresolved dependencies.\n{exc}"
             ) from exc
 
-    def resolve(self, matrix: str, *, scenario: str = "baseline", force_rewrite: bool = False):
+    def resolve(
+        self,
+        matrix: str,
+        *,
+        scenario: str = "baseline",
+        force_rewrite: bool = False,
+        compute_method: str | None = None,
+        linear_solver: str | None = None,
+        linear_strategy: str | None = None,
+    ):
         """Resolve and materialize one matrix through the compute resolver.
 
         Parameters
@@ -299,6 +370,15 @@ class CoreModel:
             Scenario used as the resolution context.
         force_rewrite:
             When ``True``, drop and recompute an already materialized block.
+        compute_method:
+            Optional per-call override for the runtime method. See
+            :meth:`calc_all` for the accepted values and semantics.
+        linear_solver:
+            Optional per-call override for the solve backend used by
+            solve-based formulas.
+        linear_strategy:
+            Optional per-call override for the sparse linear strategy used by
+            solve-based formulas.
 
         Returns
         -------
@@ -307,7 +387,14 @@ class CoreModel:
         """
         self._validate_scenario(scenario)
         self._validate_matrices([matrix])
-        return self._resolve_one(matrix, scenario=scenario, force_rewrite=force_rewrite)
+        return self._resolve_one(
+            matrix,
+            scenario=scenario,
+            force_rewrite=force_rewrite,
+            compute_method=compute_method,
+            linear_solver=linear_solver,
+            linear_strategy=linear_strategy,
+        )
 
     def resolve_many(
         self,
@@ -315,6 +402,9 @@ class CoreModel:
         *,
         scenario: str = "baseline",
         force_rewrite: bool = False,
+        compute_method: str | None = None,
+        linear_solver: str | None = None,
+        linear_strategy: str | None = None,
     ) -> dict[str, object]:
         """Resolve and materialize several matrices through the compute resolver.
 
@@ -326,6 +416,15 @@ class CoreModel:
             Scenario used as the resolution context.
         force_rewrite:
             When ``True``, recompute already materialized blocks as well.
+        compute_method:
+            Optional per-call override for the runtime method. See
+            :meth:`calc_all` for the accepted values and semantics.
+        linear_solver:
+            Optional per-call override for the solve backend used by
+            solve-based formulas.
+        linear_strategy:
+            Optional per-call override for the sparse linear strategy used by
+            solve-based formulas.
 
         Returns
         -------
@@ -335,8 +434,24 @@ class CoreModel:
         requested = _normalize_requested_matrices(matrices)
         self._validate_scenario(scenario)
         self._validate_matrices(requested)
+        if not force_rewrite:
+            from mario.compute.types import ResolutionContext
+
+            context = ResolutionContext(
+                compute_method=compute_method,
+                linear_solver=linear_solver,
+                linear_strategy=linear_strategy,
+            )
+            return _resolver_module().resolve_many(requested, self, scenario=scenario, context=context)
         return {
-            matrix: self._resolve_one(matrix, scenario=scenario, force_rewrite=force_rewrite)
+            matrix: self._resolve_one(
+                matrix,
+                scenario=scenario,
+                force_rewrite=force_rewrite,
+                compute_method=compute_method,
+                linear_solver=linear_solver,
+                linear_strategy=linear_strategy,
+            )
             for matrix in requested
         }
 
@@ -1485,7 +1600,17 @@ class CoreModel:
             raise StopIteration
 
     def __getattr__(self, attr):
-        """Auto-compute matrix attributes requested through dotted access."""
+        """Auto-compute missing matrix attributes requested through dotted access.
+
+        Notes
+        -----
+        Access patterns such as ``db.f`` and ``db.F`` delegate to
+        :meth:`calc_all` without explicit runtime overrides. This means they
+        use the globally configured compute defaults, including the active
+        values set through :func:`mario.set_compute_method` and
+        :func:`mario.set_linear_solver` and
+        :func:`mario.set_linear_strategy`.
+        """
         if attr in self.__dict__:
             return self.__dict__[attr]
         else:

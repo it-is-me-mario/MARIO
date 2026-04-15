@@ -13,28 +13,53 @@ from mario.compute.iot_formulas import (
     build_iot_E_from_e_X,
     build_iot_F_from_f_Y,
     build_iot_M_from_m_Y,
+    build_iot_X_from_z_Y,
     build_iot_V_from_v_X,
     build_iot_X_from_w_Y,
     build_iot_X_from_Z_Y,
     build_iot_Z_from_z_X,
     build_iot_e_from_E_X,
+    build_iot_f_from_e_z,
     build_iot_f_from_e_w,
+    build_iot_m_from_v_z,
     build_iot_m_from_v_w,
+    build_iot_p_from_v_z,
     build_iot_p_from_v_w,
     build_iot_v_from_V_X,
     build_iot_w_from_z,
     build_iot_z_from_Z_X,
 )
+from mario.compute.types import ResolutionContext
 from mario.log_exc.logger import log_time
 from mario.model.conventions import _ENUM
 
 logger = logging.getLogger(__name__)
 
 
-def calc_all_shock(z, e, v, Y):
-    """Recompute the main IOT blocks after shocking direct coefficients."""
-    w = calc_w(z)
-    X = calc_X_from_w(w, Y)
+def calc_all_shock(
+    z,
+    e,
+    v,
+    Y,
+    *,
+    method: str | None = None,
+    solver: str | None = None,
+    strategy: str | None = None,
+):
+    """Recompute the main IOT blocks after shocking direct coefficients.
+
+    Parameters
+    ----------
+    z, e, v, Y:
+        Shocked direct coefficients and final demand.
+    method:
+        Optional runtime compute method override passed to the direct ``X`` solve.
+    solver:
+        Optional linear solver override passed to the direct ``X`` solve.
+    strategy:
+        Optional sparse linear strategy override passed to the direct ``X`` solve.
+    """
+    X = calc_X_from_z(z, Y, method=method, solver=solver, strategy=strategy)
     E = calc_E(e, X)
     V = calc_V(v, X)
     Z = calc_Z(z, X)
@@ -76,9 +101,37 @@ def calc_X_from_w(w, Y):
     return build_iot_X_from_w_Y(w, Y)
 
 
-def calc_X_from_z(z, Y):
-    """Build production from ``z`` by first deriving the Leontief inverse."""
-    return calc_X_from_w(calc_w(z), Y)
+def calc_X_from_z(
+    z,
+    Y,
+    *,
+    method: str | None = None,
+    solver: str | None = None,
+    strategy: str | None = None,
+):
+    """Build production directly from ``z`` and final demand.
+
+    Parameters
+    ----------
+    z, Y:
+        Technical coefficients and final demand.
+    method:
+        Optional runtime compute method override. Accepted values are
+        ``"auto"``, ``"inverse"`` and ``"solve"``.
+    solver:
+        Optional linear solver backend used when the solve path is selected.
+    strategy:
+        Optional sparse linear strategy used when the solve path is selected.
+    """
+    return build_iot_X_from_z_Y(
+        z,
+        Y,
+        context=ResolutionContext(
+            compute_method=method,
+            linear_solver=solver,
+            linear_strategy=strategy,
+        ),
+    )
 
 
 def calc_E(e, X):
@@ -134,6 +187,105 @@ def calc_F(f, Y):
 def calc_f(e, w):
     """Public wrapper for building satellite multipliers."""
     return build_iot_f_from_e_w(e, w)
+
+
+def calc_f_from_z(
+    e,
+    z,
+    *,
+    method: str | None = None,
+    solver: str | None = None,
+    strategy: str | None = None,
+):
+    """Build total satellite multipliers directly from ``e`` and ``z``.
+
+    Parameters
+    ----------
+    e, z:
+        Direct satellite coefficients and technical coefficients.
+    method:
+        Optional runtime compute method override. Accepted values are
+        ``"auto"``, ``"inverse"`` and ``"solve"``.
+    solver:
+        Optional linear solver backend used when the solve path is selected.
+    strategy:
+        Optional sparse linear strategy used when the solve path is selected.
+    """
+    return build_iot_f_from_e_z(
+        e,
+        z,
+        context=ResolutionContext(
+            compute_method=method,
+            linear_solver=solver,
+            linear_strategy=strategy,
+        ),
+    )
+
+
+def calc_m_from_z(
+    v,
+    z,
+    *,
+    method: str | None = None,
+    solver: str | None = None,
+    strategy: str | None = None,
+):
+    """Build total value-added multipliers directly from ``v`` and ``z``.
+
+    Parameters
+    ----------
+    v, z:
+        Direct value-added coefficients and technical coefficients.
+    method:
+        Optional runtime compute method override. Accepted values are
+        ``"auto"``, ``"inverse"`` and ``"solve"``.
+    solver:
+        Optional linear solver backend used when the solve path is selected.
+    strategy:
+        Optional sparse linear strategy used when the solve path is selected.
+    """
+    return build_iot_m_from_v_z(
+        v,
+        z,
+        context=ResolutionContext(
+            compute_method=method,
+            linear_solver=solver,
+            linear_strategy=strategy,
+        ),
+    )
+
+
+def calc_p_from_z(
+    v,
+    z,
+    *,
+    method: str | None = None,
+    solver: str | None = None,
+    strategy: str | None = None,
+):
+    """Build the price index directly from ``v`` and ``z``.
+
+    Parameters
+    ----------
+    v, z:
+        Direct value-added coefficients and technical coefficients.
+    method:
+        Optional runtime compute method override. Accepted values are
+        ``"auto"``, ``"inverse"`` and ``"solve"``.
+    solver:
+        Optional linear solver backend used when the solve path is selected.
+    strategy:
+        Optional sparse linear strategy used when the solve path is selected.
+    """
+    return build_iot_p_from_v_z(
+        v,
+        z,
+        context=ResolutionContext(
+            compute_method=method,
+            linear_solver=solver,
+            linear_strategy=strategy,
+        ),
+    )
 
 
 def calc_f_dis(e, w):

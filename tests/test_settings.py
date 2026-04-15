@@ -10,8 +10,14 @@ from mario.log_exc.exceptions import WrongFormat
 
 
 from mario.model.conventions import _ENUM
-from mario.settings.settings import Index, reset_settings
-from mario.settings.settings import download_settings,upload_settings
+from mario.settings.settings import Compute, Index, reset_settings
+from mario.settings.settings import (
+    download_settings,
+    upload_settings,
+    set_compute_method,
+    set_linear_solver,
+    set_linear_strategy,
+)
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
@@ -104,3 +110,19 @@ def test_Setting():
     idx = Index()
     assert idx.r == idx["r"]
 
+
+def test_compute_settings_helpers():
+    original = download_settings(None)
+
+    set_compute_method("solve")
+    set_linear_solver("scipy")
+    set_linear_strategy("iterative")
+
+    compute = Compute()
+    assert compute.compute_method == "solve"
+    assert compute.linear_solver == "scipy"
+    assert compute.linear_strategy == "iterative"
+
+    reset_settings()
+    restored = download_settings(None)
+    assert restored["compute"] == original["compute"]
