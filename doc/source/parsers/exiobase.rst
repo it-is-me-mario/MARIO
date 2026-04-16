@@ -125,3 +125,8 @@ If you prefer to run them locally, you can also download the source notebooks:
 * :download:`Download the monetary notebook <../notebooks/parsers/exiobase/monetary.ipynb>`
 * :download:`Download the hybrid notebook <../notebooks/parsers/exiobase/hybrid.ipynb>`
 
+.. toctree::
+   :hidden:
+
+   ../notebooks/parsers/exiobase/monetary
+   ../notebooks/parsers/exiobase/hybrid
