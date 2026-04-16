@@ -911,13 +911,19 @@ def _add_sector(
         reg_map_columns,
         com_map_name,
         com_map_columns,
+        fact_map_name,
+        fact_map_columns,
+        sat_map_name,
+        sat_map_columns,
         path,
         redefine_uncertainties=False,
     ):
 
     master_sheet = pd.DataFrame(columns=list(master_columns.values()))
     regions_maps_sheet = pd.DataFrame(instance.get_index(_MASTER_INDEX['r']), columns=reg_map_columns) 
-    commodity_maps_sheet = pd.DataFrame(columns=com_map_columns) 
+    commodity_maps_sheet = pd.DataFrame(columns=com_map_columns)
+    factors_maps_sheet = pd.DataFrame(instance.get_index(_MASTER_INDEX['f']), columns=fact_map_columns)
+    satellite_maps_sheet = pd.DataFrame(instance.get_index(_MASTER_INDEX['k']), columns=sat_map_columns)
     if redefine_uncertainties:
         #Uncertainty values for input data are predefined in constants, but can be redefined in this sheet
         uncertainties_sheet = pd.DataFrame({
@@ -929,19 +935,21 @@ def _add_sector(
         master_sheet.to_excel(writer, sheet_name=master_name, index=False)
         regions_maps_sheet.to_excel(writer, sheet_name=reg_map_name, index=False)
         commodity_maps_sheet.to_excel(writer, sheet_name=com_map_name, index=False)
+        factors_maps_sheet.to_excel(writer, sheet_name=fact_map_name, index=False)
+        satellite_maps_sheet.to_excel(writer, sheet_name=sat_map_name, index=False)
         if redefine_uncertainties:
             uncertainties_sheet.to_excel(writer, sheet_name='Uncertainties', index=False)
 
-    # add data validation...
 
+def _read_add_sectors(path,master_name,reg_map_name,item_map_name,factors_map_name,satellites_map_name):
 
-def _read_add_sectors(path,master_name,reg_map_name,item_map_name):
-    
     master_file = pd.read_excel(path,sheet_name=None,header=0)
     master_sheet = master_file[master_name]
 
     regions_maps = {k:master_file[reg_map_name][k].dropna().to_list() for k in master_file[reg_map_name].columns}
     item_maps = {k:master_file[item_map_name][k].dropna().to_list() for k in master_file[item_map_name].columns}
+    factors_maps = {k:master_file[factors_map_name][k].dropna().to_list() for k in master_file[factors_map_name].columns} if factors_map_name in master_file else {}
+    satellites_maps = {k:master_file[satellites_map_name][k].dropna().to_list() for k in master_file[satellites_map_name].columns} if satellites_map_name in master_file else {}
 
     # check_for_errors_in_region_maps(instance,regions_maps)
     # check_for_errors_in_master_sheet(instance,master_sheet,regions_maps)
@@ -955,7 +963,7 @@ def _read_add_sectors(path,master_name,reg_map_name,item_map_name):
     else:
         uncertainty_values = _ADD_SECTORS_UNCERTAINTY_PARAMETERS
 
-    return master_sheet, regions_maps, item_maps, uncertainty_values
+    return master_sheet, regions_maps, item_maps, factors_maps, satellites_maps, uncertainty_values
 
 def _read_add_inventories(instance,path):
     inventories = pd.read_excel(path,sheet_name=None,header=0,)
