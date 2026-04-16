@@ -105,7 +105,7 @@ exclude_patterns = [
     "concepts/compute_engine.rst",
     "concepts/database_model.rst",
     "concepts/parser_model.rst",
-    "notebooks/parsers/figaro/tutorial.ipynb",
+    "notebooks/parsers/*/tutorial.ipynb",
 ]
 
 
