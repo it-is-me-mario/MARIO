@@ -1,38 +1,72 @@
+index:
+  r: Region
+  a: Activity
+  c: Commodity
+  s: Sector
+  k: Satellite account
+  f: Factor of production
+  n: Consumption category
+index_aliases:
+  r:
+  - region
+  - regions
+  - country
+  - countries
+  a:
+  - activity
+  - activities
+  c:
+  - commodity
+  - commodities
+  - product
+  - products
+  s:
+  - sector
+  - sectors
+  - industry
+  - industries
+  k:
+  - satellite account
+  - satellite accounts
+  - extension
+  - extensions
+  f:
+  - factor of production
+  - factors of production
+  - value added
+  n:
+  - consumption category
+  - consumption categories
+  - final demand
+  - final demand category
+  - final demand categories
+nomenclature:
+  e: e
+  E: E
+  X: X
+  EY: EY
+  VY: VY
+  Y: Y
+  y: y
+  V: V
+  v: v
+  F: F
+  f: f
+  M: M
+  m: m
+  b: b
+  g: g
+  w: w
+  p: p
+  z: z
+  Z: Z
+  u: u
+  U: U
+  s: s
+  S: S
 compute:
-  auto_w_memory_fraction: 0.25
-  auto_w_overhead_factor: 3.0
   compute_method: auto
   linear_solver: scipy
   linear_strategy: auto
-index:
-  a: Activity
-  c: Commodity
-  f: Factor of production
-  k: Satellite account
-  n: Consumption category
-  r: Region
-  s: Sector
-nomenclature:
-  E: E
-  EY: EY
-  F: F
-  M: M
-  S: S
-  U: U
-  V: V
-  VY: VY
-  X: X
-  Y: Y
-  Z: Z
-  b: b
-  e: e
-  f: f
-  g: g
-  m: m
-  p: p
-  s: s
-  u: u
-  v: v
-  w: w
-  y: y
-  z: z
+  auto_w_memory_fraction: 0.25
+  auto_w_overhead_factor: 3.0

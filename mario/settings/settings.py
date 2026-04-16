@@ -1,5 +1,6 @@
 """Load, validate and override MARIO settings."""
 
+import copy
 import yaml
 from mario.log_exc.logger import log_time
 import logging
@@ -15,6 +16,138 @@ path = os.path.abspath(
     )
 )
 
+CANONICAL_INDEX = {
+    "r": "Region",
+    "a": "Activity",
+    "c": "Commodity",
+    "s": "Sector",
+    "k": "Satellite account",
+    "f": "Factor of production",
+    "n": "Consumption category",
+}
+
+DEFAULT_INDEX_ALIASES = {
+    "r": ["region", "regions", "country", "countries"],
+    "a": ["activity", "activities"],
+    "c": ["commodity", "commodities", "product", "products"],
+    "s": ["sector", "sectors", "industry", "industries"],
+    "k": ["satellite account", "satellite accounts", "extension", "extensions"],
+    "f": ["factor of production", "factors of production", "value added"],
+    "n": [
+        "consumption category",
+        "consumption categories",
+        "final demand",
+        "final demand category",
+        "final demand categories",
+    ],
+}
+
+DEFAULT_NOMENCLATURE = {
+    "e": "e",
+    "E": "E",
+    "X": "X",
+    "EY": "EY",
+    "VY": "VY",
+    "Y": "Y",
+    "y": "y",
+    "V": "V",
+    "v": "v",
+    "F": "F",
+    "f": "f",
+    "M": "M",
+    "m": "m",
+    "b": "b",
+    "g": "g",
+    "w": "w",
+    "p": "p",
+    "z": "z",
+    "Z": "Z",
+    "u": "u",
+    "U": "U",
+    "s": "s",
+    "S": "S",
+}
+
+DEFAULT_COMPUTE = {
+    "compute_method": "auto",
+    "linear_solver": "scipy",
+    "linear_strategy": "auto",
+    "auto_w_memory_fraction": 0.25,
+    "auto_w_overhead_factor": 3.0,
+}
+
+
+def _as_alias_list(value):
+    """Return one alias payload as a flat list of strings."""
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [value]
+    return [str(item) for item in value]
+
+
+def _normalize_index_aliases(raw_aliases=None, legacy_index=None):
+    """Merge built-in aliases with user aliases and legacy index renames."""
+    aliases = {code: list(values) for code, values in DEFAULT_INDEX_ALIASES.items()}
+
+    for code, value in (legacy_index or {}).items():
+        if code in CANONICAL_INDEX and value != CANONICAL_INDEX[code]:
+            aliases.setdefault(code, []).extend(_as_alias_list(value))
+
+    for code, values in (raw_aliases or {}).items():
+        if code in CANONICAL_INDEX:
+            aliases.setdefault(code, []).extend(_as_alias_list(values))
+
+    for code, values in aliases.items():
+        deduped = []
+        seen = set()
+        for alias in values:
+            token = str(alias).strip()
+            if not token:
+                continue
+            marker = token.casefold()
+            if marker not in seen:
+                seen.add(marker)
+                deduped.append(token)
+        aliases[code] = deduped
+
+    return aliases
+
+
+def _default_settings_payload():
+    """Return the built-in MARIO settings payload."""
+    return {
+        "index": copy.deepcopy(CANONICAL_INDEX),
+        "index_aliases": copy.deepcopy(DEFAULT_INDEX_ALIASES),
+        "nomenclature": copy.deepcopy(DEFAULT_NOMENCLATURE),
+        "compute": copy.deepcopy(DEFAULT_COMPUTE),
+    }
+
+
+def _normalize_settings_payload(raw_settings):
+    """Return a settings payload with canonical index labels and explicit aliases."""
+    settings = copy.deepcopy(raw_settings or {})
+    if not isinstance(settings, dict):
+        settings = {}
+
+    normalized = _default_settings_payload()
+    if isinstance(settings.get("nomenclature"), dict):
+        normalized["nomenclature"].update(settings["nomenclature"])
+    if isinstance(settings.get("compute"), dict):
+        normalized["compute"].update(settings["compute"])
+    normalized["index_aliases"] = _normalize_index_aliases(
+        raw_aliases=settings.get("index_aliases"),
+        legacy_index=settings.get("index"),
+    )
+    return normalized
+
+
+def _load_settings_file(path_to_yaml):
+    """Read and normalize one settings YAML file."""
+    with open(path_to_yaml, "r") as yml_file:
+        file = yaml.safe_load(yml_file)
+    return _normalize_settings_payload(file)
+
 
 class Setting:
     """Base wrapper around a validated settings section."""
@@ -26,14 +159,19 @@ class Setting:
 
     def _read_yaml(self, path):
         """Read a YAML file from disk and return its parsed object."""
-        with open(path, "r") as yml_file:
-            file = yaml.safe_load(yml_file)
-
-        return file
+        return _load_settings_file(path)
 
     def _validate_dict(self, key, vars):
         """Load the requested settings section, falling back to packaged defaults."""
-        setting = self._read_yaml(f"{path}/settings.yaml")
+        try:
+            setting = self._read_yaml(f"{path}/settings.yaml")
+        except Exception:
+            log_time(
+                logger=logger,
+                level="warning",
+                comment=f"The user settings could not be read for {key}, so the packaged MARIO defaults are used.",
+            )
+            return _default_settings_payload()[key]
 
         correct_setting = True
         if key in setting:
@@ -53,12 +191,10 @@ class Setting:
         log_time(
             logger=logger,
             level="warning",
-            comment=f"The user settings is not correctly build for {key}, so the original mario settings are used.",
+            comment=f"The user settings is not correctly built for {key}, so the packaged MARIO defaults are used.",
         )
 
-        setting = self._read_yaml(f"{path}/original_settings.yaml")
-
-        return setting[key]
+        return _default_settings_payload()[key]
 
     def __getitem__(self, var):
         """Return one configured value by key."""
@@ -111,6 +247,20 @@ class Index(Setting):
         self.vars = list("racskfn")
         self.key = "index"
         super().__init__()
+
+
+class IndexAliases(Setting):
+    """Expose the configured set-name aliases accepted by MARIO."""
+
+    def __init__(self):
+        """Load the configured set alias lists."""
+        self.vars = list("racskfn")
+        self.key = "index_aliases"
+        super().__init__()
+
+    def _check_duplicates(self):
+        """Alias lists are validated elsewhere and may contain overlapping values."""
+        return None
 
 
 class Nomenclature(Setting):
@@ -185,11 +335,11 @@ def download_settings(destination_path=None):
         shutil.copyfile(
             src=f"{path}/settings.yaml", dst=f"{destination_path}/settings.yaml"
         )
+        normalized = _load_settings_file(f"{path}/settings.yaml")
+        with open(f"{destination_path}/settings.yaml", "w") as yaml_file:
+            yaml.dump(normalized, yaml_file, default_flow_style=False, sort_keys=False)
 
-    with open(f"{path}/settings.yaml", "r") as yml_file:
-        file = yaml.safe_load(yml_file)
-
-    return file
+    return _load_settings_file(f"{path}/settings.yaml")
 
 
 def upload_settings(source):
@@ -204,27 +354,30 @@ def upload_settings(source):
     if isinstance(source, str):
         if not source.endswith(".yaml"):
             raise WrongFormat("only yaml file is acceptable.")
-        shutil.copyfile(src=source, dst=f"{path}/settings.yaml")
+        with open(source, "r") as yaml_file:
+            payload = yaml.safe_load(yaml_file)
 
     elif isinstance(source, dict):
-        with open(f"{path}/settings.yaml", "w") as yaml_file:
-            yaml.dump(source, yaml_file, default_flow_style=False)
+        payload = source
 
     else:
         raise WrongFormat("Only dict or a yaml file directory can be passed")
 
+    payload = _normalize_settings_payload(payload)
+
+    with open(f"{path}/settings.yaml", "w") as yaml_file:
+        yaml.dump(payload, yaml_file, default_flow_style=False, sort_keys=False)
+
     import mario.model.conventions as conventions
+    import mario.model.labels as labels
 
     importlib.reload(conventions)
+    importlib.reload(labels)
 
 
 def reset_settings():
     """Restore the packaged default settings."""
-
-    with open(f"{path}/original_settings.yaml", "r") as yml_file:
-        file = yaml.safe_load(yml_file)
-
-    upload_settings(file)
+    upload_settings(_default_settings_payload())
 
 
 def set_compute_method(method: str):

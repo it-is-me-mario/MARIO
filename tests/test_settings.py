@@ -10,7 +10,7 @@ from mario.log_exc.exceptions import WrongFormat
 
 
 from mario.model.conventions import _ENUM
-from mario.settings.settings import Compute, Index, reset_settings
+from mario.settings.settings import Compute, Index, IndexAliases, reset_settings
 from mario.settings.settings import (
     download_settings,
     upload_settings,
@@ -50,7 +50,8 @@ def test_upload_setting():
 
     uploaded = download_settings(None)
 
-    assert new == uploaded
+    assert uploaded["index"]["r"] == "Region"
+    assert "country" in uploaded["index_aliases"]["r"]
 
     reset_settings()
 
@@ -64,7 +65,8 @@ def test_upload_setting():
     # check if it is correct
     uploaded = download_settings(None)
 
-    assert new == uploaded
+    assert uploaded["index"]["r"] == "Region"
+    assert "country" in uploaded["index_aliases"]["r"]
 
     os.remove(f"{MOCK_PATH}/settings.yaml")
 
@@ -102,8 +104,10 @@ def test_Setting():
     upload_settings(new)
 
     idx = Index()
+    aliases = IndexAliases()
 
-    assert idx.r == "COUNTRY"
+    assert idx.r == "Region"
+    assert "country" in aliases.r
 
     reset_settings()
 

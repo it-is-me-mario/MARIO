@@ -264,18 +264,24 @@ def test_get_index(CoreDataIOT,CoreDataSUT):
     assert "is not a valid index" in str(msg.value)
 
     assert CoreDataIOT.get_index("sector") == CoreDataIOT.get_index("Sector")
+    assert CoreDataIOT.get_index("industry") == CoreDataIOT.get_index("Sector")
+    assert CoreDataIOT.get_index("industries") == CoreDataIOT.get_index("Sector")
     assert CoreDataIOT.get_index("satellite_account") == CoreDataIOT.get_index("Satellite account")
     assert CoreDataIOT.get_index("k") == CoreDataIOT.get_index("Satellite account")
     assert CoreDataSUT.get_index("activity") == CoreDataSUT.get_index("Activity")
     assert CoreDataSUT.get_index("c") == CoreDataSUT.get_index("Commodity")
+    assert CoreDataSUT.get_index("product") == CoreDataSUT.get_index("Commodity")
+    assert CoreDataSUT.get_index("products") == CoreDataSUT.get_index("Commodity")
 
 
 def test_set_access_via_attributes(CoreDataIOT, CoreDataSUT):
 
     assert CoreDataIOT.Sector == CoreDataIOT.get_index("Sector")
+    assert CoreDataIOT.industry == CoreDataIOT.get_index("Sector")
     assert CoreDataIOT.satellite_account == CoreDataIOT.get_index("Satellite account")
     assert CoreDataIOT.consumption_category == CoreDataIOT.get_index("Consumption category")
     assert CoreDataSUT.Activity == CoreDataSUT.get_index("Activity")
+    assert CoreDataSUT.product == CoreDataSUT.get_index("Commodity")
     assert CoreDataSUT.factor_of_production == CoreDataSUT.get_index("Factor of production")
 
 
@@ -492,6 +498,7 @@ def test_search(CoreDataIOT):
         "Satellite account": ["Employment", "Water Consumption Blue"]
     }
     assert CoreDataIOT.search("satellite_account", "employ") == ["Employment"]
+    assert CoreDataIOT.search("industry", "manuf") == ["Manufacturing"]
 
 
 

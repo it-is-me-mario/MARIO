@@ -11,6 +11,7 @@ from mario.api.metadata import MARIOMetaData
 from mario.internal.access import block_to_matrix, block_to_pandas, block_to_table
 from mario.model.assumptions import resolve_tech_assumption
 from mario.parsers.tabular import dataframe_parser
+from mario.settings.settings import IndexAliases
 from mario.model.conventions import TABLE_LEVELS
 from tabulate import tabulate
 from collections import namedtuple
@@ -1199,10 +1200,13 @@ class CoreModel:
 
         normalized = self._normalize_set_token(value)
         aliases = {}
+        alias_settings = IndexAliases()
         for set_name, code in TABLE_LEVELS[self.table_type].items():
             aliases[self._normalize_set_token(set_name)] = set_name
             if allow_codes:
                 aliases[self._normalize_set_token(code)] = set_name
+            for alias in alias_settings[code]:
+                aliases[self._normalize_set_token(alias)] = set_name
 
         resolved = aliases.get(normalized)
         if resolved is not None:

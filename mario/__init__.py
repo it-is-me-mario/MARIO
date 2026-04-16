@@ -113,6 +113,7 @@ from mario.settings.settings import (
     set_linear_strategy,
     Nomenclature,
     Index,
+    IndexAliases,
     Compute,
 )
 
