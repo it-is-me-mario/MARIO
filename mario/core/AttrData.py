@@ -1628,6 +1628,8 @@ class Database(CoreModel):
         path:str,
         master_sheet = "Master",
         regions_clusters_sheet = 'Regions Clusters',
+        factors_clusters_sheet = 'Factors of prod. Clusters',
+        satellites_clusters_sheet = 'Satellites Clusters',
         redefine_uncertainties: bool = False,
     ):
         """
@@ -1637,7 +1639,8 @@ class Database(CoreModel):
             path (str): The path where the template will be generated.
             master_sheet (str): The name of the sheet that will contain the master data. Default is 'Master'.
             regions_clusters_sheet (str): The name of the sheet that will contain the clusters of regions. Default is 'Regions Clusters'.
-            commodities_clusters_sheet (str): The name of the sheet that will contain the clusters of commodities. Default is 'Commodities Clusters'.
+            factors_clusters_sheet (str): The name of the sheet that will contain the clusters of factors. Default is 'Factors Clusters'.
+            satellites_clusters_sheet (str): The name of the sheet that will contain the clusters of satellites. Default is 'Satellites Clusters'.
             redefine_uncertainties (bool, optional): If True, provides sheet to redefine uncertainties for new sectors. Defaults to False.
 
         Returns:
@@ -1657,6 +1660,8 @@ class Database(CoreModel):
             _ADD_SECTORS_REGIONS_CLUSTERS_SHEET_COLUMNS,
             items_clusters_sheet,
             _ADD_SECTORS_ITEMS_CLUSTERS_SHEET_COLUMNS,
+            factors_clusters_sheet,
+            satellites_clusters_sheet,
             path,
             redefine_uncertainties
         )
@@ -1669,6 +1674,8 @@ class Database(CoreModel):
         read_inventories:bool = False,
         master_sheet = "Master",
         regions_clusters_sheet = 'Regions Clusters',
+        factors_clusters_sheet = 'Factors of prod. Clusters',
+        satellites_clusters_sheet = 'Satellites Clusters',
     ):
         """
         Reads the master template from the specified path and performs necessary operations.
@@ -1679,27 +1686,31 @@ class Database(CoreModel):
             read_inventories (bool, optional): Flag indicating whether to read inventory templates if already filled. Defaults to False.
             master_sheet (str, optional): The name of the sheet that contains the master data. Defaults to 'Master'.
             regions_clusters_sheet (str, optional): The name of the sheet that contains the regions clusters. Defaults to 'Regions Clusters'.
-            commodities_clusters_sheet (str, optional): The name of the sheet that contains the commodities clusters. Defaults to 'Commodities Clusters'.
-            redefine_uncertainties (bool, optional): If True, provides sheet to redefine uncertainties for new sectors. Defaults to False.
+            factors_clusters_sheet (str, optional): The name of the sheet that contains the factors of production clusters. Defaults to 'Factors of prod. Clusters'.
+            satellites_clusters_sheet (str, optional): The name of the sheet that contains the satellites clusters. Defaults to 'Satellites Clusters'.
 
         """
 
         if self.meta.table == "IOT":
             items_clusters_sheet = 'Sectors Clusters'
-            self.add_sectors_master, self.regions_clusters, self.sectors_clusters, self.uncertainty_values = _read_add_sectors(
+            self.add_sectors_master, self.regions_clusters, self.sectors_clusters, self.factors_clusters, self.satellites_clusters, self.uncertainty_values = _read_add_sectors(
                 path,
                 master_sheet,
                 regions_clusters_sheet,
                 items_clusters_sheet,
+                factors_clusters_sheet,
+                satellites_clusters_sheet,
             )
 
         if self.meta.table == "SUT":
             items_clusters_sheet = 'Commodities Clusters'
-            self.add_sectors_master, self.regions_clusters, self.commodities_clusters, self.uncertainty_values = _read_add_sectors(
+            self.add_sectors_master, self.regions_clusters, self.commodities_clusters, self.factors_clusters, self.satellites_clusters, self.uncertainty_values = _read_add_sectors(
                 path,
                 master_sheet,
                 regions_clusters_sheet,
                 items_clusters_sheet,
+                factors_clusters_sheet,
+                satellites_clusters_sheet,
             )
 
         if self.meta.table == "IOT":

@@ -855,33 +855,50 @@ class AddSectors:
         if matrix == _ENUM['e']:
             inventory = full_inventory.query(f"`{INC['item']}`=='{MI['k']}'")
 
+        row_clusters = self.db.factors_clusters if matrix == _ENUM['v'] else self.db.satellites_clusters
+
         for i in inventory.index:
             input_item = inventory.loc[i, INC['db_item']]
             quantity = inventory.loc[i, self.converted_quantity_column]
             change_type = inventory.loc[i, INC['change']]
+            is_cluster = input_item in row_clusters
 
             if change_type == 'Update':
                 if self.table == 'SUT':
-                    slices[matrix].loc[input_item, (region_to, MI['a'], activity)] += quantity
+                    if is_cluster:
+                        slices[matrix].loc[row_clusters[input_item], (region_to, MI['a'], activity)] += quantity / len(row_clusters[input_item])
+                    else:
+                        slices[matrix].loc[input_item, (region_to, MI['a'], activity)] += quantity
                 if self.table == 'IOT':
-                    slices[matrix].loc[input_item, (region_to, MI['s'], activity)] += quantity
+                    if is_cluster:
+                        slices[matrix].loc[row_clusters[input_item], (region_to, MI['s'], activity)] += quantity / len(row_clusters[input_item])
+                    else:
+                        slices[matrix].loc[input_item, (region_to, MI['s'], activity)] += quantity
 
             if change_type == 'Percentage':
                 if self.table == 'SUT':
                     if activity in self.parented_activities:
                         parent_activity = self.db.add_sectors_master.query(f"{MI['a']}==@activity")[MSC[self.table]['pa']].values[0]
-                        old_value = self.matrices[matrix].loc[input_item, (region_to, MI['a'], parent_activity)]
-                        slices[matrix].loc[input_item, (region_to, MI['a'], activity)] = old_value*(1+quantity)
+                        if is_cluster:
+                            old_values = self.matrices[matrix].loc[row_clusters[input_item], (region_to, MI['a'], parent_activity)]
+                            slices[matrix].loc[row_clusters[input_item], (region_to, MI['a'], activity)] = old_values * (1 + quantity)
+                        else:
+                            old_value = self.matrices[matrix].loc[input_item, (region_to, MI['a'], parent_activity)]
+                            slices[matrix].loc[input_item, (region_to, MI['a'], activity)] = old_value * (1 + quantity)
                     else:
                         raise ValueError(f"It's not possible to apply a percentage change to activity {activity} because it has no parent activity")
                 if self.table == 'IOT':
                     if activity in self.parented_sectors:
                         parent_sector = self.db.add_sectors_master.query(f"{MI['s']}==@activity")[MSC[self.table]['ps']].values[0]
-                        old_value = self.matrices[matrix].loc[input_item, (region_to, MI['s'], parent_sector)]
-                        slices[matrix].loc[input_item, (region_to, MI['s'], activity)] = old_value*(1+quantity)
+                        if is_cluster:
+                            old_values = self.matrices[matrix].loc[row_clusters[input_item], (region_to, MI['s'], parent_sector)]
+                            slices[matrix].loc[row_clusters[input_item], (region_to, MI['s'], activity)] = old_values * (1 + quantity)
+                        else:
+                            old_value = self.matrices[matrix].loc[input_item, (region_to, MI['s'], parent_sector)]
+                            slices[matrix].loc[input_item, (region_to, MI['s'], activity)] = old_value * (1 + quantity)
                     else:
                         raise ValueError(f"It's not possible to apply a percentage change to activity {activity} because it has no parent activity")
-        
+
         return slices
 
     def fill_market_shares(

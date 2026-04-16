@@ -98,12 +98,12 @@ def _optimize_in_cvxlab(
         main_dir_path = main_dir_path,
         log_level = 'info',
         model_settings_from = model_settings_from,
+        multiple_input_files=multiple_input_files,
         use_existing_data = False,
         detailed_validation = True,
         import_custom_constants=import_custom_constants,
         import_custom_operators=import_custom_operators,
-        input_data_files_type=input_data_files_type,
-        multiple_input_files=multiple_input_files,
+        input_data_files_type=input_data_files_type
         )
 
     # filling sets file
@@ -154,13 +154,16 @@ def _optimize_in_cvxlab(
         set_map = dict(zip(mapping['sets'].index.to_list(), mapping['sets']["cvxlab"]))
 
         for mario_matrix_name, mario_df in instance.matrices_flat.items():
-            if matrix_map[mario_matrix_name]:
-                pass
+            if mario_matrix_name not in matrix_map:
+                continue
             cvxlab_sheet = matrix_map[mario_matrix_name]
             cvxlab_df = input_data[cvxlab_sheet]
             mario_renamed = mario_df.rename(columns=set_map)
             mario_renamed = mario_renamed.rename(columns={"Value":"values"})
             mario_renamed.columns = [c+"_Name" for c in mario_renamed.columns if c != "values"] + ["values"]
+
+            if default_model=="AuSteel" and mario_matrix_name=='ss': #fix by changing cvxlab problem formulation, not inverting to and from in ss
+                mario_renamed=mario_renamed.rename(columns={'activity_from_Name': 'activity_to_Name','commodity_to_Name':'commodity_from_Name'}) 
 
             join_cols = [c for c in mario_renamed.columns if c in cvxlab_df.columns if c != "values"]
             
@@ -175,6 +178,39 @@ def _optimize_in_cvxlab(
 
             input_data[cvxlab_sheet] = merged
         
+        if default_model=='AuSteel':
+            # ensure exogenous folder exists
+            exo_path = os.path.join(main_dir_path, "exogenous data")
+            os.makedirs(exo_path, exist_ok=True)
+
+            # check for V_ex.xlsx and Y_ex.xlsx, create empty files if not exist and raise error to fill them, as they are necessary for the model to run and will be read by the model in the next steps, so better to create them with the right format if not provided by the user, to avoid searching for non-existing files in the next steps
+            v_ex_path = os.path.join(exo_path, "V_ex.xlsx")
+            y_ex_path = os.path.join(exo_path, "Y_ex.xlsx")
+            if not os.path.exists(v_ex_path):
+                v_cols = [c for c in input_data['V_ex'].columns if c != 'id']
+                pd.DataFrame(columns=v_cols).to_excel(v_ex_path, index=False)
+
+                if not os.path.exists(y_ex_path):
+                    y_cols = [c for c in input_data['Y_ex'].columns if c != 'id']
+                    pd.DataFrame(columns=y_cols).to_excel(y_ex_path, index=False)
+                    raise ValueError(f"V_ex.xlsx and Y_ex.xlsx files not found in exogenous data folder, empty files with the right format have been created, fill them and run again.")
+                else:
+                    raise ValueError(f"V_ex.xlsx file not found in exogenous data folder, an empty file with the right format has been created, fill it and run again.")
+
+            #changes to Vex
+            V_ex=pd.read_excel(v_ex_path)
+            join_cols = [c for c in V_ex.columns if c not in ["values"]]
+            input_data['V_ex'] = input_data['V_ex'].merge(V_ex, on=join_cols, how='left', suffixes=('', '_new'))
+            input_data['V_ex']['values'] = input_data['V_ex']['values_new'].fillna(input_data['V_ex']['values'])
+            input_data['V_ex'] = input_data['V_ex'].drop(columns=['values_new'])
+            
+            #changes to Yex
+            Y_ex=pd.read_excel(y_ex_path)
+            join_cols = [c for c in Y_ex.columns if c not in ["values"]]
+            input_data['Y_ex'] = input_data['Y_ex'].merge(Y_ex, on=join_cols, how='left', suffixes=('', '_new'))
+            input_data['Y_ex']['values'] = input_data['Y_ex']['values_new'].fillna(input_data['Y_ex']['values'])
+            input_data['Y_ex'] = input_data['Y_ex'].drop(columns=['values_new'])
+
         with pd.ExcelWriter(os.path.join(main_dir_path, model_dir, "input_data\\input_data.xlsx"), engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
             for sheet_name in input_data:
                 input_data[sheet_name].to_excel(writer, sheet_name=sheet_name, index=False)
@@ -212,9 +248,10 @@ def _optimize_in_cvxlab(
         for value in set(map_new_parent.values()):
             map_new_parent[str(value)] = value
         optimized_matrices=_cvxlab_results_parser_split_sectors(dest_dir,instance.matrices_flat,parent_names)
+
     else:
         optimized_matrices = _cvxlab_results_parser(dest_dir,mapping,default_model,instance.matrices_flat)
-
+    
     return optimized_matrices
 
 
@@ -314,7 +351,7 @@ def _inputs_to_cvxlab_split_sectors(
     old_matrices_config = {
             'Z': ('Zold', ['region_from_Name', 'region_to_Name', 'sector_from_Name', 'sector_to_Name']),
             'Y': ('Yold', ['region_from_Name', 'sector_from_Name', 'region_to_Name', 'cons_categ_Name']),
-            'V': ('Vold', ['region_to_Name', 'sector_to_Name'])
+            'V': ('Vold', ['factor_Name','region_to_Name', 'sector_to_Name'])
         }
 
     for mario_name, (target_name, join_cols) in old_matrices_config.items():
@@ -455,12 +492,13 @@ def _cvxlab_results_parser(
             indeces = [s.strip(" '") for s in mapping['result matrices'].loc[matrix, 'indeces'].split(',')]
             unstack=[s.strip(" '") for s in mapping['result matrices'].loc[matrix, 'unstack'].split(',')]
             df=result_matrices[matrix].drop(columns=['id']).set_index(indeces)['values'].unstack(unstack)
+            #To completely renovate, probably inserting new colums "row label" and "col label" in the mapping file
             df.index = pd.MultiIndex.from_tuples(
-                [(idx[0], str(mapping['result matrices'].loc[matrix, 'row label']), idx[1]) for idx in df.index],
+                [(idx[0], str(mapping['result matrices'].loc[matrix, 'row level']), idx[1]) for idx in df.index],
                 names=['Region', 'Level', 'Item']
             )
             df.columns = pd.MultiIndex.from_tuples(
-                [(col[0], str(mapping['result matrices'].loc[matrix, 'col label']), col[1]) for col in df.columns],
+                [(col[0], str(mapping['result matrices'].loc[matrix, 'col level']), col[1]) for col in df.columns],
                 names=['Region', 'Level', 'Item']
             )
             mario_matrices[mario_name]=df
@@ -542,11 +580,9 @@ def _cvxlab_results_parser_split_sectors(
     #Compose the complete V
     flat_V=flat_matrices['V'][flat_matrices['V']['scenarios'] == scenario_to_extract].drop(columns='scenarios')
     flat_V=flat_V.rename(columns={'Value': 'values'})
-    flat_V.drop(columns=['factors'], inplace=True)
     flat_V.columns = [f"{col}_Name" if col != "values" else col for col in flat_V.columns]
     V=pd.concat([db_V,flat_V[flat_V['sector_to_Name'].isin(sectors_stable)]])
-    V["Factor_of_production"]="VA"
-    V=V.set_index(['Factor_of_production','region_to_Name', 'sector_to_Name'])['values'].unstack(['region_to_Name', 'sector_to_Name'])
+    V=V.set_index(['factor_Name','region_to_Name', 'sector_to_Name'])['values'].unstack(['region_to_Name', 'sector_to_Name'])
     V.index.name="Item"
     V.columns = pd.MultiIndex.from_tuples(
                 [(col[0], 'Sector', col[1]) for col in V.columns],
