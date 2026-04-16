@@ -11,7 +11,20 @@ from mario.log_exc.exceptions import (
 
 from mario.log_exc.logger import log_time
 
-from mario.ops.shocks import Y_shock, V_shock, Z_shock
+from mario.ops.shocks import (
+    Y_shock,
+    V_shock,
+    Z_shock,
+    U_shock,
+    S_shock,
+    Ya_shock,
+    Yc_shock,
+    va_shock,
+    vc_shock,
+    ea_shock,
+    ec_shock,
+    has_shock_sheet,
+)
 from mario.ops.add_sector_workbook import (
     derive_add_sector_sets,
     group_inventories_by_target,
@@ -52,6 +65,9 @@ from mario.compute.primitives import (
     calc_X,
     linkages_calculation,
 )
+from mario.compute.ordering import SUTUnifiedOrderingPolicy
+from mario.compute.views import concat_sut_Y, concat_sut_e, concat_sut_v, concat_sut_z
+from mario.clusters import build_default_clusters
 
 import numpy as np
 import pandas as pd
@@ -155,6 +171,99 @@ class Database(CoreModel):
 
         # A counter for saving the results in a dictionary
         self.__counter = 1  # Shock Counter
+        self._clusters = {}
+
+    @property
+    def clusters(self):
+        """Return the currently stored user-defined shock clusters."""
+        return copy.deepcopy(self._clusters)
+
+    @property
+    def default_clusters(self):
+        """Return the automatically generated default shock clusters."""
+        return build_default_clusters(self)
+
+    @property
+    def available_clusters(self):
+        """Return the effective clusters available to shock helpers."""
+        return self._resolved_clusters()
+
+    def _normalize_cluster_mapping(self, clusters=None, *, raise_on_missing=True):
+        """Normalize a cluster payload to canonical MARIO set labels."""
+        normalized = {}
+        if clusters is None:
+            return normalized
+
+        if not isinstance(clusters, dict):
+            raise WrongInput("clusters should be a mapping of set -> cluster definitions.")
+
+        for level, level_clusters in clusters.items():
+            resolved_level = self._resolve_set_name(
+                level,
+                allow_codes=True,
+                raise_on_missing=raise_on_missing,
+            )
+            if resolved_level is None:
+                continue
+
+            if not isinstance(level_clusters, dict):
+                raise WrongInput(
+                    f"clusters[{level!r}] should be a mapping of cluster name -> items."
+                )
+
+            target = normalized.setdefault(resolved_level, {})
+            for cluster_name, members in level_clusters.items():
+                if isinstance(members, str):
+                    members = [members]
+                else:
+                    members = list(members)
+                target[str(cluster_name)] = members
+
+        return normalized
+
+    def _resolved_clusters(self, clusters=None, legacy_clusters=None):
+        """Merge stored, legacy and explicit cluster payloads with clear precedence."""
+        resolved = copy.deepcopy(self.default_clusters)
+
+        for payload in (self._clusters, legacy_clusters or {}, clusters or {}):
+            normalized = self._normalize_cluster_mapping(payload)
+            for level, level_clusters in normalized.items():
+                resolved.setdefault(level, {}).update(level_clusters)
+
+        return resolved
+
+    def set_clusters(self, clusters=None, **legacy_clusters):
+        """Persist reusable shock clusters on the database.
+
+        Parameters
+        ----------
+        clusters:
+            Preferred cluster payload using any supported set aliases.
+        **legacy_clusters:
+            Backward-compatible cluster payload passed as keyword arguments.
+        """
+        resolved = {}
+        for payload in (legacy_clusters or {}, clusters or {}):
+            normalized = self._normalize_cluster_mapping(payload)
+            for level, level_clusters in normalized.items():
+                resolved.setdefault(level, {}).update(level_clusters)
+        check_clusters(index_dict=self.get_index("all"), table=self.table_type, clusters=resolved)
+        self._clusters = resolved
+        self.meta._add_history("Database: shock clusters updated.")
+
+    def add_cluster(self, level, name, members):
+        """Add or replace one stored shock cluster."""
+        updated = self.clusters
+        resolved_level = self._resolve_set_name(level, allow_codes=True)
+        updated.setdefault(resolved_level, {})[str(name)] = (
+            [members] if isinstance(members, str) else list(members)
+        )
+        self.set_clusters(clusters=updated)
+
+    def clear_clusters(self):
+        """Remove all stored shock clusters from the database."""
+        self._clusters = {}
+        self.meta._add_history("Database: shock clusters cleared.")
 
     def build_new_instance(self, scenario):
         """Build a new database whose baseline is the selected scenario.
@@ -1692,10 +1801,11 @@ class Database(CoreModel):
         e=False,
         v=False,
         Y=False,
+        clusters=None,
         notes=[],
         scenario=None,
         force_rewrite=False,
-        **clusters,
+        **legacy_clusters,
     ):
         """Apply shocks to coefficients or demand and store the result as a scenario.
 
@@ -1706,6 +1816,15 @@ class Database(CoreModel):
             an Excel workbook path.
         z, e, v, Y:
             Select which shock blocks should be read and applied from ``io``.
+            For SUT databases, MARIO first looks for split-native worksheets:
+            ``u``/``s`` for ``z``, ``va``/``vc`` for ``v``, ``ea``/``ec`` for
+            ``e`` and ``Ya``/``Yc`` for ``Y``. When they are not present it
+            falls back to the legacy unified worksheets ``z``, ``v``, ``e``
+            and ``Y``.
+        clusters:
+            Preferred cluster payload. When omitted, MARIO uses clusters
+            already stored on the database, optionally merged with any legacy
+            keyword clusters.
         notes:
             Optional metadata notes attached to the created scenario.
         scenario:
@@ -1713,9 +1832,8 @@ class Database(CoreModel):
             ``shock <n>`` automatically.
         force_rewrite:
             When ``True``, allow overwriting an existing non-baseline scenario.
-        **clusters:
-            Optional cluster mappings used to aggregate shock definitions across
-            regions or other classifications.
+        **legacy_clusters:
+            Backward-compatible cluster mappings passed as keyword arguments.
 
         Returns
         -------
@@ -1733,16 +1851,124 @@ class Database(CoreModel):
         if scenario == "baseline":
             raise WrongInput("baseline scenario can not be overwritten.")
 
+        clusters = self._resolved_clusters(clusters=clusters, legacy_clusters=legacy_clusters)
         check_clusters(
             index_dict=self.get_index("all"), table=self.table_type, clusters=clusters
         )
 
         # have the test for the existence of the database
 
-        z_c, note_z = Z_shock(self, io, z, clusters, 1)
-        e_c, note_e = V_shock(self, io, "E", e, clusters, 1)
-        v_c, note_v = V_shock(self, io, "V", v, clusters, 1)
-        Y_c, note_y = Y_shock(self, io, Y, clusters, 1)
+        note_u = []
+        note_s = []
+        note_z = []
+        note_va = []
+        note_vc = []
+        note_v = []
+        note_ea = []
+        note_ec = []
+        note_e = []
+        note_Ya = []
+        note_Yc = []
+        note_y = []
+
+        if self.table_type == "SUT":
+            ordering = SUTUnifiedOrderingPolicy.from_blocks(
+                U=self.query(_ENUM.U),
+                S=self.query(_ENUM.S),
+                Y=self.query(_ENUM.Y),
+            )
+
+            if z:
+                has_u_sheet = has_shock_sheet(io, _ENUM.u, str(_ENUM.u).lower())
+                has_s_sheet = has_shock_sheet(io, _ENUM.s, str(_ENUM.s).lower())
+                has_legacy_z_sheet = has_shock_sheet(
+                    io,
+                    _ENUM.z,
+                    _ENUM.Z,
+                    str(_ENUM.z).lower(),
+                    str(_ENUM.Z).upper(),
+                )
+
+                if has_u_sheet or has_s_sheet:
+                    if has_legacy_z_sheet:
+                        log_time(
+                            logger,
+                            "Shock: SUT shock workbook contains both split 'u'/'s' sheets and legacy 'z'. The split sheets are used and the legacy 'z' sheet is ignored.",
+                            "warning",
+                        )
+                    u_c, note_u = U_shock(self, io, z, clusters, 1)
+                    s_c, note_s = S_shock(self, io, z, clusters, 1)
+                    z_c = concat_sut_z(u_c, s_c, ordering)
+                else:
+                    z_c, note_z = Z_shock(self, io, z, clusters, 1)
+            else:
+                z_c, note_z = Z_shock(self, io, z, clusters, 1)
+
+            if v:
+                has_va_sheet = has_shock_sheet(io, "va")
+                has_vc_sheet = has_shock_sheet(io, "vc")
+                has_legacy_v_sheet = has_shock_sheet(io, _ENUM.v, str(_ENUM.v).lower(), str(_ENUM.v).upper())
+
+                if has_va_sheet or has_vc_sheet:
+                    if has_legacy_v_sheet:
+                        log_time(
+                            logger,
+                            "Shock: SUT shock workbook contains both split 'va'/'vc' sheets and legacy 'v'. The split sheets are used and the legacy 'v' sheet is ignored.",
+                            "warning",
+                        )
+                    va_c, note_va = va_shock(self, io, v, clusters, 1)
+                    vc_c, note_vc = vc_shock(self, io, v, clusters, 1)
+                    v_c = concat_sut_v(va_c, vc_c, ordering)
+                else:
+                    v_c, note_v = V_shock(self, io, "V", v, clusters, 1)
+            else:
+                v_c, note_v = V_shock(self, io, "V", v, clusters, 1)
+
+            if e:
+                has_ea_sheet = has_shock_sheet(io, "ea")
+                has_ec_sheet = has_shock_sheet(io, "ec")
+                has_legacy_e_sheet = has_shock_sheet(io, _ENUM.e, str(_ENUM.e).lower(), str(_ENUM.e).upper())
+
+                if has_ea_sheet or has_ec_sheet:
+                    if has_legacy_e_sheet:
+                        log_time(
+                            logger,
+                            "Shock: SUT shock workbook contains both split 'ea'/'ec' sheets and legacy 'e'. The split sheets are used and the legacy 'e' sheet is ignored.",
+                            "warning",
+                        )
+                    ea_c, note_ea = ea_shock(self, io, e, clusters, 1)
+                    ec_c, note_ec = ec_shock(self, io, e, clusters, 1)
+                    e_c = concat_sut_e(ea_c, ec_c, ordering)
+                else:
+                    e_c, note_e = V_shock(self, io, "E", e, clusters, 1)
+            else:
+                e_c, note_e = V_shock(self, io, "E", e, clusters, 1)
+
+            if Y:
+                has_Ya_sheet = has_shock_sheet(io, "Ya")
+                has_Yc_sheet = has_shock_sheet(io, "Yc")
+                has_legacy_Y_sheet = has_shock_sheet(io, _ENUM.Y, str(_ENUM.Y).lower(), str(_ENUM.Y).upper())
+
+                if has_Ya_sheet or has_Yc_sheet:
+                    if has_legacy_Y_sheet:
+                        log_time(
+                            logger,
+                            "Shock: SUT shock workbook contains both split 'Ya'/'Yc' sheets and legacy 'Y'. The split sheets are used and the legacy 'Y' sheet is ignored.",
+                            "warning",
+                        )
+                    Ya_c, note_Ya = Ya_shock(self, io, Y, clusters, 1)
+                    Yc_c, note_Yc = Yc_shock(self, io, Y, clusters, 1)
+                    Y_c = concat_sut_Y(Ya_c, Yc_c, ordering)
+                else:
+                    Y_c, note_y = Y_shock(self, io, Y, clusters, 1)
+            else:
+                Y_c, note_y = Y_shock(self, io, Y, clusters, 1)
+        else:
+            z_c, note_z = Z_shock(self, io, z, clusters, 1)
+            e_c, note_e = V_shock(self, io, "E", e, clusters, 1)
+            v_c, note_v = V_shock(self, io, "V", v, clusters, 1)
+            Y_c, note_y = Y_shock(self, io, Y, clusters, 1)
+
         EY_c = self.query([_ENUM.EY])
         VY_c = self.query([_ENUM.VY])
 
@@ -1764,7 +1990,20 @@ class Database(CoreModel):
         except:
             pass
 
-        for note in note_z + note_e + note_v + note_y:
+        for note in (
+            note_u
+            + note_s
+            + note_z
+            + note_va
+            + note_vc
+            + note_v
+            + note_ea
+            + note_ec
+            + note_e
+            + note_Ya
+            + note_Yc
+            + note_y
+        ):
             self.meta._add_history(note)
 
         log_time(logger, "Shock: Shock implemented successfully.")
@@ -1773,7 +2012,8 @@ class Database(CoreModel):
         self,
         path=None,
         num_shock=10,
-        **clusters,
+        clusters=None,
+        **legacy_clusters,
     ):
         """Write an Excel template for defining shocks.
 
@@ -1784,16 +2024,31 @@ class Database(CoreModel):
             default Excel output directory.
         num_shock:
             Number of shock rows to pre-create in the workbook template.
-        **clusters:
-            Optional cluster mappings used to pre-configure grouped shock
-            dimensions.
+        clusters:
+            Preferred cluster payload. When omitted, MARIO uses clusters
+            already stored on the database, optionally merged with any legacy
+            keyword clusters.
+        **legacy_clusters:
+            Backward-compatible cluster mappings passed as keyword arguments.
 
         Returns
         -------
         None
             The template workbook is written to disk.
+
+        Notes
+        -----
+        For SUT databases, the template exposes split block sheets such as
+        ``u``, ``s``, ``Ya``, ``Yc``, ``va``, ``vc``, ``ea`` and ``ec``.
+        Sheets whose current block is entirely zero are omitted to keep the
+        workbook compact. ``shock_calc(...)`` still accepts the old unified
+        workbook format (``z``, ``v``, ``e``, ``Y``) for backward
+        compatibility. For both IOT and SUT, the new template uses flat-style
+        column names such as ``Region_from`` and ``Sector_to`` instead of the
+        legacy explicit level columns.
         """
 
+        clusters = self._resolved_clusters(clusters=clusters, legacy_clusters=legacy_clusters)
         check_clusters(
             index_dict=self.get_index("all"), table=self.table_type, clusters=clusters
         )

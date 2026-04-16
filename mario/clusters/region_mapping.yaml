@@ -1,0 +1,18 @@
+# Manual ISO3 -> database-region overrides used when building default region
+# clusters.
+#
+# Keys under `sources` are matched case-insensitively against `database.meta.source`.
+# Values can be a single region label or a list of labels present in the database.
+#
+# Example:
+# default:
+#   GBR: United Kingdom
+# sources:
+#   exiobase:
+#     DEU: DE
+#     GBR:
+#       - GB
+#       - UK
+
+default: {}
+sources: {}

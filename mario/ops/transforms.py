@@ -53,7 +53,7 @@ def build_new_instance_from_scenario(database, scenario):
         scenarios=scenario,
     )
 
-    return database.__class__(
+    new = database.__class__(
         name=getattr(database.meta, "name", None),
         Y=data[_ENUM.Y],
         E=data[_ENUM.E],
@@ -68,6 +68,9 @@ def build_new_instance_from_scenario(database, scenario):
         year=getattr(database.meta, "year", None),
         tech_assumption=getattr(database.meta, "tech_assumption", None),
     )
+    if hasattr(database, "clusters") and hasattr(new, "set_clusters"):
+        new.set_clusters(clusters=database.clusters)
+    return new
 
 
 def transform_sut_to_iot(database, method, inplace: bool = True):

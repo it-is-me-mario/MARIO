@@ -19,6 +19,7 @@ setup(
     packages=find_packages(include=("mario", "mario.*")),
     package_data={
         "mario/settings": ["*.yaml"],
+        "mario.clusters": ["*.yaml"],
         "mario/parsers": ["*.csv"],
         "mario/test":["*.xlsx"],
         "mario.ops.cvxlab_models": [
@@ -39,7 +40,8 @@ setup(
         "cvxlab>=1.0.0b1",
         "IPython >= 8.27.0",
         "pymrio",
-        "pyyaml"
+        "pyyaml",
+        "country_converter",
 
     ],
     extras_require={

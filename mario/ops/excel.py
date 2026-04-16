@@ -13,46 +13,79 @@ from mario.model.conventions import _MASTER_INDEX, _ENUM
 from mario.ops.workbook_specs import (
     ADD_SECTOR_SHEETS,
     HEADER_CELL_FORMAT,
-    SHOCK_COLUMNS,
-    SHOCK_LEVEL_NAMES,
+    SHOCK_FLAT_COLUMNS,
 )
 
 
 def _sh_excel(instance, num_shock, directory, clusters):
     """Write the Excel template used to define database shocks."""
-    # Defining the headers
-    levels = SHOCK_LEVEL_NAMES[instance.meta.table]
-
     regions = dc(instance.get_index(_MASTER_INDEX["r"]))
-    sectors = (
-        dc(instance.get_index(_MASTER_INDEX["s"]))
-        if instance.meta.table == "IOT"
-        else dc(instance.get_index(_MASTER_INDEX["a"]))
-        + dc(instance.get_index(_MASTER_INDEX["c"]))
-    )
+    if instance.meta.table == "IOT":
+        sectors = dc(instance.get_index(_MASTER_INDEX["s"]))
+        activities = commodities = None
+    else:
+        activities = dc(instance.get_index(_MASTER_INDEX["a"]))
+        commodities = dc(instance.get_index(_MASTER_INDEX["c"]))
+        sectors = None
     factors = dc(instance.get_index(_MASTER_INDEX["f"]))
     extensions = dc(instance.get_index(_MASTER_INDEX["k"]))
     categories = dc(instance.get_index(_MASTER_INDEX["n"]))
     types = ["Percentage", "Absolute", "Update"]
     yn = ["Yes", "No"]
 
-    # Define a map to add the clusters to the references
-    _map = {
+    cluster_targets = {
         _MASTER_INDEX["r"]: regions,
         _MASTER_INDEX["f"]: factors,
         _MASTER_INDEX["k"]: extensions,
         _MASTER_INDEX["n"]: categories,
-        _MASTER_INDEX["s"]: sectors,
-        _MASTER_INDEX["a"]: sectors,
-        _MASTER_INDEX["c"]: sectors,
     }
+    if instance.meta.table == "IOT":
+        cluster_targets[_MASTER_INDEX["s"]] = sectors
+    else:
+        cluster_targets[_MASTER_INDEX["a"]] = activities
+        cluster_targets[_MASTER_INDEX["c"]] = commodities
 
-    for key, value in _map.items():
+    for key, values in cluster_targets.items():
         clusters_level = clusters.get(key)
-
-        # if the level is specificed, add the clusters to the list
         if clusters_level is not None:
-            value.extend([*clusters_level])
+            values.extend([*clusters_level])
+
+    def _write_index_column(sheet, column, values):
+        for i, value in enumerate(values, start=1):
+            sheet.write(f"{column}{i}", value)
+
+    def _should_include_sheet(block_name):
+        if instance.meta.table == "IOT":
+            return True
+
+        try:
+            block = instance.query(block_name)
+        except Exception:
+            return False
+
+        if block is None or getattr(block, "empty", False):
+            return False
+
+        if hasattr(block, "to_numpy"):
+            values = block.to_numpy()
+        else:
+            values = pd.DataFrame(block).to_numpy()
+
+        return bool((values != 0).any())
+
+    def _write_shock_sheet(workbook, header_format, *, sheet_name, columns, validations):
+        sheet = workbook.add_worksheet(sheet_name)
+        for idx, column in enumerate(columns):
+            sheet.write(0, idx, column, header_format)
+
+        for row in range(num_shock):
+            excel_row = row + 2
+            for col_idx, source in validations.items():
+                sheet.data_validation(
+                    f"{chr(65 + col_idx)}{excel_row}",
+                    {"validate": "list", "source": source},
+                )
+        return sheet
 
     # Building the excel file
     file = directory
@@ -63,28 +96,32 @@ def _sh_excel(instance, num_shock, directory, clusters):
 
     # Filling the index indeces sheet
     indeces = workbook.add_worksheet("indeces")
+    if instance.meta.table == "IOT":
+        _write_index_column(indeces, "A", regions)
+        _write_index_column(indeces, "B", sectors)
+        _write_index_column(indeces, "C", factors)
+        _write_index_column(indeces, "D", extensions)
+        _write_index_column(indeces, "E", categories)
 
-    # regions
-    for i in range(len(regions)):
-        indeces.write("A{}".format(i + 1), regions[i])
-    # sectors
-    for i in range(len(sectors)):
-        indeces.write("B{}".format(i + 1), sectors[i])
-    # factors
-    for i in range(len(factors)):
-        indeces.write("C{}".format(i + 1), factors[i])
-    # extensions
-    for i in range(len(extensions)):
-        indeces.write("D{}".format(i + 1), extensions[i])
-    # demand categories
-    for i in range(len(categories)):
-        indeces.write("E{}".format(i + 1), categories[i])
+        regions_ref = "=indeces!$A$1:$A${}".format(len(regions))
+        sectors_ref = "=indeces!$B$1:$B${}".format(len(sectors))
+        factors_ref = "=indeces!$C$1:$C${}".format(len(factors))
+        extensions_ref = "=indeces!$D$1:$D${}".format(len(extensions))
+        categories_ref = "=indeces!$E$1:$E${}".format(len(categories))
+    else:
+        _write_index_column(indeces, "A", regions)
+        _write_index_column(indeces, "B", activities)
+        _write_index_column(indeces, "C", commodities)
+        _write_index_column(indeces, "D", factors)
+        _write_index_column(indeces, "E", extensions)
+        _write_index_column(indeces, "F", categories)
 
-    regions_ref = "=indeces!$A$1:$A${}".format(len(regions))
-    sectors_ref = "=indeces!$B$1:$B${}".format(len(sectors))
-    factors_ref = "=indeces!$C$1:$C${}".format(len(factors))
-    extensions_ref = "=indeces!$D$1:$D${}".format(len(extensions))
-    categories_ref = "=indeces!$E$1:$E${}".format(len(categories))
+        regions_ref = "=indeces!$A$1:$A${}".format(len(regions))
+        activities_ref = "=indeces!$B$1:$B${}".format(len(activities))
+        commodities_ref = "=indeces!$C$1:$C${}".format(len(commodities))
+        factors_ref = "=indeces!$D$1:$D${}".format(len(factors))
+        extensions_ref = "=indeces!$E$1:$E${}".format(len(extensions))
+        categories_ref = "=indeces!$F$1:$F${}".format(len(categories))
 
     # Building the main sheet
     main = workbook.add_worksheet("main")
@@ -104,102 +141,181 @@ def _sh_excel(instance, num_shock, directory, clusters):
     for i in range(num_shock * 3):
         main.data_validation("E{}".format(i + 2), {"validate": "list", "source": yn})
 
-    # Building the Y sheet
-    Y = workbook.add_worksheet(_ENUM.Y)
-    Y.write("A1", SHOCK_COLUMNS["r_reg"], header_format)
-    Y.write("B1", SHOCK_COLUMNS["r_lev"], header_format)
-    Y.write("C1", SHOCK_COLUMNS["r_sec"], header_format)
-    Y.write("D1", SHOCK_COLUMNS["c_reg"], header_format)
-    Y.write("E1", SHOCK_COLUMNS["d_cat"], header_format)
-    Y.write("F1", SHOCK_COLUMNS["type"], header_format)
-    Y.write("G1", SHOCK_COLUMNS["value"], header_format)
+    if instance.meta.table == "IOT":
+        _write_shock_sheet(
+            workbook,
+            header_format,
+            sheet_name=_ENUM.Y,
+            columns=[
+                SHOCK_FLAT_COLUMNS["region_from"],
+                SHOCK_FLAT_COLUMNS["sector_from"],
+                SHOCK_FLAT_COLUMNS["region_to"],
+                SHOCK_FLAT_COLUMNS["category_to"],
+                SHOCK_FLAT_COLUMNS["type"],
+                SHOCK_FLAT_COLUMNS["value"],
+            ],
+            validations={
+                0: regions_ref,
+                1: sectors_ref,
+                2: regions_ref,
+                3: categories_ref,
+                4: types,
+            },
+        )
+        _write_shock_sheet(
+            workbook,
+            header_format,
+            sheet_name=_ENUM.v,
+            columns=[
+                SHOCK_FLAT_COLUMNS["factor_from"],
+                SHOCK_FLAT_COLUMNS["region_to"],
+                SHOCK_FLAT_COLUMNS["sector_to"],
+                SHOCK_FLAT_COLUMNS["type"],
+                SHOCK_FLAT_COLUMNS["value"],
+            ],
+            validations={0: factors_ref, 1: regions_ref, 2: sectors_ref, 3: types},
+        )
+        _write_shock_sheet(
+            workbook,
+            header_format,
+            sheet_name=_ENUM.e,
+            columns=[
+                SHOCK_FLAT_COLUMNS["satellite_from"],
+                SHOCK_FLAT_COLUMNS["region_to"],
+                SHOCK_FLAT_COLUMNS["sector_to"],
+                SHOCK_FLAT_COLUMNS["type"],
+                SHOCK_FLAT_COLUMNS["value"],
+            ],
+            validations={0: extensions_ref, 1: regions_ref, 2: sectors_ref, 3: types},
+        )
+        _write_shock_sheet(
+            workbook,
+            header_format,
+            sheet_name=_ENUM.z,
+            columns=[
+                SHOCK_FLAT_COLUMNS["region_from"],
+                SHOCK_FLAT_COLUMNS["sector_from"],
+                SHOCK_FLAT_COLUMNS["region_to"],
+                SHOCK_FLAT_COLUMNS["sector_to"],
+                SHOCK_FLAT_COLUMNS["type"],
+                SHOCK_FLAT_COLUMNS["value"],
+            ],
+            validations={0: regions_ref, 1: sectors_ref, 2: regions_ref, 3: sectors_ref, 4: types},
+        )
+    else:
+        sheet_specs = [
+            (
+                _ENUM.u,
+                "u",
+                [
+                    SHOCK_FLAT_COLUMNS["region_from"],
+                    SHOCK_FLAT_COLUMNS["commodity_from"],
+                    SHOCK_FLAT_COLUMNS["region_to"],
+                    SHOCK_FLAT_COLUMNS["activity_to"],
+                    SHOCK_FLAT_COLUMNS["type"],
+                    SHOCK_FLAT_COLUMNS["value"],
+                ],
+                {0: regions_ref, 1: commodities_ref, 2: regions_ref, 3: activities_ref, 4: types},
+            ),
+            (
+                _ENUM.s,
+                "s",
+                [
+                    SHOCK_FLAT_COLUMNS["region_from"],
+                    SHOCK_FLAT_COLUMNS["activity_from"],
+                    SHOCK_FLAT_COLUMNS["region_to"],
+                    SHOCK_FLAT_COLUMNS["commodity_to"],
+                    SHOCK_FLAT_COLUMNS["type"],
+                    SHOCK_FLAT_COLUMNS["value"],
+                ],
+                {0: regions_ref, 1: activities_ref, 2: regions_ref, 3: commodities_ref, 4: types},
+            ),
+            (
+                "Ya",
+                "Ya",
+                [
+                    SHOCK_FLAT_COLUMNS["region_from"],
+                    SHOCK_FLAT_COLUMNS["activity_from"],
+                    SHOCK_FLAT_COLUMNS["region_to"],
+                    SHOCK_FLAT_COLUMNS["category_to"],
+                    SHOCK_FLAT_COLUMNS["type"],
+                    SHOCK_FLAT_COLUMNS["value"],
+                ],
+                {0: regions_ref, 1: activities_ref, 2: regions_ref, 3: categories_ref, 4: types},
+            ),
+            (
+                "Yc",
+                "Yc",
+                [
+                    SHOCK_FLAT_COLUMNS["region_from"],
+                    SHOCK_FLAT_COLUMNS["commodity_from"],
+                    SHOCK_FLAT_COLUMNS["region_to"],
+                    SHOCK_FLAT_COLUMNS["category_to"],
+                    SHOCK_FLAT_COLUMNS["type"],
+                    SHOCK_FLAT_COLUMNS["value"],
+                ],
+                {0: regions_ref, 1: commodities_ref, 2: regions_ref, 3: categories_ref, 4: types},
+            ),
+            (
+                "va",
+                "va",
+                [
+                    SHOCK_FLAT_COLUMNS["factor_from"],
+                    SHOCK_FLAT_COLUMNS["region_to"],
+                    SHOCK_FLAT_COLUMNS["activity_to"],
+                    SHOCK_FLAT_COLUMNS["type"],
+                    SHOCK_FLAT_COLUMNS["value"],
+                ],
+                {0: factors_ref, 1: regions_ref, 2: activities_ref, 3: types},
+            ),
+            (
+                "vc",
+                "vc",
+                [
+                    SHOCK_FLAT_COLUMNS["factor_from"],
+                    SHOCK_FLAT_COLUMNS["region_to"],
+                    SHOCK_FLAT_COLUMNS["commodity_to"],
+                    SHOCK_FLAT_COLUMNS["type"],
+                    SHOCK_FLAT_COLUMNS["value"],
+                ],
+                {0: factors_ref, 1: regions_ref, 2: commodities_ref, 3: types},
+            ),
+            (
+                "ea",
+                "ea",
+                [
+                    SHOCK_FLAT_COLUMNS["satellite_from"],
+                    SHOCK_FLAT_COLUMNS["region_to"],
+                    SHOCK_FLAT_COLUMNS["activity_to"],
+                    SHOCK_FLAT_COLUMNS["type"],
+                    SHOCK_FLAT_COLUMNS["value"],
+                ],
+                {0: extensions_ref, 1: regions_ref, 2: activities_ref, 3: types},
+            ),
+            (
+                "ec",
+                "ec",
+                [
+                    SHOCK_FLAT_COLUMNS["satellite_from"],
+                    SHOCK_FLAT_COLUMNS["region_to"],
+                    SHOCK_FLAT_COLUMNS["commodity_to"],
+                    SHOCK_FLAT_COLUMNS["type"],
+                    SHOCK_FLAT_COLUMNS["value"],
+                ],
+                {0: extensions_ref, 1: regions_ref, 2: commodities_ref, 3: types},
+            ),
+        ]
 
-    for i in range(num_shock):
-        Y.data_validation(
-            "A{}".format(i + 2), {"validate": "list", "source": regions_ref}
-        )
-        Y.data_validation("B{}".format(i + 2), {"validate": "list", "source": levels})
-        Y.data_validation(
-            "C{}".format(i + 2), {"validate": "list", "source": sectors_ref}
-        )
-        Y.data_validation(
-            "D{}".format(i + 2), {"validate": "list", "source": regions_ref}
-        )
-        Y.data_validation(
-            "E{}".format(i + 2), {"validate": "list", "source": categories_ref}
-        )
-        Y.data_validation("F{}".format(i + 2), {"validate": "list", "source": types})
-
-    # Building the V sheet
-    V = workbook.add_worksheet(_ENUM.v)
-    V.write("A1", SHOCK_COLUMNS["r_sec"], header_format)
-    V.write("B1", SHOCK_COLUMNS["c_reg"], header_format)
-    V.write("C1", SHOCK_COLUMNS["c_lev"], header_format)
-    V.write("D1", SHOCK_COLUMNS["c_sec"], header_format)
-    V.write("E1", SHOCK_COLUMNS["type"], header_format)
-    V.write("F1", SHOCK_COLUMNS["value"], header_format)
-
-    for i in range(num_shock):
-        V.data_validation(
-            "A{}".format(i + 2), {"validate": "list", "source": factors_ref}
-        )
-        V.data_validation(
-            "B{}".format(i + 2), {"validate": "list", "source": regions_ref}
-        )
-        V.data_validation("C{}".format(i + 2), {"validate": "list", "source": levels})
-        V.data_validation(
-            "D{}".format(i + 2), {"validate": "list", "source": sectors_ref}
-        )
-        V.data_validation("E{}".format(i + 2), {"validate": "list", "source": types})
-
-    # Building the E sheet
-    E = workbook.add_worksheet(_ENUM.e)
-    E.write("A1", SHOCK_COLUMNS["r_sec"], header_format)
-    E.write("B1", SHOCK_COLUMNS["c_reg"], header_format)
-    E.write("C1", SHOCK_COLUMNS["c_lev"], header_format)
-    E.write("D1", SHOCK_COLUMNS["c_sec"], header_format)
-    E.write("E1", SHOCK_COLUMNS["type"], header_format)
-    E.write("F1", SHOCK_COLUMNS["value"], header_format)
-
-    for i in range(num_shock):
-        E.data_validation(
-            "A{}".format(i + 2), {"validate": "list", "source": extensions_ref}
-        )
-        E.data_validation(
-            "B{}".format(i + 2), {"validate": "list", "source": regions_ref}
-        )
-        E.data_validation("C{}".format(i + 2), {"validate": "list", "source": levels})
-        E.data_validation(
-            "D{}".format(i + 2), {"validate": "list", "source": sectors_ref}
-        )
-        E.data_validation("E{}".format(i + 2), {"validate": "list", "source": types})
-
-    # Building the Z sheet
-    Z = workbook.add_worksheet(_ENUM.z)
-    Z.write("A1", SHOCK_COLUMNS["r_reg"], header_format)
-    Z.write("B1", SHOCK_COLUMNS["r_lev"], header_format)
-    Z.write("C1", SHOCK_COLUMNS["r_sec"], header_format)
-    Z.write("D1", SHOCK_COLUMNS["c_reg"], header_format)
-    Z.write("E1", SHOCK_COLUMNS["c_lev"], header_format)
-    Z.write("F1", SHOCK_COLUMNS["c_sec"], header_format)
-    Z.write("G1", SHOCK_COLUMNS["type"], header_format)
-    Z.write("H1", SHOCK_COLUMNS["value"], header_format)
-    for i in range(num_shock):
-        Z.data_validation(
-            "A{}".format(i + 2), {"validate": "list", "source": regions_ref}
-        )
-        Z.data_validation("B{}".format(i + 2), {"validate": "list", "source": levels})
-        Z.data_validation(
-            "C{}".format(i + 2), {"validate": "list", "source": sectors_ref}
-        )
-        Z.data_validation(
-            "D{}".format(i + 2), {"validate": "list", "source": regions_ref}
-        )
-        Z.data_validation("E{}".format(i + 2), {"validate": "list", "source": levels})
-        Z.data_validation(
-            "F{}".format(i + 2), {"validate": "list", "source": sectors_ref}
-        )
-        Z.data_validation("G{}".format(i + 2), {"validate": "list", "source": types})
+        for block_name, sheet_name, columns, validations in sheet_specs:
+            if not _should_include_sheet(block_name):
+                continue
+            _write_shock_sheet(
+                workbook,
+                header_format,
+                sheet_name=sheet_name,
+                columns=columns,
+                validations=validations,
+            )
 
     workbook.close()
 

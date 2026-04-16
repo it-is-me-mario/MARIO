@@ -42,3 +42,20 @@ SHOCK_COLUMNS = {
     "value": "value",
     "s_sec": "sector",
 }
+
+
+SHOCK_FLAT_COLUMNS = {
+    "region_from": "Region_from",
+    "sector_from": "Sector_from",
+    "activity_from": "Activity_from",
+    "commodity_from": "Commodity_from",
+    "factor_from": "Factor of production_from",
+    "satellite_from": "Satellite account_from",
+    "region_to": "Region_to",
+    "sector_to": "Sector_to",
+    "activity_to": "Activity_to",
+    "commodity_to": "Commodity_to",
+    "category_to": "Consumption category_to",
+    "type": "type",
+    "value": "value",
+}

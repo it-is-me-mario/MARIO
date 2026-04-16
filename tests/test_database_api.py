@@ -26,6 +26,7 @@ from mario.settings.settings import (
 )
 from mario.test.mario_test import load_test
 from mario.model.conventions import _ENUM, _MASTER_INDEX
+from mario.ops.workbook_specs import SHOCK_COLUMNS, SHOCK_FLAT_COLUMNS
 
 
 def test_calc_all_iot_uses_catalog_path_for_missing_blocks():
@@ -220,3 +221,302 @@ def test_database_api_accepts_new_sut_split_matrices():
     pdt.assert_frame_equal(
         payload["baseline"]["pc"], extract_pc_from_p(database.p, ordering)
     )
+
+
+def test_set_clusters_normalizes_names_and_preserves_copy_semantics():
+    database = load_test("IOT")
+
+    database.set_clusters(
+        clusters={"region": {"EU": ["Italy", "RoW"]}},
+        s={"Primary": ["Agriculture"]},
+    )
+
+    stored = database.clusters
+    assert stored == {
+        "Region": {"EU": ["Italy", "RoW"]},
+        "Sector": {"Primary": ["Agriculture"]},
+    }
+
+    stored["Region"]["EU"].append("dummy")
+    assert database.clusters["Region"]["EU"] == ["Italy", "RoW"]
+
+
+def test_default_clusters_include_all_for_every_set():
+    database = load_test("IOT")
+
+    defaults = database.default_clusters
+
+    assert set(defaults) == set(database.sets)
+    for set_name in database.sets:
+        assert defaults[set_name]["all"] == database.get_index(set_name)
+
+
+def test_default_region_clusters_include_country_converter_groups_when_possible():
+    database = load_test("IOT")
+
+    region_clusters = database.default_clusters["Region"]
+
+    assert "continent:Europe" in region_clusters
+    assert "Italy" in region_clusters["continent:Europe"]
+
+
+def test_available_clusters_merge_defaults_and_user_clusters():
+    database = load_test("IOT")
+    database.set_clusters(clusters={"region": {"EU custom": ["Italy", "RoW"]}})
+
+    available = database.available_clusters
+
+    assert "all" in available["Region"]
+    assert available["Region"]["EU custom"] == ["Italy", "RoW"]
+
+
+def test_get_shock_excel_uses_stored_clusters(tmp_path):
+    database = load_test("IOT")
+    database.set_clusters(clusters={"region": {"EU": ["Italy", "RoW"]}})
+    path = tmp_path / "clustered_shock.xlsx"
+
+    database.get_shock_excel(path=str(path), num_shock=2)
+
+    indeces = pd.read_excel(path, sheet_name="indeces", header=None)
+    assert "EU" in indeces.iloc[:, 0].dropna().tolist()
+
+
+def test_shock_calc_uses_stored_clusters(tmp_path):
+    database = load_test("IOT")
+    database.set_clusters(clusters={"region": {"EU": ["Italy", "RoW"]}})
+    path = tmp_path / "clustered_iot_shock.xlsx"
+
+    base = database.z.copy()
+    col = base.columns[0]
+    row_items = [
+        ("Italy", row[1], row[2])
+        for row in base.index
+        if row[0] == "Italy"
+    ]
+    row_item = row_items[0][2]
+    updated = 0.222
+
+    z_sheet = pd.DataFrame(
+        [
+            {
+                SHOCK_FLAT_COLUMNS["region_from"]: "EU",
+                SHOCK_FLAT_COLUMNS["sector_from"]: row_item,
+                SHOCK_FLAT_COLUMNS["region_to"]: col[0],
+                SHOCK_FLAT_COLUMNS["sector_to"]: col[2],
+                SHOCK_FLAT_COLUMNS["type"]: "Update",
+                SHOCK_FLAT_COLUMNS["value"]: updated,
+            }
+        ]
+    )
+
+    with pd.ExcelWriter(path) as writer:
+        z_sheet.to_excel(writer, sheet_name=_ENUM.z, index=False)
+
+    database.shock_calc(str(path), z=True, scenario="cluster shock")
+
+    shocked = database.query(_ENUM.z, scenarios=["cluster shock"])
+    for region in ["Italy", "RoW"]:
+        assert shocked.loc[(region, _MASTER_INDEX["s"], row_item), col] == updated
+
+
+def test_get_shock_excel_still_accepts_legacy_cluster_kwargs(tmp_path):
+    database = load_test("IOT")
+    path = tmp_path / "legacy_clustered_shock.xlsx"
+
+    database.get_shock_excel(path=str(path), num_shock=2, Region={"EU": ["Italy", "RoW"]})
+
+    indeces = pd.read_excel(path, sheet_name="indeces", header=None)
+    assert "EU" in indeces.iloc[:, 0].dropna().tolist()
+
+
+def test_build_new_instance_preserves_stored_clusters():
+    database = load_test("IOT")
+    database.set_clusters(clusters={"region": {"EU": ["Italy", "RoW"]}})
+
+    new = database.build_new_instance("baseline")
+
+    assert new.clusters == {"Region": {"EU": ["Italy", "RoW"]}}
+
+
+def test_get_shock_excel_for_sut_writes_only_nonzero_split_sheets(tmp_path):
+    database = load_test("SUT")
+    path = tmp_path / "sut_shock.xlsx"
+
+    database.get_shock_excel(path=str(path), num_shock=2)
+
+    with pd.ExcelFile(path) as workbook:
+        assert set(workbook.sheet_names) == {"indeces", "main", _ENUM.u, _ENUM.s, "Yc", "va"}
+        assert _ENUM.z not in workbook.sheet_names
+        assert "Ya" not in workbook.sheet_names
+        assert "vc" not in workbook.sheet_names
+        assert "ea" not in workbook.sheet_names
+        assert "ec" not in workbook.sheet_names
+
+        u_sheet = pd.read_excel(workbook, _ENUM.u)
+        assert list(u_sheet.columns) == [
+            SHOCK_FLAT_COLUMNS["region_from"],
+            SHOCK_FLAT_COLUMNS["commodity_from"],
+            SHOCK_FLAT_COLUMNS["region_to"],
+            SHOCK_FLAT_COLUMNS["activity_to"],
+            SHOCK_FLAT_COLUMNS["type"],
+            SHOCK_FLAT_COLUMNS["value"],
+        ]
+
+
+def test_get_shock_excel_for_iot_uses_flat_columns_without_levels(tmp_path):
+    database = load_test("IOT")
+    path = tmp_path / "iot_shock.xlsx"
+
+    database.get_shock_excel(path=str(path), num_shock=2)
+
+    with pd.ExcelFile(path) as workbook:
+        indeces = pd.read_excel(workbook, "indeces", header=None)
+        assert "all" in indeces.iloc[:, 0].dropna().tolist()
+
+        z_sheet = pd.read_excel(workbook, _ENUM.z)
+        assert list(z_sheet.columns) == [
+            SHOCK_FLAT_COLUMNS["region_from"],
+            SHOCK_FLAT_COLUMNS["sector_from"],
+            SHOCK_FLAT_COLUMNS["region_to"],
+            SHOCK_FLAT_COLUMNS["sector_to"],
+            SHOCK_FLAT_COLUMNS["type"],
+            SHOCK_FLAT_COLUMNS["value"],
+        ]
+
+
+def test_shock_calc_for_sut_reads_split_u_sheet(tmp_path):
+    database = load_test("SUT")
+    path = tmp_path / "sut_u_shock.xlsx"
+
+    base_u = database.u.copy()
+    row = base_u.index[0]
+    col = base_u.columns[0]
+    updated = 0.123456
+
+    u_sheet = pd.DataFrame(
+        [
+            {
+                SHOCK_FLAT_COLUMNS["region_from"]: row[0],
+                SHOCK_FLAT_COLUMNS["commodity_from"]: row[2],
+                SHOCK_FLAT_COLUMNS["region_to"]: col[0],
+                SHOCK_FLAT_COLUMNS["activity_to"]: col[2],
+                SHOCK_FLAT_COLUMNS["type"]: "Update",
+                SHOCK_FLAT_COLUMNS["value"]: updated,
+            }
+        ]
+    )
+
+    with pd.ExcelWriter(path) as writer:
+        u_sheet.to_excel(writer, sheet_name=_ENUM.u, index=False)
+
+    database.shock_calc(str(path), z=True, scenario="split shock")
+
+    expected = base_u.copy()
+    expected.loc[row, col] = updated
+    shocked = database.query(_ENUM.u, scenarios=["split shock"])
+
+    pdt.assert_frame_equal(shocked, expected)
+
+
+def test_shock_calc_for_sut_reads_split_Yc_sheet(tmp_path):
+    database = load_test("SUT")
+    path = tmp_path / "sut_yc_shock.xlsx"
+
+    base = database.query("Yc").copy()
+    row = base.index[0]
+    col = base.columns[0]
+    updated = 42.0
+
+    yc_sheet = pd.DataFrame(
+        [
+            {
+                SHOCK_FLAT_COLUMNS["region_from"]: row[0],
+                SHOCK_FLAT_COLUMNS["commodity_from"]: row[2],
+                SHOCK_FLAT_COLUMNS["region_to"]: col[0],
+                SHOCK_FLAT_COLUMNS["category_to"]: col[2],
+                SHOCK_FLAT_COLUMNS["type"]: "Update",
+                SHOCK_FLAT_COLUMNS["value"]: updated,
+            }
+        ]
+    )
+
+    with pd.ExcelWriter(path) as writer:
+        yc_sheet.to_excel(writer, sheet_name="Yc", index=False)
+
+    database.shock_calc(str(path), Y=True, scenario="split Y shock")
+
+    expected = base.copy()
+    expected.loc[row, col] = updated
+    shocked = database.query("Yc", scenarios=["split Y shock"])
+
+    pdt.assert_frame_equal(shocked, expected)
+
+
+def test_shock_calc_for_iot_accepts_flat_z_sheet(tmp_path):
+    database = load_test("IOT")
+    path = tmp_path / "iot_flat_z_shock.xlsx"
+
+    base = database.z.copy()
+    row = base.index[0]
+    col = base.columns[0]
+    updated = 0.789
+
+    z_sheet = pd.DataFrame(
+        [
+            {
+                SHOCK_FLAT_COLUMNS["region_from"]: row[0],
+                SHOCK_FLAT_COLUMNS["sector_from"]: row[2],
+                SHOCK_FLAT_COLUMNS["region_to"]: col[0],
+                SHOCK_FLAT_COLUMNS["sector_to"]: col[2],
+                SHOCK_FLAT_COLUMNS["type"]: "Update",
+                SHOCK_FLAT_COLUMNS["value"]: updated,
+            }
+        ]
+    )
+
+    with pd.ExcelWriter(path) as writer:
+        z_sheet.to_excel(writer, sheet_name=_ENUM.z, index=False)
+
+    database.shock_calc(str(path), z=True, scenario="flat iot shock")
+
+    expected = base.copy()
+    expected.loc[row, col] = updated
+    shocked = database.query(_ENUM.z, scenarios=["flat iot shock"])
+
+    pdt.assert_frame_equal(shocked, expected)
+
+
+def test_shock_calc_for_sut_accepts_legacy_z_sheet(tmp_path):
+    database = load_test("SUT")
+    path = tmp_path / "sut_legacy_z_shock.xlsx"
+
+    base_u = database.u.copy()
+    row = base_u.index[0]
+    col = base_u.columns[0]
+    updated = 0.654321
+
+    z_sheet = pd.DataFrame(
+        [
+            {
+                SHOCK_COLUMNS["r_reg"]: row[0],
+                SHOCK_COLUMNS["r_lev"]: row[1],
+                SHOCK_COLUMNS["r_sec"]: row[2],
+                SHOCK_COLUMNS["c_reg"]: col[0],
+                SHOCK_COLUMNS["c_lev"]: col[1],
+                SHOCK_COLUMNS["c_sec"]: col[2],
+                SHOCK_COLUMNS["type"]: "Update",
+                SHOCK_COLUMNS["value"]: updated,
+            }
+        ]
+    )
+
+    with pd.ExcelWriter(path) as writer:
+        z_sheet.to_excel(writer, sheet_name=_ENUM.z, index=False)
+
+    database.shock_calc(str(path), z=True, scenario="legacy shock")
+
+    expected = base_u.copy()
+    expected.loc[row, col] = updated
+    shocked = database.query(_ENUM.u, scenarios=["legacy shock"])
+
+    pdt.assert_frame_equal(shocked, expected)
