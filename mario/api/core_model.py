@@ -1163,11 +1163,13 @@ class CoreModel:
             ``index="all"``.
         """
 
-        if index == "all":
+        if isinstance(index, str) and index.lower() == "all":
             return {
                 key: self._indeces[value].get(level)
                 for key, value in TABLE_LEVELS[self.table_type].items()
             }
+
+        index = self._resolve_set_name(index, raise_on_missing=False)
 
         if index not in self.sets:
             raise WrongInput(
@@ -1184,6 +1186,32 @@ class CoreModel:
             )
 
         return copy.deepcopy(self._indeces[TABLE_LEVELS[self.table_type][index]][level])
+
+    @staticmethod
+    def _normalize_set_token(value):
+        """Collapse one user-facing set token to a comparison-friendly key."""
+        return re.sub(r"[^0-9a-z]+", "", str(value).strip().lower())
+
+    def _resolve_set_name(self, value, *, allow_codes=True, raise_on_missing=True):
+        """Resolve one set label from an exact label, alias or short code."""
+        if value in self.sets:
+            return value
+
+        normalized = self._normalize_set_token(value)
+        aliases = {}
+        for set_name, code in TABLE_LEVELS[self.table_type].items():
+            aliases[self._normalize_set_token(set_name)] = set_name
+            if allow_codes:
+                aliases[self._normalize_set_token(code)] = set_name
+
+        resolved = aliases.get(normalized)
+        if resolved is not None:
+            return resolved
+
+        if raise_on_missing:
+            raise WrongInput(f"Acceptable items are {self.sets}")
+
+        return None
 
     def is_balanced(
         self,
@@ -1500,13 +1528,14 @@ class CoreModel:
 
         return GDP
 
-    def search(self, item, search, ignore_case=True):
-        """Search index values matching a pattern within one set.
+    def search(self, item=None, search=None, ignore_case=True):
+        """Search index values matching a pattern within one set or across all sets.
 
         Parameters
         ----------
         item:
-            Set name to search in, such as ``Region`` or ``Sector``.
+            Optional set name to search in, such as ``Region`` or ``Sector``.
+            When omitted, search every set and return grouped matches.
         search:
             Regular-expression fragment matched against the labels.
         ignore_case:
@@ -1514,21 +1543,33 @@ class CoreModel:
 
         Returns
         -------
-        list
-            Matching labels in their stored order.
+        list | dict
+            Matching labels in their stored order, or a dictionary grouped by
+            set when searching globally.
         """
 
-        if item not in self.sets:
-            raise WrongInput(f"Acceptable items are {self.sets}")
+        if search is None:
+            search = item
+            item = None
+        if search is None:
+            raise WrongInput("search requires a pattern.")
 
+        flags = re.IGNORECASE if ignore_case else 0
+        pattern = re.compile(f"{search}", flags)
+
+        if item is None:
+            found = {}
+            for set_name in self.sets:
+                matches = [
+                    label for label in self.get_index(set_name) if pattern.search(str(label))
+                ]
+                if matches:
+                    found[set_name] = matches
+            return found
+
+        item = self._resolve_set_name(item)
         items = self.get_index(item)
-
-        if ignore_case:
-            r = re.compile(f".*{search}", re.IGNORECASE)
-        else:
-            r = re.compile(f".*{search}")
-
-        found = list(filter(r.match, items))
+        found = [label for label in items if pattern.search(str(label))]
 
         return found
 
@@ -1719,6 +1760,14 @@ class CoreModel:
         if attr in self.__dict__:
             return self.__dict__[attr]
         else:
+            resolved_set = self._resolve_set_name(
+                attr,
+                allow_codes=False,
+                raise_on_missing=False,
+            )
+            if resolved_set is not None:
+                return self.get_index(resolved_set)
+
             all_mat = list(self.available_blocks())
 
             if attr in all_mat:

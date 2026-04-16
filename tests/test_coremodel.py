@@ -263,6 +263,21 @@ def test_get_index(CoreDataIOT,CoreDataSUT):
 
     assert "is not a valid index" in str(msg.value)
 
+    assert CoreDataIOT.get_index("sector") == CoreDataIOT.get_index("Sector")
+    assert CoreDataIOT.get_index("satellite_account") == CoreDataIOT.get_index("Satellite account")
+    assert CoreDataIOT.get_index("k") == CoreDataIOT.get_index("Satellite account")
+    assert CoreDataSUT.get_index("activity") == CoreDataSUT.get_index("Activity")
+    assert CoreDataSUT.get_index("c") == CoreDataSUT.get_index("Commodity")
+
+
+def test_set_access_via_attributes(CoreDataIOT, CoreDataSUT):
+
+    assert CoreDataIOT.Sector == CoreDataIOT.get_index("Sector")
+    assert CoreDataIOT.satellite_account == CoreDataIOT.get_index("Satellite account")
+    assert CoreDataIOT.consumption_category == CoreDataIOT.get_index("Consumption category")
+    assert CoreDataSUT.Activity == CoreDataSUT.get_index("Activity")
+    assert CoreDataSUT.factor_of_production == CoreDataSUT.get_index("Factor of production")
+
 
 def test_string_summary_shows_tech_assumption_for_sut_and_not_iot(CoreDataIOT, CoreDataSUT):
 
@@ -471,6 +486,12 @@ def test_search(CoreDataIOT):
     assert CoreDataIOT.search(
         item = 'Satellite account', search='employ',ignore_case=True
     ) == ["Employment"]
+
+    assert CoreDataIOT.search("employ") == {"Satellite account": ["Employment"]}
+    assert CoreDataIOT.search("mp") == {
+        "Satellite account": ["Employment", "Water Consumption Blue"]
+    }
+    assert CoreDataIOT.search("satellite_account", "employ") == ["Employment"]
 
 
 
