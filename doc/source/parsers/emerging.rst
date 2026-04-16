@@ -23,6 +23,24 @@ For normal user workflows, the public entry point should be:
 
 The current backend supports only the multiregional ``IOT`` workflow.
 
+Key arguments
+-------------
+
+The key public arguments are:
+
+* ``path``:
+  one EMERGING ``.mat`` file or a directory containing multiple yearly bundles;
+* ``table``:
+  currently only ``"IOT"`` is supported;
+* ``year``:
+  use it when one directory contains more than one EMERGING year;
+* ``regions``:
+  optional ISO3 subset to keep only one manageable part of the database;
+* ``load_co2``:
+  enable or disable automatic companion CO2 import;
+* ``co2_path``:
+  explicit path to one companion CO2 file when auto-detection is not enough.
+
 Download workflow
 -----------------
 

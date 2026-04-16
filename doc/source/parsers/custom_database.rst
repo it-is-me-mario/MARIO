@@ -54,6 +54,26 @@ that matches the files you prepared.
 Excel workflow
 --------------
 
+Key arguments for ``parse_from_excel(...)``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The most relevant arguments are:
+
+* ``path``:
+  one workbook to parse;
+* ``table``:
+  ``"IOT"`` or ``"SUT"``;
+* ``mode``:
+  ``"flows"`` or ``"coefficients"``;
+* ``data_sheet``:
+  optional data-sheet selector when the data is not in the first sheet;
+* ``unit_sheet``:
+  optional units-sheet selector when it is not called ``units``;
+* ``matrix_layouts``:
+  optional semantic declaration for non-standard IOT blocks;
+* ``tech_assumption``:
+  optional SUT-only selector for ``IT`` / ``PT`` behavior.
+
 ``parse_from_excel(...)`` expects one workbook with:
 
 * one data sheet;
@@ -93,6 +113,24 @@ starting point is still:
 
 TXT and Parquet workflows
 -------------------------
+
+Key arguments for ``parse_from_txt(...)`` and ``parse_from_parquet(...)``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The most relevant arguments are:
+
+* ``path``:
+  one directory containing the files to parse;
+* ``table``:
+  ``"IOT"`` or ``"SUT"``;
+* ``mode``:
+  ``"flows"`` or ``"coefficients"``;
+* ``flat``:
+  set this to ``True`` when parsing canonical MARIO flat exports;
+* ``matrix_layouts``:
+  optional semantic declaration for non-standard IOT blocks;
+* ``tech_assumption``:
+  optional SUT-only selector for ``IT`` / ``PT`` behavior.
 
 TXT and Parquet support two families of layouts:
 

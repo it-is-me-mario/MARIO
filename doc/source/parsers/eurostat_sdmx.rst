@@ -13,6 +13,26 @@ For normal user workflows, the public entry point should be:
 
 Use this entry point for both Eurostat SUT and IOT tables.
 
+Key arguments
+-------------
+
+The key public arguments are:
+
+* ``country``:
+  Eurostat geo code such as ``IT`` or ``DE``;
+* ``year``:
+  reference year to download and parse;
+* ``table``:
+  choose ``"SUT"`` or ``"IOT"``;
+* ``iot_mode``:
+  IOT-only selector, either ``"product"`` or ``"industry"``;
+* ``unit``:
+  choose ``"MIO_EUR"`` or ``"MIO_NAC"``;
+* ``path``:
+  optional local cache directory for raw SDMX files;
+* ``download``:
+  when ``True``, MARIO stores the raw CSV locally before parsing it.
+
 Download workflow
 -----------------
 

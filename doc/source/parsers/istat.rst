@@ -17,6 +17,30 @@ For normal user workflows, the public entry point should be:
 
 * :doc:`mario.parse_istat(...) <../api_document/mario.parse_istat>`
 
+Key arguments
+-------------
+
+The key public arguments are:
+
+* ``path``:
+  local workbook, extracted release directory, or release zip;
+* ``year``:
+  reference year to select from the ISTAT release;
+* ``table``:
+  choose ``"IOT"`` or ``"SUT"``;
+* ``iot_mode``:
+  IOT-only selector, either ``"product"`` or ``"industry"``;
+* ``level``:
+  SUT-only selector, either ``"63"`` or ``"20"``;
+* ``price``:
+  SUT-only selector, either ``"current"`` or ``"pyp"``;
+* ``valuation``:
+  SUT-only selector, either ``"basic"`` or ``"purchaser"``;
+* ``download``:
+  when ``True``, MARIO downloads the official release before parsing it;
+* ``edition`` and ``page_url``:
+  downloader selectors for the official release page.
+
 Download workflow
 -----------------
 

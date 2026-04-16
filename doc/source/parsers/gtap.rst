@@ -11,6 +11,22 @@ For normal user workflows, the public entry point should be:
 
 * :doc:`mario.parse_gtap(...) <../api_document/mario.parse_gtap>`
 
+Key arguments
+-------------
+
+The key public arguments are:
+
+* ``path``:
+  GTAP bundle directory, or one file inside that directory;
+* ``table``:
+  currently only ``"IOT"`` is supported;
+* ``variant``:
+  currently only ``"power"`` is supported;
+* ``layout``:
+  currently only ``"MRIO"`` is supported;
+* ``input_format``:
+  use ``"auto"``, ``"csv"`` or ``"gdx"``.
+
 Supported variants
 ------------------
 

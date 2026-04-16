@@ -18,6 +18,21 @@ For normal user workflows, the public entry point should be:
 
 The current backend supports the OECD ICIO ``IOT`` workflow.
 
+Key arguments
+-------------
+
+The key public arguments are:
+
+* ``path``:
+  one yearly OECD ICIO csv file or one directory containing multiple yearly
+  files;
+* ``year``:
+  use it when the selected directory contains more than one year;
+* ``name``:
+  optional metadata label override;
+* ``calc_all``:
+  optional eager computation of derived blocks after parsing.
+
 Download workflow
 -----------------
 

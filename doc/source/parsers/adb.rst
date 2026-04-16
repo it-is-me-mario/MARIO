@@ -19,6 +19,21 @@ For normal user workflows, the public entry point should be:
 
 The current backend supports only the ADB MRIO ``IOT`` workflow.
 
+Key arguments
+-------------
+
+The key public arguments are:
+
+* ``path``:
+  one workbook or one directory containing multiple ADB workbooks;
+* ``table``:
+  currently only ``"IOT"`` is supported;
+* ``year``:
+  use it when one directory contains more than one yearly release;
+* ``economies``:
+  use it when one directory contains multiple workbook variants for the same
+  year, for example ``62``, ``72`` or ``74``.
+
 Download workflow
 -----------------
 

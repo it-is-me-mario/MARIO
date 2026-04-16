@@ -34,6 +34,21 @@ For normal user workflows, the public entry point should be:
 
 This is enough for the FIGARO variants covered by the current parser.
 
+Key arguments
+-------------
+
+The key public arguments are:
+
+* ``path``:
+  local directory containing the FIGARO flat files;
+* ``table``:
+  choose ``"SUT"`` or ``"IOT"``;
+* ``year``:
+  use this when the selected directory contains more than one FIGARO year;
+* ``iot_mode``:
+  only relevant for ``table="IOT"``. Use ``"auto"``, ``"product"`` or
+  ``"industry"``.
+
 Download workflow
 -----------------
 

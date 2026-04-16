@@ -21,6 +21,22 @@ For normal user workflows, the public entry point should be:
 
 * :doc:`mario.parse_wiod(...) <../api_document/mario.parse_wiod>`
 
+Key arguments
+-------------
+
+The key public arguments are:
+
+* ``path``:
+  one WIOD workbook or one directory containing multiple WIOD workbooks;
+* ``table``:
+  choose ``"IOT"`` or ``"SUT"``;
+* ``year``:
+  use it when the selected directory contains more than one WIOD year;
+* ``name``:
+  optional metadata label override;
+* ``calc_all``:
+  optional eager computation of derived blocks after parsing.
+
 Download workflow
 -----------------
 

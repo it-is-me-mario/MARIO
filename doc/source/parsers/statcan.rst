@@ -11,6 +11,28 @@ For normal user workflows, the public entry point should be:
 
 * :doc:`mario.parse_statcan(...) <../api_document/mario.parse_statcan>`
 
+Key arguments
+-------------
+
+The key public arguments are:
+
+* ``year``:
+  reference year to download and parse;
+* ``table``:
+  choose ``"SUT"`` or ``"IOT"``;
+* ``level``:
+  choose ``summary``, ``detail`` or ``link1997`` when supported;
+* ``geo``:
+  geography label such as ``Canada`` or one province/territory;
+* ``valuation``:
+  IOT price-system selector, usually ``basic`` or ``purchaser``;
+* ``satellite_account``:
+  optional extra bundle selector such as ``openio_canada`` when supported;
+* ``path``:
+  optional cache directory for local raw files;
+* ``download``:
+  when ``True``, MARIO stores the raw CSV locally before parsing it.
+
 Download workflow
 -----------------
 

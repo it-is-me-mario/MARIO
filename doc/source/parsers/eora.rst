@@ -11,6 +11,31 @@ For normal user workflows, the public entry point should be:
 
 * :doc:`mario.parse_eora(...) <../api_document/mario.parse_eora>`
 
+Key arguments
+-------------
+
+The key public arguments are:
+
+* ``path``:
+  one EORA file or one directory containing the dataset;
+* ``multi_region``:
+  ``True`` for the EORA26 workflow, ``False`` for the single-region workflow;
+* ``table``:
+  relevant mainly for multi-region parsing, where the practical workflow is
+  ``IOT``;
+* ``indeces``:
+  optional path to the EORA26 label files;
+* ``name_convention``:
+  choose between abbreviations and full country names;
+* ``aggregate_trade``:
+  single-region convenience flag to aggregate trade rows;
+* ``country``:
+  single-region selector when the input directory contains multiple country
+  files;
+* ``price``:
+  optional single-region filter when the local directory contains multiple
+  variants.
+
 Download workflow
 -----------------
 

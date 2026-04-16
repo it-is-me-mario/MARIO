@@ -35,6 +35,29 @@ This dispatcher is enough for the main EXIOBASE variants covered here. The
 lower-level parser functions still exist, but they are not the recommended
 surface for ordinary usage.
 
+Key arguments
+-------------
+
+The core public arguments are:
+
+* ``table``:
+  choose ``"IOT"`` or ``"SUT"``;
+* ``unit``:
+  choose ``"Monetary"`` or ``"Hybrid"``;
+* ``path``:
+  local directory or bundle to parse;
+* ``year``:
+  optional metadata override. In most normal workflows the year is inferred
+  from the EXIOBASE payload itself.
+
+In addition, the dispatcher forwards parser-specific keyword arguments:
+
+* monetary SUT:
+  ``add_extensions=...`` lets you import extensions from a matching monetary
+  IOT;
+* hybrid SUT and hybrid IOT:
+  ``extensions=...`` filters the imported extension set.
+
 Typical usage
 -------------
 
@@ -102,18 +125,3 @@ If you prefer to run them locally, you can also download the source notebooks:
 * :download:`Download the monetary notebook <../notebooks/parsers/exiobase/monetary.ipynb>`
 * :download:`Download the hybrid notebook <../notebooks/parsers/exiobase/hybrid.ipynb>`
 
-Notes
------
-
-This page is intentionally compact. The goal is to keep source-specific parser
-pages practical:
-
-* one short hub page;
-* one or more rendered notebooks for the real workflow;
-* API details left to the reference section.
-
-.. toctree::
-   :maxdepth: 1
-
-   ../notebooks/parsers/exiobase/monetary
-   ../notebooks/parsers/exiobase/hybrid

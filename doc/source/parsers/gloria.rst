@@ -12,6 +12,28 @@ For normal user workflows, the public entry point should be:
 
 The current backend supports only ``SUT`` parsing.
 
+Key arguments
+-------------
+
+The key public arguments are:
+
+* ``path``:
+  GLORIA release root or directly the ``GLORIA_MRIOs_*`` directory;
+* ``table``:
+  currently only ``"SUT"`` is supported;
+* ``valuation``:
+  choose one markup branch such as ``basic``, ``trade`` or ``taxes``;
+* ``year``:
+  use it when the selected root contains more than one GLORIA year;
+* ``regions``:
+  optional subset of GLORIA region acronyms;
+* ``satellites``:
+  optional satellite group or row selector;
+* ``dtype``:
+  numeric storage type, with ``float32`` as the practical default;
+* ``cache``:
+  ``True`` or one explicit path to persist the parsed result.
+
 Download workflow
 -----------------
 
@@ -101,16 +123,6 @@ Enable cache for repeated runs:
        table="SUT",
        cache=True,
    )
-
-Automatic region clusters
--------------------------
-
-GLORIA databases populate ``db.meta.source`` with a GLORIA-specific source
-string. That matters for the automatic default region clusters introduced in
-MARIO: if your GLORIA region labels are not recognized directly, you can supply
-manual ISO3-to-label mappings in:
-
-* ``mario/clusters/region_mapping.yaml``
 
 Caveats
 -------
