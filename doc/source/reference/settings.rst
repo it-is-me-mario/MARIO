@@ -1,16 +1,13 @@
-Settings and nomenclature
-=========================
+Settings
+========
 
-MARIO lets users customize part of the public naming layer, including index
-labels and matrix nomenclature.
+This page will document MARIO settings and runtime configuration.
 
-The main helpers are:
+It will cover:
 
-* ``download_settings()``
-* ``upload_settings(...)``
-* ``reset_settings()``
-
-These are useful when you want MARIO to speak the naming conventions already
-used in your own workflow.
-
-For the historical tutorial-style explanation, see :doc:`../settings`.
+* compute defaults such as ``compute_method``, ``linear_solver``, and
+  ``linear_strategy``;
+* logging defaults and verbosity helpers;
+* set-name aliases through ``index_aliases``;
+* the distinction between canonical set names and user-facing aliases;
+* how to inspect, update, and reset packaged settings.

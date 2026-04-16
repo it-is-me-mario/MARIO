@@ -1,15 +1,21 @@
 Concepts
 ========
 
-This section explains the model behind MARIO rather than the exact steps to use
-one method or another.
+This section explains the model behind MARIO rather than the exact sequence of
+commands to run.
+
+Use it to understand how MARIO thinks about tables, blocks, scenarios,
+assumptions and runtime compute paths.
 
 .. toctree::
    :maxdepth: 1
 
-   database_model
    iot_vs_sut
+   flows_vs_coefficients
+   scenarios
    matrix_layouts
-   parser_model
-   compute_engine
-   add_sectors_model
+   sut_split_and_unified_blocks
+   technology_assumptions
+   compute_resolver
+   large_database_computation
+   file_formats

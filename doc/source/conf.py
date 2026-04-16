@@ -63,11 +63,49 @@ templates_path = ["_templates"]
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
     "__pycache__",
+    "__pycache__/**",
+    "api_refernces.rst",
     "htmls/**",
     "examples/**",
+    "add_sector_refactor.rst",
     "api_document/mario.CoreModel.is_productive.rst",
     "api_document/mario.Database.reset_to_backup.rst",
     "api_document/mario.parse_eurostat_sut.rst",
+    "api_document/mario.parse_exiobase_3.rst",
+    "api_document/mario.parse_exiobase_sut.rst",
+    "api_document/mario.hybrid_iot_exiobase.rst",
+    "api_document/mario.hybrid_sut_exiobase.rst",
+    "changelog.rst",
+    "contributors.rst",
+    "developer_guide.rst",
+    "glossary.rst",
+    "intro.rst",
+    "parser_development.rst",
+    "settings.rst",
+    "terminology.rst",
+    "tutorials.rst",
+    "getting_started/**",
+    "how_to/**",
+    "user_guide/**",
+    "publications/index.rst",
+    "tutorials/advanced.rst",
+    "tutorials/beginner.rst",
+    "tutorials/parsing.rst",
+    "tutorials/tutorial_database_parse_transform.ipynb",
+    "tutorials/tutorial_database_quickstart.ipynb",
+    "tutorials/tutorial_database_scenarios_export.ipynb",
+    "tutorials/workflows.rst",
+    "reference/api.rst",
+    "reference/file_formats.rst",
+    "reference/parsers.rst",
+    "contribute/codebase_map.rst",
+    "contribute/documentation_style.rst",
+    "contribute/parser_development.rst",
+    "concepts/add_sectors_model.rst",
+    "concepts/compute_engine.rst",
+    "concepts/database_model.rst",
+    "concepts/parser_model.rst",
+    "notebooks/parsers/figaro/tutorial.ipynb",
 ]
 
 
@@ -104,6 +142,7 @@ html_theme_options = {
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
+html_js_files = ["external-links.js"]
 bibtex_bibfiles = ["publications/mario.bib"]
 
 # copy btn settings

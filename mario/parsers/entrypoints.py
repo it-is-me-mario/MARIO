@@ -64,6 +64,10 @@ from mario.parsers.specs import (
     HMIOT_EXTENSIONS,
     INPUT_OPTIONS,
     FIGARO_IOT_MODES,
+    FIGARO_IOT_IXI_URL,
+    FIGARO_IOT_PXP_URL,
+    FIGARO_SUPPLY_URL,
+    FIGARO_USE_URL,
     EUROSTAT_IOT_MODES,
     EUROSTAT_SUT_UNITS,
     GTAP_INPUT_FORMATS,
@@ -436,6 +440,11 @@ def parse_exiobase_sut(
 ):
     """Parse the monetary EXIOBASE SUT into a ``Database`` instance.
 
+    .. note::
+
+        The monetary SUT parser is currently tied to EXIOBASE ``3.8.2``
+        (`Zenodo 5589597 <https://doi.org/10.5281/zenodo.5589597>`_).
+
     Parameters
     ----------
     path : str
@@ -496,6 +505,9 @@ def parse_exiobase_3(
         The parser auto-detects the EXIOBASE layout from the folder contents and
         ``metadata.json``. The ``version`` argument is kept only as an optional
         compatibility check.
+
+        Monetary IOT releases currently supported through MARIO include
+        EXIOBASE ``3.8.2``, ``3.9.4``, ``3.9.5``, ``3.9.6``, and ``3.10.1``.
 
     Parameters
     ----------
@@ -762,8 +774,10 @@ def hybrid_sut_exiobase(
     EXIOBASE 3 provides a time series of environmentally extended multi-regional input‐output (EE MRIO) tables ranging from 1995 to a recent year for 44 countries (28 EU member plus 16 major economies) and five rest of the world regions. EXIOBASE 3 builds upon the previous versions of EXIOBASE by using rectangular supply‐use tables (SUT) in a 163 industry by 200 products classification as the main building blocks. The tables are provided in current, basic prices (Million EUR).
     EXIOBASE 3 is the culmination of work in the FP7 DESIRE project and builds upon earlier work on EXIOBASE 2 in the FP7 CREEA project, EXIOBASE 1 of the FP6 EXIOPOL project and FORWAST project.
     A special issue of Journal of Industrial Ecology (Volume 22, Issue 3) describes the build process and some use cases of EXIOBASE 3. ("Merciai, Stefano, & Schmidt, Jannick. (2021). EXIOBASE HYBRID v3 - 2011 (3.3.18) [Data set]. Zenodo.)
-
-    For more informatio refer to https://zenodo.org/record/7244919#.Y6hEfi8w2L1
+    3. The current hybrid parser targets the ``3.3.18`` bundle
+    (`Zenodo 7244919 <https://doi.org/10.5281/zenodo.7244919>`_) and does not
+    yet include the later consequential developments released separately on
+    `Zenodo 15421526 <https://zenodo.org/records/15421526>`_.
     """
 
     validate_named_selection(
@@ -1638,10 +1652,16 @@ def parse_figaro(
     calc_all: bool = False,
     **kwargs,
 ) -> object:
-    """Parse FIGARO tables from locally downloaded CIRCABC files.
+    f"""Parse FIGARO tables from locally downloaded CIRCABC files.
 
-    As of March 23, 2026, the FIGARO supply and use flat files are published in
-    the two public CIRCABC libraries referenced by ``mario.parsers.specs``.
+    As of March 23, 2026, the FIGARO flat files are published in four public
+    CIRCABC libraries referenced by ``mario.parsers.specs``:
+
+    * supply files: ``{FIGARO_SUPPLY_URL}``
+    * use files: ``{FIGARO_USE_URL}``
+    * product-by-product IOT files: ``{FIGARO_IOT_PXP_URL}``
+    * industry-by-industry IOT files: ``{FIGARO_IOT_IXI_URL}``
+
     MARIO does not rely on automatic download here: callers should point this
     parser to a local directory containing the FIGARO flat files, either as
     ``.zip`` bundles or extracted ``.csv`` files.

@@ -1,26 +1,24 @@
-Tutorials
-=========
+How to Use
+==========
 
-This section collects notebook-oriented learning material. The tutorials are
-meant to be read and reused: some are rendered directly in the documentation,
-while others are mainly intended to be downloaded, executed locally and adapted
-to real user data.
+This section will become the main narrative path through MARIO.
 
-Compared with the User Guide, the tutorials are more example-driven and less
-reference-oriented. Use them when you want to see a complete workflow from
-start to finish.
-
-The collection is grouped into four areas:
-
-* beginner tutorials for first contact with the package;
-* parsing tutorials for source-specific or custom database ingestion;
-* workflow tutorials for aggregation, add-sectors and transformation tasks;
-* advanced tutorials for matrix layouts and roundtrip behaviour.
+Each page should be practical and end-to-end. Some tutorials will stay
+notebook-driven, while others will become compact reStructuredText walkthroughs
+focused on one task at a time.
 
 .. toctree::
    :maxdepth: 1
 
-   beginner
-   parsing
-   workflows
-   advanced
+   tutorial_01_first_iot
+   tutorial_02_first_sut
+   tutorial_03_parse_custom_iot
+   tutorial_04_parse_custom_sut
+   tutorial_05_matrix_layouts
+   tutorial_06_aggregate_a_database
+   tutorial_07_change_sut_assumption
+   tutorial_08_transform_sut_to_iot
+   tutorial_09_add_sectors
+   tutorial_10_compute_footprints
+   tutorial_11_large_databases
+   tutorial_12_export_and_reimport

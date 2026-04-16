@@ -1,17 +1,19 @@
-API Reference
-=============
+Reference
+=========
 
-Use this section when you need exact method names, parser entry points or file
-format expectations.
+Use this section when you need exact names, accepted parameters, file-format
+contracts or the role of a specific matrix.
 
-Unlike the User Guide and the Tutorials, the goal here is not to teach a
-workflow from scratch. The reference is meant for precise lookup: signatures,
-supported file formats, parser families and settings-related behaviour.
+This section is not tutorial-first. It is meant for lookup.
 
 .. toctree::
    :maxdepth: 1
 
-   api
-   file_formats
-   parsers
+   api_library
    settings
+   matrix_catalog
+   excel_format
+   txt_format
+   parquet_format
+   aggregation_workbook
+   add_sectors_workbook
