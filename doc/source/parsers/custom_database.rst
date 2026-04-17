@@ -180,10 +180,7 @@ Example:
        },
    )
 
-Only canonical MARIO set names are accepted in ``matrix_layouts``. See also:
-
-* :doc:`../concepts/matrix_layouts`
-* :doc:`../workflows/work_with_matrix_layouts`
+Only canonical MARIO set names are accepted in ``matrix_layouts``.
 
 SUT-specific options
 --------------------

@@ -1,7 +1,7 @@
-Quick Setup
-===========
+Setup
+=====
 
-What Is MARIO
+What is MARIO
 -------------
 
 MARIO is a Python library for working with :ref:`Input-Output Tables (IOTs) <concept-iots>` and
@@ -51,5 +51,5 @@ available.
 Next Step
 ---------
 
-Head over to :doc:`../concepts/index` to understand how MARIO structures
-databases, matrices, runtime computation and workflows.
+Head over to :doc:`../concepts/index` to understand the cornerstone definitions and conventions, 
+before moving to the :doc:`../parsers/index` and :doc:`../workflows/index` sections.

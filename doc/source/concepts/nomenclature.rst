@@ -1,5 +1,5 @@
-Conventions and Nomenclature
-============================
+Nomenclature
+============
 
 This page defines the core terms used across the MARIO documentation and
 collects the canonical names used for indices and matrices.
@@ -15,6 +15,10 @@ Database
 Table
    The *table* format represented inside a database. In MARIO, the structural
    *table* types are :ref:`Input-Output Tables (IOTs) <concept-iots>` and :ref:`Supply and Use Tables (SUTs) <concept-suts>`.
+
+Scenarios
+   Different states of the same *table*. See the dedicated page on
+   :doc:`scenarios`.
 
 Matrix
    One named data operator stored in the *database*, such as ``Z``, ``Y``, ``U``
@@ -34,10 +38,6 @@ Mode
       matrices (for example ``Z`` or ``V``), while matrices written with
       **lowercase letters** are coefficient matrices (for example ``z`` or
       ``v``).
-
-Scenarios
-   Different states of the same *table*. See the dedicated page on
-   :doc:`scenarios`.
 
 
 Indices
@@ -62,9 +62,9 @@ and column *indices* used by the package.
 
 .. important::
 
-   ``*`` means that, using :doc:`matrix_layouts </concepts/matrix_layouts>`,
-   MARIO can accept richer row-index structures than the default one, for
-   example by adding ``Region`` or ``Sector`` levels to ``V`` and ``E``.
+   ``*`` means that, using ``matrix_layouts``, MARIO can accept richer
+   row-index structures than the default one, for example by adding
+   ``Region`` or ``Sector`` levels to ``V`` and ``E``.
 
    ``**`` means that ``s`` in SUTs can be either a market-share matrix or a
    product-mix matrix depending on the active

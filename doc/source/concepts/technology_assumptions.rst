@@ -1,68 +1,79 @@
-Technology Assumptions
+Technology assumptions
 ======================
 
-Technology assumptions are a SUT-specific concept in MARIO. They describe how
-the supply-side coefficient structure should be interpreted and rebuilt.
+When dealing with SUTs, it is possible to adopt:
 
-Two assumptions
----------------
+* ``Industry-based`` technology assumption, which implies commodities are produced by industrial activities with a fixed market share. 
+* ``Product-based`` technology assumption, which implies industrial activities produced a fixed mix of products .
 
-MARIO supports two structural assumptions for SUT databases:
+When parsing a SUT, you can specify the assumption. For instance:
 
-* ``industry-based``;
-* ``product-based``.
+.. code-block:: python
 
-At the API level, the short aliases ``IT`` and ``PT`` are also accepted.
+   db = mario.parse_from_excel(
+    path = 'path/to/sut.xlsx', 
+    table = 'SUT',
+    tech_assumption='product-based'  # or "industry-based"
+    )
 
-These assumptions do not change the meaning of every SUT matrix. They mainly
-affect the supply-side coefficient logic.
+At the API level, the short aliases ``IT`` and ``PT`` are also accepted. 
+``tech_assumption`` is stored as a property of the *database*.
 
-Structural property, not runtime option
----------------------------------------
+.. code-block:: python
 
-``tech_assumption`` is stored as a property of the database. It is not treated
-like a temporary compute preference such as ``compute_method``.
+   db.tech_assumption
 
-This is important because the assumption changes the mathematical relationship
-between some public matrices. Two databases with the same flows but different
-technology assumptions should be understood as structurally different SUT
-states.
 
-Industry-based and product-based logic
---------------------------------------
+Mathematics
+-----------
 
-Under the industry-based assumption, the usual public supply coefficient matrix
-is ``s``.
+The assumption does not affect every *matrix*, 
+but mainly the supply technical coefficients ``s``. Independently of the assumption, 
+the *matrix* will always be called ``s``, but calculated differently.
 
-Under the product-based assumption, MARIO also exposes a public matrix ``c``.
-Conceptually:
+In MARIO notation, the two cases are:
 
-* ``c`` is built from ``S`` and ``Xa``;
-* ``s`` is recovered as the inverse of ``c``;
-* rebuilding ``S`` from coefficients uses the product-based inverse relation,
-  not the industry-based one.
+* under ``industry-based`` technology assumption:
 
-This is why ``c`` is public: it makes the product-based representation easier
-to inspect and reason about directly.
+  .. math::
 
-Changing the assumption
------------------------
+     s = S \cdot \operatorname{diag}(X_c)^{-1}
 
-For SUT databases, the assumption can be changed after parsing. When this
-happens, MARIO resets scenarios to flow matrices first and then rebuilds the
-affected coefficient-side structure under the new assumption.
+  where ``Xc`` is the commodity output vector. In this case, ``s`` is the
+  market-share matrix.
 
-This avoids mixing coefficients computed under different structural rules.
+* under ``product-based`` technology assumption:
+
+  .. math::
+
+     c = S^T \cdot \operatorname{diag}(X_a)^{-1}
+
+  .. math::
+
+     s = c^{-1}
+
+  where ``Xa`` is the activity output vector. In this case, MARIO first builds
+  the product-mix matrix ``c`` and then derives ``s`` as its inverse.
+
+
+Switching assumption
+--------------------
+
+The technology assumption can be changed after parsing. When this
+happens, MARIO resets all *tables* in all *scenarios* to flow *mode* first and then rebuilds the
+affected coefficient-side structure under the new assumption, 
+avoiding mixing coefficients computed under different structural rules.
+
+.. code-block:: python
+
+   db.change_tech_assumption('PT') # or 'IT'
+
+
 
 Square-table requirement
 ------------------------
 
-Product-based logic requires a square SUT in the relevant commodity/activity
-sense. If a user requests ``PT`` on a non-square SUT, MARIO does not fail the
-import. It falls back to ``industry-based`` instead.
+Product-based technology assumption requires a squared SUT (i.e. same number of commodities and activities).
+If a user requests ``PT`` on a non-square SUT, MARIO does not fail the
+import. It falls back to ``IT`` instead.
 
-This fallback is intentional:
-
-* it keeps parsing robust;
-* it avoids pretending that the product-based system is valid when the required
-  structure is not present.

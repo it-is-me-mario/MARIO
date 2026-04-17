@@ -55,3 +55,38 @@
 .terminology-table tbody tr:nth-child(odd) {
   background: color-mix(in srgb, var(--pst-color-background, #fff) 96%, #000 4%);
 }
+
+.publications-primary-citation {
+  margin: 0 0 1.25rem;
+}
+
+.publications-primary-citation .citation-list {
+  margin: 0;
+}
+
+.publications-primary-citation .citation {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.publications-primary-citation .citation .label {
+  display: none;
+}
+
+.publications-primary-citation .citation > p {
+  margin: 0;
+}
+
+.research-project-heading {
+  display: flex;
+  align-items: center;
+  margin: 1.75rem 0 0.6rem;
+}
+
+.research-project-logo {
+  display: block;
+  max-height: 3.25rem;
+  width: auto;
+  max-width: 12rem;
+}

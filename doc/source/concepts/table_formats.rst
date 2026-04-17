@@ -1,7 +1,7 @@
 Table formats
 =============
 
-MARIO supports both Input-Output Tables (IOTs) and Supply and Use Tables
+MARIO handles both Input-Output Tables (IOTs) and Supply and Use Tables
 (SUTs). They share many workflows, but they do not carry the same internal
 structure.
 
@@ -10,15 +10,15 @@ structure.
 Input-Output Tables (IOTs)
 --------------------------
 
-IOT workflows revolve around a single productive system. The main native flow
-matrices are:
+IOTs, also known as symmetric input-output *tables*, represent a squared representation of a productive system.
+The main native *flow* *matrices* are:
 
 * ``Z`` for intersectoral flows;
 * ``Y`` for final demand;
-* ``V`` and ``VY`` for factor-of-production rows;
-* ``E`` and ``EY`` for satellite-account rows.
+* ``V`` and ``VY`` for factors of production;
+* ``E`` and ``EY`` for satellite accounts.
 
-From these flow matrices MARIO can derive coefficient matrices such as ``z``,
+From these flow matrices MARIO can derive *coefficient* *matrices* such as ``z``,
 ``v`` and ``e``, the total production vector ``X``, and demand-driven results
 such as footprints (``f`` and ``F``), multipliers (``m`` and ``M``) and prices indices (``p``).
 
@@ -27,7 +27,7 @@ such as footprints (``f`` and ``F``), multipliers (``m`` and ``M``) and prices i
    :align: center
    :width: 85%
 
-   Native IOT matrices on the left and the corresponding coefficient matrices
+   Native IOT flows matrices on the left and the corresponding coefficient matrices
    on the right. Matrices ``Y``, ``VY`` and ``EY`` are always expressed in flows
 
 
@@ -36,8 +36,8 @@ such as footprints (``f`` and ``F``), multipliers (``m`` and ``M``) and prices i
 Supply-Use Tables (SUTs)
 ------------------------
 
-SUT workflows distinguish commodity and activity structure explicitly. The
-native flow matrices are split into activity-side and commodity-side pieces:
+SUTs, unlike IOTs, distinguish between commodities and the activity supplying them. The
+native flow *matrices* are split into activity-side and commodity-side blocks:
 
 * ``U`` and ``S``;
 * ``Yc`` and ``Ya``;
@@ -45,7 +45,7 @@ native flow matrices are split into activity-side and commodity-side pieces:
 * ``Ec``, ``Ea`` and ``EY``.
 
 While ``U`` and ``S`` are commonly known in input-output literature as Use and
-Make or Supply matrices, MARIO uses the ``a`` and ``c`` suffixes to indicate
+Make or Supply *matrices*, MARIO uses the ``a`` and ``c`` suffixes to indicate
 the activity-side and commodity-side parts of ``Y``, ``V`` and ``E``.
 
 **Some of these matrices may be entirely null and therefore absent in some databases!**
@@ -55,14 +55,18 @@ the activity-side and commodity-side parts of ``Y``, ``V`` and ``E``.
    :align: center
    :width: 85%
 
-   Native SUT matrices on the left and the corresponding coefficient matrices
+   Native SUT flows matrices on the left and the corresponding coefficient matrices
    on the right. Matrices ``Yc``, ``Ya``, ``VY`` and ``EY`` are always expressed in flows
 
 
-MARIO can also expose unified views for SUTs such as ``Z``, ``Y``, ``V`` and
-``E`` on top of the standard matrices. These are convenient for inspection and
-some exports, but they are not the most native representation of a SUT
-database.
+.. important::
+
+   MARIO can also generate unified views for SUTs such as ``Z``, ``Y``, ``V`` and
+   ``E`` on top of the standard matrices. These are convenient for inspection and
+   some exports, but they are not the most native representation of a SUT
+   database. This feature is particularly useful for retrocompatibility with
+   versions up to v0.3.5.
+
 
 Why this matters
 ----------------
@@ -102,4 +106,4 @@ Upcoming work
 
 Further developments may envisage the inclusion of **Social Accounting Matrices (SAMs)**.
 Let us know if you are interested in having SAMs or other 
-table formats by opening an enhancement issue on GitHub!
+table formats by opening an enhancement issue on `GitHub <https://github.com/it-is-me-mario/MARIO/issues>`_!

@@ -9,9 +9,8 @@ Use it when you already know what you need to do with a database and want a
 .. toctree::
    :maxdepth: 1
 
-   parse_a_custom_database
-   work_with_matrix_layouts
    aggregate
+   apply_shocks
    change_technology_assumption
    transform_sut_to_iot
    add_sectors
