@@ -267,7 +267,11 @@ def test_get_index(CoreDataIOT,CoreDataSUT):
     assert CoreDataIOT.get_index("industry") == CoreDataIOT.get_index("Sector")
     assert CoreDataIOT.get_index("industries") == CoreDataIOT.get_index("Sector")
     assert CoreDataIOT.get_index("satellite_account") == CoreDataIOT.get_index("Satellite account")
+    assert CoreDataIOT.get_index("satellite_accounts") == CoreDataIOT.get_index("Satellite account")
     assert CoreDataIOT.get_index("k") == CoreDataIOT.get_index("Satellite account")
+    assert CoreDataIOT.get_index("consumption_category") == CoreDataIOT.get_index("Consumption category")
+    assert CoreDataIOT.get_index("demand_categories") == CoreDataIOT.get_index("Consumption category")
+    assert CoreDataIOT.get_index("factor_of_production") == CoreDataIOT.get_index("Factor of production")
     assert CoreDataSUT.get_index("activity") == CoreDataSUT.get_index("Activity")
     assert CoreDataSUT.get_index("c") == CoreDataSUT.get_index("Commodity")
     assert CoreDataSUT.get_index("product") == CoreDataSUT.get_index("Commodity")
@@ -499,6 +503,7 @@ def test_search(CoreDataIOT):
     }
     assert CoreDataIOT.search("satellite_account", "employ") == ["Employment"]
     assert CoreDataIOT.search("industry", "manuf") == ["Manufacturing"]
+    assert CoreDataIOT.search("demand_categories", "final") == ["Final Demand"]
 
 
 

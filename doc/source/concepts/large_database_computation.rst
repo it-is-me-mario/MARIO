@@ -40,11 +40,11 @@ Sparse-aware helpers
 --------------------
 
 Large-database support is not only about ``solve`` versus ``inverse``. MARIO
-also uses sparse-aware helper operations when blocks are sparse-backed.
+also uses sparse-aware helper operations when matrices are sparse-backed.
 
 Typical examples are:
 
-* row sums on large sparse blocks;
+* row sums on large sparse matrices;
 * row and column scaling without dense diagonal matrices;
 * matrix products routed through sparse backends when that is structurally
   useful.
@@ -78,6 +78,6 @@ For very large databases, the safest default is usually:
 * ``linear_solver="scipy"``;
 * ``linear_strategy="auto"``.
 
-Then profile the specific target that matters. Some blocks become easy after
+Then profile the specific target that matters. Some matrices become easy after
 the recent sparse-aware improvements, while others still depend on the
 conditioning and size of the system you are solving.

@@ -32,7 +32,7 @@
 
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=3fcc2b05" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=187240fe" />
   
   <!-- So that users can add custom icons -->
   <script src="_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
@@ -47,9 +47,11 @@
     <script src="_static/copybutton.js?v=40cbb8c0"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'index';</script>
+    <script src="_static/external-links.js?v=163d8a96"></script>
+    <script src="_static/terminology-tables.js?v=db330cf8"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Installation" href="getting_started/installation.html" />
+    <link rel="next" title="Quick Setup" href="start_here/index.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="" />
@@ -137,56 +139,53 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="getting_started/installation.html">
-    Installation
+  <a class="nav-link nav-internal" href="start_here/index.html">
+    Quick Setup
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="user_guide/index.html">
-    User Guide
+  <a class="nav-link nav-internal" href="concepts/index.html">
+    Concepts
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="tutorials/index.html">
-    Tutorials
+  <a class="nav-link nav-internal" href="parsers/index.html">
+    Parsers
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="reference/index.html">
+  <a class="nav-link nav-internal" href="workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="reference/api_library.html">
     API Reference
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="resources/index.html">
-    Resources
+  <a class="nav-link nav-internal" href="resources/publications.html">
+    Publications
   </a>
 </li>
 
-            <li class="nav-item dropdown">
-                <button class="btn dropdown-toggle nav-item" type="button"
-                data-bs-toggle="dropdown" aria-expanded="false"
-                aria-controls="pst-nav-more-links">
-                    More
-                </button>
-                <ul id="pst-nav-more-links" class="dropdown-menu">
-                    
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="getting_started/index.html">
-    Getting Started
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="contribute/index.html">
+    Dev
   </a>
 </li>
 
-                </ul>
-            </li>
-            
   </ul>
 </nav></div>
       
@@ -246,10 +245,6 @@
   
 
   
-    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
-      <span class="fa-solid fa-outdent"></span>
-    </button>
-  
 </div>
 
     </header>
@@ -279,43 +274,50 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="getting_started/installation.html">
-    Installation
+  <a class="nav-link nav-internal" href="start_here/index.html">
+    Quick Setup
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="user_guide/index.html">
-    User Guide
+  <a class="nav-link nav-internal" href="concepts/index.html">
+    Concepts
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="tutorials/index.html">
-    Tutorials
+  <a class="nav-link nav-internal" href="parsers/index.html">
+    Parsers
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="reference/index.html">
+  <a class="nav-link nav-internal" href="workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="reference/api_library.html">
     API Reference
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="resources/index.html">
-    Resources
+  <a class="nav-link nav-internal" href="resources/publications.html">
+    Publications
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="getting_started/index.html">
-    Getting Started
+  <a class="nav-link nav-internal" href="contribute/index.html">
+    Dev
   </a>
 </li>
 
@@ -387,129 +389,56 @@
                   
   <section id="mario-documentation">
 <h1>MARIO Documentation<a class="headerlink" href="#mario-documentation" title="Link to this heading">#</a></h1>
-<p>MARIO is an open-source Python toolkit for working with Input-Output Tables
-(IOTs) and Supply and Use Tables (SUTs). It provides a consistent workflow for
-turning external datasets into structured MARIO databases, computing derived
-matrices, aggregating classifications, transforming tables and exporting
-results to different formats.</p>
-<p>The package is designed for practical analytical work, but also for
-maintainable model-building workflows. In everyday use that usually means:</p>
-<ul class="simple">
-<li><p>reading structured or semi-structured IO data from Excel, TXT, Parquet or
-source-specific parsers;</p></li>
-<li><p>inspecting and manipulating a public <code class="docutils literal notranslate"><span class="pre">Database</span></code> object with stable,
-high-level methods;</p></li>
-<li><p>running operational workflows such as aggregation, extensions, shocks,
-<code class="docutils literal notranslate"><span class="pre">add_sectors(...)</span></code> and layout-aware export/re-import.</p></li>
-</ul>
-<p>MARIO therefore sits halfway between a user-facing analysis toolkit and a
-developer-oriented modeling framework. The documentation mirrors that split:
-you can enter from a quick installation path, from notebook-based tutorials, or
-from a more technical reference and contributor view.</p>
-<section id="useful-links">
-<h2>Useful links<a class="headerlink" href="#useful-links" title="Link to this heading">#</a></h2>
-<ul class="simple">
-<li><p><a class="reference external" href="https://github.com/it-is-me-mario/MARIO">GitHub repository</a></p></li>
-<li><p><a class="reference internal" href="publications/index.html"><span class="doc">Publications</span></a></p></li>
-<li><p><a class="reference internal" href="resources/index.html"><span class="doc">Resources</span></a></p></li>
-<li><p><a class="reference internal" href="changelog.html"><span class="doc">Changelog</span></a></p></li>
-</ul>
-</section>
-<section id="package-features">
-<h2>Package features<a class="headerlink" href="#package-features" title="Link to this heading">#</a></h2>
-<p>MARIO is built around a few core capabilities:</p>
-<ul class="simple">
-<li><p>Unified database API: once a dataset is parsed, most workflows are exposed
-through the same <code class="docutils literal notranslate"><span class="pre">Database</span></code> interface, regardless of the original source.</p></li>
-<li><p>Support for both IOT and SUT workflows: MARIO keeps the distinction explicit,
-while still offering common methods for parsing, aggregation, export and
-structural operations.</p></li>
-<li><p>Flexible parser layer: the package supports legacy <code class="docutils literal notranslate"><span class="pre">Level</span></code>-based workbooks,
-newer explicit matrix layouts, flat text formats and a growing set of
-source-specific parsers.</p></li>
-<li><p>Operational workflows: MARIO includes ready-to-use workflows for aggregation,
-extensions, shocks, export, structural add-sectors templates and related
-workbook-driven operations.</p></li>
-<li><p>Real-world interoperability: the package is designed to move data in and out
-of spreadsheets and analysis pipelines without forcing users to rebuild their
-entire data stack.</p></li>
-</ul>
-</section>
-<section id="mario-in-a-nutshell">
-<h2>MARIO in a nutshell<a class="headerlink" href="#mario-in-a-nutshell" title="Link to this heading">#</a></h2>
-<p>In a typical workflow, the user follows a small number of recurring steps:</p>
-<ol class="arabic simple">
-<li><p>Parse an external IOT or SUT source into a MARIO database.</p></li>
-<li><p>Inspect the database, compute the required matrices and derived indicators.</p></li>
-<li><p>Aggregate or transform sets when moving between analytical scopes.</p></li>
-<li><p>Export the result to Excel, TXT, Parquet or other downstream formats.</p></li>
-<li><p>Optionally generate structured templates for shocks, extensions or
-add-sectors workflows and feed the results back into the database.</p></li>
-</ol>
-</section>
-<section id="documentation-contents">
-<h2>Documentation contents<a class="headerlink" href="#documentation-contents" title="Link to this heading">#</a></h2>
-<p>The documentation is organized around five main entry points:</p>
-<ul class="simple">
-<li><p>Installation: the shortest path to a working local setup.</p></li>
-<li><p>User Guide: the main narrative path through practical tasks and core concepts.</p></li>
-<li><p>Tutorials: notebook-based examples that show complete workflows end to end.</p></li>
-<li><p>API Reference: exact method names, parser entry points and format details.</p></li>
-<li><p>Resources: publications, glossary, settings notes, changelog and contributor
-material.</p></li>
-</ul>
+<p>MARIO is a Python toolkit for working with Input-Output Tables (IOTs) and
+Supply and Use Tables (SUTs). The documentation is now organized around
+practical entry points: start with the quick setup page if you are new, then
+use the concepts pages to understand the model, parser pages for source-specific
+ingestion, and workflows for concrete operations on databases.</p>
+<p>Use this new structure as the main navigation surface. The individual pages are
+being revised section by section, but the information architecture is now in
+place.</p>
 <div class="toctree-wrapper compound">
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Start Here</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="getting_started/installation.html">Installation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="getting_started/installation.html#minimal-installation">Minimal installation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="getting_started/installation.html#repository-environment">Repository environment</a></li>
-<li class="toctree-l2"><a class="reference internal" href="getting_started/installation.html#optional-dependencies">Optional dependencies</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="user_guide/index.html">User Guide</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/index.html#recommended-reading-path">Recommended reading path</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/index.html#task-oriented-guides">Task-oriented guides</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/index.html#concept-pages">Concept pages</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/index.html">Tutorials</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="tutorials/beginner.html">Beginner Tutorials</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorials/parsing.html">Parsing Tutorials</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorials/workflows.html">Workflow Tutorials</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorials/advanced.html">Advanced Tutorials</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="reference/index.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="reference/api.html">API Reference</a></li>
-<li class="toctree-l2"><a class="reference internal" href="reference/file_formats.html">File Formats</a></li>
-<li class="toctree-l2"><a class="reference internal" href="reference/parsers.html">Built-in Parsers</a></li>
-<li class="toctree-l2"><a class="reference internal" href="reference/settings.html">Settings and nomenclature</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="resources/index.html">Resources</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="resources/index.html#contents">Contents</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="start_here/index.html">Quick Setup</a></li>
 </ul>
 </div>
 <div class="toctree-wrapper compound">
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="concepts/index.html">Concepts</a></li>
+</ul>
 </div>
-</section>
-<section id="where-to-go-next">
-<h2>Where to go next<a class="headerlink" href="#where-to-go-next" title="Link to this heading">#</a></h2>
-<dl class="simple">
-<dt>New to MARIO</dt><dd><p>Start from <a class="reference internal" href="getting_started/installation.html"><span class="doc">Installation</span></a>.</p>
-</dd>
-<dt>Looking for practical examples</dt><dd><p>Go to <a class="reference internal" href="tutorials/index.html"><span class="doc">Tutorials</span></a>.</p>
-</dd>
-<dt>Need practical guidance together with the core concepts</dt><dd><p>Use <a class="reference internal" href="user_guide/index.html"><span class="doc">User Guide</span></a>.</p>
-</dd>
-<dt>Looking for a method, parser or file format</dt><dd><p>Use <a class="reference internal" href="reference/index.html"><span class="doc">API Reference</span></a>.</p>
-</dd>
-<dt>Looking for supporting material, publications or contributor information</dt><dd><p>Use <a class="reference internal" href="resources/index.html"><span class="doc">Resources</span></a>.</p>
-</dd>
-</dl>
-</section>
+<div class="toctree-wrapper compound">
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Parsers</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="parsers/index.html">Parsers</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Workflows</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="workflows/index.html">Workflows</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="reference/api_library.html">API Reference</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Publications</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="resources/publications.html">Publications</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Dev</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="contribute/index.html">Dev</a></li>
+</ul>
+</div>
 </section>
 
 
@@ -523,11 +452,11 @@ material.</p></li>
                   
 <div class="prev-next-area">
     <a class="right-next"
-       href="getting_started/installation.html"
+       href="start_here/index.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Installation</p>
+        <p class="prev-next-title">Quick Setup</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -537,30 +466,6 @@ material.</p></li>
             </div>
             
             
-              
-                <dialog id="pst-secondary-sidebar-modal"></dialog>
-                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
-
-
-  <div class="sidebar-secondary-item">
-<div
-    id="pst-page-navigation-heading-2"
-    class="page-toc tocsection onthispage">
-    <i class="fa-solid fa-list"></i> On this page
-  </div>
-  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
-    <ul class="visible nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#useful-links">Useful links</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#package-features">Package features</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#mario-in-a-nutshell">MARIO in a nutshell</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#documentation-contents">Documentation contents</a><ul class="visible nav section-nav flex-column">
-</ul>
-</li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#where-to-go-next">Where to go next</a></li>
-</ul>
-  </nav></div>
-
-</div></div>
               
             
           </div>
@@ -585,7 +490,7 @@ material.</p></li>
 
   <p class="copyright">
     
-      © Copyright 2021, MARIO Authors: Mohammad Amin Tahavori, Lorenzo Rinaldi, Nicolo Golinucci.
+      © Copyright 2026, MARIO authors - Mohammad Amin Tahavori, Lorenzo Rinaldi, Nicolo Golinucci.
       <br/>
     
   </p>

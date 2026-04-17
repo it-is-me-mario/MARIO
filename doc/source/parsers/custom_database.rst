@@ -12,7 +12,7 @@ For ordinary workflows, the public entry points are:
 * :doc:`mario.parse_from_txt(...) <../api_document/mario.parse_from_txt>`
 * :doc:`mario.parse_from_parquet(...) <../api_document/mario.parse_from_parquet>`
 
-Use these parsers when your data is already close to MARIO's canonical block
+Use these parsers when your data is already close to MARIO's canonical matrix
 model and does not need a source-specific parser such as EXIOBASE or WIOD.
 
 Choose the storage format
@@ -39,11 +39,11 @@ Choose the semantic model
 MARIO custom parsers work on the same structural distinction as the rest of the
 package:
 
-* ``table="IOT"`` for input-output tables with sector-based blocks;
+* ``table="IOT"`` for input-output tables with sector-based matrices;
 * ``table="SUT"`` for supply-use tables with distinct activity and commodity
-  blocks.
+  matrices.
 
-You also choose whether the input blocks are:
+You also choose whether the input matrices are:
 
 * ``mode="flows"``
 * ``mode="coefficients"``
@@ -70,7 +70,7 @@ The most relevant arguments are:
 * ``unit_sheet``:
   optional units-sheet selector when it is not called ``units``;
 * ``matrix_layouts``:
-  optional semantic declaration for non-standard IOT blocks;
+  optional semantic declaration for non-standard IOT matrices;
 * ``tech_assumption``:
   optional SUT-only selector for ``IT`` / ``PT`` behavior.
 
@@ -128,7 +128,7 @@ The most relevant arguments are:
 * ``flat``:
   set this to ``True`` when parsing canonical MARIO flat exports;
 * ``matrix_layouts``:
-  optional semantic declaration for non-standard IOT blocks;
+  optional semantic declaration for non-standard IOT matrices;
 * ``tech_assumption``:
   optional SUT-only selector for ``IT`` / ``PT`` behavior.
 
@@ -237,6 +237,6 @@ Caveats
 -------
 
 * the parser does not infer ``flows`` versus ``coefficients`` automatically;
-* ``matrix_layouts`` is the right tool for non-standard IOT block layouts;
+* ``matrix_layouts`` is the right tool for non-standard IOT matrix layouts;
 * Excel is the easiest place to start, but flat TXT/Parquet is usually the
   better choice for roundtrip and large-file workflows.

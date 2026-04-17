@@ -31,7 +31,7 @@ The key public arguments are:
 * ``name``:
   optional metadata label override;
 * ``calc_all``:
-  optional eager computation of derived blocks after parsing.
+  optional eager computation of derived matrices after parsing.
 
 Download workflow
 -----------------

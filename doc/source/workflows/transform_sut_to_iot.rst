@@ -7,5 +7,5 @@ It will cover:
 
 * the ``to_iot`` entry point;
 * transformation methods;
-* what changes in blocks and metadata;
+* what changes in matrices and metadata;
 * what to check after transformation.

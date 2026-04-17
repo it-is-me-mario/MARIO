@@ -20,8 +20,8 @@ for roundtrips, custom datasets and testing.
 
 Depending on the workflow, a custom database may be imported from:
 
-* flow blocks;
-* coefficient blocks;
+* flow matrices;
+* coefficient matrices;
 * or a mixture of both when the remaining side can be rebuilt.
 
 Excel workbooks

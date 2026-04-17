@@ -14,7 +14,7 @@ MARIO supports two structural assumptions for SUT databases:
 
 At the API level, the short aliases ``IT`` and ``PT`` are also accepted.
 
-These assumptions do not change the meaning of every SUT block. They mainly
+These assumptions do not change the meaning of every SUT matrix. They mainly
 affect the supply-side coefficient logic.
 
 Structural property, not runtime option
@@ -49,7 +49,7 @@ Changing the assumption
 -----------------------
 
 For SUT databases, the assumption can be changed after parsing. When this
-happens, MARIO resets scenarios to flow blocks first and then rebuilds the
+happens, MARIO resets scenarios to flow matrices first and then rebuilds the
 affected coefficient-side structure under the new assumption.
 
 This avoids mixing coefficients computed under different structural rules.

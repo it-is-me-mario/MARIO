@@ -9,3 +9,49 @@
 .bd-main .bd-content .bd-article-container {
   max-width: 960px;
 }
+
+.terminology-column-filter {
+  width: 100%;
+  min-width: 9rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--pst-color-border, #d0d7de);
+  border-radius: 0.35rem;
+  background: var(--pst-color-surface, #fff);
+  color: var(--pst-color-text-base);
+  font-size: 0.88rem;
+}
+
+.terminology-table-wrapper {
+  overflow-x: auto;
+  margin-bottom: 1.5rem;
+}
+
+.terminology-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.terminology-table th,
+.terminology-table td {
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--pst-color-border, #d0d7de);
+  vertical-align: top;
+}
+
+.terminology-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--pst-color-background, #fff);
+  text-align: left;
+}
+
+.terminology-table thead tr.terminology-column-filters th {
+  top: 2.55rem;
+  padding: 0.45rem 0.55rem;
+  background: color-mix(in srgb, var(--pst-color-background, #fff) 97%, #000 3%);
+}
+
+.terminology-table tbody tr:nth-child(odd) {
+  background: color-mix(in srgb, var(--pst-color-background, #fff) 96%, #000 4%);
+}

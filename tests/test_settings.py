@@ -115,6 +115,15 @@ def test_Setting():
     assert idx.r == idx["r"]
 
 
+def test_index_aliases_include_documented_terminology_defaults():
+    aliases = IndexAliases()
+
+    assert any(alias.casefold() == "consumption_category" for alias in aliases.n)
+    assert any(alias.casefold() == "demand categories" for alias in aliases.n)
+    assert any(alias.casefold() == "satellite_accounts" for alias in aliases.k)
+    assert any(alias.casefold() == "factors of production" for alias in aliases.f)
+
+
 def test_compute_settings_helpers():
     original = download_settings(None)
 

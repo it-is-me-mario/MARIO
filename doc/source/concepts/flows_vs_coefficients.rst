@@ -3,8 +3,8 @@ Flows vs Coefficients
 
 Many MARIO matrices come in pairs:
 
-* a flow block that stores quantities in levels;
-* a coefficient block that stores the same structure normalized by an output
+* a flow matrix that stores quantities in levels;
+* a coefficient matrix that stores the same structure normalized by an output
   vector.
 
 This distinction is central to parsing, validation, export and runtime
@@ -13,7 +13,7 @@ computation.
 Flows
 -----
 
-Flow blocks store actual quantities. Typical examples are:
+Flow matrices store actual quantities. Typical examples are:
 
 * IOT: ``Z``, ``Y``, ``V``, ``E``;
 * SUT: ``U``, ``S``, ``Ya``, ``Yc``, ``Va``, ``Vc``, ``Ea``, ``Ec``.
@@ -30,12 +30,13 @@ data, and what they export when they need a table in levels.
 Coefficients
 ------------
 
-Coefficient blocks store normalized intensities instead of levels. Examples are:
+Coefficient matrices store normalized intensities instead of levels. Examples
+are:
 
 * IOT: ``z``, ``v``, ``e``;
 * SUT: ``u``, ``s``, ``va``, ``vc``, ``ea``, ``ec``.
 
-The exact normalization depends on the table type and, for some SUT blocks,
+The exact normalization depends on the table type and, for some SUT matrices,
 also on the active technology assumption. In the most common cases:
 
 * ``z`` is obtained by scaling ``Z`` by sector output ``X``;
@@ -89,4 +90,4 @@ Three practical consequences matter a lot:
 * scenario resets can keep either the flow-side or the coefficient-side,
   depending on the workflow;
 * large-database computation often prefers coefficient-side formulas, because
-  they avoid materializing very large flow blocks or inverse matrices.
+  they avoid materializing very large flow matrices or inverse matrices.

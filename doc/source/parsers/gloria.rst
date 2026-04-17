@@ -58,7 +58,7 @@ supports:
   ``basic``, ``trade``, ``transport``, ``taxes`` or ``subsidies``;
 * ``regions=`` to keep only one subset of GLORIA region acronyms;
 * ``satellites=`` to keep only selected satellite groups or rows;
-* ``dtype=`` to control numeric storage for large blocks;
+* ``dtype=`` to control numeric storage for large matrices;
 * ``cache=True`` or a custom cache path to persist the parsed result.
 
 Tutorial

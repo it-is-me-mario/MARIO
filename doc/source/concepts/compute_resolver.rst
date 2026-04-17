@@ -11,8 +11,8 @@ Each public matrix is described in a central compute catalog. For a given
 target, the catalog may know several valid ways to obtain it:
 
 * read it directly if it was parsed or already stored;
-* extract it from a larger block;
-* concatenate smaller blocks into a unified view;
+* extract it from a larger matrix;
+* concatenate smaller matrices into a unified view;
 * compute it through a mathematical formula;
 * apply an operator-like transformation.
 
@@ -28,7 +28,7 @@ The compute layer is organized around three roles:
 * the resolver executes the chosen path and caches the result.
 
 This architecture makes the system more flexible than a fixed formula tree.
-The same matrix can be rebuilt differently depending on the available blocks
+The same matrix can be rebuilt differently depending on the available matrices
 and the runtime settings.
 
 Strategy types
@@ -37,8 +37,8 @@ Strategy types
 The most important strategy families are:
 
 * parsed: the matrix already exists in the database store;
-* extract: the target is a sub-block of another matrix;
-* concat: the target is a unified view built from smaller blocks;
+* extract: the target is a sub-matrix of another matrix;
+* concat: the target is a unified view built from smaller matrices;
 * formula: the target must be computed from other matrices.
 
 From a user point of view, attribute access such as ``db.f`` or ``db.Z`` can
@@ -63,7 +63,7 @@ Why this architecture matters
 The resolver-based design is what makes recent MARIO improvements possible:
 
 * large-database paths can avoid explicit inverse matrices;
-* SUT split blocks and unified views can coexist cleanly;
+* SUT split matrices and unified views can coexist cleanly;
 * new public matrices can be added without rewriting the whole compute layer;
 * formulas can become sparse-aware without exposing that complexity in the
   high-level API.

@@ -1,7 +1,7 @@
 Adding New Matrices
 ===================
 
-This page will explain how to add a new matrix or block to MARIO.
+This page will explain how to add a new matrix to MARIO.
 
 It will cover:
 

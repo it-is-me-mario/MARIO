@@ -12,7 +12,7 @@ when you:
 
 * clone an existing scenario;
 * apply shocks into a new scenario;
-* update stored blocks explicitly.
+* update stored matrices explicitly.
 
 The main idea is simple: a scenario is another state of the same database
 structure, not a different database class.
@@ -20,11 +20,11 @@ structure, not a different database class.
 What is stored
 --------------
 
-Scenario storage is block-based. MARIO does not need to materialize every
+Scenario storage is matrix-based. MARIO does not need to materialize every
 possible matrix for every scenario.
 
-Instead, each scenario stores the blocks that are already available or have
-been explicitly computed and cached. Missing blocks can still be rebuilt on
+Instead, each scenario stores the matrices that are already available or have
+been explicitly computed and cached. Missing matrices can still be rebuilt on
 demand by the resolver.
 
 This matters because:
@@ -39,13 +39,14 @@ Common operations
 Typical scenario operations are:
 
 * clone a scenario before applying a shock;
-* update one or more blocks and keep the rest implicit;
+* update one or more matrices and keep the rest implicit;
 * compare a policy scenario against the baseline;
 * reset scenarios to flows or coefficients before changing structural
   settings.
 
 The last point matters especially for SUT technology assumptions: changing the
-assumption is not a small local edit, so MARIO resets scenarios to flow blocks
+assumption is not a small local edit, so MARIO resets scenarios to flow
+matrices
 before rebuilding the affected coefficient-side structure.
 
 Why scenarios are useful
@@ -59,4 +60,4 @@ In practice it means:
 * baseline data stays intact;
 * counterfactual states can be created incrementally;
 * the same compute engine works across scenarios, because each scenario is just
-  a different block store under the same table definition.
+  a different matrix store under the same table definition.

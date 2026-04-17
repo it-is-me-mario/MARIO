@@ -1,14 +1,12 @@
 Quick Setup
 ===========
 
-Use this page for the shortest path into MARIO.
-
 What Is MARIO
 -------------
 
-MARIO is a Python library for working with Input-Output Tables (IOTs) and
-Supply and Use Tables (SUTs). Its core object is a database that can be parsed
-from source files, inspected, computed on demand, transformed, and exported
+MARIO is a Python library for working with :ref:`Input-Output Tables (IOTs) <concept-iots>` and
+:ref:`Supply and Use Tables (SUTs) <concept-suts>`. Its core object is a database that can be parsed
+from source files, inspected, whose matrices can be computed on demand, transformed, and exported
 again.
 
 In practice, MARIO is built around a simple workflow:
@@ -53,4 +51,5 @@ available.
 Next Step
 ---------
 
-Head over to :doc:`../tutorials/index` to unlock the full capacbilities of MARIO with hands-on examples and step-by-step guides.
+Head over to :doc:`../concepts/index` to understand how MARIO structures
+databases, matrices, runtime computation and workflows.

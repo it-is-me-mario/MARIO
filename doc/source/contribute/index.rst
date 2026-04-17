@@ -1,5 +1,5 @@
-Contribute
-==========
+Dev
+===
 
 This section is for contributors and maintainers.
 
@@ -15,3 +15,4 @@ It will evolve into the main architecture and contribution guide for MARIO.
    testing_strategy
    realdata_fixtures
    documentation
+   ../resources/changelog

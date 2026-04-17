@@ -36,7 +36,7 @@ Why this matters
 Explicit layouts solve two recurring problems:
 
 * they make workbook structure easier to read and validate;
-* they remove ambiguity for blocks that may carry more than one meaningful row
+* they remove ambiguity for matrices that may carry more than one meaningful row
   structure.
 
 Without explicit layouts, two files may both look like valid ``E`` matrices

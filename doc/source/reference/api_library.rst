@@ -1,5 +1,5 @@
-API Library
-===========
+API Reference
+=============
 
 This section exposes the method-by-method API reference.
 
