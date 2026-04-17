@@ -164,6 +164,7 @@ def _optimize_in_cvxlab(
 
             if default_model=="AuSteel" and mario_matrix_name=='ss': #fix by changing cvxlab problem formulation, not inverting to and from in ss
                 mario_renamed=mario_renamed.rename(columns={'activity_from_Name': 'activity_to_Name','commodity_to_Name':'commodity_from_Name'}) 
+                #Y_ex is not initialized here
 
             join_cols = [c for c in mario_renamed.columns if c in cvxlab_df.columns if c != "values"]
             
@@ -485,7 +486,10 @@ def _cvxlab_results_parser(
             result_matrices[matrix]=pd.read_sql_query(f"SELECT * FROM {matrix}" , conn)
         conn.close()
 
-        #map_cvxlab_mario_sets=dict(zip(mapping['sets']['cvxlab'],mapping['sets']['mario']))
+        if default_model=="AuSteel":
+            #Create a fictitious column for Y which is aggregated
+            result_matrices['Y']['cons_categ_Name']='Unique_cc'
+            result_matrices['Y']['region_to_Name']='Unique_region'
         mario_matrices={}
         for matrix in matrices:
             mario_name = mapping['result matrices'].loc[matrix, 'mario']
