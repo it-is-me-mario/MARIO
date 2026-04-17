@@ -37,9 +37,9 @@ place.
 
 .. toctree::
    :maxdepth: 1
-   :caption: API Reference
+   :caption: Dev
 
-   reference/api_library
+   contribute/index
 
 .. toctree::
    :maxdepth: 1
@@ -49,6 +49,6 @@ place.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Dev
+   :caption: API Reference
 
-   contribute/index
+   reference/api_library
