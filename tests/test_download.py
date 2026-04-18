@@ -216,6 +216,62 @@ def test_download_emerging_v21_supports_year_filter(monkeypatch, tmp_path):
     assert (tmp_path / "EMERGING_CO2_2023.mat").exists()
 
 
+def test_download_emerging_v22_latest_supports_year_filter(monkeypatch, tmp_path):
+    record_url = "https://zenodo.org/api/records/19461860"
+    record_payload = {
+        "files": [
+            {"key": "EMERGING_V2_2021_m.mat", "links": {"self": "https://files/2021-main"}},
+            {"key": "EMERGING_CO2_2021.mat", "links": {"self": "https://files/2021-co2"}},
+            {"key": "EMERGING_V2_2023_m.mat", "links": {"self": "https://files/2023-main"}},
+            {"key": "EMERGING_CO2_2023.mat", "links": {"self": "https://files/2023-co2"}},
+        ]
+    }
+
+    def fake_get(url, **kwargs):
+        if url == record_url:
+            return FakeResponse(json_data=record_payload)
+        return FakeResponse(content=b"x")
+
+    monkeypatch.setattr("mario.download.requests.get", fake_get)
+
+    info = download_emerging(tmp_path, version="latest", years=[2023])
+
+    assert info["version"] == "2.2"
+    assert info["version_record"].endswith("19461860")
+    assert info["years"] == [2023]
+    assert len(info["files"]) == 2
+    assert (tmp_path / "EMERGING_V2_2023_m.mat").exists()
+    assert (tmp_path / "EMERGING_CO2_2023.mat").exists()
+
+
+def test_download_emerging_v20_downloads_matching_files(monkeypatch, tmp_path):
+    record_url = "https://zenodo.org/api/records/17557778"
+    record_payload = {
+        "files": [
+            {"key": "EMERGING_V2_2015_m.mat", "links": {"self": "https://files/2015-main"}},
+            {"key": "EMERGING_CO2_2015.mat", "links": {"self": "https://files/2015-co2"}},
+            {"key": "EMERGING_V2_2021_m.mat", "links": {"self": "https://files/2021-main"}},
+            {"key": "EMERGING_CO2_2021.mat", "links": {"self": "https://files/2021-co2"}},
+        ]
+    }
+
+    def fake_get(url, **kwargs):
+        if url == record_url:
+            return FakeResponse(json_data=record_payload)
+        return FakeResponse(content=b"x")
+
+    monkeypatch.setattr("mario.download.requests.get", fake_get)
+
+    info = download_emerging(tmp_path, version="2.0", years=[2015])
+
+    assert info["version"] == "2.0"
+    assert info["version_record"].endswith("17557778")
+    assert info["years"] == [2015]
+    assert len(info["files"]) == 2
+    assert (tmp_path / "EMERGING_V2_2015_m.mat").exists()
+    assert (tmp_path / "EMERGING_CO2_2015.mat").exists()
+
+
 def test_download_wiod2016_extracts_workbook(monkeypatch, tmp_path):
     archive = _zip_bytes({"WIOT2014_Nov16_ROW.xlsb": b"binary"})
 

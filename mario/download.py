@@ -23,8 +23,12 @@ from mario.parsers.specs import (
     EMERGING_CONCEPT_DOI,
     EMERGING_V1_RECORD_ID,
     EMERGING_V1_ZENODO_URL,
+    EMERGING_V20_RECORD_ID,
+    EMERGING_V20_ZENODO_URL,
     EMERGING_V21_RECORD_ID,
     EMERGING_V21_ZENODO_URL,
+    EMERGING_V22_RECORD_ID,
+    EMERGING_V22_ZENODO_URL,
     EUROSTAT_IOT_DATAFLOWS,
     EUROSTAT_IOT_MODES,
     EUROSTAT_SDMX_BASE_URL,
@@ -861,34 +865,46 @@ def download_wiod2016_socioeconomic_accounts(
 def download_emerging(
     path: str | Path,
     *,
-    version: str = "2.1",
+    version: str = "2.2",
     years=None,
     overwrite: bool = False,
 ) -> dict[str, object]:
     """Download the EMERGING Zenodo bundle supported by MARIO.
 
-    Supported versions currently map to the public Zenodo records under the
-    concept DOI ``10.5281/zenodo.10956622``.
+    Supported versions map to the official public Zenodo records:
+
+    * ``1.0``: ``10.5281/zenodo.10956623``
+    * ``2.0``: ``10.5281/zenodo.17557778``
+    * ``2.1``: ``10.5281/zenodo.18518911``
+    * ``2.2``: ``10.5281/zenodo.19461860``
+
+    ``latest`` currently resolves to ``2.2``.
     """
     normalized_version = str(version).strip().lower()
     version_map = {
         "1": ("1.0", EMERGING_V1_RECORD_ID, EMERGING_V1_ZENODO_URL),
         "1.0": ("1.0", EMERGING_V1_RECORD_ID, EMERGING_V1_ZENODO_URL),
         "v1": ("1.0", EMERGING_V1_RECORD_ID, EMERGING_V1_ZENODO_URL),
-        "2": ("2.1", EMERGING_V21_RECORD_ID, EMERGING_V21_ZENODO_URL),
+        "2.0": ("2.0", EMERGING_V20_RECORD_ID, EMERGING_V20_ZENODO_URL),
+        "v2.0": ("2.0", EMERGING_V20_RECORD_ID, EMERGING_V20_ZENODO_URL),
         "2.1": ("2.1", EMERGING_V21_RECORD_ID, EMERGING_V21_ZENODO_URL),
-        "v2": ("2.1", EMERGING_V21_RECORD_ID, EMERGING_V21_ZENODO_URL),
         "v2.1": ("2.1", EMERGING_V21_RECORD_ID, EMERGING_V21_ZENODO_URL),
-        "latest": ("2.1", EMERGING_V21_RECORD_ID, EMERGING_V21_ZENODO_URL),
+        "2.2": ("2.2", EMERGING_V22_RECORD_ID, EMERGING_V22_ZENODO_URL),
+        "v2.2": ("2.2", EMERGING_V22_RECORD_ID, EMERGING_V22_ZENODO_URL),
+        "latest": ("2.2", EMERGING_V22_RECORD_ID, EMERGING_V22_ZENODO_URL),
     }
     if normalized_version not in version_map:
         raise NotImplementable(
-            "Supported EMERGING download versions are '1.0' and '2.1' (or 'latest')."
+            "Supported EMERGING download versions are '1.0', '2.0', '2.1', and '2.2' (or 'latest')."
         )
     resolved_version, record_id, record_url = version_map[normalized_version]
 
     root = _ensure_directory(path)
     files = _zenodo_files(record_id)
+    if not files:
+        raise WrongInput(
+            f"Zenodo record {record_id} for EMERGING version {resolved_version} exposes no downloadable files."
+        )
     requested_years = _coerce_years(years) if years is not None else None
 
     if requested_years is None:

@@ -26,7 +26,6 @@ from mario.parsers.specs import (
     EMERGING_SATELLITE_UNIT,
     EMERGING_SOURCE,
     EMERGING_V1_ZENODO_URL,
-    EMERGING_V21_ZENODO_URL,
 )
 from mario.utils import rename_index
 
@@ -40,8 +39,8 @@ _EMERGING_MAIN_PATTERNS = (
     ),
     (
         re.compile(r"EMERGING_V\d+_(?P<year>\d{4})_m\.mat$", flags=re.IGNORECASE),
-        "2.1",
-        EMERGING_V21_ZENODO_URL,
+        "2.x",
+        None,
     ),
     (
         re.compile(r"EMERGING_V\d+_(?P<year>\d{4})\.mat$", flags=re.IGNORECASE),
@@ -81,6 +80,8 @@ class EMERGINGLayout:
         source_parts = [EMERGING_SOURCE]
         if self.record_url is not None:
             source_parts.append(f"({self.record_url}; concept DOI {EMERGING_CONCEPT_DOI})")
+        else:
+            source_parts.append(f"(concept DOI {EMERGING_CONCEPT_DOI})")
         source_parts.append(EMERGING_PAPER_CITATION)
         return "; ".join(source_parts)
 

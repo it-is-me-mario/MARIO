@@ -155,7 +155,7 @@ def test_parse_emerging_iot_reads_root_level_v1_bundle_with_new_file_names(tmp_p
     assert units["Satellite account"].iloc[0, 0] == "Mt CO2eq"
 
 
-def test_parse_emerging_iot_reads_root_level_v21_bundle_without_labels_workbook(tmp_path):
+def test_parse_emerging_iot_reads_root_level_v2x_bundle_without_labels_workbook(tmp_path):
     main_path, co2_path, labels_path = _write_emerging_bundle(
         tmp_path,
         year=2023,
@@ -169,8 +169,8 @@ def test_parse_emerging_iot_reads_root_level_v21_bundle_without_labels_workbook(
     matrices, indeces, _, layout = parse_emerging_iot(main_path, co2_path=co2_path, load_co2=True)
     base = matrices["baseline"]
 
-    assert layout.bundle_version == "2.1"
-    assert layout.record_url is not None and layout.record_url.endswith("18518911")
+    assert layout.bundle_version == "2.x"
+    assert layout.record_url is None
     assert layout.labels_path is None
     assert indeces["s"]["main"] == ["sector one", "sector two"]
     assert base["Z"].shape == (4, 4)

@@ -1530,19 +1530,26 @@ def parse_emerging(
 ) -> object:
     """Parse one EMERGING MATLAB bundle from the supported Zenodo releases.
 
-    This parser supports the EMERGING bundles currently distributed through the
-    Zenodo concept DOI ``https://doi.org/10.5281/zenodo.10956622``. In
-    practice this includes at least two naming conventions:
+    This parser supports the EMERGING bundles associated with these official
+    Zenodo version records:
 
     * the older record ``https://doi.org/10.5281/zenodo.10956623`` with main
       files like ``global_mrio_2017.mat`` and companion CO2 files like
       ``EMERGING_CO2_2017.mat``;
-    * the newer record ``https://doi.org/10.5281/zenodo.18518911`` with main
-      files like ``EMERGING_V2_2023_m.mat`` and companion CO2 files like
-      ``EMERGING_CO2_2023.mat``.
+    * ``https://doi.org/10.5281/zenodo.17557778`` for ``v2.0``;
+    * ``https://doi.org/10.5281/zenodo.18518911`` for ``v2.1``;
+    * ``https://doi.org/10.5281/zenodo.19461860`` for ``v2.2``.
 
-    MARIO also keeps accepting local files named like ``EMERGING_V2_<year>.mat``
-    when they expose the same internal MATLAB structure.
+    In practice, MARIO accepts these local naming conventions:
+
+    * ``global_mrio_<year>.mat`` for ``v1.0`` bundles;
+    * ``EMERGING_V2_<year>_m.mat`` for ``v2.x`` bundles;
+    * ``EMERGING_V2_<year>.mat`` for older local ``v2.x`` copies when they
+      expose the same internal MATLAB structure.
+
+    For local ``v2.x`` files, the parser does not try to infer the exact
+    sub-version ``2.0`` versus ``2.1`` versus ``2.2`` from the filename alone,
+    because the public naming convention is shared across those releases.
 
     The associated paper is:
 
