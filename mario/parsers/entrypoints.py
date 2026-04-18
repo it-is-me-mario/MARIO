@@ -867,6 +867,19 @@ def parse_eurostat(
 ) -> object:
     """Parse Eurostat national tables directly from the official SDMX API.
 
+    This parser targets the official national Eurostat supply-use and
+    input-output datasets exposed through the SDMX API, not arbitrary local
+    spreadsheets.
+
+    Eurostat availability is year- and country-dependent. In general:
+
+    * ``SUT`` tables are annual and published from reference year ``2010``
+      onward;
+    * ``IOT`` tables are published from reference year ``2010`` onward, but
+      mandatory transmission is only five-yearly for years ending with ``0``
+      or ``5``;
+    * additional ``IOT`` years depend on voluntary country transmission.
+
     Parameters
     ----------
     country : str
@@ -897,6 +910,14 @@ def parse_eurostat(
         if True, calculate missing derived matrices after parsing.
     timeout : int, optional
         request timeout in seconds used for each SDMX call.
+
+    References
+    ----------
+    Eurostat metadata and dataset context:
+    https://ec.europa.eu/eurostat/cache/metadata/en/naio_10_n_esms.htm
+
+    Eurostat API guide:
+    https://ec.europa.eu/eurostat/web/user-guides/data-browser/api-data-access/api-introduction
     """
     if model not in models:
         raise WrongInput("Available models are {}".format([*models]))

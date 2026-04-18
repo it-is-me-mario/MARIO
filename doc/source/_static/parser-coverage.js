@@ -53,6 +53,19 @@ document.addEventListener("DOMContentLoaded", () => {
     const allCountries = uniqueSortedText(rows.map((row) => row.country));
     const allYears = uniqueSortedYears(rows.flatMap((row) => row.year_values || []));
 
+    const makeLinkedCell = (text, href = "") => {
+      const td = document.createElement("td");
+      if (href && text) {
+        const link = document.createElement("a");
+        link.href = href;
+        link.textContent = text;
+        td.appendChild(link);
+      } else {
+        td.textContent = text || "";
+      }
+      return td;
+    };
+
     const matchingRows = ({ country = countrySelect.value, year = yearSelect.value } = {}) =>
       rows.filter((row) => {
         const countryMatch = !country || row.country === country;
@@ -108,9 +121,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
       filteredRows.forEach((row) => {
         const tr = document.createElement("tr");
+        tr.appendChild(makeLinkedCell(row.source, row.parser_page ? `${row.parser_page}.html` : ""));
+        tr.appendChild(makeLinkedCell(row.parser, row.parser_page ? `${row.parser_page}.html` : ""));
         [
-          row.source,
-          row.parser,
           row.table,
           row.years,
           row.version,

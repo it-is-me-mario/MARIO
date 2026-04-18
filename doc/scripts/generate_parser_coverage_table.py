@@ -37,6 +37,22 @@ NON_STANDARD_ISO3_NAMES = {
     "EAZ": "EAZ",
 }
 
+SOURCE_PAGE_SLUGS = {
+    "ADB": "adb",
+    "CEPALSTAT": "cepalstat",
+    "EMERGING": "emerging",
+    "EORA1": "eora",
+    "EUROSTAT": "eurostat",
+    "EXIOBASE": "exiobase",
+    "FIGARO": "figaro",
+    "GLORIA": "gloria",
+    "ISTAT": "istat",
+    "OECD": "oecd",
+    "StatCan": "statcan",
+    "USEEIO": "useeio",
+    "WIOD": "wiod",
+}
+
 
 def normalize_text(value) -> str:
     if pd.isna(value):
@@ -141,6 +157,7 @@ def normalize_coverage_rows() -> list[dict[str, str]]:
                 {
                     "source": source,
                     "parser": parser,
+                    "parser_page": SOURCE_PAGE_SLUGS.get(source, ""),
                     "table": table,
                     "years": years,
                     "year_values": expand_years(years),

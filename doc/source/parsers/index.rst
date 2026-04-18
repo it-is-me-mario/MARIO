@@ -26,7 +26,7 @@ Official repositories
 
    istat
    statcan
-   eurostat_sdmx
+   eurostat
    exiobase
    figaro
    wiod

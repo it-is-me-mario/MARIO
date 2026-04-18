@@ -1,0 +1,151 @@
+EUROSTAT
+========
+
+MARIO supports direct parsing of Eurostat national supply-use and symmetric
+input-output tables from the official SDMX API.
+
+The parser currently supports:
+
+* ``SUT`` through Eurostat tables ``T1500`` and ``T1600``;
+* ``IOT`` through Eurostat symmetric tables in both product-by-product and
+  industry-by-industry form;
+* direct online parsing from the official API;
+* optional local caching of the raw SDMX-CSV slices.
+
+For this source, the most useful documentation format is a notebook-driven one:
+this landing page stays short, while one practical notebook covers direct API
+parsing, local caching, the difference between ``SUT`` and ``IOT``, and the
+fact that year availability depends on the country and on the table family.
+
+Relevant source links
+---------------------
+
+* official Eurostat SUIOT information page:
+  `ESA supply, use and input-output tables <https://ec.europa.eu/eurostat/web/esa-supply-use-input-tables>`_;
+* official Eurostat metadata for national SUIOTs:
+  `naio_10_n metadata <https://ec.europa.eu/eurostat/cache/metadata/en/naio_10_n_esms.htm>`_;
+* official Eurostat API guide:
+  `Eurostat data access API <https://ec.europa.eu/eurostat/web/user-guides/data-browser/api-data-access/api-introduction>`_.
+
+Recommended Entry Point
+-----------------------
+
+For normal user workflows, the public entry point is:
+
+* :doc:`mario.parse_eurostat(...) <../api_document/mario.parse_eurostat>`
+
+Key arguments
+-------------
+
+The key public arguments are:
+
+* ``country``:
+  Eurostat geo code such as ``IT`` or ``DE``;
+* ``year``:
+  reference year to download and parse;
+* ``table``:
+  choose ``"SUT"`` or ``"IOT"``;
+* ``iot_mode``:
+  IOT-only selector, either ``"product"`` or ``"industry"``;
+* ``unit``:
+  choose ``"MIO_EUR"`` or ``"MIO_NAC"``;
+* ``path``:
+  optional local cache directory for raw SDMX files;
+* ``download``:
+  when ``True``, MARIO stores the raw CSV locally before parsing it.
+
+Available years
+---------------
+
+Year availability is not uniform across all countries.
+
+The official Eurostat metadata states that:
+
+* national ``SUT`` annual tables are published from reference year ``2010``
+  onward;
+* national ``IOT`` tables are also published from reference year ``2010``
+  onward;
+* however, ``IOT`` transmission is mandatory only for years ending in ``0`` or
+  ``5``, while additional years depend on voluntary country transmission.
+
+On the live official API, checked on ``18 April 2026`` with ``Italy (IT)`` as
+one concrete example, MARIO currently finds:
+
+* ``SUT``: ``2010`` to ``2022``;
+* ``IOT``: ``2010`` and then ``2015`` to ``2022``.
+
+So the practical rule is:
+
+* for ``SUT``, expect a broadly annual series from ``2010`` onward, but not
+  the most recent ``T-2`` or ``T-1`` years unless Eurostat has already
+  published them for the specific country;
+* for ``IOT``, treat ``2010``, ``2015``, ``2020`` as the core mandatory years
+  and any extra years as country-specific.
+
+Typical usage
+-------------
+
+Parse a Eurostat SUT directly from SDMX:
+
+.. code-block:: python
+
+   import mario
+
+   db = mario.parse_eurostat(
+       country="IT",
+       year=2022,
+       table="SUT",
+   )
+
+Parse a Eurostat IOT:
+
+.. code-block:: python
+
+   import mario
+
+   db = mario.parse_eurostat(
+       country="IT",
+       year=2022,
+       table="IOT",
+       iot_mode="product",
+   )
+
+Cache the raw CSV locally while parsing:
+
+.. code-block:: python
+
+   import mario
+
+   db = mario.parse_eurostat(
+       country="IT",
+       year=2022,
+       table="SUT",
+       path="/path/to/eurostat_cache",
+       download=True,
+   )
+
+Caveats
+-------
+
+* this parser targets national Eurostat SDMX tables, not arbitrary local
+  spreadsheets;
+* ``iot_mode`` matters only for ``table="IOT"``;
+* year availability is country-dependent, especially for ``IOT``;
+* ``download=True`` is the right choice when you want reproducible local raw
+  files in addition to the parsed database.
+
+Notebook Walkthrough
+--------------------
+
+Use the notebook below as the main parser guide:
+
+* :doc:`EUROSTAT parser walkthrough <../notebooks/parsers/eurostat/walkthrough>`
+
+If you prefer to run it locally, you can also download the source notebook:
+
+* :download:`Download the EUROSTAT notebook <../notebooks/parsers/eurostat/walkthrough.ipynb>`
+
+.. toctree::
+   :hidden:
+
+   ../notebooks/parsers/eurostat/walkthrough
