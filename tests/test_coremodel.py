@@ -289,6 +289,21 @@ def test_set_access_via_attributes(CoreDataIOT, CoreDataSUT):
     assert CoreDataSUT.factor_of_production == CoreDataSUT.get_index("Factor of production")
 
 
+def test_units_accept_set_aliases_for_read_and_write(CoreDataIOT, CoreDataSUT):
+
+    pdt.assert_frame_equal(CoreDataIOT.units["industry"], CoreDataIOT.units["Sector"])
+    pdt.assert_frame_equal(CoreDataIOT.units["k"], CoreDataIOT.units["Satellite account"])
+    pdt.assert_frame_equal(CoreDataSUT.units["products"], CoreDataSUT.units["Commodity"])
+    pdt.assert_frame_equal(CoreDataSUT.units["factor_of_production"], CoreDataSUT.units["Factor of production"])
+
+    updated = CoreDataIOT.units["Sector"].copy()
+    updated.iloc[:, 0] = "alias-unit"
+    CoreDataIOT.units["industries"] = updated
+
+    pdt.assert_frame_equal(CoreDataIOT.units["Sector"], updated)
+    pdt.assert_frame_equal(CoreDataIOT.units["industry"], updated)
+
+
 def test_string_summary_shows_tech_assumption_for_sut_and_not_iot(CoreDataIOT, CoreDataSUT):
 
     iot_summary = str(CoreDataIOT)

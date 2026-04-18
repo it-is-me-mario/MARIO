@@ -15,6 +15,7 @@ from mario.settings.settings import IndexAliases
 from mario.model.conventions import TABLE_LEVELS
 from tabulate import tabulate
 from collections import namedtuple
+from collections.abc import MutableMapping
 
 import numpy as np
 import pandas as pd
@@ -95,6 +96,55 @@ def available_matrices(table_type: str) -> tuple[str, ...]:
     from mario.compute.catalog import available_matrix_names
 
     return available_matrix_names(table_type)
+
+
+class _ResolvedSetDict(MutableMapping):
+    """Dict-like wrapper that resolves MARIO set aliases on access."""
+
+    def __init__(self, data: dict, resolver):
+        self._data = data
+        self._resolver = resolver
+
+    def _canonical_key(self, key, *, allow_passthrough: bool = False):
+        if key in self._data:
+            return key
+
+        resolved = self._resolver(key)
+        if resolved is not None and resolved in self._data:
+            return resolved
+
+        if allow_passthrough:
+            return key
+
+        raise KeyError(key)
+
+    def __getitem__(self, key):
+        return self._data[self._canonical_key(key)]
+
+    def __setitem__(self, key, value):
+        self._data[self._canonical_key(key, allow_passthrough=True)] = value
+
+    def __delitem__(self, key):
+        del self._data[self._canonical_key(key)]
+
+    def __iter__(self):
+        return iter(self._data)
+
+    def __len__(self):
+        return len(self._data)
+
+    def __contains__(self, key):
+        try:
+            self._canonical_key(key)
+        except KeyError:
+            return False
+        return True
+
+    def __repr__(self):
+        return repr(self._data)
+
+    def __deepcopy__(self, memo):
+        return copy.deepcopy(self._data, memo)
 
 
 class CoreModel:
@@ -188,6 +238,8 @@ class CoreModel:
                     "For building an instance using dataframes, all the data [Y,E,Z,V,EY,units,table] should be given. VY is optional."
                 )
             else:
+                if isinstance(units, _ResolvedSetDict):
+                    units = copy.deepcopy(units._data)
                 self.matrices, self._indeces, self.units = dataframe_parser(
                     Z, Y, E, V, EY, units, table, VY=VY
                 )
@@ -1217,6 +1269,13 @@ class CoreModel:
 
         return None
 
+    def _resolve_unit_set_name(self, value):
+        """Resolve one units key through the same set alias rules used elsewhere."""
+        if getattr(self.meta, "table", None) is None:
+            return value if value in getattr(self, "_units", {}) else None
+
+        return self._resolve_set_name(value, raise_on_missing=False)
+
     def is_balanced(
         self,
         method,
@@ -1617,6 +1676,31 @@ class CoreModel:
             return True
 
         return False
+
+    @property
+    def units(self):
+        """Return database units with alias-aware access on set labels.
+
+        Returns
+        -------
+        MutableMapping
+            Dict-like mapping keyed by canonical set names, while accepting the
+            same aliases and short codes supported by :meth:`get_index`.
+        """
+        proxy = getattr(self, "_units_proxy", None)
+        raw_units = getattr(self, "_units", None)
+        if not isinstance(proxy, _ResolvedSetDict) or proxy._data is not raw_units:
+            proxy = _ResolvedSetDict(raw_units if raw_units is not None else {}, self._resolve_unit_set_name)
+            self._units_proxy = proxy
+        return proxy
+
+    @units.setter
+    def units(self, value):
+        """Store the raw units mapping behind the alias-aware units view."""
+        if isinstance(value, _ResolvedSetDict):
+            value = value._data
+        self._units = value if value is not None else {}
+        self._units_proxy = _ResolvedSetDict(self._units, self._resolve_unit_set_name)
 
     @property
     def sets(self):

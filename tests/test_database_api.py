@@ -260,6 +260,21 @@ def test_default_region_clusters_include_country_converter_groups_when_possible(
     assert "Italy" in region_clusters["continent:Europe"]
 
 
+def test_default_region_clusters_use_manual_adb_overrides_for_nonstandard_codes():
+    database = load_test("IOT")
+    database._indeces["r"]["main"] = ["GER", "UKG", "SWI", "TAP"]
+    database.meta._add_attribute(source="ADB MRIO test payload")
+
+    region_clusters = database.default_clusters["Region"]
+
+    assert region_clusters["all"] == ["GER", "UKG", "SWI", "TAP"]
+    assert "continent:Europe" in region_clusters
+    assert set(["GER", "UKG", "SWI"]).issubset(region_clusters["continent:Europe"])
+    assert "continent:Asia" in region_clusters
+    assert "TAP" in region_clusters["continent:Asia"]
+    assert set(["GER", "UKG"]).issubset(region_clusters["G7"])
+
+
 def test_available_clusters_merge_defaults_and_user_clusters():
     database = load_test("IOT")
     database.set_clusters(clusters={"region": {"EU custom": ["Italy", "RoW"]}})

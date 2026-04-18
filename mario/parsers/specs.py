@@ -73,13 +73,14 @@ ADB_SOURCE = f"Asian Development Bank MRIO Excel workbooks via {ADB_SOURCE_URL}"
 ADB_MONETARY_UNIT = "millions of US$"
 ADB_SATELLITE_UNIT = "None"
 ADB_SATELLITE_PLACEHOLDER = "-"
-ADB_FINAL_DEMAND_CODES = ("F1", "F2", "F3", "F4", "F5")
+ADB_FINAL_DEMAND_CODES = ("F1", "F2", "F3", "F4", "F5", "F6")
 ADB_FINAL_DEMAND_LABELS = {
     "F1": "Households",
     "F2": "NPISH",
     "F3": "Government",
     "F4": "Gross fixed capital formation",
     "F5": "Changes in inventories and valuables",
+    "F6": "Exports",
 }
 ADB_FACTOR_ROWS = ("r99", "r61", "r62", "r63", "r64", "trs")
 ADB_FACTOR_LABELS = {

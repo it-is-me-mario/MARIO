@@ -1,8 +1,8 @@
-"""Direct file-based parser for ADB MRIO Excel workbooks."""
+"""Direct file-based parser for ADB MRIO and SRIO Excel workbooks."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import logging
 from pathlib import Path
 import re
@@ -28,6 +28,7 @@ from mario.utils import rename_index
 logger = logging.getLogger(__name__)
 
 _ADB_FILE_RE = re.compile(r"ADB[-_ ]?MRIO", flags=re.IGNORECASE)
+_ADB_YEAR_SHEET_RE = re.compile(r"20\d{2}$")
 _YEAR_RE = re.compile(r"(20\d{2})")
 _TITLE_ECONOMIES_RE = re.compile(r"(?P<count>\d+)\s+economies", flags=re.IGNORECASE)
 _FOLDER_VARIANT_RE = re.compile(r"(?P<count>\d+)\s+economies", flags=re.IGNORECASE)
@@ -35,6 +36,11 @@ _STEM_VARIANT_RE = re.compile(r"MRIO[-_ ]?(?P<count>\d{2})|[-_ ](?P<trailing>\d{
 _SECTOR_CODE_RE = re.compile(r"c\d+$", flags=re.IGNORECASE)
 _FINAL_CODE_RE = re.compile(r"F\d+$", flags=re.IGNORECASE)
 _REGION_CODE_RE = re.compile(r"[A-Z][A-Z0-9]{1,5}$")
+_ADB_SRIO_TITLE_RE = re.compile(r"^(?P<country>.+?)\s+Input-Output Table", flags=re.IGNORECASE)
+_ADB_EMISSIONS_TITLE_RE = re.compile(
+    r"Environmentally-Extended Multiregional Input-Output Table",
+    flags=re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -57,10 +63,17 @@ class ADBLayout:
     row_label_col: int
     row_region_col: int
     row_code_col: int
+    workbook_type: str = "MRIO"
+    domestic_region: str | None = None
+    country_name: str | None = None
+    notes: tuple[str, ...] = ()
 
     @property
     def dataset_name(self) -> str:
         """Return a compact dataset label suitable for ``Database.name``."""
+        if self.workbook_type == "SRIO":
+            country = self.country_name or self.domestic_region or "single-region"
+            return f"ADB SRIO {country} {self.year}"
         if self.variant is not None:
             return f"ADB MRIO {self.year} ({self.variant} economies)"
         if self.economies is not None:
@@ -76,6 +89,21 @@ class ADBLayout:
     def source(self) -> str:
         """Return the canonical source string stored in MARIO metadata."""
         return ADB_SOURCE
+
+
+@dataclass(frozen=True)
+class ADBEmissionsLayout:
+    """Workbook layout metadata for one ADB air-emissions extension file."""
+
+    path: Path
+    sheet_name: str
+    year: int
+    unit: str
+    label_row: int
+    region_row: int
+    code_row: int
+    sector_start: int
+    sector_end: int
 
 
 def _clean_string(value) -> str | None:
@@ -117,9 +145,36 @@ def _find_adb_sheet(path: Path) -> str:
     return candidates[0]
 
 
+def _find_adb_srio_sheet(path: Path, *, year: int | None) -> str:
+    """Return the yearly sheet used by one ADB SRIO workbook."""
+    workbook = pd.ExcelFile(path)
+    candidates = [str(sheet).strip() for sheet in workbook.sheet_names if _ADB_YEAR_SHEET_RE.fullmatch(str(sheet).strip())]
+    if not candidates:
+        raise WrongFormat("The selected ADB workbook does not expose yearly SRIO sheets.")
+    if year is None:
+        raise WrongInput(
+            "ADB SRIO parsing requires year= because one workbook contains multiple yearly sheets."
+        )
+    requested = str(int(year))
+    if requested not in candidates:
+        raise WrongInput(
+            f"The selected ADB SRIO workbook does not contain year {year}. Available years: {sorted(candidates)}"
+        )
+    return requested
+
+
 def _read_adb_preview(path: Path, *, sheet_name: str) -> pd.DataFrame:
     """Read the first header rows needed to detect an ADB workbook layout."""
     return pd.read_excel(path, sheet_name=sheet_name, header=None, nrows=12)
+
+
+def _find_emissions_sheet(path: Path) -> str:
+    """Return the yearly sheet exposed by one ADB emissions workbook."""
+    workbook = pd.ExcelFile(path)
+    candidates = [str(sheet).strip() for sheet in workbook.sheet_names if _ADB_YEAR_SHEET_RE.fullmatch(str(sheet).strip())]
+    if not candidates:
+        raise WrongFormat("The selected ADB emissions workbook does not expose yearly sheets.")
+    return candidates[0]
 
 
 def _infer_variant(path: Path) -> int | None:
@@ -161,6 +216,31 @@ def _infer_economies(preview: pd.DataFrame) -> int | None:
     return int(match.group("count"))
 
 
+def _infer_emissions_unit(preview: pd.DataFrame) -> str:
+    """Infer the unit string recorded on the ADB emissions workbook."""
+    for row_idx in range(min(len(preview), 8)):
+        header = _clean_string(preview.iat[row_idx, 0])
+        if header is None or header.rstrip(":").casefold() != "unit":
+            continue
+        value = _clean_string(preview.iat[row_idx, 1])
+        if value is not None:
+            return value
+    raise WrongFormat("Could not infer the unit from the ADB emissions workbook.")
+
+
+def _infer_srio_country(preview: pd.DataFrame) -> str | None:
+    """Infer the SRIO country name from the workbook title."""
+    if preview.empty:
+        return None
+    title = _clean_string(preview.iat[0, 0])
+    if title is None:
+        return None
+    match = _ADB_SRIO_TITLE_RE.search(title)
+    if match is None:
+        return None
+    return match.group("country").strip()
+
+
 def _find_header_rows(preview: pd.DataFrame) -> tuple[int, int, int, int, int]:
     """Detect the ADB header rows and the inter-industry/final-demand split."""
     code_row = None
@@ -172,7 +252,7 @@ def _find_header_rows(preview: pd.DataFrame) -> tuple[int, int, int, int, int]:
     for row_idx in range(min(12, len(preview))):
         row = [_clean_string(value) for value in preview.iloc[row_idx].tolist()]
         positions = [idx for idx, value in enumerate(row) if value and _SECTOR_CODE_RE.fullmatch(value)]
-        if len(positions) < 4:
+        if len(positions) < 2:
             continue
         current_start = positions[0]
         current_end = current_start
@@ -211,6 +291,47 @@ def _find_header_rows(preview: pd.DataFrame) -> tuple[int, int, int, int, int]:
     return label_row, region_row, code_row, sector_start, sector_end, final_demand_start, final_demand_end
 
 
+def _find_emissions_header_rows(preview: pd.DataFrame) -> tuple[int, int, int, int, int]:
+    """Detect header rows for one ADB emissions workbook."""
+    code_row = None
+    sector_start = None
+    sector_end = None
+
+    for row_idx in range(min(12, len(preview))):
+        row = [_clean_string(value) for value in preview.iloc[row_idx].tolist()]
+        positions = [idx for idx, value in enumerate(row) if value and _SECTOR_CODE_RE.fullmatch(value)]
+        if len(positions) < 2:
+            continue
+        current_start = positions[0]
+        current_end = current_start
+        while current_end < len(row) and row[current_end] and _SECTOR_CODE_RE.fullmatch(row[current_end]):
+            current_end += 1
+        code_row = row_idx
+        sector_start = current_start
+        sector_end = current_end
+        break
+
+    if code_row is None or sector_start is None or sector_end is None:
+        raise WrongFormat("Could not detect the ADB emissions sector code row.")
+
+    region_row = None
+    label_row = None
+    sample_col = sector_start
+    for row_idx in range(code_row - 1, -1, -1):
+        cell = _clean_string(preview.iat[row_idx, sample_col])
+        if region_row is None and _looks_like_region_code(cell):
+            region_row = row_idx
+            continue
+        if region_row is not None and _looks_like_label(cell):
+            label_row = row_idx
+            break
+
+    if region_row is None or label_row is None:
+        raise WrongFormat("Could not detect the ADB emissions header label rows.")
+
+    return label_row, region_row, code_row, sector_start, sector_end
+
+
 def _candidate_layout(path: Path) -> ADBLayout:
     """Build the lightweight layout metadata for one local ADB workbook."""
     sheet_name = _find_adb_sheet(path)
@@ -247,6 +368,74 @@ def _candidate_layout(path: Path) -> ADBLayout:
     )
 
 
+def _candidate_srio_layout(path: Path, *, year: int | None) -> ADBLayout:
+    """Build the lightweight layout metadata for one local ADB SRIO workbook."""
+    sheet_name = _find_adb_srio_sheet(path, year=year)
+    preview = _read_adb_preview(path, sheet_name=sheet_name)
+    (
+        label_row,
+        region_row,
+        code_row,
+        sector_start,
+        sector_end,
+        final_demand_start,
+        final_demand_end,
+    ) = _find_header_rows(preview)
+    row_code_col = sector_start - 1
+    row_region_col = sector_start - 2
+    row_label_col = sector_start - 3
+    domestic_region = _clean_string(preview.iat[region_row, sector_start])
+    return ADBLayout(
+        root=path.parent,
+        data_path=path,
+        year=int(sheet_name),
+        sheet_name=sheet_name,
+        variant=None,
+        economies=None,
+        label_row=label_row,
+        region_row=region_row,
+        code_row=code_row,
+        sector_start=sector_start,
+        sector_end=sector_end,
+        final_demand_start=final_demand_start,
+        final_demand_end=final_demand_end,
+        row_label_col=row_label_col,
+        row_region_col=row_region_col,
+        row_code_col=row_code_col,
+        workbook_type="SRIO",
+        domestic_region=domestic_region,
+        country_name=_infer_srio_country(preview),
+    )
+
+
+def detect_adb_emissions_layout(path: str | Path) -> ADBEmissionsLayout:
+    """Resolve the air-emissions workbook layout used as ADB extensions input."""
+    source = Path(path)
+    if not source.exists():
+        raise FileNotFoundError(source)
+    if source.suffix.lower() != ".xlsx":
+        raise WrongInput("ADB emissions parsing expects one local .xlsx workbook.")
+
+    sheet_name = _find_emissions_sheet(source)
+    preview = _read_adb_preview(source, sheet_name=sheet_name)
+    title = _clean_string(preview.iat[0, 1]) or _clean_string(preview.iat[0, 0]) or ""
+    if _ADB_EMISSIONS_TITLE_RE.search(title) is None:
+        raise WrongFormat("The selected workbook does not look like an ADB air-emissions workbook.")
+
+    label_row, region_row, code_row, sector_start, sector_end = _find_emissions_header_rows(preview)
+    return ADBEmissionsLayout(
+        path=source,
+        sheet_name=sheet_name,
+        year=int(sheet_name),
+        unit=_infer_emissions_unit(preview),
+        label_row=label_row,
+        region_row=region_row,
+        code_row=code_row,
+        sector_start=sector_start,
+        sector_end=sector_end,
+    )
+
+
 def detect_adb_layout(
     path: str | Path,
     *,
@@ -271,26 +460,43 @@ def detect_adb_layout(
         return layout
 
     if source.is_file():
-        if source.suffix.lower() != ".xlsx" or _ADB_FILE_RE.search(source.name) is None:
+        if source.suffix.lower() != ".xlsx":
             raise WrongInput(
-                "ADB MRIO parsing expects one local .xlsx workbook downloaded from "
-                "the ADB MRIO release page, or a directory containing those workbooks."
+                "ADB parsing expects one local .xlsx workbook downloaded from "
+                "the ADB release page, or a directory containing those workbooks."
             )
-        return _validate(_candidate_layout(source))
+        if _ADB_FILE_RE.search(source.name) is not None:
+            return _validate(_candidate_layout(source))
+        return _validate(_candidate_srio_layout(source, year=year))
 
     candidates = sorted(
         child
         for child in source.rglob("*.xlsx")
-        if child.is_file() and not child.name.startswith("~$") and _ADB_FILE_RE.search(child.name)
+        if child.is_file() and not child.name.startswith("~$")
     )
     if not candidates:
-        raise WrongInput("No ADB MRIO .xlsx workbook was found in the selected directory.")
+        raise WrongInput("No ADB .xlsx workbook was found in the selected directory.")
 
-    layouts = [_candidate_layout(candidate) for candidate in candidates]
+    layouts = []
+    for candidate in candidates:
+        try:
+            if _ADB_FILE_RE.search(candidate.name) is not None:
+                layouts.append(_candidate_layout(candidate))
+            elif year is not None:
+                layouts.append(_candidate_srio_layout(candidate, year=year))
+        except (WrongFormat, WrongInput, ValueError):
+            continue
+    if not layouts:
+        if year is None:
+            raise WrongInput(
+                "No ADB workbook was found in the selected directory. "
+                "For SRIO workbooks, pass year= to select the annual sheet."
+            )
+        raise WrongInput(f"No ADB workbook was found for year {year} in the selected directory.")
     if year is not None:
         layouts = [layout for layout in layouts if layout.year == int(year)]
         if not layouts:
-            raise WrongInput(f"No ADB MRIO workbook was found for year {year}.")
+            raise WrongInput(f"No ADB workbook was found for year {year}.")
 
     if economies is not None:
         requested = int(economies)
@@ -351,6 +557,15 @@ def _build_iot_units(*, sector_labels: list[str], factor_labels: list[str]) -> d
     }
 
 
+def _build_satellite_label(activity_label: str | None, gas_label: str | None) -> str | None:
+    """Build one readable satellite-account label from emissions row headers."""
+    main = _clean_string(activity_label)
+    gas = _clean_string(gas_label)
+    if main is None or gas is None:
+        return None
+    return f"{gas} | {main}"
+
+
 def _axis_from_pairs(
     regions: list[str],
     level_label: str,
@@ -369,6 +584,81 @@ def _axis_from_pairs(
 def _preserve_order(values: list[str]) -> list[str]:
     """Return one list with duplicates removed while preserving the first order."""
     return list(dict.fromkeys(values))
+
+
+def _load_adb_emissions_extensions(
+    path: str | Path,
+    *,
+    sector_axis: pd.MultiIndex,
+    final_demand_axis: pd.MultiIndex,
+    expected_year: int | None,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.Index, list[str]]:
+    """Load ADB air-emissions extensions and align them to one database axis."""
+    layout = detect_adb_emissions_layout(path)
+    log_time(
+        logger,
+        f"Parser: importing ADB air-emissions extensions from {layout.path.name} sheet {layout.sheet_name}.",
+        "info",
+    )
+    frame = pd.read_excel(layout.path, sheet_name=layout.sheet_name, header=None)
+
+    sector_regions = [
+        _clean_string(value)
+        for value in frame.iloc[layout.region_row, layout.sector_start:layout.sector_end].tolist()
+    ]
+    sector_items = [
+        _clean_string(value)
+        for value in frame.iloc[layout.label_row, layout.sector_start:layout.sector_end].tolist()
+    ]
+    extension_axis = _axis_from_pairs(
+        sector_regions,
+        sector_axis.get_level_values(1)[0],
+        sector_items,
+    )
+
+    numeric = frame.apply(pd.to_numeric, errors="coerce")
+    satellite_labels: list[str] = []
+    rows: list[list[float]] = []
+    for row_idx in range(layout.code_row + 1, len(frame)):
+        satellite = _build_satellite_label(frame.iat[row_idx, 0], frame.iat[row_idx, 1])
+        if satellite is None:
+            continue
+        values = numeric.iloc[row_idx, layout.sector_start:layout.sector_end]
+        if values.notna().sum() == 0:
+            continue
+        satellite_labels.append(satellite)
+        rows.append(values.fillna(0.0).astype(float).tolist())
+
+    satellite_axis = pd.Index(satellite_labels, name=None)
+    if rows:
+        E = pd.DataFrame(rows, index=satellite_axis, columns=extension_axis)
+        E = E.reindex(columns=sector_axis, fill_value=0.0)
+    else:
+        E = _zero_frame(satellite_axis, sector_axis)
+    EY = _zero_frame(satellite_axis, final_demand_axis)
+    extension_units = pd.DataFrame({"unit": [layout.unit] * len(satellite_axis)}, index=satellite_axis)
+
+    notes: list[str] = []
+    if expected_year is not None and int(expected_year) != layout.year:
+        note = (
+            "Parser: ADB emissions year "
+            f"{layout.year} does not match the economic table year {expected_year}."
+        )
+        log_time(logger, note, "warning")
+        notes.append(note)
+
+    target_regions = set(sector_axis.get_level_values(0))
+    covered_regions = set(sector_regions)
+    missing_regions = sorted(target_regions.difference(covered_regions))
+    if missing_regions:
+        note = (
+            "Parser: ADB emissions workbook does not cover database regions "
+            f"{missing_regions}; zero satellite values were kept for those regions."
+        )
+        log_time(logger, note, "warning")
+        notes.append(note)
+
+    return E, EY, extension_units, satellite_axis, notes
 
 
 def build_adb_iot_from_frame(
@@ -530,24 +820,230 @@ def build_adb_iot_from_frame(
     return matrices, indeces, units, layout
 
 
-def parse_adb_iot(
-    path: str | Path,
+def build_adb_srio_iot_from_frame(
+    frame: pd.DataFrame,
     *,
-    year: int | None = None,
-    economies: int | None = None,
+    year: int,
+    source_path: str | Path | None = None,
+    sheet_name: str | None = None,
 ) -> tuple[
     dict[str, dict[str, pd.DataFrame]],
     dict[str, dict[str, list[str]]],
     dict[str, pd.DataFrame],
     ADBLayout,
 ]:
-    """Parse one locally downloaded ADB MRIO workbook into MARIO IOT blocks."""
+    """Transform one raw ADB SRIO sheet into canonical MARIO IOT blocks."""
+    source = Path(source_path or f"ADB-SRIO-{year}.xlsx")
+    preview = frame.iloc[:12].copy()
+    (
+        label_row,
+        region_row,
+        code_row,
+        sector_start,
+        sector_end,
+        final_demand_start,
+        final_demand_end,
+    ) = _find_header_rows(preview)
+    row_code_col = sector_start - 1
+    row_region_col = sector_start - 2
+    row_label_col = sector_start - 3
+
+    sector_regions = [
+        _clean_string(value) for value in frame.iloc[region_row, sector_start:sector_end].tolist()
+    ]
+    sector_items = [
+        _clean_string(value) for value in frame.iloc[label_row, sector_start:sector_end].tolist()
+    ]
+    domestic_regions = _preserve_order([value for value in sector_regions if value is not None])
+    if len(domestic_regions) != 1:
+        raise WrongFormat(
+            "ADB SRIO parsing expects a single domestic region code across productive columns."
+        )
+    domestic_region = domestic_regions[0]
+
+    layout = ADBLayout(
+        root=source.parent,
+        data_path=source,
+        year=year,
+        sheet_name=sheet_name or str(year),
+        variant=None,
+        economies=None,
+        label_row=label_row,
+        region_row=region_row,
+        code_row=code_row,
+        sector_start=sector_start,
+        sector_end=sector_end,
+        final_demand_start=final_demand_start,
+        final_demand_end=final_demand_end,
+        row_label_col=row_label_col,
+        row_region_col=row_region_col,
+        row_code_col=row_code_col,
+        workbook_type="SRIO",
+        domestic_region=domestic_region,
+        country_name=_infer_srio_country(preview),
+    )
+
+    row_codes = [_clean_string(value) for value in frame.iloc[:, row_code_col].tolist()]
+    row_regions = [_clean_string(value) for value in frame.iloc[:, row_region_col].tolist()]
+    row_labels = [_clean_string(value) for value in frame.iloc[:, row_label_col].tolist()]
+    first_data_row = code_row + 1
+
+    domestic_rows: list[int] = []
+    pointer = first_data_row
+    while (
+        pointer < len(row_codes)
+        and row_codes[pointer]
+        and _SECTOR_CODE_RE.fullmatch(row_codes[pointer])
+        and row_regions[pointer] == domestic_region
+    ):
+        domestic_rows.append(pointer)
+        pointer += 1
+    if not domestic_rows:
+        raise WrongFormat("Could not detect the domestic ADB SRIO inter-industry row block.")
+
+    import_rows: list[int] = []
+    while pointer < len(row_codes) and row_codes[pointer] and _SECTOR_CODE_RE.fullmatch(row_codes[pointer]):
+        import_rows.append(pointer)
+        pointer += 1
+
+    imports_row = next((idx for idx in range(pointer, len(row_codes)) if row_codes[idx] == "M"), None)
+    if imports_row is None:
+        raise WrongFormat("The ADB SRIO workbook is missing the Total Imports row.")
+
+    factor_rows = [
+        row_idx
+        for row_idx in range(imports_row + 1, len(row_codes))
+        if row_codes[row_idx] in set(ADB_FACTOR_ROWS)
+    ]
+    missing_factor_codes = [code for code in ADB_FACTOR_ROWS if code not in {row_codes[idx] for idx in factor_rows}]
+    if missing_factor_codes:
+        raise WrongFormat(
+            f"The ADB SRIO workbook is missing required factor rows: {missing_factor_codes}."
+        )
+
+    row_items = [row_labels[row_idx] for row_idx in domestic_rows]
+    if sector_items != row_items:
+        raise WrongFormat(
+            "ADB SRIO domestic rows and productive columns do not describe the same sector axis."
+        )
+
+    final_demand_codes = [
+        _clean_string(value)
+        for value in frame.iloc[code_row, final_demand_start:final_demand_end].tolist()
+    ]
+    if not all(code and _FINAL_CODE_RE.fullmatch(code) for code in final_demand_codes):
+        raise WrongFormat("The detected ADB SRIO final-demand columns are not contiguous.")
+
+    final_demand_items = [
+        ADB_FINAL_DEMAND_LABELS.get(code, _clean_string(label) or code)
+        for code, label in zip(
+            final_demand_codes,
+            frame.iloc[label_row, final_demand_start:final_demand_end].tolist(),
+        )
+    ]
+
+    sector_axis = _axis_from_pairs([domestic_region] * len(sector_items), _MASTER_INDEX["s"], sector_items)
+    final_demand_axis = _axis_from_pairs(
+        [domestic_region] * len(final_demand_items),
+        _MASTER_INDEX["n"],
+        final_demand_items,
+    )
+
+    numeric = frame.apply(pd.to_numeric, errors="coerce").fillna(0.0)
+
+    Z = numeric.iloc[domestic_rows, sector_start:sector_end].copy()
+    Z.index = sector_axis
+    Z.columns = sector_axis
+
+    Y = numeric.iloc[domestic_rows, final_demand_start:final_demand_end].copy()
+    Y.index = sector_axis
+    Y.columns = final_demand_axis
+
+    V = numeric.iloc[factor_rows, sector_start:sector_end].copy()
+    V.index = pd.Index([ADB_FACTOR_LABELS[row_codes[row_idx]] for row_idx in factor_rows], name=None)
+    V.columns = sector_axis
+    imports = numeric.iloc[[imports_row], sector_start:sector_end].copy()
+    imports.index = pd.Index(["imports"], name=None)
+    imports.columns = sector_axis
+    V = pd.concat([V, imports], axis=0)
+
+    satellite_axis = pd.Index([ADB_SATELLITE_PLACEHOLDER], name=None)
+    E = _zero_frame(satellite_axis, sector_axis)
+    EY = _zero_frame(satellite_axis, final_demand_axis)
+
+    unique_final_demand = _preserve_order(final_demand_items)
+    unique_sector_labels = _preserve_order(sector_items)
+    factor_labels = list(V.index)
+
+    matrices = {"baseline": {"Z": Z, "Y": Y, "V": V, "E": E, "EY": EY}}
+    units = _build_iot_units(
+        sector_labels=unique_sector_labels,
+        factor_labels=factor_labels,
+    )
+    indeces = {
+        "r": {"main": [domestic_region]},
+        "s": {"main": unique_sector_labels},
+        "f": {"main": factor_labels},
+        "k": {"main": list(satellite_axis)},
+        "n": {"main": unique_final_demand},
+    }
+
+    rename_index(matrices["baseline"])
+    log_time(
+        logger,
+        (
+            "Parser: ADB SRIO parsed with "
+            f"{len(unique_sector_labels)} sectors, "
+            f"{len(unique_final_demand)} final-demand columns and "
+            f"{len(factor_labels)} factor rows."
+        ),
+        "info",
+    )
+    return matrices, indeces, units, layout
+
+
+def parse_adb_iot(
+    path: str | Path,
+    *,
+    year: int | None = None,
+    economies: int | None = None,
+    add_extensions: str | Path | None = None,
+) -> tuple[
+    dict[str, dict[str, pd.DataFrame]],
+    dict[str, dict[str, list[str]]],
+    dict[str, pd.DataFrame],
+    ADBLayout,
+]:
+    """Parse one locally downloaded ADB MRIO or SRIO workbook into MARIO IOT blocks."""
     layout = detect_adb_layout(path, year=year, economies=economies)
     frame = _read_adb_workbook(layout.data_path, sheet_name=layout.sheet_name)
-    return build_adb_iot_from_frame(
-        frame,
-        year=layout.year,
-        source_path=layout.data_path,
-        variant=layout.variant,
-        economies=layout.economies,
-    )
+    if layout.workbook_type == "SRIO":
+        matrices, indeces, units, layout = build_adb_srio_iot_from_frame(
+            frame,
+            year=layout.year,
+            source_path=layout.data_path,
+            sheet_name=layout.sheet_name,
+        )
+    else:
+        matrices, indeces, units, layout = build_adb_iot_from_frame(
+            frame,
+            year=layout.year,
+            source_path=layout.data_path,
+            variant=layout.variant,
+            economies=layout.economies,
+        )
+
+    if add_extensions is not None:
+        E, EY, extension_units, satellite_axis, notes = _load_adb_emissions_extensions(
+            add_extensions,
+            sector_axis=matrices["baseline"]["Z"].columns,
+            final_demand_axis=matrices["baseline"]["Y"].columns,
+            expected_year=layout.year,
+        )
+        matrices["baseline"]["E"] = E
+        matrices["baseline"]["EY"] = EY
+        units[_MASTER_INDEX["k"]] = extension_units
+        indeces["k"] = {"main": list(satellite_axis)}
+        layout = replace(layout, notes=layout.notes + tuple(notes))
+
+    return matrices, indeces, units, layout

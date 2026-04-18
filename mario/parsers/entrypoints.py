@@ -1354,42 +1354,57 @@ def parse_adb(
     table: str = "IOT",
     year: int | None = None,
     economies: int | None = None,
+    add_extensions: str | None = None,
     model: str = "Database",
     name: str | None = None,
     calc_all: bool = False,
     **kwargs,
 ) -> object:
-    """Parse one locally downloaded ADB MRIO Excel workbook.
+    """Parse one locally downloaded ADB MRIO or SRIO Excel workbook.
 
-    This parser targets the Asian Development Bank MRIO Excel workbooks
+    This parser targets the Asian Development Bank Excel workbooks
     distributed on the official ADB MRIO page at
     ``https://kidb.adb.org/globalization/current``. MARIO does not implement
     any automatic download here: callers should point the parser to one local
     ``.xlsx`` workbook or to a directory containing one or more of those
     workbooks.
 
-    The current ADB release family mixes closely related workbook variants
+    ``parse_adb`` supports both:
+
+    - ADB MRIO workbooks, typically one workbook per release year;
+    - ADB SRIO workbooks, where one workbook contains multiple yearly sheets.
+
+    The MRIO release family also mixes closely related workbook variants
     (for example the 2017 LAC release and the 2024 ``62/72/74 economies``
     releases). ``parse_adb`` auto-detects the header layout used by each
     workbook. When ``path`` points to a directory that contains more than one
-    candidate workbook, use ``year=`` and/or ``economies=`` to disambiguate or
-    point directly to one file.
+    candidate MRIO workbook, use ``year=`` and/or ``economies=`` to
+    disambiguate or point directly to one file. For SRIO workbooks, ``year=``
+    is required because one workbook contains multiple annual sheets.
 
     Parameters
     ----------
     path : str
-        path to one local ADB MRIO ``.xlsx`` workbook or to a directory
-        containing one or more ADB MRIO workbooks.
+        path to one local ADB ``.xlsx`` workbook or to a directory
+        containing one or more ADB workbooks.
     table : str, optional
-        ADB MRIO parsing currently supports only ``IOT`` tables.
+        ADB parsing currently supports only ``IOT`` tables.
     year : int, optional
-        reference year used to select one workbook when ``path`` points to a
-        directory containing multiple yearly releases.
+        reference year used to select one MRIO workbook when ``path`` points
+        to a directory containing multiple yearly releases. For SRIO
+        workbooks, this selects the yearly sheet and is mandatory.
     economies : int, optional
-        workbook variant selector used when a directory contains more than one
-        release for the same year. This matches the folder/file marker values
-        commonly used by the downloaded workbooks, such as ``62``, ``71``,
-        ``72`` or ``74``.
+        MRIO workbook variant selector used when a directory contains more
+        than one release for the same year. This matches the folder/file
+        marker values commonly used by the downloaded workbooks, such as
+        ``62``, ``71``, ``72`` or ``74``.
+    add_extensions : str, optional
+        optional path to an ADB air-emissions workbook. When provided, MARIO
+        imports the environmental extension matrix ``E`` from that file and
+        keeps ``EY`` zero-filled. The same mechanism works for both MRIO and
+        SRIO economic tables. The matching air-emissions workbooks are
+        distributed on the ADB page at
+        ``https://kidb.adb.org/globalization/adb_environmentally_extended_multiregional_inputoutput_tables``.
     model : str, optional
         public MARIO model class to instantiate. ``Database`` is the default
         and the only supported value.
@@ -1403,9 +1418,14 @@ def parse_adb(
 
     validate_parse_request(table=table, model=model)
     if table != "IOT":
-        raise NotImplementable("ADB MRIO parsing currently supports only IOT tables.")
+        raise NotImplementable("ADB parsing currently supports only IOT tables.")
 
-    matrices, indeces, units, layout = parse_adb_iot(path=path, year=year, economies=economies)
+    matrices, indeces, units, layout = parse_adb_iot(
+        path=path,
+        year=year,
+        economies=economies,
+        add_extensions=add_extensions,
+    )
     return models[model](
         name=name or layout.dataset_name,
         table="IOT",
@@ -1413,6 +1433,7 @@ def parse_adb(
         year=layout.year,
         price=layout.price,
         init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
+        notes=list(layout.notes),
         calc_all=calc_all,
         **kwargs,
     )
