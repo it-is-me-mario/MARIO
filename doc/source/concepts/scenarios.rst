@@ -12,7 +12,7 @@ Every *database* has a ``baseline`` *scenario*. Additional *scenarios* are creat
 when you:
 
 * :doc:`clone </api_document/mario.Database.clone_scenario>` an existing *scenario*
-* :doc:`apply shocks </workflows/apply_shocks>` into a new *scenario*
+* :doc:`apply shocks </workflows/transformations/apply_shocks>` into a new *scenario*
 
 The main idea is simple: a *scenario* is another state of the same *database*
 structure, not a different *database* class.

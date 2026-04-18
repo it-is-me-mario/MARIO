@@ -11,11 +11,12 @@ again.
 
 In practice, MARIO is built around a simple workflow:
 
-* parse or load a database;
-* inspect its structure and available matrices;
-* compute derived matrices on demand;
-* transform, aggregate/**disaggregate**, or shock the database;
-* export the results.
+* parse or load a database
+* inspect its structure and available matrices
+* compute derived matrices on demand
+* compute forward and backward linkages
+* transform, aggregate/**disaggregate**, or shock the database
+* export the results
 
 Installation
 ------------
