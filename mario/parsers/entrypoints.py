@@ -27,6 +27,7 @@ from mario.parsers.api import (
 )
 from mario.parsers.adb import parse_adb_iot
 from mario.parsers.cepalstat import parse_cepalstat_iot, parse_cepalstat_sut
+from mario.parsers.ceads import parse_ceads_iot
 from mario.parsers.emerging import parse_emerging_iot
 from mario.parsers.excel import parse_state_from_excel
 from mario.parsers.parquet import parse_state_from_parquet
@@ -82,6 +83,7 @@ from mario.parsers.specs import (
     ISTAT_SUT_PRICES,
     ISTAT_SUT_VALUATIONS,
     CEPALSTAT_IOT_MODES,
+    CEADS_FORMATS,
     USEEIO_FORMATS,
     STATCAN_TABLES,
     STATCAN_OPENIO_CANADA_SATELLITE_ACCOUNT,
@@ -1526,6 +1528,81 @@ def parse_istat(
         year=layout.year,
         price=layout.price_label,
         init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
+        calc_all=calc_all,
+        **kwargs,
+    )
+
+
+def parse_ceads(
+    path: str,
+    *,
+    format: str = "auto",
+    table: str = "IOT",
+    year: int | None = None,
+    model: str = "Database",
+    name: str | None = None,
+    calc_all: bool = False,
+    **kwargs,
+) -> object:
+    """Parse one local CEADS China provincial MRIO workbook.
+
+    Parameters
+    ----------
+    path : str
+        local workbook path or one directory containing one or more supported
+        CEADS workbooks.
+    format : str, optional
+        workbook layout selector. ``auto`` is the default and currently
+        resolves to ``ceads_provincial_workbook`` for the verified 2018/2020
+        CEADS workbook family.
+    table : str, optional
+        currently only ``IOT`` is supported.
+    year : int, optional
+        workbook year used to disambiguate one directory containing more than
+        one supported workbook.
+    model : str, optional
+        public MARIO model class to instantiate. ``Database`` is the default
+        and the only supported value.
+    name : str, optional
+        optional dataset name stored in metadata.
+    calc_all : bool, optional
+        whether to materialize derived blocks immediately after parsing.
+
+    Notes
+    -----
+    Verified local format:
+
+    * CEADS provincial MRIO workbooks for 2018 and 2020, distributed as
+      Excel files through figshare and the CEADS data portal.
+
+    No automatic download is implemented yet. Callers should point the parser
+    to one local workbook.
+    """
+    if model not in models:
+        raise WrongInput("Available models are {}".format([*models]))
+
+    normalized_format = str(format).strip().lower()
+    if normalized_format not in CEADS_FORMATS:
+        raise WrongInput(f"CEADS format should be one of {list(CEADS_FORMATS)}.")
+
+    validate_parse_request(table=table, model=model)
+    if table != "IOT":
+        raise NotImplementable("CEADS parsing currently supports only IOT tables.")
+
+    matrices, indeces, units, layout = parse_ceads_iot(
+        path=path,
+        format=normalized_format,
+        year=year,
+    )
+
+    return models[model](
+        name=name or layout.dataset_name,
+        table="IOT",
+        source=layout.source,
+        year=layout.year,
+        price=layout.price,
+        init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
+        notes=list(layout.notes),
         calc_all=calc_all,
         **kwargs,
     )

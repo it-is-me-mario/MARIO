@@ -235,6 +235,14 @@ USEEIO_SOURCE = f"USEEIO model workbook local file via {USEEIO_SOURCE_URL}"
 USEEIO_MONETARY_UNIT = "USD"
 USEEIO_PRICE_LABEL = "Model-year USD"
 
+CEADS_FORMATS = ("auto", "ceads_provincial_workbook")
+CEADS_SOURCE_URL = "https://doi.org/10.6084/m9.figshare.29927291"
+CEADS_SOURCE = f"CEADS China provincial MRIO local workbook via {CEADS_SOURCE_URL}"
+CEADS_MONETARY_UNIT = "ten thousand yuan"
+CEADS_PRICE_LABEL = "Current prices"
+CEADS_SATELLITE_UNIT = "None"
+CEADS_SATELLITE_PLACEHOLDER = "-"
+
 
 ISTAT_IO_RELEASE_TAG_URL = "https://www.istat.it/tag/sistema-input-output/"
 ISTAT_IO_RELEASE_PAGES = {

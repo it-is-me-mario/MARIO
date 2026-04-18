@@ -33,6 +33,7 @@ Official repositories
    oecd
    gloria
    emerging
+   ceads
    gtap
    eora
    adb

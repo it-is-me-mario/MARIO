@@ -19,6 +19,7 @@ loading helpers.
    ../api_document/mario.parse_oecd
    ../api_document/mario.parse_eora
    ../api_document/mario.parse_emerging
+   ../api_document/mario.parse_ceads
    ../api_document/mario.parse_adb
    ../api_document/mario.parse_cepalstat
    ../api_document/mario.parse_useeio

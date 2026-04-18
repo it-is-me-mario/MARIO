@@ -39,6 +39,7 @@ NON_STANDARD_ISO3_NAMES = {
 
 SOURCE_PAGE_SLUGS = {
     "ADB": "adb",
+    "CEADS": "ceads",
     "CEPALSTAT": "cepalstat",
     "EMERGING": "emerging",
     "EORA1": "eora",
