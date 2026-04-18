@@ -49,9 +49,18 @@ FIGARO_USE_URL = (
     "https://circabc.europa.eu/ui/group/cec66924-a924-4f91-a0ef-600a0531e3ba/"
     "library/093bfbed-142f-47c8-a151-d9fd3f95a507?p=1&n=10&sort=name_ASC"
 )
+FIGARO_IOT_PXP_URL = (
+    "https://circabc.europa.eu/ui/group/cec66924-a924-4f91-a0ef-600a0531e3ba/"
+    "library/93e9d3f7-54ab-47e9-8b40-ae4ac6faf7b5?p=1&n=10&sort=modified_DESC"
+)
+FIGARO_IOT_IXI_URL = (
+    "https://circabc.europa.eu/ui/group/cec66924-a924-4f91-a0ef-600a0531e3ba/"
+    "library/50d2f89f-ea50-4c8d-969e-cf3ad6b43750?p=1&n=10&sort=modified_DESC"
+)
 FIGARO_SOURCE = (
     "FIGARO database via CIRCABC "
-    f"(supply: {FIGARO_SUPPLY_URL}; use: {FIGARO_USE_URL})"
+    f"(supply: {FIGARO_SUPPLY_URL}; use: {FIGARO_USE_URL}; "
+    f"pxp: {FIGARO_IOT_PXP_URL}; ixi: {FIGARO_IOT_IXI_URL})"
 )
 FIGARO_FACTOR_UNIT = "nominal million euros"
 FIGARO_SATELLITE_UNIT = "None"

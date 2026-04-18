@@ -1,0 +1,46 @@
+Workflows
+=========
+
+This section shows how you can use MARIO after you parsed a *database*.
+These workflows are grouped into three families:
+
+* browsing and matrix calculations
+* transformations
+* exports
+
+An extra set of workflows shows how to use advanced features
+
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Inspection and calculations
+
+   inspection/basic_inspections
+   inspection/compute_matrices
+   inspection/calc_linkages
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Transformations
+
+   transformations/aggregate
+   transformations/apply_shocks
+   transformations/add_sectors
+   transformations/sut_to_iot
+   transformations/mrio_to_srio
+   transformations/add_extensions
+   transformations/to_chenery_moses
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Exporting
+
+   exporting/export_and_roundtrip
+
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Advanced features
+
+   advanced/change_settings
+   advanced/large_database_workflows

@@ -32,7 +32,7 @@
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
-    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=3fcc2b05" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1c752b9e" />
   
   <!-- So that users can add custom icons -->
   <script src="../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
@@ -47,10 +47,12 @@
     <script src="../_static/copybutton.js?v=40cbb8c0"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'api_document/mario.parse_eora';</script>
+    <script src="../_static/external-links.js?v=163d8a96"></script>
+    <script src="../_static/terminology-tables.js?v=0d58539c"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="mario.parse_oecd" href="mario.parse_oecd.html" />
-    <link rel="prev" title="mario.hybrid_sut_exiobase" href="mario.hybrid_sut_exiobase.html" />
+    <link rel="next" title="mario.parse_emerging" href="mario.parse_emerging.html" />
+    <link rel="prev" title="mario.parse_oecd" href="mario.parse_oecd.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="" />
@@ -138,56 +140,53 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../getting_started/installation.html">
-    Installation
+  <a class="nav-link nav-internal" href="../start_here/index.html">
+    Quick Setup
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../user_guide/index.html">
-    User Guide
+  <a class="nav-link nav-internal" href="../concepts/index.html">
+    Concepts
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../tutorials/index.html">
-    Tutorials
+  <a class="nav-link nav-internal" href="../parsers/index.html">
+    Parsers
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../workflows/index.html">
+    Workflows
   </a>
 </li>
 
 
 <li class="nav-item current active">
-  <a class="nav-link nav-internal" href="../reference/index.html">
+  <a class="nav-link nav-internal" href="../reference/api_library.html">
     API Reference
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../resources/index.html">
-    Resources
+  <a class="nav-link nav-internal" href="../resources/publications.html">
+    Publications
   </a>
 </li>
 
-            <li class="nav-item dropdown">
-                <button class="btn dropdown-toggle nav-item" type="button"
-                data-bs-toggle="dropdown" aria-expanded="false"
-                aria-controls="pst-nav-more-links">
-                    More
-                </button>
-                <ul id="pst-nav-more-links" class="dropdown-menu">
-                    
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../getting_started/index.html">
-    Getting Started
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../contribute/index.html">
+    Dev
   </a>
 </li>
 
-                </ul>
-            </li>
-            
   </ul>
 </nav></div>
       
@@ -278,43 +277,50 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../getting_started/installation.html">
-    Installation
+  <a class="nav-link nav-internal" href="../start_here/index.html">
+    Quick Setup
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../user_guide/index.html">
-    User Guide
+  <a class="nav-link nav-internal" href="../concepts/index.html">
+    Concepts
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../tutorials/index.html">
-    Tutorials
+  <a class="nav-link nav-internal" href="../parsers/index.html">
+    Parsers
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../workflows/index.html">
+    Workflows
   </a>
 </li>
 
 
 <li class="nav-item current active">
-  <a class="nav-link nav-internal" href="../reference/index.html">
+  <a class="nav-link nav-internal" href="../reference/api_library.html">
     API Reference
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../resources/index.html">
-    Resources
+  <a class="nav-link nav-internal" href="../resources/publications.html">
+    Publications
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../getting_started/index.html">
-    Getting Started
+  <a class="nav-link nav-internal" href="../contribute/index.html">
+    Dev
   </a>
 </li>
 
@@ -362,94 +368,99 @@
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
   <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
-<li class="toctree-l1 current active has-children"><a class="reference internal" href="../reference/api.html">API Reference</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.is_balanced.html">mario.CoreModel.is_balanced</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.is_multi_region.html">mario.CoreModel.is_multi_region</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.is_hybrid.html">mario.CoreModel.is_hybrid</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.is_chenerymoses.html">mario.CoreModel.is_chenerymoses</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.is_isard.html">mario.CoreModel.is_isard</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.sets.html">mario.CoreModel.sets</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.scenarios.html">mario.CoreModel.scenarios</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.table_type.html">mario.CoreModel.table_type</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.get_index.html">mario.CoreModel.get_index</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.calc_all.html">mario.CoreModel.calc_all</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.GDP.html">mario.CoreModel.GDP</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.search.html">mario.CoreModel.search</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.directory.html">mario.CoreModel.directory</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.Database.aggregate.html">mario.Database.aggregate</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.Database.add_extensions.html">mario.Database.add_extensions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.Database.add_sectors.html">mario.Database.add_sectors</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.Database.clone_scenario.html">mario.Database.clone_scenario</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.Database.copy.html">mario.Database.copy</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.Database.backup.html">mario.Database.backup</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.Database.reset_to_flows.html">mario.Database.reset_to_flows</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.Database.reset_to_coefficients.html">mario.Database.reset_to_coefficients</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.Database.to_iot.html">mario.Database.to_iot</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.Database.to_chenery_moses.html">mario.Database.to_chenery_moses</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.Database.to_single_region.html">mario.Database.to_single_region</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.Database.update_scenarios.html">mario.Database.update_scenarios</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.save_meta.html">mario.CoreModel.save_meta</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.meta_history.html">mario.CoreModel.meta_history</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.add_note.html">mario.CoreModel.add_note</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.Database.get_aggregation_excel.html">mario.Database.get_aggregation_excel</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.Database.get_extensions_excel.html">mario.Database.get_extensions_excel</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.Database.get_add_sectors_excel.html">mario.Database.get_add_sectors_excel</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.Database.get_shock_excel.html">mario.Database.get_shock_excel</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.Database.to_excel.html">mario.Database.to_excel</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.Database.to_txt.html">mario.Database.to_txt</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.Database.to_parquet.html">mario.Database.to_parquet</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.Database.to_pymrio.html">mario.Database.to_pymrio</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.Database.shock_calc.html">mario.Database.shock_calc</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.Database.calc_linkages.html">mario.Database.calc_linkages</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.Database.plot_gdp.html">mario.Database.plot_gdp</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.Database.plot_bubble.html">mario.Database.plot_bubble</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.Database.plot_linkages.html">mario.Database.plot_linkages</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.Database.plot_matrix.html">mario.Database.plot_matrix</a></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../reference/api_parsing_methods.html">Parsing Methods</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="mario.load_test.html">mario.load_test</a></li>
 <li class="toctree-l2"><a class="reference internal" href="mario.parse_from_excel.html">mario.parse_from_excel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="mario.parse_from_txt.html">mario.parse_from_txt</a></li>
 <li class="toctree-l2"><a class="reference internal" href="mario.parse_from_parquet.html">mario.parse_from_parquet</a></li>
 <li class="toctree-l2"><a class="reference internal" href="mario.parse_from_pymrio.html">mario.parse_from_pymrio</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.parse_eurostat.html">mario.parse_eurostat</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.parse_figaro.html">mario.parse_figaro</a></li>
 <li class="toctree-l2"><a class="reference internal" href="mario.parse_exiobase.html">mario.parse_exiobase</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.parse_exiobase_3.html">mario.parse_exiobase_3</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.parse_exiobase_sut.html">mario.parse_exiobase_sut</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.hybrid_iot_exiobase.html">mario.hybrid_iot_exiobase</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.hybrid_sut_exiobase.html">mario.hybrid_sut_exiobase</a></li>
-<li class="toctree-l2 current active"><a class="current reference internal" href="#">mario.parse_eora</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.parse_oecd.html">mario.parse_oecd</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.parse_figaro.html">mario.parse_figaro</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.parse_gloria.html">mario.parse_gloria</a></li>
 <li class="toctree-l2"><a class="reference internal" href="mario.parse_wiod.html">mario.parse_wiod</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.parse_oecd.html">mario.parse_oecd</a></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">mario.parse_eora</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.parse_emerging.html">mario.parse_emerging</a></li>
 <li class="toctree-l2"><a class="reference internal" href="mario.parse_adb.html">mario.parse_adb</a></li>
 <li class="toctree-l2"><a class="reference internal" href="mario.parse_gtap.html">mario.parse_gtap</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.parse_gloria.html">mario.parse_gloria</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.parse_istat.html">mario.parse_istat</a></li>
 <li class="toctree-l2"><a class="reference internal" href="mario.parse_statcan.html">mario.parse_statcan</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.parse_emerging.html">mario.parse_emerging</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.calc_X.html">mario.calc_X</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.calc_X_from_w.html">mario.calc_X_from_w</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.calc_X_from_z.html">mario.calc_X_from_z</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.calc_Z.html">mario.calc_Z</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.calc_E.html">mario.calc_E</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.calc_V.html">mario.calc_V</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.calc_M.html">mario.calc_M</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.calc_F.html">mario.calc_F</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.calc_w.html">mario.calc_w</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.calc_g.html">mario.calc_g</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.calc_b.html">mario.calc_b</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.calc_p.html">mario.calc_p</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.calc_y.html">mario.calc_y</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.load_test.html">mario.load_test</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.slicer.html">mario.slicer</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.set_log_verbosity.html">mario.set_log_verbosity</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.set_palette.html">mario.set_palette</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.upload_settings.html">mario.upload_settings</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.download_settings.html">mario.download_settings</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mario.reset_settings.html">mario.reset_settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.parse_istat.html">mario.parse_istat</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.parse_eurostat.html">mario.parse_eurostat</a></li>
 </ul>
 </details></li>
-<li class="toctree-l1"><a class="reference internal" href="../reference/file_formats.html">File Formats</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../reference/parsers.html">Built-in Parsers</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../reference/settings.html">Settings and nomenclature</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../reference/api_database_methods.html">Database Methods</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="mario.Database.aggregate.html">mario.Database.aggregate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.Database.add_sectors.html">mario.Database.add_sectors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.Database.add_extensions.html">mario.Database.add_extensions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.Database.backup.html">mario.Database.backup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.Database.clone_scenario.html">mario.Database.clone_scenario</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.Database.copy.html">mario.Database.copy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.Database.update_scenarios.html">mario.Database.update_scenarios</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.Database.get_aggregation_excel.html">mario.Database.get_aggregation_excel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.Database.get_add_sectors_excel.html">mario.Database.get_add_sectors_excel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.Database.get_extensions_excel.html">mario.Database.get_extensions_excel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.Database.get_shock_excel.html">mario.Database.get_shock_excel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.Database.shock_calc.html">mario.Database.shock_calc</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.Database.calc_linkages.html">mario.Database.calc_linkages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.Database.reset_to_flows.html">mario.Database.reset_to_flows</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.Database.reset_to_coefficients.html">mario.Database.reset_to_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.Database.to_excel.html">mario.Database.to_excel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.Database.to_txt.html">mario.Database.to_txt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.Database.to_parquet.html">mario.Database.to_parquet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.Database.to_iot.html">mario.Database.to_iot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.Database.to_single_region.html">mario.Database.to_single_region</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.Database.to_chenery_moses.html">mario.Database.to_chenery_moses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.Database.to_pymrio.html">mario.Database.to_pymrio</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.Database.plot_matrix.html">mario.Database.plot_matrix</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.Database.plot_gdp.html">mario.Database.plot_gdp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.Database.plot_linkages.html">mario.Database.plot_linkages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.Database.plot_bubble.html">mario.Database.plot_bubble</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../reference/api_coremodel_methods.html">CoreModel Methods</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.calc_all.html">mario.CoreModel.calc_all</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.get_index.html">mario.CoreModel.get_index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.search.html">mario.CoreModel.search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.sets.html">mario.CoreModel.sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.table_type.html">mario.CoreModel.table_type</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.scenarios.html">mario.CoreModel.scenarios</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.directory.html">mario.CoreModel.directory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.GDP.html">mario.CoreModel.GDP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.meta_history.html">mario.CoreModel.meta_history</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.save_meta.html">mario.CoreModel.save_meta</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.add_note.html">mario.CoreModel.add_note</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.is_balanced.html">mario.CoreModel.is_balanced</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.is_hybrid.html">mario.CoreModel.is_hybrid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.is_multi_region.html">mario.CoreModel.is_multi_region</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.is_chenerymoses.html">mario.CoreModel.is_chenerymoses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.CoreModel.is_isard.html">mario.CoreModel.is_isard</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../reference/api_compute_methods.html">Compute Methods</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="mario.calc_X.html">mario.calc_X</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.calc_X_from_z.html">mario.calc_X_from_z</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.calc_X_from_w.html">mario.calc_X_from_w</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.calc_Z.html">mario.calc_Z</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.calc_V.html">mario.calc_V</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.calc_E.html">mario.calc_E</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.calc_F.html">mario.calc_F</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.calc_M.html">mario.calc_M</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.calc_p.html">mario.calc_p</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.calc_w.html">mario.calc_w</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.calc_y.html">mario.calc_y</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.calc_b.html">mario.calc_b</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.calc_g.html">mario.calc_g</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../reference/api_settings_methods.html">Settings And Utility Methods</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="mario.download_settings.html">mario.download_settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.upload_settings.html">mario.upload_settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.reset_settings.html">mario.reset_settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.set_log_verbosity.html">mario.set_log_verbosity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.set_palette.html">mario.set_palette</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mario.slicer.html">mario.slicer</a></li>
+</ul>
+</details></li>
 </ul>
 </div>
 </nav></div>
@@ -491,10 +502,10 @@
       </a>
     </li>
     
-    <li class="breadcrumb-item"><a href="../reference/index.html" class="nav-link">API Reference</a></li>
+    <li class="breadcrumb-item"><a href="../reference/api_library.html" class="nav-link">API Reference</a></li>
     
     
-    <li class="breadcrumb-item"><a href="../reference/api.html" class="nav-link">API Reference</a></li>
+    <li class="breadcrumb-item"><a href="../reference/api_parsing_methods.html" class="nav-link">Parsing Methods</a></li>
     
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">mario.parse_eora</span></li>
   </ul>
@@ -567,20 +578,20 @@ the country file to parse.</p></li>
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="mario.hybrid_sut_exiobase.html"
+       href="mario.parse_oecd.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">mario.hybrid_sut_exiobase</p>
+        <p class="prev-next-title">mario.parse_oecd</p>
       </div>
     </a>
     <a class="right-next"
-       href="mario.parse_oecd.html"
+       href="mario.parse_emerging.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">mario.parse_oecd</p>
+        <p class="prev-next-title">mario.parse_emerging</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -632,7 +643,7 @@ the country file to parse.</p></li>
 
   <p class="copyright">
     
-      © Copyright 2021, MARIO Authors: Mohammad Amin Tahavori, Lorenzo Rinaldi, Nicolo Golinucci.
+      © Copyright 2026, MARIO authors - Mohammad Amin Tahavori, Lorenzo Rinaldi, Nicolo Golinucci.
       <br/>
     
   </p>

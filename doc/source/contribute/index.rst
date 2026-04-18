@@ -1,18 +1,18 @@
-Contribute to MARIO
-===================
+Dev
+===
 
-This section is for contributors, parser authors and developers working on the
-core package.
+This section is for contributors and maintainers.
 
-It gathers the material needed to understand the internal architecture, locate
-the relevant modules, extend parsers and workflows, and work with the testing
-strategy used in the repository.
+It will evolve into the main architecture and contribution guide for MARIO.
 
 .. toctree::
    :maxdepth: 1
 
    architecture_overview
-   codebase_map
-   parser_development
+   parsers
+   compute_layer
+   adding_new_matrices
    testing_strategy
-   documentation_style
+   realdata_fixtures
+   documentation
+   ../resources/changelog

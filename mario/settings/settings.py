@@ -8,6 +8,7 @@ import os
 import shutil
 from mario.log_exc.exceptions import WrongFormat
 import importlib
+from openpyxl import load_workbook
 
 logger = logging.getLogger(__name__)
 path = os.path.abspath(
@@ -26,7 +27,7 @@ CANONICAL_INDEX = {
     "n": "Consumption category",
 }
 
-DEFAULT_INDEX_ALIASES = {
+FALLBACK_INDEX_ALIASES = {
     "r": ["region", "regions", "country", "countries"],
     "a": ["activity", "activities"],
     "c": ["commodity", "commodities", "product", "products"],
@@ -41,6 +42,8 @@ DEFAULT_INDEX_ALIASES = {
         "final demand categories",
     ],
 }
+
+TERMINOLOGY_WORKBOOK = os.path.join(path, "Terminology.xlsx")
 
 DEFAULT_NOMENCLATURE = {
     "e": "e",
@@ -86,9 +89,59 @@ def _as_alias_list(value):
     return [str(item) for item in value]
 
 
+def _split_aliases(raw_value):
+    """Split one comma-separated alias cell into a flat list."""
+    if raw_value in (None, ""):
+        return []
+    return [item.strip() for item in str(raw_value).split(",") if str(item).strip()]
+
+
+def _load_index_aliases_from_terminology_workbook():
+    """Load documented index aliases from the terminology workbook when available."""
+    aliases = {code: [] for code in CANONICAL_INDEX}
+
+    if not os.path.exists(TERMINOLOGY_WORKBOOK):
+        return aliases
+
+    try:
+        workbook = load_workbook(TERMINOLOGY_WORKBOOK, data_only=True, read_only=True)
+        worksheet = workbook["Indices"]
+    except Exception:
+        return aliases
+
+    header_row = next(worksheet.iter_rows(values_only=True), ())
+    columns = {str(value).strip(): idx for idx, value in enumerate(header_row) if value not in (None, "")}
+    index_col = columns.get("Index")
+    acceptable_col = columns.get("Acceptables")
+    if index_col is None or acceptable_col is None:
+        return aliases
+
+    canonical_to_code = {label.casefold(): code for code, label in CANONICAL_INDEX.items()}
+    for row in worksheet.iter_rows(min_row=2, values_only=True):
+        label = row[index_col] if index_col < len(row) else None
+        acceptable = row[acceptable_col] if acceptable_col < len(row) else None
+        if label in (None, ""):
+            continue
+        code = canonical_to_code.get(str(label).strip().casefold())
+        if code is None:
+            continue
+        aliases[code].extend(_split_aliases(acceptable))
+
+    return aliases
+
+
+def _default_index_aliases():
+    """Return built-in set aliases merged with the terminology workbook defaults."""
+    aliases = {code: list(values) for code, values in FALLBACK_INDEX_ALIASES.items()}
+    workbook_aliases = _load_index_aliases_from_terminology_workbook()
+    for code, values in workbook_aliases.items():
+        aliases.setdefault(code, []).extend(values)
+    return aliases
+
+
 def _normalize_index_aliases(raw_aliases=None, legacy_index=None):
     """Merge built-in aliases with user aliases and legacy index renames."""
-    aliases = {code: list(values) for code, values in DEFAULT_INDEX_ALIASES.items()}
+    aliases = _default_index_aliases()
 
     for code, value in (legacy_index or {}).items():
         if code in CANONICAL_INDEX and value != CANONICAL_INDEX[code]:
@@ -118,7 +171,7 @@ def _default_settings_payload():
     """Return the built-in MARIO settings payload."""
     return {
         "index": copy.deepcopy(CANONICAL_INDEX),
-        "index_aliases": copy.deepcopy(DEFAULT_INDEX_ALIASES),
+        "index_aliases": _normalize_index_aliases(),
         "nomenclature": copy.deepcopy(DEFAULT_NOMENCLATURE),
         "compute": copy.deepcopy(DEFAULT_COMPUTE),
     }

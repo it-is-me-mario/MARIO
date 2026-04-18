@@ -12,17 +12,20 @@
 #
 import os
 import sys
+from datetime import datetime
 
 sys.path.insert(0, os.path.abspath("."))
 sys.path.insert(0, os.path.abspath(".."))
 sys.path.insert(0, os.path.abspath("../.."))
 sys.path.insert(0, os.path.abspath("../../.."))
 
+import mario_bibstyles
+
 # -- Project information -----------------------------------------------------
 
 
 project = 'MARIO'
-copyright = '2021, MARIO Authors: Mohammad Amin Tahavori, Lorenzo Rinaldi, Nicolo Golinucci'
+copyright = f'{datetime.now().year}, MARIO authors - Mohammad Amin Tahavori, Lorenzo Rinaldi, Nicolo Golinucci'
 author = 'Mohammad Amin Tahavori, Lorenzo Rinaldi, Nicolo Golinucci'
 
 # The full version, including alpha/beta/rc tags
@@ -63,11 +66,8 @@ templates_path = ["_templates"]
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
     "__pycache__",
-    "htmls/**",
-    "examples/**",
-    "api_document/mario.CoreModel.is_productive.rst",
-    "api_document/mario.Database.reset_to_backup.rst",
-    "api_document/mario.parse_eurostat_sut.rst",
+    "__pycache__/**",
+    "notebooks/parsers/*/tutorial.ipynb",
 ]
 
 
@@ -86,7 +86,7 @@ html_theme_options = {
         "text": "MARIO",
     },
     "navbar_align": "content",
-    "header_links_before_dropdown": 5,
+    "header_links_before_dropdown": 20,
     "navigation_with_keys": True,
     "show_toc_level": 2,
     "secondary_sidebar_items": ["page-toc"],
@@ -104,6 +104,7 @@ html_theme_options = {
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
+html_js_files = ["external-links.js", "terminology-tables.js"]
 bibtex_bibfiles = ["publications/mario.bib"]
 
 # copy btn settings
