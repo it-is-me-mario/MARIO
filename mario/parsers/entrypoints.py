@@ -54,6 +54,8 @@ from mario.parsers.gtap import (
 )
 from mario.parsers.istat import parse_istat_iot, parse_istat_sut
 from mario.parsers.oecd_icio import parse_oecd_icio
+from mario.parsers.oecd_iot import parse_oecd_iot_total
+from mario.parsers.oecd_sdmx import parse_oecd_sut_sdmx
 from mario.parsers.statcan_wds import parse_statcan_iot_wds, parse_statcan_sut_wds
 from mario.parsers.tabular import parse_pymrio
 from mario.parsers.handshake import parse_exiobase_3_9_4
@@ -1191,29 +1193,42 @@ def parse_statcan(
 
 
 def parse_oecd(
-    path: str,
+    path: str | None = None,
+    *,
+    dataset: str = "ICIO",
     year: int | None = None,
+    country: str | None = None,
     model: str = "Database",
     name: str | None = None,
     calc_all: bool = False,
     **kwargs,
 ) -> object:
-    """Parse one locally downloaded OECD ICIO CSV bundle.
+    """Parse OECD ICIO, OECD national IOT, or OECD SUT datasets.
 
-    This parser targets the OECD ICIO 2025 edition flat CSV bundles published
-    on the official OECD dataset page. MARIO does not depend on automatic
-    download here: callers should point the parser to a local yearly ``.csv``
-    file or to a directory containing those files.
+    The parser exposes three OECD families behind one entry point:
+
+    * ``dataset="ICIO"``: local OECD ICIO csv bundles from the official OECD
+      inter-country input-output tables page. Both ``<year>.csv`` and regular
+      ``<year>_SML.csv`` naming conventions are supported.
+    * ``dataset="IOT"``: local OECD national Input-Output total tables such as
+      ``CZE2014ttl.csv`` from the official OECD IOT release page.
+    * ``dataset="SUT"``: annual OECD Supply and Use Tables pulled directly from
+      the official OECD SDMX API. This mode does not require ``path`` but does
+      require ``country`` and ``year``.
 
     Parameters
     ----------
-    path : str
-        path to a local OECD ICIO ``<year>.csv`` file or to a directory
-        containing one or more yearly csv files from the OECD 2025 edition
-        release.
+    path : str, optional
+        local OECD file or directory when ``dataset`` is ``"ICIO"`` or
+        ``"IOT"``. Ignored for ``dataset="SUT"``.
+    dataset : str, optional
+        one of ``"ICIO"``, ``"IOT"``, or ``"SUT"``.
     year : int, optional
-        reference year to select when ``path`` points to a directory that
-        contains more than one yearly OECD ICIO file.
+        reference year to select when ``path`` points to a directory, or the
+        SDMX year when ``dataset="SUT"``.
+    country : str, optional
+        ISO3 country code used to disambiguate OECD national IOT files and
+        required for ``dataset="SUT"``.
     model : str, optional
         public MARIO model class to instantiate. ``Database`` is the default
         and the only supported value.
@@ -1222,17 +1237,57 @@ def parse_oecd(
         dataset label.
     calc_all : bool, optional
         whether to materialize derived blocks immediately after parsing.
-    """
-    validate_parse_request(table="IOT", model=model)
 
-    matrices, indeces, units, layout = parse_oecd_icio(path=path, year=year)
+    Notes
+    -----
+    MARIO currently parses the economic OECD tables only. The OECD parser does
+    not yet attach environmental extensions, so the resulting databases should
+    not be interpreted as environmentally extended tables.
+    """
+    dataset_name = str(dataset).upper()
+    add_extensions = kwargs.pop("add_extensions", None)
+    if add_extensions is not None:
+        raise NotImplementable(
+            "OECD tables are currently parsed as economic tables only. "
+            "Environmental extensions are not implemented yet."
+        )
+
+    if dataset_name == "ICIO":
+        validate_parse_request(table="IOT", model=model)
+        if path is None:
+            raise WrongInput("path is required for OECD dataset='ICIO'.")
+        matrices, indeces, units, layout = parse_oecd_icio(path=path, year=year)
+        table_kind = "IOT"
+    elif dataset_name == "IOT":
+        validate_parse_request(table="IOT", model=model)
+        if path is None:
+            raise WrongInput("path is required for OECD dataset='IOT'.")
+        matrices, indeces, units, layout = parse_oecd_iot_total(
+            path=path,
+            year=year,
+            country=country,
+        )
+        table_kind = "IOT"
+    elif dataset_name == "SUT":
+        validate_parse_request(table="SUT", model=model)
+        if year is None or country is None:
+            raise WrongInput("country and year are required for OECD dataset='SUT'.")
+        matrices, indeces, units, layout = parse_oecd_sut_sdmx(
+            country=country,
+            year=year,
+        )
+        table_kind = "SUT"
+    else:
+        raise WrongInput("dataset should be one of ['ICIO', 'IOT', 'SUT'].")
+
     return models[model](
         name=name or layout.dataset_name,
-        table="IOT",
+        table=table_kind,
         source=layout.source,
         year=layout.year,
         price=layout.price,
         init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
+        notes=list(getattr(layout, "notes", ())),
         calc_all=calc_all,
         **kwargs,
     )

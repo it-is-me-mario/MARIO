@@ -165,6 +165,47 @@ OECD_ICIO_FACTOR_ROWS = ("TLS", "VA")
 OECD_ICIO_FACTOR_UNIT = "nominal million USD"
 OECD_ICIO_SATELLITE_UNIT = "None"
 OECD_ICIO_SATELLITE_PLACEHOLDER = "-"
+OECD_IOT_SOURCE_URL = "https://www.oecd.org/en/data/datasets/input-output-tables.html"
+OECD_IOT_SOURCE = (
+    "OECD National Input-Output tables page "
+    f"(2025 edition): {OECD_IOT_SOURCE_URL}"
+)
+OECD_IOT_TOTAL_FACTOR_ROWS = (
+    "IMP_OTHER",
+    "TXS_INT_FNL",
+    "LABR",
+    "OTXS",
+    "CFC",
+    "NOPS",
+)
+OECD_SUT_SOURCE_URL = "https://www.oecd.org/en/data/datasets/supply-and-use-tables.html"
+OECD_SUT_SOURCE = (
+    "OECD Supply and Use Tables page via official SDMX API "
+    f"({OECD_SUT_SOURCE_URL})"
+)
+OECD_SDMX_BASE_URL = "https://sdmx.oecd.org/public/rest/data"
+OECD_SUT_FINAL_DEMAND = (
+    ("P3S14DC", "HFCE"),
+    ("P3S15", "NPISH"),
+    ("P3S13", "GGFC"),
+    ("P51G", "GFCF"),
+    ("P52", "INVNT"),
+    ("P53", "VALUABLES"),
+    ("P6", "EXPO"),
+)
+OECD_SUT_VA_ROWS = (
+    ("D1", "Compensation of employees"),
+    ("D29X39", "Other taxes less subsidies on production"),
+    ("P51C", "Consumption of fixed capital"),
+    ("B2A3N", "Operating surplus and mixed income, net"),
+)
+OECD_SUT_VC_ROWS = (
+    ("P7", "Imports of goods and services"),
+    ("P33", "Direct purchases abroad by residents"),
+    ("P7ADJ", "CIF/FOB adjustment on imports"),
+    ("D21X31", "Taxes less subsidies on products"),
+    ("OTTM", "Trade and transport margins"),
+)
 
 GLORIA_SOURCE = "GLORIA MRIO release local files"
 GLORIA_MONETARY_UNIT = "current 000 US$"

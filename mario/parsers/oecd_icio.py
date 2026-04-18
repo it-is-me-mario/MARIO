@@ -25,9 +25,9 @@ from mario.utils import rename_index
 
 logger = logging.getLogger(__name__)
 
-_YEAR_FILE_RE = re.compile(r"^(?P<year>\d{4})\.csv$", flags=re.IGNORECASE)
+_YEAR_FILE_RE = re.compile(r"^(?P<year>\d{4})(?:_SML)?\.csv$", flags=re.IGNORECASE)
 _EXTENDED_RE = re.compile(r"(?:^|[_ -])EXT(?:$|[_ -])|extended", flags=re.IGNORECASE)
-_REGULAR_RE = re.compile(r"(?:^|[_ -])REG(?:$|[_ -])|regular", flags=re.IGNORECASE)
+_REGULAR_RE = re.compile(r"(?:^|[_ -])REG(?:$|[_ -])|regular|_SML(?:$|[_ -])", flags=re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -38,6 +38,7 @@ class OECDICIOLayout:
     data_path: Path
     year: int
     edition: str | None = None
+    notes: tuple[str, ...] = ()
 
     @property
     def dataset_name(self) -> str:
@@ -80,7 +81,7 @@ def detect_oecd_icio_layout(path: str | Path, *, year: int | None = None) -> OEC
             raise WrongInput("OECD ICIO parsing expects a local .csv file or a directory containing yearly .csv files.")
         match = _YEAR_FILE_RE.match(source.name)
         if match is None:
-            raise WrongInput("OECD ICIO files should be named <year>.csv.")
+            raise WrongInput("OECD ICIO files should be named <year>.csv or <year>_SML.csv.")
         parsed_year = int(match.group("year"))
         if year is not None and parsed_year != year:
             raise WrongInput(
