@@ -26,6 +26,7 @@ from mario.parsers.api import (
     validate_parse_request,
 )
 from mario.parsers.adb import parse_adb_iot
+from mario.parsers.cepalstat import parse_cepalstat_iot, parse_cepalstat_sut
 from mario.parsers.emerging import parse_emerging_iot
 from mario.parsers.excel import parse_state_from_excel
 from mario.parsers.parquet import parse_state_from_parquet
@@ -79,6 +80,7 @@ from mario.parsers.specs import (
     ISTAT_SUT_LEVELS,
     ISTAT_SUT_PRICES,
     ISTAT_SUT_VALUATIONS,
+    CEPALSTAT_IOT_MODES,
     STATCAN_TABLES,
     STATCAN_OPENIO_CANADA_SATELLITE_ACCOUNT,
     STATCAN_OPENIO_CANADA_SOURCE,
@@ -1288,6 +1290,92 @@ def parse_oecd(
         price=layout.price,
         init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
         notes=list(getattr(layout, "notes", ())),
+        calc_all=calc_all,
+        **kwargs,
+    )
+
+
+def parse_cepalstat(
+    path: str,
+    *,
+    table: str,
+    year: int | None = None,
+    country: str | None = None,
+    iot_mode: str = "pxp",
+    model: str = "Database",
+    name: str | None = None,
+    calc_all: bool = False,
+    **kwargs,
+) -> object:
+    """Parse selected local CEPALSTAT COU/MIP bundles.
+
+    This parser currently supports only two CEPALSTAT layout families:
+
+    - integrated SUT workbooks where one workbook contains paired
+      ``Cuadro oferta`` and ``Cuadro utilización`` sheets for one or more years;
+    - direct symmetric IOT workbooks where one sheet exposes the whole matrix
+      together with final demand and value-added rows.
+
+    Other CEPALSTAT bundle families are intentionally rejected with an explicit
+    parser error until they are implemented.
+
+    Parameters
+    ----------
+    path : str
+        local CEPALSTAT bundle file, extracted workbook, or directory
+        containing one or more local CEPALSTAT files.
+    table : str
+        choose between ``"SUT"`` and ``"IOT"``.
+    year : int, optional
+        reference year to select from a multi-year workbook or to disambiguate
+        one directory containing more than one CEPALSTAT bundle.
+    country : str, optional
+        ISO3 country code used to disambiguate one directory containing more
+        than one CEPALSTAT bundle.
+    iot_mode : str, optional
+        only relevant when ``table='IOT'``. Supported values are ``pxp``,
+        ``axa`` and ``auto``. The default is ``pxp`` because some CEPALSTAT
+        IOT bundles contain both representations.
+    model : str, optional
+        public MARIO model class to instantiate. ``Database`` is the default
+        and the only supported value.
+    name : str, optional
+        optional dataset name stored in metadata.
+    calc_all : bool, optional
+        whether to materialize derived blocks immediately after parsing.
+    """
+    if model not in models:
+        raise WrongInput("Available models are {}".format([*models]))
+
+    validate_parse_request(table=table, model=model)
+    if table == "SUT":
+        matrices, indeces, units, layout = parse_cepalstat_sut(
+            path=path,
+            year=year,
+            country=country,
+        )
+    elif table == "IOT":
+        if iot_mode not in CEPALSTAT_IOT_MODES:
+            raise WrongInput(
+                f"CEPALSTAT iot_mode should be one of {list(CEPALSTAT_IOT_MODES)}."
+            )
+        matrices, indeces, units, layout = parse_cepalstat_iot(
+            path=path,
+            year=year,
+            country=country,
+            iot_mode=iot_mode,
+        )
+    else:
+        raise NotImplementable("CEPALSTAT parsing currently supports only IOT and SUT tables.")
+
+    return models[model](
+        name=name or layout.dataset_name,
+        table=table,
+        source=layout.source,
+        year=layout.year,
+        price=layout.price,
+        init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
+        notes=list(layout.notes),
         calc_all=calc_all,
         **kwargs,
     )

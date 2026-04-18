@@ -77,6 +77,7 @@ from mario.model.builders import MatrixBuilder, DataTemplate
 
 from mario.parsers.entrypoints import (
     parse_adb,
+    parse_cepalstat,
     parse_emerging,
     parse_from_txt,
     parse_from_parquet,

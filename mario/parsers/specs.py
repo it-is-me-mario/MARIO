@@ -187,6 +187,12 @@ OECD_SUT_SOURCE = (
     "OECD Supply and Use Tables page via official SDMX API "
     f"({OECD_SUT_SOURCE_URL})"
 )
+CEPALSTAT_SOURCE_URL = "https://statistics.cepal.org/repository/cou-mip/index.html?lang=en"
+CEPALSTAT_SOURCE = f"CEPALSTAT COU/MIP repository local files via {CEPALSTAT_SOURCE_URL}"
+CEPALSTAT_MONETARY_UNIT = "current local currency"
+CEPALSTAT_SATELLITE_UNIT = "None"
+CEPALSTAT_SATELLITE_PLACEHOLDER = "-"
+CEPALSTAT_IOT_MODES = ("auto", "pxp", "axa")
 OECD_SDMX_BASE_URL = "https://sdmx.oecd.org/public/rest/data"
 OECD_SUT_FINAL_DEMAND = (
     ("P3S14DC", "HFCE"),
