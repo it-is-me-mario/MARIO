@@ -1,16 +1,36 @@
 GLORIA
 ======
 
-MARIO supports local parsing of GLORIA monetary multi-regional SUT bundles.
+MARIO supports local parsing of GLORIA monetary multi-regional ``SUT``
+bundles.
+
+The current backend supports:
+
+* monetary ``SUT`` parsing only;
+* valuation selection through ``valuation=``;
+* region subsetting through ``regions=``;
+* satellite filtering through ``satellites=``;
+* on-disk caching for repeated parses.
+
+For this source, the most useful documentation format is a notebook-driven one:
+this landing page stays short, while one practical notebook covers the local
+release layout, valuation branches, regional subsetting, satellite filters,
+memory-sensitive options, and cache usage.
+
+Relevant source links
+---------------------
+
+* official GLORIA overview page:
+  `IELab GLORIA overview <https://ielab.info/resources/gloria/about>`_;
+* supporting documents and release material:
+  `IELab GLORIA supporting documents <https://ielab.info/resources/gloria/supportingdocs>`_.
 
 Recommended Entry Point
 -----------------------
 
-For normal user workflows, the public entry point should be:
+For normal user workflows, the public entry point is:
 
 * :doc:`mario.parse_gloria(...) <../api_document/mario.parse_gloria>`
-
-The current backend supports only ``SUT`` parsing.
 
 Key arguments
 -------------
@@ -22,7 +42,8 @@ The key public arguments are:
 * ``table``:
   currently only ``"SUT"`` is supported;
 * ``valuation``:
-  choose one markup branch such as ``basic``, ``trade`` or ``taxes``;
+  choose one markup branch such as ``basic``, ``trade``, ``transport``,
+  ``taxes`` or ``subsidies``;
 * ``year``:
   use it when the selected root contains more than one GLORIA year;
 * ``regions``:
@@ -37,8 +58,7 @@ The key public arguments are:
 Download workflow
 -----------------
 
-Automatic GLORIA download is intentionally not supported because the source
-requires login.
+Automatic GLORIA download is intentionally not supported.
 
 In practice, the workflow is:
 
@@ -48,75 +68,38 @@ In practice, the workflow is:
 3. point ``mario.parse_gloria(...)`` to the release root or directly to the
    ``GLORIA_MRIOs_*`` directory.
 
-Supported options
------------------
+Typical usage
+-------------
 
-The GLORIA parser is richer than most local-file parsers. In particular it
-supports:
-
-* ``valuation=`` for markup selection:
-  ``basic``, ``trade``, ``transport``, ``taxes`` or ``subsidies``;
-* ``regions=`` to keep only one subset of GLORIA region acronyms;
-* ``satellites=`` to keep only selected satellite groups or rows;
-* ``dtype=`` to control numeric storage for large matrices;
-* ``cache=True`` or a custom cache path to persist the parsed result.
-
-Tutorial
---------
-
-If you prefer to run the walkthrough locally, you can also download the source
-notebook:
-
-* :download:`Download the GLORIA notebook <../notebooks/parsers/gloria/tutorial.ipynb>`
-
-Load MARIO first:
+Direct path to one GLORIA release:
 
 .. code-block:: python
 
    import mario
 
-Parse one GLORIA SUT:
-
-.. code-block:: python
-
    db = mario.parse_gloria(
        path="/path/to/gloria_release",
        table="SUT",
    )
 
-Select a different valuation:
+Select one valuation branch and one region subset:
 
 .. code-block:: python
+
+   import mario
 
    db = mario.parse_gloria(
        path="/path/to/gloria_release",
        table="SUT",
        valuation="trade",
-   )
-
-Restrict the region set:
-
-.. code-block:: python
-
-   db = mario.parse_gloria(
-       path="/path/to/gloria_release",
-       table="SUT",
        regions=["ITA", "DEU", "FRA"],
-   )
-
-Restrict satellites:
-
-.. code-block:: python
-
-   db = mario.parse_gloria(
-       path="/path/to/gloria_release",
-       table="SUT",
-       satellites="Emissions",
    )
 
 Enable cache for repeated runs:
 
 .. code-block:: python
+
+   import mario
 
    db = mario.parse_gloria(
        path="/path/to/gloria_release",
@@ -124,11 +107,37 @@ Enable cache for repeated runs:
        cache=True,
    )
 
-Caveats
--------
+Warnings
+--------
 
-* GLORIA parsing currently supports only ``SUT`` tables;
-* GLORIA use matrices are very large, so region restriction and caching are
-  often the right defaults;
-* ``dtype="float32"`` is the default for a reason: it reduces memory pressure
-  on large parses.
+.. warning::
+
+   GLORIA parsing currently supports only ``SUT`` tables.
+
+.. warning::
+
+   GLORIA use blocks are very large. Parsing the full release can require
+   several GB of RAM, so ``regions=``, ``dtype="float32"``, and ``cache=True``
+   are often the right defaults.
+
+.. warning::
+
+   Satellite accounts are optional in the local release structure. If the
+   satellite-account directory is absent or incomplete, MARIO falls back to
+   empty extensions.
+
+Notebook Walkthrough
+--------------------
+
+Use the notebook below as the main parser guide:
+
+* :doc:`GLORIA parser walkthrough <../notebooks/parsers/gloria/walkthrough>`
+
+If you prefer to run it locally, you can also download the source notebook:
+
+* :download:`Download the GLORIA notebook <../notebooks/parsers/gloria/walkthrough.ipynb>`
+
+.. toctree::
+   :hidden:
+
+   ../notebooks/parsers/gloria/walkthrough
