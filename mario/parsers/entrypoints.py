@@ -1573,8 +1573,12 @@ def parse_wiod(
     ``https://www.rug.nl/ggdc/valuechain/wiod/wiod-2016-release?lang=en``.
     The direct file links used there are currently:
 
-    - IOT: ``https://dataverse.nl/api/access/datafile/199104``
-    - SUT: ``https://dataverse.nl/api/access/datafile/199100``
+    - MRIO IOT, current prices: ``https://dataverse.nl/api/access/datafile/199104``
+    - MRIO IOT, previous-year prices (``_PYP``): ``https://dataverse.nl/api/access/datafile/199102``
+    - MRIO SUT, international: ``https://dataverse.nl/api/access/datafile/199100``
+    - national IOT bundle: ``https://dataverse.nl/api/access/datafile/199099``
+    - national SUT bundle: ``https://dataverse.nl/api/access/datafile/199096``
+    - socio-economic accounts: ``https://dataverse.nl/api/access/datafile/199095``
 
     MARIO currently supports:
 
@@ -1608,7 +1612,9 @@ def parse_wiod(
         endogenous region set and reclassify its intermediate/final-demand
         uses into ``Va`` and ``VY``. Use ``"legacy_region"`` to keep the
         previous parser behavior where ``ROW`` stays on the commodity side
-        of the SUT region axis.
+        of the SUT region axis. This part of the WIOD international SUT
+        treatment should still be considered investigative because the source
+        workbook does not provide a fully endogenous ``ROW`` economy.
     model : str, optional
         public MARIO model class to instantiate. ``Database`` is the default
         and the only supported value.
