@@ -60,6 +60,7 @@ from mario.parsers.oecd_sdmx import parse_oecd_sut_sdmx
 from mario.parsers.statcan_wds import parse_statcan_iot_wds, parse_statcan_sut_wds
 from mario.parsers.tabular import parse_pymrio
 from mario.parsers.handshake import parse_exiobase_3_9_4
+from mario.parsers.useeio import parse_useeio_sut
 from mario.parsers.wiod import parse_wiod_iot, parse_wiod_sut
 
 from mario.parsers.specs import (
@@ -81,6 +82,7 @@ from mario.parsers.specs import (
     ISTAT_SUT_PRICES,
     ISTAT_SUT_VALUATIONS,
     CEPALSTAT_IOT_MODES,
+    USEEIO_FORMATS,
     STATCAN_TABLES,
     STATCAN_OPENIO_CANADA_SATELLITE_ACCOUNT,
     STATCAN_OPENIO_CANADA_SOURCE,
@@ -2027,6 +2029,92 @@ def parse_gtap(
         source=parsed_layout.source,
         year=year,
         init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
+        calc_all=calc_all,
+        **kwargs,
+    )
+
+
+def parse_useeio(
+    path: str,
+    *,
+    format: str = "auto",
+    table: str = "SUT",
+    model: str = "Database",
+    name: str | None = None,
+    calc_all: bool = False,
+    **kwargs,
+) -> object:
+    """Parse one local USEEIO workbook export.
+
+    Parameters
+    ----------
+    path : str
+        path to one local ``USEEIO*.xlsx`` workbook or to a directory
+        containing a single workbook.
+    format : str, optional
+        workbook layout selector. This is a parser-side file-format selector,
+        not a USEEIO model alias. ``auto`` is the default and currently
+        resolves to ``v2.5_workbook`` when the workbook matches the known
+        USEEIO v2.5 export structure.
+    table : str, optional
+        currently only ``SUT`` is supported.
+    model : str, optional
+        public MARIO model class to instantiate. ``Database`` is the default
+        and the only supported value.
+    name : str, optional
+        optional dataset name stored in metadata.
+    calc_all : bool, optional
+        whether to materialize derived blocks immediately after parsing.
+
+    Notes
+    -----
+    In ``USEEIO`` naming, aliases such as ``yellowthroat``, ``kingbird``,
+    ``oriole``, or ``waxwing`` identify different model families and contents.
+    MARIO's ``format=`` argument instead identifies the workbook structure that
+    the parser knows how to read. Different aliases can therefore share the
+    same parser format.
+
+    The currently relevant published national v2.5 aliases include:
+
+    - ``yellowthroat`` and ``waxwing``: GLORIA-backed models, respectively at
+      BEA Summary and BEA Detail level, with GHG and material-footprint
+      extensions;
+    - ``kingbird`` and ``kinglet``: EXIOBASE-backed models, respectively at
+      BEA Summary and BEA Detail level, with GHG extensions;
+    - ``oriole`` and ``catbird``: CEDA-backed models, respectively at BEA
+      Summary and BEA Detail level, with GHG extensions.
+
+    The supported v2.5 workbook layout is parsed as a split-native SUT:
+
+    - ``S`` from workbook ``V``;
+    - ``U``, ``Yc`` and ``Va`` from the extended workbook ``U`` block;
+    - ``Ec`` from ``B * q`` because the verified v2.5 workbook stores the
+      direct environmental coefficient matrix on the commodity axis.
+
+    No automatic download is implemented yet. Callers should point the parser
+    to one local workbook.
+    """
+    if model not in models:
+        raise WrongInput("Available models are {}".format([*models]))
+
+    normalized_format = str(format).strip().lower()
+    if normalized_format not in USEEIO_FORMATS:
+        raise WrongInput(f"USEEIO format should be one of {list(USEEIO_FORMATS)}.")
+
+    validate_parse_request(table=table, model=model)
+    if table != "SUT":
+        raise NotImplementable("USEEIO parsing currently supports only SUT tables.")
+
+    matrices, indeces, units, layout = parse_useeio_sut(path=path, format=normalized_format)
+
+    return models[model](
+        name=name or layout.dataset_name,
+        table="SUT",
+        source=layout.source,
+        year=layout.io_year,
+        price=layout.price,
+        init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
+        notes=list(layout.notes),
         calc_all=calc_all,
         **kwargs,
     )

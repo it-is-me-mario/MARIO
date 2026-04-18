@@ -44,3 +44,4 @@ International repositories
    eora
    adb
    cepalstat
+   useeio

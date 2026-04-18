@@ -96,6 +96,7 @@ from mario.parsers.entrypoints import (
     parse_istat,
     parse_oecd,
     parse_statcan,
+    parse_useeio,
     parse_wiod,
 )
 

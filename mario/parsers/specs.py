@@ -229,6 +229,12 @@ GLORIA_VALUATION_MARKUPS = {
     5: "Subsidies on products",
 }
 
+USEEIO_FORMATS = ("auto", "v2.5_workbook")
+USEEIO_SOURCE_URL = "https://catalog.data.gov/dataset/useeio-v2-5-models"
+USEEIO_SOURCE = f"USEEIO model workbook local file via {USEEIO_SOURCE_URL}"
+USEEIO_MONETARY_UNIT = "USD"
+USEEIO_PRICE_LABEL = "Model-year USD"
+
 
 ISTAT_IO_RELEASE_TAG_URL = "https://www.istat.it/tag/sistema-input-output/"
 ISTAT_IO_RELEASE_PAGES = {
