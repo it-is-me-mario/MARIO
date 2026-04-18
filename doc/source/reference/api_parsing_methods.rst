@@ -20,6 +20,7 @@ loading helpers.
    ../api_document/mario.parse_eora
    ../api_document/mario.parse_emerging
    ../api_document/mario.parse_adb
+   ../api_document/mario.parse_cepalstat
    ../api_document/mario.parse_gtap
    ../api_document/mario.parse_statcan
    ../api_document/mario.parse_istat

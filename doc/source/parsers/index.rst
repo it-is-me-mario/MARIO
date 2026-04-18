@@ -26,14 +26,14 @@ Official National Accounts
 
    istat
    statcan
-   eurostat_sdmx
 
-International Input-Output Databases
-------------------------------------
+International repositories
+--------------------------
 
 .. toctree::
    :maxdepth: 1
 
+   eurostat_sdmx
    exiobase
    figaro
    wiod
@@ -43,3 +43,4 @@ International Input-Output Databases
    gtap
    eora
    adb
+   cepalstat

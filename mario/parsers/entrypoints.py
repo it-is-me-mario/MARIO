@@ -1309,15 +1309,26 @@ def parse_cepalstat(
 ) -> object:
     """Parse selected local CEPALSTAT COU/MIP bundles.
 
-    This parser currently supports only two CEPALSTAT layout families:
+    The CEPALSTAT repository is not structurally uniform. MARIO therefore
+    resolves a set of supported layout families behind one public entry point.
 
-    - integrated SUT workbooks where one workbook contains paired
-      ``Cuadro oferta`` and ``Cuadro utilización`` sheets for one or more years;
-    - direct symmetric IOT workbooks where one sheet exposes the whole matrix
-      together with final demand and value-added rows.
+    Supported ``SUT`` families currently include:
 
-    Other CEPALSTAT bundle families are intentionally rejected with an explicit
-    parser error until they are implemented.
+    - integrated offer/use workbooks such as the Colombia bundles;
+    - two-sheet workbooks such as the Argentina bundles;
+    - split offer/demand workbooks such as the Brazil bundles;
+    - multi-cuadro workbooks such as the Chile bundles.
+
+    Supported ``IOT`` families currently include:
+
+    - direct symmetric matrix workbooks such as Dominican Republic and
+      Guatemala bundles;
+    - ``Cuadro`` workbooks such as the Colombia bundles;
+    - symmetric workbooks such as the Argentina bundles;
+    - demand-at-basic-prices workbooks such as the Brazil bundles;
+    - matrix workbooks such as the Chile bundles.
+
+    Other bundle families are still rejected explicitly until implemented.
 
     Parameters
     ----------
@@ -1343,6 +1354,11 @@ def parse_cepalstat(
         optional dataset name stored in metadata.
     calc_all : bool, optional
         whether to materialize derived blocks immediately after parsing.
+
+    Notes
+    -----
+    Official repository:
+    https://statistics.cepal.org/repository/cou-mip/index.html?lang=en
     """
     if model not in models:
         raise WrongInput("Available models are {}".format([*models]))
