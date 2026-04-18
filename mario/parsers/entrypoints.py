@@ -1412,6 +1412,28 @@ def parse_adb(
         optional dataset name stored in metadata.
     calc_all : bool, optional
         whether to materialize derived blocks immediately after parsing.
+
+    Notes
+    -----
+    In normal usage there are four common parse patterns:
+
+    - direct path to one MRIO workbook;
+    - path to one directory containing multiple MRIO workbooks, resolved with
+      ``year=`` and optionally ``economies=``;
+    - direct path to one SRIO workbook, where ``year=`` selects the annual
+      sheet;
+    - either of the previous two cases plus ``add_extensions=...`` to attach
+      the matching air-emissions table.
+
+    When ``add_extensions`` is used, MARIO records parser warnings in the
+    database metadata history if:
+
+    - the emissions workbook year does not match the economic table year;
+    - the emissions workbook does not cover all regions present in the
+      economic table.
+
+    Those warnings do not stop the parse. They can be inspected after parsing
+    through ``db.meta_history``.
     """
     if model not in models:
         raise WrongInput("Available models are {}".format([*models]))

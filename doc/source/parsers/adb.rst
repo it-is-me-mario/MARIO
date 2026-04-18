@@ -4,6 +4,17 @@ ADB
 MARIO supports local parsing of the Asian Development Bank Excel workbooks
 distributed on the official ADB globalization page.
 
+The parser currently supports only ``IOT`` tables, but it works with both:
+
+* ADB ``MRIO`` workbooks, typically one workbook per release year;
+* ADB ``SRIO`` workbooks, where one workbook contains multiple yearly sheets;
+* optional ADB air-emissions workbooks imported through ``add_extensions=...``.
+
+For this source, the most useful documentation format is a notebook-driven one:
+this landing page stays short, while one practical notebook covers direct-file
+parsing, directory parsing, ``economies=``, ``add_extensions=``, parser
+warnings, and the difference between ``MRIO`` and ``SRIO`` workflows.
+
 Relevant source links
 ---------------------
 
@@ -18,11 +29,6 @@ Recommended Entry Point
 For normal user workflows, the public entry point is:
 
 * :doc:`mario.parse_adb(...) <../api_document/mario.parse_adb>`
-
-The parser currently supports only ``IOT`` tables, but it works with both:
-
-* ADB ``MRIO`` workbooks, typically one workbook per release year;
-* ADB ``SRIO`` workbooks, where one workbook contains multiple yearly sheets.
 
 Key arguments
 -------------
@@ -44,58 +50,24 @@ The key public arguments are:
   optional path to the ADB air-emissions workbook. When passed, MARIO imports
   the environmental extension matrix ``E`` and keeps ``EY`` zero-filled.
 
-Download workflow
------------------
+Typical usage
+-------------
 
-Automatic ADB download is intentionally not supported.
-
-In practice, the workflow is:
-
-1. download the desired ADB economic workbook manually from the official page;
-2. optionally download the matching ADB air-emissions workbook;
-3. keep the ``.xlsx`` files locally, or place several ADB workbooks in one
-   directory;
-4. pass the economic workbook to ``mario.parse_adb(...)``, optionally with
-   ``add_extensions=...``.
-
-Local layout expectation
-------------------------
-
-MARIO expects either:
-
-* one local ADB ``MRIO`` ``.xlsx`` workbook;
-* one local ADB ``SRIO`` ``.xlsx`` workbook;
-* or one directory containing one or more ADB workbooks.
-
-When a directory contains multiple MRIO candidates, use ``year=`` and/or
-``economies=`` to disambiguate the target workbook. For SRIO workbooks,
-``year=`` selects the annual sheet inside the workbook.
-
-Tutorial
---------
-
-If you prefer to run the walkthrough locally, you can also download the source
-notebook:
-
-* :download:`Download the ADB notebook <../notebooks/parsers/adb/tutorial.ipynb>`
-
-Load MARIO first:
+Direct path to one MRIO workbook:
 
 .. code-block:: python
 
    import mario
 
-Parse one explicit workbook:
-
-.. code-block:: python
-
    db = mario.parse_adb(
        path="/path/to/ADB_MRIO_2024_74.xlsx",
    )
 
-Parse from a directory containing multiple releases:
+Directory containing multiple MRIO releases:
 
 .. code-block:: python
+
+   import mario
 
    db = mario.parse_adb(
        path="/path/to/adb_directory",
@@ -103,40 +75,16 @@ Parse from a directory containing multiple releases:
        economies=74,
    )
 
-Parse one SRIO workbook. Here ``year=`` is mandatory because the workbook
-contains one sheet per year:
+One SRIO workbook with annual sheets:
 
 .. code-block:: python
+
+   import mario
 
    db = mario.parse_adb(
        path="/path/to/CAN IOT 2000, 2007-2024.xlsx",
        year=2024,
    )
-
-Import the matching ADB air-emissions extensions:
-
-.. code-block:: python
-
-   db = mario.parse_adb(
-       path="/path/to/ADB_MRIO_2024_74.xlsx",
-       add_extensions="/path/to/2024 EE-MRIOT (Air Emissions).xlsx",
-   )
-
-The same ``add_extensions=...`` argument also works for SRIO workbooks:
-
-.. code-block:: python
-
-   db = mario.parse_adb(
-       path="/path/to/CAN IOT 2000, 2007-2024.xlsx",
-       year=2024,
-       add_extensions="/path/to/2024 EE-MRIOT (Air Emissions).xlsx",
-   )
-
-Inspect the parsed database:
-
-.. code-block:: python
-
-   db
 
 Caveats
 -------
@@ -150,3 +98,19 @@ Caveats
   does not match the economic table year;
 * when ``add_extensions`` is used, MARIO warns if the emissions workbook does
   not cover all regions present in the economic table.
+
+Notebook Walkthrough
+--------------------
+
+Use the notebook below as the main parser guide:
+
+* :doc:`ADB parser walkthrough <../notebooks/parsers/adb/walkthrough>`
+
+If you prefer to run it locally, you can also download the source notebook:
+
+* :download:`Download the ADB notebook <../notebooks/parsers/adb/walkthrough.ipynb>`
+
+.. toctree::
+   :hidden:
+
+   ../notebooks/parsers/adb/walkthrough
