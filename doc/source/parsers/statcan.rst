@@ -4,10 +4,32 @@ StatCan
 MARIO supports Statistics Canada supply-use and symmetric I-O tables through
 the official WDS API.
 
+The parser currently supports:
+
+* ``SUT`` tables at ``summary``, ``detail``, and ``link1997`` level;
+* ``IOT`` tables at ``summary`` and ``detail`` level;
+* direct online parsing from WDS;
+* optional local caching of the raw CSV downloads.
+
+For this source, the most useful documentation format is a notebook-driven one:
+this landing page stays short, while one practical notebook covers where the
+tables come from, direct online parsing, local caching, the difference between
+``SUT`` and ``IOT`` workflows, ``geo=``, ``level=``, and ``valuation=``.
+
+Relevant source links
+---------------------
+
+* official StatCan SUT catalogue:
+  `Supply and use tables <https://www150.statcan.gc.ca/n1/en/catalogue/36100478>`_;
+* official StatCan IOT catalogue:
+  `Symmetric input-output tables <https://www150.statcan.gc.ca/n1/en/catalogue/36100001>`_;
+* official StatCan WDS guide:
+  `StatCan WDS user guide <https://www.statcan.gc.ca/en/developers/wds/user-guide>`_.
+
 Recommended Entry Point
 -----------------------
 
-For normal user workflows, the public entry point should be:
+For normal user workflows, the public entry point is:
 
 * :doc:`mario.parse_statcan(...) <../api_document/mario.parse_statcan>`
 
@@ -26,8 +48,6 @@ The key public arguments are:
   geography label such as ``Canada`` or one province/territory;
 * ``valuation``:
   IOT price-system selector, usually ``basic`` or ``purchaser``;
-* ``satellite_account``:
-  optional extra bundle selector such as ``openio_canada`` when supported;
 * ``path``:
   optional cache directory for local raw files;
 * ``download``:
@@ -36,13 +56,11 @@ The key public arguments are:
 Download workflow
 -----------------
 
-Two download helpers are available:
+Automatic raw download is available:
 
-* ``mario.download_statcan(...)`` for raw WDS table files;
-* ``mario.download_statcan_openio_canada(...)`` for the OpenIO-Canada
-  emission-factor workbook used by the ``openio_canada`` satellite path.
+* ``mario.download_statcan(...)``
 
-You can also parse directly from the API without a prior explicit download.
+You can also parse directly from WDS without a prior explicit download.
 
 Supported workflows
 -------------------
@@ -63,23 +81,14 @@ For IOT parsing, ``valuation`` can be:
 * ``basic``
 * ``purchaser``
 
-Tutorial
---------
-
-If you prefer to run the walkthrough locally, you can also download the source
-notebook:
-
-* :download:`Download the StatCan notebook <../notebooks/parsers/statcan/tutorial.ipynb>`
-
-Load MARIO first:
-
-.. code-block:: python
-
-   import mario
+Typical usage
+-------------
 
 Parse a StatCan SUT directly from WDS:
 
 .. code-block:: python
+
+   import mario
 
    db = mario.parse_statcan(
        year=2022,
@@ -88,9 +97,24 @@ Parse a StatCan SUT directly from WDS:
        geo="Canada",
    )
 
+Parse a provincial detail SUT:
+
+.. code-block:: python
+
+   import mario
+
+   db = mario.parse_statcan(
+       year=2022,
+       table="SUT",
+       level="detail",
+       geo="Ontario",
+   )
+
 Parse a StatCan IOT:
 
 .. code-block:: python
+
+   import mario
 
    db = mario.parse_statcan(
        year=2022,
@@ -99,28 +123,16 @@ Parse a StatCan IOT:
        valuation="basic",
    )
 
-Keep the raw CSV locally while parsing:
+Cache the raw CSV locally while parsing:
 
 .. code-block:: python
+
+   import mario
 
    db = mario.parse_statcan(
        year=2022,
        table="SUT",
        level="detail",
-       path="/path/to/statcan_cache",
-       download=True,
-   )
-
-Use the OpenIO-Canada satellite bundle when supported:
-
-.. code-block:: python
-
-   db = mario.parse_statcan(
-       year=2022,
-       table="SUT",
-       level="detail",
-       geo="Ontario",
-       satellite_account="openio_canada",
        path="/path/to/statcan_cache",
        download=True,
    )
@@ -128,9 +140,25 @@ Use the OpenIO-Canada satellite bundle when supported:
 Caveats
 -------
 
-* ``satellite_account="openio_canada"`` is currently supported only for the
-  documented subset of the StatCan SUT workflow;
-* ``download=True`` is the right choice when you want a local raw-file cache in
-  addition to the parsed database;
-* the StatCan parser is API-driven, so a stable network connection matters more
-  than for local-file parsers.
+* the parser is API-driven, so network availability matters more than for
+  local-file parsers;
+* ``download=True`` is the right choice when you want a reusable local raw-file
+  cache in addition to the parsed database;
+* this guide focuses on the economic StatCan tables only. Environmental
+  extensions are intentionally left out here.
+
+Notebook Walkthrough
+--------------------
+
+Use the notebook below as the main parser guide:
+
+* :doc:`StatCan parser walkthrough <../notebooks/parsers/statcan/walkthrough>`
+
+If you prefer to run it locally, you can also download the source notebook:
+
+* :download:`Download the StatCan notebook <../notebooks/parsers/statcan/walkthrough.ipynb>`
+
+.. toctree::
+   :hidden:
+
+   ../notebooks/parsers/statcan/walkthrough
