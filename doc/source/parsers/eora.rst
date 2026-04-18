@@ -1,13 +1,30 @@
-EORA
+Eora
 ====
 
-MARIO supports both the multi-regional EORA26 workflow and local single-region
-EORA files.
+MARIO supports two practical Eora workflows:
+
+* multiregional ``Eora26`` parsing;
+* local single-region Eora tables (``SRIO`` style files).
+
+There is currently **no** parser for the full Eora multi-regional release.
+The multi-region parser is restricted to ``Eora26`` only.
+
+For this source, the most useful documentation format is a notebook-driven one:
+this landing page stays short, while one practical notebook covers the
+difference between ``Eora26`` and single-region workflows, required files,
+``multi_region=``, ``indeces=``, ``country=``, ``price=``,
+``name_convention=``, and ``aggregate_trade=``.
+
+Relevant source links
+---------------------
+
+* official Eora website:
+  `Eora MRIO portal <https://www.worldmrio.com/>`_.
 
 Recommended Entry Point
 -----------------------
 
-For normal user workflows, the public entry point should be:
+For normal user workflows, the public entry point is:
 
 * :doc:`mario.parse_eora(...) <../api_document/mario.parse_eora>`
 
@@ -17,58 +34,44 @@ Key arguments
 The key public arguments are:
 
 * ``path``:
-  one EORA file or one directory containing the dataset;
+  one Eora file or one directory containing the local dataset;
 * ``multi_region``:
-  ``True`` for the EORA26 workflow, ``False`` for the single-region workflow;
+  use ``True`` for ``Eora26`` and ``False`` for local single-region files;
 * ``table``:
-  relevant mainly for multi-region parsing, where the practical workflow is
-  ``IOT``;
+  relevant mainly for single-region parsing. For multi-region parsing the
+  practical workflow is ``IOT`` only;
 * ``indeces``:
-  optional path to the EORA26 label files;
+  optional path to the ``Eora26`` label files. If omitted, MARIO looks for
+  ``labels_*.txt`` files next to the dataset files;
 * ``name_convention``:
-  choose between abbreviations and full country names;
+  use ``full_name`` or ``abbreviation`` for region labels in the single-region
+  workflow;
 * ``aggregate_trade``:
-  single-region convenience flag to aggregate trade rows;
+  single-region helper that collapses detailed import/export rows into total
+  imports and exports;
 * ``country``:
-  single-region selector when the input directory contains multiple country
-  files;
+  single-region selector when the input path points to a directory containing
+  multiple country files;
 * ``price``:
-  optional single-region filter when the local directory contains multiple
-  variants.
+  optional single-region selector when the local directory contains multiple
+  price variants.
 
 Download workflow
 -----------------
 
-Automatic EORA download is not part of the current MARIO workflow.
+Automatic Eora download is not part of the current MARIO workflow.
 
-You should work from local EORA files that you already downloaded and, for
-EORA26, from the associated label files.
+You should work from local Eora files that you already downloaded and, for
+``Eora26``, from the associated label files.
 
-Supported workflows
--------------------
+Typical usage
+-------------
 
-MARIO exposes two practical modes:
-
-* multi-regional EORA26 parsing with ``multi_region=True``;
-* single-region EORA parsing with ``multi_region=False``.
-
-Tutorial
---------
-
-If you prefer to run the walkthrough locally, you can also download the source
-notebook:
-
-* :download:`Download the EORA notebook <../notebooks/parsers/eora/tutorial.ipynb>`
-
-Load MARIO first:
+Parse one ``Eora26`` directory:
 
 .. code-block:: python
 
    import mario
-
-Parse an EORA26 multi-regional dataset:
-
-.. code-block:: python
 
    db = mario.parse_eora(
        path="/path/to/eora26_directory",
@@ -77,12 +80,11 @@ Parse an EORA26 multi-regional dataset:
        indeces="/path/to/eora26_labels",
    )
 
-If the label files already live next to the data files, ``indeces=`` can be
-omitted.
-
-Parse a single-region EORA file:
+Parse one local single-region Eora file:
 
 .. code-block:: python
+
+   import mario
 
    db = mario.parse_eora(
        path="/path/to/single_region_directory",
@@ -90,20 +92,24 @@ Parse a single-region EORA file:
        country="ITA",
    )
 
-If you want full country names instead of abbreviations:
+Use abbreviated country labels in the single-region workflow:
 
 .. code-block:: python
+
+   import mario
 
    db = mario.parse_eora(
-       path="/path/to/eora26_directory",
-       multi_region=True,
-       table="IOT",
-       name_convention="full_name",
+       path="/path/to/single_region_directory",
+       multi_region=False,
+       country="ITA",
+       name_convention="abbreviation",
    )
 
-For single-region workflows, you can also aggregate trade automatically:
+Aggregate trade rows in the single-region workflow:
 
 .. code-block:: python
+
+   import mario
 
    db = mario.parse_eora(
        path="/path/to/single_region_directory",
@@ -115,8 +121,27 @@ For single-region workflows, you can also aggregate trade automatically:
 Caveats
 -------
 
-* for multi-region parsing, only EORA26 is currently supported;
-* the multi-region parser fixes some known inconsistencies during parsing;
-  inspect ``db.meta_history()`` if you need the exact repair trail;
-* for single-region parsing, table type can usually be inferred, while for
-  multi-region parsing you should treat it as an ``IOT`` workflow.
+* there is no parser here for the full Eora MRIO release;
+* multi-region parsing means ``Eora26`` only;
+* ``Eora26`` parsing requires the label files in addition to the numeric data
+  files;
+* the ``Eora26`` parser applies a few consistency repairs during parsing;
+  inspect ``db.meta_history`` if you need the exact repair trail;
+* single-region parsing can infer ``IOT`` versus ``SUT`` automatically from the
+  local file structure.
+
+Notebook Walkthrough
+--------------------
+
+Use the notebook below as the main parser guide:
+
+* :doc:`Eora parser walkthrough <../notebooks/parsers/eora/walkthrough>`
+
+If you prefer to run it locally, you can also download the source notebook:
+
+* :download:`Download the Eora notebook <../notebooks/parsers/eora/walkthrough.ipynb>`
+
+.. toctree::
+   :hidden:
+
+   ../notebooks/parsers/eora/walkthrough
