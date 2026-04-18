@@ -282,7 +282,11 @@ STATCAN_TABLES = {
 
 WIOD_2016_RELEASE_URL = "https://www.rug.nl/ggdc/valuechain/wiod/wiod-2016-release?lang=en"
 WIOD_IOT_FILE_URL = "https://dataverse.nl/api/access/datafile/199104"
+WIOD_IOT_PYP_FILE_URL = "https://dataverse.nl/api/access/datafile/199102"
 WIOD_SUT_FILE_URL = "https://dataverse.nl/api/access/datafile/199100"
+WIOD_NATIONAL_SUT_FILE_URL = "https://dataverse.nl/api/access/datafile/199096"
+WIOD_NATIONAL_IOT_FILE_URL = "https://dataverse.nl/api/access/datafile/199099"
+WIOD_SOCIO_ECONOMIC_ACCOUNTS_FILE_URL = "https://dataverse.nl/api/access/datafile/199095"
 WIOD_SOURCE = (
     "WIOD 2016 Release Excel workbook via GGDC/University of Groningen "
     f"({WIOD_2016_RELEASE_URL})"
@@ -291,9 +295,13 @@ WIOD_MONETARY_UNIT = "millions of US$"
 WIOD_SATELLITE_UNIT = "None"
 WIOD_SATELLITE_PLACEHOLDER = "-"
 WIOD_FINAL_DEMAND_CODES = ("CONS_h", "CONS_np", "CONS_g", "GFCF", "INVEN")
+WIOD_NATIONAL_IOT_FINAL_DEMAND_CODES = ("CONS_h", "CONS_np", "CONS_g", "GFCF", "INVEN", "EXP")
 WIOD_SUT_FINAL_DEMAND_CODES = ("CONS_h", "CONS_np", "CONS_g", "GFCF", "INVEN", "EXP")
+WIOD_NATIONAL_SUT_FINAL_DEMAND_CODES = ("CONS_h", "CONS_np", "CONS_g", "GFCF", "INVEN", "EXP_fob")
 WIOD_SUT_USE_TOTAL_COLUMNS = ("INTC", "CONS", "GCF", "FU_bas", "USE_bas", "ReEXP", "IntTTM")
 WIOD_SUT_SUPPLY_TOTAL_COLUMNS = ("DSUP_bas", "IMP", "SUP_bas", "ExpTTM", "ReEXP", "IntTTM")
+WIOD_NATIONAL_SUT_USE_TOTAL_COLUMNS = ("INTC", "CONS", "GCF", "FU_bas", "USE_bas", "MARG_TXSP_EXP")
+WIOD_NATIONAL_SUT_SUPPLY_TOTAL_COLUMNS = ("DSUP_bas", "IMP", "SUP_bas", "MARG", "TXSP", "SUP_pur")
 WIOD_FACTOR_ROWS = (
     "TXSP",
     "EXP_adj",
@@ -317,6 +325,14 @@ WIOD_SUT_FINAL_DEMAND_LABELS = {
     "GFCF": "Gross fixed capital formation",
     "INVEN": "Changes in inventories and valuables",
     "EXP": "Exports",
+}
+WIOD_NATIONAL_SUT_FINAL_DEMAND_LABELS = {
+    "CONS_h": "Households",
+    "CONS_np": "NPISH",
+    "CONS_g": "Government",
+    "GFCF": "Gross fixed capital formation",
+    "INVEN": "Changes in inventories and valuables",
+    "EXP_fob": "Exports",
 }
 
 

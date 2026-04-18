@@ -1558,6 +1558,9 @@ def parse_wiod(
     path: str,
     table: str = "IOT",
     year: int | None = None,
+    country: str | None = None,
+    add_extensions: str | None = None,
+    row_mode: str = "external_account",
     model: str = "Database",
     name: str | None = None,
     calc_all: bool = False,
@@ -1573,9 +1576,12 @@ def parse_wiod(
     - IOT: ``https://dataverse.nl/api/access/datafile/199104``
     - SUT: ``https://dataverse.nl/api/access/datafile/199100``
 
-    MARIO currently supports only the multiregional ``.xlsb`` workbooks
-    (for example ``WIOT2014_Nov16_ROW.xlsb`` and ``intsut14_nov16.xlsb``),
-    not the national WIOD IO tables.
+    MARIO currently supports:
+
+    - multiregional IOT ``.xlsb`` workbooks, including the ``_PYP`` variant;
+    - multiregional SUT ``.xlsb`` workbooks;
+    - national IOT ``.xlsx`` workbooks such as ``ITA_NIOT_nov16.xlsx``;
+    - national SUT ``.xlsx`` workbooks such as ``ITA_SUT_nov16.xlsx``.
 
     Parameters
     ----------
@@ -1586,7 +1592,23 @@ def parse_wiod(
         choose between ``IOT`` and ``SUT``.
     year : int, optional
         reference year to select when ``path`` points to a directory that
-        contains more than one WIOD 2016 workbook.
+        contains more than one WIOD 2016 workbook. For national WIOD tables,
+        this is mandatory because one workbook contains the full time series.
+    country : str, optional
+        country selector used when ``path`` points to a directory containing
+        multiple national WIOD workbooks.
+    add_extensions : str, optional
+        optional path to ``Socio_Economic_Accounts.xlsx``. When provided,
+        MARIO imports the socio-economic accounts as satellite extensions.
+        For IOT tables they populate ``E``; for SUT tables they populate
+        ``Ea`` while leaving ``Ec`` zero-filled.
+    row_mode : str, optional
+        only relevant for the international WIOD SUT workbook. Use
+        ``"external_account"`` (default) to remove ``ROW`` from the
+        endogenous region set and reclassify its intermediate/final-demand
+        uses into ``Va`` and ``VY``. Use ``"legacy_region"`` to keep the
+        previous parser behavior where ``ROW`` stays on the commodity side
+        of the SUT region axis.
     model : str, optional
         public MARIO model class to instantiate. ``Database`` is the default
         and the only supported value.
@@ -1600,9 +1622,20 @@ def parse_wiod(
 
     validate_parse_request(table=table, model=model)
     if table == "IOT":
-        matrices, indeces, units, layout = parse_wiod_iot(path=path, year=year)
+        matrices, indeces, units, layout = parse_wiod_iot(
+            path=path,
+            year=year,
+            country=country,
+            add_extensions=add_extensions,
+        )
     elif table == "SUT":
-        matrices, indeces, units, layout = parse_wiod_sut(path=path, year=year)
+        matrices, indeces, units, layout = parse_wiod_sut(
+            path=path,
+            year=year,
+            country=country,
+            add_extensions=add_extensions,
+            row_mode=row_mode,
+        )
     else:
         raise NotImplementable("WIOD parsing currently supports only IOT and SUT tables.")
     return models[model](
@@ -1612,6 +1645,7 @@ def parse_wiod(
         year=layout.year,
         price=layout.price,
         init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
+        notes=list(layout.notes),
         calc_all=calc_all,
         **kwargs,
     )

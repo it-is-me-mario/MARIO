@@ -46,6 +46,10 @@ from mario.parsers.specs import (
     STATCAN_WDS_BASE_URL,
     WIOD_2016_RELEASE_URL,
     WIOD_IOT_FILE_URL,
+    WIOD_IOT_PYP_FILE_URL,
+    WIOD_NATIONAL_IOT_FILE_URL,
+    WIOD_NATIONAL_SUT_FILE_URL,
+    WIOD_SOCIO_ECONOMIC_ACCOUNTS_FILE_URL,
     WIOD_SUT_FILE_URL,
 )
 
@@ -56,6 +60,10 @@ __all__ = [
     "download_figaro",
     "download_istat_io",
     "download_wiod2016",
+    "download_wiod2016_iot_pyp",
+    "download_wiod2016_national_iot",
+    "download_wiod2016_national_sut",
+    "download_wiod2016_socioeconomic_accounts",
     "download_emerging",
     "download_hybrid_exiobase",
     "download_exiobase3",
@@ -716,6 +724,138 @@ def download_wiod2016(
         "extracted_path": extracted_path,
         "workbooks": workbooks,
     }
+
+
+def _download_wiod_asset(
+    path: str | Path,
+    *,
+    url: str,
+    default_filename: str,
+    extract: bool = False,
+    keep_archive: bool = False,
+    overwrite: bool = False,
+) -> dict[str, object]:
+    """Download one WIOD asset, optionally extracting zip archives."""
+    root = _ensure_directory(path)
+    destination = root / default_filename
+    extracted_path = None
+    files: list[str] = []
+    extract_dir = root / destination.stem if extract and destination.suffix.lower() == ".zip" else None
+
+    if extract_dir is not None and extract_dir.exists() and not overwrite:
+        return {
+            "source": WIOD_2016_RELEASE_URL,
+            "url": url,
+            "archive": str(destination) if destination.exists() else None,
+            "file": None,
+            "extracted_path": str(extract_dir),
+            "files": sorted(str(item) for item in extract_dir.rglob("*") if item.is_file()),
+        }
+
+    if destination.exists() and not overwrite and not extract:
+        return {
+            "source": WIOD_2016_RELEASE_URL,
+            "url": url,
+            "archive": str(destination) if destination.suffix.lower() == ".zip" else None,
+            "file": str(destination) if destination.suffix.lower() != ".zip" else None,
+            "extracted_path": None,
+            "files": [],
+        }
+
+    response = requests.get(url, stream=True, timeout=_REQUEST_TIMEOUT, allow_redirects=True)
+    response.raise_for_status()
+    header_filename = _content_disposition_filename(response.headers.get("content-disposition"))
+    if header_filename:
+        destination = root / header_filename
+
+    _reset_target(destination, overwrite=overwrite)
+    with destination.open("wb") as stream:
+        for chunk in _iter_content(response):
+            stream.write(chunk)
+    response.close()
+
+    if extract and destination.suffix.lower() == ".zip":
+        extract_dir = root / destination.stem
+        extracted = _extract_zip(
+            destination,
+            extract_dir,
+            overwrite=overwrite,
+            keep_archive=keep_archive,
+        )
+        extracted_path = str(extracted)
+        files = sorted(str(item) for item in extracted.rglob("*") if item.is_file())
+
+    return {
+        "source": WIOD_2016_RELEASE_URL,
+        "url": url,
+        "archive": str(destination) if destination.exists() and destination.suffix.lower() == ".zip" else None,
+        "file": str(destination) if destination.suffix.lower() != ".zip" else None,
+        "extracted_path": extracted_path,
+        "files": files,
+    }
+
+
+def download_wiod2016_iot_pyp(
+    path: str | Path,
+    *,
+    overwrite: bool = False,
+) -> dict[str, object]:
+    """Download the WIOD 2016 MRIO IOT workbook in previous-year prices."""
+    return _download_wiod_asset(
+        path,
+        url=WIOD_IOT_PYP_FILE_URL,
+        default_filename="WIOTS_PYP_in_EXCEL.zip",
+        extract=True,
+        keep_archive=False,
+        overwrite=overwrite,
+    )
+
+
+def download_wiod2016_national_iot(
+    path: str | Path,
+    *,
+    overwrite: bool = False,
+) -> dict[str, object]:
+    """Download the WIOD 2016 national IOT workbook bundle."""
+    return _download_wiod_asset(
+        path,
+        url=WIOD_NATIONAL_IOT_FILE_URL,
+        default_filename="NIOTS.zip",
+        extract=True,
+        keep_archive=False,
+        overwrite=overwrite,
+    )
+
+
+def download_wiod2016_national_sut(
+    path: str | Path,
+    *,
+    overwrite: bool = False,
+) -> dict[str, object]:
+    """Download the WIOD 2016 national SUT workbook bundle."""
+    return _download_wiod_asset(
+        path,
+        url=WIOD_NATIONAL_SUT_FILE_URL,
+        default_filename="SUT_national.zip",
+        extract=True,
+        keep_archive=False,
+        overwrite=overwrite,
+    )
+
+
+def download_wiod2016_socioeconomic_accounts(
+    path: str | Path,
+    *,
+    overwrite: bool = False,
+) -> dict[str, object]:
+    """Download the WIOD 2016 socio-economic accounts workbook."""
+    return _download_wiod_asset(
+        path,
+        url=WIOD_SOCIO_ECONOMIC_ACCOUNTS_FILE_URL,
+        default_filename="Socio_Economic_Accounts.xlsx",
+        extract=False,
+        overwrite=overwrite,
+    )
 
 
 def download_emerging(

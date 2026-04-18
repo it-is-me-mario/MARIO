@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import logging
 from pathlib import Path
 import re
+from zipfile import BadZipFile
 
 import numpy as np
 import pandas as pd
@@ -18,6 +19,11 @@ from mario.parsers.specs import (
     WIOD_FACTOR_ROWS,
     WIOD_FINAL_DEMAND_CODES,
     WIOD_MONETARY_UNIT,
+    WIOD_NATIONAL_IOT_FINAL_DEMAND_CODES,
+    WIOD_NATIONAL_SUT_FINAL_DEMAND_CODES,
+    WIOD_NATIONAL_SUT_FINAL_DEMAND_LABELS,
+    WIOD_NATIONAL_SUT_SUPPLY_TOTAL_COLUMNS,
+    WIOD_NATIONAL_SUT_USE_TOTAL_COLUMNS,
     WIOD_SATELLITE_PLACEHOLDER,
     WIOD_SATELLITE_UNIT,
     WIOD_SOURCE,
@@ -29,8 +35,19 @@ from mario.utils import rename_index
 
 logger = logging.getLogger(__name__)
 
-_WIOD_IOT_FILE_RE = re.compile(r"^WIOT(?P<year>\d{4}).*_ROW\.xlsb$", flags=re.IGNORECASE)
+_WIOD_IOT_FILE_RE = re.compile(
+    r"^WIOT(?P<year>\d{4})(?P<variant>_PYP)?_Nov16_ROW\.xlsb$",
+    flags=re.IGNORECASE,
+)
 _WIOD_SUT_FILE_RE = re.compile(r"^intsut(?P<year>\d{2})_nov16\.xlsb$", flags=re.IGNORECASE)
+_WIOD_NATIONAL_IOT_FILE_RE = re.compile(
+    r"^(?P<country>[A-Z]{3})_NIOT_nov16\.xlsx$",
+    flags=re.IGNORECASE,
+)
+_WIOD_NATIONAL_SUT_FILE_RE = re.compile(
+    r"^(?P<country>[A-Z]{3})_SUT_nov16\.xlsx$",
+    flags=re.IGNORECASE,
+)
 _WIOD_SUT_SUPPLY_SHEET = "SUP"
 _WIOD_SUT_USE_SHEET = "USE"
 _WIOD_SUT_TOTAL_PARTNER = "ZZZ"
@@ -45,6 +62,10 @@ class WIODLayout:
     year: int
     table: str
     sheet_names: tuple[str, ...]
+    scope: str = "MRIO"
+    country: str | None = None
+    price_label: str = "Current prices"
+    notes: tuple[str, ...] = ()
 
     @property
     def dataset_name(self) -> str:
@@ -54,7 +75,7 @@ class WIODLayout:
     @property
     def price(self) -> str:
         """Return the price metadata stored in MARIO."""
-        return "Current prices"
+        return self.price_label
 
     @property
     def source(self) -> str:
@@ -74,6 +95,7 @@ def detect_wiod_layout(
     *,
     table: str = "IOT",
     year: int | None = None,
+    country: str | None = None,
 ) -> WIODLayout:
     """Resolve the WIOD 2016 multiregional workbook selected for one parse request."""
     source = Path(path)
@@ -81,62 +103,135 @@ def detect_wiod_layout(
         raise FileNotFoundError(source)
 
     normalized_table = str(table).upper()
-    if normalized_table == "IOT":
-        pattern = _WIOD_IOT_FILE_RE
-        description = "WIOT<year>_Nov16_ROW.xlsb"
-        sheet_names_factory = lambda parsed_year: (str(parsed_year),)
-    elif normalized_table == "SUT":
-        pattern = _WIOD_SUT_FILE_RE
-        description = "intsut<yy>_nov16.xlsb"
-        sheet_names_factory = lambda parsed_year: (_WIOD_SUT_SUPPLY_SHEET, _WIOD_SUT_USE_SHEET)
-    else:
+    normalized_country = str(country).upper() if country is not None else None
+    if normalized_table not in {"IOT", "SUT"}:
         raise WrongInput("WIOD parsing supports only table='IOT' or table='SUT'.")
 
     def _parse_candidate(candidate: Path) -> WIODLayout:
-        match = pattern.match(candidate.name)
-        if match is None:
-            raise WrongInput(
-                "WIOD parsing currently supports only the WIOD 2016 multiregional "
-                f"Excel workbook pattern {description}, not national tables or "
-                "other spreadsheet layouts."
-            )
-        parsed_year = _expand_wiod_year(match.group("year"))
-        if year is not None and parsed_year != int(year):
-            raise WrongInput(
-                f"The selected WIOD workbook contains year {parsed_year}, not {year}."
-            )
-        return WIODLayout(
-            root=candidate.parent,
-            data_path=candidate,
-            year=parsed_year,
-            table=normalized_table,
-            sheet_names=sheet_names_factory(parsed_year),
+        name = candidate.name
+
+        if normalized_table == "IOT":
+            match = _WIOD_IOT_FILE_RE.match(name)
+            if match is not None:
+                parsed_year = _expand_wiod_year(match.group("year"))
+                if year is not None and parsed_year != int(year):
+                    raise WrongInput(
+                        f"The selected WIOD workbook contains year {parsed_year}, not {year}."
+                    )
+                return WIODLayout(
+                    root=candidate.parent,
+                    data_path=candidate,
+                    year=parsed_year,
+                    table=normalized_table,
+                    sheet_names=(str(parsed_year),),
+                    scope="MRIO",
+                    price_label="Previous year prices" if match.group("variant") else "Current prices",
+                )
+
+            match = _WIOD_NATIONAL_IOT_FILE_RE.match(name)
+            if match is not None:
+                parsed_country = match.group("country").upper()
+                if normalized_country is not None and parsed_country != normalized_country:
+                    raise WrongInput(
+                        f"The selected WIOD national IOT workbook contains country {parsed_country}, not {normalized_country}."
+                    )
+                if year is None:
+                    raise WrongInput(
+                        "WIOD national IOT workbooks contain multiple years in one sheet. "
+                        "Please specify year."
+                    )
+                return WIODLayout(
+                    root=candidate.parent,
+                    data_path=candidate,
+                    year=int(year),
+                    table=normalized_table,
+                    sheet_names=("National IO-tables",),
+                    scope="National",
+                    country=parsed_country,
+                    price_label="Current prices",
+                )
+
+        if normalized_table == "SUT":
+            match = _WIOD_SUT_FILE_RE.match(name)
+            if match is not None:
+                parsed_year = _expand_wiod_year(match.group("year"))
+                if year is not None and parsed_year != int(year):
+                    raise WrongInput(
+                        f"The selected WIOD workbook contains year {parsed_year}, not {year}."
+                    )
+                return WIODLayout(
+                    root=candidate.parent,
+                    data_path=candidate,
+                    year=parsed_year,
+                    table=normalized_table,
+                    sheet_names=(_WIOD_SUT_SUPPLY_SHEET, _WIOD_SUT_USE_SHEET),
+                    scope="MRIO",
+                    price_label="Current prices",
+                )
+
+            match = _WIOD_NATIONAL_SUT_FILE_RE.match(name)
+            if match is not None:
+                parsed_country = match.group("country").upper()
+                if normalized_country is not None and parsed_country != normalized_country:
+                    raise WrongInput(
+                        f"The selected WIOD national SUT workbook contains country {parsed_country}, not {normalized_country}."
+                    )
+                if year is None:
+                    raise WrongInput(
+                        "WIOD national SUT workbooks contain multiple years in one workbook. "
+                        "Please specify year."
+                    )
+                return WIODLayout(
+                    root=candidate.parent,
+                    data_path=candidate,
+                    year=int(year),
+                    table=normalized_table,
+                    sheet_names=(_WIOD_SUT_SUPPLY_SHEET, _WIOD_SUT_USE_SHEET),
+                    scope="National",
+                    country=parsed_country,
+                    price_label="Current prices",
+                )
+
+        if normalized_table == "IOT":
+            description = "WIOT<year>[_PYP]_Nov16_ROW.xlsb or <country>_NIOT_nov16.xlsx"
+        else:
+            description = "intsut<yy>_nov16.xlsb or <country>_SUT_nov16.xlsx"
+        raise WrongInput(
+            "WIOD parsing currently supports only the WIOD 2016 workbook patterns "
+            f"{description}."
         )
 
     if source.is_file():
         return _parse_candidate(source)
 
-    candidates = sorted(
-        child for child in source.rglob("*.xlsb") if child.is_file() and pattern.match(child.name)
-    )
+    if normalized_table == "IOT":
+        candidate_patterns = ("*.xlsb", "*.xlsx")
+    else:
+        candidate_patterns = ("*.xlsb", "*.xlsx")
+
+    candidates: list[Path] = []
+    for pattern in candidate_patterns:
+        for child in source.rglob(pattern):
+            if not child.is_file():
+                continue
+            try:
+                layout = _parse_candidate(child)
+            except WrongInput:
+                continue
+            if year is not None and layout.scope == "MRIO" and layout.year != int(year):
+                continue
+            if normalized_country is not None and layout.country is not None and layout.country != normalized_country:
+                continue
+            candidates.append(child)
+
     if not candidates:
         raise WrongInput(
-            "No WIOD 2016 multiregional .xlsb workbook matching "
-            f"{description} was found in the selected directory."
+            "No WIOD 2016 workbook matching the selected path and filters was found."
         )
-    if year is not None:
-        candidates = [
-            child
-            for child in candidates
-            if _expand_wiod_year(pattern.match(child.name).group("year")) == int(year)
-        ]
-        if not candidates:
-            raise WrongInput(f"No WIOD 2016 workbook was found for year {year}.")
     if len(candidates) > 1:
-        years = sorted(_expand_wiod_year(pattern.match(child.name).group("year")) for child in candidates)
         raise WrongInput(
             "More than one WIOD workbook matches the selected directory. "
-            f"Please specify year or point to one file. Available years: {years}"
+            "Please point to one file explicitly or refine year/country."
         )
     return _parse_candidate(candidates[0])
 
@@ -152,11 +247,37 @@ def _require_pyxlsb() -> None:
         ) from exc
 
 
+def _wiod_read_error_message(path: Path) -> str:
+    """Return a user-facing error for unreadable or incomplete WIOD workbooks."""
+    return (
+        "The selected WIOD workbook could not be opened as a local readable "
+        f"'.xlsb' file: {path}. This usually means the file is incomplete, "
+        "still managed as a cloud placeholder (for example OneDrive/iCloud), "
+        "or is not a valid WIOD 2016 multiregional workbook. Make sure the "
+        "file is fully available offline and try again."
+    )
+
+
+def _assert_wiod_file_readable(path: Path) -> None:
+    """Fail early when the workbook cannot be read from the local filesystem."""
+    try:
+        with path.open("rb") as stream:
+            sample = stream.read(8)
+    except (OSError, TimeoutError) as exc:
+        raise WrongInput(_wiod_read_error_message(path)) from exc
+    if not sample:
+        raise WrongInput(_wiod_read_error_message(path))
+
+
 def _read_wiod_workbook(path: Path, *, sheet_name: str) -> pd.DataFrame:
     """Read one raw WIOD IOT sheet into a dataframe without headers."""
     _require_pyxlsb()
+    _assert_wiod_file_readable(path)
     log_time(logger, f"Parser: reading WIOD workbook {path.name} sheet {sheet_name}.", "info")
-    frame = pd.read_excel(path, sheet_name=sheet_name, engine="pyxlsb", header=None)
+    try:
+        frame = pd.read_excel(path, sheet_name=sheet_name, engine="pyxlsb", header=None)
+    except (BadZipFile, OSError, TimeoutError) as exc:
+        raise WrongInput(_wiod_read_error_message(path)) from exc
     if frame.empty:
         raise WrongFormat("The selected WIOD workbook sheet is empty.")
     return frame
@@ -165,11 +286,64 @@ def _read_wiod_workbook(path: Path, *, sheet_name: str) -> pd.DataFrame:
 def _read_wiod_table_sheet(path: Path, *, sheet_name: str) -> pd.DataFrame:
     """Read one WIOD SUT table sheet that already stores a header row."""
     _require_pyxlsb()
+    _assert_wiod_file_readable(path)
     log_time(logger, f"Parser: reading WIOD workbook {path.name} sheet {sheet_name}.", "info")
-    frame = pd.read_excel(path, sheet_name=sheet_name, engine="pyxlsb", header=0)
+    try:
+        frame = pd.read_excel(path, sheet_name=sheet_name, engine="pyxlsb", header=0)
+    except (BadZipFile, OSError, TimeoutError) as exc:
+        raise WrongInput(_wiod_read_error_message(path)) from exc
     if frame.empty:
         raise WrongFormat("The selected WIOD workbook sheet is empty.")
     return frame
+
+
+def _read_wiod_xlsx_sheet(path: Path, *, sheet_name: str, header=None) -> pd.DataFrame:
+    """Read one WIOD xlsx sheet."""
+    _assert_wiod_file_readable(path)
+    log_time(logger, f"Parser: reading WIOD workbook {path.name} sheet {sheet_name}.", "info")
+    try:
+        frame = pd.read_excel(path, sheet_name=sheet_name, header=header)
+    except (OSError, TimeoutError) as exc:
+        raise WrongInput(_wiod_read_error_message(path)) from exc
+    if frame.empty:
+        raise WrongFormat("The selected WIOD workbook sheet is empty.")
+    return frame
+
+
+def _normalize_wiod_text(value) -> str:
+    """Normalize WIOD labels for matching across workbook variants."""
+    return " ".join(str(value).strip().split())
+
+
+def _wiod_sea_metadata(path: Path) -> dict[str, dict[str, str]]:
+    """Read WIOD socio-economic variable descriptions and units."""
+    notes = pd.read_excel(path, sheet_name="Notes", header=None)
+    metadata: dict[str, dict[str, str]] = {}
+    for _, row in notes.iloc[7:, 3:5].dropna(subset=[3]).iterrows():
+        variable = str(row.iloc[0]).strip()
+        description = _normalize_wiod_text(row.iloc[1])
+        unit = ""
+        if "(" in description and description.endswith(")"):
+            base, unit_text = description.rsplit("(", 1)
+            description = _normalize_wiod_text(base)
+            unit = unit_text[:-1].strip()
+            if unit.lower().startswith("in "):
+                unit = unit[3:]
+        elif "2010=100" in description:
+            unit = "index (2010=100)"
+        metadata[variable] = {"description": description, "unit": unit or "None"}
+    return metadata
+
+
+def _load_wiod_socioeconomic_accounts(path: str | Path) -> tuple[pd.DataFrame, dict[str, dict[str, str]]]:
+    """Load the WIOD socio-economic accounts workbook."""
+    source = Path(path)
+    if not source.exists():
+        raise FileNotFoundError(source)
+    _assert_wiod_file_readable(source)
+    data = pd.read_excel(source, sheet_name="DATA")
+    metadata = _wiod_sea_metadata(source)
+    return data, metadata
 
 
 def _zero_frame(index, columns) -> pd.DataFrame:
@@ -199,6 +373,11 @@ def _strip_cpa_prefix(code: str) -> str:
     if value.startswith("CPA_"):
         return value[4:]
     return value
+
+
+def _wiod_external_import_label(region: str, commodity_code: str) -> str:
+    """Build one factor-style label for commodity imports from an external WIOD origin."""
+    return f"Import from {region} | {commodity_code}"
 
 
 def _build_iot_units(*, sector_labels: list[str], factor_labels: list[str]) -> dict[str, pd.DataFrame]:
@@ -246,6 +425,393 @@ def _build_sut_units(
     }
 
 
+def build_wiod_national_iot_from_frame(
+    frame: pd.DataFrame,
+    *,
+    year: int,
+    country: str,
+    source_path: str | Path | None = None,
+) -> tuple[
+    dict[str, dict[str, pd.DataFrame]],
+    dict[str, dict[str, list[str]]],
+    dict[str, pd.DataFrame],
+    WIODLayout,
+]:
+    """Transform one WIOD national IOT workbook sheet into canonical MARIO IOT blocks."""
+    if frame.shape[0] < 4 or frame.shape[1] < 10:
+        raise WrongFormat("The selected WIOD national IOT sheet is smaller than expected.")
+
+    source = Path(source_path or f"{country}_NIOT_nov16.xlsx")
+    layout = WIODLayout(
+        root=source.parent,
+        data_path=source,
+        year=int(year),
+        table="IOT",
+        sheet_names=("National IO-tables",),
+        scope="National",
+        country=str(country).upper(),
+        price_label="Current prices",
+        notes=(
+            "WIOD national IOT rows tagged as Domestic and Imports are aggregated "
+            "by industry code before building the single-region IOT matrices.",
+        ),
+    )
+
+    column_codes = frame.iloc[0, 4:].tolist()
+    column_labels = frame.iloc[1, 4:].tolist()
+    data = frame.iloc[2:].copy()
+    data_years = pd.to_numeric(data.iloc[:, 0], errors="coerce")
+    data = data.loc[data_years.eq(int(year))].copy()
+    if data.empty:
+        raise WrongInput(f"The selected WIOD national IOT workbook does not contain year {year}.")
+
+    data.columns = list(range(data.shape[1]))
+    data["Code"] = data.iloc[:, 1].astype(str)
+    data["Description"] = data.iloc[:, 2].astype(str)
+    data["Origin"] = data.iloc[:, 3].astype(str)
+    numeric = data.iloc[:, 4 : 4 + len(column_codes)].apply(pd.to_numeric, errors="coerce").fillna(0.0)
+    numeric.columns = column_codes
+
+    sector_codes = [
+        code for code in column_codes if code not in WIOD_NATIONAL_IOT_FINAL_DEMAND_CODES and code != "GO"
+    ]
+    final_codes = [code for code in WIOD_NATIONAL_IOT_FINAL_DEMAND_CODES if code in column_codes]
+    if not sector_codes:
+        raise WrongFormat("Could not detect WIOD national IOT sector columns.")
+    if not final_codes:
+        raise WrongFormat("Could not detect WIOD national IOT final-demand columns.")
+
+    sector_labels_lookup = {
+        str(code): str(label)
+        for code, label in zip(column_codes, column_labels)
+        if code in sector_codes
+    }
+    final_labels_lookup = {
+        str(code): WIOD_SUT_FINAL_DEMAND_LABELS.get(str(code), str(code))
+        for code in final_codes
+    }
+
+    domestic_rows = data.loc[(data["Origin"] == "Domestic") & data["Code"].isin(sector_codes)].copy()
+    imports_rows = data.loc[(data["Origin"] == "Imports") & data["Code"].isin(sector_codes)].copy()
+    factor_rows = data.loc[(data["Origin"] == "TOT") & data["Code"].isin(WIOD_FACTOR_ROWS)].copy()
+    if domestic_rows.empty:
+        raise WrongFormat("Could not detect domestic industry rows in the WIOD national IOT workbook.")
+    if factor_rows.empty:
+        raise WrongFormat("Could not detect factor rows in the WIOD national IOT workbook.")
+
+    domestic_numeric = (
+        pd.concat([domestic_rows[["Code"]], numeric.loc[domestic_rows.index]], axis=1)
+        .groupby("Code", sort=False)
+        .sum()
+        .reindex(sector_codes)
+        .fillna(0.0)
+    )
+    imports_numeric = (
+        pd.concat([imports_rows[["Code"]], numeric.loc[imports_rows.index]], axis=1)
+        .groupby("Code", sort=False)
+        .sum()
+        .reindex(sector_codes)
+        .fillna(0.0)
+    )
+    total_numeric = domestic_numeric.add(imports_numeric, fill_value=0.0)
+
+    factor_numeric = (
+        pd.concat([factor_rows[["Code"]], numeric.loc[factor_rows.index]], axis=1)
+        .groupby("Code", sort=False)
+        .sum()
+        .reindex(WIOD_FACTOR_ROWS)
+    )
+    missing_factors = [code for code in WIOD_FACTOR_ROWS if code not in factor_numeric.dropna(how="all").index]
+    if missing_factors:
+        factor_numeric = factor_numeric.fillna(0.0)
+
+    sector_labels = [sector_labels_lookup[code] for code in sector_codes]
+    final_labels = [final_labels_lookup[code] for code in final_codes]
+    factor_labels = [WIOD_FACTOR_LABELS[code] for code in WIOD_FACTOR_ROWS]
+    region = layout.country or str(country).upper()
+
+    sector_axis = pd.MultiIndex.from_arrays(
+        [
+            [region] * len(sector_labels),
+            [_MASTER_INDEX["s"]] * len(sector_labels),
+            sector_labels,
+        ]
+    )
+    final_axis = pd.MultiIndex.from_arrays(
+        [
+            [region] * len(final_labels),
+            [_MASTER_INDEX["n"]] * len(final_labels),
+            final_labels,
+        ]
+    )
+    factor_axis = pd.Index(factor_labels, name=None)
+    satellite_axis = pd.Index([WIOD_SATELLITE_PLACEHOLDER], name=None)
+
+    Z = pd.DataFrame(total_numeric[sector_codes].to_numpy(dtype=float), index=sector_axis, columns=sector_axis)
+    Y = pd.DataFrame(total_numeric[final_codes].to_numpy(dtype=float), index=sector_axis, columns=final_axis)
+    V = pd.DataFrame(factor_numeric[sector_codes].to_numpy(dtype=float), index=factor_axis, columns=sector_axis)
+    E = _zero_frame(satellite_axis, sector_axis)
+    EY = _zero_frame(satellite_axis, final_axis)
+
+    matrices = {"baseline": {"Z": Z, "Y": Y, "V": V, "E": E, "EY": EY}}
+    units = _build_iot_units(sector_labels=sector_labels, factor_labels=factor_labels)
+    indeces = {
+        "r": {"main": [region]},
+        "s": {"main": sector_labels},
+        "f": {"main": factor_labels},
+        "k": {"main": list(satellite_axis)},
+        "n": {"main": final_labels},
+    }
+    rename_index(matrices["baseline"])
+    return matrices, indeces, units, layout
+
+
+def build_wiod_national_sut_from_frames(
+    supply_frame: pd.DataFrame,
+    use_frame: pd.DataFrame,
+    *,
+    year: int,
+    country: str,
+    source_path: str | Path | None = None,
+) -> tuple[
+    dict[str, dict[str, pd.DataFrame]],
+    dict[str, dict[str, list[str]]],
+    dict[str, pd.DataFrame],
+    WIODLayout,
+]:
+    """Transform one WIOD national SUT workbook into split-native MARIO blocks."""
+    source = Path(source_path or f"{country}_SUT_nov16.xlsx")
+    layout = WIODLayout(
+        root=source.parent,
+        data_path=source,
+        year=int(year),
+        table="SUT",
+        sheet_names=(_WIOD_SUT_SUPPLY_SHEET, _WIOD_SUT_USE_SHEET),
+        scope="National",
+        country=str(country).upper(),
+        price_label="Current prices",
+    )
+
+    supply_codes = supply_frame.iloc[0, 3:].tolist()
+    supply_labels = supply_frame.iloc[1, 3:].tolist()
+    supply_data = supply_frame.iloc[2:].copy()
+    supply_years = pd.to_numeric(supply_data.iloc[:, 0], errors="coerce")
+    supply_data = supply_data.loc[supply_years.eq(int(year))].copy()
+    if supply_data.empty:
+        raise WrongInput(f"The selected WIOD national SUT workbook does not contain year {year}.")
+    supply_data.columns = list(range(supply_data.shape[1]))
+    supply_data["Code"] = supply_data.iloc[:, 1].astype(str)
+    supply_data["Description"] = supply_data.iloc[:, 2].astype(str)
+    supply_numeric = supply_data.iloc[:, 3 : 3 + len(supply_codes)].apply(pd.to_numeric, errors="coerce").fillna(0.0)
+    supply_numeric.columns = supply_codes
+
+    use_codes = use_frame.iloc[0, 3:].tolist()
+    use_labels = use_frame.iloc[1, 3:].tolist()
+    use_data = use_frame.iloc[2:].copy()
+    use_years = pd.to_numeric(use_data.iloc[:, 0], errors="coerce")
+    use_data = use_data.loc[use_years.eq(int(year))].copy()
+    if use_data.empty:
+        raise WrongInput(f"The selected WIOD national SUT workbook does not contain year {year}.")
+    use_data.columns = list(range(use_data.shape[1]))
+    use_data["Code"] = use_data.iloc[:, 1].astype(str)
+    use_data["Description"] = use_data.iloc[:, 2].astype(str)
+    use_numeric = use_data.iloc[:, 3 : 3 + len(use_codes)].apply(pd.to_numeric, errors="coerce").fillna(0.0)
+    use_numeric.columns = use_codes
+
+    activity_codes = [code for code in supply_codes if code not in WIOD_NATIONAL_SUT_SUPPLY_TOTAL_COLUMNS]
+    final_demand_codes = [code for code in WIOD_NATIONAL_SUT_FINAL_DEMAND_CODES if code in use_codes]
+    factor_codes = [code for code in WIOD_FACTOR_ROWS if code in use_data["Code"].tolist()]
+    if not activity_codes:
+        raise WrongFormat("Could not detect activity columns in the WIOD national SUT workbook.")
+    if not final_demand_codes:
+        raise WrongFormat("Could not detect final-demand columns in the WIOD national SUT workbook.")
+    if not factor_codes:
+        raise WrongFormat("Could not detect factor rows in the WIOD national SUT workbook.")
+
+    activity_labels = activity_codes
+    commodity_rows_supply = supply_data.loc[supply_data["Code"].astype(str).str.startswith("CPA_")].copy()
+    commodity_rows_use = use_data.loc[use_data["Code"].astype(str).str.startswith("CPA_")].copy()
+    commodity_codes = commodity_rows_supply["Code"].astype(str).map(_strip_cpa_prefix).tolist()
+    if commodity_codes != commodity_rows_use["Code"].astype(str).map(_strip_cpa_prefix).tolist():
+        raise WrongFormat("The WIOD national SUT SUP and USE sheets do not expose the same commodity order.")
+    commodity_labels = commodity_codes
+    factor_labels = [WIOD_FACTOR_LABELS[code] for code in factor_codes]
+    final_labels = [WIOD_NATIONAL_SUT_FINAL_DEMAND_LABELS[code] for code in final_demand_codes]
+
+    region = layout.country or str(country).upper()
+    activity_axis = pd.MultiIndex.from_arrays(
+        [
+            [region] * len(activity_codes),
+            [_MASTER_INDEX["a"]] * len(activity_codes),
+            activity_labels,
+        ]
+    )
+    commodity_axis = pd.MultiIndex.from_arrays(
+        [
+            [region] * len(commodity_codes),
+            [_MASTER_INDEX["c"]] * len(commodity_codes),
+            commodity_labels,
+        ]
+    )
+    final_demand_axis = pd.MultiIndex.from_arrays(
+        [
+            [region] * len(final_labels),
+            [_MASTER_INDEX["n"]] * len(final_labels),
+            final_labels,
+        ]
+    )
+    factor_axis = pd.Index(factor_labels, name=None)
+    satellite_axis = pd.Index([WIOD_SATELLITE_PLACEHOLDER], name=None)
+
+    S = pd.DataFrame(
+        supply_numeric.loc[commodity_rows_supply.index, activity_codes].to_numpy(dtype=float).T,
+        index=activity_axis,
+        columns=commodity_axis,
+    )
+    U = pd.DataFrame(
+        use_numeric.loc[commodity_rows_use.index, activity_codes].to_numpy(dtype=float),
+        index=commodity_axis,
+        columns=activity_axis,
+    )
+    Yc = pd.DataFrame(
+        use_numeric.loc[commodity_rows_use.index, final_demand_codes].to_numpy(dtype=float),
+        index=commodity_axis,
+        columns=final_demand_axis,
+    )
+    factor_rows = use_data.loc[use_data["Code"].isin(factor_codes)].copy()
+    factor_rows["factor_order"] = factor_rows["Code"].map({code: i for i, code in enumerate(factor_codes)})
+    factor_rows = factor_rows.sort_values("factor_order")
+    Va = pd.DataFrame(
+        use_numeric.loc[factor_rows.index, activity_codes].to_numpy(dtype=float),
+        index=factor_axis,
+        columns=activity_axis,
+    )
+    Ya = _zero_frame(activity_axis, final_demand_axis)
+    Vc = _zero_frame(factor_axis, commodity_axis)
+    Ea = _zero_frame(satellite_axis, activity_axis)
+    Ec = _zero_frame(satellite_axis, commodity_axis)
+    EY = _zero_frame(satellite_axis, final_demand_axis)
+
+    matrices = {
+        "baseline": {
+            "S": S,
+            "U": U,
+            "Ya": Ya,
+            "Yc": Yc,
+            "Va": Va,
+            "Vc": Vc,
+            "Ea": Ea,
+            "Ec": Ec,
+            "EY": EY,
+        }
+    }
+    units = _build_sut_units(
+        activity_labels=activity_labels,
+        commodity_labels=commodity_labels,
+        factor_labels=factor_labels,
+    )
+    indeces = {
+        "r": {"main": [region]},
+        "n": {"main": final_labels},
+        "k": {"main": list(satellite_axis)},
+        "f": {"main": factor_labels},
+        "a": {"main": activity_labels},
+        "c": {"main": commodity_labels},
+        "s": {"main": activity_labels + [label for label in commodity_labels if label not in activity_labels]},
+    }
+    rename_index(matrices["baseline"])
+    return matrices, indeces, units, layout
+
+
+def _attach_wiod_socioeconomic_extensions(
+    *,
+    matrices: dict[str, dict[str, pd.DataFrame]],
+    indeces: dict[str, dict[str, list[str]]],
+    units: dict[str, pd.DataFrame],
+    layout: WIODLayout,
+    extensions_path: str | Path,
+) -> tuple[
+    dict[str, dict[str, pd.DataFrame]],
+    dict[str, dict[str, list[str]]],
+    dict[str, pd.DataFrame],
+    WIODLayout,
+]:
+    """Attach WIOD socio-economic accounts as satellite extensions."""
+    data, metadata = _load_wiod_socioeconomic_accounts(extensions_path)
+    year_column = int(layout.year)
+    if year_column not in data.columns:
+        raise WrongInput(
+            f"The WIOD socio-economic accounts workbook does not contain year {layout.year}."
+        )
+
+    variables = [variable for variable in metadata if variable in set(data["variable"].dropna().astype(str))]
+    satellite_labels = [
+        f"{variable} | {metadata[variable]['description']}" for variable in variables
+    ]
+    satellite_units = pd.DataFrame(
+        {"unit": [metadata[variable]["unit"] for variable in variables]},
+        index=pd.Index(satellite_labels, name=None),
+    )
+    notes = list(layout.notes)
+
+    if layout.table == "IOT":
+        sector_axis = matrices["baseline"]["Z"].columns
+        E = _zero_frame(pd.Index(satellite_labels, name=None), sector_axis)
+        regions = sector_axis.get_level_values(0)
+        items = sector_axis.get_level_values(2)
+        normalized_items = [_normalize_wiod_text(item) for item in items]
+        for region in pd.Index(regions).unique():
+            region_mask = regions == region
+            region_data = data.loc[data["country"].astype(str) == str(region)].copy()
+            if region_data.empty:
+                notes.append(
+                    f"WIOD socio-economic extensions do not cover region {region}; related columns were left at zero."
+                )
+                continue
+            region_data["normalized_description"] = region_data["description"].map(_normalize_wiod_text)
+            target_items = [normalized_items[idx] for idx, flag in enumerate(region_mask) if flag]
+            for row_idx, variable in enumerate(variables):
+                variable_data = region_data.loc[region_data["variable"].astype(str) == variable]
+                series = (
+                    variable_data.drop_duplicates("normalized_description")
+                    .set_index("normalized_description")[year_column]
+                )
+                aligned = pd.to_numeric(series.reindex(target_items), errors="coerce").fillna(0.0)
+                E.iloc[row_idx, np.flatnonzero(region_mask)] = aligned.to_numpy(dtype=float)
+
+        matrices["baseline"]["E"] = E
+        matrices["baseline"]["EY"] = _zero_frame(E.index, matrices["baseline"]["Y"].columns)
+
+    else:
+        activity_axis = matrices["baseline"]["S"].index
+        Ea = _zero_frame(pd.Index(satellite_labels, name=None), activity_axis)
+        regions = activity_axis.get_level_values(0)
+        items = activity_axis.get_level_values(2).astype(str)
+        for region in pd.Index(regions).unique():
+            region_mask = regions == region
+            region_data = data.loc[data["country"].astype(str) == str(region)].copy()
+            if region_data.empty:
+                notes.append(
+                    f"WIOD socio-economic extensions do not cover region {region}; related activity columns were left at zero."
+                )
+                continue
+            target_items = [items[idx] for idx, flag in enumerate(region_mask) if flag]
+            for row_idx, variable in enumerate(variables):
+                variable_data = region_data.loc[region_data["variable"].astype(str) == variable].copy()
+                variable_data["code"] = variable_data["code"].astype(str)
+                series = variable_data.drop_duplicates("code").set_index("code")[year_column]
+                aligned = pd.to_numeric(series.reindex(target_items), errors="coerce").fillna(0.0)
+                Ea.iloc[row_idx, np.flatnonzero(region_mask)] = aligned.to_numpy(dtype=float)
+
+        matrices["baseline"]["Ea"] = Ea
+        matrices["baseline"]["Ec"] = _zero_frame(Ea.index, matrices["baseline"]["Ec"].columns)
+        matrices["baseline"]["EY"] = _zero_frame(Ea.index, matrices["baseline"]["EY"].columns)
+
+    units[_MASTER_INDEX["k"]] = satellite_units
+    indeces["k"]["main"] = satellite_labels
+    return matrices, indeces, units, replace(layout, notes=tuple(notes))
+
+
 def build_wiod_iot_from_frame(
     frame: pd.DataFrame,
     *,
@@ -262,12 +828,15 @@ def build_wiod_iot_from_frame(
         raise WrongFormat("The selected WIOD sheet is smaller than the expected WIOD 2016 layout.")
 
     source = Path(source_path or f"WIOT{year}_Nov16_ROW.xlsb")
+    price_text = _normalize_wiod_text(frame.iloc[1, 0]) if frame.shape[0] > 1 else ""
     layout = WIODLayout(
         root=source.parent,
         data_path=source,
         year=int(year),
         table="IOT",
         sheet_names=(str(year),),
+        scope="MRIO",
+        price_label="Previous year prices" if "previous" in price_text.lower() else "Current prices",
     )
 
     column_codes = frame.iloc[2, 4:].tolist()
@@ -300,7 +869,7 @@ def build_wiod_iot_from_frame(
     final_col_mask = column_meta["region"].ne("TOT") & column_meta["code"].isin(WIOD_FINAL_DEMAND_CODES)
     output_col_mask = column_meta["code"].eq("GO")
 
-    sector_row_mask = row_meta["region"].ne("TOT")
+    sector_row_mask = row_meta["region"].ne("TOT") & row_meta["region"].notna() & row_meta["code"].notna()
     factor_row_mask = row_meta["code"].isin(WIOD_FACTOR_ROWS)
     skip_row_mask = row_meta["code"].isin({"II_fob", "GO"})
 
@@ -412,6 +981,7 @@ def build_wiod_sut_from_frames(
     use_frame: pd.DataFrame,
     *,
     year: int,
+    row_mode: str = "external_account",
     source_path: str | Path | None = None,
 ) -> tuple[
     dict[str, dict[str, pd.DataFrame]],
@@ -421,12 +991,21 @@ def build_wiod_sut_from_frames(
 ]:
     """Transform WIOD 2016 multiregional supply/use sheets into MARIO SUT blocks."""
     source = Path(source_path or f"intsut{str(year)[-2:]}_nov16.xlsb")
+    normalized_row_mode = str(row_mode).strip().lower()
+    if normalized_row_mode not in {"external_account", "legacy_region"}:
+        raise WrongInput(
+            "WIOD SUT row_mode should be either 'external_account' or 'legacy_region'."
+        )
+
+    notes: list[str] = []
     layout = WIODLayout(
         root=source.parent,
         data_path=source,
         year=int(year),
         table="SUT",
         sheet_names=(_WIOD_SUT_SUPPLY_SHEET, _WIOD_SUT_USE_SHEET),
+        scope="MRIO",
+        price_label="Current prices",
     )
 
     required_supply_cols = {"REP", "PAR", "CPA"}
@@ -479,7 +1058,16 @@ def build_wiod_sut_from_frames(
         raise WrongFormat("Could not detect factor rows in the WIOD USE sheet.")
 
     activity_regions = list(dict.fromkeys(supply_commodity_rows["REP"].tolist()))
-    commodity_regions = list(dict.fromkeys(use_commodity_rows["PAR"].tolist()))
+    if normalized_row_mode == "legacy_region":
+        commodity_regions = list(dict.fromkeys(use_commodity_rows["PAR"].tolist()))
+        external_regions: list[str] = []
+    else:
+        commodity_regions = activity_regions.copy()
+        external_regions = [
+            region
+            for region in dict.fromkeys(use_commodity_rows["PAR"].tolist())
+            if region not in set(activity_regions)
+        ]
     commodity_codes = list(
         dict.fromkeys(supply_commodity_rows["CPA"].map(_strip_cpa_prefix).tolist())
     )
@@ -492,10 +1080,27 @@ def build_wiod_sut_from_frames(
         )
 
     factor_codes = list(WIOD_FACTOR_ROWS)
-    factor_labels = [WIOD_FACTOR_LABELS[code] for code in factor_codes]
+    base_factor_labels = [WIOD_FACTOR_LABELS[code] for code in factor_codes]
+    import_labels = [
+        _wiod_external_import_label(region, commodity_code)
+        for region in external_regions
+        for commodity_code in commodity_codes
+    ]
+    factor_labels = base_factor_labels + import_labels
     final_demand_labels = [WIOD_SUT_FINAL_DEMAND_LABELS[code] for code in final_demand_codes]
     satellite_axis = pd.Index([WIOD_SATELLITE_PLACEHOLDER], name=None)
     factor_axis = pd.Index(factor_labels, name=None)
+    import_row_labels = {
+        (region, commodity_code): _wiod_external_import_label(region, commodity_code)
+        for region in external_regions
+        for commodity_code in commodity_codes
+    }
+    if external_regions:
+        notes.append(
+            "External WIOD commodity origins "
+            f"{', '.join(external_regions)} were removed from the endogenous region set. "
+            "Their intermediate uses were reclassified into Va and their final-demand uses into VY."
+        )
 
     activity_axis = _three_level_axis(activity_regions, _MASTER_INDEX["a"], activity_codes)
     commodity_axis = _three_level_axis(commodity_regions, _MASTER_INDEX["c"], commodity_codes)
@@ -518,6 +1123,7 @@ def build_wiod_sut_from_frames(
     U_data = np.zeros((len(commodity_axis), len(activity_axis)), dtype=float)
     Yc_data = np.zeros((len(commodity_axis), len(final_demand_axis)), dtype=float)
     Va_data = np.zeros((len(factor_axis), len(activity_axis)), dtype=float)
+    VY_data = np.zeros((len(factor_axis), len(final_demand_axis)), dtype=float)
 
     supply_commodity_rows["commodity_code"] = supply_commodity_rows["CPA"].map(_strip_cpa_prefix)
     for region in activity_regions:
@@ -538,19 +1144,65 @@ def build_wiod_sut_from_frames(
     par_dtype = pd.CategoricalDtype(categories=commodity_regions, ordered=True)
     commodity_dtype = pd.CategoricalDtype(categories=commodity_codes, ordered=True)
     for region in activity_regions:
-        block = use_commodity_rows.loc[use_commodity_rows["REP"] == region].copy()
-        block["PAR"] = block["PAR"].astype(par_dtype)
-        block["commodity_code"] = block["commodity_code"].astype(commodity_dtype)
-        if block.duplicated(["PAR", "commodity_code"]).any():
+        region_rows = use_commodity_rows.loc[use_commodity_rows["REP"] == region].copy()
+
+        if normalized_row_mode == "legacy_region":
+            block = region_rows.copy()
+            block["PAR"] = block["PAR"].astype(par_dtype)
+            block["commodity_code"] = block["commodity_code"].astype(commodity_dtype)
+            if block.duplicated(["PAR", "commodity_code"]).any():
+                raise WrongFormat(f"The WIOD USE sheet contains duplicate commodity rows for {region}.")
+            block = block.sort_values(["PAR", "commodity_code"])
+            expected_rows = len(commodity_regions) * len(commodity_codes)
+            if len(block) != expected_rows:
+                raise WrongFormat(
+                    f"The WIOD USE sheet exposes {len(block)} commodity rows for {region}, expected {expected_rows}."
+                )
+            U_data[:, activity_slices[region]] = block[activity_codes].to_numpy(dtype=float, copy=True)
+            Yc_data[:, final_demand_slices[region]] = block[final_demand_codes].to_numpy(dtype=float, copy=True)
+            continue
+
+        endogenous_block = region_rows.loc[region_rows["PAR"].isin(commodity_regions)].copy()
+        endogenous_block["PAR"] = endogenous_block["PAR"].astype(par_dtype)
+        endogenous_block["commodity_code"] = endogenous_block["commodity_code"].astype(commodity_dtype)
+        if endogenous_block.duplicated(["PAR", "commodity_code"]).any():
             raise WrongFormat(f"The WIOD USE sheet contains duplicate commodity rows for {region}.")
-        block = block.sort_values(["PAR", "commodity_code"])
+        endogenous_block = endogenous_block.sort_values(["PAR", "commodity_code"])
         expected_rows = len(commodity_regions) * len(commodity_codes)
-        if len(block) != expected_rows:
+        if len(endogenous_block) != expected_rows:
             raise WrongFormat(
-                f"The WIOD USE sheet exposes {len(block)} commodity rows for {region}, expected {expected_rows}."
+                f"The WIOD USE sheet exposes {len(endogenous_block)} endogenous commodity rows for {region}, expected {expected_rows}."
             )
-        U_data[:, activity_slices[region]] = block[activity_codes].to_numpy(dtype=float, copy=True)
-        Yc_data[:, final_demand_slices[region]] = block[final_demand_codes].to_numpy(dtype=float, copy=True)
+        U_data[:, activity_slices[region]] = endogenous_block[activity_codes].to_numpy(dtype=float, copy=True)
+        Yc_data[:, final_demand_slices[region]] = endogenous_block[final_demand_codes].to_numpy(dtype=float, copy=True)
+
+        external_block = region_rows.loc[~region_rows["PAR"].isin(commodity_regions)].copy()
+        if external_block.empty:
+            continue
+        if external_block.duplicated(["PAR", "commodity_code"]).any():
+            raise WrongFormat(f"The WIOD USE sheet contains duplicate external commodity rows for {region}.")
+        external_lookup = external_block.set_index(["PAR", "commodity_code"])
+        for external_region in external_regions:
+            missing_external = [
+                commodity_code
+                for commodity_code in commodity_codes
+                if (external_region, commodity_code) not in external_lookup.index
+            ]
+            if missing_external:
+                raise WrongFormat(
+                    f"The WIOD USE sheet is missing external commodity rows for reporter {region}, origin {external_region}: {missing_external}."
+                )
+            for commodity_code in commodity_codes:
+                row = external_lookup.loc[(external_region, commodity_code)]
+                factor_pos = factor_axis.get_loc(import_row_labels[(external_region, commodity_code)])
+                Va_data[factor_pos, activity_slices[region]] = row[activity_codes].to_numpy(
+                    dtype=float,
+                    copy=True,
+                )
+                VY_data[factor_pos, final_demand_slices[region]] = row[final_demand_codes].to_numpy(
+                    dtype=float,
+                    copy=True,
+                )
 
     for region in activity_regions:
         block = factor_rows.loc[factor_rows["REP"] == region].copy()
@@ -562,7 +1214,7 @@ def build_wiod_sut_from_frames(
             raise WrongFormat(
                 f"The WIOD USE sheet is missing factor rows for {region}: {missing_factors}."
             )
-        Va_data[:, activity_slices[region]] = block.loc[factor_codes, activity_codes].to_numpy(
+        Va_data[: len(base_factor_labels), activity_slices[region]] = block.loc[factor_codes, activity_codes].to_numpy(
             dtype=float,
             copy=True,
         )
@@ -607,12 +1259,21 @@ def build_wiod_sut_from_frames(
             "EY": EY,
         }
     }
+    if normalized_row_mode == "external_account":
+        VY = pd.DataFrame(VY_data, index=factor_axis, columns=final_demand_axis)
+        matrices["baseline"]["VY"] = VY
+    layout = replace(layout, notes=tuple(notes))
     rename_index(matrices["baseline"])
     log_time(
         logger,
         (
             "Parser: WIOD SUT payload ready with shapes "
-            f"S={S.shape}, U={U.shape}, Yc={Yc.shape}, Va={Va.shape}."
+            f"S={S.shape}, U={U.shape}, Yc={Yc.shape}, Va={Va.shape}"
+            + (
+                f", VY={matrices['baseline']['VY'].shape}."
+                if normalized_row_mode == "external_account"
+                else "."
+            )
         ),
         "info",
     )
@@ -623,35 +1284,85 @@ def parse_wiod_iot(
     path: str | Path,
     *,
     year: int | None = None,
+    country: str | None = None,
+    add_extensions: str | Path | None = None,
 ) -> tuple[
     dict[str, dict[str, pd.DataFrame]],
     dict[str, dict[str, list[str]]],
     dict[str, pd.DataFrame],
     WIODLayout,
 ]:
-    """Parse one WIOD 2016 multiregional IOT workbook into MARIO blocks."""
-    layout = detect_wiod_layout(path, table="IOT", year=year)
-    frame = _read_wiod_workbook(layout.data_path, sheet_name=layout.sheet_names[0])
-    return build_wiod_iot_from_frame(frame, year=layout.year, source_path=layout.data_path)
+    """Parse one WIOD 2016 IOT workbook into MARIO blocks."""
+    layout = detect_wiod_layout(path, table="IOT", year=year, country=country)
+    if layout.scope == "MRIO":
+        frame = _read_wiod_workbook(layout.data_path, sheet_name=layout.sheet_names[0])
+        matrices, indeces, units, layout = build_wiod_iot_from_frame(
+            frame,
+            year=layout.year,
+            source_path=layout.data_path,
+        )
+    else:
+        frame = _read_wiod_xlsx_sheet(layout.data_path, sheet_name=layout.sheet_names[0], header=None)
+        matrices, indeces, units, layout = build_wiod_national_iot_from_frame(
+            frame,
+            year=layout.year,
+            country=layout.country or country or "UNK",
+            source_path=layout.data_path,
+        )
+
+    if add_extensions is not None:
+        matrices, indeces, units, layout = _attach_wiod_socioeconomic_extensions(
+            matrices=matrices,
+            indeces=indeces,
+            units=units,
+            layout=layout,
+            extensions_path=add_extensions,
+        )
+    return matrices, indeces, units, layout
 
 
 def parse_wiod_sut(
     path: str | Path,
     *,
     year: int | None = None,
+    country: str | None = None,
+    add_extensions: str | Path | None = None,
+    row_mode: str = "external_account",
 ) -> tuple[
     dict[str, dict[str, pd.DataFrame]],
     dict[str, dict[str, list[str]]],
     dict[str, pd.DataFrame],
     WIODLayout,
 ]:
-    """Parse one WIOD 2016 multiregional SUT workbook into split-native MARIO blocks."""
-    layout = detect_wiod_layout(path, table="SUT", year=year)
-    supply = _read_wiod_table_sheet(layout.data_path, sheet_name=_WIOD_SUT_SUPPLY_SHEET)
-    use = _read_wiod_table_sheet(layout.data_path, sheet_name=_WIOD_SUT_USE_SHEET)
-    return build_wiod_sut_from_frames(
-        supply,
-        use,
-        year=layout.year,
-        source_path=layout.data_path,
-    )
+    """Parse one WIOD 2016 SUT workbook into split-native MARIO blocks."""
+    layout = detect_wiod_layout(path, table="SUT", year=year, country=country)
+    if layout.scope == "MRIO":
+        supply = _read_wiod_table_sheet(layout.data_path, sheet_name=_WIOD_SUT_SUPPLY_SHEET)
+        use = _read_wiod_table_sheet(layout.data_path, sheet_name=_WIOD_SUT_USE_SHEET)
+        matrices, indeces, units, layout = build_wiod_sut_from_frames(
+            supply,
+            use,
+            year=layout.year,
+            row_mode=row_mode,
+            source_path=layout.data_path,
+        )
+    else:
+        supply = _read_wiod_xlsx_sheet(layout.data_path, sheet_name=_WIOD_SUT_SUPPLY_SHEET, header=None)
+        use = _read_wiod_xlsx_sheet(layout.data_path, sheet_name=_WIOD_SUT_USE_SHEET, header=None)
+        matrices, indeces, units, layout = build_wiod_national_sut_from_frames(
+            supply,
+            use,
+            year=layout.year,
+            country=layout.country or country or "UNK",
+            source_path=layout.data_path,
+        )
+
+    if add_extensions is not None:
+        matrices, indeces, units, layout = _attach_wiod_socioeconomic_extensions(
+            matrices=matrices,
+            indeces=indeces,
+            units=units,
+            layout=layout,
+            extensions_path=add_extensions,
+        )
+    return matrices, indeces, units, layout

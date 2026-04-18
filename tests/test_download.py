@@ -16,6 +16,10 @@ from mario.download import (
     download_statcan,
     download_statcan_openio_canada,
     download_wiod2016,
+    download_wiod2016_iot_pyp,
+    download_wiod2016_national_iot,
+    download_wiod2016_national_sut,
+    download_wiod2016_socioeconomic_accounts,
 )
 from mario.log_exc.exceptions import NotImplementable
 
@@ -231,6 +235,63 @@ def test_download_wiod2016_extracts_workbook(monkeypatch, tmp_path):
     assert info["workbooks"][0].endswith("WIOT2014_Nov16_ROW.xlsb")
 
 
+def test_download_wiod2016_iot_pyp_extracts_workbook(monkeypatch, tmp_path):
+    archive = _zip_bytes({"WIOT2014_PYP_Nov16_ROW.xlsb": b"binary"})
+
+    def fake_get(url, **kwargs):
+        return FakeResponse(
+            content=archive,
+            headers={"content-disposition": "attachment; filename*=UTF-8''WIOTS_PYP_in_EXCEL.zip"},
+            url=url,
+        )
+
+    monkeypatch.setattr("mario.download.requests.get", fake_get)
+
+    info = download_wiod2016_iot_pyp(tmp_path)
+
+    assert info["archive"] is None
+    assert any(item.endswith("WIOT2014_PYP_Nov16_ROW.xlsb") for item in info["files"])
+
+
+def test_download_wiod2016_national_bundles_extract(monkeypatch, tmp_path):
+    archive = _zip_bytes({"ITA_NIOT_nov16.xlsx": b"binary", "ITA_SUT_nov16.xlsx": b"binary"})
+    calls: list[str] = []
+
+    def fake_get(url, **kwargs):
+        calls.append(url)
+        filename = "NIOTS.zip" if "199099" in url else "SUT_national.zip"
+        return FakeResponse(
+            content=archive,
+            headers={"content-disposition": f"attachment; filename*=UTF-8''{filename}"},
+            url=url,
+        )
+
+    monkeypatch.setattr("mario.download.requests.get", fake_get)
+
+    niot = download_wiod2016_national_iot(tmp_path / "niot")
+    nsut = download_wiod2016_national_sut(tmp_path / "nsut")
+
+    assert any(item.endswith("ITA_NIOT_nov16.xlsx") for item in niot["files"])
+    assert any(item.endswith("ITA_SUT_nov16.xlsx") for item in nsut["files"])
+    assert len(calls) == 2
+
+
+def test_download_wiod2016_socioeconomic_accounts_saves_xlsx(monkeypatch, tmp_path):
+    def fake_get(url, **kwargs):
+        return FakeResponse(
+            content=b"xlsx-bytes",
+            headers={"content-disposition": "attachment; filename*=UTF-8''Socio_Economic_Accounts.xlsx"},
+            url=url,
+        )
+
+    monkeypatch.setattr("mario.download.requests.get", fake_get)
+
+    info = download_wiod2016_socioeconomic_accounts(tmp_path)
+
+    assert info["file"].endswith("Socio_Economic_Accounts.xlsx")
+    assert Path(info["file"]).exists()
+
+
 def test_download_eurostat_reuses_existing_local_files(monkeypatch, tmp_path):
     supply_path = tmp_path / "NAIO_10_CP15_IT_2017_MIO_EUR.csv"
     use_path = tmp_path / "NAIO_10_CP16_IT_2017_MIO_EUR.csv"
@@ -314,6 +375,10 @@ def test_download_istat_io_resolves_zip_from_release_page(monkeypatch, tmp_path)
 
 def test_mario_does_not_export_legacy_pymrio_downloaders():
     assert hasattr(mario, "download_wiod2016")
+    assert hasattr(mario, "download_wiod2016_iot_pyp")
+    assert hasattr(mario, "download_wiod2016_national_iot")
+    assert hasattr(mario, "download_wiod2016_national_sut")
+    assert hasattr(mario, "download_wiod2016_socioeconomic_accounts")
     assert hasattr(mario, "download_statcan_openio_canada")
     assert not hasattr(mario, "download_wiod2013")
     assert not hasattr(mario, "download_eora26")
