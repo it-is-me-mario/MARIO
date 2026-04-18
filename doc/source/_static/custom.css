@@ -56,6 +56,53 @@
   background: color-mix(in srgb, var(--pst-color-background, #fff) 96%, #000 4%);
 }
 
+.parser-coverage-query {
+  margin: 1rem 0 2rem;
+}
+
+.parser-coverage-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+  align-items: end;
+}
+
+.parser-coverage-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.parser-coverage-field span {
+  font-weight: 600;
+}
+
+.parser-coverage-field select {
+  width: 100%;
+  min-width: 12rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--pst-color-border, #d0d7de);
+  border-radius: 0.35rem;
+  background: var(--pst-color-surface, #fff);
+  color: var(--pst-color-text-base);
+}
+
+.parser-coverage-actions {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.parser-coverage-help,
+.parser-coverage-message,
+.parser-coverage-summary {
+  margin: 0.85rem 0 0;
+}
+
+.parser-coverage-results[hidden] {
+  display: none;
+}
+
 .publications-primary-citation {
   margin: 0 0 1.25rem;
 }

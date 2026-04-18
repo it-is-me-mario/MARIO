@@ -18,21 +18,14 @@ Custom Parsers
    from_parquet
    from_pymrio
 
-Official National Accounts
---------------------------
+Official repositories
+---------------------
 
 .. toctree::
    :maxdepth: 1
 
    istat
    statcan
-
-International repositories
---------------------------
-
-.. toctree::
-   :maxdepth: 1
-
    eurostat_sdmx
    exiobase
    figaro
@@ -45,3 +38,15 @@ International repositories
    adb
    cepalstat
    useeio
+
+Coverage query
+--------------
+
+Use the query below to check which parser/source combinations are available for
+each country and time range.
+
+Choose a country, a year, or both. The second selector updates itself to the
+still-available values before you run the query.
+
+.. raw:: html
+   :file: _generated/coverage_query.html

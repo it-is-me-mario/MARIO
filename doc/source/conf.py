@@ -104,7 +104,7 @@ html_theme_options = {
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
-html_js_files = ["external-links.js", "terminology-tables.js"]
+html_js_files = ["external-links.js", "terminology-tables.js", "parser-coverage.js"]
 bibtex_bibfiles = ["publications/mario.bib"]
 
 # copy btn settings
