@@ -23,12 +23,14 @@ __all__ = [
     "get_table_schema_labels",
     "level_name",
     "matrix_name",
+    "write_template_definition",
+    "write_parse_template",
 ]
 
 
 def __getattr__(name: str):
     """Resolve model exports lazily to keep import cost and cycles low."""
-    if name in {"DataTemplate", "MatrixBuilder"}:
+    if name in {"DataTemplate", "MatrixBuilder", "write_template_definition", "write_parse_template"}:
         module = import_module("mario.model.builders")
         return getattr(module, name)
 

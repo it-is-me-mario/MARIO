@@ -8,6 +8,8 @@ loading helpers.
    :maxdepth: 1
 
    ../api_document/mario.load_test
+   ../api_document/mario.write_template_definition
+   ../api_document/mario.write_parse_template
    ../api_document/mario.parse_from_excel
    ../api_document/mario.parse_from_txt
    ../api_document/mario.parse_from_parquet

@@ -33,6 +33,12 @@ An extra set of workflows shows how to use advanced features
 
 .. toctree::
    :maxdepth: 1
+   :caption: Provide your database
+
+   provide_your_database
+
+.. toctree::
+   :maxdepth: 1
    :caption: Exporting
 
    exporting/export_and_roundtrip

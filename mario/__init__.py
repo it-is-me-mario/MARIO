@@ -73,7 +73,12 @@ from mario.compute.primitives import (
     calc_p_from_z,
 )
 from mario.log_exc.logger import set_log_verbosity
-from mario.model.builders import MatrixBuilder, DataTemplate
+from mario.model.builders import (
+    MatrixBuilder,
+    DataTemplate,
+    write_parse_template,
+    write_template_definition,
+)
 
 from mario.parsers.entrypoints import (
     parse_adb,

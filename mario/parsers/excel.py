@@ -34,6 +34,42 @@ from mario.parsers.tabular import excel_parser
 logger = logging.getLogger(__name__)
 
 
+def _looks_like_explicit_units_sheet(
+    path: str,
+    data_sheet: str | int,
+    unit_sheet: str | int,
+) -> bool:
+    """Return whether ``unit_sheet`` matches MARIO's explicit template layout."""
+    raw_units = pd.read_excel(path, sheet_name=unit_sheet, header=None, nrows=3)
+    if raw_units.dropna(how="all").empty or raw_units.shape[1] < 3:
+        return False
+
+    first_row = raw_units.iloc[0, :3]
+    units_look_explicit = (
+        pd.isna(first_row.iloc[0])
+        and pd.isna(first_row.iloc[1])
+        and str(first_row.iloc[2]).strip().casefold() == "unit"
+    )
+    if not units_look_explicit:
+        return False
+
+    raw_data = pd.read_excel(path, sheet_name=data_sheet, header=None, nrows=3)
+    raw_data = raw_data.dropna(axis=1, how="all")
+    if raw_data.shape[0] < 3:
+        return False
+
+    row_meta_cols = 0
+    first_data_row = raw_data.iloc[0, :]
+    while row_meta_cols < raw_data.shape[1] and pd.isna(first_data_row.iloc[row_meta_cols]):
+        row_meta_cols += 1
+    if row_meta_cols == 0:
+        return False
+
+    second_row_prefix = raw_data.iloc[1, :row_meta_cols]
+    third_row_prefix = raw_data.iloc[2, :row_meta_cols]
+    return second_row_prefix.isna().all() and third_row_prefix.notna().any()
+
+
 class ExcelParser(BaseParser):
     """State parser for generic Excel workbooks following MARIO conventions."""
 
@@ -58,7 +94,8 @@ class ExcelParser(BaseParser):
         """Parse a generic Excel workbook into a canonical ``ModelState``."""
         log_time(logger, f"Parser: excel reading {table} {mode} from {path}.", "info")
         normalized_layouts = normalize_matrix_layouts(matrix_layouts)
-        if not normalized_layouts:
+        uses_explicit_template = _looks_like_explicit_units_sheet(path, data_sheet, unit_sheet)
+        if not normalized_layouts and not uses_explicit_template:
             matrices, indexes, units = excel_parser(path, table, mode, data_sheet, unit_sheet)
             extra = {}
         elif table == "IOT" and mode in {"flows", "coefficients"}:
