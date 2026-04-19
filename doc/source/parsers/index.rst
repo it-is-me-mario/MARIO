@@ -34,6 +34,7 @@ Official repositories
    gloria
    emerging
    ceads
+   bea
    gtap
    eora
    adb

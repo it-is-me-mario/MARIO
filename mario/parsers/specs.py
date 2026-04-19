@@ -235,6 +235,40 @@ USEEIO_SOURCE = f"USEEIO model workbook local file via {USEEIO_SOURCE_URL}"
 USEEIO_MONETARY_UNIT = "USD"
 USEEIO_PRICE_LABEL = "Model-year USD"
 
+BEA_SOURCE_URL = "https://www.bea.gov/industry/input-output-accounts-data"
+BEA_SUPPLY_USE_ZIP_URL = "https://apps.bea.gov/industry/release/zip/SUPPLY-USE.zip"
+BEA_SOURCE = (
+    "BEA Supply-Use Tables local files via official Industry Input-Output "
+    f"Accounts pages ({BEA_SOURCE_URL}; supply-use bundle: {BEA_SUPPLY_USE_ZIP_URL})"
+)
+BEA_LEVELS = ("summary", "sector", "detail")
+BEA_MONETARY_UNIT = "Millions of current dollars"
+BEA_PRICE_LABEL = "Mixed valuation (supply at basic prices, use at purchaser prices)"
+BEA_SATELLITE_UNIT = "None"
+BEA_SATELLITE_PLACEHOLDER = "-"
+BEA_WORKBOOK_FILES = {
+    "summary": {"supply": "Supply_Summary.xlsx", "use": "Use_Summary.xlsx"},
+    "sector": {"supply": "Supply_Sector.xlsx", "use": "Use_Sector.xlsx"},
+    "detail": {"supply": "Supply_Detail.xlsx", "use": "Use_SUT_Detail.xlsx"},
+}
+BEA_USE_VALUE_ADDED_CODES = (
+    ("V001", "Compensation of employees"),
+    ("V00100", "Compensation of employees"),
+    ("T00OTOP", "Other taxes on production"),
+    ("T00OSUB", "Less: Other subsidies on production"),
+    ("V003", "Gross operating surplus"),
+    ("V00300", "Gross operating surplus"),
+)
+BEA_SUPPLY_COMMODITY_INPUT_CODES = (
+    ("MCIF", "Imports"),
+    ("MADJ", "CIF/FOB adjustments on imports"),
+    ("TRADE", "Trade margins"),
+    ("TRANS", "Transport margins"),
+    ("MDTY", "Import duties"),
+    ("TOP", "Tax on products"),
+    ("SUB", "Subsidies"),
+)
+
 CEADS_FORMATS = ("auto", "ceads_provincial_workbook")
 CEADS_SOURCE_URL = "https://doi.org/10.6084/m9.figshare.29927291"
 CEADS_SOURCE = f"CEADS China provincial MRIO local workbook via {CEADS_SOURCE_URL}"

@@ -26,6 +26,7 @@ from mario.parsers.api import (
     validate_parse_request,
 )
 from mario.parsers.adb import parse_adb_iot
+from mario.parsers.bea import parse_bea_sut
 from mario.parsers.cepalstat import parse_cepalstat_iot, parse_cepalstat_sut
 from mario.parsers.ceads import parse_ceads_iot
 from mario.parsers.emerging import parse_emerging_iot
@@ -84,6 +85,7 @@ from mario.parsers.specs import (
     ISTAT_SUT_VALUATIONS,
     CEPALSTAT_IOT_MODES,
     CEADS_FORMATS,
+    BEA_LEVELS,
     USEEIO_FORMATS,
     STATCAN_TABLES,
     STATCAN_OPENIO_CANADA_SATELLITE_ACCOUNT,
@@ -1598,6 +1600,83 @@ def parse_ceads(
     return models[model](
         name=name or layout.dataset_name,
         table="IOT",
+        source=layout.source,
+        year=layout.year,
+        price=layout.price,
+        init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
+        notes=list(layout.notes),
+        calc_all=calc_all,
+        **kwargs,
+    )
+
+
+def parse_bea(
+    path: str,
+    *,
+    year: int,
+    level: str = "summary",
+    table: str = "SUT",
+    model: str = "Database",
+    name: str | None = None,
+    calc_all: bool = False,
+    **kwargs,
+) -> object:
+    """Parse one local BEA Supply-Use release bundle.
+
+    Parameters
+    ----------
+    path : str
+        path to one extracted BEA Supply-Use directory, to one workbook inside
+        that directory, or directly to the official ``SUPPLY-USE.zip`` bundle.
+    year : int
+        yearly sheet to parse from the selected BEA release family.
+    level : str, optional
+        BEA aggregation level. Supported values are ``summary``, ``sector``,
+        and ``detail``.
+    table : str, optional
+        currently only ``SUT`` is supported.
+    model : str, optional
+        public MARIO model class to instantiate. ``Database`` is the default
+        and the only supported value.
+    name : str, optional
+        optional dataset name stored in metadata.
+    calc_all : bool, optional
+        whether to materialize derived blocks immediately after parsing.
+
+    Notes
+    -----
+    This parser targets only the official BEA ``SUPPLY-USE`` workbook family.
+    It does not parse the separate ``MAKE-USE-IMPORTS (BEFORE
+    REDEFINITIONS)`` or ``TOTAL AND DOMESTIC REQUIREMENTS`` bundles.
+
+    The verified yearly coverage in the official workbooks is:
+
+    - ``summary`` and ``sector``: 1997 onward in the current bundle;
+    - ``detail``: 2007, 2012, and 2017 in the current bundle.
+
+    No automatic download is implemented yet. Callers should point the parser
+    to one local bundle or extracted directory.
+    """
+    if model not in models:
+        raise WrongInput("Available models are {}".format([*models]))
+
+    normalized_level = str(level).strip().lower()
+    if normalized_level not in BEA_LEVELS:
+        raise WrongInput(f"BEA level should be one of {list(BEA_LEVELS)}.")
+
+    validate_parse_request(table=table, model=model)
+    if table != "SUT":
+        raise NotImplementable("BEA parsing currently supports only SUT tables.")
+
+    matrices, indeces, units, layout = parse_bea_sut(
+        path=path,
+        year=year,
+        level=normalized_level,
+    )
+
+    return models[model](
+        name=name or layout.dataset_name,
+        table="SUT",
         source=layout.source,
         year=layout.year,
         price=layout.price,
