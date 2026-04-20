@@ -147,7 +147,14 @@ def _optimize_in_cvxlab(
         model.initialize_blank_data_structure() 
 
         # fill input data
-        input_data = pd.read_excel(os.path.join(main_dir_path, model_dir, "input_data\\input_data.xlsx"), sheet_name=None)
+        if input_data_files_type=='xlsx':
+            input_data = pd.read_excel(os.path.join(main_dir_path, model_dir, "input_data\\input_data.xlsx"), sheet_name=None)
+        elif input_data_files_type=='csv':
+            input_data = {}
+            for file in os.listdir(os.path.join(main_dir_path, model_dir, "input_data")):
+                if file.endswith(".csv"):
+                    sheet_name = os.path.splitext(file)[0]
+                    input_data[sheet_name] = pd.read_csv(os.path.join(main_dir_path, model_dir, "input_data", file))
         #Remove rows with missing values, to avoid searching for non-existing cvxlab files
         mapping['matrices'] = mapping['matrices'].dropna(subset=['cvxlab'])
         matrix_map = dict(zip( mapping['matrices'].index.to_list(),  mapping['matrices']["cvxlab"]))
@@ -162,8 +169,12 @@ def _optimize_in_cvxlab(
             mario_renamed = mario_renamed.rename(columns={"Value":"values"})
             mario_renamed.columns = [c+"_Name" for c in mario_renamed.columns if c != "values"] + ["values"]
 
-            if default_model=="AuSteel" and mario_matrix_name=='ss': #fix by changing cvxlab problem formulation, not inverting to and from in ss
-                mario_renamed=mario_renamed.rename(columns={'activity_from_Name': 'activity_to_Name','commodity_to_Name':'commodity_from_Name'}) 
+            if default_model=="AuSteel": 
+                if mario_matrix_name=='ss': #fix by changing cvxlab problem formulation, not inverting to and from in ss
+                    mario_renamed=mario_renamed.rename(columns={'activity_from_Name': 'activity_to_Name','commodity_to_Name':'commodity_from_Name'})
+                elif mario_matrix_name=='Y':#Make computation of 9774 implicit <--------------------------------
+                    mario_renamed=mario_renamed.iloc[9774:]
+
                 #Y_ex is not initialized here
 
             join_cols = [c for c in mario_renamed.columns if c in cvxlab_df.columns if c != "values"]
@@ -212,9 +223,13 @@ def _optimize_in_cvxlab(
             input_data['Y_ex']['values'] = input_data['Y_ex']['values_new'].fillna(input_data['Y_ex']['values'])
             input_data['Y_ex'] = input_data['Y_ex'].drop(columns=['values_new'])
 
-        with pd.ExcelWriter(os.path.join(main_dir_path, model_dir, "input_data\\input_data.xlsx"), engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
-            for sheet_name in input_data:
-                input_data[sheet_name].to_excel(writer, sheet_name=sheet_name, index=False)
+        if input_data_files_type=='xlsx':
+            with pd.ExcelWriter(os.path.join(main_dir_path, model_dir, "input_data\\input_data.xlsx"), engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+                for sheet_name in input_data:
+                    input_data[sheet_name].to_excel(writer, sheet_name=sheet_name, index=False)
+        elif input_data_files_type=='csv':
+            for file_name, df in input_data.items():
+                df.to_csv(f'{main_dir_path}\\{model_dir}\\input_data\\{file_name}.csv', index=False)
 
     # load data from excel to database 
     model.load_exogenous_data_to_sqlite_database(force_overwrite=True)
