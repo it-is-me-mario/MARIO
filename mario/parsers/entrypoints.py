@@ -13,7 +13,9 @@ from mario.download import (
     _eurostat_local_paths,
     _statcan_local_csv_path,
     _statcan_openio_local_xlsx_path,
+    download_exiobase3,
     download_eurostat,
+    download_hybrid_exiobase,
     download_istat_io,
     download_statcan,
     download_statcan_openio_canada,
@@ -213,16 +215,19 @@ def parse_from_txt(
     source:str =None,
     model: str ="Database",
     sep: str = ",",
+    _format: str | None = None,
     flat: bool = False,
     matrix_layouts: dict[str, object] | None = None,
     tech_assumption: str | None = None,
     **kwargs,
 ):
-    """Parse a database from a folder of text files.
+    """Parse a database from a folder of text or CSV files.
 
     .. note::
 
-        This function works with different files to parse the io data. So every matrix & units should be placed in different txt files.
+        This function works with different files to parse the IO data. Each
+        matrix and the units table should be placed in separate delimited
+        files.
 
 
     Parameters
@@ -236,8 +241,8 @@ def parse_from_txt(
     mode : str
         defined the base matrices to parse. The options are:
 
-            * `flows`: needs [Z.txt, Y.txt, EY.txt, V.txt, E.txt, units.txt] in the path
-            * `coefficients`: needs [z.txt, Y.txt, EY.txt, v.txt, e.txt, units.txt] in the path
+            * `flows`: needs [Z.*, Y.*, EY.*, V.*, E.*, units.*] in the path
+            * `coefficients`: needs [z.*, Y.*, EY.*, v.*, e.*, units.*] in the path
 
     calc_all : boolean
         if True, by default will calculate z,v,e,V,E,Z after parsing
@@ -252,7 +257,12 @@ def parse_from_txt(
         optional but suggested. is useful for visualization and metadata.
 
     sep : str, Optional
-        txt file separator
+        separator used in the delimited files.
+
+    _format : str, Optional
+        file extension to parse. Use ``"txt"`` or ``"csv"``.
+        If omitted, MARIO autodetects the bundle format from the files found
+        in ``path``.
 
     flat : bool, Optional
         if True, parse the canonical long-format MARIO text export made of one
@@ -273,6 +283,7 @@ def parse_from_txt(
         table=table,
         mode=mode,
         sep=sep,
+        _format=_format,
         flat=flat,
         matrix_layouts=matrix_layouts,
         name=name,
@@ -448,6 +459,7 @@ def parse_exiobase_sut(
     year: int = None,
     add_extensions: str | None = None,
     model: str = "Database",
+    version: str | None = None,
     **kwargs,
 ):
     """Parse the monetary EXIOBASE SUT into a ``Database`` instance.
@@ -473,6 +485,10 @@ def parse_exiobase_sut(
         parser reads only the IOT extension blocks and uses them to populate
         ``Ea`` and ``EY`` for the SUT.
 
+    version : str, Optional
+        optional compatibility check against the version detected from the
+        dataset metadata and folder layout.
+
     name : str, Optional
         optional but suggested. is useful for visualization and metadata.
 
@@ -488,6 +504,10 @@ def parse_exiobase_sut(
         path,
         add_extensions=add_extensions,
     )
+    if version is not None and layout.version != version:
+        raise WrongInput(
+            f"Requested EXIOBASE version {version!r} does not match detected version {layout.version!r}."
+        )
 
     return models[model](
         name=name or layout.dataset_name,
@@ -508,6 +528,7 @@ def parse_exiobase_3(
     name: str = None,
     model: str = "Database",
     version: str | None = None,
+    system: str | None = None,
     **kwargs,
 ):
     """Parse a monetary EXIOBASE IOT folder into a ``Database`` instance.
@@ -540,6 +561,10 @@ def parse_exiobase_3(
         optional compatibility check against the version detected from the
         dataset metadata and folder layout
 
+    system : str, Optional
+        optional compatibility check against the system detected from the
+        dataset metadata and folder layout, typically ``"ixi"`` or ``"pxp"``.
+
     Returns
     -------
     mario.Database
@@ -553,6 +578,10 @@ def parse_exiobase_3(
         path,
         version=version,
     )
+    if system is not None and layout.system != str(system).lower():
+        raise WrongInput(
+            f"Requested EXIOBASE system {system!r} does not match detected system {layout.system!r}."
+        )
 
     return models[model](
         name=name or layout.dataset_name,
@@ -686,6 +715,43 @@ def parse_eora(
     )
 
 
+def _resolve_exiobase_parse_path(
+    *,
+    table: str,
+    unit: str,
+    path: str,
+    year: int | None,
+    download: bool,
+    version: str | None,
+    system: str | None,
+) -> str:
+    """Resolve the local path to parse, optionally downloading EXIOBASE first."""
+    if not download:
+        return path
+
+    if unit == "Monetary":
+        if year is None:
+            raise WrongInput(
+                "parse_exiobase(..., download=True) requires 'year' for monetary EXIOBASE downloads."
+            )
+        info = download_exiobase3(
+            path,
+            years=year,
+            table=table,
+            system=(system or "ixi") if table == "IOT" else None,
+            version=version or "3.8.2",
+        )
+        extracted = info.get("extracted", [])
+        if len(extracted) != 1:
+            raise WrongInput(
+                f"Expected one extracted EXIOBASE dataset for year {year}, got {len(extracted)}."
+            )
+        return extracted[0]
+
+    download_hybrid_exiobase(path, table=table)
+    return path
+
+
 def parse_exiobase(
     table:str,
     unit:str,
@@ -693,7 +759,8 @@ def parse_exiobase(
     model:str = "Database",
     name:str = None, 
     year:int = None, 
-    calc_all: bool = False, 
+    calc_all: bool = False,
+    download: bool = False,
     **kwargs
 ):
     """Dispatch to the appropriate EXIOBASE parser.
@@ -706,8 +773,13 @@ def parse_exiobase(
         Acceptable values are "Hybrid" or "Monetary"
     path : str
         path to folder/file of the database (varies by the type of database)
+        When ``download=True``, this becomes the local download/cache
+        directory where MARIO stores the EXIOBASE files before parsing them.
     calc_all : boolean
         if True, by default will calculate z,v,e after parsing
+    download : boolean, Optional
+        when ``True``, download the requested EXIOBASE package into ``path``
+        and then parse it locally. Monetary downloads require ``year``.
     year : int, Optional
         optional to the Database (just for recoding the metadata)
     name : str, Optional
@@ -732,6 +804,19 @@ def parse_exiobase(
     if unit not in INPUT_OPTIONS["unit"]:
         raise WrongInput("Unit con be only chosen among {}".format(INPUT_OPTIONS["unit"]))
 
+    version = kwargs.get("version")
+    system = kwargs.get("system")
+
+    resolved_path = _resolve_exiobase_parse_path(
+        table=table,
+        unit=unit,
+        path=path,
+        year=year,
+        download=download,
+        version=version,
+        system=system,
+    )
+
     if table == "IOT":
         if unit == "Monetary":
             parser = parse_exiobase_3
@@ -743,7 +828,7 @@ def parse_exiobase(
         else:
             parser = hybrid_sut_exiobase
 
-    kwargs["path"] = path
+    kwargs["path"] = resolved_path
     kwargs["model"] = model
     kwargs["name"] = name
     kwargs["calc_all"] = calc_all

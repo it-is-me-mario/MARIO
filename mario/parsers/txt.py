@@ -35,7 +35,16 @@ from mario.ops.export_specs import (
 )
 from mario.model.conventions import _MASTER_INDEX
 from mario.storage.base import BlockRepository
-from mario.parsers.tabular import get_index_txt, get_units, rename_index, sort_frames, txt_parser
+from mario.parsers.tabular import (
+    TEXT_BUNDLE_FORMATS,
+    detect_text_bundle_format,
+    get_index_txt,
+    get_units,
+    normalize_text_bundle_format,
+    rename_index,
+    sort_frames,
+    txt_parser,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +69,14 @@ def _find_flat_payload(path: Path, stem: str, suffixes: set[str]) -> Path:
     if len(candidates) > 1:
         raise ValueError(f"More than one flat payload matches {stem!r}: {candidates}")
     return candidates[0]
+
+
+def _allowed_text_suffixes(_format: str | None) -> set[str]:
+    """Return the allowed file suffixes for one text parser request."""
+    normalized = normalize_text_bundle_format(_format)
+    if normalized is None:
+        return {f".{suffix}" for suffix in TEXT_BUNDLE_FORMATS}
+    return {f".{normalized}"}
 
 
 def _flat_axis_columns(side: str) -> list[str]:
@@ -459,9 +476,10 @@ def _read_matrix_text_with_layout(
     matrix_name: str,
     sep: str,
     matrix_layouts: dict[str, tuple[str, ...]],
+    suffixes: set[str],
 ) -> tuple[pd.DataFrame, tuple[str, ...] | None]:
     """Read one matrix-per-file txt/csv payload with either legacy or explicit axes."""
-    file_path = _find_flat_payload(path, matrix_name, {".txt", ".csv"})
+    file_path = _find_flat_payload(path, matrix_name, suffixes)
     row_levels = len(iot_axis_names(matrix_name, "from", matrix_layouts))
     if matrix_name in {"Y", "EY", "VY"}:
         col_levels = 1
@@ -502,9 +520,11 @@ def parse_iot_text_frames_with_layouts(
     mode: str,
     sep: str,
     matrix_layouts: dict[str, tuple[str, ...]],
+    _format: str | None = None,
 ):
     """Parse matrix-per-file txt/csv payloads using semantic matrix layouts."""
     root = Path(path)
+    suffixes = _allowed_text_suffixes(_format)
     expected_matrices = _FLAT_COEFFICIENT_MATRICES if mode == "coefficients" else _FLAT_FLOW_MATRICES
     required_matrices = _FLAT_REQUIRED_COEFFICIENT_MATRICES if mode == "coefficients" else _FLAT_REQUIRED_FLOW_MATRICES
 
@@ -539,6 +559,7 @@ def parse_iot_text_frames_with_layouts(
                 matrix_name=matrix_name,
                 sep=sep,
                 matrix_layouts=matrix_layouts,
+                suffixes=suffixes,
             )
             final_demand_axis_names = _merge_final_demand_axes(
                 final_demand_axis_names,
@@ -554,7 +575,7 @@ def parse_iot_text_frames_with_layouts(
     if "VY" not in matrices:
         matrices["VY"] = pd.DataFrame(0, index=matrices["V"].index, columns=matrices["Y"].columns)
 
-    units_path = _find_flat_payload(root, "units", {".txt", ".csv"})
+    units_path = _find_flat_payload(root, "units", suffixes)
     units_frame = pd.read_csv(units_path, sep=sep, index_col=[0, 1], header=[0], keep_default_na=False)
     units_frame.columns = ["unit"]
     units_frame.index.names = ["level", "item"]
@@ -577,9 +598,10 @@ def _read_sut_matrix_text_with_layout(
     matrix_name: str,
     sep: str,
     matrix_layouts: dict[str, tuple[str, ...]],
+    suffixes: set[str],
 ) -> tuple[pd.DataFrame, tuple[str, ...] | None]:
     """Read one matrix-per-file txt/csv payload with SUT semantic matrix layouts."""
-    file_path = _find_flat_payload(path, matrix_name, {".txt", ".csv"})
+    file_path = _find_flat_payload(path, matrix_name, suffixes)
 
     if matrix_name in {"Z", "z", "Y"}:
         row_levels = 3
@@ -645,9 +667,11 @@ def parse_sut_text_frames_with_layouts(
     mode: str,
     sep: str,
     matrix_layouts: dict[str, tuple[str, ...]],
+    _format: str | None = None,
 ):
     """Parse matrix-per-file txt/csv SUT payloads using semantic matrix layouts."""
     root = Path(path)
+    suffixes = _allowed_text_suffixes(_format)
     expected_matrices = _FLAT_COEFFICIENT_MATRICES if mode == "coefficients" else _FLAT_FLOW_MATRICES
     required_matrices = _FLAT_REQUIRED_COEFFICIENT_MATRICES if mode == "coefficients" else _FLAT_REQUIRED_FLOW_MATRICES
 
@@ -660,6 +684,7 @@ def parse_sut_text_frames_with_layouts(
                 matrix_name=matrix_name,
                 sep=sep,
                 matrix_layouts=matrix_layouts,
+                suffixes=suffixes,
             )
             if current_fd_axis_names is not None:
                 if final_demand_axis_names is None:
@@ -678,7 +703,7 @@ def parse_sut_text_frames_with_layouts(
     if "VY" not in matrices:
         matrices["VY"] = pd.DataFrame(0, index=matrices["V"].index, columns=matrices["Y"].columns)
 
-    units_path = _find_flat_payload(root, "units", {".txt", ".csv"})
+    units_path = _find_flat_payload(root, "units", suffixes)
     units_frame = pd.read_csv(units_path, sep=sep, index_col=[0, 1], header=[0], keep_default_na=False)
     units_frame.columns = ["unit"]
     units_frame.index.names = ["level", "item"]
@@ -1079,10 +1104,16 @@ def flat_txt_parser(
     mode: str,
     sep: str,
     matrix_layouts: dict[str, tuple[str, ...]] | None = None,
+    _format: str | None = None,
 ):
     """Parse the canonical flat long-format txt/csv export."""
     log_time(logger, f"Parser: reading {mode} from flat txt files.", "info")
-    data, unit_table = _read_flat_text_frames(path, sep)
+    suffixes = _allowed_text_suffixes(_format)
+    root = Path(path)
+    data_path = _find_flat_payload(root, "data", suffixes)
+    units_path = _find_flat_payload(root, "units", suffixes)
+    data = pd.read_csv(data_path, sep=sep, keep_default_na=False)
+    unit_table = pd.read_csv(units_path, sep=sep, keep_default_na=False)
     return parse_flat_frames(data, unit_table, table, mode, matrix_layouts=matrix_layouts)
 
 
@@ -1098,6 +1129,7 @@ class TxtParser(BaseParser):
         mode: str,
         *,
         sep: str = ",",
+        _format: str | None = None,
         flat: bool = False,
         matrix_layouts: dict[str, object] | None = None,
         name: str | None = None,
@@ -1109,8 +1141,20 @@ class TxtParser(BaseParser):
     ) -> ModelState:
         """Parse a folder of text files into a canonical ``ModelState``."""
         layout = "flat" if flat else "matrix"
-        log_time(logger, f"Parser: txt reading {table} {mode} from {path} in {layout} mode.", "info")
-        normalized_layouts = normalize_matrix_layouts(matrix_layouts)
+        requested_format = normalize_text_bundle_format(_format)
+        if requested_format is None:
+            try:
+                bundle_format = detect_text_bundle_format(path, txt_parser_id[mode])
+            except Exception:
+                bundle_format = "txt/csv"
+        else:
+            bundle_format = requested_format
+        log_time(
+            logger,
+            f"Parser: txt reading {table} {mode} from {path} in {layout} mode ({bundle_format}).",
+            "info",
+        )
+        normalized_layouts = normalize_matrix_layouts(matrix_layouts, table=table)
         if normalized_layouts:
             if flat:
                 matrices, indexes, units, extra = flat_txt_parser(
@@ -1119,6 +1163,7 @@ class TxtParser(BaseParser):
                     mode,
                     sep,
                     matrix_layouts=normalized_layouts,
+                    _format=requested_format,
                 )
             elif table == "SUT":
                 matrices, indexes, units, extra = parse_sut_text_frames_with_layouts(
@@ -1126,6 +1171,7 @@ class TxtParser(BaseParser):
                     mode=mode,
                     sep=sep,
                     matrix_layouts=normalized_layouts,
+                    _format=requested_format,
                 )
             else:
                 matrices, indexes, units, extra = parse_iot_text_frames_with_layouts(
@@ -1133,10 +1179,25 @@ class TxtParser(BaseParser):
                     mode=mode,
                     sep=sep,
                     matrix_layouts=normalized_layouts,
+                    _format=requested_format,
                 )
         else:
-            parser = flat_txt_parser if flat else txt_parser
-            matrices, indexes, units = parser(path, table, mode, sep)
+            if flat:
+                matrices, indexes, units = flat_txt_parser(
+                    path,
+                    table,
+                    mode,
+                    sep,
+                    _format=requested_format,
+                )
+            else:
+                matrices, indexes, units = txt_parser(
+                    path,
+                    table,
+                    mode,
+                    sep,
+                    requested_format,
+                )
             extra = {}
         state = build_parser_state(
             table=table,
@@ -1164,6 +1225,7 @@ def parse_state_from_txt(
     mode: str,
     *,
     sep: str = ",",
+    _format: str | None = None,
     flat: bool = False,
     matrix_layouts: dict[str, object] | None = None,
     **kwargs,
@@ -1174,6 +1236,7 @@ def parse_state_from_txt(
         table=table,
         mode=mode,
         sep=sep,
+        _format=_format,
         flat=flat,
         matrix_layouts=matrix_layouts,
         **kwargs,

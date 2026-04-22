@@ -3,6 +3,9 @@
 this module contains the main functions behind parsing differnet type of
 databases
 """
+from copy import deepcopy
+from pathlib import Path
+
 from mario.log_exc.exceptions import WrongInput, WrongExcelFormat, WrongFormat
 
 from mario.log_exc.logger import log_time
@@ -40,6 +43,64 @@ import pymrio
 logger = logging.getLogger(__name__)
 import os
 import re
+from zipfile import ZipFile
+
+
+TEXT_BUNDLE_FORMATS = ("txt", "csv")
+
+
+def normalize_text_bundle_format(_format: str | None) -> str | None:
+    """Normalize one public text-bundle format selector."""
+    if _format is None:
+        return None
+    normalized = str(_format).strip().lower()
+    if normalized not in TEXT_BUNDLE_FORMATS:
+        raise WrongInput(
+            f"_format should be one of {list(TEXT_BUNDLE_FORMATS)} or None for autodetection, got {_format!r}."
+        )
+    return normalized
+
+
+def _guide_with_text_format(guide, suffix: str):
+    """Return one parser guide rewritten to use the requested text suffix."""
+    updated = deepcopy(guide)
+    for section in updated.values():
+        for spec in section.values():
+            spec["file_name"] = str(Path(spec["file_name"]).with_suffix(f".{suffix}"))
+    return updated
+
+
+def _available_text_basenames(path: str) -> set[str]:
+    """Return the visible file basenames inside one text bundle directory or zip."""
+    if str(path).lower().endswith(".zip"):
+        with ZipFile(path) as archive:
+            return {Path(name).name for name in archive.namelist() if Path(name).name}
+    root = Path(path)
+    return {item.name for item in root.iterdir() if item.is_file()}
+
+
+def detect_text_bundle_format(path: str, guide, _format: str | None = None) -> str:
+    """Detect the text bundle suffix to parse, or validate the requested one."""
+    requested = normalize_text_bundle_format(_format)
+    if requested is not None:
+        return requested
+
+    available = _available_text_basenames(path)
+    stems = [
+        Path(spec["file_name"]).stem
+        for section in guide.values()
+        for spec in section.values()
+    ]
+    scores = {
+        suffix: sum(1 for stem in stems if f"{stem}.{suffix}" in available)
+        for suffix in TEXT_BUNDLE_FORMATS
+    }
+    best_suffix = max(scores, key=scores.get)
+    if scores[best_suffix] == 0:
+        raise FileNotFoundError(
+            f"Unable to detect whether the text bundle uses txt or csv files in {path!r}."
+        )
+    return best_suffix
 
 
 def get_index_txt(Z, V, Y, E, table):
@@ -344,17 +405,32 @@ def _collapse_duplicate_index_rows(frame):
     collapsed = frame.groupby(level=levels, sort=False).sum(min_count=1)
     return collapsed.fillna(0)
 
-def txt_parser(path, table, mode, sep):
+
+def coerce_excel_numeric_block(frame, matrix_name):
+    """Coerce one Excel matrix block to floats with explicit empty-block semantics."""
+    numeric = frame.apply(pd.to_numeric, errors="coerce")
+    missing = numeric.isna()
+    if not missing.any().any():
+        return numeric.astype(float)
+    if missing.all().all():
+        return numeric.fillna(0.0)
+    raise WrongExcelFormat(
+        f"Matrix {matrix_name} contains partially empty or non-numeric cells. "
+        "Leave the whole matrix blank to resolve zeros, or provide all numeric values."
+    )
+
+def txt_parser(path, table, mode, sep, _format=None):
     """Parse a database stored as delimited text files in MARIO layout."""
     if mode == "coefficients":
         v, e, z = list("vez")
     else:
         v, e, z = list("VEZ")
 
+    bundle_format = detect_text_bundle_format(path, txt_parser_id[mode], _format)
     log_time(logger, f"Parser: Reading {mode} from txt files.")
     read = all_file_reader(
         path=path,
-        guide=txt_parser_id[mode],
+        guide=_guide_with_text_format(txt_parser_id[mode], bundle_format),
         sub_folder=False,
         sep=sep,
         exceptions=("EY", "VY"),
@@ -479,6 +555,12 @@ def excel_parser(path, table, mode, sheet_name, unit_sheet):
     E.index = indeces['k']['main']
     EY.index = indeces['k']['main']
     VY.index = indeces['f']['main']
+    Z = coerce_excel_numeric_block(Z, "Z")
+    Y = coerce_excel_numeric_block(Y, "Y")
+    V = coerce_excel_numeric_block(V, "V")
+    E = coerce_excel_numeric_block(E, "E")
+    EY = coerce_excel_numeric_block(EY, "EY")
+    VY = coerce_excel_numeric_block(VY, "VY")
 
     if mode == "coefficients":
         matrices = {

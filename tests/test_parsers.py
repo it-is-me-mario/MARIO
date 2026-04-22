@@ -3,7 +3,7 @@ import pandas.testing as pdt
 import pytest
 
 from mario.internal import ModelState, ModelStateMetadata
-from mario.log_exc.exceptions import DataMissing
+from mario.log_exc.exceptions import DataMissing, WrongExcelFormat, WrongInput
 from mario.compute.sut_formulas import build_sut_c_from_S_Xa
 from mario.model.enums import TableKind
 from mario.ops.export import _matrix_to_flat_frame, _trim_flat_frame_columns
@@ -109,6 +109,54 @@ def _write_mriot_regional_extensions_and_factors_explicit_workbook(path):
     )
     with pd.ExcelWriter(path, engine="openpyxl") as writer:
         flows.to_excel(writer, sheet_name="flows", header=False, index=False)
+        units.to_excel(writer, sheet_name="units", header=False, index=False)
+
+
+def _blank_standard_excel_matrix(path, matrix_name, *, partial=False):
+    raw = pd.read_excel(path, sheet_name="flows", header=None)
+    units = pd.read_excel(path, sheet_name="units", header=None)
+
+    if matrix_name == "EY":
+        row_positions = [
+            idx for idx in range(3, raw.shape[0]) if raw.iat[idx, 1] == "Satellite account"
+        ]
+        column_positions = [
+            idx for idx in range(3, raw.shape[1]) if raw.iat[1, idx] == "Consumption category"
+        ]
+    else:
+        raise ValueError(f"Unsupported test matrix {matrix_name!r}.")
+
+    if partial:
+        raw.iat[row_positions[0], column_positions[0]] = None
+    else:
+        raw.iloc[row_positions, column_positions] = None
+
+    with pd.ExcelWriter(path, engine="openpyxl") as writer:
+        raw.to_excel(writer, sheet_name="flows", header=False, index=False)
+        units.to_excel(writer, sheet_name="units", header=False, index=False)
+
+
+def _blank_explicit_excel_matrix(path, matrix_name, *, partial=False):
+    raw = pd.read_excel(path, sheet_name="flows", header=None)
+    units = pd.read_excel(path, sheet_name="units", header=None)
+
+    if matrix_name == "EY":
+        row_positions = [idx for idx in range(2, raw.shape[0]) if raw.iat[idx, 1] == "CO2"]
+        column_positions = [
+            idx
+            for idx in range(2, raw.shape[1])
+            if pd.isna(raw.iat[0, idx]) and pd.notna(raw.iat[1, idx])
+        ]
+    else:
+        raise ValueError(f"Unsupported test matrix {matrix_name!r}.")
+
+    if partial:
+        raw.iat[row_positions[0], column_positions[0]] = None
+    else:
+        raw.iloc[row_positions, column_positions] = None
+
+    with pd.ExcelWriter(path, engine="openpyxl") as writer:
+        raw.to_excel(writer, sheet_name="flows", header=False, index=False)
         units.to_excel(writer, sheet_name="units", header=False, index=False)
 
 
@@ -764,6 +812,88 @@ def test_parse_from_excel_accepts_tuple_matrix_layouts(tmp_path):
     assert database.E.index.names == ["Region", "Level", "Item"]
 
 
+def test_parse_from_excel_accepts_fully_empty_standard_excel_matrices(tmp_path):
+    path = tmp_path / "standard_iot.xlsx"
+    load_test("IOT").to_excel(path=str(path), flows=True, coefficients=False)
+    _blank_standard_excel_matrix(path, "EY")
+
+    database = parse_from_excel(
+        path=str(path),
+        table="IOT",
+        mode="flows",
+        calc_all=False,
+    )
+
+    assert (database.EY == 0).all().all()
+
+
+def test_parse_from_excel_rejects_partially_empty_standard_excel_matrices(tmp_path):
+    path = tmp_path / "standard_iot_partial.xlsx"
+    load_test("IOT").to_excel(path=str(path), flows=True, coefficients=False)
+    _blank_standard_excel_matrix(path, "EY", partial=True)
+
+    with pytest.raises(WrongExcelFormat, match="partially empty|non-numeric"):
+        parse_from_excel(
+            path=str(path),
+            table="IOT",
+            mode="flows",
+            calc_all=False,
+        )
+
+
+def test_parse_from_excel_accepts_fully_empty_explicit_excel_matrices(tmp_path):
+    path = tmp_path / "mriot_explicit_empty_ey.xlsx"
+    _write_mriot_regional_explicit_workbook(path)
+    _blank_explicit_excel_matrix(path, "EY")
+
+    database = parse_from_excel(
+        path=str(path),
+        table="IOT",
+        mode="flows",
+        matrix_layouts={"E": "Region", "EY": "Region"},
+        calc_all=False,
+    )
+
+    assert (database.EY == 0).all().all()
+
+
+def test_parse_from_excel_rejects_partially_empty_explicit_excel_matrices(tmp_path):
+    path = tmp_path / "mriot_explicit_partial_ey.xlsx"
+    _write_mriot_regional_explicit_workbook(path)
+    _blank_explicit_excel_matrix(path, "EY", partial=True)
+
+    with pytest.raises(WrongExcelFormat, match="partially empty|non-numeric"):
+        parse_from_excel(
+            path=str(path),
+            table="IOT",
+            mode="flows",
+            matrix_layouts={"E": "Region", "EY": "Region"},
+            calc_all=False,
+        )
+
+
+@pytest.mark.parametrize(
+    ("table", "writer", "matrix_layouts"),
+    [
+        ("IOT", _write_mriot_regional_extensions_workbook, {"E": "Activity"}),
+        ("IOT", _write_mriot_regional_extensions_workbook, {"Z": "Region"}),
+        ("SUT", _write_custom_sut_explicit_no_level_workbook, {"E": "Sector"}),
+    ],
+)
+def test_parse_from_excel_rejects_invalid_matrix_layouts(tmp_path, table, writer, matrix_layouts):
+    path = tmp_path / f"invalid_{table.lower()}_layout.xlsx"
+    writer(path)
+
+    with pytest.raises(WrongInput):
+        parse_from_excel(
+            path=str(path),
+            table=table,
+            mode="flows",
+            matrix_layouts=matrix_layouts,
+            calc_all=False,
+        )
+
+
 def test_parse_from_excel_keeps_explicit_public_axes_without_level(tmp_path):
     path = tmp_path / "mriot_explicit.xlsx"
     _write_mriot_regional_explicit_workbook(path)
@@ -945,6 +1075,24 @@ def test_parse_state_from_txt_iot_roundtrip_preserves_blocks(tmp_path):
     pdt.assert_frame_equal(state.compute("X"), database.X)
 
 
+def test_parse_state_from_txt_iot_csv_roundtrip_preserves_blocks(tmp_path):
+    database = load_test("IOT")
+    database.to_txt(path=tmp_path, flows=True, coefficients=False, sep=",", _format="csv")
+
+    state = parse_state_from_txt(
+        path=str(tmp_path / "flows"),
+        table="IOT",
+        mode="flows",
+        name="IOT csv dataset",
+        sep=",",
+        _format="csv",
+    )
+
+    assert (tmp_path / "flows" / "Z.csv").exists()
+    pdt.assert_frame_equal(state.get_block("Z"), database.Z)
+    pdt.assert_frame_equal(state.get_block("Y"), database.Y)
+
+
 def test_to_txt_matrix_exports_custom_iot_layouts_without_level_markers(tmp_path):
     path = tmp_path / "mriot_regional_v_e_explicit.xlsx"
     _write_mriot_regional_extensions_and_factors_explicit_workbook(path)
@@ -1084,6 +1232,32 @@ def test_parse_state_from_txt_iot_flat_roundtrip_preserves_blocks(tmp_path):
     pdt.assert_frame_equal(state.get_block("Z"), database.Z)
     pdt.assert_frame_equal(state.get_block("Y"), database.Y)
     pdt.assert_frame_equal(state.compute("X"), database.X)
+
+
+def test_parse_state_from_txt_iot_flat_csv_roundtrip_preserves_blocks(tmp_path):
+    database = load_test("IOT")
+    database.to_txt(
+        path=tmp_path,
+        flows=True,
+        coefficients=False,
+        sep=",",
+        flat=True,
+        _format="csv",
+    )
+
+    state = parse_state_from_txt(
+        path=str(tmp_path / "flows"),
+        table="IOT",
+        mode="flows",
+        name="IOT flat csv dataset",
+        sep=",",
+        flat=True,
+        _format="csv",
+    )
+
+    assert (tmp_path / "flows" / "data.csv").exists()
+    pdt.assert_frame_equal(state.get_block("Z"), database.Z)
+    pdt.assert_frame_equal(state.get_block("Y"), database.Y)
 
 
 def test_to_txt_flat_roundtrip_preserves_custom_iot_layouts_without_level_values(tmp_path):

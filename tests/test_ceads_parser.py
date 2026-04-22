@@ -184,6 +184,23 @@ def test_parse_ceads_iot_returns_expected_blocks(tmp_path):
     np.testing.assert_allclose(base["Y"][export_cols[1]].to_numpy(), np.array([0.0, 0.0, 3000.0, 4000.0]))
 
 
+def test_parse_ceads_iot_emits_parser_logs(tmp_path, monkeypatch):
+    workbook = _ceads_fixture_workbook(tmp_path / "MRIO 2018.xlsx", year=2018)
+    messages = []
+
+    def _capture(_logger, comment, level="info"):
+        messages.append((level, comment))
+
+    monkeypatch.setattr("mario.parsers.ceads.log_time", _capture)
+
+    parse_ceads_iot(workbook)
+
+    assert any("inspecting CEADS workbook" in comment for _, comment in messages)
+    assert any("detected CEADS workbook format" in comment for _, comment in messages)
+    assert any("reading CEADS workbook" in comment for _, comment in messages)
+    assert any("CEADS payload ready with shapes" in comment for _, comment in messages)
+
+
 def test_public_parse_ceads_returns_database(tmp_path):
     workbook = _ceads_fixture_workbook(tmp_path / "MRIO 2018.xlsx", year=2018)
 

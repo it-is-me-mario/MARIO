@@ -29,7 +29,7 @@ from mario.parsers.matrix_layouts import (
 )
 from mario.parsers.registry import register_parser
 from mario.storage.base import BlockRepository
-from mario.parsers.tabular import excel_parser
+from mario.parsers.tabular import coerce_excel_numeric_block, excel_parser
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +93,7 @@ class ExcelParser(BaseParser):
     ) -> ModelState:
         """Parse a generic Excel workbook into a canonical ``ModelState``."""
         log_time(logger, f"Parser: excel reading {table} {mode} from {path}.", "info")
-        normalized_layouts = normalize_matrix_layouts(matrix_layouts)
+        normalized_layouts = normalize_matrix_layouts(matrix_layouts, table=table)
         uses_explicit_template = _looks_like_explicit_units_sheet(path, data_sheet, unit_sheet)
         if not normalized_layouts and not uses_explicit_template:
             matrices, indexes, units = excel_parser(path, table, mode, data_sheet, unit_sheet)
@@ -540,7 +540,8 @@ def parse_explicit_iot_excel_layout(
         raise WrongExcelFormat("Explicit IOT layout should contain sector, factor, and satellite rows.")
 
     def _matrix_from(row_info, column_positions, matrix_name):
-        frame = values.iloc[[item["position"] for item in row_info], column_positions].copy().astype(float)
+        frame = values.iloc[[item["position"] for item in row_info], column_positions].copy()
+        frame = coerce_excel_numeric_block(frame, matrix_name)
         row_public_names = row_info[0]["public_names"]
         row_public_labels = [item["public"] for item in row_info]
         frame.index = coerce_axis_names(pd.MultiIndex.from_tuples(row_public_labels), row_public_names)
@@ -776,7 +777,8 @@ def parse_explicit_sut_excel_layout(
         raise WrongExcelFormat("Explicit SUT layout should contain productive, factor, and satellite rows.")
 
     def _matrix_from(row_info, column_positions, matrix_name):
-        frame = values.iloc[[item["position"] for item in row_info], column_positions].copy().astype(float)
+        frame = values.iloc[[item["position"] for item in row_info], column_positions].copy()
+        frame = coerce_excel_numeric_block(frame, matrix_name)
         row_public_labels = [item["public"] for item in row_info]
         if matrix_name in {"Z", "Y"}:
             frame.index = pd.MultiIndex.from_tuples(row_public_labels, names=["Region", "Level", "Item"])

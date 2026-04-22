@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 
 from mario.log_exc.exceptions import WrongFormat, WrongInput
+from mario.log_exc.logger import log_time
 from mario.model.conventions import _MASTER_INDEX
 from mario.parsers.specs import (
     CEADS_FORMATS,
@@ -183,6 +184,7 @@ def detect_ceads_layout(path: str | Path, *, format: str = "auto", year: int | N
     """Detect the supported CEADS workbook layout."""
     workbook_path = _resolve_workbook(path, year=year)
     requested = _normalize_format(format)
+    log_time(logger, f"Parser: inspecting CEADS workbook {workbook_path.name}.", "info")
     workbook = pd.ExcelFile(workbook_path)
 
     table_sheets = []
@@ -217,6 +219,14 @@ def detect_ceads_layout(path: str | Path, *, format: str = "auto", year: int | N
         "Exports are stored as one exogenous final-demand category attached to the originating province.",
         "The imports row is stored inside V as an exogenous input row labelled 'Imports'.",
         "The optional CO2 row, when present, is loaded as a direct extension in E.",
+    )
+    log_time(
+        logger,
+        (
+            f"Parser: detected CEADS workbook format {detected} "
+            f"for year {detected_year} using sheet {table_sheet}."
+        ),
+        "info",
     )
     return CEADSLayout(
         path=workbook_path,
@@ -320,6 +330,11 @@ def parse_ceads_iot(
 ]:
     """Parse one local CEADS provincial MRIO workbook into MARIO IOT blocks."""
     layout = detect_ceads_layout(path, format=format, year=year)
+    log_time(
+        logger,
+        f"Parser: reading CEADS workbook {layout.path.name} sheet {layout.table_sheet}.",
+        "info",
+    )
     workbook = pd.ExcelFile(layout.path)
     provinces = _read_provinces(workbook)
     sector_codes, sector_labels = _read_sectors(workbook)
@@ -493,4 +508,12 @@ def parse_ceads_iot(
         "f": {"main": list(factor_labels)},
         "k": {"main": E.index.tolist()},
     }
+    log_time(
+        logger,
+        (
+            "Parser: CEADS payload ready with shapes "
+            f"Z={Z.shape}, Y={Y.shape}, V={V.shape}, E={E.shape}, EY={EY.shape}."
+        ),
+        "info",
+    )
     return matrices, indexes, units, layout

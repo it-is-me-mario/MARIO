@@ -18,6 +18,25 @@ CANONICAL_LAYOUT_SETS = (
     "Satellite account",
 )
 
+SUPPORTED_LAYOUT_MATRICES = ("V", "v", "VY", "E", "e", "EY")
+
+TABLE_LAYOUT_PREFIXES = {
+    "IOT": {
+        (),
+        ("Region",),
+        ("Sector",),
+        ("Region", "Sector"),
+    },
+    "SUT": {
+        (),
+        ("Region",),
+        ("Activity",),
+        ("Commodity",),
+        ("Region", "Activity"),
+        ("Region", "Commodity"),
+    },
+}
+
 
 def _normalize_one_matrix_layout(value) -> tuple[str, ...]:
     """Normalize one user-facing matrix-layout declaration."""
@@ -50,7 +69,11 @@ def _normalize_one_matrix_layout(value) -> tuple[str, ...]:
     return values
 
 
-def normalize_matrix_layouts(matrix_layouts: dict[str, object] | None) -> dict[str, tuple[str, ...]]:
+def normalize_matrix_layouts(
+    matrix_layouts: dict[str, object] | None,
+    *,
+    table: str | None = None,
+) -> dict[str, tuple[str, ...]]:
     """Normalize per-matrix layout declarations to tuples of canonical set names."""
     if matrix_layouts is None:
         return {}
@@ -65,6 +88,35 @@ def normalize_matrix_layouts(matrix_layouts: dict[str, object] | None) -> dict[s
     if invalid:
         raise WrongInput(
             f"Unsupported matrix names in matrix_layouts: {invalid}. Valid matrix names are: {sorted(valid_names)}"
+        )
+
+    if table is None:
+        return normalized
+
+    table_key = str(table).upper()
+    if table_key not in TABLE_LAYOUT_PREFIXES:
+        return normalized
+
+    unsupported_matrices = sorted(set(normalized).difference(SUPPORTED_LAYOUT_MATRICES))
+    if unsupported_matrices:
+        raise WrongInput(
+            f"matrix_layouts for {table_key} only support {list(SUPPORTED_LAYOUT_MATRICES)}. "
+            f"Custom semantic layouts are available only on extension/factor rows, not on {unsupported_matrices}."
+        )
+
+    allowed_prefixes = TABLE_LAYOUT_PREFIXES[table_key]
+    invalid_layouts = {
+        matrix_name: layout
+        for matrix_name, layout in normalized.items()
+        if layout not in allowed_prefixes
+    }
+    if invalid_layouts:
+        formatted = ", ".join(
+            f"{matrix_name}={layout}" for matrix_name, layout in sorted(invalid_layouts.items())
+        )
+        raise WrongInput(
+            f"Invalid matrix_layouts for {table_key}: {formatted}. "
+            f"Allowed semantic prefixes are: {sorted(allowed_prefixes)}."
         )
     return normalized
 

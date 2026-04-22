@@ -193,7 +193,7 @@ class ParquetParser(BaseParser):
             f"Parser: parquet reading {table} {mode} from {path} in {layout} mode.",
             "info",
         )
-        normalized_layouts = normalize_matrix_layouts(matrix_layouts)
+        normalized_layouts = normalize_matrix_layouts(matrix_layouts, table=table)
         if normalized_layouts:
             if flat:
                 matrices, indexes, units, extra = flat_parquet_parser(
