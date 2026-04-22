@@ -1,21 +1,15 @@
 EMERGING
 ========
 
-MARIO supports the EMERGING MATLAB bundles distributed through the official
+MARIO supports the parsing of the EMERGING database release distributed through 
 Zenodo version records.
-
-The parser currently supports only the multiregional ``IOT`` workflow.
 
 The official version records currently relevant for MARIO are:
 
-* ``v2.2``:
-  `Zenodo 19461860 <https://doi.org/10.5281/zenodo.19461860>`_;
-* ``v2.1``:
-  `Zenodo 18518911 <https://doi.org/10.5281/zenodo.18518911>`_;
-* ``v2.0``:
-  `Zenodo 17557778 <https://doi.org/10.5281/zenodo.17557778>`_;
-* ``v1.0``:
-  `Zenodo 10956623 <https://doi.org/10.5281/zenodo.10956623>`_.
+* `v2.2 <https://doi.org/10.5281/zenodo.19461860>`_
+* `v2.1 <https://doi.org/10.5281/zenodo.18518911>`_
+* `v2.0 <https://doi.org/10.5281/zenodo.17557778>`_
+* `v1.0 <https://doi.org/10.5281/zenodo.10956623>`_
 
 Any other version reference should be treated as deprecated in the MARIO
 documentation.

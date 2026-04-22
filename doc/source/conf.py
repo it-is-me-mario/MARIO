@@ -25,8 +25,8 @@ import mario_bibstyles
 
 
 project = 'MARIO'
-copyright = f'{datetime.now().year}, MARIO authors - Mohammad Amin Tahavori, Lorenzo Rinaldi, Nicolo Golinucci'
-author = 'Mohammad Amin Tahavori, Lorenzo Rinaldi, Nicolo Golinucci'
+copyright = f'{datetime.now().year}, Lorenzo Rinaldi, Mohammad Amin Tahavori, Nicolo Golinucci'
+author = 'Lorenzo Rinaldi, Mohammad Amin Tahavori, Nicolo Golinucci'
 
 # The full version, including alpha/beta/rc tags
 release = '0.3.5'

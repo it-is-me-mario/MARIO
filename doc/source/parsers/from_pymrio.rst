@@ -4,9 +4,12 @@ From pymrio
 MARIO can convert an in-memory ``pymrio.IOSystem`` directly into a
 ``mario.Database``.
 
-This workflow is not file-based. It is a bridge between two Python-side data
-models, and it is practical when the upstream ingestion, balancing, or
+This workflow is not file-based. It is a bridge between two Python libraries, 
+and it is practical when the upstream ingestion, balancing, or
 extension handling already happened inside ``pymrio``.
+
+More on pymrio on the official documentation: https://pymrio.readthedocs.io/en/latest/index.html
+
 
 Recommended Entry Point
 -----------------------
@@ -14,6 +17,7 @@ Recommended Entry Point
 For normal user workflows, the public entry point is:
 
 * :doc:`mario.parse_from_pymrio(...) <../api_document/mario.parse_from_pymrio>`
+
 
 Key arguments
 -------------
@@ -30,6 +34,7 @@ The key public arguments are:
 * ``include_meta``:
   when ``True``, MARIO records the ``pymrio`` metadata trail into the database
   notes.
+
 
 How the mapping works
 ---------------------
@@ -48,6 +53,7 @@ Each dictionary value can be:
 * one slicer, to split one extension between factors and satellites.
 
 The conversion is currently an ``IOT`` workflow.
+
 
 Typical usage
 -------------

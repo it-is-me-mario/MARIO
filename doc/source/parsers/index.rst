@@ -7,39 +7,49 @@ Use it when you need to ingest a custom database or a known public source. Each
 page will describe expected inputs, supported versions, common caveats and the
 recommended tutorial or workflow to follow next.
 
-Custom Parsers
---------------
+
+Custom databases
+----------------
 
 .. toctree::
    :maxdepth: 1
 
    from_excel
-   from_txt
-   from_parquet
+   from_txt_parquet
    from_pymrio
 
-Official repositories
----------------------
+
+Environmentally-extended databases
+----------------------------------
 
 .. toctree::
    :maxdepth: 1
 
+   exiobase
+   gloria
+   eora
+   emerging
+   gtap
+   wiod
+   adb
+   useeio
+   ceads
+
+
+Other MRIO and SRIO databases
+-----------------------------
+
+.. toctree::
+   :maxdepth: 1
+
+   oecd
+   figaro
+   eurostat
+   cepalstat
+   bea
    istat
    statcan
-   eurostat
-   exiobase
-   figaro
-   wiod
-   oecd
-   gloria
-   emerging
-   ceads
-   bea
-   gtap
-   eora
-   adb
-   cepalstat
-   useeio
+
 
 Coverage query
 --------------

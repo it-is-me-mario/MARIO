@@ -3,116 +3,63 @@ EXIOBASE
 
 MARIO supports the main EXIOBASE parser families:
 
-* monetary IOT;
-* monetary SUT;
-* hybrid HIOT;
-* hybrid HSUT.
+* monetary IOT and SUT
+* hybrid-unit IOT and SUT
 
-Relevant Zenodo releases
-------------------------
 
-* monetary EXIOBASE 3.8.2: `Zenodo 5589597 <https://doi.org/10.5281/zenodo.5589597>`_;
-* monetary EXIOBASE 3.9.4: `Zenodo 14614930 <https://doi.org/10.5281/zenodo.14614930>`_;
-* monetary EXIOBASE 3.9.5: `Zenodo 14869924 <https://doi.org/10.5281/zenodo.14869924>`_;
-* monetary EXIOBASE 3.9.6: `Zenodo 15689391 <https://doi.org/10.5281/zenodo.15689391>`_;
-* monetary EXIOBASE 3.10.1: `Zenodo 18937492 <https://doi.org/10.5281/zenodo.18937492>`_;
-* hybrid EXIOBASE 3.3.18: `Zenodo 7244919 <https://doi.org/10.5281/zenodo.7244919>`_;
-* newer consequential release not yet covered by the current hybrid parser:
-  `Zenodo 15421526 <https://zenodo.org/records/15421526>`_.
+Relevant releases
+-----------------
 
-For this source, the most useful documentation format is a notebook-driven one:
-short explanation on this landing page, then one practical notebook per parser
-family.
+* `3.10.1 (monetary, IOT) <https://doi.org/10.5281/zenodo.18937492>`_
+* `3.9.6 (monetary, IOT) <https://doi.org/10.5281/zenodo.15689391>`_
+* `3.9.5 (monetary, IOT) <https://doi.org/10.5281/zenodo.14869924>`_
+* `3.9.4 (monetary, IOT) <https://doi.org/10.5281/zenodo.14614930>`_
+* `3.8.2 (monetary, IOT and SUT) <https://doi.org/10.5281/zenodo.5589597>`_
+* `3.3.18 (hybrid-units, IOT and SUT) <https://doi.org/10.5281/zenodo.7244919>`_
 
-Recommended Entry Points
+
+Recommended entry points
 ------------------------
 
 For normal user workflows, the public entry point should be:
 
 * :doc:`mario.parse_exiobase(...) <../api_document/mario.parse_exiobase>`
 
-This dispatcher is enough for the main EXIOBASE variants covered here. The
-lower-level parser functions still exist, but they are not the recommended
-surface for ordinary usage.
+This method covers all EXIOBASE variants listed above, if properly configured.
+
 
 Key arguments
 -------------
 
 The core public arguments are:
 
-* ``table``:
-  choose ``"IOT"`` or ``"SUT"``;
-* ``unit``:
-  choose ``"Monetary"`` or ``"Hybrid"``;
 * ``path``:
-  local directory or bundle to parse;
-* ``year``:
-  optional metadata override. In most normal workflows the year is inferred
-  from the EXIOBASE payload itself.
+  local directory or bundle to parse. When ``download=True`` in
+  ``mario.parse_exiobase(...)``, this is instead the destination directory
+  used for the download/cache step.
+* ``table``:
+  choose ``"IOT"`` or ``"SUT"``
+* ``unit``:
+  choose ``"Monetary"`` or ``"Hybrid"``
+* ``download``:
+  when ``True``, MARIO downloads the requested EXIOBASE package and then
+  parses it locally. Monetary downloads require ``year=...``.
+
 
 In addition, the dispatcher forwards parser-specific keyword arguments:
 
 * monetary SUT:
-  ``add_extensions=...`` lets you import extensions from a matching monetary
-  IOT;
+  ``add_extensions=...`` lets you import extensions from a given matching monetary IOT
 * hybrid SUT and hybrid IOT:
-  ``extensions=...`` filters the imported extension set.
+  ``extensions=...`` filters the imported extension set (e.g. ``"all"``, ``Emiss``,...)
 
-Typical usage
--------------
 
-Monetary IOT:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.parse_exiobase(
-       table="IOT",
-       unit="Monetary",
-       path="/path/to/exiobase/iot_directory",
-   )
-
-Monetary SUT:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.parse_exiobase(
-       table="SUT",
-       unit="Monetary",
-       path="/path/to/exiobase/sut_directory",
-   )
-
-Hybrid SUT:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.parse_exiobase(
-       table="SUT",
-       unit="Hybrid",
-       path="/path/to/exiobase/hybrid_bundle",
-       extensions="all",
-   )
-
-Download helpers are also available:
+**Download methods** are also available:
 
 * ``mario.download_exiobase3(...)`` for supported monetary releases;
 * ``mario.download_hybrid_exiobase(...)`` for the hybrid bundle.
 
-Caveats
--------
-
-* the monetary SUT parser is currently available only for EXIOBASE ``3.8.2``;
-* the more recent monetary releases supported by MARIO are IOT-only;
-* the current hybrid parser targets EXIOBASE hybrid ``3.3.18`` and does not
-  yet include the later consequential developments released separately on
-  Zenodo.
-
-Notebook Walkthroughs
+Notebook walkthroughs
 ---------------------
 
 Use the notebooks below as the main parser guides:
@@ -130,3 +77,13 @@ If you prefer to run them locally, you can also download the source notebooks:
 
    ../notebooks/parsers/exiobase/monetary
    ../notebooks/parsers/exiobase/hybrid
+
+
+Caveats
+-------
+
+* the monetary SUT parser is currently available only for EXIOBASE ``3.8.2``: more recent releases are IOT-only
+* the current hybrid parser targets EXIOBASE hybrid ``3.3.18`` and does not
+  include the later consequential database released separately on Zenodo.
+* Exiobase 1 and 2 versions are not supported. In principle, you could use pymrio and then :doc:`import them into MARIO <../parsers/from_pymrio>`
+

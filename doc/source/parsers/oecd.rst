@@ -1,18 +1,15 @@
 OECD
 ====
 
-MARIO supports three OECD parser families behind one public entry point:
+MARIO supports three OECD parser families
 
-* OECD ``ICIO`` csv bundles, including both the regular and extended releases;
-* OECD national total-table ``IOT`` csv files such as ``CZE2014ttl.csv``;
-* OECD ``SUT`` tables pulled directly from the official OECD SDMX API.
+* OECD ``ICIO`` csv bundles, including both the regular and extended releases
+* OECD national total-table ``IOT`` csv files such as ``ITA2014ttl.csv``
+* OECD ``SUT`` tables pulled directly from the official SDMX API
 
-For this source, the most useful documentation format is a notebook-driven one:
-this landing page stays short, while one practical notebook covers direct-file
-versus directory parsing, ``dataset=``, ``year=``, and ``country=``.
 
-Relevant source links
----------------------
+Relevant links
+--------------
 
 * official OECD ICIO page:
   `OECD inter-country input-output tables <https://www.oecd.org/en/data/datasets/inter-country-input-output-tables.html>`_;
@@ -21,8 +18,8 @@ Relevant source links
 * official OECD SUT page:
   `OECD supply and use tables <https://www.oecd.org/en/data/datasets/supply-and-use-tables.html>`_.
 
-Recommended Entry Point
------------------------
+Recommended entry points
+------------------------
 
 For normal user workflows, the public entry point is:
 
@@ -34,65 +31,19 @@ Key arguments
 The key public arguments are:
 
 * ``path``:
-  one local OECD file or one directory containing multiple OECD files.
-  Required for ``dataset="ICIO"`` and ``dataset="IOT"``;
+  one local OECD file or one directory containing multiple OECD files. 
+  Required for ``dataset="ICIO"`` and ``dataset="IOT"``
 * ``dataset``:
-  choose between ``"ICIO"``, ``"IOT"``, and ``"SUT"``;
+  choose between ``"ICIO"``, ``"IOT"``, and ``"SUT"``
 * ``year``:
   use it when one directory contains more than one candidate file. It is also
-  required for ``dataset="SUT"`` because the OECD SDMX pull is annual;
+  required for ``dataset="SUT"`` because the OECD SDMX pull is annual
 * ``country``:
   useful to disambiguate national OECD IOT files and required for
-  ``dataset="SUT"``.
+  ``dataset="SUT"``
 
-Typical usage
--------------
 
-Direct path to one OECD ICIO csv:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.parse_oecd(
-       path="/path/to/2022_SML.csv",
-       dataset="ICIO",
-   )
-
-Direct path to one national OECD total-table IOT:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.parse_oecd(
-       path="/path/to/CZE2014ttl.csv",
-       dataset="IOT",
-   )
-
-Direct OECD SUT pull from the SDMX API:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.parse_oecd(
-       dataset="SUT",
-       country="CZE",
-       year=2022,
-   )
-
-Warnings
---------
-
-.. warning::
-
-   The OECD parser currently exposes the economic tables only. MARIO does not
-   yet attach environmental extensions to ``ICIO``, national ``IOT``, or
-   ``SUT`` datasets, so these parsed databases should not be interpreted as
-   environmentally extended tables.
-
-Notebook Walkthrough
+Notebook walkthrough
 --------------------
 
 Use the notebook below as the main parser guide:
@@ -107,3 +58,14 @@ If you prefer to run it locally, you can also download the source notebook:
    :hidden:
 
    ../notebooks/parsers/oecd/walkthrough
+
+
+Caveats
+--------
+* The IOT ``dataset`` support only the accounts indicated as "Total table"
+
+
+Future developments
+-------------------
+
+The OECD parser could be complemented with automatic integration of emission extensions soon.
