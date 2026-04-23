@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import logging
 from pathlib import Path
 import re
@@ -28,6 +28,12 @@ logger = logging.getLogger(__name__)
 _YEAR_FILE_RE = re.compile(r"^(?P<year>\d{4})(?:_SML)?\.csv$", flags=re.IGNORECASE)
 _EXTENDED_RE = re.compile(r"(?:^|[_ -])EXT(?:$|[_ -])|extended", flags=re.IGNORECASE)
 _REGULAR_RE = re.compile(r"(?:^|[_ -])REG(?:$|[_ -])|regular|_SML(?:$|[_ -])", flags=re.IGNORECASE)
+_ICIO_REGION_AGGREGATES = {
+    "CN1": "CHN",
+    "CN2": "CHN",
+    "MX1": "MEX",
+    "MX2": "MEX",
+}
 
 
 @dataclass(frozen=True)
@@ -145,6 +151,58 @@ def _split_regional_code(code: str) -> tuple[str, str]:
     return region, item
 
 
+def _remap_oecd_icio_code(code: str) -> str:
+    """Collapse OECD split-country labels onto their aggregate region code."""
+    if "_" not in code:
+        return code
+    region, item = _split_regional_code(code)
+    return f"{_ICIO_REGION_AGGREGATES.get(region, region)}_{item}"
+
+
+def _aggregate_oecd_icio_split_regions(
+    frame: pd.DataFrame,
+    layout: OECDICIOLayout,
+) -> tuple[pd.DataFrame, OECDICIOLayout]:
+    """Aggregate OECD split-country ICIO labels such as CN1/CN2 and MX1/MX2."""
+    remapped_index = [_remap_oecd_icio_code(label) for label in frame.index]
+    remapped_columns = [_remap_oecd_icio_code(label) for label in frame.columns]
+
+    changed_regions = sorted(
+        {
+            original.split("_", 1)[0]
+            for original, remapped in zip(frame.index.tolist(), remapped_index)
+            if original != remapped and "_" in original
+        }
+        | {
+            original.split("_", 1)[0]
+            for original, remapped in zip(frame.columns.tolist(), remapped_columns)
+            if original != remapped and "_" in original
+        }
+    )
+    if not changed_regions:
+        return frame, layout
+
+    aggregated = frame.copy()
+    aggregated.index = pd.Index(remapped_index)
+    aggregated.columns = pd.Index(remapped_columns)
+    aggregated = aggregated.groupby(level=0, sort=False).sum()
+    aggregated = aggregated.T.groupby(level=0, sort=False).sum().T
+
+    notes = list(layout.notes)
+    notes.append(
+        "OECD ICIO split-country labels CN1/CN2 and MX1/MX2 were aggregated into CHN and MEX."
+    )
+    log_time(
+        logger,
+        (
+            "Parser: aggregating OECD ICIO split-country regions "
+            f"{changed_regions} into their CHN/MEX totals."
+        ),
+        "info",
+    )
+    return aggregated, replace(layout, notes=tuple(notes))
+
+
 def _regional_axis(codes: list[str], *, level_code: str) -> tuple[list[str], list[str], pd.MultiIndex]:
     """Build the canonical MARIO axis for OECD sector or final-demand codes."""
     parsed = [_split_regional_code(code) for code in codes]
@@ -173,6 +231,7 @@ def parse_oecd_icio(
     """Parse one OECD ICIO CSV file into canonical MARIO IOT blocks."""
     layout = detect_oecd_icio_layout(path, year=year)
     frame = _read_oecd_icio_frame(layout.data_path)
+    frame, layout = _aggregate_oecd_icio_split_regions(frame, layout)
 
     all_columns = frame.columns.tolist()
     all_rows = frame.index.tolist()

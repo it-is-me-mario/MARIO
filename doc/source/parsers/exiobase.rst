@@ -51,7 +51,45 @@ In addition, the dispatcher forwards parser-specific keyword arguments:
 * monetary SUT:
   ``add_extensions=...`` lets you import extensions from a given matching monetary IOT
 * hybrid SUT and hybrid IOT:
-  ``extensions=...`` filters the imported extension set (e.g. ``"all"``, ``Emiss``,...)
+  ``extensions=...`` filters the imported extension set
+
+For hybrid EXIOBASE, ``extensions`` accepts:
+
+* ``None`` or ``[]`` to skip extension import;
+* ``"all"`` to import every supported extension;
+* one explicit list of extension groups.
+
+Valid hybrid ``HSUT`` extension groups are:
+
+* ``resource``
+* ``Land``
+* ``Emiss``
+* ``Emis_unreg_w``
+* ``Unreg_w``
+* ``waste_sup``
+* ``waste_use``
+* ``pack_sup_waste``
+* ``pack_use_waste``
+* ``mach_sup_waste``
+* ``mach_use_waste``
+* ``stock_addition``
+* ``crop_res``
+
+Valid hybrid ``HIOT`` extension groups are the same, except that ``Unreg_w``
+is not available:
+
+* ``resource``
+* ``Land``
+* ``Emiss``
+* ``Emis_unreg_w``
+* ``waste_sup``
+* ``waste_use``
+* ``pack_sup_waste``
+* ``pack_use_waste``
+* ``mach_sup_waste``
+* ``mach_use_waste``
+* ``stock_addition``
+* ``crop_res``
 
 
 **Download methods** are also available:

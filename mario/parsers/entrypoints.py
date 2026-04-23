@@ -789,7 +789,20 @@ def parse_exiobase(
     name : str, Optional
         optional but suggested. is useful for visualization and metadata.
     **kwargs: dict
-        all the specific configuation of single exiobase parsers (please refer to the separat function documentations for more information)
+        all the specific configuation of single exiobase parsers (please refer
+        to the separate function documentations for more information). For
+        hybrid EXIOBASE, the most relevant parser-specific argument is
+        ``extensions=...``:
+
+        * HSUT valid options are ``"all"``, ``resource``, ``Land``,
+          ``Emiss``, ``Emis_unreg_w``, ``Unreg_w``, ``waste_sup``,
+          ``waste_use``, ``pack_sup_waste``, ``pack_use_waste``,
+          ``mach_sup_waste``, ``mach_use_waste``, ``stock_addition``,
+          and ``crop_res``;
+        * HIOT valid options are ``"all"``, ``resource``, ``Land``,
+          ``Emiss``, ``Emis_unreg_w``, ``waste_sup``, ``waste_use``,
+          ``pack_sup_waste``, ``pack_use_waste``, ``mach_sup_waste``,
+          ``mach_use_waste``, ``stock_addition``, and ``crop_res``.
 
     Returns
     -------
@@ -855,8 +868,15 @@ def hybrid_sut_exiobase(
     ----------
     folder_path : str
         the directory of the folder which contains the following files: [MR_HSUP_2011_v3_3_18.csv,MR_HSUTs_2011_v3_3_18_FD.csv,MR_HUSE_2011_v3_3_18.csv,MR_HSUTs_2011_v3_3_18_extensions.xlsx]
-    extensions : list, optional
-        the list of extensions that user intend to read, by default []
+    extensions : list, str or None, optional
+        extension selector for the hybrid HSUT workbook. Use ``None`` or ``[]``
+        to skip extension import, ``"all"`` to read every supported extension,
+        or pass one list made of the following names:
+
+        ``resource``, ``Land``, ``Emiss``, ``Emis_unreg_w``, ``Unreg_w``,
+        ``waste_sup``, ``waste_use``, ``pack_sup_waste``,
+        ``pack_use_waste``, ``mach_sup_waste``, ``mach_use_waste``,
+        ``stock_addition``, ``crop_res``.
     model : str, optional
         type of model accepted in mario, by default "Database"
     name : str, optional
@@ -919,7 +939,28 @@ def hybrid_iot_exiobase(
     calc_all: bool = False,
     **kwargs,
 ):
-    """Parse the hybrid EXIOBASE 3.3.18 HIOT."""
+    """Parse the hybrid EXIOBASE 3.3.18 HIOT.
+
+    Parameters
+    ----------
+    path : str
+        directory containing the EXIOBASE hybrid HIOT files.
+    extensions : list, str or None, optional
+        extension selector for the hybrid HIOT workbook. Use ``None`` or ``[]``
+        to skip extension import, ``"all"`` to read every supported extension,
+        or pass one list made of the following names:
+
+        ``resource``, ``Land``, ``Emiss``, ``Emis_unreg_w``, ``waste_sup``,
+        ``waste_use``, ``pack_sup_waste``, ``pack_use_waste``,
+        ``mach_sup_waste``, ``mach_use_waste``, ``stock_addition``,
+        ``crop_res``.
+    model : str, optional
+        type of model accepted in MARIO, by default ``"Database"``.
+    name : str, optional
+        optional dataset name stored in metadata.
+    calc_all : bool, optional
+        whether to materialize derived blocks immediately after parsing.
+    """
     validate_named_selection(
         extensions,
         valid_options=HMIOT_EXTENSIONS,
@@ -1329,7 +1370,9 @@ def parse_oecd(
 
     * ``dataset="ICIO"``: local OECD ICIO csv bundles from the official OECD
       inter-country input-output tables page. Both ``<year>.csv`` and regular
-      ``<year>_SML.csv`` naming conventions are supported.
+      ``<year>_SML.csv`` naming conventions are supported. MARIO aggregates
+      the split-country labels ``CN1``/``CN2`` into ``CHN`` and
+      ``MX1``/``MX2`` into ``MEX``.
     * ``dataset="IOT"``: local OECD national Input-Output total tables such as
       ``CZE2014ttl.csv`` from the official OECD IOT release page.
     * ``dataset="SUT"``: annual OECD Supply and Use Tables pulled directly from

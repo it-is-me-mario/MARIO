@@ -11,7 +11,7 @@ The parser currently supports:
 * direct online parsing from WDS;
 * optional local caching of the raw CSV downloads.
 
-Relevant Source Links
+Relevant source links
 ---------------------
 
 * official StatCan SUT catalogue:
@@ -21,7 +21,7 @@ Relevant Source Links
 * official StatCan WDS guide:
   `StatCan WDS user guide <https://www.statcan.gc.ca/en/developers/wds/user-guide>`_.
 
-Recommended Entry Point
+Recommended entry point
 -----------------------
 
 For normal user workflows, the public entry point is:
@@ -48,7 +48,7 @@ The key public arguments are:
 * ``download``:
   when ``True``, MARIO stores the raw CSV locally before parsing it.
 
-Download Workflow
+Download workflow
 -----------------
 
 Automatic raw download is available:
@@ -86,7 +86,7 @@ Caveats
 * this guide focuses on the economic StatCan tables only. Environmental
   extensions are intentionally left out here.
 
-Notebook Walkthrough
+Notebook walkthrough
 --------------------
 
 Use the notebook below as the main parser guide:

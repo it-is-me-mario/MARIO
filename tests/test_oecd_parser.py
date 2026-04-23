@@ -35,6 +35,61 @@ def _write_oecd_sample_csv(path: Path, *, year: int, suffix: str = "") -> Path:
     return target
 
 
+def _write_oecd_split_region_csv(path: Path, *, year: int, suffix: str = "") -> Path:
+    """Write one OECD-like ICIO csv fixture with CN/MX split-country labels."""
+    sectors = [
+        "CHN_A01",
+        "CN1_A01",
+        "CN2_A01",
+        "MEX_A01",
+        "MX1_A01",
+        "MX2_A01",
+    ]
+    final = [
+        "CHN_HFCE",
+        "CN1_HFCE",
+        "CN2_HFCE",
+        "MEX_HFCE",
+        "MX1_HFCE",
+        "MX2_HFCE",
+    ]
+    columns = sectors + final + ["OUT"]
+    index = sectors + ["TLS", "VA", "OUT"]
+
+    data = pd.DataFrame(0.0, index=index, columns=columns)
+
+    diagonal_values = {
+        "CHN_A01": 10.0,
+        "CN1_A01": 1.0,
+        "CN2_A01": 2.0,
+        "MEX_A01": 20.0,
+        "MX1_A01": 3.0,
+        "MX2_A01": 4.0,
+    }
+    final_values = {
+        "CHN_HFCE": 50.0,
+        "CN1_HFCE": 5.0,
+        "CN2_HFCE": 6.0,
+        "MEX_HFCE": 60.0,
+        "MX1_HFCE": 7.0,
+        "MX2_HFCE": 8.0,
+    }
+
+    for code in sectors:
+        data.loc[code, code] = diagonal_values[code]
+        region = code.split("_", 1)[0]
+        data.loc[code, f"{region}_HFCE"] = final_values[f"{region}_HFCE"]
+        data.loc[code, "OUT"] = data.loc[code, sectors + final].sum()
+
+    data.loc["TLS", sectors] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+    data.loc["VA", sectors] = [11.0, 12.0, 13.0, 14.0, 15.0, 16.0]
+    data.loc["OUT", sectors] = data.loc[sectors, sectors].sum(axis=0).values
+
+    target = path / f"{year}{suffix}.csv"
+    data.to_csv(target)
+    return target
+
+
 def _write_oecd_total_iot_csv(path: Path, *, country: str, year: int) -> Path:
     """Write a compact OECD national total-table csv fixture."""
     sectors = ["A01", "C10T12"]
@@ -256,6 +311,24 @@ def test_parse_oecd_regular_sml_file_is_supported(tmp_path):
     assert database.table_type == "IOT"
     assert database.meta.year == 2022
     assert database.meta.name == "OECD ICIO 2022 regular"
+
+
+def test_parse_oecd_icio_aggregates_split_china_and_mexico_regions(tmp_path):
+    source_dir = tmp_path / "2016-2022_EXT"
+    source_dir.mkdir()
+    source = _write_oecd_split_region_csv(source_dir, year=2022)
+
+    database = parse_oecd(path=str(source), calc_all=False)
+
+    assert database.get_index("Region") == ["CHN", "MEX"]
+    assert database.get_index("Sector") == ["A01"]
+    assert database.Z.loc[("CHN", "Sector", "A01"), ("CHN", "Sector", "A01")] == 13.0
+    assert database.Z.loc[("MEX", "Sector", "A01"), ("MEX", "Sector", "A01")] == 27.0
+    assert database.Y.loc[("CHN", "Sector", "A01"), ("CHN", "Consumption category", "HFCE")] == 61.0
+    assert database.Y.loc[("MEX", "Sector", "A01"), ("MEX", "Consumption category", "HFCE")] == 75.0
+    assert database.V.loc["TLS", ("CHN", "Sector", "A01")] == 6.0
+    assert database.V.loc["VA", ("MEX", "Sector", "A01")] == 45.0
+    assert any("CN1/CN2" in note and "MX1/MX2" in note for note in database.meta._history)
 
 
 def test_parse_oecd_national_total_iot(tmp_path):

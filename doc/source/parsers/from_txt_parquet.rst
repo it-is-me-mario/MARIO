@@ -35,7 +35,7 @@ The key public arguments are:
 * ``tech_assumption``:
   optional SUT-only selector for ``IT`` / ``PT`` behaviour
 
-Flat and Matrix Layouts
+Flat and matrix layouts
 -----------------------
 
 Both parsing methods support:

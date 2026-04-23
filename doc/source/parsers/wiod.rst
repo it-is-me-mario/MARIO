@@ -13,7 +13,7 @@ The parser currently supports:
 * national ``SUT`` workbooks;
 * optional socio-economic accounts imported through ``add_extensions=...``.
 
-Relevant Source Links
+Relevant source links
 ---------------------
 
 * official WIOD 2016 release page:
@@ -31,7 +31,7 @@ Relevant Source Links
 * socio-economic accounts:
   `Dataverse 199095 <https://dataverse.nl/api/access/datafile/199095>`_.
 
-Recommended Entry Point
+Recommended entry point
 -----------------------
 
 For normal user workflows, the public entry point is:
@@ -62,7 +62,7 @@ The key public arguments are:
   reclassify those flows into ``Va`` and ``VY``. Use ``"legacy_region"`` to
   keep the previous parser behaviour.
 
-Download Workflow
+Download workflow
 -----------------
 
 Automatic download is available:
@@ -73,7 +73,7 @@ Automatic download is available:
 * ``mario.download_wiod2016_national_sut(...)``
 * ``mario.download_wiod2016_socioeconomic_accounts(...)``
 
-Notebook Walkthrough
+Notebook walkthrough
 --------------------
 
 Use the notebook below as the main parser guide:

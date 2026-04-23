@@ -9,14 +9,14 @@ and it is practical when the upstream ingestion, balancing, or
 extension handling already happened inside ``pymrio``.
 
 
-Relevant Source Links
+Relevant source links
 ---------------------
 
 * official pymrio documentation:
   `pymrio documentation <https://pymrio.readthedocs.io/en/latest/index.html>`_.
 
 
-Recommended Entry Point
+Recommended entry point
 -----------------------
 
 For normal user workflows, the public entry point is:
@@ -44,7 +44,7 @@ The key public arguments are:
   notes.
 
 
-Assignment Patterns
+Assignment patterns
 -------------------
 
 ``parse_from_pymrio(...)`` requires you to classify every available
@@ -91,7 +91,7 @@ To inspect the available Extension names in one ``pymrio.IOSystem``, use:
 The conversion is currently an ``IOT`` workflow.
 
 
-Notebook Walkthrough
+Notebook walkthrough
 --------------------
 
 Use the notebook below as the main parser guide:

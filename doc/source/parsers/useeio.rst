@@ -11,7 +11,7 @@ The current backend is intentionally narrow:
 * it exposes an explicit ``format=`` argument so future workbook families can
   be added without changing the public API.
 
-Relevant Source Links
+Relevant source links
 ---------------------
 
 * official catalog page:
@@ -108,7 +108,7 @@ For this verified format, the parser assumes the workbook follows the
 * metadata tabs such as ``commodities_meta``, ``final_demand_meta``, and
   ``value_added_meta`` identify the axes.
 
-Recommended Entry Point
+Recommended entry point
 -----------------------
 
 For normal user workflows, the public entry point is:
@@ -129,7 +129,7 @@ The key public arguments are:
 * ``table``:
   currently only ``"SUT"`` is supported.
 
-Notebook Walkthrough
+Notebook walkthrough
 --------------------
 
 Use the notebook below as the main parser guide:

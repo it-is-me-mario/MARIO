@@ -9,7 +9,7 @@ MARIO supports local parsing of FIGARO flat files in both:
 The parser is intentionally file-based: download the FIGARO files yourself,
 keep them in one local directory, and then point MARIO to that directory.
 
-Relevant Source Links
+Relevant source links
 ---------------------
 
 The current parser is based on the public CIRCABC FIGARO libraries referenced
@@ -24,7 +24,7 @@ by MARIO:
 * industry-by-industry IOT files:
   `CIRCABC ixi IOT library <https://circabc.europa.eu/ui/group/cec66924-a924-4f91-a0ef-600a0531e3ba/library/50d2f89f-ea50-4c8d-969e-cf3ad6b43750?p=1&n=10&sort=modified_DESC>`_.
 
-Recommended Entry Point
+Recommended entry point
 -----------------------
 
 For normal user workflows, the public entry point is:
@@ -46,7 +46,7 @@ The key public arguments are:
   only relevant for ``table="IOT"``. Use ``"auto"``, ``"product"`` or
   ``"industry"``.
 
-Download Workflow
+Download workflow
 -----------------
 
 Automatic FIGARO download is intentionally not supported.
@@ -57,7 +57,7 @@ In practice, the workflow is:
 2. place the ``.zip`` bundles or extracted ``.csv`` files in one local folder;
 3. pass that folder to ``mario.parse_figaro(...)``.
 
-Notebook Walkthrough
+Notebook walkthrough
 --------------------
 
 Use the notebook below as the main parser guide:

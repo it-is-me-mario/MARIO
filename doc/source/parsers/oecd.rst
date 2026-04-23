@@ -33,7 +33,7 @@ Key arguments
 The key public arguments are:
 
 * ``path``:
-  one local OECD file or one directory containing multiple OECD files. 
+  one local OECD file or one directory containing multiple OECD files.
   Required for ``dataset="ICIO"`` and ``dataset="IOT"``
 * ``dataset``:
   choose between ``"ICIO"``, ``"IOT"``, and ``"SUT"``
@@ -65,3 +65,5 @@ If you prefer to run it locally, you can also download the source notebook:
 Caveats
 -------
 * The IOT ``dataset`` support only the accounts indicated as "Total table"
+* In OECD ``ICIO`` extended version, the split-country interindustry labels ``CN1``/``CN2`` and
+  ``MX1``/``MX2`` are aggregated automatically into ``CHN`` and ``MEX``.

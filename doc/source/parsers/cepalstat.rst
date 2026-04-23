@@ -19,7 +19,7 @@ At the moment MARIO supports:
 * ``IOT`` demand-at-basic-prices workbooks, such as Brazil;
 * ``IOT`` matrix workbooks, such as Chile.
 
-Relevant Source Links
+Relevant source links
 ---------------------
 
 * official CEPALSTAT repository:
@@ -27,7 +27,7 @@ Relevant Source Links
 * ECLAC presentation note for the repository:
   `ECLAC Statistics Division presents the repository <https://www.cepal.org/en/notes/eclac-statistics-division-presents-repository-supply-and-use-tables-and-input-output-tables>`_.
 
-Recommended Entry Point
+Recommended entry point
 -----------------------
 
 For normal user workflows, the public entry point is:
@@ -67,7 +67,7 @@ Caveats
   added, while some Brazil ``IOT`` bundles require a residual value-added
   reconstruction.
 
-Notebook Walkthrough
+Notebook walkthrough
 --------------------
 
 Use the notebook below as the main parser guide:

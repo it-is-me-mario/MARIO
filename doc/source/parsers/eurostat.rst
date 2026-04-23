@@ -12,7 +12,7 @@ The parser currently supports:
 * direct online parsing from the official API;
 * optional local caching of the raw SDMX-CSV slices.
 
-Relevant Source Links
+Relevant source links
 ---------------------
 
 * official Eurostat SUIOT information page:
@@ -22,7 +22,7 @@ Relevant Source Links
 * official Eurostat API guide:
   `Eurostat data access API <https://ec.europa.eu/eurostat/web/user-guides/data-browser/api-data-access/api-introduction>`_.
 
-Recommended Entry Point
+Recommended entry point
 -----------------------
 
 For normal user workflows, the public entry point is:
@@ -49,7 +49,7 @@ The key public arguments are:
 * ``download``:
   when ``True``, MARIO stores the raw CSV locally before parsing it.
 
-Available Years
+Available years
 ---------------
 
 Year availability is not uniform across all countries.
@@ -87,7 +87,7 @@ Caveats
 * ``download=True`` is the right choice when you want reproducible local raw
   files in addition to the parsed database.
 
-Notebook Walkthrough
+Notebook walkthrough
 --------------------
 
 Use the notebook below as the main parser guide:

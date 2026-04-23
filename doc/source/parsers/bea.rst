@@ -11,7 +11,7 @@ The current backend is intentionally narrow:
   path inside that directory;
 * it exposes the BEA aggregation ``level`` directly through the public API.
 
-Relevant Source Links
+Relevant source links
 ---------------------
 
 * official BEA input-output page:
@@ -34,7 +34,7 @@ The supported public entry point is:
 
 * :doc:`mario.parse_bea(...) <../api_document/mario.parse_bea>`
 
-Supported Levels
+Supported levels
 ----------------
 
 ``parse_bea`` currently supports three BEA aggregation levels:
@@ -55,7 +55,7 @@ Supported Levels
      - ``Supply_Detail.xlsx`` + ``Use_SUT_Detail.xlsx``
      - ``2007``, ``2012``, ``2017``
 
-How MARIO Maps the Bundle
+How MARIO maps the bundle
 -------------------------
 
 The parser reads the bundle as a split-native ``SUT``:
@@ -71,7 +71,7 @@ This means the parsed table uses a mixed valuation convention:
 * supply-side output is read at basic prices;
 * use-side flows are read at purchaser prices.
 
-Notebook Walkthrough
+Notebook walkthrough
 --------------------
 
 Use the notebook below as the main parser guide:

@@ -13,7 +13,7 @@ The current backend is intentionally narrow:
 * it exposes an explicit ``format=`` argument so future CEADS workbook
   families can be added without changing the public API.
 
-Relevant Source Links
+Relevant source links
 ---------------------
 
 * official CEADS data portal:
@@ -55,7 +55,7 @@ At the moment, MARIO supports:
 * ``format="ceads_provincial_workbook"``:
   force the currently verified 2018/2020 workbook structure.
 
-Recommended Entry Point
+Recommended entry point
 -----------------------
 
 For normal user workflows, the public entry point is:
@@ -78,7 +78,7 @@ The key public arguments are:
 * ``table``:
   currently only ``"IOT"`` is supported.
 
-Notebook Walkthrough
+Notebook walkthrough
 --------------------
 
 Use the notebook below as the main parser guide:
