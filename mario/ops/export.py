@@ -183,6 +183,7 @@ def _export_flat_directory(
     writer,
     suffix: str,
     sep: str | None = None,
+    separate_files: bool = False,
 ) -> None:
     """Export one scenario as a single flat data file plus units."""
     root.mkdir(parents=True, exist_ok=True)
@@ -208,6 +209,22 @@ def _export_flat_directory(
     else:
         writer(flat_data, data_path, sep=sep)
         writer(units, units_path, sep=sep)
+
+    if not separate_files:
+        return
+
+    for matrix_name in _FLAT_EXPORT_MATRICES[mode]:
+        flat_matrix = _matrix_to_flat_frame(
+            matrix_name,
+            matrices[matrix_name],
+            scenario=scenario,
+        )
+        flat_matrix = _trim_flat_frame_columns(flat_matrix)
+        matrix_path = root / f"{matrix_name}.{suffix}"
+        if sep is None:
+            writer(flat_matrix, matrix_path)
+        else:
+            writer(flat_matrix, matrix_path, sep=sep)
 
 
 def _export_matrix_directory(
@@ -293,12 +310,14 @@ def export_database_to_txt(
     include_meta: bool = False,
     sep: str = ",",
     flat: bool = False,
+    separate_files: bool = False,
 ):
     """Export a database as multiple txt/csv files.
 
     When ``flat=False`` the historical matrix-per-file layout is used.
     When ``flat=True`` each mode is exported as one long-format ``data`` file
-    plus a ``units`` file.
+    plus a ``units`` file. When ``separate_files=True``, the same flat payload
+    is also written as one trimmed long-format file per matrix.
     """
 
     if scenario not in database.scenarios:
@@ -327,6 +346,7 @@ def export_database_to_txt(
                 writer=_write_text_frame,
                 suffix=_format,
                 sep=sep,
+                separate_files=separate_files,
             )
         if coefficients:
             _export_flat_directory(
@@ -337,6 +357,7 @@ def export_database_to_txt(
                 writer=_write_text_frame,
                 suffix=_format,
                 sep=sep,
+                separate_files=separate_files,
             )
     else:
         database_txt(
@@ -363,12 +384,14 @@ def export_database_to_parquet(
     scenario: str = "baseline",
     include_meta: bool = False,
     flat: bool = False,
+    separate_files: bool = False,
 ):
     """Export a database as parquet files.
 
     When ``flat=False`` each matrix is written to its own parquet file.
     When ``flat=True`` each mode is written as one long-format ``data.parquet``
-    file plus a ``units.parquet`` companion.
+    file plus a ``units.parquet`` companion. When ``separate_files=True``, the
+    same flat payload is also written as one trimmed parquet file per matrix.
     """
 
     if scenario not in database.scenarios:
@@ -397,6 +420,7 @@ def export_database_to_parquet(
                 mode="flows",
                 writer=_write_parquet_frame,
                 suffix="parquet",
+                separate_files=separate_files,
             )
         if coefficients:
             _export_flat_directory(
@@ -406,6 +430,7 @@ def export_database_to_parquet(
                 mode="coefficients",
                 writer=_write_parquet_frame,
                 suffix="parquet",
+                separate_files=separate_files,
             )
     else:
         if flows:

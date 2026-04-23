@@ -13,18 +13,13 @@ The parser currently supports:
   release zip;
 * automatic download of the official release before parsing.
 
-For this source, the most useful documentation format is a notebook-driven one:
-this landing page stays short, while one practical notebook covers direct local
-parsing, zip-versus-directory workflows, the release downloader, and the
-selectors used for ``IOT`` and ``SUT`` parsing.
-
 Relevant source links
 ---------------------
 
 * official ISTAT tag page:
   `ISTAT sistema input-output <https://www.istat.it/tag/sistema-input-output/>`_.
 
-Recommended Entry Point
+Recommended entry point
 -----------------------
 
 For normal user workflows, the public entry point is:
@@ -56,8 +51,9 @@ The key public arguments are:
 * ``edition`` and ``page_url``:
   downloader selectors for the official release page.
 
-Download workflow
------------------
+
+Notebook walkthrough
+--------------------
 
 Automatic download is available:
 
@@ -66,68 +62,8 @@ Automatic download is available:
 Or you can ask the parser to download and parse the official release in one
 step with ``download=True``.
 
-Typical usage
--------------
 
-Parse one local ISTAT IOT workbook:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.parse_istat(
-       path="/path/to/istat_release",
-       year=2022,
-       table="IOT",
-       iot_mode="product",
-   )
-
-Parse one ISTAT SUT release:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.parse_istat(
-       path="/path/to/istat_release",
-       year=2022,
-       table="SUT",
-       level="63",
-       price="current",
-       valuation="basic",
-   )
-
-Download and parse in one step:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.parse_istat(
-       path="/path/to/istat_cache",
-       year=2022,
-       table="IOT",
-       iot_mode="product",
-       download=True,
-       edition="latest",
-   )
-
-Caveats
--------
-
-* the parser targets the official ISTAT release workbooks and release zips, not
-  arbitrary spreadsheets;
-* ``download=True`` is often the cleanest workflow because it leaves a
-  reproducible local archive in addition to the parsed database;
-* the ``SUT`` workflow has more structural selectors than the ``IOT`` workflow,
-  so be explicit about ``level``, ``price``, and ``valuation`` when needed;
-* for ``IOT``, ``iot_mode=`` decides whether you parse the product-by-product
-  or industry-by-industry release.
-
-Notebook Walkthrough
---------------------
-
-Use the notebook below as the main parser guide:
+Once downloaded, use the notebook below as the main parser guide:
 
 * :doc:`ISTAT parser walkthrough <../notebooks/parsers/istat/walkthrough>`
 
@@ -139,3 +75,17 @@ If you prefer to run it locally, you can also download the source notebook:
    :hidden:
 
    ../notebooks/parsers/istat/walkthrough
+
+
+Caveats
+-------
+
+* The parser targets the official ISTAT release workbooks and release zips, not
+  arbitrary spreadsheets;
+* ``download=True`` is often the cleanest workflow because it leaves a
+  reproducible local archive in addition to the parsed database;
+* The ``SUT`` workflow has more structural selectors than the ``IOT`` workflow,
+  so be explicit about ``level``, ``price``, and ``valuation`` when needed;
+* For ``IOT``, ``iot_mode=`` decides whether you parse the product-by-product
+  or industry-by-industry release.
+

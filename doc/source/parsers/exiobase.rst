@@ -18,8 +18,8 @@ Relevant releases
 * `3.3.18 (hybrid-units, IOT and SUT) <https://doi.org/10.5281/zenodo.7244919>`_
 
 
-Recommended entry points
-------------------------
+Recommended entry point
+-----------------------
 
 For normal user workflows, the public entry point should be:
 
@@ -64,8 +64,8 @@ Notebook walkthroughs
 
 Use the notebooks below as the main parser guides:
 
-* :doc:`Monetary EXIOBASE <../notebooks/parsers/exiobase/monetary>`
-* :doc:`Hybrid EXIOBASE <../notebooks/parsers/exiobase/hybrid>`
+* :doc:`Monetary EXIOBASE parser walkthrough <../notebooks/parsers/exiobase/monetary>`
+* :doc:`Hybrid-units EXIOBASE parser walkthrough <../notebooks/parsers/exiobase/hybrid>`
 
 If you prefer to run them locally, you can also download the source notebooks:
 
@@ -82,8 +82,7 @@ If you prefer to run them locally, you can also download the source notebooks:
 Caveats
 -------
 
-* the monetary SUT parser is currently available only for EXIOBASE ``3.8.2``: more recent releases are IOT-only
-* the current hybrid parser targets EXIOBASE hybrid ``3.3.18`` and does not
+* The monetary SUT parser is currently available only for EXIOBASE ``3.8.2``: more recent releases are IOT-only
+* The current hybrid parser targets EXIOBASE hybrid ``3.3.18`` and does not
   include the later consequential database released separately on Zenodo.
 * Exiobase 1 and 2 versions are not supported. In principle, you could use pymrio and then :doc:`import them into MARIO <../parsers/from_pymrio>`
-

@@ -13,7 +13,7 @@ The current backend is intentionally narrow:
 * it exposes an explicit ``format=`` argument so future CEADS workbook
   families can be added without changing the public API.
 
-Relevant source links
+Relevant Source Links
 ---------------------
 
 * official CEADS data portal:
@@ -41,7 +41,7 @@ The CEADS portal also lists older provincial MRIO releases such as 2012, 2015,
 and 2017. Those historical releases are not automatically assumed to share the
 same workbook semantics until they are checked explicitly.
 
-What ``format`` means
+What ``format`` Means
 ---------------------
 
 ``format=`` is the parser-side layout selector. It does not identify the
@@ -78,57 +78,6 @@ The key public arguments are:
 * ``table``:
   currently only ``"IOT"`` is supported.
 
-Typical usage
--------------
-
-Direct path to one explicit workbook:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.parse_ceads(
-       path="/path/to/MRIO 2018.xlsx",
-       format="auto",
-   )
-
-Directory containing multiple CEADS workbooks:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.parse_ceads(
-       path="/path/to/ceads_directory",
-       year=2020,
-   )
-
-Warnings
---------
-
-.. warning::
-
-   MARIO currently parses only the verified CEADS provincial MRIO workbook
-   family for 2018 and 2020. Other CEADS workbook families should still be
-   treated as unsupported until they are checked explicitly.
-
-.. warning::
-
-   The parser reads only the English table sheet, named like
-   ``Table_<year>_English Version``. The Chinese sheet is intentionally not
-   used.
-
-.. warning::
-
-   The CEADS workbook contains one explicit imports row. MARIO stores that row
-   inside ``V`` as ``Imports``.
-
-.. warning::
-
-   The workbook exposes exports as one aggregate external-use column. MARIO
-   therefore stores exports in ``Y`` as one exogenous final-demand category for
-   each originating province.
-
 Notebook Walkthrough
 --------------------
 
@@ -144,3 +93,18 @@ If you prefer to run it locally, you can also download the source notebook:
    :hidden:
 
    ../notebooks/parsers/ceads/walkthrough
+
+Caveats
+-------
+
+* MARIO currently parses only the verified CEADS provincial MRIO workbook
+  family for 2018 and 2020. Other CEADS workbook families should still be
+  treated as unsupported until they are checked explicitly.
+* The parser reads only the English table sheet, named like
+  ``Table_<year>_English Version``. The Chinese sheet is intentionally not
+  used.
+* The CEADS workbook contains one explicit imports row. MARIO stores that row
+  inside ``V`` as ``Imports``.
+* The workbook exposes exports as one aggregate external-use column. MARIO
+  therefore stores exports in ``Y`` as one exogenous final-demand category for
+  each originating province.

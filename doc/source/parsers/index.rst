@@ -1,9 +1,9 @@
 Parsers
 =======
 
-This section is the entry point for MARIO's parser layer.
+This section is the dedicated to MARIO's parsing methods.
 
-Use it when you need to ingest a custom database or a known public source. Each
+Use it to learn how to ingest a custom database or a known database source. Each
 page will describe expected inputs, supported versions, common caveats and the
 recommended tutorial or workflow to follow next.
 

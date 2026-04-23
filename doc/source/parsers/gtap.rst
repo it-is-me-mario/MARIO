@@ -1,13 +1,13 @@
-GTAP
-====
+Global Trade Analysis Project (GTAP)
+====================================
 
 MARIO currently supports the GTAP Power MRIO bundle as a local-file ``IOT``
 workflow.
 
-Recommended Entry Point
+Recommended entry point
 -----------------------
 
-For normal user workflows, the public entry point should be:
+For normal user workflows, the public entry point is:
 
 * :doc:`mario.parse_gtap(...) <../api_document/mario.parse_gtap>`
 
@@ -52,51 +52,21 @@ Automatic GTAP download is not part of the current MARIO workflow.
 You should point the parser to one local GTAP bundle directory, or to one file
 inside that directory.
 
-Tutorial
---------
+Notebook walkthrough
+--------------------
 
-If you prefer to run the walkthrough locally, you can also download the source
-notebook:
+Use the notebook below as the main parser guide:
 
-* :download:`Download the GTAP notebook <../notebooks/parsers/gtap/tutorial.ipynb>`
+* :doc:`GTAP parser walkthrough <../notebooks/parsers/gtap/walkthrough>`
 
-Load MARIO first:
+If you prefer to run it locally, you can also download the source notebook:
 
-.. code-block:: python
+* :download:`Download the GTAP notebook <../notebooks/parsers/gtap/walkthrough.ipynb>`
 
-   import mario
+.. toctree::
+   :hidden:
 
-Parse a CSV GTAP Power MRIO bundle:
-
-.. code-block:: python
-
-   db = mario.parse_gtap(
-       path="/path/to/gtap_bundle",
-       table="IOT",
-       variant="power",
-       layout="MRIO",
-       input_format="csv",
-   )
-
-Let MARIO auto-detect the available payload:
-
-.. code-block:: python
-
-   db = mario.parse_gtap(
-       path="/path/to/gtap_bundle",
-       table="IOT",
-       input_format="auto",
-   )
-
-Use the GDX workflow explicitly:
-
-.. code-block:: python
-
-   db = mario.parse_gtap(
-       path="/path/to/gtap_bundle",
-       table="IOT",
-       input_format="gdx",
-   )
+   ../notebooks/parsers/gtap/walkthrough
 
 Caveats
 -------

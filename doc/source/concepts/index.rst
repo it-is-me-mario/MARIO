@@ -1,7 +1,9 @@
 Concepts
 ========
 
-This section explains the fundamental concepts underlying MARIO.
+Despite MARIO builds upon classical Input-Output analysis literature, 
+it is useful to clarify some concepts and nomenclature 
+that may differ from standard references.
 
 .. toctree::
    :maxdepth: 1

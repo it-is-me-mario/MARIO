@@ -11,12 +11,7 @@ The current backend is intentionally narrow:
 * it exposes an explicit ``format=`` argument so future workbook families can
   be added without changing the public API.
 
-For this source, the most useful documentation format is a notebook-driven one:
-this landing page stays short, while one practical notebook covers where the
-files come from, how the workbook parser works, when to use ``format=``, and
-why the parsed table should be treated as a ``SUT`` rather than an ``IOT``.
-
-Relevant source links
+Relevant Source Links
 ---------------------
 
 * official catalog page:
@@ -28,7 +23,7 @@ Relevant source links
 * framework and workbook-format reference:
   `USEPA/useeior <https://github.com/USEPA/useeior>`_.
 
-Models, aliases, and parser scope
+Models, Aliases, and Parser Scope
 ---------------------------------
 
 In ``USEEIO``, the model name in the filename, such as
@@ -81,7 +76,7 @@ For the currently relevant national ``USEEIO`` families, the official
 This parser currently targets the national workbook exports only. It does not
 cover the ``StateEEIO`` families listed in the same official registry.
 
-What ``format`` means
+What ``format`` Means
 ---------------------
 
 ``format=`` is a parser-side selector. It describes the file layout and matrix
@@ -134,82 +129,6 @@ The key public arguments are:
 * ``table``:
   currently only ``"SUT"`` is supported.
 
-Typical usage
--------------
-
-Direct path to one explicit workbook:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.parse_useeio(
-       path="/path/to/USEEIOv2.5-yellowthroat-22.xlsx",
-       format="auto",
-   )
-
-Explicitly pin the verified workbook format:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.parse_useeio(
-       path="/path/to/USEEIOv2.5-waxwing-22.xlsx",
-       format="v2.5_workbook",
-   )
-
-Directory containing one workbook:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.parse_useeio(
-       path="/path/to/useeio_directory",
-   )
-
-Warnings
---------
-
-.. warning::
-
-   MARIO currently parses only the verified ``v2.5`` workbook export. Other
-   USEEIO workbook families should still be treated as unsupported until they
-   are checked explicitly.
-
-.. warning::
-
-   The official ``USEPA/USEEIO`` registry currently lists some newer entries,
-   such as ``v2.5.1`` families, as pending or in draft. This parser has been
-   verified only on the published ``v2.5`` workbook export family so far.
-
-.. warning::
-
-   The parser targets the Excel workbook export, not the full ``useeior``
-   model-building framework. If you are working from the framework sources,
-   export one workbook first and parse that workbook locally.
-
-.. warning::
-
-   ``USEEIO`` workbooks can expose a release year that differs from the
-   internal IO year used by the model. MARIO stores the internal IO year in the
-   parsed database metadata.
-
-.. warning::
-
-   In the official model registry, ``USEEIO v2.5-waxwing-22`` is marked as
-   deprecated because it was published with an incorrect extension and replaced
-   by ``USEEIO v2.5.1-waxwing-22``. Until the replacement workbook is checked
-   explicitly, treat ``waxwing`` parsing with more caution than the other
-   published ``v2.5`` aliases.
-
-.. warning::
-
-   For the verified ``v2.5`` workbook layout, the direct environmental
-   coefficient matrix ``B`` is aligned with the commodity axis. MARIO therefore
-   loads direct extensions into ``Ec`` through ``B * q``.
-
 Notebook Walkthrough
 --------------------
 
@@ -225,3 +144,27 @@ If you prefer to run it locally, you can also download the source notebook:
    :hidden:
 
    ../notebooks/parsers/useeio/walkthrough
+
+Caveats
+-------
+
+* MARIO currently parses only the verified ``v2.5`` workbook export. Other
+  USEEIO workbook families should still be treated as unsupported until they
+  are checked explicitly.
+* The official ``USEPA/USEEIO`` registry currently lists some newer entries,
+  such as ``v2.5.1`` families, as pending or in draft. This parser has been
+  verified only on the published ``v2.5`` workbook export family so far.
+* The parser targets the Excel workbook export, not the full ``useeior``
+  model-building framework. If you are working from the framework sources,
+  export one workbook first and parse that workbook locally.
+* ``USEEIO`` workbooks can expose a release year that differs from the
+  internal IO year used by the model. MARIO stores the internal IO year in the
+  parsed database metadata.
+* In the official model registry, ``USEEIO v2.5-waxwing-22`` is marked as
+  deprecated because it was published with an incorrect extension and replaced
+  by ``USEEIO v2.5.1-waxwing-22``. Until the replacement workbook is checked
+  explicitly, treat ``waxwing`` parsing with more caution than the other
+  published ``v2.5`` aliases.
+* For the verified ``v2.5`` workbook layout, the direct environmental
+  coefficient matrix ``B`` is aligned with the commodity axis. MARIO therefore
+  loads direct extensions into ``Ec`` through ``B * q``.

@@ -266,7 +266,8 @@ def parse_from_txt(
 
     flat : bool, Optional
         if True, parse the canonical long-format MARIO text export made of one
-        ``data`` file plus one ``units`` file. Otherwise parse the historical
+        ``data`` file plus one ``units`` file, or one ``units`` file plus
+        separate long-format files per matrix. Otherwise parse the historical
         matrix-per-file layout.
     matrix_layouts : dict, Optional
         optional per-matrix semantic layout declarations for IOT parsers.
@@ -322,13 +323,16 @@ def parse_from_parquet(
     ----------
     path : str
         directory containing either one parquet file per matrix or one flat
-        ``data.parquet`` plus ``units.parquet`` payload.
+        ``data.parquet`` plus ``units.parquet`` payload, or one
+        ``units.parquet`` plus separate long-format parquet files per matrix.
     table : str
         acceptable options are 'IOT' & 'SUT'
     mode : str
         acceptable options are ``flows`` and ``coefficients``
     flat : bool, Optional
-        if True, parse the canonical long-format MARIO parquet export.
+        if True, parse the canonical long-format MARIO parquet export, either
+        as one combined ``data.parquet`` file or as separate long-format
+        matrix files.
         Otherwise parse the matrix-per-file parquet layout.
     matrix_layouts : dict, Optional
         optional per-matrix semantic layout declarations for IOT parsers.
@@ -2126,13 +2130,22 @@ def parse_from_pymrio(
     io : pymrio.IOSystem
         the pymrio IOSystem to be converted to mario.Database
 
-    value_added : dict
-        the value_added mapper. keys will be the io Extensions and the values will be the slicers if exist. in case that all the rows of the
-        specific Extension should be assigned, 'all' should be passed.
+    value_added : dict or str
+        value-added mapper. Keys are pymrio Extension names and values are row
+        selectors. Use ``"all"`` as one dictionary value to assign the full
+        Extension to factors. As a top-level shorthand, ``value_added="all"``
+        assigns all Extensions not explicitly assigned to ``satellite_account``
+        to the factor side.
 
-    satellite_account : dict
-        the satellite_account mapper. keys will be the io Extensions and the values will be the slicers if exist. in case that all the rows of the
-        specific Extension should be assigned, 'all' should be passed.
+    satellite_account : dict or str
+        satellite-account mapper. Keys are pymrio Extension names and values
+        are row selectors. Use ``"all"`` as one dictionary value to assign the
+        full Extension to satellites. As a top-level shorthand,
+        ``satellite_account="all"`` assigns all Extensions not explicitly
+        assigned to ``value_added`` to the satellite side. When both arguments
+        are ``"all"``, MARIO looks for exactly one factor-like Extension such
+        as ``factor_inputs`` or ``factor_of_production`` and assigns the rest
+        to satellites.
 
     include_meta : bool
         if True, will record the pymrio.meta into mario.meta

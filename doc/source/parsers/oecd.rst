@@ -1,15 +1,15 @@
 OECD
 ====
 
-MARIO supports three OECD parser families
+MARIO supports three OECD parser families:
 
 * OECD ``ICIO`` csv bundles, including both the regular and extended releases
 * OECD national total-table ``IOT`` csv files such as ``ITA2014ttl.csv``
 * OECD ``SUT`` tables pulled directly from the official SDMX API
 
 
-Relevant links
---------------
+Relevant source links
+---------------------
 
 * official OECD ICIO page:
   `OECD inter-country input-output tables <https://www.oecd.org/en/data/datasets/inter-country-input-output-tables.html>`_;
@@ -18,12 +18,14 @@ Relevant links
 * official OECD SUT page:
   `OECD supply and use tables <https://www.oecd.org/en/data/datasets/supply-and-use-tables.html>`_.
 
-Recommended entry points
-------------------------
+
+Recommended entry point
+-----------------------
 
 For normal user workflows, the public entry point is:
 
 * :doc:`mario.parse_oecd(...) <../api_document/mario.parse_oecd>`
+
 
 Key arguments
 -------------
@@ -61,11 +63,5 @@ If you prefer to run it locally, you can also download the source notebook:
 
 
 Caveats
---------
+-------
 * The IOT ``dataset`` support only the accounts indicated as "Total table"
-
-
-Future developments
--------------------
-
-The OECD parser could be complemented with automatic integration of emission extensions soon.

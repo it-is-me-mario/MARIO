@@ -3,8 +3,8 @@ Technology assumptions
 
 When dealing with SUTs, it is possible to adopt:
 
-* ``Industry-based`` technology assumption, which implies commodities are produced by industrial activities with a fixed market share. 
-* ``Product-based`` technology assumption, which implies industrial activities produced a fixed mix of products .
+* ``Industry-based`` technology assumption, which implies commodities are produced by industrial activities with a fixed market share 
+* ``Product-based`` technology assumption, which implies industrial activities produced a fixed mix of products
 
 When parsing a SUT, you can specify the assumption. For instance:
 
@@ -27,9 +27,9 @@ At the API level, the short aliases ``IT`` and ``PT`` are also accepted.
 Mathematics
 -----------
 
-The assumption does not affect every *matrix*, 
-but mainly the supply technical coefficients ``s``. Independently of the assumption, 
-the *matrix* will always be called ``s``, but calculated differently.
+The technology assumption does not affect every *matrix*, 
+but mainly the make transaction coefficients matrix ``s``. Independently of the assumption, 
+this *matrix* will always be called ``s``, but calculated differently.
 
 In MARIO notation, the two cases are:
 
@@ -39,7 +39,7 @@ In MARIO notation, the two cases are:
 
      s = S \cdot \operatorname{diag}(X_c)^{-1}
 
-  where ``Xc`` is the commodity output vector. In this case, ``s`` is the
+  where ``Xc`` is the total demand of commodities vector. In this case, ``s`` is the
   market-share matrix.
 
 * under ``product-based`` technology assumption:
@@ -52,7 +52,7 @@ In MARIO notation, the two cases are:
 
      s = c^{-1}
 
-  where ``Xa`` is the activity output vector. In this case, MARIO first builds
+  where ``Xa`` is the total production of activities vector. In this case, MARIO first builds
   the product-mix matrix ``c`` and then derives ``s`` as its inverse.
 
 
@@ -70,10 +70,11 @@ avoiding mixing coefficients computed under different structural rules.
 
 
 
-Square-table requirement
-------------------------
+Caveats
+-------
 
-Product-based technology assumption requires a squared SUT (i.e. same number of commodities and activities).
+Product-based technology assumption requires a squared SUT 
+(i.e. same number of commodities and activities).
 If a user requests ``PT`` on a non-square SUT, MARIO does not fail the
-import. It falls back to ``IT`` instead.
+import, but will warn the user it's falling back to ``IT`` instead.
 

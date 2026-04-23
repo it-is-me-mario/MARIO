@@ -56,6 +56,11 @@ _FLAT_REQUIRED_COEFFICIENT_MATRICES = ("z", "Y", "v", "e", "EY")
 _FLAT_ROW_SIMPLE = {"V", "v", "E", "e", "EY", "VY"}
 
 
+def _flat_matrix_names_for_mode(mode: str) -> tuple[str, ...]:
+    """Return the flat matrix names expected for one parser mode."""
+    return _FLAT_COEFFICIENT_MATRICES if mode == "coefficients" else _FLAT_FLOW_MATRICES
+
+
 def _find_flat_payload(path: Path, stem: str, suffixes: set[str]) -> Path:
     """Resolve one flat payload file by stem regardless of file extension."""
     candidates = [
@@ -151,13 +156,38 @@ def _coerce_sparse_flat_data(data: pd.DataFrame) -> pd.DataFrame:
     return normalized[list(FLAT_DATA_COLUMNS)]
 
 
-def _read_flat_text_frames(path: str, sep: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+def _read_flat_text_data(path: str, sep: str, *, _format: str | None, mode: str) -> pd.DataFrame:
+    """Read one flat text payload from either ``data.*`` or per-matrix files."""
+    root = Path(path)
+    suffixes = _allowed_text_suffixes(_format)
+
+    try:
+        data_path = _find_flat_payload(root, "data", suffixes)
+    except FileNotFoundError:
+        frames = []
+        for matrix_name in _flat_matrix_names_for_mode(mode):
+            try:
+                matrix_path = _find_flat_payload(root, matrix_name, suffixes)
+            except FileNotFoundError:
+                continue
+            frames.append(pd.read_csv(matrix_path, sep=sep, keep_default_na=False))
+        if not frames:
+            expected = ", ".join(sorted(suffixes))
+            raise FileNotFoundError(
+                f"No flat payload found in {path!r}. Expected either data.* or one or more matrix files with suffixes {expected}."
+            )
+        return pd.concat(frames, ignore_index=True, sort=False)
+
+    return pd.read_csv(data_path, sep=sep, keep_default_na=False)
+
+
+def _read_flat_text_frames(path: str, sep: str, *, _format: str | None, mode: str) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Read the flat long-format data and unit tables."""
     root = Path(path)
-    data_path = _find_flat_payload(root, "data", {".txt", ".csv"})
-    units_path = _find_flat_payload(root, "units", {".txt", ".csv"})
+    suffixes = _allowed_text_suffixes(_format)
+    units_path = _find_flat_payload(root, "units", suffixes)
 
-    data = pd.read_csv(data_path, sep=sep, keep_default_na=False)
+    data = _read_flat_text_data(path, sep, _format=_format, mode=mode)
     units = pd.read_csv(units_path, sep=sep, keep_default_na=False)
 
     expected_data = list(FLAT_DATA_COLUMNS)
@@ -1108,12 +1138,7 @@ def flat_txt_parser(
 ):
     """Parse the canonical flat long-format txt/csv export."""
     log_time(logger, f"Parser: reading {mode} from flat txt files.", "info")
-    suffixes = _allowed_text_suffixes(_format)
-    root = Path(path)
-    data_path = _find_flat_payload(root, "data", suffixes)
-    units_path = _find_flat_payload(root, "units", suffixes)
-    data = pd.read_csv(data_path, sep=sep, keep_default_na=False)
-    unit_table = pd.read_csv(units_path, sep=sep, keep_default_na=False)
+    data, unit_table = _read_flat_text_frames(path, sep, _format=_format, mode=mode)
     return parse_flat_frames(data, unit_table, table, mode, matrix_layouts=matrix_layouts)
 
 

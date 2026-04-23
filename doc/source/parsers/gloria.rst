@@ -1,7 +1,7 @@
-GLORIA
-======
+Global Resource Input-Output Assessment (GLORIA)
+================================================
 
-MARIO supports local parsing of GLORIA monetary multi-regional database
+MARIO supports local parsing of the GLORIA monetary multi-regional database.
 
 The current backend supports:
 
@@ -80,11 +80,10 @@ If you prefer to run it locally, you can also download the source notebook:
 
 
 Caveats
---------
+-------
 
 * The GLORIA database is very large. Parsing the full release can require
   several GB of RAM
-* Satellite accounts are optional. If the satellite-account directory 
+* Satellite accounts are optional. If the satellite-account directory
   is absent or incomplete, MARIO falls back to
   empty extensions
-

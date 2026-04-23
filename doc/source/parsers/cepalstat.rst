@@ -19,12 +19,7 @@ At the moment MARIO supports:
 * ``IOT`` demand-at-basic-prices workbooks, such as Brazil;
 * ``IOT`` matrix workbooks, such as Chile.
 
-For this source, the most useful documentation format is a notebook-driven one:
-this landing page stays short, while one practical notebook covers bundle
-selection, ``table=``, ``year=``, ``country=``, ``iot_mode=``, and the main
-parser caveats by family.
-
-Relevant source links
+Relevant Source Links
 ---------------------
 
 * official CEPALSTAT repository:
@@ -57,47 +52,6 @@ The key public arguments are:
 * ``iot_mode``:
   only relevant for ``table="IOT"``. Use ``"pxp"``, ``"axa"``, or ``"auto"``.
   Some bundles expose both representations, while others expose only one.
-
-Typical usage
--------------
-
-Direct path to one CEPALSTAT SUT bundle:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.parse_cepalstat(
-       path="/path/to/COL_COU_2023.zip",
-       table="SUT",
-       year=2019,
-   )
-
-Direct path to one CEPALSTAT IOT bundle:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.parse_cepalstat(
-       path="/path/to/DOM_MIP_2012.zip",
-       table="IOT",
-       iot_mode="pxp",
-   )
-
-Directory containing multiple CEPALSTAT bundles:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.parse_cepalstat(
-       path="/path/to/cepalstat_directory",
-       table="IOT",
-       country="ARG",
-       year=1997,
-       iot_mode="auto",
-   )
 
 Caveats
 -------

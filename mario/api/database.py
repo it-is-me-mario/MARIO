@@ -1097,6 +1097,7 @@ class Database(CoreModel):
         include_meta=False,
         sep=",",
         flat=False,
+        separate_files=False,
     ):
         """Export one scenario as multiple text or CSV files.
 
@@ -1120,6 +1121,9 @@ class Database(CoreModel):
         flat:
             ``False`` keeps the historical matrix-per-file layout.
             ``True`` writes one long-format data file plus a units file.
+        separate_files:
+            when ``flat=True``, also write one trimmed long-format file per
+            matrix in the same export directory.
 
         Returns
         -------
@@ -1137,6 +1141,7 @@ class Database(CoreModel):
             include_meta=include_meta,
             sep=sep,
             flat=flat,
+            separate_files=separate_files,
         )
 
     def to_parquet(
@@ -1147,6 +1152,7 @@ class Database(CoreModel):
         scenario="baseline",
         include_meta=False,
         flat=False,
+        separate_files=False,
     ):
         """Export one scenario as parquet files.
 
@@ -1166,6 +1172,9 @@ class Database(CoreModel):
             ``False`` writes one parquet file per matrix.
             ``True`` writes one long-format ``data.parquet`` plus
             ``units.parquet``.
+        separate_files:
+            when ``flat=True``, also write one trimmed long-format parquet file
+            per matrix in the same export directory.
 
         Returns
         -------
@@ -1181,6 +1190,7 @@ class Database(CoreModel):
             scenario=scenario,
             include_meta=include_meta,
             flat=flat,
+            separate_files=separate_files,
         )
 
     def to_pymrio(

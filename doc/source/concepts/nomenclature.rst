@@ -1,41 +1,43 @@
 Nomenclature
 ============
 
-This page defines the core terms used across the MARIO documentation and
+This page defines the core terminoloty used across the MARIO documentation and
 collects the canonical names used for indices and matrices.
+
 
 Basic Definitions
 -----------------
 
 Database
-   The user-facing object used throughout MARIO. A *database* stores one *table*,
-   its *scenarios*, the *matrices* already parsed or computed, and the metadata
+   The MARIO object the users interact with. A *database* stores one *table*,
+   its *scenarios*, the parsed and derived *matrices*, and the metadata
    needed to work with them.
 
 Table
-   The *table* format represented inside a database. In MARIO, the structural
-   *table* types are :ref:`Input-Output Tables (IOTs) <concept-iots>` and :ref:`Supply and Use Tables (SUTs) <concept-suts>`.
+   The *table* is a collection of *matrices* arranged in a certain format.
+   In MARIO, the structural *table* types are :ref:`Input-Output Tables (IOTs) <concept-iots>` 
+   and :ref:`Supply and Use Tables (SUTs) <concept-suts>`.
 
 Scenarios
    Different states of the same *table*. See the dedicated page on
    :doc:`scenarios`.
 
 Matrix
-   One named data operator stored in the *database*, such as ``Z``, ``Y``, ``U``
-   or ``S``. A *database* contains many matrices, some parsed directly and others
+   One named data structure shaping a *table* and stored in a *database*, such as ``Z``, ``Y``, ``U``
+   or ``S``. A *database* contains many matrices, some parsed directly while others can be
    computed on demand.
 
 Mode
-   The mode of a *matrix* is either ``flows`` or ``coefficients``, depending on
-   whether the *matrix* contains absolute flows or technical coefficients. The
-   mode is therefore a property of the specific *matrix*, not of the whole
-   *table*. For example, an IOT *table* can contain both flow and coefficient
-   *matrices*.
+   A *matrix* can be either stored in ``flows`` or ``coefficients`` mode, depending on
+   whether it contains absolute accounting values or technical coefficients. The
+   mode is therefore a *matrix-specific* property, not related to the whole
+   *table* or *database*. For example, an IOT *table* can be represented both by flow 
+   and coefficient *matrices*.
 
    .. important::
 
-      By convention, matrices written with **capital letters** are flow
-      matrices (for example ``Z`` or ``V``), while matrices written with
+      By convention, in MARIO, matrices named with **capital letters** are flow
+      matrices (for example ``Z`` or ``V``), while matrices named with
       **lowercase letters** are coefficient matrices (for example ``z`` or
       ``v``).
 

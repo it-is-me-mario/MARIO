@@ -7,7 +7,6 @@ Zenodo version records.
 The official version records currently relevant for MARIO are:
 
 * `v2.2 <https://doi.org/10.5281/zenodo.19461860>`_
-* `v2.1 <https://doi.org/10.5281/zenodo.18518911>`_
 * `v2.0 <https://doi.org/10.5281/zenodo.17557778>`_
 * `v1.0 <https://doi.org/10.5281/zenodo.10956623>`_
 
@@ -19,21 +18,8 @@ this landing page stays short, while one practical notebook covers the
 official Zenodo versions, local-file naming conventions, downloader usage,
 ``year=``, ``regions=``, ``load_co2=``, and ``co2_path=``.
 
-Relevant source links
----------------------
 
-* concept DOI:
-  `Zenodo concept 10956622 <https://doi.org/10.5281/zenodo.10956622>`_;
-* ``v2.2`` record:
-  `Zenodo 19461860 <https://doi.org/10.5281/zenodo.19461860>`_;
-* ``v2.1`` record:
-  `Zenodo 18518911 <https://doi.org/10.5281/zenodo.18518911>`_;
-* ``v2.0`` record:
-  `Zenodo 17557778 <https://doi.org/10.5281/zenodo.17557778>`_;
-* ``v1.0`` record:
-  `Zenodo 10956623 <https://doi.org/10.5281/zenodo.10956623>`_.
-
-Recommended Entry Point
+Recommended entry point
 -----------------------
 
 For normal user workflows, the public entry point is:
@@ -58,78 +44,30 @@ The key public arguments are:
 * ``co2_path``:
   explicit path to one companion CO2 file when auto-detection is not enough.
 
-Download workflow
------------------
 
-Automatic download is available:
+Notebook walkthrough
+--------------------
+
+Automatic download method is available:
 
 * ``mario.download_emerging(...)``
 
 ``latest`` currently resolves to ``v2.2``.
 
-Typical usage
--------------
 
-Download one official version explicitly:
+Once downloaded, use the notebook below as the main parser guide:
 
-.. code-block:: python
+* :doc:`EMERGING parser walkthrough <../notebooks/parsers/emerging/walkthrough>`
 
-   import mario
+If you prefer to run it locally, you can also download the source notebook:
 
-   mario.download_emerging(
-       path="/path/to/emerging",
-       version="2.2",
-       years=[2023],
-   )
+* :download:`Download the EMERGING notebook <../notebooks/parsers/emerging/walkthrough.ipynb>`
 
-Parse one local EMERGING bundle:
+.. toctree::
+   :hidden:
 
-.. code-block:: python
+   ../notebooks/parsers/emerging/walkthrough
 
-   import mario
-
-   db = mario.parse_emerging(
-       path="/path/to/EMERGING_V2_2023_m.mat",
-       table="IOT",
-   )
-
-Parse from a directory and select one year:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.parse_emerging(
-       path="/path/to/emerging_directory",
-       table="IOT",
-       year=2023,
-   )
-
-Restrict the region set to keep the database manageable:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.parse_emerging(
-       path="/path/to/emerging_directory",
-       table="IOT",
-       year=2023,
-       regions=["ITA", "DEU", "FRA"],
-   )
-
-Control CO2 loading explicitly:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.parse_emerging(
-       path="/path/to/emerging_directory",
-       table="IOT",
-       year=2023,
-       load_co2=False,
-   )
 
 Caveats
 -------
@@ -143,18 +81,3 @@ Caveats
 * ``load_co2=False`` is useful when you want to parse the core IOT first and
   deal with extensions separately.
 
-Notebook Walkthrough
---------------------
-
-Use the notebook below as the main parser guide:
-
-* :doc:`EMERGING parser walkthrough <../notebooks/parsers/emerging/walkthrough>`
-
-If you prefer to run it locally, you can also download the source notebook:
-
-* :download:`Download the EMERGING notebook <../notebooks/parsers/emerging/walkthrough.ipynb>`
-
-.. toctree::
-   :hidden:
-
-   ../notebooks/parsers/emerging/walkthrough

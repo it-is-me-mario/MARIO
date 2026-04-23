@@ -1,11 +1,11 @@
-From TXT, CSV and PARQUET
-=========================
+From TXT, CSV, and Parquet
+==========================
 
-MARIO supports custom parsing from TXT, CSV and PARQUET files.
-These files are preferable for large datasets and are not usually generated manually, but they are generally produced by a MARIO export operation.
+MARIO supports custom parsing from TXT, CSV, and Parquet files.
+These files are preferable for large datasets and are usually produced by a
+MARIO export operation rather than assembled manually.
 
-
-Recommended Entry Points
+Recommended entry points
 ------------------------
 
 For normal user workflows, the public entry points are:
@@ -29,46 +29,48 @@ The key public arguments are:
 * ``_format``:
   format of the files to parse, choose between ``"txt"``, ``"csv"`` (not required in ``mario.parse_from_parquet``)
 * ``flat``:
-  use ``True`` for if the database is in long-format
+  use ``True`` if the database is in long format
 * ``matrix_layouts``:
   optional per-matrix semantic declarations for non-standard IOT layouts. Check the guide on special layouts :ref:`here <special_layout>` for more details
 * ``tech_assumption``:
   optional SUT-only selector for ``IT`` / ``PT`` behaviour
 
+Flat and Matrix Layouts
+-----------------------
 
+Both parsing methods support:
 
-Recommended usage
------------------
+* matrix-per-file payloads;
+* flat long-format payloads.
 
-These parsing methods supports both flat and "matricial" data shapes:
-Use ``flat=True`` in the second case.
+Use ``flat=True`` for long-format payloads.
 
-Parse from TXT/CSV:
+When parsing from TXT/CSV, MARIO accepts either:
 
-.. code-block:: python
+* one combined ``data`` file plus one ``units`` file;
+* or one ``units`` file plus separate flat files per matrix.
 
-   import mario
+The same logic also applies to flat Parquet payloads.
 
-   db = mario.parse_from_txt(
-       path="/path/to/txt_directory",  # must be a directory, not a single file
-       table="IOT",           # or "SUT"
-       mode="flows",
-       _format="txt",         # or "csv". "txt" is the default
-       flat = False,          # set to True if the data is in long format. False is the default,
-       matrix_layouts = None, # or specify the desired extra indices for E and V matrices. None is default
-   )
+Notebook walkthrough
+--------------------
 
-Parse from PARQUET:
+Use the notebook below as the main parser guide:
 
-.. code-block:: python
+* :doc:`TXT, CSV and Parquet parser walkthrough <../notebooks/parsers/custom_database/from_txt>`
 
-   import mario
+If you prefer to run it locally, you can also download the source notebook:
 
-   db = mario.parse_from_parquet(
-       path="/path/to/parquet_directory",  # must be a directory, not a single file
-       table="IOT",  # or "SUT"
-       mode="flows",
-       flat = False,  # set to True if the data is in long format. False is the default
-       matrix_layouts = None, # or specify the desired extra indices for E and V matrices. None is default
-   )
+* :download:`Download the TXT and Parquet notebook <../notebooks/parsers/custom_database/from_txt.ipynb>`
 
+.. toctree::
+   :hidden:
+
+   ../notebooks/parsers/custom_database/from_txt
+
+Caveats
+-------
+
+* ``path`` must always point to a directory, not to one single file.
+* ``flat=True`` is required for long-format payloads.
+* ``_format`` matters only for TXT/CSV parsing, not for Parquet parsing.

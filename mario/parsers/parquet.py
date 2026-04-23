@@ -41,6 +41,11 @@ _MATRIX_REQUIRED_FLOW_FILES = ("Z", "Y", "V", "E", "EY")
 _MATRIX_REQUIRED_COEFFICIENT_FILES = ("z", "Y", "v", "e", "EY")
 
 
+def _flat_matrix_names_for_mode(mode: str) -> tuple[str, ...]:
+    """Return the flat matrix names expected for one parser mode."""
+    return _MATRIX_COEFFICIENT_FILES if mode == "coefficients" else _MATRIX_FLOW_FILES
+
+
 def matrix_parquet_parser(path: str, table: str, mode: str):
     """Parse the matrix-per-file parquet layout exported by ``Database.to_parquet``."""
     root = Path(path)
@@ -151,6 +156,26 @@ def matrix_parquet_parser_with_layouts(
     return {"baseline": matrices}, indexes, units, extra
 
 
+def _read_flat_parquet_data(path: str, *, mode: str) -> pd.DataFrame:
+    """Read one flat parquet payload from either ``data.parquet`` or per-matrix files."""
+    root = Path(path)
+    data_path = root / "data.parquet"
+    if data_path.exists():
+        return pd.read_parquet(data_path)
+
+    frames = []
+    for matrix_name in _flat_matrix_names_for_mode(mode):
+        target = root / f"{matrix_name}.parquet"
+        if not target.exists():
+            continue
+        frames.append(pd.read_parquet(target))
+    if not frames:
+        raise FileNotFoundError(
+            f"No flat parquet payload found in {path!r}. Expected either data.parquet or one or more matrix parquet files."
+        )
+    return pd.concat(frames, ignore_index=True, sort=False)
+
+
 def flat_parquet_parser(
     path: str,
     table: str,
@@ -159,9 +184,8 @@ def flat_parquet_parser(
 ):
     """Parse the flat parquet layout exported by ``Database.to_parquet(flat=True)``."""
     root = Path(path)
-    data_path = _find_flat_payload(root, "data", {".parquet"})
     units_path = _find_flat_payload(root, "units", {".parquet"})
-    data = pd.read_parquet(data_path)
+    data = _read_flat_parquet_data(path, mode=mode)
     units = pd.read_parquet(units_path)
     return parse_flat_frames(data, units, table, mode, matrix_layouts=matrix_layouts)
 

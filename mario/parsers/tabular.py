@@ -641,6 +641,12 @@ def parse_pymrio(io, value_added, satellite_account):
         if isinstance(obj, pymrio.Extension):
             extensions[value] = obj
 
+    value_added, satellite_account = _normalize_pymrio_extension_assignment(
+        extensions=extensions,
+        value_added=value_added,
+        satellite_account=satellite_account,
+    )
+
     difference = set(extensions).difference([*value_added] + [*satellite_account])
 
     if difference:
@@ -768,6 +774,83 @@ def parse_pymrio(io, value_added, satellite_account):
 
     rename_index(matrices["baseline"])
     return matrices, units, indeces
+
+
+def _normalize_pymrio_extension_assignment(extensions, value_added, satellite_account):
+    """Normalize public pymrio assignment shorthands into explicit mappings."""
+    extension_names = list(extensions)
+
+    def _normalize_side(argument, label):
+        if isinstance(argument, str):
+            normalized = argument.strip().lower()
+            if normalized != "all":
+                raise WrongInput(
+                    f"{label} should be a dict or the string 'all', got {argument!r}."
+                )
+            return "all"
+        if not isinstance(argument, dict):
+            raise WrongInput(
+                f"{label} should be a dict or the string 'all', got {type(argument).__name__}."
+            )
+        missing = set(argument).difference(extension_names)
+        if missing:
+            raise WrongInput(
+                f"{label} contains unknown pymrio Extensions: {sorted(missing)}."
+            )
+        return argument
+
+    def _looks_like_factor_extension(name):
+        normalized = re.sub(r"[^a-z0-9]+", "", str(name).lower())
+        factor_like = {
+            "factorinputs",
+            "factorinput",
+            "factorofproduction",
+            "factorsofproduction",
+            "valueadded",
+            "primaryinputs",
+        }
+        return normalized in factor_like
+
+    value_added = _normalize_side(value_added, "value_added")
+    satellite_account = _normalize_side(satellite_account, "satellite_account")
+
+    if value_added == "all" and satellite_account == "all":
+        factor_extensions = [
+            name for name in extension_names if _looks_like_factor_extension(name)
+        ]
+        if len(factor_extensions) != 1:
+            raise WrongInput(
+                "parse_from_pymrio(value_added='all', satellite_account='all') "
+                "requires exactly one factor-like Extension such as 'factor_inputs' "
+                "or 'factor_of_production'. Use explicit dictionaries otherwise."
+            )
+        factor_name = factor_extensions[0]
+        return (
+            {factor_name: "all"},
+            {name: "all" for name in extension_names if name != factor_name},
+        )
+
+    if value_added == "all":
+        return (
+            {
+                name: "all"
+                for name in extension_names
+                if name not in satellite_account
+            },
+            satellite_account,
+        )
+
+    if satellite_account == "all":
+        return (
+            value_added,
+            {
+                name: "all"
+                for name in extension_names
+                if name not in value_added
+            },
+        )
+
+    return value_added, satellite_account
 
 
     return matrices, indeces, units

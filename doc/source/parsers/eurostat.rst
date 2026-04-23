@@ -12,12 +12,7 @@ The parser currently supports:
 * direct online parsing from the official API;
 * optional local caching of the raw SDMX-CSV slices.
 
-For this source, the most useful documentation format is a notebook-driven one:
-this landing page stays short, while one practical notebook covers direct API
-parsing, local caching, the difference between ``SUT`` and ``IOT``, and the
-fact that year availability depends on the country and on the table family.
-
-Relevant source links
+Relevant Source Links
 ---------------------
 
 * official Eurostat SUIOT information page:
@@ -54,7 +49,7 @@ The key public arguments are:
 * ``download``:
   when ``True``, MARIO stores the raw CSV locally before parsing it.
 
-Available years
+Available Years
 ---------------
 
 Year availability is not uniform across all countries.
@@ -81,48 +76,6 @@ So the practical rule is:
   published them for the specific country;
 * for ``IOT``, treat ``2010``, ``2015``, ``2020`` as the core mandatory years
   and any extra years as country-specific.
-
-Typical usage
--------------
-
-Parse a Eurostat SUT directly from SDMX:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.parse_eurostat(
-       country="IT",
-       year=2022,
-       table="SUT",
-   )
-
-Parse a Eurostat IOT:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.parse_eurostat(
-       country="IT",
-       year=2022,
-       table="IOT",
-       iot_mode="product",
-   )
-
-Cache the raw CSV locally while parsing:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.parse_eurostat(
-       country="IT",
-       year=2022,
-       table="SUT",
-       path="/path/to/eurostat_cache",
-       download=True,
-   )
 
 Caveats
 -------

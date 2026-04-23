@@ -13,7 +13,7 @@ and units.
   :doc:`there are methods to support you in setting it up in the MARIO-readable format <../workflows/provide_your_database>`
 
 
-Recommended Entry Point
+Recommended entry point
 -----------------------
 
 For normal user workflows, the public entry point is:
@@ -43,8 +43,8 @@ The key public arguments are:
 
 
 
-Standard Excel workbook layout and usage
-----------------------------------------
+Standard Excel workbook layout
+------------------------------
 
 The ``mario.parse_from_excel(...)`` method expects:
 
@@ -95,7 +95,7 @@ To parse a standard Excel workbook:
 .. _special_layout:
 
 Special Excel workbook layouts
----------------
+------------------------------
 
 From v1.0.0, the ``matrix_layouts`` argument has been introduced to allow for non-standard layouts for the IOT matrices.
 Provided MARIO *indices* (e.g. *regions*, *sectors*, *factors of production*...) are be fixed, some tables may benefit from extra layers of detail with respect to the standard layout.
@@ -136,6 +136,22 @@ N.B. The logic underlying the *units* sheet is always the same in both standard 
   * When defining ``E`` and/or ``V`` *matrices* with extra indices, you MUST use the full list of labels under those indices (e.g. all the *sectors* and *regions* in the example above)
   * No need to speficy levels for ``VY`` and ``EY`` matrices, they will follow the same layout as ``V`` and ``E`` respectively
 
+Notebook walkthrough
+--------------------
+
+Use the notebook below as the main parser guide:
+
+* :doc:`Excel parser walkthrough <../notebooks/parsers/custom_database/from_excel>`
+
+If you prefer to run it locally, you can also download the source notebook:
+
+* :download:`Download the Excel notebook <../notebooks/parsers/custom_database/from_excel.ipynb>`
+
+.. toctree::
+   :hidden:
+
+   ../notebooks/parsers/custom_database/from_excel
+
 
 
 Caveats
@@ -144,5 +160,3 @@ Caveats
 * Excel is usually the simplest way to start, but it is not the most robust
   format for large roundtrip workflows;
 * This parser does not infer ``flows`` versus ``coefficients`` automatically: you need to specify the ``mode`` argument.
-
-

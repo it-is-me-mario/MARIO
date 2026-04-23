@@ -1260,6 +1260,62 @@ def test_parse_state_from_txt_iot_flat_csv_roundtrip_preserves_blocks(tmp_path):
     pdt.assert_frame_equal(state.get_block("Y"), database.Y)
 
 
+def test_to_txt_flat_separate_files_exports_trimmed_matrix_payloads(tmp_path):
+    database = load_test("IOT")
+    database.to_txt(
+        path=tmp_path,
+        flows=True,
+        coefficients=False,
+        sep=",",
+        flat=True,
+        separate_files=True,
+    )
+
+    assert (tmp_path / "flows" / "data.txt").exists()
+    assert (tmp_path / "flows" / "units.txt").exists()
+    assert (tmp_path / "flows" / "Z.txt").exists()
+    assert (tmp_path / "flows" / "Y.txt").exists()
+    assert (tmp_path / "flows" / "V.txt").exists()
+
+    z_data = pd.read_csv(tmp_path / "flows" / "Z.txt", sep=",", keep_default_na=False)
+    y_data = pd.read_csv(tmp_path / "flows" / "Y.txt", sep=",", keep_default_na=False)
+    assert list(z_data.columns) == list(
+        flat_data_columns_for_sets(from_sets=("Region", "Sector"), to_sets=("Region", "Sector"))
+    )
+    assert list(y_data.columns) == list(
+        flat_data_columns_for_sets(
+            from_sets=("Region", "Sector"),
+            to_sets=("Region", "Consumption category"),
+        )
+    )
+
+
+def test_parse_state_from_txt_iot_flat_separate_files_roundtrip_preserves_blocks(tmp_path):
+    database = load_test("IOT")
+    database.to_txt(
+        path=tmp_path,
+        flows=True,
+        coefficients=False,
+        sep=",",
+        flat=True,
+        separate_files=True,
+    )
+    (tmp_path / "flows" / "data.txt").unlink()
+
+    state = parse_state_from_txt(
+        path=str(tmp_path / "flows"),
+        table="IOT",
+        mode="flows",
+        name="IOT flat txt split dataset",
+        sep=",",
+        flat=True,
+    )
+
+    pdt.assert_frame_equal(state.get_block("Z"), database.Z)
+    pdt.assert_frame_equal(state.get_block("Y"), database.Y)
+    pdt.assert_frame_equal(state.compute("X"), database.X)
+
+
 def test_to_txt_flat_roundtrip_preserves_custom_iot_layouts_without_level_values(tmp_path):
     path = tmp_path / "mriot_regional_v_e_explicit.xlsx"
     _write_mriot_regional_extensions_and_factors_explicit_workbook(path)
@@ -1367,6 +1423,63 @@ def test_to_parquet_flat_exports_canonical_schema(tmp_path):
     )
     assert list(units.columns) == list(FLAT_UNIT_COLUMNS)
     assert set(data["Matrix"]) == {"Z", "Y", "V", "E", "EY", "VY"}
+
+
+def test_to_parquet_flat_separate_files_exports_trimmed_matrix_payloads(tmp_path):
+    pytest.importorskip("pyarrow")
+
+    database = load_test("IOT")
+    database.to_parquet(
+        path=tmp_path,
+        flows=True,
+        coefficients=False,
+        flat=True,
+        separate_files=True,
+    )
+
+    assert (tmp_path / "flows" / "data.parquet").exists()
+    assert (tmp_path / "flows" / "units.parquet").exists()
+    assert (tmp_path / "flows" / "Z.parquet").exists()
+    assert (tmp_path / "flows" / "Y.parquet").exists()
+    assert (tmp_path / "flows" / "V.parquet").exists()
+
+    z_data = pd.read_parquet(tmp_path / "flows" / "Z.parquet")
+    y_data = pd.read_parquet(tmp_path / "flows" / "Y.parquet")
+    assert list(z_data.columns) == list(
+        flat_data_columns_for_sets(from_sets=("Region", "Sector"), to_sets=("Region", "Sector"))
+    )
+    assert list(y_data.columns) == list(
+        flat_data_columns_for_sets(
+            from_sets=("Region", "Sector"),
+            to_sets=("Region", "Consumption category"),
+        )
+    )
+
+
+def test_parse_state_from_parquet_iot_flat_separate_files_roundtrip_preserves_blocks(tmp_path):
+    pytest.importorskip("pyarrow")
+
+    database = load_test("IOT")
+    database.to_parquet(
+        path=tmp_path,
+        flows=True,
+        coefficients=False,
+        flat=True,
+        separate_files=True,
+    )
+    (tmp_path / "flows" / "data.parquet").unlink()
+
+    state = parse_state_from_parquet(
+        path=str(tmp_path / "flows"),
+        table="IOT",
+        mode="flows",
+        name="IOT flat parquet split dataset",
+        flat=True,
+    )
+
+    pdt.assert_frame_equal(state.get_block("Z"), database.Z)
+    pdt.assert_frame_equal(state.get_block("Y"), database.Y)
+    pdt.assert_frame_equal(state.compute("X"), database.X)
 
 
 def test_parse_state_from_parquet_iot_matrix_roundtrip_preserves_blocks(tmp_path):

@@ -11,12 +11,7 @@ The parser currently supports:
 * direct online parsing from WDS;
 * optional local caching of the raw CSV downloads.
 
-For this source, the most useful documentation format is a notebook-driven one:
-this landing page stays short, while one practical notebook covers where the
-tables come from, direct online parsing, local caching, the difference between
-``SUT`` and ``IOT`` workflows, ``geo=``, ``level=``, and ``valuation=``.
-
-Relevant source links
+Relevant Source Links
 ---------------------
 
 * official StatCan SUT catalogue:
@@ -53,7 +48,7 @@ The key public arguments are:
 * ``download``:
   when ``True``, MARIO stores the raw CSV locally before parsing it.
 
-Download workflow
+Download Workflow
 -----------------
 
 Automatic raw download is available:
@@ -62,7 +57,7 @@ Automatic raw download is available:
 
 You can also parse directly from WDS without a prior explicit download.
 
-Supported workflows
+Supported Workflows
 -------------------
 
 StatCan parsing supports both:
@@ -80,62 +75,6 @@ For IOT parsing, ``valuation`` can be:
 
 * ``basic``
 * ``purchaser``
-
-Typical usage
--------------
-
-Parse a StatCan SUT directly from WDS:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.parse_statcan(
-       year=2022,
-       table="SUT",
-       level="summary",
-       geo="Canada",
-   )
-
-Parse a provincial detail SUT:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.parse_statcan(
-       year=2022,
-       table="SUT",
-       level="detail",
-       geo="Ontario",
-   )
-
-Parse a StatCan IOT:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.parse_statcan(
-       year=2022,
-       table="IOT",
-       level="detail",
-       valuation="basic",
-   )
-
-Cache the raw CSV locally while parsing:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.parse_statcan(
-       year=2022,
-       table="SUT",
-       level="detail",
-       path="/path/to/statcan_cache",
-       download=True,
-   )
 
 Caveats
 -------

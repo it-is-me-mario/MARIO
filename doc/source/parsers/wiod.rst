@@ -1,5 +1,5 @@
-WIOD
-====
+World Input-Output Database (WIOD)
+==================================
 
 MARIO supports local parsing of the WIOD 2016 Excel workbooks distributed on
 the official GGDC release page.
@@ -13,13 +13,7 @@ The parser currently supports:
 * national ``SUT`` workbooks;
 * optional socio-economic accounts imported through ``add_extensions=...``.
 
-For this source, the most useful documentation format is a notebook-driven one:
-this landing page stays short, while one practical notebook covers where to
-download the files, direct-file versus directory parsing, ``year=``,
-``country=``, ``add_extensions=``, the WIOD download helpers, and the
-difference between ``MRIO`` and national workflows.
-
-Relevant source links
+Relevant Source Links
 ---------------------
 
 * official WIOD 2016 release page:
@@ -68,7 +62,7 @@ The key public arguments are:
   reclassify those flows into ``Va`` and ``VY``. Use ``"legacy_region"`` to
   keep the previous parser behaviour.
 
-Download workflow
+Download Workflow
 -----------------
 
 Automatic download is available:
@@ -78,74 +72,6 @@ Automatic download is available:
 * ``mario.download_wiod2016_national_iot(...)``
 * ``mario.download_wiod2016_national_sut(...)``
 * ``mario.download_wiod2016_socioeconomic_accounts(...)``
-
-Typical usage
--------------
-
-Direct path to one multiregional IOT workbook:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.parse_wiod(
-       path="/path/to/WIOT2014_Nov16_ROW.xlsb",
-       table="IOT",
-   )
-
-Directory containing multiple national workbooks:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.parse_wiod(
-       path="/path/to/wiod_national_directory",
-       table="SUT",
-       country="ITA",
-       year=2014,
-   )
-
-Socio-economic accounts:
-
-.. code-block:: python
-
-   import mario
-
-   db = mario.parse_wiod(
-       path="/path/to/WIOT2014_PYP_Nov16_ROW.xlsb",
-       table="IOT",
-       add_extensions="/path/to/Socio_Economic_Accounts.xlsx",
-   )
-
-Warnings
---------
-
-.. warning::
-
-   The international WIOD ``SUT`` workbook does not provide a fully endogenous
-   ``ROW`` economy. In the source file, ``ROW`` appears only on the commodity
-   origin side of the ``USE`` table, not as a complete region with supply,
-   value added, and final demand.
-
-.. warning::
-
-   Because of that source structure, the international ``SUT`` parser exposes
-   two modes:
-
-   * ``row_mode="external_account"``:
-     the default and recommended mode. ``ROW`` is removed from the endogenous
-     region set and reclassified as an external account through ``Va`` and
-     ``VY``;
-   * ``row_mode="legacy_region"``:
-     the previous parser behaviour, kept for backward compatibility.
-
-.. warning::
-
-   The international ``SUT`` treatment should still be considered under
-   investigation. The parser now makes the modelling choice explicit, but the
-   underlying WIOD source does not uniquely identify a complete endogenous
-   ``ROW`` region.
 
 Notebook Walkthrough
 --------------------
@@ -162,3 +88,25 @@ If you prefer to run it locally, you can also download the source notebook:
    :hidden:
 
    ../notebooks/parsers/wiod/walkthrough
+
+Caveats
+-------
+
+* The international WIOD ``SUT`` workbook does not provide a fully endogenous
+  ``ROW`` economy. In the source file, ``ROW`` appears only on the commodity
+  origin side of the ``USE`` table, not as a complete region with supply,
+  value added, and final demand.
+* Because of that source structure, the international ``SUT`` parser exposes
+  two modes:
+
+  * ``row_mode="external_account"``:
+    the default and recommended mode. ``ROW`` is removed from the endogenous
+    region set and reclassified as an external account through ``Va`` and
+    ``VY``.
+  * ``row_mode="legacy_region"``:
+    the previous parser behaviour, kept for backward compatibility.
+
+* The international ``SUT`` treatment should still be considered under
+  investigation. The parser now makes the modelling choice explicit, but the
+  underlying WIOD source does not uniquely identify a complete endogenous
+  ``ROW`` region.

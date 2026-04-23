@@ -61,7 +61,7 @@ Notebook walkthrough
 --------------------
 
 Since no automatic Eora download is supported natively in MARIO,
-you should work from local Eora files that you already downloaded and.
+you should work from local Eora files that you already downloaded.
 
 Use the notebook below as the main parser guide:
 
