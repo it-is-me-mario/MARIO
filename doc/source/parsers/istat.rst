@@ -51,6 +51,26 @@ The key public arguments are:
 * ``edition`` and ``page_url``:
   downloader selectors for the official release page.
 
+Expected path structure
+-----------------------
+
+``path`` can point to one official workbook, one extracted ISTAT release
+directory, one official release zip, or to the cache directory used with
+``download=True``:
+
+.. code-block:: text
+
+   ISTAT/
+   ├── input_output_2015_2020.zip
+   ├── input_output_2020_2022.zip
+   └── extracted_release/
+       ├── *.xlsx
+       └── *.xls
+
+For local parsing, the file names and workbook sheets must come from the
+official ISTAT release. For download-based parsing, ``path`` is the directory
+where MARIO stores the downloaded archive and extracted files.
+
 
 Notebook walkthrough
 --------------------
@@ -88,4 +108,3 @@ Caveats
   so be explicit about ``level``, ``price``, and ``valuation`` when needed;
 * For ``IOT``, ``iot_mode=`` decides whether you parse the product-by-product
   or industry-by-industry release.
-

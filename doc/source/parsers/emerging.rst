@@ -44,6 +44,24 @@ The key public arguments are:
 * ``co2_path``:
   explicit path to one companion CO2 file when auto-detection is not enough.
 
+Expected path structure
+-----------------------
+
+``path`` can point to one yearly ``.mat`` file or to a directory containing
+the EMERGING yearly bundles:
+
+.. code-block:: text
+
+   EMERGING/2.2/
+   ├── EMERGING_V2_2023_m.mat
+   └── EMERGING_CO2_2023.mat
+
+When ``path`` is a directory, use ``year=`` to select the economic bundle.
+With ``load_co2=True``, MARIO first looks for a companion CO2 file in the same
+directory, for example ``EMERGING_CO2_2023.mat`` for ``year=2023``. Use
+``co2_path=`` when the companion file is stored elsewhere or has a non-standard
+name.
+
 
 Notebook walkthrough
 --------------------
@@ -80,4 +98,3 @@ Caveats
   ``v2.x``-compatible local bundles;
 * ``load_co2=False`` is useful when you want to parse the core IOT first and
   deal with extensions separately.
-

@@ -138,7 +138,84 @@ def _normalize_valuation(value: str | int) -> int:
     return _VALUATION_ALIASES[key]
 
 
-def _resolve_gloria_roots(path: str | Path) -> tuple[Path, Path]:
+def _is_gloria_part_i_dir(path: Path) -> bool:
+    """Return whether ``path`` looks like the Google Drive part I container."""
+    name = path.name.lower()
+    return "part_i" in name and "mrio" in name
+
+
+def _is_gloria_part_iii_dir(path: Path) -> bool:
+    """Return whether ``path`` looks like the Google Drive part III container."""
+    name = path.name.lower()
+    return "part_iii" in name and "satellite" in name
+
+
+def _gloria_file_matches(path: Path, variables: set[str] | None = None) -> list[re.Match[str]]:
+    """Return GLORIA raw-file matches found directly under ``path``."""
+    if not path.exists() or not path.is_dir():
+        return []
+
+    matches = []
+    for child in path.iterdir():
+        if not child.is_file():
+            continue
+        match = _GLORIA_FILE_RE.match(child.name)
+        if match is None:
+            continue
+        if variables is not None and match.group("var").upper() not in variables:
+            continue
+        matches.append(match)
+    return matches
+
+
+def _gloria_candidate_matches_year(candidate: Path, year: int | None) -> bool:
+    """Return whether one candidate data directory is compatible with ``year``."""
+    if year is None:
+        return True
+
+    dir_match = _GLORIA_DATA_DIR_RE.match(candidate.name)
+    if dir_match is not None:
+        return int(dir_match.group("year")) == year
+
+    return any(int(match.group("year")) == year for match in _gloria_file_matches(candidate))
+
+
+def _candidate_data_roots(container: Path) -> list[Path]:
+    """Return GLORIA data directories available directly under ``container``."""
+    candidates: list[Path] = []
+    if _gloria_file_matches(container, {"T", "Y", "V"}):
+        candidates.append(container)
+
+    candidates.extend(
+        child
+        for child in container.iterdir()
+        if child.is_dir() and _GLORIA_DATA_DIR_RE.match(child.name)
+    )
+    return candidates
+
+
+def _select_gloria_data_root(candidates: list[Path], *, year: int | None) -> Path:
+    """Select one GLORIA data root, using ``year`` when several are available."""
+    unique_candidates = sorted(set(candidates))
+    if year is not None:
+        unique_candidates = [
+            candidate for candidate in unique_candidates if _gloria_candidate_matches_year(candidate, year)
+        ]
+
+    if len(unique_candidates) == 1:
+        return unique_candidates[0]
+
+    if not unique_candidates:
+        if year is None:
+            raise WrongInput("Could not find a GLORIA MRIO directory or GLORIA csv files in the selected path.")
+        raise WrongInput(f"Could not find a GLORIA MRIO directory or csv files for year {year}.")
+
+    raise WrongInput(
+        "More than one GLORIA MRIO directory was found. Please specify year or point the parser to one dataset directory."
+    )
+
+
+def _resolve_gloria_roots(path: str | Path, *, year: int | None = None) -> tuple[Path, Path]:
     """Resolve the GLORIA dataset root and the directory containing csv files."""
     source = Path(path)
     if not source.exists():
@@ -147,19 +224,26 @@ def _resolve_gloria_roots(path: str | Path) -> tuple[Path, Path]:
     if source.is_file():
         return source.parent.parent, source.parent
 
-    children = list(source.iterdir())
-    csv_here = [child for child in children if child.is_file() and _GLORIA_FILE_RE.match(child.name)]
-    if csv_here:
+    if _is_gloria_part_i_dir(source):
+        candidates = _candidate_data_roots(source)
+        if candidates:
+            return source.parent, _select_gloria_data_root(candidates, year=year)
+
+    if _gloria_file_matches(source, {"T", "Y", "V"}):
         return source.parent, source
 
-    mrio_dirs = [child for child in children if child.is_dir() and _GLORIA_DATA_DIR_RE.match(child.name)]
-    if len(mrio_dirs) == 1:
-        return source, mrio_dirs[0]
+    candidates = _candidate_data_roots(source)
+    if candidates:
+        return source, _select_gloria_data_root(candidates, year=year)
 
-    if len(mrio_dirs) > 1:
-        raise WrongInput(
-            "More than one GLORIA MRIO directory was found. Please point the parser to one dataset directory."
-        )
+    part_i_dirs = [
+        child for child in source.iterdir() if child.is_dir() and _is_gloria_part_i_dir(child)
+    ]
+    part_i_candidates: list[Path] = []
+    for part_i_dir in part_i_dirs:
+        part_i_candidates.extend(_candidate_data_roots(part_i_dir))
+    if part_i_candidates:
+        return source, _select_gloria_data_root(part_i_candidates, year=year)
 
     raise WrongInput("Could not find a GLORIA MRIO directory or GLORIA csv files in the selected path.")
 
@@ -167,7 +251,7 @@ def _resolve_gloria_roots(path: str | Path) -> tuple[Path, Path]:
 def _find_gloria_readme(root: Path, data_root: Path) -> Path:
     """Locate the GLORIA ReadMe workbook used to reconstruct labels."""
     candidates = []
-    for base in (root, data_root, data_root.parent):
+    for base in (root, data_root, data_root.parent, root.parent):
         if base.exists():
             candidates.extend(
                 child for child in base.iterdir() if child.is_file() and _GLORIA_README_RE.match(child.name)
@@ -198,6 +282,25 @@ def _find_gloria_satellite_root(root: Path, data_root: Path, *, year: int, relea
             and int(_GLORIA_SAT_DIR_RE.match(child.name).group("year")) == year
             and _GLORIA_SAT_DIR_RE.match(child.name).group("release") == release
         )
+        for part_iii_dir in (
+            child for child in base.iterdir() if child.is_dir() and _is_gloria_part_iii_dir(child)
+        ):
+            direct = part_iii_dir / expected
+            if direct.exists() and direct.is_dir():
+                candidates.append(direct)
+            candidates.extend(
+                child
+                for child in part_iii_dir.iterdir()
+                if child.is_dir()
+                and _GLORIA_SAT_DIR_RE.match(child.name)
+                and int(_GLORIA_SAT_DIR_RE.match(child.name).group("year")) == year
+                and _GLORIA_SAT_DIR_RE.match(child.name).group("release") == release
+            )
+            if any(
+                int(match.group("year")) == year and match.group("release") == release
+                for match in _gloria_file_matches(part_iii_dir, {"TQ", "YQ"})
+            ):
+                candidates.append(part_iii_dir)
 
     if not candidates:
         return None
@@ -279,7 +382,7 @@ def detect_gloria_layout(
     year: int | None = None,
 ) -> tuple[GloriaLayout, GloriaMetadata]:
     """Resolve the GLORIA files and metadata used for one SUT parse request."""
-    root, data_root = _resolve_gloria_roots(path)
+    root, data_root = _resolve_gloria_roots(path, year=year)
     readme_path = _find_gloria_readme(root, data_root)
     metadata = load_gloria_metadata(readme_path)
 

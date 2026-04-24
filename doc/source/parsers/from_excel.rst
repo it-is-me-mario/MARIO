@@ -42,6 +42,22 @@ The key public arguments are:
   optional SUT-only selector for ``IT`` / ``PT`` :doc:`technology assumptions <../concepts/technology_assumptions>`.
 
 
+Expected path structure
+-----------------------
+
+``path`` must point to one Excel workbook:
+
+.. code-block:: text
+
+   custom_database.xlsx
+   ├── data sheet
+   └── units sheet
+
+The data sheet can be the canonical matrix layout exported by MARIO or a flat
+template generated with ``mario.write_parse_template(...)``. The units sheet
+must contain the units for sectors, activities, commodities, factors of
+production, final demand, and satellite accounts used by the workbook.
+
 
 Standard Excel workbook layout
 ------------------------------
@@ -146,6 +162,14 @@ Use the notebook below as the main parser guide:
 If you prefer to run it locally, you can also download the source notebook:
 
 * :download:`Download the Excel notebook <../notebooks/parsers/custom_database/from_excel.ipynb>`
+
+The notebook uses the packaged MARIO-readable Excel workbooks below. Download
+them next to the notebook, or place them in a ``data/`` folder next to it:
+
+* :download:`test_IOT_standard.xlsx <../../../mario/test/new/test_IOT_standard.xlsx>`
+* :download:`test_IOT_special.xlsx <../../../mario/test/new/test_IOT_special.xlsx>`
+* :download:`test_SUT_standard.xlsx <../../../mario/test/new/test_SUT_standard.xlsx>`
+* :download:`test_SUT_special.xlsx <../../../mario/test/new/test_SUT_special.xlsx>`
 
 .. toctree::
    :hidden:

@@ -55,6 +55,26 @@ Supported levels
      - ``Supply_Detail.xlsx`` + ``Use_SUT_Detail.xlsx``
      - ``2007``, ``2012``, ``2017``
 
+Expected path structure
+-----------------------
+
+``path`` can point to the official ``SUPPLY-USE.zip`` bundle, to an extracted
+``SUPPLY-USE`` directory, or to one workbook inside that extracted directory.
+The expected extracted structure is:
+
+.. code-block:: text
+
+   SUPPLY-USE/
+   ├── Supply_Summary.xlsx
+   ├── Use_Summary.xlsx
+   ├── Supply_Sector.xlsx
+   ├── Use_Sector.xlsx
+   ├── Supply_Detail.xlsx
+   └── Use_SUT_Detail.xlsx
+
+The ``level=`` argument tells MARIO which supply/use workbook pair to read.
+Use ``year=`` to select one year inside the selected pair.
+
 How MARIO maps the bundle
 -------------------------
 

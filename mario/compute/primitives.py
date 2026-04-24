@@ -77,27 +77,93 @@ def calc_all_shock(
 
 
 def calc_X(Z, Y):
-    """Public wrapper for building production totals from ``Z`` and ``Y``."""
+    """Calculate the ``X`` total production vector from ``Z`` and ``Y``.
+
+    Parameters
+    ----------
+    Z : pandas.DataFrame
+        ``Z`` intersectoral transaction flows matrix.
+    Y : pandas.DataFrame
+        ``Y`` final demand matrix with the same row axis as ``Z``.
+
+    Returns
+    -------
+    pandas.DataFrame
+        ``X`` total production vector, computed as row totals of ``Z`` plus
+        row totals of ``Y``.
+    """
     return build_iot_X_from_Z_Y(Z, Y)
 
 
 def calc_Z(z, X):
-    """Public wrapper for building flows ``Z`` from coefficients and output."""
+    """Calculate the ``Z`` intersectoral transaction flows matrix.
+
+    Parameters
+    ----------
+    z : pandas.DataFrame
+        ``z`` intersectoral transaction coefficients matrix.
+    X : pandas.DataFrame
+        ``X`` total production vector. Its index must match the columns of
+        ``z``.
+
+    Returns
+    -------
+    pandas.DataFrame
+        ``Z`` intersectoral transaction flows matrix. Each column of ``z`` is
+        scaled by the corresponding production value in ``X``.
+    """
     return build_iot_Z_from_z_X(z, X)
 
 
 def calc_w(z):
-    """Public wrapper for building the Leontief inverse ``w``."""
+    """Calculate the ``w`` Leontief inverse matrix.
+
+    Parameters
+    ----------
+    z : pandas.DataFrame
+        Square ``z`` intersectoral transaction coefficients matrix.
+
+    Returns
+    -------
+    pandas.DataFrame
+        ``w`` Leontief inverse matrix, computed as ``(I - z)^-1``.
+    """
     return build_iot_w_from_z(z)
 
 
 def calc_g(b):
-    """Public wrapper for building the Ghosh inverse ``g``."""
+    """Calculate the ``g`` Ghosh coefficients matrix.
+
+    Parameters
+    ----------
+    b : pandas.DataFrame
+        Square ``b`` intersectoral transaction direct-output coefficients
+        matrix.
+
+    Returns
+    -------
+    pandas.DataFrame
+        ``g`` Ghosh coefficients matrix, computed as ``(I - b)^-1``.
+    """
     return build_iot_g_from_b(b)
 
 
 def calc_X_from_w(w, Y):
-    """Public wrapper for building production from ``w`` and final demand."""
+    """Calculate the ``X`` total production vector from ``w`` and ``Y``.
+
+    Parameters
+    ----------
+    w : pandas.DataFrame
+        ``w`` Leontief inverse matrix.
+    Y : pandas.DataFrame
+        ``Y`` final demand matrix.
+
+    Returns
+    -------
+    pandas.DataFrame
+        ``X`` total production vector computed from ``w`` and total final
+        demand from ``Y``.
+    """
     return build_iot_X_from_w_Y(w, Y)
 
 
@@ -109,19 +175,30 @@ def calc_X_from_z(
     solver: str | None = None,
     strategy: str | None = None,
 ):
-    """Build production directly from ``z`` and final demand.
+    """Calculate the ``X`` total production vector directly from ``z`` and ``Y``.
+
+    This is the direct path for ``X``. Under ``method="solve"``, MARIO solves
+    the linear system ``(I - z) X = Y_total`` without materializing the
+    ``w`` Leontief inverse matrix.
 
     Parameters
     ----------
-    z, Y:
-        Technical coefficients and final demand.
-    method:
+    z : pandas.DataFrame
+        ``z`` intersectoral transaction coefficients matrix.
+    Y : pandas.DataFrame
+        ``Y`` final demand matrix.
+    method : str, optional
         Optional runtime compute method override. Accepted values are
         ``"auto"``, ``"inverse"`` and ``"solve"``.
-    solver:
+    solver : str, optional
         Optional linear solver backend used when the solve path is selected.
-    strategy:
+    strategy : str, optional
         Optional sparse linear strategy used when the solve path is selected.
+
+    Returns
+    -------
+    pandas.DataFrame
+        ``X`` total production vector.
     """
     return build_iot_X_from_z_Y(
         z,
@@ -135,57 +212,205 @@ def calc_X_from_z(
 
 
 def calc_E(e, X):
-    """Public wrapper for building extension flows from coefficients."""
+    """Calculate the ``E`` environmental transaction flows matrix.
+
+    Parameters
+    ----------
+    e : pandas.DataFrame
+        ``e`` environmental transaction coefficients matrix.
+    X : pandas.DataFrame
+        ``X`` total production vector.
+
+    Returns
+    -------
+    pandas.DataFrame
+        ``E`` environmental transaction flows matrix.
+    """
     return build_iot_E_from_e_X(e, X)
 
 
 def calc_V(v, X):
-    """Public wrapper for building value-added flows from coefficients."""
+    """Calculate the ``V`` value added transaction flows matrix.
+
+    Parameters
+    ----------
+    v : pandas.DataFrame
+        ``v`` value added coefficients matrix.
+    X : pandas.DataFrame
+        ``X`` total production vector.
+
+    Returns
+    -------
+    pandas.DataFrame
+        ``V`` value added transaction flows matrix.
+    """
     return build_iot_V_from_v_X(v, X)
 
 
 def calc_e(E, X):
-    """Public wrapper for building extension coefficients from flows."""
+    """Calculate the ``e`` environmental transaction coefficients matrix.
+
+    Parameters
+    ----------
+    E : pandas.DataFrame
+        ``E`` environmental transaction flows matrix.
+    X : pandas.DataFrame
+        ``X`` total production vector.
+
+    Returns
+    -------
+    pandas.DataFrame
+        ``e`` environmental transaction coefficients matrix.
+    """
     return build_iot_e_from_E_X(E, X)
 
 
 def calc_p(v, w):
-    """Public wrapper for building the price index."""
+    """Calculate the ``p`` price index vector from ``v`` and ``w``.
+
+    Parameters
+    ----------
+    v : pandas.DataFrame
+        ``v`` value added coefficients matrix.
+    w : pandas.DataFrame
+        ``w`` Leontief inverse matrix.
+
+    Returns
+    -------
+    pandas.DataFrame
+        ``p`` price index vector.
+    """
     return build_iot_p_from_v_w(v, w)
 
 
 def calc_v(V, X):
-    """Public wrapper for building value-added coefficients from flows."""
+    """Calculate the ``v`` value added coefficients matrix.
+
+    Parameters
+    ----------
+    V : pandas.DataFrame
+        ``V`` value added transaction flows matrix.
+    X : pandas.DataFrame
+        ``X`` total production vector.
+
+    Returns
+    -------
+    pandas.DataFrame
+        ``v`` value added coefficients matrix.
+    """
     return build_iot_v_from_V_X(V, X)
 
 
 def calc_m(v, w):
-    """Public wrapper for building value-added multipliers."""
+    """Calculate the ``m`` total (direct+indirect) value added coefficients matrix.
+
+    Parameters
+    ----------
+    v : pandas.DataFrame
+        ``v`` value added coefficients matrix.
+    w : pandas.DataFrame
+        ``w`` Leontief inverse matrix.
+
+    Returns
+    -------
+    pandas.DataFrame
+        ``m`` total (direct+indirect) value added coefficients matrix, computed
+        as ``v @ w``.
+    """
     return build_iot_m_from_v_w(v, w)
 
 
 def calc_M(m, Y):
-    """Public wrapper for building value-added footprints."""
+    """Calculate the ``M`` total (direct+indirect) value added transaction matrix.
+
+    Parameters
+    ----------
+    m : pandas.DataFrame
+        ``m`` total (direct+indirect) value added coefficients matrix.
+    Y : pandas.DataFrame
+        ``Y`` final demand matrix.
+
+    Returns
+    -------
+    pandas.DataFrame
+        ``M`` total (direct+indirect) value added transaction matrix. Each
+        column is scaled by total final demand for that destination/use column.
+    """
     return build_iot_M_from_m_Y(m, Y)
 
 
 def calc_z(Z, X):
-    """Public wrapper for building technical coefficients from flows."""
+    """Calculate the ``z`` intersectoral transaction coefficients matrix.
+
+    Parameters
+    ----------
+    Z : pandas.DataFrame
+        ``Z`` intersectoral transaction flows matrix.
+    X : pandas.DataFrame
+        ``X`` total production vector.
+
+    Returns
+    -------
+    pandas.DataFrame
+        ``z`` intersectoral transaction coefficients matrix.
+    """
     return build_iot_z_from_Z_X(Z, X)
 
 
 def calc_b(X, Z):
-    """Public wrapper for building direct-output coefficients ``b``."""
+    """Calculate the ``b`` intersectoral transaction direct-output coefficients matrix.
+
+    Parameters
+    ----------
+    X : pandas.DataFrame
+        ``X`` total production vector.
+    Z : pandas.DataFrame
+        ``Z`` intersectoral transaction flows matrix.
+
+    Returns
+    -------
+    pandas.DataFrame
+        ``b`` intersectoral transaction direct-output coefficients matrix.
+        Rows of ``Z`` are scaled by inverse production.
+    """
     return build_iot_b_from_X_Z(X, Z)
 
 
 def calc_F(f, Y):
-    """Public wrapper for building satellite footprints."""
+    """Calculate the ``F`` total (direct+indirect) environmental transaction flows matrix.
+
+    Parameters
+    ----------
+    f : pandas.DataFrame
+        ``f`` total (direct+indirect) environmental transaction coefficients
+        matrix.
+    Y : pandas.DataFrame
+        ``Y`` final demand matrix.
+
+    Returns
+    -------
+    pandas.DataFrame
+        ``F`` total (direct+indirect) environmental transaction flows matrix.
+    """
     return build_iot_F_from_f_Y(f, Y)
 
 
 def calc_f(e, w):
-    """Public wrapper for building satellite multipliers."""
+    """Calculate the ``f`` total (direct+indirect) environmental transaction coefficients matrix.
+
+    Parameters
+    ----------
+    e : pandas.DataFrame
+        ``e`` environmental transaction coefficients matrix.
+    w : pandas.DataFrame
+        ``w`` Leontief inverse matrix.
+
+    Returns
+    -------
+    pandas.DataFrame
+        ``f`` total (direct+indirect) environmental transaction coefficients
+        matrix, computed as ``e @ w``.
+    """
     return build_iot_f_from_e_w(e, w)
 
 
@@ -197,19 +422,31 @@ def calc_f_from_z(
     solver: str | None = None,
     strategy: str | None = None,
 ):
-    """Build total satellite multipliers directly from ``e`` and ``z``.
+    """Calculate the ``f`` total (direct+indirect) environmental transaction coefficients matrix.
+
+    This is the direct path for ``f``. Under ``method="solve"``, MARIO solves
+    the transposed system without materializing the ``w`` Leontief inverse
+    matrix.
 
     Parameters
     ----------
-    e, z:
-        Direct satellite coefficients and technical coefficients.
-    method:
+    e : pandas.DataFrame
+        ``e`` environmental transaction coefficients matrix.
+    z : pandas.DataFrame
+        ``z`` intersectoral transaction coefficients matrix.
+    method : str, optional
         Optional runtime compute method override. Accepted values are
         ``"auto"``, ``"inverse"`` and ``"solve"``.
-    solver:
+    solver : str, optional
         Optional linear solver backend used when the solve path is selected.
-    strategy:
+    strategy : str, optional
         Optional sparse linear strategy used when the solve path is selected.
+
+    Returns
+    -------
+    pandas.DataFrame
+        ``f`` total (direct+indirect) environmental transaction coefficients
+        matrix.
     """
     return build_iot_f_from_e_z(
         e,
@@ -230,19 +467,30 @@ def calc_m_from_z(
     solver: str | None = None,
     strategy: str | None = None,
 ):
-    """Build total value-added multipliers directly from ``v`` and ``z``.
+    """Calculate the ``m`` total (direct+indirect) value added coefficients matrix.
+
+    This is the direct path for ``m``. Under ``method="solve"``, MARIO solves
+    the transposed system without materializing the ``w`` Leontief inverse
+    matrix.
 
     Parameters
     ----------
-    v, z:
-        Direct value-added coefficients and technical coefficients.
-    method:
+    v : pandas.DataFrame
+        ``v`` value added coefficients matrix.
+    z : pandas.DataFrame
+        ``z`` intersectoral transaction coefficients matrix.
+    method : str, optional
         Optional runtime compute method override. Accepted values are
         ``"auto"``, ``"inverse"`` and ``"solve"``.
-    solver:
+    solver : str, optional
         Optional linear solver backend used when the solve path is selected.
-    strategy:
+    strategy : str, optional
         Optional sparse linear strategy used when the solve path is selected.
+
+    Returns
+    -------
+    pandas.DataFrame
+        ``m`` total (direct+indirect) value added coefficients matrix.
     """
     return build_iot_m_from_v_z(
         v,
@@ -263,19 +511,30 @@ def calc_p_from_z(
     solver: str | None = None,
     strategy: str | None = None,
 ):
-    """Build the price index directly from ``v`` and ``z``.
+    """Calculate the ``p`` price index vector directly from ``v`` and ``z``.
+
+    This is the direct path for ``p``. Under ``method="solve"``, MARIO solves
+    the transposed system without materializing the ``w`` Leontief inverse
+    matrix.
 
     Parameters
     ----------
-    v, z:
-        Direct value-added coefficients and technical coefficients.
-    method:
+    v : pandas.DataFrame
+        ``v`` value added coefficients matrix.
+    z : pandas.DataFrame
+        ``z`` intersectoral transaction coefficients matrix.
+    method : str, optional
         Optional runtime compute method override. Accepted values are
         ``"auto"``, ``"inverse"`` and ``"solve"``.
-    solver:
+    solver : str, optional
         Optional linear solver backend used when the solve path is selected.
-    strategy:
+    strategy : str, optional
         Optional sparse linear strategy used when the solve path is selected.
+
+    Returns
+    -------
+    pandas.DataFrame
+        ``p`` price index vector.
     """
     return build_iot_p_from_v_z(
         v,
@@ -289,7 +548,22 @@ def calc_p_from_z(
 
 
 def calc_f_dis(e, w):
-    """Build a diagonalized form of ``f`` from direct coefficients and ``w``."""
+    """Calculate a diagonalized representation of ``f``.
+
+    Parameters
+    ----------
+    e : pandas.DataFrame or pandas.Series
+        ``e`` environmental transaction coefficients to diagonalize.
+    w : pandas.DataFrame
+        ``w`` Leontief inverse matrix.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Diagonalized representation of the ``f`` total (direct+indirect)
+        environmental transaction coefficients matrix, built as
+        ``diag(e) @ w``.
+    """
     values = np.diagflat(np.asarray(e, dtype=float)) @ w.to_numpy(dtype=float)
     result = pd.DataFrame(values, index=w.index, columns=w.columns)
     result.index = getattr(e, "columns", w.index)
@@ -297,7 +571,19 @@ def calc_f_dis(e, w):
 
 
 def calc_y(Y):
-    """Normalize a final-demand block by its grand total."""
+    """Normalize the ``Y`` final demand matrix by its grand total.
+
+    Parameters
+    ----------
+    Y : pandas.DataFrame
+        ``Y`` final demand matrix.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Shares of the ``Y`` final demand matrix, computed as
+        ``Y / Y.sum().sum()``.
+    """
     return Y / Y.sum().sum()
 
 

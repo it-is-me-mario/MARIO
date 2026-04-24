@@ -239,6 +239,33 @@ def test_parse_gloria_sut_returns_split_native_blocks(tmp_path):
     )
 
 
+def test_parse_gloria_sut_supports_google_drive_release_layout(tmp_path):
+    release_root = tmp_path / "060"
+    part_i = release_root / "GLORIA_MRIO_Loop060_part_I_MRIOdatabase"
+    part_iii = release_root / "GLORIA_MRIO_Loop060_part_III_satelliteaccounts"
+    part_i.mkdir(parents=True)
+    part_iii.mkdir(parents=True)
+
+    data_root = _write_gloria_year(part_i)
+    (part_i / "GLORIA_ReadMe_060.xlsx").rename(release_root / "GLORIA_ReadMe_060.xlsx")
+    (part_i / "GLORIA_SatelliteAccounts_060_2025").rename(
+        part_iii / "GLORIA_SatelliteAccounts_060_2025"
+    )
+
+    for path in (release_root, part_i):
+        matrices, indeces, units, layout = parse_gloria_sut(path, satellites="Emissions")
+
+        assert layout.root == release_root
+        assert layout.data_root == data_root
+        assert layout.satellite_root == part_iii / "GLORIA_SatelliteAccounts_060_2025"
+        assert indeces["k"]["main"] == ["Emissions | CO2"]
+        assert units["Satellite account"].iloc[0, 0] == "kg"
+        np.testing.assert_allclose(
+            matrices["baseline"]["Ea"].astype(np.float32).to_numpy(),
+            np.array([[1, 2, 3, 4]], dtype=np.float32),
+        )
+
+
 def test_parse_gloria_sut_supports_region_subset_and_markup_fallback(tmp_path):
     root = _write_gloria_year(tmp_path)
 

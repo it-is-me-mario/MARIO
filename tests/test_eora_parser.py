@@ -37,6 +37,64 @@ def _build_single_region_frame():
     return pd.DataFrame(values, index=rows, columns=columns)
 
 
+def _build_single_region_iot_frame_without_industries():
+    rows = pd.MultiIndex.from_tuples(
+        [
+            ("China", "CHN", "Commodities", "Sector 1"),
+            ("China", "CHN", "Commodities", "Sector 2"),
+            ("China", "CHN", "Primary Inputs", "Compensation of employees D.1"),
+        ]
+    )
+    columns = pd.MultiIndex.from_tuples(
+        [
+            ("China", "CHN", "Commodities", "Sector 1"),
+            ("China", "CHN", "Commodities", "Sector 2"),
+            ("China", "CHN", "Final Demand", "Household final consumption P.3h"),
+        ]
+    )
+    return pd.DataFrame(
+        [
+            [1.0, 2.0, 3.0],
+            [4.0, 5.0, 6.0],
+            [7.0, 8.0, 9.0],
+        ],
+        index=rows,
+        columns=columns,
+    )
+
+
+def _build_single_region_sut_with_duplicate_commodities():
+    rows = pd.MultiIndex.from_tuples(
+        [
+            ("Chile", "CHL", "Industries", "Activity 1"),
+            ("Chile", "CHL", "Industries", "Activity 2"),
+            ("Chile", "CHL", "Commodities", "Seafood"),
+            ("Chile", "CHL", "Commodities", "Seafood"),
+            ("Chile", "CHL", "Primary Inputs", "Compensation of employees D.1"),
+        ]
+    )
+    columns = pd.MultiIndex.from_tuples(
+        [
+            ("Chile", "CHL", "Industries", "Activity 1"),
+            ("Chile", "CHL", "Industries", "Activity 2"),
+            ("Chile", "CHL", "Commodities", "Seafood"),
+            ("Chile", "CHL", "Commodities", "Seafood"),
+            ("Chile", "CHL", "Final Demand", "Household final consumption P.3h"),
+        ]
+    )
+    return pd.DataFrame(
+        [
+            [1.0, 0.0, 2.0, 3.0, 4.0],
+            [0.5, 1.5, 4.0, 5.0, 6.0],
+            [7.0, 8.0, 0.0, 0.0, 1.0],
+            [9.0, 10.0, 0.0, 0.0, 2.0],
+            [11.0, 12.0, 0.0, 0.0, 0.0],
+        ],
+        index=rows,
+        columns=columns,
+    )
+
+
 def _write_eora26_fixture(root):
     labels_t = pd.DataFrame(
         [
@@ -185,3 +243,37 @@ def test_parse_eora26_reads_colocated_labels_and_normalizes_row(tmp_path):
     assert database.E.shape == (2, 2)
     assert database.EY.shape == (2, 3)
     assert "ROW" not in database.get_index(_MASTER_INDEX["r"])
+
+
+def test_parse_eora_single_region_detects_iot_when_only_commodities_are_present(tmp_path):
+    root = tmp_path / "IO_All_2017"
+    _write_tsv(root / "IO_CHN_2017_BasicPrice.txt", _build_single_region_iot_frame_without_industries())
+
+    database = parse_eora(
+        str(root),
+        multi_region=False,
+        table=None,
+        country="CHN",
+        calc_all=False,
+    )
+
+    assert database.table_type == "IOT"
+    assert database.get_index(_MASTER_INDEX["s"]) == ["Sector 1", "Sector 2"]
+    assert database.Z.shape == (2, 2)
+
+
+def test_parse_eora_single_region_preserves_duplicate_commodity_names(tmp_path):
+    root = tmp_path / "IO_All_2017"
+    _write_tsv(root / "IO_CHL_2017_BasicPrice.txt", _build_single_region_sut_with_duplicate_commodities())
+
+    database = parse_eora(
+        str(root),
+        multi_region=False,
+        table=None,
+        country="CHL",
+        calc_all=False,
+    )
+
+    assert database.table_type == "SUT"
+    assert database.get_index(_MASTER_INDEX["c"]) == ["Seafood", "Seafood [2]"]
+    assert database.Z.shape == (4, 4)

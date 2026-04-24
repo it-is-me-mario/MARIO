@@ -129,6 +129,24 @@ The key public arguments are:
 * ``table``:
   currently only ``"SUT"`` is supported.
 
+Expected path structure
+-----------------------
+
+``path`` can point to one local ``USEEIO*.xlsx`` workbook or to a directory
+containing one workbook:
+
+.. code-block:: text
+
+   USEEIO/
+   ├── USEEIOv2.5-yellowthroat-22.xlsx
+   ├── USEEIOv2.5-kingbird-22.xlsx
+   └── USEEIOv2.5-catbird-22.xlsx
+
+Inside the workbook, MARIO expects the ``useeior`` model export sheets such as
+``V``, ``U``, ``B``, ``q``, ``commodities_meta``, ``final_demand_meta`` and
+``value_added_meta``. If a directory contains more than one workbook, pass the
+workbook path directly.
+
 Notebook walkthrough
 --------------------
 

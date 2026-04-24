@@ -44,6 +44,22 @@ Input formats can be:
 
 With ``auto``, MARIO prefers the CSV bundle when both CSV and GDX are present.
 
+Expected path structure
+-----------------------
+
+``path`` can point to the GTAP Power bundle directory or to one file inside
+that directory:
+
+.. code-block:: text
+
+   GTAP/
+   └── power_mrio/
+       ├── *.csv
+       └── *.gdx
+
+With ``input_format="auto"``, MARIO uses the CSV files when both CSV and GDX
+payloads are present. The GDX path requires the GAMS Python API.
+
 Download workflow
 -----------------
 

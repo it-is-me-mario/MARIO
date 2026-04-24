@@ -325,8 +325,12 @@ class CoreModel:
         Notes
         -----
         The runtime options above matter mainly for large IOT databases, where
-        MARIO can compute ``X``, ``f``, ``F``, ``m``, ``M`` and ``p`` without
-        materializing the full Leontief inverse ``w``.
+        MARIO can compute the ``X`` total production vector, ``f`` total
+        (direct+indirect) environmental transaction coefficients matrix, ``F``
+        total (direct+indirect) environmental transaction flows matrix, ``m``
+        total (direct+indirect) value added coefficients matrix, ``M`` total
+        (direct+indirect) value added transaction matrix and ``p`` price index
+        vector without materializing the full ``w`` Leontief inverse matrix.
         """
         requested = _normalize_requested_matrices(matrices)
         self._validate_scenario(scenario)

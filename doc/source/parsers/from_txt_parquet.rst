@@ -35,6 +35,45 @@ The key public arguments are:
 * ``tech_assumption``:
   optional SUT-only selector for ``IT`` / ``PT`` behaviour
 
+Expected path structure
+-----------------------
+
+``path`` must point to a directory. For matrix-per-file payloads, the
+directory contains one file per matrix plus one units file:
+
+.. code-block:: text
+
+   custom_txt_database/
+   ├── Z.csv
+   ├── Y.csv
+   ├── V.csv
+   ├── E.csv
+   ├── EY.csv
+   └── units.csv
+
+For flat payloads, the directory can contain either one combined data file:
+
+.. code-block:: text
+
+   custom_flat_database/
+   ├── data.csv
+   └── units.csv
+
+or separate flat files by matrix:
+
+.. code-block:: text
+
+   custom_flat_database/
+   ├── Z.csv
+   ├── Y.csv
+   ├── V.csv
+   ├── E.csv
+   ├── EY.csv
+   └── units.csv
+
+The same directory logic applies to Parquet payloads, using ``.parquet`` files
+instead of text files.
+
 Flat and matrix layouts
 -----------------------
 

@@ -46,6 +46,35 @@ The key public arguments are:
   the environmental extension matrix ``E`` and keeps ``EY`` zero-filled.
   Works for both MRIO and SRIO workbooks.
 
+Expected path structure
+-----------------------
+
+``path`` can point either to one workbook or to a directory containing several
+ADB workbooks.
+
+For MRIO releases, a directory is typically organized by regional coverage:
+
+.. code-block:: text
+
+   ADB/
+   ├── 62 economies/
+   │   └── ADB-MRIO-2024_*.xlsx
+   ├── 72 economies/
+   │   └── ADB-MRIO72-2024_*.xlsx
+   └── CO2/
+       └── 2023 EE-MRIOT (Air Emissions).xlsx
+
+For SRIO releases, ``path`` usually points to one country workbook:
+
+.. code-block:: text
+
+   ADB/SRIO/
+   └── CAN IOT 2000, 2007-2024.xlsx
+
+When ``path`` is a directory, use ``year=`` and, when needed, ``economies=``
+to disambiguate the workbook. When parsing SRIO workbooks, ``year=`` is
+required because one workbook contains multiple yearly sheets.
+
 
 Notebook walkthrough
 --------------------
@@ -76,4 +105,3 @@ Caveats
 * When ``add_extensions`` is used, MARIO warns if the emissions workbook does
   not cover all regions present in the economic table (e.g. 2 countries in the
   74 economies variant are missing in the emissions workbook)
-

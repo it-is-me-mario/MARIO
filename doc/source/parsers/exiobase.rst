@@ -91,6 +91,46 @@ is not available:
 * ``stock_addition``
 * ``crop_res``
 
+Expected path structure
+-----------------------
+
+For monetary IOTs, ``path`` points to an extracted EXIOBASE IOT directory:
+
+.. code-block:: text
+
+   EXIOBASE/3.9.4/
+   ├── IOT_2013_ixi/
+   └── IOT_2013_pxp/
+
+For monetary SUTs, ``path`` points to an extracted monetary SUT directory:
+
+.. code-block:: text
+
+   EXIOBASE/3.8.2/
+   └── MRSUT_2011/
+
+For hybrid EXIOBASE, ``path`` can point to the extracted Zenodo release root.
+That root may contain the hybrid SUT files, hybrid IOT files and extension
+files together; MARIO detects the relevant pieces from the selected
+``table=`` and ``extensions=`` arguments:
+
+.. code-block:: text
+
+   EXIOBASE/3.3.18/
+   ├── MR_HSUT_*.txt
+   ├── MR_HIOT_*.txt
+   ├── Land_*.txt
+   ├── Emiss_*.txt
+   ├── waste_sup_*.txt
+   └── waste_use_*.txt
+
+You do not need to split the hybrid release into separate ``SUT``, ``IOT`` and
+``extensions`` directories. The parser also accepts more organized extracted
+folders when the same files are present under subdirectories.
+
+When ``download=True``, ``path`` is the destination/cache directory where
+MARIO downloads the requested release before parsing it.
+
 
 **Download methods** are also available:
 

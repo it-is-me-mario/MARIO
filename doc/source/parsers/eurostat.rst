@@ -49,6 +49,25 @@ The key public arguments are:
 * ``download``:
   when ``True``, MARIO stores the raw CSV locally before parsing it.
 
+Expected path structure
+-----------------------
+
+EUROSTAT parsing is API-driven. ``path`` is optional and, when provided, is a
+cache directory for raw SDMX-CSV slices:
+
+.. code-block:: text
+
+   EUROSTAT/
+   └── cache/
+       ├── NAIO_10_CP15_*.csv
+       ├── NAIO_10_CP16_*.csv
+       ├── NAIO_10_CP1700_*.csv
+       └── NAIO_10_CP1750_*.csv
+
+If ``download=False``, MARIO reads directly from the Eurostat API. If
+``download=True``, MARIO stores the downloaded slices under ``path`` before
+building the database.
+
 Available years
 ---------------
 

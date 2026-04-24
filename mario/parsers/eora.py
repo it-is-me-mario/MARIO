@@ -91,6 +91,17 @@ def _extract_unit(label: object) -> str:
     return match.group(1).strip() if match else text
 
 
+def _make_unique_labels(labels: list[str]) -> list[str]:
+    """Return stable labels while preserving repeated EORA names."""
+    counts: dict[str, int] = {}
+    unique: list[str] = []
+    for label in labels:
+        count = counts.get(label, 0) + 1
+        counts[label] = count
+        unique.append(label if count == 1 else f"{label} [{count}]")
+    return unique
+
+
 def _select_axis_labels(frame: pd.DataFrame, axis: int, groups: set[str]) -> np.ndarray:
     """Return a boolean mask selecting one or more EORA top-level groups."""
     labels = frame.index.get_level_values(0) if axis == 0 else frame.columns.get_level_values(0)
@@ -107,7 +118,7 @@ def _detect_single_region_table(data: pd.DataFrame) -> str:
 
     if has_industries and has_commodities:
         return SUT
-    if has_industries and not has_commodities:
+    if has_industries or has_commodities:
         return IOT
 
     raise WrongFormat("Could not detect whether the EORA single-region file is IOT or SUT.")
@@ -238,6 +249,8 @@ def parse_eora_single_region(
         )
 
     native_groups = {"Industries"} if table == IOT else {"Industries", "Commodities"}
+    if table == IOT and "Industries" not in set(data.index.get_level_values(0)):
+        native_groups = {"Commodities"}
     native_row_mask = _select_axis_labels(data, 0, native_groups)
     native_col_mask = _select_axis_labels(data, 1, native_groups)
 
@@ -259,7 +272,7 @@ def parse_eora_single_region(
     domestic_region = regions[0]
 
     if table == IOT:
-        sector_items = Z.index.get_level_values(3).tolist()
+        sector_items = _make_unique_labels(Z.index.get_level_values(3).tolist())
         native_axis = pd.MultiIndex.from_product([regions, [_MASTER_INDEX["s"]], sector_items])
         units = {
             _MASTER_INDEX["s"]: pd.DataFrame("USD", index=sector_items, columns=["unit"]),
@@ -269,10 +282,10 @@ def parse_eora_single_region(
             "s": {"main": sector_items},
         }
     else:
-        activity_items = delete_duplicates(
+        activity_items = _make_unique_labels(
             Z.index[Z.index.get_level_values(0) == "Industries"].get_level_values(3).tolist()
         )
-        commodity_items = delete_duplicates(
+        commodity_items = _make_unique_labels(
             Z.index[Z.index.get_level_values(0) == "Commodities"].get_level_values(3).tolist()
         )
         activity_axis = pd.MultiIndex.from_product([regions, [_MASTER_INDEX["a"]], activity_items])

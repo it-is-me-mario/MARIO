@@ -62,6 +62,31 @@ The key public arguments are:
   reclassify those flows into ``Va`` and ``VY``. Use ``"legacy_region"`` to
   keep the previous parser behaviour.
 
+Expected path structure
+-----------------------
+
+``path`` can point to one WIOD workbook or to a directory containing several
+workbooks. MARIO selects the right file from names such as:
+
+.. code-block:: text
+
+   WIOD/
+   ├── WIOTS_in_EXCEL/
+   │   └── WIOT2014_Nov16_ROW.xlsb
+   ├── WIOTS_PYP_in_EXCEL/
+   │   └── WIOT2014_PYP_Nov16_ROW.xlsb
+   ├── NIOTS/
+   │   └── ITA_NIOT_nov16.xlsx
+   ├── SUT_national/
+   │   └── ITA_SUT_nov16.xlsx
+   ├── SUT_international/
+   │   └── intsut14_nov16.xlsb
+   └── Socio_Economic_Accounts.xlsx
+
+National ``IOT`` and ``SUT`` workbooks contain several years in one file, so
+``year=`` is mandatory for those inputs. Use ``country=`` when passing a
+directory containing several national workbooks.
+
 Download workflow
 -----------------
 

@@ -477,7 +477,9 @@ def detect_cepalstat_sut_layout(
     else:
         members = [data_path.name]
 
-    if any("_OFERTA" in member.upper() or "_DEMANDA" in member.upper() for member in members):
+    has_offer_members = any("_OFERTA" in member.upper() for member in members)
+    has_demand_members = any("_DEMANDA" in member.upper() for member in members)
+    if has_offer_members and has_demand_members:
         offer_member, demand_member = _resolve_bra_pair_members(data_path, table="SUT", year=year)
         notes = (
             "Parsed from the CEPALSTAT/Brazil split SUT layout with paired offer and demand workbooks.",
@@ -695,6 +697,13 @@ def detect_cepalstat_iot_layout(
         if target_sheet is None:
             target_sheet = _find_first_sheet(workbook, ("matriz simetrica de insumo-producto",), nrows=8)
         if target_sheet is None:
+            target_sheet = next(
+                (sheet for sheet in workbook.sheet_names if "matriz u simetrica" in _plain(sheet)),
+                None,
+            )
+        if target_sheet is None:
+            target_sheet = _find_first_sheet(workbook, ("matriz u",), nrows=10)
+        if target_sheet is None:
             raise NotImplementable(
                 f"Could not detect the supported matrix sheet inside CEPALSTAT member {selected_member}."
             )
@@ -861,6 +870,244 @@ def _find_col(frame: pd.DataFrame, row: int, label: str, *, start: int = 0) -> i
         if _text(frame.iat[row, column]).strip().lower() == target:
             return column
     raise WrongFormat(f"Could not find required column '{label}' in the CEPALSTAT workbook.")
+
+
+def _map_iot_factor_label(code: str, label: str) -> str | None:
+    """Map one CEPALSTAT direct-IOT row label to the standard factor naming."""
+    normalized_code = _plain(code)
+    normalized_label = _plain(label)
+    if normalized_code == "d.1" or "remuner" in normalized_label or "asalariad" in normalized_label:
+        return "Compensation of employees"
+    if normalized_code == "d.29" or "otros impuestos sobre la produccion" in normalized_label:
+        return "Other taxes on production"
+    if normalized_code == "d.39" or ("subvencion" in normalized_label and "producto" not in normalized_label):
+        return "Other subsidies on production"
+    if normalized_code == "b.2b" or ("excedente" in normalized_label and "valor agregado" not in normalized_label):
+        return "Gross operating surplus"
+    if normalized_code == "b.3b" or "ingreso mixto" in normalized_label:
+        return "Mixed income"
+    if (
+        "impuestos netos sobre los productos" in normalized_label
+        or "impuestos sobre bienes y servicios netos" in normalized_label
+        or "impuestos sobre productos" in normalized_label
+    ):
+        return "Taxes less subsidies on products"
+    if (
+        "impuestos sobre la produccion y las importaciones" in normalized_label
+        or "impuestos menos subvenciones sobre la produccion e importaciones" in normalized_label
+    ):
+        return "Other taxes on production and imports"
+    if "valor agregado bruto" in normalized_label:
+        return "Value added at basic prices"
+    return None
+
+
+def _find_total_intermediate_column(
+    frame: pd.DataFrame,
+    *,
+    search_rows: tuple[int, ...] = tuple(range(0, 20)),
+) -> int | None:
+    """Detect the intermediate-demand total column from multi-row headers."""
+    for row in search_rows:
+        if row >= len(frame):
+            continue
+        for column in range(frame.shape[1]):
+            label = _plain(_text(frame.iat[row, column]))
+            if "demanda intermedia" in label and "total" in label:
+                return column
+    candidates: list[tuple[int, int]] = []
+    for row in search_rows:
+        if row >= len(frame):
+            continue
+        for column in range(frame.shape[1]):
+            label = _plain(_text(frame.iat[row, column]))
+            if "demanda intermedia" not in label and "consumo intermedio" not in label:
+                continue
+            numeric_count = sum(
+                1 for probe_row in range(row + 1, min(row + 8, len(frame))) if _is_numeric_cell(frame.iat[probe_row, column])
+            )
+            if numeric_count:
+                candidates.append((numeric_count, column))
+    if candidates:
+        return max(column for _, column in candidates)
+    return None
+
+
+def _is_numeric_cell(value) -> bool:
+    """Return ``True`` when one workbook cell contains a numeric value."""
+    if pd.isna(value):
+        return False
+    if isinstance(value, (int, float, np.integer, np.floating)):
+        return True
+    try:
+        float(str(value).replace(",", ""))
+    except (TypeError, ValueError):
+        return False
+    return True
+
+
+def _looks_like_iot_code(text: str) -> bool:
+    """Heuristic for short sector codes in direct CEPALSTAT IOT headers."""
+    normalized = _norm(text)
+    if not normalized:
+        return False
+    compact = normalized.replace(" ", "")
+    if len(compact) > 20:
+        return False
+    if not any(character.isdigit() for character in compact):
+        return False
+    return all(character.isalnum() or character in "._-" for character in compact)
+
+
+def _detect_direct_iot_layout(frame: pd.DataFrame, total_col: int) -> dict[str, object]:
+    """Infer one direct-IOT sheet layout from its multi-row headers."""
+    header_anchor = next(
+        (
+            row
+            for row in range(min(20, len(frame)))
+            if any(
+                token in _plain(_text(frame.iat[row, column]))
+                for column in range(min(total_col + 1, frame.shape[1]))
+                for token in ("demanda intermedia", "consumo intermedio")
+            )
+        ),
+        None,
+    )
+    if header_anchor is None:
+        raise WrongFormat("Could not detect the intermediate-demand header row in the CEPALSTAT direct IOT sheet.")
+
+    sector_row_start = None
+    sector_col_start = None
+    for row in range(header_anchor + 1, min(header_anchor + 12, len(frame))):
+        text_columns = [
+            column
+            for column in range(total_col)
+            if _text(frame.iat[row, column]) and not _is_numeric_cell(frame.iat[row, column])
+        ]
+        if not text_columns:
+            continue
+        numeric_columns = [
+            column
+            for column in range(total_col)
+            if _is_numeric_cell(frame.iat[row, column]) and column > max(text_columns)
+        ]
+        if len(numeric_columns) < 2:
+            continue
+        sector_row_start = row
+        sector_col_start = min(numeric_columns)
+        break
+    if sector_row_start is None or sector_col_start is None:
+        raise WrongFormat("Could not detect sector rows in the CEPALSTAT direct IOT sheet.")
+
+    candidate_header_rows = list(range(header_anchor, sector_row_start))
+    code_row = max(
+        candidate_header_rows,
+        key=lambda row: sum(
+            1 for column in range(sector_col_start, total_col) if _looks_like_iot_code(_text(frame.iat[row, column]))
+        ),
+    )
+    left_columns = [column for column in range(sector_col_start) if _text(frame.iat[sector_row_start, column])]
+    if not left_columns:
+        raise WrongFormat("Could not detect the identifier columns in the CEPALSTAT direct IOT sheet.")
+
+    code_col = next(
+        (column for column in left_columns if _looks_like_iot_code(_text(frame.iat[sector_row_start, column]))),
+        left_columns[0],
+    )
+    label_candidates = [column for column in left_columns if column != code_col]
+    label_col = label_candidates[-1] if label_candidates else code_col
+
+    output_col = next(
+        (
+            column
+            for column in range(total_col + 1, frame.shape[1])
+            if "produccion" in _plain(" | ".join(_text(frame.iat[row, column]) for row in candidate_header_rows))
+        ),
+        None,
+    )
+    regime_split = any(
+        "regimen" in _plain(_text(frame.iat[max(sector_row_start - 1, 0), column]))
+        for column in range(sector_col_start, min(total_col, frame.shape[1]))
+    )
+
+    return {
+        "sector_col_start": sector_col_start,
+        "sector_row_start": sector_row_start,
+        "code_col": code_col,
+        "label_col": label_col,
+        "header_rows": tuple(candidate_header_rows),
+        "code_row": code_row,
+        "output_col": output_col,
+        "regime_split": regime_split,
+    }
+
+
+def _build_direct_iot_row_groups(
+    frame: pd.DataFrame,
+    *,
+    sector_row_start: int,
+    sector_col_start: int,
+    code_col: int,
+    label_col: int,
+    total_col: int,
+) -> list[list[int]]:
+    """Group one direct-IOT row block into sectors, collapsing sub-rows when needed."""
+    groups: list[list[int]] = []
+    current: list[int] = []
+    for row in range(sector_row_start, len(frame)):
+        code = _norm(frame.iat[row, code_col] if code_col < frame.shape[1] else np.nan)
+        label = _text(frame.iat[row, label_col] if label_col < frame.shape[1] else np.nan)
+        left_cells = [
+            _text(frame.iat[row, column])
+            for column in range(min(sector_col_start, frame.shape[1]))
+            if _text(frame.iat[row, column])
+        ]
+        left_has_text = bool(left_cells)
+        numeric_in_sector = any(_is_numeric_cell(frame.iat[row, column]) for column in range(sector_col_start, min(total_col, frame.shape[1])))
+        if _map_iot_factor_label(code, f"{code} | {label}") is not None:
+            if current:
+                groups.append(current)
+            break
+
+        if code:
+            if current:
+                groups.append(current)
+            current = [row]
+            continue
+        if current and numeric_in_sector and any("regimen" in _plain(cell) for cell in left_cells):
+            current.append(row)
+            continue
+        if current:
+            groups.append(current)
+            current = []
+        if not left_has_text and not numeric_in_sector:
+            break
+    if current:
+        groups.append(current)
+    return groups
+
+
+def _build_direct_iot_column_groups(
+    frame: pd.DataFrame,
+    *,
+    code_row: int,
+    sector_col_start: int,
+    total_col: int,
+) -> list[list[int]]:
+    """Group one direct-IOT column block into sectors, collapsing sub-columns when needed."""
+    code_positions = [
+        column
+        for column in range(sector_col_start, total_col)
+        if _text(frame.iat[code_row, column])
+    ]
+    if not code_positions:
+        return [[column] for column in range(sector_col_start, total_col)]
+
+    groups: list[list[int]] = []
+    for index, start in enumerate(code_positions):
+        end = code_positions[index + 1] if index + 1 < len(code_positions) else total_col
+        groups.append(list(range(start, end)))
+    return groups
 
 
 def _zero_frame(index: pd.Index, columns: pd.Index) -> pd.DataFrame:
@@ -1637,51 +1884,95 @@ def parse_cepalstat_iot(
         sector_cols: list[int] | None = None,
         output_col: int | None = None,
         residual_factor_label: str | None = None,
+        row_groups: list[list[int]] | None = None,
+        column_groups: list[list[int]] | None = None,
     ):
-        if sector_cols is None:
-            sector_cols = list(range(sector_col_start, total_col))
-        sector_rows: list[int] = []
-        sector_codes: list[str] = []
-        for row in range(sector_row_start, len(frame)):
-            code = _norm(frame.iat[row, code_col] if code_col < frame.shape[1] else np.nan)
-            if not code:
-                break
-            sector_rows.append(row)
-            label = _text(frame.iat[row, label_col] if label_col < frame.shape[1] else np.nan)
-            sector_codes.append(label or code)
-        if not sector_rows:
+        if column_groups is None:
+            if sector_cols is None:
+                sector_cols = list(range(sector_col_start, total_col))
+            column_groups = [[column] for column in sector_cols]
+        if row_groups is None:
+            sector_rows: list[int] = []
+            sector_codes: list[str] = []
+            for row in range(sector_row_start, len(frame)):
+                code = _norm(frame.iat[row, code_col] if code_col < frame.shape[1] else np.nan)
+                if not code:
+                    break
+                sector_rows.append(row)
+                label = _text(frame.iat[row, label_col] if label_col < frame.shape[1] else np.nan)
+                sector_codes.append(label or code)
+            row_groups = [[row] for row in sector_rows]
+        else:
+            sector_codes = []
+            for group in row_groups:
+                row = group[0]
+                code = _norm(frame.iat[row, code_col] if code_col < frame.shape[1] else np.nan)
+                label = _text(frame.iat[row, label_col] if label_col < frame.shape[1] else np.nan)
+                sector_codes.append(label or code)
+
+        if not row_groups:
             raise WrongFormat(f"Could not detect sector rows in CEPALSTAT IOT family '{layout.family}'.")
 
         sector_axis = _make_axis(layout.country, "s", sector_codes)
         final_axis = _standard_final_axis(layout.country)
-
-        Z = _numeric_frame(frame.loc[sector_rows, sector_cols])
-        Z.index = sector_axis
-        Z.columns = sector_axis
+        Z = pd.DataFrame(
+            [
+                [
+                    _numeric_frame(frame.loc[row_group, column_group]).to_numpy().sum()
+                    for column_group in column_groups
+                ]
+                for row_group in row_groups
+            ],
+            index=sector_axis,
+            columns=sector_axis,
+            dtype=float,
+        )
 
         Y = _zero_frame(sector_axis, final_axis)
         fd_columns = _collect_fd_columns(frame, header_rows, total_col + 1)
         for label, columns in fd_columns.items():
-            values = np.zeros(len(sector_rows), dtype=float)
+            values = np.zeros(len(row_groups), dtype=float)
             for column in columns:
-                values = values + _numeric_series(frame.loc[sector_rows, column]).to_numpy()
+                values = values + np.array(
+                    [_numeric_series(frame.loc[row_group, column]).to_numpy().sum() for row_group in row_groups],
+                    dtype=float,
+                )
             Y.loc[:, (layout.country, _MASTER_INDEX["n"], label)] = values
 
         factor_rows: dict[str, int] = {}
-        for row in range(sector_rows[-1] + 1, len(frame)):
-            code = _text(frame.iat[row, code_col] if code_col < frame.shape[1] else np.nan)
-            label = _text(frame.iat[row, label_col] if label_col < frame.shape[1] else np.nan)
+        for row in range(row_groups[-1][-1] + 1, len(frame)):
+            left_cells = [
+                _text(frame.iat[row, column])
+                for column in range(min(sector_col_start, frame.shape[1]))
+                if _text(frame.iat[row, column])
+            ]
+            if not left_cells:
+                continue
+            code = next((cell for cell in left_cells if _looks_like_iot_code(cell)), left_cells[0])
+            label = " | ".join(left_cells)
             factor_label = _map_iot_factor_label(code, label)
             if factor_label is not None and factor_label not in factor_rows:
                 factor_rows[factor_label] = row
         if factor_rows:
             factor_labels = list(factor_rows)
             factor_axis = pd.Index(factor_labels, name=None)
-            V = _numeric_frame(frame.loc[list(factor_rows.values()), sector_cols])
-            V.index = factor_axis
-            V.columns = sector_axis
+            V = pd.DataFrame(
+                [
+                    [
+                        _numeric_series(frame.loc[row_index, column_group]).to_numpy().sum()
+                        for column_group in column_groups
+                    ]
+                    for row_index in factor_rows.values()
+                ],
+                index=factor_axis,
+                columns=sector_axis,
+                dtype=float,
+            )
         elif residual_factor_label is not None and output_col is not None:
-            output = _numeric_series(frame.loc[sector_rows, output_col]).to_numpy()
+            output = np.array(
+                [_numeric_series(frame.loc[row_group, output_col]).to_numpy().sum() for row_group in row_groups],
+                dtype=float,
+            )
             residual = output - Z.sum(axis=0).to_numpy()
             factor_labels = [residual_factor_label]
             factor_axis = pd.Index(factor_labels, name=None)
@@ -1707,22 +1998,36 @@ def parse_cepalstat_iot(
     frame = _read_cepalstat_sheet(layout, layout.sheet_names[0])
 
     if layout.family == "dom_direct_iot":
-        total_intermediate_col = None
-        for column in range(frame.shape[1]):
-            if "total demanda intermedia" in _text(frame.iat[1, column]).lower():
-                total_intermediate_col = column
-                break
+        total_intermediate_col = _find_total_intermediate_column(frame)
         if total_intermediate_col is None:
             raise WrongFormat("Could not detect the intermediate-demand total column in the CEPALSTAT direct IOT sheet.")
+        detected = _detect_direct_iot_layout(frame, total_intermediate_col)
+        row_groups = _build_direct_iot_row_groups(
+            frame,
+            sector_row_start=int(detected["sector_row_start"]),
+            sector_col_start=int(detected["sector_col_start"]),
+            code_col=int(detected["code_col"]),
+            label_col=int(detected["label_col"]),
+            total_col=total_intermediate_col,
+        )
+        column_groups = _build_direct_iot_column_groups(
+            frame,
+            code_row=int(detected["code_row"]),
+            sector_col_start=int(detected["sector_col_start"]),
+            total_col=total_intermediate_col,
+        )
         return _parse_matrix_sheet(
             layout,
             frame,
-            sector_col_start=2,
+            sector_col_start=int(detected["sector_col_start"]),
             total_col=total_intermediate_col,
-            sector_row_start=2,
-            code_col=0,
-            label_col=1,
-            header_rows=(1,),
+            sector_row_start=int(detected["sector_row_start"]),
+            code_col=int(detected["code_col"]),
+            label_col=int(detected["label_col"]),
+            header_rows=tuple(detected["header_rows"]),
+            output_col=detected["output_col"],
+            row_groups=row_groups,
+            column_groups=column_groups,
         )
 
     if layout.family == "gtm_member_iot":

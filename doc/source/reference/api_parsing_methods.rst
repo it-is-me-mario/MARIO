@@ -1,5 +1,5 @@
-Parsing Methods
-===============
+Parsing and Data Loading
+========================
 
 These pages cover parser entry points, dataset-specific parsers, and related
 loading helpers.
@@ -8,8 +8,6 @@ loading helpers.
    :maxdepth: 1
 
    ../api_document/mario.load_test
-   ../api_document/mario.write_template_definition
-   ../api_document/mario.write_parse_template
    ../api_document/mario.parse_from_excel
    ../api_document/mario.parse_from_txt
    ../api_document/mario.parse_from_parquet

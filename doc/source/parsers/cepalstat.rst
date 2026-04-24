@@ -53,6 +53,29 @@ The key public arguments are:
   only relevant for ``table="IOT"``. Use ``"pxp"``, ``"axa"``, or ``"auto"``.
   Some bundles expose both representations, while others expose only one.
 
+Expected path structure
+-----------------------
+
+``path`` can point to one CEPALSTAT workbook, one zip bundle, or to a
+directory containing several country bundles. The parser uses the filename to
+infer country, table family, year range, and sometimes ``iot_mode``:
+
+.. code-block:: text
+
+   CEPALSTAT/
+   ├── SUT/
+   │   ├── COL_COU_2023.zip
+   │   ├── ARG_COU_2019_2021.zip
+   │   └── BRA_COU_2020_2021.zip
+   └── IOT/
+       ├── DOM_MIP_2012.zip
+       ├── CRI_MIP_2012_2017.zip
+       └── VEN_MIP_1997.zip
+
+When a directory contains several countries or years, pass ``country=`` and
+``year=`` explicitly. For ``IOT`` bundles with both product-by-product and
+industry-by-industry files, use ``iot_mode=`` to choose the representation.
+
 Caveats
 -------
 

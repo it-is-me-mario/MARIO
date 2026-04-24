@@ -159,6 +159,59 @@ def _cepalstat_iot_frame(base_value: float) -> pd.DataFrame:
     return frame
 
 
+def _cepalstat_iot_cri_like_frame() -> pd.DataFrame:
+    """Create one Costa-Rica-style direct IOT sheet with stacked headers."""
+    frame = pd.DataFrame("", index=range(18), columns=range(13), dtype=object)
+    frame.iat[8, 2] = "Demanda Intermedia"
+    frame.iat[8, 4] = "Total de Demanda Intermedia"
+    frame.iat[8, 5] = "Consumo Privado"
+    frame.iat[8, 6] = "NPISH"
+    frame.iat[8, 7] = "Gobierno"
+    frame.iat[8, 8] = "Formación bruta de capital fijo"
+    frame.iat[8, 9] = "Variación de existencias"
+    frame.iat[8, 10] = "Objetos valiosos"
+    frame.iat[8, 11] = "Exportaciones"
+    frame.iat[9, 2] = "NP001"
+    frame.iat[9, 3] = "NP002"
+    frame.iat[10, 2] = "Product 1"
+    frame.iat[10, 3] = "Product 2"
+    frame.iloc[11, :12] = ["NP001", "Product 1", 10.0, 2.0, 12.0, 5.0, 0.5, 1.0, 2.0, 0.1, 0.0, 3.0]
+    frame.iloc[12, :12] = ["NP002", "Product 2", 4.0, 8.0, 12.0, 6.0, 0.0, 1.5, 1.0, 0.2, 0.0, 4.0]
+    frame.iat[14, 0] = "Valor Agregado Bruto Economía Total"
+    frame.iat[14, 2] = 7.0
+    frame.iat[14, 3] = 8.0
+    return frame
+
+
+def _cepalstat_iot_ven_like_frame() -> pd.DataFrame:
+    """Create one Venezuela-style direct IOT sheet with sparse left identifiers."""
+    frame = pd.DataFrame("", index=range(22), columns=range(15), dtype=object)
+    frame.iat[6, 4] = "Consumo intermedio a precios básicos"
+    frame.iat[6, 6] = "Total Demanda Intermedia (a precios básicos)"
+    frame.iat[6, 7] = "Exportaciones"
+    frame.iat[6, 8] = "Consumo Privado"
+    frame.iat[6, 9] = "ISFLSH"
+    frame.iat[6, 10] = "Gobierno"
+    frame.iat[6, 11] = "Formación bruta de capital fijo"
+    frame.iat[6, 12] = "Variación de existencias"
+    frame.iat[6, 13] = "Objetos valiosos"
+    frame.iat[7, 4] = "001"
+    frame.iat[7, 5] = "017"
+    frame.iat[8, 4] = "Product 1"
+    frame.iat[8, 5] = "Product 2"
+    frame.iloc[10, :14] = ["", "001", "", "Product 1", 10.0, 2.0, 12.0, 3.0, 5.0, 0.5, 1.0, 2.0, 0.1, 0.0]
+    frame.iloc[11, :14] = ["", "017", "", "Product 2", 4.0, 8.0, 12.0, 4.0, 6.0, 0.0, 1.5, 1.0, 0.2, 0.0]
+    frame.iat[13, 0] = "D.1"
+    frame.iat[13, 3] = "Remuneración de los asalariados"
+    frame.iat[13, 4] = 7.0
+    frame.iat[13, 5] = 8.0
+    frame.iat[14, 0] = "B.2b"
+    frame.iat[14, 3] = "Excedente de explotación, bruto"
+    frame.iat[14, 4] = 2.0
+    frame.iat[14, 5] = 3.0
+    return frame
+
+
 def _arg_sut_workbook() -> dict[str, pd.DataFrame]:
     """Create one compact Argentina-style two-sheet SUT workbook."""
     offer = pd.DataFrame("", index=range(20), columns=range(12), dtype=object)
@@ -455,3 +508,29 @@ def test_parse_cepalstat_chile_iot_workbook(tmp_path: Path):
     assert database.meta.name == "CEPALSTAT IOT CHI 2020 AXA"
     assert database.Z.shape == (2, 2)
     assert database.V.shape == (3, 2)
+
+
+def test_parse_cepalstat_direct_iot_handles_cri_like_stacked_headers(tmp_path: Path):
+    archive = _write_zip_with_workbooks(
+        tmp_path / "CRI_MIP_2017.zip",
+        {"CRI_MIP_2017_PRECIOSCORRIENTES_184x184_PxP.xlsx": {"MIP 2017": _cepalstat_iot_cri_like_frame()}},
+    )
+
+    database = parse_cepalstat(str(archive), table="IOT", iot_mode="pxp", calc_all=False)
+
+    assert database.meta.name == "CEPALSTAT IOT CRI 2017 PXP"
+    assert database.Z.shape == (2, 2)
+    assert list(database.get_index("Factor of production")) == ["Value added at basic prices"]
+
+
+def test_parse_cepalstat_direct_iot_handles_ven_like_sparse_identifiers(tmp_path: Path):
+    archive = _write_zip_with_workbooks(
+        tmp_path / "VEN_MIP_1997.zip",
+        {"VEN_MIP_1997_121x121_PxP.xlsx": {"MATRIZ U SIMETRICA (121x121)(px": _cepalstat_iot_ven_like_frame()}},
+    )
+
+    database = parse_cepalstat(str(archive), table="IOT", iot_mode="pxp", calc_all=False)
+
+    assert database.meta.name == "CEPALSTAT IOT VEN 1997 PXP"
+    assert database.Z.shape == (2, 2)
+    assert "Compensation of employees" in database.get_index("Factor of production")

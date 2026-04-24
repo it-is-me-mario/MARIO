@@ -443,13 +443,18 @@ def set_compute_method(method: str):
 
         - ``"auto"`` lets MARIO choose between explicit-inverse and
           solve-based formulas according to the requested target and the
-          estimated memory cost of materializing the Leontief inverse.
-        - ``"inverse"`` forces the historical path based on the explicit
-          Leontief inverse ``w = (I - z)^-1``.
+          estimated memory cost of materializing the ``w`` Leontief inverse
+          matrix.
+        - ``"inverse"`` forces the historical path based on the explicit ``w``
+          Leontief inverse matrix.
         - ``"solve"`` prefers linear-system solves that avoid materializing
-          explicit inverse blocks for large demand-driven targets such as IOT
-          ``X``, ``f``, ``F``, ``m``, ``M``, ``p`` and the analogous split SUT
-          targets.
+          explicit inverse blocks for large demand-driven targets such as the
+          IOT ``X`` total production vector, ``f`` total (direct+indirect)
+          environmental transaction coefficients matrix, ``F`` total
+          (direct+indirect) environmental transaction flows matrix, ``m`` total
+          (direct+indirect) value added coefficients matrix, ``M`` total
+          (direct+indirect) value added transaction matrix, ``p`` price index
+          vector and the analogous split SUT targets.
 
     Notes
     -----
@@ -479,7 +484,8 @@ def set_linear_solver(solver: str):
     Notes
     -----
     This setting only affects solve-based IOT/SUT formulas. It has no effect
-    on the explicit-inverse path used to build ``w``/``wcc``/``waa`` directly.
+    on the explicit-inverse path used to build the ``w``/``wcc``/``waa``
+    Leontief inverse matrices directly.
     """
     from mario.compute.runtime import normalize_linear_solver
 

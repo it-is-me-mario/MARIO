@@ -1,4 +1,4 @@
-﻿mario.calc\_Z
+mario.calc\_Z
 =============
 
 .. currentmodule:: mario

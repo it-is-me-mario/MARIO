@@ -78,6 +78,23 @@ The key public arguments are:
 * ``table``:
   currently only ``"IOT"`` is supported.
 
+Expected path structure
+-----------------------
+
+``path`` can point to one CEADS workbook or to a directory containing the
+verified provincial MRIO workbooks:
+
+.. code-block:: text
+
+   CEADS/
+   ├── MRIO 2018.xlsx
+   └── MRIO 2020.xlsx
+
+Inside each workbook, MARIO reads the English sheet named like
+``Table_<year>_English Version`` and uses the ``Sector`` and ``Province``
+metadata sheets for labels. When passing a directory, use ``year=`` to select
+the workbook.
+
 Notebook walkthrough
 --------------------
 

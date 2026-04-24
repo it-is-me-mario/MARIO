@@ -48,6 +48,23 @@ The key public arguments are:
 * ``download``:
   when ``True``, MARIO stores the raw CSV locally before parsing it.
 
+Expected path structure
+-----------------------
+
+StatCan parsing is API-driven. ``path`` is optional and, when provided, is a
+cache directory for raw WDS CSV downloads:
+
+.. code-block:: text
+
+   StatCan/
+   └── cache/
+       ├── 36-10-0438-01_*.csv
+       └── 36-10-0001-01_*.csv
+
+If ``download=False``, MARIO reads directly from WDS and no local files are
+required. If ``download=True``, MARIO stores the raw files in ``path`` and then
+parses from that cache.
+
 Download workflow
 -----------------
 

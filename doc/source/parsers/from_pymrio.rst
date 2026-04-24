@@ -43,6 +43,27 @@ The key public arguments are:
   when ``True``, MARIO records the ``pymrio`` metadata trail into the database
   notes.
 
+Expected input structure
+------------------------
+
+This parser does not read a file path. It expects an already-loaded
+``pymrio.IOSystem``:
+
+.. code-block:: python
+
+   import pymrio
+   import mario
+
+   io = pymrio.parse_exiobase3(path="/path/to/IOT_2013_pxp")
+   db = mario.parse_from_pymrio(
+       io=io,
+       value_added="all",
+       satellite_account="all",
+   )
+
+Any filesystem layout requirements belong to the upstream ``pymrio`` parser
+used to build ``io``.
+
 
 Assignment patterns
 -------------------

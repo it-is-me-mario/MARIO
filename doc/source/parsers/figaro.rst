@@ -46,6 +46,26 @@ The key public arguments are:
   only relevant for ``table="IOT"``. Use ``"auto"``, ``"product"`` or
   ``"industry"``.
 
+Expected path structure
+-----------------------
+
+``path`` must point to one directory containing the downloaded FIGARO bundles
+or their extracted CSV files:
+
+.. code-block:: text
+
+   FIGARO/
+   ├── supply/
+   │   └── *.csv
+   ├── use/
+   │   └── *.csv
+   └── iot/
+       └── *.csv
+
+Passing one single ``.zip`` or ``.csv`` file is not supported by the current
+backend. Keep all files for the selected table and year under the same local
+directory and select the year with ``year=``.
+
 Download workflow
 -----------------
 

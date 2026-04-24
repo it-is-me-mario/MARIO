@@ -2463,7 +2463,8 @@ def parse_gloria(
     Parameters
     ----------
     path : str
-        path to the GLORIA release root or directly to the ``GLORIA_MRIOs_*``
+        path to the GLORIA release root, to a Google Drive ``part_I``
+        economic-account folder, or directly to the ``GLORIA_MRIOs_*``
         directory containing the raw csv files.
     table : str, optional
         currently only ``SUT`` is supported.

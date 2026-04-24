@@ -469,6 +469,7 @@ class Database(CoreModel):
             index.columns = ["Aggregation"]
 
             if index.isnull().values.any():
+                index = index.astype({"Aggregation": object})
                 isna = index.isna()
                 nans = isna.loc[isna["Aggregation"] == True].index
                 if ignore_nan:

@@ -56,6 +56,38 @@ The key public arguments are:
   optional single-region selector when the local directory contains multiple
   price variants.
 
+Expected path structure
+-----------------------
+
+For ``Eora26``, ``path`` points to the directory containing the numeric files,
+and ``indeces`` points to the label files if they are not colocated:
+
+.. code-block:: text
+
+   EORA/
+   ├── Eora26_2017_bp/
+   │   ├── Eora26_2017_bp_T.txt
+   │   ├── Eora26_2017_bp_FD.txt
+   │   ├── Eora26_2017_bp_VA.txt
+   │   ├── Eora26_2017_bp_Q.txt
+   │   └── Eora26_2017_bp_QY.txt
+   └── indices/
+       ├── labels_T.txt
+       ├── labels_FD.txt
+       ├── labels_VA.txt
+       └── labels_Q.txt
+
+For single-region tables, ``path`` can point to one file or to a directory
+with files named like:
+
+.. code-block:: text
+
+   IO_All_2017/
+   └── IO_ITA_2017_BasicPrice.txt
+
+When using a directory of single-region files, pass ``country=`` and, if the
+directory contains several variants, ``year=`` or ``price=``.
+
 
 Notebook walkthrough
 --------------------

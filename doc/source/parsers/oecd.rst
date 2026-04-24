@@ -44,6 +44,31 @@ The key public arguments are:
   useful to disambiguate national OECD IOT files and required for
   ``dataset="SUT"``
 
+Expected path structure
+-----------------------
+
+For ``dataset="ICIO"``, ``path`` points to one OECD ICIO CSV file or to a
+directory containing yearly CSV files:
+
+.. code-block:: text
+
+   OECD/ICIO/
+   ├── Extended/
+   │   └── 2022.csv
+   └── Regular/
+       └── 2022_SML.csv
+
+For ``dataset="IOT"``, ``path`` points to one national total-table CSV file
+or to a directory containing country/year files:
+
+.. code-block:: text
+
+   OECD/IOT/TTL/
+   └── ITA2022ttl.csv
+
+For ``dataset="SUT"``, the parser is API-driven. ``path`` is not required;
+use ``country=`` and ``year=`` to select the SDMX slice.
+
 
 Notebook walkthrough
 --------------------

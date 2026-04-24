@@ -33,13 +33,13 @@ Key arguments
 The key public arguments are:
 
 * ``path``:
-  directory containing the ``GLORIA_MRIOs_*``. 
-  It can contain multiple releases, provided that they respect the same sturcture of the original folder
+  directory containing a GLORIA release, one ``part_I`` economic-account folder,
+  or one specific ``GLORIA_MRIOs_*`` dataset folder
 * ``table``:
   optional, currently only ``"SUT"`` is provided
 * ``valuation``:
   choose one markup branch such as ``basic``, ``trade``, ``transport``,
-  ``taxes`` or ``subsidies`` (alternatively, use ``0``, ``1``, ``2``, ``3``, ``4``)
+  ``taxes`` or ``subsidies`` (alternatively, use ``1``, ``2``, ``3``, ``4``, ``5``)
 * ``year``:
   use it when the selected root contains more than one GLORIA year
 * ``regions``:
@@ -52,6 +52,54 @@ The key public arguments are:
   ``True`` or one explicit path to persist the parsed result. 
   This is especially useful for repeated runs, given the large size of GLORIA use blocks.
 
+Expected path structure
+-----------------------
+
+``path`` can point to either of the two common local layouts.
+
+The compact GLORIA layout keeps the yearly dataset directory, optional
+satellite-account directory and readme workbook under the same root:
+
+.. code-block:: text
+
+   GLORIA/
+   ├── GLORIA_MRIOs_060_2025/
+   │   ├── ..._T-Results_2025_060_Markup001(full).csv
+   │   ├── ..._Y-Results_2025_060_Markup001(full).csv
+   │   └── ..._V-Results_2025_060_Markup001(full).csv
+   ├── GLORIA_SatelliteAccounts_060_2025/
+   │   ├── ..._TQ-Results_2025_060_Markup001(full).csv
+   │   └── ..._YQ-Results_2025_060_Markup001(full).csv
+   └── GLORIA_ReadMe_060.xlsx
+
+The Google Drive release layout is also accepted. MARIO uses the ``part_I``
+folder for economic accounts and the ``part_III`` folder for satellite
+accounts when both are present under the same release root:
+
+.. code-block:: text
+
+   GLORIA/latest_releases/060/
+   ├── GLORIA_MRIO_Loop060_part_I_MRIOdatabase/
+   │   └── GLORIA_MRIOs_060_2025/
+   │       ├── ..._T-Results_2025_060_Markup001(full).csv
+   │       ├── ..._Y-Results_2025_060_Markup001(full).csv
+   │       └── ..._V-Results_2025_060_Markup001(full).csv
+   ├── GLORIA_MRIO_Loop060_part_III_satelliteaccounts/
+   │   └── GLORIA_SatelliteAccounts_060_2025/
+   │       ├── ..._TQ-Results_2025_060_Markup001(full).csv
+   │       └── ..._YQ-Results_2025_060_Markup001(full).csv
+   └── GLORIA_ReadMe_060.xlsx
+
+In both layouts, ``path`` can point to the release root, to the economic-account
+container, or directly to one ``GLORIA_MRIOs_*`` folder. Keep
+``GLORIA_ReadMe_*.xlsx`` and the matching satellite-account directory in the
+same release tree so MARIO can discover labels and extensions.
+
+Use ``year=`` when the selected root contains several yearly datasets and
+``valuation=`` to choose the markup branch. If ``cache=True`` or
+``cache=/path/to/cache`` is used, MARIO stores a parsed cache next to the
+workflow you selected.
+
 
 Notebook walkthrough
 --------------------
@@ -60,10 +108,10 @@ Since automatic GLORIA download is not supported,
 the typical workflow is:
 
 1. obtain the GLORIA release locally
-2. keep the raw ``T``, ``Y`` and ``V`` csv files together with the
-   ``GLORIA_ReadMe_*.xlsx`` workbook. Optionally, keep the satellite accounts as well.
-3. point ``mario.parse_gloria(...)`` to the release root or directly to the
-   ``GLORIA_MRIOs_*`` directory
+2. keep the ``part_I`` economic accounts, ``part_III`` satellite accounts and
+   ``GLORIA_ReadMe_*.xlsx`` workbook under the same release root
+3. point ``mario.parse_gloria(...)`` to the release root, to the ``part_I``
+   economic-accounts directory or directly to one ``GLORIA_MRIOs_*`` directory
 
 Use the notebook below as the main parser guide:
 
