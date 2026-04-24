@@ -31,6 +31,16 @@ Database Compute API
    ../api_document/mario.Database.calc_linkages
 
 
+SUT-specific Ghosh matrices
+---------------------------
+
+For SUT databases, MARIO resolves Ghosh blocks with the split structure used in
+the :doc:`Matrices table in Nomenclature </concepts/nomenclature>`:
+``bu``, ``bs``, ``gcc``, ``gca``, ``gac`` and ``gaa``. Materialize them with
+``db.calc_all(["bu", "bs", "gcc", "gca", "gac", "gaa"])`` or resolve a
+single block with ``db.resolve("gcc")``.
+
+
 Runtime Compute Options
 -----------------------
 

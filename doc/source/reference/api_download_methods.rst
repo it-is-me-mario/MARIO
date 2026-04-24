@@ -2,8 +2,7 @@ Downloads
 =========
 
 These helpers download source files for datasets where MARIO supports a stable
-automatic download path. Some public helpers intentionally raise a clear error
-when automatic download is not supported by the source.
+automatic download path.
 
 Automatic Download Helpers
 --------------------------
@@ -24,15 +23,3 @@ Automatic Download Helpers
    ../api_document/mario.download_hybrid_exiobase
    ../api_document/mario.download_exiobase3
    ../api_document/mario.download_exiobase_monetary
-
-
-Manual-Only Source Helpers
---------------------------
-
-.. toctree::
-   :maxdepth: 1
-
-   ../api_document/mario.download_figaro
-   ../api_document/mario.download_oecd_icio
-   ../api_document/mario.download_gloria
-   ../api_document/mario.download_adb

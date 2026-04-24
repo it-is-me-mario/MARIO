@@ -66,7 +66,14 @@ from mario.compute.primitives import (
     linkages_calculation,
 )
 from mario.compute.ordering import SUTUnifiedOrderingPolicy
-from mario.compute.views import concat_sut_Y, concat_sut_e, concat_sut_v, concat_sut_z
+from mario.compute.views import (
+    concat_sut_Y,
+    concat_sut_b,
+    concat_sut_e,
+    concat_sut_g,
+    concat_sut_v,
+    concat_sut_z,
+)
 from mario.clusters import build_default_clusters
 
 import numpy as np
@@ -931,7 +938,7 @@ class Database(CoreModel):
         cut_diag=True,
         multi_mode=True,
     ):
-        r"""Calculate backward and forward linkages for an IOT scenario.
+        r"""Calculate backward and forward linkages for one scenario.
 
         Parameters
         ----------
@@ -944,7 +951,7 @@ class Database(CoreModel):
             When ``True``, exclude diagonal terms from the calculation.
         multi_mode:
             When ``True``, preserve the multi-regional interpretation of the
-            linkages. This is valid only for multi-regional IOT databases.
+            linkages. This is valid only for multi-regional databases.
 
         Returns
         -------
@@ -958,13 +965,40 @@ class Database(CoreModel):
             )
 
         if self.meta.table == "SUT":
-            raise NotImplementable("Linkages can not be calculated for SUT.")
-
-        _matrices = {
-            **self.query(
-                matrices=[_ENUM.w, _ENUM.b, _ENUM.z, _ENUM.g],
+            blocks = self.query(
+                matrices=[_ENUM.w, _ENUM.z, "bu", "bs", "gcc", "gca", "gac", "gaa"],
+                scenarios=scenario,
             )
-        }
+            ordering = SUTUnifiedOrderingPolicy.from_blocks(
+                z=blocks[_ENUM.z],
+                w=blocks[_ENUM.w],
+                bu=blocks["bu"],
+                bs=blocks["bs"],
+                gcc=blocks["gcc"],
+                gca=blocks["gca"],
+                gac=blocks["gac"],
+                gaa=blocks["gaa"],
+            )
+            _matrices = {
+                _ENUM.w: blocks[_ENUM.w].copy(),
+                _ENUM.z: blocks[_ENUM.z].copy(),
+                _ENUM.b: concat_sut_b(blocks["bu"], blocks["bs"], ordering),
+                _ENUM.g: concat_sut_g(
+                    blocks["gcc"],
+                    blocks["gca"],
+                    blocks["gac"],
+                    blocks["gaa"],
+                    ordering,
+                ),
+            }
+        else:
+            _matrices = {
+                name: value.copy()
+                for name, value in self.query(
+                    matrices=[_ENUM.w, _ENUM.b, _ENUM.z, _ENUM.g],
+                    scenarios=scenario,
+                ).items()
+            }
 
         return linkages_calculation(
             cut_diag=cut_diag,

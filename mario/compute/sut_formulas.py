@@ -18,6 +18,7 @@ from mario.compute.helpers import (
     safe_inverse,
     safe_solve,
     scale_columns,
+    scale_rows,
     sum_final_demand,
     sum_columns,
     sum_rows,
@@ -320,6 +321,56 @@ def build_sut_waa_from_s_u(s: pd.DataFrame, u: pd.DataFrame) -> pd.DataFrame:
     product = matmul(s, u)
     validate_square(product)
     return safe_inverse(identity_like(product) - product)
+
+
+def build_sut_bu_from_Xc_U(Xc: pd.DataFrame | pd.Series, U: pd.DataFrame) -> pd.DataFrame:
+    """Build use-side direct-output coefficients ``bu``.
+
+    This is algebraically equivalent to ``inv(diag(Xc)) @ U``.
+    """
+    x_c = _vector_series(Xc, label="Xc")
+    require_same_index(U, x_c, lhs_name="U", rhs_name="Xc")
+    return scale_rows(U, inverse_vector(x_c))
+
+
+def build_sut_bs_from_Xa_S(Xa: pd.DataFrame | pd.Series, S: pd.DataFrame) -> pd.DataFrame:
+    """Build supply-side direct-output coefficients ``bs``.
+
+    This is algebraically equivalent to ``inv(diag(Xa)) @ S``.
+    """
+    x_a = _vector_series(Xa, label="Xa")
+    require_same_index(S, x_a, lhs_name="S", rhs_name="Xa")
+    return scale_rows(S, inverse_vector(x_a))
+
+
+def build_sut_gcc_from_bu_bs(bu: pd.DataFrame, bs: pd.DataFrame) -> pd.DataFrame:
+    """Build the commodity-to-commodity Ghosh quadrant ``gcc``."""
+    require_same_columns(bu, bs.index, lhs_name="bu", rhs_name="bs.index")
+    require_same_index(bu, bs.columns, lhs_name="bu", rhs_name="bs.columns")
+    product = matmul(bu, bs)
+    validate_square(product)
+    return safe_inverse(identity_like(product) - product)
+
+
+def build_sut_gca_from_gcc_bu(gcc: pd.DataFrame, bu: pd.DataFrame) -> pd.DataFrame:
+    """Build the commodity-to-activity Ghosh quadrant ``gca``."""
+    require_same_columns(gcc, bu.index, lhs_name="gcc", rhs_name="bu.index")
+    return matmul(gcc, bu)
+
+
+def build_sut_gaa_from_bs_bu(bs: pd.DataFrame, bu: pd.DataFrame) -> pd.DataFrame:
+    """Build the activity-to-activity Ghosh quadrant ``gaa``."""
+    require_same_columns(bs, bu.index, lhs_name="bs", rhs_name="bu.index")
+    require_same_index(bs, bu.columns, lhs_name="bs", rhs_name="bu.columns")
+    product = matmul(bs, bu)
+    validate_square(product)
+    return safe_inverse(identity_like(product) - product)
+
+
+def build_sut_gac_from_gaa_bs(gaa: pd.DataFrame, bs: pd.DataFrame) -> pd.DataFrame:
+    """Build the activity-to-commodity Ghosh quadrant ``gac``."""
+    require_same_columns(gaa, bs.index, lhs_name="gaa", rhs_name="bs.index")
+    return matmul(gaa, bs)
 
 
 def build_sut_Xa_from_S_Ya(S: pd.DataFrame, Ya: pd.DataFrame) -> pd.DataFrame:

@@ -6,7 +6,6 @@ import logging
 import numpy as np
 import pandas as pd
 
-from mario.compute.ghosh_formulas import build_iot_b_from_X_Z, build_iot_g_from_b
 from mario.compute.helpers import (
     as_column_frame,
     identity_like,
@@ -18,6 +17,7 @@ from mario.compute.helpers import (
     safe_inverse,
     safe_solve,
     scale_columns,
+    scale_rows,
     sum_final_demand,
     sum_columns,
     sum_rows,
@@ -262,6 +262,22 @@ def build_iot_z_from_Z_X(Z: pd.DataFrame, X: pd.DataFrame) -> pd.DataFrame:
     validate_square(Z)
     require_same_index(Z, X, lhs_name="Z", rhs_name="X")
     return scale_columns(Z, inverse_vector(X))
+
+
+def build_iot_b_from_X_Z(X: pd.DataFrame, Z: pd.DataFrame) -> pd.DataFrame:
+    """Build direct-output coefficients ``b`` from production ``X`` and flows ``Z``.
+
+    The implementation is algebraically equivalent to ``inv(diag(X)) @ Z``.
+    """
+    validate_square(Z)
+    require_same_index(Z, X, lhs_name="Z", rhs_name="X")
+    return scale_rows(Z, inverse_vector(X))
+
+
+def build_iot_g_from_b(b: pd.DataFrame) -> pd.DataFrame:
+    """Build the Ghosh coefficients matrix ``g`` from ``b``."""
+    validate_square(b)
+    return safe_inverse(identity_like(b) - b)
 
 
 def build_iot_w_from_z(z: pd.DataFrame) -> pd.DataFrame:

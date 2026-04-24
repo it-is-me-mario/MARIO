@@ -141,6 +141,23 @@ def test_calc_all_sut_resolves_unified_blocks_from_split_dependencies():
     assert {"wcc", "wca", "wac", "waa"}.issubset(set(database["baseline"]))
 
 
+def test_calc_linkages_supports_sut_specific_ghosh_blocks():
+    database = load_test("SUT")
+
+    linkages = database.calc_linkages(multi_mode=False)
+
+    assert list(linkages.columns) == [
+        "Total Forward",
+        "Total Backward",
+        "Direct Forward",
+        "Direct Backward",
+    ]
+    assert len(linkages) == len(database.query(_ENUM.z))
+    assert {"bu", "bs", "gcc", "gca", "gac", "gaa"}.issubset(set(database["baseline"]))
+    assert _ENUM.b not in database["baseline"]
+    assert _ENUM.g not in database["baseline"]
+
+
 def test_query_and_get_data_auto_calc():
     database = load_test("IOT")
 

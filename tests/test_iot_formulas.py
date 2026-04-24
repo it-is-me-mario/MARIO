@@ -3,10 +3,11 @@ import pandas as pd
 import pandas.testing as pdt
 from scipy import sparse
 
-from mario.compute.ghosh_formulas import build_iot_b_from_X_Z, build_iot_g_from_b
 from mario.compute.iot_formulas import (
+    build_iot_b_from_X_Z,
     build_iot_E_from_e_X,
     build_iot_F_from_f_Y,
+    build_iot_g_from_b,
     build_iot_M_from_m_Y,
     build_iot_V_from_v_X,
     build_iot_X_from_z_Y,

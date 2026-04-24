@@ -21,12 +21,18 @@ from mario.compute.sut_formulas import (
     build_sut_Xc_from_U_Yc,
     build_sut_Xc_from_u_s_Yc,
     build_sut_Xc_from_wcc_Yc,
+    build_sut_bs_from_Xa_S,
+    build_sut_bu_from_Xc_U,
     build_sut_ea_from_Ea_Xa,
     build_sut_ec_from_Ec_Xc,
     build_sut_fa_from_ea_s_u,
     build_sut_fa_from_ea_waa,
     build_sut_fc_from_ea_s_u,
     build_sut_fc_from_ea_s_wcc,
+    build_sut_gaa_from_bs_bu,
+    build_sut_gac_from_gaa_bs,
+    build_sut_gca_from_gcc_bu,
+    build_sut_gcc_from_bu_bs,
     build_sut_ma_from_va_s_u,
     build_sut_ma_from_va_waa,
     build_sut_mc_from_va_s_u,
@@ -81,7 +87,25 @@ from mario.model.conventions import _ENUM
 
 def test_sut_split_formulas_match_database_views():
     sut = load_test("SUT")
-    sut.calc_all([_ENUM.z, _ENUM.u, _ENUM.s, _ENUM.w, _ENUM.v, _ENUM.e, _ENUM.p, _ENUM.m, _ENUM.f])
+    sut.calc_all(
+        [
+            _ENUM.z,
+            _ENUM.u,
+            _ENUM.s,
+            _ENUM.w,
+            "bu",
+            "bs",
+            "gcc",
+            "gca",
+            "gac",
+            "gaa",
+            _ENUM.v,
+            _ENUM.e,
+            _ENUM.p,
+            _ENUM.m,
+            _ENUM.f,
+        ]
+    )
     ordering = SUTUnifiedOrderingPolicy.from_blocks(Z=sut.Z, Y=sut.Y, V=sut.V, E=sut.E)
 
     U = extract_U_from_Z(sut.Z, ordering)
@@ -114,6 +138,20 @@ def test_sut_split_formulas_match_database_views():
     pdt.assert_frame_equal(waa, extract_waa_from_w(sut.w, ordering))
     pdt.assert_frame_equal(build_sut_Xc_from_wcc_Yc(wcc, Yc), Xc)
     pdt.assert_frame_equal(build_sut_Xc_from_u_s_Yc(sut.u, sut.s, Yc), Xc)
+
+    bu = build_sut_bu_from_Xc_U(Xc, U)
+    bs = build_sut_bs_from_Xa_S(Xa, S)
+    gcc = build_sut_gcc_from_bu_bs(bu, bs)
+    gca = build_sut_gca_from_gcc_bu(gcc, bu)
+    gaa = build_sut_gaa_from_bs_bu(bs, bu)
+    gac = build_sut_gac_from_gaa_bs(gaa, bs)
+
+    pdt.assert_frame_equal(bu, sut.query("bu"))
+    pdt.assert_frame_equal(bs, sut.query("bs"))
+    pdt.assert_frame_equal(gcc, sut.query("gcc"))
+    pdt.assert_frame_equal(gca, sut.query("gca"))
+    pdt.assert_frame_equal(gac, sut.query("gac"))
+    pdt.assert_frame_equal(gaa, sut.query("gaa"))
 
     va = build_sut_va_from_Va_Xa(Va, Xa)
     vc = build_sut_vc_from_Vc_Xc(Vc, Xc)

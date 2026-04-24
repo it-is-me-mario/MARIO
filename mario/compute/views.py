@@ -117,6 +117,31 @@ def concat_sut_w(
     return _concat_square_blocks(waa, wac, wca, wcc)
 
 
+def concat_sut_b(bu: pd.DataFrame, bs: pd.DataFrame, ordering: SUTUnifiedOrderingPolicy) -> pd.DataFrame:
+    """Build a unified SUT direct-output coefficients block from ``bu`` and ``bs``."""
+    dtype = _common_dtype(bu, bs)
+    bu = _reindex_exact(bu, index=ordering.commodity_index, columns=ordering.activity_index, label="bu")
+    bs = _reindex_exact(bs, index=ordering.activity_index, columns=ordering.commodity_index, label="bs")
+    zeros_aa = _zeros(ordering.activity_index, ordering.activity_index, dtype)
+    zeros_cc = _zeros(ordering.commodity_index, ordering.commodity_index, dtype)
+    return _concat_square_blocks(zeros_aa, bs, bu, zeros_cc)
+
+
+def concat_sut_g(
+    gcc: pd.DataFrame,
+    gca: pd.DataFrame,
+    gac: pd.DataFrame,
+    gaa: pd.DataFrame,
+    ordering: SUTUnifiedOrderingPolicy,
+) -> pd.DataFrame:
+    """Build unified SUT ``g`` from its four split Ghosh quadrants."""
+    gaa = _reindex_exact(gaa, index=ordering.activity_index, columns=ordering.activity_index, label="gaa")
+    gac = _reindex_exact(gac, index=ordering.activity_index, columns=ordering.commodity_index, label="gac")
+    gca = _reindex_exact(gca, index=ordering.commodity_index, columns=ordering.activity_index, label="gca")
+    gcc = _reindex_exact(gcc, index=ordering.commodity_index, columns=ordering.commodity_index, label="gcc")
+    return _concat_square_blocks(gaa, gac, gca, gcc)
+
+
 def concat_sut_X(Xa: pd.DataFrame, Xc: pd.DataFrame, ordering: SUTUnifiedOrderingPolicy) -> pd.DataFrame:
     """Build unified production ``X`` from activity and commodity outputs."""
     return _concat_two_part_rows(Xa, Xc, ordering, "X")
@@ -232,6 +257,48 @@ def extract_wac_from_w(w: pd.DataFrame, ordering: SUTUnifiedOrderingPolicy) -> p
 def extract_waa_from_w(w: pd.DataFrame, ordering: SUTUnifiedOrderingPolicy) -> pd.DataFrame:
     """Extract the ``waa`` quadrant from unified ``w``."""
     return _reindex_exact(w, index=ordering.unified_index, columns=ordering.unified_index, label="w").loc[
+        ordering.activity_index, ordering.activity_index
+    ]
+
+
+def extract_bu_from_b(b: pd.DataFrame, ordering: SUTUnifiedOrderingPolicy) -> pd.DataFrame:
+    """Extract split use-side direct-output coefficients ``bu`` from unified ``b``."""
+    return _reindex_exact(b, index=ordering.unified_index, columns=ordering.unified_index, label="b").loc[
+        ordering.commodity_index, ordering.activity_index
+    ]
+
+
+def extract_bs_from_b(b: pd.DataFrame, ordering: SUTUnifiedOrderingPolicy) -> pd.DataFrame:
+    """Extract split supply-side direct-output coefficients ``bs`` from unified ``b``."""
+    return _reindex_exact(b, index=ordering.unified_index, columns=ordering.unified_index, label="b").loc[
+        ordering.activity_index, ordering.commodity_index
+    ]
+
+
+def extract_gcc_from_g(g: pd.DataFrame, ordering: SUTUnifiedOrderingPolicy) -> pd.DataFrame:
+    """Extract the ``gcc`` quadrant from unified ``g``."""
+    return _reindex_exact(g, index=ordering.unified_index, columns=ordering.unified_index, label="g").loc[
+        ordering.commodity_index, ordering.commodity_index
+    ]
+
+
+def extract_gca_from_g(g: pd.DataFrame, ordering: SUTUnifiedOrderingPolicy) -> pd.DataFrame:
+    """Extract the ``gca`` quadrant from unified ``g``."""
+    return _reindex_exact(g, index=ordering.unified_index, columns=ordering.unified_index, label="g").loc[
+        ordering.commodity_index, ordering.activity_index
+    ]
+
+
+def extract_gac_from_g(g: pd.DataFrame, ordering: SUTUnifiedOrderingPolicy) -> pd.DataFrame:
+    """Extract the ``gac`` quadrant from unified ``g``."""
+    return _reindex_exact(g, index=ordering.unified_index, columns=ordering.unified_index, label="g").loc[
+        ordering.activity_index, ordering.commodity_index
+    ]
+
+
+def extract_gaa_from_g(g: pd.DataFrame, ordering: SUTUnifiedOrderingPolicy) -> pd.DataFrame:
+    """Extract the ``gaa`` quadrant from unified ``g``."""
+    return _reindex_exact(g, index=ordering.unified_index, columns=ordering.unified_index, label="g").loc[
         ordering.activity_index, ordering.activity_index
     ]
 

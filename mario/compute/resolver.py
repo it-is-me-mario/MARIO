@@ -5,7 +5,7 @@ from __future__ import annotations
 import inspect
 import logging
 
-from mario.compute import ghosh_formulas, iot_formulas, sut_formulas, views
+from mario.compute import iot_formulas, sut_formulas, views
 from mario.compute.graph import build_dependency_graph, render_dependency_graph
 from mario.compute.operators import execute_registered_operator
 from mario.compute.ordering import SUTUnifiedOrderingPolicy
@@ -38,7 +38,7 @@ class ResolutionError(LookupError):
 
 def _lookup_callable(name: str):
     """Look up a compute implementation by name across compute modules."""
-    for module in (views, iot_formulas, sut_formulas, ghosh_formulas):
+    for module in (views, iot_formulas, sut_formulas):
         function = getattr(module, name, None)
         if callable(function):
             return function

@@ -3,12 +3,14 @@ import pandas.testing as pdt
 from mario.compute.ordering import SUTUnifiedOrderingPolicy
 from mario.compute.views import (
     concat_sut_E,
+    concat_sut_b,
     concat_sut_V,
     concat_sut_X,
     concat_sut_Y,
     concat_sut_Z,
     concat_sut_e,
     concat_sut_f,
+    concat_sut_g,
     concat_sut_m,
     concat_sut_p,
     concat_sut_v,
@@ -16,6 +18,8 @@ from mario.compute.views import (
     concat_sut_z,
     extract_Ea_from_E,
     extract_Ec_from_E,
+    extract_bs_from_b,
+    extract_bu_from_b,
     extract_S_from_Z,
     extract_U_from_Z,
     extract_Va_from_V,
@@ -28,6 +32,10 @@ from mario.compute.views import (
     extract_ec_from_e,
     extract_fa_from_f,
     extract_fc_from_f,
+    extract_gaa_from_g,
+    extract_gac_from_g,
+    extract_gca_from_g,
+    extract_gcc_from_g,
     extract_ma_from_m,
     extract_mc_from_m,
     extract_pa_from_p,
@@ -82,7 +90,25 @@ def test_sut_concat_and_extract_match_database_flows():
 
 def test_sut_concat_and_extract_match_database_coefficients_and_views():
     sut = load_test("SUT")
-    sut.calc_all([_ENUM.z, _ENUM.u, _ENUM.s, _ENUM.w, _ENUM.v, _ENUM.e, _ENUM.p, _ENUM.m, _ENUM.f])
+    sut.calc_all(
+        [
+            _ENUM.z,
+            _ENUM.u,
+            _ENUM.s,
+            _ENUM.w,
+            "bu",
+            "bs",
+            "gcc",
+            "gca",
+            "gac",
+            "gaa",
+            _ENUM.v,
+            _ENUM.e,
+            _ENUM.p,
+            _ENUM.m,
+            _ENUM.f,
+        ]
+    )
     ordering = SUTUnifiedOrderingPolicy.from_blocks(z=sut.z, w=sut.w, Y=sut.Y)
 
     pdt.assert_frame_equal(concat_sut_z(sut.u, sut.s, ordering), sut.z)
@@ -94,6 +120,21 @@ def test_sut_concat_and_extract_match_database_coefficients_and_views():
     wac = extract_wac_from_w(sut.w, ordering)
     waa = extract_waa_from_w(sut.w, ordering)
     pdt.assert_frame_equal(concat_sut_w(wcc, wca, wac, waa, ordering), sut.w)
+
+    b = concat_sut_b(sut.query("bu"), sut.query("bs"), ordering)
+    g = concat_sut_g(
+        sut.query("gcc"),
+        sut.query("gca"),
+        sut.query("gac"),
+        sut.query("gaa"),
+        ordering,
+    )
+    pdt.assert_frame_equal(extract_bu_from_b(b, ordering), sut.query("bu"))
+    pdt.assert_frame_equal(extract_bs_from_b(b, ordering), sut.query("bs"))
+    pdt.assert_frame_equal(extract_gcc_from_g(g, ordering), sut.query("gcc"))
+    pdt.assert_frame_equal(extract_gca_from_g(g, ordering), sut.query("gca"))
+    pdt.assert_frame_equal(extract_gac_from_g(g, ordering), sut.query("gac"))
+    pdt.assert_frame_equal(extract_gaa_from_g(g, ordering), sut.query("gaa"))
 
     va = extract_va_from_v(sut.v, ordering)
     vc = extract_vc_from_v(sut.v, ordering)

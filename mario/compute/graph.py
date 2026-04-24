@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from mario.compute import ghosh_formulas, iot_formulas, sut_formulas, views
+from mario.compute import iot_formulas, sut_formulas, views
 from mario.compute.operators import get_registered_operator
 from mario.compute.planner import ResolutionStore, candidate_strategies, resolve_table_kind
 from mario.compute.types import ResolutionContext, Strategy, StrategyKind
@@ -23,7 +23,7 @@ class DependencyNode:
 
 def _has_implementation(name: str) -> bool:
     """Return ``True`` when a named compute callable exists in the engine."""
-    for module in (views, iot_formulas, sut_formulas, ghosh_formulas):
+    for module in (views, iot_formulas, sut_formulas):
         value = getattr(module, name, None)
         if callable(value):
             return True

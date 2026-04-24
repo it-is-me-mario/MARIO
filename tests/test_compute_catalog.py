@@ -26,15 +26,19 @@ def test_model_labels_still_derive_from_settings():
 
 def test_catalog_covers_iot_and_sut_blocks():
     assert len(COMPUTE_CATALOG[TableKind.IOT]) == 18
-    assert len(COMPUTE_CATALOG[TableKind.SUT]) == 49
+    assert len(COMPUTE_CATALOG[TableKind.SUT]) == 53
 
     sut_wcc = get_matrix_spec("SUT", "wcc")
+    sut_bu = get_matrix_spec("SUT", "bu")
+    sut_gcc = get_matrix_spec("SUT", "gcc")
     sut_c = get_matrix_spec("SUT", "c")
     sut_xc = get_matrix_spec("SUT", "Xc")
     iot_p = get_matrix_spec("IOT", "p")
     iot_vy = get_matrix_spec("IOT", "VY")
 
     assert len(sut_wcc.strategies) == 2
+    assert sut_bu.strategies[-1].function == "build_sut_bu_from_Xc_U"
+    assert sut_gcc.strategies[-1].function == "build_sut_gcc_from_bu_bs"
     assert sut_c.axes.rows == (INDEX_LABELS["r"], INDEX_LABELS["c"], ITEM_LABEL)
     assert sut_c.axes.cols == (INDEX_LABELS["r"], INDEX_LABELS["a"], ITEM_LABEL)
     assert {strategy.function for strategy in sut_c.strategies} == {
@@ -53,11 +57,9 @@ def test_catalog_keeps_known_compute_todos_visible():
     sut_w = get_matrix_spec(TableKind.SUT, "w")
     sut_m = get_matrix_spec(TableKind.SUT, "M")
     sut_f = get_matrix_spec(TableKind.SUT, "F")
-    sut_b = get_matrix_spec(TableKind.SUT, "b")
 
-    assert len(CATALOG_OPEN_QUESTIONS) == 4
+    assert len(CATALOG_OPEN_QUESTIONS) == 3
     assert "spreadsheet typo" in sut_w.strategies[0].notes[0]
     assert sut_w.todo == CATALOG_OPEN_QUESTIONS[0]
     assert sut_m.todo == CATALOG_OPEN_QUESTIONS[1]
     assert sut_f.todo == CATALOG_OPEN_QUESTIONS[2]
-    assert sut_b.todo == CATALOG_OPEN_QUESTIONS[3]

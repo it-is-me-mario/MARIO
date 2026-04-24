@@ -55,6 +55,14 @@ MATRIX_TITLES = {
     "p": "Price index vector",
     "F": "Footprints",
     "f": "Footprints coeffients",
+    "b": "Intersectoral transaction direct-output coefficients",
+    "g": "Ghosh coefficients",
+    "bu": "Use transaction direct-output coefficients",
+    "bs": "Supply transaction direct-output coefficients",
+    "gcc": "Commodity-to-commodity Ghosh coefficients",
+    "gca": "Commodity-to-activity Ghosh coefficients",
+    "gac": "Activity-to-commodity Ghosh coefficients",
+    "gaa": "Activity-to-activity Ghosh coefficients",
 }
 
 
