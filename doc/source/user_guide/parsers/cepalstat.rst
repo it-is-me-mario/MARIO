@@ -32,7 +32,7 @@ Recommended entry point
 
 For normal user workflows, the public entry point is:
 
-* :doc:`mario.parse_cepalstat(...) <../api_document/mario.parse_cepalstat>`
+* :doc:`mario.parse_cepalstat(...) <../../api_document/mario.parse_cepalstat>`
 
 Key arguments
 -------------
@@ -95,13 +95,13 @@ Notebook walkthrough
 
 Use the notebook below as the main parser guide:
 
-* :doc:`CEPALSTAT parser walkthrough <../notebooks/parsers/cepalstat/walkthrough>`
+* :doc:`CEPALSTAT parser walkthrough <../../notebooks/parsers/cepalstat/walkthrough>`
 
 If you prefer to run it locally, you can also download the source notebook:
 
-* :download:`Download the CEPALSTAT notebook <../notebooks/parsers/cepalstat/walkthrough.ipynb>`
+* :download:`Download the CEPALSTAT notebook <../../notebooks/parsers/cepalstat/walkthrough.ipynb>`
 
 .. toctree::
    :hidden:
 
-   ../notebooks/parsers/cepalstat/walkthrough
+   ../../notebooks/parsers/cepalstat/walkthrough

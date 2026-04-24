@@ -9,7 +9,7 @@ Recommended entry point
 
 For normal user workflows, the public entry point is:
 
-* :doc:`mario.parse_gtap(...) <../api_document/mario.parse_gtap>`
+* :doc:`mario.parse_gtap(...) <../../api_document/mario.parse_gtap>`
 
 Key arguments
 -------------
@@ -73,16 +73,16 @@ Notebook walkthrough
 
 Use the notebook below as the main parser guide:
 
-* :doc:`GTAP parser walkthrough <../notebooks/parsers/gtap/walkthrough>`
+* :doc:`GTAP parser walkthrough <../../notebooks/parsers/gtap/walkthrough>`
 
 If you prefer to run it locally, you can also download the source notebook:
 
-* :download:`Download the GTAP notebook <../notebooks/parsers/gtap/walkthrough.ipynb>`
+* :download:`Download the GTAP notebook <../../notebooks/parsers/gtap/walkthrough.ipynb>`
 
 .. toctree::
    :hidden:
 
-   ../notebooks/parsers/gtap/walkthrough
+   ../../notebooks/parsers/gtap/walkthrough
 
 Caveats
 -------

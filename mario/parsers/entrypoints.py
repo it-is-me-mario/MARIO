@@ -72,10 +72,6 @@ from mario.parsers.specs import (
     HMIOT_EXTENSIONS,
     INPUT_OPTIONS,
     FIGARO_IOT_MODES,
-    FIGARO_IOT_IXI_URL,
-    FIGARO_IOT_PXP_URL,
-    FIGARO_SUPPLY_URL,
-    FIGARO_USE_URL,
     EUROSTAT_IOT_MODES,
     EUROSTAT_SUT_UNITS,
     GTAP_INPUT_FORMATS,
@@ -2214,40 +2210,52 @@ def parse_from_pymrio(
 
 
 def parse_figaro(
-    path: str,
+    path: str | None = None,
     table: str = "SUT",
     year: int | None = None,
     iot_mode: str = "auto",
+    unit: str = "MIO_EUR",
+    countries: str | list[str] | tuple[str, ...] | None = None,
+    timeout: int = 60,
     model: str = "Database",
     name: str = None,
     calc_all: bool = False,
     **kwargs,
 ) -> object:
-    f"""Parse FIGARO tables from locally downloaded CIRCABC files.
+    """Parse FIGARO tables from the Eurostat API.
 
-    As of March 23, 2026, the FIGARO flat files are published in four public
-    CIRCABC libraries referenced by ``mario.parsers.specs``:
-
-    * supply files: ``{FIGARO_SUPPLY_URL}``
-    * use files: ``{FIGARO_USE_URL}``
-    * product-by-product IOT files: ``{FIGARO_IOT_PXP_URL}``
-    * industry-by-industry IOT files: ``{FIGARO_IOT_IXI_URL}``
-
-    MARIO does not rely on automatic download here: callers should point this
-    parser to a local directory containing the FIGARO flat files, either as
-    ``.zip`` bundles or extracted ``.csv`` files.
+    The parser uses the dedicated Eurostat FIGARO dataflows:
+    ``naio_10_fcp_s*`` and ``naio_10_fcp_u*`` for SUTs, and
+    ``naio_10_fcp_ip*`` or ``naio_10_fcp_ii*`` for IOTs. The suffix is selected
+    automatically from ``year``.
 
     Parameters
     ----------
+    path : str, optional
+        Deprecated and ignored. FIGARO is parsed from the Eurostat API.
     table : str, optional
         either ``SUT`` or ``IOT``.
+    year : int
+        FIGARO reference year. This is required.
     iot_mode : str, optional
         FIGARO IOT variant. Supported values are ``auto``, ``product`` and
-        ``industry``. When both IOT variants are present and ``auto`` is used,
-        MARIO defaults to the product-by-product file.
+        ``industry``. ``auto`` defaults to the product-by-product dataflow.
+    unit : str, optional
+        Eurostat unit. The current FIGARO parser supports ``MIO_EUR``.
+    countries : str or list-like, optional
+        Optional country subset using Eurostat FIGARO country codes. Use it to
+        parse smaller slices without downloading the full multiregional table.
     """
     if model not in models:
         raise WrongInput("Available models are {}".format([*models]))
+    if path is not None:
+        log_time(
+            logger,
+            "Parser: parse_figaro path is deprecated and ignored because FIGARO is now API-based.",
+            "warning",
+        )
+    if year is None:
+        raise WrongInput("FIGARO API parsing requires an explicit year.")
 
     validate_parse_request(table=table, model=model)
     if table == "IOT":
@@ -2256,12 +2264,19 @@ def parse_figaro(
                 f"FIGARO iot_mode should be one of {list(FIGARO_IOT_MODES)}."
             )
         matrices, indeces, units, layout = parse_figaro_iot(
-            path=path,
             year=year,
             mode=iot_mode,
+            unit=unit,
+            countries=countries,
+            timeout=timeout,
         )
     else:
-        matrices, indeces, units, layout = parse_figaro_sut(path=path, year=year)
+        matrices, indeces, units, layout = parse_figaro_sut(
+            year=year,
+            unit=unit,
+            countries=countries,
+            timeout=timeout,
+        )
     return models[model](
         name=name or layout.dataset_name,
         table=table,

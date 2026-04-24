@@ -24,7 +24,7 @@ Recommended entry point
 
 For normal user workflows, the public entry point is:
 
-* :doc:`mario.parse_emerging(...) <../api_document/mario.parse_emerging>`
+* :doc:`mario.parse_emerging(...) <../../api_document/mario.parse_emerging>`
 
 Key arguments
 -------------
@@ -75,16 +75,16 @@ Automatic download method is available:
 
 Once downloaded, use the notebook below as the main parser guide:
 
-* :doc:`EMERGING parser walkthrough <../notebooks/parsers/emerging/walkthrough>`
+* :doc:`EMERGING parser walkthrough <../../notebooks/parsers/emerging/walkthrough>`
 
 If you prefer to run it locally, you can also download the source notebook:
 
-* :download:`Download the EMERGING notebook <../notebooks/parsers/emerging/walkthrough.ipynb>`
+* :download:`Download the EMERGING notebook <../../notebooks/parsers/emerging/walkthrough.ipynb>`
 
 .. toctree::
    :hidden:
 
-   ../notebooks/parsers/emerging/walkthrough
+   ../../notebooks/parsers/emerging/walkthrough
 
 
 Caveats

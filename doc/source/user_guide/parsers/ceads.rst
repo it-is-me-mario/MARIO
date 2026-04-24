@@ -60,7 +60,7 @@ Recommended entry point
 
 For normal user workflows, the public entry point is:
 
-* :doc:`mario.parse_ceads(...) <../api_document/mario.parse_ceads>`
+* :doc:`mario.parse_ceads(...) <../../api_document/mario.parse_ceads>`
 
 Key arguments
 -------------
@@ -100,16 +100,16 @@ Notebook walkthrough
 
 Use the notebook below as the main parser guide:
 
-* :doc:`CEADS parser walkthrough <../notebooks/parsers/ceads/walkthrough>`
+* :doc:`CEADS parser walkthrough <../../notebooks/parsers/ceads/walkthrough>`
 
 If you prefer to run it locally, you can also download the source notebook:
 
-* :download:`Download the CEADS notebook <../notebooks/parsers/ceads/walkthrough.ipynb>`
+* :download:`Download the CEADS notebook <../../notebooks/parsers/ceads/walkthrough.ipynb>`
 
 .. toctree::
    :hidden:
 
-   ../notebooks/parsers/ceads/walkthrough
+   ../../notebooks/parsers/ceads/walkthrough
 
 Caveats
 -------

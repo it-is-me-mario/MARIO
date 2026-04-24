@@ -25,7 +25,7 @@ Recommended entry point
 
 For normal user workflows, the public entry point is:
 
-* :doc:`mario.parse_gloria(...) <../api_document/mario.parse_gloria>`
+* :doc:`mario.parse_gloria(...) <../../api_document/mario.parse_gloria>`
 
 Key arguments
 -------------
@@ -115,16 +115,16 @@ the typical workflow is:
 
 Use the notebook below as the main parser guide:
 
-* :doc:`GLORIA parser walkthrough <../notebooks/parsers/gloria/walkthrough>`
+* :doc:`GLORIA parser walkthrough <../../notebooks/parsers/gloria/walkthrough>`
 
 If you prefer to run it locally, you can also download the source notebook:
 
-* :download:`Download the GLORIA notebook <../notebooks/parsers/gloria/walkthrough.ipynb>`
+* :download:`Download the GLORIA notebook <../../notebooks/parsers/gloria/walkthrough.ipynb>`
 
 .. toctree::
    :hidden:
 
-   ../notebooks/parsers/gloria/walkthrough
+   ../../notebooks/parsers/gloria/walkthrough
 
 
 Caveats

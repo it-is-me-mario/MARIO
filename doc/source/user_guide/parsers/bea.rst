@@ -32,7 +32,7 @@ the ``BEA``. The parser does **not** currently read:
 
 The supported public entry point is:
 
-* :doc:`mario.parse_bea(...) <../api_document/mario.parse_bea>`
+* :doc:`mario.parse_bea(...) <../../api_document/mario.parse_bea>`
 
 Supported levels
 ----------------
@@ -96,16 +96,16 @@ Notebook walkthrough
 
 Use the notebook below as the main parser guide:
 
-* :doc:`BEA parser walkthrough <../notebooks/parsers/bea/walkthrough>`
+* :doc:`BEA parser walkthrough <../../notebooks/parsers/bea/walkthrough>`
 
 If you prefer to run it locally, you can also download the source notebook:
 
-* :download:`Download the BEA notebook <../notebooks/parsers/bea/walkthrough.ipynb>`
+* :download:`Download the BEA notebook <../../notebooks/parsers/bea/walkthrough.ipynb>`
 
 .. toctree::
    :hidden:
 
-   ../notebooks/parsers/bea/walkthrough
+   ../../notebooks/parsers/bea/walkthrough
 
 Caveats
 -------

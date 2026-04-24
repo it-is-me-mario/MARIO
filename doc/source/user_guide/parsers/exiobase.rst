@@ -23,7 +23,7 @@ Recommended entry point
 
 For normal user workflows, the public entry point should be:
 
-* :doc:`mario.parse_exiobase(...) <../api_document/mario.parse_exiobase>`
+* :doc:`mario.parse_exiobase(...) <../../api_document/mario.parse_exiobase>`
 
 This method covers all EXIOBASE variants listed above, if properly configured.
 
@@ -142,19 +142,19 @@ Notebook walkthroughs
 
 Use the notebooks below as the main parser guides:
 
-* :doc:`Monetary EXIOBASE parser walkthrough <../notebooks/parsers/exiobase/monetary>`
-* :doc:`Hybrid-units EXIOBASE parser walkthrough <../notebooks/parsers/exiobase/hybrid>`
+* :doc:`Monetary EXIOBASE parser walkthrough <../../notebooks/parsers/exiobase/monetary>`
+* :doc:`Hybrid-units EXIOBASE parser walkthrough <../../notebooks/parsers/exiobase/hybrid>`
 
 If you prefer to run them locally, you can also download the source notebooks:
 
-* :download:`Download the monetary notebook <../notebooks/parsers/exiobase/monetary.ipynb>`
-* :download:`Download the hybrid notebook <../notebooks/parsers/exiobase/hybrid.ipynb>`
+* :download:`Download the monetary notebook <../../notebooks/parsers/exiobase/monetary.ipynb>`
+* :download:`Download the hybrid notebook <../../notebooks/parsers/exiobase/hybrid.ipynb>`
 
 .. toctree::
    :hidden:
 
-   ../notebooks/parsers/exiobase/monetary
-   ../notebooks/parsers/exiobase/hybrid
+   ../../notebooks/parsers/exiobase/monetary
+   ../../notebooks/parsers/exiobase/hybrid
 
 
 Caveats
@@ -163,4 +163,4 @@ Caveats
 * The monetary SUT parser is currently available only for EXIOBASE ``3.8.2``: more recent releases are IOT-only
 * The current hybrid parser targets EXIOBASE hybrid ``3.3.18`` and does not
   include the later consequential database released separately on Zenodo.
-* Exiobase 1 and 2 versions are not supported. In principle, you could use pymrio and then :doc:`import them into MARIO <../parsers/from_pymrio>`
+* Exiobase 1 and 2 versions are not supported. In principle, you could use pymrio and then :doc:`import them into MARIO <from_pymrio>`

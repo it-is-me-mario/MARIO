@@ -1,8 +1,10 @@
-Workflows
-=========
+User guide
+==========
 
-This section shows how you can use MARIO after you parsed a *database*.
-These workflows are grouped into three families:
+This section shows how to get data into MARIO and how to operate on parsed
+*databases*. It includes parser-specific pages and operational workflows.
+
+The workflows are grouped into three families:
 
 * browsing and matrix calculations
 * transformations
@@ -10,6 +12,12 @@ These workflows are grouped into three families:
 
 An extra set of workflows shows how to use advanced features
 
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Parsers
+
+   parsers/index
 
 .. toctree::
    :maxdepth: 1

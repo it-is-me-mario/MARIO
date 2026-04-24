@@ -24,7 +24,7 @@ Recommended entry point
 
 For normal user workflows, the public entry point is:
 
-* :doc:`mario.parse_oecd(...) <../api_document/mario.parse_oecd>`
+* :doc:`mario.parse_oecd(...) <../../api_document/mario.parse_oecd>`
 
 
 Key arguments
@@ -75,16 +75,16 @@ Notebook walkthrough
 
 Use the notebook below as the main parser guide:
 
-* :doc:`OECD parser walkthrough <../notebooks/parsers/oecd/walkthrough>`
+* :doc:`OECD parser walkthrough <../../notebooks/parsers/oecd/walkthrough>`
 
 If you prefer to run it locally, you can also download the source notebook:
 
-* :download:`Download the OECD notebook <../notebooks/parsers/oecd/walkthrough.ipynb>`
+* :download:`Download the OECD notebook <../../notebooks/parsers/oecd/walkthrough.ipynb>`
 
 .. toctree::
    :hidden:
 
-   ../notebooks/parsers/oecd/walkthrough
+   ../../notebooks/parsers/oecd/walkthrough
 
 
 Caveats

@@ -563,14 +563,13 @@ def download_statcan_openio_canada(
 
 
 def download_figaro(*args, **kwargs):
-    """FIGARO automatic download is intentionally not supported.
+    """FIGARO automatic download is not needed.
 
-    The current FIGARO parser is file-based and expects locally downloaded
-    flat files. Use the documented CIRCABC links instead.
+    FIGARO is parsed directly from the Eurostat API by ``mario.parse_figaro``.
     """
     raise NotImplementable(
-        "Automatic FIGARO download is intentionally not supported. "
-        f"Use the CIRCABC links documented in the parser docs/specs ({FIGARO_SOURCE})."
+        "A separate FIGARO downloader is not needed. "
+        f"Use mario.parse_figaro, which reads FIGARO directly from the Eurostat API ({FIGARO_SOURCE})."
     )
 
 

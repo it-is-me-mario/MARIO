@@ -24,7 +24,7 @@ Recommended entry point
 
 For normal user workflows, the public entry point is:
 
-* :doc:`mario.parse_istat(...) <../api_document/mario.parse_istat>`
+* :doc:`mario.parse_istat(...) <../../api_document/mario.parse_istat>`
 
 Key arguments
 -------------
@@ -85,16 +85,16 @@ step with ``download=True``.
 
 Once downloaded, use the notebook below as the main parser guide:
 
-* :doc:`ISTAT parser walkthrough <../notebooks/parsers/istat/walkthrough>`
+* :doc:`ISTAT parser walkthrough <../../notebooks/parsers/istat/walkthrough>`
 
 If you prefer to run it locally, you can also download the source notebook:
 
-* :download:`Download the ISTAT notebook <../notebooks/parsers/istat/walkthrough.ipynb>`
+* :download:`Download the ISTAT notebook <../../notebooks/parsers/istat/walkthrough.ipynb>`
 
 .. toctree::
    :hidden:
 
-   ../notebooks/parsers/istat/walkthrough
+   ../../notebooks/parsers/istat/walkthrough
 
 
 Caveats

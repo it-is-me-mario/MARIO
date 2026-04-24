@@ -21,7 +21,7 @@ Recommended entry point
 
 For normal user workflows, the public entry point is:
 
-* :doc:`mario.parse_from_pymrio(...) <../api_document/mario.parse_from_pymrio>`
+* :doc:`mario.parse_from_pymrio(...) <../../api_document/mario.parse_from_pymrio>`
 
 
 Key arguments
@@ -117,16 +117,16 @@ Notebook walkthrough
 
 Use the notebook below as the main parser guide:
 
-* :doc:`pymrio parser walkthrough <../notebooks/parsers/custom_database/from_pymrio>`
+* :doc:`pymrio parser walkthrough <../../notebooks/parsers/custom_database/from_pymrio>`
 
 If you prefer to run it locally, you can also download the source notebook:
 
-* :download:`Download the pymrio notebook <../notebooks/parsers/custom_database/from_pymrio.ipynb>`
+* :download:`Download the pymrio notebook <../../notebooks/parsers/custom_database/from_pymrio.ipynb>`
 
 .. toctree::
    :hidden:
 
-   ../notebooks/parsers/custom_database/from_pymrio
+   ../../notebooks/parsers/custom_database/from_pymrio
 
 Caveats
 -------

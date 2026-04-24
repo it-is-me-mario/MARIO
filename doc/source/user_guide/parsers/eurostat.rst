@@ -27,7 +27,7 @@ Recommended entry point
 
 For normal user workflows, the public entry point is:
 
-* :doc:`mario.parse_eurostat(...) <../api_document/mario.parse_eurostat>`
+* :doc:`mario.parse_eurostat(...) <../../api_document/mario.parse_eurostat>`
 
 Key arguments
 -------------
@@ -111,13 +111,13 @@ Notebook walkthrough
 
 Use the notebook below as the main parser guide:
 
-* :doc:`EUROSTAT parser walkthrough <../notebooks/parsers/eurostat/walkthrough>`
+* :doc:`EUROSTAT parser walkthrough <../../notebooks/parsers/eurostat/walkthrough>`
 
 If you prefer to run it locally, you can also download the source notebook:
 
-* :download:`Download the EUROSTAT notebook <../notebooks/parsers/eurostat/walkthrough.ipynb>`
+* :download:`Download the EUROSTAT notebook <../../notebooks/parsers/eurostat/walkthrough.ipynb>`
 
 .. toctree::
    :hidden:
 
-   ../notebooks/parsers/eurostat/walkthrough
+   ../../notebooks/parsers/eurostat/walkthrough

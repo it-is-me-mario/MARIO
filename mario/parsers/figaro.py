@@ -1,22 +1,23 @@
-"""Direct file-based parser for FIGARO supply and use table bundles."""
+"""API-based parser for Eurostat FIGARO supply-use and input-output tables."""
 
 from __future__ import annotations
 
-from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import lru_cache
 import logging
 from pathlib import Path
 import re
-from zipfile import ZipFile
+from typing import Any
 
 import numpy as np
 import pandas as pd
+import requests
 
 from mario.log_exc.exceptions import WrongInput
 from mario.log_exc.logger import log_time
 from mario.model.conventions import _MASTER_INDEX
 from mario.parsers.specs import (
+    FIGARO_API_BASE_URL,
     FIGARO_EXTENSION_PLACEHOLDER,
     FIGARO_FACTOR_UNIT,
     FIGARO_IOT_MODES,
@@ -27,32 +28,39 @@ from mario.utils import rename_index
 
 logger = logging.getLogger(__name__)
 
-_YEAR_RE = re.compile(r"_(?P<year>\d{4})(?:\.(?:zip|csv))$", flags=re.IGNORECASE)
-_EDITION_RE = re.compile(
-    r"(?P<kind>supply|use)_(?P<edition>[^_]+)_(?P<year>\d{4})\.(?:zip|csv)$",
-    flags=re.IGNORECASE,
+FIGARO_UNIT_OPTIONS = ("MIO_EUR",)
+FIGARO_DEFAULT_TIMEOUT = 60
+FIGARO_GROUPS = (
+    (2010, 2013, "1"),
+    (2014, 2017, "2"),
+    (2018, 2021, "3"),
+    (2022, None, "4"),
 )
-_IOT_RE = re.compile(
-    r"io_(?P<variant>ind-by-ind|prod-by-prod)_(?P<edition>[^_]+)_(?P<year>\d{4})\.(?:zip|csv)$",
-    flags=re.IGNORECASE,
+FIGARO_SUT_DATAFLOWS = {"supply": "naio_10_fcp_s{suffix}", "use": "naio_10_fcp_u{suffix}"}
+FIGARO_IOT_DATAFLOWS = {"product": "naio_10_fcp_ip{suffix}", "industry": "naio_10_fcp_ii{suffix}"}
+
+_REPEATED_HYPHEN_RANGE_RE = re.compile(
+    r"(?P<prefix>[A-Z_]*)(?P<letter>[A-Z])(?P<start>\d{2})-(?P=letter)(?P<end>\d{2})"
+)
+_SIMPLE_HYPHEN_RANGE_RE = re.compile(r"(?P<prefix>[A-Z_]*[A-Z])(?P<start>\d{2})-(?P<end>\d{2})")
+_REPEATED_UNDERSCORE_RANGE_RE = re.compile(
+    r"(?P<prefix>[A-Z_]*)(?P<letter>[A-Z])(?P<start>\d{2})_(?P=letter)(?P<end>\d{2})"
 )
 
 
 @dataclass(frozen=True)
 class FigaroSUTLayout:
-    """Filesystem layout and metadata for one FIGARO SUT bundle."""
+    """API metadata for one FIGARO SUT parse request."""
 
-    root: Path
-    supply_path: Path
-    use_path: Path
     year: int
-    edition: str | None = None
+    unit: str
+    supply_dataflow: str
+    use_dataflow: str
 
     @property
     def dataset_name(self) -> str:
         """Return a compact dataset label suitable for ``Database.name``."""
-        suffix = f" {self.edition}" if self.edition else ""
-        return f"FIGARO SUT {self.year}{suffix}"
+        return f"FIGARO SUT {self.year}"
 
     @property
     def price(self) -> str:
@@ -67,19 +75,17 @@ class FigaroSUTLayout:
 
 @dataclass(frozen=True)
 class FigaroIOTLayout:
-    """Filesystem layout and metadata for one FIGARO IOT bundle."""
+    """API metadata for one FIGARO IOT parse request."""
 
-    root: Path
-    iot_path: Path
     year: int
+    unit: str
+    dataflow: str
     mode: str
-    edition: str | None = None
 
     @property
     def dataset_name(self) -> str:
         """Return a compact dataset label suitable for ``Database.name``."""
-        suffix = f" {self.edition}" if self.edition else ""
-        return f"FIGARO IOT {self.year} {self.mode}{suffix}"
+        return f"FIGARO IOT {self.year} {self.mode}"
 
     @property
     def price(self) -> str:
@@ -99,109 +105,37 @@ def load_figaro_metadata() -> pd.DataFrame:
     return pd.read_csv(Path(__file__).with_name("figaro_metadata.csv"))
 
 
-def _classify_candidate(path: Path) -> tuple[str, int | None, str | None] | None:
-    """Classify one directory entry as a FIGARO ``supply`` or ``use`` file."""
-    if not path.is_file() or path.suffix.lower() not in {".csv", ".zip"}:
-        return None
-
-    lower = path.name.lower()
-    if "supply" in lower:
-        kind = "supply"
-    elif "use" in lower:
-        kind = "use"
-    else:
-        return None
-
-    year_match = _YEAR_RE.search(path.name)
-    edition_match = _EDITION_RE.search(path.name)
-    year = int(year_match.group("year")) if year_match else None
-    edition = edition_match.group("edition") if edition_match else None
-    return kind, year, edition
-
-
-def _classify_iot_candidate(path: Path) -> tuple[str, int | None, str | None] | None:
-    """Classify one directory entry as a FIGARO IOT file."""
-    if not path.is_file() or path.suffix.lower() not in {".csv", ".zip"}:
-        return None
-
-    match = _IOT_RE.search(path.name.lower())
-    if match is None:
-        return None
-
-    variant = match.group("variant")
-    mode = "product" if variant == "prod-by-prod" else "industry"
-    year = int(match.group("year"))
-    edition = match.group("edition")
-    return mode, year, edition
-
-
-def _pick_one(paths: list[Path], *, label: str) -> Path:
-    """Choose one preferred file among csv/zip duplicates for the same role."""
-    if not paths:
-        raise WrongInput(f"No FIGARO {label} file was found.")
-    return sorted(paths, key=lambda item: (0 if item.suffix.lower() == ".csv" else 1, item.name))[0]
-
-
-def detect_figaro_sut_layout(path: str | Path, *, year: int | None = None) -> FigaroSUTLayout:
-    """Resolve the FIGARO supply/use files used for one SUT parse request."""
-    root = Path(path)
-    if not root.exists():
-        raise FileNotFoundError(root)
-    if not root.is_dir():
-        raise WrongInput("FIGARO parsing expects a directory containing supply and use files.")
-
-    candidates: dict[str, dict[int | None, list[Path]]] = {"supply": {}, "use": {}}
-    editions: dict[tuple[str, int | None], str | None] = {}
-    for child in root.iterdir():
-        parsed = _classify_candidate(child)
-        if parsed is None:
-            continue
-        kind, parsed_year, edition = parsed
-        candidates[kind].setdefault(parsed_year, []).append(child)
-        editions[(kind, parsed_year)] = edition
-
-    available_years = sorted(
-        {parsed_year for mapping in candidates.values() for parsed_year in mapping if parsed_year is not None}
-    )
+def _figaro_suffix(year: int) -> str:
+    """Return the Eurostat FIGARO dataflow suffix for ``year``."""
     if year is None:
-        if len(available_years) > 1:
-            raise WrongInput(
-                f"More than one FIGARO year is available in {root}. Please specify year."
-            )
-        if available_years:
-            year = available_years[0]
+        raise WrongInput("FIGARO API parsing requires an explicit year.")
+    for start, end, suffix in FIGARO_GROUPS:
+        if year >= start and (end is None or year <= end):
+            return suffix
+    raise WrongInput("FIGARO API dataflows are available from 2010 onwards.")
 
-    supply_candidates = candidates["supply"].get(year, [])
-    use_candidates = candidates["use"].get(year, [])
-    if not supply_candidates or not use_candidates:
-        detail = f" for year {year}" if year is not None else ""
-        raise WrongInput(f"Could not find both FIGARO supply and use files{detail}.")
 
-    supply_path = _pick_one(supply_candidates, label="supply")
-    use_path = _pick_one(use_candidates, label="use")
-    if year is None:
-        supply_year = _classify_candidate(supply_path)[1]
-        use_year = _classify_candidate(use_path)[1]
-        if supply_year != use_year:
-            raise WrongInput("FIGARO supply and use files refer to different years.")
-        year = supply_year
-    if year is None:
-        raise WrongInput("Could not infer the FIGARO reference year from the selected files.")
+def _validate_unit(unit: str) -> None:
+    """Validate the requested FIGARO unit."""
+    if unit not in FIGARO_UNIT_OPTIONS:
+        raise WrongInput(f"FIGARO unit should be one of {list(FIGARO_UNIT_OPTIONS)}.")
 
-    edition = editions.get(("supply", year)) or editions.get(("use", year))
+
+def detect_figaro_sut_layout(year: int, *, unit: str = "MIO_EUR") -> FigaroSUTLayout:
+    """Resolve the Eurostat FIGARO dataflows used for one SUT parse request."""
+    _validate_unit(unit)
+    suffix = _figaro_suffix(year)
     layout = FigaroSUTLayout(
-        root=root,
-        supply_path=supply_path,
-        use_path=use_path,
         year=year,
-        edition=edition,
+        unit=unit,
+        supply_dataflow=FIGARO_SUT_DATAFLOWS["supply"].format(suffix=suffix),
+        use_dataflow=FIGARO_SUT_DATAFLOWS["use"].format(suffix=suffix),
     )
     log_time(
         logger,
         (
-            "Parser: detected FIGARO SUT layout "
-            f"year={layout.year} edition={layout.edition or 'unknown'} "
-            f"supply={layout.supply_path.name} use={layout.use_path.name}"
+            "Parser: detected FIGARO SUT API dataflows "
+            f"year={layout.year} supply={layout.supply_dataflow} use={layout.use_dataflow}."
         ),
         "debug",
     )
@@ -209,137 +143,254 @@ def detect_figaro_sut_layout(path: str | Path, *, year: int | None = None) -> Fi
 
 
 def detect_figaro_iot_layout(
-    path: str | Path,
+    year: int,
     *,
-    year: int | None = None,
     mode: str = "auto",
+    unit: str = "MIO_EUR",
 ) -> FigaroIOTLayout:
-    """Resolve the FIGARO IOT file used for one parse request."""
+    """Resolve the Eurostat FIGARO dataflow used for one IOT parse request."""
+    _validate_unit(unit)
     if mode not in FIGARO_IOT_MODES:
         raise WrongInput(f"FIGARO iot_mode should be one of {list(FIGARO_IOT_MODES)}.")
-
-    root = Path(path)
-    if not root.exists():
-        raise FileNotFoundError(root)
-    if not root.is_dir():
-        raise WrongInput("FIGARO parsing expects a directory containing local FIGARO files.")
-
-    candidates: dict[str, dict[int, list[Path]]] = {"product": {}, "industry": {}}
-    editions: dict[tuple[str, int], str | None] = {}
-    for child in root.iterdir():
-        parsed = _classify_iot_candidate(child)
-        if parsed is None:
-            continue
-        parsed_mode, parsed_year, edition = parsed
-        candidates[parsed_mode].setdefault(parsed_year, []).append(child)
-        editions[(parsed_mode, parsed_year)] = edition
-
-    available_years = sorted(
-        {parsed_year for mapping in candidates.values() for parsed_year in mapping}
-    )
-    if year is None:
-        if len(available_years) > 1:
-            raise WrongInput(
-                f"More than one FIGARO IOT year is available in {root}. Please specify year."
-            )
-        if available_years:
-            year = available_years[0]
-    if year is None:
-        raise WrongInput("Could not infer the FIGARO IOT reference year from the selected files.")
-
     if mode == "auto":
-        if candidates["product"].get(year):
-            if candidates["industry"].get(year):
-                log_time(
-                    logger,
-                    (
-                        "Parser: both FIGARO product and industry IOT files are present; "
-                        "defaulting to product-by-product."
-                    ),
-                    "info",
-                )
-            mode = "product"
-        elif candidates["industry"].get(year):
-            mode = "industry"
-        else:
-            raise WrongInput(f"Could not find a FIGARO IOT file for year {year}.")
-
-    matches = candidates[mode].get(year, [])
-    if not matches:
-        raise WrongInput(f"Could not find a FIGARO {mode} IOT file for year {year}.")
-
-    iot_path = _pick_one(matches, label=f"{mode} IOT")
+        mode = "product"
+    suffix = _figaro_suffix(year)
     layout = FigaroIOTLayout(
-        root=root,
-        iot_path=iot_path,
         year=year,
+        unit=unit,
+        dataflow=FIGARO_IOT_DATAFLOWS[mode].format(suffix=suffix),
         mode=mode,
-        edition=editions.get((mode, year)),
     )
     log_time(
         logger,
         (
-            "Parser: detected FIGARO IOT layout "
-            f"year={layout.year} mode={layout.mode} edition={layout.edition or 'unknown'} "
-            f"file={layout.iot_path.name}"
+            "Parser: detected FIGARO IOT API dataflow "
+            f"year={layout.year} mode={layout.mode} dataflow={layout.dataflow}."
         ),
         "debug",
     )
     return layout
 
 
-@contextmanager
-def _open_figaro_csv(path: Path):
-    """Yield a readable handle for one FIGARO csv, zipped or extracted."""
-    if path.suffix.lower() == ".zip":
-        with ZipFile(path) as archive:
-            members = [name for name in archive.namelist() if name.lower().endswith(".csv")]
-            if len(members) != 1:
-                raise WrongInput(
-                    f"Expected exactly one CSV inside {path.name}, found {len(members)}."
-                )
-            with archive.open(members[0]) as handle:
-                yield handle
+def _jsonstat_category_codes(payload: dict[str, Any], dimension: str) -> list[str]:
+    """Return JSON-stat category codes ordered by their category position."""
+    category = payload["dimension"][dimension]["category"]
+    index = category.get("index", {})
+    ordered = [None] * len(index)
+    for code, position in index.items():
+        ordered[int(position)] = code
+    return [code for code in ordered if code is not None]
+
+
+def _jsonstat_to_frame(payload: dict[str, Any]) -> pd.DataFrame:
+    """Convert one Eurostat JSON-stat payload into a tidy dataframe."""
+    dimensions = payload.get("id", [])
+    sizes = payload.get("size", [])
+    values = payload.get("value", {})
+    if not dimensions or not sizes or not values:
+        return pd.DataFrame(columns=[*dimensions, "obsValue"])
+
+    categories = [_jsonstat_category_codes(payload, dimension) for dimension in dimensions]
+    if isinstance(values, list):
+        items = ((index, value) for index, value in enumerate(values) if value is not None)
     else:
-        with path.open("rb") as handle:
-            yield handle
+        items = ((int(index), value) for index, value in values.items())
+
+    rows = []
+    for flat_index, value in items:
+        remainder = int(flat_index)
+        positions = []
+        for size in reversed(sizes):
+            positions.append(remainder % size)
+            remainder //= size
+        positions.reverse()
+        row = {
+            dimension: categories[position_index][position]
+            for position_index, (dimension, position) in enumerate(zip(dimensions, positions))
+        }
+        row["obsValue"] = value
+        rows.append(row)
+
+    return pd.DataFrame(rows)
 
 
-def _read_figaro_frame(path: Path) -> pd.DataFrame:
-    """Read one FIGARO flat file into a tidy dataframe with canonical columns."""
-    log_time(logger, f"Parser: reading FIGARO file {path.name}.", "info")
-    with _open_figaro_csv(path) as header_handle:
-        columns = pd.read_csv(header_handle, nrows=0).columns.tolist()
-
+def _request_figaro_json(
+    dataflow: str,
+    *,
+    params: dict[str, str | int],
+    timeout: int = FIGARO_DEFAULT_TIMEOUT,
+    session: Any | None = None,
+) -> dict[str, Any]:
+    """Request one JSON-stat payload from the Eurostat FIGARO API."""
+    url = f"{FIGARO_API_BASE_URL.rstrip('/')}/{dataflow}"
+    client = session or requests
+    response = client.get(url, params=params, timeout=timeout)
     try:
-        row_column = next(column for column in columns if column.startswith("row"))
-        col_column = next(column for column in columns if column.startswith("col"))
-    except StopIteration as exc:
-        raise WrongInput(f"Could not detect the FIGARO row/column code columns in {path.name}.") from exc
+        response.raise_for_status()
+    except requests.HTTPError as exc:
+        detail = response.text[:500].strip()
+        raise WrongInput(
+            f"Eurostat FIGARO API request failed for {dataflow} with params {params}: {detail}"
+        ) from exc
+    return response.json()
 
-    required_columns = [
-        "refArea",
-        row_column,
-        "counterpartArea",
-        col_column,
-        "obsValue",
-    ]
 
-    with _open_figaro_csv(path) as handle:
-        frame = pd.read_csv(
-            handle,
-            usecols=required_columns,
-            dtype={
-                "refArea": "string",
-                row_column: "string",
-                "counterpartArea": "string",
-                col_column: "string",
-            },
+@lru_cache(maxsize=16)
+def _load_figaro_dimensions_cached(dataflow: str, unit: str) -> dict[str, list[str]]:
+    """Load dimension categories for a FIGARO dataflow using a no-data year."""
+    payload = _request_figaro_json(
+        dataflow,
+        params={"time": "9999", "unit": unit},
+        timeout=FIGARO_DEFAULT_TIMEOUT,
+    )
+    return {dimension: _jsonstat_category_codes(payload, dimension) for dimension in payload["id"]}
+
+
+def _load_figaro_dimensions(
+    dataflow: str,
+    *,
+    unit: str,
+    session: Any | None,
+    timeout: int,
+) -> dict[str, list[str]]:
+    """Load dimension categories for one FIGARO dataflow."""
+    if session is None and timeout == FIGARO_DEFAULT_TIMEOUT:
+        return _load_figaro_dimensions_cached(dataflow, unit)
+    payload = _request_figaro_json(
+        dataflow,
+        params={"time": "9999", "unit": unit},
+        timeout=timeout,
+        session=session,
+    )
+    return {dimension: _jsonstat_category_codes(payload, dimension) for dimension in payload["id"]}
+
+
+def _to_api_region_code(code: str) -> str:
+    """Map packaged FIGARO region codes to Eurostat API codes."""
+    if code == "FIGW1":
+        return "WRL_REST"
+    if code == "W2":
+        return "DOM"
+    return code
+
+
+def _from_api_region_code(code: str) -> str:
+    """Map Eurostat API region codes to packaged FIGARO region codes."""
+    if code == "WRL_REST":
+        return "FIGW1"
+    if code == "DOM":
+        return "W2"
+    return code
+
+
+def _normalize_figaro_code(code: str) -> str:
+    """Normalize Eurostat FIGARO activity/product range codes to MARIO metadata codes."""
+    if not isinstance(code, str):
+        return code
+    code = _from_api_region_code(code)
+    code = _REPEATED_HYPHEN_RANGE_RE.sub(
+        lambda match: f"{match.group('prefix')}{match.group('letter')}{match.group('start')}T{match.group('end')}",
+        code,
+    )
+    code = _SIMPLE_HYPHEN_RANGE_RE.sub(
+        lambda match: f"{match.group('prefix')}{match.group('start')}T{match.group('end')}",
+        code,
+    )
+    return _REPEATED_UNDERSCORE_RANGE_RE.sub(
+        lambda match: f"{match.group('prefix')}{match.group('letter')}{match.group('start')}_{match.group('end')}",
+        code,
+    )
+
+
+def _resolve_api_countries(
+    dimensions: dict[str, list[str]],
+    *,
+    countries: str | list[str] | tuple[str, ...] | None,
+) -> tuple[list[str], list[str]]:
+    """Return API origin and destination country codes requested by the user."""
+    available_origins = dimensions.get("c_orig", [])
+    available_destinations = dimensions.get("c_dest", [])
+    if countries is None:
+        origins = [code for code in available_origins if code != "DOM"]
+        destinations = list(available_destinations)
+        return origins, destinations
+
+    if isinstance(countries, str):
+        requested = [countries]
+    else:
+        requested = list(countries)
+    requested = [_to_api_region_code(str(code).upper()) for code in requested]
+
+    missing_origins = sorted(set(requested).difference(available_origins))
+    missing_destinations = sorted(set(requested).difference(available_destinations))
+    if missing_origins or missing_destinations:
+        raise WrongInput(
+            "Requested FIGARO countries are not available in the selected dataflow: "
+            f"missing origins={missing_origins}, missing destinations={missing_destinations}."
         )
+    return requested, requested
 
-    frame = frame.rename(columns={row_column: "rowCode", col_column: "colCode"})
-    frame["obsValue"] = pd.to_numeric(frame["obsValue"], errors="coerce").fillna(0.0)
-    return frame
+
+def _download_figaro_api_frame(
+    dataflow: str,
+    *,
+    year: int,
+    unit: str,
+    row_dim: str,
+    col_dim: str,
+    countries: str | list[str] | tuple[str, ...] | None = None,
+    include_dom: bool = False,
+    factor_codes: list[str] | None = None,
+    timeout: int = FIGARO_DEFAULT_TIMEOUT,
+    session: Any | None = None,
+) -> pd.DataFrame:
+    """Download one FIGARO dataflow and return canonical row/column columns."""
+    dimensions = _load_figaro_dimensions(dataflow, unit=unit, session=session, timeout=timeout)
+    origins, destinations = _resolve_api_countries(dimensions, countries=countries)
+    if include_dom and "DOM" in dimensions.get("c_orig", []):
+        origins = [*origins, "DOM"]
+
+    frames: list[pd.DataFrame] = []
+    for origin in origins:
+        log_time(
+            logger,
+            f"Parser: downloading FIGARO {dataflow} year={year} c_orig={origin}.",
+            "info",
+        )
+        payload = _request_figaro_json(
+            dataflow,
+            params={"time": year, "unit": unit, "c_orig": origin},
+            timeout=timeout,
+            session=session,
+        )
+        frame = _jsonstat_to_frame(payload)
+        if frame.empty:
+            continue
+        if "c_dest" in frame.columns:
+            frame = frame.loc[frame["c_dest"].isin(destinations)]
+        frames.append(frame)
+
+    if frames:
+        api_frame = pd.concat(frames, ignore_index=True)
+    else:
+        api_frame = pd.DataFrame(columns=["c_orig", "c_dest", row_dim, col_dim, "obsValue"])
+
+    factor_codes = set(factor_codes or [])
+    ref_area = api_frame["c_orig"].astype(str).map(_from_api_region_code)
+    if factor_codes:
+        factor_mask = api_frame[row_dim].astype(str).map(_normalize_figaro_code).isin(factor_codes)
+        ref_area = ref_area.mask(factor_mask & (api_frame["c_orig"] == "DOM"), "W2")
+
+    normalized = pd.DataFrame(
+        {
+            "refArea": ref_area,
+            "rowCode": api_frame[row_dim].astype(str).map(_normalize_figaro_code),
+            "counterpartArea": api_frame["c_dest"].astype(str).map(_from_api_region_code),
+            "colCode": api_frame[col_dim].astype(str).map(_normalize_figaro_code),
+            "obsValue": pd.to_numeric(api_frame["obsValue"], errors="coerce").fillna(0.0),
+        }
+    )
+    return normalized
 
 
 def _ordered_present_codes(actual: set[str], ordered: list[str]) -> list[str]:
@@ -358,7 +409,11 @@ def _label_map(metadata: pd.DataFrame, *, level: str) -> tuple[list[str], dict[s
 def _safe_label(code: str, labels: dict[str, str], *, label: str) -> str:
     """Return one human-readable label, falling back to the raw code if needed."""
     if code not in labels:
-        log_time(logger, f"Parser: missing FIGARO {label} metadata for code {code}; keeping the raw code.", "debug")
+        log_time(
+            logger,
+            f"Parser: missing FIGARO {label} metadata for code {code}; keeping the raw code.",
+            "debug",
+        )
     return labels.get(code, code)
 
 
@@ -384,7 +439,7 @@ def _regional_axis(
 
 
 def _factor_axis(factor_codes: list[str], factor_labels: dict[str, str]) -> pd.Index:
-    """Build the canonical factor index used for FIGARO ``Va`` rows."""
+    """Build the canonical factor index used for FIGARO value-added rows."""
     return pd.Index(
         [_safe_label(code, factor_labels, label="factor") for code in factor_codes],
         name=None,
@@ -416,12 +471,15 @@ def _pivot(
 
 
 def parse_figaro_sut(
-    path: str | Path,
     *,
-    year: int | None = None,
+    year: int,
+    unit: str = "MIO_EUR",
+    countries: str | list[str] | tuple[str, ...] | None = None,
+    timeout: int = FIGARO_DEFAULT_TIMEOUT,
+    session: Any | None = None,
 ) -> tuple[dict[str, dict[str, pd.DataFrame]], dict[str, dict[str, list[str]]], dict[str, pd.DataFrame], FigaroSUTLayout]:
-    """Parse one FIGARO supply/use bundle into split-native MARIO SUT blocks."""
-    layout = detect_figaro_sut_layout(path, year=year)
+    """Parse FIGARO SUT dataflows from the Eurostat API into MARIO SUT blocks."""
+    layout = detect_figaro_sut_layout(year, unit=unit)
     metadata = load_figaro_metadata()
 
     region_codes_meta, region_labels = _label_map(metadata, level="r")
@@ -430,19 +488,48 @@ def parse_figaro_sut(
     factor_codes_meta, factor_labels = _label_map(metadata, level="f")
     final_demand_codes_meta, final_demand_labels = _label_map(metadata, level="n")
 
-    supply = _read_figaro_frame(layout.supply_path)
-    use = _read_figaro_frame(layout.use_path)
+    supply = _download_figaro_api_frame(
+        layout.supply_dataflow,
+        year=layout.year,
+        unit=layout.unit,
+        row_dim="cpa2_1",
+        col_dim="nace_r2",
+        countries=countries,
+        timeout=timeout,
+        session=session,
+    )
+    use = _download_figaro_api_frame(
+        layout.use_dataflow,
+        year=layout.year,
+        unit=layout.unit,
+        row_dim="prd_ava",
+        col_dim="ind_use",
+        countries=countries,
+        include_dom=True,
+        factor_codes=factor_codes_meta,
+        timeout=timeout,
+        session=session,
+    )
 
     region_codes = _ordered_present_codes(
-        set(supply["refArea"].astype(str)).union(set(supply["counterpartArea"].astype(str))),
+        set(supply["refArea"].astype(str)).union(
+            set(supply["counterpartArea"].astype(str)),
+            set(use.loc[use["refArea"] != "W2", "refArea"].astype(str)),
+            set(use["counterpartArea"].astype(str)),
+        ),
         region_codes_meta,
     )
+    region_codes = [code for code in region_codes if code != "W2"]
     commodity_codes = _ordered_present_codes(
-        set(supply["rowCode"].astype(str)).union(set(use.loc[use["refArea"] != "W2", "rowCode"].astype(str))),
+        set(supply["rowCode"].astype(str)).union(
+            set(use.loc[use["refArea"] != "W2", "rowCode"].astype(str))
+        ),
         commodity_codes_meta,
     )
     activity_codes = _ordered_present_codes(
-        set(supply["colCode"].astype(str)).union(set(use.loc[~use["colCode"].isin(final_demand_codes_meta), "colCode"].astype(str))),
+        set(supply["colCode"].astype(str)).union(
+            set(use.loc[~use["colCode"].isin(final_demand_codes_meta), "colCode"].astype(str))
+        ),
         activity_codes_meta,
     )
     factor_codes = _ordered_present_codes(
@@ -566,8 +653,14 @@ def parse_figaro_sut(
     }
 
     units = {
-        _MASTER_INDEX["a"]: pd.DataFrame({"unit": [FIGARO_FACTOR_UNIT] * len(activity_codes)}, index=activity_axis.unique(2)),
-        _MASTER_INDEX["c"]: pd.DataFrame({"unit": [FIGARO_FACTOR_UNIT] * len(commodity_codes)}, index=commodity_axis.unique(2)),
+        _MASTER_INDEX["a"]: pd.DataFrame(
+            {"unit": [FIGARO_FACTOR_UNIT] * len(activity_codes)},
+            index=activity_axis.unique(2),
+        ),
+        _MASTER_INDEX["c"]: pd.DataFrame(
+            {"unit": [FIGARO_FACTOR_UNIT] * len(commodity_codes)},
+            index=commodity_axis.unique(2),
+        ),
         _MASTER_INDEX["f"]: pd.DataFrame({"unit": [FIGARO_FACTOR_UNIT] * len(factor_axis)}, index=factor_axis),
         _MASTER_INDEX["k"]: pd.DataFrame({"unit": [FIGARO_SATELLITE_UNIT]}, index=satellite_axis),
     }
@@ -589,11 +682,9 @@ def parse_figaro_sut(
     log_time(
         logger,
         (
-            "Parser: FIGARO SUT parsed with "
-            f"{len(region_codes)} regions, "
-            f"{len(activity_codes)} activities, "
-            f"{len(commodity_codes)} commodities, "
-            f"{len(factor_codes)} factor rows."
+            "Parser: FIGARO SUT parsed from Eurostat API with "
+            f"{len(region_codes)} regions, {len(activity_codes)} activities, "
+            f"{len(commodity_codes)} commodities, {len(factor_codes)} factor rows."
         ),
         "info",
     )
@@ -601,13 +692,16 @@ def parse_figaro_sut(
 
 
 def parse_figaro_iot(
-    path: str | Path,
     *,
-    year: int | None = None,
+    year: int,
     mode: str = "auto",
+    unit: str = "MIO_EUR",
+    countries: str | list[str] | tuple[str, ...] | None = None,
+    timeout: int = FIGARO_DEFAULT_TIMEOUT,
+    session: Any | None = None,
 ) -> tuple[dict[str, dict[str, pd.DataFrame]], dict[str, dict[str, list[str]]], dict[str, pd.DataFrame], FigaroIOTLayout]:
-    """Parse one FIGARO IOT bundle into canonical MARIO IOT blocks."""
-    layout = detect_figaro_iot_layout(path, year=year, mode=mode)
+    """Parse FIGARO IOT dataflows from the Eurostat API into MARIO IOT blocks."""
+    layout = detect_figaro_iot_layout(year, mode=mode, unit=unit)
     metadata = load_figaro_metadata()
 
     region_codes_meta, region_labels = _label_map(metadata, level="r")
@@ -616,10 +710,31 @@ def parse_figaro_iot(
     factor_codes_meta, factor_labels = _label_map(metadata, level="f")
     final_demand_codes_meta, final_demand_labels = _label_map(metadata, level="n")
 
-    iot = _read_figaro_frame(layout.iot_path)
-    sector_codes_meta = activity_codes_meta if layout.mode == "industry" else commodity_codes_meta
-    sector_labels_meta = activity_labels if layout.mode == "industry" else commodity_labels
-    sector_label_name = "activity" if layout.mode == "industry" else "commodity"
+    if layout.mode == "industry":
+        row_dim = "ind_ava"
+        col_dim = "ind_use"
+        sector_codes_meta = activity_codes_meta
+        sector_labels_meta = activity_labels
+        sector_label_name = "activity"
+    else:
+        row_dim = "prd_ava"
+        col_dim = "prd_use"
+        sector_codes_meta = commodity_codes_meta
+        sector_labels_meta = commodity_labels
+        sector_label_name = "commodity"
+
+    iot = _download_figaro_api_frame(
+        layout.dataflow,
+        year=layout.year,
+        unit=layout.unit,
+        row_dim=row_dim,
+        col_dim=col_dim,
+        countries=countries,
+        include_dom=True,
+        factor_codes=factor_codes_meta,
+        timeout=timeout,
+        session=session,
+    )
 
     region_codes = _ordered_present_codes(
         set(iot.loc[iot["refArea"] != "W2", "refArea"].astype(str)).union(
@@ -627,6 +742,7 @@ def parse_figaro_iot(
         ),
         region_codes_meta,
     )
+    region_codes = [code for code in region_codes if code != "W2"]
     sector_codes = _ordered_present_codes(
         set(iot.loc[iot["refArea"] != "W2", "rowCode"].astype(str)).union(
             set(iot.loc[~iot["colCode"].isin(final_demand_codes_meta), "colCode"].astype(str))
@@ -737,11 +853,9 @@ def parse_figaro_iot(
     log_time(
         logger,
         (
-            "Parser: FIGARO IOT parsed with "
-            f"{len(region_codes)} regions, "
-            f"{len(sector_codes)} sectors, "
-            f"{len(factor_codes)} factor rows, "
-            f"mode={layout.mode}."
+            "Parser: FIGARO IOT parsed from Eurostat API with "
+            f"{len(region_codes)} regions, {len(sector_codes)} sectors, "
+            f"{len(factor_codes)} factor rows, mode={layout.mode}."
         ),
         "info",
     )

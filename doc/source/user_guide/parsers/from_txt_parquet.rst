@@ -10,8 +10,8 @@ Recommended entry points
 
 For normal user workflows, the public entry points are:
 
-* :doc:`mario.parse_from_txt(...) <../api_document/mario.parse_from_txt>`
-* :doc:`mario.parse_from_parquet(...) <../api_document/mario.parse_from_parquet>`
+* :doc:`mario.parse_from_txt(...) <../../api_document/mario.parse_from_txt>`
+* :doc:`mario.parse_from_parquet(...) <../../api_document/mario.parse_from_parquet>`
 
 Key arguments
 -------------
@@ -96,16 +96,16 @@ Notebook walkthrough
 
 Use the notebook below as the main parser guide:
 
-* :doc:`TXT, CSV and Parquet parser walkthrough <../notebooks/parsers/custom_database/from_txt>`
+* :doc:`TXT, CSV and Parquet parser walkthrough <../../notebooks/parsers/custom_database/from_txt>`
 
 If you prefer to run it locally, you can also download the source notebook:
 
-* :download:`Download the TXT and Parquet notebook <../notebooks/parsers/custom_database/from_txt.ipynb>`
+* :download:`Download the TXT and Parquet notebook <../../notebooks/parsers/custom_database/from_txt.ipynb>`
 
 .. toctree::
    :hidden:
 
-   ../notebooks/parsers/custom_database/from_txt
+   ../../notebooks/parsers/custom_database/from_txt
 
 Caveats
 -------

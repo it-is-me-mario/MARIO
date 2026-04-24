@@ -10,7 +10,7 @@ and units.
 
 .. important::
   If your *database* is not yet supported by dedicated parsing methods,
-  :doc:`there are methods to support you in setting it up in the MARIO-readable format <../workflows/provide_your_database>`
+  :doc:`there are methods to support you in setting it up in the MARIO-readable format <../provide_your_database>`
 
 
 Recommended entry point
@@ -18,7 +18,7 @@ Recommended entry point
 
 For normal user workflows, the public entry point is:
 
-* :doc:`mario.parse_from_excel(...) <../api_document/mario.parse_from_excel>`
+* :doc:`mario.parse_from_excel(...) <../../api_document/mario.parse_from_excel>`
 
 
 Key arguments
@@ -39,7 +39,7 @@ The key public arguments are:
 * ``matrix_layouts``:
   optional per-matrix semantic declarations for non-standard IOT layouts;
 * ``tech_assumption``:
-  optional SUT-only selector for ``IT`` / ``PT`` :doc:`technology assumptions <../concepts/technology_assumptions>`.
+  optional SUT-only selector for ``IT`` / ``PT`` :doc:`technology assumptions <../../concepts/technology_assumptions>`.
 
 
 Expected path structure
@@ -86,7 +86,7 @@ The data can be provided both in flows or coefficients, using the ``mode`` argum
 Unique list of *sectors/activities/commodities*, *factors of production*, *satellite accounts* with the related units.
 A sheet named **units** must be present, else, use the ``unit_sheet`` argument to select the right sheet.
 
-.. figure:: ../_static/images/excel_layout_standard.png
+.. figure:: ../../_static/images/excel_layout_standard.png
    :alt: standard excel layout
    :align: center
    :width: 100%
@@ -121,7 +121,7 @@ The most common case is when *factors of production* or *satellite accounts* are
 In this case, the ``matrix_layouts`` argument allows to declare the extra layers of detail and their semantic meaning.
 
 
-.. figure:: ../_static/images/excel_layout_special.png
+.. figure:: ../../_static/images/excel_layout_special.png
    :alt: special excel layout
    :align: center
    :width: 100%
@@ -157,24 +157,24 @@ Notebook walkthrough
 
 Use the notebook below as the main parser guide:
 
-* :doc:`Excel parser walkthrough <../notebooks/parsers/custom_database/from_excel>`
+* :doc:`Excel parser walkthrough <../../notebooks/parsers/custom_database/from_excel>`
 
 If you prefer to run it locally, you can also download the source notebook:
 
-* :download:`Download the Excel notebook <../notebooks/parsers/custom_database/from_excel.ipynb>`
+* :download:`Download the Excel notebook <../../notebooks/parsers/custom_database/from_excel.ipynb>`
 
 The notebook uses the packaged MARIO-readable Excel workbooks below. Download
 them next to the notebook, or place them in a ``data/`` folder next to it:
 
-* :download:`test_IOT_standard.xlsx <../../../mario/test/new/test_IOT_standard.xlsx>`
-* :download:`test_IOT_special.xlsx <../../../mario/test/new/test_IOT_special.xlsx>`
-* :download:`test_SUT_standard.xlsx <../../../mario/test/new/test_SUT_standard.xlsx>`
-* :download:`test_SUT_special.xlsx <../../../mario/test/new/test_SUT_special.xlsx>`
+* :download:`test_IOT_standard.xlsx <../../../../mario/test/new/test_IOT_standard.xlsx>`
+* :download:`test_IOT_special.xlsx <../../../../mario/test/new/test_IOT_special.xlsx>`
+* :download:`test_SUT_standard.xlsx <../../../../mario/test/new/test_SUT_standard.xlsx>`
+* :download:`test_SUT_special.xlsx <../../../../mario/test/new/test_SUT_special.xlsx>`
 
 .. toctree::
    :hidden:
 
-   ../notebooks/parsers/custom_database/from_excel
+   ../../notebooks/parsers/custom_database/from_excel
 
 
 

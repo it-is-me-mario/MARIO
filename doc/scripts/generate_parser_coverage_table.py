@@ -15,7 +15,7 @@ except ModuleNotFoundError:  # pragma: no cover - optional fallback dependency
 
 DOC_ROOT = Path(__file__).resolve().parents[1]
 WORKBOOK = DOC_ROOT / "source" / "_static" / "data" / "Country_coverage.xlsx"
-OUTPUT_DIR = DOC_ROOT / "source" / "parsers" / "_generated"
+OUTPUT_DIR = DOC_ROOT / "source" / "user_guide" / "parsers" / "_generated"
 JSON_OUTPUT = DOC_ROOT / "source" / "_static" / "data" / "parser_coverage.json"
 
 SOURCE_CODE_OVERRIDES = {

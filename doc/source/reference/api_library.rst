@@ -1,4 +1,4 @@
-API Reference
+API reference
 =============
 
 This section exposes the method-by-method API reference by workflow purpose.

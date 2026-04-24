@@ -22,7 +22,7 @@ Recommended entry point
 
 For normal user workflows, the public entry point is:
 
-* :doc:`mario.parse_adb(...) <../api_document/mario.parse_adb>`
+* :doc:`mario.parse_adb(...) <../../api_document/mario.parse_adb>`
 
 Key arguments
 -------------
@@ -81,16 +81,16 @@ Notebook walkthrough
 
 Use the notebook below as the main parser guide:
 
-* :doc:`ADB parser walkthrough <../notebooks/parsers/adb/walkthrough>`
+* :doc:`ADB parser walkthrough <../../notebooks/parsers/adb/walkthrough>`
 
 If you prefer to run it locally, you can also download the source notebook:
 
-* :download:`Download the ADB notebook <../notebooks/parsers/adb/walkthrough.ipynb>`
+* :download:`Download the ADB notebook <../../notebooks/parsers/adb/walkthrough.ipynb>`
 
 .. toctree::
    :hidden:
 
-   ../notebooks/parsers/adb/walkthrough
+   ../../notebooks/parsers/adb/walkthrough
 
 
 Caveats

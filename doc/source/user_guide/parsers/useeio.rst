@@ -113,7 +113,7 @@ Recommended entry point
 
 For normal user workflows, the public entry point is:
 
-* :doc:`mario.parse_useeio(...) <../api_document/mario.parse_useeio>`
+* :doc:`mario.parse_useeio(...) <../../api_document/mario.parse_useeio>`
 
 Key arguments
 -------------
@@ -152,16 +152,16 @@ Notebook walkthrough
 
 Use the notebook below as the main parser guide:
 
-* :doc:`USEEIO parser walkthrough <../notebooks/parsers/useeio/walkthrough>`
+* :doc:`USEEIO parser walkthrough <../../notebooks/parsers/useeio/walkthrough>`
 
 If you prefer to run it locally, you can also download the source notebook:
 
-* :download:`Download the USEEIO notebook <../notebooks/parsers/useeio/walkthrough.ipynb>`
+* :download:`Download the USEEIO notebook <../../notebooks/parsers/useeio/walkthrough.ipynb>`
 
 .. toctree::
    :hidden:
 
-   ../notebooks/parsers/useeio/walkthrough
+   ../../notebooks/parsers/useeio/walkthrough
 
 Caveats
 -------

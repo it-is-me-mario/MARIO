@@ -4,8 +4,8 @@ MARIO Documentation
 MARIO is a Python toolkit for working with Input-Output Tables (IOTs) and
 Supply and Use Tables (SUTs). The documentation is now organized around
 practical entry points: start with the setup page if you are new, then
-use the concepts pages to understand the model, parser pages for source-specific
-ingestion, and workflows for concrete operations on databases.
+use the concepts pages to understand the model and the user guide for
+source-specific parsing and concrete database workflows.
 
 Use this new structure as the main navigation surface. The individual pages are
 being revised section by section, but the information architecture is now in
@@ -25,19 +25,19 @@ place.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Parsers
+   :caption: User Guide
 
-   parsers/index
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Workflows
-
-   workflows/index
+   user_guide/index
 
 .. toctree::
    :maxdepth: 1
-   :caption: Dev
+   :caption: API reference
+
+   reference/api_library
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Dev guide
 
    contribute/index
 
@@ -46,9 +46,3 @@ place.
    :caption: Research
 
    resources/publications
-
-.. toctree::
-   :maxdepth: 1
-   :caption: API Reference
-
-   reference/api_library

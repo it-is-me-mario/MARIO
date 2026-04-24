@@ -1,5 +1,5 @@
-Dev
-===
+Dev guide
+=========
 
 This section is for contributors and maintainers.
 

@@ -26,7 +26,7 @@ Recommended entry point
 
 For normal user workflows, the public entry point is:
 
-* :doc:`mario.parse_eora(...) <../api_document/mario.parse_eora>`
+* :doc:`mario.parse_eora(...) <../../api_document/mario.parse_eora>`
 
 Key arguments
 -------------
@@ -97,16 +97,16 @@ you should work from local Eora files that you already downloaded.
 
 Use the notebook below as the main parser guide:
 
-* :doc:`Eora parser walkthrough <../notebooks/parsers/eora/walkthrough>`
+* :doc:`Eora parser walkthrough <../../notebooks/parsers/eora/walkthrough>`
 
 If you prefer to run it locally, you can also download the source notebook:
 
-* :download:`Download the Eora notebook <../notebooks/parsers/eora/walkthrough.ipynb>`
+* :download:`Download the Eora notebook <../../notebooks/parsers/eora/walkthrough.ipynb>`
 
 .. toctree::
    :hidden:
 
-   ../notebooks/parsers/eora/walkthrough
+   ../../notebooks/parsers/eora/walkthrough
 
 
 Caveats

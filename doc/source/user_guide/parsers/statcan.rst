@@ -26,7 +26,7 @@ Recommended entry point
 
 For normal user workflows, the public entry point is:
 
-* :doc:`mario.parse_statcan(...) <../api_document/mario.parse_statcan>`
+* :doc:`mario.parse_statcan(...) <../../api_document/mario.parse_statcan>`
 
 Key arguments
 -------------
@@ -108,13 +108,13 @@ Notebook walkthrough
 
 Use the notebook below as the main parser guide:
 
-* :doc:`StatCan parser walkthrough <../notebooks/parsers/statcan/walkthrough>`
+* :doc:`StatCan parser walkthrough <../../notebooks/parsers/statcan/walkthrough>`
 
 If you prefer to run it locally, you can also download the source notebook:
 
-* :download:`Download the StatCan notebook <../notebooks/parsers/statcan/walkthrough.ipynb>`
+* :download:`Download the StatCan notebook <../../notebooks/parsers/statcan/walkthrough.ipynb>`
 
 .. toctree::
    :hidden:
 
-   ../notebooks/parsers/statcan/walkthrough
+   ../../notebooks/parsers/statcan/walkthrough
