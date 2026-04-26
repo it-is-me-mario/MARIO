@@ -2,10 +2,11 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+import requests
 
 from mario.log_exc.exceptions import NotImplementable, WrongInput
 from mario.parsers.entrypoints import parse_oecd
-from mario.parsers.oecd_sdmx import build_oecd_sut_from_frames
+from mario.parsers.oecd_sdmx import _read_sdmx_csv, build_oecd_sut_from_frames
 
 
 def _write_oecd_sample_csv(path: Path, *, year: int, suffix: str = "") -> Path:
@@ -398,3 +399,25 @@ def test_build_oecd_sut_from_frames_returns_balanced_split_native_blocks():
     ).abs().max()
     assert commodity_balance < 1e-9
     assert activity_balance < 1e-9
+
+
+def test_oecd_sdmx_403_raises_actionable_wronginput():
+    class ForbiddenResponse:
+        status_code = 403
+        text = "Forbidden"
+        url = "https://sdmx.oecd.org/public/rest/data/example"
+
+        def raise_for_status(self):
+            raise requests.HTTPError("403 Client Error")
+
+    class ForbiddenSession:
+        def get(self, *args, **kwargs):
+            return ForbiddenResponse()
+
+    with pytest.raises(WrongInput, match="temporarily refused"):
+        _read_sdmx_csv(
+            "OECD.SDD.NAD,DSD_NASU@DF_SUPPLY_T1500,2.0",
+            country="ITA",
+            year=2022,
+            session=ForbiddenSession(),
+        )

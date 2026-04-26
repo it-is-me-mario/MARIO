@@ -163,6 +163,30 @@ def test_public_parse_useeio_returns_database(tmp_path):
     assert database.meta.price == "Model-year USD"
 
 
+def test_parse_useeio_directory_selects_alias_and_release_year(tmp_path):
+    _write_useeio_workbook(tmp_path / "USEEIOv2.5-yellowthroat-22.xlsx", demand_year=2022)
+    _write_useeio_workbook(tmp_path / "USEEIOv2.5-waxwing-22.xlsx", demand_year=2022)
+    _write_useeio_workbook(tmp_path / "USEEIOv2.5-yellowthroat-21.xlsx", demand_year=2021)
+
+    database = mario.parse_useeio(
+        str(tmp_path),
+        model_alias="yellowthroat",
+        release_year=2022,
+        calc_all=False,
+    )
+
+    assert database.meta.name == "USEEIO v2.5 yellowthroat 2022"
+    assert database.meta.year == 2022
+
+
+def test_parse_useeio_directory_with_many_workbooks_requires_selector(tmp_path):
+    _write_useeio_workbook(tmp_path / "USEEIOv2.5-yellowthroat-22.xlsx")
+    _write_useeio_workbook(tmp_path / "USEEIOv2.5-waxwing-22.xlsx")
+
+    with pytest.raises(WrongInput, match="model_alias"):
+        mario.parse_useeio(str(tmp_path), calc_all=False)
+
+
 def test_parse_useeio_validates_format_and_table(tmp_path):
     workbook = _write_useeio_workbook(tmp_path / "USEEIOv2.5-yellowthroat-22.xlsx")
 

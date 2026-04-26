@@ -1355,6 +1355,7 @@ def parse_oecd(
     dataset: str = "ICIO",
     year: int | None = None,
     country: str | None = None,
+    timeout: int = 60,
     model: str = "Database",
     name: str | None = None,
     calc_all: bool = False,
@@ -1388,6 +1389,9 @@ def parse_oecd(
     country : str, optional
         ISO3 country code used to disambiguate OECD national IOT files and
         required for ``dataset="SUT"``.
+    timeout : int, optional
+        Request timeout in seconds for the OECD SDMX API used by
+        ``dataset="SUT"``.
     model : str, optional
         public MARIO model class to instantiate. ``Database`` is the default
         and the only supported value.
@@ -1434,6 +1438,7 @@ def parse_oecd(
         matrices, indeces, units, layout = parse_oecd_sut_sdmx(
             country=country,
             year=year,
+            timeout=timeout,
         )
         table_kind = "SUT"
     else:
@@ -2232,7 +2237,9 @@ def parse_figaro(
     Parameters
     ----------
     path : str, optional
-        Deprecated and ignored. FIGARO is parsed from the Eurostat API.
+        Optional local cache directory for normalized FIGARO API payloads.
+        When provided, MARIO saves downloaded CSV payloads there and reuses
+        matching files on later runs.
     table : str, optional
         either ``SUT`` or ``IOT``.
     year : int
@@ -2248,12 +2255,6 @@ def parse_figaro(
     """
     if model not in models:
         raise WrongInput("Available models are {}".format([*models]))
-    if path is not None:
-        log_time(
-            logger,
-            "Parser: parse_figaro path is deprecated and ignored because FIGARO is now API-based.",
-            "warning",
-        )
     if year is None:
         raise WrongInput("FIGARO API parsing requires an explicit year.")
 
@@ -2269,6 +2270,7 @@ def parse_figaro(
             unit=unit,
             countries=countries,
             timeout=timeout,
+            cache_path=path,
         )
     else:
         matrices, indeces, units, layout = parse_figaro_sut(
@@ -2276,6 +2278,7 @@ def parse_figaro(
             unit=unit,
             countries=countries,
             timeout=timeout,
+            cache_path=path,
         )
     return models[model](
         name=name or layout.dataset_name,
@@ -2374,6 +2377,8 @@ def parse_useeio(
     *,
     format: str = "auto",
     table: str = "SUT",
+    model_alias: str | None = None,
+    release_year: int | None = None,
     model: str = "Database",
     name: str | None = None,
     calc_all: bool = False,
@@ -2391,6 +2396,13 @@ def parse_useeio(
         not a USEEIO model alias. ``auto`` is the default and currently
         resolves to ``v2.5_workbook`` when the workbook matches the known
         USEEIO v2.5 export structure.
+    model_alias : str, optional
+        USEEIO model alias used to select one workbook when ``path`` points to
+        a directory containing multiple exports, for example ``"yellowthroat"``
+        or ``"waxwing"``.
+    release_year : int, optional
+        USEEIO workbook release year used with ``model_alias`` to select a
+        specific directory workbook. Both ``22`` and ``2022`` are accepted.
     table : str, optional
         currently only ``SUT`` is supported.
     model : str, optional
@@ -2440,7 +2452,12 @@ def parse_useeio(
     if table != "SUT":
         raise NotImplementable("USEEIO parsing currently supports only SUT tables.")
 
-    matrices, indeces, units, layout = parse_useeio_sut(path=path, format=normalized_format)
+    matrices, indeces, units, layout = parse_useeio_sut(
+        path=path,
+        format=normalized_format,
+        model_alias=model_alias,
+        release_year=release_year,
+    )
 
     return models[model](
         name=name or layout.dataset_name,

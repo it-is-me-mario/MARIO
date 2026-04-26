@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 _SUPPLY_DATAFLOW = "OECD.SDD.NAD,DSD_NASU@DF_SUPPLY_T1500,2.0"
 _USEPP_DATAFLOW = "OECD.SDD.NAD,DSD_NASU@DF_USEPP_T1600,2.0"
 _USEVA_DATAFLOW = "OECD.SDD.NAD,DSD_NASU@DF_USEVA_T1600,2.0"
+_OECD_SDMX_USER_AGENT = "MARIO parser (https://github.com/it-is-me-mario/MARIO)"
 
 
 @dataclass(frozen=True)
@@ -77,8 +78,31 @@ def _read_sdmx_csv(
         "format": "csvfile",
     }
     log_time(logger, f"Parser: requesting OECD SDMX {dataflow} for {country_code} {year}.", "info")
-    response = (session or requests).get(url, params=params, timeout=timeout)
-    response.raise_for_status()
+    response = (session or requests).get(
+        url,
+        params=params,
+        timeout=timeout,
+        headers={"User-Agent": _OECD_SDMX_USER_AGENT},
+    )
+    try:
+        response.raise_for_status()
+    except requests.HTTPError as exc:
+        status_code = getattr(response, "status_code", "unknown")
+        detail = getattr(response, "text", "")[:500].strip()
+        requested_url = getattr(response, "url", url)
+        if status_code in {403, 429}:
+            raise WrongInput(
+                "OECD SDMX temporarily refused the request "
+                f"({status_code}) for {dataflow} ({country_code}, {year}). "
+                "OECD may throttle or temporarily block repeated API/CSV "
+                "downloads; wait and retry, or reduce repeated notebook runs. "
+                f"URL: {requested_url}. Response detail: {detail}"
+            ) from exc
+        raise WrongInput(
+            "OECD SDMX request failed "
+            f"({status_code}) for {dataflow} ({country_code}, {year}). "
+            f"URL: {requested_url}. Response detail: {detail}"
+        ) from exc
     frame = pd.read_csv(StringIO(response.text))
     if frame.empty:
         raise WrongInput(

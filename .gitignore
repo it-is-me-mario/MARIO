@@ -71,6 +71,7 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 tests/realdata.local.env
+doc/notebook_paths.local.yaml
 
 # Translations
 *.mo
@@ -148,4 +149,3 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-

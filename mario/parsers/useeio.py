@@ -75,7 +75,12 @@ class USEEIOLayout:
         return USEEIO_SOURCE
 
 
-def _resolve_useeio_workbook(path: str | Path) -> Path:
+def _resolve_useeio_workbook(
+    path: str | Path,
+    *,
+    model_alias: str | None = None,
+    release_year: int | None = None,
+) -> Path:
     """Resolve one local USEEIO workbook from a file or directory path."""
     source = Path(path)
     if not source.exists():
@@ -95,9 +100,45 @@ def _resolve_useeio_workbook(path: str | Path) -> Path:
     )
     if not candidates:
         raise WrongInput("Could not find any USEEIO .xlsx workbook in the selected directory.")
-    if len(candidates) > 1:
+
+    requested_alias = str(model_alias).strip().lower() if model_alias is not None else None
+    requested_release_year = (
+        _parse_release_year(str(release_year)) if release_year is not None else None
+    )
+    if requested_alias is not None or requested_release_year is not None:
+        filtered = []
+        for candidate in candidates:
+            match = _USEEIO_FILENAME_RE.fullmatch(candidate.stem)
+            candidate_alias = match.group("alias").lower() if match is not None else None
+            candidate_release_year = _parse_release_year(
+                match.group("release") if match is not None else None
+            )
+            if requested_alias is not None and candidate_alias != requested_alias:
+                continue
+            if (
+                requested_release_year is not None
+                and candidate_release_year != requested_release_year
+            ):
+                continue
+            filtered.append(candidate)
+        candidates = filtered
+
+    if not candidates:
+        selector = []
+        if requested_alias is not None:
+            selector.append(f"model_alias={requested_alias!r}")
+        if requested_release_year is not None:
+            selector.append(f"release_year={requested_release_year!r}")
         raise WrongInput(
-            "More than one USEEIO workbook was found. Please point the parser to one specific .xlsx file."
+            "Could not find a USEEIO workbook matching "
+            f"{', '.join(selector) or 'the requested selectors'}."
+        )
+    if len(candidates) > 1:
+        names = ", ".join(candidate.name for candidate in candidates[:10])
+        raise WrongInput(
+            "More than one USEEIO workbook was found. "
+            "Please point the parser to one specific .xlsx file, or select a "
+            f"directory workbook with model_alias= and release_year=. Found: {names}"
         )
     return candidates[0]
 
@@ -240,9 +281,19 @@ def _zero_frame(index, columns) -> pd.DataFrame:
     return pd.DataFrame(np.zeros((len(index), len(columns))), index=index, columns=columns)
 
 
-def detect_useeio_layout(path: str | Path, *, format: str = "auto") -> USEEIOLayout:
+def detect_useeio_layout(
+    path: str | Path,
+    *,
+    format: str = "auto",
+    model_alias: str | None = None,
+    release_year: int | None = None,
+) -> USEEIOLayout:
     """Detect the supported USEEIO workbook layout."""
-    workbook_path = _resolve_useeio_workbook(path)
+    workbook_path = _resolve_useeio_workbook(
+        path,
+        model_alias=model_alias,
+        release_year=release_year,
+    )
     requested = _normalize_format(format)
     workbook = pd.ExcelFile(workbook_path)
 
@@ -310,9 +361,16 @@ def parse_useeio_sut(
     path: str | Path,
     *,
     format: str = "auto",
+    model_alias: str | None = None,
+    release_year: int | None = None,
 ) -> tuple[dict[str, dict[str, pd.DataFrame]], dict[str, dict[str, list[str]]], dict[str, pd.DataFrame], USEEIOLayout]:
     """Parse one supported USEEIO workbook into canonical MARIO SUT blocks."""
-    layout = detect_useeio_layout(path, format=format)
+    layout = detect_useeio_layout(
+        path,
+        format=format,
+        model_alias=model_alias,
+        release_year=release_year,
+    )
     workbook = pd.ExcelFile(layout.path)
 
     V = _read_numeric_sheet(workbook, "V")

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import lru_cache
+import hashlib
+import json
 import logging
 from pathlib import Path
 import re
@@ -343,8 +345,24 @@ def _download_figaro_api_frame(
     factor_codes: list[str] | None = None,
     timeout: int = FIGARO_DEFAULT_TIMEOUT,
     session: Any | None = None,
+    cache_path: str | Path | None = None,
 ) -> pd.DataFrame:
     """Download one FIGARO dataflow and return canonical row/column columns."""
+    cache_file = _figaro_cache_file(
+        cache_path,
+        dataflow=dataflow,
+        year=year,
+        unit=unit,
+        row_dim=row_dim,
+        col_dim=col_dim,
+        countries=countries,
+        include_dom=include_dom,
+        factor_codes=factor_codes,
+    )
+    if cache_file is not None and cache_file.exists():
+        log_time(logger, f"Parser: reading cached FIGARO API payload from {cache_file}.", "info")
+        return pd.read_csv(cache_file)
+
     dimensions = _load_figaro_dimensions(dataflow, unit=unit, session=session, timeout=timeout)
     origins, destinations = _resolve_api_countries(dimensions, countries=countries)
     if include_dom and "DOM" in dimensions.get("c_orig", []):
@@ -390,7 +408,72 @@ def _download_figaro_api_frame(
             "obsValue": pd.to_numeric(api_frame["obsValue"], errors="coerce").fillna(0.0),
         }
     )
+    if cache_file is not None:
+        cache_file.parent.mkdir(parents=True, exist_ok=True)
+        normalized.to_csv(cache_file, index=False)
+        _write_figaro_cache_metadata(
+            cache_file,
+            dataflow=dataflow,
+            year=year,
+            unit=unit,
+            row_dim=row_dim,
+            col_dim=col_dim,
+            countries=countries,
+            include_dom=include_dom,
+        )
+        log_time(logger, f"Parser: saved FIGARO API payload to {cache_file}.", "info")
     return normalized
+
+
+def _normalize_cache_countries(countries: str | list[str] | tuple[str, ...] | None) -> str | list[str]:
+    """Return a stable country selector for FIGARO cache keys."""
+    if countries is None:
+        return "all"
+    if isinstance(countries, str):
+        return [countries]
+    return [str(country) for country in countries]
+
+
+def _figaro_cache_file(
+    cache_path: str | Path | None,
+    *,
+    dataflow: str,
+    year: int,
+    unit: str,
+    row_dim: str,
+    col_dim: str,
+    countries: str | list[str] | tuple[str, ...] | None,
+    include_dom: bool,
+    factor_codes: list[str] | None,
+) -> Path | None:
+    """Return the cache CSV path for one normalized FIGARO API request."""
+    if cache_path is None:
+        return None
+    root = Path(cache_path)
+    if root.suffix:
+        root = root.with_suffix("")
+
+    payload = {
+        "dataflow": dataflow,
+        "year": int(year),
+        "unit": unit,
+        "row_dim": row_dim,
+        "col_dim": col_dim,
+        "countries": _normalize_cache_countries(countries),
+        "include_dom": bool(include_dom),
+        "factor_codes": sorted(factor_codes or []),
+    }
+    digest = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()[:12]
+    safe_dataflow = re.sub(r"[^A-Za-z0-9_.-]+", "_", dataflow)
+    return root / f"{safe_dataflow}_{year}_{unit}_{digest}.csv"
+
+
+def _write_figaro_cache_metadata(cache_file: Path, **payload: Any) -> None:
+    """Write a small sidecar describing one FIGARO cache payload."""
+    metadata = dict(payload)
+    metadata["cache_file"] = str(cache_file)
+    with cache_file.with_suffix(".json").open("w") as stream:
+        json.dump(metadata, stream, indent=2, sort_keys=True, default=str)
 
 
 def _ordered_present_codes(actual: set[str], ordered: list[str]) -> list[str]:
@@ -477,6 +560,7 @@ def parse_figaro_sut(
     countries: str | list[str] | tuple[str, ...] | None = None,
     timeout: int = FIGARO_DEFAULT_TIMEOUT,
     session: Any | None = None,
+    cache_path: str | Path | None = None,
 ) -> tuple[dict[str, dict[str, pd.DataFrame]], dict[str, dict[str, list[str]]], dict[str, pd.DataFrame], FigaroSUTLayout]:
     """Parse FIGARO SUT dataflows from the Eurostat API into MARIO SUT blocks."""
     layout = detect_figaro_sut_layout(year, unit=unit)
@@ -497,6 +581,7 @@ def parse_figaro_sut(
         countries=countries,
         timeout=timeout,
         session=session,
+        cache_path=cache_path,
     )
     use = _download_figaro_api_frame(
         layout.use_dataflow,
@@ -509,6 +594,7 @@ def parse_figaro_sut(
         factor_codes=factor_codes_meta,
         timeout=timeout,
         session=session,
+        cache_path=cache_path,
     )
 
     region_codes = _ordered_present_codes(
@@ -699,6 +785,7 @@ def parse_figaro_iot(
     countries: str | list[str] | tuple[str, ...] | None = None,
     timeout: int = FIGARO_DEFAULT_TIMEOUT,
     session: Any | None = None,
+    cache_path: str | Path | None = None,
 ) -> tuple[dict[str, dict[str, pd.DataFrame]], dict[str, dict[str, list[str]]], dict[str, pd.DataFrame], FigaroIOTLayout]:
     """Parse FIGARO IOT dataflows from the Eurostat API into MARIO IOT blocks."""
     layout = detect_figaro_iot_layout(year, mode=mode, unit=unit)
@@ -734,6 +821,7 @@ def parse_figaro_iot(
         factor_codes=factor_codes_meta,
         timeout=timeout,
         session=session,
+        cache_path=cache_path,
     )
 
     region_codes = _ordered_present_codes(

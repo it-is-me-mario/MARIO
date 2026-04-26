@@ -1,0 +1,30 @@
+# Copy this file to doc/notebook_paths.local.yaml and replace the local values.
+# doc/notebook_paths.local.yaml is git-ignored because it contains machine paths.
+
+# Replacements can be global. They are applied to every selected notebook.
+replacements:
+  - placeholder: "/path/to/SUPPLY-USE"
+    local: "/absolute/local/path/to/SUPPLY-USE"
+
+# Replacements can also be scoped to a notebook, and optionally to code cells.
+# Cell indexes are zero-based notebook cell indexes, matching nbformat order.
+notebooks:
+  source/notebooks/parsers/bea/walkthrough.ipynb:
+    replacements:
+      - placeholder: "/path/to/SUPPLY-USE.zip"
+        local: "/absolute/local/path/to/SUPPLY-USE.zip"
+        cells: [5]
+
+  source/notebooks/parsers/eora/walkthrough.ipynb:
+    replacements:
+      - placeholder: "/path/to/eora26_directory"
+        local: "/absolute/local/path/to/Eora26_2017_bp"
+      - placeholder: "/path/to/eora26_labels"
+        local: "/absolute/local/path/to/indices"
+
+  source/notebooks/parsers/wiod/walkthrough.ipynb:
+    # Cells that download large raw data can be left out of the local solve.
+    skip_cells: [8]
+    replacements:
+      - placeholder: "/path/to/WIOT2014_Nov16_ROW.xlsb"
+        local: "/absolute/local/path/to/WIOT2014_Nov16_ROW.xlsb"

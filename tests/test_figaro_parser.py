@@ -166,6 +166,59 @@ def test_public_parse_figaro_returns_database(monkeypatch):
         mario.parse_figaro(table="SUT", calc_all=False)
 
 
+def test_figaro_api_download_uses_cache_directory(monkeypatch, tmp_path):
+    monkeypatch.setattr(
+        figaro,
+        "_load_figaro_dimensions",
+        lambda *args, **kwargs: {
+            "c_orig": ["IT"],
+            "c_dest": ["IT"],
+            "prd_ava": ["CPA_A01"],
+            "prd_use": ["CPA_A01"],
+        },
+    )
+    calls = {"count": 0}
+
+    def fake_request(dataflow, *, params, **kwargs):
+        calls["count"] += 1
+        return {
+            "id": ["c_orig", "c_dest", "prd_ava", "prd_use"],
+            "size": [1, 1, 1, 1],
+            "dimension": {
+                "c_orig": {"category": {"index": {"IT": 0}}},
+                "c_dest": {"category": {"index": {"IT": 0}}},
+                "prd_ava": {"category": {"index": {"CPA_A01": 0}}},
+                "prd_use": {"category": {"index": {"CPA_A01": 0}}},
+            },
+            "value": {"0": 42.0},
+        }
+
+    monkeypatch.setattr(figaro, "_request_figaro_json", fake_request)
+
+    first = figaro._download_figaro_api_frame(
+        "test_flow",
+        year=2023,
+        unit="MIO_EUR",
+        row_dim="prd_ava",
+        col_dim="prd_use",
+        countries=["IT"],
+        cache_path=tmp_path,
+    )
+    second = figaro._download_figaro_api_frame(
+        "test_flow",
+        year=2023,
+        unit="MIO_EUR",
+        row_dim="prd_ava",
+        col_dim="prd_use",
+        countries=["IT"],
+        cache_path=tmp_path,
+    )
+
+    assert calls["count"] == 1
+    assert len(list(tmp_path.glob("test_flow_2023_MIO_EUR_*.csv"))) == 1
+    assert first.to_dict("records") == second.to_dict("records")
+
+
 def test_parse_figaro_iot_supports_product_and_industry_variants(monkeypatch):
     _patch_figaro_api(monkeypatch)
 
