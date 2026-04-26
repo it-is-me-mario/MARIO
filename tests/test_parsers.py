@@ -582,7 +582,7 @@ def _explicit_custom_iot_frame(frame, matrix_name):
 def test_parse_state_from_excel_iot_preserves_blocks_indexes_and_units():
     state = get_parser_registry().parse(
         "excel",
-        path="mario/test/IOT.xlsx",
+        path="mario/test/new/test_IOT_standard.xlsx",
         table="IOT",
         mode="flows",
         name="IOT dataset",
@@ -603,7 +603,7 @@ def test_parse_state_from_excel_iot_preserves_blocks_indexes_and_units():
 
 def test_parse_from_excel_sut_returns_split_native_baseline_blocks():
     database = parse_from_excel(
-        path="mario/test/SUT.xlsx",
+        path="mario/test/new/test_SUT_standard.xlsx",
         table="SUT",
         mode="flows",
         name="SUT dataset",
@@ -617,7 +617,7 @@ def test_parse_from_excel_sut_returns_split_native_baseline_blocks():
 
 def test_parser_authoring_api_builds_database_from_state():
     state = parse_state_from_excel(
-        "mario/test/IOT.xlsx",
+        "mario/test/new/test_IOT_standard.xlsx",
         table="IOT",
         mode="flows",
         name="IOT dataset",
@@ -631,7 +631,7 @@ def test_parser_authoring_api_builds_database_from_state():
 
 def test_parse_state_from_excel_sut_promotes_split_native_blocks():
     state = parse_state_from_excel(
-        "mario/test/SUT.xlsx",
+        "mario/test/new/test_SUT_standard.xlsx",
         table="SUT",
         mode="flows",
         name="SUT dataset",

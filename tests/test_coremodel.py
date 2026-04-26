@@ -180,16 +180,13 @@ def test_get_index(CoreDataIOT,CoreDataSUT):
     iot_all_index = {
         'Sector':[
             "Agriculture",
-            "Mining",
-            "Manufacturing",
+            "Industry",
             "Services",
-            "Construction",
-            "Transport",
         ],
         "Region":
         [
-            'Italy',
-            "RoW"
+            "Reg1",
+            "Reg2",
         ],
         "Factor of production":
         [
@@ -200,35 +197,25 @@ def test_get_index(CoreDataIOT,CoreDataSUT):
         "Satellite account": [
             "Employment",
             "CO2",
-            "Water Consumption Blue",
-            "Energy",
         ],
         "Consumption category":[
-            "Final Demand"
+            "Final demand"
         ]
     }
 
     sut_all_index = {
         'Activity':[
-            "Agriculture",
-            "Mining",
             "Manufacturing",
             "Services",
-            "Construction",
-            "Transport",
         ],
         'Commodity':[
-            "Agriculture",
-            "Mining",
-            "Manufacturing",
+            "Goods",
             "Services",
-            "Construction",
-            "Transport",
         ],
         "Region":
         [
-            'Italy',
-            "RoW"
+            "Region 1",
+            "Region 2",
         ],
         "Factor of production":
         [
@@ -240,7 +227,7 @@ def test_get_index(CoreDataIOT,CoreDataSUT):
         #     None,  # TODO fix later
         # ],
         "Consumption category":[
-            "Final Demand"
+            "Final demand"
         ]
     }
 
@@ -395,7 +382,7 @@ def test_is_multi_region(CoreDataIOT):
 
     assert CoreDataIOT.is_multi_region
 
-    single_region = load_test('IOT').to_single_region("Italy",inplace=False)
+    single_region = load_test('IOT').to_single_region("Reg1",inplace=False)
     assert not single_region.is_multi_region
 
 
@@ -496,7 +483,7 @@ def test_search(CoreDataIOT):
 
     assert set(CoreDataIOT.search(
         item = 'Satellite account', search='mp'
-    )) == {'Employment', 'Water Consumption Blue'}
+    )) == {'Employment'}
 
     with pytest.raises(WrongInput) as msg:
         CoreDataIOT.search('dummy','dummy')
@@ -514,11 +501,11 @@ def test_search(CoreDataIOT):
 
     assert CoreDataIOT.search("employ") == {"Satellite account": ["Employment"]}
     assert CoreDataIOT.search("mp") == {
-        "Satellite account": ["Employment", "Water Consumption Blue"]
+        "Satellite account": ["Employment"]
     }
     assert CoreDataIOT.search("satellite_account", "employ") == ["Employment"]
-    assert CoreDataIOT.search("industry", "manuf") == ["Manufacturing"]
-    assert CoreDataIOT.search("demand_categories", "final") == ["Final Demand"]
+    assert CoreDataIOT.search("industry", "ind") == ["Industry"]
+    assert CoreDataIOT.search("demand_categories", "final") == ["Final demand"]
 
 
 

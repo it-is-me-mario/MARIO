@@ -4,12 +4,14 @@ from mario.log_exc.exceptions import WrongInput
 from mario.test.mario_test import load_test
 
 
-def test_load_test_keeps_legacy_default():
+def test_load_test_uses_standard_default_and_keeps_legacy_alias():
     database = load_test("IOT")
+    legacy = load_test("IOT", layout="legacy")
 
     assert database.table_type == "IOT"
-    assert database.Z.shape == (12, 12)
-    assert "Italy" in database.get_index("Region")
+    assert database.Z.shape == (6, 6)
+    assert legacy.Z.shape == database.Z.shape
+    assert database.get_index("Region") == ["Reg1", "Reg2"]
 
 
 def test_load_test_supports_standard_and_special_variants():

@@ -31,26 +31,32 @@ from mario import parse_from_excel
 def _write_sut_aggregation_workbook(path):
     """Create a temporary SUT workbook with embedded aggregation sheets."""
     data = load_test("SUT").copy()
-    data.calc_all(["E", "EY"])
-
-    e = data["baseline"]["E"]
+    ea = data["baseline"]["Ea"]
+    ec = data["baseline"]["Ec"]
     ey = data["baseline"]["EY"]
     sat_names = ["sat.1", "sat.2"]
 
-    expanded_e = pd.concat(
+    expanded_ea = pd.concat(
         [
-            e.rename(index={e.index[0]: sat_names[0]}),
-            (e * 2).rename(index={e.index[0]: sat_names[1]}),
+            ea.iloc[[0]].rename(index={ea.index[0]: sat_names[0]}),
+            (ea.iloc[[0]] * 2).rename(index={ea.index[0]: sat_names[1]}),
+        ]
+    )
+    expanded_ec = pd.concat(
+        [
+            ec.iloc[[0]].rename(index={ec.index[0]: sat_names[0]}),
+            (ec.iloc[[0]] * 2).rename(index={ec.index[0]: sat_names[1]}),
         ]
     )
     expanded_ey = pd.concat(
         [
-            ey.rename(index={ey.index[0]: sat_names[0]}),
-            (ey * 2).rename(index={ey.index[0]: sat_names[1]}),
+            ey.iloc[[0]].rename(index={ey.index[0]: sat_names[0]}),
+            (ey.iloc[[0]] * 2).rename(index={ey.index[0]: sat_names[1]}),
         ]
     )
 
-    data.matrices["baseline"]["E"] = expanded_e
+    data.matrices["baseline"]["Ea"] = expanded_ea
+    data.matrices["baseline"]["Ec"] = expanded_ec
     data.matrices["baseline"]["EY"] = expanded_ey
     data._indeces["k"]["main"] = sat_names
     data.units["Satellite account"] = pd.DataFrame(

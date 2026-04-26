@@ -46,7 +46,7 @@ from mario.compute.primitives import (
 def IOT_table():
     """ A dictionary with dummy test data from an excel file
     """
-    return load_dummy("IOT_dummy")
+    return load_dummy("IOT")
 
 
 def test_calc_all_shock(IOT_table):

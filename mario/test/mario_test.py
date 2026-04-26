@@ -1,34 +1,12 @@
 # -*- coding: utf-8 -*-
 """Small packaged fixtures used by MARIO tests and examples."""
 
-from numpy import dtype, float64
 from mario.parsers.entrypoints import parse_from_excel
 from mario.model.conventions import _ENUM
 from mario.log_exc.exceptions import WrongInput
 
 
 import os
-import pandas as pd
-
-_DATA_MAP = {
-    _ENUM.X: dict(sheet_name="X", index_col=[0, 1, 2], header=0),
-    _ENUM.Y: dict(sheet_name="Y", index_col=[0, 1, 2], header=[0, 1, 2]),
-    _ENUM.y: dict(sheet_name="_y", index_col=[0, 1, 2], header=[0, 1, 2]),
-    _ENUM.E: dict(sheet_name="E", index_col=[0], header=[0, 1, 2]),
-    _ENUM.e: dict(sheet_name="_e", index_col=[0], header=[0, 1, 2]),
-    _ENUM.V: dict(sheet_name="V", index_col=[0], header=[0, 1, 2]),
-    _ENUM.v: dict(sheet_name="_v", index_col=[0], header=[0, 1, 2]),
-    _ENUM.Z: dict(sheet_name="Z", index_col=[0, 1, 2], header=[0, 1, 2]),
-    _ENUM.z: dict(sheet_name="_z", index_col=[0, 1, 2], header=[0, 1, 2]),
-    _ENUM.b: dict(sheet_name="b", index_col=[0, 1, 2], header=[0, 1, 2]),
-    _ENUM.g: dict(sheet_name="g", index_col=[0, 1, 2], header=[0, 1, 2]),
-    _ENUM.w: dict(sheet_name="w", index_col=[0, 1, 2], header=[0, 1, 2]),
-    _ENUM.f: dict(sheet_name="_f", index_col=[0], header=[0, 1, 2]),
-    _ENUM.F: dict(sheet_name="F", index_col=[0], header=[0, 1, 2]),
-    _ENUM.m: dict(sheet_name="_m", index_col=[0], header=[0, 1, 2]),
-    _ENUM.M: dict(sheet_name="M", index_col=[0], header=[0, 1, 2]),
-    _ENUM.p: dict(sheet_name="p", index_col=[0, 1, 2], header=[0]),
-}
 
 path = os.path.abspath(
     os.path.join(
@@ -39,7 +17,7 @@ path = os.path.abspath(
 
 _LOAD_TEST_VARIANTS = {
     ("IOT", "legacy"): {
-        "path": "IOT.xlsx",
+        "path": "new/test_IOT_standard.xlsx",
         "matrix_layouts": None,
     },
     ("IOT", "standard"): {
@@ -54,7 +32,7 @@ _LOAD_TEST_VARIANTS = {
         },
     },
     ("SUT", "legacy"): {
-        "path": "SUT.xlsx",
+        "path": "new/test_SUT_standard.xlsx",
         "matrix_layouts": None,
     },
     ("SUT", "standard"): {
@@ -70,7 +48,7 @@ _LOAD_TEST_VARIANTS = {
 }
 
 
-def load_test(table, tech_assumption=None, layout="legacy"):
+def load_test(table, tech_assumption=None, layout="standard"):
     """Load one of the packaged test databases.
 
     Parameters
@@ -84,7 +62,7 @@ def load_test(table, tech_assumption=None, layout="legacy"):
     layout : str, optional
         Fixture layout to load. Accepted values are:
 
-        * ``"legacy"``: the historical packaged test workbook;
+        * ``"legacy"``: retained as an alias for ``"standard"``;
         * ``"standard"``: the new standard-layout workbook in ``mario/test/new``;
         * ``"special"``: the new workbook variant that needs explicit
           ``matrix_layouts``.
@@ -113,16 +91,55 @@ def load_test(table, tech_assumption=None, layout="legacy"):
     )
 
 
-def load_dummy(test):
-    """Load a raw workbook fixture as a mapping of matrix names to dataframes."""
-    file = pd.ExcelFile(f"{path}/{test}.xlsx")
+def load_dummy(test="IOT"):
+    """Build a raw IOT fixture mapping from the packaged standard workbook."""
+    if str(test).strip().upper() not in {"IOT", "IOT_DUMMY"}:
+        raise WrongInput("load_dummy currently supports only the packaged IOT fixture.")
 
-    return {
-        matrix: file.parse(
-            **info,
-        ).astype(float)
-        for matrix, info in _DATA_MAP.items()
+    from mario.compute.primitives import calc_y
+
+    database = load_test("IOT", layout="standard")
+    database.calc_all([_ENUM.X], force_rewrite=True)
+    database.calc_all(
+        [
+            _ENUM.z,
+            _ENUM.v,
+            _ENUM.e,
+            _ENUM.w,
+            _ENUM.b,
+            _ENUM.g,
+            _ENUM.f,
+            _ENUM.F,
+            _ENUM.m,
+            _ENUM.M,
+            _ENUM.p,
+        ],
+        force_rewrite=True,
+    )
+
+    matrices = {
+        matrix: database["baseline"][matrix]
+        for matrix in [
+            _ENUM.X,
+            _ENUM.Y,
+            _ENUM.E,
+            _ENUM.e,
+            _ENUM.V,
+            _ENUM.v,
+            _ENUM.Z,
+            _ENUM.z,
+            _ENUM.b,
+            _ENUM.g,
+            _ENUM.w,
+            _ENUM.f,
+            _ENUM.F,
+            _ENUM.m,
+            _ENUM.M,
+            _ENUM.p,
+        ]
     }
+    matrices[_ENUM.y] = calc_y(matrices[_ENUM.Y])
+    return matrices
 
 
 # %%

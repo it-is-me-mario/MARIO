@@ -36,24 +36,24 @@ def CoreDataSUT():
 
 def test_slicer(CoreDataIOT,CoreDataSUT):
 
-    sl = ut.slicer(matrix=_ENUM.E,axis=1,Region=['Italy'],Item=['Transport',"Manufacturing"])
+    sl = ut.slicer(matrix=_ENUM.E,axis=1,Region=["Reg1"],Item=["Agriculture", "Industry"])
 
     pdt.assert_frame_equal(
         CoreDataIOT.E.loc[:,sl],
-        CoreDataIOT.E.loc[:,(["Italy"],slice(None),['Transport',"Manufacturing"])]
+        CoreDataIOT.E.loc[:,(["Reg1"],slice(None),["Agriculture", "Industry"])]
     )
 
     sl = ut.slicer(
         matrix = _ENUM.Z,
         axis = 0,
-        Region = ["Italy"],
+        Region = ["Region 1"],
         Level = "Activity",
-        Item = ["Transport","Manufacturing"]
+        Item = ["Manufacturing", "Services"]
     )
 
     pdt.assert_frame_equal(
         CoreDataSUT.Z.loc[sl,sl],
-        CoreDataSUT.Z.loc[(["Italy"],"Activity",["Transport","Manufacturing"]),(["Italy"],"Activity",["Transport","Manufacturing"])]
+        CoreDataSUT.Z.loc[(["Region 1"],"Activity",["Manufacturing", "Services"]),(["Region 1"],"Activity",["Manufacturing", "Services"])]
     )
 
     assert "dummy" == ut.slicer(matrix=_ENUM.E,axis=0,Item="dummy")

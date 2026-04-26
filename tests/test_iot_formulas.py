@@ -52,7 +52,7 @@ from mario.model.conventions import _ENUM
 
 
 def test_new_iot_formulas_match_public_primitives():
-    data = load_dummy("IOT_dummy")
+    data = load_dummy("IOT")
 
     comparisons = [
         (build_iot_Z_from_z_X(data[_ENUM.z], data[_ENUM.X]), calc_Z(data[_ENUM.z], data[_ENUM.X])),
@@ -82,7 +82,7 @@ def test_new_iot_formulas_match_public_primitives():
 
 
 def test_direct_solve_iot_formulas_match_inverse_based_results():
-    data = load_dummy("IOT_dummy")
+    data = load_dummy("IOT")
 
     pdt.assert_frame_equal(
         build_iot_X_from_z_Y(data[_ENUM.z], data[_ENUM.Y]),

@@ -244,18 +244,18 @@ def test_set_clusters_normalizes_names_and_preserves_copy_semantics():
     database = load_test("IOT")
 
     database.set_clusters(
-        clusters={"region": {"EU": ["Italy", "RoW"]}},
+        clusters={"region": {"EU": ["Reg1", "Reg2"]}},
         s={"Primary": ["Agriculture"]},
     )
 
     stored = database.clusters
     assert stored == {
-        "Region": {"EU": ["Italy", "RoW"]},
+        "Region": {"EU": ["Reg1", "Reg2"]},
         "Sector": {"Primary": ["Agriculture"]},
     }
 
     stored["Region"]["EU"].append("dummy")
-    assert database.clusters["Region"]["EU"] == ["Italy", "RoW"]
+    assert database.clusters["Region"]["EU"] == ["Reg1", "Reg2"]
 
 
 def test_default_clusters_include_all_for_every_set():
@@ -270,11 +270,12 @@ def test_default_clusters_include_all_for_every_set():
 
 def test_default_region_clusters_include_country_converter_groups_when_possible():
     database = load_test("IOT")
+    database._indeces["r"]["main"] = ["ITA", "FRA"]
 
     region_clusters = database.default_clusters["Region"]
 
     assert "continent:Europe" in region_clusters
-    assert "Italy" in region_clusters["continent:Europe"]
+    assert "ITA" in region_clusters["continent:Europe"]
 
 
 def test_default_region_clusters_use_manual_adb_overrides_for_nonstandard_codes():
@@ -294,17 +295,17 @@ def test_default_region_clusters_use_manual_adb_overrides_for_nonstandard_codes(
 
 def test_available_clusters_merge_defaults_and_user_clusters():
     database = load_test("IOT")
-    database.set_clusters(clusters={"region": {"EU custom": ["Italy", "RoW"]}})
+    database.set_clusters(clusters={"region": {"EU custom": ["Reg1", "Reg2"]}})
 
     available = database.available_clusters
 
     assert "all" in available["Region"]
-    assert available["Region"]["EU custom"] == ["Italy", "RoW"]
+    assert available["Region"]["EU custom"] == ["Reg1", "Reg2"]
 
 
 def test_get_shock_excel_uses_stored_clusters(tmp_path):
     database = load_test("IOT")
-    database.set_clusters(clusters={"region": {"EU": ["Italy", "RoW"]}})
+    database.set_clusters(clusters={"region": {"EU": ["Reg1", "Reg2"]}})
     path = tmp_path / "clustered_shock.xlsx"
 
     database.get_shock_excel(path=str(path), num_shock=2)
@@ -315,15 +316,15 @@ def test_get_shock_excel_uses_stored_clusters(tmp_path):
 
 def test_shock_calc_uses_stored_clusters(tmp_path):
     database = load_test("IOT")
-    database.set_clusters(clusters={"region": {"EU": ["Italy", "RoW"]}})
+    database.set_clusters(clusters={"region": {"EU": ["Reg1", "Reg2"]}})
     path = tmp_path / "clustered_iot_shock.xlsx"
 
     base = database.z.copy()
     col = base.columns[0]
     row_items = [
-        ("Italy", row[1], row[2])
+        ("Reg1", row[1], row[2])
         for row in base.index
-        if row[0] == "Italy"
+        if row[0] == "Reg1"
     ]
     row_item = row_items[0][2]
     updated = 0.222
@@ -347,7 +348,7 @@ def test_shock_calc_uses_stored_clusters(tmp_path):
     database.shock_calc(str(path), z=True, scenario="cluster shock")
 
     shocked = database.query(_ENUM.z, scenarios=["cluster shock"])
-    for region in ["Italy", "RoW"]:
+    for region in ["Reg1", "Reg2"]:
         assert shocked.loc[(region, _MASTER_INDEX["s"], row_item), col] == updated
 
 
@@ -355,7 +356,7 @@ def test_get_shock_excel_still_accepts_legacy_cluster_kwargs(tmp_path):
     database = load_test("IOT")
     path = tmp_path / "legacy_clustered_shock.xlsx"
 
-    database.get_shock_excel(path=str(path), num_shock=2, Region={"EU": ["Italy", "RoW"]})
+    database.get_shock_excel(path=str(path), num_shock=2, Region={"EU": ["Reg1", "Reg2"]})
 
     indeces = pd.read_excel(path, sheet_name="indeces", header=None)
     assert "EU" in indeces.iloc[:, 0].dropna().tolist()
@@ -363,11 +364,11 @@ def test_get_shock_excel_still_accepts_legacy_cluster_kwargs(tmp_path):
 
 def test_build_new_instance_preserves_stored_clusters():
     database = load_test("IOT")
-    database.set_clusters(clusters={"region": {"EU": ["Italy", "RoW"]}})
+    database.set_clusters(clusters={"region": {"EU": ["Reg1", "Reg2"]}})
 
     new = database.build_new_instance("baseline")
 
-    assert new.clusters == {"Region": {"EU": ["Italy", "RoW"]}}
+    assert new.clusters == {"Region": {"EU": ["Reg1", "Reg2"]}}
 
 
 def test_get_shock_excel_for_sut_writes_only_nonzero_split_sheets(tmp_path):
@@ -377,11 +378,10 @@ def test_get_shock_excel_for_sut_writes_only_nonzero_split_sheets(tmp_path):
     database.get_shock_excel(path=str(path), num_shock=2)
 
     with pd.ExcelFile(path) as workbook:
-        assert set(workbook.sheet_names) == {"indeces", "main", _ENUM.u, _ENUM.s, "Yc", "va"}
+        assert set(workbook.sheet_names) == {"indeces", "main", _ENUM.u, _ENUM.s, "Yc", "va", "ea"}
         assert _ENUM.z not in workbook.sheet_names
         assert "Ya" not in workbook.sheet_names
         assert "vc" not in workbook.sheet_names
-        assert "ea" not in workbook.sheet_names
         assert "ec" not in workbook.sheet_names
 
         u_sheet = pd.read_excel(workbook, _ENUM.u)

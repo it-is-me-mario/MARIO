@@ -30,6 +30,12 @@ DOC_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = DOC_ROOT.parent
 DEFAULT_CONFIG = DOC_ROOT / "notebook_paths.local.yaml"
 DEFAULT_LEAK_PATTERNS = ("/Users/", "/Volumes/")
+PACKAGED_EXCEL_WORKBOOKS = {
+    "test_IOT_standard.xlsx": REPO_ROOT / "mario/test/new/test_IOT_standard.xlsx",
+    "test_IOT_special.xlsx": REPO_ROOT / "mario/test/new/test_IOT_special.xlsx",
+    "test_SUT_standard.xlsx": REPO_ROOT / "mario/test/new/test_SUT_standard.xlsx",
+    "test_SUT_special.xlsx": REPO_ROOT / "mario/test/new/test_SUT_special.xlsx",
+}
 
 COMMENT_PLACEHOLDER_RE = re.compile(
     r"^(?P<indent>\s*)#\s*(?P<name>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*"
@@ -132,9 +138,32 @@ def _notebook_config(config: dict[str, Any], notebook: Path) -> dict[str, Any]:
 
 def _replacements_for(config: dict[str, Any], notebook: Path) -> list[Replacement]:
     notebook_cfg = _notebook_config(config, notebook)
-    return _as_replacements(config.get("replacements")) + _as_replacements(
-        notebook_cfg.get("replacements")
+    return (
+        _default_replacements_for(notebook)
+        + _as_replacements(config.get("replacements"))
+        + _as_replacements(notebook_cfg.get("replacements"))
     )
+
+
+def _default_replacements_for(notebook: Path) -> list[Replacement]:
+    """Return built-in repo-local replacements for packaged docs fixtures."""
+    keys = _notebook_keys(notebook)
+    if "source/notebooks/parsers/custom_database/from_excel.ipynb" not in keys:
+        return []
+
+    replacements: list[Replacement] = []
+    for filename, local_path in PACKAGED_EXCEL_WORKBOOKS.items():
+        if not local_path.exists():
+            continue
+        local = str(local_path)
+        replacements.extend(
+            [
+                Replacement(f"/path/to/{filename}", local),
+                Replacement(f"../{filename}", local),
+                Replacement(f"../../../../../mario/test/new/{filename}", local),
+            ]
+        )
+    return replacements
 
 
 def _skip_cells_for(config: dict[str, Any], notebook: Path) -> set[int]:

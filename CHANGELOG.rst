@@ -104,7 +104,7 @@ Deprecated functions
 ~~~~~~~~
 Parser for old-fashioned Eurostat SUTs is deprecated. This function relied on peculiarly structured SUTs formats.
 In case you need to parse such SUTs, please rearrange them into the standard MARIO format.
-You can check the MARIO format from 'SUT.xlsx' file in the mario/test directory in this repository.
+You can check the MARIO format from 'test_SUT_standard.xlsx' file in the mario/test/new directory in this repository.
 
 
 v 0.3.3
