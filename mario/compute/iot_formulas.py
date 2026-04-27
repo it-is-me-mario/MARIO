@@ -8,6 +8,7 @@ import pandas as pd
 
 from mario.compute.helpers import (
     as_column_frame,
+    dense_values,
     identity_like,
     inverse_vector,
     matmul,
@@ -66,7 +67,7 @@ def _solve_iot_system(
         if all(isinstance(dtype, pd.SparseDtype) for dtype in z.dtypes):
             system = z.sparse.to_coo().tocsc()
         else:
-            system = sparse.csc_matrix(z.to_numpy(dtype=float))
+            system = sparse.csc_matrix(dense_values(z))
 
         lhs_sparse = sparse.identity(z.shape[0], format="csc") - (system.T if transpose else system)
         rhs_count = 1 if isinstance(rhs, pd.Series) else int(rhs.shape[1])
@@ -222,7 +223,7 @@ def _solve_iot_system(
                 return _solve_one(rhs_array)
             return np.column_stack([_solve_one(rhs_array[:, idx]) for idx in range(rhs_array.shape[1])])
 
-        rhs_values = rhs.to_numpy(dtype=float) if isinstance(rhs, (pd.DataFrame, pd.Series)) else np.asarray(rhs, dtype=float)
+        rhs_values = dense_values(rhs) if isinstance(rhs, (pd.DataFrame, pd.Series)) else np.asarray(rhs, dtype=float)
         solved = _solve_iterative(rhs_values) if linear_strategy == "iterative" else _solve_direct(rhs_values)
 
         if isinstance(rhs, pd.DataFrame):
@@ -440,7 +441,7 @@ def build_iot_p_from_v_w(v: pd.DataFrame, w: pd.DataFrame) -> pd.DataFrame:
     require_same_columns(v, w.index, lhs_name="v", rhs_name="w")
     direct_value_added = sum_columns(v)
     values = transpose_matvec(w, direct_value_added)
-    return pd.DataFrame(values.to_numpy(dtype=float), index=w.columns, columns=[PRICE_INDEX_LABEL])
+    return pd.DataFrame(dense_values(values), index=w.columns, columns=[PRICE_INDEX_LABEL])
 
 
 def build_iot_p_from_v_z(
@@ -459,4 +460,4 @@ def build_iot_p_from_v_z(
     require_same_columns(v, z.index, lhs_name="v", rhs_name="z")
     direct_value_added = sum_columns(v)
     values = _solve_iot_system(z, direct_value_added, transpose=True, context=context, resolver=resolver)
-    return pd.DataFrame(values.to_numpy(dtype=float), index=z.columns, columns=[PRICE_INDEX_LABEL])
+    return pd.DataFrame(dense_values(values), index=z.columns, columns=[PRICE_INDEX_LABEL])

@@ -7,7 +7,7 @@ import logging
 import numpy as np
 import pandas as pd
 
-from mario.compute.helpers import inverse_vector
+from mario.compute.helpers import dense_values, inverse_vector
 from mario.compute.iot_formulas import (
     build_iot_b_from_X_Z,
     build_iot_E_from_e_X,
@@ -565,7 +565,7 @@ def calc_f_dis(e, w):
         environmental transaction coefficients matrix, built as
         ``diag(e) @ w``.
     """
-    values = np.diagflat(np.asarray(e, dtype=float)) @ w.to_numpy(dtype=float)
+    values = np.diagflat(dense_values(e).reshape(-1)) @ dense_values(w)
     result = pd.DataFrame(values, index=w.index, columns=w.columns)
     result.index = getattr(e, "columns", w.index)
     return result
@@ -590,14 +590,15 @@ def calc_y(Y):
 
 def X_inverse(X):
     """Return the inverse-production vector as a dense NumPy array."""
-    return inverse_vector(X).to_numpy(dtype=float)
+    return dense_values(inverse_vector(X))
 
 
 def linkages_calculation(cut_diag, matrices, multi_mode, normalized):
     """Return backward and forward linkage indicators."""
     if cut_diag:
         for value in matrices.values():
-            np.fill_diagonal(value.values, 0)
+            for position in range(min(value.shape)):
+                value.iat[position, position] = 0.0
 
     if multi_mode:
         link_types = [
@@ -608,7 +609,7 @@ def linkages_calculation(cut_diag, matrices, multi_mode, normalized):
         ]
         geo_types = ["Local", "Foreign"]
         links = pd.DataFrame(
-            0,
+            0.0,
             index=matrices[_ENUM.g].index,
             columns=pd.MultiIndex.from_product([link_types, geo_types]),
         )
@@ -654,10 +655,10 @@ def linkages_calculation(cut_diag, matrices, multi_mode, normalized):
             )
 
     else:
-        forward_total = matrices[_ENUM.g].sum(axis=1).to_frame()
-        backward_total = matrices[_ENUM.w].sum(axis=0).to_frame()
-        forward_direct = matrices[_ENUM.b].sum(axis=1).to_frame()
-        backward_direct = matrices[_ENUM.z].sum(axis=0).to_frame()
+        forward_total = matrices[_ENUM.g].sum(axis=1).to_frame().astype(float)
+        backward_total = matrices[_ENUM.w].sum(axis=0).to_frame().astype(float)
+        forward_direct = matrices[_ENUM.b].sum(axis=1).to_frame().astype(float)
+        backward_direct = matrices[_ENUM.z].sum(axis=0).to_frame().astype(float)
 
         forward_total.columns = ["Total Forward"]
         backward_total.columns = ["Total Backward"]
@@ -666,16 +667,16 @@ def linkages_calculation(cut_diag, matrices, multi_mode, normalized):
 
         if normalized:
             forward_total.iloc[:, 0] = forward_total.iloc[:, 0] / np.average(
-                forward_total.values
+                dense_values(forward_total)
             )
             backward_total.iloc[:, 0] = backward_total.iloc[:, 0] / np.average(
-                backward_total.values
+                dense_values(backward_total)
             )
             forward_direct.iloc[:, 0] = forward_direct.iloc[:, 0] / np.average(
-                forward_direct.values
+                dense_values(forward_direct)
             )
             backward_direct.iloc[:, 0] = backward_direct.iloc[:, 0] / np.average(
-                backward_direct.values
+                dense_values(backward_direct)
             )
 
         links = pd.concat(

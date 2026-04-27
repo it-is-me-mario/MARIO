@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import logging
+from contextlib import contextmanager
+import inspect
 from pathlib import Path
 
 import numpy as np
@@ -34,6 +36,59 @@ _FLAT_EXPORT_MATRICES = {
     "flows": [_ENUM.V, _ENUM.E, _ENUM.Z, _ENUM.Y, _ENUM.EY, _ENUM.VY],
     "coefficients": [_ENUM.v, _ENUM.e, _ENUM.z, _ENUM.Y, _ENUM.EY, _ENUM.VY],
 }
+
+
+class _AxisOneGroupBy:
+    """Proxy for legacy pandas ``groupby(axis=1).sum()`` calls."""
+
+    def __init__(self, grouped):
+        self._grouped = grouped
+
+    def sum(self, *args, **kwargs):
+        return self._grouped.sum(*args, **kwargs).T
+
+    def __getattr__(self, name):
+        return getattr(self._grouped, name)
+
+
+@contextmanager
+def _pandas_groupby_axis_compat():
+    """Temporarily support legacy ``DataFrame.groupby(axis=1)`` calls."""
+    if "axis" in inspect.signature(pd.DataFrame.groupby).parameters:
+        yield
+        return
+
+    original_groupby = pd.DataFrame.groupby
+
+    def groupby_with_axis(self, by=None, axis=0, level=None, *args, **kwargs):
+        if axis in (1, "columns"):
+            grouped = original_groupby(self.T, by=by, level=level, *args, **kwargs)
+            return _AxisOneGroupBy(grouped)
+        return original_groupby(self, by=by, level=level, *args, **kwargs)
+
+    pd.DataFrame.groupby = groupby_with_axis
+    try:
+        yield
+    finally:
+        pd.DataFrame.groupby = original_groupby
+
+
+def _install_pymrio_pandas3_compat() -> None:
+    """Patch pymrio extension calculations for pandas 3 when needed."""
+    if "axis" in inspect.signature(pd.DataFrame.groupby).parameters:
+        return
+    if getattr(pymrio.Extension.calc_system, "_mario_pandas3_compat", False):
+        return
+
+    original_calc_system = pymrio.Extension.calc_system
+
+    def calc_system_with_pandas3_groupby(self, *args, **kwargs):
+        with _pandas_groupby_axis_compat():
+            return original_calc_system(self, *args, **kwargs)
+
+    calc_system_with_pandas3_groupby._mario_pandas3_compat = True
+    pymrio.Extension.calc_system = calc_system_with_pandas3_groupby
+
 
 def _unit_keys(database) -> list[str]:
     """Return the logical unit-bearing levels for one database."""
@@ -473,6 +528,8 @@ def export_database_to_pymrio(
         raise WrongInput(
             "satellte_account and factor_of_production does not accept values containing space."
         )
+
+    _install_pymrio_pandas3_compat()
 
     log_time(logger, f"Export: building pymrio IOSystem for {scenario}.", "info")
     matrices = database.query(

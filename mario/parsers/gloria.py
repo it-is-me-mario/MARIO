@@ -892,7 +892,7 @@ def _read_sparse_all_rows(
 
 def _sparse_dataframe(matrix: sparse.csr_matrix, index, columns) -> pd.DataFrame:
     """Wrap a SciPy sparse matrix in a pandas sparse dataframe."""
-    return pd.DataFrame.sparse.from_spmatrix(matrix, index=index, columns=columns)
+    return pd.DataFrame.sparse.from_spmatrix(matrix, index=index, columns=columns).fillna(0.0)
 
 
 def _dense_frame(data: np.ndarray, index, columns) -> pd.DataFrame:

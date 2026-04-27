@@ -1396,7 +1396,7 @@ def test_add_sectors_advanced_engine_converts_satellite_units_iot(tmp_path, Core
     region = CoreDataIOT.get_index(_MASTER_INDEX["r"])[0]
     parent_sector = CoreDataIOT.get_index(_MASTER_INDEX["s"])[0]
     sector_unit = CoreDataIOT.units[_MASTER_INDEX["s"]].loc[parent_sector, "unit"]
-    satellite = CoreDataIOT.units[_MASTER_INDEX["k"]].query("unit == 'TJ'").index[0]
+    satellite = CoreDataIOT.units[_MASTER_INDEX["k"]].query("unit == 'kg'").index[0]
     path = tmp_path / "advanced_iot_units.xlsx"
 
     CoreDataIOT.get_add_sectors_excel(
@@ -1414,7 +1414,7 @@ def test_add_sectors_advanced_engine_converts_satellite_units_iot(tmp_path, Core
             [
                 {
                     "Quantity": 1000.0,
-                    "Unit": "GJ",
+                    "Unit": "g",
                     "Input": "converted energy",
                     "Item type": _MASTER_INDEX["k"],
                     "DB Item": satellite,

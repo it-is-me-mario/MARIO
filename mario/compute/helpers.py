@@ -13,10 +13,45 @@ def _is_sparse_backed_dataframe(frame: pd.DataFrame) -> bool:
     )
 
 
+def _is_sparse_backed_series(series: pd.Series) -> bool:
+    """Return whether a series stores values with pandas sparse dtype."""
+    return isinstance(series, pd.Series) and isinstance(series.dtype, pd.SparseDtype)
+
+
+def dense_values(
+    block: pd.DataFrame | pd.Series | np.ndarray | list[float] | tuple[float, ...],
+    *,
+    copy: bool = False,
+) -> np.ndarray:
+    """Return numeric values, treating pandas sparse structural gaps as zeros."""
+    if isinstance(block, pd.DataFrame):
+        if _is_sparse_backed_dataframe(block):
+            return block.sparse.to_coo().toarray().astype(float, copy=copy)
+        return block.to_numpy(dtype=float, copy=copy)
+
+    if isinstance(block, pd.Series):
+        if _is_sparse_backed_series(block):
+            return block.sparse.to_dense().fillna(0.0).to_numpy(dtype=float, copy=copy)
+        return block.to_numpy(dtype=float, copy=copy)
+
+    if copy:
+        return np.array(block, dtype=float, copy=True)
+    return np.asarray(block, dtype=float)
+
+
+def sparse_frame_from_spmatrix(matrix, *, index, columns) -> pd.DataFrame:
+    """Build a pandas sparse dataframe whose implicit sparse value is zero."""
+    return pd.DataFrame.sparse.from_spmatrix(
+        matrix,
+        index=index,
+        columns=columns,
+    ).fillna(0.0)
+
+
 def as_dense_series(vector: pd.DataFrame | pd.Series | np.ndarray | list[float] | tuple[float, ...]) -> pd.Series:
     """Coerce a vector-like input to a dense float ``Series``."""
     series = _as_series(vector)
-    return pd.Series(series.to_numpy(dtype=float), index=series.index, name=series.name)
+    return pd.Series(dense_values(series), index=series.index, name=series.name)
 
 
 def _as_series(vector: pd.DataFrame | pd.Series | np.ndarray | list[float] | tuple[float, ...]) -> pd.Series:
@@ -39,7 +74,7 @@ def as_column_frame(
 ) -> pd.DataFrame:
     """Return a single-column dataframe preserving the vector index."""
     series = _as_series(vector)
-    return pd.DataFrame(series.values, index=series.index, columns=[column_name])
+    return pd.DataFrame(dense_values(series), index=series.index, columns=[column_name])
 
 
 def sum_final_demand(block: pd.DataFrame | pd.Series) -> pd.Series:
@@ -88,7 +123,7 @@ def diag_from_vector(
 ) -> np.ndarray:
     """Return a dense diagonal matrix built from a vector-like input."""
     series = _as_series(vector)
-    return np.diagflat(series.to_numpy(dtype=float))
+    return np.diagflat(dense_values(series))
 
 
 def scale_columns(
@@ -103,7 +138,8 @@ def scale_columns(
     """
     if not isinstance(frame, pd.DataFrame):
         raise TypeError("Expected a pandas DataFrame.")
-    series = _as_series(vector).astype(float)
+    raw_series = _as_series(vector)
+    series = pd.Series(dense_values(raw_series), index=raw_series.index, name=raw_series.name)
     if not frame.columns.equals(series.index):
         raise ValueError("frame columns and vector index do not match.")
 
@@ -111,8 +147,8 @@ def scale_columns(
         from scipy import sparse
 
         matrix = frame.sparse.to_coo().tocsc()
-        scaled = matrix @ sparse.diags(series.to_numpy(dtype=float))
-        return pd.DataFrame.sparse.from_spmatrix(scaled, index=frame.index, columns=frame.columns)
+        scaled = matrix @ sparse.diags(dense_values(series))
+        return sparse_frame_from_spmatrix(scaled, index=frame.index, columns=frame.columns)
 
     return frame.mul(series, axis=1)
 
@@ -129,7 +165,8 @@ def scale_rows(
     """
     if not isinstance(frame, pd.DataFrame):
         raise TypeError("Expected a pandas DataFrame.")
-    series = _as_series(vector).astype(float)
+    raw_series = _as_series(vector)
+    series = pd.Series(dense_values(raw_series), index=raw_series.index, name=raw_series.name)
     if not frame.index.equals(series.index):
         raise ValueError("frame index and vector index do not match.")
 
@@ -137,8 +174,8 @@ def scale_rows(
         from scipy import sparse
 
         matrix = frame.sparse.to_coo().tocsc()
-        scaled = sparse.diags(series.to_numpy(dtype=float)) @ matrix
-        return pd.DataFrame.sparse.from_spmatrix(scaled, index=frame.index, columns=frame.columns)
+        scaled = sparse.diags(dense_values(series)) @ matrix
+        return sparse_frame_from_spmatrix(scaled, index=frame.index, columns=frame.columns)
 
     return frame.mul(series, axis=0)
 
@@ -159,17 +196,17 @@ def matmul(left: pd.DataFrame, right: pd.DataFrame) -> pd.DataFrame:
         left_matrix = (
             left.sparse.to_coo().tocsr()
             if left_is_sparse
-            else sparse.csr_matrix(left.to_numpy(dtype=float))
+            else sparse.csr_matrix(dense_values(left))
         )
         right_matrix = (
             right.sparse.to_coo().tocsc()
             if right_is_sparse
-            else right.to_numpy(dtype=float)
+            else dense_values(right)
         )
         product = left_matrix @ right_matrix
 
         if sparse.issparse(product):
-            return pd.DataFrame.sparse.from_spmatrix(
+            return sparse_frame_from_spmatrix(
                 product,
                 index=left.index,
                 columns=right.columns,
@@ -182,7 +219,7 @@ def matmul(left: pd.DataFrame, right: pd.DataFrame) -> pd.DataFrame:
         )
 
     return pd.DataFrame(
-        left.to_numpy(dtype=float) @ right.to_numpy(dtype=float),
+        dense_values(left) @ dense_values(right),
         index=left.index,
         columns=right.columns,
     )
@@ -195,16 +232,17 @@ def matvec(
     """Multiply one labelled dataframe by one labelled vector."""
     if not isinstance(frame, pd.DataFrame):
         raise TypeError("Expected a pandas DataFrame.")
-    series = _as_series(vector).astype(float)
+    raw_series = _as_series(vector)
+    series = pd.Series(dense_values(raw_series), index=raw_series.index, name=raw_series.name)
     if not frame.columns.equals(series.index):
         raise ValueError("frame columns and vector index do not match.")
 
     if _is_sparse_backed_dataframe(frame):
         matrix = frame.sparse.to_coo().tocsr()
-        values = matrix @ series.to_numpy(dtype=float)
+        values = matrix @ dense_values(series)
         return pd.Series(np.asarray(values).reshape(-1), index=frame.index, dtype=float)
 
-    values = frame.to_numpy(dtype=float) @ series.to_numpy(dtype=float)
+    values = dense_values(frame) @ dense_values(series)
     return pd.Series(values, index=frame.index, dtype=float)
 
 
@@ -215,16 +253,17 @@ def transpose_matvec(
     """Multiply the transpose of one labelled dataframe by one labelled vector."""
     if not isinstance(frame, pd.DataFrame):
         raise TypeError("Expected a pandas DataFrame.")
-    series = _as_series(vector).astype(float)
+    raw_series = _as_series(vector)
+    series = pd.Series(dense_values(raw_series), index=raw_series.index, name=raw_series.name)
     if not frame.index.equals(series.index):
         raise ValueError("frame index and vector index do not match.")
 
     if _is_sparse_backed_dataframe(frame):
         matrix = frame.sparse.to_coo().tocsc()
-        values = matrix.T @ series.to_numpy(dtype=float)
+        values = matrix.T @ dense_values(series)
         return pd.Series(np.asarray(values).reshape(-1), index=frame.columns, dtype=float)
 
-    values = frame.to_numpy(dtype=float).T @ series.to_numpy(dtype=float)
+    values = dense_values(frame).T @ dense_values(series)
     return pd.Series(values, index=frame.columns, dtype=float)
 
 
@@ -232,8 +271,8 @@ def inverse_vector(
     vector: pd.DataFrame | pd.Series | np.ndarray | list[float] | tuple[float, ...]
 ) -> pd.Series:
     """Return the element-wise inverse, preserving zeros as zeros."""
-    series = _as_series(vector).astype(float)
-    values = series.to_numpy(copy=True)
+    series = _as_series(vector)
+    values = dense_values(series, copy=True)
     mask = values != 0
     values[mask] = 1.0 / values[mask]
     values[~mask] = 0.0
@@ -253,7 +292,7 @@ def identity_like(square_block: pd.DataFrame) -> pd.DataFrame:
 def safe_inverse(matrix: pd.DataFrame) -> pd.DataFrame:
     """Invert a square dataframe, falling back to a pseudo-inverse if needed."""
     validate_square(matrix)
-    values = matrix.to_numpy(dtype=float)
+    values = dense_values(matrix)
     try:
         inverse = np.linalg.inv(values)
     except np.linalg.LinAlgError:
@@ -275,11 +314,11 @@ def safe_solve(
     rhs_is_series = isinstance(rhs, pd.Series)
 
     if isinstance(rhs, pd.DataFrame):
-        rhs_values = rhs.to_numpy(dtype=float)
+        rhs_values = dense_values(rhs)
         rhs_index = rhs.index
         rhs_columns = rhs.columns
     elif isinstance(rhs, pd.Series):
-        rhs_values = rhs.to_numpy(dtype=float)
+        rhs_values = dense_values(rhs)
         rhs_index = rhs.index
         rhs_columns = None
     else:
@@ -289,9 +328,9 @@ def safe_solve(
 
     if solver == "numpy":
         try:
-            solved = np.linalg.solve(lhs.to_numpy(dtype=float), rhs_values)
+            solved = np.linalg.solve(dense_values(lhs), rhs_values)
         except np.linalg.LinAlgError:
-            solved = np.linalg.pinv(lhs.to_numpy(dtype=float)) @ rhs_values
+            solved = np.linalg.pinv(dense_values(lhs)) @ rhs_values
     elif solver == "scipy":
         from scipy import sparse
         from scipy.sparse.linalg import factorized
@@ -304,12 +343,12 @@ def safe_solve(
                 if all(isinstance(dtype, pd.SparseDtype) for dtype in lhs.dtypes):
                     lhs_sparse = lhs.sparse.to_coo().tocsc()
                 else:
-                    lhs_sparse = sparse.csc_matrix(lhs.to_numpy(dtype=float))
+                    lhs_sparse = sparse.csc_matrix(dense_values(lhs))
                 factor = factorized(lhs_sparse)
                 if cache is not None and cache_key is not None:
                     cache[cache_key] = factor
             except Exception:
-                solved = np.linalg.pinv(lhs.to_numpy(dtype=float)) @ np.asarray(rhs_values, dtype=float)
+                solved = np.linalg.pinv(dense_values(lhs)) @ np.asarray(rhs_values, dtype=float)
                 factor = None
 
         if factor is not None:

@@ -73,13 +73,16 @@ def _aggregate_expected_standard_axis(frame, *, region_target=None, item_target=
                 values = [item_target] * len(values)
             arrays.append(values)
         expected.columns = pd.MultiIndex.from_arrays(arrays, names=columns.names)
-        expected = expected.groupby(axis=1, level=list(range(expected.columns.nlevels)), sort=False).sum()
+        expected = expected.T.groupby(
+            level=list(range(expected.columns.nlevels)),
+            sort=False,
+        ).sum().T
     else:
         expected.columns = pd.Index(
             [item_target if item_target is not None else value for value in columns],
             name=columns.name,
         )
-        expected = expected.groupby(axis=1, level=[0], sort=False).sum()
+        expected = expected.T.groupby(level=[0], sort=False).sum().T
     return expected
 
 

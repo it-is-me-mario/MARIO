@@ -219,34 +219,38 @@ def test_sut_split_flow_formulas_match_database_views_when_final_demand_is_commo
 
 
 def test_sut_satellite_multiplier_formulas_handle_pandas_sparse_float32_inputs():
+    ea_values = np.array([[1, 0], [0, 2]], dtype=np.float32)
+    s_values = np.array([[1, 3], [2, 4]], dtype=np.float32)
+    wcc_values = np.array([[1, 2], [0, 1]], dtype=np.float32)
+    waa_values = np.array([[1, 1], [0, 1]], dtype=np.float32)
     ea = pd.DataFrame.sparse.from_spmatrix(
-        sparse.csr_matrix(np.array([[1, 0], [0, 2]], dtype=np.float32)),
+        sparse.csr_matrix(ea_values),
         index=["k1", "k2"],
         columns=["a1", "a2"],
     )
     s = pd.DataFrame(
-        np.array([[1, 3], [2, 4]], dtype=np.float32),
+        s_values,
         index=["a1", "a2"],
         columns=["c1", "c2"],
     )
     wcc = pd.DataFrame(
-        np.array([[1, 2], [0, 1]], dtype=np.float32),
+        wcc_values,
         index=["c1", "c2"],
         columns=["c1", "c2"],
     )
     waa = pd.DataFrame(
-        np.array([[1, 1], [0, 1]], dtype=np.float32),
+        waa_values,
         index=["a1", "a2"],
         columns=["a1", "a2"],
     )
 
     expected_fc = pd.DataFrame(
-        ea.to_numpy(dtype=float) @ s.to_numpy(dtype=float) @ wcc.to_numpy(dtype=float),
+        ea_values.astype(float) @ s_values.astype(float) @ wcc_values.astype(float),
         index=ea.index,
         columns=wcc.columns,
     )
     expected_fa = pd.DataFrame(
-        ea.to_numpy(dtype=float) @ waa.to_numpy(dtype=float),
+        ea_values.astype(float) @ waa_values.astype(float),
         index=ea.index,
         columns=waa.columns,
     )
@@ -256,49 +260,55 @@ def test_sut_satellite_multiplier_formulas_handle_pandas_sparse_float32_inputs()
 
 
 def test_sut_price_formulas_handle_pandas_sparse_float32_inputs():
+    va_values = np.array([[1, 0], [0, 2]], dtype=np.float32)
+    vc_values = np.array([[3, 0], [0, 4]], dtype=np.float32)
+    wac_values = np.array([[1, 2], [0, 1]], dtype=np.float32)
+    wcc_values = np.array([[2, 0], [1, 1]], dtype=np.float32)
+    waa_values = np.array([[1, 0], [3, 1]], dtype=np.float32)
+    wca_values = np.array([[1, 1], [0, 2]], dtype=np.float32)
     va = pd.DataFrame.sparse.from_spmatrix(
-        sparse.csr_matrix(np.array([[1, 0], [0, 2]], dtype=np.float32)),
+        sparse.csr_matrix(va_values),
         index=["f1", "f2"],
         columns=["a1", "a2"],
     )
     vc = pd.DataFrame.sparse.from_spmatrix(
-        sparse.csr_matrix(np.array([[3, 0], [0, 4]], dtype=np.float32)),
+        sparse.csr_matrix(vc_values),
         index=["f1", "f2"],
         columns=["c1", "c2"],
     )
     wac = pd.DataFrame.sparse.from_spmatrix(
-        sparse.csr_matrix(np.array([[1, 2], [0, 1]], dtype=np.float32)),
+        sparse.csr_matrix(wac_values),
         index=["a1", "a2"],
         columns=["c1", "c2"],
     )
     wcc = pd.DataFrame.sparse.from_spmatrix(
-        sparse.csr_matrix(np.array([[2, 0], [1, 1]], dtype=np.float32)),
+        sparse.csr_matrix(wcc_values),
         index=["c1", "c2"],
         columns=["c1", "c2"],
     )
     waa = pd.DataFrame.sparse.from_spmatrix(
-        sparse.csr_matrix(np.array([[1, 0], [3, 1]], dtype=np.float32)),
+        sparse.csr_matrix(waa_values),
         index=["a1", "a2"],
         columns=["a1", "a2"],
     )
     wca = pd.DataFrame.sparse.from_spmatrix(
-        sparse.csr_matrix(np.array([[1, 1], [0, 2]], dtype=np.float32)),
+        sparse.csr_matrix(wca_values),
         index=["c1", "c2"],
         columns=["a1", "a2"],
     )
 
     expected_pc = pd.DataFrame(
         (
-            wac.to_numpy(dtype=float).T @ va.to_numpy(dtype=float).sum(axis=0)
-            + wcc.to_numpy(dtype=float).T @ vc.to_numpy(dtype=float).sum(axis=0)
+            wac_values.astype(float).T @ va_values.astype(float).sum(axis=0)
+            + wcc_values.astype(float).T @ vc_values.astype(float).sum(axis=0)
         ).reshape(-1, 1),
         index=wcc.columns,
         columns=["price index"],
     )
     expected_pa = pd.DataFrame(
         (
-            waa.to_numpy(dtype=float).T @ va.to_numpy(dtype=float).sum(axis=0)
-            + wca.to_numpy(dtype=float).T @ vc.to_numpy(dtype=float).sum(axis=0)
+            waa_values.astype(float).T @ va_values.astype(float).sum(axis=0)
+            + wca_values.astype(float).T @ vc_values.astype(float).sum(axis=0)
         ).reshape(-1, 1),
         index=waa.columns,
         columns=["price index"],

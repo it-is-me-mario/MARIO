@@ -9,7 +9,14 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from mario.compute.helpers import as_column_frame, as_dense_series
+from mario.compute.helpers import (
+    as_column_frame,
+    as_dense_series,
+    dense_values,
+    matmul,
+    sum_columns,
+    sum_rows,
+)
 from mario.compute.semantics import BlockSpec
 
 
@@ -226,15 +233,15 @@ def execute_registered_operator(dataset, target: str, dependencies: dict[str, ob
     if spec.kind == OperatorKind.MATRIX_PRODUCT:
         left = dependencies[spec.inputs[0]]
         right = dependencies[spec.inputs[1]]
-        return left.dot(right)
+        return matmul(left, right)
 
     if spec.kind == OperatorKind.SUM:
         source = dependencies[spec.inputs[0]]
         label = spec.parameters["label"]
         if spec.parameters["over"] == "columns":
-            return as_column_frame(source.sum(axis=1), label)
-        summed = source.sum(axis=0)
-        return pd.DataFrame([summed.to_numpy(dtype=float)], index=[label], columns=summed.index)
+            return as_column_frame(sum_rows(source), label)
+        summed = sum_columns(source)
+        return pd.DataFrame([dense_values(summed)], index=[label], columns=summed.index)
 
     if spec.kind == OperatorKind.ZEROS_LIKE:
         row_source = dependencies[spec.parameters["rows_from"]]

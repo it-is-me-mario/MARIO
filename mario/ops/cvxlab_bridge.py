@@ -208,7 +208,120 @@ def _build_cvxlab_model(*, main_dir_path, model_dir_name: str, input_data_files_
     if "log_format" in model_signature:
         kwargs["log_format"] = "standard"
 
-    return cl.Model(**kwargs)
+    with _cvxlab_nullable_settings_compat():
+        return cl.Model(**kwargs)
+
+
+def _is_missing_settings_cell(value) -> bool:
+    """Return whether a CVXLab settings cell should be omitted."""
+    if value is None:
+        return True
+    try:
+        return bool(pd.isna(value))
+    except (TypeError, ValueError):
+        return False
+
+
+def _process_cvxlab_settings_value(column, value, *, skip_process_str: bool = False):
+    """Process one CVXLab settings cell with pandas 3 dtype coercions in mind."""
+    import cvxlab.support.util_text as cvx_util_text
+
+    processed = value if skip_process_str else cvx_util_text.process_str(value)
+    if column in {"integer", "nonneg", "split_problem"} and isinstance(
+        processed, (int, float)
+    ):
+        return bool(processed)
+    return processed
+
+
+def _pivot_cvxlab_settings_dataframe(
+    data: pd.DataFrame,
+    primary_key: str | int | None = None,
+    secondary_key: str | int | None = None,
+    merge_dict: bool = False,
+    skip_process_str: bool = False,
+) -> dict:
+    """Pandas 3-safe variant of CVXLab's settings dataframe pivot helper."""
+    import cvxlab.support.util as cvx_util
+
+    data_structure = {}
+    primary_key = primary_key or data.columns[0]
+
+    if primary_key not in data.columns:
+        raise ValueError(f"Primary key '{primary_key}' not found in DataFrame columns.")
+
+    records = data.to_dict("records")
+    columns = list(data.columns)
+    for row in records:
+        key = row[primary_key]
+
+        if key not in data_structure:
+            data_structure[key] = {}
+
+        inner_dict = {}
+        for column in columns:
+            if column == primary_key:
+                continue
+            if column == secondary_key:
+                break
+
+            value = row[column]
+            if not _is_missing_settings_cell(value):
+                inner_dict[column] = _process_cvxlab_settings_value(
+                    column,
+                    value,
+                    skip_process_str=skip_process_str,
+                )
+
+        if merge_dict:
+            data_structure[key] = cvx_util.merge_dicts(
+                [data_structure[key], inner_dict]
+            )
+        else:
+            data_structure[key] = inner_dict
+
+    if secondary_key:
+        if secondary_key not in data.columns:
+            raise ValueError(
+                f"Secondary key '{secondary_key}' not found in DataFrame columns."
+            )
+
+        secondary_key_index = columns.index(secondary_key)
+        secondary_keys_list = columns[secondary_key_index:]
+
+        for row in records:
+            outer_key = row[primary_key]
+            inner_key = row[secondary_key]
+            data_structure[outer_key].setdefault(secondary_key, {})
+
+            inner_dict = {}
+            for column in secondary_keys_list:
+                if column == secondary_key:
+                    continue
+
+                value = row[column]
+                if not _is_missing_settings_cell(value):
+                    inner_dict[column] = _process_cvxlab_settings_value(column, value)
+
+            data_structure[outer_key][secondary_key][inner_key] = inner_dict
+
+    if None in data_structure:
+        return data_structure[None]
+
+    return data_structure
+
+
+@contextmanager
+def _cvxlab_nullable_settings_compat():
+    """Patch CVXLab settings parsing while constructing a model under pandas 3."""
+    import cvxlab.support.util as cvx_util
+
+    original = cvx_util.pivot_dataframe_to_data_structure
+    cvx_util.pivot_dataframe_to_data_structure = _pivot_cvxlab_settings_dataframe
+    try:
+        yield
+    finally:
+        cvx_util.pivot_dataframe_to_data_structure = original
 
 
 def _call_model_method(model, *names, **kwargs):
@@ -283,7 +396,8 @@ def _maybe_rewrite_incompatible_model_settings(path: Path) -> None:
     template untouched.
     """
 
-    if getattr(cl.Defaults.Labels, "NONNEG_KEY", None) is not None:
+    drop_nonneg = getattr(cl.Defaults.Labels, "NONNEG_KEY", None) is None
+    if not drop_nonneg:
         return
 
     workbook = pd.ExcelFile(path, engine="openpyxl")
@@ -293,7 +407,7 @@ def _maybe_rewrite_incompatible_model_settings(path: Path) -> None:
     }
     with pd.ExcelWriter(path, engine="openpyxl") as writer:
         for sheet, frame in sheets.items():
-            if sheet == "structure_variables" and "nonneg" in frame.columns:
+            if drop_nonneg and sheet == "structure_variables" and "nonneg" in frame.columns:
                 frame = frame.drop(columns=["nonneg"])
             frame.to_excel(writer, sheet_name=sheet, index=False)
 

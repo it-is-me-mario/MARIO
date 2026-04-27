@@ -60,7 +60,7 @@ def test_is_isard(CoreDataIOT,CoreDataSUT):
     assert "This test is implementable only on SUT tables" in str(msg.value)
 
     # for single region table, cannot be implemented
-    CoreDataSUT.to_single_region("Italy")
+    CoreDataSUT.to_single_region(CoreDataSUT.get_index("Region")[0])
 
     with pytest.raises(NotImplementable) as msg:
         CoreDataSUT.is_isard()
@@ -81,7 +81,7 @@ def test_is_chenerymoses(CoreDataIOT,CoreDataSUT):
     assert "This test is implementable only on SUT tables" in str(msg.value)
 
     # for single region table, cannot be implemented
-    CoreDataSUT.to_single_region("Italy")
+    CoreDataSUT.to_single_region(CoreDataSUT.get_index("Region")[0])
 
     with pytest.raises(NotImplementable) as msg:
         CoreDataSUT.is_chenerymoses()

@@ -1,3 +1,5 @@
+import warnings
+
 import pandas as pd
 import pandas.testing as pdt
 
@@ -156,6 +158,18 @@ def test_calc_linkages_supports_sut_specific_ghosh_blocks():
     assert {"bu", "bs", "gcc", "gca", "gac", "gaa"}.issubset(set(database["baseline"]))
     assert _ENUM.b not in database["baseline"]
     assert _ENUM.g not in database["baseline"]
+
+
+def test_calc_linkages_avoids_incompatible_dtype_warnings():
+    database = load_test("IOT")
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FutureWarning)
+        multi_region = database.calc_linkages()
+        normalized = database.calc_linkages(multi_mode=False)
+
+    assert all(dtype.kind == "f" for dtype in multi_region.dtypes)
+    assert all(dtype.kind == "f" for dtype in normalized.dtypes)
 
 
 def test_query_and_get_data_auto_calc():

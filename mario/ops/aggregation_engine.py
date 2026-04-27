@@ -111,9 +111,12 @@ def _aggregate_axis(instance, matrix_name: str, labels, *, side: str, agg_indece
 def _group_axis(frame: pd.DataFrame, *, axis: int) -> pd.DataFrame:
     """Group one dataframe axis after relabeling aggregation targets."""
     labels = frame.index if axis == 0 else frame.columns
+    levels = list(range(labels.nlevels)) if isinstance(labels, pd.MultiIndex) else [0]
     if isinstance(labels, pd.MultiIndex):
-        return frame.groupby(axis=axis, level=list(range(labels.nlevels)), sort=False).sum()
-    return frame.groupby(axis=axis, level=[0], sort=False).sum()
+        levels = list(range(labels.nlevels))
+    if axis == 0:
+        return frame.groupby(level=levels, sort=False).sum()
+    return frame.T.groupby(level=levels, sort=False).sum().T
 
 
 def _drop_extension_rows(instance, frame: pd.DataFrame, matrix_name: str, drop):
@@ -378,10 +381,10 @@ def unit_aggregation_check(instance, drop):
                 if index in drop:
                     continue
 
-                match = list(aggregation.loc[index, :].values.flatten())
+                match = list(aggregation.loc[index, :].to_numpy().flatten())
 
                 take_units = delete_duplicates(
-                    units[item].loc[match, "unit"].values.flatten()
+                    units[item].loc[match, "unit"].to_numpy().flatten()
                 )
 
                 if len(take_units) > 1:

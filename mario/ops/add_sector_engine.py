@@ -670,7 +670,7 @@ class AddSectorEngine:
         """Convert inventory quantities to the database units using pint."""
 
         self.converted_quantity_column = cqc
-        inventory[cqc] = ""
+        inventory[cqc] = 0.0
         ureg = pint.UnitRegistry()
 
         for i in inventory.index:

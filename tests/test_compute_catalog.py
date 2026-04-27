@@ -1,18 +1,17 @@
 from mario.compute.catalog import CATALOG_OPEN_QUESTIONS, COMPUTE_CATALOG, get_matrix_spec
+import mario.model.labels as model_labels
 from mario.model.enums import TableKind
 from mario.model.labels import (
     INDEX_LABELS,
     ITEM_LABEL,
     PRODUCTION_LABEL,
-    TableSchemaLabels,
-    get_table_schema_labels,
 )
 
 
 def test_model_labels_still_derive_from_settings():
-    schema = get_table_schema_labels("IOT")
+    schema = model_labels.get_table_schema_labels("IOT")
 
-    assert isinstance(schema, TableSchemaLabels)
+    assert isinstance(schema, model_labels.TableSchemaLabels)
     assert INDEX_LABELS["r"] == "Region"
     assert INDEX_LABELS["s"] == "Sector"
     assert schema.dimension_labels == (

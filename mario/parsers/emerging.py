@@ -315,14 +315,14 @@ def _dense_or_sparse_frame_from_hdf5(
         cols = np.array([], dtype=np.int64)
 
     matrix = coo_matrix((data, (rows, cols)), shape=(len(index), len(columns))).tocsr()
-    return pd.DataFrame.sparse.from_spmatrix(matrix, index=index, columns=columns)
+    return pd.DataFrame.sparse.from_spmatrix(matrix, index=index, columns=columns).fillna(0.0)
 
 
 def _dense_or_sparse_frame_from_array(array: np.ndarray, *, index, columns) -> pd.DataFrame:
     """Convert one dense array to a sparse-backed dataframe when appropriate."""
     nz_rows, nz_cols = np.nonzero(array)
     matrix = coo_matrix((array[nz_rows, nz_cols], (nz_rows, nz_cols)), shape=array.shape).tocsr()
-    return pd.DataFrame.sparse.from_spmatrix(matrix, index=index, columns=columns)
+    return pd.DataFrame.sparse.from_spmatrix(matrix, index=index, columns=columns).fillna(0.0)
 
 
 def _zero_frame(index, columns) -> pd.DataFrame:

@@ -7,8 +7,8 @@ import numpy as np
 import pandas as pd
 
 from mario.compute.helpers import (
-    as_dense_series,
     as_column_frame,
+    dense_values,
     identity_like,
     inverse_vector,
     matmul,
@@ -91,7 +91,7 @@ def _safe_inverse_swapped_axes(matrix: pd.DataFrame) -> pd.DataFrame:
         raise TypeError("Expected a pandas DataFrame.")
     if matrix.shape[0] != matrix.shape[1]:
         raise ValueError("Expected a square matrix.")
-    values = matrix.to_numpy(dtype=float)
+    values = dense_values(matrix)
     try:
         inverse = np.linalg.inv(values)
     except np.linalg.LinAlgError:
@@ -117,7 +117,7 @@ def _solve_sut_system(
         if all(isinstance(dtype, pd.SparseDtype) for dtype in product.dtypes):
             system = product.sparse.to_coo().tocsc()
         else:
-            system = sparse.csc_matrix(product.to_numpy(dtype=float))
+            system = sparse.csc_matrix(dense_values(product))
 
         lhs_sparse = sparse.identity(product.shape[0], format="csc") - (system.T if transpose else system)
         rhs_count = 1 if isinstance(rhs, pd.Series) else int(rhs.shape[1])
@@ -273,7 +273,7 @@ def _solve_sut_system(
                 return _solve_one(rhs_array)
             return np.column_stack([_solve_one(rhs_array[:, idx]) for idx in range(rhs_array.shape[1])])
 
-        rhs_values = rhs.to_numpy(dtype=float) if isinstance(rhs, (pd.DataFrame, pd.Series)) else np.asarray(rhs, dtype=float)
+        rhs_values = dense_values(rhs) if isinstance(rhs, (pd.DataFrame, pd.Series)) else np.asarray(rhs, dtype=float)
         solved = _solve_iterative(rhs_values) if linear_strategy == "iterative" else _solve_direct(rhs_values)
 
         if isinstance(rhs, pd.DataFrame):
@@ -379,7 +379,7 @@ def build_sut_Xa_from_S_Ya(S: pd.DataFrame, Ya: pd.DataFrame) -> pd.DataFrame:
     require_same_index(S, y_total, lhs_name="S", rhs_name="Ya_total")
     s_total = sum_rows(S)
     total = pd.Series(
-        s_total.to_numpy(dtype=float) + y_total.to_numpy(dtype=float),
+        dense_values(s_total) + dense_values(y_total),
         index=S.index,
     )
     return _production_frame(total)
@@ -399,7 +399,7 @@ def build_sut_Xc_from_U_Yc(U: pd.DataFrame, Yc: pd.DataFrame) -> pd.DataFrame:
     require_same_index(U, y_total, lhs_name="U", rhs_name="Yc_total")
     u_total = sum_rows(U)
     total = pd.Series(
-        u_total.to_numpy(dtype=float) + y_total.to_numpy(dtype=float),
+        dense_values(u_total) + dense_values(y_total),
         index=U.index,
     )
     return _production_frame(total)

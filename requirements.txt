@@ -1,12 +1,13 @@
 numpy==2.1.1
-pandas==2.2.3
+pandas==3.0.2
 plotly
 tabulate
-openpyxl==3.1.0
+openpyxl==3.1.5
+pint==0.25.3
 ipython>=8.27.0
 pyyaml
 country_converter
-xlsxwriter==3.2.0
+xlsxwriter==3.2.9
 pytest
 polars
 scipy
