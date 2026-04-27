@@ -167,3 +167,19 @@ Note on ``DataTemplate``
 
 ``DataTemplate`` is deprecated. Use
 :doc:`/api_document/mario.write_parse_template` instead.
+
+Notebook walkthrough
+--------------------
+
+Use the notebook below as the main custom database template guide:
+
+* :doc:`Provide your database walkthrough <../notebooks/user_guide/provide_your_database>`
+
+If you prefer to run it locally, you can also download the source notebook:
+
+* :download:`Download the custom database notebook <../notebooks/user_guide/provide_your_database.ipynb>`
+
+.. toctree::
+   :hidden:
+
+   ../notebooks/user_guide/provide_your_database

@@ -47,3 +47,19 @@ After insertion, it is worth checking:
 * the updated extension labels;
 * the associated units table;
 * the availability of the recomputed dependent matrices.
+
+Notebook walkthrough
+--------------------
+
+Use the notebook below as the main add-extensions guide:
+
+* :doc:`Add extensions walkthrough <../../notebooks/user_guide/transformations/add_extensions>`
+
+If you prefer to run it locally, you can also download the source notebook:
+
+* :download:`Download the add-extensions notebook <../../notebooks/user_guide/transformations/add_extensions.ipynb>`
+
+.. toctree::
+   :hidden:
+
+   ../../notebooks/user_guide/transformations/add_extensions

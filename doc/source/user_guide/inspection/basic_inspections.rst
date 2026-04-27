@@ -24,7 +24,7 @@ Examples
    db.scenarios
    db.sets
    db.get_index("all")
-   db.list_blocks()
+   db.matrices["baseline"].keys()
 
 If you want to inspect one specific set:
 
@@ -33,7 +33,7 @@ If you want to inspect one specific set:
    db.get_index("Region")
    db.get_index("Sector")
 
-The public set resolver also accepts aliases and case-insensitive names:
+The public API also accepts aliases and case-insensitive names:
 
 .. code-block:: python
 
@@ -47,21 +47,39 @@ To check whether a *matrix* is already available in one *scenario*:
 
 .. code-block:: python
 
-   db.has_block("z")
-   db.list_blocks(scenario="baseline")
+   db.matrices["baseline"].keys()
 
 To inspect one stored *matrix* as pandas data:
 
 .. code-block:: python
 
-   z = db.get_block_as_pandas("z")
-   Y = db.get_block_as_pandas("Y")
+   z = db.z. # this by default returns the "baseline" scenario
+   Y = db.Y
 
 For compact multi-matrix inspection:
 
 .. code-block:: python
 
-   data = db.query(matrices=["z", "Y"])
+   data = db.query(
+      matrices=["z", "Y"], 
+      scenarios="baseline" # you can specify one or more scenarios
+      )
 
 This is usually the right starting point before running heavier workflows such
 as aggregation, shocks, or structural transformations.
+
+Notebook walkthrough
+--------------------
+
+Use the notebook below as the main inspection and calculation guide:
+
+* :doc:`Basic inspections walkthrough <../../notebooks/user_guide/inspection/basic_inspections>`
+
+If you prefer to run it locally, you can also download the source notebook:
+
+* :download:`Download the basic inspections notebook <../../notebooks/user_guide/inspection/basic_inspections.ipynb>`
+
+.. toctree::
+   :hidden:
+
+   ../../notebooks/user_guide/inspection/basic_inspections

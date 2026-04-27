@@ -50,3 +50,19 @@ For example:
    db.list_blocks()
    db.get_index("Sector")
    db.get_index("Consumption category")
+
+Notebook walkthrough
+--------------------
+
+Use the notebook below as the main SUT-to-IOT guide:
+
+* :doc:`SUT to IOT walkthrough <../../notebooks/user_guide/transformations/sut_to_iot>`
+
+If you prefer to run it locally, you can also download the source notebook:
+
+* :download:`Download the SUT-to-IOT notebook <../../notebooks/user_guide/transformations/sut_to_iot.ipynb>`
+
+.. toctree::
+   :hidden:
+
+   ../../notebooks/user_guide/transformations/sut_to_iot

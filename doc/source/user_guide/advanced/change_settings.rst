@@ -50,3 +50,19 @@ To go back to the packaged defaults:
 .. code-block:: python
 
    mario.reset_settings()
+
+Notebook walkthrough
+--------------------
+
+Use the notebook below as the main advanced workflow guide:
+
+* :doc:`Change settings walkthrough <../../notebooks/user_guide/advanced/change_settings>`
+
+If you prefer to run it locally, you can also download the source notebook:
+
+* :download:`Download the change-settings notebook <../../notebooks/user_guide/advanced/change_settings.ipynb>`
+
+.. toctree::
+   :hidden:
+
+   ../../notebooks/user_guide/advanced/change_settings

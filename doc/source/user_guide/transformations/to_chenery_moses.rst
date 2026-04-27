@@ -43,3 +43,19 @@ After the conversion, it is usually worth checking:
 * the transformed ``Z`` and ``Y`` matrices;
 * the available stored matrices in the affected scenarios;
 * whether the database now satisfies the Chenery-Moses structure you expect.
+
+Notebook walkthrough
+--------------------
+
+Use the notebook below as the main Chenery-Moses guide:
+
+* :doc:`To Chenery-Moses walkthrough <../../notebooks/user_guide/transformations/to_chenery_moses>`
+
+If you prefer to run it locally, you can also download the source notebook:
+
+* :download:`Download the Chenery-Moses notebook <../../notebooks/user_guide/transformations/to_chenery_moses.ipynb>`
+
+.. toctree::
+   :hidden:
+
+   ../../notebooks/user_guide/transformations/to_chenery_moses

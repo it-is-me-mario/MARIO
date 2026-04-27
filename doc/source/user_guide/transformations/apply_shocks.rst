@@ -95,3 +95,19 @@ If you want to recompute a scenario with the same name, use:
 If instead you want to edit selected stored matrices of an already existing
 scenario directly, use
 :doc:`Database.update_scenarios </api_document/mario.Database.update_scenarios>`.
+
+Notebook walkthrough
+--------------------
+
+Use the notebook below as the main shocks guide:
+
+* :doc:`Apply shocks walkthrough <../../notebooks/user_guide/transformations/apply_shocks>`
+
+If you prefer to run it locally, you can also download the source notebook:
+
+* :download:`Download the shocks notebook <../../notebooks/user_guide/transformations/apply_shocks.ipynb>`
+
+.. toctree::
+   :hidden:
+
+   ../../notebooks/user_guide/transformations/apply_shocks

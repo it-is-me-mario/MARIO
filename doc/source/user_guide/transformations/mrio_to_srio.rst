@@ -50,3 +50,19 @@ For example:
    db.get_index("Factor of production")
    db.get_index("Consumption category")
    db.list_blocks()
+
+Notebook walkthrough
+--------------------
+
+Use the notebook below as the main MRIO-to-SRIO guide:
+
+* :doc:`MRIO to SRIO walkthrough <../../notebooks/user_guide/transformations/mrio_to_srio>`
+
+If you prefer to run it locally, you can also download the source notebook:
+
+* :download:`Download the MRIO-to-SRIO notebook <../../notebooks/user_guide/transformations/mrio_to_srio.ipynb>`
+
+.. toctree::
+   :hidden:
+
+   ../../notebooks/user_guide/transformations/mrio_to_srio
