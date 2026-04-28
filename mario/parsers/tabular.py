@@ -38,6 +38,8 @@ import numpy as np
 import math
 import pymrio
 
+from mario.ops.export import _install_pymrio_pandas3_compat
+
 # reading the constants
 
 logger = logging.getLogger(__name__)
@@ -633,6 +635,7 @@ def parse_pymrio(io, value_added, satellite_account):
     """Extracts the data from pymrio in mario format"""
 
     # be sure that system is calculated
+    _install_pymrio_pandas3_compat()
     io = io.calc_all()
 
     extensions = {}
@@ -716,6 +719,15 @@ def parse_pymrio(io, value_added, satellite_account):
                 raise WrongInput(
                     f"{value} is not a correct slicer for the specific Extension."
                 )
+
+    # Different pymrio extensions may expose only partial column coverage.
+    # Align everything to the core Z/Y layouts before building the Database.
+    if len(v):
+        v = v.reindex(columns=io.Z.columns, fill_value=0).fillna(0)
+    if len(e):
+        e = e.reindex(columns=io.Z.columns, fill_value=0).fillna(0)
+    if len(EY):
+        EY = EY.reindex(columns=io.Y.columns, fill_value=0).fillna(0)
 
     if not len(v):
         v.loc["-", io.Z.columns] = 0
