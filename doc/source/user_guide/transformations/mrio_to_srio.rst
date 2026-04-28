@@ -61,8 +61,3 @@ Use the notebook below as the main MRIO-to-SRIO guide:
 If you prefer to run it locally, you can also download the source notebook:
 
 * :download:`Download the MRIO-to-SRIO notebook <../../notebooks/user_guide/transformations/mrio_to_srio.ipynb>`
-
-.. toctree::
-   :hidden:
-
-   ../../notebooks/user_guide/transformations/mrio_to_srio

@@ -31,13 +31,13 @@ An extra set of workflows shows how to use advanced features
    :maxdepth: 1
    :caption: Transformations
 
-   transformations/aggregate
-   transformations/apply_shocks
-   transformations/add_sectors
-   transformations/sut_to_iot
-   transformations/mrio_to_srio
-   transformations/add_extensions
-   transformations/to_chenery_moses
+   ../notebooks/user_guide/transformations/aggregate
+   ../notebooks/user_guide/transformations/apply_shocks
+   ../notebooks/user_guide/transformations/add_sectors
+   ../notebooks/user_guide/transformations/sut_to_iot
+   ../notebooks/user_guide/transformations/mrio_to_srio
+   ../notebooks/user_guide/transformations/add_extensions
+   ../notebooks/user_guide/transformations/to_chenery_moses
 
 .. toctree::
    :maxdepth: 1
@@ -58,3 +58,14 @@ An extra set of workflows shows how to use advanced features
 
    advanced/change_settings
    advanced/large_database_workflows
+
+.. toctree::
+   :hidden:
+
+   transformations/aggregate
+   transformations/apply_shocks
+   transformations/add_sectors
+   transformations/sut_to_iot
+   transformations/mrio_to_srio
+   transformations/add_extensions
+   transformations/to_chenery_moses

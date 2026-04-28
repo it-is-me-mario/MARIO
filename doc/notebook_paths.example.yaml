@@ -32,3 +32,12 @@ notebooks:
     replacements:
       - placeholder: "/path/to/WIOT2014_Nov16_ROW.xlsb"
         local: "/absolute/local/path/to/WIOT2014_Nov16_ROW.xlsb"
+
+  source/notebooks/user_guide/transformations/add_sectors.ipynb:
+    replacements:
+      - placeholder: "/path/to/add_sector_template.xlsx"
+        local: "/absolute/local/path/to/add_sector_template.xlsx"
+      - placeholder: "/path/to/add_sector_master_filled.xlsx"
+        local: "/absolute/local/path/to/add_sector_master_filled.xlsx"
+      - placeholder: "/path/to/add_sector_inventories_filled.xlsx"
+        local: "/absolute/local/path/to/add_sector_inventories_filled.xlsx"

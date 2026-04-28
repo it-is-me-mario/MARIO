@@ -1,5 +1,5 @@
-Aggregate
-=========
+Aggregation
+===========
 
 This page will provide the standard aggregation workflow.
 
@@ -20,8 +20,3 @@ Use the notebook below as the main transformation guide:
 If you prefer to run it locally, you can also download the source notebook:
 
 * :download:`Download the aggregate notebook <../../notebooks/user_guide/transformations/aggregate.ipynb>`
-
-.. toctree::
-   :hidden:
-
-   ../../notebooks/user_guide/transformations/aggregate

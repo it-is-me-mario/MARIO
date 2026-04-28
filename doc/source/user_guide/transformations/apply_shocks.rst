@@ -106,8 +106,3 @@ Use the notebook below as the main shocks guide:
 If you prefer to run it locally, you can also download the source notebook:
 
 * :download:`Download the shocks notebook <../../notebooks/user_guide/transformations/apply_shocks.ipynb>`
-
-.. toctree::
-   :hidden:
-
-   ../../notebooks/user_guide/transformations/apply_shocks

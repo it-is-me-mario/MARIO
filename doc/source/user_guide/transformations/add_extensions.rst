@@ -58,8 +58,3 @@ Use the notebook below as the main add-extensions guide:
 If you prefer to run it locally, you can also download the source notebook:
 
 * :download:`Download the add-extensions notebook <../../notebooks/user_guide/transformations/add_extensions.ipynb>`
-
-.. toctree::
-   :hidden:
-
-   ../../notebooks/user_guide/transformations/add_extensions

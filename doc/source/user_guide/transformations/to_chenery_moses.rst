@@ -54,8 +54,3 @@ Use the notebook below as the main Chenery-Moses guide:
 If you prefer to run it locally, you can also download the source notebook:
 
 * :download:`Download the Chenery-Moses notebook <../../notebooks/user_guide/transformations/to_chenery_moses.ipynb>`
-
-.. toctree::
-   :hidden:
-
-   ../../notebooks/user_guide/transformations/to_chenery_moses

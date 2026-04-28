@@ -61,8 +61,3 @@ Use the notebook below as the main SUT-to-IOT guide:
 If you prefer to run it locally, you can also download the source notebook:
 
 * :download:`Download the SUT-to-IOT notebook <../../notebooks/user_guide/transformations/sut_to_iot.ipynb>`
-
-.. toctree::
-   :hidden:
-
-   ../../notebooks/user_guide/transformations/sut_to_iot

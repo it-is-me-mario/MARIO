@@ -1,0 +1,6 @@
+#!/Users/lorenzorinaldi/Documents/GitHub/MARIO/.venv-pandas3/bin/python
+import sys
+from faker.cli import execute_from_command_line
+if __name__ == '__main__':
+    sys.argv[0] = sys.argv[0].removesuffix('.exe')
+    sys.exit(execute_from_command_line())
