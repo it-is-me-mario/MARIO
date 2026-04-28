@@ -1,0 +1,89 @@
+Scenario,Matrix,Region_from,Sector_from,Factor of production_from,Satellite account_from,Region_to,Sector_to,Consumption category_to,Value
+baseline,v,,,Taxes,,Reg1,Agriculture,,0.05532596412577741
+baseline,v,,,Taxes,,Reg1,Industry,,0.05736734749600799
+baseline,v,,,Taxes,,Reg1,Services,,0.04795143068727459
+baseline,v,,,Taxes,,Reg2,Agriculture,,0.06147070968644293
+baseline,v,,,Taxes,,Reg2,Industry,,0.030821280663159614
+baseline,v,,,Taxes,,Reg2,Services,,0.059462114851690236
+baseline,v,,,Wages,,Reg1,Agriculture,,0.25840155423314193
+baseline,v,,,Wages,,Reg1,Industry,,0.11883447661550427
+baseline,v,,,Wages,,Reg1,Services,,0.31958146118632996
+baseline,v,,,Wages,,Reg2,Agriculture,,0.12146442123711872
+baseline,v,,,Wages,,Reg2,Industry,,0.1783561996620791
+baseline,v,,,Wages,,Reg2,Services,,0.3119547742398386
+baseline,v,,,Capital,,Reg1,Agriculture,,0.2895939568153765
+baseline,v,,,Capital,,Reg1,Industry,,0.10574390348812093
+baseline,v,,,Capital,,Reg1,Services,,0.2264299046972579
+baseline,v,,,Capital,,Reg2,Agriculture,,0.38552543048560245
+baseline,v,,,Capital,,Reg2,Industry,,0.08526443865743033
+baseline,v,,,Capital,,Reg2,Services,,0.2190955319940174
+baseline,e,,,,Employment,Reg1,Agriculture,,0.17073400329566055
+baseline,e,,,,Employment,Reg1,Industry,,0.012327310873915092
+baseline,e,,,,Employment,Reg1,Services,,0.01962132598016534
+baseline,e,,,,Employment,Reg2,Agriculture,,0.009258929977730056
+baseline,e,,,,Employment,Reg2,Industry,,0.0032948809290613223
+baseline,e,,,,Employment,Reg2,Services,,0.007658984655715687
+baseline,e,,,,CO2,Reg1,Agriculture,,342552.2701918263
+baseline,e,,,,CO2,Reg1,Industry,,167269.94308451822
+baseline,e,,,,CO2,Reg1,Services,,179791.7900266703
+baseline,e,,,,CO2,Reg2,Agriculture,,289962.46619322896
+baseline,e,,,,CO2,Reg2,Industry,,40474.89833033867
+baseline,e,,,,CO2,Reg2,Services,,69431.79424203633
+baseline,z,Reg1,Agriculture,,,Reg1,Agriculture,,0.09334630008663558
+baseline,z,Reg1,Agriculture,,,Reg1,Industry,,0.10087071838336527
+baseline,z,Reg1,Agriculture,,,Reg1,Services,,0.010290220803879703
+baseline,z,Reg1,Agriculture,,,Reg2,Agriculture,,0.029593483431381844
+baseline,z,Reg1,Agriculture,,,Reg2,Industry,,0.042325437475156526
+baseline,z,Reg1,Agriculture,,,Reg2,Services,,0.00427588276548735
+baseline,z,Reg1,Industry,,,Reg1,Agriculture,,0.11255289603718817
+baseline,z,Reg1,Industry,,,Reg1,Industry,,0.4310011029342548
+baseline,z,Reg1,Industry,,,Reg1,Services,,0.10192773332999078
+baseline,z,Reg1,Industry,,,Reg2,Agriculture,,0.017704486708835905
+baseline,z,Reg1,Industry,,,Reg2,Industry,,0.11283145733263339
+baseline,z,Reg1,Industry,,,Reg2,Services,,0.0125553743859978
+baseline,z,Reg1,Services,,,Reg1,Agriculture,,0.18988705204672912
+baseline,z,Reg1,Services,,,Reg1,Industry,,0.18332705460043291
+baseline,z,Reg1,Services,,,Reg1,Services,,0.29281596493953227
+baseline,z,Reg1,Services,,,Reg2,Agriculture,,0.016302201206508927
+baseline,z,Reg1,Services,,,Reg2,Industry,,0.02326189865855571
+baseline,z,Reg1,Services,,,Reg2,Services,,0.02419741943479977
+baseline,z,Reg2,Agriculture,,,Reg1,Agriculture,,4.180221137376363e-05
+baseline,z,Reg2,Agriculture,,,Reg1,Industry,,4.887538897552621e-05
+baseline,z,Reg2,Agriculture,,,Reg1,Services,,8.06742700105763e-06
+baseline,z,Reg2,Agriculture,,,Reg2,Agriculture,,0.03710169574279552
+baseline,z,Reg2,Agriculture,,,Reg2,Industry,,0.025621377245241897
+baseline,z,Reg2,Agriculture,,,Reg2,Services,,0.003291755180898814
+baseline,z,Reg2,Industry,,,Reg1,Agriculture,,0.0006910218492987448
+baseline,z,Reg2,Industry,,,Reg1,Industry,,0.002513754211593605
+baseline,z,Reg2,Industry,,,Reg1,Services,,0.000627381106760716
+baseline,z,Reg2,Industry,,,Reg2,Agriculture,,0.12194080907985341
+baseline,z,Reg2,Industry,,,Reg2,Industry,,0.24028163717791376
+baseline,z,Reg2,Industry,,,Reg2,Services,,0.06661820702172921
+baseline,z,Reg2,Services,,,Reg1,Agriculture,,0.00015945275639065706
+baseline,z,Reg2,Services,,,Reg1,Industry,,0.00029276677977445466
+baseline,z,Reg2,Services,,,Reg1,Services,,0.00036783586410179815
+baseline,z,Reg2,Services,,,Reg2,Agriculture,,0.2088967630409683
+baseline,z,Reg2,Services,,,Reg2,Industry,,0.26123627271995303
+baseline,z,Reg2,Services,,,Reg2,Services,,0.29854894016844435
+baseline,Y,Reg1,Agriculture,,,Reg1,,Final demand,2533458.568621377
+baseline,Y,Reg1,Agriculture,,,Reg2,,Final demand,11455.34481462878
+baseline,Y,Reg1,Industry,,,Reg1,,Final demand,18160868.99186129
+baseline,Y,Reg1,Industry,,,Reg2,,Final demand,121750.6625725599
+baseline,Y,Reg1,Services,,,Reg1,,Final demand,62125706.28493501
+baseline,Y,Reg1,Services,,,Reg2,,Final demand,52869.74778356473
+baseline,Y,Reg2,Agriculture,,,Reg1,,Final demand,5077.804527683254
+baseline,Y,Reg2,Agriculture,,,Reg2,,Final demand,29356.69999871974
+baseline,Y,Reg2,Industry,,,Reg1,,Final demand,231650.9630397502
+baseline,Y,Reg2,Industry,,,Reg2,,Final demand,299898.9111312811
+baseline,Y,Reg2,Services,,,Reg1,,Final demand,56954.54556824585
+baseline,Y,Reg2,Services,,,Reg2,,Final demand,1255004.909261789
+baseline,EY,,,,Employment,Reg1,,Final demand,0.0
+baseline,EY,,,,Employment,Reg2,,Final demand,0.0
+baseline,EY,,,,CO2,Reg1,,Final demand,5296525995824.264
+baseline,EY,,,,CO2,Reg2,,Final demand,69021047159.93
+baseline,VY,,,Taxes,,Reg1,,Final demand,0.0
+baseline,VY,,,Taxes,,Reg2,,Final demand,0.0
+baseline,VY,,,Wages,,Reg1,,Final demand,0.0
+baseline,VY,,,Wages,,Reg2,,Final demand,0.0
+baseline,VY,,,Capital,,Reg1,,Final demand,0.0
+baseline,VY,,,Capital,,Reg2,,Final demand,0.0

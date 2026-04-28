@@ -1,0 +1,9 @@
+Level,Item,Unit
+Sector,Agriculture,M EUR
+Sector,Services,M EUR
+Sector,Industry,M EUR
+Factor of production,Taxes,M EUR
+Factor of production,Wages,M EUR
+Factor of production,Capital,M EUR
+Satellite account,Employment,1000 p
+Satellite account,CO2,kg

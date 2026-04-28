@@ -1,0 +1,10 @@
+Region,,,Reg1,Reg2
+Level,,,Consumption category,Consumption category
+Item,,,Final demand,Final demand
+Region,Level,Item,,
+Reg1,Sector,Agriculture,2533458.568621377,11455.34481462878
+Reg1,Sector,Industry,18160868.99186129,121750.6625725599
+Reg1,Sector,Services,62125706.28493501,52869.74778356473
+Reg2,Sector,Agriculture,5077.804527683254,29356.69999871974
+Reg2,Sector,Industry,231650.9630397502,299898.9111312811
+Reg2,Sector,Services,56954.54556824585,1255004.909261789
