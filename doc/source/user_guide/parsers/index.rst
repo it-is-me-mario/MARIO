@@ -29,7 +29,6 @@ Environmentally-extended databases
    gloria
    eora
    emerging
-   gtap
    wiod
    adb
    useeio
@@ -45,7 +44,6 @@ Other MRIO and SRIO databases
    oecd
    figaro
    eurostat
-   cepalstat
    bea
    istat
    statcan

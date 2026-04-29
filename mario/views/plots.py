@@ -1,250 +1,39 @@
-# -*- coding: utf-8 -*-
-"""
-mario plots are written in this module
-"""
+"""Unified plotting helpers built on top of Plotly Express."""
+
+from __future__ import annotations
+
+import logging
+from typing import Iterable, Sequence
+
+import pandas as pd
+import plotly.express as px
+import plotly.offline as pltly
 
 from mario.log_exc.exceptions import WrongInput
-from mario.model.conventions import MATRIX_TITLES, TABLE_MATRIX_INDEX_LAYOUTS
-from mario.model.conventions import _MASTER_INDEX
-
-from mario.views.plot_specs import _PLOTS_LAYOUT, Color, _PALETTES
-
+from mario.model.conventions import MATRIX_TITLES, _MASTER_INDEX
 from mario.utils import run_from_jupyter
-
-import plotly.graph_objects as go
-import plotly.express as px
-from plotly.subplots import make_subplots
-import plotly.offline as pltly
-import pandas as pd
-import logging
+from mario.views.plot_specs import _PALETTES, _PLOTS_LAYOUT
 
 logger = logging.getLogger(__name__)
 
 
 def set_palette(mario_palettes=None, user_palette=None):
-    """Sets the default palette of plots
-
-    .. note::
-        if enough colors are not assigned to the palette non-duplicate random
-        colors will be added to palette when needed
-
-    Parameters
-    ----------
-    mario_palettes : str
-        choosing betwwn mario default palettes
-
-    user_palette : list
-        a list of user palettes
-
-    """
-
+    """Set the default discrete palette used by MARIO plots."""
     if user_palette is not None:
         palette = user_palette
-
     else:
         if mario_palettes is not None:
             if mario_palettes not in _PALETTES:
                 raise ValueError(f"Default palettes in mario are \n:{[*_PALETTES]}.")
-
             palette = _PALETTES[mario_palettes]
         else:
-            palette = _PALETTES[7]
+            palette = _PALETTES["mario"]
 
     _PLOTS_LAYOUT["palette"] = palette
 
 
-def _plot_linkages(
-    data: [pd.DataFrame, dict],
-    path: str,
-    multi_mode: bool,
-    plot: str,
-    annotations=True,
-    auto_open: bool = False,
-    **config,
-):
-    """Build linkage plots from one dataframe or a scenario mapping."""
-    if isinstance(data, pd.DataFrame):
-        links = {"Baseline": data}
-    elif isinstance(data, dict):
-        links = data
-    else:
-        raise WrongInput("data can be dict of pd.DataFrame or a DataFrame")
-
-    # initializing the colors
-    colors = Color()
-
-    # to iterate over the scenarios which are the keys of the dictionary
-    scenarios = [*links]
-
-    backward = f"{plot} Backward"
-    forward = f"{plot} Forward"
-
-    counter = []
-
-    layout = {
-        "template": config.get("template", _PLOTS_LAYOUT["template"]),
-        "font_family": config.get("template", _PLOTS_LAYOUT["font_family"]),
-        "font_size": config.get("template", _PLOTS_LAYOUT["font_size"]),
-    }
-
-    if multi_mode:
-        fig = make_subplots(
-            rows=1,
-            cols=2,
-            subplot_titles=(forward, backward),
-            shared_yaxes=True,
-            horizontal_spacing=0.05,
-        )
-
-        layout[
-            "title"
-        ] = f"Sectors classification according to {plot} Backward and Forward linkages"
-        layout[
-            "legend_title_text"
-        ] = "Regions<br><i>Foreign (light) over Total (opaque)"
-
-        geo_types = ["Local", "Foreign"]
-
-        for index, scenario in enumerate(scenarios):
-            data = links[scenario]
-            # removing the negative numbers
-            legends = set()
-
-            for col, ll in enumerate([forward, backward]):
-                for gg in geo_types:
-                    for color, region in enumerate(
-                        data.index.unique(level=0)
-                    ):  # iterating over regions
-                        x = data.loc[(region, slice(None), slice(None)), (ll, gg)]
-                        y = (
-                            data.loc[(region, slice(None), slice(None)), (ll, gg)]
-                            .index.get_level_values(2)
-                            .tolist()
-                        )
-
-                        if gg == "Local":
-                            base = data.loc[
-                                (region, slice(None), slice(None)), (ll, "Foreign")
-                            ]
-                            # removing negatives if exists
-                            base[base < 0] = 0
-                            opacity = 1
-
-                        else:
-                            base = None
-                            opacity = 0.5
-
-                        fig.add_trace(
-                            go.Bar(
-                                x=x,
-                                y=y,
-                                name=region,
-                                orientation="h",
-                                marker_color=colors[color],
-                                opacity=opacity,
-                                offsetgroup=region,
-                                legendgroup=region,
-                                base=base,
-                                showlegend=True if region not in legends else False,
-                                visible=True if index == 0 else False,
-                            ),
-                            row=1,
-                            col=1 + col,
-                        )
-
-                        legends.add(region)
-
-                    # Show in hover text for each trace the region, value
-                    fig.update_traces(hovertemplate="%{y}<br>%{x:.4f}")
-
-            # geo_type * links_type * regions
-            counter.append(2 * 2 * len(data.index.unique(level=0)))
-
-    else:
-        fig = go.Figure()
-        # defining a margin for plots
-        margin_max = config.get("margin_max", 1.05)
-        margin_min = config.get("margin_max", 0.95)
-
-        layout[
-            "title"
-        ] = "Sectors classification according to {} Backward and Forward Multipliers".format(
-            plot
-        )
-        layout["legend_title_text"] = "Sectors"
-
-        for index, scenario in enumerate(scenarios):
-            data = links[scenario]
-
-            # for backward margins
-            max_b = margin_max * data[backward].max()
-            min_b = margin_min * data[backward].min()
-
-            # for forward margins
-            max_f = margin_max * data[forward].max()
-            min_f = margin_min * data[forward].min()
-
-            counter.append(len(data.index.unique(level=-1)))
-            # iterating over the columns of the links
-            for color, sector in enumerate(data.index.unique(level=-1)):
-                x = data.loc[
-                    (slice(None), slice(None), sector), forward
-                ]  # forward on the x axis
-                y = data.loc[
-                    (slice(None), slice(None), sector), backward
-                ]  # backward on the y axis
-
-                text = (
-                    data.loc[(slice(None), slice(None), sector), :]
-                    .index.get_level_values(0)
-                    .tolist()
-                )
-
-                fig.add_trace(
-                    go.Scatter(
-                        x=x,
-                        y=y,
-                        mode="markers",
-                        name=sector,
-                        text=text,
-                        marker_color=colors[color],
-                        visible=True if index == 0 else False,
-                    )
-                )
-
-            # Setting the annotations
-            fig.add_annotation(x=0.5, y=1.5, text="Dependent on Interindustry supply")
-            fig.add_annotation(x=1.5, y=1.5, text="Generally Dependent")
-            fig.add_annotation(x=0.5, y=0.5, text="Generally Independent")
-            fig.add_annotation(x=1.5, y=0.5, text="Dependent on Interindustry demand")
-            fig.add_shape(type="line", x0=1, y0=0, x1=1, y1=max_b)
-            fig.add_shape(type="line", x0=0, y0=1, x1=max_f, y1=1)
-
-            fig.update_xaxes(
-                range=[min_f, max_f], title="Normalized {} Linkage".format(forward)
-            )
-            fig.update_yaxes(
-                range=[min_b, max_b], title="Normalized {} Linkage".format(backward)
-            )
-
-    if len(scenarios) - 1:
-        layout = _set_layout(
-            fig=fig,
-            layout=layout,
-            mode=config.get("mode", "sliders"),
-            counter=counter,
-            iterator=scenarios,
-            prefix=config.get("prefix", "Scenario"),
-            x=config.get("xanchor"),
-            y=config.get("yanchor"),
-        )
-
-    fig.update_layout(**layout)
-    _plotter(fig=fig, directory=path, auto_open=auto_open)
-
-
 def _plotter(fig, directory, auto_open):
-    """Render a figure inline in notebooks and always persist it to HTML."""
+    """Render a figure inline in notebooks and persist it to HTML."""
     if run_from_jupyter():
         pltly.init_notebook_mode(connected=False)
         pltly.iplot({"data": fig.data, "layout": fig.layout})
@@ -252,742 +41,511 @@ def _plotter(fig, directory, auto_open):
     fig.write_html(directory, auto_open=auto_open)
 
 
-def _set_layout(fig, layout, mode, counter, iterator, prefix, x, y):
-    """Attach slider or update-menu controls to a multi-scenario figure."""
-    steps = []
-    for index, item in enumerate(iterator):
-        if index == 0:
-            start = 0
-            end = counter[index]
+def _default_color_sequence() -> list[str]:
+    palette = _PLOTS_LAYOUT.get("palette")
+    if palette:
+        return list(palette)
+    return list(_PALETTES["mario"])
+
+
+def _normalize_layout(layout=None) -> dict:
+    merged = {
+        "template": _PLOTS_LAYOUT["template"],
+        "font_family": _PLOTS_LAYOUT["font_family"],
+        "font_size": _PLOTS_LAYOUT["font_size"],
+    }
+    if layout:
+        merged.update(layout)
+    return merged
+
+
+def _as_list(value):
+    if value is None:
+        return None
+    if isinstance(value, (list, tuple, set, pd.Index)):
+        return list(value)
+    return [value]
+
+
+def _make_unique_names(names: Sequence[str | None], *, prefix: str) -> list[str]:
+    counts: dict[str, int] = {}
+    resolved = []
+    for index, name in enumerate(names):
+        base = str(name).strip() if name not in (None, "") else f"{prefix}_{index + 1}"
+        counts[base] = counts.get(base, 0) + 1
+        if counts[base] == 1:
+            resolved.append(base)
         else:
-            start = counter[index - 1]
-            end = start + counter[index]
+            resolved.append(f"{base}_{counts[base]}")
+    return resolved
 
-        steps.append(
-            dict(
-                label=item,
-                method="update",
-                args=[
-                    {
-                        "visible": [
-                            True if start <= i < end else False
-                            for i in range(len(fig.data))
-                        ]
-                    },
-                    {"title": "{}".format(layout["title"])},
-                ],
-            )
-        )
 
-    modifications = dict(
-        active=0,
-        pad={"t": 50},
-    )
+def _deduplicate_axis_labels(row_names: list[str], col_names: list[str]) -> tuple[list[str], list[str]]:
+    duplicates = set(row_names).intersection(col_names)
+    row_labels = [f"{name}_from" if name in duplicates else name for name in row_names]
+    col_labels = [f"{name}_to" if name in duplicates else name for name in col_names]
+    return row_labels, col_labels
 
-    if mode == "sliders":
-        modifications["steps"] = steps
-        modifications["currentvalue"] = {"prefix": prefix + ": "}
 
-    elif mode == "updatemenus":
-        modifications["buttons"] = steps
-        modifications["x"] = y
-        modifications["xanchor"] = "left"
-        modifications["y"] = x
-        modifications["yanchor"] = "bottom"
+def _attach_level_aliases(data: pd.DataFrame) -> pd.DataFrame:
+    for side in ["from", "to"]:
+        level_column = f"Level_{side}"
+        item_column = f"Item_{side}"
+        if level_column not in data.columns or item_column not in data.columns:
+            continue
 
+        for level_name in data[level_column].dropna().astype(str).unique():
+            alias = f"{level_name}_{side}"
+            if alias in data.columns:
+                continue
+            values = pd.Series(pd.NA, index=data.index, dtype="object")
+            mask = data[level_column].astype(str) == level_name
+            values.loc[mask] = data.loc[mask, item_column].astype("object")
+            data[alias] = values
+
+    return data
+
+
+def _flatten_frame(frame: pd.DataFrame, *, scenario: str | None = None) -> pd.DataFrame:
+    if not isinstance(frame, pd.DataFrame):
+        raise TypeError("frame should be a pandas DataFrame.")
+
+    working = frame.copy()
+    if isinstance(working.index, pd.MultiIndex):
+        row_names = _make_unique_names(working.index.names, prefix="row")
     else:
-        raise WrongInput("Acceptable modes are ['sliders','updatemenus']")
+        row_names = _make_unique_names([working.index.name], prefix="row")
+        working.index = pd.Index(working.index, name=row_names[0])
 
-    layout[mode] = [modifications]
+    if isinstance(working.columns, pd.MultiIndex):
+        col_names = _make_unique_names(working.columns.names, prefix="column")
+    else:
+        col_names = _make_unique_names([working.columns.name], prefix="column")
+        working.columns = pd.Index(working.columns, name=col_names[0])
 
-    return layout
+    row_labels, col_labels = _deduplicate_axis_labels(row_names, col_names)
+    working.index.names = row_labels
+    working.columns.names = col_labels
+    stacked = working.stack(list(range(working.columns.nlevels))).rename("Value")
+    data = stacked.reset_index()
+    data = _attach_level_aliases(data)
+    if scenario is not None:
+        data["Scenario"] = scenario
+    return data
 
 
-def _plotX(
-    instance,
-    matrix,
-    x,
-    y,
-    color,
-    facet_row,
-    facet_col,
-    animation_frame,
-    base_scenario,
-    path,
-    item_from,
-    chart,
-    mode,
-    auto_open,
-    layout,
-    shared_yaxes,
-    shared_xaxes,
-    filters,
-):
-    """Build plots for production-like one-axis matrices."""
-    # Extracting raw data
-    scenarios = instance.scenarios
-    if base_scenario != None:
-        scenarios.remove(base_scenario)
-    to_plot = instance.get_data(
-        matrices=matrix, format="dict", scenarios=scenarios, base_scenario=base_scenario
-    )
+def _normalize_scenarios(scenarios) -> list[str]:
+    if isinstance(scenarios, str):
+        return [scenarios]
+    return list(scenarios)
 
-    # Processing raw data for plottinh
-    data = pd.DataFrame()
-    for scenario in scenarios:
-        to_append = to_plot[scenario][matrix]
-        to_append.columns = [scenario]
-        to_append = to_append.stack(level=0).to_frame()
-        to_append.columns = [f"Value_{scenario}"]
-        data = pd.concat([data, to_append], axis=1)
-    data.fillna(0, inplace=True)
-    data = data.sum(1).to_frame()
-    data.columns = ["Value"]
 
-    # Slicing according to filters
-    data.index.names = [
-        f"{_MASTER_INDEX['r']}_from",
-        "Level_from",
-        "Item_from",
-        "Scenario",
+def _apply_filters(data: pd.DataFrame, filters: dict | None) -> pd.DataFrame:
+    if not filters:
+        return data
+
+    filtered = data
+    for column, accepted in filters.items():
+        if accepted in (None, "all"):
+            continue
+        if column not in filtered.columns:
+            raise WrongInput(
+                f"'{column}' is not a valid plot filter. Available columns are: {list(filtered.columns)}"
+            )
+        accepted_values = _as_list(accepted)
+        filtered = filtered[filtered[column].isin(accepted_values)]
+    return filtered
+
+
+def _infer_plot_dimensions(data: pd.DataFrame) -> dict[str, str | None]:
+    categorical = [
+        column
+        for column in data.columns
+        if column != "Value" and not pd.api.types.is_numeric_dtype(data[column])
     ]
-    if instance.table_type == "IOT":
-        data = data.loc[
-            (
-                filters[f"filter_{_MASTER_INDEX['r']}_from"],
-                slice(None),
-                filters[f"filter_{_MASTER_INDEX['s']}_from"],
-                slice(None),
-            ),
-            :,
-        ]
-    elif instance.table_type == "SUT":
-        data1 = data.loc[
-            (
-                filters[f"filter_{_MASTER_INDEX['r']}_from"],
-                _MASTER_INDEX["a"],
-                filters[f"filter_{_MASTER_INDEX['a']}_from"],
-                slice(None),
-            ),
-            :,
-        ]
-        data2 = data.loc[
-            (
-                filters[f"filter_{_MASTER_INDEX['r']}_from"],
-                _MASTER_INDEX["c"],
-                filters[f"filter_{_MASTER_INDEX['c']}_from"],
-                slice(None),
-            ),
-            :,
-        ]
-        data = data1.append(data2)
+    row_like = [column for column in categorical if column.endswith("_from")]
+    col_like = [column for column in categorical if column.endswith("_to")]
+    account_like = [
+        _MASTER_INDEX["k"],
+        _MASTER_INDEX["f"],
+        _MASTER_INDEX["n"],
+    ]
 
-    data.reset_index(inplace=True)
-    data = data[data["Level_from"] == item_from]
-    cols = []
-    for col in data.columns:
-        if col == "Item_from":
-            if instance.table_type == "SUT":
-                if item_from == _MASTER_INDEX["c"]:
-                    cols += [f"{_MASTER_INDEX['c']}_from"]
-                else:
-                    cols += [f"{_MASTER_INDEX['a']}_from"]
-            else:
-                cols += [f"{_MASTER_INDEX['s']}_from"]
-        elif col == "Item_to":
-            if instance.table_type == "SUT":
-                if item_from == _MASTER_INDEX["c"]:
-                    cols += [f"{_MASTER_INDEX['a']}_to"]
-                else:
-                    cols += [f"{_MASTER_INDEX['c']}_to"]
-            else:
-                cols += [f"{_MASTER_INDEX['s']}_to"]
-        else:
-            cols += [col]
-    data.columns = cols
+    def first_available(candidates: Iterable[str]) -> str | None:
+        for candidate in candidates:
+            if candidate in data.columns:
+                return candidate
+        return None
 
-    # Other input management
-    if animation_frame.capitalize() not in data.columns:
-        raise WrongInput(
-            f"'{animation_frame}' not a valid option for 'animation_frame'. Valid options are: {data.columns}"
-        )
-
-    plot_parameters_to_cap = {
-        "x": x,
-        "y": y,
-        "color": color,
-        "facet_row": facet_row,
-        "facet_col": facet_col,
-        "animation_frame": animation_frame,
-    }
-    plot_parameters_to_low = {
-        "chart": chart,
-        "mode": mode,
+    return {
+        "row_item": first_available(["Item_from", *reversed(row_like)]),
+        "col_item": first_available(["Item_to", *reversed(col_like)]),
+        "row_region": first_available([f"{_MASTER_INDEX['r']}_from"]),
+        "col_region": first_available([f"{_MASTER_INDEX['r']}_to"]),
+        "scenario": first_available(["Scenario"]),
+        "account": first_available(account_like),
+        "categorical": categorical[0] if categorical else None,
     }
 
-    for param, given in plot_parameters_to_cap.items():
-        if given != None:
-            plot_parameters_to_cap[param] = given.capitalize()
-    for param, given in plot_parameters_to_low.items():
-        if given != None:
-            plot_parameters_to_low[param] = given.lower()
 
-    plot_parameters = plot_parameters_to_cap.copy()
-    plot_parameters.update(plot_parameters_to_low)
-    # for param,given in plot_parameters.items():
-    # if given != None:
-    #     if _MASTER_INDEX['s'] in given:
-    #         plot_parameters[param] = given.replace(_MASTER_INDEX['s'],'Item')
-    #     if _MASTER_INDEX['a'] in given:
-    #         plot_parameters[param] = given.replace(_MASTER_INDEX['a'],'Item')
-    #     if _MASTER_INDEX['c'] in given:
-    #         plot_parameters[param] = given.replace(_MASTER_INDEX['c'],'Item')
+def _aggregate_plot_data(data: pd.DataFrame, *, dimensions: list[str], value: str, agg: str) -> pd.DataFrame:
+    valid_dimensions = [dimension for dimension in dimensions if dimension in data.columns]
+    if not valid_dimensions:
+        return pd.DataFrame({value: [getattr(data[value], agg)()]})
+    return data.groupby(valid_dimensions, dropna=False, as_index=False)[value].agg(agg)
 
-    for key, value in plot_parameters.items():
-        if value != None:
-            if value.split("_")[-1] == "from":
-                indices = TABLE_MATRIX_INDEX_LAYOUTS[instance.table_type][matrix]["indices"]
-                elements = []
-                for i in indices:
-                    elements += [i]
-                if value.split("_")[0] not in elements:
-                    raise WrongInput(
-                        f"Matrix {matrix} does not accept '{value}' as a valid option for '{key}'. Please rearrange your inputs"
-                    )
 
-            if value.split("_")[-1] == "to":
-                columns = TABLE_MATRIX_INDEX_LAYOUTS[instance.table_type][matrix]["columns"]
-                elements = []
-                for i in columns:
-                    elements += [i]
-                if value.split("_")[0] not in elements:
-                    raise WrongInput(
-                        f"Matrix {matrix} does not accept '{value}' as a valid option for '{key}'. Please rearrange your inputs"
-                    )
+def _select_top_n(data: pd.DataFrame, *, x: str | None, value: str, top_n: int | None) -> pd.DataFrame:
+    if top_n is None or x is None or x not in data.columns:
+        return data
+    ranking = (
+        data.assign(__abs__=data[value].abs())
+        .groupby(x, as_index=False)["__abs__"]
+        .sum()
+        .sort_values("__abs__", ascending=False)
+        .head(top_n)
+    )
+    return data[data[x].isin(ranking[x])]
 
-    # Plotting
-    colors = Color()
-    colors.has_enough_colors(plot_parameters["color"])
-    if chart == "bar":
-        fig = px.bar(
-            data,
-            x=plot_parameters["x"],
-            y=plot_parameters["y"],
-            color=plot_parameters["color"],
-            animation_frame=plot_parameters["animation_frame"],
-            facet_row=plot_parameters["facet_row"],
-            facet_col=plot_parameters["facet_col"],
-            barmode=plot_parameters["mode"],
-            color_discrete_sequence=colors,
+
+def _apply_preset(
+    data: pd.DataFrame,
+    *,
+    preset: str | None,
+    kind: str | None,
+    x: str | None,
+    color: str | None,
+    facet_col: str | None,
+    top_n: int | None,
+) -> tuple[str, str | None, str | None, str | None, int | None]:
+    inferred = _infer_plot_dimensions(data)
+    active_preset = preset or (None if x is not None else "overview")
+
+    if active_preset is None:
+        return kind or "bar", x, color, facet_col, top_n
+
+    if active_preset == "overview":
+        scenario_col = "Scenario" if "Scenario" in data.columns and data["Scenario"].nunique() > 1 else None
+        return (
+            kind or "bar",
+            x or inferred["row_item"] or inferred["col_item"] or inferred["categorical"],
+            color or inferred["account"] or inferred["col_region"] or inferred["col_item"] or inferred["row_region"],
+            facet_col or scenario_col,
+            20 if top_n is None else top_n,
         )
 
-    for key in layout:
-        try:
-            fig["layout"][key] = layout[key]
-        except:
-            pass
+    if active_preset == "composition":
+        return (
+            kind or "bar",
+            x or inferred["row_region"] or inferred["row_item"] or inferred["categorical"],
+            color or inferred["row_item"] or inferred["account"] or inferred["col_item"],
+            facet_col,
+            15 if top_n is None else top_n,
+        )
 
-    _plotter(fig, path, auto_open=auto_open)
+    if active_preset == "trend":
+        return (
+            kind or "line",
+            x or inferred["scenario"],
+            color or inferred["row_item"] or inferred["account"] or inferred["categorical"],
+            facet_col,
+            12 if top_n is None else top_n,
+        )
 
+    if active_preset == "heatmap":
+        return (
+            kind or "heatmap",
+            x or inferred["col_item"] or inferred["scenario"] or inferred["categorical"],
+            color,
+            facet_col,
+            top_n,
+        )
 
-def _plotZYUS(
-    instance,
-    matrix,
-    x,
-    y,
-    color,
-    facet_row,
-    facet_col,
-    animation_frame,
-    base_scenario,
-    path,
-    item_from,
-    chart,
-    mode,
-    auto_open,
-    layout,
-    shared_yaxes,
-    shared_xaxes,
-    filters,
-):
-    """Build plots for transaction-style matrices with origin and destination axes."""
-    # Extracting raw data
-    scenarios = instance.scenarios
-    if base_scenario != None:
-        scenarios.remove(base_scenario)
-    to_plot = instance.get_data(
-        matrices=matrix, format="dict", scenarios=scenarios, base_scenario=base_scenario
+    if active_preset in {"treemap", "sunburst"}:
+        return active_preset, x, color, facet_col, top_n
+
+    raise WrongInput(
+        "Unknown plot preset '{}'. Acceptable presets are: ['overview', 'composition', 'trend', 'heatmap', 'treemap', 'sunburst']".format(
+            active_preset
+        )
     )
 
-    # Processing raw data for plottinh
-    data = pd.DataFrame()
-    for scenario in scenarios:
-        to_append = to_plot[scenario][matrix]
-        to_append = to_append.stack(level=[0, 1, 2]).to_frame()
-        to_append.columns = [scenario]
-        to_append = to_append.stack(level=[0]).to_frame()
-        to_append.columns = [f"Value_{scenario}"]
-        data = pd.concat([data, to_append], axis=1)
-    data.fillna(0, inplace=True)
-    data = data.sum(1).to_frame()
-    data.columns = ["Value"]
 
-    # Slicing according to filters
-    if matrix in ["Z", "z", "U", "u", "S", "s", "f_dis"]:
-        data.index.names = [
-            f"{_MASTER_INDEX['r']}_from",
-            "Level_from",
-            "Item_from",
-            f"{_MASTER_INDEX['r']}_to",
-            "Level_to",
-            "Item_to",
-            "Scenario",
-        ]
-        if instance.table_type == "IOT":
-            data = data.loc[
-                (
-                    filters[f"filter_{_MASTER_INDEX['r']}_from"],
-                    slice(None),
-                    filters[f"filter_{_MASTER_INDEX['s']}_from"],
-                    filters[f"filter_{_MASTER_INDEX['r']}_to"],
-                    slice(None),
-                    filters[f"filter_{_MASTER_INDEX['s']}_to"],
-                    slice(None),
-                ),
-                :,
-            ]
-        elif instance.table_type == "SUT":
-            if matrix == "S" or matrix == "s":
-                data = data.loc[
-                    (
-                        filters[f"filter_{_MASTER_INDEX['r']}_from"],
-                        _MASTER_INDEX["a"],
-                        filters[f"filter_{_MASTER_INDEX['a']}_from"],
-                        filters[f"filter_{_MASTER_INDEX['r']}_to"],
-                        _MASTER_INDEX["c"],
-                        filters[f"filter_{_MASTER_INDEX['c']}_to"],
-                        slice(None),
-                    ),
-                    :,
-                ]
-            if matrix == "U" or matrix == "u":
-                data = data.loc[
-                    (
-                        filters[f"filter_{_MASTER_INDEX['r']}_from"],
-                        _MASTER_INDEX["c"],
-                        filters[f"filter_{_MASTER_INDEX['c']}_from"],
-                        filters[f"filter_{_MASTER_INDEX['r']}_to"],
-                        _MASTER_INDEX["a"],
-                        filters[f"filter_{_MASTER_INDEX['a']}_to"],
-                        slice(None),
-                    ),
-                    :,
-                ]
+def build_matrix_plot_frame(
+    database,
+    matrix: str,
+    *,
+    scenarios="baseline",
+    base_scenario=None,
+    difference: str = "absolute",
+    filters: dict | None = None,
+    item: str | None = None,
+) -> pd.DataFrame:
+    scenarios = _normalize_scenarios(scenarios)
+    if matrix not in database.available_blocks():
+        raise WrongInput(f"'{matrix}' is not a valid matrix. Available matrices are: {database.available_blocks()}")
 
-    elif matrix in ["Y"]:
-        data.index.names = [
-            f"{_MASTER_INDEX['r']}_from",
-            "Level_from",
-            "Item_from",
-            f"{_MASTER_INDEX['r']}_to",
-            "Level_to",
-            f"{_MASTER_INDEX['n']}".replace(" ", "_"),
-            "Scenario",
-        ]
-        if instance.table_type == "IOT":
-            data = data.loc[
-                (
-                    filters[f"filter_{_MASTER_INDEX['r']}_from"],
-                    slice(None),
-                    filters[f"filter_{_MASTER_INDEX['s']}_from"],
-                    filters[f"filter_{_MASTER_INDEX['r']}_to"],
-                    slice(None),
-                    filters[f"filter_{_MASTER_INDEX['n']}".replace(" ", "_")],
-                    slice(None),
-                ),
-                :,
-            ]
-        elif instance.table_type == "SUT":
-            data1 = data.loc[
-                (
-                    filters[f"filter_{_MASTER_INDEX['r']}_from"],
-                    _MASTER_INDEX["a"],
-                    filters[f"filter_{_MASTER_INDEX['a']}_from"],
-                    filters[f"filter_{_MASTER_INDEX['r']}_to"],
-                    slice(None),
-                    filters[f"filter_{_MASTER_INDEX['n']}".replace(" ", "_")],
-                    slice(None),
-                ),
-                :,
-            ]
-            data2 = data.loc[
-                (
-                    filters[f"filter_{_MASTER_INDEX['r']}_from"],
-                    _MASTER_INDEX["c"],
-                    filters[f"filter_{_MASTER_INDEX['c']}_from"],
-                    filters[f"filter_{_MASTER_INDEX['r']}_to"],
-                    slice(None),
-                    filters[f"filter_{_MASTER_INDEX['n']}".replace(" ", "_")],
-                    slice(None),
-                ),
-                :,
-            ]
-            data = data1.append(data2)
-    data.reset_index(inplace=True)
-    data = data[data["Level_from"] == item_from]
-    cols = []
-    for col in data.columns:
-        if col == "Item_from":
-            if instance.table_type == "SUT":
-                if item_from == _MASTER_INDEX["c"]:
-                    cols += [f"{_MASTER_INDEX['c']}_from"]
-                else:
-                    cols += [f"{_MASTER_INDEX['a']}_from"]
-            else:
-                cols += [f"{_MASTER_INDEX['s']}_from"]
-        elif col == "Item_to":
-            if instance.table_type == "SUT":
-                if item_from == _MASTER_INDEX["c"]:
-                    cols += [f"{_MASTER_INDEX['a']}_to"]
-                else:
-                    cols += [f"{_MASTER_INDEX['c']}_to"]
-            else:
-                cols += [f"{_MASTER_INDEX['s']}_to"]
-        else:
-            cols += [col]
-    data.columns = cols
-
-    # Other input management
-    if animation_frame.capitalize() not in data.columns:
+    missing = set(scenarios).difference(database.scenarios)
+    if missing:
         raise WrongInput(
-            f"'{animation_frame}' not a valid option for 'animation_frame'. Valid options are: {data.columns}"
+            f"Scenarios {sorted(missing)} do not exist in the database. Existing scenarios are: {database.scenarios}"
         )
 
-    plot_parameters_to_cap = {
-        "x": x,
-        "y": y,
-        "color": color,
-        "facet_row": facet_row,
-        "facet_col": facet_col,
-        "animation_frame": animation_frame,
-    }
-    plot_parameters_to_low = {
-        "chart": chart,
-        "mode": mode,
-    }
-
-    for param, given in plot_parameters_to_cap.items():
-        if given != None:
-            plot_parameters_to_cap[param] = given.capitalize()
-    for param, given in plot_parameters_to_low.items():
-        if given != None:
-            plot_parameters_to_low[param] = given.lower()
-
-    plot_parameters = plot_parameters_to_cap.copy()
-    plot_parameters.update(plot_parameters_to_low)
-
-    for key, value in plot_parameters.items():
-        if value != None:
-            if value.split("_")[-1] == "from":
-                indices = TABLE_MATRIX_INDEX_LAYOUTS[instance.table_type][matrix]["indices"]
-                elements = []
-                for i in indices:
-                    elements += [i]
-                if value.split("_")[0] not in elements:
-                    raise WrongInput(
-                        f"Matrix {matrix} does not accept '{value}' as a valid option for '{key}'. Please rearrange your inputs"
-                    )
-
-            if value.split("_")[-1] == "to":
-                columns = TABLE_MATRIX_INDEX_LAYOUTS[instance.table_type][matrix]["columns"]
-                elements = []
-                for i in columns:
-                    elements += [i]
-                if value.split("_")[0] not in elements:
-                    raise WrongInput(
-                        f"Matrix {matrix} does not accept '{value}' as a valid option for '{key}'. Please rearrange your inputs"
-                    )
-
-    # Plotting
-    colors = Color()
-    colors.has_enough_colors(plot_parameters["color"])
-    if chart == "bar":
-        fig = px.bar(
-            data,
-            x=plot_parameters["x"],
-            y=plot_parameters["y"],
-            color=plot_parameters["color"],
-            animation_frame=plot_parameters["animation_frame"],
-            facet_row=plot_parameters["facet_row"],
-            facet_col=plot_parameters["facet_col"],
-            barmode=plot_parameters["mode"],
-            color_discrete_sequence=colors,
-        )
-
-    for key in layout:
-        try:
-            fig["layout"][key] = layout[key]
-        except:
-            pass
-
-    _plotter(fig, path, auto_open=auto_open)
-
-
-def _plotVEMF(
-    instance,
-    matrix,
-    x,
-    y,
-    color,
-    facet_row,
-    facet_col,
-    animation_frame,
-    base_scenario,
-    path,
-    item_from,
-    chart,
-    mode,
-    auto_open,
-    layout,
-    shared_yaxes,
-    shared_xaxes,
-    filters,
-):
-    """Build plots for value-added, extension and footprint-style matrices."""
-    # Extracting raw data
-    scenarios = instance.scenarios
-    if base_scenario != None:
-        scenarios.remove(base_scenario)
-    to_plot = instance.get_data(
-        matrices=matrix, format="dict", scenarios=scenarios, base_scenario=base_scenario
+    queried = database.query(
+        matrices=[matrix],
+        scenarios=scenarios,
+        base_scenario=base_scenario,
+        type=difference,
     )
 
-    # Processing raw data for plottinh
-    data = pd.DataFrame()
-    for scenario in scenarios:
-        to_append = to_plot[scenario][matrix]
-        to_append = to_append.stack(level=[0, 1, 2]).to_frame()
-        to_append.columns = [scenario]
-        to_append = to_append.stack(level=[0]).to_frame()
-        to_append.columns = [f"Value_{scenario}"]
-        data = pd.concat([data, to_append], axis=1)
-    data.fillna(0, inplace=True)
-    data = data.sum(1).to_frame()
-    data.columns = ["Value"]
+    if len(scenarios) == 1:
+        queried = {scenarios[0]: queried}
 
-    # Slicing according to filters
-    if matrix in ["V", "v", "M"]:
-        data.index.names = [
-            f"{_MASTER_INDEX['f']}",
-            f"{_MASTER_INDEX['r']}_to",
-            "Level_to",
-            "Item_to",
-            "Scenario",
-        ]
-        if instance.table_type == "IOT":
-            data = data.loc[
-                (
-                    filters[f"filter_{_MASTER_INDEX['f']}".replace(" ", "_")],
-                    filters[f"filter_{_MASTER_INDEX['r']}_to"],
-                    slice(None),
-                    filters[f"filter_{_MASTER_INDEX['s']}_to"],
-                    slice(None),
-                ),
-                :,
-            ]
-        elif instance.table_type == "SUT":
-            data = data.loc[
-                (
-                    filters[f"filter_{_MASTER_INDEX['f']}".replace(" ", "_")],
-                    filters[f"filter_{_MASTER_INDEX['r']}_to"],
-                    slice(None),
-                    filters[f"filter_{_MASTER_INDEX['a']}_to"]
-                    + filters[f"filter_{_MASTER_INDEX['c']}_to"],
-                    slice(None),
-                ),
-                :,
-            ]
-    elif matrix in ["E", "e", "F"]:
-        data.index.names = [
-            f"{_MASTER_INDEX['k']}",
-            f"{_MASTER_INDEX['r']}_to",
-            "Level_to",
-            "Item_to",
-            "Scenario",
-        ]
-        if instance.table_type == "IOT":
-            data = data.loc[
-                (
-                    filters[f"filter_{_MASTER_INDEX['k']}".replace(" ", "_")],
-                    filters[f"filter_{_MASTER_INDEX['r']}_to"],
-                    slice(None),
-                    filters[f"filter_{_MASTER_INDEX['s']}_to"],
-                    slice(None),
-                ),
-                :,
-            ]
-        elif instance.table_type == "SUT":
-            data = data.loc[
-                (
-                    filters[f"filter_{_MASTER_INDEX['k']}".replace(" ", "_")],
-                    filters[f"filter_{_MASTER_INDEX['r']}_to"],
-                    slice(None),
-                    filters[f"filter_{_MASTER_INDEX['a']}_to"]
-                    + filters[f"filter_{_MASTER_INDEX['c']}_to"],
-                    slice(None),
-                ),
-                :,
-            ]
-    elif matrix in ["EY"]:
-        data.index.names = [
-            f"{_MASTER_INDEX['k']}",
-            f"{_MASTER_INDEX['r']}_to",
-            "Level_to",
-            f"{_MASTER_INDEX['n']}".replace(" ", "_"),
-            "Scenario",
-        ]
-        data = data.loc[
-            (
-                filters[f"filter_{_MASTER_INDEX['k']}".replace(" ", "_")],
-                filters[f"filter_{_MASTER_INDEX['r']}_to"],
-                slice(None),
-                filters[f"filter_{_MASTER_INDEX['n']}_to"],
-                slice(None),
-            ),
-            :,
-        ]
-    elif matrix in ["VY"]:
-        data.index.names = [
-            f"{_MASTER_INDEX['f']}",
-            f"{_MASTER_INDEX['r']}_to",
-            "Level_to",
-            f"{_MASTER_INDEX['n']}".replace(" ", "_"),
-            "Scenario",
-        ]
-        data = data.loc[
-            (
-                filters[f"filter_{_MASTER_INDEX['f']}".replace(" ", "_")],
-                filters[f"filter_{_MASTER_INDEX['r']}_to"],
-                slice(None),
-                filters[f"filter_{_MASTER_INDEX['n']}_to"],
-                slice(None),
-            ),
-            :,
-        ]
-    data.reset_index(inplace=True)
+    frames = []
+    for scenario, frame in queried.items():
+        flat = _flatten_frame(frame, scenario=scenario)
+        flat["Matrix"] = matrix
+        frames.append(flat)
 
-    item_units = []
-    if (
-        len(
-            set(
-                to_plot[list(to_plot.keys())[0]]["units"][
-                    list(data.columns)[0]
-                ].T.values[0]
+    data = pd.concat(frames, ignore_index=True)
+
+    if item is not None:
+        for level_column in ["Level_from", "Level_to"]:
+            if level_column in data.columns and item in set(data[level_column]):
+                data = data[data[level_column] == item]
+
+    return _apply_filters(data, filters)
+
+
+def build_linkages_plot_frame(data, *, plot: str) -> pd.DataFrame:
+    if isinstance(data, pd.DataFrame):
+        links = {"baseline": data}
+    elif isinstance(data, dict):
+        links = data
+    else:
+        raise WrongInput("data can be dict of pd.DataFrame or a DataFrame")
+
+    frames = []
+    for scenario, frame in links.items():
+        working = frame.copy()
+        if isinstance(working.columns, pd.MultiIndex):
+            working.columns.names = ["Measure", "Component"]
+            long = working.stack(list(range(working.columns.nlevels)), dropna=False).rename("Value").reset_index()
+            long["Scenario"] = scenario
+            long["Plot kind"] = plot
+            frames.append(long)
+            continue
+
+        index_names = _make_unique_names(working.index.names, prefix="index")
+        working.index.names = index_names
+        long = working.reset_index()
+        long["Scenario"] = scenario
+        long["Plot kind"] = plot
+        frames.append(long)
+
+    return pd.concat(frames, ignore_index=True)
+
+
+def plot_frame(
+    data: pd.DataFrame,
+    *,
+    kind: str | None = None,
+    preset: str | None = None,
+    x: str | None = None,
+    y: str = "Value",
+    color: str | None = None,
+    size: str | None = None,
+    facet_row: str | None = None,
+    facet_col: str | None = None,
+    animation_frame: str | None = None,
+    hover_name: str | None = None,
+    hover_data=None,
+    line_group: str | None = None,
+    text: str | None = None,
+    path_columns: list[str] | None = None,
+    path: str | None = None,
+    auto_open: bool = True,
+    layout: dict | None = None,
+    top_n: int | None = None,
+    agg: str = "sum",
+    barmode: str = "relative",
+    log_x: bool = False,
+    log_y: bool = False,
+    title: str | None = None,
+    color_continuous_scale=None,
+    color_discrete_sequence=None,
+    category_orders=None,
+    return_data: bool = False,
+    **kwargs,
+):
+    if data.empty:
+        raise WrongInput("Cannot build a plot from an empty dataframe.")
+
+    kind, x, color, facet_col, top_n = _apply_preset(
+        data,
+        preset=preset,
+        kind=kind,
+        x=x,
+        color=color,
+        facet_col=facet_col,
+        top_n=top_n,
+    )
+
+    for column in [x, y, color, size, facet_row, facet_col, animation_frame, hover_name, line_group, text]:
+        if column is not None and column not in data.columns:
+            raise WrongInput(
+                f"'{column}' is not a valid plot column. Available columns are: {list(data.columns)}"
+            )
+
+    dimensions = [
+        column
+        for column in [x, color, size, facet_row, facet_col, animation_frame, hover_name, line_group, text]
+        if column is not None and column != y
+    ]
+    if kind in {"treemap", "sunburst"} and path_columns is not None:
+        dimensions.extend(path_columns)
+
+    plot_data = _aggregate_plot_data(data, dimensions=dimensions, value=y, agg=agg)
+    plot_data = _select_top_n(plot_data, x=x, value=y, top_n=top_n)
+
+    color_sequence = color_discrete_sequence or _default_color_sequence()
+    color_scale = color_continuous_scale or px.colors.diverging.RdBu[::-1]
+
+    common = dict(
+        data_frame=plot_data,
+        title=title,
+        hover_name=hover_name,
+        hover_data=hover_data,
+        category_orders=category_orders,
+    )
+    hierarchical_common = dict(
+        data_frame=plot_data,
+        title=title,
+        hover_data=hover_data,
+    )
+
+    if kind == "bar":
+        fig = px.bar(
+            x=x,
+            y=y,
+            color=color,
+            facet_row=facet_row,
+            facet_col=facet_col,
+            animation_frame=animation_frame,
+            text=text,
+            barmode=barmode,
+            color_discrete_sequence=color_sequence,
+            log_x=log_x,
+            log_y=log_y,
+            **common,
+            **kwargs,
+        )
+    elif kind == "line":
+        fig = px.line(
+            x=x,
+            y=y,
+            color=color,
+            facet_row=facet_row,
+            facet_col=facet_col,
+            animation_frame=animation_frame,
+            line_group=line_group,
+            markers=kwargs.pop("markers", True),
+            color_discrete_sequence=color_sequence,
+            log_x=log_x,
+            log_y=log_y,
+            **common,
+            **kwargs,
+        )
+    elif kind == "scatter":
+        fig = px.scatter(
+            x=x,
+            y=y,
+            color=color,
+            size=size,
+            facet_row=facet_row,
+            facet_col=facet_col,
+            animation_frame=animation_frame,
+            text=text,
+            color_discrete_sequence=color_sequence,
+            log_x=log_x,
+            log_y=log_y,
+            **common,
+            **kwargs,
+        )
+    elif kind == "area":
+        fig = px.area(
+            x=x,
+            y=y,
+            color=color,
+            facet_row=facet_row,
+            facet_col=facet_col,
+            animation_frame=animation_frame,
+            color_discrete_sequence=color_sequence,
+            log_x=log_x,
+            log_y=log_y,
+            **common,
+            **kwargs,
+        )
+    elif kind == "treemap":
+        hierarchy = path_columns or [column for column in [color, x] if column is not None]
+        if not hierarchy:
+            raise WrongInput("treemap plots require path_columns or inferable categorical columns.")
+        fig = px.treemap(
+            path=hierarchy,
+            values=y,
+            color=color,
+            color_continuous_scale=color_scale,
+            **hierarchical_common,
+            **kwargs,
+        )
+    elif kind == "sunburst":
+        hierarchy = path_columns or [column for column in [color, x] if column is not None]
+        if not hierarchy:
+            raise WrongInput("sunburst plots require path_columns or inferable categorical columns.")
+        fig = px.sunburst(
+            path=hierarchy,
+            values=y,
+            color=color,
+            color_continuous_scale=color_scale,
+            **hierarchical_common,
+            **kwargs,
+        )
+    elif kind == "heatmap":
+        heatmap_y = kwargs.pop("heatmap_y", None)
+        if heatmap_y is None:
+            inferred = _infer_plot_dimensions(plot_data)
+            heatmap_y = inferred["row_item"] or inferred["account"] or inferred["categorical"]
+        if heatmap_y not in plot_data.columns:
+            raise WrongInput(
+                f"'{heatmap_y}' is not a valid heatmap axis. Available columns are: {list(plot_data.columns)}"
+            )
+        fig = px.density_heatmap(
+            x=x,
+            y=heatmap_y,
+            z="Value",
+            histfunc=agg,
+            facet_col=facet_col,
+            facet_row=facet_row,
+            animation_frame=animation_frame,
+            color_continuous_scale=color_scale,
+            **common,
+            **kwargs,
+        )
+    else:
+        raise WrongInput(
+            "Unknown plot kind '{}'. Acceptable kinds are: ['bar', 'line', 'scatter', 'area', 'treemap', 'sunburst', 'heatmap']".format(
+                kind
             )
         )
-        > 1
-    ):
-        for i in range(data.shape[0]):
-            s = data.iloc[i, list(data.columns).index("Scenario")]
-            item_units += [
-                f"{data.iloc[i,0]} [{to_plot[s]['units'][list(data.columns)[0]].loc[data.iloc[i,0],'unit']}]"
-            ]
-        data[list(data.columns)[0]] = item_units
 
-    # data = data[data["Level_from"]==item_from]
-    cols = []
-    for col in data.columns:
-        if col == "Item_from":
-            if instance.table_type == "SUT":
-                if item_from == _MASTER_INDEX["c"]:
-                    cols += [f"{_MASTER_INDEX['c']}_from"]
-                else:
-                    cols += [f"{_MASTER_INDEX['a']}_from"]
-            else:
-                cols += [f"{_MASTER_INDEX['s']}_from"]
-        elif col == "Item_to":
-            if instance.table_type == "SUT":
-                if item_from == _MASTER_INDEX["c"]:
-                    cols += [f"{_MASTER_INDEX['c']}_to"]
-                else:
-                    cols += [f"{_MASTER_INDEX['a']}_to"]
-            else:
-                cols += [f"{_MASTER_INDEX['s']}_to"]
-        else:
-            cols += [col]
-    data.columns = cols
+    fig.update_layout(**_normalize_layout(layout))
+    if path is not None:
+        _plotter(fig=fig, directory=path, auto_open=auto_open)
 
-    # Other input management
-    if animation_frame.capitalize() not in data.columns:
-        raise WrongInput(
-            f"'{animation_frame}' not a valid option for 'animation_frame'. Valid options are: {data.columns}"
-        )
+    if return_data:
+        return fig, plot_data
+    return fig
 
-    plot_parameters_to_cap = {
-        "x": x,
-        "y": y,
-        "color": color,
-        "facet_row": facet_row,
-        "facet_col": facet_col,
-        "animation_frame": animation_frame,
-    }
-    plot_parameters_to_low = {
-        "chart": chart,
-        "mode": mode,
-    }
 
-    for param, given in plot_parameters_to_cap.items():
-        if given != None:
-            plot_parameters_to_cap[param] = given.capitalize()
-    for param, given in plot_parameters_to_low.items():
-        if given != None:
-            plot_parameters_to_low[param] = given.lower()
-
-    plot_parameters = plot_parameters_to_cap.copy()
-    plot_parameters.update(plot_parameters_to_low)
-
-    for key, value in plot_parameters.items():
-        if value != None:
-            if value.split("_")[-1] == "from":
-                indices = TABLE_MATRIX_INDEX_LAYOUTS[instance.table_type][matrix]["indices"]
-                elements = []
-                for i in indices:
-                    elements += [i]
-                if value.split("_")[0] not in elements:
-                    raise WrongInput(
-                        f"Matrix {matrix} does not accept '{value}' as a valid option for '{key}'. Please rearrange your inputs"
-                    )
-
-            if value.split("_")[-1] == "to":
-                columns = TABLE_MATRIX_INDEX_LAYOUTS[instance.table_type][matrix]["columns"]
-                elements = []
-                for i in columns:
-                    elements += [i]
-                if value.split("_")[0] not in elements:
-                    raise WrongInput(
-                        f"Matrix {matrix} does not accept '{value}' as a valid option for '{key}'. Please rearrange your inputs"
-                    )
-
-    # Plotting
-    colors = Color()
-    colors.has_enough_colors(plot_parameters["color"])
-    if chart == "bar":
-        fig = px.bar(
-            data,
-            x=plot_parameters["x"],
-            y=plot_parameters["y"],
-            color=plot_parameters["color"],
-            animation_frame=plot_parameters["animation_frame"],
-            facet_row=plot_parameters["facet_row"],
-            facet_col=plot_parameters["facet_col"],
-            barmode=plot_parameters["mode"],
-            color_discrete_sequence=colors,
-        )
-
-    for key in layout:
-        try:
-            fig["layout"][key] = layout[key]
-        except:
-            pass
-
-    _plotter(fig, path, auto_open=auto_open)
+def matrix_title(matrix: str) -> str:
+    return MATRIX_TITLES.get(matrix, matrix)

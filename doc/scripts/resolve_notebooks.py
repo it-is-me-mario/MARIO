@@ -12,7 +12,9 @@ from __future__ import annotations
 import argparse
 from copy import deepcopy
 from dataclasses import dataclass
+import getpass
 import json
+import logging
 import os
 from pathlib import Path
 import re
@@ -37,6 +39,43 @@ PACKAGED_EXCEL_WORKBOOKS = {
     "test_SUT_special.xlsx": REPO_ROOT / "mario/test/new/test_SUT_special.xlsx",
 }
 
+LOGGER = logging.getLogger("resolve_notebooks")
+
+# Default run list used when no notebooks are passed on CLI.
+# Comment out entries you do not want to execute in a given run.
+DEFAULT_NOTEBOOKS_TO_RUN = [
+    # Parsers
+    "doc/source/notebooks/parsers/adb/walkthrough.ipynb",
+    "doc/source/notebooks/parsers/bea/walkthrough.ipynb",
+    "doc/source/notebooks/parsers/ceads/walkthrough.ipynb",
+    # "doc/source/notebooks/parsers/cepalstat/walkthrough.ipynb",
+    "doc/source/notebooks/parsers/custom_database/from_excel.ipynb",
+    "doc/source/notebooks/parsers/custom_database/from_pymrio.ipynb",
+    "doc/source/notebooks/parsers/custom_database/from_txt.ipynb",
+    "doc/source/notebooks/parsers/emerging/walkthrough.ipynb",
+    "doc/source/notebooks/parsers/eora/walkthrough.ipynb",
+    "doc/source/notebooks/parsers/eurostat/walkthrough.ipynb",
+    "doc/source/notebooks/parsers/exiobase/hybrid.ipynb",
+    "doc/source/notebooks/parsers/exiobase/monetary.ipynb",
+    "doc/source/notebooks/parsers/figaro/walkthrough.ipynb",
+    "doc/source/notebooks/parsers/gloria/walkthrough.ipynb",
+    # "doc/source/notebooks/parsers/gtap/tutorial.ipynb",
+    # "doc/source/notebooks/parsers/gtap/walkthrough.ipynb",
+    "doc/source/notebooks/parsers/istat/walkthrough.ipynb",
+    "doc/source/notebooks/parsers/oecd/walkthrough.ipynb",
+    "doc/source/notebooks/parsers/statcan/walkthrough.ipynb",
+    "doc/source/notebooks/parsers/useeio/walkthrough.ipynb",
+    "doc/source/notebooks/parsers/wiod/walkthrough.ipynb",
+    # User guide transformations
+    "doc/source/user_guide/transformations/add_extensions.ipynb",
+    "doc/source/user_guide/transformations/add_sectors.ipynb",
+    "doc/source/user_guide/transformations/aggregate.ipynb",
+    "doc/source/user_guide/transformations/apply_shocks.ipynb",
+    "doc/source/user_guide/transformations/mrio_to_srio.ipynb",
+    "doc/source/user_guide/transformations/sut_to_iot.ipynb",
+    "doc/source/user_guide/transformations/to_chenery_moses.ipynb",
+]
+
 COMMENT_PLACEHOLDER_RE = re.compile(
     r"^(?P<indent>\s*)#\s*(?P<name>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*"
     r"(?P<quote>['\"])(?P<placeholder>/path/to/[^'\"]+)(?P=quote)\s*,?\s*$"
@@ -53,6 +92,51 @@ class Replacement:
     placeholder: str
     local: str
     cells: tuple[int, ...] | None = None
+
+
+def _configure_logging(level: str) -> None:
+    level_name = str(level).upper()
+    numeric_level = getattr(logging, level_name, logging.INFO)
+    logging.basicConfig(level=numeric_level, format="%(levelname)s %(message)s")
+
+
+def _active_config_user(config: dict[str, Any], requested_user: str | None) -> str:
+    if requested_user:
+        return requested_user
+    env_user = os.environ.get("NOTEBOOK_PATHS_USER")
+    if env_user:
+        return env_user
+
+    current_user = getpass.getuser()
+    users = config.get("users", {}) or {}
+    if isinstance(users, dict) and current_user in users:
+        return current_user
+    return current_user
+
+
+def _user_section(config: dict[str, Any], active_user: str | None) -> dict[str, Any]:
+    if not active_user:
+        return {}
+    users = config.get("users", {}) or {}
+    if not isinstance(users, dict):
+        raise ValueError("'users' should be a mapping.")
+    user_cfg = users.get(active_user, {}) or {}
+    if not isinstance(user_cfg, dict):
+        raise ValueError(f"Config for user {active_user!r} should be a mapping.")
+    return user_cfg
+
+
+def _dataset_label(notebook: Path) -> str:
+    parts = notebook.as_posix().split("/")
+    if "parsers" in parts:
+        idx = parts.index("parsers")
+        if idx + 1 < len(parts):
+            return f"parser:{parts[idx + 1]}"
+    if "user_guide" in parts:
+        idx = parts.index("user_guide")
+        if idx + 1 < len(parts):
+            return f"user_guide:{parts[idx + 1]}"
+    return "dataset:unknown"
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -136,12 +220,21 @@ def _notebook_config(config: dict[str, Any], notebook: Path) -> dict[str, Any]:
     return {}
 
 
-def _replacements_for(config: dict[str, Any], notebook: Path) -> list[Replacement]:
+def _replacements_for(
+    config: dict[str, Any],
+    notebook: Path,
+    *,
+    active_user: str | None,
+) -> list[Replacement]:
     notebook_cfg = _notebook_config(config, notebook)
+    user_cfg = _user_section(config, active_user)
+    notebook_user_cfg = _notebook_config(user_cfg, notebook)
     return (
         _default_replacements_for(notebook)
         + _as_replacements(config.get("replacements"))
+        + _as_replacements(user_cfg.get("replacements"))
         + _as_replacements(notebook_cfg.get("replacements"))
+        + _as_replacements(notebook_user_cfg.get("replacements"))
     )
 
 
@@ -166,12 +259,23 @@ def _default_replacements_for(notebook: Path) -> list[Replacement]:
     return replacements
 
 
-def _skip_cells_for(config: dict[str, Any], notebook: Path) -> set[int]:
+def _skip_cells_for(
+    config: dict[str, Any],
+    notebook: Path,
+    *,
+    active_user: str | None,
+) -> set[int]:
     notebook_cfg = _notebook_config(config, notebook)
-    skip_cells = notebook_cfg.get("skip_cells", []) or []
-    if isinstance(skip_cells, int):
-        return {skip_cells}
-    return {int(cell) for cell in skip_cells}
+    user_cfg = _user_section(config, active_user)
+    notebook_user_cfg = _notebook_config(user_cfg, notebook)
+
+    skip_cells: set[int] = set()
+    for value in (notebook_cfg.get("skip_cells", []) or [], notebook_user_cfg.get("skip_cells", []) or []):
+        if isinstance(value, int):
+            skip_cells.add(value)
+        else:
+            skip_cells.update(int(cell) for cell in value)
+    return skip_cells
 
 
 def _resolve_notebook_path(value: str) -> Path:
@@ -330,6 +434,7 @@ def _execute_one(
     notebook: Path,
     config: dict[str, Any],
     *,
+    active_user: str | None,
     timeout: int,
     kernel_name: str | None,
     allow_placeholder_paths: bool,
@@ -338,8 +443,16 @@ def _execute_one(
     dry_run: bool,
 ) -> None:
     original = nbformat.read(notebook, as_version=4)
-    replacements = _replacements_for(config, notebook)
-    skip_cells = _skip_cells_for(config, notebook)
+    replacements = _replacements_for(config, notebook, active_user=active_user)
+    skip_cells = _skip_cells_for(config, notebook, active_user=active_user)
+    LOGGER.info(
+        "Running %s (%s): replacements=%d skip_cells=%d user=%s",
+        notebook,
+        _dataset_label(notebook),
+        len(replacements),
+        len(skip_cells),
+        active_user or "<none>",
+    )
     execution_nb = _prepare_execution_copy(
         original,
         replacements,
@@ -347,9 +460,11 @@ def _execute_one(
         allow_placeholder_paths=allow_placeholder_paths,
     )
     if dry_run:
-        print(
-            f"{notebook}: {len(replacements)} replacements, "
-            f"{len(skip_cells)} skipped cells"
+        LOGGER.info(
+            "Dry-run %s: replacements=%d skipped_cells=%d",
+            notebook,
+            len(replacements),
+            len(skip_cells),
         )
         return
 
@@ -374,7 +489,10 @@ def _execute_one(
         client.resources = resources
         client.execute()
 
-    _sanitize_output_paths(execution_nb, replacements)
+    # Always sanitize the repo root from outputs (covers editable installs where
+    # mario.__file__ resolves inside the working tree under /Users/ or /home/).
+    builtin_replacements = [Replacement(placeholder="/path/to/MARIO", local=str(REPO_ROOT))]
+    _sanitize_output_paths(execution_nb, builtin_replacements + replacements)
     if fail_on_private_output:
         _check_private_output_paths(
             execution_nb,
@@ -384,7 +502,7 @@ def _execute_one(
         )
     copied = _copy_outputs(original, execution_nb, skip_cells=skip_cells)
     nbformat.write(original, notebook)
-    print(f"{notebook}: copied outputs from {copied} executed code cells")
+    LOGGER.info("Completed %s: copied outputs from %d executed code cells", notebook, copied)
 
 
 def _relative_notebook_key(notebook: Path) -> str:
@@ -464,11 +582,22 @@ def _sanitize_source(source: str, cell_index: int) -> tuple[str, list[dict[str, 
     return "".join(new_lines), replacements
 
 
-def _sanitize_notebook_paths(notebooks: list[Path], config_path: Path) -> None:
+def _sanitize_notebook_paths(
+    notebooks: list[Path],
+    config_path: Path,
+    *,
+    active_user: str,
+) -> None:
     config = _load_yaml(config_path)
-    notebooks_cfg = config.setdefault("notebooks", {})
+    users_cfg = config.setdefault("users", {})
+    if not isinstance(users_cfg, dict):
+        raise ValueError("'users' should be a mapping.")
+    user_cfg = users_cfg.setdefault(active_user, {})
+    if not isinstance(user_cfg, dict):
+        raise ValueError(f"Config for user {active_user!r} should be a mapping.")
+    notebooks_cfg = user_cfg.setdefault("notebooks", {})
     if not isinstance(notebooks_cfg, dict):
-        raise ValueError("'notebooks' should be a mapping.")
+        raise ValueError("'users.<name>.notebooks' should be a mapping.")
 
     for notebook in notebooks:
         nb = nbformat.read(notebook, as_version=4)
@@ -499,27 +628,47 @@ def _sanitize_notebook_paths(notebooks: list[Path], config_path: Path) -> None:
         output_cells_changed = _sanitize_output_paths(nb, replacements_for_notebook)
         if changed or output_cells_changed:
             nbformat.write(nb, notebook)
-        print(
-            f"{notebook}: sanitized={changed}, "
-            f"output_cells_sanitized={output_cells_changed}, "
-            f"added_replacements={added}"
+        LOGGER.info(
+            "Sanitized %s: source_changed=%s output_cells_sanitized=%d added_replacements=%d user=%s",
+            notebook,
+            changed,
+            output_cells_changed,
+            added,
+            active_user,
         )
 
     _write_yaml(config_path, config)
-    print(f"Wrote {config_path}")
+    LOGGER.info("Wrote %s", config_path)
 
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "notebooks",
-        nargs="+",
-        help="Notebook files to resolve. Paths may be relative to repo root or doc/.",
+        nargs="*",
+        help=(
+            "Notebook files to resolve. Paths may be relative to repo root or doc/. "
+            "If omitted, DEFAULT_NOTEBOOKS_TO_RUN is used."
+        ),
     )
     parser.add_argument(
         "--config",
         default=str(DEFAULT_CONFIG),
         help=f"Local path config. Default: {DEFAULT_CONFIG}",
+    )
+    parser.add_argument(
+        "--config-user",
+        default=None,
+        help=(
+            "User profile under users.<name> in config. Defaults to "
+            "NOTEBOOK_PATHS_USER env var or current OS username."
+        ),
+    )
+    parser.add_argument(
+        "--log-level",
+        default="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+        help="Logging verbosity.",
     )
     parser.add_argument("--timeout", type=int, default=1200)
     parser.add_argument("--kernel-name", default=None)
@@ -552,38 +701,69 @@ def _build_parser() -> argparse.ArgumentParser:
             "the local config, replacing them with /path/to placeholders."
         ),
     )
+    parser.add_argument(
+        "--continue-on-error",
+        action="store_true",
+        help="Log failures and continue instead of stopping at the first failing notebook.",
+    )
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
+    _configure_logging(args.log_level)
     config_path = _resolve_notebook_path(args.config)
-    notebooks = [_resolve_notebook_path(value) for value in args.notebooks]
+    config = _load_yaml(config_path)
+    active_user = _active_config_user(config, args.config_user)
+
+    notebook_args = args.notebooks or DEFAULT_NOTEBOOKS_TO_RUN
+    if not args.notebooks:
+        LOGGER.info(
+            "No notebook arguments provided; using DEFAULT_NOTEBOOKS_TO_RUN "
+            f"({len(DEFAULT_NOTEBOOKS_TO_RUN)} notebooks)."
+        )
+    notebooks = [_resolve_notebook_path(value) for value in notebook_args]
 
     missing = [path for path in notebooks if not path.exists()]
     if missing:
         for path in missing:
-            print(f"Notebook not found: {path}", file=sys.stderr)
+            LOGGER.error("Notebook not found: %s", path)
         return 2
 
     if args.sanitize_local_paths:
-        _sanitize_notebook_paths(notebooks, config_path)
+        _sanitize_notebook_paths(notebooks, config_path, active_user=active_user)
         return 0
 
-    config = _load_yaml(config_path)
+    LOGGER.info("Using config user profile: %s", active_user)
     leak_patterns = tuple(DEFAULT_LEAK_PATTERNS + tuple(args.leak_pattern))
-    for notebook in notebooks:
-        _execute_one(
-            notebook,
-            config,
-            timeout=args.timeout,
-            kernel_name=args.kernel_name,
-            allow_placeholder_paths=args.allow_placeholder_paths,
-            fail_on_private_output=not args.allow_private_output,
-            leak_patterns=leak_patterns,
-            dry_run=args.dry_run,
-        )
+    total = len(notebooks)
+    failures: list[tuple[Path, Exception]] = []
+    for index, notebook in enumerate(notebooks, start=1):
+        LOGGER.info("[%d/%d] %s (%s)", index, total, notebook, _dataset_label(notebook))
+        try:
+            _execute_one(
+                notebook,
+                config,
+                active_user=active_user,
+                timeout=args.timeout,
+                kernel_name=args.kernel_name,
+                allow_placeholder_paths=args.allow_placeholder_paths,
+                fail_on_private_output=not args.allow_private_output,
+                leak_patterns=leak_patterns,
+                dry_run=args.dry_run,
+            )
+        except Exception as exc:
+            if args.continue_on_error:
+                LOGGER.error("FAILED %s: %s", notebook, exc)
+                failures.append((notebook, exc))
+            else:
+                raise
+    if failures:
+        LOGGER.error("%d notebook(s) failed:", len(failures))
+        for nb, exc in failures:
+            LOGGER.error("  %s: %s", nb, exc)
+        return 1
     return 0
 
 

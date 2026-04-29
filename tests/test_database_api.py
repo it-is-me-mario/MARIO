@@ -566,3 +566,94 @@ def test_shock_calc_for_sut_accepts_legacy_z_sheet(tmp_path):
     shocked = database.query(_ENUM.u, scenarios=["legacy shock"])
 
     pdt.assert_frame_equal(shocked, expected)
+
+
+def test_plot_returns_flat_dataframe_for_iot_matrix():
+    database = load_test("IOT")
+
+    figure, plotted = database.plot(
+        matrix=_ENUM.Z,
+        scenarios="baseline",
+        preset=None,
+        kind="bar",
+        x="Sector_from",
+        color="Region_to",
+        path=False,
+        auto_open=False,
+        return_data=True,
+    )
+
+    assert "Value" in plotted.columns
+    assert "Sector_from" in plotted.columns
+    assert "Region_to" in plotted.columns
+    assert len(figure.data) > 0
+
+
+def test_plot_supports_sut_split_semantics():
+    database = load_test("SUT")
+
+    figure, plotted = database.plot(
+        matrix="U",
+        scenarios="baseline",
+        preset=None,
+        kind="bar",
+        x="Commodity_from",
+        color="Activity_to",
+        facet_col="Region_to",
+        top_n=5,
+        path=False,
+        auto_open=False,
+        return_data=True,
+    )
+
+    assert "Commodity_from" in plotted.columns
+    assert "Activity_to" in plotted.columns
+    assert len(figure.data) > 0
+
+
+def test_plot_accepts_prepared_dataframe_input():
+    database = load_test("IOT")
+    data = database.GDP(total=False).reset_index()
+
+    figure, plotted = database.plot(
+        data=data,
+        kind="treemap",
+        preset=None,
+        y="GDP",
+        color="Region",
+        path_columns=["Region", "Sector"],
+        path=False,
+        auto_open=False,
+        return_data=True,
+    )
+
+    assert "GDP" in plotted.columns
+    assert len(figure.data) > 0
+
+
+def test_legacy_plot_wrappers_emit_deprecation_warning():
+    database = load_test("IOT")
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        figure = database.plot_matrix(
+            _ENUM.Z,
+            x="Sector_from",
+            color="Region_to",
+            path=False,
+            auto_open=False,
+        )
+
+    assert len(figure.data) > 0
+    assert any(item.category is DeprecationWarning for item in caught)
+
+
+def test_plot_linkages_wrapper_uses_new_plot_engine():
+    database = load_test("IOT")
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        figure = database.plot_linkages(path=False, auto_open=False)
+
+    assert len(figure.data) > 0
+    assert any(item.category is DeprecationWarning for item in caught)

@@ -68,6 +68,12 @@ exclude_patterns = [
     "__pycache__",
     "__pycache__/**",
     "notebooks/parsers/*/tutorial.ipynb",
+    "api_document/mario.parse_gtap.rst",
+    "api_document/mario.parse_cepalstat.rst",
+    "user_guide/parsers/gtap.rst",
+    "user_guide/parsers/cepalstat.rst",
+    "notebooks/parsers/gtap/**",
+    "notebooks/parsers/cepalstat/**",
 ]
 
 

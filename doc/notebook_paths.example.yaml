@@ -5,6 +5,13 @@
 # packaged test workbooks in mario/test/new; resolve_notebooks.py maps those
 # fixtures automatically.
 
+# Optional shared defaults can live at top-level.
+# User-specific overrides should live under users.<os_username>.
+# The resolver chooses users.<name> from:
+# 1) --config-user
+# 2) NOTEBOOK_PATHS_USER
+# 3) current OS username
+
 # Replacements can be global. They are applied to every selected notebook.
 replacements:
   - placeholder: "/path/to/SUPPLY-USE"
@@ -33,7 +40,7 @@ notebooks:
       - placeholder: "/path/to/WIOT2014_Nov16_ROW.xlsb"
         local: "/absolute/local/path/to/WIOT2014_Nov16_ROW.xlsb"
 
-  source/notebooks/user_guide/transformations/add_sectors.ipynb:
+  source/user_guide/transformations/add_sectors.ipynb:
     replacements:
       - placeholder: "/path/to/add_sector_template.xlsx"
         local: "/absolute/local/path/to/add_sector_template.xlsx"
@@ -41,3 +48,19 @@ notebooks:
         local: "/absolute/local/path/to/add_sector_master_filled.xlsx"
       - placeholder: "/path/to/add_sector_inventories_filled.xlsx"
         local: "/absolute/local/path/to/add_sector_inventories_filled.xlsx"
+
+# Preferred multi-developer layout (user-specific local paths)
+users:
+  your_username:
+    replacements:
+      - placeholder: "/path/to/SUPPLY-USE"
+        local: "/your/local/path/to/SUPPLY-USE"
+    notebooks:
+      source/notebooks/parsers/oecd/walkthrough.ipynb:
+        replacements:
+          - placeholder: "/path/to/2022_SML.csv"
+            local: "/your/local/path/to/2022_SML.csv"
+            cells: [8]
+          - placeholder: "/path/to/ITA2022ttl.csv"
+            local: "/your/local/path/to/ITA2022ttl.csv"
+            cells: [10]

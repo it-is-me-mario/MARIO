@@ -1014,6 +1014,329 @@ class CoreModel:
 
         return data
 
+    @staticmethod
+    def _explode_with_left_diagonal(
+        direct: pd.DataFrame,
+        transfer: pd.DataFrame,
+        *,
+        outer_name: str,
+    ) -> pd.DataFrame:
+        """Explode one direct matrix by left-diagonal scaling of a transfer matrix.
+
+        For each row ``i`` in ``direct`` this builds ``diag(direct_i) @ transfer``
+        and stacks results with one extra outer index level.
+        """
+        if not isinstance(direct, pd.DataFrame):
+            raise TypeError("direct should be a pandas DataFrame.")
+        if not isinstance(transfer, pd.DataFrame):
+            raise TypeError("transfer should be a pandas DataFrame.")
+
+        if direct.shape[0] == 0:
+            return pd.DataFrame(columns=transfer.columns)
+
+        missing = direct.columns.difference(transfer.index)
+        if len(missing):
+            raise WrongInput(
+                f"direct columns are not aligned with transfer index. Missing labels in transfer: {list(missing)}"
+            )
+
+        aligned_transfer = transfer.loc[direct.columns, :]
+
+        blocks = []
+        for account, weights in direct.iterrows():
+            exploded = aligned_transfer.mul(weights, axis=0)
+            if isinstance(exploded.index, pd.MultiIndex):
+                exploded_index = pd.MultiIndex.from_tuples(
+                    [(account, *idx) for idx in exploded.index.tolist()],
+                    names=[outer_name, *exploded.index.names],
+                )
+            else:
+                exploded_index = pd.MultiIndex.from_arrays(
+                    [[account] * len(exploded.index), exploded.index.tolist()],
+                    names=[outer_name, exploded.index.name],
+                )
+            exploded.index = exploded_index
+            blocks.append(exploded)
+
+        return pd.concat(blocks, axis=0)
+
+    @staticmethod
+    def _normalize_exploded_selector(values, *, available: pd.Index, label: str) -> list:
+        """Normalize optional exploded-matrix selectors and validate membership."""
+        if values is None:
+            return list(available)
+
+        if isinstance(values, str):
+            requested = [values]
+        else:
+            requested = list(values)
+
+        missing = [item for item in requested if item not in available]
+        if missing:
+            raise WrongInput(
+                f"Unknown {label}: {missing}. Available values are: {list(available)}"
+            )
+
+        return requested
+
+    def f_ex(
+        self,
+        *,
+        satellite_accounts=None,
+        scenario: str = "baseline",
+    ):
+        """Return exploded satellite footprints for IOT: ``diag(e) @ w``.
+
+        Parameters
+        ----------
+        satellite_accounts:
+            Optional subset of satellite rows to explode. Accepts one label or
+            an iterable of labels.
+        scenario:
+            Scenario used to read source matrices.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame with a 3-level MultiIndex on the rows
+            ``(satellite account, region, sector)``.
+
+        Notes
+        -----
+        For SUT models use :meth:`fa_ex` (activity side) or
+        :meth:`fc_ex` (commodity side).
+        """
+        if self.table_type != "IOT":
+            raise WrongInput("f_ex is only available for IOT. Use fa_ex or fc_ex for SUT.")
+        self._validate_scenario(scenario)
+        e = self.query(_ENUM.e, scenarios=[scenario])
+        w = self.query("w", scenarios=[scenario])
+        selected = self._normalize_exploded_selector(
+            satellite_accounts,
+            available=e.index,
+            label="satellite accounts",
+        )
+        return self._explode_with_left_diagonal(
+            e.loc[selected],
+            w,
+            outer_name=_MASTER_INDEX["k"],
+        )
+
+    def fa_ex(
+        self,
+        *,
+        satellite_accounts=None,
+        scenario: str = "baseline",
+    ):
+        """Return activity-side exploded satellite footprints for SUT: ``diag(ea) @ waa``.
+
+        Parameters
+        ----------
+        satellite_accounts:
+            Optional subset of satellite rows to explode. Accepts one label or
+            an iterable of labels.
+        scenario:
+            Scenario used to read source matrices.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame with a 3-level MultiIndex on the rows
+            ``(satellite account, region, activity)``.
+
+        Notes
+        -----
+        For IOT models use :meth:`f_ex`. For the commodity side use :meth:`fc_ex`.
+        """
+        if self.table_type != "SUT":
+            raise WrongInput("fa_ex is only available for SUT. Use f_ex for IOT.")
+        self._validate_scenario(scenario)
+        ea = self.query("ea", scenarios=[scenario])
+        waa = self.query("waa", scenarios=[scenario])
+        selected = self._normalize_exploded_selector(
+            satellite_accounts,
+            available=ea.index,
+            label="satellite accounts",
+        )
+        return self._explode_with_left_diagonal(
+            ea.loc[selected],
+            waa,
+            outer_name=_MASTER_INDEX["k"],
+        )
+
+    def fc_ex(
+        self,
+        *,
+        satellite_accounts=None,
+        scenario: str = "baseline",
+    ):
+        """Return commodity-side exploded satellite footprints for SUT: ``diag(ea @ s) @ wcc``.
+
+        Parameters
+        ----------
+        satellite_accounts:
+            Optional subset of satellite rows to explode. Accepts one label or
+            an iterable of labels.
+        scenario:
+            Scenario used to read source matrices.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame with a 3-level MultiIndex on the rows
+            ``(satellite account, region, activity)`` and commodity columns.
+
+        Notes
+        -----
+        For IOT models use :meth:`f_ex`. For the activity side use :meth:`fa_ex`.
+        """
+        if self.table_type != "SUT":
+            raise WrongInput("fc_ex is only available for SUT. Use f_ex for IOT.")
+        self._validate_scenario(scenario)
+        ea = self.query("ea", scenarios=[scenario])
+        s = self.query("s", scenarios=[scenario])
+        wcc = self.query("wcc", scenarios=[scenario])
+        selected = self._normalize_exploded_selector(
+            satellite_accounts,
+            available=ea.index,
+            label="satellite accounts",
+        )
+        transfer = s.dot(wcc)
+        return self._explode_with_left_diagonal(
+            ea.loc[selected],
+            transfer,
+            outer_name=_MASTER_INDEX["k"],
+        )
+
+    def m_ex(
+        self,
+        *,
+        factors=None,
+        scenario: str = "baseline",
+    ):
+        """Return exploded value-added multipliers for IOT: ``diag(v) @ w``.
+
+        Parameters
+        ----------
+        factors:
+            Optional subset of factor rows to explode. Accepts one label or
+            an iterable of labels.
+        scenario:
+            Scenario used to read source matrices.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame with a 3-level MultiIndex on the rows
+            ``(factor, region, sector)``.
+
+        Notes
+        -----
+        For SUT models use :meth:`ma_ex` (activity side) or
+        :meth:`mc_ex` (commodity side).
+        """
+        if self.table_type != "IOT":
+            raise WrongInput("m_ex is only available for IOT. Use ma_ex or mc_ex for SUT.")
+        self._validate_scenario(scenario)
+        v = self.query(_ENUM.v, scenarios=[scenario])
+        w = self.query("w", scenarios=[scenario])
+        selected = self._normalize_exploded_selector(
+            factors,
+            available=v.index,
+            label="factors of production",
+        )
+        return self._explode_with_left_diagonal(
+            v.loc[selected],
+            w,
+            outer_name=_MASTER_INDEX["f"],
+        )
+
+    def ma_ex(
+        self,
+        *,
+        factors=None,
+        scenario: str = "baseline",
+    ):
+        """Return activity-side exploded value-added multipliers for SUT: ``diag(va) @ waa``.
+
+        Parameters
+        ----------
+        factors:
+            Optional subset of factor rows to explode. Accepts one label or
+            an iterable of labels.
+        scenario:
+            Scenario used to read source matrices.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame with a 3-level MultiIndex on the rows
+            ``(factor, region, activity)``.
+
+        Notes
+        -----
+        For IOT models use :meth:`m_ex`. For the commodity side use :meth:`mc_ex`.
+        """
+        if self.table_type != "SUT":
+            raise WrongInput("ma_ex is only available for SUT. Use m_ex for IOT.")
+        self._validate_scenario(scenario)
+        va = self.query("va", scenarios=[scenario])
+        waa = self.query("waa", scenarios=[scenario])
+        selected = self._normalize_exploded_selector(
+            factors,
+            available=va.index,
+            label="factors of production",
+        )
+        return self._explode_with_left_diagonal(
+            va.loc[selected],
+            waa,
+            outer_name=_MASTER_INDEX["f"],
+        )
+
+    def mc_ex(
+        self,
+        *,
+        factors=None,
+        scenario: str = "baseline",
+    ):
+        """Return commodity-side exploded value-added multipliers for SUT: ``diag(va) @ (s @ wcc)``.
+
+        Parameters
+        ----------
+        factors:
+            Optional subset of factor rows to explode. Accepts one label or
+            an iterable of labels.
+        scenario:
+            Scenario used to read source matrices.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame with a 3-level MultiIndex on the rows
+            ``(factor, region, activity)`` and commodity columns.
+
+        Notes
+        -----
+        For IOT models use :meth:`m_ex`. For the activity side use :meth:`ma_ex`.
+        """
+        if self.table_type != "SUT":
+            raise WrongInput("mc_ex is only available for SUT. Use m_ex for IOT.")
+        self._validate_scenario(scenario)
+        va = self.query("va", scenarios=[scenario])
+        s = self.query("s", scenarios=[scenario])
+        wcc = self.query("wcc", scenarios=[scenario])
+        selected = self._normalize_exploded_selector(
+            factors,
+            available=va.index,
+            label="factors of production",
+        )
+        transfer = s.dot(wcc)
+        return self._explode_with_left_diagonal(
+            va.loc[selected],
+            transfer,
+            outer_name=_MASTER_INDEX["f"],
+        )
+
     def add_note(self, notes):
         """Append one or more user notes to the metadata history.
 
@@ -1807,6 +2130,84 @@ class CoreModel:
         """
         history = "\n".join(self.meta._history[:])
         print(history)
+
+    @property
+    def f_ex_all(self):
+        """Exploded satellite footprints (IOT, all accounts, baseline).
+
+        Shorthand for ``db.f_ex()`` with default arguments.  For filtering or
+        non-baseline scenarios call :meth:`f_ex` directly.
+
+        Returns
+        -------
+        pandas.DataFrame
+        """
+        return self.f_ex()
+
+    @property
+    def fa_ex_all(self):
+        """Activity-side exploded satellite footprints (SUT, all accounts, baseline).
+
+        Shorthand for ``db.fa_ex()`` with default arguments.  For filtering or
+        non-baseline scenarios call :meth:`fa_ex` directly.
+
+        Returns
+        -------
+        pandas.DataFrame
+        """
+        return self.fa_ex()
+
+    @property
+    def fc_ex_all(self):
+        """Commodity-side exploded satellite footprints (SUT, all accounts, baseline).
+
+        Shorthand for ``db.fc_ex()`` with default arguments.  For filtering or
+        non-baseline scenarios call :meth:`fc_ex` directly.
+
+        Returns
+        -------
+        pandas.DataFrame
+        """
+        return self.fc_ex()
+
+    @property
+    def m_ex_all(self):
+        """Exploded value-added multipliers (IOT, all factors, baseline).
+
+        Shorthand for ``db.m_ex()`` with default arguments.  For filtering or
+        non-baseline scenarios call :meth:`m_ex` directly.
+
+        Returns
+        -------
+        pandas.DataFrame
+        """
+        return self.m_ex()
+
+    @property
+    def ma_ex_all(self):
+        """Activity-side exploded value-added multipliers (SUT, all factors, baseline).
+
+        Shorthand for ``db.ma_ex()`` with default arguments.  For filtering or
+        non-baseline scenarios call :meth:`ma_ex` directly.
+
+        Returns
+        -------
+        pandas.DataFrame
+        """
+        return self.ma_ex()
+
+    @property
+    def mc_ex_all(self):
+        """Commodity-side exploded value-added multipliers (SUT, all factors, baseline).
+
+        Shorthand for ``db.mc_ex()`` with default arguments.  For filtering or
+        non-baseline scenarios call :meth:`mc_ex` directly.
+
+        Returns
+        -------
+        pandas.DataFrame
+        """
+        return self.mc_ex()
 
     def __getitem__(self, key):
         """Return the matrix dictionary stored for one scenario."""

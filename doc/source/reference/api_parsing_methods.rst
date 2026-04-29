@@ -22,9 +22,7 @@ loading helpers.
    ../api_document/mario.parse_ceads
    ../api_document/mario.parse_bea
    ../api_document/mario.parse_adb
-   ../api_document/mario.parse_cepalstat
    ../api_document/mario.parse_useeio
-   ../api_document/mario.parse_gtap
    ../api_document/mario.parse_statcan
    ../api_document/mario.parse_istat
    ../api_document/mario.parse_eurostat

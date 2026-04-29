@@ -417,6 +417,118 @@ def test_is_hybrid(CoreDataIOT,CoreDataSUT):
     assert  cpy.is_hybrid
 
 
+def _prepend_outer_level(frame: pd.DataFrame, outer_value, outer_name: str) -> pd.DataFrame:
+    """Return a copy of frame with one extra outer index level."""
+    out = frame.copy()
+    if isinstance(out.index, pd.MultiIndex):
+        out.index = pd.MultiIndex.from_tuples(
+            [(outer_value, *idx) for idx in out.index.tolist()],
+            names=[outer_name, *out.index.names],
+        )
+    else:
+        out.index = pd.MultiIndex.from_arrays(
+            [[outer_value] * len(out.index), out.index.tolist()],
+            names=[outer_name, out.index.name],
+        )
+    return out
+
+
+def test_f_ex_iot_supports_filter(CoreDataIOT):
+
+    sat = CoreDataIOT.get_index(_MASTER_INDEX["k"])[0]
+    result = CoreDataIOT.f_ex(satellite_accounts=[sat])
+
+    e = CoreDataIOT.query(_ENUM.e)
+    w = CoreDataIOT.query("w")
+    expected = _prepend_outer_level(w.mul(e.loc[sat], axis=0), sat, _MASTER_INDEX["k"])
+
+    pdt.assert_frame_equal(result, expected)
+
+
+def test_fa_ex_sut_supports_filter(CoreDataSUT):
+
+    sat = CoreDataSUT.get_index(_MASTER_INDEX["k"])[0]
+    result = CoreDataSUT.fa_ex(satellite_accounts=[sat])
+
+    ea = CoreDataSUT.query("ea")
+    waa = CoreDataSUT.query("waa")
+    expected = _prepend_outer_level(waa.mul(ea.loc[sat], axis=0), sat, _MASTER_INDEX["k"])
+
+    pdt.assert_frame_equal(result, expected)
+
+
+def test_fc_ex_sut_supports_filter(CoreDataSUT):
+
+    sat = CoreDataSUT.get_index(_MASTER_INDEX["k"])[0]
+    result = CoreDataSUT.fc_ex(satellite_accounts=[sat])
+
+    ea = CoreDataSUT.query("ea")
+    s = CoreDataSUT.query("s")
+    wcc = CoreDataSUT.query("wcc")
+    transfer = s.dot(wcc)
+    expected = _prepend_outer_level(transfer.mul(ea.loc[sat], axis=0), sat, _MASTER_INDEX["k"])
+
+    pdt.assert_frame_equal(result, expected)
+
+
+def test_ma_ex_sut_supports_factor_filter(CoreDataSUT):
+
+    factor = CoreDataSUT.get_index(_MASTER_INDEX["f"])[0]
+    result = CoreDataSUT.ma_ex(factors=[factor])
+
+    va = CoreDataSUT.query("va")
+    waa = CoreDataSUT.query("waa")
+    expected = _prepend_outer_level(waa.mul(va.loc[factor], axis=0), factor, _MASTER_INDEX["f"])
+
+    pdt.assert_frame_equal(result, expected)
+
+
+def test_mc_ex_sut_supports_factor_filter(CoreDataSUT):
+
+    factor = CoreDataSUT.get_index(_MASTER_INDEX["f"])[0]
+    result = CoreDataSUT.mc_ex(factors=[factor])
+
+    va = CoreDataSUT.query("va")
+    s = CoreDataSUT.query("s")
+    wcc = CoreDataSUT.query("wcc")
+    transfer = s.dot(wcc)
+    expected = _prepend_outer_level(transfer.mul(va.loc[factor], axis=0), factor, _MASTER_INDEX["f"])
+
+    pdt.assert_frame_equal(result, expected)
+
+
+def test_ex_methods_raise_on_unknown_selector(CoreDataIOT):
+
+    with pytest.raises(WrongInput) as msg_f:
+        CoreDataIOT.f_ex(satellite_accounts=["__missing__"])
+    assert "Unknown satellite accounts" in str(msg_f.value)
+
+    with pytest.raises(WrongInput) as msg_m:
+        CoreDataIOT.m_ex(factors=["__missing__"])
+    assert "Unknown factors of production" in str(msg_m.value)
+
+
+def test_ex_methods_raise_on_wrong_table_type(CoreDataIOT, CoreDataSUT):
+
+    with pytest.raises(WrongInput):
+        CoreDataSUT.f_ex()
+
+    with pytest.raises(WrongInput):
+        CoreDataSUT.m_ex()
+
+    with pytest.raises(WrongInput):
+        CoreDataIOT.fa_ex()
+
+    with pytest.raises(WrongInput):
+        CoreDataIOT.fc_ex()
+
+    with pytest.raises(WrongInput):
+        CoreDataIOT.ma_ex()
+
+    with pytest.raises(WrongInput):
+        CoreDataIOT.mc_ex()
+
+
 def test___eq__(CoreDataIOT,CoreDataSUT):
 
     assert not CoreDataIOT == CoreDataSUT

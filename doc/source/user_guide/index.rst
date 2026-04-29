@@ -26,6 +26,7 @@ An extra set of workflows shows how to use advanced features
    inspection/basic_inspections
    inspection/compute_matrices
    inspection/calc_linkages
+   inspection/visualization
 
 .. toctree::
    :maxdepth: 1

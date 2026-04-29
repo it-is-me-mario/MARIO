@@ -47,18 +47,11 @@ from mario.ops.cvxlab_bridge import (
 from mario.utils import (
     _manage_indeces,
     check_clusters,
-    filtering,
 )
 
 from mario.ops.excel import _sh_excel
 
 from mario.views import plots as plt
-from mario.views.plots import _plotter
-from mario.views.plot_specs import (
-    _NON_ACCEPTABLE_FILTERS,
-    _PLOTS_LAYOUT,
-    Color,
-)
 
 from mario.compute.primitives import (
     calc_all_shock,
@@ -82,6 +75,7 @@ import logging
 import copy
 import os
 import tempfile
+import warnings
 from typing import Dict
 import plotly.express as px
 
@@ -1007,6 +1001,201 @@ class Database(CoreModel):
             normalized=normalized,
         )
 
+    @staticmethod
+    def _warn_deprecated_plot_method(name: str, replacement: str) -> None:
+        warnings.warn(
+            f"'{name}' is deprecated and will be removed in a future MARIO release. Use '{replacement}' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
+    @staticmethod
+    def _normalize_plot_dimension_name(value, columns):
+        if value is None:
+            return None
+        normalized = "".join(ch for ch in str(value).lower() if ch.isalnum())
+        for column in columns:
+            candidate = "".join(ch for ch in str(column).lower() if ch.isalnum())
+            if candidate == normalized:
+                return column
+        return value
+
+    def _normalize_legacy_plot_filters(self, filters: dict, columns) -> dict:
+        normalized = {}
+        for key, value in filters.items():
+            if not key.startswith("filter_"):
+                normalized[key] = value
+                continue
+
+            candidate = key[len("filter_") :]
+            candidate = self._normalize_plot_dimension_name(candidate, columns)
+            normalized[candidate] = value
+        return normalized
+
+    def _resolve_plot_output_path(self, path, default_name):
+        if path is False:
+            return None
+        return self._getdir(path, "Plots", default_name)
+
+    def plot(
+        self,
+        matrix=None,
+        data=None,
+        scenarios="baseline",
+        base_scenario=None,
+        difference="absolute",
+        preset="overview",
+        kind=None,
+        x=None,
+        y="Value",
+        color=None,
+        size=None,
+        facet_row=None,
+        facet_col=None,
+        animation_frame=None,
+        hover_name=None,
+        hover_data=None,
+        line_group=None,
+        text=None,
+        path_columns=None,
+        filters=None,
+        item=None,
+        agg="sum",
+        top_n=None,
+        path=None,
+        auto_open=True,
+        layout=None,
+        barmode="relative",
+        log_x=False,
+        log_y=False,
+        title=None,
+        return_data=False,
+        **kwargs,
+    ):
+        """Build one interactive plot from a matrix or a prepared dataframe.
+
+        Parameters
+        ----------
+        matrix:
+            Matrix name to resolve, flatten and plot.
+        data:
+            Optional already-flat dataframe. Use this for custom derived views.
+        scenarios:
+            Scenario name or iterable of scenario names. Used only with
+            ``matrix=...``.
+        base_scenario:
+            Optional reference scenario used to plot scenario differences.
+        difference:
+            Difference mode used with ``base_scenario``. Accepted values are
+            ``"absolute"`` and ``"relative"``.
+        preset:
+            Convenience preset for the non-expert workflow. Accepted values are
+            ``"overview"``, ``"composition"``, ``"trend"``,
+            ``"heatmap"``, ``"treemap"`` and ``"sunburst"``.
+        kind:
+            Plotly Express chart type. When omitted, MARIO infers a sensible
+            default from ``preset``.
+        mappings:
+            Standard Plotly Express mappings used in the advanced workflow.
+            This includes ``x``, ``y``, ``color``, ``size``, ``facet_row``,
+            ``facet_col``, ``animation_frame``, ``hover_name``,
+            ``hover_data``, ``line_group`` and ``text``.
+        path_columns:
+            Hierarchy columns for ``treemap`` and ``sunburst`` plots.
+        filters:
+            Column filters applied after flattening. Example:
+            ``{"Region_from": ["IT"], "Sector_to": ["Food"]}``.
+        item:
+            Optional shorthand filter applied on ``Level_from`` and
+            ``Level_to`` when the selected matrix carries activity/commodity or
+            sector semantics.
+        agg:
+            Aggregation applied before plotting.
+        top_n:
+            Optional cap on the number of ``x`` categories kept in the plot.
+        path:
+            Output HTML path. Pass ``False`` to skip HTML export.
+        auto_open:
+            When ``True``, open the generated HTML plot automatically.
+        layout:
+            Optional Plotly layout overrides.
+        barmode:
+            Bar stacking mode used for bar plots.
+        log_x, log_y:
+            Whether to use logarithmic scaling.
+        title:
+            Optional plot title.
+        return_data:
+            When ``True``, return ``(figure, plotted_dataframe)``.
+        **kwargs:
+            Additional keyword arguments forwarded to Plotly Express.
+
+        Returns
+        -------
+        plotly.graph_objects.Figure | tuple
+            The generated figure, or ``(figure, plotted_dataframe)`` when
+            ``return_data=True``.
+        """
+        if matrix is None and data is None:
+            raise WrongInput("Pass either 'matrix' or 'data' to plot(...).")
+        if matrix is not None and data is not None:
+            raise WrongInput("Pass either 'matrix' or 'data', not both.")
+
+        if matrix is not None:
+            plot_data = plt.build_matrix_plot_frame(
+                self,
+                matrix,
+                scenarios=scenarios,
+                base_scenario=base_scenario,
+                difference=difference,
+                filters=filters,
+                item=item,
+            )
+            scenarios_list = [scenarios] if isinstance(scenarios, str) else list(scenarios)
+            suffix = scenarios_list[0] if len(scenarios_list) == 1 else "multi"
+            output_path = self._resolve_plot_output_path(
+                path,
+                f"{matrix}_{preset or kind or 'plot'}_{suffix}.html",
+            )
+            resolved_title = title or plt.matrix_title(matrix)
+            if base_scenario is not None:
+                resolved_title = f"{resolved_title} vs {base_scenario} ({difference})"
+        else:
+            if not isinstance(data, pd.DataFrame):
+                raise WrongInput("'data' should be a pandas DataFrame.")
+            plot_data = plt._apply_filters(data.copy(), filters)
+            output_path = self._resolve_plot_output_path(path, f"{preset or kind or 'plot'}.html")
+            resolved_title = title
+
+        return plt.plot_frame(
+            plot_data,
+            kind=kind,
+            preset=preset,
+            x=x,
+            y=y,
+            color=color,
+            size=size,
+            facet_row=facet_row,
+            facet_col=facet_col,
+            animation_frame=animation_frame,
+            hover_name=hover_name,
+            hover_data=hover_data,
+            line_group=line_group,
+            text=text,
+            path_columns=path_columns,
+            path=output_path,
+            auto_open=auto_open,
+            layout=layout,
+            top_n=top_n,
+            agg=agg,
+            barmode=barmode,
+            log_x=log_x,
+            log_y=log_y,
+            title=resolved_title,
+            return_data=return_data,
+            **kwargs,
+        )
+
     def plot_linkages(
         self,
         scenarios="baseline",
@@ -1018,7 +1207,7 @@ class Database(CoreModel):
         auto_open=True,
         **config,
     ):
-        """Plot linkage indicators for one or more scenarios.
+        """Deprecated wrapper for plotting linkage indicators.
 
         Parameters
         ----------
@@ -1046,6 +1235,10 @@ class Database(CoreModel):
         None
             The plot is written to disk.
         """
+        self._warn_deprecated_plot_method(
+            "plot_linkages",
+            "plot(data=..., kind=..., ...) after calling calc_linkages(...)",
+        )
         if plot not in ["Total", "Direct"]:
             raise WrongInput(
                 "{} is not an acceptable value. Acceptable values are:\n{}".format(
@@ -1075,13 +1268,38 @@ class Database(CoreModel):
             for scenario in scenarios
         }
 
-        plt._plot_linkages(
-            data=data,
-            path=self._getdir(path, "Plots", "linkages.html"),
-            multi_mode=multi_mode,
-            plot=plot,
+        frame = plt.build_linkages_plot_frame(data, plot=plot)
+        output_path = self._resolve_plot_output_path(path, "linkages.html")
+
+        if multi_mode:
+            return self.plot(
+                data=frame,
+                kind="bar",
+                x=self._normalize_plot_dimension_name("Item", frame.columns),
+                y="Value",
+                color=self._normalize_plot_dimension_name("Region", frame.columns),
+                facet_col="Measure",
+                facet_row="Component",
+                animation_frame="Scenario" if "Scenario" in frame.columns and frame["Scenario"].nunique() > 1 else None,
+                preset=None,
+                path=output_path,
+                auto_open=auto_open,
+                title=f"{plot} linkages",
+                barmode=config.get("barmode", "relative"),
+            )
+
+        return self.plot(
+            data=frame,
+            kind="scatter",
+            x=f"{plot} Forward",
+            y=f"{plot} Backward",
+            color=self._normalize_plot_dimension_name("Item", frame.columns),
+            hover_name=self._normalize_plot_dimension_name("Region", frame.columns),
+            animation_frame="Scenario" if "Scenario" in frame.columns and frame["Scenario"].nunique() > 1 else None,
+            preset=None,
+            path=output_path,
             auto_open=auto_open,
-            **config,
+            title=f"{plot} linkages",
         )
 
     def to_excel(
@@ -2143,7 +2361,7 @@ class Database(CoreModel):
         log_x=False,
         log_y=False,
     ):
-        """Create a bubble chart from GDP or extension indicators.
+        """Deprecated wrapper for a GDP or extension bubble chart.
 
         Parameters
         ----------
@@ -2166,76 +2384,63 @@ class Database(CoreModel):
         None
             The plot is written to disk.
         """
-
-        items = ["x", "y", "size"]
-
-        slicer = _MASTER_INDEX["s"] if self.table_type == "IOT" else _MASTER_INDEX["a"]
-
-        to_plot = pd.DataFrame(
-            0,
-            index=self.X.loc[(slice(None), slicer, slice(None)), :].index,
-            columns=[x, y, size],
+        self._warn_deprecated_plot_method(
+            "plot_bubble",
+            "plot(data=..., kind='scatter', x=..., y=..., size=...)",
         )
 
-        cols = {}
-        matrices = self.query(matrices=[_ENUM.E, _ENUM.V])
-        for item in items:
-            if eval(item) == "GDP":
-                to_plot["GDP"] = (
-                    self.GDP(total=False, scenario=scenario)
-                    .loc[to_plot.index, "GDP"]
-                    .values
-                )
+        items = {"x": x, "y": y, "size": size}
+        focus_level = _MASTER_INDEX["s"] if self.table_type == "IOT" else _MASTER_INDEX["a"]
+        item_label = _MASTER_INDEX["s"] if self.table_type == "IOT" else _MASTER_INDEX["a"]
+
+        focus_index = self.X.loc[(slice(None), focus_level, slice(None)), :].index
+        to_plot = pd.DataFrame(index=focus_index)
+
+        matrices = self.query(matrices=[_ENUM.E, _ENUM.V], scenarios=[scenario])
+        columns = {}
+        for axis_name, requested in items.items():
+            if requested == "GDP":
+                to_plot[requested] = self.GDP(total=False, scenario=scenario).loc[focus_index, "GDP"].values
                 unit = self.units[_MASTER_INDEX["f"]].iloc[0, 0]
-
-            elif eval(item) in self.get_index(_MASTER_INDEX["k"]):
-                to_plot[eval(item)] = (
-                    matrices[_ENUM.E].loc[eval(item), to_plot.index].values
-                )
-                unit = self.units[_MASTER_INDEX["k"]].loc[eval(item), "unit"]
-
-            elif eval(item) in self.get_index(_MASTER_INDEX["f"]):
-                to_plot[eval(item)] = (
-                    matrices[_ENUM.V].loc[eval(item), to_plot.index].values
-                )
-                unit = self.units[_MASTER_INDEX["f"]].loc[eval(item), "unit"]
+            elif requested in self.get_index(_MASTER_INDEX["k"]):
+                to_plot[requested] = matrices[_ENUM.E].loc[requested, focus_index].values
+                unit = self.units[_MASTER_INDEX["k"]].loc[requested, "unit"]
+            elif requested in self.get_index(_MASTER_INDEX["f"]):
+                to_plot[requested] = matrices[_ENUM.V].loc[requested, focus_index].values
+                unit = self.units[_MASTER_INDEX["f"]].loc[requested, "unit"]
             else:
                 raise WrongInput(
-                    "Acceptable values are GDP or one of the Satellite account or "
-                    "Factor of production items."
+                    "Acceptable values are GDP or one of the Satellite account or Factor of production items."
                 )
 
-            cols[item] = eval(item) + f"({unit})"
+            columns[axis_name] = f"{requested} ({unit})"
 
-        to_plot.index.names = ["Region", "Level", "Sector"]
-        to_plot.columns = [cols[item] for item in items]
+        to_plot.columns = [columns["x"], columns["y"], columns["size"]]
+        to_plot.index.names = ["Region", "Level", item_label]
+        to_plot = to_plot.reset_index()
 
-        colors = Color()
-        colors.has_enough_colors(self.get_index(_MASTER_INDEX["r"]))
-        try:
-            fig = px.scatter(
-                to_plot.reset_index(),
-                x=cols["x"],
-                y=cols["y"],
-                size=cols["size"],
-                color="Region",
-                color_discrete_sequence=Color(),
-                hover_name="Sector",
-                log_x=log_x,
-                log_y=log_y,
-                size_max=60,
-            )
-        except ValueError:
-            negatives = to_plot.loc[to_plot[size] <= 0].index.tolist()
+        if (to_plot[columns["size"]] <= 0).any():
+            negatives = to_plot.loc[to_plot[columns["size"]] <= 0, ["Region", item_label]].values.tolist()
             raise NotImplementable(
-                f"cannot plot when size have negative numbers.\n negatives: {negatives}"
+                f"cannot plot when size have negative or null numbers. negatives: {negatives}"
             )
 
-        path = self._getdir(path, "Plots", "bubble.html")
-        fig.update_layout(
-            {i: _PLOTS_LAYOUT[i] for i in ["template", "font_family", "font_size"]}
+        return self.plot(
+            data=to_plot,
+            kind="scatter",
+            preset=None,
+            x=columns["x"],
+            y=columns["y"],
+            size=columns["size"],
+            color="Region",
+            hover_name=item_label,
+            log_x=log_x,
+            log_y=log_y,
+            path=self._resolve_plot_output_path(path, "bubble.html"),
+            auto_open=auto_open,
+            size_max=60,
+            title="Bubble plot",
         )
-        _plotter(fig=fig, directory=path, auto_open=auto_open)
 
     def plot_gdp(
         self,
@@ -2248,7 +2453,7 @@ class Database(CoreModel):
         drop_reg=None,
         title=None,
     ):
-        """Plot sectoral GDP as a treemap or sunburst chart.
+        """Deprecated wrapper for sectoral GDP treemap and sunburst plots.
 
         Parameters
         ----------
@@ -2278,7 +2483,10 @@ class Database(CoreModel):
         None
             The plot is written to disk.
         """
-
+        self._warn_deprecated_plot_method(
+            "plot_gdp",
+            "plot(data=..., kind='treemap'|'sunburst', path_columns=[...])",
+        )
         plots = ["treemap", "sunburst"]
         extension_values = [
             "relative",
@@ -2355,21 +2563,17 @@ class Database(CoreModel):
         else:
             data_frame = data_frame.loc[data_frame.Region != drop_reg]
 
-        fig = getattr(px, plot)(
-            data_frame=data_frame,
-            path=_path,
-            values=values,
+        return self.plot(
+            data=data_frame,
+            kind=plot,
+            preset=None,
+            y=values,
             color=color,
-            color_continuous_scale=px.colors.diverging.RdBu[::-1],
+            path_columns=["Region", col],
+            path=self._resolve_plot_output_path(path, f"GDP_{scenario}_{plot}.html"),
+            auto_open=auto_open,
             title=title,
         )
-
-        path = r"{}".format(self._getdir(path, "Plots", f"GDP_{scenario}_{plot}.html"))
-        fig.update_layout(
-            {i: _PLOTS_LAYOUT[i] for i in ["template", "font_family", "font_size"]}
-        )
-
-        _plotter(fig=fig, directory=path, auto_open=auto_open)
 
     def plot_matrix(
         self,
@@ -2390,7 +2594,7 @@ class Database(CoreModel):
         shared_xaxes=True,
         **filters,
     ):
-        """Generate a general-purpose HTML bar plot for a selected matrix.
+        """Deprecated wrapper around :meth:`plot` for matrix bar plots.
 
         Parameters
         ----------
@@ -2432,146 +2636,65 @@ class Database(CoreModel):
         None
             The plot is written to disk.
         """
+        self._warn_deprecated_plot_method("plot_matrix", "plot(matrix=..., ...)")
 
-        ### Inputs handling
         item_from = item
+        selected_matrix = matrix
         if self.table_type == "SUT":
-            if item_from == _MASTER_INDEX["s"] and matrix in [
-                "z",
-                "Z",
-                "U",
-                "u",
-                "S",
-                "s",
-                "f_dis",
-                "Y",
-                "X",
-            ]:
-                raise WrongInput(
-                    f"Please set 'item' as '{_MASTER_INDEX['c']}' or '{_MASTER_INDEX['a']}'"
-                )
-            if matrix not in ["v", "V", "E", "e", "EY", "F", "M"] and item_from not in [
-                _MASTER_INDEX["c"],
-                _MASTER_INDEX["a"],
-            ]:
-                raise WrongInput(
-                    f"Please set 'item' as '{_MASTER_INDEX['c']}' or '{_MASTER_INDEX['a']}'"
-                )
-        if self.table_type == "IOT" and item_from != _MASTER_INDEX["s"]:
-            raise WrongInput(f"Please set 'item' as '{_MASTER_INDEX['s']}'")
+            if selected_matrix == "Z" and item_from == _MASTER_INDEX["c"]:
+                selected_matrix = "U"
+            elif selected_matrix == "z" and item_from == _MASTER_INDEX["c"]:
+                selected_matrix = "u"
+            elif selected_matrix == "Z" and item_from == _MASTER_INDEX["a"]:
+                selected_matrix = "S"
+            elif selected_matrix == "z" and item_from == _MASTER_INDEX["a"]:
+                selected_matrix = "s"
 
-        if (
-            self.table_type == "SUT"
-            and matrix == "Z"
-            and item_from == _MASTER_INDEX["c"]
-        ):
-            matrix = "U"
-            log_time(
-                logger,
-                "Warning: according to the set combination of 'matrix' and 'item_from', "
-                "matrix has been changed to '{}'".format(matrix),
-                "warning",
-            )
-        if (
-            self.table_type == "SUT"
-            and matrix == "z"
-            and item_from == _MASTER_INDEX["c"]
-        ):
-            matrix = "u"
-            log_time(
-                logger,
-                "Warning: according to the set combination of 'matrix' and 'item_from', "
-                "matrix has been changed to '{}'".format(matrix),
-                "warning",
-            )
-        if (
-            self.table_type == "SUT"
-            and matrix == "Z"
-            and item_from == _MASTER_INDEX["a"]
-        ):
-            matrix = "S"
-            log_time(
-                logger,
-                "Warning: according to the set combination of 'matrix' and 'item_from', "
-                "matrix has been changed to '{}'".format(matrix),
-                "warning",
-            )
-        if (
-            self.table_type == "SUT"
-            and matrix == "z"
-            and item_from == _MASTER_INDEX["a"]
-        ):
-            matrix = "s"
-            log_time(
-                logger,
-                "Warning: according to the set combination of 'matrix' and 'item_from', "
-                "matrix has been changed to '{}'".format(matrix),
-                "warning",
-            )
+        scenarios = [scenario for scenario in self.scenarios if scenario != base_scenario]
+        if not scenarios:
+            scenarios = ["baseline"]
 
-        ### Preparing filters
-        for filt in filters:
-            if filt in _NON_ACCEPTABLE_FILTERS[matrix][self.table_type]:
-                raise WrongInput(
-                    f"'{filt}' is not a valid filter option for matrix '{matrix}'"
-                )
-
-        filter_options = [
-            f"filter_{_MASTER_INDEX['r']}_from".replace(" ", "_"),
-            f"filter_{_MASTER_INDEX['r']}_to".replace(" ", "_"),
-            f"filter_{_MASTER_INDEX['s']}_from".replace(" ", "_"),
-            f"filter_{_MASTER_INDEX['s']}_to".replace(" ", "_"),
-            f"filter_{_MASTER_INDEX['n']}".replace(" ", "_"),
-            f"filter_{_MASTER_INDEX['a']}_from".replace(" ", "_"),
-            f"filter_{_MASTER_INDEX['a']}_to".replace(" ", "_"),
-            f"filter_{_MASTER_INDEX['c']}_to".replace(" ", "_"),
-            f"filter_{_MASTER_INDEX['c']}_from".replace(" ", "_"),
-            f"filter_{_MASTER_INDEX['k']}".replace(" ", "_"),
-            f"filter_{_MASTER_INDEX['f']}".replace(" ", "_"),
-        ]
-
-        for filt in filter_options:
-            filters[filt] = filters.get(filt, "all")
-        filters = filtering(self, filters)
-
-        # Setting the path
-        path = self._getdir(path, "Plots", f"{matrix}.html")
-
-        # Importing and defining customizing layout
-        if layout == None:
-            layout = _PLOTS_LAYOUT
-
-        if base_scenario == None:
-            layout["title"] = f"{MATRIX_TITLES[matrix]}"
-        else:
-            layout[
-                "title"
-            ] = f"{MATRIX_TITLES[matrix]} - Variation with respect to '{base_scenario}' scenario"
-
-        if matrix in ["X", "p"]:
-            plot_function = "_plotX"
-        if matrix in ["Z", "z", "Y", "U", "u", "S", "s", "f_dis"]:
-            plot_function = "_plotZYUS"
-        if matrix in ["V", "v", "E", "e", "EY", "M", "F"]:
-            plot_function = "_plotVEMF"
-
-        eval(f"plt.{plot_function}")(
+        plot_data = plt.build_matrix_plot_frame(
             self,
-            matrix,
-            x,
-            y,
-            color,
-            facet_row,
-            facet_col,
-            animation_frame,
-            base_scenario,
-            path,
-            item_from,
-            "bar",
-            mode,
-            auto_open,
-            layout,
-            shared_yaxes,
-            shared_xaxes,
-            filters,
+            selected_matrix,
+            scenarios=scenarios,
+            base_scenario=base_scenario,
+            difference="absolute",
+            filters=None,
+            item=item_from,
+        )
+        normalized_filters = self._normalize_legacy_plot_filters(filters, plot_data.columns)
+        plot_data = plt._apply_filters(plot_data, normalized_filters)
+
+        resolved_columns = plot_data.columns
+        resolved_x = self._normalize_plot_dimension_name(x, resolved_columns)
+        resolved_y = self._normalize_plot_dimension_name(y, resolved_columns)
+        resolved_color = self._normalize_plot_dimension_name(color, resolved_columns)
+        resolved_facet_row = self._normalize_plot_dimension_name(facet_row, resolved_columns)
+        resolved_facet_col = self._normalize_plot_dimension_name(facet_col, resolved_columns)
+        resolved_animation = self._normalize_plot_dimension_name(animation_frame, resolved_columns)
+
+        resolved_layout = {} if layout is None else dict(layout)
+        if base_scenario is None:
+            resolved_layout.setdefault("title", f"{MATRIX_TITLES.get(selected_matrix, selected_matrix)}")
+        else:
+            resolved_layout.setdefault(
+                "title",
+                f"{MATRIX_TITLES.get(selected_matrix, selected_matrix)} - Variation with respect to '{base_scenario}' scenario",
+            )
+
+        return self.plot(
+            data=plot_data,
+            kind="bar",
+            preset=None,
+            x=resolved_x,
+            y=resolved_y,
+            color=resolved_color,
+            facet_row=resolved_facet_row,
+            facet_col=resolved_facet_col,
+            animation_frame=resolved_animation,
+            path=self._resolve_plot_output_path(path, f"{selected_matrix}.html"),
+            auto_open=auto_open,
+            layout=resolved_layout,
+            barmode=mode,
         )

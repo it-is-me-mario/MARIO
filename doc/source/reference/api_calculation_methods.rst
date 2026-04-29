@@ -126,3 +126,64 @@ descriptions follow the :doc:`Matrices table in Nomenclature
    ../api_document/mario.calc_b
    ../api_document/mario.calc_g
    ../api_document/mario.calc_y
+
+
+Exploded Multiplier Matrices
+-----------------------------
+
+These methods decompose multiplier (``f``, ``m``) matrices by stacking
+one scaled transfer matrix per account/factor, yielding a ``(account, region,
+sector)`` MultiIndex result. IOT and SUT use separate methods.
+
+The ``_all`` property variants (e.g. ``db.f_ex_all``) are zero-argument
+shorthands that return the full matrix for all accounts/factors at baseline
+scenario. Use the method form (e.g. ``db.f_ex(...)``) to filter or select a
+different scenario.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Method
+     - Property shorthand
+     - Table
+     - Formula
+   * - :doc:`db.f_ex(...) <../api_document/mario.CoreModel.f_ex>`
+     - :doc:`db.f_ex_all <../api_document/mario.CoreModel.f_ex_all>`
+     - IOT
+     - ``diag(e_k) @ w``
+   * - :doc:`db.fa_ex(...) <../api_document/mario.CoreModel.fa_ex>`
+     - :doc:`db.fa_ex_all <../api_document/mario.CoreModel.fa_ex_all>`
+     - SUT
+     - ``diag(ea_k) @ waa``
+   * - :doc:`db.fc_ex(...) <../api_document/mario.CoreModel.fc_ex>`
+     - :doc:`db.fc_ex_all <../api_document/mario.CoreModel.fc_ex_all>`
+     - SUT
+     - ``diag(ea_k) @ (s @ wcc)``
+   * - :doc:`db.m_ex(...) <../api_document/mario.CoreModel.m_ex>`
+     - :doc:`db.m_ex_all <../api_document/mario.CoreModel.m_ex_all>`
+     - IOT
+     - ``diag(v_f) @ w``
+   * - :doc:`db.ma_ex(...) <../api_document/mario.CoreModel.ma_ex>`
+     - :doc:`db.ma_ex_all <../api_document/mario.CoreModel.ma_ex_all>`
+     - SUT
+     - ``diag(va_f) @ waa``
+   * - :doc:`db.mc_ex(...) <../api_document/mario.CoreModel.mc_ex>`
+     - :doc:`db.mc_ex_all <../api_document/mario.CoreModel.mc_ex_all>`
+     - SUT
+     - ``diag(va_f) @ (s @ wcc)``
+
+.. toctree::
+   :maxdepth: 1
+
+   ../api_document/mario.CoreModel.f_ex
+   ../api_document/mario.CoreModel.f_ex_all
+   ../api_document/mario.CoreModel.fa_ex
+   ../api_document/mario.CoreModel.fa_ex_all
+   ../api_document/mario.CoreModel.fc_ex
+   ../api_document/mario.CoreModel.fc_ex_all
+   ../api_document/mario.CoreModel.m_ex
+   ../api_document/mario.CoreModel.m_ex_all
+   ../api_document/mario.CoreModel.ma_ex
+   ../api_document/mario.CoreModel.ma_ex_all
+   ../api_document/mario.CoreModel.mc_ex
+   ../api_document/mario.CoreModel.mc_ex_all
