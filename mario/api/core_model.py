@@ -371,7 +371,7 @@ class CoreModel:
 
     def _validate_matrices(self, matrices: list[str]) -> None:
         """Ensure that all requested matrix names are valid for the table kind."""
-        acceptable = list(self.available_blocks())
+        acceptable = list(self.available_matrices())
         for item in matrices:
             if item not in acceptable:
                 raise WrongInput(
@@ -379,8 +379,8 @@ class CoreModel:
                     f"Acceptable matrices are {acceptable}"
                 )
 
-    def available_blocks(self) -> tuple[str, ...]:
-        """Return all block names available on the current instance.
+    def available_matrices(self) -> tuple[str, ...]:
+        """Return all matrix names available on the current instance.
 
         Returns
         -------
@@ -397,6 +397,10 @@ class CoreModel:
         available.update(list_registered_operator_names(self))
         available.update(list_registered_block_specs(self))
         return tuple(sorted(available))
+
+    def available_blocks(self) -> tuple[str, ...]:
+        """Backward-compatible alias for :meth:`available_matrices`."""
+        return self.available_matrices()
 
     def _resolver_failure_types(self):
         """Return the exception types that indicate a resolution failure."""
@@ -702,7 +706,7 @@ class CoreModel:
 
     def _get_matrix(self, matrix: str, *, scenario: str, auto_calc: bool):
         """Return a deep copy of one matrix, computing it when allowed."""
-        if not self.has_block(matrix, scenario=scenario):
+        if not self.has_matrix(matrix, scenario=scenario):
             if not auto_calc:
                 raise DataMissing(
                     f"{matrix} is not calculated. Using auto_calc = True, can track the missing data and calculate them"
@@ -726,23 +730,27 @@ class CoreModel:
         self._validate_scenario(scenario)
         return tuple(sorted(self.matrices[scenario]))
 
-    def has_block(self, name: str, scenario: str = "baseline") -> bool:
-        """Return whether one block is materialized for a scenario.
+    def has_matrix(self, name: str, scenario: str = "baseline") -> bool:
+        """Return whether one matrix is materialized for a scenario.
 
         Parameters
         ----------
         name:
-            Block name to test.
+            Matrix name to test.
         scenario:
             Scenario to inspect.
 
         Returns
         -------
         bool
-            ``True`` when the block is already stored in the scenario.
+            ``True`` when the matrix is already stored in the scenario.
         """
         self._validate_scenario(scenario)
         return name in self.matrices[scenario]
+
+    def has_block(self, name: str, scenario: str = "baseline") -> bool:
+        """Backward-compatible alias for :meth:`has_matrix`."""
+        return self.has_matrix(name, scenario=scenario)
 
     def get_block(self, name: str, scenario: str = "baseline"):
         """Return the stored block object for a scenario without conversion.
@@ -1436,7 +1444,7 @@ class CoreModel:
 
         matrices = {}
         for key in keep:
-            if self.has_block(key, scenario=scenario):
+            if self.has_matrix(key, scenario=scenario):
                 matrices[key] = self.get_block_as_pandas(key, scenario=scenario)
             else:
                 self.calc_all(matrices=[key], scenario=scenario)
@@ -1468,7 +1476,7 @@ class CoreModel:
 
         matrices = {}
         for key in keep:
-            if self.has_block(key, scenario=scenario):
+            if self.has_matrix(key, scenario=scenario):
                 matrices[key] = self.get_block_as_pandas(key, scenario=scenario)
             else:
                 self.calc_all(matrices=[key], scenario=scenario)
@@ -1725,7 +1733,7 @@ class CoreModel:
         if scenario not in self.scenarios:
             raise WrongInput("Acceptable data_sets are:\n{}".format(self.scenarios))
 
-        if self.has_block(
+        if self.has_matrix(
             _ENUM.z, scenario=scenario
         ):  # this avoid to calculate z or Z in case one of them is missing, to avoid losing time
             matrix = self.get_block_as_pandas(_ENUM.z, scenario=scenario)
@@ -1780,7 +1788,7 @@ class CoreModel:
                 )
             )
 
-        if self.has_block(
+        if self.has_matrix(
             _ENUM.z, scenario=scenario
         ):  # this avoid to calculate z or Z in case one of them is missing, to avoid losing time
             matrix = self.get_block_as_pandas(_ENUM.z, scenario=scenario)
@@ -2261,7 +2269,7 @@ class CoreModel:
             if resolved_set is not None:
                 return self.get_index(resolved_set)
 
-            all_mat = list(self.available_blocks())
+            all_mat = list(self.available_matrices())
 
             if attr in all_mat:
                 self.calc_all(matrices=[attr])

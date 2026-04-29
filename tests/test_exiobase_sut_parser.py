@@ -267,7 +267,7 @@ def test_parse_state_exiobase_sut_builds_internal_split_native_state(tmp_path):
     state = parse_state_exiobase_sut(str(root))
 
     assert state.table_kind == TableKind.SUT
-    assert not state.has_block("Z")
+    assert not state.has_matrix("Z")
     assert {"EY", "Ea", "Ec", "S", "U", "Va", "Vc", "Ya", "Yc"} <= set(state.list_matrices())
 
     ordering = SUTUnifiedOrderingPolicy.from_blocks(

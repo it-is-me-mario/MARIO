@@ -548,7 +548,7 @@ def _collect_flat_matrices(instance, *, scenarios: list[str]) -> dict[str, pd.Da
             V = instance.get_block_as_pandas(_ENUM["V"], scenario=scenario)
             X = (
                 instance.get_block_as_pandas(_ENUM["X"], scenario=scenario)
-                if instance.has_block(_ENUM["X"], scenario=scenario)
+                if instance.has_matrix(_ENUM["X"], scenario=scenario)
                 else None
             )
             result["Z"].append(_flatten_Z(Z, scenario))

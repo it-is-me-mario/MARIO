@@ -239,7 +239,7 @@ def build_split_flow_scenario(
 
     old_X = (
         instance.get_block_as_pandas(_ENUM["X"], scenario=base_scenario)
-        if instance.has_block(_ENUM["X"], scenario=base_scenario)
+        if instance.has_matrix(_ENUM["X"], scenario=base_scenario)
         else calc_X_from_w(
             calc_w(instance.get_block_as_pandas(_ENUM["z"], scenario=base_scenario)),
             instance.get_block_as_pandas(_ENUM["Y"], scenario=base_scenario),

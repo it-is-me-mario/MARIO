@@ -14,14 +14,14 @@ def test_model_state_from_database_preserves_blocks_and_can_compute():
     assert state.table_kind == TableKind.IOT
     assert state.list_scenarios() == ("baseline",)
     assert "Z" in state.list_matrices()
-    assert not state.has_block("w")
+    assert not state.has_matrix("w")
 
     expected = database.copy()
     expected.calc_all([_ENUM.w])
     resolved = state.compute("w")
 
     pdt.assert_frame_equal(resolved, expected.w)
-    assert state.has_block("w")
+    assert state.has_matrix("w")
 
 
 def test_model_state_scenario_inheritance_and_override():
@@ -29,7 +29,7 @@ def test_model_state_scenario_inheritance_and_override():
     state = ModelState.from_database(database, repository=InMemoryBlockRepository())
     state.create_scenario("policy", parent="baseline")
 
-    assert state.has_block("Z", scenario="policy")
+    assert state.has_matrix("Z", scenario="policy")
     pdt.assert_frame_equal(state.get_block("Z", scenario="policy"), state.get_block("Z"))
 
     new_x = state.compute("X").copy() * 0

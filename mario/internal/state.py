@@ -121,12 +121,16 @@ class ModelState:
             names.update(item.blocks)
         return tuple(sorted(names))
 
-    def has_block(self, name: str, scenario: str = "baseline") -> bool:
-        """Return whether a block is available in a scenario chain."""
+    def has_matrix(self, name: str, scenario: str = "baseline") -> bool:
+        """Return whether a matrix is available in a scenario chain."""
         for item in self._scenario_chain(scenario):
             if item.has_local_block(name):
                 return True
         return False
+
+    def has_block(self, name: str, scenario: str = "baseline") -> bool:
+        """Backward-compatible alias for :meth:`has_matrix`."""
+        return self.has_matrix(name, scenario=scenario)
 
     def get_index(self, code: str, level: str = "main") -> tuple[object, ...]:
         """Return one logical index level stored on the state."""

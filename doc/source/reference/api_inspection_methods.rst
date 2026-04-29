@@ -13,12 +13,9 @@ Query and Block Access
    ../api_document/mario.Database.query
    ../api_document/mario.Database.get_data
    ../api_document/mario.CoreModel.get_block
-   ../api_document/mario.CoreModel.get_block_as_pandas
-   ../api_document/mario.CoreModel.get_block_as_table
-   ../api_document/mario.CoreModel.get_block_as_matrix
-   ../api_document/mario.CoreModel.has_block
+   ../api_document/mario.CoreModel.has_matrix
    ../api_document/mario.CoreModel.list_matrices
-   ../api_document/mario.CoreModel.available_blocks
+   ../api_document/mario.CoreModel.available_matrices
 
 
 Sets, Metadata and Scenarios

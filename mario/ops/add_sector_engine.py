@@ -1404,21 +1404,21 @@ def collect_add_sector_matrices(instance, scenario: str = "baseline") -> dict[st
     """Collect the coefficient and reference blocks required by the add-sectors engine."""
 
     matrices = {
-        _ENUM["z"]: instance.get_block_as_pandas("z", scenario=scenario) if instance.has_block("z", scenario=scenario) else instance.resolve("z", scenario=scenario),
-        _ENUM["e"]: instance.get_block_as_pandas("e", scenario=scenario) if instance.has_block("e", scenario=scenario) else instance.resolve("e", scenario=scenario),
-        _ENUM["v"]: instance.get_block_as_pandas("v", scenario=scenario) if instance.has_block("v", scenario=scenario) else instance.resolve("v", scenario=scenario),
-        _ENUM["Y"]: instance.get_block_as_pandas("Y", scenario=scenario) if instance.has_block("Y", scenario=scenario) else instance.resolve("Y", scenario=scenario),
-        _ENUM["EY"]: instance.get_block_as_pandas("EY", scenario=scenario) if instance.has_block("EY", scenario=scenario) else instance.resolve("EY", scenario=scenario),
-        _ENUM["VY"]: instance.get_block_as_pandas("VY", scenario=scenario) if instance.has_block("VY", scenario=scenario) else instance.resolve("VY", scenario=scenario),
-        _ENUM["Z"]: instance.get_block_as_pandas("Z", scenario=scenario) if instance.has_block("Z", scenario=scenario) else instance.resolve("Z", scenario=scenario),
-        _ENUM["E"]: instance.get_block_as_pandas("E", scenario=scenario) if instance.has_block("E", scenario=scenario) else instance.resolve("E", scenario=scenario),
-        _ENUM["V"]: instance.get_block_as_pandas("V", scenario=scenario) if instance.has_block("V", scenario=scenario) else instance.resolve("V", scenario=scenario),
+        _ENUM["z"]: instance.get_block_as_pandas("z", scenario=scenario) if instance.has_matrix("z", scenario=scenario) else instance.resolve("z", scenario=scenario),
+        _ENUM["e"]: instance.get_block_as_pandas("e", scenario=scenario) if instance.has_matrix("e", scenario=scenario) else instance.resolve("e", scenario=scenario),
+        _ENUM["v"]: instance.get_block_as_pandas("v", scenario=scenario) if instance.has_matrix("v", scenario=scenario) else instance.resolve("v", scenario=scenario),
+        _ENUM["Y"]: instance.get_block_as_pandas("Y", scenario=scenario) if instance.has_matrix("Y", scenario=scenario) else instance.resolve("Y", scenario=scenario),
+        _ENUM["EY"]: instance.get_block_as_pandas("EY", scenario=scenario) if instance.has_matrix("EY", scenario=scenario) else instance.resolve("EY", scenario=scenario),
+        _ENUM["VY"]: instance.get_block_as_pandas("VY", scenario=scenario) if instance.has_matrix("VY", scenario=scenario) else instance.resolve("VY", scenario=scenario),
+        _ENUM["Z"]: instance.get_block_as_pandas("Z", scenario=scenario) if instance.has_matrix("Z", scenario=scenario) else instance.resolve("Z", scenario=scenario),
+        _ENUM["E"]: instance.get_block_as_pandas("E", scenario=scenario) if instance.has_matrix("E", scenario=scenario) else instance.resolve("E", scenario=scenario),
+        _ENUM["V"]: instance.get_block_as_pandas("V", scenario=scenario) if instance.has_matrix("V", scenario=scenario) else instance.resolve("V", scenario=scenario),
     }
     if instance.table_type == SUT:
-        matrices[_ENUM["u"]] = instance.get_block_as_pandas("u", scenario=scenario) if instance.has_block("u", scenario=scenario) else instance.resolve("u", scenario=scenario)
-        matrices[_ENUM["s"]] = instance.get_block_as_pandas("s", scenario=scenario) if instance.has_block("s", scenario=scenario) else instance.resolve("s", scenario=scenario)
-        matrices[_ENUM["U"]] = instance.get_block_as_pandas("U", scenario=scenario) if instance.has_block("U", scenario=scenario) else instance.resolve("U", scenario=scenario)
-        matrices[_ENUM["S"]] = instance.get_block_as_pandas("S", scenario=scenario) if instance.has_block("S", scenario=scenario) else instance.resolve("S", scenario=scenario)
+        matrices[_ENUM["u"]] = instance.get_block_as_pandas("u", scenario=scenario) if instance.has_matrix("u", scenario=scenario) else instance.resolve("u", scenario=scenario)
+        matrices[_ENUM["s"]] = instance.get_block_as_pandas("s", scenario=scenario) if instance.has_matrix("s", scenario=scenario) else instance.resolve("s", scenario=scenario)
+        matrices[_ENUM["U"]] = instance.get_block_as_pandas("U", scenario=scenario) if instance.has_matrix("U", scenario=scenario) else instance.resolve("U", scenario=scenario)
+        matrices[_ENUM["S"]] = instance.get_block_as_pandas("S", scenario=scenario) if instance.has_matrix("S", scenario=scenario) else instance.resolve("S", scenario=scenario)
     return matrices
 
 

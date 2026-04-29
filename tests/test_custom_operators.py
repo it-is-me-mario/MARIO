@@ -60,7 +60,7 @@ def test_custom_ratio_operator_supports_richer_row_axes():
     pdt.assert_frame_equal(resolved, expected)
     pdt.assert_frame_equal(database.e_regional, expected)
     assert "e_regional" in database.list_custom_operators()
-    assert "e_regional" in database.available_blocks()
+    assert "e_regional" in database.available_matrices()
 
     spec = database.get_block_spec("e_regional")
     assert tuple(axis.id for axis in spec.row_axes) == ("extension_region", "satellite")

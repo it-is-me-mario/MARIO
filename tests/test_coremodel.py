@@ -353,7 +353,7 @@ def test_scenarios(CoreDataIOT):
 
 def test_block_access_adapters(CoreDataIOT):
 
-    assert CoreDataIOT.has_block(_ENUM.Z)
+    assert CoreDataIOT.has_matrix(_ENUM.Z)
     assert _ENUM.Z in CoreDataIOT.list_matrices()
 
     raw = CoreDataIOT.get_block(_ENUM.Z)

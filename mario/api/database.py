@@ -1831,7 +1831,7 @@ class Database(CoreModel):
 
         baseline_vy = (
             self.get_block_as_pandas(_ENUM["VY"], scenario=scenario)
-            if self.has_block(_ENUM["VY"], scenario=scenario)
+            if self.has_matrix(_ENUM["VY"], scenario=scenario)
             else self.resolve(_ENUM["VY"], scenario=scenario)
         )
 

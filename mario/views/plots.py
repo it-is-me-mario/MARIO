@@ -282,8 +282,8 @@ def build_matrix_plot_frame(
     item: str | None = None,
 ) -> pd.DataFrame:
     scenarios = _normalize_scenarios(scenarios)
-    if matrix not in database.available_blocks():
-        raise WrongInput(f"'{matrix}' is not a valid matrix. Available matrices are: {database.available_blocks()}")
+    if matrix not in database.available_matrices():
+        raise WrongInput(f"'{matrix}' is not a valid matrix. Available matrices are: {database.available_matrices()}")
 
     missing = set(scenarios).difference(database.scenarios)
     if missing:

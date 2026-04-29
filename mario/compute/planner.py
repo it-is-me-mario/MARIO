@@ -87,6 +87,8 @@ class ResolutionStore:
     def has(self, name: str) -> bool:
         """Return ``True`` when the scenario already materializes ``name``."""
         dataset = self.dataset
+        if hasattr(dataset, "has_matrix"):
+            return bool(dataset.has_matrix(name, scenario=self.scenario))
         if hasattr(dataset, "has_block"):
             return bool(dataset.has_block(name, scenario=self.scenario))
         return name in self._scenario_mapping()
