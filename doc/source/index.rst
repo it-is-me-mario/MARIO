@@ -94,17 +94,17 @@ The full list of publications using MARIO is in the :doc:`resources/publications
 
 .. toctree::
    :maxdepth: 1
-   :caption: API reference
-   :hidden:
-
-   reference/api_library
-
-.. toctree::
-   :maxdepth: 1
    :caption: Dev guide
    :hidden:
 
    contribute/index
+
+.. toctree::
+   :maxdepth: 1
+   :caption: API reference
+   :hidden:
+
+   reference/api_library
 
 .. toctree::
    :maxdepth: 1

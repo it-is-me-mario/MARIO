@@ -70,6 +70,8 @@ exclude_patterns = [
     "notebooks/parsers/*/tutorial.ipynb",
     "api_document/mario.parse_gtap.rst",
     "api_document/mario.parse_cepalstat.rst",
+    "user_guide/advanced/change_settings.ipynb",
+    "user_guide/advanced/large_database_workflows.ipynb",
     "user_guide/parsers/gtap.rst",
     "user_guide/parsers/cepalstat.rst",
     "notebooks/parsers/gtap/**",

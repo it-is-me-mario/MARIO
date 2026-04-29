@@ -591,7 +591,7 @@ def test_parse_state_from_excel_iot_preserves_blocks_indexes_and_units():
 
     assert state.table_kind == TableKind.IOT
     assert state.metadata.extra["parser"] == "excel"
-    assert set(state.list_blocks()) == {"E", "EY", "V", "VY", "Y", "Z"}
+    assert set(state.list_matrices()) == {"E", "EY", "V", "VY", "Y", "Z"}
     assert not state.has_block("X")
     assert state.get_index("s") == tuple(database._indeces["s"]["main"])
 
@@ -641,9 +641,9 @@ def test_parse_state_from_excel_sut_promotes_split_native_blocks():
     assert state.table_kind == TableKind.SUT
     assert not state.has_block("Z")
     assert not state.has_block("X")
-    assert {"U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "EY", "VY"} <= set(state.list_blocks())
-    assert "Xa" not in state.list_blocks()
-    assert "Xc" not in state.list_blocks()
+    assert {"U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "EY", "VY"} <= set(state.list_matrices())
+    assert "Xa" not in state.list_matrices()
+    assert "Xc" not in state.list_matrices()
     assert state.get_index("a") == tuple(database._indeces["a"]["main"])
 
     pdt.assert_frame_equal(state.compute("Z"), database.Z)
@@ -752,7 +752,7 @@ def test_parse_state_from_excel_supports_mriot_regional_extensions_layout(tmp_pa
     )
 
     assert state.table_kind == TableKind.IOT
-    assert {"Z", "Y", "V", "VY", "E", "EY"} <= set(state.list_blocks())
+    assert {"Z", "Y", "V", "VY", "E", "EY"} <= set(state.list_matrices())
     assert state.metadata.extra["parser"] == "excel"
     assert len(state.metadata.extra["block_specs"]) == 5
     assert "operators" not in state.metadata.extra
@@ -1068,7 +1068,7 @@ def test_parse_state_from_txt_iot_roundtrip_preserves_blocks(tmp_path):
     )
 
     assert state.table_kind == TableKind.IOT
-    assert set(state.list_blocks()) == {"E", "EY", "V", "VY", "Y", "Z"}
+    assert set(state.list_matrices()) == {"E", "EY", "V", "VY", "Y", "Z"}
     assert not state.has_block("X")
     pdt.assert_frame_equal(state.get_block("Z"), database.Z)
     pdt.assert_frame_equal(state.get_block("Y"), database.Y)
@@ -1227,7 +1227,7 @@ def test_parse_state_from_txt_iot_flat_roundtrip_preserves_blocks(tmp_path):
     )
 
     assert state.table_kind == TableKind.IOT
-    assert set(state.list_blocks()) == {"E", "EY", "V", "VY", "Y", "Z"}
+    assert set(state.list_matrices()) == {"E", "EY", "V", "VY", "Y", "Z"}
     assert not state.has_block("X")
     pdt.assert_frame_equal(state.get_block("Z"), database.Z)
     pdt.assert_frame_equal(state.get_block("Y"), database.Y)
@@ -1496,7 +1496,7 @@ def test_parse_state_from_parquet_iot_matrix_roundtrip_preserves_blocks(tmp_path
     )
 
     assert state.table_kind == TableKind.IOT
-    assert set(state.list_blocks()) == {"E", "EY", "V", "VY", "Y", "Z"}
+    assert set(state.list_matrices()) == {"E", "EY", "V", "VY", "Y", "Z"}
     assert not state.has_block("X")
     pdt.assert_frame_equal(state.get_block("Z"), database.Z)
     pdt.assert_frame_equal(state.get_block("Y"), database.Y)

@@ -12,6 +12,11 @@ Architecture and public API
   ``views``, ``storage`` and ``internal`` modules.
 * Moved most legacy logic out of ``core`` and ``tools`` and consolidated the
   public surface around ``Database``.
+* Added a unified ``Database.plot(...)`` workflow backed by Plotly Express and
+  kept the historical plotting helpers as deprecated compatibility wrappers.
+* Added exploded multiplier and footprint accessors on ``CoreModel`` through
+  ``f_ex``, ``fa_ex``, ``fc_ex``, ``m_ex``, ``ma_ex``, ``mc_ex`` and the
+  corresponding ``*_all`` convenience properties.
 * Added a more explicit compute layer with planner, resolver, primitives,
   formula modules and dependency graph utilities.
 * Configured MARIO to default to ``INFO`` logging on import while preserving
@@ -87,8 +92,15 @@ Testing and documentation
 
 * Greatly expanded the automated test suite across compute, parser, export,
   downloader and add-sectors workflows.
+* Added focused regression coverage and API reference pages for exploded
+  matrices and the new plotting workflow.
 * Added vendored real-data workbook fixtures for IOT and SUT plus aggregation
   templates, with roundtrip tests for Excel, TXT and Parquet exports.
+* Added a visualization user-guide notebook for ``db.plot(...)`` and updated
+  notebook resolution so published docs persist HTML Plotly output instead of
+  unsupported ``application/vnd.plotly.v1+json`` payloads.
+* Removed GTAP and CEPALSTAT pages from the published documentation while
+  keeping their parser implementations in the package.
 * Rewrote and expanded developer-facing documentation, tutorials and parser
   development guidance.
 

@@ -13,7 +13,7 @@ def test_model_state_from_database_preserves_blocks_and_can_compute():
 
     assert state.table_kind == TableKind.IOT
     assert state.list_scenarios() == ("baseline",)
-    assert "Z" in state.list_blocks()
+    assert "Z" in state.list_matrices()
     assert not state.has_block("w")
 
     expected = database.copy()

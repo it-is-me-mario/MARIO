@@ -68,8 +68,11 @@ class ResolutionStore:
         """Return the mutable mapping that stores blocks for the scenario."""
         dataset = self.dataset
 
-        if hasattr(dataset, "list_blocks") and hasattr(dataset, "get_block"):
-            return {name: dataset.get_block(name, scenario=self.scenario) for name in dataset.list_blocks(self.scenario)}
+        if hasattr(dataset, "list_matrices") and hasattr(dataset, "get_block"):
+            return {
+                name: dataset.get_block(name, scenario=self.scenario)
+                for name in dataset.list_matrices(self.scenario)
+            }
 
         if hasattr(dataset, "matrices"):
             return dataset.matrices[self.scenario]
@@ -106,8 +109,8 @@ class ResolutionStore:
     def names(self) -> tuple[str, ...]:
         """Return the block names already present in the scenario."""
         dataset = self.dataset
-        if hasattr(dataset, "list_blocks"):
-            return tuple(dataset.list_blocks(self.scenario))
+        if hasattr(dataset, "list_matrices"):
+            return tuple(dataset.list_matrices(self.scenario))
         return tuple(self._scenario_mapping().keys())
 
 

@@ -10,8 +10,6 @@ The workflows are grouped into three families:
 * transformations
 * exports
 
-An extra set of workflows shows how to use advanced features
-
 
 .. toctree::
    :maxdepth: 1
@@ -51,11 +49,3 @@ An extra set of workflows shows how to use advanced features
    :caption: Exporting
 
    exporting/export_and_roundtrip
-
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Advanced features
-
-   advanced/change_settings
-   advanced/large_database_workflows

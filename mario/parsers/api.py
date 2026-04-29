@@ -124,7 +124,7 @@ def state_to_database_payload(
 ) -> tuple[dict[str, dict[str, object]], dict[str, dict[str, object]], dict[str, object]]:
     """Convert a parser ``ModelState`` into the payload accepted by ``Database``."""
     baseline_blocks: dict[str, object] = {}
-    for block_name in state.list_blocks("baseline", include_inherited=False):
+    for block_name in state.list_matrices("baseline", include_inherited=False):
         value = state.get_block(block_name)
         baseline_blocks[block_name] = value.copy(deep=True) if hasattr(value, "copy") else value
 

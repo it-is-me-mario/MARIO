@@ -111,8 +111,8 @@ class ModelState:
             current = self.scenarios[current.parent] if current.parent is not None else None
         return chain
 
-    def list_blocks(self, scenario: str = "baseline", include_inherited: bool = True) -> tuple[str, ...]:
-        """List block names visible from one scenario."""
+    def list_matrices(self, scenario: str = "baseline", include_inherited: bool = True) -> tuple[str, ...]:
+        """List matrix names visible from one scenario."""
         if not include_inherited:
             return self.scenarios[scenario].list_local_blocks()
 
@@ -256,7 +256,7 @@ class ModelState:
             "scenarios": self.list_scenarios(),
             "indexes": tuple(sorted(self.indexes)),
             "units": tuple(sorted(self.units)),
-            "blocks": {scenario: self.list_blocks(scenario) for scenario in self.list_scenarios()},
+            "blocks": {scenario: self.list_matrices(scenario) for scenario in self.list_scenarios()},
         }
 
     @classmethod

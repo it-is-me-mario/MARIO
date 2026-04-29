@@ -710,18 +710,18 @@ class CoreModel:
             self.calc_all([matrix], scenario=scenario)
         return self.get_block_as_pandas(matrix, scenario=scenario)
 
-    def list_blocks(self, scenario: str = "baseline") -> tuple[str, ...]:
-        """List all blocks currently materialized for one scenario.
+    def list_matrices(self, scenario: str = "baseline") -> tuple[str, ...]:
+        """List all matrices currently materialized for one scenario.
 
         Parameters
         ----------
         scenario:
-            Scenario whose stored blocks should be listed.
+            Scenario whose stored matrices should be listed.
 
         Returns
         -------
         tuple[str, ...]
-            Sorted block names already materialized for the scenario.
+            Sorted matrix names already materialized for the scenario.
         """
         self._validate_scenario(scenario)
         return tuple(sorted(self.matrices[scenario]))
