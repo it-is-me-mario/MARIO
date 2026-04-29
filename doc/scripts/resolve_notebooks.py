@@ -32,6 +32,7 @@ DOC_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = DOC_ROOT.parent
 DEFAULT_CONFIG = DOC_ROOT / "notebook_paths.local.yaml"
 DEFAULT_LEAK_PATTERNS = ("/Users/", "/Volumes/")
+UNSUPPORTED_NBSPHINX_MIME_TYPES = {"application/vnd.plotly.v1+json"}
 PACKAGED_EXCEL_WORKBOOKS = {
     "test_IOT_standard.xlsx": REPO_ROOT / "mario/test/new/test_IOT_standard.xlsx",
     "test_IOT_special.xlsx": REPO_ROOT / "mario/test/new/test_IOT_special.xlsx",
@@ -419,6 +420,39 @@ def _sanitize_output_paths(nb: Any, replacements: list[Replacement]) -> int:
     return changed
 
 
+def _strip_unsupported_output_mimes(nb: Any) -> int:
+    stripped = 0
+    for cell in nb.cells:
+        if cell.get("cell_type") != "code":
+            continue
+
+        sanitized_outputs = []
+        for output in cell.get("outputs", []):
+            payload = output if isinstance(output, dict) else dict(output)
+            data = payload.get("data")
+            if not isinstance(data, dict):
+                sanitized_outputs.append(output)
+                continue
+
+            kept_data = {
+                mime: value
+                for mime, value in data.items()
+                if mime not in UNSUPPORTED_NBSPHINX_MIME_TYPES
+            }
+            removed = len(data) - len(kept_data)
+            if removed:
+                stripped += removed
+            if not kept_data:
+                continue
+
+            payload["data"] = kept_data
+            sanitized_outputs.append(payload)
+
+        cell["outputs"] = sanitized_outputs
+
+    return stripped
+
+
 def _copy_outputs(original: Any, executed: Any, *, skip_cells: set[int]) -> int:
     copied = 0
     for index, (source_cell, executed_cell) in enumerate(zip(original.cells, executed.cells)):
@@ -493,6 +527,7 @@ def _execute_one(
     # mario.__file__ resolves inside the working tree under /Users/ or /home/).
     builtin_replacements = [Replacement(placeholder="/path/to/MARIO", local=str(REPO_ROOT))]
     _sanitize_output_paths(execution_nb, builtin_replacements + replacements)
+    stripped_mimes = _strip_unsupported_output_mimes(execution_nb)
     if fail_on_private_output:
         _check_private_output_paths(
             execution_nb,
@@ -502,7 +537,12 @@ def _execute_one(
         )
     copied = _copy_outputs(original, execution_nb, skip_cells=skip_cells)
     nbformat.write(original, notebook)
-    LOGGER.info("Completed %s: copied outputs from %d executed code cells", notebook, copied)
+    LOGGER.info(
+        "Completed %s: copied outputs from %d executed code cells, stripped %d unsupported MIME payloads",
+        notebook,
+        copied,
+        stripped_mimes,
+    )
 
 
 def _relative_notebook_key(notebook: Path) -> str:
