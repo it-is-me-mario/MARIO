@@ -1,10 +1,11 @@
 include *.txt
 include LICENSE
-recursive-include Output *.html
+prune Output
+prune doc/build
+prune mariopy.egg-info
 recursive-include doc *.PNG
 recursive-include doc *.bat
 recursive-include doc *.download
-recursive-include doc *.html
 recursive-include doc *.png
 recursive-include doc *.py
 recursive-include doc *.rst
