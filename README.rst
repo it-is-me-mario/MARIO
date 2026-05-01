@@ -127,18 +127,29 @@ MARIO is distributed under the
 Supporting institutions
 -----------------------
 
-.. image:: https://enextgen.it/img/eNextGen_logo_transparent_black.png
-   :width: 220
-   :target: https://enextgen.it
-   :alt: eNextGen
-
 MARIO grows across two complementary settings.
 
-At `Politecnico di Milano <https://www.polimi.it/ricerca/trasferimento-tecnologico/spin-off>`_,
-development stays closer to the academic side: research methods, modelling choices,
-scientific validation, and documentation-oriented workflows.
+.. raw:: html
 
-At `eNextGen <https://enextgen.it>`_, a spin-off of Politecnico di Milano,
-MARIO is also used in applied settings for companies and organisations, where the
-same analytical core supports real decarbonisation, sustainability, and
-decision-support cases.
+    <table>
+       <tr>
+          <td valign="top" width="180">
+             <a href="https://www.polimi.it">
+                <img src="https://www.polimi.it/_assets/4b51f00386267395f41e0940abbcd656/Images/logo.svg" alt="Politecnico di Milano" width="120" />
+             </a>
+          </td>
+          <td valign="top">
+             <strong>Politecnico di Milano</strong>. Development stays closer to the academic side: research methods, modelling choices, scientific validation, and documentation-oriented workflows.
+          </td>
+       </tr>
+       <tr>
+          <td valign="top" width="180">
+             <a href="https://enextgen.it">
+                <img src="https://enextgen.it/img/eNextGen_logo_transparent_black.png" alt="eNextGen" width="160" />
+             </a>
+          </td>
+          <td valign="top">
+             <strong>eNextGen</strong>. As a spin-off of Politecnico di Milano, eNextGen brings MARIO into applied settings for companies and organisations, where the same analytical core supports real decarbonisation, sustainability, and decision-support cases.
+          </td>
+       </tr>
+    </table>

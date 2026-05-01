@@ -75,6 +75,36 @@ If you use MARIO in academic work, please cite:
 
 The full list of publications using MARIO is in the :doc:`resources/publications` page.
 
+Supporting institutions
+-----------------------
+
+MARIO grows across two complementary settings.
+
+.. raw:: html
+
+    <table>
+       <tr>
+          <td valign="top" width="180">
+             <a href="https://www.polimi.it" target="_blank" rel="noopener">
+                <img src="https://www.polimi.it/_assets/4b51f00386267395f41e0940abbcd656/Images/logo.svg" alt="Politecnico di Milano" width="120" />
+             </a>
+          </td>
+          <td valign="top">
+             <strong>Politecnico di Milano</strong>. Development stays closer to the academic side: research methods, modelling choices, scientific validation, and documentation-oriented workflows.
+          </td>
+       </tr>
+       <tr>
+          <td valign="top" width="180">
+             <a href="https://enextgen.it" target="_blank" rel="noopener">
+                <img src="https://enextgen.it/img/eNextGen_logo_transparent_black.png" alt="eNextGen" width="160" />
+             </a>
+          </td>
+          <td valign="top">
+             <strong>eNextGen</strong>. As a spin-off of Politecnico di Milano, eNextGen brings MARIO into applied settings for companies and organisations, where the same analytical core supports real decarbonisation, sustainability, and decision-support cases.
+          </td>
+       </tr>
+    </table>
+
 .. toctree::
    :maxdepth: 1
    :caption: Setup
