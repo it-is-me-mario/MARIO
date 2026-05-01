@@ -16,54 +16,45 @@ MARIO
 *******
 
 **MARIO** stands for **Multifunctional Analysis of Regions through Input-Output**.
-It is a Python package for reading, transforming, aggregating and computing on
-input-output tables (IOT) and supply-use tables (SUT).
-
-MARIO is not being rebuilt by discarding its established semantics. The current codebase
-keeps the historical MARIO conventions for matrices, indexes and table structure,
-while progressively moving the implementation toward a cleaner internal architecture.
-The public surface remains centered on ``mario.Database``. Internal restructuring
-is intentionally kept behind that facade instead of introducing a second primary
-user object.
+It is a Python package for working with Input-Output Tables (IOT) and Supply and
+Use Tables (SUT). Once parsed, a table becomes a MARIO *database* that can be
+inspected, computed, transformed, aggregated, shocked, and exported.
 
 Documentation is available on `Read the Docs <https://mario-suite.readthedocs.io/en/latest/index.html>`_.
-The current restructuring direction is documented in
-`doc/architecture/mario2_restructure_plan.md <doc/architecture/mario2_restructure_plan.md>`_.
 
 
-What MARIO Covers
------------------
+What MARIO Supports
+-------------------
 
-MARIO is built for common IO workflows such as:
+MARIO is designed around a practical IO workflow:
 
-* reading structured IOT and SUT datasets;
-* working with single-region and multi-region tables;
-* handling monetary and hybrid systems when supported by the parser;
-* computing missing matrices from dependency rules;
-* aggregating tables;
-* transforming SUT into IOT;
-* exporting to Excel, text formats and ``pymrio`` objects;
-* managing scenarios and shock-style variations;
-* extending the parser layer without editing the core package.
+* parse a database from supported sources or load a packaged test table;
+* inspect sets, scenarios, and available matrices;
+* compute derived matrices and indicators on demand;
+* transform, aggregate, or shock the database;
+* export the results for roundtrip or downstream analysis.
 
+The current documentation covers both standard parsers and custom database
+ingestion. Supported workflows include:
 
-Project Status
---------------
-
-The current package has one official user-facing object model.
-
-``mario.Database``
-   The main public API. Parsing, computing, querying, transforming, aggregating,
-   exporting and scenario workflows should all be understood from this surface.
-
-Internally, MARIO now uses more modular compute, parser, storage and operation
-layers, but those are implementation details rather than a second public API.
+* single-region and multi-region systems;
+* monetary and hybrid tables where the parser supports them;
+* standard sources such as EXIOBASE, EORA, EUROSTAT, FIGARO, WIOD, OECD, and more;
+* custom databases from Excel, text, CSV, and pandas-based inputs;
+* aggregation, SUT-to-IOT conversion, scenario analysis, and exports.
 
 
 Installation
 ------------
 
 The package name on PyPI is ``mariopy``, while the import name is ``mario``.
+
+Preferably, create a clean Python environment first:
+
+.. code-block:: bash
+
+   conda create -n mario python=3.10
+   conda activate mario
 
 Install from PyPI:
 
@@ -79,25 +70,11 @@ Install from source:
    cd MARIO
    pip install -e .
 
-The core package depends mainly on ``pandas``, ``numpy``, ``openpyxl`` and
-``pymrio``. Some newer helpers are optional:
 
-* ``polars`` for internal developer-facing dataframe conversions
-* ``scipy`` for internal sparse conversions
-* ``pyarrow`` for Parquet-backed storage helpers
-* ``duckdb`` for the optional DuckDB helper layer used in future storage/parser work
+Quickstart
+----------
 
-From source, you can install the full optional stack with:
-
-.. code-block:: bash
-
-   pip install -e ".[all]"
-
-
-Quickstart: Legacy API
-----------------------
-
-``Database`` remains the main and recommended way to use MARIO.
+A minimal test database is bundled with MARIO:
 
 .. code-block:: python
 
@@ -108,12 +85,10 @@ Quickstart: Legacy API
    print(db)
    print(db.get_index("Region"))
 
-   db.calc_all(["w"])
-   w = db.query(matrices=["w"], scenarios=["baseline"])
-
+   db.calc_all()
    db.to_excel(path="output_folder")
 
-For SUT workflows, the classic transformation methods are still available:
+For SUT workflows:
 
 .. code-block:: python
 
@@ -123,79 +98,16 @@ For SUT workflows, the classic transformation methods are still available:
    iot = sut.to_iot(method="B")
 
 
-Parsers and Extensibility
--------------------------
+Documentation Map
+-----------------
 
-The parser surface documented for users is still the ``Database``-returning one.
-The main entry points are:
+The published documentation is organized into a few main sections:
 
-* ``mario.parse_from_excel(...)``
-* ``mario.parse_from_txt(...)``
-* ``mario.parse_exiobase_sut(...)``
-* ``mario.parse_exiobase_3(...)``
-* ``mario.parse_eora(...)``
-* ``mario.parse_eurostat_sut(...)``
-
-Parser restructuring is ongoing internally, but user workflows should continue
-to target ``Database`` objects.
-
-
-Architecture Snapshot
----------------------
-
-The repository is now organized around a few explicit layers:
-
-``mario.model``
-   Shared domain conventions, labels, builders and table enums.
-
-``mario.compute``
-   Compute catalog, dependency resolution, views and formula implementations.
-
-``mario.parsers``
-   Database parser entry points plus lower-level parser adapters.
-
-``mario.storage``
-   Repository abstractions and storage helpers used internally by the modular core.
-
-``mario.ops``
-   Aggregation, export and transformation wrappers extracted from the monolithic
-   database classes.
-
-``mario.views``
-   Output-oriented views such as tabular rendering.
-
-Logging
--------
-
-MARIO now keeps logging intentionally quiet by default. When enabled, internal
-messages use a minimal format and external dependency noise stays suppressed.
-
-.. code-block:: python
-
-   import mario
-
-   mario.set_log_verbosity("info")
-
-
-Development
------------
-
-Run the test suite with:
-
-.. code-block:: bash
-
-   pytest
-
-Format code with:
-
-.. code-block:: bash
-
-   black mario tests
-
-The package is under active development. The most stable public surface is still
-``mario.Database``. Internal restructuring is focused on making that public API
-cleaner, faster and easier to maintain rather than replacing it with a new
-user-facing object.
+* `Setup <https://mario-suite.readthedocs.io/en/latest/setup/index.html>`_ for installation and first checks;
+* `Concepts <https://mario-suite.readthedocs.io/en/latest/concepts/index.html>`_ for MARIO terminology and conventions;
+* `User guide <https://mario-suite.readthedocs.io/en/latest/user_guide/index.html>`_ for parsers, inspection, transformations, custom databases, and exports;
+* `API reference <https://mario-suite.readthedocs.io/en/latest/reference/api_library.html>`_ for method-level documentation;
+* `Publications <https://mario-suite.readthedocs.io/en/latest/resources/publications.html>`_ for the software paper and related research.
 
 
 Citation
@@ -205,7 +117,7 @@ If you use MARIO in academic work, please cite the software paper:
 
 * `Tahavori, Golinucci, Rinaldi, et al. <https://openresearchsoftware.metajnl.com/articles/10.5334/jors.473>`_
 
-Selected application papers are listed in the documentation and project history.
+The full list of publications using MARIO is available in the documentation.
 
 
 License
