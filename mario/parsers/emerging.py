@@ -19,6 +19,10 @@ from mario.model.conventions import _MASTER_INDEX
 from mario.parsers.specs import (
     EMERGING_CO2_LABELS,
     EMERGING_CONCEPT_DOI,
+    EMERGING_E_CONCEPT_DOI,
+    EMERGING_E_DATASET_CITATION,
+    EMERGING_E_SOURCE,
+    EMERGING_E_V3_ZENODO_URL,
     EMERGING_FACTOR_LABEL,
     EMERGING_MONETARY_UNIT,
     EMERGING_PAPER_CITATION,
@@ -50,6 +54,16 @@ _EMERGING_MAIN_PATTERNS = (
 )
 _EMERGING_CO2_RE = re.compile(r"EMERGING_CO2_(?P<year>\d{4})(?:_IEA)?\.mat$", flags=re.IGNORECASE)
 _EMERGING_LABELS_RE = re.compile(r"EMERGING.*Sector&Country list\.xlsx$", flags=re.IGNORECASE)
+_EMERGING_E_MAIN_PATTERNS = (
+    (
+        re.compile(r"EMERGING_E_(?P<year>\d{4})\.mat$", flags=re.IGNORECASE),
+        "E",
+        EMERGING_E_V3_ZENODO_URL,
+    ),
+)
+_EMERGING_E_CO2_RE = re.compile(r"EMERGING_E_CO2_(?P<year>\d{4})\.mat$", flags=re.IGNORECASE)
+_EMERGING_E_FIGURE_DATA_RE = re.compile(r"Figure data\.xlsx$", flags=re.IGNORECASE)
+_EMERGING_STANDARD_VARIANTS = {"standard", "default", "base", "core"}
 
 
 @dataclass(frozen=True)
@@ -63,10 +77,14 @@ class EMERGINGLayout:
     record_url: str | None = None
     co2_path: Path | None = None
     labels_path: Path | None = None
+    figure_data_path: Path | None = None
+    variant: str = "standard"
 
     @property
     def dataset_name(self) -> str:
         """Return a compact dataset label suitable for ``Database.name``."""
+        if self.variant == "E":
+            return f"EMERGING-E {self.year}"
         return f"EMERGING {self.year}"
 
     @property
@@ -77,6 +95,15 @@ class EMERGINGLayout:
     @property
     def source(self) -> str:
         """Return the canonical source string stored in MARIO metadata."""
+        if self.variant == "E":
+            source_parts = [EMERGING_E_SOURCE]
+            if self.record_url is not None:
+                source_parts.append(f"({self.record_url}; concept DOI {EMERGING_E_CONCEPT_DOI})")
+            else:
+                source_parts.append(f"(concept DOI {EMERGING_E_CONCEPT_DOI})")
+            source_parts.append(EMERGING_E_DATASET_CITATION)
+            return "; ".join(source_parts)
+
         source_parts = [EMERGING_SOURCE]
         if self.record_url is not None:
             source_parts.append(f"({self.record_url}; concept DOI {EMERGING_CONCEPT_DOI})")
@@ -84,6 +111,20 @@ class EMERGINGLayout:
             source_parts.append(f"(concept DOI {EMERGING_CONCEPT_DOI})")
         source_parts.append(EMERGING_PAPER_CITATION)
         return "; ".join(source_parts)
+
+
+def _normalize_emerging_variant(variant: str | None) -> str:
+    """Normalize one public EMERGING parser variant selector."""
+    if variant is None:
+        return "standard"
+
+    normalized = str(variant).strip()
+    if normalized.lower() in _EMERGING_STANDARD_VARIANTS:
+        return "standard"
+    if normalized.upper() == "E":
+        return "E"
+
+    raise WrongInput("Supported EMERGING parser variants are 'standard' and 'E'.")
 
 
 def _normalize_region_request(regions) -> list[str] | None:
@@ -101,17 +142,28 @@ def detect_emerging_layout(
     year: int | None = None,
     load_co2: bool = True,
     co2_path: str | Path | None = None,
+    labels_path: str | Path | None = None,
+    variant: str = "standard",
 ) -> EMERGINGLayout:
     """Resolve the EMERGING MATLAB bundle selected for one parse request."""
+    variant = _normalize_emerging_variant(variant)
     source = Path(path)
     if not source.exists():
         raise FileNotFoundError(source)
 
+    main_patterns = _EMERGING_E_MAIN_PATTERNS if variant == "E" else _EMERGING_MAIN_PATTERNS
+    co2_pattern = _EMERGING_E_CO2_RE if variant == "E" else _EMERGING_CO2_RE
+
     def _match_layout(candidate: Path) -> tuple[int, str, str | None]:
-        for pattern, bundle_version, record_url in _EMERGING_MAIN_PATTERNS:
+        for pattern, bundle_version, record_url in main_patterns:
             match = pattern.match(candidate.name)
             if match is not None:
                 return int(match.group("year")), bundle_version, record_url
+        if variant == "E":
+            raise WrongInput(
+                "EMERGING-E parsing expects a main MATLAB file named like "
+                "'EMERGING_E_<year>.mat'."
+            )
         raise WrongInput(
             "EMERGING parsing expects a main MATLAB file named like "
             "'global_mrio_<year>.mat', 'EMERGING_V2_<year>_m.mat' or "
@@ -133,16 +185,22 @@ def detect_emerging_layout(
             for other in candidate.parent.iterdir():
                 if (
                     other.is_file()
-                    and _EMERGING_CO2_RE.match(other.name)
-                    and int(_EMERGING_CO2_RE.match(other.name).group("year")) == parsed_year
+                    and co2_pattern.match(other.name)
+                    and int(co2_pattern.match(other.name).group("year")) == parsed_year
                 ):
                     detected_co2 = other
                     break
-        labels_path = None
+        detected_labels = None
+        if labels_path is not None:
+            detected_labels = Path(labels_path)
+            if not detected_labels.exists():
+                raise FileNotFoundError(detected_labels)
+        figure_data_path = None
         for other in candidate.parent.iterdir():
-            if other.is_file() and _EMERGING_LABELS_RE.match(other.name):
-                labels_path = other
-                break
+            if detected_labels is None and variant != "E" and other.is_file() and _EMERGING_LABELS_RE.match(other.name):
+                detected_labels = other
+            if variant == "E" and other.is_file() and _EMERGING_E_FIGURE_DATA_RE.match(other.name):
+                figure_data_path = other
         return EMERGINGLayout(
             root=candidate.parent,
             data_path=candidate,
@@ -150,7 +208,9 @@ def detect_emerging_layout(
             bundle_version=bundle_version,
             record_url=record_url,
             co2_path=detected_co2,
-            labels_path=labels_path,
+            labels_path=detected_labels,
+            figure_data_path=figure_data_path,
+            variant=variant,
         )
 
     if source.is_file():
@@ -159,9 +219,14 @@ def detect_emerging_layout(
     candidates = sorted(
         child
         for child in source.rglob("*.mat")
-        if child.is_file() and any(pattern.match(child.name) for pattern, _, _ in _EMERGING_MAIN_PATTERNS)
+        if child.is_file() and any(pattern.match(child.name) for pattern, _, _ in main_patterns)
     )
     if not candidates:
+        if variant == "E":
+            raise WrongInput(
+                "No EMERGING-E main MATLAB file matching 'EMERGING_E_<year>.mat' "
+                "was found in the selected directory."
+            )
         raise WrongInput(
             "No EMERGING main MATLAB file matching 'global_mrio_<year>.mat', "
             "'EMERGING_V2_<year>_m.mat' or 'EMERGING_V2_<year>.mat' was found "
@@ -207,6 +272,21 @@ def _resolve_emerging_container(handle: h5py.File) -> h5py.Group | h5py.File:
         return group_candidates[0]
 
     raise WrongFormat("The EMERGING MATLAB bundle contains an unexpected top-level structure.")
+
+
+def _resolve_emerging_e_container(handle: h5py.File) -> h5py.Group | h5py.File:
+    """Return the HDF5 object that actually stores the EMERGING-E datasets."""
+    required = {"MRIO_Z_E", "MRIO_F_E", "MRIO_VA_E", "MRIO_X_E"}
+    if required.issubset(handle.keys()):
+        return handle
+
+    group_candidates = [
+        item for key, item in handle.items() if key != "#refs#" and isinstance(item, h5py.Group)
+    ]
+    if len(group_candidates) == 1 and required.issubset(group_candidates[0].keys()):
+        return group_candidates[0]
+
+    raise WrongFormat("The EMERGING-E MATLAB bundle contains an unexpected top-level structure.")
 
 
 def _read_emerging_labels(layout: EMERGINGLayout, sector_count: int) -> tuple[list[str] | None, list[str] | None]:
@@ -330,6 +410,181 @@ def _zero_frame(index, columns) -> pd.DataFrame:
     return pd.DataFrame(np.zeros((len(index), len(columns))), index=index, columns=columns)
 
 
+def _generic_labels(prefix: str, count: int) -> list[str]:
+    """Return deterministic fallback labels when the bundle ships no metadata."""
+    width = max(3, len(str(count)))
+    return [f"{prefix} {index:0{width}d}" for index in range(1, count + 1)]
+
+
+def _infer_emerging_e_dimensions(group: h5py.Group | h5py.File) -> tuple[int, int, int]:
+    """Infer region, sector and final-demand counts from one EMERGING-E bundle."""
+    z_rows, z_cols = group["MRIO_Z_E"].shape
+    f_rows, f_cols = group["MRIO_F_E"].shape
+    if z_rows != z_cols:
+        raise WrongFormat("EMERGING-E requires a square MRIO_Z_E matrix.")
+    if f_cols != z_cols:
+        raise WrongFormat("EMERGING-E requires MRIO_F_E columns to match MRIO_Z_E dimensions.")
+
+    final_demand_count = 3
+    if f_rows % final_demand_count != 0:
+        raise WrongFormat(
+            "EMERGING-E expects three final-demand categories per region in MRIO_F_E."
+        )
+
+    region_count = f_rows // final_demand_count
+    if z_rows % region_count != 0:
+        raise WrongFormat(
+            "EMERGING-E dimensions do not factor into consistent region and sector blocks."
+        )
+
+    return region_count, z_rows // region_count, final_demand_count
+
+
+def _read_emerging_e_region_codes(layout: EMERGINGLayout, region_count: int) -> list[str]:
+    """Read EMERGING-E region ISO3 codes from the companion figure workbook when available."""
+    if layout.figure_data_path is not None:
+        try:
+            frame = pd.read_excel(layout.figure_data_path, sheet_name="Figure S4")
+        except Exception as exc:
+            log_time(
+                logger,
+                f"Parser: could not read EMERGING-E figure workbook {layout.figure_data_path.name}: {exc}",
+                "debug",
+            )
+        else:
+            if "ISO3" in frame.columns:
+                values = frame["ISO3"].dropna().astype(str).tolist()
+                if len(values) == region_count:
+                    return values
+
+    return _generic_labels("R", region_count)
+
+
+def _read_emerging_e_sector_labels_from_workbook(
+    workbook_path: Path,
+    *,
+    sector_count: int,
+) -> list[str] | None:
+    """Read EMERGING-E sector labels from one workbook when its structure is compatible."""
+    candidate_sheets = (
+        ("Sector", "Sector"),
+        ("Sheet1", "Sector"),
+        ("Sheet1", "Label"),
+        ("Sheet1", "Name"),
+        ("Sheet2", "Sector"),
+        ("Sheet2", "Label"),
+        ("Sheet2", "Name"),
+    )
+    for sheet_name, column_name in candidate_sheets:
+        try:
+            frame = pd.read_excel(workbook_path, sheet_name=sheet_name)
+        except Exception:
+            continue
+        if column_name not in frame.columns:
+            continue
+        values = frame[column_name].dropna().astype(str).tolist()
+        if len(values) == sector_count:
+            return values
+
+    try:
+        all_sheets = pd.read_excel(workbook_path, sheet_name=None)
+    except Exception as exc:
+        log_time(
+            logger,
+            f"Parser: could not read EMERGING-E sector labels workbook {workbook_path.name}: {exc}",
+            "debug",
+        )
+        return None
+
+    for frame in all_sheets.values():
+        for column_name in ("Sector", "Label", "Name"):
+            if column_name not in frame.columns:
+                continue
+            values = frame[column_name].dropna().astype(str).tolist()
+            if len(values) == sector_count:
+                return values
+
+    return None
+
+
+def _read_emerging_e_sector_labels(layout: EMERGINGLayout, sector_count: int) -> list[str] | None:
+    """Read EMERGING-E sector labels from one explicit or auto-detected workbook."""
+    if layout.labels_path is not None:
+        values = _read_emerging_e_sector_labels_from_workbook(
+            layout.labels_path,
+            sector_count=sector_count,
+        )
+        if values is None:
+            log_time(
+                logger,
+                (
+                    "Parser: EMERGING-E sector labels workbook "
+                    f"{layout.labels_path.name} does not expose {sector_count} sector labels; "
+                    "using generic sector identifiers."
+                ),
+                "debug",
+            )
+        return values
+
+    workbook_candidates = sorted(
+        path
+        for path in layout.root.glob("*.xlsx")
+        if path.is_file()
+        and (layout.figure_data_path is None or path != layout.figure_data_path)
+    )
+    for workbook_path in workbook_candidates:
+        values = _read_emerging_e_sector_labels_from_workbook(
+            workbook_path,
+            sector_count=sector_count,
+        )
+        if values is not None:
+            log_time(
+                logger,
+                f"Parser: auto-detected EMERGING-E sector labels workbook {workbook_path.name}.",
+                "debug",
+            )
+            return values
+
+    if workbook_candidates:
+        searched = ", ".join(path.name for path in workbook_candidates)
+        log_time(
+            logger,
+            (
+                "Parser: checked EMERGING-E workbook candidates for sector labels but found no "
+                f"compatible file among: {searched}."
+            ),
+            "debug",
+        )
+    return None
+
+
+def _read_emerging_e_vector(dataset: h5py.Dataset, *, expected_size: int) -> np.ndarray:
+    """Read one EMERGING-E vector stored either as row or column matrix."""
+    values = np.asarray(dataset[()], dtype=float).reshape(-1)
+    if values.size != expected_size:
+        raise WrongFormat(
+            f"EMERGING-E dataset '{dataset.name}' exposes {values.size} values, expected {expected_size}."
+        )
+    return values
+
+
+def _load_emerging_companion_co2(path: Path, *, expected_rows: int) -> np.ndarray:
+    """Load one companion CO2 matrix with the expected row count from a MAT file."""
+    data = loadmat(path)
+    candidates = [
+        value
+        for key, value in data.items()
+        if not key.startswith("__") and isinstance(value, np.ndarray) and value.ndim == 2
+    ]
+    for candidate in candidates:
+        if candidate.shape[0] == expected_rows:
+            return np.asarray(candidate, dtype=float)
+
+    raise WrongFormat(
+        f"No 2-D CO2 matrix with {expected_rows} rows was found in companion file '{path.name}'."
+    )
+
+
 def parse_emerging_iot(
     path: str | Path,
     *,
@@ -337,6 +592,8 @@ def parse_emerging_iot(
     regions=None,
     load_co2: bool = True,
     co2_path: str | Path | None = None,
+    labels_path: str | Path | None = None,
+    variant: str = "standard",
 ) -> tuple[
     dict[str, dict[str, pd.DataFrame]],
     dict[str, dict[str, list[str]]],
@@ -344,7 +601,160 @@ def parse_emerging_iot(
     EMERGINGLayout,
 ]:
     """Parse one EMERGING Zenodo MATLAB bundle into canonical MARIO IOT blocks."""
-    layout = detect_emerging_layout(path, year=year, load_co2=load_co2, co2_path=co2_path)
+    layout = detect_emerging_layout(
+        path,
+        year=year,
+        load_co2=load_co2,
+        co2_path=co2_path,
+        labels_path=labels_path,
+        variant=variant,
+    )
+    if layout.variant == "E":
+        log_time(logger, f"Parser: reading EMERGING-E bundle {layout.data_path.name}.", "info")
+
+        with h5py.File(layout.data_path, "r") as handle:
+            group = _resolve_emerging_e_container(handle)
+            required = {"MRIO_Z_E", "MRIO_F_E", "MRIO_VA_E", "MRIO_X_E"}
+            missing = required.difference(group.keys())
+            if missing:
+                raise WrongFormat(f"The EMERGING-E bundle is missing required datasets: {sorted(missing)}.")
+
+            region_count, sector_count, final_count = _infer_emerging_e_dimensions(group)
+            region_codes = _read_emerging_e_region_codes(layout, region_count)
+            sector_labels = _read_emerging_e_sector_labels(layout, sector_count)
+            if sector_labels is None:
+                sector_labels = _generic_labels("Sector", sector_count)
+            final_labels = _generic_labels("Final demand", final_count)
+            selected_regions, region_positions = _select_regions(region_codes, regions=regions)
+
+            if layout.figure_data_path is None:
+                log_time(
+                    logger,
+                    "Parser: EMERGING-E figure workbook not found; using generic region identifiers.",
+                    "debug",
+                )
+            if layout.labels_path is None:
+                log_time(
+                    logger,
+                    "Parser: EMERGING-E sector labels workbook not provided; using generic sector identifiers.",
+                    "debug",
+                )
+
+            sector_positions = _block_positions(region_positions, block_size=sector_count)
+            final_positions = _block_positions(region_positions, block_size=final_count)
+
+            sector_axis = pd.MultiIndex.from_arrays(
+                [
+                    np.repeat(selected_regions, len(sector_labels)),
+                    [_MASTER_INDEX["s"]] * len(sector_positions),
+                    sector_labels * len(selected_regions),
+                ]
+            )
+            final_axis = pd.MultiIndex.from_arrays(
+                [
+                    np.repeat(selected_regions, len(final_labels)),
+                    [_MASTER_INDEX["n"]] * len(final_positions),
+                    final_labels * len(selected_regions),
+                ]
+            )
+            factor_axis = pd.Index([EMERGING_FACTOR_LABEL], name=None)
+
+            z_dataset = group["MRIO_Z_E"]
+            y_dataset = group["MRIO_F_E"]
+            va_dataset = group["MRIO_VA_E"]
+
+            full_sector_positions = np.arange(z_dataset.shape[0], dtype=np.int64)
+            full_final_positions = np.arange(y_dataset.shape[0], dtype=np.int64)
+            row_positions = (
+                sector_positions
+                if not np.array_equal(sector_positions, full_sector_positions)
+                else full_sector_positions
+            )
+            fd_positions = (
+                final_positions
+                if not np.array_equal(final_positions, full_final_positions)
+                else full_final_positions
+            )
+
+            Z = _dense_or_sparse_frame_from_hdf5(
+                z_dataset,
+                row_positions=row_positions,
+                column_positions=sector_positions,
+                index=sector_axis,
+                columns=sector_axis,
+            )
+
+            Y_raw = _dense_or_sparse_frame_from_hdf5(
+                y_dataset,
+                row_positions=fd_positions,
+                column_positions=sector_positions,
+                index=final_axis,
+                columns=sector_axis,
+                block_size=128,
+            )
+            Y = Y_raw.T
+            Y.index = sector_axis
+            Y.columns = final_axis
+
+            total_sectors = region_count * sector_count
+            va_values = _read_emerging_e_vector(va_dataset, expected_size=total_sectors)[sector_positions]
+            V = pd.DataFrame(va_values.reshape(1, -1), index=factor_axis, columns=sector_axis)
+
+        satellite_axis = pd.Index([EMERGING_SATELLITE_PLACEHOLDER], name=None)
+        if layout.co2_path is not None:
+            log_time(logger, f"Parser: reading EMERGING-E CO2 file {layout.co2_path.name}.", "info")
+            co2 = _load_emerging_companion_co2(layout.co2_path, expected_rows=region_count * sector_count)
+            co2_selected = np.asarray(co2[sector_positions, :], dtype=float).T
+            if co2_selected.shape[0] == len(EMERGING_CO2_LABELS):
+                satellite_labels = list(EMERGING_CO2_LABELS)
+            else:
+                satellite_labels = _generic_labels("Satellite", co2_selected.shape[0])
+            satellite_axis = pd.Index(satellite_labels, name=None)
+            E = pd.DataFrame(co2_selected, index=satellite_axis, columns=sector_axis)
+            EY = _zero_frame(satellite_axis, final_axis)
+            satellite_units = [EMERGING_SATELLITE_UNIT] * len(satellite_axis)
+        else:
+            E = _zero_frame(satellite_axis, sector_axis)
+            EY = _zero_frame(satellite_axis, final_axis)
+            satellite_units = ["None"]
+
+        matrices = {"baseline": {"Z": Z, "Y": Y, "V": V, "E": E, "EY": EY}}
+        units = {
+            _MASTER_INDEX["s"]: pd.DataFrame(
+                {"unit": [EMERGING_MONETARY_UNIT] * len(sector_labels)},
+                index=pd.Index(sector_labels, name=None),
+            ),
+            _MASTER_INDEX["f"]: pd.DataFrame(
+                {"unit": [EMERGING_MONETARY_UNIT]},
+                index=factor_axis,
+            ),
+            _MASTER_INDEX["k"]: pd.DataFrame(
+                {"unit": satellite_units},
+                index=satellite_axis,
+            ),
+        }
+        indeces = {
+            "r": {"main": selected_regions},
+            "s": {"main": sector_labels},
+            "f": {"main": list(factor_axis)},
+            "k": {"main": list(satellite_axis)},
+            "n": {"main": final_labels},
+        }
+
+        rename_index(matrices["baseline"])
+        log_time(
+            logger,
+            (
+                "Parser: EMERGING-E parsed with "
+                f"{len(selected_regions)} regions, "
+                f"{len(sector_labels)} sectors, "
+                f"{len(final_axis)} final-demand columns and "
+                f"{len(satellite_axis)} satellite rows."
+            ),
+            "info",
+        )
+        return matrices, indeces, units, layout
+
     log_time(logger, f"Parser: reading EMERGING bundle {layout.data_path.name}.", "info")
 
     with h5py.File(layout.data_path, "r") as handle:

@@ -21,6 +21,9 @@ import requests
 from mario.log_exc.exceptions import NotImplementable, Rewrite, WrongInput
 from mario.parsers.specs import (
     EMERGING_CONCEPT_DOI,
+    EMERGING_E_CONCEPT_DOI,
+    EMERGING_E_V3_RECORD_ID,
+    EMERGING_E_V3_ZENODO_URL,
     EMERGING_V1_RECORD_ID,
     EMERGING_V1_ZENODO_URL,
     EMERGING_V20_RECORD_ID,
@@ -876,6 +879,7 @@ def download_emerging(
     * ``2.0``: ``10.5281/zenodo.17557778``
     * ``2.1``: ``10.5281/zenodo.18518911``
     * ``2.2``: ``10.5281/zenodo.19461860``
+    * ``E``: ``10.5281/zenodo.18303090``
 
     ``latest`` currently resolves to ``2.2``.
     """
@@ -890,11 +894,14 @@ def download_emerging(
         "v2.1": ("2.1", EMERGING_V21_RECORD_ID, EMERGING_V21_ZENODO_URL),
         "2.2": ("2.2", EMERGING_V22_RECORD_ID, EMERGING_V22_ZENODO_URL),
         "v2.2": ("2.2", EMERGING_V22_RECORD_ID, EMERGING_V22_ZENODO_URL),
+        "e": ("E", EMERGING_E_V3_RECORD_ID, EMERGING_E_V3_ZENODO_URL),
+        "emerging-e": ("E", EMERGING_E_V3_RECORD_ID, EMERGING_E_V3_ZENODO_URL),
+        "v3": ("E", EMERGING_E_V3_RECORD_ID, EMERGING_E_V3_ZENODO_URL),
         "latest": ("2.2", EMERGING_V22_RECORD_ID, EMERGING_V22_ZENODO_URL),
     }
     if normalized_version not in version_map:
         raise NotImplementable(
-            "Supported EMERGING download versions are '1.0', '2.0', '2.1', and '2.2' (or 'latest')."
+            "Supported EMERGING download versions are '1.0', '2.0', '2.1', '2.2', and 'E' (or 'latest')."
         )
     resolved_version, record_id, record_url = version_map[normalized_version]
 
@@ -915,6 +922,9 @@ def download_emerging(
             if "Sector&Country list" in file_name:
                 selected_names.append(file_name)
                 continue
+            if resolved_version == "E" and file_name == "Figure data.xlsx":
+                selected_names.append(file_name)
+                continue
             if any(token in file_name for token in year_tokens):
                 selected_names.append(file_name)
         if not selected_names:
@@ -930,7 +940,7 @@ def download_emerging(
         )
 
     return {
-        "source": EMERGING_CONCEPT_DOI,
+        "source": EMERGING_E_CONCEPT_DOI if resolved_version == "E" else EMERGING_CONCEPT_DOI,
         "version": resolved_version,
         "version_record": record_url,
         "download_dir": str(root),

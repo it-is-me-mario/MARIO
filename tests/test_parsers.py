@@ -1152,6 +1152,42 @@ def test_parse_from_txt_sut_roundtrip_returns_split_native_blocks(tmp_path):
     pdt.assert_frame_equal(parsed.E, database.E)
 
 
+def test_parse_from_txt_auto_detects_flows_subfolder_from_root_path(tmp_path):
+    database = load_test("IOT")
+    database.to_txt(path=tmp_path, flows=True, coefficients=False, sep=",")
+
+    parsed = parse_from_txt(
+        path=str(tmp_path),
+        table="IOT",
+        mode="flows",
+        sep=",",
+        calc_all=False,
+    )
+
+    pdt.assert_frame_equal(_sorted_matrix(parsed.Z), _sorted_matrix(database.Z))
+    pdt.assert_frame_equal(_sorted_matrix(parsed.V), _sorted_matrix(database.V))
+    pdt.assert_frame_equal(_sorted_matrix(parsed.E), _sorted_matrix(database.E))
+    pdt.assert_frame_equal(_sorted_matrix(parsed.Y), _sorted_matrix(database.Y))
+
+
+def test_parse_from_txt_auto_detects_coefficients_subfolder_from_root_path(tmp_path):
+    database = load_test("IOT")
+    database.to_txt(path=tmp_path, flows=False, coefficients=True, sep=",")
+
+    parsed = parse_from_txt(
+        path=str(tmp_path),
+        table="IOT",
+        mode="coefficients",
+        sep=",",
+        calc_all=False,
+    )
+
+    pdt.assert_frame_equal(_sorted_matrix(parsed.z), _sorted_matrix(database.z))
+    pdt.assert_frame_equal(_sorted_matrix(parsed.v), _sorted_matrix(database.v))
+    pdt.assert_frame_equal(_sorted_matrix(parsed.e), _sorted_matrix(database.e))
+    pdt.assert_frame_equal(_sorted_matrix(parsed.Y), _sorted_matrix(database.Y))
+
+
 def test_parse_state_from_txt_supports_sut_matrix_layouts_on_matrix_payloads(tmp_path):
     blocks, _, units = _build_custom_sut_unified_blocks()
     root = tmp_path / "sut_txt_matrix_layout"

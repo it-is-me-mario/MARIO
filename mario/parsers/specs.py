@@ -118,12 +118,21 @@ EMERGING_V21_ZENODO_URL = "https://doi.org/10.5281/zenodo.18518911"
 EMERGING_V21_RECORD_ID = "18518911"
 EMERGING_V22_ZENODO_URL = "https://doi.org/10.5281/zenodo.19461860"
 EMERGING_V22_RECORD_ID = "19461860"
+EMERGING_E_CONCEPT_DOI = "https://doi.org/10.5281/zenodo.17612997"
+EMERGING_E_V3_ZENODO_URL = "https://doi.org/10.5281/zenodo.18303090"
+EMERGING_E_V3_RECORD_ID = "18303090"
 EMERGING_SOURCE = "EMERGING MATLAB bundle via Zenodo"
 EMERGING_PAPER_CITATION = (
     "Huo, J., Chen, P., Hubacek, K., Zheng, H., Meng, J., & Guan, D. (2022). "
     "Full-scale, near real-time multi-regional input-output table for the global "
     "emerging economies (EMERGING). Journal of Industrial Ecology, 26, 1218–1232. "
     "https://doi.org/10.1111/jiec.13264"
+)
+EMERGING_E_SOURCE = "EMERGING-E MATLAB bundle via Zenodo"
+EMERGING_E_DATASET_CITATION = (
+    "Huo, J. (2026). EMERGING-E: A Global Multi-Regional Input-output Model with "
+    "Renewable Electricity Disaggregation (Version V3) [Data set]. Zenodo. "
+    "https://doi.org/10.5281/zenodo.18303090"
 )
 EMERGING_MONETARY_UNIT = "current million US$"
 EMERGING_SATELLITE_UNIT = "Mt CO2eq"

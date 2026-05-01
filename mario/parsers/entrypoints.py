@@ -229,7 +229,10 @@ def parse_from_txt(
     Parameters
     ----------
     path : str
-        defined the folder that contains data files.
+        defined the folder that contains data files. When ``path`` points to
+        the parent export directory instead of the mode-specific subfolder,
+        MARIO automatically looks for ``flows`` or ``coefficients`` inside it
+        according to ``mode``.
 
     table : str
         acceptable options are 'IOT' & 'SUT'
@@ -1941,6 +1944,8 @@ def parse_emerging(
     regions=None,
     load_co2: bool = True,
     co2_path: str | None = None,
+    labels_path: str | None = None,
+    variant: str = "standard",
     model: str = "Database",
     name: str | None = None,
     calc_all: bool = False,
@@ -1949,21 +1954,19 @@ def parse_emerging(
     """Parse one EMERGING MATLAB bundle from the supported Zenodo releases.
 
     This parser supports the EMERGING bundles associated with these official
-    Zenodo version records:
+        Zenodo version records: ``https://doi.org/10.5281/zenodo.10956623`` for
+        the older ``v1.0`` release with files like ``global_mrio_2017.mat`` and
+        ``EMERGING_CO2_2017.mat``; ``https://doi.org/10.5281/zenodo.17557778`` for
+        ``v2.0``; ``https://doi.org/10.5281/zenodo.18518911`` for ``v2.1``;
+        ``https://doi.org/10.5281/zenodo.19461860`` for ``v2.2``; and
+        ``https://doi.org/10.5281/zenodo.18303090`` for the EMERGING-E ``E`` variant.
 
-    * the older record ``https://doi.org/10.5281/zenodo.10956623`` with main
-      files like ``global_mrio_2017.mat`` and companion CO2 files like
-      ``EMERGING_CO2_2017.mat``;
-    * ``https://doi.org/10.5281/zenodo.17557778`` for ``v2.0``;
-    * ``https://doi.org/10.5281/zenodo.18518911`` for ``v2.1``;
-    * ``https://doi.org/10.5281/zenodo.19461860`` for ``v2.2``.
-
-    In practice, MARIO accepts these local naming conventions:
-
-    * ``global_mrio_<year>.mat`` for ``v1.0`` bundles;
-    * ``EMERGING_V2_<year>_m.mat`` for ``v2.x`` bundles;
-    * ``EMERGING_V2_<year>.mat`` for older local ``v2.x`` copies when they
-      expose the same internal MATLAB structure.
+        In practice, MARIO accepts these local naming conventions:
+        ``global_mrio_<year>.mat`` for ``v1.0`` bundles,
+        ``EMERGING_V2_<year>_m.mat`` for ``v2.x`` bundles,
+        ``EMERGING_V2_<year>.mat`` for older local ``v2.x`` copies when they
+        expose the same internal MATLAB structure, and ``EMERGING_E_<year>.mat``
+        for the EMERGING-E power-disaggregated variant.
 
     For local ``v2.x`` files, the parser does not try to infer the exact
     sub-version ``2.0`` versus ``2.1`` versus ``2.2`` from the filename alone,
@@ -1978,6 +1981,13 @@ def parse_emerging(
 
     MARIO currently supports only the multiregional IOT bundle, not any future
     alternative table layouts.
+
+    ``variant='E'`` selects the local EMERGING-E bundle. That variant currently
+    parses the economic blocks directly from ``EMERGING_E_<year>.mat``. MARIO
+    first tries to auto-detect a compatible sibling ``.xlsx`` workbook with one
+    ``Sector``/``Label``/``Name`` column exposing the full EMERGING-E sector
+    list; use ``labels_path=`` to override that detection explicitly. If no
+    compatible workbook is found, MARIO falls back to generic sector labels.
 
     Parameters
     ----------
@@ -2000,6 +2010,13 @@ def parse_emerging(
     co2_path : str, optional
         explicit path to the companion CO2 MATLAB file. When provided it
         overrides sibling auto-detection.
+    labels_path : str, optional
+        explicit path to one Excel workbook containing sector labels. For
+        ``variant="E"`` this overrides the automatic search among sibling
+        ``.xlsx`` workbooks next to the main MATLAB file.
+    variant : str, optional
+        parser variant. Use ``"standard"`` for the original EMERGING bundles
+        and ``"E"`` for the EMERGING-E power-disaggregated local bundle.
     model : str, optional
         public MARIO model class to instantiate. ``Database`` is the default
         and the only supported value.
@@ -2021,6 +2038,8 @@ def parse_emerging(
         regions=regions,
         load_co2=load_co2,
         co2_path=co2_path,
+        labels_path=labels_path,
+        variant=variant,
     )
     return models[model](
         name=name or layout.dataset_name,

@@ -109,6 +109,96 @@ def _write_emerging_bundle(
     return main_path, co2_path, labels_path
 
 
+def _write_emerging_e_bundle(
+    root: Path,
+    *,
+    year: int = 2018,
+    main_name: str | None = None,
+    co2_name: str | None = None,
+) -> tuple[Path, Path, Path]:
+    """Write one compact EMERGING-E-like local bundle."""
+    root.mkdir(parents=True, exist_ok=True)
+    main_path = root / (main_name or f"EMERGING_E_{year}.mat")
+    co2_path = root / (co2_name or f"EMERGING_E_CO2_{year}.mat")
+    figure_path = root / "Figure data.xlsx"
+
+    with h5py.File(main_path, "w") as handle:
+        group = handle.create_group("EMERGING_Power")
+        group.create_dataset(
+            "MRIO_Z_E",
+            data=np.array(
+                [
+                    [1.0, 0.0, 2.0, 0.0, 3.0, 0.0],
+                    [0.0, 4.0, 0.0, 5.0, 0.0, 6.0],
+                    [7.0, 0.0, 8.0, 0.0, 9.0, 0.0],
+                    [0.0, 10.0, 0.0, 11.0, 0.0, 12.0],
+                    [13.0, 0.0, 14.0, 0.0, 15.0, 0.0],
+                    [0.0, 16.0, 0.0, 17.0, 0.0, 18.0],
+                ]
+            ),
+        )
+        group.create_dataset(
+            "MRIO_F_E",
+            data=np.array(
+                [
+                    [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+                    [11.0, 12.0, 13.0, 14.0, 15.0, 16.0],
+                    [21.0, 22.0, 23.0, 24.0, 25.0, 26.0],
+                    [31.0, 32.0, 33.0, 34.0, 35.0, 36.0],
+                    [41.0, 42.0, 43.0, 44.0, 45.0, 46.0],
+                    [51.0, 52.0, 53.0, 54.0, 55.0, 56.0],
+                ]
+            ),
+        )
+        group.create_dataset("MRIO_VA_E", data=np.array([[100.0], [101.0], [102.0], [103.0], [104.0], [105.0]]))
+        group.create_dataset("MRIO_X_E", data=np.array([[1000.0, 1001.0, 1002.0, 1003.0, 1004.0, 1005.0]]))
+
+    savemat(
+        co2_path,
+        {
+            "CO2": np.array(
+                [
+                    [1.0, 2.0],
+                    [3.0, 4.0],
+                    [5.0, 6.0],
+                    [7.0, 8.0],
+                    [9.0, 10.0],
+                    [11.0, 12.0],
+                ]
+            )
+        },
+    )
+
+    with pd.ExcelWriter(figure_path, engine="openpyxl") as writer:
+        pd.DataFrame(
+            {
+                "Number": [1, 2],
+                "Country": ["Alpha", "Beta"],
+                "ISO3": ["AAA", "BBB"],
+                "EMERGING": [0.0, 0.0],
+                "EMERGING-E": [0.0, 0.0],
+            }
+        ).to_excel(writer, sheet_name="Figure S4", index=False)
+
+    return main_path, co2_path, figure_path
+
+
+def _write_emerging_e_labels_workbook(root: Path) -> Path:
+    """Write one explicit EMERGING-E sector-label workbook."""
+    labels_path = root / "EMERGING_E_sector_labels.xlsx"
+    with pd.ExcelWriter(labels_path, engine="openpyxl") as writer:
+        pd.DataFrame(
+            {
+                "Sector": [
+                    "Electricity by coal",
+                    "Electricity by wind",
+                    "Electricity by solar thermal & photovoltaic",
+                ]
+            }
+        ).to_excel(writer, sheet_name="Sector", index=False)
+    return labels_path
+
+
 def test_parse_emerging_iot_reads_iot_blocks_and_co2(tmp_path):
     main_path, _, _ = _write_emerging_bundle(tmp_path)
 
@@ -221,3 +311,87 @@ def test_public_parse_emerging_returns_database_and_validates_table(tmp_path):
 
     with pytest.raises(NotImplementable):
         mario.parse_emerging(str(main_path), table="SUT", calc_all=False)
+
+
+def test_parse_emerging_iot_reads_emerging_e_variant_and_region_codes(tmp_path):
+    main_path, _, _ = _write_emerging_e_bundle(tmp_path)
+
+    matrices, indeces, units, layout = parse_emerging_iot(
+        main_path,
+        variant="E",
+        regions=["BBB"],
+        load_co2=False,
+    )
+    base = matrices["baseline"]
+
+    assert layout.variant == "E"
+    assert layout.year == 2018
+    assert layout.bundle_version == "E"
+    assert base["Z"].shape == (3, 3)
+    assert base["Y"].shape == (3, 3)
+    assert base["V"].shape == (1, 3)
+    assert base["E"].shape == (1, 3)
+    assert indeces["r"]["main"] == ["BBB"]
+    assert indeces["s"]["main"] == ["Sector 001", "Sector 002", "Sector 003"]
+    assert indeces["n"]["main"] == ["Final demand 001", "Final demand 002", "Final demand 003"]
+    assert units["Satellite account"].iloc[0, 0] == "None"
+
+
+def test_parse_emerging_iot_reads_explicit_emerging_e_sector_labels(tmp_path):
+    main_path, _, _ = _write_emerging_e_bundle(tmp_path)
+    labels_path = _write_emerging_e_labels_workbook(tmp_path)
+
+    _, indeces, _, _ = parse_emerging_iot(
+        main_path,
+        variant="E",
+        regions=["AAA"],
+        load_co2=False,
+        labels_path=labels_path,
+    )
+
+    assert indeces["s"]["main"] == [
+        "Electricity by coal",
+        "Electricity by wind",
+        "Electricity by solar thermal & photovoltaic",
+    ]
+
+
+def test_parse_emerging_iot_auto_detects_emerging_e_sector_labels_workbook(tmp_path):
+    main_path, _, _ = _write_emerging_e_bundle(tmp_path)
+    labels_path = _write_emerging_e_labels_workbook(tmp_path)
+    auto_path = labels_path.with_name("sector_map.xlsx")
+    labels_path.rename(auto_path)
+
+    _, indeces, _, layout = parse_emerging_iot(
+        main_path,
+        variant="E",
+        regions=["AAA"],
+        load_co2=False,
+    )
+
+    assert layout.labels_path is None
+    assert indeces["s"]["main"] == [
+        "Electricity by coal",
+        "Electricity by wind",
+        "Electricity by solar thermal & photovoltaic",
+    ]
+
+
+def test_public_parse_emerging_supports_emerging_e_variant(tmp_path):
+    main_path, co2_path, _ = _write_emerging_e_bundle(tmp_path)
+
+    database = mario.parse_emerging(
+        str(main_path),
+        variant="E",
+        co2_path=str(co2_path),
+        calc_all=False,
+    )
+
+    assert database.table_type == "IOT"
+    assert database.meta.year == 2018
+    assert database.meta.name == "EMERGING-E 2018"
+    assert "EMERGING-E" in database.meta.source
+    assert database.Z.shape == (6, 6)
+    assert database.Y.shape == (6, 6)
+    assert database.V.shape == (1, 6)
+    assert database.E.shape == (2, 6)

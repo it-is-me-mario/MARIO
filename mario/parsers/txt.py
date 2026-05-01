@@ -61,6 +61,19 @@ def _flat_matrix_names_for_mode(mode: str) -> tuple[str, ...]:
     return _FLAT_COEFFICIENT_MATRICES if mode == "coefficients" else _FLAT_FLOW_MATRICES
 
 
+def _resolve_text_bundle_root(path: str | Path, mode: str) -> Path:
+    """Resolve one text bundle root, auto-entering the mode subfolder when present."""
+    root = Path(path)
+    if root.name.lower() == mode:
+        return root
+
+    candidate = root / mode
+    if candidate.is_dir():
+        return candidate
+
+    return root
+
+
 def _find_flat_payload(path: Path, stem: str, suffixes: set[str]) -> Path:
     """Resolve one flat payload file by stem regardless of file extension."""
     candidates = [
@@ -1165,25 +1178,26 @@ class TxtParser(BaseParser):
         repository: BlockRepository | None = None,
     ) -> ModelState:
         """Parse a folder of text files into a canonical ``ModelState``."""
+        resolved_path = _resolve_text_bundle_root(path, mode)
         layout = "flat" if flat else "matrix"
         requested_format = normalize_text_bundle_format(_format)
         if requested_format is None:
             try:
-                bundle_format = detect_text_bundle_format(path, txt_parser_id[mode])
+                bundle_format = detect_text_bundle_format(str(resolved_path), txt_parser_id[mode])
             except Exception:
                 bundle_format = "txt/csv"
         else:
             bundle_format = requested_format
         log_time(
             logger,
-            f"Parser: txt reading {table} {mode} from {path} in {layout} mode ({bundle_format}).",
+            f"Parser: txt reading {table} {mode} from {resolved_path} in {layout} mode ({bundle_format}).",
             "info",
         )
         normalized_layouts = normalize_matrix_layouts(matrix_layouts, table=table)
         if normalized_layouts:
             if flat:
                 matrices, indexes, units, extra = flat_txt_parser(
-                    path,
+                    str(resolved_path),
                     table,
                     mode,
                     sep,
@@ -1192,7 +1206,7 @@ class TxtParser(BaseParser):
                 )
             elif table == "SUT":
                 matrices, indexes, units, extra = parse_sut_text_frames_with_layouts(
-                    path,
+                    str(resolved_path),
                     mode=mode,
                     sep=sep,
                     matrix_layouts=normalized_layouts,
@@ -1200,7 +1214,7 @@ class TxtParser(BaseParser):
                 )
             else:
                 matrices, indexes, units, extra = parse_iot_text_frames_with_layouts(
-                    path,
+                    str(resolved_path),
                     mode=mode,
                     sep=sep,
                     matrix_layouts=normalized_layouts,
@@ -1209,7 +1223,7 @@ class TxtParser(BaseParser):
         else:
             if flat:
                 matrices, indexes, units = flat_txt_parser(
-                    path,
+                    str(resolved_path),
                     table,
                     mode,
                     sep,
@@ -1217,7 +1231,7 @@ class TxtParser(BaseParser):
                 )
             else:
                 matrices, indexes, units = txt_parser(
-                    path,
+                    str(resolved_path),
                     table,
                     mode,
                     sep,
@@ -1232,11 +1246,11 @@ class TxtParser(BaseParser):
             parser_name=self.name,
             mode=mode,
             name=name,
-            source=source or str(Path(path)),
+            source=source or str(resolved_path),
             year=year,
             price=price,
             tech_assumption=tech_assumption,
-            source_path=path,
+            source_path=str(resolved_path),
             repository=repository,
         )
         state.metadata.extra.update(extra)

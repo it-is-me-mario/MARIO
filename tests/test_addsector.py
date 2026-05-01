@@ -1763,6 +1763,28 @@ def test_split_bridge_normalizes_relative_cvxlab_root(monkeypatch):
     assert captured["main_dir_path"] == str((Path.cwd() / "relative_split_root").resolve())
 
 
+def test_split_bridge_rejects_cvxlab_tables_missing_required_coordinates():
+    base = pd.DataFrame(
+        {
+            "id": [1, 2],
+            "region_to_Name": ["Reg1", "Reg2"],
+            "sector_to_Name": ["New industry", "New industry"],
+            "values": [0.0, 0.0],
+        }
+    )
+    updates = pd.DataFrame(
+        {
+            "factors_Name": ["Taxes", "Wages", "Capital", "Taxes", "Wages", "Capital"],
+            "region_to_Name": ["Reg1", "Reg1", "Reg1", "Reg2", "Reg2", "Reg2"],
+            "sector_to_Name": ["New industry"] * 6,
+            "values": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+        }
+    )
+
+    with pytest.raises(NotImplementable, match="input table 'VA'.*factors_Name"):
+        bridge_module._merge_cvxlab_input_table(base, updates, table_name="VA")
+
+
 def test_add_sectors_split_can_attach_mocked_cvxlab_results(tmp_path, CoreDataIOT, monkeypatch):
     path = tmp_path / "split_iot_optimized.xlsx"
 

@@ -272,6 +272,34 @@ def test_download_emerging_v20_downloads_matching_files(monkeypatch, tmp_path):
     assert (tmp_path / "EMERGING_CO2_2015.mat").exists()
 
 
+def test_download_emerging_e_supports_year_filter_and_keeps_figure_workbook(monkeypatch, tmp_path):
+    record_url = "https://zenodo.org/api/records/18303090"
+    record_payload = {
+        "files": [
+            {"key": "EMERGING_E_2018.mat", "links": {"self": "https://files/e-main"}},
+            {"key": "Figure data.xlsx", "links": {"self": "https://files/e-figure"}},
+            {"key": "Validation_output.m", "links": {"self": "https://files/e-validation"}},
+        ]
+    }
+
+    def fake_get(url, **kwargs):
+        if url == record_url:
+            return FakeResponse(json_data=record_payload)
+        return FakeResponse(content=b"x")
+
+    monkeypatch.setattr("mario.download.requests.get", fake_get)
+
+    info = download_emerging(tmp_path, version="E", years=[2018])
+
+    assert info["source"].endswith("17612997")
+    assert info["version"] == "E"
+    assert info["version_record"].endswith("18303090")
+    assert info["years"] == [2018]
+    assert len(info["files"]) == 2
+    assert (tmp_path / "EMERGING_E_2018.mat").exists()
+    assert (tmp_path / "Figure data.xlsx").exists()
+
+
 def test_download_wiod2016_extracts_workbook(monkeypatch, tmp_path):
     archive = _zip_bytes({"WIOT2014_Nov16_ROW.xlsb": b"binary"})
 

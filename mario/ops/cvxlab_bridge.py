@@ -665,6 +665,7 @@ def _write_input_data(
         input_data[cvxlab_table] = _merge_cvxlab_input_table(
             input_data[cvxlab_table],
             _rename_flat_columns(mario_df, set_map),
+            table_name=cvxlab_table,
         )
 
     old_matrices_config = {
@@ -680,6 +681,7 @@ def _write_input_data(
             input_data[target_name],
             mario_df,
             join_cols=join_cols,
+            table_name=target_name,
         )
 
     identity_table = "I_p_pn" if "I_p_pn" in input_data else "I_sp_spn"
@@ -706,6 +708,7 @@ def _write_input_data(
         input_data["Trade"],
         trade_sheet,
         join_cols=["region_from_Name", "region_to_Name", "sector_from_Name"],
+        table_name="Trade",
     )
     input_data["Trade"]["values"] = input_data["Trade"]["values"].fillna(0.0)
 
@@ -828,11 +831,27 @@ def _merge_cvxlab_input_table(
     updates: pd.DataFrame,
     *,
     join_cols: list[str] | None = None,
+    table_name: str | None = None,
 ) -> pd.DataFrame:
     """Overlay MARIO values on one blank CVXLab input table."""
 
     if join_cols is None:
         join_cols = [column for column in updates.columns if column in base.columns and column != "values"]
+
+    missing_coordinate_cols = [
+        column
+        for column in updates.columns
+        if column not in base.columns and column not in {"values", "scenarios_Name"}
+    ]
+    if join_cols and missing_coordinate_cols and updates.duplicated(subset=join_cols).any():
+        target = f" '{table_name}'" if table_name else ""
+        missing = ", ".join(sorted(missing_coordinate_cols))
+        raise NotImplementable(
+            "The installed CVXLab build generated an input table"
+            f"{target} without the coordinates required by MARIO's split bridge: {missing}. "
+            "This CVXLab model/database layout is incompatible with the current split workflow."
+        )
+
     merged = base.merge(updates[join_cols + ["values"]], on=join_cols, how="left")
     if "values_x" in merged.columns and "values_y" in merged.columns:
         merged = merged.drop(columns=["values_x"]).rename(columns={"values_y": "values"})
