@@ -138,44 +138,6 @@
   max-width: 12rem;
 }
 
-.supporting-institutions {
-  display: grid;
-  grid-template-columns: minmax(12rem, 18rem) 1fr;
-  gap: 1.25rem;
-  align-items: center;
-  margin: 1.5rem 0 2rem;
-  padding: 1.25rem;
-  border: 1px solid var(--pst-color-border, #d0d7de);
-  border-radius: 0.75rem;
-  background: color-mix(in srgb, var(--pst-color-background, #fff) 96%, #000 4%);
-}
-
-.supporting-institutions__logo-link {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  border-radius: 0.65rem;
-  background: #103754;
-}
-
-.supporting-institutions__logo {
-  display: block;
-  width: 100%;
-  max-width: 16rem;
-  height: auto;
-}
-
-.supporting-institutions__content p:last-child {
-  margin-bottom: 0;
-}
-
-@media (max-width: 768px) {
-  .supporting-institutions {
-    grid-template-columns: 1fr;
-  }
-}
-
 .parser-notebook-download {
   margin-top: 2rem;
   padding-top: 1rem;

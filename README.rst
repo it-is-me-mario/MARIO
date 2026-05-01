@@ -122,3 +122,23 @@ License
 
 MARIO is distributed under the
 `GNU General Public License v3.0 <https://www.gnu.org/licenses/gpl-3.0.en.html>`_.
+
+
+Supporting institutions
+-----------------------
+
+.. image:: https://enextgen.it/img/eNextGen_logo_transparent_black.png
+   :width: 220
+   :target: https://enextgen.it
+   :alt: eNextGen
+
+MARIO grows across two complementary settings.
+
+At `Politecnico di Milano <https://www.polimi.it/ricerca/trasferimento-tecnologico/spin-off>`_,
+development stays closer to the academic side: research methods, modelling choices,
+scientific validation, and documentation-oriented workflows.
+
+At `eNextGen <https://enextgen.it>`_, a spin-off of Politecnico di Milano,
+MARIO is also used in applied settings for companies and organisations, where the
+same analytical core supports real decarbonisation, sustainability, and
+decision-support cases.
