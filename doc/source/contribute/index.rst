@@ -26,5 +26,4 @@ If you are trying to read the codebase efficiently, start with:
    adding_new_matrices
    testing_strategy
    realdata_fixtures
-   documentation
-   ../resources/changelog
+

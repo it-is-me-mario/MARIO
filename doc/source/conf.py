@@ -52,6 +52,13 @@ extensions = [
  
 ]
 nbsphinx_execute = "never"
+nbsphinx_epilog = r"""
+{% if env.docname.startswith("notebooks/parsers/") %}
+.. container:: parser-notebook-download
+
+   :download:`Download this notebook <{{ env.docname.split("/")[-1] }}.ipynb>`
+{% endif %}
+"""
 source_suffix = {
     ".rst": "restructuredtext",
     ".txt": "markdown",
@@ -72,8 +79,8 @@ exclude_patterns = [
     "api_document/mario.parse_cepalstat.rst",
     "user_guide/advanced/change_settings.ipynb",
     "user_guide/advanced/large_database_workflows.ipynb",
-    "user_guide/parsers/gtap.rst",
-    "user_guide/parsers/cepalstat.rst",
+    "contribute/documentation.rst",
+    "resources/changelog.rst",
     "notebooks/parsers/gtap/**",
     "notebooks/parsers/cepalstat/**",
 ]

@@ -41,19 +41,23 @@ A minimal IOT and SUT test database is included in MARIO:
 
    import mario
 
-   db = mario.load_test("IOT")
-   print(db)
-   print(db.get_index("Region"))
+   iot = mario.load_test("IOT")
+   print(iot)
+   print(iot.get_index("Region"))
 
-   db.calc_all()
-   db.to_excel(path="output_folder")
+   iot.calc_all()
+   iot.to_excel(path="output_folder")
 
 For SUT workflows:
 
 .. code-block:: python
 
    sut = mario.load_test("SUT")
-   iot = sut.to_iot(method="B")
+   print(sut)
+   print(sut.get_index("Sector"))
+
+   sut.calc_all()
+   sut.to_txt(path="output_folder", coefficients=True)
 
 Citation
 --------

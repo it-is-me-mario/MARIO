@@ -1,11 +1,12 @@
 Parsers
 =======
 
-This section is the dedicated to MARIO's parsing methods.
+This section is dedicated to MARIO's parsing methods.
 
 Use it to learn how to ingest a custom database or a known database source. Each
-page will describe expected inputs, supported versions, common caveats and the
-recommended tutorial or workflow to follow next.
+page is a notebook-backed guide with the parser workflow, expected inputs,
+supported versions, local-layout notes, and common caveats. Each parser page
+also exposes a notebook download link at the bottom.
 
 
 Custom databases
@@ -14,9 +15,9 @@ Custom databases
 .. toctree::
    :maxdepth: 1
 
-   from_excel
-   from_txt_parquet
-   from_pymrio
+   Excel custom parser <../../notebooks/parsers/custom_database/from_excel>
+   TXT, CSV, and Parquet custom parser <../../notebooks/parsers/custom_database/from_txt>
+   pymrio bridge <../../notebooks/parsers/custom_database/from_pymrio>
 
 
 Environmentally-extended databases
@@ -25,14 +26,15 @@ Environmentally-extended databases
 .. toctree::
    :maxdepth: 1
 
-   exiobase
-   gloria
-   eora
-   emerging
-   wiod
-   adb
-   useeio
-   ceads
+   Monetary EXIOBASE <../../notebooks/parsers/exiobase/monetary>
+   Hybrid EXIOBASE <../../notebooks/parsers/exiobase/hybrid>
+   GLORIA <../../notebooks/parsers/gloria/walkthrough>
+   Eora <../../notebooks/parsers/eora/walkthrough>
+   EMERGING <../../notebooks/parsers/emerging/walkthrough>
+   WIOD <../../notebooks/parsers/wiod/walkthrough>
+   ADB <../../notebooks/parsers/adb/walkthrough>
+   USEEIO <../../notebooks/parsers/useeio/walkthrough>
+   CEADS <../../notebooks/parsers/ceads/walkthrough>
 
 
 Other MRIO and SRIO databases
@@ -41,12 +43,12 @@ Other MRIO and SRIO databases
 .. toctree::
    :maxdepth: 1
 
-   oecd
-   figaro
-   eurostat
-   bea
-   istat
-   statcan
+   OECD <../../notebooks/parsers/oecd/walkthrough>
+   FIGARO <../../notebooks/parsers/figaro/walkthrough>
+   EUROSTAT <../../notebooks/parsers/eurostat/walkthrough>
+   BEA <../../notebooks/parsers/bea/walkthrough>
+   ISTAT <../../notebooks/parsers/istat/walkthrough>
+   StatCan <../../notebooks/parsers/statcan/walkthrough>
 
 
 Coverage query

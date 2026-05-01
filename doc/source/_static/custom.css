@@ -137,3 +137,25 @@
   width: auto;
   max-width: 12rem;
 }
+
+.parser-notebook-download {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--pst-color-border, #d0d7de);
+}
+
+.parser-notebook-download a {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--pst-color-border, #d0d7de);
+  border-radius: 0.35rem;
+  background: var(--pst-color-surface, #fff);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.parser-notebook-download a:hover {
+  background: color-mix(in srgb, var(--pst-color-background, #fff) 93%, #000 7%);
+  text-decoration: none;
+}

@@ -40,6 +40,25 @@ the :doc:`Matrices table in Nomenclature </concepts/nomenclature>`:
 ``db.calc_all(["bu", "bs", "gcc", "gca", "gac", "gaa"])`` or resolve a
 single block with ``db.resolve("gcc")``.
 
+For a minimal SUT example:
+
+.. code-block:: python
+
+   import mario
+
+   sut = mario.load_test("SUT")
+   sut.calc_all(["Xc", "u", "gac"])
+
+   sut.Xc   # commodity production vector
+   sut.u    # use coefficients
+   sut.gac  # one SUT Ghosh quadrant
+
+If you only need one block, ask the resolver directly:
+
+.. code-block:: python
+
+   fc = sut.resolve("fc")
+
 
 Runtime Compute Options
 -----------------------

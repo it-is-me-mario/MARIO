@@ -46,4 +46,4 @@ Next steps
 ----------
 
 Head over to :doc:`../concepts/index` to understand the cornerstone definitions and conventions, 
-before moving to the :doc:`../user_guide/parsers/index` and :doc:`../user_guide/index` sections.
+before moving to the :doc:`../user_guide/index` sections.
