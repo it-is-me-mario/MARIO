@@ -34,10 +34,10 @@ DEFAULT_CONFIG = DOC_ROOT / "notebook_paths.local.yaml"
 DEFAULT_LEAK_PATTERNS = ("/Users/", "/Volumes/")
 UNSUPPORTED_NBSPHINX_MIME_TYPES = {"application/vnd.plotly.v1+json"}
 PACKAGED_EXCEL_WORKBOOKS = {
-    "test_IOT_standard.xlsx": REPO_ROOT / "mario/test/new/test_IOT_standard.xlsx",
-    "test_IOT_special.xlsx": REPO_ROOT / "mario/test/new/test_IOT_special.xlsx",
-    "test_SUT_standard.xlsx": REPO_ROOT / "mario/test/new/test_SUT_standard.xlsx",
-    "test_SUT_special.xlsx": REPO_ROOT / "mario/test/new/test_SUT_special.xlsx",
+    "test_IOT_standard.xlsx": REPO_ROOT / "mario/test/tables/test_IOT_standard.xlsx",
+    "test_IOT_special.xlsx": REPO_ROOT / "mario/test/tables/test_IOT_special.xlsx",
+    "test_SUT_standard.xlsx": REPO_ROOT / "mario/test/tables/test_SUT_standard.xlsx",
+    "test_SUT_special.xlsx": REPO_ROOT / "mario/test/tables/test_SUT_special.xlsx",
 }
 
 LOGGER = logging.getLogger("resolve_notebooks")
@@ -254,7 +254,7 @@ def _default_replacements_for(notebook: Path) -> list[Replacement]:
             [
                 Replacement(f"/path/to/{filename}", local),
                 Replacement(f"../{filename}", local),
-                Replacement(f"../../../../../mario/test/new/{filename}", local),
+                Replacement(f"../../../../../mario/test/tables/{filename}", local),
             ]
         )
     return replacements

@@ -2,7 +2,7 @@
 # doc/notebook_paths.local.yaml is git-ignored because it contains machine paths.
 #
 # The custom_database/from_excel walkthrough does not need local config for the
-# packaged test workbooks in mario/test/new; resolve_notebooks.py maps those
+# packaged test workbooks in mario/test/tables; resolve_notebooks.py maps those
 # fixtures automatically.
 
 # Optional shared defaults can live at top-level.

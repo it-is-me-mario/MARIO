@@ -17,30 +17,30 @@ path = os.path.abspath(
 
 _LOAD_TEST_VARIANTS = {
     ("IOT", "legacy"): {
-        "path": "new/test_IOT_standard.xlsx",
+        "path": "tables/test_IOT_standard.xlsx",
         "matrix_layouts": None,
     },
     ("IOT", "standard"): {
-        "path": "new/test_IOT_standard.xlsx",
+        "path": "tables/test_IOT_standard.xlsx",
         "matrix_layouts": None,
     },
     ("IOT", "special"): {
-        "path": "new/test_IOT_special.xlsx",
+        "path": "tables/test_IOT_special.xlsx",
         "matrix_layouts": {
             "V": ("Region", "Sector"),
             "E": "Region",
         },
     },
     ("SUT", "legacy"): {
-        "path": "new/test_SUT_standard.xlsx",
+        "path": "tables/test_SUT_standard.xlsx",
         "matrix_layouts": None,
     },
     ("SUT", "standard"): {
-        "path": "new/test_SUT_standard.xlsx",
+        "path": "tables/test_SUT_standard.xlsx",
         "matrix_layouts": None,
     },
     ("SUT", "special"): {
-        "path": "new/test_SUT_special.xlsx",
+        "path": "tables/test_SUT_special.xlsx",
         "matrix_layouts": {
             "E": ("Region", "Commodity"),
         },
@@ -63,7 +63,7 @@ def load_test(table, tech_assumption=None, layout="standard"):
         Fixture layout to load. Accepted values are:
 
         * ``"legacy"``: retained as an alias for ``"standard"``;
-        * ``"standard"``: the new standard-layout workbook in ``mario/test/new``;
+        * ``"standard"``: the standard-layout workbook in ``mario/test/tables``;
         * ``"special"``: the new workbook variant that needs explicit
           ``matrix_layouts``.
 
