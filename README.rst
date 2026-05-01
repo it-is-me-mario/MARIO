@@ -145,7 +145,7 @@ MARIO grows across two complementary settings.
        <tr>
           <td valign="top" width="180">
              <a href="https://enextgen.it">
-                <img src="https://enextgen.it/img/eNextGen_logo_transparent_black.png" alt="eNextGen" width="160" />
+                <img src="https://enextgen.it/img/eNextGen_logo_transparent_black.png" alt="eNextGen" width="90" />
              </a>
           </td>
           <td valign="top">
