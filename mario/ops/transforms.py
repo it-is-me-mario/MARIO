@@ -151,6 +151,11 @@ def transform_to_chenery_moses(
         to_update = {_ENUM.Z: Z_chenery, _ENUM.Y: Y_chenery}
         sort_frames(to_update)
         database.update_scenarios(scenario, **to_update)
+        database.calc_all(
+            matrices=[_ENUM.U, _ENUM.S, "Ya", "Yc"],
+            scenario=scenario,
+            force_rewrite=True,
+        )
         database.reset_to_flows(scenario=scenario)
 
         database.meta._add_history(

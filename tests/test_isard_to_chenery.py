@@ -8,6 +8,7 @@ from numpy import eye
 import pytest
 import pandas.testing as pdt
 import pandas as pd
+import numpy as np
 from pymrio import Extension,IOSystem
 import warnings
 warnings.simplefilter(action='ignore')
@@ -27,7 +28,6 @@ from mario.log_exc.exceptions import (
     NotImplementable,
     DataMissing
 )
-from mario import parse_from_excel
 
 
 @pytest.fixture()
@@ -41,10 +41,17 @@ def CoreDataSUT():
 
     return load_test("SUT")
 
+def _sut_block(frame, row_region, col_region):
+    return frame.loc[
+        (row_region, slice(None), slice(None)),
+        (col_region, slice(None), slice(None)),
+    ]
 
-@pytest.fixture()
-def transformated():
-    return parse_from_excel(f"{MOCK_PATH}/isard_to_chennery.xlsx",table="SUT",mode="flows")
+
+def _collapse_rows(block):
+    collapsed = block.groupby(level=[1, 2]).sum()
+    collapsed.index.names = block.index.names[1:]
+    return collapsed
 
 
 def test_is_isard(CoreDataIOT,CoreDataSUT):
@@ -90,28 +97,71 @@ def test_is_chenerymoses(CoreDataIOT,CoreDataSUT):
 
 
 
-def test_to_chenery_moses(CoreDataSUT,transformated):
+def test_to_chenery_moses(CoreDataSUT):
 
-    # test inplace= False
     new = CoreDataSUT.to_chenery_moses(inplace=False)
-    new_z = new.Z.sort_index().sort_index(axis=1)
-    transformed_z = transformated.Z.sort_index().sort_index(axis=1)
-    original_z = CoreDataSUT.Z.sort_index().sort_index(axis=1)
+    regions = CoreDataSUT.get_index("Region")
+    original_u = CoreDataSUT.U.copy()
+    original_s = CoreDataSUT.S.copy()
+    original_yc = CoreDataSUT.Yc.copy()
+    original_coeff = CoreDataSUT.query("s")
 
-    print(new_z)
-    print(transformed_z)
-    pdt.assert_frame_equal(
-        new_z,
-        transformed_z
-        )
+    assert new.table_type == "SUT"
+    assert not new.is_isard()
+    assert new.is_chenerymoses()
 
     with pytest.raises(AssertionError):
-        pdt.assert_frame_equal(
-            new_z,
-            original_z
-            )
-        
-    # a scenario which is alreayd chennery
+        pdt.assert_frame_equal(new.U, original_u)
+
+    with pytest.raises(AssertionError):
+        pdt.assert_frame_equal(new.S, original_s)
+
+    pdt.assert_frame_equal(CoreDataSUT.U, original_u)
+    pdt.assert_frame_equal(CoreDataSUT.S, original_s)
+    pdt.assert_frame_equal(CoreDataSUT.Yc, original_yc)
+
+    for destination in regions:
+        expected_u = _collapse_rows(CoreDataSUT.U.loc[:, (destination, slice(None), slice(None))])
+        actual_u = _sut_block(new.U, destination, destination).copy()
+        actual_u.index = actual_u.index.droplevel(0)
+        pdt.assert_frame_equal(actual_u, expected_u)
+
+        expected_yc = _collapse_rows(CoreDataSUT.Yc.loc[:, (destination, slice(None), slice(None))])
+        actual_yc = _sut_block(new.Yc, destination, destination).copy()
+        actual_yc.index = actual_yc.index.droplevel(0)
+        pdt.assert_frame_equal(actual_yc, expected_yc)
+
+    for origin in regions:
+        for destination in regions:
+            block_u = _sut_block(new.U, origin, destination)
+            block_yc = _sut_block(new.Yc, origin, destination)
+
+            if origin != destination:
+                assert np.allclose(block_u.to_numpy(), 0.0)
+                assert np.allclose(block_yc.to_numpy(), 0.0)
+
+                imports = (
+                    _sut_block(CoreDataSUT.U, origin, destination).sum(axis=1)
+                    + _sut_block(CoreDataSUT.Yc, origin, destination).sum(axis=1)
+                ).to_numpy()
+
+                expected_s = (
+                    _sut_block(original_coeff, origin, origin).to_numpy()
+                    @ np.diag(imports)
+                )
+                actual_s = _sut_block(new.S, origin, destination).to_numpy()
+                assert np.allclose(actual_s, expected_s)
+
+        offdiag_exports = 0
+        for destination in regions:
+            if origin == destination:
+                continue
+            offdiag_exports = offdiag_exports + _sut_block(new.S, origin, destination).to_numpy()
+
+        expected_domestic_supply = _sut_block(original_s, origin, origin).to_numpy() - offdiag_exports
+        actual_domestic_supply = _sut_block(new.S, origin, origin).to_numpy()
+        assert np.allclose(actual_domestic_supply, expected_domestic_supply)
+
     CoreDataSUT.matrices["dummy"] = new["baseline"]
 
     with pytest.raises(NotImplementable) as msg:
