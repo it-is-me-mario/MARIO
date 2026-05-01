@@ -113,11 +113,8 @@ The published documentation is organized into a few main sections:
 Citation
 --------
 
-If you use MARIO in academic work, please cite the software paper:
-
-* `Tahavori, Golinucci, Rinaldi, et al. <https://openresearchsoftware.metajnl.com/articles/10.5334/jors.473>`_
-
-The full list of publications using MARIO is available in the documentation.
+Citation guidance and the up-to-date list of publications using MARIO are maintained in the
+`Research section of the documentation <https://mario-suite.readthedocs.io/en/latest/resources/publications.html>`_.
 
 
 License
