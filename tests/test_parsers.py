@@ -952,6 +952,46 @@ def test_to_excel_exports_custom_iot_layout_without_level(tmp_path):
     pdt.assert_frame_equal(roundtrip.Y, database.Y)
 
 
+def test_to_excel_aligns_iot_ey_and_vy_to_exported_row_order(tmp_path):
+    path = tmp_path / "mriot_regional_v_e_alignment.xlsx"
+    _write_mriot_regional_extensions_and_factors_explicit_workbook(path)
+
+    database = parse_from_excel(
+        path=str(path),
+        table="IOT",
+        mode="flows",
+        matrix_layouts={"V": "Region", "E": "Region", "EY": "Region"},
+        calc_all=False,
+        name="MRIOT regional factors and extensions",
+    )
+
+    v_order = list(reversed(database.V.index.tolist()))
+    e_order = list(reversed(database.E.index.tolist()))
+    database.matrices["baseline"]["V"] = database.V.loc[v_order, :]
+    database.matrices["baseline"]["E"] = database.E.loc[e_order, :]
+
+    database.matrices["baseline"]["VY"] = database.VY.copy()
+    database.matrices["baseline"]["EY"] = database.EY.copy()
+
+    export_path = tmp_path / "exported_alignment.xlsx"
+    database.to_excel(path=str(export_path), flows=True, coefficients=False)
+
+    roundtrip = parse_from_excel(
+        path=str(export_path),
+        table="IOT",
+        mode="flows",
+        matrix_layouts={"V": "Region", "E": "Region", "EY": "Region"},
+        calc_all=False,
+    )
+
+    pdt.assert_frame_equal(_sorted_matrix(roundtrip.Z), _sorted_matrix(database.Z))
+    pdt.assert_frame_equal(_sorted_matrix(roundtrip.V), _sorted_matrix(database.V))
+    pdt.assert_frame_equal(_sorted_matrix(roundtrip.E), _sorted_matrix(database.E))
+    pdt.assert_frame_equal(_sorted_matrix(roundtrip.Y), _sorted_matrix(database.Y))
+    pdt.assert_frame_equal(_sorted_matrix(roundtrip.VY), _sorted_matrix(database.VY))
+    pdt.assert_frame_equal(_sorted_matrix(roundtrip.EY), _sorted_matrix(database.EY))
+
+
 def test_parse_state_from_txt_supports_matrix_layouts_on_matrix_payloads(tmp_path):
     state = _build_mriot_regional_state(tmp_path)
     root = tmp_path / "txt_matrix_layout"

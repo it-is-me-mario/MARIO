@@ -428,6 +428,39 @@ def _prepare_iot_excel_export_frame(frame, *, matrix_name):
     return exported
 
 
+def _reindex_iot_excel_export_frame(frame, *, index=None, columns=None, label):
+    """Reindex one export block only when its labels match exactly."""
+    if index is not None:
+        missing = index.difference(frame.index)
+        extra = frame.index.difference(index)
+        if len(missing) or len(extra):
+            raise NotImplementable(
+                f"Excel export cannot align {label} rows because labels do not match exactly."
+            )
+        frame = frame.loc[index, :]
+
+    if columns is not None:
+        missing = columns.difference(frame.columns)
+        extra = frame.columns.difference(columns)
+        if len(missing) or len(extra):
+            raise NotImplementable(
+                f"Excel export cannot align {label} columns because labels do not match exactly."
+            )
+        frame = frame.loc[:, columns]
+
+    return frame
+
+
+def _align_iot_excel_export_blocks(Z, V, E, Y, EY, VY):
+    """Align dependent IOT blocks to the row and column order shown in Excel."""
+    V = _reindex_iot_excel_export_frame(V, columns=Z.columns, label="V")
+    E = _reindex_iot_excel_export_frame(E, columns=Z.columns, label="E")
+    Y = _reindex_iot_excel_export_frame(Y, index=Z.index, label="Y")
+    VY = _reindex_iot_excel_export_frame(VY, index=V.index, columns=Y.columns, label="VY")
+    EY = _reindex_iot_excel_export_frame(EY, index=E.index, columns=Y.columns, label="EY")
+    return Z, V, E, Y, EY, VY
+
+
 def _is_historical_iot_axis(axis, *, matrix_name, side):
     """Return whether one IOT axis already fits the historical Excel surface."""
     _, names = _axis_labels(axis)
@@ -687,6 +720,14 @@ def database_excel(instance, flows, coefficients, directory, scenario):
             matrices=[_ENUM.V, _ENUM.E, _ENUM.Z, _ENUM.Y, _ENUM.EY, _ENUM.VY],
             scenarios=scenario,
         )
+        data[_ENUM.Z], data[_ENUM.V], data[_ENUM.E], data[_ENUM.Y], data[_ENUM.EY], data[_ENUM.VY] = _align_iot_excel_export_blocks(
+            data[_ENUM.Z],
+            data[_ENUM.V],
+            data[_ENUM.E],
+            data[_ENUM.Y],
+            data[_ENUM.EY],
+            data[_ENUM.VY],
+        )
 
         # Filling the index indeces sheet
         flows = workbook.add_worksheet("flows")
@@ -717,6 +758,14 @@ def database_excel(instance, flows, coefficients, directory, scenario):
         data = instance.query(
             matrices=matrices,
             scenarios=scenario,
+        )
+        data[_ENUM.z], data[_ENUM.v], data[_ENUM.e], data[_ENUM.Y], data[_ENUM.EY], data[_ENUM.VY] = _align_iot_excel_export_blocks(
+            data[_ENUM.z],
+            data[_ENUM.v],
+            data[_ENUM.e],
+            data[_ENUM.Y],
+            data[_ENUM.EY],
+            data[_ENUM.VY],
         )
 
         # Filling the index indeces sheet

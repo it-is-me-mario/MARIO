@@ -10,6 +10,16 @@ dependencies:
   - openpyxl==3.1.5
   - pint==0.25.3
   - ipython>=8.27.0
+  - pandoc
+  - pybtex
+  - sphinx
+  - pydata-sphinx-theme
+  - nbsphinx
+  - sphinx-copybutton
+  - myst-parser
+  - nbconvert
+  - nbformat
+  - sphinxcontrib-bibtex
   - pyyaml
   - country_converter
   - xlsxwriter==3.2.9

@@ -16,4 +16,5 @@ nbformat
 sphinx_wagtail_theme
 sphinx-copybutton
 myst_parser
+pybtex
 sphinxcontrib-bibtex

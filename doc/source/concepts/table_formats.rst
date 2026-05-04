@@ -92,7 +92,7 @@ If you want to check which matrices are available in the ``baseline`` scenario:
  
 .. code-block:: python
 
-   db.matrices['baseline']
+   db.list_matrices(scenario="baseline")
 
 The resulting list is dynamic: after parsing the database, every *matrix* the
 user computes is stored in this dictionary.

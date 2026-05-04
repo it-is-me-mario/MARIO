@@ -40,7 +40,7 @@ If you want to check which *matrices* are available in the ``baseline`` (or any 
  
 .. code-block:: python
 
-   db.matrices['baseline']
+   db.list_matrices(scenario="baseline")
 
 
 

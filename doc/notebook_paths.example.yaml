@@ -4,6 +4,11 @@
 # The custom_database/from_excel walkthrough does not need local config for the
 # packaged test workbooks in mario/test/tables; resolve_notebooks.py maps those
 # fixtures automatically.
+#
+# The packaged user-guide notebooks for transformations, providing a database,
+# and export/roundtrip also have built-in defaults that point to repo-local
+# fixtures and Output/path_test. Add overrides here only if you want to run the
+# notebooks against different local files.
 
 # Optional shared defaults can live at top-level.
 # User-specific overrides should live under users.<os_username>.
@@ -48,6 +53,57 @@ notebooks:
         local: "/absolute/local/path/to/add_sector_master_filled.xlsx"
       - placeholder: "/path/to/add_sector_inventories_filled.xlsx"
         local: "/absolute/local/path/to/add_sector_inventories_filled.xlsx"
+      - placeholder: "/path/to/cvxlab"
+        local: "/absolute/local/path/to/cvxlab"
+
+  source/user_guide/transformations/add_extensions.ipynb:
+    replacements:
+      - placeholder: "/path/to/add_extensions_template.xlsx"
+        local: "/absolute/local/path/to/add_extensions_template.xlsx"
+      - placeholder: "/path/to/add_extensions_filled.xlsx"
+        local: "/absolute/local/path/to/add_extensions_filled.xlsx"
+
+  source/user_guide/transformations/aggregate.ipynb:
+    replacements:
+      - placeholder: "/path/to/aggregation_iot_template.xlsx"
+        local: "/absolute/local/path/to/aggregation_iot_template.xlsx"
+      - placeholder: "/path/to/aggregation_iot_filled.xlsx"
+        local: "/absolute/local/path/to/aggregation_iot_filled.xlsx"
+
+  source/user_guide/transformations/apply_shocks.ipynb:
+    replacements:
+      - placeholder: "/path/to/shock_IOT_template.xlsx"
+        local: "/absolute/local/path/to/shock_IOT_template.xlsx"
+      - placeholder: "/path/to/shock_IOT_filled.xlsx"
+        local: "/absolute/local/path/to/shock_IOT_filled.xlsx"
+      - placeholder: "/path/to/shock_SUT_template.xlsx"
+        local: "/absolute/local/path/to/shock_SUT_template.xlsx"
+      - placeholder: "/path/to/shock_SUT_filled.xlsx"
+        local: "/absolute/local/path/to/shock_SUT_filled.xlsx"
+      - placeholder: "/path/to/shock_IOT_template_clusters.xlsx"
+        local: "/absolute/local/path/to/shock_IOT_template_clusters.xlsx"
+      - placeholder: "/path/to/shock_IOT_filled_clusters.xlsx"
+        local: "/absolute/local/path/to/shock_IOT_filled_clusters.xlsx"
+
+  source/user_guide/provide_your_database.ipynb:
+    replacements:
+      - placeholder: "/path/to/custom_iot_template.xlsx"
+        local: "/absolute/local/path/to/custom_iot_template.xlsx"
+      - placeholder: "/path/to/custom_iot_filled.xlsx"
+        local: "/absolute/local/path/to/custom_iot_filled.xlsx"
+      - placeholder: "/path/to/custom_sut_template.xlsx"
+        local: "/absolute/local/path/to/custom_sut_template.xlsx"
+      - placeholder: "/path/to/custom_sut_filled.xlsx"
+        local: "/absolute/local/path/to/custom_sut_filled.xlsx"
+
+  source/user_guide/exporting/export_and_roundtrip.ipynb:
+    replacements:
+      - placeholder: "/path/to/iot_export.xlsx"
+        local: "/absolute/local/path/to/iot_export.xlsx"
+      - placeholder: "/path/to/iot_export_csv"
+        local: "/absolute/local/path/to/iot_export_csv"
+      - placeholder: "/path/to/iot_export_parquet"
+        local: "/absolute/local/path/to/iot_export_parquet"
 
 # Preferred multi-developer layout (user-specific local paths)
 users:

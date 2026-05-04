@@ -34,6 +34,7 @@ CVXLAB_SPLIT_MODEL_NAME = "mario_add_sector_split"
 CVXLAB_INPUT_TYPES = {"xlsx", "csv"}
 CVXLAB_TEMPLATE_PACKAGE = "mario.ops.cvxlab_models"
 CVXLAB_TEMPLATE_NAME = "Split_sectors"
+CVXLAB_RAW_TEXT_COLUMNS = {"description"}
 
 
 def create_split_input_data(
@@ -52,6 +53,8 @@ def create_split_input_data(
         )
     if input_data_files_type not in CVXLAB_INPUT_TYPES:
         raise WrongInput("input_data_files_type should be either 'xlsx' or 'csv'.")
+
+    _install_cvxlab_runtime_compat()
 
     model, dest_dir, mapping, flat_matrices = _prepare_split_model_inputs(
         instance,
@@ -89,6 +92,8 @@ def optimize_split_in_cvxlab(
             "CVXLab is not installed. Install the 'cvxlab' package to use split=True."
         )
 
+    _install_cvxlab_runtime_compat()
+
     model, dest_dir, mapping, flat_matrices = _prepare_split_model_inputs(
         instance,
         main_dir_path=main_dir_path,
@@ -105,6 +110,8 @@ def optimize_split_in_cvxlab(
         scenario_label=scenario_label,
         input_data_files_type=input_data_files_type,
     )
+
+    solver = _resolve_split_solver(solver)
 
     with _model_workdir(dest_dir):
         if hasattr(model, "refresh_database_and_initialize_problem"):
@@ -137,13 +144,31 @@ def optimize_split_in_cvxlab(
                 run_kwargs["mosek_params"] = solver_parameters
         model.run_model(**run_kwargs)
 
-        if model.core.problem.problem_status[""] != "optimal":
+        if model.core.problem.problem_status[""] not in {"optimal", "optimal_inaccurate"}:
             raise WrongInput(
                 "CVXLab split optimization did not solve optimally. Check the generated model directory for details."
             )
 
         model.load_results_to_database(force_overwrite=True)
     return _parse_split_results(dest_dir, flat_matrices)
+
+
+def _resolve_split_solver(solver):
+    """Choose a conic-capable default solver for entropy-based split models."""
+
+    if solver is not None:
+        return solver
+
+    try:
+        import cvxpy as cp
+    except ModuleNotFoundError:  # pragma: no cover - CVXLab already requires cvxpy
+        return None
+
+    installed = set(cp.installed_solvers())
+    for candidate in ("ECOS", "SCS", "CLARABEL"):
+        if candidate in installed:
+            return candidate
+    return None
 
 
 def _prepare_split_model_inputs(
@@ -222,11 +247,62 @@ def _is_missing_settings_cell(value) -> bool:
         return False
 
 
+def _sanitize_symbolic_problem_structure(data):
+    """Drop missing or blank symbolic expressions from CVXLab-loaded problems."""
+
+    if not isinstance(data, dict):
+        return data
+
+    for value in data.values():
+        if isinstance(value, dict):
+            _sanitize_symbolic_problem_structure(value)
+
+    for key in ("objective", "expressions"):
+        values = data.get(key)
+        if isinstance(values, list):
+            data[key] = [
+                value
+                for value in values
+                if isinstance(value, str) and value.strip()
+            ]
+
+    return data
+
+
+def _install_cvxlab_runtime_compat() -> None:
+    """Patch CVXLab runtime quirks once per process."""
+
+    if cl is None:
+        return
+
+    try:
+        from cvxlab.backend.problem import Problem
+    except Exception:  # pragma: no cover - depends on installed cvxlab internals
+        return
+
+    if getattr(Problem.load_symbolic_problem_from_file, "_mario_compat", False):
+        return
+
+    original = Problem.load_symbolic_problem_from_file
+
+    def wrapped(self, *args, **kwargs):
+        result = original(self, *args, **kwargs)
+        symbolic_problem = getattr(self, "symbolic_problem", None)
+        if symbolic_problem:
+            _sanitize_symbolic_problem_structure(symbolic_problem)
+        return result
+
+    wrapped._mario_compat = True
+    Problem.load_symbolic_problem_from_file = wrapped
+
+
 def _process_cvxlab_settings_value(column, value, *, skip_process_str: bool = False):
     """Process one CVXLab settings cell with pandas 3 dtype coercions in mind."""
     import cvxlab.support.util_text as cvx_util_text
 
-    processed = value if skip_process_str else cvx_util_text.process_str(value)
+    processed = value
+    if not skip_process_str and column not in CVXLAB_RAW_TEXT_COLUMNS:
+        processed = cvx_util_text.process_str(value)
     if column in {"integer", "nonneg", "split_problem"} and isinstance(
         processed, (int, float)
     ):
@@ -397,7 +473,8 @@ def _maybe_rewrite_incompatible_model_settings(path: Path) -> None:
     """
 
     drop_nonneg = getattr(cl.Defaults.Labels, "NONNEG_KEY", None) is None
-    if not drop_nonneg:
+    fill_problem_blanks = hasattr(cl.Model, "refresh_database_and_initialize_problem")
+    if not drop_nonneg and not fill_problem_blanks:
         return
 
     workbook = pd.ExcelFile(path, engine="openpyxl")
@@ -409,6 +486,10 @@ def _maybe_rewrite_incompatible_model_settings(path: Path) -> None:
         for sheet, frame in sheets.items():
             if drop_nonneg and sheet == "structure_variables" and "nonneg" in frame.columns:
                 frame = frame.drop(columns=["nonneg"])
+            if fill_problem_blanks and sheet == "problem":
+                for column in ("objective", "expressions"):
+                    if column in frame.columns:
+                        frame[column] = frame[column].fillna("")
             frame.to_excel(writer, sheet_name=sheet, index=False)
 
 
@@ -481,6 +562,7 @@ def _populate_sets_file(instance, *, dest_dir: Path, scenario_label: str) -> Non
     split_scenario = f"split_{scenario_label}"
     sectors = instance.get_index(MI["s"])
     regions = instance.get_index(MI["r"])
+    factors = instance.get_index(MI["f"])
     cons_categories = instance.matrices[split_scenario][_ENUM["Y"]].columns.get_level_values(2).unique().tolist()
     tolerance_sheet = instance.split_info[ADD_SECTOR_SPLIT_TOLERANCE_SHEET]
     tolerance_names = tolerance_sheet[ADD_SECTOR_SPLIT_TOLERANCE_COLUMNS["name"]].astype(str).tolist()
@@ -519,6 +601,8 @@ def _populate_sets_file(instance, *, dest_dir: Path, scenario_label: str) -> Non
             sets[sheet_name] = pd.DataFrame({first_column: regions})
         elif sheet_name == "_set_CONS_CATEG":
             sets[sheet_name] = pd.DataFrame({first_column: cons_categories})
+        elif sheet_name == "_set_FACTOR":
+            sets[sheet_name] = pd.DataFrame({first_column: factors})
         elif sheet_name == "_set_SCALAR":
             frame = pd.DataFrame({first_column: tolerance_names})
             extra_columns = [column for column in sets[sheet_name].columns if column != first_column]
@@ -647,6 +731,7 @@ def _write_input_data(
     input_data_files_type: str,
 ) -> None:
     """Fill the blank CVXLab input data with MARIO split data."""
+    split_scenario = f"split_{scenario_label}"
     file_extension, multiple_input_files = _cvxlab_input_storage(model)
     input_data = _read_blank_input_data(
         dest_dir=dest_dir,
@@ -671,18 +756,34 @@ def _write_input_data(
     old_matrices_config = {
         "Z": ("Zold", ["region_from_Name", "region_to_Name", "sector_from_Name", "sector_to_Name"]),
         "Y": ("Yold", ["region_from_Name", "sector_from_Name", "region_to_Name", "cons_categ_Name"]),
+        "V": ("Vold", ["factor_Name", "region_to_Name", "sector_to_Name"]),
     }
     for mario_name, (target_name, join_cols) in old_matrices_config.items():
-        mario_df = _rename_flat_columns(
+        original_df = _rename_flat_columns(
             flat_matrices[mario_name].query("Scenario == 'original'").copy(),
             set_map,
         )
-        input_data[target_name] = _merge_cvxlab_input_table(
+        merged = _merge_cvxlab_input_table(
             input_data[target_name],
-            mario_df,
+            original_df,
             join_cols=join_cols,
             table_name=target_name,
         )
+
+        fallback_df = _rename_flat_columns(
+            flat_matrices[mario_name].query("Scenario == @split_scenario").copy(),
+            set_map,
+        )
+        if not fallback_df.empty:
+            merged = merged.merge(
+                fallback_df[join_cols + ["values"]],
+                on=join_cols,
+                how="left",
+                suffixes=("", "_fallback"),
+            )
+            merged["values"] = merged["values"].fillna(merged.pop("values_fallback"))
+
+        input_data[target_name] = merged
 
     identity_table = "I_p_pn" if "I_p_pn" in input_data else "I_sp_spn"
     input_data[identity_table]["values"] = (
@@ -878,10 +979,10 @@ def _parse_split_results(dest_dir: Path, flat_matrices: dict[str, pd.DataFrame])
     """Parse optimized split results back into MARIO matrices."""
 
     conn = sqlite3.connect(dest_dir / cl.Defaults.ConfigFiles.SQLITE_DATABASE_FILE)
-    db_Znew_supply = pd.read_sql_query("SELECT * FROM Znew_supply", conn).drop(columns=["id"])
-    db_Znew_use = pd.read_sql_query("SELECT * FROM Znew_use", conn).drop(columns=["id"])
-    db_Ynew = pd.read_sql_query("SELECT * FROM Ynew", conn).drop(columns=["id"])
-    db_VA = pd.read_sql_query("SELECT * FROM VA", conn).drop(columns=["id"])
+    db_Z_supply = pd.read_sql_query("SELECT * FROM Z_supply", conn).drop(columns=["id"])
+    db_Z_use = pd.read_sql_query("SELECT * FROM Z_use", conn).drop(columns=["id"])
+    db_Y = pd.read_sql_query("SELECT * FROM Y", conn).drop(columns=["id"])
+    db_V = pd.read_sql_query("SELECT * FROM V", conn).drop(columns=["id"])
     conn.close()
 
     mapping = pd.read_excel(dest_dir / "mapping.xlsx", sheet_name=None, index_col=0)
@@ -889,10 +990,10 @@ def _parse_split_results(dest_dir: Path, flat_matrices: dict[str, pd.DataFrame])
     sets = pd.read_excel(dest_dir / cl.Defaults.ConfigFiles.SETS_FILE, sheet_name=None)
     sectors_df = sets["_set_SECTOR_FROM"]
     sectors_stable = sectors_df[sectors_df["sector_from_category"] == "stable"]["sector_from_Name"].tolist()
-    sectors_parent = sectors_df[sectors_df["sector_from_category"] == "parent"]["sector_from_Name"].tolist()
     sector_order = sectors_df["sector_from_Name"].tolist()
 
-    scenario_to_extract = "original"
+    available_scenarios = set(flat_matrices["Z"]["Scenario"].unique())
+    scenario_to_extract = "original" if "original" in available_scenarios else "baseline"
     flat_Zold = _rename_flat_columns(
         flat_matrices["Z"].query("Scenario == @scenario_to_extract").drop(columns=["Scenario"]).copy(),
         set_map,
@@ -900,8 +1001,8 @@ def _parse_split_results(dest_dir: Path, flat_matrices: dict[str, pd.DataFrame])
 
     Znew = pd.concat(
         [
-            db_Znew_supply,
-            db_Znew_use,
+            db_Z_supply,
+            db_Z_use,
             flat_Zold[
                 flat_Zold["sector_from_Name"].isin(sectors_stable)
                 & flat_Zold["sector_to_Name"].isin(sectors_stable)
@@ -933,7 +1034,7 @@ def _parse_split_results(dest_dir: Path, flat_matrices: dict[str, pd.DataFrame])
     )
     Ynew = pd.concat(
         [
-            db_Ynew,
+            db_Y,
             flat_Yold[flat_Yold["sector_from_Name"].isin(sectors_stable)],
         ],
         ignore_index=True,
@@ -954,21 +1055,21 @@ def _parse_split_results(dest_dir: Path, flat_matrices: dict[str, pd.DataFrame])
         flat_matrices["V"].query("Scenario == @scenario_to_extract").drop(columns=["Scenario"]).copy(),
         set_map,
     )
+    if "values" not in flat_V.columns and "Value" in flat_V.columns:
+        flat_V = flat_V.rename(columns={"Value": "values"})
     V = pd.concat(
         [
-            db_VA,
+            db_V.rename(columns={"factor_Name": "Factor_of_production"}),
             flat_V[
                 flat_V["sector_to_Name"].isin(sectors_stable)
-                | flat_V["sector_to_Name"].isin(sectors_parent)
             ].rename(
                 columns={
-                    "factors_Name": "Factor_of_production",
+                    "factor_Name": "Factor_of_production",
                 }
             ),
         ],
         ignore_index=True,
     )
-    V["Factor_of_production"] = "VA"
     V = V.set_index(["Factor_of_production", "region_to_Name", "sector_to_Name"])["values"].unstack(
         ["region_to_Name", "sector_to_Name"]
     )

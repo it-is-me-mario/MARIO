@@ -35,8 +35,10 @@ from mario.ops.add_sector_workbook import (
 from mario.ops.add_sector_engine import run_add_sector_engine
 from mario.ops.add_sector_engine import collect_add_sector_matrices
 from mario.ops.add_sector_split import (
+    apply_split_parent_renames,
     build_split_flow_scenario,
     log_split_scenario,
+    normalize_split_parent_renames,
     prepare_split_support,
     validate_split_parameters,
 )
@@ -1729,6 +1731,8 @@ class Database(CoreModel):
         only_input_data_gen=False,
         solver=None,
         solver_parameters=None,
+        parent_name=None,
+        parent_names=None,
     ):
         """Apply the add-sectors workbook to the selected scenario.
 
@@ -1767,6 +1771,14 @@ class Database(CoreModel):
             Optional solver keyword arguments passed to CVXLab. When provided,
             they are forwarded as ``mosek_params`` to preserve the historical
             MARIO split workflow.
+        parent_name:
+            Optional new label for the residual parent sector when exactly one
+            parent sector is being split.
+        parent_names:
+            Optional mapping of split child sector or parent sector -> new
+            parent label. This is useful when you want the residual parent
+            sector to be renamed after the split, for example
+            ``{"Non metallic minerals": "Other non metallic minerals"}``.
 
         Notes
         -----
@@ -1788,6 +1800,8 @@ class Database(CoreModel):
                 only_input_data_gen=only_input_data_gen,
                 solver=solver,
                 solver_parameters=solver_parameters,
+                parent_name=parent_name,
+                parent_names=parent_names,
             )
             return new
 
@@ -1809,6 +1823,15 @@ class Database(CoreModel):
                 only_input_data_gen=only_input_data_gen,
             )
             prepare_split_support(self)
+            resolved_parent_renames = normalize_split_parent_renames(
+                self,
+                parent_name=parent_name,
+                parent_names=parent_names,
+            )
+        else:
+            if parent_name is not None or parent_names is not None:
+                raise WrongInput("parent_name and parent_names are supported only when split=True.")
+            resolved_parent_renames = {}
 
         item_to_query = _MASTER_INDEX["a"] if self.meta.table == "SUT" else _MASTER_INDEX["s"]
         duplicates = sorted(set(name for name in self.inventories if name in self.get_index(item_to_query)))
@@ -1949,6 +1972,19 @@ class Database(CoreModel):
                 self.matrices["split_cvxlab"] = split_cvxlab
                 self.meta._add_history(
                     "Database: new scenario 'split_cvxlab' defined with optimized split-sector flows."
+                )
+
+            if resolved_parent_renames:
+                rename_scenarios = ["baseline", split_scenario]
+                if "split_cvxlab" in self.matrices:
+                    rename_scenarios.append("split_cvxlab")
+                apply_split_parent_renames(
+                    self,
+                    resolved_parent_renames,
+                    scenarios=rename_scenarios,
+                )
+                self.meta._add_history(
+                    f"Database: renamed split parent sectors {resolved_parent_renames}."
                 )
 
         return None

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 import copy
 import warnings
 from pathlib import Path
@@ -12,7 +13,7 @@ import pint
 from mario.compute.primitives import calc_E, calc_V, calc_X_from_w, calc_Z, calc_w
 from mario.log_exc.exceptions import LackOfInput, NotImplementable, WrongInput
 from mario.log_exc.logger import log_time
-from mario.model.conventions import IOT, _ENUM, _MASTER_INDEX as MI
+from mario.model.conventions import IOT, TABLE_LEVELS, _ENUM, _MASTER_INDEX as MI
 from mario.ops.add_sector_specs import (
     ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS,
     ADD_SECTOR_SPLIT_EXCLUSION_SHEET,
@@ -333,6 +334,160 @@ def _sector_to_parent_map(instance) -> dict[str, str]:
             instance.add_sectors_master[parent_column].fillna("").astype(str),
         )
     )
+
+
+def normalize_split_parent_renames(
+    instance,
+    *,
+    parent_name=None,
+    parent_names=None,
+) -> dict[str, str]:
+    """Normalize optional parent-sector rename instructions for split workflows.
+
+    Accepted inputs are:
+
+    - ``parent_name="Other parent"`` when exactly one parent sector is split;
+    - ``parent_name={...}`` or ``parent_names={...}`` where keys can be either
+      split child sectors or parent sectors and values are the new parent names.
+    """
+
+    if parent_name is not None and parent_names is not None:
+        raise WrongInput("Use either parent_name or parent_names, not both.")
+
+    payload = parent_names if parent_names is not None else parent_name
+    if payload is None:
+        return {}
+
+    split_sector_to_parent = _sector_to_parent_map(instance)
+    split_sectors = set(getattr(instance, "to_split_sectors", []))
+    parent_sectors = {
+        parent
+        for sector, parent in split_sector_to_parent.items()
+        if sector in split_sectors and parent
+    }
+
+    if isinstance(payload, str):
+        if len(parent_sectors) != 1:
+            raise WrongInput(
+                "parent_name as a string is supported only when all split sectors "
+                "belong to one parent sector."
+            )
+        payload = {next(iter(parent_sectors)): payload}
+    elif isinstance(payload, Mapping):
+        payload = dict(payload)
+    else:
+        raise WrongInput(
+            "parent_name should be a string, and parent_names should be a mapping "
+            "of split sector or parent sector -> new parent label."
+        )
+
+    normalized: dict[str, str] = {}
+    for key, value in payload.items():
+        source = str(key).strip()
+        target = str(value).strip()
+        if not target:
+            raise WrongInput("Parent-sector rename targets cannot be empty.")
+
+        if source in split_sectors:
+            parent = split_sector_to_parent.get(source, "")
+        elif source in parent_sectors:
+            parent = source
+        else:
+            raise WrongInput(
+                f"{source!r} is not a valid split child sector or parent sector for this split workflow."
+            )
+
+        if not parent:
+            raise WrongInput(f"Split sector {source!r} does not define a parent sector.")
+
+        previous = normalized.get(parent)
+        if previous is not None and previous != target:
+            raise WrongInput(
+                f"Conflicting parent rename instructions for {parent!r}: {previous!r} and {target!r}."
+            )
+        normalized[parent] = target
+
+    existing = set(instance.get_index(MI["s"]))
+    for source, target in normalized.items():
+        if target != source and target in existing.difference({source}):
+            raise WrongInput(
+                f"Cannot rename parent sector {source!r} to {target!r} because that label already exists."
+            )
+
+    unique_targets = set(normalized.values())
+    if len(unique_targets) != len(normalized):
+        raise WrongInput("Parent-sector rename targets should be unique.")
+
+    return normalized
+
+
+def _rename_sector_axis(axis, rename_map: Mapping[str, str]):
+    """Rename sector labels on one pandas axis while preserving other levels."""
+
+    if not isinstance(axis, pd.MultiIndex):
+        return axis
+
+    changed = False
+    tuples = []
+    for entry in axis.tolist():
+        values = list(entry)
+        if len(values) >= 3 and values[1] == MI["s"] and values[2] in rename_map:
+            values[2] = rename_map[values[2]]
+            changed = True
+        tuples.append(tuple(values))
+
+    if not changed:
+        return axis
+
+    return pd.MultiIndex.from_tuples(tuples, names=axis.names)
+
+
+def _rename_sector_frame(frame: pd.DataFrame, rename_map: Mapping[str, str]) -> pd.DataFrame:
+    """Rename sector labels on the row/column axes of one dataframe."""
+
+    renamed = frame.copy()
+    renamed.index = _rename_sector_axis(renamed.index, rename_map)
+    renamed.columns = _rename_sector_axis(renamed.columns, rename_map)
+    return renamed
+
+
+def apply_split_parent_renames(
+    instance,
+    rename_map: Mapping[str, str],
+    *,
+    scenarios: list[str],
+) -> None:
+    """Apply normalized parent-sector renames to the database state."""
+
+    if not rename_map:
+        return
+
+    for scenario in scenarios:
+        if scenario not in instance.matrices:
+            continue
+        for matrix_name, matrix in list(instance.matrices[scenario].items()):
+            if isinstance(matrix, pd.DataFrame):
+                instance.matrices[scenario][matrix_name] = _rename_sector_frame(matrix, rename_map)
+
+    if getattr(instance, "uncertainty_matrix", None) is not None:
+        instance.uncertainty_matrix = _rename_sector_frame(instance.uncertainty_matrix, rename_map)
+
+    sector_units = instance.units[MI["s"]].copy()
+    sector_units.index = pd.Index(
+        [rename_map.get(str(label), str(label)) for label in sector_units.index],
+        name=sector_units.index.name,
+    )
+    sector_units = sector_units[~sector_units.index.duplicated(keep="first")]
+    instance.units[MI["s"]] = sector_units
+
+    sector_code = TABLE_LEVELS[instance.table_type][MI["s"]]
+    if sector_code in instance._indeces and "main" in instance._indeces[sector_code]:
+        renamed = [rename_map.get(str(label), str(label)) for label in instance._indeces[sector_code]["main"]]
+        instance._indeces[sector_code]["main"] = list(dict.fromkeys(renamed))
+
+    parent_columns = instance.add_sectors_master.filter(like=f"Parent {MI['s']}").columns.tolist()
+    for column in parent_columns:
+        instance.add_sectors_master[column] = instance.add_sectors_master[column].replace(rename_map)
 
 
 def _convert_split_units(

@@ -33,11 +33,48 @@ REPO_ROOT = DOC_ROOT.parent
 DEFAULT_CONFIG = DOC_ROOT / "notebook_paths.local.yaml"
 DEFAULT_LEAK_PATTERNS = ("/Users/", "/Volumes/")
 UNSUPPORTED_NBSPHINX_MIME_TYPES = {"application/vnd.plotly.v1+json"}
+OUTPUT_TEST_DIR = REPO_ROOT / "Output" / "path_test"
+SUPPORTING_FILES_DIR = REPO_ROOT / "mario/test/supporting_files"
 PACKAGED_EXCEL_WORKBOOKS = {
     "test_IOT_standard.xlsx": REPO_ROOT / "mario/test/tables/test_IOT_standard.xlsx",
     "test_IOT_special.xlsx": REPO_ROOT / "mario/test/tables/test_IOT_special.xlsx",
     "test_SUT_standard.xlsx": REPO_ROOT / "mario/test/tables/test_SUT_standard.xlsx",
     "test_SUT_special.xlsx": REPO_ROOT / "mario/test/tables/test_SUT_special.xlsx",
+}
+PACKAGED_USER_GUIDE_PATHS = {
+    "source/user_guide/transformations/add_extensions.ipynb": {
+        "/path/to/add_extensions_template.xlsx": OUTPUT_TEST_DIR / "add_extensions_template.xlsx",
+        "/path/to/add_extensions_filled.xlsx": SUPPORTING_FILES_DIR / "add_extensions_filled.xlsx",
+    },
+    "source/user_guide/transformations/add_sectors.ipynb": {
+        "/path/to/add_sector_template.xlsx": OUTPUT_TEST_DIR / "add_sector_template.xlsx",
+        "/path/to/add_sector_master_filled.xlsx": SUPPORTING_FILES_DIR / "add_sector_iot_master_filled.xlsx",
+        "/path/to/add_sector_inventories_filled.xlsx": SUPPORTING_FILES_DIR / "add_sector_iot_inventories_filled.xlsx",
+        "/path/to/cvxlab": SUPPORTING_FILES_DIR / "cvxlab",
+    },
+    "source/user_guide/transformations/aggregate.ipynb": {
+        "/path/to/aggregation_iot_template.xlsx": OUTPUT_TEST_DIR / "aggregation_iot_template.xlsx",
+        "/path/to/aggregation_iot_filled.xlsx": SUPPORTING_FILES_DIR / "aggregation_iot_filled.xlsx",
+    },
+    "source/user_guide/transformations/apply_shocks.ipynb": {
+        "/path/to/shock_IOT_template.xlsx": OUTPUT_TEST_DIR / "shock_IOT_template.xlsx",
+        "/path/to/shock_IOT_filled.xlsx": SUPPORTING_FILES_DIR / "shock_IOT_filled.xlsx",
+        "/path/to/shock_SUT_template.xlsx": OUTPUT_TEST_DIR / "shock_SUT_template.xlsx",
+        "/path/to/shock_SUT_filled.xlsx": SUPPORTING_FILES_DIR / "shock_SUT_filled.xlsx",
+        "/path/to/shock_IOT_template_clusters.xlsx": OUTPUT_TEST_DIR / "shock_IOT_template_clusters.xlsx",
+        "/path/to/shock_IOT_filled_clusters.xlsx": SUPPORTING_FILES_DIR / "shock_IOT_filled_clusters.xlsx",
+    },
+    "source/user_guide/provide_your_database.ipynb": {
+        "/path/to/custom_iot_template.xlsx": OUTPUT_TEST_DIR / "custom_iot_template.xlsx",
+        "/path/to/custom_iot_filled.xlsx": SUPPORTING_FILES_DIR / "custom_iot_filled.xlsx",
+        "/path/to/custom_sut_template.xlsx": OUTPUT_TEST_DIR / "custom_sut_template.xlsx",
+        "/path/to/custom_sut_filled.xlsx": SUPPORTING_FILES_DIR / "custom_sut_filled.xlsx",
+    },
+    "source/user_guide/exporting/export_and_roundtrip.ipynb": {
+        "/path/to/iot_export.xlsx": OUTPUT_TEST_DIR / "iot_export.xlsx",
+        "/path/to/iot_export_csv": OUTPUT_TEST_DIR / "iot_export_csv",
+        "/path/to/iot_export_parquet": OUTPUT_TEST_DIR / "iot_export_parquet",
+    },
 }
 
 LOGGER = logging.getLogger("resolve_notebooks")
@@ -73,6 +110,8 @@ DEFAULT_NOTEBOOKS_TO_RUN = [
     "doc/source/user_guide/transformations/aggregate.ipynb",
     "doc/source/user_guide/transformations/apply_shocks.ipynb",
     "doc/source/user_guide/transformations/mrio_to_srio.ipynb",
+    "doc/source/user_guide/exporting/export_and_roundtrip.ipynb",
+    "doc/source/user_guide/provide_your_database.ipynb",
     "doc/source/user_guide/transformations/sut_to_iot.ipynb",
     "doc/source/user_guide/transformations/to_chenery_moses.ipynb",
 ]
@@ -242,21 +281,27 @@ def _replacements_for(
 def _default_replacements_for(notebook: Path) -> list[Replacement]:
     """Return built-in repo-local replacements for packaged docs fixtures."""
     keys = _notebook_keys(notebook)
-    if "source/notebooks/parsers/custom_database/from_excel.ipynb" not in keys:
-        return []
-
     replacements: list[Replacement] = []
-    for filename, local_path in PACKAGED_EXCEL_WORKBOOKS.items():
-        if not local_path.exists():
+
+    if "source/notebooks/parsers/custom_database/from_excel.ipynb" in keys:
+        for filename, local_path in PACKAGED_EXCEL_WORKBOOKS.items():
+            if not local_path.exists():
+                continue
+            local = str(local_path)
+            replacements.extend(
+                [
+                    Replacement(f"/path/to/{filename}", local),
+                    Replacement(f"../{filename}", local),
+                    Replacement(f"../../../../../mario/test/tables/{filename}", local),
+                ]
+            )
+
+    for notebook_key, placeholder_map in PACKAGED_USER_GUIDE_PATHS.items():
+        if notebook_key not in keys:
             continue
-        local = str(local_path)
-        replacements.extend(
-            [
-                Replacement(f"/path/to/{filename}", local),
-                Replacement(f"../{filename}", local),
-                Replacement(f"../../../../../mario/test/tables/{filename}", local),
-            ]
-        )
+        for placeholder, local_path in placeholder_map.items():
+            replacements.append(Replacement(placeholder, str(local_path)))
+
     return replacements
 
 

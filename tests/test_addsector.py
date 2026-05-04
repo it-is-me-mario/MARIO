@@ -1617,11 +1617,43 @@ def test_add_sectors_split_can_generate_cvxlab_input_data(tmp_path, CoreDataIOT)
     )
 
     model_dir = tmp_path / CVXLAB_SPLIT_MODEL_NAME
+    input_file = model_dir / "input_data" / "input_data.xlsx"
     assert "original" in new.matrices
     assert "split_baseline" in new.matrices
     assert split_setup["new_sector"] in new.get_index(_MASTER_INDEX["s"])
     assert model_dir.exists()
-    assert (model_dir / "input_data" / "input_data.xlsx").exists()
+    assert input_file.exists()
+
+    workbook = pd.ExcelFile(input_file)
+    assert {"V0", "Vold", "Z0", "Zold", "Yold", "Trade", "Trade_selector", "tol"}.issubset(
+        set(workbook.sheet_names)
+    )
+    vold = pd.read_excel(input_file, sheet_name="Vold")
+    assert {"factor_Name", "region_to_Name", "sector_to_Name", "values"}.issubset(vold.columns)
+
+
+def test_add_sectors_split_old_tables_include_non_split_added_sectors(tmp_path):
+    pytest.importorskip("cvxlab")
+    database = load_test("IOT")
+    workbook = Path("mario/test/supporting_files/add_sector_iot_inventories_filled.xlsx")
+
+    new = database.add_sectors(
+        io=workbook,
+        inplace=False,
+        split=True,
+        cvxlab_path=tmp_path,
+        only_input_data_gen=True,
+    )
+
+    input_file = tmp_path / CVXLAB_SPLIT_MODEL_NAME / "input_data" / "input_data.xlsx"
+    zold = pd.read_excel(input_file, sheet_name="Zold")
+    yold = pd.read_excel(input_file, sheet_name="Yold")
+    vold = pd.read_excel(input_file, sheet_name="Vold")
+
+    assert "split_baseline" in new.matrices
+    assert not zold["values"].isna().any()
+    assert not yold["values"].isna().any()
+    assert not vold["values"].isna().any()
 
 
 def test_add_sectors_split_can_generate_cvxlab_csv_input_data(tmp_path, CoreDataIOT):
@@ -1742,6 +1774,72 @@ def test_split_bridge_copies_model_settings_verbatim(tmp_path):
         assert "nonneg" not in copied_df.columns
 
 
+def test_split_bridge_fills_blank_problem_cells_for_newer_cvxlab_builds(tmp_path, monkeypatch):
+    source = Path("mario/ops/cvxlab_models/Split_sectors/model_settings.xlsx")
+    copied = tmp_path / "model_settings.xlsx"
+    copied.write_bytes(source.read_bytes())
+
+    class _FakeModel:
+        refresh_database_and_initialize_problem = object()
+
+    class _FakeLabels:
+        NONNEG_KEY = "nonneg"
+
+    class _FakeDefaults:
+        Labels = _FakeLabels
+
+    class _FakeCL:
+        Model = _FakeModel
+        Defaults = _FakeDefaults
+
+    monkeypatch.setattr(bridge_module, "cl", _FakeCL)
+
+    bridge_module._maybe_rewrite_incompatible_model_settings(copied)
+
+    problem = pd.read_excel(copied, sheet_name="problem", keep_default_na=False)
+    assert all(isinstance(value, str) for value in problem["objective"])
+    assert all(isinstance(value, str) for value in problem["expressions"])
+
+
+def test_split_bridge_sanitizes_loaded_symbolic_problem_entries():
+    payload = {
+        "objective": ["Minimize(x)", float("nan"), "", "   "],
+        "expressions": ["x >= 0", None, " ", float("nan")],
+        "nested": {
+            "objective": [None, "Minimize(y)"],
+            "expressions": ["y >= 0", ""],
+        },
+    }
+
+    bridge_module._sanitize_symbolic_problem_structure(payload)
+
+    assert payload["objective"] == ["Minimize(x)"]
+    assert payload["expressions"] == ["x >= 0"]
+    assert payload["nested"]["objective"] == ["Minimize(y)"]
+    assert payload["nested"]["expressions"] == ["y >= 0"]
+
+
+def test_split_bridge_keeps_description_text_raw_while_parsing_structured_fields():
+    data = pd.DataFrame(
+        [
+            {
+                "table_key": "XT",
+                "description": "New total production (r_to,s_to)",
+                "type": "endogenous",
+                "integer": None,
+                "coordinates": "region_to, sector_to",
+                "variables_info": "XT_n",
+            }
+        ]
+    )
+
+    result = bridge_module._pivot_cvxlab_settings_dataframe(data, primary_key="table_key")
+
+    assert result["XT"]["description"] == "New total production (r_to,s_to)"
+    assert result["XT"]["coordinates"] == ["region_to", "sector_to"]
+    assert result["XT"]["variables_info"] == "XT_n"
+
+
 def test_split_bridge_normalizes_relative_cvxlab_root(monkeypatch):
     captured = {}
 
@@ -1785,6 +1883,15 @@ def test_split_bridge_rejects_cvxlab_tables_missing_required_coordinates():
         bridge_module._merge_cvxlab_input_table(base, updates, table_name="VA")
 
 
+def test_split_bridge_picks_conic_solver_by_default(monkeypatch):
+    cp = pytest.importorskip("cvxpy")
+
+    monkeypatch.setattr(cp, "installed_solvers", lambda: ["SCIPY", "SCS"])
+
+    assert bridge_module._resolve_split_solver(None) == "SCS"
+    assert bridge_module._resolve_split_solver("GUROBI") == "GUROBI"
+
+
 def test_add_sectors_split_can_attach_mocked_cvxlab_results(tmp_path, CoreDataIOT, monkeypatch):
     path = tmp_path / "split_iot_optimized.xlsx"
 
@@ -1814,3 +1921,39 @@ def test_add_sectors_split_can_attach_mocked_cvxlab_results(tmp_path, CoreDataIO
 
     assert "split_cvxlab" in new.matrices
     assert _ENUM["X"] in new.matrices["split_cvxlab"]
+
+
+def test_add_sectors_split_can_rename_parent_sector(tmp_path, CoreDataIOT, monkeypatch):
+    path = tmp_path / "split_iot_parent_name.xlsx"
+
+    CoreDataIOT.get_add_sectors_excel(
+        items=["Split sector"],
+        regions=[CoreDataIOT.get_index(_MASTER_INDEX["r"])[0]],
+        path=path,
+    )
+    split_setup = _configure_split_workbook(CoreDataIOT, path)
+    parent_name = f"Other {split_setup['parent_sector']}"
+
+    def _fake_optimize(instance, **kwargs):
+        split_baseline = instance.matrices["split_baseline"]
+        return {
+            _ENUM["Z"]: split_baseline[_ENUM["Z"]].copy(),
+            _ENUM["Y"]: split_baseline[_ENUM["Y"]].copy(),
+            _ENUM["V"]: split_baseline[_ENUM["V"]].copy(),
+        }
+
+    monkeypatch.setattr(database_module, "optimize_split_in_cvxlab", _fake_optimize)
+
+    new = CoreDataIOT.add_sectors(
+        io=path,
+        inplace=False,
+        split=True,
+        cvxlab_path=tmp_path,
+        parent_name=parent_name,
+    )
+
+    assert parent_name in new.get_index(_MASTER_INDEX["s"])
+    assert split_setup["parent_sector"] not in new.get_index(_MASTER_INDEX["s"])
+    assert parent_name in new.matrices["split_cvxlab"][_ENUM["Z"]].index.get_level_values(2)
+    assert parent_name in new.matrices["split_cvxlab"][_ENUM["Z"]].columns.get_level_values(2)
+    assert parent_name in new.units[_MASTER_INDEX["s"]].index
