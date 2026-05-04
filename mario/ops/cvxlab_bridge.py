@@ -35,6 +35,7 @@ CVXLAB_INPUT_TYPES = {"xlsx", "csv"}
 CVXLAB_TEMPLATE_PACKAGE = "mario.ops.cvxlab_models"
 CVXLAB_TEMPLATE_NAME = "Split_sectors"
 CVXLAB_RAW_TEXT_COLUMNS = {"description"}
+CVXLAB_OPTIMAL_STATUSES = {"optimal", "optimal_inaccurate"}
 
 
 def create_split_input_data(
@@ -144,7 +145,7 @@ def optimize_split_in_cvxlab(
                 run_kwargs["mosek_params"] = solver_parameters
         model.run_model(**run_kwargs)
 
-        if model.core.problem.problem_status[""] not in {"optimal", "optimal_inaccurate"}:
+        if not _cvxlab_problem_solved_optimally(model.core.problem.problem_status):
             raise WrongInput(
                 "CVXLab split optimization did not solve optimally. Check the generated model directory for details."
             )
@@ -169,6 +170,23 @@ def _resolve_split_solver(solver):
         if candidate in installed:
             return candidate
     return None
+
+
+def _cvxlab_problem_status_values(problem_status) -> list[str]:
+    """Normalize CVXLab problem status containers across old and new builds."""
+
+    if problem_status is None:
+        return []
+    if isinstance(problem_status, dict):
+        return [str(status) for status in problem_status.values() if status is not None]
+    return [str(problem_status)]
+
+
+def _cvxlab_problem_solved_optimally(problem_status) -> bool:
+    """Return True when every reported CVXLab solve status is optimal enough."""
+
+    statuses = _cvxlab_problem_status_values(problem_status)
+    return bool(statuses) and all(status in CVXLAB_OPTIMAL_STATUSES for status in statuses)
 
 
 def _prepare_split_model_inputs(

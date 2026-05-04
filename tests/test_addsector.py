@@ -1618,8 +1618,7 @@ def test_add_sectors_split_can_generate_cvxlab_input_data(tmp_path, CoreDataIOT)
 
     model_dir = tmp_path / CVXLAB_SPLIT_MODEL_NAME
     input_file = model_dir / "input_data" / "input_data.xlsx"
-    assert "original" in new.matrices
-    assert "split_baseline" in new.matrices
+    assert set(new.matrices) == {"baseline"}
     assert split_setup["new_sector"] in new.get_index(_MASTER_INDEX["s"])
     assert model_dir.exists()
     assert input_file.exists()
@@ -1650,7 +1649,7 @@ def test_add_sectors_split_old_tables_include_non_split_added_sectors(tmp_path):
     yold = pd.read_excel(input_file, sheet_name="Yold")
     vold = pd.read_excel(input_file, sheet_name="Vold")
 
-    assert "split_baseline" in new.matrices
+    assert set(new.matrices) == {"baseline"}
     assert not zold["values"].isna().any()
     assert not yold["values"].isna().any()
     assert not vold["values"].isna().any()
@@ -1679,7 +1678,7 @@ def test_add_sectors_split_can_generate_cvxlab_csv_input_data(tmp_path, CoreData
     )
 
     model_dir = tmp_path / CVXLAB_SPLIT_MODEL_NAME / "input_data"
-    assert "split_baseline" in new.matrices
+    assert set(new.matrices) == {"baseline"}
     assert (model_dir / "Trade.csv").exists()
     assert (model_dir / "tol.csv").exists()
 
@@ -1892,6 +1891,24 @@ def test_split_bridge_picks_conic_solver_by_default(monkeypatch):
     assert bridge_module._resolve_split_solver("GUROBI") == "GUROBI"
 
 
+def test_split_bridge_accepts_multi_subproblem_status_dict():
+    status = {
+        "Sub-problem [0]": "optimal",
+        "Sub-problem [1]": "optimal_inaccurate",
+    }
+
+    assert bridge_module._cvxlab_problem_solved_optimally(status)
+
+
+def test_split_bridge_rejects_non_optimal_multi_subproblem_status_dict():
+    status = {
+        "Sub-problem [0]": "optimal",
+        "Sub-problem [1]": "infeasible",
+    }
+
+    assert not bridge_module._cvxlab_problem_solved_optimally(status)
+
+
 def test_add_sectors_split_can_attach_mocked_cvxlab_results(tmp_path, CoreDataIOT, monkeypatch):
     path = tmp_path / "split_iot_optimized.xlsx"
 
@@ -1919,7 +1936,39 @@ def test_add_sectors_split_can_attach_mocked_cvxlab_results(tmp_path, CoreDataIO
         cvxlab_path=tmp_path,
     )
 
-    assert "split_cvxlab" in new.matrices
+    assert set(new.matrices) == {"baseline"}
+    assert _ENUM["X"] in new.matrices["baseline"]
+
+
+def test_add_sectors_split_can_keep_all_intermediate_scenarios(tmp_path, CoreDataIOT, monkeypatch):
+    path = tmp_path / "split_iot_keep_steps.xlsx"
+
+    CoreDataIOT.get_add_sectors_excel(
+        items=["Split sector"],
+        regions=[CoreDataIOT.get_index(_MASTER_INDEX["r"])[0]],
+        path=path,
+    )
+    _configure_split_workbook(CoreDataIOT, path)
+
+    def _fake_optimize(instance, **kwargs):
+        split_baseline = instance.matrices["split_baseline"]
+        return {
+            _ENUM["Z"]: split_baseline[_ENUM["Z"]].copy(),
+            _ENUM["Y"]: split_baseline[_ENUM["Y"]].copy(),
+            _ENUM["V"]: split_baseline[_ENUM["V"]].copy(),
+        }
+
+    monkeypatch.setattr(database_module, "optimize_split_in_cvxlab", _fake_optimize)
+
+    new = CoreDataIOT.add_sectors(
+        io=path,
+        inplace=False,
+        split=True,
+        keep_all_split_steps=True,
+        cvxlab_path=tmp_path,
+    )
+
+    assert set(new.matrices) == {"baseline", "original", "split_baseline", "split_cvxlab"}
     assert _ENUM["X"] in new.matrices["split_cvxlab"]
 
 
@@ -1954,6 +2003,6 @@ def test_add_sectors_split_can_rename_parent_sector(tmp_path, CoreDataIOT, monke
 
     assert parent_name in new.get_index(_MASTER_INDEX["s"])
     assert split_setup["parent_sector"] not in new.get_index(_MASTER_INDEX["s"])
-    assert parent_name in new.matrices["split_cvxlab"][_ENUM["Z"]].index.get_level_values(2)
-    assert parent_name in new.matrices["split_cvxlab"][_ENUM["Z"]].columns.get_level_values(2)
+    assert parent_name in new.matrices["baseline"][_ENUM["Z"]].index.get_level_values(2)
+    assert parent_name in new.matrices["baseline"][_ENUM["Z"]].columns.get_level_values(2)
     assert parent_name in new.units[_MASTER_INDEX["s"]].index

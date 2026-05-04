@@ -1724,6 +1724,7 @@ class Database(CoreModel):
         scenario="baseline",
         inplace=True,
         split=False,
+        keep_all_split_steps=False,
         notes=None,
         ignore_warnings=True,
         cvxlab_path=None,
@@ -1757,6 +1758,11 @@ class Database(CoreModel):
         split:
             When ``True`` and the table is an IOT, run the split workflow after
             the standard coefficient-side insertion.
+        keep_all_split_steps:
+            When ``False`` and ``split=True``, keep only the final available
+            split result as ``baseline`` and discard intermediate scenarios such
+            as ``original``, ``split_<scenario>``, and ``split_cvxlab``.
+            When ``True``, preserve all intermediate split scenarios.
         cvxlab_path:
             Directory where MARIO should generate the CVXLab model directory.
         input_data_files_type:
@@ -1785,6 +1791,8 @@ class Database(CoreModel):
         The workbook-driven non-split insertion always runs first. If
         ``split=True`` for an IOT, MARIO then builds a deterministic
         ``split_<scenario>`` flow scenario and optionally hands it to CVXLab.
+        By default, the final available split scenario is then promoted back to
+        ``baseline``.
         """
         if not inplace:
             new = self.copy()
@@ -1793,6 +1801,7 @@ class Database(CoreModel):
                 scenario=scenario,
                 inplace=True,
                 split=split,
+            keep_all_split_steps=keep_all_split_steps,
                 notes=notes,
                 ignore_warnings=ignore_warnings,
                 cvxlab_path=cvxlab_path,
@@ -1985,6 +1994,13 @@ class Database(CoreModel):
                 )
                 self.meta._add_history(
                     f"Database: renamed split parent sectors {resolved_parent_renames}."
+                )
+
+            if not keep_all_split_steps:
+                final_split_scenario = "split_cvxlab" if "split_cvxlab" in self.matrices else split_scenario
+                self.matrices = {"baseline": self.matrices[final_split_scenario]}
+                self.meta._add_history(
+                    f"Database: scenario '{final_split_scenario}' promoted to 'baseline' and intermediate split scenarios removed."
                 )
 
         return None
