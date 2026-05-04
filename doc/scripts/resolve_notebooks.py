@@ -24,6 +24,7 @@ from typing import Any
 
 import nbformat
 from nbclient import NotebookClient
+import plotly.io as pio
 import yaml
 
 # run all with python doc/scripts/resolve_notebooks.py doc/source/notebooks/parsers/**/*.ipynb
@@ -466,6 +467,32 @@ def _sanitize_output_paths(nb: Any, replacements: list[Replacement]) -> int:
     return changed
 
 
+def _convert_plotly_outputs_to_html(nb: Any) -> int:
+    converted = 0
+    for cell in nb.cells:
+        if cell.get("cell_type") != "code":
+            continue
+
+        for output in cell.get("outputs", []):
+            payload = output if isinstance(output, dict) else dict(output)
+            data = payload.get("data")
+            if not isinstance(data, dict):
+                continue
+
+            plotly_payload = data.get("application/vnd.plotly.v1+json")
+            if plotly_payload is None or "text/html" in data:
+                continue
+
+            data["text/html"] = pio.to_html(
+                plotly_payload,
+                full_html=False,
+                include_plotlyjs="cdn",
+            )
+            converted += 1
+
+    return converted
+
+
 def _strip_unsupported_output_mimes(nb: Any) -> int:
     stripped = 0
     for cell in nb.cells:
@@ -573,6 +600,7 @@ def _execute_one(
     # mario.__file__ resolves inside the working tree under /Users/ or /home/).
     builtin_replacements = [Replacement(placeholder="/path/to/MARIO", local=str(REPO_ROOT))]
     _sanitize_output_paths(execution_nb, builtin_replacements + replacements)
+    converted_plotly = _convert_plotly_outputs_to_html(execution_nb)
     stripped_mimes = _strip_unsupported_output_mimes(execution_nb)
     if fail_on_private_output:
         _check_private_output_paths(
@@ -584,9 +612,10 @@ def _execute_one(
     copied = _copy_outputs(original, execution_nb, skip_cells=skip_cells)
     nbformat.write(original, notebook)
     LOGGER.info(
-        "Completed %s: copied outputs from %d executed code cells, stripped %d unsupported MIME payloads",
+        "Completed %s: copied outputs from %d executed code cells, converted %d Plotly outputs, stripped %d unsupported MIME payloads",
         notebook,
         copied,
+        converted_plotly,
         stripped_mimes,
     )
 
