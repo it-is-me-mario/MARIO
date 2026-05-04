@@ -109,6 +109,7 @@ DEFAULT_NOTEBOOKS_TO_RUN = [
     "doc/source/user_guide/transformations/add_sectors.ipynb",
     "doc/source/user_guide/transformations/aggregate.ipynb",
     "doc/source/user_guide/transformations/apply_shocks.ipynb",
+    "doc/source/user_guide/inspection/visualization.ipynb",
     "doc/source/user_guide/transformations/mrio_to_srio.ipynb",
     "doc/source/user_guide/exporting/export_and_roundtrip.ipynb",
     "doc/source/user_guide/provide_your_database.ipynb",
