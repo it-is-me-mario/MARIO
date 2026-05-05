@@ -35,35 +35,6 @@ Database Compute API
    ../api_document/mario.Database.calc_linkages
 
 
-SUT-specific Ghosh matrices
----------------------------
-
-For SUT databases, MARIO resolves Ghosh blocks with the split structure used in
-the :doc:`Matrices table in Nomenclature </concepts/nomenclature>`:
-``bu``, ``bs``, ``gcc``, ``gca``, ``gac`` and ``gaa``. Materialize them with
-``db.calc_all(["bu", "bs", "gcc", "gca", "gac", "gaa"])`` or resolve a
-single block with ``db.resolve("gcc")``.
-
-For a minimal SUT example:
-
-.. code-block:: python
-
-   import mario
-
-   sut = mario.load_test("SUT")
-   sut.calc_all(["Xc", "u", "gac"])
-
-   sut.Xc   # commodity production vector
-   sut.u    # use coefficients
-   sut.gac  # one SUT Ghosh quadrant
-
-If you only need one block, ask the resolver directly:
-
-.. code-block:: python
-
-   fc = sut.resolve("fc")
-
-
 Runtime Compute Options
 -----------------------
 
@@ -80,29 +51,6 @@ See :doc:`mario.set_compute_method <../api_document/mario.set_compute_method>`,
 :doc:`mario.set_linear_strategy <../api_document/mario.set_linear_strategy>`.
 
 
-SUT Activity-side Totals
-------------------------
-
-When unified final demand ``Y`` is available, MARIO builds the activity-side
-final-demand total from commodity final demand ``Yc`` and the supply
-coefficients matrix ``s``:
-
-.. math::
-
-  Y_a^{\mathrm{tot}} = s Y_c \mathbf{1}
-
-The activity-side total value-added and satellite transaction matrices then
-follow as:
-
-.. math::
-
-  M_a = ma \, \operatorname{diag}(Y_a^{\mathrm{tot}})
-
-.. math::
-
-  F_a = fa \, \operatorname{diag}(Y_a^{\mathrm{tot}})
-
-
 Standalone IOT Helpers
 ----------------------
 
@@ -116,36 +64,52 @@ descriptions follow the :doc:`Matrices table in Nomenclature
 
    * - Function
      - Calculation
+     - Formula
    * - ``calc_X(Z, Y)``
      - ``X`` total production vector from ``Z`` intersectoral transaction flows matrix and ``Y`` final demand matrix.
+     - ``X = Z 1 + Y 1``
    * - ``calc_z(Z, X)``
      - ``z`` intersectoral transaction coefficients matrix from ``Z`` and ``X``.
+     - ``z = Z diag(X)^{-1}``
    * - ``calc_Z(z, X)``
      - ``Z`` intersectoral transaction flows matrix from ``z`` and ``X``.
+     - ``Z = z diag(X)``
    * - ``calc_w(z)``
      - ``w`` Leontief inverse matrix.
+     - ``w = (I - z)^{-1}``
    * - ``calc_X_from_w(w, Y)``
      - ``X`` total production vector using a precomputed ``w``.
+     - ``X = w (Y 1)``
    * - ``calc_X_from_z(z, Y)``
      - ``X`` total production vector directly from ``z`` and ``Y``.
+     - ``X = (I - z)^{-1} (Y 1)``
    * - ``calc_v(V, X)`` / ``calc_V(v, X)``
      - Convert between ``V`` value added transaction flows matrix and ``v`` value added coefficients matrix.
+     - ``v = V diag(X)^{-1}``; ``V = v diag(X)``
    * - ``calc_e(E, X)`` / ``calc_E(e, X)``
      - Convert between ``E`` environmental transaction flows matrix and ``e`` environmental transaction coefficients matrix.
+     - ``e = E diag(X)^{-1}``; ``E = e diag(X)``
    * - ``calc_m(v, w)`` / ``calc_m_from_z(v, z)``
      - ``m`` total (direct+indirect) value added coefficients matrix.
+     - ``m = v w``; ``m = v (I - z)^{-1}``
    * - ``calc_f(e, w)`` / ``calc_f_from_z(e, z)``
      - ``f`` total (direct+indirect) environmental transaction coefficients matrix.
+     - ``f = e w``; ``f = e (I - z)^{-1}``
    * - ``calc_M(m, Y)``
      - ``M`` total (direct+indirect) value added transaction matrix.
+     - ``M = m diag(Y 1)``
    * - ``calc_F(f, Y)``
      - ``F`` total (direct+indirect) environmental transaction flows matrix.
+     - ``F = f diag(Y 1)``
    * - ``calc_p(v, w)`` / ``calc_p_from_z(v, z)``
      - ``p`` price index vector.
+     - ``p = w^T (v^T 1)``; ``p = (I - z)^{-T} (v^T 1)``
    * - ``calc_b(X, Z)`` / ``calc_g(b)``
      - ``b`` intersectoral transaction direct-output coefficients matrix and ``g`` Ghosh coefficients matrix.
+     - ``b = diag(X)^{-1} Z``; ``g = (I - b)^{-1}``
    * - ``calc_y(Y)``
      - Shares of the ``Y`` final demand matrix.
+     - ``y = Y / (1^T Y 1)``
 
 .. toctree::
    :maxdepth: 1
@@ -186,22 +150,31 @@ want one standalone numerical helper instead of resolving through a
 
    * - Function
      - Calculation
+     - Formula
    * - ``calc_va(Va, Xa)`` / ``calc_Va(va, Xa)``
      - Convert between ``Va`` activity-side value added flows and ``va`` activity-side value added coefficients.
+     - ``va = Va diag(Xa)^{-1}``; ``Va = va diag(Xa)``
    * - ``calc_vc(Vc, Xc)`` / ``calc_Vc(vc, Xc)``
      - Convert between ``Vc`` commodity-side value added flows and ``vc`` commodity-side value added coefficients.
+     - ``vc = Vc diag(Xc)^{-1}``; ``Vc = vc diag(Xc)``
    * - ``calc_ea(Ea, Xa)`` / ``calc_Ea(ea, Xa)``
      - Convert between ``Ea`` activity-side environmental flows and ``ea`` activity-side environmental coefficients.
+     - ``ea = Ea diag(Xa)^{-1}``; ``Ea = ea diag(Xa)``
    * - ``calc_ec(Ec, Xc)`` / ``calc_Ec(ec, Xc)``
      - Convert between ``Ec`` commodity-side environmental flows and ``ec`` commodity-side environmental coefficients.
+     - ``ec = Ec diag(Xc)^{-1}``; ``Ec = ec diag(Xc)``
    * - ``calc_ma(va, waa)`` / ``calc_Ma(ma, s, Yc)``
      - Build activity-side value added multipliers and total activity-side value added footprints.
+     - ``ma = va waa``; ``Ma = ma diag(s (Yc 1))``
    * - ``calc_mc(va, s, wcc)`` / ``calc_Mc(mc, Yc)``
      - Build commodity-side value added multipliers and total commodity-side value added footprints.
+     - ``mc = va s wcc``; ``Mc = mc diag(Yc 1)``
    * - ``calc_fa(ea, waa)`` / ``calc_Fa(fa, s, Yc)``
      - Build activity-side environmental multipliers and total activity-side environmental footprints.
+     - ``fa = ea waa``; ``Fa = fa diag(s (Yc 1))``
    * - ``calc_fc(ea, s, wcc)`` / ``calc_Fc(fc, Yc)``
      - Build commodity-side environmental multipliers and total commodity-side environmental footprints.
+     - ``fc = ea s wcc``; ``Fc = fc diag(Yc 1)``
 
 .. toctree::
    :maxdepth: 1
@@ -223,19 +196,6 @@ want one standalone numerical helper instead of resolving through a
    ../api_document/mario.calc_Fa
    ../api_document/mario.calc_Fc
 
-Deprecated Compatibility Helper
--------------------------------
-
-``calc_f_dis`` remains available for backward compatibility, but it is no
-longer the preferred way to inspect diagonalized environmental multipliers.
-Prefer :doc:`db.f_ex(...) <../api_document/mario.CoreModel.f_ex>` for IOT and
-:doc:`db.fa_ex(...) <../api_document/mario.CoreModel.fa_ex>` /
-:doc:`db.fc_ex(...) <../api_document/mario.CoreModel.fc_ex>` for SUT.
-
-.. toctree::
-  :hidden:
-
-  ../api_document/mario.calc_f_dis
 
 
 Exploded Multiplier Matrices
