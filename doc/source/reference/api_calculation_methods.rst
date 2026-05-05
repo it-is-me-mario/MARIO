@@ -1,7 +1,7 @@
 Calculations
 ============
 
-These methods compute matrices, indicators and standalone IOT formula outputs.
+These methods compute matrices, indicators and standalone IOT/SUT formula outputs.
 For normal database workflows, prefer the database compute API because it
 understands scenarios, table format and already materialized matrices.
 
@@ -165,13 +165,72 @@ descriptions follow the :doc:`Matrices table in Nomenclature
    ../api_document/mario.calc_M
    ../api_document/mario.calc_lower_f
    ../api_document/mario.calc_f_from_z
-   ../api_document/mario.calc_f_dis
    ../api_document/mario.calc_F
    ../api_document/mario.calc_p
    ../api_document/mario.calc_p_from_z
    ../api_document/mario.calc_b
    ../api_document/mario.calc_g
    ../api_document/mario.calc_y
+
+
+Standalone SUT Split Helpers
+----------------------------
+
+The functions below operate on split SUT blocks directly. They are useful when
+you already have activity-side and commodity-side blocks as pandas matrices and
+want one standalone numerical helper instead of resolving through a
+``Database``.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Function
+     - Calculation
+   * - ``calc_va(Va, Xa)`` / ``calc_Va(va, Xa)``
+     - Convert between ``Va`` activity-side value added flows and ``va`` activity-side value added coefficients.
+   * - ``calc_vc(Vc, Xc)`` / ``calc_Vc(vc, Xc)``
+     - Convert between ``Vc`` commodity-side value added flows and ``vc`` commodity-side value added coefficients.
+   * - ``calc_ea(Ea, Xa)`` / ``calc_Ea(ea, Xa)``
+     - Convert between ``Ea`` activity-side environmental flows and ``ea`` activity-side environmental coefficients.
+   * - ``calc_ec(Ec, Xc)`` / ``calc_Ec(ec, Xc)``
+     - Convert between ``Ec`` commodity-side environmental flows and ``ec`` commodity-side environmental coefficients.
+   * - ``calc_ma(va, waa)`` / ``calc_Ma(ma, s, Yc)``
+     - Build activity-side value added multipliers and total activity-side value added footprints.
+   * - ``calc_mc(va, s, wcc)`` / ``calc_Mc(mc, Yc)``
+     - Build commodity-side value added multipliers and total commodity-side value added footprints.
+   * - ``calc_fa(ea, waa)`` / ``calc_Fa(fa, s, Yc)``
+     - Build activity-side environmental multipliers and total activity-side environmental footprints.
+   * - ``calc_fc(ea, s, wcc)`` / ``calc_Fc(fc, Yc)``
+     - Build commodity-side environmental multipliers and total commodity-side environmental footprints.
+
+.. toctree::
+   :maxdepth: 1
+
+   ../api_document/mario.calc_Va
+   ../api_document/mario.calc_Vc
+   ../api_document/mario.calc_lower_va
+   ../api_document/mario.calc_lower_vc
+   ../api_document/mario.calc_Ea
+   ../api_document/mario.calc_Ec
+   ../api_document/mario.calc_lower_ea
+   ../api_document/mario.calc_lower_ec
+   ../api_document/mario.calc_lower_ma
+   ../api_document/mario.calc_lower_mc
+   ../api_document/mario.calc_Ma
+   ../api_document/mario.calc_Mc
+   ../api_document/mario.calc_lower_fa
+   ../api_document/mario.calc_lower_fc
+   ../api_document/mario.calc_Fa
+   ../api_document/mario.calc_Fc
+
+Deprecated Compatibility Helper
+-------------------------------
+
+``calc_f_dis`` remains available for backward compatibility, but it is no
+longer the preferred way to inspect diagonalized environmental multipliers.
+Prefer :doc:`db.f_ex(...) <../api_document/mario.CoreModel.f_ex>` for IOT and
+:doc:`db.fa_ex(...) <../api_document/mario.CoreModel.fa_ex>` /
+:doc:`db.fc_ex(...) <../api_document/mario.CoreModel.fc_ex>` for SUT.
 
 
 Exploded Multiplier Matrices

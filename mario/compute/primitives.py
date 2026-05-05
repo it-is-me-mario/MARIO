@@ -30,6 +30,24 @@ from mario.compute.iot_formulas import (
     build_iot_w_from_z,
     build_iot_z_from_Z_X,
 )
+from mario.compute.sut_formulas import (
+    build_sut_Ea_from_ea_Xa,
+    build_sut_Ec_from_ec_Xc,
+    build_sut_Fa_from_fa_s_Yc,
+    build_sut_Fc_from_fc_Yc,
+    build_sut_Ma_from_ma_s_Yc,
+    build_sut_Mc_from_mc_Yc,
+    build_sut_Va_from_va_Xa,
+    build_sut_Vc_from_vc_Xc,
+    build_sut_ea_from_Ea_Xa,
+    build_sut_ec_from_Ec_Xc,
+    build_sut_fa_from_ea_waa,
+    build_sut_fc_from_ea_s_wcc,
+    build_sut_ma_from_va_waa,
+    build_sut_mc_from_va_s_wcc,
+    build_sut_va_from_Va_Xa,
+    build_sut_vc_from_Vc_Xc,
+)
 from mario.compute.types import ResolutionContext
 from mario.log_exc.logger import log_time
 from mario.model.conventions import _ENUM
@@ -248,6 +266,16 @@ def calc_V(v, X):
     return build_iot_V_from_v_X(v, X)
 
 
+def calc_Va(va, Xa):
+    """Calculate the ``Va`` activity-side value added transaction flows matrix."""
+    return build_sut_Va_from_va_Xa(va, Xa)
+
+
+def calc_Vc(vc, Xc):
+    """Calculate the ``Vc`` commodity-side value added transaction flows matrix."""
+    return build_sut_Vc_from_vc_Xc(vc, Xc)
+
+
 def calc_e(E, X):
     """Calculate the ``e`` environmental transaction coefficients matrix.
 
@@ -264,6 +292,16 @@ def calc_e(E, X):
         ``e`` environmental transaction coefficients matrix.
     """
     return build_iot_e_from_E_X(E, X)
+
+
+def calc_Ea(ea, Xa):
+    """Calculate the ``Ea`` activity-side environmental transaction flows matrix."""
+    return build_sut_Ea_from_ea_Xa(ea, Xa)
+
+
+def calc_Ec(ec, Xc):
+    """Calculate the ``Ec`` commodity-side environmental transaction flows matrix."""
+    return build_sut_Ec_from_ec_Xc(ec, Xc)
 
 
 def calc_p(v, w):
@@ -302,6 +340,16 @@ def calc_v(V, X):
     return build_iot_v_from_V_X(V, X)
 
 
+def calc_va(Va, Xa):
+    """Calculate the ``va`` activity-side value added coefficients matrix."""
+    return build_sut_va_from_Va_Xa(Va, Xa)
+
+
+def calc_vc(Vc, Xc):
+    """Calculate the ``vc`` commodity-side value added coefficients matrix."""
+    return build_sut_vc_from_Vc_Xc(Vc, Xc)
+
+
 def calc_m(v, w):
     """Calculate the ``m`` total (direct+indirect) value added coefficients matrix.
 
@@ -321,6 +369,16 @@ def calc_m(v, w):
     return build_iot_m_from_v_w(v, w)
 
 
+def calc_ma(va, waa):
+    """Calculate the ``ma`` activity-side total value added coefficients matrix."""
+    return build_sut_ma_from_va_waa(va, waa)
+
+
+def calc_mc(va, s, wcc):
+    """Calculate the ``mc`` commodity-side total value added coefficients matrix."""
+    return build_sut_mc_from_va_s_wcc(va, s, wcc)
+
+
 def calc_M(m, Y):
     """Calculate the ``M`` total (direct+indirect) value added transaction matrix.
 
@@ -338,6 +396,16 @@ def calc_M(m, Y):
         column is scaled by total final demand for that destination/use column.
     """
     return build_iot_M_from_m_Y(m, Y)
+
+
+def calc_Ma(ma, s, Yc):
+    """Calculate the ``Ma`` activity-side total value added transaction matrix."""
+    return build_sut_Ma_from_ma_s_Yc(ma, s, Yc)
+
+
+def calc_Mc(mc, Yc):
+    """Calculate the ``Mc`` commodity-side total value added transaction matrix."""
+    return build_sut_Mc_from_mc_Yc(mc, Yc)
 
 
 def calc_z(Z, X):
@@ -396,6 +464,16 @@ def calc_F(f, Y):
     return build_iot_F_from_f_Y(f, Y)
 
 
+def calc_Fa(fa, s, Yc):
+    """Calculate the ``Fa`` activity-side total environmental transaction flows matrix."""
+    return build_sut_Fa_from_fa_s_Yc(fa, s, Yc)
+
+
+def calc_Fc(fc, Yc):
+    """Calculate the ``Fc`` commodity-side total environmental transaction flows matrix."""
+    return build_sut_Fc_from_fc_Yc(fc, Yc)
+
+
 def calc_f(e, w):
     """Calculate the ``f`` total (direct+indirect) environmental transaction coefficients matrix.
 
@@ -413,6 +491,26 @@ def calc_f(e, w):
         matrix, computed as ``e @ w``.
     """
     return build_iot_f_from_e_w(e, w)
+
+
+def calc_fa(ea, waa):
+    """Calculate the ``fa`` activity-side total environmental coefficients matrix."""
+    return build_sut_fa_from_ea_waa(ea, waa)
+
+
+def calc_fc(ea, s, wcc):
+    """Calculate the ``fc`` commodity-side total environmental coefficients matrix."""
+    return build_sut_fc_from_ea_s_wcc(ea, s, wcc)
+
+
+def calc_ea(Ea, Xa):
+    """Calculate the ``ea`` activity-side environmental coefficients matrix."""
+    return build_sut_ea_from_Ea_Xa(Ea, Xa)
+
+
+def calc_ec(Ec, Xc):
+    """Calculate the ``ec`` commodity-side environmental coefficients matrix."""
+    return build_sut_ec_from_Ec_Xc(Ec, Xc)
 
 
 def calc_f_from_z(

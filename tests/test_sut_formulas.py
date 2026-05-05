@@ -1,3 +1,5 @@
+import mario
+
 import numpy as np
 import pandas as pd
 import pandas.testing as pdt
@@ -224,6 +226,47 @@ def test_sut_split_flow_formulas_match_database_views_when_final_demand_is_commo
     pdt.assert_frame_equal(build_sut_mc_from_va_s_u(va, sut.s, sut.u), mc)
     pdt.assert_frame_equal(build_sut_fc_from_ea_s_u(ea, sut.s, sut.u), fc)
     pdt.assert_frame_equal(build_sut_fa_from_ea_s_u(ea, sut.s, sut.u), extract_fa_from_f(sut.f, ordering))
+
+
+def test_public_sut_calc_wrappers_match_split_builders():
+    sut = load_test("SUT")
+    sut.calc_all([_ENUM.z, _ENUM.u, _ENUM.s, _ENUM.w, _ENUM.v, _ENUM.e, _ENUM.m, _ENUM.f, _ENUM.M, _ENUM.F])
+    ordering = SUTUnifiedOrderingPolicy.from_blocks(Z=sut.Z, Y=sut.Y)
+
+    Xc = extract_Xc_from_X(sut.X, ordering)
+    Xa = extract_Xa_from_X(sut.X, ordering)
+    Yc = extract_Yc_from_Y(sut.Y, ordering)
+    Va = extract_Va_from_V(sut.V, ordering)
+    Vc = extract_Vc_from_V(sut.V, ordering)
+    Ea = extract_Ea_from_E(sut.E, ordering)
+    Ec = extract_Ec_from_E(sut.E, ordering)
+    va = extract_va_from_v(sut.v, ordering)
+    vc = extract_vc_from_v(sut.v, ordering)
+    ea = extract_ea_from_e(sut.e, ordering)
+    ec = extract_ec_from_e(sut.e, ordering)
+    waa = build_sut_waa_from_s_u(sut.s, sut.u)
+    wcc = build_sut_wcc_from_u_s(sut.u, sut.s)
+    ma = extract_ma_from_m(sut.m, ordering)
+    mc = extract_mc_from_m(sut.m, ordering)
+    fa = extract_fa_from_f(sut.f, ordering)
+    fc = extract_fc_from_f(sut.f, ordering)
+
+    pdt.assert_frame_equal(mario.calc_Va(va, Xa), Va)
+    pdt.assert_frame_equal(mario.calc_Vc(vc, Xc), Vc)
+    pdt.assert_frame_equal(mario.calc_va(Va, Xa), va)
+    pdt.assert_frame_equal(mario.calc_vc(Vc, Xc), vc)
+    pdt.assert_frame_equal(mario.calc_Ea(ea, Xa), Ea)
+    pdt.assert_frame_equal(mario.calc_Ec(ec, Xc), Ec)
+    pdt.assert_frame_equal(mario.calc_ea(Ea, Xa), ea)
+    pdt.assert_frame_equal(mario.calc_ec(Ec, Xc), ec)
+    pdt.assert_frame_equal(mario.calc_ma(va, waa), ma)
+    pdt.assert_frame_equal(mario.calc_mc(va, sut.s, wcc), mc)
+    pdt.assert_frame_equal(mario.calc_Ma(ma, sut.s, Yc), extract_Ma_from_M(sut.M, ordering))
+    pdt.assert_frame_equal(mario.calc_Mc(mc, Yc), extract_Mc_from_M(sut.M, ordering))
+    pdt.assert_frame_equal(mario.calc_fa(ea, waa), fa)
+    pdt.assert_frame_equal(mario.calc_fc(ea, sut.s, wcc), fc)
+    pdt.assert_frame_equal(mario.calc_Fa(fa, sut.s, Yc), extract_Fa_from_F(sut.F, ordering))
+    pdt.assert_frame_equal(mario.calc_Fc(fc, Yc), extract_Fc_from_F(sut.F, ordering))
 
 
 def test_sut_satellite_multiplier_formulas_handle_pandas_sparse_float32_inputs():
