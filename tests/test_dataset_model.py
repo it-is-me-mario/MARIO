@@ -1,3 +1,4 @@
+import pytest
 import pandas.testing as pdt
 
 from mario.internal import ModelState, ModelStateMetadata
@@ -39,17 +40,26 @@ def test_model_state_scenario_inheritance_and_override():
     assert not state.get_block("X").equals(new_x)
 
 
-def test_model_state_exports_to_polars_and_sparse():
+def test_model_state_exports_to_sparse():
     database = load_test("IOT")
     state = ModelState.from_database(database)
 
     pandas_frame = state.get_block_as_pandas("Z")
-    polars_frame = state.to_polars("Z")
     sparse_matrix = state.to_sparse("Z")
 
     pdt.assert_frame_equal(pandas_frame, database.Z)
-    assert polars_frame.shape == database.Z.shape
     assert sparse_matrix.shape == database.Z.shape
+
+
+def test_model_state_exports_to_polars_when_installed():
+    pytest.importorskip("polars")
+
+    database = load_test("IOT")
+    state = ModelState.from_database(database)
+
+    polars_frame = state.to_polars("Z")
+
+    assert polars_frame.shape == database.Z.shape
 
 
 def test_parquet_repository_roundtrip(tmp_path):

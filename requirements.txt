@@ -9,11 +9,9 @@ pyyaml
 country_converter
 xlsxwriter==3.2.9
 pytest
-polars
 scipy
 h5py
 pyarrow
 pyxlsb
 pymrio
-duckdb
 cvxlab>=1.0.0b1

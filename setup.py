@@ -47,32 +47,26 @@ setup(
     ],
     extras_require={
         "dataset": [
-            "polars",
             "scipy",
             "h5py",
             "pyxlsb",
             "cvxlab>=1.0.0b1",
         ],
         "storage": [
-            "duckdb",
             "pyarrow",
         ],
         "dev": [
             "pytest",
-            "polars",
             "scipy",
             "h5py",
-            "duckdb",
             "pyarrow",
             "pyxlsb",
             "cvxlab>=1.0.0b1",
         ],
         "all": [
             "pytest",
-            "polars",
             "scipy",
             "h5py",
-            "duckdb",
             "pyarrow",
             "pyxlsb",
             "cvxlab>=1.0.0b1",

@@ -24,7 +24,6 @@ dependencies:
   - country_converter
   - xlsxwriter==3.2.9
   - pytest
-  - polars
   - scipy
   - h5py
   - pyarrow
@@ -32,5 +31,4 @@ dependencies:
   - pip
   - pip:
       - pymrio
-      - duckdb
       - cvxlab>=1.0.0b1

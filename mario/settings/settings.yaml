@@ -16,8 +16,8 @@ index_aliases:
   - activity
   - activities
   - activitiy
-  - Industry
-  - Industries
+  - industry
+  - industries
   c:
   - commodity
   - commodities
@@ -29,31 +29,31 @@ index_aliases:
   - industry
   - industries
   k:
+  - satellite
+  - satellites
   - satellite account
   - satellite accounts
+  - satellite_accounts
   - extension
   - extensions
-  - Satellite
-  - Satellites
-  - Satellite_accounts
   f:
+  - factor
+  - factors
   - factor of production
   - factors of production
-  - value added
-  - Factors
-  - factor
-  - Factors_of_production
   - factor_of_production
+  - factors_of_production
+  - value added
   n:
   - consumption category
   - consumption categories
+  - consumption_category
+  - consumption_categories
+  - demand categories
+  - demand_categories
   - final demand
   - final demand category
   - final demand categories
-  - demand categories
-  - Consumption_category
-  - Consumption_categories
-  - demand_categories
 nomenclature:
   e: e
   E: E
