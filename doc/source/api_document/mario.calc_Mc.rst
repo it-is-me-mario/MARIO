@@ -5,6 +5,6 @@ mario.calc\_Mc
 
 .. math::
 
-	M_c = mc \operatorname{diag}(Y_c \mathbf{1})
+	M_c = mc \operatorname{diag}(Y_c)
 
 .. autofunction:: calc_Mc

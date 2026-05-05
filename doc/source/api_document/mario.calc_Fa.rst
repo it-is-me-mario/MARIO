@@ -5,6 +5,6 @@ mario.calc\_Fa
 
 .. math::
 
-	F_a = fa \operatorname{diag}(s Y_c \mathbf{1})
+	F_a = fa \operatorname{diag}(s Y_c)
 
 .. autofunction:: calc_Fa

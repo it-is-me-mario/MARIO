@@ -5,6 +5,6 @@ mario.calc\_Fc
 
 .. math::
 
-	F_c = fc \operatorname{diag}(Y_c \mathbf{1})
+	F_c = fc \operatorname{diag}(Y_c)
 
 .. autofunction:: calc_Fc
