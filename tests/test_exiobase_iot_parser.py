@@ -1,4 +1,5 @@
 import json
+import zipfile
 
 import pandas as pd
 import pytest
@@ -116,6 +117,12 @@ def _write_split_exiobase(root, *, version="3.10.1", extension_dir="labour"):
     _write_metadata(root, version)
 
 
+def _zip_tree(root, archive_path):
+    with zipfile.ZipFile(archive_path, "w") as archive:
+        for path in root.rglob("*"):
+            archive.write(path, arcname=path.relative_to(root.parent))
+
+
 def test_detect_exiobase_iot_layout_reads_metadata_and_layout(tmp_path):
     root = tmp_path / "Exiobase 3.10.1 - IOT_2011_ixi"
     _write_split_exiobase(root, version="3.10.1", extension_dir="labour")
@@ -149,6 +156,22 @@ def test_parse_exiobase_3_parses_split_extensions_without_version_argument(tmp_p
     _write_split_exiobase(root, version="3.10.1", extension_dir="labour")
 
     db = parse_exiobase_3(str(root), calc_all=False)
+
+    assert db.meta.year == 2011
+    assert db.meta.name == "EXIO_IOT_2011_ixi"
+    assert "version 3.10.1" in db.meta.source
+    assert db.get_index(_MASTER_INDEX["f"]) == EXIO_FACTOR_ROWS
+    assert db.get_index(_MASTER_INDEX["k"]) == ["CO2", "Water use"]
+    assert db.units[_MASTER_INDEX["k"]].loc["CO2", "unit"] == "kg"
+
+
+def test_parse_exiobase_3_accepts_split_bundle_zip(tmp_path):
+    root = tmp_path / "Exiobase 3.10.1 - IOT_2011_ixi"
+    archive = tmp_path / "Exiobase 3.10.1 - IOT_2011_ixi.zip"
+    _write_split_exiobase(root, version="3.10.1", extension_dir="labour")
+    _zip_tree(root, archive)
+
+    db = parse_exiobase_3(str(archive), calc_all=False)
 
     assert db.meta.year == 2011
     assert db.meta.name == "EXIO_IOT_2011_ixi"

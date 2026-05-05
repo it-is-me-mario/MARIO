@@ -12,3 +12,4 @@ that may differ from standard references.
    table_formats
    scenarios
    technology_assumptions
+   clusters

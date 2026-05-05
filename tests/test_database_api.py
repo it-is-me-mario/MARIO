@@ -3,6 +3,7 @@ import warnings
 import pandas as pd
 import pandas.testing as pdt
 
+from mario.clusters.coverage import build_region_aggregation_index
 from mario.log_exc.logger import set_log_verbosity
 from mario.compute.ordering import SUTUnifiedOrderingPolicy
 from mario.compute.primitives import calc_w, calc_z
@@ -305,6 +306,18 @@ def test_default_region_clusters_use_manual_adb_overrides_for_nonstandard_codes(
     assert "continent:Asia" in region_clusters
     assert "TAP" in region_clusters["continent:Asia"]
     assert set(["GER", "UKG"]).issubset(region_clusters["G7"])
+
+
+def test_build_region_aggregation_index_uses_packaged_country_coverage():
+    database = load_test("IOT")
+    database._indeces["r"]["main"] = ["GER", "UKG", "SWI", "TAP"]
+    database.meta._add_attribute(source="ADB MRIO test payload")
+
+    aggregation = build_region_aggregation_index(database, "continent")
+
+    assert aggregation.loc["GER", "Aggregation"] == "Europe"
+    assert aggregation.loc["UKG", "Aggregation"] == "Europe"
+    assert aggregation.loc["TAP", "Aggregation"] == "Asia"
 
 
 def test_available_clusters_merge_defaults_and_user_clusters():

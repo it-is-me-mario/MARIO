@@ -69,7 +69,7 @@ from mario.compute.views import (
     concat_sut_v,
     concat_sut_z,
 )
-from mario.clusters import build_default_clusters
+from mario.clusters import build_default_clusters, build_region_aggregation_index
 
 import numpy as np
 import pandas as pd
@@ -268,6 +268,53 @@ class Database(CoreModel):
         self._clusters = {}
         self.meta._add_history("Database: shock clusters cleared.")
 
+    def _normalize_aggregation_levels(self, levels):
+        """Normalize requested aggregation levels to public set names."""
+        if levels == "all":
+            return [*TABLE_LEVELS[self.meta.table]]
+
+        if isinstance(levels, str):
+            levels = [levels]
+
+        difference = set(levels).difference(set(self.sets))
+        if difference:
+            raise WrongInput(
+                "{} is/are not an acceptable level/s for the database.\n"
+                "Acceptable items are \n{}".format(
+                    difference,
+                    self.sets,
+                )
+            )
+
+        return list(levels)
+
+    def _prepare_aggregation_inputs(self, io, levels, region_aggregation):
+        """Merge optional Region aggregation presets with workbook or dict inputs."""
+        resolved_levels = self._normalize_aggregation_levels(levels)
+        region_index = build_region_aggregation_index(self, region_aggregation)
+
+        if region_index is None:
+            return io, resolved_levels
+
+        if _MASTER_INDEX["r"] not in resolved_levels:
+            resolved_levels = [_MASTER_INDEX["r"], *resolved_levels]
+
+        if io is None:
+            return {_MASTER_INDEX["r"]: region_index}, resolved_levels
+
+        if isinstance(io, dict):
+            merged = copy.deepcopy(io)
+        else:
+            workbook = pd.ExcelFile(io)
+            merged = {}
+            for level in resolved_levels:
+                if level == _MASTER_INDEX["r"] and level not in workbook.sheet_names:
+                    continue
+                merged[level] = workbook.parse(sheet_name=level, index_col=0)
+
+        merged.setdefault(_MASTER_INDEX["r"], region_index)
+        return merged, resolved_levels
+
     def build_new_instance(self, scenario):
         """Build a new database whose baseline is the selected scenario.
 
@@ -339,6 +386,7 @@ class Database(CoreModel):
         path=None,
         levels="all",
         overwrite=False,
+        region_aggregation=None,
     ):
         """Write an aggregation template workbook for the selected levels.
 
@@ -352,6 +400,11 @@ class Database(CoreModel):
             include every aggregable level for the current table type.
         overwrite:
             When ``True``, replace an existing workbook at ``path``.
+        region_aggregation:
+            Optional Region prefill used to aggregate regions without manually
+            editing the ``Region`` sheet. Accepted values are preset strings
+            such as ``"continent"``, ``"UNregion"``, ``"EU"``, ``"OECD"``,
+            ``"G7"`` and ``"G20"``, or an explicit mapping/Series/DataFrame.
 
         Returns
         -------
@@ -359,22 +412,12 @@ class Database(CoreModel):
             The workbook is written to disk.
         """
 
-        if levels != "all":
-            # To avoid any issue, in case that levels is a string, return a list instead of str
-            if isinstance(levels, str):
-                levels = [levels]
-
-            difference = set(levels).difference(set(self.sets))
-            if difference:
-                raise WrongInput(
-                    "{} is/are not an acceptable level/s for the database.\n"
-                    "Acceptable items are \n{}".format(
-                        difference,
-                        self.sets,
-                    )
-                )
-        elif levels == "all":
-            levels = [*TABLE_LEVELS[self.meta.table]]
+        _, levels = self._prepare_aggregation_inputs(
+            io=None,
+            levels=levels,
+            region_aggregation=region_aggregation,
+        )
+        region_index = build_region_aggregation_index(self, region_aggregation)
 
         output_path = self._getdir(path, "Excels", "Aggregation.xlsx")
         if os.path.exists(output_path) and not overwrite:
@@ -394,9 +437,12 @@ class Database(CoreModel):
         try:
             with pd.ExcelWriter(temp_path, engine="openpyxl") as writer:
                 for level in levels:
-                    data = pd.DataFrame(
-                        index=self.get_index(level), columns=["Aggregation"]
-                    )
+                    if level == _MASTER_INDEX["r"] and region_index is not None:
+                        data = region_index.copy()
+                    else:
+                        data = pd.DataFrame(
+                            index=self.get_index(level), columns=["Aggregation"]
+                        )
                     data.to_excel(writer, sheet_name=level)
             os.replace(temp_path, output_path)
         except Exception:
@@ -509,6 +555,7 @@ class Database(CoreModel):
         ignore_nan=False,
         zero_output_epsilon: float | None = 1e-30,
         inplace=True,
+        region_aggregation=None,
     ):
         """Aggregate one or more classification levels in the database.
 
@@ -536,12 +583,23 @@ class Database(CoreModel):
         inplace:
             When ``True``, mutate the current database. When ``False``, return
             an aggregated copy.
+        region_aggregation:
+            Optional Region aggregation preset or explicit mapping applied even
+            when ``io`` is ``None``. When a workbook or dict is also provided,
+            MARIO uses the explicit ``Region`` sheet if present and otherwise
+            injects the generated Region mapping.
 
         Returns
         -------
         Database | None
             Aggregated database when ``inplace=False``, otherwise ``None``.
         """
+
+        io, levels = self._prepare_aggregation_inputs(
+            io=io,
+            levels=levels,
+            region_aggregation=region_aggregation,
+        )
 
         return aggregate_database(
             self,

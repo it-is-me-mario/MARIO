@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from dataclasses import dataclass
 import json
 import logging
 from pathlib import Path
 import re
+import tempfile
+import zipfile
 
 import numpy as np
 import pandas as pd
@@ -125,9 +128,50 @@ def _ordered_extension_directories(root: Path, factor_directory: str) -> tuple[s
     return tuple(ordered)
 
 
-def detect_exiobase_iot_layout(path: str | Path) -> ExiobaseIOTLayout:
-    """Inspect one EXIOBASE IOT folder and detect the parse layout."""
+def _looks_like_exiobase_iot_root(root: Path) -> bool:
+    """Return whether one directory looks like an EXIOBASE IOT bundle root."""
+    if not root.is_dir():
+        return False
+
+    has_top_level_files = all((root / file_name).exists() for file_name in ("Z.txt", "Y.txt", "unit.txt"))
+    has_factor_directory = (root / "factor_inputs" / "F.txt").exists() or (root / "satellite" / "F.txt").exists()
+    return has_top_level_files and has_factor_directory
+
+
+def _resolve_extracted_iot_root(root: Path) -> Path:
+    """Resolve the bundle root after extracting one EXIOBASE IOT archive."""
+    if _looks_like_exiobase_iot_root(root):
+        return root
+
+    candidates = [candidate for candidate in root.rglob("*") if _looks_like_exiobase_iot_root(candidate)]
+    if not candidates:
+        return root
+
+    candidates.sort(key=lambda candidate: (len(candidate.relative_to(root).parts), str(candidate)))
+    return candidates[0]
+
+
+@contextmanager
+def _open_exiobase_iot_root(path: str | Path):
+    """Yield an EXIOBASE IOT directory, extracting zip archives on demand."""
     root = Path(path)
+    if root.suffix.lower() != ".zip":
+        yield root
+        return
+
+    if not root.exists():
+        raise FileNotFoundError(root)
+
+    with tempfile.TemporaryDirectory(prefix="mario_exiobase_iot_") as extracted_dir:
+        extraction_root = Path(extracted_dir)
+        log_time(logger, f"Parser: extracting EXIOBASE IOT archive {root}.", "debug")
+        with zipfile.ZipFile(root) as archive:
+            archive.extractall(extraction_root)
+        yield _resolve_extracted_iot_root(extraction_root)
+
+
+def _detect_exiobase_iot_layout(root: Path) -> ExiobaseIOTLayout:
+    """Inspect one EXIOBASE IOT folder and detect the parse layout."""
     if not root.exists():
         raise FileNotFoundError(root)
     if not root.is_dir():
@@ -181,6 +225,108 @@ def detect_exiobase_iot_layout(path: str | Path) -> ExiobaseIOTLayout:
         "debug",
     )
     return layout
+
+
+def detect_exiobase_iot_layout(path: str | Path) -> ExiobaseIOTLayout:
+    """Inspect one EXIOBASE IOT folder and detect the parse layout."""
+    return _detect_exiobase_iot_layout(Path(path))
+
+
+def _validate_exiobase_iot_version(layout: ExiobaseIOTLayout, version: str | None) -> None:
+    """Validate one optional explicit EXIOBASE version against detected metadata."""
+    expected_version = _normalize_version(version)
+    if expected_version and layout.version and expected_version != layout.version:
+        raise WrongInput(
+            f"Requested EXIOBASE version {expected_version!r} does not match detected version {layout.version!r}."
+        )
+
+
+def _read_exiobase_iot_extensions_from_layout(
+    layout: ExiobaseIOTLayout,
+    *,
+    version: str | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, ExiobaseIOTLayout]:
+    """Read extension blocks from one already-detected EXIOBASE IOT layout."""
+    _validate_exiobase_iot_version(layout, version)
+
+    log_time(
+        logger,
+        f"Parser: reading EXIOBASE IOT extensions from {layout.root}.",
+        "info",
+    )
+
+    if layout.factor_directory == "satellite":
+        log_time(logger, "Parser: using bundled legacy satellite layout.", "info")
+        bundled_F = _read_numeric_matrix(
+            layout.root / "satellite" / "F.txt",
+            index_col=[0],
+            header=[0, 1],
+        )
+        bundled_FY = _read_numeric_matrix(
+            layout.root / "satellite" / "F_Y.txt",
+            index_col=[0],
+            header=[0, 1],
+        )
+        bundled_units = _read_matrix(
+            layout.root / "satellite" / "unit.txt",
+            index_col=[0],
+            header=[0],
+        )
+
+        E = bundled_F.drop(EXIO_FACTOR_ROWS)
+        EY = bundled_FY.drop(EXIO_FACTOR_ROWS)
+        extension_units = bundled_units.drop(EXIO_FACTOR_ROWS)
+    else:
+        log_time(
+            logger,
+            (
+                "Parser: using split extension layout with "
+                f"{len(layout.extension_directories)} extension directories."
+            ),
+            "info",
+        )
+        extension_frames: list[pd.DataFrame] = []
+        extension_y_frames: list[pd.DataFrame] = []
+        extension_units_frames: list[pd.DataFrame] = []
+        for directory in layout.extension_directories:
+            ext_root = layout.root / directory
+            log_time(logger, f"Parser: loading extension directory {directory}.", "debug")
+            extension_frames.append(
+                _read_numeric_matrix(ext_root / "F.txt", index_col=[0], header=[0, 1])
+            )
+            extension_y_frames.append(
+                _read_numeric_matrix(ext_root / "F_Y.txt", index_col=[0], header=[0, 1])
+            )
+            extension_units_frames.append(
+                _read_matrix(ext_root / "unit.txt", index_col=[0], header=[0])
+            )
+
+        if extension_frames:
+            E = pd.concat(extension_frames, axis=0)
+            EY = pd.concat(extension_y_frames, axis=0)
+            extension_units = pd.concat(extension_units_frames, axis=0)
+        else:
+            placeholder_columns = pd.MultiIndex.from_arrays([["-"], ["-"]])
+            E = pd.DataFrame(np.zeros((1, 1)), index=["-"], columns=placeholder_columns)
+            EY = pd.DataFrame(np.zeros((1, 1)), index=["-"], columns=placeholder_columns)
+            extension_units = pd.DataFrame({"unit": ["None"]}, index=["-"])
+            log_time(
+                logger,
+                "Parser: no extension directories found; using empty E and EY placeholders.",
+                "warning",
+            )
+
+    _ensure_unique_index(E, label="extensions", source=layout.root)
+    _ensure_unique_index(extension_units, label="extension units", source=layout.root)
+    log_time(
+        logger,
+        (
+            "Parser: EXIOBASE IOT extensions loaded with "
+            f"{E.shape[0]} extension rows and {EY.shape[0]} final-demand extension rows."
+        ),
+        "debug",
+    )
+    return E, EY, extension_units, layout
 
 
 def _read_matrix(path: Path, *, index_col, header):
@@ -268,92 +414,9 @@ def read_exiobase_iot_extensions(
     ``(region, sector/category)`` so callers can remap them to the target
     MARIO table shape they need.
     """
-    layout = detect_exiobase_iot_layout(path)
-    expected_version = _normalize_version(version)
-    if expected_version and layout.version and expected_version != layout.version:
-        raise WrongInput(
-            f"Requested EXIOBASE version {expected_version!r} does not match detected version {layout.version!r}."
-        )
-
-    log_time(
-        logger,
-        f"Parser: reading EXIOBASE IOT extensions from {layout.root}.",
-        "info",
-    )
-
-    if layout.factor_directory == "satellite":
-        log_time(logger, "Parser: using bundled legacy satellite layout.", "info")
-        bundled_F = _read_numeric_matrix(
-            layout.root / "satellite" / "F.txt",
-            index_col=[0],
-            header=[0, 1],
-        )
-        bundled_FY = _read_numeric_matrix(
-            layout.root / "satellite" / "F_Y.txt",
-            index_col=[0],
-            header=[0, 1],
-        )
-        bundled_units = _read_matrix(
-            layout.root / "satellite" / "unit.txt",
-            index_col=[0],
-            header=[0],
-        )
-
-        E = bundled_F.drop(EXIO_FACTOR_ROWS)
-        EY = bundled_FY.drop(EXIO_FACTOR_ROWS)
-        extension_units = bundled_units.drop(EXIO_FACTOR_ROWS)
-    else:
-        factor_root = layout.root / layout.factor_directory
-        log_time(
-            logger,
-            (
-                "Parser: using split extension layout with "
-                f"{len(layout.extension_directories)} extension directories."
-            ),
-            "info",
-        )
-        extension_frames: list[pd.DataFrame] = []
-        extension_y_frames: list[pd.DataFrame] = []
-        extension_units_frames: list[pd.DataFrame] = []
-        for directory in layout.extension_directories:
-            ext_root = layout.root / directory
-            log_time(logger, f"Parser: loading extension directory {directory}.", "debug")
-            extension_frames.append(
-                _read_numeric_matrix(ext_root / "F.txt", index_col=[0], header=[0, 1])
-            )
-            extension_y_frames.append(
-                _read_numeric_matrix(ext_root / "F_Y.txt", index_col=[0], header=[0, 1])
-            )
-            extension_units_frames.append(
-                _read_matrix(ext_root / "unit.txt", index_col=[0], header=[0])
-            )
-
-        if extension_frames:
-            E = pd.concat(extension_frames, axis=0)
-            EY = pd.concat(extension_y_frames, axis=0)
-            extension_units = pd.concat(extension_units_frames, axis=0)
-        else:
-            placeholder_columns = pd.MultiIndex.from_arrays([["-"], ["-"]])
-            E = pd.DataFrame(np.zeros((1, 1)), index=["-"], columns=placeholder_columns)
-            EY = pd.DataFrame(np.zeros((1, 1)), index=["-"], columns=placeholder_columns)
-            extension_units = pd.DataFrame({"unit": ["None"]}, index=["-"])
-            log_time(
-                logger,
-                "Parser: no extension directories found; using empty E and EY placeholders.",
-                "warning",
-            )
-
-    _ensure_unique_index(E, label="extensions", source=layout.root)
-    _ensure_unique_index(extension_units, label="extension units", source=layout.root)
-    log_time(
-        logger,
-        (
-            "Parser: EXIOBASE IOT extensions loaded with "
-            f"{E.shape[0]} extension rows and {EY.shape[0]} final-demand extension rows."
-        ),
-        "debug",
-    )
-    return E, EY, extension_units, layout
+    with _open_exiobase_iot_root(path) as root:
+        layout = _detect_exiobase_iot_layout(root)
+        return _read_exiobase_iot_extensions_from_layout(layout, version=version)
 
 
 def parse_exiobase_iot_monetary(
@@ -362,83 +425,80 @@ def parse_exiobase_iot_monetary(
     version: str | None = None,
 ) -> tuple[dict[str, dict[str, pd.DataFrame]], dict[str, dict[str, list[str]]], dict[str, pd.DataFrame], ExiobaseIOTLayout]:
     """Parse a monetary EXIOBASE IOT folder into canonical MARIO parser payloads."""
-    layout = detect_exiobase_iot_layout(path)
-    expected_version = _normalize_version(version)
-    if expected_version and layout.version and expected_version != layout.version:
-        raise WrongInput(
-            f"Requested EXIOBASE version {expected_version!r} does not match detected version {layout.version!r}."
+    with _open_exiobase_iot_root(path) as root:
+        layout = _detect_exiobase_iot_layout(root)
+        _validate_exiobase_iot_version(layout, version)
+
+        log_time(logger, f"Parser: reading EXIOBASE IOT from {layout.root}.", "info")
+
+        Z = _read_numeric_matrix(layout.root / "Z.txt", index_col=[0, 1], header=[0, 1])
+        Y = _read_numeric_matrix(layout.root / "Y.txt", index_col=[0, 1], header=[0, 1])
+        sector_units = _read_sector_units(layout.root / "unit.txt")
+        log_time(
+            logger,
+            f"Parser: top-level blocks loaded Z={Z.shape} Y={Y.shape} sector_units={sector_units.shape}.",
+            "debug",
         )
 
-    log_time(logger, f"Parser: reading EXIOBASE IOT from {layout.root}.", "info")
+        if layout.factor_directory == "satellite":
+            bundled_F = _read_numeric_matrix(layout.root / "satellite" / "F.txt", index_col=[0], header=[0, 1])
+            bundled_units = _read_matrix(layout.root / "satellite" / "unit.txt", index_col=[0], header=[0])
 
-    Z = _read_numeric_matrix(layout.root / "Z.txt", index_col=[0, 1], header=[0, 1])
-    Y = _read_numeric_matrix(layout.root / "Y.txt", index_col=[0, 1], header=[0, 1])
-    sector_units = _read_sector_units(layout.root / "unit.txt")
-    log_time(
-        logger,
-        f"Parser: top-level blocks loaded Z={Z.shape} Y={Y.shape} sector_units={sector_units.shape}.",
-        "debug",
-    )
+            V = bundled_F.loc[EXIO_FACTOR_ROWS, :]
+            factor_units = bundled_units.loc[EXIO_FACTOR_ROWS, :]
+            E, EY, extension_units, _ = _read_exiobase_iot_extensions_from_layout(layout, version=version)
+        else:
+            factor_root = layout.root / layout.factor_directory
+            V = _read_numeric_matrix(factor_root / "F.txt", index_col=[0], header=[0, 1])
+            factor_units = _read_matrix(factor_root / "unit.txt", index_col=[0], header=[0])
+            E, EY, extension_units, _ = _read_exiobase_iot_extensions_from_layout(layout, version=version)
+            E = _align_extension_frame(E, Z.columns)
+            EY = _align_extension_frame(EY, Y.columns)
 
-    if layout.factor_directory == "satellite":
-        bundled_F = _read_numeric_matrix(layout.root / "satellite" / "F.txt", index_col=[0], header=[0, 1])
-        bundled_units = _read_matrix(layout.root / "satellite" / "unit.txt", index_col=[0], header=[0])
+        _ensure_unique_index(V, label="value added", source=layout.root)
+        _ensure_unique_index(E, label="extensions", source=layout.root)
+        _ensure_unique_index(extension_units, label="extension units", source=layout.root)
+        log_time(
+            logger,
+            f"Parser: value added rows={V.shape[0]} extension rows={E.shape[0]} final-demand extension rows={EY.shape[0]}.",
+            "debug",
+        )
 
-        V = bundled_F.loc[EXIO_FACTOR_ROWS, :]
-        factor_units = bundled_units.loc[EXIO_FACTOR_ROWS, :]
-        E, EY, extension_units, _ = read_exiobase_iot_extensions(path, version=version)
-    else:
-        factor_root = layout.root / layout.factor_directory
-        V = _read_numeric_matrix(factor_root / "F.txt", index_col=[0], header=[0, 1])
-        factor_units = _read_matrix(factor_root / "unit.txt", index_col=[0], header=[0])
-        E, EY, extension_units, _ = read_exiobase_iot_extensions(path, version=version)
-        E = _align_extension_frame(E, Z.columns)
-        EY = _align_extension_frame(EY, Y.columns)
+        sector_axis = _build_sector_axis(Z.index)
+        final_demand_axis = _build_final_demand_axis(Y.columns)
 
-    _ensure_unique_index(V, label="value added", source=layout.root)
-    _ensure_unique_index(E, label="extensions", source=layout.root)
-    _ensure_unique_index(extension_units, label="extension units", source=layout.root)
-    log_time(
-        logger,
-        f"Parser: value added rows={V.shape[0]} extension rows={E.shape[0]} final-demand extension rows={EY.shape[0]}.",
-        "debug",
-    )
+        Z.index = sector_axis
+        Z.columns = sector_axis
+        Y.index = sector_axis
+        Y.columns = final_demand_axis
+        V.columns = sector_axis
+        E.columns = sector_axis
+        EY.columns = final_demand_axis
 
-    sector_axis = _build_sector_axis(Z.index)
-    final_demand_axis = _build_final_demand_axis(Y.columns)
+        matrices = {"baseline": {"Z": Z, "V": V, "E": E, "Y": Y, "EY": EY}}
+        units = {
+            _MASTER_INDEX["s"]: sector_units,
+            _MASTER_INDEX["f"]: factor_units,
+            _MASTER_INDEX["k"]: extension_units,
+        }
+        indeces = {
+            "r": {"main": delete_duplicates(list(Z.index.get_level_values(0)))},
+            "n": {"main": delete_duplicates(list(Y.columns.get_level_values(2)))},
+            "k": {"main": list(E.index)},
+            "f": {"main": list(V.index)},
+            "s": {"main": delete_duplicates(list(Z.index.get_level_values(2)))},
+        }
 
-    Z.index = sector_axis
-    Z.columns = sector_axis
-    Y.index = sector_axis
-    Y.columns = final_demand_axis
-    V.columns = sector_axis
-    E.columns = sector_axis
-    EY.columns = final_demand_axis
-
-    matrices = {"baseline": {"Z": Z, "V": V, "E": E, "Y": Y, "EY": EY}}
-    units = {
-        _MASTER_INDEX["s"]: sector_units,
-        _MASTER_INDEX["f"]: factor_units,
-        _MASTER_INDEX["k"]: extension_units,
-    }
-    indeces = {
-        "r": {"main": delete_duplicates(list(Z.index.get_level_values(0)))},
-        "n": {"main": delete_duplicates(list(Y.columns.get_level_values(2)))},
-        "k": {"main": list(E.index)},
-        "f": {"main": list(V.index)},
-        "s": {"main": delete_duplicates(list(Z.index.get_level_values(2)))},
-    }
-
-    rename_index(matrices["baseline"])
-    sort_frames(matrices["baseline"])
-    log_time(
-        logger,
-        (
-            "Parser: EXIOBASE IOT parsed with "
-            f"{len(indeces['s']['main'])} sectors, "
-            f"{len(indeces['f']['main'])} value-added rows and "
-            f"{len(indeces['k']['main'])} extension rows."
-        ),
-        "info",
-    )
-    return matrices, indeces, units, layout
+        rename_index(matrices["baseline"])
+        sort_frames(matrices["baseline"])
+        log_time(
+            logger,
+            (
+                "Parser: EXIOBASE IOT parsed with "
+                f"{len(indeces['s']['main'])} sectors, "
+                f"{len(indeces['f']['main'])} value-added rows and "
+                f"{len(indeces['k']['main'])} extension rows."
+            ),
+            "info",
+        )
+        return matrices, indeces, units, layout

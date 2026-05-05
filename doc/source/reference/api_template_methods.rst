@@ -3,6 +3,9 @@ Templates and Workbooks
 
 These methods create empty or helper workbooks that users fill before parsing,
 aggregation, shocks, extensions or sector-addition workflows.
+``Database.get_aggregation_excel(...)`` can also prefill the ``Region`` sheet
+through ``region_aggregation`` when you want to combine automatic regional
+grouping with manual edits on the other sets.
 
 Custom Database Templates
 -------------------------

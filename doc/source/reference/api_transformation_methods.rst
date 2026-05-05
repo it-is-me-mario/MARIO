@@ -2,6 +2,8 @@ Transformations and Scenarios
 =============================
 
 These methods change the structure or scenario state of a database.
+``Database.aggregate(...)`` now also supports workbook-free Region
+aggregation through ``region_aggregation`` presets or explicit mappings.
 
 Database Transformations
 ------------------------

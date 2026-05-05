@@ -232,6 +232,11 @@ Prefer :doc:`db.f_ex(...) <../api_document/mario.CoreModel.f_ex>` for IOT and
 :doc:`db.fa_ex(...) <../api_document/mario.CoreModel.fa_ex>` /
 :doc:`db.fc_ex(...) <../api_document/mario.CoreModel.fc_ex>` for SUT.
 
+.. toctree::
+  :hidden:
+
+  ../api_document/mario.calc_f_dis
+
 
 Exploded Multiplier Matrices
 -----------------------------

@@ -7,14 +7,14 @@ from pathlib import Path
 import country_converter as coco
 import pandas as pd
 
+from mario.clusters.coverage import load_concordance as load_runtime_concordance
+
 try:
     import pycountry
 except ModuleNotFoundError:  # pragma: no cover - optional fallback dependency
     pycountry = None
 
-
 DOC_ROOT = Path(__file__).resolve().parents[1]
-WORKBOOK = DOC_ROOT / "source" / "_static" / "data" / "Country_coverage.xlsx"
 OUTPUT_DIR = DOC_ROOT / "source" / "user_guide" / "parsers" / "_generated"
 JSON_OUTPUT = DOC_ROOT / "source" / "_static" / "data" / "parser_coverage.json"
 
@@ -63,8 +63,7 @@ def normalize_text(value) -> str:
 
 
 def load_concordance() -> dict[str, dict[str, str]]:
-    concordance = pd.read_excel(WORKBOOK, sheet_name="concordance", header=1)
-    concordance = concordance.rename(columns={concordance.columns[0]: "ISO3"})
+    concordance = load_runtime_concordance()
     mappings: dict[str, dict[str, str]] = {}
     for source in concordance.columns:
         if source == "ISO3":

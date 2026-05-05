@@ -153,6 +153,7 @@ def test_to_iot(CoreDataSUT, CoreDataIOT):
 
 def test_get_aggregation_excel(CoreDataIOT, CoreDataSUT, tmp_path):
     path = tmp_path / "agg.xlsx"
+    iot_regions = CoreDataIOT.get_index("Region")[:2]
 
     for db in [CoreDataIOT, CoreDataSUT]:
         for level in db.sets:
@@ -179,6 +180,21 @@ def test_get_aggregation_excel(CoreDataIOT, CoreDataSUT, tmp_path):
         CoreDataIOT.get_aggregation_excel(path, levels="all")
 
     CoreDataIOT.get_aggregation_excel(path, levels="all", overwrite=True)
+
+    CoreDataIOT.get_aggregation_excel(
+        path,
+        levels=["Sector"],
+        overwrite=True,
+        region_aggregation={"Merged region": iot_regions},
+    )
+
+    file = pd.ExcelFile(path)
+    assert file.sheet_names == ["Region", "Sector"]
+    region_sheet = file.parse(sheet_name="Region", index_col=0)
+    assert region_sheet.loc[iot_regions[0], "Aggregation"] == "Merged region"
+    assert region_sheet.loc[iot_regions[1], "Aggregation"] == "Merged region"
+    sector_sheet = file.parse(sheet_name="Sector", index_col=0)
+    assert sector_sheet.isna().values.all()
 
 def test_read_aggregated_index(CoreDataIOT,CoreDataSUT):
 
@@ -218,6 +234,7 @@ def test_read_aggregated_index(CoreDataIOT,CoreDataSUT):
 
 # TODO :: Drop to be checked
 def test_aggregate_IOT(agg_IOT):
+    regions = agg_IOT.get_index("Region")[:2]
 
     sats = agg_IOT.get_index('Satellite account')
     aggregator = {
@@ -255,6 +272,15 @@ def test_aggregate_IOT(agg_IOT):
         io = agg_IOT.path,
         inplace= False
     )
+
+    aggregated_regions = agg_IOT.aggregate(
+        io=None,
+        levels="Region",
+        inplace=False,
+        region_aggregation={"Merged region": regions},
+    )
+
+    assert aggregated_regions.get_index("Region") == ["Merged region"]
 
 def test_aggregate_SUT(agg_SUT):
 
