@@ -98,10 +98,19 @@ The resulting list is dynamic: after parsing the database, every *matrix* the
 user computes is stored in this dictionary.
 
 
+Download the terminology workbook
+---------------------------------
+
+If you want a compact overview of how the different matrices are obtained for
+both IOT and SUT databases, download the
+:download:`terminology workbook </_static/data/supporting_files/Terminology.xlsx>`.
+
+
 Upcoming work
 -------------
 
-Further developments may envisage the inclusion of **Social Accounting Matrices (SAMs)**.
+Even if, for the moment, no additional table formats are envisaged,
+future developments may go in the direction of including **Social Accounting Matrices (SAMs)**.
 Let us know if you are interested in having SAMs or other 
 table formats by opening an enhancement issue on 
 `GitHub <https://github.com/it-is-me-mario/MARIO/issues>`_!
