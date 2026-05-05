@@ -7,7 +7,7 @@ from openpyxl import load_workbook
 
 
 DOC_ROOT = Path(__file__).resolve().parents[1]
-WORKBOOK = DOC_ROOT.parent / "mario" / "settings" / "Terminology.xlsx"
+WORKBOOK = DOC_ROOT / "source" / "_static" / "data" / "supporting_files" / "Terminology.xlsx"
 OUTPUT_DIR = DOC_ROOT / "source" / "concepts" / "_generated"
 
 

@@ -59,6 +59,10 @@ The table below lists the *matrices* currently available in MARIO, their *mode*,
 in which *table* format they are used, common names found in the literature, and the default row
 and column *indices* used by the package.
 
+Download the :download:`terminology workbook </_static/data/supporting_files/Terminology.xlsx>`
+for the editable source table and the worked ``IOT``, ``SUT_IT`` and ``SUT_PT``
+example sheets built from the MARIO test databases.
+
 .. raw:: html
    :file: _generated/matrices_table.html
 

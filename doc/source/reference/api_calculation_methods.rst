@@ -5,6 +5,10 @@ These methods compute matrices, indicators and standalone IOT formula outputs.
 For normal database workflows, prefer the database compute API because it
 understands scenarios, table format and already materialized matrices.
 
+For a compact spreadsheet overview of the nomenclature and worked matrix
+calculations on the MARIO test ``IOT``, ``SUT_IT`` and ``SUT_PT`` examples,
+download the :download:`terminology workbook </_static/data/supporting_files/Terminology.xlsx>`.
+
 Database Compute API
 --------------------
 

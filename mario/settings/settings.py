@@ -8,7 +8,6 @@ import os
 import shutil
 from mario.log_exc.exceptions import WrongFormat
 import importlib
-from openpyxl import load_workbook
 
 logger = logging.getLogger(__name__)
 path = os.path.abspath(
@@ -29,21 +28,39 @@ CANONICAL_INDEX = {
 
 FALLBACK_INDEX_ALIASES = {
     "r": ["region", "regions", "country", "countries"],
-    "a": ["activity", "activities"],
+    "a": ["activity", "activities", "activitiy", "industry", "industries"],
     "c": ["commodity", "commodities", "product", "products"],
     "s": ["sector", "sectors", "industry", "industries"],
-    "k": ["satellite account", "satellite accounts", "extension", "extensions"],
-    "f": ["factor of production", "factors of production", "value added"],
+    "k": [
+        "satellite",
+        "satellites",
+        "satellite account",
+        "satellite accounts",
+        "satellite_accounts",
+        "extension",
+        "extensions",
+    ],
+    "f": [
+        "factor",
+        "factors",
+        "factor of production",
+        "factors of production",
+        "factor_of_production",
+        "factors_of_production",
+        "value added",
+    ],
     "n": [
         "consumption category",
         "consumption categories",
+        "consumption_category",
+        "consumption_categories",
+        "demand categories",
+        "demand_categories",
         "final demand",
         "final demand category",
         "final demand categories",
     ],
 }
-
-TERMINOLOGY_WORKBOOK = os.path.join(path, "Terminology.xlsx")
 
 DEFAULT_NOMENCLATURE = {
     "e": "e",
@@ -95,54 +112,9 @@ def _as_alias_list(value):
     return [str(item) for item in value]
 
 
-def _split_aliases(raw_value):
-    """Split one comma-separated alias cell into a flat list."""
-    if raw_value in (None, ""):
-        return []
-    return [item.strip() for item in str(raw_value).split(",") if str(item).strip()]
-
-
-def _load_index_aliases_from_terminology_workbook():
-    """Load documented index aliases from the terminology workbook when available."""
-    aliases = {code: [] for code in CANONICAL_INDEX}
-
-    if not os.path.exists(TERMINOLOGY_WORKBOOK):
-        return aliases
-
-    try:
-        workbook = load_workbook(TERMINOLOGY_WORKBOOK, data_only=True, read_only=True)
-        worksheet = workbook["Indices"]
-    except Exception:
-        return aliases
-
-    header_row = next(worksheet.iter_rows(values_only=True), ())
-    columns = {str(value).strip(): idx for idx, value in enumerate(header_row) if value not in (None, "")}
-    index_col = columns.get("Index")
-    acceptable_col = columns.get("Acceptables")
-    if index_col is None or acceptable_col is None:
-        return aliases
-
-    canonical_to_code = {label.casefold(): code for code, label in CANONICAL_INDEX.items()}
-    for row in worksheet.iter_rows(min_row=2, values_only=True):
-        label = row[index_col] if index_col < len(row) else None
-        acceptable = row[acceptable_col] if acceptable_col < len(row) else None
-        if label in (None, ""):
-            continue
-        code = canonical_to_code.get(str(label).strip().casefold())
-        if code is None:
-            continue
-        aliases[code].extend(_split_aliases(acceptable))
-
-    return aliases
-
-
 def _default_index_aliases():
-    """Return built-in set aliases merged with the terminology workbook defaults."""
-    aliases = {code: list(values) for code, values in FALLBACK_INDEX_ALIASES.items()}
-    workbook_aliases = _load_index_aliases_from_terminology_workbook()
-    for code, values in workbook_aliases.items():
-        aliases.setdefault(code, []).extend(values)
-    return aliases
+    """Return the built-in set aliases for the public API."""
+    return {code: list(values) for code, values in FALLBACK_INDEX_ALIASES.items()}
 
 
 def _normalize_index_aliases(raw_aliases=None, legacy_index=None):

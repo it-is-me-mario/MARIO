@@ -11,6 +11,7 @@ recursive-include doc *.py
 recursive-include doc *.rst
 recursive-include doc *.svg
 recursive-include doc *.txt
+recursive-include doc *.xlsx
 recursive-include doc Makefile
 recursive-include mario *.json
 recursive-include mario *.py

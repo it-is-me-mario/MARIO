@@ -122,7 +122,7 @@ Documentation Follow-Through
 
 If the matrix is user-facing, update the docs in the same change:
 
-* the nomenclature workbook in ``mario/settings/Terminology.xlsx``;
+* the nomenclature workbook in ``doc/source/_static/data/supporting_files/Terminology.xlsx``;
 * the generated terminology tables via ``python doc/scripts/generate_terminology_tables.py``;
 * any user guide or API reference pages that should show the new block.
 

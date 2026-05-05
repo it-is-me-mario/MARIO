@@ -1178,7 +1178,7 @@ class CoreModel:
         satellite_accounts=None,
         scenario: str = "baseline",
     ):
-        """Return commodity-side exploded satellite footprints for SUT: ``diag(ea @ s) @ wcc``.
+        """Return commodity-side exploded satellite footprints for SUT: ``diag(ea_k) @ (s @ wcc)``.
 
         Parameters
         ----------
