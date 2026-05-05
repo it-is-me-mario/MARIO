@@ -753,8 +753,8 @@ COMPUTE_CATALOG = {
             _formula(
                 ("ma", "Ya"),
                 "build_sut_Ma_from_ma_Ya",
-                "Ma = ma @ diag(Ya)",
-                "Use diag(Ya_total) instead of diagonalizing the full Ya matrix.",
+                "Ma = ma @ diag(s @ Y.sum(1))",
+                "Equivalently, use diag(Ya_total) with Ya_total = s @ Y.sum(1).",
             ),
         ),
         "ma": _spec(
@@ -809,8 +809,8 @@ COMPUTE_CATALOG = {
             _formula(
                 ("fa", "Ya"),
                 "build_sut_Fa_from_fa_Ya",
-                "Fa = fa @ diag(Ya)",
-                "Use diag(Ya_total) instead of diagonalizing the full Ya matrix.",
+                "Fa = fa @ diag(s @ Y.sum(1))",
+                "Equivalently, use diag(Ya_total) with Ya_total = s @ Y.sum(1).",
             ),
         ),
         "fa": _spec(

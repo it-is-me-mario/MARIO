@@ -80,6 +80,28 @@ See :doc:`mario.set_compute_method <../api_document/mario.set_compute_method>`,
 :doc:`mario.set_linear_strategy <../api_document/mario.set_linear_strategy>`.
 
 
+SUT Activity-side Totals
+------------------------
+
+When unified final demand ``Y`` is available, MARIO builds the activity-side
+final-demand total from the supply coefficients matrix ``s``:
+
+.. math::
+
+  Y_a^{\mathrm{tot}} = s Y \mathbf{1}
+
+The activity-side total value-added and satellite transaction matrices then
+follow as:
+
+.. math::
+
+  M_a = ma \, \operatorname{diag}(Y_a^{\mathrm{tot}})
+
+.. math::
+
+  F_a = fa \, \operatorname{diag}(Y_a^{\mathrm{tot}})
+
+
 Standalone IOT Helpers
 ----------------------
 
