@@ -751,10 +751,10 @@ COMPUTE_CATALOG = {
             SUT_ACTIVITY_AXIS,
             _extract("M", "extract_Ma_from_M", "Extracted from M, only if available"),
             _formula(
-                ("ma", "Ya"),
-                "build_sut_Ma_from_ma_Ya",
-                "Ma = ma @ diag(s @ Y.sum(1))",
-                "Equivalently, use diag(Ya_total) with Ya_total = s @ Y.sum(1).",
+                ("ma", "s", "Yc"),
+                "build_sut_Ma_from_ma_s_Yc",
+                "Ma = ma @ diag(s @ Yc.sum(1))",
+                "Equivalently, use diag(Ya_total) with Ya_total = s @ Yc.sum(1).",
             ),
         ),
         "ma": _spec(
@@ -807,10 +807,10 @@ COMPUTE_CATALOG = {
             SUT_ACTIVITY_AXIS,
             _extract("F", "extract_Fa_from_F", "Extracted from F, only if available"),
             _formula(
-                ("fa", "Ya"),
-                "build_sut_Fa_from_fa_Ya",
-                "Fa = fa @ diag(s @ Y.sum(1))",
-                "Equivalently, use diag(Ya_total) with Ya_total = s @ Y.sum(1).",
+                ("fa", "s", "Yc"),
+                "build_sut_Fa_from_fa_s_Yc",
+                "Fa = fa @ diag(s @ Yc.sum(1))",
+                "Equivalently, use diag(Ya_total) with Ya_total = s @ Yc.sum(1).",
             ),
         ),
         "fa": _spec(

@@ -84,11 +84,12 @@ SUT Activity-side Totals
 ------------------------
 
 When unified final demand ``Y`` is available, MARIO builds the activity-side
-final-demand total from the supply coefficients matrix ``s``:
+final-demand total from commodity final demand ``Yc`` and the supply
+coefficients matrix ``s``:
 
 .. math::
 
-  Y_a^{\mathrm{tot}} = s Y \mathbf{1}
+  Y_a^{\mathrm{tot}} = s Y_c \mathbf{1}
 
 The activity-side total value-added and satellite transaction matrices then
 follow as:

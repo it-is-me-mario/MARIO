@@ -699,15 +699,18 @@ def build_sut_Mc_from_mc_Yc(mc: pd.DataFrame, Yc: pd.DataFrame) -> pd.DataFrame:
     return scale_columns(mc, y_total)
 
 
-def build_sut_Ma_from_ma_Ya(ma: pd.DataFrame, Ya: pd.DataFrame) -> pd.DataFrame:
-    """Build activity-side value-added footprints from multipliers and demand.
+def build_sut_Ma_from_ma_s_Yc(ma: pd.DataFrame, s: pd.DataFrame, Yc: pd.DataFrame) -> pd.DataFrame:
+    """Build activity-side value-added footprints from commodity final demand.
 
-    The implementation scales columns directly by final-demand totals instead
-    of materializing ``diag(Ya_total)``.
+    The implementation first maps commodity final-demand totals to activities
+    via ``s @ Yc_total`` and then scales columns directly instead of
+    materializing ``diag(Ya_total)``.
     """
-    y_total = sum_final_demand(Ya)
-    require_same_columns(ma, y_total.index, lhs_name="ma", rhs_name="Ya_total")
-    return scale_columns(ma, y_total)
+    y_total = sum_final_demand(Yc)
+    require_same_columns(s, y_total.index, lhs_name="s", rhs_name="Yc_total")
+    activity_total = matvec(s, y_total)
+    require_same_columns(ma, activity_total.index, lhs_name="ma", rhs_name="Ya_total")
+    return scale_columns(ma, activity_total)
 
 
 def build_sut_ma_from_va_waa(va: pd.DataFrame, waa: pd.DataFrame) -> pd.DataFrame:
@@ -771,15 +774,18 @@ def build_sut_Fc_from_fc_Yc(fc: pd.DataFrame, Yc: pd.DataFrame) -> pd.DataFrame:
     return scale_columns(fc, y_total)
 
 
-def build_sut_Fa_from_fa_Ya(fa: pd.DataFrame, Ya: pd.DataFrame) -> pd.DataFrame:
-    """Build activity-side satellite footprints from multipliers and demand.
+def build_sut_Fa_from_fa_s_Yc(fa: pd.DataFrame, s: pd.DataFrame, Yc: pd.DataFrame) -> pd.DataFrame:
+    """Build activity-side satellite footprints from commodity final demand.
 
-    The implementation scales columns directly by final-demand totals instead
-    of materializing ``diag(Ya_total)``.
+    The implementation first maps commodity final-demand totals to activities
+    via ``s @ Yc_total`` and then scales columns directly instead of
+    materializing ``diag(Ya_total)``.
     """
-    y_total = sum_final_demand(Ya)
-    require_same_columns(fa, y_total.index, lhs_name="fa", rhs_name="Ya_total")
-    return scale_columns(fa, y_total)
+    y_total = sum_final_demand(Yc)
+    require_same_columns(s, y_total.index, lhs_name="s", rhs_name="Yc_total")
+    activity_total = matvec(s, y_total)
+    require_same_columns(fa, activity_total.index, lhs_name="fa", rhs_name="Ya_total")
+    return scale_columns(fa, activity_total)
 
 
 def build_sut_fa_from_ea_waa(ea: pd.DataFrame, waa: pd.DataFrame) -> pd.DataFrame:
