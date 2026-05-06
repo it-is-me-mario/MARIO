@@ -228,14 +228,8 @@ def _build_zero_output_flow_overrides(instance, values, scenario: str, epsilon: 
     return overrides, preserved_labels
 
 
-def _floor_aggregated_output_for_preserved_coefficients(
-    matrices: dict[str, pd.DataFrame],
-    epsilon: float | None,
-) -> pd.Index:
-    """Keep non-zero reconstructed flow columns from collapsing during coefficient recovery."""
-    if epsilon is None:
-        return pd.Index([])
-
+def _clear_zero_output_flow_overrides(matrices: dict[str, pd.DataFrame]) -> pd.Index:
+    """Clear reconstructed flow columns that still aggregate to zero output."""
     X = matrices.get(_ENUM.X)
     if X is None:
         return pd.Index([])
@@ -244,25 +238,33 @@ def _floor_aggregated_output_for_preserved_coefficients(
     if len(zero_outputs) == 0:
         return zero_outputs
 
-    supported = pd.Index([])
+    cleared = pd.Index([])
     for matrix_name in (_ENUM.Z, _ENUM.V, _ENUM.E):
         block = matrices.get(matrix_name)
         if block is None:
             continue
-        totals = pd.Series(
-            block.abs().sum(axis=0).to_numpy(dtype=float),
-            index=block.columns,
-        )
-        supported = supported.union(totals.index[totals > 0])
 
-    floored = zero_outputs.intersection(supported)
-    if len(floored) == 0:
-        return floored
+        columns = block.columns.intersection(zero_outputs)
+        if len(columns) == 0:
+            continue
+
+        mask = (block.loc[:, columns].to_numpy(dtype=float) != 0).any(axis=0)
+        impacted = columns[mask]
+        if len(impacted) == 0:
+            continue
+
+        block = block.copy()
+        block.loc[:, impacted] = 0.0
+        matrices[matrix_name] = block
+        cleared = cleared.union(impacted)
+
+    if len(cleared) == 0:
+        return cleared
 
     X = X.copy()
-    X.loc[floored, :] = float(epsilon)
+    X.loc[cleared, :] = 0.0
     matrices[_ENUM.X] = X
-    return floored
+    return cleared
 
 
 def _aggregator(instance, drop, *, zero_output_epsilon: float | None = None):
@@ -322,10 +324,9 @@ def _aggregator(instance, drop, *, zero_output_epsilon: float | None = None):
         matrices[scenario][_ENUM.X] = calc_X(
             matrices[scenario][_ENUM.Z], matrices[scenario][_ENUM.Y]
         )
-        floored_outputs = _floor_aggregated_output_for_preserved_coefficients(
-            matrices[scenario],
-            zero_output_epsilon,
-        )
+        cleared_outputs = pd.Index([])
+        if zero_output_epsilon is not None:
+            cleared_outputs = _clear_zero_output_flow_overrides(matrices[scenario])
 
         if len(preserved_labels):
             log_time(
@@ -337,13 +338,13 @@ def _aggregator(instance, drop, *, zero_output_epsilon: float | None = None):
                 ),
                 "warning",
             )
-        if len(floored_outputs):
+        if len(cleared_outputs):
             log_time(
                 logger,
                 (
-                    f"Aggregation: scenario `{scenario}` floored aggregated output for "
-                    f"{len(floored_outputs)} item(s) with non-zero reconstructed flow "
-                    f"columns using zero_output_epsilon={zero_output_epsilon}."
+                    f"Aggregation: scenario `{scenario}` cleared reconstructed flow "
+                    f"columns for {len(cleared_outputs)} zero-output item(s) after "
+                    f"aggregation using zero_output_epsilon={zero_output_epsilon}."
                 ),
                 "warning",
             )
