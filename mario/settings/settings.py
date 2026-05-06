@@ -155,6 +155,44 @@ def _default_settings_payload():
     }
 
 
+def _reserved_matrix_names():
+    """Return built-in matrix names that cannot be reused as aliases."""
+    from mario.compute.catalog import available_matrix_names
+
+    reserved = set()
+    for table in ("IOT", "SUT"):
+        reserved.update(available_matrix_names(table))
+    return reserved
+
+
+def _validate_nomenclature_payload(nomenclature):
+    """Reject empty, duplicate or reserved matrix labels in settings."""
+    reserved_names = _reserved_matrix_names()
+    seen = {}
+
+    for canonical, configured in nomenclature.items():
+        token = str(configured).strip()
+
+        if not token:
+            raise WrongFormat(
+                f"The nomenclature label for {canonical!r} cannot be empty."
+            )
+
+        if token in reserved_names and token != canonical:
+            raise WrongFormat(
+                f"The nomenclature label {token!r} for {canonical!r} is blocked because "
+                f"{token!r} is already a reserved built-in matrix name."
+            )
+
+        if token in seen and seen[token] != canonical:
+            raise WrongFormat(
+                f"The nomenclature label {token!r} is already assigned to {seen[token]!r}; "
+                f"matrix names must remain unique."
+            )
+
+        seen[token] = canonical
+
+
 def _normalize_settings_payload(raw_settings):
     """Return a settings payload with canonical index labels and explicit aliases."""
     settings = copy.deepcopy(raw_settings or {})
@@ -164,6 +202,7 @@ def _normalize_settings_payload(raw_settings):
     normalized = _default_settings_payload()
     if isinstance(settings.get("nomenclature"), dict):
         normalized["nomenclature"].update(settings["nomenclature"])
+    _validate_nomenclature_payload(normalized["nomenclature"])
     if isinstance(settings.get("compute"), dict):
         normalized["compute"].update(settings["compute"])
     normalized["index_aliases"] = _normalize_index_aliases(

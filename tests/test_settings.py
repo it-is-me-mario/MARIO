@@ -139,3 +139,24 @@ def test_compute_settings_helpers():
     reset_settings()
     restored = download_settings(None)
     assert restored["compute"] == original["compute"]
+
+
+def test_upload_settings_rejects_blocked_nomenclature_names():
+    original = download_settings(None)
+
+    try:
+        duplicate_name = deepcopy(original)
+        duplicate_name["nomenclature"]["z"] = "f"
+
+        with pytest.raises(WrongFormat) as msg:
+            upload_settings(duplicate_name)
+        assert "blocked" in str(msg.value)
+
+        reserved_split_name = deepcopy(original)
+        reserved_split_name["nomenclature"]["z"] = "fa"
+
+        with pytest.raises(WrongFormat) as msg:
+            upload_settings(reserved_split_name)
+        assert "reserved built-in matrix name" in str(msg.value)
+    finally:
+        reset_settings()

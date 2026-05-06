@@ -42,6 +42,21 @@ Mode
       ``v``).
 
 
+Default canonical labels
+=========================
+
+Below, the default names for indices and matrices are listed, along with their accepted aliases in the public API and their intended meaning.
+
+.. important::
+
+   The tables below list MARIO's canonical default names, but users can
+   customize the public labels of matrices and accepted set aliases through
+   settings. See :doc:`Custom matrices and indices labels
+   </user_guide/inspection/custom_labels_and_aliases>` for the full workflow.
+   Names that would collide with existing reserved built-in matrix names are
+   blocked explicitly to avoid ambiguous API calls.
+
+
 Indices
 -------
 

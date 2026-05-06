@@ -11,7 +11,7 @@ from mario.api.metadata import MARIOMetaData
 from mario.internal.access import block_to_matrix, block_to_pandas, block_to_table
 from mario.model.assumptions import resolve_tech_assumption
 from mario.parsers.tabular import dataframe_parser
-from mario.settings.settings import IndexAliases
+from mario.settings.settings import IndexAliases, Nomenclature
 from mario.model.conventions import TABLE_LEVELS
 from tabulate import tabulate
 from collections import namedtuple
@@ -60,10 +60,37 @@ def _normalize_requested_matrices(matrices) -> list[str]:
     return list(matrices)
 
 
+def _matrix_nomenclature() -> Nomenclature:
+    """Return the current matrix nomenclature from live settings."""
+    return Nomenclature()
+
+
+def _resolve_canonical_matrix_name(name: str) -> str:
+    """Resolve one public or canonical matrix token to its canonical name."""
+    token = str(name)
+    nomenclature = _matrix_nomenclature()
+    if token in nomenclature.setting:
+        return token
+
+    try:
+        return nomenclature.reverse(token)
+    except KeyError:
+        return token
+
+
+def _resolve_storage_matrix_name(name: str) -> str:
+    """Resolve one matrix token to the stored public name used by datasets."""
+    canonical = _resolve_canonical_matrix_name(name)
+    nomenclature = _matrix_nomenclature()
+    if canonical in nomenclature.setting:
+        return nomenclature[canonical]
+    return str(name)
+
+
 def _normalize_parsed_matrix_name(name: str) -> str:
     """Map parser block names through MARIO nomenclature when available."""
     try:
-        return _ENUM[name]
+        return _matrix_nomenclature()[name]
     except Exception:
         return name
 
@@ -332,7 +359,10 @@ class CoreModel:
         (direct+indirect) value added transaction matrix and ``p`` price index
         vector without materializing the full ``w`` Leontief inverse matrix.
         """
-        requested = _normalize_requested_matrices(matrices)
+        requested = [
+            _resolve_canonical_matrix_name(name)
+            for name in _normalize_requested_matrices(matrices)
+        ]
         self._validate_scenario(scenario)
         self._validate_matrices(requested)
 
@@ -346,20 +376,21 @@ class CoreModel:
         resolver = _resolver_module().Resolver(self, scenario=scenario, context=context)
 
         for item in requested:
-            if item in self.matrices[scenario] and not force_rewrite:
+            if self.has_matrix(item, scenario=scenario) and not force_rewrite:
                 continue
 
             removed = False
             previous = None
-            if force_rewrite and item in self.matrices[scenario]:
-                previous = self.matrices[scenario].pop(item)
+            if force_rewrite and self.has_matrix(item, scenario=scenario):
+                previous = self.get_block(item, scenario=scenario)
+                self.matrices[scenario].pop(_resolve_storage_matrix_name(item), None)
                 removed = True
 
             try:
                 resolver.resolve(item)
             except self._resolver_failure_types() as exc:
                 if removed:
-                    self.matrices[scenario][item] = previous
+                    self.set_block(item, previous, scenario=scenario)
                 raise DataMissing(
                     f"MARIO is not able to calculate {item} because of missing or unresolved dependencies.\n{exc}"
                 ) from exc
@@ -372,7 +403,12 @@ class CoreModel:
     def _validate_matrices(self, matrices: list[str]) -> None:
         """Ensure that all requested matrix names are valid for the table kind."""
         acceptable = list(self.available_matrices())
+        builtin = set(available_matrices(self.table_type))
         for item in matrices:
+            resolved = _resolve_canonical_matrix_name(item)
+            storage_name = _resolve_storage_matrix_name(item)
+            if resolved in builtin or item in acceptable or storage_name in acceptable:
+                continue
             if item not in acceptable:
                 raise WrongInput(
                     f"{item} not present in acceptable item for calc_all. "
@@ -393,7 +429,10 @@ class CoreModel:
             list_registered_operator_names,
         )
 
-        available = set(available_matrices(self.table_type))
+        available = {
+            _resolve_storage_matrix_name(name)
+            for name in available_matrices(self.table_type)
+        }
         available.update(list_registered_operator_names(self))
         available.update(list_registered_block_specs(self))
         return tuple(sorted(available))
@@ -436,8 +475,9 @@ class CoreModel:
         removed = False
         previous = None
 
-        if force_rewrite and item in self.matrices[scenario]:
-            previous = self.matrices[scenario].pop(item)
+        if force_rewrite and self.has_matrix(item, scenario=scenario):
+            previous = self.get_block(item, scenario=scenario)
+            self.matrices[scenario].pop(_resolve_storage_matrix_name(item), None)
             removed = True
 
         try:
@@ -449,7 +489,7 @@ class CoreModel:
             return _resolver_module().resolve(item, self, scenario=scenario, context=context)
         except self._resolver_failure_types() as exc:
             if removed:
-                self.matrices[scenario][item] = previous
+                self.set_block(item, previous, scenario=scenario)
             raise DataMissing(
                 f"MARIO is not able to calculate {item} because of missing or unresolved dependencies.\n{exc}"
             ) from exc
@@ -489,6 +529,7 @@ class CoreModel:
         object
             The resolved block as stored in ``self.matrices[scenario]``.
         """
+        matrix = _resolve_canonical_matrix_name(matrix)
         self._validate_scenario(scenario)
         self._validate_matrices([matrix])
         return self._resolve_one(
@@ -536,8 +577,9 @@ class CoreModel:
             Mapping from requested matrix name to resolved block.
         """
         requested = _normalize_requested_matrices(matrices)
+        resolved_names = [_resolve_canonical_matrix_name(name) for name in requested]
         self._validate_scenario(scenario)
-        self._validate_matrices(requested)
+        self._validate_matrices(resolved_names)
         if not force_rewrite:
             from mario.compute.types import ResolutionContext
 
@@ -546,17 +588,26 @@ class CoreModel:
                 linear_solver=linear_solver,
                 linear_strategy=linear_strategy,
             )
-            return _resolver_module().resolve_many(requested, self, scenario=scenario, context=context)
+            resolved = _resolver_module().resolve_many(
+                resolved_names,
+                self,
+                scenario=scenario,
+                context=context,
+            )
+            return {
+                requested_name: resolved[resolved_name]
+                for requested_name, resolved_name in zip(requested, resolved_names)
+            }
         return {
-            matrix: self._resolve_one(
-                matrix,
+            requested_name: self._resolve_one(
+                resolved_name,
                 scenario=scenario,
                 force_rewrite=force_rewrite,
                 compute_method=compute_method,
                 linear_solver=linear_solver,
                 linear_strategy=linear_strategy,
             )
-            for matrix in requested
+            for requested_name, resolved_name in zip(requested, resolved_names)
         }
 
     def explain(self, matrix: str, *, scenario: str = "baseline") -> str:
@@ -574,7 +625,11 @@ class CoreModel:
         str
             Human-readable dependency explanation from the resolver.
         """
-        return _resolver_module().explain(matrix, self, scenario=scenario)
+        return _resolver_module().explain(
+            _resolve_canonical_matrix_name(matrix),
+            self,
+            scenario=scenario,
+        )
 
     def register_block_spec(
         self,
@@ -746,7 +801,7 @@ class CoreModel:
             ``True`` when the matrix is already stored in the scenario.
         """
         self._validate_scenario(scenario)
-        return name in self.matrices[scenario]
+        return _resolve_storage_matrix_name(name) in self.matrices[scenario]
 
     def has_block(self, name: str, scenario: str = "baseline") -> bool:
         """Backward-compatible alias for :meth:`has_matrix`."""
@@ -768,7 +823,7 @@ class CoreModel:
             Raw stored block object as kept in ``self.matrices``.
         """
         self._validate_scenario(scenario)
-        return self.matrices[scenario][name]
+        return self.matrices[scenario][_resolve_storage_matrix_name(name)]
 
     def set_block(self, name: str, value, scenario: str = "baseline") -> None:
         """Store one block in the selected scenario.
@@ -783,7 +838,7 @@ class CoreModel:
             Scenario to update.
         """
         self._validate_scenario(scenario)
-        self.matrices[scenario][name] = value
+        self.matrices[scenario][_resolve_storage_matrix_name(name)] = value
 
     def get_block_as_pandas(self, name: str, scenario: str = "baseline"):
         """Return one block converted to a pandas object.
@@ -904,7 +959,8 @@ class CoreModel:
             Namedtuple payload or nested dictionary, depending on ``format``.
         """
         requested = _normalize_requested_matrices(matrices)
-        options = list(available_matrices(self.table_type))
+        resolved_names = [_resolve_canonical_matrix_name(name) for name in requested]
+        options = list(self.available_matrices())
 
         if isinstance(scenarios, str):
             scenarios = [scenarios]
@@ -914,10 +970,14 @@ class CoreModel:
         if type not in ["absolute", "relative"]:
             raise WrongInput("Acceptable values for type are:\n['absolute', 'relative']")
 
-        diff = set(requested).difference(set(options))
-        if diff:
+        invalid = [
+            name
+            for name, resolved_name in zip(requested, resolved_names)
+            if resolved_name not in available_matrices(self.table_type) and name not in options
+        ]
+        if invalid:
             raise WrongInput(
-                f"{diff} is/are not an acceptable input/s. Acceptabel values are:\n{options}"
+                f"{set(invalid)} is/are not an acceptable input/s. Acceptabel values are:\n{options}"
             )
 
         for scenario in scenarios:
@@ -941,17 +1001,21 @@ class CoreModel:
         dict_scenarios = {}
         for scenario in scenarios:
             data = {}
-            for item in requested:
-                value = self._get_matrix(item, scenario=scenario, auto_calc=auto_calc)
+            for requested_name, resolved_name in zip(requested, resolved_names):
+                value = self._get_matrix(resolved_name, scenario=scenario, auto_calc=auto_calc)
                 if base_scenario is None:
-                    data[item] = value
+                    data[requested_name] = value
                     continue
 
-                base_value = self._get_matrix(item, scenario=base_scenario, auto_calc=auto_calc)
+                base_value = self._get_matrix(
+                    resolved_name,
+                    scenario=base_scenario,
+                    auto_calc=auto_calc,
+                )
                 if type == "absolute":
-                    data[item] = value - base_value
+                    data[requested_name] = value - base_value
                 else:
-                    data[item] = (value - base_value) / base_value
+                    data[requested_name] = (value - base_value) / base_value
 
             if units:
                 data["units"] = copy.deepcopy(self.units)
@@ -2269,9 +2333,10 @@ class CoreModel:
             if resolved_set is not None:
                 return self.get_index(resolved_set)
 
+            resolved_matrix = _resolve_canonical_matrix_name(attr)
             all_mat = list(self.available_matrices())
 
-            if attr in all_mat:
+            if resolved_matrix in available_matrices(self.table_type) or attr in all_mat:
                 self.calc_all(matrices=[attr])
                 return self.get_block(attr, scenario="baseline")
 

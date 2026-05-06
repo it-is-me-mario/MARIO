@@ -22,6 +22,7 @@ The workflows are grouped into three families:
    :caption: Inspection and calculations
 
    inspection/basic_inspections
+   inspection/custom_labels_and_aliases
    inspection/compute_matrices
    inspection/calc_linkages
    inspection/visualization

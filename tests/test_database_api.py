@@ -1,4 +1,5 @@
 import warnings
+from copy import deepcopy
 
 import pandas as pd
 import pandas.testing as pdt
@@ -22,10 +23,12 @@ from mario.compute.views import (
     extract_vc_from_v,
 )
 from mario.settings.settings import (
+    download_settings,
     reset_settings,
     set_compute_method,
     set_linear_solver,
     set_linear_strategy,
+    upload_settings,
 )
 from mario.test.mario_test import load_test
 from mario.model.conventions import _ENUM, _MASTER_INDEX
@@ -192,6 +195,32 @@ def test_query_and_get_data_auto_calc():
     pdt.assert_frame_equal(data["baseline"][_ENUM.p], database.p)
     assert "units" in data["baseline"]
     assert "indeces" in data["baseline"]
+
+
+def test_custom_matrix_nomenclature_aliases_work_in_runtime_api():
+    original = download_settings(None)
+
+    try:
+        custom = deepcopy(original)
+        custom["nomenclature"]["z"] = "A"
+        custom["nomenclature"]["w"] = "L"
+        upload_settings(custom)
+
+        database = load_test("IOT")
+
+        queried_alias_z = database.query("A")
+        queried_alias_w = database.query("L")
+        queried_canonical_z = database.query("z")
+        queried_canonical_w = database.query("w")
+
+        pdt.assert_frame_equal(queried_alias_z, queried_canonical_z)
+        pdt.assert_frame_equal(queried_alias_w, queried_canonical_w)
+        pdt.assert_frame_equal(database.A, database.z)
+        pdt.assert_frame_equal(database.L, database.w)
+        assert "A" in database.available_matrices()
+        assert "L" in database.available_matrices()
+    finally:
+        upload_settings(original)
 
 
 def test_query_relative_difference_shape_is_preserved():

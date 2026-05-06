@@ -5,6 +5,11 @@ plotly >= 4.12.0
 tabulate >= 0.8.9
 openpyxl >= 3.0.6
 IPython >= 7.22.0
+pyyaml
+requests
+pint
+scipy
+h5py
 sphinx >= 1.6.4
 pydata-sphinx-theme
 nbsphinx
