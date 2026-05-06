@@ -35,7 +35,6 @@ Environmentally-extended databases
    ADB <../../notebooks/parsers/adb/walkthrough>
    USEEIO <../../notebooks/parsers/useeio/walkthrough>
    CEADS <../../notebooks/parsers/ceads/walkthrough>
-   GTAP <../../notebooks/parsers/gtap/walkthrough>
 
 
 Other MRIO and SRIO databases
