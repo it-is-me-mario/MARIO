@@ -447,18 +447,24 @@ def _inputs_to_cvxlab_split_sectors(
     Trade.loc[same_region_mask, 'values_y'] = 0
     input_data['Trade'] = Trade.drop(columns=["values_x"]).rename(columns={"values_y": "values"})
 
+    #Remove values smaller than 1e-6 (1USD), set to 0
+    tables=['Trade','X','V0','Z0','Zold','Vold','Yold',]
+    for t in tables:
+        input_data[t]["values"] = input_data[t]["values"].where(input_data[t]["values"] >= 1e-6, 0)
+
     #Create trade selection matrix
     Trade_selector['values']=0
     for rf in instance.get_index('Region'):
         for rt in instance.get_index('Region'):
-            for sf in new_sectors:
-                if not Trade_db[(Trade_db['region_from_Name']==rf) & (Trade_db['region_to_Name']==rt) & (Trade_db['sector_from_Name']==sf)].empty:
-                    Trade_selector.loc[
-                        (Trade_selector['region_from_Name']==rf) & 
-                        (Trade_selector['region_to_Name']==rt) & 
-                        (Trade_selector['sector_from_Name']==sf),
-                        'values'
-                    ]=1
+            if rf!=rt:
+                for sf in new_sectors:
+                    if not Trade_db[(Trade_db['region_from_Name']==rf) & (Trade_db['region_to_Name']==rt) & (Trade_db['sector_from_Name']==sf)].empty:
+                        Trade_selector.loc[
+                            (Trade_selector['region_from_Name']==rf) & 
+                            (Trade_selector['region_to_Name']==rt) & 
+                            (Trade_selector['sector_from_Name']==sf),
+                            'values'
+                        ]=1
     input_data['Trade_selector'] = Trade_selector
     
     if input_data_files_type=='xlsx':
@@ -468,7 +474,6 @@ def _inputs_to_cvxlab_split_sectors(
     elif input_data_files_type=='csv':
         for file_name, df in input_data.items():
             df.to_csv(f'{main_dir_path}\\{model_dir}\\input_data\\{file_name}.csv', index=False)
-
     return 
 
 def _check_cvxlab_parameters(
