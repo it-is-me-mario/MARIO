@@ -15,6 +15,7 @@ sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 MAIN_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 from mario.api.core_model import CoreModel
+from mario.api import Database
 from mario.test.mario_test import load_test
 from mario.log_exc.exceptions import DataMissing, LackOfInput, WrongInput, NotImplementable
 from mario import calc_Z
@@ -384,6 +385,131 @@ def test_is_multi_region(CoreDataIOT):
 
     single_region = load_test('IOT').to_single_region("Reg1",inplace=False)
     assert not single_region.is_multi_region
+
+
+def _build_three_region_iot_database():
+    regions = ["R1", "R2", "R3"]
+    sectors = ["s1"]
+    factors = ["VA"]
+    satellite_accounts = ["CO2"]
+    final_demand = ["FD"]
+
+    sector_axis = pd.MultiIndex.from_product(
+        [regions, [_MASTER_INDEX["s"]], sectors],
+        names=["Region", "Level", "Item"],
+    )
+    final_demand_axis = pd.MultiIndex.from_product(
+        [regions, [_MASTER_INDEX["n"]], final_demand],
+        names=["Region", "Level", "Item"],
+    )
+
+    Z = pd.DataFrame(
+        [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]],
+        index=sector_axis,
+        columns=sector_axis,
+    )
+    Y = pd.DataFrame(
+        [[10.0, 20.0, 30.0], [40.0, 50.0, 60.0], [70.0, 80.0, 90.0]],
+        index=sector_axis,
+        columns=final_demand_axis,
+    )
+    V = pd.DataFrame([[100.0, 200.0, 300.0]], index=factors, columns=sector_axis)
+    E = pd.DataFrame([[1.0, 2.0, 3.0]], index=satellite_accounts, columns=sector_axis)
+    EY = pd.DataFrame([[0.0, 0.0, 0.0]], index=satellite_accounts, columns=final_demand_axis)
+    VY = pd.DataFrame([[0.0, 0.0, 0.0]], index=factors, columns=final_demand_axis)
+
+    units = {
+        _MASTER_INDEX["s"]: pd.DataFrame({"unit": ["USD"]}, index=sectors),
+        _MASTER_INDEX["f"]: pd.DataFrame({"unit": ["USD"]}, index=factors),
+        _MASTER_INDEX["k"]: pd.DataFrame({"unit": ["kg"]}, index=satellite_accounts),
+    }
+
+    return Database(
+        name="three-region-iot",
+        table="IOT",
+        Z=Z,
+        V=V,
+        E=E,
+        EY=EY,
+        VY=VY,
+        Y=Y,
+        units=units,
+        calc_all=True,
+    )
+
+
+def test_to_region_subset_keeps_selected_regions_explicit_and_externalizes_rest():
+    database = _build_three_region_iot_database()
+
+    subset = database.to_region_subset(["R1", "R2"], inplace=False)
+
+    assert subset.is_multi_region
+    assert subset.get_index("Region") == ["R1", "R2"]
+    assert subset.V.loc["imports", ("R1", _MASTER_INDEX["s"], "s1")] == pytest.approx(7.0)
+    assert subset.V.loc["imports", ("R2", _MASTER_INDEX["s"], "s1")] == pytest.approx(8.0)
+    assert subset.Y.loc[
+        ("R1", _MASTER_INDEX["s"], "s1"),
+        ("R1", _MASTER_INDEX["n"], "Final Demand exports"),
+    ] == pytest.approx(30.0)
+    assert subset.Y.loc[
+        ("R2", _MASTER_INDEX["s"], "s1"),
+        ("R2", _MASTER_INDEX["n"], "Intermediate exports"),
+    ] == pytest.approx(6.0)
+    assert subset.Y.loc[
+        ("R1", _MASTER_INDEX["s"], "s1"),
+        ("R2", _MASTER_INDEX["n"], "Intermediate exports"),
+    ] == pytest.approx(0.0)
+
+
+def test_to_region_subset_by_region_keeps_exogenous_trade_by_region():
+    database = _build_three_region_iot_database()
+
+    subset = database.to_region_subset(["R1", "R2"], inplace=False, trade_mode="by_region")
+
+    assert "imports from R3" in subset.get_index(_MASTER_INDEX["f"])
+    assert subset.V.loc["imports from R3", ("R1", _MASTER_INDEX["s"], "s1")] == pytest.approx(7.0)
+    assert subset.Y.loc[
+        ("R1", _MASTER_INDEX["s"], "s1"),
+        ("R1", _MASTER_INDEX["n"], "Final Demand exports to R3"),
+    ] == pytest.approx(30.0)
+    assert subset.Y.loc[
+        ("R2", _MASTER_INDEX["s"], "s1"),
+        ("R2", _MASTER_INDEX["n"], "Intermediate exports to R3"),
+    ] == pytest.approx(6.0)
+
+
+def test_to_single_region_by_region_explodes_each_excluded_region():
+    database = _build_three_region_iot_database()
+
+    single_region = database.to_single_region("R1", inplace=False, trade_mode="by_region")
+
+    assert not single_region.is_multi_region
+    assert "imports from R2" in single_region.get_index(_MASTER_INDEX["f"])
+    assert "imports from R3" in single_region.get_index(_MASTER_INDEX["f"])
+    assert single_region.V.loc["imports from R2", ("R1", _MASTER_INDEX["s"], "s1")] == pytest.approx(4.0)
+    assert single_region.V.loc["imports from R3", ("R1", _MASTER_INDEX["s"], "s1")] == pytest.approx(7.0)
+    assert single_region.Y.loc[
+        ("R1", _MASTER_INDEX["s"], "s1"),
+        ("R1", _MASTER_INDEX["n"], "Final Demand exports to R2"),
+    ] == pytest.approx(20.0)
+    assert single_region.Y.loc[
+        ("R1", _MASTER_INDEX["s"], "s1"),
+        ("R1", _MASTER_INDEX["n"], "Intermediate exports to R3"),
+    ] == pytest.approx(3.0)
+
+
+def test_to_single_region_aggregate_matches_region_subset_single_region():
+    database = _build_three_region_iot_database()
+
+    from_single = database.to_single_region("R1", inplace=False)
+    from_subset = database.to_region_subset(["R1"], inplace=False)
+
+    pdt.assert_frame_equal(from_single.Z, from_subset.Z)
+    pdt.assert_frame_equal(from_single.V, from_subset.V)
+    pdt.assert_frame_equal(from_single.Y, from_subset.Y)
+    pdt.assert_frame_equal(from_single.E, from_subset.E)
+    pdt.assert_frame_equal(from_single.EY, from_subset.EY)
+    pdt.assert_frame_equal(from_single.VY, from_subset.VY)
 
 
 def test_sets(CoreDataIOT,CoreDataSUT):

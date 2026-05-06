@@ -813,25 +813,60 @@ class Database(CoreModel):
             for note in notes:
                 self.meta._add_history(f"User note: {note}")
 
-    def to_single_region(self, region, inplace=True):
-        """Extract one region from a multi-regional database.
+    def to_region_subset(self, regions, inplace=True, trade_mode="aggregate"):
+        """Keep one explicit region subset and externalize the remaining regions.
 
         Parameters
         ----------
-        region:
-            Region label to keep.
+        regions:
+            One region label or an iterable of region labels to keep explicit.
         inplace:
             When ``True``, mutate the current database. When ``False``, return
             a transformed copy.
+        trade_mode:
+            ``"aggregate"`` collapses the excluded regions into one aggregated
+            imports row plus export categories. ``"by_region"`` keeps one
+            explicit import row and one explicit export category per excluded
+            region.
 
         Returns
         -------
         Database | None
-            Single-region database when ``inplace=False``, otherwise ``None``.
+            Transformed database when ``inplace=False``, otherwise ``None``.
+
+        Notes
+        -----
+        The selected regions keep their endogenous transactions with each other.
+        All excluded regions are moved outside the endogenous system and are
+        represented as exogenous imports and exports.
+
+        Use ``trade_mode="aggregate"`` to collapse the excluded regions into a
+        single ``imports`` row plus aggregate export categories, or
+        ``trade_mode="by_region"`` to preserve one import row and one export
+        category per excluded region.
+
+        Examples
+        --------
+        Keep ``IT`` and ``FR`` explicit while treating the remaining regions as
+        exogenous trade::
+
+            subset = db.to_region_subset(["IT", "FR"], inplace=False)
+
+        Keep the same subset but preserve exogenous trade partner detail::
+
+            subset = db.to_region_subset(
+                ["IT", "FR"],
+                inplace=False,
+                trade_mode="by_region",
+            )
         """
         if not inplace:
             new = self.copy()
-            new.to_single_region(region=region, inplace=True)
+            new.to_region_subset(
+                regions=regions,
+                inplace=True,
+                trade_mode=trade_mode,
+            )
 
             return new
 
@@ -841,8 +876,41 @@ class Database(CoreModel):
         if not self.is_multi_region:
             raise NotImplementable("Database is already a single region database.")
 
-        if region not in self.get_index(_MASTER_INDEX["r"]):
-            raise WrongInput("{} does not exist in regions".format(region))
+        if isinstance(regions, str):
+            requested_regions = [regions]
+        else:
+            requested_regions = list(regions)
+
+        if not requested_regions:
+            raise WrongInput("At least one region should be selected.")
+
+        if len(set(requested_regions)) != len(requested_regions):
+            raise WrongInput("Repeated regions are not allowed in the selected subset.")
+
+        available_regions = self.get_index(_MASTER_INDEX["r"])
+        selected_regions = [
+            region for region in available_regions if region in set(requested_regions)
+        ]
+        missing_regions = set(requested_regions).difference(set(available_regions))
+
+        if missing_regions:
+            raise WrongInput(
+                "{} does/do not exist in regions".format(sorted(missing_regions))
+            )
+
+        if len(selected_regions) == len(available_regions):
+            raise WrongInput(
+                "Selected regions already cover the full database; choose a strict subset."
+            )
+
+        if trade_mode not in {"aggregate", "by_region"}:
+            raise WrongInput(
+                "trade_mode should be either 'aggregate' or 'by_region'."
+            )
+
+        excluded_regions = [
+            region for region in available_regions if region not in set(selected_regions)
+        ]
 
         log_time(
             logger,
@@ -861,96 +929,115 @@ class Database(CoreModel):
         EY = data[_ENUM.EY]
         VY = data[_ENUM.VY]
 
-        # Take the regions!=region
-        rest_reg = self.get_index(_MASTER_INDEX["r"])
-        rest_reg.remove(region)
+        selected_axis = (selected_regions, slice(None), slice(None))
+        excluded_axis = (excluded_regions, slice(None), slice(None))
 
-        # Take the imports from the Z matrix
-        IM = Z.loc[
-            (rest_reg, slice(None), slice(None)),
-            (region, slice(None), slice(None)),
-        ]
+        imports_from_excluded = Z.loc[excluded_axis, selected_axis]
+        exports_to_excluded = Z.loc[selected_axis, excluded_axis]
+        Z = Z.loc[selected_axis, selected_axis]
 
-        # Taking the intermediate export
-        EX = Z.loc[
-            (region, slice(None), slice(None)),
-            (rest_reg, slice(None), slice(None)),
-        ]
+        V = V.loc[:, selected_axis]
+        if trade_mode == "aggregate":
+            import_rows = imports_from_excluded.sum(axis=0).to_frame().T
+            import_labels = ["imports"]
+            import_rows.index = import_labels
+        else:
+            import_rows = (
+                imports_from_excluded.groupby(level=0, sort=False).sum().reindex(excluded_regions)
+            )
+            import_labels = [f"imports from {region}" for region in excluded_regions]
+            import_rows.index = import_labels
+        V = pd.concat([V, import_rows])
 
-        # Take the Z for the region
-        Z = Z.loc[
-            (region, slice(None), slice(None)),
-            (region, slice(None), slice(None)),
-        ]
+        Y_local = Y.loc[selected_axis, selected_axis]
+        Y_exports_to_excluded = Y.loc[selected_axis, excluded_axis]
 
-        IM = IM.sum(axis=0).to_frame().T
-        IM.index = ["imports"]
+        def _build_export_frame(source, item_label_template):
+            if trade_mode == "aggregate":
+                export_item_labels = [item_label_template]
+            else:
+                export_item_labels = [
+                    f"{item_label_template} to {region}" for region in excluded_regions
+                ]
 
-        # Adding the imports to the V matrix
-        V = V.loc[:, (region, slice(None), slice(None))]
-        V = pd.concat([V, IM])
+            export_columns = pd.MultiIndex.from_tuples(
+                [
+                    (region, _MASTER_INDEX["n"], item_label)
+                    for region in selected_regions
+                    for item_label in export_item_labels
+                ],
+                names=Y.columns.names,
+            )
+            export_frame = pd.DataFrame(0.0, index=source.index, columns=export_columns)
 
-        # Taking the Y_local matrix
-        Y_local = Y.loc[
-            (region, slice(None), slice(None)),
-            (region, slice(None), slice(None)),
-        ]
+            for region in selected_regions:
+                row_mask = source.index.get_level_values(0) == region
+                if not row_mask.any():
+                    continue
 
-        YEX = Y.loc[
-            (region, slice(None), slice(None)),
-            (rest_reg, slice(None), slice(None)),
-        ]
+                region_rows = source.loc[row_mask]
+                if trade_mode == "aggregate":
+                    export_frame.loc[
+                        row_mask,
+                        (region, _MASTER_INDEX["n"], item_label_template),
+                    ] = region_rows.sum(axis=1).to_numpy(dtype=float)
+                    continue
 
-        YEX = YEX.sum(axis=1).to_frame()
+                for excluded_region in excluded_regions:
+                    export_frame.loc[
+                        row_mask,
+                        (
+                            region,
+                            _MASTER_INDEX["n"],
+                            f"{item_label_template} to {excluded_region}",
+                        ),
+                    ] = region_rows.loc[
+                        :, (excluded_region, slice(None), slice(None))
+                    ].sum(axis=1).to_numpy(dtype=float)
 
-        YEX.columns = [[region], [_MASTER_INDEX["n"]], ["Final Demand exports"]]
+            return export_frame, export_item_labels
 
-        EX = EX.sum(axis=1).to_frame()
-        EX.columns = [[region], [_MASTER_INDEX["n"]], ["Intermediate exports"]]
-
-        # Adding the exports as a category of the
-        Y = pd.concat([Y_local, YEX, EX], axis=1)
-
-        # Taking the exposts
-        EYX = pd.DataFrame(
-            0,
-            index=EY.index,
-            columns=[
-                [region] * 2,
-                [_MASTER_INDEX["n"]] * 2,
-                ["Final Demand exports", "Intermediate exports"],
-            ],
+        Y_final_demand_exports, fd_export_labels = _build_export_frame(
+            Y_exports_to_excluded,
+            "Final Demand exports",
+        )
+        Y_intermediate_exports, intermediate_export_labels = _build_export_frame(
+            exports_to_excluded,
+            "Intermediate exports",
         )
 
-        # fixing the EY export emissions
-        # Taking the Y matrix
-        EY = EY.loc[:, (region, slice(None), slice(None))]
-        EY = pd.concat([EY, EYX], axis=1)
+        Y = pd.concat([Y_local, Y_final_demand_exports, Y_intermediate_exports], axis=1)
 
-        VYX = pd.DataFrame(
-            0,
-            index=VY.index,
-            columns=[
-                [region] * 2,
-                [_MASTER_INDEX["n"]] * 2,
-                ["Final Demand exports", "Intermediate exports"],
+        export_columns = Y_final_demand_exports.columns.append(Y_intermediate_exports.columns)
+        EY = EY.loc[:, selected_axis]
+        EY = pd.concat(
+            [
+                EY,
+                pd.DataFrame(0.0, index=EY.index, columns=export_columns),
             ],
+            axis=1,
         )
-        VY = VY.loc[:, (region, slice(None), slice(None))]
-        VY = pd.concat([VY, VYX], axis=1)
 
-        # Taking the E matrix
-        E = E.loc[:, (region, slice(None), slice(None))]
+        VY = VY.loc[:, selected_axis]
+        VY = pd.concat(
+            [
+                VY,
+                pd.DataFrame(0.0, index=VY.index, columns=export_columns),
+            ],
+            axis=1,
+        )
 
+        E = E.loc[:, selected_axis]
         X = calc_X(Z=Z, Y=Y)
 
         all_indeces = self.get_index("all")
 
         new_indeces = {
-            "r": [region],
-            "f": all_indeces[_MASTER_INDEX["f"]] + ["imports"],
+            "r": selected_regions,
+            "f": all_indeces[_MASTER_INDEX["f"]] + import_labels,
             "n": all_indeces[_MASTER_INDEX["n"]]
-            + ["Final Demand exports", "Intermediate exports"],
+            + fd_export_labels
+            + intermediate_export_labels,
         }
 
         _manage_indeces(self, "single_region", **new_indeces)
@@ -964,25 +1051,61 @@ class Database(CoreModel):
         log_time(logger, "Transformation: New baseline added to the database")
 
         slicer = _MASTER_INDEX["a"] if self.table_type == "SUT" else _MASTER_INDEX["s"]
+        for import_label in import_labels:
+            self.units[_MASTER_INDEX["f"]].loc[import_label, "unit"] = self.units[
+                slicer
+            ].iloc[0, 0]
 
-        self.units[_MASTER_INDEX["f"]].loc["imports", "unit"] = self.units[slicer].iloc[
-            0, 0
-        ]
+        region_note = ", ".join(selected_regions)
+        self.meta._add_history(
+            "Transformation: Database transformed into a region subset database keeping "
+            f"{region_note}."
+        )
+        if trade_mode == "aggregate":
+            self.meta._add_history(
+                "Transformation: Excluded regions are aggregated into one 'imports' row in "
+                "the Value Added Matrix and two export categories in the Final Demand Matrix."
+            )
+        else:
+            self.meta._add_history(
+                "Transformation: Excluded regions are kept separate as one import row and one "
+                "pair of export categories per excluded region."
+            )
+        self.meta._add_history(
+            "Transformation: The Final Demand emissions are considered only for endogenous "
+            "final demand columns."
+        )
 
-        self.meta._add_history(
-            f"Transformation: Database transformed into a single region database for {region}. Following assumptions are considered: "
-        )
-        self.meta._add_history(
-            "Transformation: The intermediate imports are accounted as 'imports' in the Value Added Matrix."
-        )
-        self.meta._add_history(
-            "Transformation: The intermediate Exports are accounted as 'Intermediate exports' in the Final Demand Matrix."
-        )
-        self.meta._add_history(
-            "Transformation: The Final Demand Exports are accounted as 'Final Demand exports' in the Final Demand Matrix."
-        )
-        self.meta._add_history(
-            "Transformation: The Final Demand emissions are considered only for 'Local Final Demand.'"
+    def to_single_region(self, region, inplace=True, trade_mode="aggregate"):
+        """Extract one region from a multi-regional database.
+
+        Parameters
+        ----------
+        region:
+            Region label to keep.
+        inplace:
+            When ``True``, mutate the current database. When ``False``, return
+            a transformed copy.
+        trade_mode:
+            ``"aggregate"`` collapses all excluded regions into aggregated
+            imports and export categories. ``"by_region"`` keeps one explicit
+            import row and one explicit export category per excluded region.
+
+        Returns
+        -------
+        Database | None
+            Single-region database when ``inplace=False``, otherwise ``None``.
+
+        Notes
+        -----
+        This is a convenience wrapper around ``to_region_subset([region], ...)``.
+        Use ``to_region_subset(...)`` when you need to keep more than one region
+        explicit while externalizing the rest of the world.
+        """
+        return self.to_region_subset(
+            regions=[region],
+            inplace=inplace,
+            trade_mode=trade_mode,
         )
 
     def calc_linkages(

@@ -15,6 +15,7 @@ Database Transformations
    ../api_document/mario.Database.add_extensions
    ../api_document/mario.Database.add_sectors
    ../api_document/mario.Database.to_iot
+   ../api_document/mario.Database.to_region_subset
    ../api_document/mario.Database.to_single_region
    ../api_document/mario.Database.to_chenery_moses
    ../api_document/mario.Database.change_assumption
