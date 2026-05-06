@@ -126,6 +126,7 @@ celerybeat.pid
 # Environments
 .env
 .venv
+.venv-pandas3
 env/
 venv/
 ENV/
