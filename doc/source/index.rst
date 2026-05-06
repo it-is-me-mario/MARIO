@@ -7,6 +7,15 @@ Tables (SUT). It is designed to make common IO workflows accessible without
 requiring deep programming expertise, while still exposing the full flexibility
 needed for research and applied analysis.
 
+.. warning::
+
+   This documentation currently tracks the code in the ``main`` branch.
+   The corresponding PyPI release is not available yet and is expected by
+   June 2026.
+
+   If you want to start using this version before the PyPI release, follow
+   the temporary installation steps in :doc:`setup/installation`.
+
 What MARIO supports
 -------------------
 

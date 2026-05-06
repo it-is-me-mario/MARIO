@@ -1,6 +1,12 @@
 Setup
 =====
 
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+
+   installation
+
 What is MARIO
 -------------
 
@@ -19,28 +25,11 @@ In practice, MARIO is built around a simple workflow:
 Installation
 ------------
 
-Preferably, create a clean Python environment:
+The documentation currently follows the code in ``main``, while the
+corresponding PyPI release has not been published yet.
 
-.. code-block:: bash
-
-   conda create -n mario python=3.10
-   conda activate mario
-
-Then install MARIO from PyPI:
-
-.. code-block:: bash
-
-   pip install mariopy
-
-A quick sanity check after installation is:
-
-.. code-block:: python
-
-   import mario
-   db = mario.load_test("IOT") # or SUT
-   db
-
-If this works, the package is installed correctly.
+For now, please use the temporary installation instructions in
+:doc:`installation`.
 
 Next steps
 ----------
