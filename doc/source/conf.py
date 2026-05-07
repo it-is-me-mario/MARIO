@@ -82,7 +82,6 @@ exclude_patterns = [
     "user_guide/advanced/large_database_workflows.ipynb",
     "contribute/documentation.rst",
     "resources/changelog.rst",
-    "notebooks/parsers/cepalstat/**",
 ]
 
 

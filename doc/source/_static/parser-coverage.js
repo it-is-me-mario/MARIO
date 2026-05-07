@@ -28,6 +28,33 @@ document.addEventListener("DOMContentLoaded", () => {
     const uniqueSortedYears = (values) =>
       Array.from(new Set(values.filter(Boolean))).sort((left, right) => Number(left) - Number(right));
 
+    const resolveParserPageHref = (page) => {
+      if (!page) {
+        return "";
+      }
+
+      if (
+        page.startsWith("http://") ||
+        page.startsWith("https://") ||
+        page.startsWith("../") ||
+        page.startsWith("./") ||
+        page.startsWith("/") ||
+        page.endsWith(".html")
+      ) {
+        return page;
+      }
+
+      if (page === "exiobase") {
+        return "../../notebooks/parsers/exiobase/monetary.html";
+      }
+
+      if (page.includes("/")) {
+        return `../../notebooks/parsers/${page}.html`;
+      }
+
+      return `../../notebooks/parsers/${page}/walkthrough_${page}.html`;
+    };
+
     const fillSelect = (select, values, placeholder, keepValue = "") => {
       select.innerHTML = "";
       const blank = document.createElement("option");
@@ -121,8 +148,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
       filteredRows.forEach((row) => {
         const tr = document.createElement("tr");
-        tr.appendChild(makeLinkedCell(row.source, row.parser_page ? `${row.parser_page}.html` : ""));
-        tr.appendChild(makeLinkedCell(row.parser, row.parser_page ? `${row.parser_page}.html` : ""));
+        const parserPageHref = resolveParserPageHref(row.parser_page);
+        tr.appendChild(makeLinkedCell(row.source, parserPageHref));
+        tr.appendChild(makeLinkedCell(row.parser, parserPageHref));
         [
           row.table,
           row.years,

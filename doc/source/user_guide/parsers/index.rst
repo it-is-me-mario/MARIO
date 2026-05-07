@@ -17,7 +17,7 @@ Custom databases
 
    Excel custom parser <../../notebooks/parsers/custom_database/from_excel>
    TXT, CSV, and Parquet custom parser <../../notebooks/parsers/custom_database/from_txt>
-   pymrio bridge <../../notebooks/parsers/custom_database/from_pymrio>
+   Pymrio bridge <../../notebooks/parsers/custom_database/from_pymrio>
 
 
 Environmentally-extended databases
@@ -26,16 +26,17 @@ Environmentally-extended databases
 .. toctree::
    :maxdepth: 1
 
-   Monetary EXIOBASE <../../notebooks/parsers/exiobase/monetary>
-   Hybrid EXIOBASE <../../notebooks/parsers/exiobase/hybrid>
+   EXIOBASE - Monetary version <../../notebooks/parsers/exiobase/monetary>
+   EXIOBASE - Hybrid-units version <../../notebooks/parsers/exiobase/hybrid>
+   EORA <../../notebooks/parsers/eora/walkthrough_eora>
    GLORIA <../../notebooks/parsers/gloria/walkthrough_gloria>
-   Eora <../../notebooks/parsers/eora/walkthrough_eora>
+   GTAP <../../notebooks/parsers/gtap/walkthrough_gtap>
    EMERGING <../../notebooks/parsers/emerging/walkthrough_emerging>
    WIOD <../../notebooks/parsers/wiod/walkthrough_wiod>
-   ADB <../../notebooks/parsers/adb/walkthrough_adb>
-   USEEIO <../../notebooks/parsers/useeio/walkthrough_useeio>
+   Asian Development Bank IO tables <../../notebooks/parsers/adb/walkthrough_adb>
+   USEEIO v2.5 <../../notebooks/parsers/useeio/walkthrough_useeio>
    CEADS <../../notebooks/parsers/ceads/walkthrough_ceads>
-
+   
 
 Other MRIO and SRIO databases
 -----------------------------
@@ -43,12 +44,13 @@ Other MRIO and SRIO databases
 .. toctree::
    :maxdepth: 1
 
-   OECD <../../notebooks/parsers/oecd/walkthrough_oecd>
+   OECD IO tables <../../notebooks/parsers/oecd/walkthrough_oecd>
    FIGARO <../../notebooks/parsers/figaro/walkthrough_figaro>
    EUROSTAT <../../notebooks/parsers/eurostat/walkthrough_eurostat>
    BEA <../../notebooks/parsers/bea/walkthrough_bea>
    ISTAT <../../notebooks/parsers/istat/walkthrough_istat>
    StatCan <../../notebooks/parsers/statcan/walkthrough_statcan>
+   CEPALSTAT <../../notebooks/parsers/cepalstat/walkthrough_cepalstat>
 
 
 Coverage query
