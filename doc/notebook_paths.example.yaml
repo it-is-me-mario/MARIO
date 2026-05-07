@@ -25,20 +25,20 @@ replacements:
 # Replacements can also be scoped to a notebook, and optionally to code cells.
 # Cell indexes are zero-based notebook cell indexes, matching nbformat order.
 notebooks:
-  source/notebooks/parsers/bea/walkthrough.ipynb:
+  source/notebooks/parsers/bea/walkthrough_bea.ipynb:
     replacements:
       - placeholder: "/path/to/SUPPLY-USE.zip"
         local: "/absolute/local/path/to/SUPPLY-USE.zip"
         cells: [5]
 
-  source/notebooks/parsers/eora/walkthrough.ipynb:
+  source/notebooks/parsers/eora/walkthrough_eora.ipynb:
     replacements:
       - placeholder: "/path/to/eora26_directory"
         local: "/absolute/local/path/to/Eora26_2017_bp"
       - placeholder: "/path/to/eora26_labels"
         local: "/absolute/local/path/to/indices"
 
-  source/notebooks/parsers/wiod/walkthrough.ipynb:
+  source/notebooks/parsers/wiod/walkthrough_wiod.ipynb:
     # Cells that download large raw data can be left out of the local solve.
     skip_cells: [8]
     replacements:
@@ -112,7 +112,7 @@ users:
       - placeholder: "/path/to/SUPPLY-USE"
         local: "/your/local/path/to/SUPPLY-USE"
     notebooks:
-      source/notebooks/parsers/oecd/walkthrough.ipynb:
+      source/notebooks/parsers/oecd/walkthrough_oecd.ipynb:
         replacements:
           - placeholder: "/path/to/2022_SML.csv"
             local: "/your/local/path/to/2022_SML.csv"

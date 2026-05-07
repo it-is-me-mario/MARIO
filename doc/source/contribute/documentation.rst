@@ -51,7 +51,7 @@ Execute one or more notebooks with local replacements:
 .. code-block:: bash
 
 	 python doc/scripts/resolve_notebooks.py \
-		 doc/source/notebooks/parsers/oecd/walkthrough.ipynb
+		 doc/source/notebooks/parsers/oecd/walkthrough_oecd.ipynb
 
 Execute many notebooks (shell glob expansion):
 

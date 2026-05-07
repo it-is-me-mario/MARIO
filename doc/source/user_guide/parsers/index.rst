@@ -28,13 +28,13 @@ Environmentally-extended databases
 
    Monetary EXIOBASE <../../notebooks/parsers/exiobase/monetary>
    Hybrid EXIOBASE <../../notebooks/parsers/exiobase/hybrid>
-   GLORIA <../../notebooks/parsers/gloria/walkthrough>
-   Eora <../../notebooks/parsers/eora/walkthrough>
-   EMERGING <../../notebooks/parsers/emerging/walkthrough>
-   WIOD <../../notebooks/parsers/wiod/walkthrough>
-   ADB <../../notebooks/parsers/adb/walkthrough>
-   USEEIO <../../notebooks/parsers/useeio/walkthrough>
-   CEADS <../../notebooks/parsers/ceads/walkthrough>
+   GLORIA <../../notebooks/parsers/gloria/walkthrough_gloria>
+   Eora <../../notebooks/parsers/eora/walkthrough_eora>
+   EMERGING <../../notebooks/parsers/emerging/walkthrough_emerging>
+   WIOD <../../notebooks/parsers/wiod/walkthrough_wiod>
+   ADB <../../notebooks/parsers/adb/walkthrough_adb>
+   USEEIO <../../notebooks/parsers/useeio/walkthrough_useeio>
+   CEADS <../../notebooks/parsers/ceads/walkthrough_ceads>
 
 
 Other MRIO and SRIO databases
@@ -43,12 +43,12 @@ Other MRIO and SRIO databases
 .. toctree::
    :maxdepth: 1
 
-   OECD <../../notebooks/parsers/oecd/walkthrough>
-   FIGARO <../../notebooks/parsers/figaro/walkthrough>
-   EUROSTAT <../../notebooks/parsers/eurostat/walkthrough>
-   BEA <../../notebooks/parsers/bea/walkthrough>
-   ISTAT <../../notebooks/parsers/istat/walkthrough>
-   StatCan <../../notebooks/parsers/statcan/walkthrough>
+   OECD <../../notebooks/parsers/oecd/walkthrough_oecd>
+   FIGARO <../../notebooks/parsers/figaro/walkthrough_figaro>
+   EUROSTAT <../../notebooks/parsers/eurostat/walkthrough_eurostat>
+   BEA <../../notebooks/parsers/bea/walkthrough_bea>
+   ISTAT <../../notebooks/parsers/istat/walkthrough_istat>
+   StatCan <../../notebooks/parsers/statcan/walkthrough_statcan>
 
 
 Coverage query
