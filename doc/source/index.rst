@@ -1,3 +1,8 @@
+.. title:: MARIO - Multifunctional Analysis of Regions through Input-Output
+
+.. meta::
+   :description: MARIO is Multifunctional Analysis of Regions through Input-Output, a Python package for handling input-output and supply-use tables for research and applied analysis.
+
 MARIO Documentation
 ===================
 
