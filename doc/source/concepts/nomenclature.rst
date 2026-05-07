@@ -5,7 +5,7 @@ This page defines the core terminoloty used across the MARIO documentation and
 collects the canonical names used for indices and matrices.
 
 
-Basic Definitions
+Basic definitions
 -----------------
 
 Database
@@ -43,7 +43,7 @@ Mode
 
 
 Default canonical labels
-=========================
+------------------------
 
 Below, the default names for indices and matrices are listed, along with their accepted aliases in the public API and their intended meaning.
 
@@ -58,7 +58,7 @@ Below, the default names for indices and matrices are listed, along with their a
 
 
 Indices
--------
+~~~~~~~
 
 Each matrix in MARIO has a set of *indices* that define its structure. 
 The table below lists the canonical MARIO index names, where they apply, the
@@ -68,7 +68,7 @@ accepted aliases in the public API, and their intended meaning.
    :file: _generated/indices_table.html
 
 Matrices
---------
+~~~~~~~~
 
 The table below lists the *matrices* currently available in MARIO, their *mode*,
 in which *table* format they are used, common names found in the literature, and the default row
