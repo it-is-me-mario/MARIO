@@ -1,0 +1,254 @@
+[
+  {
+    "id": "installation",
+    "type": "fact",
+    "title": "Install MARIO",
+    "summary": "Use the setup section to install MARIO from source or prepare your environment before the next PyPI release.",
+    "answer": "The current docs point to the temporary installation instructions because the matching PyPI release is not published yet.",
+    "example_query": "How do I install MARIO?",
+    "keywords": ["install", "installation", "pip", "conda", "setup", "environment"],
+    "snippets": [
+      "The documentation currently follows main and points to temporary installation steps.",
+      "Setup is the right starting point before loading data or running notebooks."
+    ],
+    "primary_href": "setup/installation.html",
+    "links": [
+      {
+        "label": "Installation guide",
+        "href": "setup/installation.html",
+        "reason": "Environment setup and current install path."
+      },
+      {
+        "label": "Setup overview",
+        "href": "setup/index.html",
+        "reason": "Entry point for first-time users."
+      }
+    ]
+  },
+  {
+    "id": "parser-coverage",
+    "type": "fact",
+    "title": "Check parser coverage",
+    "summary": "Use the parser coverage query to verify which parser and source combinations are available for a country and year.",
+    "answer": "The parsers page includes a coverage query that filters supported country and year combinations before you commit to a parser workflow.",
+    "example_query": "Which parser supports a country or year?",
+    "keywords": ["parser coverage", "country", "year", "support", "availability", "which parser"],
+    "snippets": [
+      "Choose a country, a year, or both. The second selector updates itself before you run the query.",
+      "This is the quickest grounded answer for source availability questions."
+    ],
+    "primary_href": "user_guide/parsers/index.html#coverage-query",
+    "links": [
+      {
+        "label": "Parser coverage query",
+        "href": "user_guide/parsers/index.html#coverage-query",
+        "reason": "Filter source support by country and time range."
+      },
+      {
+        "label": "Parsers overview",
+        "href": "user_guide/parsers/index.html",
+        "reason": "Browse all standard and custom parser guides."
+      }
+    ]
+  },
+  {
+    "id": "parse-exiobase",
+    "type": "workflow",
+    "title": "Parse EXIOBASE data",
+    "summary": "Use the parser guide for the EXIOBASE monetary or hybrid workflow depending on the table you have.",
+    "answer": "Start from the parser overview, then open the EXIOBASE walkthrough that matches your dataset variant.",
+    "example_query": "How do I parse EXIOBASE?",
+    "keywords": ["parse exiobase", "exiobase", "monetary", "hybrid", "parser", "ingest"],
+    "snippets": [
+      "MARIO documents separate EXIOBASE walkthroughs for monetary and hybrid-unit versions."
+    ],
+    "primary_href": "notebooks/parsers/exiobase/monetary.html",
+    "links": [
+      {
+        "label": "Parsers overview",
+        "href": "user_guide/parsers/index.html",
+        "reason": "Confirm the correct parser family before opening a notebook."
+      },
+      {
+        "label": "EXIOBASE monetary walkthrough",
+        "href": "notebooks/parsers/exiobase/monetary.html",
+        "reason": "Use this for standard monetary EXIOBASE imports."
+      },
+      {
+        "label": "EXIOBASE hybrid walkthrough",
+        "href": "notebooks/parsers/exiobase/hybrid.html",
+        "reason": "Use this when your workflow needs hybrid units."
+      }
+    ]
+  },
+  {
+    "id": "custom-database",
+    "type": "workflow",
+    "title": "Load a custom database",
+    "summary": "MARIO documents custom database ingestion from Excel, TXT/CSV/Parquet, and pymrio bridges.",
+    "answer": "Choose the custom parser path that matches your source format, then follow the notebook-backed guide for the required layout and parsing steps.",
+    "example_query": "How do I load my own database?",
+    "keywords": ["custom database", "own data", "excel", "csv", "txt", "parquet", "pymrio", "load data"],
+    "snippets": [
+      "Use the custom parser guides when your data does not match one of the standard public sources."
+    ],
+    "primary_href": "user_guide/provide_your_database.html",
+    "links": [
+      {
+        "label": "Provide your database",
+        "href": "user_guide/provide_your_database.html",
+        "reason": "High-level guidance for custom ingestion."
+      },
+      {
+        "label": "Excel custom parser",
+        "href": "notebooks/parsers/custom_database/from_excel.html",
+        "reason": "Use this if your input starts in Excel."
+      },
+      {
+        "label": "TXT, CSV, and Parquet custom parser",
+        "href": "notebooks/parsers/custom_database/from_txt.html",
+        "reason": "Use this for flat files or parquet-based inputs."
+      }
+    ]
+  },
+  {
+    "id": "inspect-database",
+    "type": "workflow",
+    "title": "Inspect a parsed database",
+    "summary": "Use the inspection notebooks to browse sets, available matrices, and common database views.",
+    "answer": "Start from the basic inspections notebook, then move to matrix calculations or linkages depending on what you need to inspect.",
+    "example_query": "How do I inspect a database?",
+    "keywords": ["inspect", "database", "get index", "sets", "matrices", "browse", "inspection"],
+    "snippets": [
+      "The inspection section is the fastest route once you already have a parsed database."
+    ],
+    "primary_href": "user_guide/inspection/basic_inspections.html",
+    "links": [
+      {
+        "label": "Basic inspections",
+        "href": "user_guide/inspection/basic_inspections.html",
+        "reason": "Browse regions, sectors, and basic database structure."
+      },
+      {
+        "label": "Compute matrices",
+        "href": "user_guide/inspection/compute_matrices.html",
+        "reason": "Move here when you need calculated matrices."
+      },
+      {
+        "label": "Inspection API reference",
+        "href": "reference/api_inspection_methods.html",
+        "reason": "Find method-level signatures for inspection calls."
+      }
+    ]
+  },
+  {
+    "id": "sut-to-iot",
+    "type": "workflow",
+    "title": "Convert a SUT to an IOT",
+    "summary": "Use the dedicated transformation notebook and the transformation API reference for SUT-to-IOT workflows.",
+    "answer": "The documented SUT-to-IOT path starts from the transformation notebook and can then be cross-checked in the API reference if you need exact method behaviour.",
+    "example_query": "How do I convert a SUT to IOT?",
+    "keywords": ["sut to iot", "convert sut", "transformation", "iot", "supply use"],
+    "snippets": [
+      "This is one of the core MARIO transformation workflows and already has a dedicated guide."
+    ],
+    "primary_href": "user_guide/transformations/sut_to_iot.html",
+    "links": [
+      {
+        "label": "SUT-to-IOT workflow",
+        "href": "user_guide/transformations/sut_to_iot.html",
+        "reason": "Step-by-step notebook-backed guide."
+      },
+      {
+        "label": "Transformation API reference",
+        "href": "reference/api_transformation_methods.html",
+        "reason": "Method signatures and docstring behaviour."
+      }
+    ]
+  },
+  {
+    "id": "calc-all",
+    "type": "fact",
+    "title": "Compute derived matrices",
+    "summary": "Use the matrix calculation guide when you need to run MARIO computations such as calc_all and related matrix workflows.",
+    "answer": "The matrix calculation notebook is the best entry point for computed matrices, while the calculation API reference explains method-level behaviour.",
+    "example_query": "How do I compute matrices?",
+    "keywords": ["calc all", "calc_all", "compute matrices", "calculate", "matrices", "linkages"],
+    "snippets": [
+      "Open the calculation guide first if you want the workflow, then the API reference if you need exact method signatures."
+    ],
+    "primary_href": "user_guide/inspection/compute_matrices.html",
+    "links": [
+      {
+        "label": "Compute matrices",
+        "href": "user_guide/inspection/compute_matrices.html",
+        "reason": "Guided workflow for common computations."
+      },
+      {
+        "label": "Calculation API reference",
+        "href": "reference/api_calculation_methods.html",
+        "reason": "Detailed API behaviour for calculation methods."
+      },
+      {
+        "label": "Linkages notebook",
+        "href": "user_guide/inspection/calc_linkages.html",
+        "reason": "Continue here for backward and forward linkages."
+      }
+    ]
+  },
+  {
+    "id": "export-results",
+    "type": "workflow",
+    "title": "Export MARIO results",
+    "summary": "Use the export guide for roundtrip workflows and the export API reference for exact output methods.",
+    "answer": "The export notebook documents roundtrip and output workflows, and the export API reference provides method-level detail when you need exact parameters.",
+    "example_query": "How do I export results?",
+    "keywords": ["export", "excel", "parquet", "txt", "roundtrip", "to_excel", "to_txt"],
+    "snippets": [
+      "Use the workflow guide when choosing an output path, then switch to the API reference for parameter-level questions."
+    ],
+    "primary_href": "user_guide/exporting/export_and_roundtrip.html",
+    "links": [
+      {
+        "label": "Export and roundtrip",
+        "href": "user_guide/exporting/export_and_roundtrip.html",
+        "reason": "Notebook-backed export workflow guide."
+      },
+      {
+        "label": "Export API reference",
+        "href": "reference/api_export_methods.html",
+        "reason": "Method signatures for export functions."
+      }
+    ]
+  },
+  {
+    "id": "api-reference",
+    "type": "fact",
+    "title": "Find a MARIO method",
+    "summary": "Use the API library to jump to methods by workflow area such as parsing, inspection, calculation, transformation, export, or settings.",
+    "answer": "The API library is organised by workflow purpose, so it is the right place to start when you know the kind of method you need but not the exact symbol name.",
+    "example_query": "Where is the API reference?",
+    "keywords": ["api", "method", "reference", "signature", "database method", "coremodel"],
+    "snippets": [
+      "Start with the API library page, then choose the category that matches your task."
+    ],
+    "primary_href": "reference/api_library.html",
+    "links": [
+      {
+        "label": "API library",
+        "href": "reference/api_library.html",
+        "reason": "Top-level index grouped by workflow."
+      },
+      {
+        "label": "Parsing API methods",
+        "href": "reference/api_parsing_methods.html",
+        "reason": "Jump here for parser functions and entry points."
+      },
+      {
+        "label": "Transformation API methods",
+        "href": "reference/api_transformation_methods.html",
+        "reason": "Jump here for transformation-related methods."
+      }
+    ]
+  }
+]
