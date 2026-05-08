@@ -14,12 +14,22 @@ import pandas as pd
 
 # ---------------------------------------------------------------- registry
 # Each entry is a dict with:
-#   match : substring (case-insensitive) matched against db.meta.source/name
+#   match : substring or tuple of substrings (case-insensitive, AND-matched)
+#           against db.meta.source / db.meta.name
 #   gwp   : {satellite-account label : GWP-100 factor}
 #   unit  : unit label used for the aggregated row (default "kg CO2eq")
+#
+# Profiles are evaluated in declaration order; the first matching profile
+# wins. Put the more specific profile (more substrings) first.
 GHG_PROFILES: Dict[str, dict] = {
-    "exiobase": {
-        "match": "exiobase",
+    # ---------------- EXIOBASE 3.x monetary (IOT and SUT) ----------------
+    # Satellite labels look like "CO2 - combustion - air".  GWP-100 from
+    # IPCC AR6 (with feedbacks).  Only combustion CO2/CH4/N2O are listed
+    # here because those are the ones used in the JIE 2025 paper; extend
+    # the dict (or pass `gwp=...`) to include non-combustion / agriculture
+    # / waste rows.
+    "exiobase_monetary": {
+        "match": ("exiobase", "monetary"),
         "unit": "kg CO2eq",
         "gwp": {
             "CO2 - combustion - air": 1.0,
@@ -28,6 +38,21 @@ GHG_PROFILES: Dict[str, dict] = {
             "HFC - air": 1.0,
             "SF6 - air": 23506.0,
             "CO - combustion - air": 4.1,
+        },
+    },
+    # ---------------- EXIOBASE 3.3.18 hybrid (HSUT / HIOT) ---------------
+    # Hybrid uses the "Emiss" extension; row labels are decorated by the
+    # parser as "<substance> (<compartment> - Emiss)" and are expressed in
+    # mass units (typically kg).  Only the air compartment is included.
+    "exiobase_hybrid": {
+        "match": ("exiobase", "hybrid"),
+        "unit": "kg CO2eq",
+        "gwp": {
+            "CO2 (air - Emiss)": 1.0,
+            "CH4 (air - Emiss)": 29.7,
+            "N2O (air - Emiss)": 264.8,
+            "SF6 (air - Emiss)": 23506.0,
+            "CO (air - Emiss)": 4.1,
         },
     },
     "eora": {
@@ -53,8 +78,9 @@ GHG_PROFILES: Dict[str, dict] = {
     },
     "emerging": {
         "match": "emerging",
-        "unit": "kg CO2eq",
-        # EMERGING reports already-aggregated emissions per energy carrier.
+        "unit": "Mt CO2eq",
+        # EMERGING reports already-aggregated CO2eq emissions per energy
+        # carrier (see EMERGING_CO2_LABELS in mario.parsers.specs).
         "gwp": {
             "Coal": 1.0,
             "Natural gas": 1.0,
@@ -68,9 +94,14 @@ GHG_PROFILES: Dict[str, dict] = {
 }
 
 
-def register_ghg_profile(name: str, match: str, gwp: Dict[str, float],
+def register_ghg_profile(name: str, match, gwp: Dict[str, float],
                          unit: str = "kg CO2eq") -> None:
-    """Register or overwrite a GHG profile."""
+    """Register or overwrite a GHG profile.
+
+    ``match`` may be a single substring or a tuple of substrings; all
+    substrings must appear (case-insensitive) in the database metadata for
+    the profile to auto-detect.
+    """
     GHG_PROFILES[name] = {"match": match, "unit": unit, "gwp": dict(gwp)}
 
 
@@ -80,7 +111,9 @@ def _autodetect_profile(db) -> Optional[str]:
         str(getattr(db.meta, attr, "") or "") for attr in ("source", "name")
     ).lower()
     for name, spec in GHG_PROFILES.items():
-        if spec["match"].lower() in haystack:
+        match = spec["match"]
+        needles = (match,) if isinstance(match, str) else tuple(match)
+        if all(n.lower() in haystack for n in needles):
             return name
     return None
 
