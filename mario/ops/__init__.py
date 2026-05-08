@@ -7,6 +7,11 @@ from mario.ops.export import (
     export_database_to_pymrio,
     export_database_to_txt,
 )
+from mario.ops.ghg import (
+    GHG_PROFILES,
+    calc_ghg,
+    register_ghg_profile,
+)
 from mario.ops.transforms import (
     build_new_instance_from_scenario,
     transform_sut_to_iot,
@@ -14,12 +19,15 @@ from mario.ops.transforms import (
 )
 
 __all__ = [
+    "GHG_PROFILES",
     "aggregate_database",
     "build_new_instance_from_scenario",
+    "calc_ghg",
     "export_database_to_excel",
     "export_database_to_parquet",
     "export_database_to_pymrio",
     "export_database_to_txt",
+    "register_ghg_profile",
     "transform_sut_to_iot",
     "transform_to_chenery_moses",
 ]

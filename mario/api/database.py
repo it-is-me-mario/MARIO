@@ -89,6 +89,7 @@ from mario.api.core_model import CoreModel
 from mario.ops import (
     aggregate_database,
     build_new_instance_from_scenario,
+    calc_ghg as _calc_ghg,
     export_database_to_excel,
     export_database_to_parquet,
     export_database_to_pymrio,
@@ -2289,6 +2290,51 @@ class Database(CoreModel):
         """
 
         return build_database_frame(self, scenario=scenario)
+
+    def calc_ghg(
+        self,
+        profile=None,
+        gwp=None,
+        label="GHG",
+        unit=None,
+        inplace=False,
+    ):
+        """Aggregate satellite GHG accounts into a single ``label`` row.
+
+        Profile (and its default GWP factors) is auto-detected from the
+        parser metadata when ``profile=None``. Pass ``gwp={...}`` to use
+        custom factors. With ``inplace=True`` the resulting row is appended
+        to the baseline ``e``/``f`` matrices and to the satellite-account
+        units table.
+
+        Parameters
+        ----------
+        profile:
+            Registered profile name (see ``mario.ops.GHG_PROFILES``).
+        gwp:
+            Optional ``{satellite-account: factor}`` mapping that overrides
+            the profile defaults.
+        label:
+            Satellite-account label used for the aggregated row.
+        unit:
+            Unit string stored alongside the new row (defaults to the
+            profile unit, typically ``"kg CO2eq"``).
+        inplace:
+            When ``True`` mutate the database in place.
+
+        Returns
+        -------
+        (pandas.Series, pandas.Series)
+            Aggregated intensity (``e``) and footprint (``f``) row Series.
+        """
+        return _calc_ghg(
+            self,
+            profile=profile,
+            gwp=gwp,
+            label=label,
+            unit=unit,
+            inplace=inplace,
+        )
 
     def shock_calc(
         self,
