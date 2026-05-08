@@ -1631,6 +1631,73 @@ def test_add_sectors_split_can_generate_cvxlab_input_data(tmp_path, CoreDataIOT)
     assert {"factor_Name", "region_to_Name", "sector_to_Name", "values"}.issubset(vold.columns)
 
 
+def test_add_sectors_split_keeps_domestic_trade_selector_rows_zero(tmp_path, CoreDataIOT):
+    pytest.importorskip("cvxlab")
+    path = tmp_path / "split_iot_domestic_trade.xlsx"
+
+    CoreDataIOT.get_add_sectors_excel(
+        items=["Split sector"],
+        regions=[CoreDataIOT.get_index(_MASTER_INDEX["r"])[0]],
+        path=path,
+    )
+    split_setup = _configure_split_workbook(CoreDataIOT, path)
+
+    split_trades = pd.read_excel(path, sheet_name=ADD_SECTOR_SPLIT_TRADE_SHEET)
+    split_trades[ADD_SECTOR_SPLIT_TRADE_COLUMNS["region_to"]] = split_setup["region"]
+
+    with pd.ExcelWriter(path, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+        split_trades.to_excel(writer, sheet_name=ADD_SECTOR_SPLIT_TRADE_SHEET, index=False)
+
+    CoreDataIOT.add_sectors(
+        io=path,
+        inplace=False,
+        split=True,
+        cvxlab_path=tmp_path,
+        only_input_data_gen=True,
+    )
+
+    input_file = tmp_path / CVXLAB_SPLIT_MODEL_NAME / "input_data" / "input_data.xlsx"
+    trade_selector = pd.read_excel(input_file, sheet_name="Trade_selector")
+    same_region = trade_selector[
+        trade_selector["region_from_Name"] == trade_selector["region_to_Name"]
+    ]
+
+    assert not same_region.empty
+    assert same_region["values"].eq(0).all()
+
+
+def test_add_sectors_split_zeroes_sub_threshold_input_values(tmp_path, CoreDataIOT):
+    pytest.importorskip("cvxlab")
+    path = tmp_path / "split_iot_tiny_values.xlsx"
+
+    CoreDataIOT.get_add_sectors_excel(
+        items=["Split sector"],
+        regions=[CoreDataIOT.get_index(_MASTER_INDEX["r"])[0]],
+        path=path,
+    )
+    _configure_split_workbook(CoreDataIOT, path, quantity=1e-8)
+
+    CoreDataIOT.add_sectors(
+        io=path,
+        inplace=False,
+        split=True,
+        cvxlab_path=tmp_path,
+        only_input_data_gen=True,
+    )
+
+    input_file = tmp_path / CVXLAB_SPLIT_MODEL_NAME / "input_data" / "input_data.xlsx"
+    workbook = pd.ExcelFile(input_file)
+
+    for sheet_name in workbook.sheet_names:
+        if sheet_name in {"Trade_selector", "tol"}:
+            continue
+        df = pd.read_excel(input_file, sheet_name=sheet_name)
+        if "values" not in df.columns:
+            continue
+        small_positive_values = df.loc[(df["values"] > 0) & (df["values"] < 1e-6), "values"]
+        assert small_positive_values.empty, f"{sheet_name} still contains positive values below 1e-6"
+
+
 def test_add_sectors_split_old_tables_include_non_split_added_sectors(tmp_path):
     pytest.importorskip("cvxlab")
     database = load_test("IOT")

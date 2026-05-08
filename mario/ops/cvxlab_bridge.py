@@ -840,9 +840,20 @@ def _write_input_data(
             & (trade_sheet["region_to_Name"] == row["region_to_Name"])
             & (trade_sheet["sector_from_Name"] == row["sector_from_Name"])
         )
-        if row["sector_from_Name"] in split_sectors and mask.any():
+        if (
+            row["region_from_Name"] != row["region_to_Name"]
+            and row["sector_from_Name"] in split_sectors
+            and mask.any()
+        ):
             selector.at[idx, "values"] = 1
     input_data["Trade_selector"] = selector
+
+    # Mirror the historical split-model fix: drop tiny positive residues before
+    # writing CVXLab inputs, but keep tolerance and selector sheets intact.
+    for table_name, df in input_data.items():
+        if table_name in {"Trade_selector", "tol"} or "values" not in df.columns:
+            continue
+        input_data[table_name] = df.assign(values=df["values"].where(df["values"] >= 1e-6, 0))
 
     _write_input_data_files(
         dest_dir=dest_dir,
