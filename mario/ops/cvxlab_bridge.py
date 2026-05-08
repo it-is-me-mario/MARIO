@@ -140,9 +140,11 @@ def optimize_split_in_cvxlab(
         if solver_parameters is not None:
             run_model_signature = inspect.signature(model.run_model).parameters
             if "solver_settings" in run_model_signature:
-                run_kwargs["solver_settings"] = solver_parameters
-            else:
-                run_kwargs["mosek_params"] = solver_parameters
+                if solver == "MOSEK":
+                    run_kwargs["mosek_params"] = solver_parameters
+                else:
+                    run_kwargs["solver_settings"] = solver_parameters
+            
         model.run_model(**run_kwargs)
 
         if not _cvxlab_problem_solved_optimally(model.core.problem.problem_status):
@@ -830,6 +832,10 @@ def _write_input_data(
         table_name="Trade",
     )
     input_data["Trade"]["values"] = input_data["Trade"]["values"].fillna(0.0)
+    same_region = (
+        input_data["Trade"]["region_from_Name"] == input_data["Trade"]["region_to_Name"]
+    )
+    input_data["Trade"].loc[same_region, "values"] = 0.0
 
     selector = input_data["Trade_selector"].copy()
     selector["values"] = 0
@@ -1007,16 +1013,16 @@ def _split_parent_lookup(instance) -> dict[str, str]:
 def _parse_split_results(dest_dir: Path, flat_matrices: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     """Parse optimized split results back into MARIO matrices."""
 
-    conn = sqlite3.connect(dest_dir / cl.Defaults.ConfigFiles.SQLITE_DATABASE_FILE)
+    conn = sqlite3.connect(Path(dest_dir) / cl.Defaults.ConfigFiles.SQLITE_DATABASE_FILE)
     db_Z_supply = pd.read_sql_query("SELECT * FROM Z_supply", conn).drop(columns=["id"])
     db_Z_use = pd.read_sql_query("SELECT * FROM Z_use", conn).drop(columns=["id"])
     db_Y = pd.read_sql_query("SELECT * FROM Y", conn).drop(columns=["id"])
     db_V = pd.read_sql_query("SELECT * FROM V", conn).drop(columns=["id"])
     conn.close()
 
-    mapping = pd.read_excel(dest_dir / "mapping.xlsx", sheet_name=None, index_col=0)
+    mapping = pd.read_excel(Path(dest_dir) / "mapping.xlsx", sheet_name=None, index_col=0)
     set_map = dict(zip(mapping["sets"].index.to_list(), mapping["sets"]["cvxlab"]))
-    sets = pd.read_excel(dest_dir / cl.Defaults.ConfigFiles.SETS_FILE, sheet_name=None)
+    sets = pd.read_excel(Path(dest_dir) / cl.Defaults.ConfigFiles.SETS_FILE, sheet_name=None)
     sectors_df = sets["_set_SECTOR_FROM"]
     sectors_stable = sectors_df[sectors_df["sector_from_category"] == "stable"]["sector_from_Name"].tolist()
     sector_order = sectors_df["sector_from_Name"].tolist()
