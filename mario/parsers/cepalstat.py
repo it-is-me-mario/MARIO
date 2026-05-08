@@ -506,11 +506,14 @@ def detect_cepalstat_sut_layout(
     integrated_candidate: CEPALSTATLayout | None = None
     arg_candidate: CEPALSTATLayout | None = None
     chi_candidate: CEPALSTATLayout | None = None
+    integrated_years: set[int] = set()
+    arg_years: set[int] = set()
 
     for member in workbook_members:
         workbook = _open_excel_member(data_path, member)
         pairs = _scan_integrated_sut_sheet_pairs(workbook)
         if pairs:
+            integrated_years.update(int(item) for item in pairs)
             target_year = year
             if target_year is None:
                 if len(pairs) != 1:
@@ -554,6 +557,8 @@ def detect_cepalstat_sut_layout(
             use_sheet = next(sheet for sheet in workbook.sheet_names if sheet.lower().startswith("mat_ut"))
             resolved_year = year
             member_years = _member_years((member or data_path.name))
+            if member_years:
+                arg_years.update(member_years)
             if resolved_year is None:
                 resolved_year = member_years[0] if member_years else int(metadata["start"])
             if year is None or resolved_year == year:
@@ -600,6 +605,17 @@ def detect_cepalstat_sut_layout(
         return chi_candidate
     if integrated_candidate is not None:
         return integrated_candidate
+    if year is not None and integrated_years:
+        raise WrongInput(
+            "The selected CEPALSTAT SUT bundle does not contain year "
+            f"{year} in the supported integrated offer/use layout. "
+            f"Available years: {sorted(integrated_years)}."
+        )
+    if year is not None and arg_years:
+        raise WrongInput(
+            f"The selected CEPALSTAT SUT bundle does not contain year {year} in the supported Argentina layout. "
+            f"Available years: {sorted(arg_years)}."
+        )
 
     raise NotImplementable(
         "This CEPALSTAT SUT bundle is not in one of the currently supported layouts: "
@@ -863,13 +879,18 @@ def _find_row_by_pattern(frame: pd.DataFrame, pattern: str, *, column: int = 1) 
     raise WrongFormat(f"Could not find required row matching '{pattern}' in the CEPALSTAT workbook.")
 
 
-def _find_col(frame: pd.DataFrame, row: int, label: str, *, start: int = 0) -> int:
-    """Find one column by a normalized header label on a given row."""
-    target = label.strip().lower()
+def _find_col(frame: pd.DataFrame, row: int, label: str | tuple[str, ...], *, start: int = 0) -> int:
+    """Find one column by one or more normalized header labels on a given row."""
+    if isinstance(label, str):
+        labels = (label,)
+    else:
+        labels = label
+    targets = {item.strip().lower() for item in labels}
     for column in range(start, frame.shape[1]):
-        if _text(frame.iat[row, column]).strip().lower() == target:
+        if _text(frame.iat[row, column]).strip().lower() in targets:
             return column
-    raise WrongFormat(f"Could not find required column '{label}' in the CEPALSTAT workbook.")
+    expected = " / ".join(labels)
+    raise WrongFormat(f"Could not find required column '{expected}' in the CEPALSTAT workbook.")
 
 
 def _map_iot_factor_label(code: str, label: str) -> str | None:
@@ -1264,7 +1285,12 @@ def _parse_integrated_sut_layout(layout: CEPALSTATLayout):
     U.columns = activity_axis
 
     household_col = _find_col(use, 10, "Hogares", start=70)
-    npish_col = _find_col(use, 10, "Instituciones sin fines de lucro que sirven a los hogares", start=household_col + 1)
+    npish_col = _find_col(
+        use,
+        10,
+        ("Instituciones sin fines de lucro que sirven a los hogares", "ISFLH1"),
+        start=household_col + 1,
+    )
     government_col = None
     for column in range(npish_col + 1, use.shape[1]):
         if _text(use.iat[11, column]).strip().lower() == "total" and _text(use.iat[12, column]).strip().lower() == "a precios de comprador":

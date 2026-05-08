@@ -2,7 +2,9 @@ from pathlib import Path
 from zipfile import ZipFile
 
 import pandas as pd
+import pytest
 
+from mario.log_exc.exceptions import WrongInput
 from mario.parsers.entrypoints import parse_cepalstat
 
 
@@ -19,7 +21,7 @@ def _write_zip_with_workbooks(target: Path, workbooks: dict[str, dict[str, pd.Da
     return target
 
 
-def _cepalstat_sut_frames() -> tuple[pd.DataFrame, pd.DataFrame]:
+def _cepalstat_sut_frames(*, npish_label: str = "Instituciones sin fines de lucro que sirven a los hogares") -> tuple[pd.DataFrame, pd.DataFrame]:
     """Create one compact Colombia-style integrated SUT workbook."""
     offer = pd.DataFrame("", index=range(20), columns=range(80), dtype=object)
     offer.iat[2, 0] = "Cuadro oferta"
@@ -59,7 +61,7 @@ def _cepalstat_sut_frames() -> tuple[pd.DataFrame, pd.DataFrame]:
     use.iat[10, 70] = "Impuestos excepto IVA"
     use.iat[10, 78] = "Hogares"
     use.iat[11, 78] = "A precios de comprador"
-    use.iat[10, 86] = "Instituciones sin fines de lucro que sirven a los hogares"
+    use.iat[10, 86] = npish_label
     use.iat[11, 86] = "A precios de comprador"
     use.iat[10, 94] = "Gobierno"
     use.iat[11, 96] = "Total"
@@ -411,6 +413,31 @@ def test_parse_cepalstat_integrated_sut_bundle(tmp_path: Path):
     assert float(database.S.iloc[0, 0]) == 10.0
     assert float(database.U.iloc[1, 0]) == 2.0
     assert float(database.Va.iloc[0, 0]) == 7.0
+
+
+def test_parse_cepalstat_integrated_sut_bundle_accepts_npish_alias(tmp_path: Path):
+    offer, use = _cepalstat_sut_frames(npish_label="ISFLH1")
+    archive = _write_zip_with_workbooks(
+        tmp_path / "COL_COU_2020.zip",
+        {"COL_COU_2020_corrientes.xlsx": {"Cuadro 37": offer, "Cuadro 38": use}},
+    )
+
+    database = parse_cepalstat(str(archive), table="SUT", year=2020, calc_all=False)
+
+    assert database.table_type == "SUT"
+    assert database.meta.year == 2020
+    assert float(database.Yc.iloc[0, 1]) == 0.5
+
+
+def test_parse_cepalstat_integrated_sut_bundle_reports_missing_year(tmp_path: Path):
+    offer, use = _cepalstat_sut_frames()
+    archive = _write_zip_with_workbooks(
+        tmp_path / "COL_COU_2020.zip",
+        {"COL_COU_2020.xlsx": {"Cuadro 1": offer, "Cuadro 2": use}},
+    )
+
+    with pytest.raises(WrongInput, match=r"does not contain year 2021.*Available years: \[2020\]"):
+        parse_cepalstat(str(archive), table="SUT", year=2021, calc_all=False)
 
 
 def test_parse_cepalstat_direct_iot_bundle_prefers_requested_mode(tmp_path: Path):
