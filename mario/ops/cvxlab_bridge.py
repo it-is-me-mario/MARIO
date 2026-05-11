@@ -448,6 +448,13 @@ def _prepare_split_model_directory(*, main_dir_path, model_dir_name: str) -> Pat
     root = _normalize_main_dir_path(main_dir_path)
     dest_dir = root / model_dir_name
     if dest_dir.exists():
+        answer = input(
+            f"Directory '{dest_dir}' already exists. Overwrite? [y/N]: "
+        ).strip().lower()
+        if answer != "y":
+            raise WrongInput(
+                f"Aborted: directory '{dest_dir}' was not overwritten."
+            )
         shutil.rmtree(dest_dir, onerror=_handle_remove_readonly)
     dest_dir.mkdir(parents=True, exist_ok=True)
 
