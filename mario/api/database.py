@@ -1915,6 +1915,7 @@ class Database(CoreModel):
         solver_parameters=None,
         parent_name=None,
         parent_names=None,
+        residue=None,
     ):
         """Apply the add-sectors workbook to the selected scenario.
 
@@ -1966,6 +1967,11 @@ class Database(CoreModel):
             parent label. This is useful when you want the residual parent
             sector to be renamed after the split, for example
             ``{"Non metallic minerals": "Other non metallic minerals"}``.
+        residue:
+            Threshold for zeroing out small positive values in the CVXLab
+            input data. Values strictly below this threshold are set to zero
+            before writing the input files. When ``None`` (default), no
+            correction is applied.
 
         Notes
         -----
@@ -1982,7 +1988,7 @@ class Database(CoreModel):
                 scenario=scenario,
                 inplace=True,
                 split=split,
-            keep_all_split_steps=keep_all_split_steps,
+                keep_all_split_steps=keep_all_split_steps,
                 notes=notes,
                 ignore_warnings=ignore_warnings,
                 cvxlab_path=cvxlab_path,
@@ -1992,6 +1998,7 @@ class Database(CoreModel):
                 solver_parameters=solver_parameters,
                 parent_name=parent_name,
                 parent_names=parent_names,
+                residue=residue,
             )
             return new
 
@@ -2134,6 +2141,7 @@ class Database(CoreModel):
                     main_dir_path=cvxlab_path,
                     scenario_label=scenario,
                     input_data_files_type=input_data_files_type,
+                    residue=residue,
                 )
                 self.meta._add_history(
                     f"Database: CVXLab split input data generated in '{dest_dir}'."
@@ -2146,6 +2154,7 @@ class Database(CoreModel):
                     input_data_files_type=input_data_files_type,
                     solver=solver,
                     solver_parameters=solver_parameters,
+                    residue=residue,
                 )
                 split_cvxlab = {
                     _ENUM["Z"]: optimized.get(_ENUM["Z"], self.matrices[split_scenario][_ENUM["Z"]]),

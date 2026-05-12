@@ -45,6 +45,7 @@ def create_split_input_data(
     scenario_label: str,
     input_data_files_type: str = "xlsx",
     model_dir_name: str = CVXLAB_SPLIT_MODEL_NAME,
+    residue=None,
 ) -> Path:
     """Generate the CVXLab model directory and input data for split sectors."""
 
@@ -72,6 +73,7 @@ def create_split_input_data(
         flat_matrices=flat_matrices,
         scenario_label=scenario_label,
         input_data_files_type=input_data_files_type,
+        residue=residue,
     )
     return dest_dir
 
@@ -85,6 +87,7 @@ def optimize_split_in_cvxlab(
     solver=None,
     solver_parameters=None,
     model_dir_name: str = CVXLAB_SPLIT_MODEL_NAME,
+    residue=None,
 ) -> dict[str, pd.DataFrame]:
     """Run the split optimization in CVXLab and return optimized MARIO matrices."""
 
@@ -110,6 +113,7 @@ def optimize_split_in_cvxlab(
         flat_matrices=flat_matrices,
         scenario_label=scenario_label,
         input_data_files_type=input_data_files_type,
+        residue=residue,
     )
 
     solver = _resolve_split_solver(solver)
@@ -153,7 +157,7 @@ def optimize_split_in_cvxlab(
             )
 
         model.load_results_to_database(force_overwrite=True)
-    return _parse_split_results(dest_dir, flat_matrices)
+    return _parse_split_results(dest_dir, flat_matrices, residue=residue)
 
 
 def _resolve_split_solver(solver):
@@ -449,7 +453,7 @@ def _prepare_split_model_directory(*, main_dir_path, model_dir_name: str) -> Pat
     dest_dir = root / model_dir_name
     if dest_dir.exists():
         answer = input(
-            f"Directory '{dest_dir}' already exists. Overwrite? [y/N]: "
+            f"Directory '{dest_dir}' already exists. Overwrite? [y/n]: "
         ).strip().lower()
         if answer != "y":
             raise WrongInput(
@@ -756,6 +760,7 @@ def _write_input_data(
     flat_matrices: dict[str, pd.DataFrame],
     scenario_label: str,
     input_data_files_type: str,
+    residue=None,
 ) -> None:
     """Fill the blank CVXLab input data with MARIO split data."""
     split_scenario = f"split_{scenario_label}"
@@ -861,12 +866,13 @@ def _write_input_data(
             selector.at[idx, "values"] = 1
     input_data["Trade_selector"] = selector
 
-    # Mirror the historical split-model fix: drop tiny positive residues before
-    # writing CVXLab inputs, but keep tolerance and selector sheets intact.
-    for table_name, df in input_data.items():
-        if table_name in {"Trade_selector", "tol"} or "values" not in df.columns:
-            continue
-        input_data[table_name] = df.assign(values=df["values"].where(df["values"] >= 1e-6, 0))
+    #Remove values below the residue threshold, if specified.
+    if residue is not None:
+        threshold = float(residue)
+        for table_name, df in input_data.items():
+            if table_name in {"Trade_selector", "tol"} or "values" not in df.columns:
+                continue
+            input_data[table_name] = df.assign(values=df["values"].where(df["values"] >= threshold, 0))
 
     _write_input_data_files(
         dest_dir=dest_dir,
@@ -1017,7 +1023,7 @@ def _split_parent_lookup(instance) -> dict[str, str]:
     return mapping
 
 
-def _parse_split_results(dest_dir: Path, flat_matrices: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
+def _parse_split_results(dest_dir: Path, flat_matrices: dict[str, pd.DataFrame], residue=None) -> dict[str, pd.DataFrame]:
     """Parse optimized split results back into MARIO matrices."""
 
     conn = sqlite3.connect(Path(dest_dir) / cl.Defaults.ConfigFiles.SQLITE_DATABASE_FILE)
@@ -1026,6 +1032,14 @@ def _parse_split_results(dest_dir: Path, flat_matrices: dict[str, pd.DataFrame])
     db_Y = pd.read_sql_query("SELECT * FROM Y", conn).drop(columns=["id"])
     db_V = pd.read_sql_query("SELECT * FROM V", conn).drop(columns=["id"])
     conn.close()
+
+    #Remove values below the residue threshold, if specified.
+    if residue is not None:
+        threshold = float(residue)
+        db_Z_supply["values"] = db_Z_supply["values"].where(db_Z_supply["values"] >= threshold, 0)
+        db_Z_use["values"] = db_Z_use["values"].where(db_Z_use["values"] >= threshold, 0)
+        db_Y["values"] = db_Y["values"].where(db_Y["values"] >= threshold, 0)
+        db_V["values"] = db_V["values"].where(db_V["values"] >= threshold, 0)
 
     mapping = pd.read_excel(Path(dest_dir) / "mapping.xlsx", sheet_name=None, index_col=0)
     set_map = dict(zip(mapping["sets"].index.to_list(), mapping["sets"]["cvxlab"]))
