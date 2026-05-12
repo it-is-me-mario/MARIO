@@ -55,13 +55,43 @@ GHG_PROFILES: Dict[str, dict] = {
             "CO (air - Emiss)": 4.1,
         },
     },
+    # ---------------- EORA26 ---------------------------------------------
+    # EORA26 satellite labels look like
+    #   "I-GHG-<gas> emissions (Gg) - <sub-source>"
+    # with one row per (gas, sub-source). With ``match_mode='prefix'`` the
+    # GWP keys are interpreted as label prefixes and every matching row is
+    # weighted by the same factor (so all sub-sources for the same gas are
+    # summed together). GWP-100 factors from IPCC AR6 (with feedbacks).
+    # "CO2b" rows hold biogenic CO2 (GWP=0 by convention) and are skipped.
     "eora": {
         "match": "eora",
+        "match_mode": "prefix",
         "unit": "Gg CO2eq",
         "gwp": {
-            "CO2": 1.0,
-            "CH4": 29.7,
-            "N2O": 264.8,
+            "I-GHG-CO2 emissions": 1.0,
+            "I-GHG-CH4 emissions": 29.7,
+            "I-GHG-N2O emissions": 264.8,
+            "I-GHG-HFC23 emissions": 14600.0,
+            "I-GHG-HFC32 emissions": 771.0,
+            "I-GHG-HFC125 emissions": 3740.0,
+            "I-GHG-HFC134a emissions": 1530.0,
+            "I-GHG-HFC143a emissions": 5810.0,
+            "I-GHG-HFC152a emissions": 164.0,
+            "I-GHG-HFC227ea emissions": 3600.0,
+            "I-GHG-HFC236fa emissions": 8690.0,
+            "I-GHG-HFC245fa emissions": 962.0,
+            "I-GHG-HFC365mfc emissions": 914.0,
+            "I-GHG-HFC4310mee emissions": 1600.0,
+            "I-GHG-CF4 emissions": 7380.0,
+            "I-GHG-C2F6 emissions": 12400.0,
+            "I-GHG-C3F8 emissions": 9290.0,
+            "I-GHG-C4F10 emissions": 10000.0,
+            "I-GHG-C5F12 emissions": 9220.0,
+            "I-GHG-C6F14 emissions": 8620.0,
+            "I-GHG-C7F16 emissions": 8410.0,
+            "I-GHG-cC4F8 emissions": 10200.0,
+            "I-GHG-SF6 emissions": 23500.0,
+            "I-GHG-NF3 emissions": 17400.0,
         },
     },
     "gloria": {
@@ -95,14 +125,20 @@ GHG_PROFILES: Dict[str, dict] = {
 
 
 def register_ghg_profile(name: str, match, gwp: Dict[str, float],
-                         unit: str = "kg CO2eq") -> None:
+                         unit: str = "kg CO2eq",
+                         match_mode: str = "exact") -> None:
     """Register or overwrite a GHG profile.
 
     ``match`` may be a single substring or a tuple of substrings; all
     substrings must appear (case-insensitive) in the database metadata for
     the profile to auto-detect.
+
+    ``match_mode`` controls how ``gwp`` keys are matched against the
+    satellite-account index: ``'exact'`` (default) requires equality;
+    ``'prefix'`` weights every row whose label starts with the key.
     """
-    GHG_PROFILES[name] = {"match": match, "unit": unit, "gwp": dict(gwp)}
+    GHG_PROFILES[name] = {"match": match, "unit": unit, "gwp": dict(gwp),
+                          "match_mode": match_mode}
 
 
 def _autodetect_profile(db) -> Optional[str]:
@@ -119,9 +155,28 @@ def _autodetect_profile(db) -> Optional[str]:
 
 
 def _ghg_row(matrix: pd.DataFrame, gwp: Dict[str, float],
-             label: str) -> pd.Series:
+             label: str, match_mode: str = "exact") -> pd.Series:
     """Multiply each ghg row by its GWP and return their sum as a Series
-    indexed by ``matrix.columns`` and named ``label``."""
+    indexed by ``matrix.columns`` and named ``label``.
+
+    With ``match_mode='prefix'`` every row whose index label starts with a
+    gwp key is weighted by that key's factor (multiple rows per key allowed).
+    """
+    if match_mode == "prefix":
+        rows, weights = [], []
+        for prefix, factor in gwp.items():
+            mask = matrix.index.astype(str).str.startswith(prefix)
+            if mask.any():
+                rows.append(matrix.loc[mask])
+                weights.append(pd.Series(factor, index=matrix.index[mask]))
+        if not rows:
+            raise KeyError(
+                "None of the requested GHG accounts were found in the database."
+            )
+        sub = pd.concat(rows, axis=0)
+        w = pd.concat(weights, axis=0)
+        return sub.mul(w, axis=0).sum(axis=0).rename(label)
+
     available = [g for g in gwp if g in matrix.index]
     if not available:
         raise KeyError(
@@ -178,11 +233,14 @@ def calc_ghg(
         gwp = spec["gwp"]
         if unit is None:
             unit = spec.get("unit", "kg CO2eq")
-    elif unit is None:
-        unit = "kg CO2eq"
+        match_mode = spec.get("match_mode", "exact")
+    else:
+        if unit is None:
+            unit = "kg CO2eq"
+        match_mode = "exact"
 
-    e_row = _ghg_row(db.e, gwp, label)
-    f_row = _ghg_row(db.f, gwp, label)
+    e_row = _ghg_row(db.e, gwp, label, match_mode=match_mode)
+    f_row = _ghg_row(db.f, gwp, label, match_mode=match_mode)
 
     if inplace:
         db.matrices["baseline"]["e"] = pd.concat(

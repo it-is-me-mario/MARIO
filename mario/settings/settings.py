@@ -16,6 +16,8 @@ path = os.path.abspath(
     )
 )
 
+_SETTINGS_FILE_CACHE = {}
+
 CANONICAL_INDEX = {
     "r": "Region",
     "a": "Activity",
@@ -212,11 +214,33 @@ def _normalize_settings_payload(raw_settings):
     return normalized
 
 
-def _load_settings_file(path_to_yaml):
-    """Read and normalize one settings YAML file."""
-    with open(path_to_yaml, "r") as yml_file:
+def _load_settings_file(path_to_yaml, *, key=None):
+    """Read and normalize one settings YAML file, optionally returning one section."""
+    absolute_path = os.path.abspath(path_to_yaml)
+    stat = os.stat(absolute_path)
+    signature = (stat.st_mtime_ns, stat.st_size)
+    cached = _SETTINGS_FILE_CACHE.get(absolute_path)
+    if cached is not None and cached[0] == signature:
+        payload = cached[1]
+        if key is None:
+            return copy.deepcopy(payload)
+        return copy.deepcopy(payload[key])
+
+    with open(absolute_path, "r") as yml_file:
         file = yaml.safe_load(yml_file)
-    return _normalize_settings_payload(file)
+    normalized = _normalize_settings_payload(file)
+    _SETTINGS_FILE_CACHE[absolute_path] = (signature, copy.deepcopy(normalized))
+    if key is None:
+        return copy.deepcopy(normalized)
+    return copy.deepcopy(normalized[key])
+
+
+def _clear_settings_file_cache(path_to_yaml=None):
+    """Drop cached normalized settings for one path or for every path."""
+    if path_to_yaml is None:
+        _SETTINGS_FILE_CACHE.clear()
+        return
+    _SETTINGS_FILE_CACHE.pop(os.path.abspath(path_to_yaml), None)
 
 
 class Setting:
@@ -227,14 +251,14 @@ class Setting:
         self.setting = self._validate_dict(self.key, self.vars)
         self._check_duplicates()
 
-    def _read_yaml(self, path):
+    def _read_yaml(self, path, *, key=None):
         """Read a YAML file from disk and return its parsed object."""
-        return _load_settings_file(path)
+        return _load_settings_file(path, key=key)
 
     def _validate_dict(self, key, vars):
         """Load the requested settings section, falling back to packaged defaults."""
         try:
-            setting = self._read_yaml(f"{path}/settings.yaml")
+            setting = self._read_yaml(f"{path}/settings.yaml", key=key)
         except Exception:
             log_time(
                 logger=logger,
@@ -243,19 +267,7 @@ class Setting:
             )
             return _default_settings_payload()[key]
 
-        correct_setting = True
-        if key in setting:
-            setting = setting[key]
-
-            setting_vars = [*setting]
-
-            if set(setting_vars) != set(vars):
-                correct_setting = False
-
-        else:
-            correct_setting = False
-
-        if correct_setting:
+        if set(setting) == set(vars):
             return setting
 
         log_time(
@@ -441,8 +453,16 @@ def upload_settings(source):
 
     payload = _normalize_settings_payload(payload)
 
-    with open(f"{path}/settings.yaml", "w") as yaml_file:
+    settings_path = os.path.abspath(f"{path}/settings.yaml")
+
+    with open(settings_path, "w") as yaml_file:
         yaml.dump(payload, yaml_file, default_flow_style=False, sort_keys=False)
+    _clear_settings_file_cache(settings_path)
+    stat = os.stat(settings_path)
+    _SETTINGS_FILE_CACHE[settings_path] = (
+        (stat.st_mtime_ns, stat.st_size),
+        copy.deepcopy(payload),
+    )
 
     import mario.model.conventions as conventions
     import mario.model.labels as labels

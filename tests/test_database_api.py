@@ -574,6 +574,41 @@ def test_shock_calc_for_iot_accepts_flat_z_sheet(tmp_path):
     pdt.assert_frame_equal(shocked, expected)
 
 
+def test_shock_calc_accepts_excel_file_source_for_iot(tmp_path):
+    database = load_test("IOT")
+    path = tmp_path / "iot_excel_file_shock.xlsx"
+
+    base = database.z.copy()
+    row = base.index[0]
+    col = base.columns[0]
+    updated = 0.456789
+
+    z_sheet = pd.DataFrame(
+        [
+            {
+                SHOCK_FLAT_COLUMNS["region_from"]: row[0],
+                SHOCK_FLAT_COLUMNS["sector_from"]: row[2],
+                SHOCK_FLAT_COLUMNS["region_to"]: col[0],
+                SHOCK_FLAT_COLUMNS["sector_to"]: col[2],
+                SHOCK_FLAT_COLUMNS["type"]: "Update",
+                SHOCK_FLAT_COLUMNS["value"]: updated,
+            }
+        ]
+    )
+
+    with pd.ExcelWriter(path) as writer:
+        z_sheet.to_excel(writer, sheet_name=_ENUM.z, index=False)
+
+    with pd.ExcelFile(path) as workbook:
+        database.shock_calc(workbook, z=True, scenario="excel file shock")
+
+    expected = base.copy()
+    expected.loc[row, col] = updated
+    shocked = database.query(_ENUM.z, scenarios=["excel file shock"])
+
+    pdt.assert_frame_equal(shocked, expected)
+
+
 def test_shock_calc_for_sut_accepts_legacy_z_sheet(tmp_path):
     database = load_test("SUT")
     path = tmp_path / "sut_legacy_z_shock.xlsx"

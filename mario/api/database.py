@@ -2398,6 +2398,14 @@ class Database(CoreModel):
             index_dict=self.get_index("all"), table=self.table_type, clusters=clusters
         )
 
+        def _baseline_block(matrix_name):
+            if self.has_matrix(matrix_name):
+                return self.get_block_as_pandas(matrix_name)
+            return self.query(matrix_name)
+
+        opened_workbook = pd.ExcelFile(io) if isinstance(io, str) else None
+        shock_io = opened_workbook or io
+
         # have the test for the existence of the database
 
         note_u = []
@@ -2413,142 +2421,161 @@ class Database(CoreModel):
         note_Yc = []
         note_y = []
 
-        if self.table_type == "SUT":
-            ordering = SUTUnifiedOrderingPolicy.from_blocks(
-                U=self.query(_ENUM.U),
-                S=self.query(_ENUM.S),
-                Y=self.query(_ENUM.Y),
-            )
-
-            if z:
-                has_u_sheet = has_shock_sheet(io, _ENUM.u, str(_ENUM.u).lower())
-                has_s_sheet = has_shock_sheet(io, _ENUM.s, str(_ENUM.s).lower())
-                has_legacy_z_sheet = has_shock_sheet(
-                    io,
-                    _ENUM.z,
-                    _ENUM.Z,
-                    str(_ENUM.z).lower(),
-                    str(_ENUM.Z).upper(),
+        try:
+            if self.table_type == "SUT":
+                ordering = SUTUnifiedOrderingPolicy.from_blocks(
+                    U=_baseline_block(_ENUM.U),
+                    S=_baseline_block(_ENUM.S),
+                    Y=_baseline_block(_ENUM.Y),
                 )
 
-                if has_u_sheet or has_s_sheet:
-                    if has_legacy_z_sheet:
-                        log_time(
-                            logger,
-                            "Shock: SUT shock workbook contains both split 'u'/'s' sheets and legacy 'z'. The split sheets are used and the legacy 'z' sheet is ignored.",
-                            "warning",
-                        )
-                    u_c, note_u = U_shock(self, io, z, clusters, 1)
-                    s_c, note_s = S_shock(self, io, z, clusters, 1)
-                    z_c = concat_sut_z(u_c, s_c, ordering)
+                if z:
+                    has_u_sheet = has_shock_sheet(shock_io, _ENUM.u, str(_ENUM.u).lower())
+                    has_s_sheet = has_shock_sheet(shock_io, _ENUM.s, str(_ENUM.s).lower())
+                    has_legacy_z_sheet = has_shock_sheet(
+                        shock_io,
+                        _ENUM.z,
+                        _ENUM.Z,
+                        str(_ENUM.z).lower(),
+                        str(_ENUM.Z).upper(),
+                    )
+
+                    if has_u_sheet or has_s_sheet:
+                        if has_legacy_z_sheet:
+                            log_time(
+                                logger,
+                                "Shock: SUT shock workbook contains both split 'u'/'s' sheets and legacy 'z'. The split sheets are used and the legacy 'z' sheet is ignored.",
+                                "warning",
+                            )
+                        u_c, note_u = U_shock(self, shock_io, z, clusters, 1)
+                        s_c, note_s = S_shock(self, shock_io, z, clusters, 1)
+                        z_c = concat_sut_z(u_c, s_c, ordering)
+                    else:
+                        z_c, note_z = Z_shock(self, shock_io, z, clusters, 1)
                 else:
-                    z_c, note_z = Z_shock(self, io, z, clusters, 1)
-            else:
-                z_c, note_z = Z_shock(self, io, z, clusters, 1)
+                    z_c, note_z = Z_shock(self, shock_io, z, clusters, 1)
 
-            if v:
-                has_va_sheet = has_shock_sheet(io, "va")
-                has_vc_sheet = has_shock_sheet(io, "vc")
-                has_legacy_v_sheet = has_shock_sheet(io, _ENUM.v, str(_ENUM.v).lower(), str(_ENUM.v).upper())
+                if v:
+                    has_va_sheet = has_shock_sheet(shock_io, "va")
+                    has_vc_sheet = has_shock_sheet(shock_io, "vc")
+                    has_legacy_v_sheet = has_shock_sheet(
+                        shock_io,
+                        _ENUM.v,
+                        str(_ENUM.v).lower(),
+                        str(_ENUM.v).upper(),
+                    )
 
-                if has_va_sheet or has_vc_sheet:
-                    if has_legacy_v_sheet:
-                        log_time(
-                            logger,
-                            "Shock: SUT shock workbook contains both split 'va'/'vc' sheets and legacy 'v'. The split sheets are used and the legacy 'v' sheet is ignored.",
-                            "warning",
-                        )
-                    va_c, note_va = va_shock(self, io, v, clusters, 1)
-                    vc_c, note_vc = vc_shock(self, io, v, clusters, 1)
-                    v_c = concat_sut_v(va_c, vc_c, ordering)
+                    if has_va_sheet or has_vc_sheet:
+                        if has_legacy_v_sheet:
+                            log_time(
+                                logger,
+                                "Shock: SUT shock workbook contains both split 'va'/'vc' sheets and legacy 'v'. The split sheets are used and the legacy 'v' sheet is ignored.",
+                                "warning",
+                            )
+                        va_c, note_va = va_shock(self, shock_io, v, clusters, 1)
+                        vc_c, note_vc = vc_shock(self, shock_io, v, clusters, 1)
+                        v_c = concat_sut_v(va_c, vc_c, ordering)
+                    else:
+                        v_c, note_v = V_shock(self, shock_io, "V", v, clusters, 1)
                 else:
-                    v_c, note_v = V_shock(self, io, "V", v, clusters, 1)
-            else:
-                v_c, note_v = V_shock(self, io, "V", v, clusters, 1)
+                    v_c, note_v = V_shock(self, shock_io, "V", v, clusters, 1)
 
-            if e:
-                has_ea_sheet = has_shock_sheet(io, "ea")
-                has_ec_sheet = has_shock_sheet(io, "ec")
-                has_legacy_e_sheet = has_shock_sheet(io, _ENUM.e, str(_ENUM.e).lower(), str(_ENUM.e).upper())
+                if e:
+                    has_ea_sheet = has_shock_sheet(shock_io, "ea")
+                    has_ec_sheet = has_shock_sheet(shock_io, "ec")
+                    has_legacy_e_sheet = has_shock_sheet(
+                        shock_io,
+                        _ENUM.e,
+                        str(_ENUM.e).lower(),
+                        str(_ENUM.e).upper(),
+                    )
 
-                if has_ea_sheet or has_ec_sheet:
-                    if has_legacy_e_sheet:
-                        log_time(
-                            logger,
-                            "Shock: SUT shock workbook contains both split 'ea'/'ec' sheets and legacy 'e'. The split sheets are used and the legacy 'e' sheet is ignored.",
-                            "warning",
-                        )
-                    ea_c, note_ea = ea_shock(self, io, e, clusters, 1)
-                    ec_c, note_ec = ec_shock(self, io, e, clusters, 1)
-                    e_c = concat_sut_e(ea_c, ec_c, ordering)
+                    if has_ea_sheet or has_ec_sheet:
+                        if has_legacy_e_sheet:
+                            log_time(
+                                logger,
+                                "Shock: SUT shock workbook contains both split 'ea'/'ec' sheets and legacy 'e'. The split sheets are used and the legacy 'e' sheet is ignored.",
+                                "warning",
+                            )
+                        ea_c, note_ea = ea_shock(self, shock_io, e, clusters, 1)
+                        ec_c, note_ec = ec_shock(self, shock_io, e, clusters, 1)
+                        e_c = concat_sut_e(ea_c, ec_c, ordering)
+                    else:
+                        e_c, note_e = V_shock(self, shock_io, "E", e, clusters, 1)
                 else:
-                    e_c, note_e = V_shock(self, io, "E", e, clusters, 1)
-            else:
-                e_c, note_e = V_shock(self, io, "E", e, clusters, 1)
+                    e_c, note_e = V_shock(self, shock_io, "E", e, clusters, 1)
 
-            if Y:
-                has_Ya_sheet = has_shock_sheet(io, "Ya")
-                has_Yc_sheet = has_shock_sheet(io, "Yc")
-                has_legacy_Y_sheet = has_shock_sheet(io, _ENUM.Y, str(_ENUM.Y).lower(), str(_ENUM.Y).upper())
+                if Y:
+                    has_Ya_sheet = has_shock_sheet(shock_io, "Ya")
+                    has_Yc_sheet = has_shock_sheet(shock_io, "Yc")
+                    has_legacy_Y_sheet = has_shock_sheet(
+                        shock_io,
+                        _ENUM.Y,
+                        str(_ENUM.Y).lower(),
+                        str(_ENUM.Y).upper(),
+                    )
 
-                if has_Ya_sheet or has_Yc_sheet:
-                    if has_legacy_Y_sheet:
-                        log_time(
-                            logger,
-                            "Shock: SUT shock workbook contains both split 'Ya'/'Yc' sheets and legacy 'Y'. The split sheets are used and the legacy 'Y' sheet is ignored.",
-                            "warning",
-                        )
-                    Ya_c, note_Ya = Ya_shock(self, io, Y, clusters, 1)
-                    Yc_c, note_Yc = Yc_shock(self, io, Y, clusters, 1)
-                    Y_c = concat_sut_Y(Ya_c, Yc_c, ordering)
+                    if has_Ya_sheet or has_Yc_sheet:
+                        if has_legacy_Y_sheet:
+                            log_time(
+                                logger,
+                                "Shock: SUT shock workbook contains both split 'Ya'/'Yc' sheets and legacy 'Y'. The split sheets are used and the legacy 'Y' sheet is ignored.",
+                                "warning",
+                            )
+                        Ya_c, note_Ya = Ya_shock(self, shock_io, Y, clusters, 1)
+                        Yc_c, note_Yc = Yc_shock(self, shock_io, Y, clusters, 1)
+                        Y_c = concat_sut_Y(Ya_c, Yc_c, ordering)
+                    else:
+                        Y_c, note_y = Y_shock(self, shock_io, Y, clusters, 1)
                 else:
-                    Y_c, note_y = Y_shock(self, io, Y, clusters, 1)
+                    Y_c, note_y = Y_shock(self, shock_io, Y, clusters, 1)
             else:
-                Y_c, note_y = Y_shock(self, io, Y, clusters, 1)
-        else:
-            z_c, note_z = Z_shock(self, io, z, clusters, 1)
-            e_c, note_e = V_shock(self, io, "E", e, clusters, 1)
-            v_c, note_v = V_shock(self, io, "V", v, clusters, 1)
-            Y_c, note_y = Y_shock(self, io, Y, clusters, 1)
+                z_c, note_z = Z_shock(self, shock_io, z, clusters, 1)
+                e_c, note_e = V_shock(self, shock_io, "E", e, clusters, 1)
+                v_c, note_v = V_shock(self, shock_io, "V", v, clusters, 1)
+                Y_c, note_y = Y_shock(self, shock_io, Y, clusters, 1)
 
-        EY_c = self.query([_ENUM.EY])
-        VY_c = self.query([_ENUM.VY])
+            EY_c = _baseline_block(_ENUM.EY)
+            VY_c = _baseline_block(_ENUM.VY)
 
-        _results = calc_all_shock(z_c, e_c, v_c, Y_c)
-        _results["EY"] = EY_c
-        _results["VY"] = VY_c
+            _results = calc_all_shock(z_c, e_c, v_c, Y_c)
+            _results["EY"] = EY_c
+            _results["VY"] = VY_c
 
-        if scenario is None:
-            scenario = f"shock {self.__counter}"
-            self.__counter += 1
+            if scenario is None:
+                scenario = f"shock {self.__counter}"
+                self.__counter += 1
 
-        self.matrices[scenario] = _results
+            self.matrices[scenario] = _results
 
-        self.meta._add_history(f"Shocks implemented from {io} as follow:")
+            self.meta._add_history(f"Shocks implemented from {io} as follow:")
 
-        try:
-            for note in notes:
-                self.meta._add_history(f"Shock (Notes): {note}")
-        except:
-            pass
+            try:
+                for note in notes:
+                    self.meta._add_history(f"Shock (Notes): {note}")
+            except:
+                pass
 
-        for note in (
-            note_u
-            + note_s
-            + note_z
-            + note_va
-            + note_vc
-            + note_v
-            + note_ea
-            + note_ec
-            + note_e
-            + note_Ya
-            + note_Yc
-            + note_y
-        ):
-            self.meta._add_history(note)
+            for note in (
+                note_u
+                + note_s
+                + note_z
+                + note_va
+                + note_vc
+                + note_v
+                + note_ea
+                + note_ec
+                + note_e
+                + note_Ya
+                + note_Yc
+                + note_y
+            ):
+                self.meta._add_history(note)
 
-        log_time(logger, "Shock: Shock implemented successfully.")
+            log_time(logger, "Shock: Shock implemented successfully.")
+        finally:
+            if opened_workbook is not None:
+                opened_workbook.close()
 
     def get_shock_excel(
         self,

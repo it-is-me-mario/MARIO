@@ -141,6 +141,15 @@ def test_compute_settings_helpers():
     assert restored["compute"] == original["compute"]
 
 
+def test_download_settings_returns_independent_copies():
+    settings = download_settings(None)
+    settings["compute"]["compute_method"] = "solve"
+
+    fresh = download_settings(None)
+
+    assert fresh["compute"]["compute_method"] != "solve"
+
+
 def test_upload_settings_rejects_blocked_nomenclature_names():
     original = download_settings(None)
 

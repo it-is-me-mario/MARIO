@@ -4,14 +4,17 @@ module contains the shock functions
 """
 
 import copy
-import pandas as pd
 import logging
+import os
+
+import pandas as pd
 from mario.log_exc.logger import log_time
 from mario.log_exc.exceptions import WrongInput
 from mario.model.conventions import _MASTER_INDEX, _ENUM
 from mario.ops.workbook_specs import SHOCK_COLUMNS, SHOCK_FLAT_COLUMNS
 
 logger = logging.getLogger(__name__)
+_SHOCK_SHEET_CACHE = {}
 
 
 def _sheet_candidates(*sheet_names):
@@ -28,28 +31,52 @@ def _sheet_candidates(*sheet_names):
     return ordered
 
 
+def _available_shock_sheet_names(path):
+    """Return cached workbook sheet names for one shock source."""
+    if isinstance(path, pd.ExcelFile):
+        return tuple(path.sheet_names)
+
+    if isinstance(path, str):
+        absolute_path = os.path.abspath(path)
+        stat = os.stat(absolute_path)
+        signature = (stat.st_mtime_ns, stat.st_size)
+        cached = _SHOCK_SHEET_CACHE.get(absolute_path)
+        if cached is not None and cached[0] == signature:
+            return cached[1]
+
+        with pd.ExcelFile(absolute_path) as workbook:
+            sheet_names = tuple(workbook.sheet_names)
+        _SHOCK_SHEET_CACHE[absolute_path] = (signature, sheet_names)
+        return sheet_names
+
+    if hasattr(path, "keys"):
+        return tuple(str(key) for key in path.keys())
+
+    return ()
+
+
 def has_shock_sheet(path, *sheet_names):
     """Return whether a workbook-like source exposes one of the requested sheets."""
     candidates = _sheet_candidates(*sheet_names)
-    if isinstance(path, str):
-        with pd.ExcelFile(path) as workbook:
-            return any(name in workbook.sheet_names for name in candidates)
-
-    if hasattr(path, "keys"):
-        available = {str(key) for key in path.keys()}
-        return any(name in available for name in candidates)
-
-    return False
+    available = set(_available_shock_sheet_names(path))
+    return any(name in available for name in candidates)
 
 
 def _read_shock_sheet(path, *sheet_names):
     """Read the first available worksheet among the provided candidate names."""
     candidates = _sheet_candidates(*sheet_names)
     if isinstance(path, str):
-        with pd.ExcelFile(path) as workbook:
-            for name in candidates:
-                if name in workbook.sheet_names:
-                    return pd.read_excel(workbook, name, header=[0])
+        available = set(_available_shock_sheet_names(path))
+        for name in candidates:
+            if name in available:
+                return pd.read_excel(path, name, header=[0])
+        return None
+
+    if isinstance(path, pd.ExcelFile):
+        available = set(path.sheet_names)
+        for name in candidates:
+            if name in available:
+                return pd.read_excel(path, name, header=[0])
         return None
 
     if hasattr(path, "keys"):
@@ -95,6 +122,13 @@ def get_value(given):
     return given
 
 
+def _baseline_block(instance, matrix_name):
+    """Return one baseline block through direct storage when already materialized."""
+    if instance.has_matrix(matrix_name):
+        return instance.get_block_as_pandas(matrix_name)
+    return instance.query(matrix_name)
+
+
 def nan_check(dataframe, row, shock_type):
     """Detect whether a shock row is effectively incomplete."""
     dataframe = copy.deepcopy(dataframe)
@@ -109,139 +143,141 @@ def nan_check(dataframe, row, shock_type):
 
 def Y_shock(instance, path, boolean, clusters, to_baseline):
     """Apply final-demand shocks and return the updated block plus notes."""
-    Y = instance.query(_ENUM.Y)
+    Y = _baseline_block(instance, _ENUM.Y)
     notes = []
 
-    if boolean:
-        info = _read_shock_sheet(path, _ENUM.Y, _ENUM.Y.lower(), _ENUM.Y.upper())
-        if info is None:
-            return Y, notes
+    if not boolean:
+        return Y, notes
 
-        row_region = _shock_column(
+    info = _read_shock_sheet(path, _ENUM.Y, _ENUM.Y.lower(), _ENUM.Y.upper())
+    if info is None:
+        return Y, notes
+
+    row_region = _shock_column(
+        info,
+        SHOCK_FLAT_COLUMNS["region_from"],
+        SHOCK_COLUMNS["r_reg"],
+    )
+    if instance.meta.table == "IOT":
+        row_level = [_MASTER_INDEX["s"]] * len(info)
+        row_sector = _shock_column(
             info,
-            SHOCK_FLAT_COLUMNS["region_from"],
-            SHOCK_COLUMNS["r_reg"],
+            SHOCK_FLAT_COLUMNS["sector_from"],
+            SHOCK_COLUMNS["r_sec"],
         )
-        if instance.meta.table == "IOT":
-            row_level = [_MASTER_INDEX["s"]] * len(info)
-            row_sector = _shock_column(
-                info,
-                SHOCK_FLAT_COLUMNS["sector_from"],
-                SHOCK_COLUMNS["r_sec"],
+    else:
+        row_level = _shock_column(info, SHOCK_COLUMNS["r_lev"])
+        row_sector = _shock_column(info, SHOCK_COLUMNS["r_sec"])
+
+    column_region = _shock_column(
+        info,
+        SHOCK_FLAT_COLUMNS["region_to"],
+        SHOCK_COLUMNS["c_reg"],
+    )
+    demand_category = _shock_column(
+        info,
+        SHOCK_FLAT_COLUMNS["category_to"],
+        SHOCK_COLUMNS["d_cat"],
+    )
+    _type = _shock_column(info, SHOCK_FLAT_COLUMNS["type"], SHOCK_COLUMNS["type"])
+    value = _shock_column(info, SHOCK_FLAT_COLUMNS["value"], SHOCK_COLUMNS["value"])
+
+    if info.isnull().values.any():
+        raise WrongInput(
+            f"nans(empty cells) found in the shock file for '{_ENUM.Y}'."
+        )
+
+    for shock in range(len(info)):
+        if nan_check(info, shock, _type[shock]):
+            log_time(
+                logger,
+                "nan values found on row {} of {} shock sheet. No more shock is imported after row {}".format(
+                    shock, _ENUM.Y, shock
+                ),
+                "warning",
             )
+            break
+
+        # Performing a full shock on the inputs
+        row_region_ = check_replace_clusters(
+            userValue=row_region[shock],
+            dataValues=instance.get_index(_MASTER_INDEX["r"]),
+            clusters=clusters.get(_MASTER_INDEX["r"]),
+        )
+
+        row_level_ = check_replace_clusters(
+            userValue=row_level[shock],
+            dataValues=[_MASTER_INDEX["s"]]
+            if instance.meta.table == "IOT"
+            else [_MASTER_INDEX["a"], _MASTER_INDEX["c"]],
+            clusters=None,
+        )
+
+        row_sector_ = check_replace_clusters(
+            userValue=row_sector[shock],
+            dataValues=instance.get_index(row_level_),
+            clusters=clusters.get(row_level_),
+        )
+
+        column_region_ = check_replace_clusters(
+            userValue=column_region[shock],
+            dataValues=instance.get_index(_MASTER_INDEX["r"]),
+            clusters=clusters.get(_MASTER_INDEX["r"]),
+        )
+
+        demand_category_ = check_replace_clusters(
+            userValue=demand_category[shock],
+            dataValues=instance.get_index(_MASTER_INDEX["n"]),
+            clusters=clusters.get(_MASTER_INDEX["n"]),
+        )
+
+        if _type[shock] == "Absolute":
+            Y.loc[
+                (row_region_, row_level_, row_sector_),
+                (column_region_, _MASTER_INDEX["n"], demand_category_),
+            ] = (
+                Y.loc[
+                    (row_region_, row_level_, row_sector_),
+                    (column_region_, _MASTER_INDEX["n"], demand_category_),
+                ]
+                + value[shock]
+            )
+
+        elif _type[shock] == "Percentage":
+            Y.loc[
+                (row_region_, row_level_, row_sector_),
+                (column_region_, _MASTER_INDEX["n"], demand_category_),
+            ] = Y.loc[
+                (row_region_, row_level_, row_sector_),
+                (column_region_, _MASTER_INDEX["n"], demand_category_),
+            ] * (
+                1 + value[shock]
+            )
+
+        elif _type[shock] == "Update":
+            Y.loc[
+                (row_region_, row_level_, row_sector_),
+                (column_region_, _MASTER_INDEX["n"], demand_category_),
+            ] = value[shock]
+
         else:
-            row_level = _shock_column(info, SHOCK_COLUMNS["r_lev"])
-            row_sector = _shock_column(info, SHOCK_COLUMNS["r_sec"])
-
-        column_region = _shock_column(
-            info,
-            SHOCK_FLAT_COLUMNS["region_to"],
-            SHOCK_COLUMNS["c_reg"],
-        )
-        demand_category = _shock_column(
-            info,
-            SHOCK_FLAT_COLUMNS["category_to"],
-            SHOCK_COLUMNS["d_cat"],
-        )
-        _type = _shock_column(info, SHOCK_FLAT_COLUMNS["type"], SHOCK_COLUMNS["type"])
-        value = _shock_column(info, SHOCK_FLAT_COLUMNS["value"], SHOCK_COLUMNS["value"])
-
-        if info.isnull().values.any():
             raise WrongInput(
-                f"nans(empty cells) found in the shock file for '{_ENUM.Y}'."
+                "Acceptable values for type are Absolute, Percentage, and Update."
             )
 
-        for shock in range(len(info)):
-            if nan_check(info, shock, _type[shock]):
-                log_time(
-                    logger,
-                    "nan values found on row {} of {} shock sheet. No more shock is imported after row {}".format(
-                        shock, _ENUM.Y, shock
-                    ),
-                    "warning",
-                )
-                break
-
-            # Performing a full shock on the inputs
-            row_region_ = check_replace_clusters(
-                userValue=row_region[shock],
-                dataValues=instance.get_index(_MASTER_INDEX["r"]),
-                clusters=clusters.get(_MASTER_INDEX["r"]),
+        notes.append(
+            "Shock on Y implemented: row_region:{}, row_level:{}, "
+            "row_sector:{}, column_region:{}, demand_category: {}, "
+            "type: {}, value: {}.".format(
+                row_region_,
+                row_level_,
+                row_sector_,
+                column_region_,
+                demand_category_,
+                _type[shock],
+                value[shock],
             )
-
-            row_level_ = check_replace_clusters(
-                userValue=row_level[shock],
-                dataValues=[_MASTER_INDEX["s"]]
-                if instance.meta.table == "IOT"
-                else [_MASTER_INDEX["a"], _MASTER_INDEX["c"]],
-                clusters=None,
-            )
-
-            row_sector_ = check_replace_clusters(
-                userValue=row_sector[shock],
-                dataValues=instance.get_index(row_level_),
-                clusters=clusters.get(row_level_),
-            )
-
-            column_region_ = check_replace_clusters(
-                userValue=column_region[shock],
-                dataValues=instance.get_index(_MASTER_INDEX["r"]),
-                clusters=clusters.get(_MASTER_INDEX["r"]),
-            )
-
-            demand_category_ = check_replace_clusters(
-                userValue=demand_category[shock],
-                dataValues=instance.get_index(_MASTER_INDEX["n"]),
-                clusters=clusters.get(_MASTER_INDEX["n"]),
-            )
-
-            if _type[shock] == "Absolute":
-                Y.loc[
-                    (row_region_, row_level_, row_sector_),
-                    (column_region_, _MASTER_INDEX["n"], demand_category_),
-                ] = (
-                    Y.loc[
-                        (row_region_, row_level_, row_sector_),
-                        (column_region_, _MASTER_INDEX["n"], demand_category_),
-                    ]
-                    + value[shock]
-                )
-
-            elif _type[shock] == "Percentage":
-                Y.loc[
-                    (row_region_, row_level_, row_sector_),
-                    (column_region_, _MASTER_INDEX["n"], demand_category_),
-                ] = Y.loc[
-                    (row_region_, row_level_, row_sector_),
-                    (column_region_, _MASTER_INDEX["n"], demand_category_),
-                ] * (
-                    1 + value[shock]
-                )
-
-            elif _type[shock] == "Update":
-                Y.loc[
-                    (row_region_, row_level_, row_sector_),
-                    (column_region_, _MASTER_INDEX["n"], demand_category_),
-                ] = value[shock]
-
-            else:
-                raise WrongInput(
-                    "Acceptable values for type are Absolute, Percentage, and Update."
-                )
-
-            notes.append(
-                "Shock on Y implemented: row_region:{}, row_level:{}, "
-                "row_sector:{}, column_region:{}, demand_category: {}, "
-                "type: {}, value: {}.".format(
-                    row_region_,
-                    row_level_,
-                    row_sector_,
-                    column_region_,
-                    demand_category_,
-                    _type[shock],
-                    value[shock],
-                )
-            )
+        )
 
     return Y, notes
 
@@ -250,136 +286,138 @@ def V_shock(instance, path, matrix, boolean, clusters, to_baseline):
     """Apply value-added or extension shocks in coefficient space."""
     notes = []
     if matrix == "V":
-        v = instance.query(_ENUM.v)
-        V = instance.query(_ENUM.V)
-        X = instance.query(_ENUM.X)
+        coeff = _baseline_block(instance, _ENUM.v)
+        flow_matrix = _ENUM.V
         _id = "f"
 
     else:
-        v = instance.query(_ENUM.e)
-        V = instance.query(_ENUM.E)
-        X = instance.query(_ENUM.X)
+        coeff = _baseline_block(instance, _ENUM.e)
+        flow_matrix = _ENUM.E
         _id = "k"
 
     matrix = _ENUM[matrix]
 
-    if boolean:
-        info = _read_shock_sheet(path, matrix, matrix.lower(), matrix.upper())
-        if info is None:
-            return v, notes
+    if not boolean:
+        return coeff, notes
 
-        if info.isnull().values.any():
-            raise WrongInput(
-                f"nans(empty cells) found in the shock file for '{matrix}'."
-            )
+    flow = _baseline_block(instance, flow_matrix)
+    X = _baseline_block(instance, _ENUM.X)
+    info = _read_shock_sheet(path, matrix, matrix.lower(), matrix.upper())
+    if info is None:
+        return coeff, notes
 
-        from_column = (
-            SHOCK_FLAT_COLUMNS["factor_from"]
-            if matrix == _ENUM.v
-            else SHOCK_FLAT_COLUMNS["satellite_from"]
+    if info.isnull().values.any():
+        raise WrongInput(
+            f"nans(empty cells) found in the shock file for '{matrix}'."
         )
-        row_sector = _shock_column(info, from_column, SHOCK_COLUMNS["r_sec"])
-        column_region = _shock_column(
+
+    from_column = (
+        SHOCK_FLAT_COLUMNS["factor_from"]
+        if matrix == _ENUM.v
+        else SHOCK_FLAT_COLUMNS["satellite_from"]
+    )
+    row_sector = _shock_column(info, from_column, SHOCK_COLUMNS["r_sec"])
+    column_region = _shock_column(
+        info,
+        SHOCK_FLAT_COLUMNS["region_to"],
+        SHOCK_COLUMNS["c_reg"],
+    )
+    if instance.meta.table == "IOT":
+        column_level = [_MASTER_INDEX["s"]] * len(info)
+        column_sector = _shock_column(
             info,
-            SHOCK_FLAT_COLUMNS["region_to"],
-            SHOCK_COLUMNS["c_reg"],
+            SHOCK_FLAT_COLUMNS["sector_to"],
+            SHOCK_COLUMNS["c_sec"],
         )
-        if instance.meta.table == "IOT":
-            column_level = [_MASTER_INDEX["s"]] * len(info)
-            column_sector = _shock_column(
-                info,
-                SHOCK_FLAT_COLUMNS["sector_to"],
-                SHOCK_COLUMNS["c_sec"],
+    else:
+        column_level = _shock_column(info, SHOCK_COLUMNS["c_lev"])
+        column_sector = _shock_column(info, SHOCK_COLUMNS["c_sec"])
+    _type = _shock_column(info, SHOCK_FLAT_COLUMNS["type"], SHOCK_COLUMNS["type"])
+    value = _shock_column(info, SHOCK_FLAT_COLUMNS["value"], SHOCK_COLUMNS["value"])
+
+    for shock in range(len(info)):
+        if nan_check(info, shock, _type[shock]):
+            log_time(
+                logger,
+                "nan values found on row {} of {} shock sheet. No more shock is imported after row {}".format(
+                    shock, matrix, shock
+                ),
+                "warning",
             )
+            break
+
+        row_sector_ = check_replace_clusters(
+            userValue=row_sector[shock],
+            dataValues=instance.get_index(_MASTER_INDEX[_id]),
+            clusters=clusters.get(_MASTER_INDEX[_id]),
+        )
+
+        column_region_ = check_replace_clusters(
+            userValue=column_region[shock],
+            dataValues=instance.get_index(_MASTER_INDEX["r"]),
+            clusters=clusters.get(_MASTER_INDEX["r"]),
+        )
+
+        column_level_ = check_replace_clusters(
+            userValue=column_level[shock],
+            dataValues=[_MASTER_INDEX["s"]]
+            if instance.meta.table == "IOT"
+            else [_MASTER_INDEX["a"], _MASTER_INDEX["c"]],
+            clusters=None,
+        )
+
+        column_sector_ = check_replace_clusters(
+            userValue=column_sector[shock],
+            dataValues=instance.get_index(column_level_),
+            clusters=clusters.get(column_level_),
+        )
+
+        if _type[shock] == "Percentage":
+            coeff.loc[
+                row_sector_, (column_region_, column_level_, column_sector_)
+            ] = get_value(
+                coeff.loc[row_sector_, (column_region_, column_level_, column_sector_)]
+            ) * (
+                1 + value[shock]
+            )
+
+        elif _type[shock] == "Absolute":
+            coeff.loc[row_sector_, (column_region_, column_level_, column_sector_)] = (
+                get_value(
+                    flow.loc[
+                        row_sector_, (column_region_, column_level_, column_sector_)
+                    ]
+                )
+                + value[shock]
+            ) / get_value(
+                X.loc[(column_region_, column_level_, column_sector_), "production"]
+            )
+
+        elif _type[shock] == "Update":
+            coeff.loc[
+                row_sector_, (column_region_, column_level_, column_sector_)
+            ] = value[shock]
+
         else:
-            column_level = _shock_column(info, SHOCK_COLUMNS["c_lev"])
-            column_sector = _shock_column(info, SHOCK_COLUMNS["c_sec"])
-        _type = _shock_column(info, SHOCK_FLAT_COLUMNS["type"], SHOCK_COLUMNS["type"])
-        value = _shock_column(info, SHOCK_FLAT_COLUMNS["value"], SHOCK_COLUMNS["value"])
-
-        for shock in range(len(info)):
-            if nan_check(info, shock, _type[shock]):
-                log_time(
-                    logger,
-                    "nan values found on row {} of {} shock sheet. No more shock is imported after row {}".format(
-                        shock, matrix, shock
-                    ),
-                    "warning",
-                )
-                break
-
-            row_sector_ = check_replace_clusters(
-                userValue=row_sector[shock],
-                dataValues=instance.get_index(_MASTER_INDEX[_id]),
-                clusters=clusters.get(_MASTER_INDEX[_id]),
+            raise WrongInput(
+                "Acceptable values for type are Absolute, Percentage and Update"
             )
 
-            column_region_ = check_replace_clusters(
-                userValue=column_region[shock],
-                dataValues=instance.get_index(_MASTER_INDEX["r"]),
-                clusters=clusters.get(_MASTER_INDEX["r"]),
+        notes.append(
+            "Shock on {} implemented: row_sector:{}, column_region:{}, "
+            "column_level:{}, column_sector:{}, "
+            "type: {}, value: {}.".format(
+                matrix.lower(),
+                row_sector_,
+                column_region,
+                column_level,
+                column_sector,
+                _type[shock],
+                value[shock],
             )
+        )
 
-            column_level_ = check_replace_clusters(
-                userValue=column_level[shock],
-                dataValues=[_MASTER_INDEX["s"]]
-                if instance.meta.table == "IOT"
-                else [_MASTER_INDEX["a"], _MASTER_INDEX["c"]],
-                clusters=None,
-            )
-
-            column_sector_ = check_replace_clusters(
-                userValue=column_sector[shock],
-                dataValues=instance.get_index(column_level_),
-                clusters=clusters.get(column_level_),
-            )
-
-            if _type[shock] == "Percentage":
-                v.loc[
-                    row_sector_, (column_region_, column_level_, column_sector_)
-                ] = get_value(
-                    v.loc[row_sector_, (column_region_, column_level_, column_sector_)]
-                ) * (
-                    1 + value[shock]
-                )
-
-            elif _type[shock] == "Absolute":
-                v.loc[row_sector_, (column_region_, column_level_, column_sector_)] = (
-                    get_value(
-                        V.loc[
-                            row_sector_, (column_region_, column_level_, column_sector_)
-                        ]
-                    )
-                    + value[shock]
-                ) / get_value(
-                    X.loc[(column_region_, column_level_, column_sector_), "production"]
-                )
-
-            elif _type[shock] == "Update":
-                v.loc[
-                    row_sector_, (column_region_, column_level_, column_sector_)
-                ] = value[shock]
-
-            else:
-                raise WrongInput(
-                    "Acceptable values for type are Absolute, Percentage and Update"
-                )
-
-            notes.append(
-                "Shock on {} implemented: row_sector:{}, column_region:{}, "
-                "column_level:{}, column_sector:{}, "
-                "type: {}, value: {}.".format(
-                    matrix.lower(),
-                    row_sector_,
-                    column_region,
-                    column_level,
-                    column_sector,
-                    _type[shock],
-                    value[shock],
-                )
-            )
-
-    return v, notes
+    return coeff, notes
 
 
 def _split_intermediate_shock(
@@ -398,7 +436,7 @@ def _split_intermediate_shock(
 ):
     """Apply shocks to one split SUT coefficient block such as ``u`` or ``s``."""
     notes = []
-    coeff = instance.query(coefficient_matrix)
+    coeff = _baseline_block(instance, coefficient_matrix)
 
     if not boolean:
         return coeff, notes
@@ -407,8 +445,8 @@ def _split_intermediate_shock(
     if info is None:
         return coeff, notes
 
-    flow = instance.query(flow_matrix)
-    output = instance.query(output_matrix)
+    flow = _baseline_block(instance, flow_matrix)
+    output = _baseline_block(instance, output_matrix)
 
     if info.isnull().values.any():
         raise WrongInput(
@@ -556,7 +594,7 @@ def _split_final_demand_shock(
 ):
     """Apply shocks to one split SUT final-demand block such as ``Ya`` or ``Yc``."""
     notes = []
-    flow = instance.query(flow_matrix)
+    flow = _baseline_block(instance, flow_matrix)
 
     if not boolean:
         return flow, notes
@@ -679,7 +717,7 @@ def _split_factor_extension_shock(
 ):
     """Apply shocks to one split SUT coefficient block such as ``va`` or ``ec``."""
     notes = []
-    coeff = instance.query(coefficient_matrix)
+    coeff = _baseline_block(instance, coefficient_matrix)
 
     if not boolean:
         return coeff, notes
@@ -688,8 +726,8 @@ def _split_factor_extension_shock(
     if info is None:
         return coeff, notes
 
-    flow = instance.query(flow_matrix)
-    output = instance.query(output_matrix)
+    flow = _baseline_block(instance, flow_matrix)
+    output = _baseline_block(instance, output_matrix)
 
     if info.isnull().values.any():
         raise WrongInput(
@@ -830,139 +868,141 @@ def ec_shock(instance, path, boolean, clusters, to_baseline):
 
 def Z_shock(instance, path, boolean, clusters, to_baseline):
     """Apply shocks to the inter-industry coefficient matrix ``z``."""
-    z = instance.query(_ENUM.z)
+    z = _baseline_block(instance, _ENUM.z)
 
     notes = []
-    if boolean:
-        Z = instance.query(_ENUM.Z)
-        X = instance.query(_ENUM.X)
-        info = _read_shock_sheet(path, _ENUM.z, _ENUM.Z, str(_ENUM.z).lower(), str(_ENUM.Z).upper())
-        if info is None:
-            return z, notes
+    if not boolean:
+        return z, notes
 
-        row_region = _shock_column(info, SHOCK_FLAT_COLUMNS["region_from"], SHOCK_COLUMNS["r_reg"])
-        if instance.meta.table == "IOT":
-            row_level = [_MASTER_INDEX["s"]] * len(info)
-            row_sector = _shock_column(info, SHOCK_FLAT_COLUMNS["sector_from"], SHOCK_COLUMNS["r_sec"])
-            column_level = [_MASTER_INDEX["s"]] * len(info)
-            column_sector = _shock_column(info, SHOCK_FLAT_COLUMNS["sector_to"], SHOCK_COLUMNS["c_sec"])
+    Z = _baseline_block(instance, _ENUM.Z)
+    X = _baseline_block(instance, _ENUM.X)
+    info = _read_shock_sheet(path, _ENUM.z, _ENUM.Z, str(_ENUM.z).lower(), str(_ENUM.Z).upper())
+    if info is None:
+        return z, notes
+
+    row_region = _shock_column(info, SHOCK_FLAT_COLUMNS["region_from"], SHOCK_COLUMNS["r_reg"])
+    if instance.meta.table == "IOT":
+        row_level = [_MASTER_INDEX["s"]] * len(info)
+        row_sector = _shock_column(info, SHOCK_FLAT_COLUMNS["sector_from"], SHOCK_COLUMNS["r_sec"])
+        column_level = [_MASTER_INDEX["s"]] * len(info)
+        column_sector = _shock_column(info, SHOCK_FLAT_COLUMNS["sector_to"], SHOCK_COLUMNS["c_sec"])
+    else:
+        row_level = _shock_column(info, SHOCK_COLUMNS["r_lev"])
+        row_sector = _shock_column(info, SHOCK_COLUMNS["r_sec"])
+        column_level = _shock_column(info, SHOCK_COLUMNS["c_lev"])
+        column_sector = _shock_column(info, SHOCK_COLUMNS["c_sec"])
+    column_region = _shock_column(info, SHOCK_FLAT_COLUMNS["region_to"], SHOCK_COLUMNS["c_reg"])
+    _type = _shock_column(info, SHOCK_FLAT_COLUMNS["type"], SHOCK_COLUMNS["type"])
+    value = _shock_column(info, SHOCK_FLAT_COLUMNS["value"], SHOCK_COLUMNS["value"])
+
+    if info.isnull().values.any():
+        raise WrongInput(
+            f"nans(empty cells) found in the shock file for '{_ENUM.Z}'."
+        )
+
+    for shock in range(len(info)):
+        if nan_check(info, shock, _type[shock]):
+            log_time(
+                logger,
+                "nan values found on row {} of {} shock sheet. No more shock is imported after row {}".format(
+                    shock, _ENUM.Z, shock
+                ),
+                "warning",
+            )
+            break
+
+        # Performing a full shock on the inputs
+        row_region_ = check_replace_clusters(
+            userValue=row_region[shock],
+            dataValues=instance.get_index(_MASTER_INDEX["r"]),
+            clusters=clusters.get(_MASTER_INDEX["r"]),
+        )
+
+        row_level_ = check_replace_clusters(
+            userValue=row_level[shock],
+            dataValues=[_MASTER_INDEX["s"]]
+            if instance.meta.table == "IOT"
+            else [_MASTER_INDEX["a"], _MASTER_INDEX["c"]],
+            clusters=None,
+        )
+
+        row_sector_ = check_replace_clusters(
+            userValue=row_sector[shock],
+            dataValues=instance.get_index(row_level_),
+            clusters=clusters.get(row_level_),
+        )
+
+        column_region_ = check_replace_clusters(
+            userValue=column_region[shock],
+            dataValues=instance.get_index(_MASTER_INDEX["r"]),
+            clusters=clusters.get(_MASTER_INDEX["r"]),
+        )
+
+        column_level_ = check_replace_clusters(
+            userValue=column_level[shock],
+            dataValues=[_MASTER_INDEX["s"]]
+            if instance.meta.table == "IOT"
+            else [_MASTER_INDEX["a"], _MASTER_INDEX["c"]],
+            clusters=None,
+        )
+
+        column_sector_ = check_replace_clusters(
+            userValue=column_sector[shock],
+            dataValues=instance.get_index(column_level_),
+            clusters=clusters.get(column_level_),
+        )
+
+        if _type[shock] == "Percentage":
+            z.loc[
+                (row_region_, row_level_, row_sector_),
+                (column_region_, column_level_, column_sector_),
+            ] = z.loc[
+                (row_region_, row_level_, row_sector_),
+                (column_region_, column_level_, column_sector_),
+            ] * (
+                1 + value[shock]
+            )
+
+        elif _type[shock] == "Absolute":
+            z.loc[
+                (row_region_, row_level_, row_sector_),
+                (column_region_, column_level_, column_sector_),
+            ] = (
+                get_value(
+                    Z.loc[
+                        (row_region_, row_level_, row_sector_),
+                        (column_region_, column_level_, column_sector_),
+                    ]
+                )
+                + value[shock]
+            ) / get_value(
+                X.loc[(column_region_, column_level_, column_sector_), "production"]
+            )
+
+        elif _type[shock] == "Update":
+            z.loc[
+                (row_region_, row_level_, row_sector_),
+                (column_region_, column_level_, column_sector_),
+            ] = value[shock]
+
         else:
-            row_level = _shock_column(info, SHOCK_COLUMNS["r_lev"])
-            row_sector = _shock_column(info, SHOCK_COLUMNS["r_sec"])
-            column_level = _shock_column(info, SHOCK_COLUMNS["c_lev"])
-            column_sector = _shock_column(info, SHOCK_COLUMNS["c_sec"])
-        column_region = _shock_column(info, SHOCK_FLAT_COLUMNS["region_to"], SHOCK_COLUMNS["c_reg"])
-        _type = _shock_column(info, SHOCK_FLAT_COLUMNS["type"], SHOCK_COLUMNS["type"])
-        value = _shock_column(info, SHOCK_FLAT_COLUMNS["value"], SHOCK_COLUMNS["value"])
-
-        if info.isnull().values.any():
             raise WrongInput(
-                f"nans(empty cells) found in the shock file for '{_ENUM.Z}'."
+                "Acceptable values for type are Absolute, Percentage, and Update."
             )
 
-        for shock in range(len(info)):
-            if nan_check(info, shock, _type[shock]):
-                log_time(
-                    logger,
-                    "nan values found on row {} of {} shock sheet. No more shock is imported after row {}".format(
-                        shock, _ENUM.Z, shock
-                    ),
-                    "warning",
-                )
-                break
-
-            # Performing a full shock on the inputs
-            row_region_ = check_replace_clusters(
-                userValue=row_region[shock],
-                dataValues=instance.get_index(_MASTER_INDEX["r"]),
-                clusters=clusters.get(_MASTER_INDEX["r"]),
+        notes.append(
+            "Shock on z implemented: row_region_:{}, row_level_:{}, "
+            "row_sector_:{}, column_region_:{}, column_level_:{} "
+            "column_sector_:{}, type: {}, value: {}.".format(
+                row_region_,
+                row_level_,
+                row_sector_,
+                column_region_,
+                column_level_,
+                column_sector_,
+                _type[shock],
+                value[shock],
             )
-
-            row_level_ = check_replace_clusters(
-                userValue=row_level[shock],
-                dataValues=[_MASTER_INDEX["s"]]
-                if instance.meta.table == "IOT"
-                else [_MASTER_INDEX["a"], _MASTER_INDEX["c"]],
-                clusters=None,
-            )
-
-            row_sector_ = check_replace_clusters(
-                userValue=row_sector[shock],
-                dataValues=instance.get_index(row_level_),
-                clusters=clusters.get(row_level_),
-            )
-
-            column_region_ = check_replace_clusters(
-                userValue=column_region[shock],
-                dataValues=instance.get_index(_MASTER_INDEX["r"]),
-                clusters=clusters.get(_MASTER_INDEX["r"]),
-            )
-
-            column_level_ = check_replace_clusters(
-                userValue=column_level[shock],
-                dataValues=[_MASTER_INDEX["s"]]
-                if instance.meta.table == "IOT"
-                else [_MASTER_INDEX["a"], _MASTER_INDEX["c"]],
-                clusters=None,
-            )
-
-            column_sector_ = check_replace_clusters(
-                userValue=column_sector[shock],
-                dataValues=instance.get_index(column_level_),
-                clusters=clusters.get(column_level_),
-            )
-
-            if _type[shock] == "Percentage":
-                z.loc[
-                    (row_region_, row_level_, row_sector_),
-                    (column_region_, column_level_, column_sector_),
-                ] = z.loc[
-                    (row_region_, row_level_, row_sector_),
-                    (column_region_, column_level_, column_sector_),
-                ] * (
-                    1 + value[shock]
-                )
-
-            elif _type[shock] == "Absolute":
-                z.loc[
-                    (row_region_, row_level_, row_sector_),
-                    (column_region_, column_level_, column_sector_),
-                ] = (
-                    get_value(
-                        Z.loc[
-                            (row_region_, row_level_, row_sector_),
-                            (column_region_, column_level_, column_sector_),
-                        ]
-                    )
-                    + value[shock]
-                ) / get_value(
-                    X.loc[(column_region_, column_level_, column_sector_), "production"]
-                )
-
-            elif _type[shock] == "Update":
-                z.loc[
-                    (row_region_, row_level_, row_sector_),
-                    (column_region_, column_level_, column_sector_),
-                ] = value[shock]
-
-            else:
-                raise WrongInput(
-                    "Acceptable values for type are Absolute, Percentage, and Update."
-                )
-
-            notes.append(
-                "Shock on z implemented: row_region_:{}, row_level_:{}, "
-                "row_sector_:{}, column_region_:{}, column_level_:{} "
-                "column_sector_:{}, type: {}, value: {}.".format(
-                    row_region_,
-                    row_level_,
-                    row_sector_,
-                    column_region_,
-                    column_level_,
-                    column_sector_,
-                    _type[shock],
-                    value[shock],
-                )
-            )
+        )
 
     return z, notes
