@@ -46,6 +46,7 @@ from mario.ops.cvxlab_bridge import (
     create_split_input_data,
     optimize_split_in_cvxlab,
 )
+from mario.ops.balance import ras as ras_balance_matrix
 from mario.utils import (
     _manage_indeces,
     check_clusters,
@@ -330,6 +331,90 @@ class Database(CoreModel):
         """
 
         return build_new_instance_from_scenario(self, scenario)
+
+    def ras(
+        self,
+        target_rows,
+        target_cols,
+        scenario: str = "baseline",
+        inplace: bool = True,
+        calc_all: bool = True,
+        notes=None,
+        tol: float = 1e-8,
+        max_iter: int = 1000,
+    ):
+        """Balance the ``Z`` block of one IOT scenario with the RAS method.
+
+        Parameters
+        ----------
+        target_rows:
+            Desired row sums for the ``Z`` matrix.
+        target_cols:
+            Desired column sums for the ``Z`` matrix.
+        scenario:
+            Scenario whose ``Z`` block should be balanced.
+        inplace:
+            When ``True``, mutate the current database. When ``False``, return
+            a balanced copy.
+        calc_all:
+            When ``True``, recompute the standard dependent matrices after
+            replacing ``Z``.
+        notes:
+            Optional user notes appended to metadata history.
+        tol:
+            Absolute convergence tolerance passed to :func:`mario.ras`.
+        max_iter:
+            Maximum number of RAS iterations.
+
+        Returns
+        -------
+        Database | None
+            Balanced database when ``inplace=False``, otherwise ``None``.
+        """
+        if self.table_type != "IOT":
+            raise WrongInput("ras is only available for IOT databases.")
+
+        if not inplace:
+            new = self.copy()
+            new.ras(
+                target_rows=target_rows,
+                target_cols=target_cols,
+                scenario=scenario,
+                inplace=True,
+                calc_all=calc_all,
+                notes=notes,
+                tol=tol,
+                max_iter=max_iter,
+            )
+            return new
+
+        self._validate_scenario(scenario)
+
+        balanced_Z = ras_balance_matrix(
+            self._get_matrix(_ENUM.Z, scenario=scenario, auto_calc=True),
+            target_rows=target_rows,
+            target_cols=target_cols,
+            tol=tol,
+            max_iter=max_iter,
+        )
+
+        self.reset_to_flows(scenario=scenario)
+        self.set_block(_ENUM.Z, balanced_Z, scenario=scenario)
+
+        if calc_all:
+            self.calc_all(scenario=scenario)
+
+        log_time(logger, f"Database: {scenario} balanced with RAS.")
+        self.meta._add_history(
+            f"Database: scenario '{scenario}' balanced with RAS on Z "
+            f"(tol={tol}, max_iter={max_iter})."
+        )
+
+        if notes:
+            if isinstance(notes, str):
+                notes = [notes]
+            for note in notes:
+                self.meta._add_history(f"User note: {note}")
 
     def to_iot(
         self,

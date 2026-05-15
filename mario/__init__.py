@@ -88,6 +88,7 @@ from mario.compute.primitives import (
     calc_p,
     calc_p_from_z,
 )
+from mario.ops import ras
 from mario.log_exc.logger import set_log_verbosity
 from mario.model.builders import (
     MatrixBuilder,
