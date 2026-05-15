@@ -1035,6 +1035,7 @@ def _parse_split_results(dest_dir: Path, flat_matrices: dict[str, pd.DataFrame],
 
     #Remove values below the residue threshold, if specified.
     if residue is not None:
+        print(f"Applying residue threshold: {residue}")
         threshold = float(residue)
         db_Z_supply["values"] = db_Z_supply["values"].where(db_Z_supply["values"] >= threshold, 0)
         db_Z_use["values"] = db_Z_use["values"].where(db_Z_use["values"] >= threshold, 0)
