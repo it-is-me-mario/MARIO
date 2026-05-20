@@ -1878,6 +1878,7 @@ class Database(CoreModel):
         self.add_sectors_workbook_path = str(path)
         self.add_sectors_master = workbook.master_sheet
         self.regions_clusters = workbook.regions_clusters
+        self.factors_clusters = workbook.factors_clusters
         self.uncertainty_values = workbook.uncertainty_values
 
         if self.meta.table == "IOT":

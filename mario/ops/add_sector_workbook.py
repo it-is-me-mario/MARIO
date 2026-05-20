@@ -24,6 +24,7 @@ from mario.ops.add_sector_specs import (
     ADD_SECTOR_SPLIT_TRADE_COLUMNS,
     ADD_SECTOR_SPLIT_TRADE_SHEET,
     ADVANCED_ADD_SECTOR_DB_UNITS_SHEET,
+    ADVANCED_ADD_SECTOR_FACTORS_CLUSTERS_SHEET,
     ADVANCED_ADD_SECTOR_INVENTORY_SHEET_COLUMNS,
     ADVANCED_ADD_SECTOR_ITEMS_CLUSTERS_COLUMNS,
     ADVANCED_ADD_SECTOR_ITEMS_CLUSTERS_SHEET,
@@ -57,6 +58,7 @@ class AddSectorWorkbook:
     master_sheet: pd.DataFrame
     regions_clusters: dict[str, list[str]]
     item_clusters: dict[str, list[str]]
+    factors_clusters: dict[str, list[str]]
     uncertainty_values: dict[str, float]
     inventories_by_sheet: dict[str, pd.DataFrame]
     split_info: dict[str, pd.DataFrame] | None = None
@@ -356,6 +358,7 @@ def read_add_sector_workbook(
 
     sheets = _read_excel_workbook(path)
     item_clusters_sheet = ADVANCED_ADD_SECTOR_ITEMS_CLUSTERS_SHEET[table]
+    factors_clusters_sheet = ADVANCED_ADD_SECTOR_FACTORS_CLUSTERS_SHEET
 
     required = {
         ADVANCED_ADD_SECTOR_MASTER_SHEET,
@@ -381,6 +384,7 @@ def read_add_sector_workbook(
         sheets[ADVANCED_ADD_SECTOR_REGIONS_CLUSTERS_SHEET]
     )
     item_clusters = _parse_cluster_sheet(sheets[item_clusters_sheet])
+    factors_clusters = _parse_cluster_sheet(sheets.get(factors_clusters_sheet, pd.DataFrame()))
     uncertainty_values = _parse_uncertainties_sheet(
         sheets.get(ADVANCED_ADD_SECTOR_UNCERTAINTIES_SHEET)
     )
@@ -407,6 +411,7 @@ def read_add_sector_workbook(
         master_sheet=master_sheet,
         regions_clusters=regions_clusters,
         item_clusters=item_clusters,
+        factors_clusters=factors_clusters,
         uncertainty_values=uncertainty_values,
         inventories_by_sheet=inventories_by_sheet,
         split_info=split_info,

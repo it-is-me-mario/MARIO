@@ -70,6 +70,7 @@ class AddSectorEngine:
             self.sectors_clusters = getattr(instance, "sectors_clusters", {})
 
         self.regions_clusters = getattr(instance, "regions_clusters", {})
+        self.factors_clusters = getattr(instance, "factors_clusters", {})
 
         if ignore_warnings:
             warnings.filterwarnings("ignore")
@@ -289,7 +290,14 @@ class AddSectorEngine:
         region_position = self._matrix_row_region_position(matrix)
 
         if isinstance(labels, pd.MultiIndex):
-            mask = labels.get_level_values(terminal_position) == input_item
+            # Resolve item clusters (factors)
+            item_values = {input_item}
+            col_id = MI["f"] if matrix == _ENUM["v"] else MI["k"]
+            if col_id == MI["f"] and input_item in self.factors_clusters:
+                item_values = set(self.factors_clusters[input_item])
+
+            mask = labels.get_level_values(terminal_position).isin(item_values)
+
             if region_position is not None and not (row_region in (None, "") or pd.isna(row_region)):
                 if row_region in self.regions:
                     region_values = {row_region}
@@ -302,6 +310,9 @@ class AddSectorEngine:
 
         if not (row_region in (None, "") or pd.isna(row_region)) and self._matrix_row_region_position(matrix) is not None:
             raise ValueError(f"Unknown DB region {row_region}.")
+        if matrix == _ENUM["v"] and input_item in self.factors_clusters:
+            item_values = [v for v in self.factors_clusters[input_item] if v in labels]
+            return pd.Index(item_values, name=labels.name)
         if input_item not in labels:
             return pd.Index([], name=labels.name)
         return pd.Index([input_item], name=labels.name)
@@ -726,7 +737,20 @@ class AddSectorEngine:
             elif item == MI["k"]:
                 db_unit = self.units[MI["k"]].loc[inventory.loc[i, INC["db_item"]], "unit"]
             elif item == MI["f"]:
-                db_unit = self.units[MI["f"]].loc[inventory.loc[i, INC["db_item"]], "unit"]
+                if inventory.loc[i, INC["db_item"]] in self.units[MI["f"]].index:
+                    db_unit = self.units[MI["f"]].loc[inventory.loc[i, INC["db_item"]], "unit"]
+                elif inventory.loc[i, INC["db_item"]] in self.factors_clusters:
+                    db_units = [
+                        self.units[MI["f"]].loc[c, "unit"]
+                        for c in self.factors_clusters[inventory.loc[i, INC["db_item"]]]
+                    ]
+                    if len(set(db_units)) != 1:
+                        raise ValueError(
+                            f"Factors in cluster {inventory.loc[i, INC['db_item']]} have different units."
+                        )
+                    db_unit = db_units[0]
+                else:
+                    raise ValueError(f"Unknown factor {inventory.loc[i, INC['db_item']]}")
             else:
                 raise ValueError(f"{INC['item_type']} {item} is not recognized.")
 
@@ -1217,7 +1241,31 @@ class AddSectorEngine:
             if change_type == "Update":
                 if len(row_labels) == 0:
                     continue
-                weights = self._factor_sat_allocation_weights(matrix, row_labels, region_to, activity)
+                
+                if matrix == _ENUM["e"]:
+                    weights = self._factor_sat_allocation_weights(matrix, row_labels, region_to, activity)
+                else: 
+                    # Check if it is a cluster
+                    is_cluster =  (matrix == _ENUM["v"] and input_item in self.factors_clusters)
+                    
+                    if is_cluster:
+                        # Allocate based on existing structure of the cluster for sn columns
+                        # If it's a SUT, we use activities as marker
+                        marker = MI["a"] if self.table == SUT else MI["s"]
+                        cluster_data = self.matrices[matrix].loc[row_labels, (sn, marker, sn)]
+                        if isinstance(cluster_data, pd.Series):
+                            cluster_data = cluster_data.to_frame()
+                        
+                        row_sums = cluster_data.sum(axis=1)
+                        total_sum = row_sums.sum()
+                        
+                        if total_sum > 0:
+                            weights = row_sums / total_sum
+                        else:
+                            weights = pd.Series(1 / len(row_labels), index=row_labels)
+                    else:
+                        weights = self._factor_sat_allocation_weights(matrix, row_labels, region_to, activity)
+                    
                 slices[matrix].loc[row_labels, target_column] += weights * quantity
             elif change_type == "Percentage":
                 if len(row_labels) == 0:
