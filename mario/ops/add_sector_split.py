@@ -131,6 +131,8 @@ def prepare_split_support(instance) -> dict[str, pd.DataFrame]:
     trade_quantity_col = ADD_SECTOR_SPLIT_TRADE_COLUMNS["quantity"]
     trade_unit_col = ADD_SECTOR_SPLIT_TRADE_COLUMNS["unit"]
 
+    exclusion_region_from_col = ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS["region_from"]
+    exclusion_region_to_col = ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS["region_to"]
     exclusion_sector_from_col = ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS["sector_from"]
     exclusion_sector_to_col = ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS["sector_to"]
 
@@ -143,7 +145,7 @@ def prepare_split_support(instance) -> dict[str, pd.DataFrame]:
         how="any",
     )
     exclusion_sheet = exclusion_sheet.dropna(
-        subset=[exclusion_sector_from_col, exclusion_sector_to_col],
+        subset=[exclusion_region_from_col, exclusion_region_to_col, exclusion_sector_from_col, exclusion_sector_to_col],
         how="all",
     )
 

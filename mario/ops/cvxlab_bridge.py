@@ -16,6 +16,8 @@ import pandas as pd
 from mario.log_exc.exceptions import NotImplementable, WrongInput
 from mario.model.conventions import _ENUM, _MASTER_INDEX as MI
 from mario.ops.add_sector_specs import (
+    ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS,
+    ADD_SECTOR_SPLIT_EXCLUSION_SHEET,
     ADD_SECTOR_SPLIT_OUTPUT_COLUMNS,
     ADD_SECTOR_SPLIT_OUTPUT_SHEET,
     ADD_SECTOR_SPLIT_TOLERANCE_COLUMNS,
@@ -823,9 +825,11 @@ def _write_input_data(
         == input_data[identity_table]["sector_to_Name"]
     ).astype(int)
 
+    #Tolerances
     tolerance_sheet = instance.split_info[ADD_SECTOR_SPLIT_TOLERANCE_SHEET].copy()
     input_data["tol"]["values"] = tolerance_sheet[ADD_SECTOR_SPLIT_TOLERANCE_COLUMNS["value"]].astype(float).tolist()
 
+    #Trades
     trade_sheet = instance.split_info[ADD_SECTOR_SPLIT_TRADE_SHEET].copy()
     trade_sheet = trade_sheet.rename(
         columns={
@@ -866,11 +870,49 @@ def _write_input_data(
             selector.at[idx, "values"] = 1
     input_data["Trade_selector"] = selector
 
+    #Impose zeroes with specific exclusions
+    input_data["Zero_use_mask"]["values"] = 0
+    input_data["Zero_supply_mask"]["values"] = 0
+    exclusions = instance.split_info.get(ADD_SECTOR_SPLIT_EXCLUSION_SHEET)
+    if exclusions is not None and not exclusions.empty:
+        excl_region_from = ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS["region_from"]
+        excl_region_to = ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS["region_to"]
+        excl_sector_from = ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS["sector_from"]
+        excl_sector_to = ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS["sector_to"]
+
+        new_and_parent_sectors = set(getattr(instance, "to_split_sectors", []))
+        parent_map = _split_parent_lookup(instance)
+        new_and_parent_sectors |= {p for p in parent_map.values() if p}
+
+        for _, row in exclusions.iterrows():
+            rf, rt, sf, st = row[excl_region_from], row[excl_region_to], row[excl_sector_from], row[excl_sector_to]
+            use_mask = input_data["Zero_use_mask"]
+            supply_mask = input_data["Zero_supply_mask"]
+            # Zero_use_mask: all sectors from, new+parent sectors to
+            if st in new_and_parent_sectors:
+                mask = (
+                    (use_mask["region_from_Name"] == rf)
+                    & (use_mask["region_to_Name"] == rt)
+                    & (use_mask["sector_from_Name"] == sf)
+                    & (use_mask["sector_to_Name"] == st)
+                )
+                input_data["Zero_use_mask"].loc[mask, "values"] = 1
+            # Zero_supply_mask: new+parent sectors from, all sectors to
+            elif sf in new_and_parent_sectors:
+                mask = (
+                    (supply_mask["region_from_Name"] == rf)
+                    & (supply_mask["region_to_Name"] == rt)
+                    & (supply_mask["sector_from_Name"] == sf)
+                    & (supply_mask["sector_to_Name"] == st)
+                )
+                input_data["Zero_supply_mask"].loc[mask, "values"] = 1
+
+
     #Remove values below the residue threshold, if specified.
     if residue is not None:
         threshold = float(residue)
         for table_name, df in input_data.items():
-            if table_name in {"Trade_selector", "tol"} or "values" not in df.columns:
+            if table_name in {"Trade_selector", "tol", "Zero_use_mask", "Zero_supply_mask"} or "values" not in df.columns:
                 continue
             input_data[table_name] = df.assign(values=df["values"].where(df["values"] >= threshold, 0))
 
