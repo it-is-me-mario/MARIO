@@ -870,7 +870,7 @@ def _write_input_data(
             selector.at[idx, "values"] = 1
     input_data["Trade_selector"] = selector
 
-    #Impose zeroes with specific exclusions
+    #Impose zeroes in Z with specific exclusions
     input_data["Zero_use_mask"]["values"] = 0
     input_data["Zero_supply_mask"]["values"] = 0
     exclusions = instance.split_info.get(ADD_SECTOR_SPLIT_EXCLUSION_SHEET)
@@ -908,11 +908,94 @@ def _write_input_data(
                 input_data["Zero_supply_mask"].loc[mask, "values"] = 1
 
 
+    # Propagate structural zeros from Zold and Yold to the masks.
+    # Build a parent -> [children] reverse map from the child->parent lookup.
+    child_to_parent = _split_parent_lookup(instance)
+    parent_to_children: dict[str, list[str]] = {}
+    new_sectors_set = set(getattr(instance, "to_split_sectors", []))
+    for child, parent in child_to_parent.items():
+        if child in new_sectors_set and parent:
+            parent_to_children.setdefault(parent, []).append(child)
+
+    parent_sectors_set = set(parent_to_children.keys())
+
+    zold = input_data["Zold"]
+
+    # Zero_use_mask: columns whose sector_to is a parent sector.
+    parent_col_zeros = zold[
+        zold["sector_to_Name"].isin(parent_sectors_set) & (zold["values"] == 0)
+    ]
+    for _, zrow in parent_col_zeros.iterrows():
+        rf, rt, sf, st_parent = (
+            zrow["region_from_Name"],
+            zrow["region_to_Name"],
+            zrow["sector_from_Name"],
+            zrow["sector_to_Name"],
+        )
+        sectors_to_mask = [st_parent] + parent_to_children.get(st_parent, [])
+        use_mask = input_data["Zero_use_mask"]
+        mask = (
+            (use_mask["region_from_Name"] == rf)
+            & (use_mask["region_to_Name"] == rt)
+            & (use_mask["sector_from_Name"] == sf)
+            & (use_mask["sector_to_Name"].isin(sectors_to_mask))
+        )
+        input_data["Zero_use_mask"].loc[mask, "values"] = 1
+
+    # Zero_supply_mask: rows where sector_from is a parent sector and sector_to is stable.
+    all_sectors = set(instance.get_index(MI["s"]))
+    stable_sectors_set = all_sectors - new_sectors_set - parent_sectors_set
+    parent_row_zeros = zold[
+        zold["sector_from_Name"].isin(parent_sectors_set)
+        & zold["sector_to_Name"].isin(stable_sectors_set)
+        & (zold["values"] == 0)
+    ]
+    for _, zrow in parent_row_zeros.iterrows():
+        rf, rt, sf_parent, st = (
+            zrow["region_from_Name"],
+            zrow["region_to_Name"],
+            zrow["sector_from_Name"],
+            zrow["sector_to_Name"],
+        )
+        sectors_from_mask = [sf_parent] + parent_to_children.get(sf_parent, [])
+        supply_mask = input_data["Zero_supply_mask"]
+        mask = (
+            (supply_mask["region_from_Name"] == rf)
+            & (supply_mask["region_to_Name"] == rt)
+            & (supply_mask["sector_from_Name"].isin(sectors_from_mask))
+            & (supply_mask["sector_to_Name"] == st)
+        )
+        input_data["Zero_supply_mask"].loc[mask, "values"] = 1
+
+    #Imposing zeroes according to original Y
+    input_data["Zero_Y_mask"]["values"] = 0
+
+    yold = input_data["Yold"]
+    parent_yrow_zeros = yold[
+        yold["sector_from_Name"].isin(parent_sectors_set) & (yold["values"] == 0)
+    ]
+    for _, yrow in parent_yrow_zeros.iterrows():
+        rf, sf_parent, rt, cc = (
+            yrow["region_from_Name"],
+            yrow["sector_from_Name"],
+            yrow["region_to_Name"],
+            yrow["cons_categ_Name"],
+        )
+        sectors_from_mask = [sf_parent] + parent_to_children.get(sf_parent, [])
+        y_mask = input_data["Zero_Y_mask"]
+        mask = (
+            (y_mask["region_from_Name"] == rf)
+            & (y_mask["sector_from_Name"].isin(sectors_from_mask))
+            & (y_mask["region_to_Name"] == rt)
+            & (y_mask["cons_categ_Name"] == cc)
+        )
+        input_data["Zero_Y_mask"].loc[mask, "values"] = 1
+
     #Remove values below the residue threshold, if specified.
     if residue is not None:
         threshold = float(residue)
         for table_name, df in input_data.items():
-            if table_name in {"Trade_selector", "tol", "Zero_use_mask", "Zero_supply_mask"} or "values" not in df.columns:
+            if table_name in {"Trade_selector", "tol", "Zero_use_mask", "Zero_supply_mask", "Zero_Y_mask"} or "values" not in df.columns:
                 continue
             input_data[table_name] = df.assign(values=df["values"].where(df["values"] >= threshold, 0))
 
