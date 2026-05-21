@@ -18,6 +18,7 @@ from mario.utils import delete_duplicates, rename_index
 logger = logging.getLogger(__name__)
 
 EORA_SOURCE = "Eora website @ https://www.worldmrio.com/"
+EORA_MONETARY_UNIT = "current 000 US$"
 _SINGLE_REGION_FILE_RE = re.compile(
     r"^IO_(?P<country>[A-Z0-9]+)_(?P<year>\d{4})_(?P<price>BasicPrice|PurchasersPrice)\.txt$"
 )
@@ -275,7 +276,7 @@ def parse_eora_single_region(
         sector_items = _make_unique_labels(Z.index.get_level_values(3).tolist())
         native_axis = pd.MultiIndex.from_product([regions, [_MASTER_INDEX["s"]], sector_items])
         units = {
-            _MASTER_INDEX["s"]: pd.DataFrame("USD", index=sector_items, columns=["unit"]),
+            _MASTER_INDEX["s"]: pd.DataFrame(EORA_MONETARY_UNIT, index=sector_items, columns=["unit"]),
         }
         indexes = {
             "r": {"main": regions},
@@ -292,8 +293,8 @@ def parse_eora_single_region(
         commodity_axis = pd.MultiIndex.from_product([regions, [_MASTER_INDEX["c"]], commodity_items])
         native_axis = activity_axis.append(commodity_axis)
         units = {
-            _MASTER_INDEX["a"]: pd.DataFrame("USD", index=activity_items, columns=["unit"]),
-            _MASTER_INDEX["c"]: pd.DataFrame("USD", index=commodity_items, columns=["unit"]),
+            _MASTER_INDEX["a"]: pd.DataFrame(EORA_MONETARY_UNIT, index=activity_items, columns=["unit"]),
+            _MASTER_INDEX["c"]: pd.DataFrame(EORA_MONETARY_UNIT, index=commodity_items, columns=["unit"]),
         }
         indexes = {
             "r": {"main": regions},
@@ -384,7 +385,7 @@ def parse_eora_single_region(
 
     units.update(
         {
-            _MASTER_INDEX["f"]: pd.DataFrame("USD", index=V.index.tolist(), columns=["unit"]),
+            _MASTER_INDEX["f"]: pd.DataFrame(EORA_MONETARY_UNIT, index=V.index.tolist(), columns=["unit"]),
             _MASTER_INDEX["k"]: extension_units,
         }
     )
@@ -508,8 +509,8 @@ def parse_eora26(
         regions = delete_duplicates(Z.index.get_level_values(0).tolist())
 
     sector_items = [item for item in delete_duplicates(Z.index.get_level_values(2).tolist()) if item != "TOTAL"]
-    factor_units = pd.DataFrame("M EUR", index=V.index.tolist(), columns=["unit"])
-    sector_units = pd.DataFrame("M EUR", index=sector_items, columns=["unit"])
+    factor_units = pd.DataFrame(EORA_MONETARY_UNIT, index=V.index.tolist(), columns=["unit"])
+    sector_units = pd.DataFrame(EORA_MONETARY_UNIT, index=sector_items, columns=["unit"])
 
     matrices = {"baseline": {"Z": Z, "V": V, "E": E, "Y": Y, "EY": EY}}
     rename_index(matrices["baseline"])

@@ -150,6 +150,53 @@ def test_download_exiobase3_extracts_selected_archive(monkeypatch, tmp_path):
     assert (extracted / "satellite" / "F.txt").exists()
 
 
+def test_download_exiobase3_accepts_latest_iot_release(monkeypatch, tmp_path):
+    record_url = "https://zenodo.org/api/records/20051562"
+    archive = _zip_bytes(
+        {
+            "metadata.json": b"{}",
+            "Z.txt": b"",
+            "Y.txt": b"",
+            "unit.txt": b"",
+            "factor_inputs/F.txt": b"",
+            "factor_inputs/F_Y.txt": b"",
+            "factor_inputs/unit.txt": b"",
+            "employment/F.txt": b"",
+            "employment/F_Y.txt": b"",
+            "employment/unit.txt": b"",
+        }
+    )
+    record_payload = {
+        "files": [
+            {"key": "IOT_2024_pxp.zip", "links": {"self": "https://files/iot2024pxp"}},
+        ]
+    }
+
+    def fake_get(url, **kwargs):
+        if url == record_url:
+            return FakeResponse(json_data=record_payload)
+        if url == "https://files/iot2024pxp":
+            return FakeResponse(content=archive)
+        raise AssertionError(url)
+
+    monkeypatch.setattr("mario.download.requests.get", fake_get)
+
+    info = download_exiobase3(
+        tmp_path,
+        years=[2024],
+        system="pxp",
+        table="IOT",
+        version="3.10.2",
+    )
+
+    assert info["years"] == [2024]
+    assert info["archives"] == []
+    extracted = Path(info["extracted"][0])
+    assert extracted.name == "IOT_2024_pxp"
+    assert (extracted / "factor_inputs" / "F.txt").exists()
+    assert (extracted / "employment" / "F.txt").exists()
+
+
 def test_download_exiobase3_rejects_unavailable_sut_release(tmp_path):
     with pytest.raises(NotImplementable):
         download_exiobase3(

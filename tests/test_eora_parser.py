@@ -196,6 +196,9 @@ def test_parse_eora_single_region_directory_supports_country_selection(tmp_path)
         "Exports",
     ]
     assert database.get_index(_MASTER_INDEX["k"]) == ["Natural Gas (I-ENERGY)"]
+    assert database.units[_MASTER_INDEX["a"]].loc["Activity 1", "unit"] == "current 000 US$"
+    assert database.units[_MASTER_INDEX["c"]].loc["Commodity 1", "unit"] == "current 000 US$"
+    assert database.units[_MASTER_INDEX["f"]].loc["Compensation of employees D.1", "unit"] == "current 000 US$"
     assert database.units[_MASTER_INDEX["k"]].loc["Natural Gas (I-ENERGY)", "unit"] == "TJ"
     assert database.Z.shape == (2, 2)
     assert database.Y.shape == (2, 2)
@@ -236,6 +239,8 @@ def test_parse_eora26_reads_colocated_labels_and_normalizes_row(tmp_path):
         "Energy Usage (TJ) - Natural Gas",
         "I-GHG-CO2 emissions (Gg) - Public electricity and heat production",
     ]
+    assert database.units[_MASTER_INDEX["s"]].loc["Agriculture", "unit"] == "current 000 US$"
+    assert database.units[_MASTER_INDEX["f"]].loc["Compensation of employees D.1", "unit"] == "current 000 US$"
     assert database.units[_MASTER_INDEX["k"]].loc["Energy Usage (TJ) - Natural Gas", "unit"] == "TJ"
     assert database.Z.shape == (2, 2)
     assert database.Y.shape == (2, 3)
@@ -259,6 +264,8 @@ def test_parse_eora_single_region_detects_iot_when_only_commodities_are_present(
 
     assert database.table_type == "IOT"
     assert database.get_index(_MASTER_INDEX["s"]) == ["Sector 1", "Sector 2"]
+    assert database.units[_MASTER_INDEX["s"]].loc["Sector 1", "unit"] == "current 000 US$"
+    assert database.units[_MASTER_INDEX["f"]].loc["Compensation of employees D.1", "unit"] == "current 000 US$"
     assert database.Z.shape == (2, 2)
 
 

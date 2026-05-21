@@ -1018,8 +1018,8 @@ def download_exiobase3(
     table : str, optional
         one of ``"IOT"`` or ``"SUT"``.
     version : str, optional
-        one of ``"3.10.1"``, ``"3.9.6"``, ``"3.9.5"``, ``"3.9.4"`` or
-        ``"3.8.2"``.
+        one of ``"3.10.2"``, ``"3.10.1"``, ``"3.9.6"``, ``"3.9.5"``,
+        ``"3.9.4"`` or ``"3.8.2"``.
     extract : bool, optional
         when ``True`` extract zip archives after download.
     keep_archives : bool, optional
