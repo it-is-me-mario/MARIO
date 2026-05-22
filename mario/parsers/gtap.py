@@ -32,6 +32,20 @@ from mario.utils import delete_duplicates, rename_index, sort_frames
 logger = logging.getLogger(__name__)
 
 
+def _safe_reindex_records(frame: pd.DataFrame, index: pd.MultiIndex) -> pd.DataFrame:
+    """Reindex GDX record tables without forcing numeric fill values into string metadata.
+
+    ``gams.transfer`` can expose auxiliary string columns alongside the numeric
+    ``value`` column. Reindexing with ``fill_value=0`` writes the scalar into all
+    remaining columns, which raises on pandas string dtypes.
+    """
+    reindexed = frame.reindex(index)
+    for column in reindexed.columns:
+        if pd.api.types.is_numeric_dtype(reindexed[column]):
+            reindexed[column] = reindexed[column].fillna(0)
+    return reindexed
+
+
 @dataclass(frozen=True)
 class GTAPLayout:
     """Filesystem layout and metadata for one GTAP parse request."""
@@ -693,70 +707,49 @@ def _gdx_missing(df: pd.DataFrame, variant: str, indexes: dict[str, dict[str, li
     if variant == "dom":
         filled = (
             df.set_index(["COMM", "agt", "REG"])
-            .reindex(
-                pd.MultiIndex.from_product([sectors, agents, regions], names=["COMM", "agt", "REG"]),
-                fill_value=0,
-            )
-            .reset_index()
         )
+        filled = _safe_reindex_records(
+            filled,
+            pd.MultiIndex.from_product([sectors, agents, regions], names=["COMM", "agt", "REG"]),
+        ).reset_index()
         filled["DST"] = filled["REG"]
         filled = filled.rename(columns={"REG": "SRC"})
         return filled
 
     if variant == "general":
-        return (
-            df.set_index(["COMM", "agt", "SRC", "DST"])
-            .reindex(
-                pd.MultiIndex.from_product(
-                    [sectors, agents, regions, regions],
-                    names=["COMM", "agt", "SRC", "DST"],
-                ),
-                fill_value=0,
-            )
-            .reset_index()
-        )
+        return _safe_reindex_records(
+            df.set_index(["COMM", "agt", "SRC", "DST"]),
+            pd.MultiIndex.from_product(
+                [sectors, agents, regions, regions],
+                names=["COMM", "agt", "SRC", "DST"],
+            ),
+        ).reset_index()
 
     if variant == "tax":
-        return (
-            df.set_index(["COMM", "SRC", "DST"])
-            .reindex(
-                pd.MultiIndex.from_product([sectors, regions, regions], names=["COMM", "SRC", "DST"]),
-                fill_value=0,
-            )
-            .reset_index()
-        )
+        return _safe_reindex_records(
+            df.set_index(["COMM", "SRC", "DST"]),
+            pd.MultiIndex.from_product([sectors, regions, regions], names=["COMM", "SRC", "DST"]),
+        ).reset_index()
 
     if variant == "ptax":
         base = df.drop(columns=["acts"]).copy() if "acts" in df.columns else df.copy()
-        return (
-            base.set_index(["COMM", "REG"])
-            .reindex(
-                pd.MultiIndex.from_product([sectors, regions], names=["COMM", "REG"]),
-                fill_value=0,
-            )
-            .reset_index()
-        )
+        return _safe_reindex_records(
+            base.set_index(["COMM", "REG"]),
+            pd.MultiIndex.from_product([sectors, regions], names=["COMM", "REG"]),
+        ).reset_index()
 
     if variant == "single_region":
-        return (
-            df.set_index(["COMM", "agt", "DST"])
-            .reindex(
-                pd.MultiIndex.from_product([sectors, agents, regions], names=["COMM", "agt", "DST"]),
-                fill_value=0,
-            )
-            .reset_index()
-        )
+        return _safe_reindex_records(
+            df.set_index(["COMM", "agt", "DST"]),
+            pd.MultiIndex.from_product([sectors, agents, regions], names=["COMM", "agt", "DST"]),
+        ).reset_index()
 
     if variant == "single_region_va":
         endw = delete_duplicates(df["ENDW"].astype(str))
-        return (
-            df.set_index(["ENDW", "acts", "DST"])
-            .reindex(
-                pd.MultiIndex.from_product([endw, sectors, regions], names=["ENDW", "acts", "DST"]),
-                fill_value=0,
-            )
-            .reset_index()
-        )
+        return _safe_reindex_records(
+            df.set_index(["ENDW", "acts", "DST"]),
+            pd.MultiIndex.from_product([endw, sectors, regions], names=["ENDW", "acts", "DST"]),
+        ).reset_index()
 
     if variant in {"emi_dom", "emi_imp", "emi_proc", "ene_dom", "ene_imp"}:
         if variant.startswith("emi"):
@@ -813,7 +806,7 @@ def _gdx_missing(df: pd.DataFrame, variant: str, indexes: dict[str, dict[str, li
                 if getattr(indexed[column].dtype, "name", "") == "category":
                     indexed[column] = indexed[column].astype(str)
 
-            reindexed = indexed.reindex(index, fill_value=0).reset_index()
+            reindexed = _safe_reindex_records(indexed, index).reset_index()
             reindexed[group_col] = group_value
             frames.append(reindexed)
         return pd.concat(frames, ignore_index=True) if frames else df.copy()

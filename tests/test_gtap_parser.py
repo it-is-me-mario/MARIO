@@ -185,6 +185,16 @@ def _gtap_gdx_containers() -> dict[str, _FakeContainer]:
     }
 
 
+def _gtap_gdx_containers_with_string_metadata() -> dict[str, _FakeContainer]:
+    containers = _gtap_gdx_containers()
+    for container in containers.values():
+        for symbol in container.data.values():
+            records = symbol.records.copy()
+            records["element_text"] = pd.Series(["meta"] * len(records), dtype="string")
+            symbol.records = records
+    return containers
+
+
 def _write_gtap_csv_bundle(path: Path) -> None:
     frames = _gtap_csv_frames()
     mapping = {
@@ -227,6 +237,18 @@ def test_build_gtap_mrio_from_gdx_containers_returns_canonical_blocks():
     assert float(base["VY"].loc["ITAX_REG_SEC"].iloc[0]) == 1.1
     assert "E_P_CO2_REG_SEC" in indeces["k"]["main"]
     assert units[_MASTER_INDEX["k"]].loc["ENE_dms_coal", "unit"] == "M toe"
+
+
+def test_build_gtap_mrio_from_gdx_containers_tolerates_string_metadata_columns():
+    matrices, indeces, units = build_gtap_mrio_from_gdx_containers(
+        _gtap_gdx_containers_with_string_metadata()
+    )
+    base = matrices["baseline"]
+
+    assert set(base) == {"Z", "Y", "V", "VY", "E", "EY"}
+    assert float(base["Z"].iloc[0, 0]) == 11.0
+    assert indeces["s"]["main"] == ["SEC"]
+    assert units[_MASTER_INDEX["f"]].loc["VAAD_REG_LAB", "unit"] == "M USD"
 
 
 def test_detect_gtap_layout_prefers_csv_when_both_bundles_exist(tmp_path):
