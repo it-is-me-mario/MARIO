@@ -49,6 +49,7 @@ from mario.parsers.eurostat_sdmx import (
 from mario.parsers.figaro import parse_figaro_iot, parse_figaro_sut
 from mario.parsers.gloria import (
     detect_gloria_layout,
+    gloria_resource_signature,
     parse_gloria_sut,
     _normalize_satellite_request as _normalize_gloria_satellites,
     _select_gloria_satellites,
@@ -117,14 +118,7 @@ def _gloria_cache_signature(layout, *, regions, satellites, dtype):
     for candidate in [layout.T_path, layout.Y_path, layout.V_path, layout.TQ_path, layout.YQ_path]:
         if candidate is None:
             continue
-        stats = candidate.stat()
-        file_inputs.append(
-            {
-                "path": str(candidate),
-                "size": stats.st_size,
-                "mtime_ns": stats.st_mtime_ns,
-            }
-        )
+        file_inputs.append(gloria_resource_signature(candidate))
 
     payload = {
         "version": _GLORIA_CACHE_VERSION,

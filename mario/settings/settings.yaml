@@ -85,7 +85,7 @@ nomenclature:
   s: s
   S: S
 compute:
-  compute_method: inverse
+  compute_method: auto
   linear_solver: scipy
   linear_strategy: auto
   auto_w_memory_fraction: 0.25

@@ -693,6 +693,14 @@ def X_inverse(X):
 
 def linkages_calculation(cut_diag, matrices, multi_mode, normalized):
     """Return backward and forward linkage indicators."""
+    def _safe_ratio(numerator, denominator):
+        ratio = numerator.astype(float).div(denominator.astype(float))
+        return ratio.where(denominator.astype(float) != 0)
+
+    def _safe_share(part, whole):
+        share = part.astype(float).div(whole.astype(float))
+        return share.where(whole.astype(float) != 0)
+
     if cut_diag:
         for value in matrices.values():
             for position in range(min(value.shape)):
@@ -745,6 +753,23 @@ def linkages_calculation(cut_diag, matrices, multi_mode, normalized):
                 - matrices[_ENUM.z].T.loc[index, index[0]].sum().sum()
             )
 
+        base_totals = {
+            "Total Forward": links[("Total Forward", "Local")] + links[("Total Forward", "Foreign")],
+            "Total Backward": links[("Total Backward", "Local")] + links[("Total Backward", "Foreign")],
+            "Direct Forward": links[("Direct Forward", "Local")] + links[("Direct Forward", "Foreign")],
+            "Direct Backward": links[("Direct Backward", "Local")] + links[("Direct Backward", "Foreign")],
+        }
+
+        share_columns = {}
+        for measure, total in base_totals.items():
+            share_columns[(measure, "Local Share")] = _safe_share(links[(measure, "Local")], total)
+            share_columns[(measure, "Foreign Share")] = _safe_share(
+                links[(measure, "Foreign")], total
+            )
+
+        share_frame = pd.DataFrame(share_columns, index=links.index)
+        links = pd.concat([links, share_frame], axis=1)
+
         if normalized:
             log_time(
                 logger,
@@ -762,6 +787,12 @@ def linkages_calculation(cut_diag, matrices, multi_mode, normalized):
         backward_total.columns = ["Total Backward"]
         forward_direct.columns = ["Direct Forward"]
         backward_direct.columns = ["Direct Backward"]
+        forward_amplification = _safe_ratio(forward_total.iloc[:, 0], forward_direct.iloc[:, 0]).to_frame(
+            "Forward Amplification"
+        )
+        backward_amplification = _safe_ratio(
+            backward_total.iloc[:, 0], backward_direct.iloc[:, 0]
+        ).to_frame("Backward Amplification")
 
         if normalized:
             forward_total.iloc[:, 0] = forward_total.iloc[:, 0] / np.average(
@@ -778,7 +809,14 @@ def linkages_calculation(cut_diag, matrices, multi_mode, normalized):
             )
 
         links = pd.concat(
-            [forward_total, backward_total, forward_direct, backward_direct],
+            [
+                forward_total,
+                backward_total,
+                forward_direct,
+                backward_direct,
+                forward_amplification,
+                backward_amplification,
+            ],
             axis=1,
         )
 

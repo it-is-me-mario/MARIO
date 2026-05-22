@@ -3,8 +3,10 @@ from copy import deepcopy
 
 import pandas as pd
 import pandas.testing as pdt
+import pytest
 
 from mario.clusters.coverage import build_region_aggregation_index
+from mario.log_exc.exceptions import WrongInput
 from mario.log_exc.logger import set_log_verbosity
 from mario.compute.ordering import SUTUnifiedOrderingPolicy
 from mario.compute.primitives import calc_w, calc_z
@@ -157,11 +159,60 @@ def test_calc_linkages_supports_sut_specific_ghosh_blocks():
         "Total Backward",
         "Direct Forward",
         "Direct Backward",
+        "Forward Amplification",
+        "Backward Amplification",
     ]
     assert len(linkages) == len(database.query(_ENUM.z))
     assert {"bu", "bs", "gcc", "gca", "gac", "gaa"}.issubset(set(database["baseline"]))
     assert _ENUM.b not in database["baseline"]
     assert _ENUM.g not in database["baseline"]
+
+
+def test_calc_linkages_adds_amplification_ratios_in_single_mode():
+    database = load_test("IOT")
+
+    linkages = database.calc_linkages(multi_mode=False, normalized=False)
+
+    expected_forward = linkages["Total Forward"] / linkages["Direct Forward"]
+    expected_backward = linkages["Total Backward"] / linkages["Direct Backward"]
+
+    pdt.assert_series_equal(
+        linkages["Forward Amplification"],
+        expected_forward,
+        check_names=False,
+    )
+    pdt.assert_series_equal(
+        linkages["Backward Amplification"],
+        expected_backward,
+        check_names=False,
+    )
+
+
+def test_calc_linkages_adds_local_and_foreign_shares_in_multi_mode():
+    database = load_test("IOT")
+
+    linkages = database.calc_linkages(multi_mode=True, normalized=False)
+
+    assert ("Total Forward", "Local Share") in linkages.columns
+    assert ("Total Forward", "Foreign Share") in linkages.columns
+    assert ("Direct Backward", "Local Share") in linkages.columns
+    assert ("Direct Backward", "Foreign Share") in linkages.columns
+
+    for measure in [
+        "Total Forward",
+        "Total Backward",
+        "Direct Forward",
+        "Direct Backward",
+    ]:
+        total_share = linkages[(measure, "Local Share")] + linkages[(measure, "Foreign Share")]
+        nonzero_mask = (
+            linkages[(measure, "Local")] + linkages[(measure, "Foreign")]
+        ) != 0
+        pdt.assert_series_equal(
+            total_share.loc[nonzero_mask],
+            pd.Series(1.0, index=total_share.loc[nonzero_mask].index),
+            check_names=False,
+        )
 
 
 def test_calc_linkages_avoids_incompatible_dtype_warnings():
@@ -174,6 +225,366 @@ def test_calc_linkages_avoids_incompatible_dtype_warnings():
 
     assert all(dtype.kind == "f" for dtype in multi_region.dtypes)
     assert all(dtype.kind == "f" for dtype in normalized.dtypes)
+
+
+def test_calc_trades_iot_aggregates_intermediate_and_final_by_default():
+    database = load_test("IOT")
+
+    trades = database.calc_trades("Agriculture")
+
+    expected_intermediate = (
+        database.Z.loc[(slice(None), slice(None), "Agriculture"), :]
+        .T.groupby(level=0, sort=False)
+        .sum()
+        .T.groupby(level=0, sort=False)
+        .sum()
+    )
+    expected_final = (
+        database.Y.loc[(slice(None), slice(None), "Agriculture"), :]
+        .T.groupby(level=0, sort=False)
+        .sum()
+        .T.groupby(level=0, sort=False)
+        .sum()
+    )
+    expected = expected_intermediate + expected_final
+
+    pdt.assert_frame_equal(trades, expected)
+
+
+def test_calc_trades_sut_uses_u_and_yc_blocks():
+    database = load_test("SUT")
+
+    trades = database.calc_trades("Goods")
+
+    expected_intermediate = (
+        database.U.loc[(slice(None), slice(None), "Goods"), :]
+        .T.groupby(level=0, sort=False)
+        .sum()
+        .T.groupby(level=0, sort=False)
+        .sum()
+    )
+    expected_final = (
+        database.Yc.loc[(slice(None), slice(None), "Goods"), :]
+        .T.groupby(level=0, sort=False)
+        .sum()
+        .T.groupby(level=0, sort=False)
+        .sum()
+    )
+    expected = expected_intermediate + expected_final
+
+    pdt.assert_frame_equal(trades, expected)
+
+
+def test_calc_trades_can_keep_intermediate_and_final_components_separate():
+    database = load_test("IOT")
+
+    trades = database.calc_trades("Agriculture", aggregate=False)
+
+    expected_intermediate = (
+        database.Z.loc[(slice(None), slice(None), "Agriculture"), :]
+        .T.groupby(level=0, sort=False)
+        .sum()
+        .T.groupby(level=0, sort=False)
+        .sum()
+    )
+    expected_final = (
+        database.Y.loc[(slice(None), slice(None), "Agriculture"), :]
+        .T.groupby(level=0, sort=False)
+        .sum()
+        .T.groupby(level=0, sort=False)
+        .sum()
+    )
+    expected = pd.concat(
+        {"Intermediate": expected_intermediate, "Final": expected_final},
+        axis=1,
+    )
+
+    pdt.assert_frame_equal(trades, expected)
+
+
+def test_calc_trades_can_add_row_and_column_totals():
+    database = load_test("IOT")
+
+    trades = database.calc_trades("Agriculture", total=True)
+
+    assert "Total" in trades.index
+    assert "Total" in trades.columns
+    pdt.assert_series_equal(
+        trades.loc["Total", trades.columns[:-1]],
+        trades.iloc[:-1, :-1].sum(axis=0),
+        check_names=False,
+    )
+    pdt.assert_series_equal(
+        trades.loc[trades.index[:-1], "Total"],
+        trades.iloc[:-1, :-1].sum(axis=1),
+        check_names=False,
+    )
+
+
+def test_calc_trades_can_show_a_heatmap():
+    database = load_test("IOT")
+
+    trades = database.calc_trades(
+        "Agriculture",
+        aggregate=False,
+        show_plot=True,
+        path=False,
+        auto_open=False,
+    )
+
+    assert isinstance(trades, pd.DataFrame)
+
+
+def test_calc_trades_can_show_an_aggregated_heatmap():
+    database = load_test("IOT")
+
+    trades = database.calc_trades(
+        "Agriculture",
+        show_plot=True,
+        path=False,
+        auto_open=False,
+    )
+
+    assert isinstance(trades, pd.DataFrame)
+    assert trades.columns.nlevels == 1
+
+
+def test_calc_trades_displays_plot_inline_but_returns_only_matrix(monkeypatch):
+    database = load_test("IOT")
+
+    displayed = {"called": False}
+
+    class DummyFigure:
+        data = [object()]
+
+        def show(self):
+            displayed["called"] = True
+
+    def fake_plot(*args, **kwargs):
+        return DummyFigure()
+
+    monkeypatch.setattr("mario.api.database.run_from_jupyter", lambda: True)
+    monkeypatch.setattr(database, "plot", fake_plot)
+
+    trades = database.calc_trades("Agriculture", show_plot=True, path=False, auto_open=False)
+
+    assert isinstance(trades, pd.DataFrame)
+    assert displayed["called"] is True
+
+
+def test_calc_trades_saves_html_via_figure_write_html(monkeypatch, tmp_path):
+    database = load_test("IOT")
+
+    captured = {"plot_path": None, "saved_path": None, "auto_open": None}
+
+    class DummyFigure:
+        def write_html(self, path, auto_open=False):
+            captured["saved_path"] = path
+            captured["auto_open"] = auto_open
+
+        def show(self):
+            return None
+
+    def fake_plot(*args, **kwargs):
+        captured["plot_path"] = kwargs.get("path")
+        return DummyFigure()
+
+    monkeypatch.setattr(database, "plot", fake_plot)
+
+    output_path = tmp_path / "trades.html"
+    trades = database.calc_trades(
+        "Agriculture",
+        show_plot=True,
+        save_plot=str(output_path),
+        auto_open=False,
+    )
+
+    assert isinstance(trades, pd.DataFrame)
+    assert captured["plot_path"] is False
+    assert captured["saved_path"] == str(output_path)
+    assert captured["auto_open"] is False
+
+
+def test_calc_trades_saves_images_via_write_image(monkeypatch, tmp_path):
+    database = load_test("IOT")
+
+    captured = {"saved_path": None}
+
+    class DummyFigure:
+        def write_html(self, path, auto_open=False):
+            raise AssertionError("write_html should not be used for .png output")
+
+        def write_image(self, path):
+            captured["saved_path"] = path
+
+        def show(self):
+            return None
+
+    def fake_plot(*args, **kwargs):
+        return DummyFigure()
+
+    monkeypatch.setattr(database, "plot", fake_plot)
+
+    output_path = tmp_path / "trades.png"
+    trades = database.calc_trades(
+        "Agriculture",
+        save_plot=str(output_path),
+        auto_open=False,
+    )
+
+    assert isinstance(trades, pd.DataFrame)
+    assert captured["saved_path"] == str(output_path)
+
+
+def test_calc_trades_save_plot_suppresses_inline_display(monkeypatch, tmp_path):
+    database = load_test("IOT")
+
+    displayed = {"called": False}
+
+    class DummyFigure:
+        def write_html(self, path, auto_open=False):
+            return None
+
+        def show(self):
+            displayed["called"] = True
+
+    def fake_plot(*args, **kwargs):
+        return DummyFigure()
+
+    monkeypatch.setattr("mario.api.database.run_from_jupyter", lambda: True)
+    monkeypatch.setattr(database, "plot", fake_plot)
+
+    trades = database.calc_trades(
+        "Agriculture",
+        show_plot=True,
+        save_plot=str(tmp_path / "trades.html"),
+        auto_open=False,
+    )
+
+    assert isinstance(trades, pd.DataFrame)
+    assert displayed["called"] is False
+
+
+def test_calc_trades_save_plot_disables_auto_open_even_when_default(monkeypatch, tmp_path):
+    database = load_test("IOT")
+
+    captured = {"auto_open": None, "shown": False}
+
+    class DummyFigure:
+        def write_html(self, path, auto_open=False):
+            captured["auto_open"] = auto_open
+
+        def show(self):
+            captured["shown"] = True
+
+    def fake_plot(*args, **kwargs):
+        return DummyFigure()
+
+    monkeypatch.setattr("mario.api.database.run_from_jupyter", lambda: True)
+    monkeypatch.setattr(database, "plot", fake_plot)
+
+    trades = database.calc_trades(
+        "Agriculture",
+        show_plot=False,
+        save_plot=str(tmp_path / "trades.html"),
+    )
+
+    assert isinstance(trades, pd.DataFrame)
+    assert captured["auto_open"] is False
+    assert captured["shown"] is False
+
+
+def test_calc_trades_excludes_totals_from_plot_frame(monkeypatch):
+    database = load_test("IOT")
+
+    captured = {"data": None}
+
+    class DummyFigure:
+        def show(self):
+            return None
+
+    def fake_plot(*args, **kwargs):
+        captured["data"] = kwargs.get("data")
+        return DummyFigure()
+
+    monkeypatch.setattr(database, "plot", fake_plot)
+
+    trades = database.calc_trades(
+        "Agriculture",
+        total=True,
+        show_plot=True,
+        path=False,
+        auto_open=False,
+    )
+
+    assert isinstance(trades, pd.DataFrame)
+    assert captured["data"] is not None
+    assert "Total" not in set(captured["data"]["Origin Region"])
+    assert "Total" not in set(captured["data"]["Destination Region"])
+
+
+def test_calc_trades_plot_uses_custom_title_and_table_unit(monkeypatch):
+    database = load_test("IOT")
+
+    captured = {"figure": None}
+
+    class DummyTitle:
+        def __init__(self):
+            self.text = None
+
+    class DummyColorBar:
+        def __init__(self):
+            self.title = DummyTitle()
+
+    class DummyColorAxis:
+        def __init__(self):
+            self.colorbar = DummyColorBar()
+
+    class DummyLayout:
+        def __init__(self):
+            self.title = DummyTitle()
+            self.coloraxis = DummyColorAxis()
+
+    class DummyFigure:
+        def __init__(self):
+            self.layout = DummyLayout()
+
+        def update_layout(self, **kwargs):
+            if "coloraxis_colorbar_title_text" in kwargs:
+                self.layout.coloraxis.colorbar.title.text = kwargs[
+                    "coloraxis_colorbar_title_text"
+                ]
+            return self
+
+        def show(self):
+            return None
+
+    def fake_plot(*args, **kwargs):
+        figure = DummyFigure()
+        figure.layout.title.text = kwargs.get("title")
+        captured["figure"] = figure
+        return figure
+
+    monkeypatch.setattr(database, "plot", fake_plot)
+
+    trades = database.calc_trades(
+        "Agriculture",
+        show_plot=True,
+        title="Nickel trade map",
+        path=False,
+        auto_open=False,
+    )
+
+    assert isinstance(trades, pd.DataFrame)
+    assert captured["figure"].layout.title.text == "Nickel trade map"
+    assert captured["figure"].layout.coloraxis.colorbar.title.text == "M EUR"
+
+
+def test_calc_trades_requires_at_least_one_component():
+    database = load_test("IOT")
+
+    with pytest.raises(WrongInput, match="At least one"):
+        database.calc_trades("Agriculture", intermediate=False, final=False)
 
 
 def test_query_and_get_data_auto_calc():

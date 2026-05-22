@@ -49,6 +49,7 @@ from mario.ops.cvxlab_bridge import (
 from mario.utils import (
     _manage_indeces,
     check_clusters,
+    run_from_jupyter,
 )
 
 from mario.ops.excel import _sh_excel
@@ -78,6 +79,7 @@ import copy
 import os
 import tempfile
 import warnings
+from pathlib import Path
 from typing import Dict
 import plotly.express as px
 
@@ -1135,6 +1137,16 @@ class Database(CoreModel):
         -------
         object
             Linkages payload returned by ``linkages_calculation(...)``.
+
+            When ``multi_mode=False``, the returned dataframe contains total and
+            direct backward/forward linkages plus ``Forward Amplification`` and
+            ``Backward Amplification`` ratios computed as
+            ``Total / Direct`` on the raw, non-normalized values.
+
+            When ``multi_mode=True``, the returned dataframe keeps the
+            ``Local`` and ``Foreign`` components for each linkage measure and
+            adds ``Local Share`` and ``Foreign Share`` columns for the same
+            measures.
         """
 
         if not self.is_multi_region and multi_mode:
@@ -1184,6 +1196,239 @@ class Database(CoreModel):
             multi_mode=multi_mode,
             normalized=normalized,
         )
+
+    @staticmethod
+    def _aggregate_trade_matrix_by_region(matrix: pd.DataFrame, item: str) -> pd.DataFrame:
+        """Aggregate one transaction block into an origin-by-destination matrix."""
+        if not isinstance(matrix.index, pd.MultiIndex) or matrix.index.nlevels < 3:
+            raise WrongInput("Trade calculation requires a 3-level row MultiIndex.")
+
+        if item not in set(matrix.index.get_level_values(-1)):
+            raise WrongInput(f"{item!r} does not exist in the matrix item index.")
+
+        selected = matrix.loc[(slice(None), slice(None), item), :]
+        trade_matrix = (
+            selected.T.groupby(level=0, sort=False).sum().T.groupby(level=0, sort=False).sum()
+        )
+        regions = list(dict.fromkeys(matrix.index.get_level_values(0)))
+        trade_matrix = trade_matrix.reindex(index=regions, columns=regions, fill_value=0.0)
+        trade_matrix.index.name = _MASTER_INDEX["r"]
+        trade_matrix.columns.name = _MASTER_INDEX["r"]
+        return trade_matrix
+
+    @staticmethod
+    def _add_trade_totals(trade_matrix: pd.DataFrame) -> pd.DataFrame:
+        """Add row and column totals to one square trade matrix."""
+        with_totals = trade_matrix.copy()
+        with_totals.loc["Total", :] = with_totals.sum(axis=0)
+        with_totals.loc[:, "Total"] = with_totals.sum(axis=1)
+        return with_totals
+
+    @staticmethod
+    def _build_trade_plot_frame(trades: pd.DataFrame) -> pd.DataFrame:
+        """Convert a trade matrix payload into a long dataframe for plotting."""
+        if "Total" in trades.index:
+            trades = trades.drop(index="Total")
+        if isinstance(trades.columns, pd.MultiIndex):
+            total_mask = trades.columns.get_level_values(-1) == "Total"
+            if total_mask.any():
+                trades = trades.loc[:, ~total_mask]
+        elif "Total" in trades.columns:
+            trades = trades.drop(columns="Total")
+
+        if isinstance(trades.columns, pd.MultiIndex):
+            working = trades.copy()
+            working.index.name = "Origin Region"
+            working.columns = working.columns.set_names(["Component", "Destination Region"])
+            frame = (
+                working.stack(["Component", "Destination Region"], future_stack=True)
+                .rename("Value")
+                .reset_index()
+            )
+            return frame
+
+        working = trades.copy()
+        working.index.name = "Origin Region"
+        working.columns.name = "Destination Region"
+        frame = working.stack(future_stack=True).rename("Value").reset_index()
+        return frame
+
+    def _trade_plot_unit(self, item: str) -> str:
+        """Return the unit label for one traded item when available."""
+        level = _MASTER_INDEX["c"] if self.meta.table == "SUT" else _MASTER_INDEX["s"]
+        units = self.units[level]
+        if item in units.index:
+            unit_value = units.loc[item, "unit"]
+            if pd.notna(unit_value):
+                return str(unit_value)
+
+        unit_values = units["unit"].dropna().astype(str).unique().tolist()
+        if len(unit_values) == 1:
+            return unit_values[0]
+        return "Value"
+
+    @staticmethod
+    def _save_trade_plot_figure(figure, output_path, *, auto_open: bool) -> None:
+        """Persist one trade figure based on the requested file extension."""
+        suffix = Path(str(output_path)).suffix.lower()
+        if suffix in {"", ".html", ".htm"}:
+            if hasattr(figure, "write_html"):
+                figure.write_html(output_path, auto_open=auto_open)
+            return
+
+        if hasattr(figure, "write_image"):
+            figure.write_image(output_path)
+            return
+
+        raise WrongInput(
+            f"Cannot save plot to {output_path!r}: image export is not available in this environment."
+        )
+
+    def calc_trades(
+        self,
+        item,
+        scenario="baseline",
+        intermediate=True,
+        final=True,
+        aggregate=True,
+        total=False,
+        show_plot=False,
+        save_plot=None,
+        path=False,
+        auto_open=False,
+        title=None,
+    ):
+        r"""Calculate region-by-region trade matrices for one item.
+
+        Parameters
+        ----------
+        item:
+            Sector or commodity label to aggregate by region.
+        scenario:
+            Scenario to analyse.
+        intermediate:
+            When ``True``, include intermediate transactions. This uses ``Z``
+            for IOT tables and ``U`` for SUT tables.
+        final:
+            When ``True``, include final-demand transactions. This uses ``Y``
+            for IOT tables and ``Yc`` for SUT tables.
+        aggregate:
+            When ``True`` and both ``intermediate`` and ``final`` are enabled,
+            return their sum as one trade matrix. Use ``aggregate=False`` to
+            keep the two components separate.
+        total:
+            When ``True``, add a ``Total`` row and a ``Total`` column.
+        show_plot:
+            When ``True``, build and display a region-by-region heatmap for the
+            calculated trades.
+        save_plot:
+            Optional HTML output path for the heatmap. When provided, MARIO
+            writes the plot to this path.
+        path:
+            Backward-compatible alias for ``save_plot``. Ignored when
+            neither ``show_plot`` nor ``save_plot`` are requested. Pass
+            ``False`` to skip HTML export.
+        auto_open:
+            When ``True``, automatically open the saved heatmap HTML.
+        title:
+            Optional title for the heatmap. When omitted, MARIO uses
+            ``"Trades for {item}"``.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Region-by-region trade matrix. When both ``intermediate`` and
+            ``final`` are requested, the default is to return their aggregate
+            sum. Use ``aggregate=False`` to get a dataframe with column
+            MultiIndex top-level labels ``Intermediate`` and ``Final``. When
+            ``show_plot=True``, MARIO renders the heatmap as a side effect and
+            still returns only the matrix. When ``save_plot`` is provided,
+            MARIO saves the heatmap without displaying it.
+        """
+
+        if not intermediate and not final:
+            raise WrongInput("At least one of 'intermediate' or 'final' should be True.")
+
+        matrix_names = []
+        if self.meta.table == "SUT":
+            if intermediate:
+                matrix_names.append(_ENUM.U)
+            if final:
+                matrix_names.append("Yc")
+        else:
+            if intermediate:
+                matrix_names.append(_ENUM.Z)
+            if final:
+                matrix_names.append(_ENUM.Y)
+
+        blocks = self.query(matrices=matrix_names, scenarios=scenario)
+        if isinstance(blocks, pd.DataFrame):
+            blocks = {matrix_names[0]: blocks}
+
+        frames = []
+        if intermediate:
+            matrix_name = _ENUM.U if self.meta.table == "SUT" else _ENUM.Z
+            frame = self._aggregate_trade_matrix_by_region(blocks[matrix_name], item)
+            if total:
+                frame = self._add_trade_totals(frame)
+            frames.append(
+                (
+                    "Intermediate",
+                    frame,
+                )
+            )
+        if final:
+            matrix_name = "Yc" if self.meta.table == "SUT" else _ENUM.Y
+            frame = self._aggregate_trade_matrix_by_region(blocks[matrix_name], item)
+            if total:
+                frame = self._add_trade_totals(frame)
+            frames.append(
+                (
+                    "Final",
+                    frame,
+                )
+            )
+
+        if len(frames) == 1:
+            trades = frames[0][1]
+        elif aggregate:
+            trades = frames[0][1].add(frames[1][1], fill_value=0.0)
+        else:
+            trades = pd.concat({label: frame for label, frame in frames}, axis=1)
+
+        output_path = save_plot if save_plot is not None else path
+        should_render_plot = show_plot or output_path not in (None, False)
+        if not should_render_plot:
+            return trades
+
+        plot_frame = self._build_trade_plot_frame(trades)
+        facet_col = "Component" if "Component" in plot_frame.columns else None
+        figure = self.plot(
+            data=plot_frame,
+            kind="heatmap",
+            preset=None,
+            x="Destination Region",
+            y="Value",
+            hover_name="Origin Region",
+            heatmap_y="Origin Region",
+            facet_col=facet_col,
+            path=False,
+            auto_open=auto_open,
+            title=title or f"Trades for {item}",
+            color_continuous_scale=["#FEF6DF", "#F8D35E", "#8CBBFD", "#02429B"],
+        )
+        unit_label = self._trade_plot_unit(item)
+        if hasattr(figure, "update_layout"):
+            figure.update_layout(coloraxis_colorbar_title_text=unit_label)
+        elif hasattr(figure, "layout") and hasattr(figure.layout, "coloraxis"):
+            coloraxis = getattr(figure.layout, "coloraxis")
+            if hasattr(coloraxis, "colorbar") and hasattr(coloraxis.colorbar, "title"):
+                coloraxis.colorbar.title.text = unit_label
+        if output_path not in (None, False):
+            self._save_trade_plot_figure(figure, output_path, auto_open=False)
+        if show_plot and save_plot is None and output_path in (None, False) and run_from_jupyter():
+            figure.show()
+        return trades
 
     @staticmethod
     def _warn_deprecated_plot_method(name: str, replacement: str) -> None:

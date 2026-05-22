@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from functools import lru_cache
 import logging
 from pathlib import Path
 import re
+import zipfile
 
 import numpy as np
 import pandas as pd
@@ -66,6 +68,51 @@ _VALUATION_ALIASES = {
 
 
 @dataclass(frozen=True)
+class GloriaResource:
+    """One GLORIA file stored either on disk or inside one zip archive."""
+
+    container: Path
+    member: str | None = None
+
+    @property
+    def name(self) -> str:
+        """Return the basename used for file-pattern matching and logs."""
+        if self.member is None:
+            return self.container.name
+        return Path(self.member).name
+
+    @property
+    def location(self) -> str:
+        """Return a stable location string for logs and cache signatures."""
+        if self.member is None:
+            return str(self.container)
+        return f"{self.container}!{self.member}"
+
+
+def gloria_resource_signature(resource: GloriaResource) -> dict[str, object]:
+    """Return cache-relevant identity data for one GLORIA resource."""
+    stats = resource.container.stat()
+    payload: dict[str, object] = {
+        "path": str(resource.container),
+        "size": stats.st_size,
+        "mtime_ns": stats.st_mtime_ns,
+    }
+    if resource.member is None:
+        return payload
+
+    with zipfile.ZipFile(resource.container) as archive:
+        info = archive.getinfo(resource.member)
+    payload.update(
+        {
+            "member": resource.member,
+            "member_size": info.file_size,
+            "member_crc": info.CRC,
+        }
+    )
+    return payload
+
+
+@dataclass(frozen=True)
 class GloriaMetadata:
     """ReadMe-derived structural metadata for one GLORIA release."""
 
@@ -92,11 +139,11 @@ class GloriaLayout:
     release: str
     markup: int
     valuation_name: str
-    T_path: Path
-    Y_path: Path
-    V_path: Path
-    TQ_path: Path | None
-    YQ_path: Path | None
+    T_path: GloriaResource
+    Y_path: GloriaResource
+    V_path: GloriaResource
+    TQ_path: GloriaResource | None
+    YQ_path: GloriaResource | None
     notes: tuple[str, ...] = field(default_factory=tuple)
 
     @property
@@ -150,22 +197,76 @@ def _is_gloria_part_iii_dir(path: Path) -> bool:
     return "part_iii" in name and "satellite" in name
 
 
-def _gloria_file_matches(path: Path, variables: set[str] | None = None) -> list[re.Match[str]]:
-    """Return GLORIA raw-file matches found directly under ``path``."""
-    if not path.exists() or not path.is_dir():
-        return []
+def _is_zip_path(path: Path) -> bool:
+    """Return whether ``path`` is one zip archive."""
+    return path.is_file() and path.suffix.lower() == ".zip"
 
-    matches = []
-    for child in path.iterdir():
-        if not child.is_file():
-            continue
-        match = _GLORIA_FILE_RE.match(child.name)
+
+def _container_name(path: Path) -> str:
+    """Return the logical container name for directories and zip archives."""
+    if _is_zip_path(path):
+        return path.stem
+    return path.name
+
+
+def _match_gloria_data_container(path: Path) -> re.Match[str] | None:
+    """Match one GLORIA data container name, including zipped variants."""
+    return _GLORIA_DATA_DIR_RE.match(_container_name(path))
+
+
+def _match_gloria_satellite_container(path: Path) -> re.Match[str] | None:
+    """Match one GLORIA satellite container name, including zipped variants."""
+    return _GLORIA_SAT_DIR_RE.match(_container_name(path))
+
+
+def _iter_gloria_resources(path: Path) -> list[GloriaResource]:
+    """Return direct file resources available under one directory or zip archive."""
+    if not path.exists():
+        return []
+    if path.is_dir():
+        return [GloriaResource(child) for child in path.iterdir() if child.is_file()]
+    if _is_zip_path(path):
+        with zipfile.ZipFile(path) as archive:
+            return [
+                GloriaResource(path, info.filename)
+                for info in archive.infolist()
+                if not info.is_dir()
+            ]
+    return []
+
+
+def _gloria_file_resources(
+    path: Path,
+    variables: set[str] | None = None,
+) -> list[tuple[re.Match[str], GloriaResource]]:
+    """Return GLORIA raw-file matches found directly under one container."""
+    matches: list[tuple[re.Match[str], GloriaResource]] = []
+    for resource in _iter_gloria_resources(path):
+        match = _GLORIA_FILE_RE.match(resource.name)
         if match is None:
             continue
         if variables is not None and match.group("var").upper() not in variables:
             continue
-        matches.append(match)
+        matches.append((match, resource))
     return matches
+
+
+@contextmanager
+def _open_gloria_resource(resource: GloriaResource):
+    """Yield a readable binary stream for one GLORIA resource."""
+    if resource.member is None:
+        with resource.container.open("rb") as stream:
+            yield stream
+        return
+
+    with zipfile.ZipFile(resource.container) as archive:
+        with archive.open(resource.member, "r") as stream:
+            yield stream
+
+
+def _gloria_file_matches(path: Path, variables: set[str] | None = None) -> list[re.Match[str]]:
+    """Return GLORIA raw-file matches found directly under ``path``."""
+    return [match for match, _ in _gloria_file_resources(path, variables)]
 
 
 def _gloria_candidate_matches_year(candidate: Path, year: int | None) -> bool:
@@ -173,7 +274,7 @@ def _gloria_candidate_matches_year(candidate: Path, year: int | None) -> bool:
     if year is None:
         return True
 
-    dir_match = _GLORIA_DATA_DIR_RE.match(candidate.name)
+    dir_match = _match_gloria_data_container(candidate)
     if dir_match is not None:
         return int(dir_match.group("year")) == year
 
@@ -189,7 +290,7 @@ def _candidate_data_roots(container: Path) -> list[Path]:
     candidates.extend(
         child
         for child in container.iterdir()
-        if child.is_dir() and _GLORIA_DATA_DIR_RE.match(child.name)
+        if (child.is_dir() or _is_zip_path(child)) and _match_gloria_data_container(child)
     )
     return candidates
 
@@ -222,6 +323,9 @@ def _resolve_gloria_roots(path: str | Path, *, year: int | None = None) -> tuple
         raise FileNotFoundError(source)
 
     if source.is_file():
+        if _is_zip_path(source) and _match_gloria_data_container(source):
+            root = source.parent.parent if _is_gloria_part_i_dir(source.parent) else source.parent
+            return root, source
         return source.parent.parent, source.parent
 
     if _is_gloria_part_i_dir(source):
@@ -252,7 +356,7 @@ def _find_gloria_readme(root: Path, data_root: Path) -> Path:
     """Locate the GLORIA ReadMe workbook used to reconstruct labels."""
     candidates = []
     for base in (root, data_root, data_root.parent, root.parent):
-        if base.exists():
+        if base.exists() and base.is_dir():
             candidates.extend(
                 child for child in base.iterdir() if child.is_file() and _GLORIA_README_RE.match(child.name)
             )
@@ -274,13 +378,16 @@ def _find_gloria_satellite_root(root: Path, data_root: Path, *, year: int, relea
         direct = base / expected
         if direct.exists() and direct.is_dir():
             candidates.append(direct)
+        direct_zip = base / f"{expected}.zip"
+        if _is_zip_path(direct_zip):
+            candidates.append(direct_zip)
         candidates.extend(
             child
             for child in base.iterdir()
-            if child.is_dir()
-            and _GLORIA_SAT_DIR_RE.match(child.name)
-            and int(_GLORIA_SAT_DIR_RE.match(child.name).group("year")) == year
-            and _GLORIA_SAT_DIR_RE.match(child.name).group("release") == release
+            if (child.is_dir() or _is_zip_path(child))
+            and _match_gloria_satellite_container(child)
+            and int(_match_gloria_satellite_container(child).group("year")) == year
+            and _match_gloria_satellite_container(child).group("release") == release
         )
         for part_iii_dir in (
             child for child in base.iterdir() if child.is_dir() and _is_gloria_part_iii_dir(child)
@@ -288,13 +395,16 @@ def _find_gloria_satellite_root(root: Path, data_root: Path, *, year: int, relea
             direct = part_iii_dir / expected
             if direct.exists() and direct.is_dir():
                 candidates.append(direct)
+            direct_zip = part_iii_dir / f"{expected}.zip"
+            if _is_zip_path(direct_zip):
+                candidates.append(direct_zip)
             candidates.extend(
                 child
                 for child in part_iii_dir.iterdir()
-                if child.is_dir()
-                and _GLORIA_SAT_DIR_RE.match(child.name)
-                and int(_GLORIA_SAT_DIR_RE.match(child.name).group("year")) == year
-                and _GLORIA_SAT_DIR_RE.match(child.name).group("release") == release
+                if (child.is_dir() or _is_zip_path(child))
+                and _match_gloria_satellite_container(child)
+                and int(_match_gloria_satellite_container(child).group("year")) == year
+                and _match_gloria_satellite_container(child).group("release") == release
             )
             if any(
                 int(match.group("year")) == year and match.group("release") == release
@@ -391,17 +501,12 @@ def detect_gloria_layout(
     years: set[int] = set()
     release = None
 
-    for child in data_root.iterdir():
-        if not child.is_file():
-            continue
-        match = _GLORIA_FILE_RE.match(child.name)
-        if match is None:
-            continue
+    for match, resource in _gloria_file_resources(data_root):
         parsed_year = int(match.group("year"))
         if year is not None and parsed_year != year:
             continue
         years.add(parsed_year)
-        by_var_and_markup[(match.group("var").upper(), int(match.group("markup")))] = child
+        by_var_and_markup[(match.group("var").upper(), int(match.group("markup")))] = resource
         release = match.group("release")
 
     if year is None:
@@ -433,16 +538,13 @@ def detect_gloria_layout(
     TQ_path = None
     YQ_path = None
     if satellite_root is not None:
-        for child in satellite_root.iterdir():
-            if not child.is_file():
-                continue
-            match = _GLORIA_FILE_RE.match(child.name)
-            if match is None or int(match.group("year")) != year:
+        for match, resource in _gloria_file_resources(satellite_root):
+            if int(match.group("year")) != year:
                 continue
             if match.group("var").upper() == "TQ" and int(match.group("markup")) == 1:
-                TQ_path = child
+                TQ_path = resource
             if match.group("var").upper() == "YQ" and int(match.group("markup")) == 1:
-                YQ_path = child
+                YQ_path = resource
         if TQ_path is None or YQ_path is None:
             notes.append("GLORIA satellite-account directory found, but TQ/YQ files were incomplete.")
 
@@ -631,7 +733,7 @@ def _build_axes(
 
 
 def _iter_csv_batches(
-    path: Path,
+    path: GloriaResource,
     *,
     columns: np.ndarray | list[int] | tuple[int, ...],
     dtype: np.dtype,
@@ -643,19 +745,20 @@ def _iter_csv_batches(
         raise ValueError("At least one column should be selected.")
     contiguous_full_width = column_numbers == list(range(column_numbers[-1] + 1))
     offset = 0
-    for chunk in pd.read_csv(
-        path,
-        header=None,
-        usecols=None if contiguous_full_width else column_numbers,
-        dtype=dtype.name,
-        chunksize=batch_size,
-        engine="c",
-        na_filter=False,
-    ):
-        values = chunk.to_numpy(copy=False)
-        row_numbers = np.arange(offset, offset + len(chunk), dtype=np.int64)
-        offset += len(chunk)
-        yield row_numbers, values
+    with _open_gloria_resource(path) as stream:
+        for chunk in pd.read_csv(
+            stream,
+            header=None,
+            usecols=None if contiguous_full_width else column_numbers,
+            dtype=dtype.name,
+            chunksize=batch_size,
+            engine="c",
+            na_filter=False,
+        ):
+            values = chunk.to_numpy(copy=False)
+            row_numbers = np.arange(offset, offset + len(chunk), dtype=np.int64)
+            offset += len(chunk)
+            yield row_numbers, values
 
 
 def _recommended_batch_size(column_count: int, dtype: np.dtype, *, target_mb: int = 64) -> int:
