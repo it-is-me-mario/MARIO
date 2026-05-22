@@ -22,7 +22,7 @@ from mario.model.enums import TableKind
 from mario.parsers.helpers import build_state_from_parser_output
 from mario.parsers.specs import INPUT_OPTIONS
 
-_MODELS = {"Database": Database}
+_MODELS = {"Database": Database, "ModelState": ModelState}
 
 
 def validate_parse_request(
@@ -153,6 +153,9 @@ def build_database_from_state(
 ):
     """Build a public ``Database`` directly from a parser ``ModelState``."""
     validate_parse_request(model=model)
+    if model == "ModelState":
+        return state
+
     matrices, indexes, units = state_to_database_payload(state)
     metadata = state.metadata
 

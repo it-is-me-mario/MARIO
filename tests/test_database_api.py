@@ -32,6 +32,7 @@ from mario.settings.settings import (
     set_linear_strategy,
     upload_settings,
 )
+from mario.parsers.api import build_database_from_state, build_parser_state
 from mario.test.mario_test import load_test
 from mario.model.conventions import _ENUM, _MASTER_INDEX
 from mario.ops.workbook_specs import SHOCK_COLUMNS, SHOCK_FLAT_COLUMNS
@@ -585,6 +586,77 @@ def test_calc_trades_requires_at_least_one_component():
 
     with pytest.raises(WrongInput, match="At least one"):
         database.calc_trades("Agriculture", intermediate=False, final=False)
+
+
+def test_parse_exiobase_imports_a_new_parser_scenario(monkeypatch):
+    database = load_test("IOT")
+    raw_blocks = {
+        name: deepcopy(value)
+        for name, value in database["baseline"].items()
+        if name in {_ENUM.Z, _ENUM.E, _ENUM.V, _ENUM.Y, _ENUM.EY, _ENUM.VY}
+    }
+
+    def fake_parse_exiobase(*, model="Database", calc_all=False, year=None, **kwargs):
+        state = build_parser_state(
+            table=database.meta.table,
+            matrices=raw_blocks,
+            indexes=deepcopy(database._indeces),
+            units=deepcopy(database.units),
+            parser_name="parse_exiobase",
+            source="EXIOBASE",
+            year=year,
+        )
+        return build_database_from_state(state, model=model, calc_all=calc_all)
+
+    monkeypatch.setattr("mario.parsers.entrypoints.parse_exiobase", fake_parse_exiobase)
+
+    database.parse_exiobase(
+        table="IOT",
+        unit="Monetary",
+        path="ignored",
+        year=2023,
+        new_scenario=2023,
+    )
+
+    assert "2023" in database.scenarios
+    for matrix, value in raw_blocks.items():
+        pdt.assert_frame_equal(database["2023"][matrix], value)
+    assert database.info["scenario_metadata"]["2023"]["year"] == 2023
+    assert _ENUM.X not in database["2023"]
+
+
+def test_parse_scenario_rejects_incompatible_parser_payload(monkeypatch):
+    database = load_test("IOT")
+    raw_blocks = {
+        name: deepcopy(value)
+        for name, value in database["baseline"].items()
+        if name in {_ENUM.Z, _ENUM.E, _ENUM.V, _ENUM.Y, _ENUM.EY, _ENUM.VY}
+    }
+    bad_indexes = deepcopy(database._indeces)
+    bad_indexes["r"]["main"][0] = "Different region"
+
+    def fake_parse_exiobase(*, model="Database", calc_all=False, **kwargs):
+        state = build_parser_state(
+            table=database.meta.table,
+            matrices=raw_blocks,
+            indexes=bad_indexes,
+            units=deepcopy(database.units),
+            parser_name="parse_exiobase",
+            source="EXIOBASE",
+            year=2023,
+        )
+        return build_database_from_state(state, model=model, calc_all=calc_all)
+
+    monkeypatch.setattr("mario.parsers.entrypoints.parse_exiobase", fake_parse_exiobase)
+
+    with pytest.raises(WrongInput, match="not compatible"):
+        database.parse_scenario(
+            "parse_exiobase",
+            table="IOT",
+            unit="Monetary",
+            path="ignored",
+            new_scenario="2023",
+        )
 
 
 def test_query_and_get_data_auto_calc():

@@ -14,6 +14,14 @@ when you:
 * :doc:`clone </api_document/mario.Database.clone_scenario>` an existing *scenario*
 * :doc:`apply shocks </user_guide/transformations/apply_shocks>` into a new *scenario*
 
+Compatible parser runs can also populate new *scenarios* on the same
+*database* instance. This is useful for time-series workflows such as loading
+multiple years of the same EXIOBASE release into one object instead of opening
+one separate *database* per year.
+
+In those workflows, users may also rename ``baseline`` to the first parsed year
+so that all scenario names follow the same convention.
+
 The main idea is simple: a *scenario* is another state of the same *table*,
 not a different *database* class.
 

@@ -87,7 +87,7 @@ import plotly.express as px
 from mario.model.conventions import MATRIX_TITLES, TABLE_LEVELS
 from mario.model.conventions import _MASTER_INDEX, _ENUM
 
-from mario.api.core_model import CoreModel
+from mario.api.core_model import CoreModel, _normalize_parsed_matrix_name, _prune_eager_parser_blocks
 from mario.ops import (
     aggregate_database,
     build_new_instance_from_scenario,
@@ -178,6 +178,180 @@ class Database(CoreModel):
         # A counter for saving the results in a dictionary
         self.__counter = 1  # Shock Counter
         self._clusters = {}
+
+    @staticmethod
+    def _resolve_parser_entrypoint(parser):
+        """Resolve one parser entrypoint by callable or public parser name."""
+        if callable(parser):
+            return parser, getattr(parser, "__name__", "custom_parser")
+
+        from mario.parsers import entrypoints as parser_entrypoints
+
+        token = str(parser).strip()
+        candidates = [token]
+        if not token.startswith("parse_"):
+            candidates.insert(0, f"parse_{token}")
+
+        for name in candidates:
+            candidate = getattr(parser_entrypoints, name, None)
+            if callable(candidate):
+                return candidate, name
+
+        raise WrongInput(
+            f"Parser {parser!r} does not exist. Use one public parse_* entrypoint or a callable parser."
+        )
+
+    @staticmethod
+    def _normalize_parser_indexes(indexes):
+        """Normalize index containers so parsed states can be compared safely."""
+        normalized = {}
+        for code, levels in indexes.items():
+            normalized[code] = {}
+            for level_name, values in levels.items():
+                normalized[code][level_name] = tuple(values)
+        return normalized
+
+    @staticmethod
+    def _units_are_compatible(left, right) -> bool:
+        """Return whether two unit payloads are structurally identical."""
+        if isinstance(left, pd.DataFrame) and isinstance(right, pd.DataFrame):
+            try:
+                pd.testing.assert_frame_equal(left, right, check_dtype=False)
+            except AssertionError:
+                return False
+            return True
+
+        if isinstance(left, pd.Series) and isinstance(right, pd.Series):
+            try:
+                pd.testing.assert_series_equal(left, right, check_dtype=False)
+            except AssertionError:
+                return False
+            return True
+
+        return left == right
+
+    def _validate_parsed_scenario_compatibility(self, state, *, parser_name: str) -> None:
+        """Reject parser imports that do not match the current database structure."""
+        incoming_table = getattr(state.metadata.table_kind, "value", str(state.metadata.table_kind))
+        if incoming_table != self.meta.table:
+            raise WrongInput(
+                f"Cannot import parser scenario from {parser_name}: expected table {self.meta.table!r}, got {incoming_table!r}."
+            )
+
+        if self.meta.price is not None and state.metadata.price is not None:
+            if self.meta.price != state.metadata.price:
+                raise WrongInput(
+                    f"Cannot import parser scenario from {parser_name}: price system {state.metadata.price!r} is not compatible with {self.meta.price!r}."
+                )
+
+        if self.meta.tech_assumption is not None and state.metadata.tech_assumption is not None:
+            if self.meta.tech_assumption != state.metadata.tech_assumption:
+                raise WrongInput(
+                    f"Cannot import parser scenario from {parser_name}: tech assumption {state.metadata.tech_assumption!r} is not compatible with {self.meta.tech_assumption!r}."
+                )
+
+        current_indexes = self._normalize_parser_indexes(self._indeces)
+        parsed_indexes = self._normalize_parser_indexes(state.indexes)
+        if current_indexes != parsed_indexes:
+            raise WrongInput(
+                f"Cannot import parser scenario from {parser_name}: parsed sets and labels are not compatible with the current database."
+            )
+
+        if set(self.units) != set(state.units):
+            raise WrongInput(
+                f"Cannot import parser scenario from {parser_name}: parsed unit tables are not compatible with the current database."
+            )
+
+        for label in self.units:
+            if not self._units_are_compatible(self.units[label], state.units[label]):
+                raise WrongInput(
+                    f"Cannot import parser scenario from {parser_name}: unit table {label!r} is not compatible with the current database."
+                )
+
+    def parse_scenario(self, parser, *, new_scenario, calc_all=False, **kwargs):
+        """Parse one compatible database and import it as a new scenario.
+
+        Parameters
+        ----------
+        parser:
+            Public parser name such as ``"parse_exiobase"`` or a callable
+            parser entrypoint accepting ``model=...``.
+        new_scenario:
+            Name stored for the imported scenario.
+        calc_all:
+            When ``True``, compute the dependent matrices after importing the
+            raw parser blocks.
+        **kwargs:
+            Keyword arguments forwarded to the selected parser.
+
+        Returns
+        -------
+        Database
+            The current instance, updated in place.
+        """
+
+        scenario_name = str(new_scenario)
+        if scenario_name in self.scenarios:
+            raise WrongInput(f"{scenario_name} already exists and cannot be overwritten.")
+
+        parser_callable, parser_name = self._resolve_parser_entrypoint(parser)
+        parser_kwargs = dict(kwargs)
+        parser_kwargs["model"] = "ModelState"
+        parser_kwargs["calc_all"] = False
+        state = parser_callable(**parser_kwargs)
+
+        if not hasattr(state, "metadata") or not hasattr(state, "list_matrices"):
+            raise WrongInput(
+                f"Parser {parser_name} did not return a parser state. Instance-side scenario parsing requires a parser that supports model='ModelState'."
+            )
+
+        self._validate_parsed_scenario_compatibility(state, parser_name=parser_name)
+
+        imported_blocks = {}
+        for block_name in state.list_matrices("baseline", include_inherited=False):
+            public_name = _normalize_parsed_matrix_name(block_name)
+            value = state.get_block(block_name)
+            imported_blocks[public_name] = (
+                value.copy(deep=True) if hasattr(value, "copy") else copy.deepcopy(value)
+            )
+
+        self.matrices[scenario_name] = _prune_eager_parser_blocks(imported_blocks)
+        self.info.setdefault("scenario_metadata", {})[scenario_name] = state.metadata.to_dict()
+
+        for spec in state.metadata.extra.get("block_specs", ()):
+            self.register_block_spec(spec, replace=True)
+        for operator in state.metadata.extra.get("operators", ()):
+            self.register_operator(operator, replace=True)
+
+        self.meta._add_history(
+            f"Scenarios: {scenario_name} imported from parser {parser_name}"
+        )
+
+        if calc_all:
+            self.calc_all(scenario=scenario_name)
+
+        return self
+
+    def parse_exiobase(
+        self,
+        table: str,
+        unit: str,
+        path: str,
+        *,
+        new_scenario,
+        calc_all: bool = False,
+        **kwargs,
+    ):
+        """Parse one EXIOBASE payload and import it as a new scenario."""
+        return self.parse_scenario(
+            "parse_exiobase",
+            new_scenario=new_scenario,
+            calc_all=calc_all,
+            table=table,
+            unit=unit,
+            path=path,
+            **kwargs,
+        )
 
     @property
     def clusters(self):
@@ -1342,7 +1516,7 @@ class Database(CoreModel):
             sum. Use ``aggregate=False`` to get a dataframe with column
             MultiIndex top-level labels ``Intermediate`` and ``Final``. When
             ``show_plot=True``, MARIO renders the heatmap as a side effect and
-            still returns only the matrix. When ``save_plot`` is provided,
+            still returns the trade matrix. When ``save_plot`` is provided,
             MARIO saves the heatmap without displaying it.
         """
 

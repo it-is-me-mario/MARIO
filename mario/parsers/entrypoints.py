@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import hashlib
+import inspect
 import json
 import logging
 from pathlib import Path
@@ -24,6 +25,7 @@ from mario.log_exc.exceptions import NotImplementable, WrongInput
 from mario.log_exc.logger import log_time
 from mario.parsers.api import (
     build_database_from_state,
+    build_parser_state,
     validate_named_selection,
     validate_parse_request,
 )
@@ -93,7 +95,47 @@ from mario.parsers.specs import (
 )
 import pandas as pd
 
-models = {"Database": Database}
+
+def _legacy_model_state_builder(
+    *,
+    name=None,
+    table=None,
+    source=None,
+    year=None,
+    price=None,
+    tech_assumption=None,
+    init_by_parsers=None,
+    calc_all=False,
+    notes=None,
+    **kwargs,
+):
+    """Build one internal parser state from legacy entrypoint kwargs."""
+    del calc_all
+    if init_by_parsers is None:
+        raise WrongInput("Legacy parser entrypoints require 'init_by_parsers' to build a ModelState.")
+
+    caller = inspect.currentframe().f_back
+    parser_name = caller.f_code.co_name if caller is not None else "legacy_parser"
+
+    state = build_parser_state(
+        table=table,
+        matrices=init_by_parsers["matrices"],
+        indexes=init_by_parsers["_indeces"],
+        units=init_by_parsers["units"],
+        parser_name=parser_name,
+        name=name,
+        source=source,
+        year=year,
+        price=price,
+        tech_assumption=tech_assumption,
+    )
+    if notes:
+        for note in notes:
+            state.metadata.add_history(note)
+    return state
+
+
+models = {"Database": Database, "ModelState": _legacy_model_state_builder}
 logger = logging.getLogger(__name__)
 _GLORIA_CACHE_VERSION = "2026-03-25"
 

@@ -1481,6 +1481,35 @@ class CoreModel:
             "Scenarios: {name} added to scearios by cloning {scenario}"
         )
 
+    def rename_scenario(self, scenario, name):
+        """Rename one existing scenario.
+
+        Parameters
+        ----------
+        scenario:
+            Existing scenario name to rename.
+        name:
+            New scenario name.
+
+        Returns
+        -------
+        None
+            The scenario key is renamed in place.
+        """
+
+        target_name = str(name)
+
+        if scenario not in self.scenarios:
+            raise WrongInput(f"{scenario} does not exist.")
+
+        if target_name in self.scenarios:
+            raise WrongInput(f"{target_name} already exists and cannot be overwritten.")
+
+        self.matrices[target_name] = self.matrices.pop(scenario)
+        self.meta._add_history(
+            f"Scenarios: {scenario} renamed to {target_name}"
+        )
+
     def reset_to_flows(
         self,
         scenario,

@@ -86,6 +86,39 @@ def test_clone_scenario(CoreDataIOT):
     assert "does not exist" in str(msg.value)
 
 
+def test_rename_scenario(CoreDataIOT):
+
+    CoreDataIOT.clone_scenario(
+        scenario='baseline',
+        name='dummy'
+    )
+
+    CoreDataIOT.rename_scenario('dummy', 'policy')
+
+    assert set(CoreDataIOT.scenarios) == {'baseline', 'policy'}
+
+    for matrix, value in CoreDataIOT['policy'].items():
+        pdt.assert_frame_equal(value, CoreDataIOT['baseline'][matrix])
+
+
+def test_rename_scenario_rejects_invalid_targets(CoreDataIOT):
+
+    CoreDataIOT.clone_scenario(
+        scenario='baseline',
+        name='dummy'
+    )
+
+    with pytest.raises(WrongInput) as msg:
+        CoreDataIOT.rename_scenario('missing', 'policy')
+
+    assert 'does not exist' in str(msg.value)
+
+    with pytest.raises(WrongInput) as msg:
+        CoreDataIOT.rename_scenario('dummy', 'baseline')
+
+    assert 'already exists' in str(msg.value)
+
+
 def test_reset_to_flows(CoreDataIOT):
 
     CoreDataIOT.clone_scenario(

@@ -4,9 +4,10 @@ import zipfile
 import pandas as pd
 import pytest
 
-from mario import parse_exiobase_3
+from mario import parse_exiobase, parse_exiobase_3
 from mario.log_exc.exceptions import WrongInput
 from mario.model.conventions import _MASTER_INDEX
+from mario.model.enums import TableKind
 from mario.parsers.exiobase_iot import detect_exiobase_iot_layout
 from mario.parsers.specs import EXIO_FACTOR_ROWS
 
@@ -179,6 +180,24 @@ def test_parse_exiobase_3_accepts_split_bundle_zip(tmp_path):
     assert db.get_index(_MASTER_INDEX["f"]) == EXIO_FACTOR_ROWS
     assert db.get_index(_MASTER_INDEX["k"]) == ["CO2", "Water use"]
     assert db.units[_MASTER_INDEX["k"]].loc["CO2", "unit"] == "kg"
+
+
+def test_parse_exiobase_returns_model_state_when_requested(tmp_path):
+    root = tmp_path / "Exiobase 3.10.1 - IOT_2011_ixi"
+    _write_split_exiobase(root, version="3.10.1", extension_dir="labour")
+
+    state = parse_exiobase(
+        path=str(root),
+        table="IOT",
+        unit="Monetary",
+        model="ModelState",
+        calc_all=False,
+    )
+
+    assert state.table_kind == TableKind.IOT
+    assert state.metadata.year == 2011
+    assert {"Z", "Y", "V", "E", "EY"}.issubset(set(state.list_matrices()))
+    assert "X" not in state.list_matrices()
 
 
 def test_parse_exiobase_3_rejects_explicit_version_mismatch(tmp_path):
