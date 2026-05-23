@@ -53,7 +53,7 @@ extensions = [
 ]
 nbsphinx_execute = "never"
 nbsphinx_epilog = r"""
-{% if env.docname.startswith("notebooks/parsers/") %}
+{% if env.docname.startswith("notebooks/parsers/") or env.docname in ["user_guide/inspection/calc_linkages", "user_guide/inspection/calculate_trades"] %}
 .. container:: parser-notebook-download
 
    :download:`Download this notebook <{{ env.docname.split("/")[-1] }}.ipynb>`

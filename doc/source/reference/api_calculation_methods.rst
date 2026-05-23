@@ -25,14 +25,17 @@ Database Compute API
      - Resolve several matrices and return a mapping.
    * - :doc:`db.calc_linkages(...) <../api_document/mario.Database.calc_linkages>`
      - Calculate backward and forward linkage indicators.
+   * - :doc:`db.calc_trades(...) <../api_document/mario.Database.calc_trades>`
+     - Aggregate one sector or commodity into a region-by-region trade matrix and optional heatmap.
 
 .. toctree::
-   :maxdepth: 1
+  :maxdepth: 1
 
-   ../api_document/mario.CoreModel.calc_all
-   ../api_document/mario.CoreModel.resolve
-   ../api_document/mario.CoreModel.resolve_many
-   ../api_document/mario.Database.calc_linkages
+  ../api_document/mario.CoreModel.calc_all
+  ../api_document/mario.CoreModel.resolve
+  ../api_document/mario.CoreModel.resolve_many
+  ../api_document/mario.Database.calc_linkages
+  ../api_document/mario.Database.calc_trades
 
 
 Runtime Compute Options

@@ -1462,6 +1462,71 @@ class Database(CoreModel):
         with_totals.loc[:, "Total"] = with_totals.sum(axis=1)
         return with_totals
 
+    def _resolve_trade_region_aggregation(self, clusters=None):
+        """Resolve optional Region aggregation payloads for trade outputs."""
+        if clusters is None:
+            return None
+
+        region_aggregation = clusters
+        if isinstance(clusters, dict):
+            normalized = self._normalize_cluster_mapping(clusters, raise_on_missing=False)
+            if normalized:
+                if "Region" not in normalized:
+                    raise WrongInput(
+                        "calc_trades only supports Region clusters. Pass a Region mapping or preset."
+                    )
+                region_aggregation = normalized["Region"]
+
+        return build_region_aggregation_index(self, region_aggregation)
+
+    @staticmethod
+    def _normalize_trade_cluster_direction(clusters_direction: str) -> str:
+        """Normalize which trade axis should receive Region aggregation."""
+        normalized = str(clusters_direction).strip().lower()
+        if normalized not in {"origin", "destination", "both"}:
+            raise WrongInput(
+                "clusters_direction should be one of 'origin', 'destination', or 'both'."
+            )
+        return normalized
+
+    @staticmethod
+    def _aggregate_trade_regions(
+        trade_matrix: pd.DataFrame,
+        region_aggregation: pd.DataFrame | None,
+        *,
+        clusters_direction: str = "both",
+    ) -> pd.DataFrame:
+        """Aggregate one trade matrix to a coarser Region mapping when requested."""
+        if region_aggregation is None:
+            return trade_matrix
+
+        row_targets = region_aggregation["Aggregation"].to_dict()
+        row_order = list(dict.fromkeys(region_aggregation["Aggregation"].tolist()))
+        column_order = row_order
+
+        aggregated = trade_matrix.copy()
+
+        if clusters_direction in {"origin", "both"}:
+            aggregated.index = pd.Index(
+                [row_targets.get(label, label) for label in aggregated.index],
+                name=trade_matrix.index.name,
+            )
+            aggregated = aggregated.groupby(level=0, sort=False).sum()
+        else:
+            row_order = list(dict.fromkeys(trade_matrix.index.tolist()))
+
+        if clusters_direction in {"destination", "both"}:
+            aggregated.columns = pd.Index(
+                [row_targets.get(label, label) for label in aggregated.columns],
+                name=trade_matrix.columns.name,
+            )
+            aggregated = aggregated.T.groupby(level=0, sort=False).sum().T
+        else:
+            column_order = list(dict.fromkeys(trade_matrix.columns.tolist()))
+
+        aggregated = aggregated.reindex(index=row_order, columns=column_order, fill_value=0.0)
+        return aggregated
+
     @staticmethod
     def _build_trade_plot_frame(trades: pd.DataFrame) -> pd.DataFrame:
         """Convert a trade matrix payload into a long dataframe for plotting."""
@@ -1550,6 +1615,8 @@ class Database(CoreModel):
         self,
         item,
         scenario="baseline",
+        clusters=None,
+        clusters_direction="both",
         intermediate=True,
         final=True,
         aggregate=True,
@@ -1568,6 +1635,16 @@ class Database(CoreModel):
             Sector or commodity label to aggregate by region.
         scenario:
             Scenario to analyse.
+        clusters:
+            Optional Region aggregation preset or mapping applied before totals
+            and plotting. This accepts the same Region aggregation payloads used
+            by MARIO's region aggregation helpers, including preset strings such
+            as ``"continent"`` and explicit ``{"Group": [regions...]}`` mappings.
+        clusters_direction:
+            Select which axis should receive Region aggregation when
+            ``clusters`` is provided. Use ``"origin"`` to aggregate only rows,
+            ``"destination"`` to aggregate only columns, or ``"both"`` for
+            the default square aggregation.
         intermediate:
             When ``True``, include intermediate transactions. This uses ``Z``
             for IOT tables and ``U`` for SUT tables.
@@ -1613,6 +1690,8 @@ class Database(CoreModel):
             raise WrongInput("At least one of 'intermediate' or 'final' should be True.")
 
         scenario_names = self._normalize_trade_scenarios(scenario)
+        region_aggregation = self._resolve_trade_region_aggregation(clusters)
+        clusters_direction = self._normalize_trade_cluster_direction(clusters_direction)
 
         matrix_names = []
         if self.meta.table == "SUT":
@@ -1645,6 +1724,11 @@ class Database(CoreModel):
                     supply_block = supply_block[_ENUM.S]
 
                 frame = self._aggregate_trade_supply_by_region(supply_block, item)
+                frame = self._aggregate_trade_regions(
+                    frame,
+                    region_aggregation,
+                    clusters_direction=clusters_direction,
+                )
                 if total:
                     frame = self._add_trade_totals(frame)
                 trades_by_scenario[scenario_name] = frame
@@ -1658,6 +1742,11 @@ class Database(CoreModel):
             if intermediate:
                 matrix_name = _ENUM.U if self.meta.table == "SUT" else _ENUM.Z
                 frame = self._aggregate_trade_matrix_by_region(blocks[matrix_name], item)
+                frame = self._aggregate_trade_regions(
+                    frame,
+                    region_aggregation,
+                    clusters_direction=clusters_direction,
+                )
                 if total:
                     frame = self._add_trade_totals(frame)
                 frames.append(
@@ -1669,6 +1758,11 @@ class Database(CoreModel):
             if final:
                 matrix_name = "Yc" if self.meta.table == "SUT" else _ENUM.Y
                 frame = self._aggregate_trade_matrix_by_region(blocks[matrix_name], item)
+                frame = self._aggregate_trade_regions(
+                    frame,
+                    region_aggregation,
+                    clusters_direction=clusters_direction,
+                )
                 if total:
                     frame = self._add_trade_totals(frame)
                 frames.append(

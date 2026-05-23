@@ -347,6 +347,108 @@ def test_calc_trades_can_add_row_and_column_totals():
     )
 
 
+def test_calc_trades_can_aggregate_regions_with_clusters():
+    database = load_test("IOT")
+
+    trades = database.calc_trades(
+        "Agriculture",
+        clusters={"Region": {"EU": ["Reg1"]}},
+    )
+
+    expected = database.calc_trades("Agriculture")
+    expected.index = pd.Index(
+        ["EU" if label == "Reg1" else label for label in expected.index],
+        name=expected.index.name,
+    )
+    expected.columns = pd.Index(
+        ["EU" if label == "Reg1" else label for label in expected.columns],
+        name=expected.columns.name,
+    )
+    expected = expected.groupby(level=0, sort=False).sum().T.groupby(level=0, sort=False).sum().T
+    expected = expected.reindex(index=["EU", "Reg2"], columns=["EU", "Reg2"], fill_value=0.0)
+
+    pdt.assert_frame_equal(trades, expected)
+
+
+def test_calc_trades_can_aggregate_only_origin_regions_with_clusters():
+    database = load_test("IOT")
+
+    trades = database.calc_trades(
+        "Agriculture",
+        clusters={"Region": {"EU": ["Reg1"]}},
+        clusters_direction="origin",
+    )
+
+    expected = database.calc_trades("Agriculture")
+    expected.index = pd.Index(
+        ["EU" if label == "Reg1" else label for label in expected.index],
+        name=expected.index.name,
+    )
+    expected = expected.groupby(level=0, sort=False).sum()
+    expected = expected.reindex(index=["EU", "Reg2"], columns=["Reg1", "Reg2"], fill_value=0.0)
+
+    pdt.assert_frame_equal(trades, expected)
+
+
+def test_calc_trades_can_aggregate_only_destination_regions_with_clusters():
+    database = load_test("IOT")
+
+    trades = database.calc_trades(
+        "Agriculture",
+        clusters={"Region": {"EU": ["Reg1"]}},
+        clusters_direction="destination",
+    )
+
+    expected = database.calc_trades("Agriculture")
+    expected.columns = pd.Index(
+        ["EU" if label == "Reg1" else label for label in expected.columns],
+        name=expected.columns.name,
+    )
+    expected = expected.T.groupby(level=0, sort=False).sum().T
+    expected = expected.reindex(index=["Reg1", "Reg2"], columns=["EU", "Reg2"], fill_value=0.0)
+
+    pdt.assert_frame_equal(trades, expected)
+
+
+def test_calc_trades_rejects_invalid_clusters_direction():
+    database = load_test("IOT")
+
+    with pytest.raises(WrongInput, match="clusters_direction"):
+        database.calc_trades(
+            "Agriculture",
+            clusters={"Region": {"EU": ["Reg1"]}},
+            clusters_direction="sideways",
+        )
+
+
+def test_calc_trades_accepts_region_aggregation_presets_via_clusters(monkeypatch):
+    database = load_test("IOT")
+
+    captured = {"data": None}
+
+    class DummyFigure:
+        def show(self):
+            return None
+
+    def fake_plot(*args, **kwargs):
+        captured["data"] = kwargs.get("data")
+        return DummyFigure()
+
+    monkeypatch.setattr(database, "plot", fake_plot)
+
+    trades = database.calc_trades(
+        "Agriculture",
+        clusters={"EU": ["Reg1"]},
+        show_plot=True,
+        path=False,
+        auto_open=False,
+    )
+
+    assert isinstance(trades, pd.DataFrame)
+    assert set(trades.index) == {"EU", "Reg2"}
+    assert set(captured["data"]["Origin Region"]) == {"EU", "Reg2"}
+
+
 def test_calc_trades_can_show_a_heatmap():
     database = load_test("IOT")
 

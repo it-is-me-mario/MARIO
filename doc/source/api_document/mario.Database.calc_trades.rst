@@ -22,6 +22,14 @@ column MultiIndex.
 
 Use ``total=True`` to add row and column totals.
 
+Use ``clusters=...`` to aggregate the Region dimension before totals and
+plotting. This accepts Region aggregation presets such as ``'continent'`` and
+explicit mappings such as ``{'EU': ['FR', 'DE', 'IT']}``.
+
+Use ``clusters_direction='origin'`` to aggregate only the origin Regions,
+``'destination'`` to aggregate only the destination Regions, or ``'both'`` to
+aggregate both axes. The default is ``'both'``.
+
 Use ``scenario='all'`` to calculate the same trade matrix for every available
 scenario on the database. In that case ``db.calc_trades(...)`` returns a
 dictionary ``{scenario: dataframe}`` instead of a single dataframe.

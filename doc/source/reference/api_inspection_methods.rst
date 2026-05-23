@@ -12,7 +12,6 @@ Query and Block Access
 
    ../api_document/mario.Database.query
    ../api_document/mario.Database.get_data
-   ../api_document/mario.Database.calc_trades
    ../api_document/mario.CoreModel.get_block
    ../api_document/mario.CoreModel.has_matrix
    ../api_document/mario.CoreModel.list_matrices

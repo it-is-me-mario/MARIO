@@ -160,6 +160,10 @@
   text-decoration: none;
 }
 
+nav.bd-links ul.nav.bd-sidenav > li.toctree-l1.has-children > a {
+  font-weight: 800 !important;
+}
+
 .mario-doc-assistant {
   position: fixed;
   right: 1rem;
