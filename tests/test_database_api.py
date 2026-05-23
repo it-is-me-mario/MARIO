@@ -747,6 +747,242 @@ def test_calc_trades_requires_at_least_one_component():
         database.calc_trades("Agriculture", intermediate=False, final=False)
 
 
+def test_calc_trades_without_item_aggregates_all_items_when_units_are_homogeneous():
+    database = load_test("IOT")
+
+    trades = database.calc_trades()
+
+    expected_intermediate = (
+        database.Z.T.groupby(level=0, sort=False).sum().T.groupby(level=0, sort=False).sum()
+    )
+    expected_final = (
+        database.Y.T.groupby(level=0, sort=False).sum().T.groupby(level=0, sort=False).sum()
+    )
+    expected = expected_intermediate + expected_final
+
+    pdt.assert_frame_equal(trades, expected)
+
+
+def test_calc_trades_without_item_requires_homogeneous_units():
+    database = load_test("IOT")
+    database.units[_MASTER_INDEX["s"]].loc["Agriculture", "unit"] = "kg"
+
+    with pytest.raises(WrongInput, match="heterogeneous units"):
+        database.calc_trades()
+
+
+def test_calc_trades_content_iot_uses_total_factor_multipliers():
+    database = load_test("IOT")
+    indicator = database.get_index(_MASTER_INDEX["f"])[0]
+
+    trades = database.calc_trades_content(indicator, item="Agriculture", method="total")
+
+    weights = database.query(matrices=[_ENUM.m], scenarios=["baseline"]).loc[indicator]
+    expected_intermediate = database.Z.loc[(slice(None), slice(None), "Agriculture"), :].mul(
+        weights.reindex(database.Z.loc[(slice(None), slice(None), "Agriculture"), :].index),
+        axis=0,
+    )
+    expected_intermediate = (
+        expected_intermediate.T.groupby(level=0, sort=False)
+        .sum()
+        .T.groupby(level=0, sort=False)
+        .sum()
+    )
+    expected_final = database.Y.loc[(slice(None), slice(None), "Agriculture"), :].mul(
+        weights.reindex(database.Y.loc[(slice(None), slice(None), "Agriculture"), :].index),
+        axis=0,
+    )
+    expected_final = (
+        expected_final.T.groupby(level=0, sort=False).sum().T.groupby(level=0, sort=False).sum()
+    )
+    expected = expected_intermediate + expected_final
+
+    pdt.assert_frame_equal(trades, expected)
+
+
+def test_calc_trades_content_accepts_total_value_added_alias():
+    database = load_test("IOT")
+
+    trades = database.calc_trades_content("total value added", item="Agriculture", method="total")
+
+    weights = database.query(matrices=[_ENUM.m], scenarios=["baseline"]).sum(axis=0)
+    expected_intermediate = database.Z.loc[(slice(None), slice(None), "Agriculture"), :].mul(
+        weights.reindex(database.Z.loc[(slice(None), slice(None), "Agriculture"), :].index),
+        axis=0,
+    )
+    expected_intermediate = (
+        expected_intermediate.T.groupby(level=0, sort=False)
+        .sum()
+        .T.groupby(level=0, sort=False)
+        .sum()
+    )
+    expected_final = database.Y.loc[(slice(None), slice(None), "Agriculture"), :].mul(
+        weights.reindex(database.Y.loc[(slice(None), slice(None), "Agriculture"), :].index),
+        axis=0,
+    )
+    expected_final = (
+        expected_final.T.groupby(level=0, sort=False).sum().T.groupby(level=0, sort=False).sum()
+    )
+    expected = expected_intermediate + expected_final
+
+    pdt.assert_frame_equal(trades, expected)
+
+
+def test_calc_trades_content_sut_uses_commodity_side_coefficients():
+    database = load_test("SUT")
+    indicator = database.get_index(_MASTER_INDEX["k"])[0]
+
+    trades = database.calc_trades_content(indicator, item="Goods", method="direct")
+
+    weights = database.query(matrices=["ec"], scenarios=["baseline"]).loc[indicator]
+    expected_intermediate = database.U.loc[(slice(None), slice(None), "Goods"), :].mul(
+        weights.reindex(database.U.loc[(slice(None), slice(None), "Goods"), :].index),
+        axis=0,
+    )
+    expected_intermediate = (
+        expected_intermediate.T.groupby(level=0, sort=False)
+        .sum()
+        .T.groupby(level=0, sort=False)
+        .sum()
+    )
+    expected_final = database.Yc.loc[(slice(None), slice(None), "Goods"), :].mul(
+        weights.reindex(database.Yc.loc[(slice(None), slice(None), "Goods"), :].index),
+        axis=0,
+    )
+    expected_final = (
+        expected_final.T.groupby(level=0, sort=False).sum().T.groupby(level=0, sort=False).sum()
+    )
+    expected = expected_intermediate + expected_final
+
+    pdt.assert_frame_equal(trades, expected)
+
+
+def test_calc_trades_content_chenery_sut_uses_activity_side_coefficients():
+    database = load_test("SUT").to_chenery_moses(inplace=False)
+    indicator = database.get_index(_MASTER_INDEX["f"])[0]
+
+    trades = database.calc_trades_content(indicator, item="Goods", method="direct")
+
+    weights = database.query(matrices=["va"], scenarios=["baseline"]).loc[indicator]
+    expected = database.S.loc[:, (slice(None), slice(None), "Goods")].mul(
+        weights.reindex(database.S.index),
+        axis=0,
+    )
+    expected = expected.groupby(level=0, sort=False).sum().T.groupby(level=0, sort=False).sum().T
+
+    pdt.assert_frame_equal(trades, expected)
+
+
+def test_calc_trades_content_can_show_a_heatmap():
+    database = load_test("IOT")
+    indicator = database.get_index(_MASTER_INDEX["f"])[0]
+
+    trades = database.calc_trades_content(
+        indicator,
+        item="Agriculture",
+        aggregate=False,
+        show_plot=True,
+        path=False,
+        auto_open=False,
+    )
+
+    assert isinstance(trades, pd.DataFrame)
+
+
+def test_calc_trades_content_plot_uses_custom_title_and_indicator_unit(monkeypatch):
+    database = load_test("IOT")
+    indicator = database.get_index(_MASTER_INDEX["f"])[0]
+
+    captured = {"figure": None}
+
+    class DummyTitle:
+        def __init__(self):
+            self.text = None
+
+    class DummyColorBar:
+        def __init__(self):
+            self.title = DummyTitle()
+
+    class DummyColorAxis:
+        def __init__(self):
+            self.colorbar = DummyColorBar()
+
+    class DummyLayout:
+        def __init__(self):
+            self.title = DummyTitle()
+            self.coloraxis = DummyColorAxis()
+
+    class DummyFigure:
+        def __init__(self):
+            self.layout = DummyLayout()
+
+        def update_layout(self, **kwargs):
+            if "coloraxis_colorbar_title_text" in kwargs:
+                self.layout.coloraxis.colorbar.title.text = kwargs[
+                    "coloraxis_colorbar_title_text"
+                ]
+            return self
+
+        def show(self):
+            return None
+
+    def fake_plot(*args, **kwargs):
+        figure = DummyFigure()
+        figure.layout.title.text = kwargs.get("title")
+        captured["figure"] = figure
+        return figure
+
+    monkeypatch.setattr(database, "plot", fake_plot)
+
+    trades = database.calc_trades_content(
+        indicator,
+        item="Agriculture",
+        method="upstream",
+        show_plot=True,
+        title="Nickel embodied trade map",
+        path=False,
+        auto_open=False,
+    )
+
+    assert isinstance(trades, pd.DataFrame)
+    assert captured["figure"].layout.title.text == "Nickel embodied trade map"
+    expected_unit = str(database.units[_MASTER_INDEX["f"]].loc[indicator, "unit"])
+    assert captured["figure"].layout.coloraxis.colorbar.title.text == expected_unit
+
+
+def test_calc_trades_content_can_plot_all_scenarios_with_animation_slider(monkeypatch):
+    database = load_test("IOT")
+    indicator = database.get_index(_MASTER_INDEX["f"])[0]
+    database.clone_scenario("baseline", "policy")
+    database.matrices["policy"][_ENUM.Y].iloc[0, 0] += 10
+
+    captured = {"data": None, "animation_frame": None}
+
+    class DummyFigure:
+        def show(self):
+            return None
+
+    def fake_plot(*args, **kwargs):
+        captured["data"] = kwargs.get("data")
+        captured["animation_frame"] = kwargs.get("animation_frame")
+        return DummyFigure()
+
+    monkeypatch.setattr(database, "plot", fake_plot)
+
+    trades = database.calc_trades_content(
+        indicator,
+        item="Agriculture",
+        scenario="all",
+        show_plot=True,
+        path=False,
+        auto_open=False,
+    )
+
+    assert set(trades) == {"baseline", "policy"}
+    assert captured["animation_frame"] == "Scenario"
+    assert set(captured["data"]["Scenario"]) == {"baseline", "policy"}
+
+
 def test_parse_exiobase_imports_a_new_parser_scenario(monkeypatch):
     database = load_test("IOT")
     raw_blocks = {

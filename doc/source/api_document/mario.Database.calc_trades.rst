@@ -6,6 +6,10 @@ mario.Database.calc\_trades
 ``db.calc_trades(...)`` aggregates one sector or commodity into a
 region-by-region trade matrix.
 
+When ``item`` is omitted, MARIO aggregates all sectors or commodities together,
+but only when they share one common unit of measure. Hybrid or otherwise
+heterogeneous unit layouts still require an explicit ``item``.
+
 For IOT tables it uses ``Z`` for intermediate trade and ``Y`` for final demand.
 For SUT tables it uses ``U`` for intermediate trade and ``Yc`` for final
 demand when the table follows the Isard format.

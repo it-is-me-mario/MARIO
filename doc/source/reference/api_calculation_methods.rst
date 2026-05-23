@@ -27,6 +27,8 @@ Database Compute API
      - Calculate backward and forward linkage indicators.
    * - :doc:`db.calc_trades(...) <../api_document/mario.Database.calc_trades>`
      - Aggregate one sector or commodity into a region-by-region trade matrix and optional heatmap.
+   * - :doc:`db.calc_trades_content(...) <../api_document/mario.Database.calc_trades_content>`
+     - Calculate satellite, factor, or total value added content embodied in trade.
 
 .. toctree::
   :maxdepth: 1
@@ -36,6 +38,7 @@ Database Compute API
   ../api_document/mario.CoreModel.resolve_many
   ../api_document/mario.Database.calc_linkages
   ../api_document/mario.Database.calc_trades
+  ../api_document/mario.Database.calc_trades_content
 
 
 Runtime Compute Options
