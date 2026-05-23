@@ -2354,6 +2354,19 @@ class CoreModel:
         if attr in self.__dict__:
             return self.__dict__[attr]
         else:
+            if attr.startswith(("parse_", "hybrid_")) and hasattr(type(self), "parse_scenario"):
+                resolver = getattr(type(self), "_resolve_parser_entrypoint", None)
+                if callable(resolver):
+                    try:
+                        resolver(attr)
+                    except WrongInput:
+                        pass
+                    else:
+                        def parser_proxy(*args, **kwargs):
+                            return self.parse_scenario(attr, *args, **kwargs)
+
+                        return parser_proxy
+
             resolved_set = self._resolve_set_name(
                 attr,
                 allow_codes=False,

@@ -8,7 +8,12 @@ region-by-region trade matrix.
 
 For IOT tables it uses ``Z`` for intermediate trade and ``Y`` for final demand.
 For SUT tables it uses ``U`` for intermediate trade and ``Yc`` for final
-demand.
+demand when the table follows the Isard format.
+
+For Chenery-Moses SUT tables, commodity trade is aggregated from ``S`` instead.
+Because that trade is stored as one supply-side flow matrix, MARIO currently
+supports only the aggregate case with ``intermediate=True``, ``final=True`` and
+``aggregate=True``.
 
 When both ``intermediate=True`` and ``final=True``, the default is
 ``aggregate=True``, so the returned dataframe is the sum of intermediate and
@@ -17,8 +22,15 @@ column MultiIndex.
 
 Use ``total=True`` to add row and column totals.
 
+Use ``scenario='all'`` to calculate the same trade matrix for every available
+scenario on the database. In that case ``db.calc_trades(...)`` returns a
+dictionary ``{scenario: dataframe}`` instead of a single dataframe.
+
 Use ``show_plot=True`` to also build and display a region-by-region heatmap
 while still returning the trade matrix.
+
+When more than one scenario is plotted together, MARIO builds one animated
+heatmap with a scenario slider.
 
 Use ``save_plot=...`` to write that heatmap to an HTML file. The older
 ``path=...`` argument is still accepted as a backward-compatible alias. When

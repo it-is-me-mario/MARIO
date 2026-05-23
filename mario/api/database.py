@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """``Database`` implementation and high-level user operations."""
 
+import inspect
+
 from mario.log_exc.exceptions import (
     LackOfInput,
     WrongInput,
@@ -268,7 +270,7 @@ class Database(CoreModel):
                     f"Cannot import parser scenario from {parser_name}: unit table {label!r} is not compatible with the current database."
                 )
 
-    def parse_scenario(self, parser, *, new_scenario, calc_all=False, **kwargs):
+    def parse_scenario(self, parser, *args, new_scenario, calc_all=False, **kwargs):
         """Parse one compatible database and import it as a new scenario.
 
         Parameters
@@ -276,6 +278,8 @@ class Database(CoreModel):
         parser:
             Public parser name such as ``"parse_exiobase"`` or a callable
             parser entrypoint accepting ``model=...``.
+        *args:
+            Optional positional arguments forwarded to the selected parser.
         new_scenario:
             Name stored for the imported scenario.
         calc_all:
@@ -296,6 +300,15 @@ class Database(CoreModel):
 
         parser_callable, parser_name = self._resolve_parser_entrypoint(parser)
         parser_kwargs = dict(kwargs)
+        parser_kwargs.pop("model", None)
+        parser_kwargs.pop("calc_all", None)
+
+        try:
+            bound = inspect.signature(parser_callable).bind_partial(*args, **parser_kwargs)
+        except TypeError as exc:
+            raise WrongInput(f"Invalid arguments for parser {parser_name}: {exc}") from exc
+
+        parser_kwargs = dict(bound.arguments)
         parser_kwargs["model"] = "ModelState"
         parser_kwargs["calc_all"] = False
         state = parser_callable(**parser_kwargs)
@@ -350,6 +363,33 @@ class Database(CoreModel):
             table=table,
             unit=unit,
             path=path,
+            **kwargs,
+        )
+
+    def parse_from_parquet(
+        self,
+        path: str,
+        table: str,
+        mode: str,
+        *,
+        new_scenario,
+        calc_all: bool = False,
+        flat: bool = False,
+        matrix_layouts: dict[str, object] | None = None,
+        tech_assumption: str | None = None,
+        **kwargs,
+    ):
+        """Parse one parquet payload and import it as a new scenario."""
+        return self.parse_scenario(
+            "parse_from_parquet",
+            new_scenario=new_scenario,
+            calc_all=calc_all,
+            path=path,
+            table=table,
+            mode=mode,
+            flat=flat,
+            matrix_layouts=matrix_layouts,
+            tech_assumption=tech_assumption,
             **kwargs,
         )
 
@@ -1391,6 +1431,30 @@ class Database(CoreModel):
         return trade_matrix
 
     @staticmethod
+    def _aggregate_trade_supply_by_region(matrix: pd.DataFrame, item: str) -> pd.DataFrame:
+        """Aggregate one Chenery-Moses supply block into an origin-by-destination matrix."""
+        if not isinstance(matrix.columns, pd.MultiIndex) or matrix.columns.nlevels < 3:
+            raise WrongInput("Trade calculation requires a 3-level column MultiIndex.")
+
+        if item not in set(matrix.columns.get_level_values(-1)):
+            raise WrongInput(f"{item!r} does not exist in the matrix item index.")
+
+        selected = matrix.loc[:, (slice(None), slice(None), item)]
+        trade_matrix = (
+            selected.groupby(level=0, sort=False).sum().T.groupby(level=0, sort=False).sum().T
+        )
+        row_regions = list(dict.fromkeys(matrix.index.get_level_values(0)))
+        column_regions = list(dict.fromkeys(matrix.columns.get_level_values(0)))
+        trade_matrix = trade_matrix.reindex(
+            index=row_regions,
+            columns=column_regions,
+            fill_value=0.0,
+        )
+        trade_matrix.index.name = _MASTER_INDEX["r"]
+        trade_matrix.columns.name = _MASTER_INDEX["r"]
+        return trade_matrix
+
+    @staticmethod
     def _add_trade_totals(trade_matrix: pd.DataFrame) -> pd.DataFrame:
         """Add row and column totals to one square trade matrix."""
         with_totals = trade_matrix.copy()
@@ -1426,6 +1490,30 @@ class Database(CoreModel):
         working.columns.name = "Destination Region"
         frame = working.stack(future_stack=True).rename("Value").reset_index()
         return frame
+
+    def _normalize_trade_scenarios(self, scenario):
+        """Normalize trade scenario selectors, including the special ``all`` token."""
+        if isinstance(scenario, str):
+            if scenario.lower() == "all":
+                scenarios = list(self.scenarios)
+            else:
+                scenarios = [scenario]
+        else:
+            scenarios = list(scenario)
+
+        if not scenarios:
+            raise WrongInput("No scenarios were selected for trade calculation.")
+
+        missing = set(scenarios).difference(self.scenarios)
+        if missing:
+            raise WrongInput(
+                "Scenarios: {} do not exist in the database. Existing scenarios are:\n{}".format(
+                    missing,
+                    self.scenarios,
+                )
+            )
+
+        return scenarios
 
     def _trade_plot_unit(self, item: str) -> str:
         """Return the unit label for one traded item when available."""
@@ -1510,18 +1598,21 @@ class Database(CoreModel):
 
         Returns
         -------
-        pandas.DataFrame
-            Region-by-region trade matrix. When both ``intermediate`` and
-            ``final`` are requested, the default is to return their aggregate
-            sum. Use ``aggregate=False`` to get a dataframe with column
-            MultiIndex top-level labels ``Intermediate`` and ``Final``. When
-            ``show_plot=True``, MARIO renders the heatmap as a side effect and
-            still returns the trade matrix. When ``save_plot`` is provided,
-            MARIO saves the heatmap without displaying it.
+        pandas.DataFrame | dict
+            Region-by-region trade matrix for one scenario, or a dictionary
+            ``{scenario: matrix}`` when more than one scenario is requested.
+            When both ``intermediate`` and ``final`` are requested, the
+            default is to return their aggregate sum. Use ``aggregate=False``
+            to get a dataframe with column MultiIndex top-level labels
+            ``Intermediate`` and ``Final``. When more than one scenario is
+            plotted together, MARIO builds one animated heatmap with a
+            scenario slider.
         """
 
         if not intermediate and not final:
             raise WrongInput("At least one of 'intermediate' or 'final' should be True.")
+
+        scenario_names = self._normalize_trade_scenarios(scenario)
 
         matrix_names = []
         if self.meta.table == "SUT":
@@ -1535,47 +1626,94 @@ class Database(CoreModel):
             if final:
                 matrix_names.append(_ENUM.Y)
 
-        blocks = self.query(matrices=matrix_names, scenarios=scenario)
-        if isinstance(blocks, pd.DataFrame):
-            blocks = {matrix_names[0]: blocks}
-
-        frames = []
-        if intermediate:
-            matrix_name = _ENUM.U if self.meta.table == "SUT" else _ENUM.Z
-            frame = self._aggregate_trade_matrix_by_region(blocks[matrix_name], item)
-            if total:
-                frame = self._add_trade_totals(frame)
-            frames.append(
-                (
-                    "Intermediate",
-                    frame,
-                )
-            )
-        if final:
-            matrix_name = "Yc" if self.meta.table == "SUT" else _ENUM.Y
-            frame = self._aggregate_trade_matrix_by_region(blocks[matrix_name], item)
-            if total:
-                frame = self._add_trade_totals(frame)
-            frames.append(
-                (
-                    "Final",
-                    frame,
-                )
+        trades_by_scenario = {}
+        for scenario_name in scenario_names:
+            use_chenery_supply = (
+                self.meta.table == "SUT"
+                and len(self.get_index(_MASTER_INDEX["r"])) > 1
+                and self.is_chenerymoses(scenario=scenario_name)
             )
 
-        if len(frames) == 1:
-            trades = frames[0][1]
-        elif aggregate:
-            trades = frames[0][1].add(frames[1][1], fill_value=0.0)
-        else:
-            trades = pd.concat({label: frame for label, frame in frames}, axis=1)
+            if use_chenery_supply:
+                if not (intermediate and final and aggregate):
+                    raise NotImplementable(
+                        "For Chenery-Moses SUT tables, calc_trades currently supports only aggregate commodity trade with intermediate=True, final=True, and aggregate=True."
+                    )
+
+                supply_block = self.query(matrices=[_ENUM.S], scenarios=[scenario_name])
+                if isinstance(supply_block, dict):
+                    supply_block = supply_block[_ENUM.S]
+
+                frame = self._aggregate_trade_supply_by_region(supply_block, item)
+                if total:
+                    frame = self._add_trade_totals(frame)
+                trades_by_scenario[scenario_name] = frame
+                continue
+
+            blocks = self.query(matrices=matrix_names, scenarios=[scenario_name])
+            if isinstance(blocks, pd.DataFrame):
+                blocks = {matrix_names[0]: blocks}
+
+            frames = []
+            if intermediate:
+                matrix_name = _ENUM.U if self.meta.table == "SUT" else _ENUM.Z
+                frame = self._aggregate_trade_matrix_by_region(blocks[matrix_name], item)
+                if total:
+                    frame = self._add_trade_totals(frame)
+                frames.append(
+                    (
+                        "Intermediate",
+                        frame,
+                    )
+                )
+            if final:
+                matrix_name = "Yc" if self.meta.table == "SUT" else _ENUM.Y
+                frame = self._aggregate_trade_matrix_by_region(blocks[matrix_name], item)
+                if total:
+                    frame = self._add_trade_totals(frame)
+                frames.append(
+                    (
+                        "Final",
+                        frame,
+                    )
+                )
+
+            if len(frames) == 1:
+                trades_by_scenario[scenario_name] = frames[0][1]
+            elif aggregate:
+                trades_by_scenario[scenario_name] = frames[0][1].add(
+                    frames[1][1],
+                    fill_value=0.0,
+                )
+            else:
+                trades_by_scenario[scenario_name] = pd.concat(
+                    {label: frame for label, frame in frames},
+                    axis=1,
+                )
+
+        trades = (
+            trades_by_scenario[scenario_names[0]]
+            if len(scenario_names) == 1
+            else trades_by_scenario
+        )
 
         output_path = save_plot if save_plot is not None else path
         should_render_plot = show_plot or output_path not in (None, False)
         if not should_render_plot:
             return trades
 
-        plot_frame = self._build_trade_plot_frame(trades)
+        if len(scenario_names) == 1:
+            plot_frame = self._build_trade_plot_frame(trades)
+            animation_frame = None
+        else:
+            plot_frame = pd.concat(
+                [
+                    self._build_trade_plot_frame(trade_frame).assign(Scenario=scenario_name)
+                    for scenario_name, trade_frame in trades_by_scenario.items()
+                ],
+                ignore_index=True,
+            )
+            animation_frame = "Scenario"
         facet_col = "Component" if "Component" in plot_frame.columns else None
         figure = self.plot(
             data=plot_frame,
@@ -1586,6 +1724,7 @@ class Database(CoreModel):
             hover_name="Origin Region",
             heatmap_y="Origin Region",
             facet_col=facet_col,
+            animation_frame=animation_frame,
             path=False,
             auto_open=auto_open,
             title=title or f"Trades for {item}",

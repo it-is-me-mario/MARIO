@@ -23,7 +23,6 @@ The workflows are grouped into three families:
 
    inspection/basic_inspections
    inspection/compute_matrices
-   inspection/calc_linkages
    inspection/supply_chain_analyses
    inspection/visualization
    inspection/custom_labels_and_aliases

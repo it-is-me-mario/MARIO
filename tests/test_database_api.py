@@ -1,12 +1,13 @@
 import warnings
 from copy import deepcopy
 
+import mario.parsers as public_parsers
 import pandas as pd
 import pandas.testing as pdt
 import pytest
 
 from mario.clusters.coverage import build_region_aggregation_index
-from mario.log_exc.exceptions import WrongInput
+from mario.log_exc.exceptions import NotImplementable, WrongInput
 from mario.log_exc.logger import set_log_verbosity
 from mario.compute.ordering import SUTUnifiedOrderingPolicy
 from mario.compute.primitives import calc_w, calc_z
@@ -274,6 +275,30 @@ def test_calc_trades_sut_uses_u_and_yc_blocks():
     expected = expected_intermediate + expected_final
 
     pdt.assert_frame_equal(trades, expected)
+
+
+def test_calc_trades_chenery_sut_uses_supply_matrix_for_commodity_trades():
+    database = load_test("SUT").to_chenery_moses(inplace=False)
+
+    trades = database.calc_trades("Goods")
+
+    expected = (
+        database.S.loc[:, (slice(None), slice(None), "Goods")]
+        .groupby(level=0, sort=False)
+        .sum()
+        .T.groupby(level=0, sort=False)
+        .sum()
+        .T
+    )
+
+    pdt.assert_frame_equal(trades, expected)
+
+
+def test_calc_trades_chenery_sut_rejects_component_split_requests():
+    database = load_test("SUT").to_chenery_moses(inplace=False)
+
+    with pytest.raises(NotImplementable, match="Chenery-Moses"):
+        database.calc_trades("Goods", aggregate=False)
 
 
 def test_calc_trades_can_keep_intermediate_and_final_components_separate():
@@ -581,6 +606,38 @@ def test_calc_trades_plot_uses_custom_title_and_table_unit(monkeypatch):
     assert captured["figure"].layout.coloraxis.colorbar.title.text == "M EUR"
 
 
+def test_calc_trades_can_plot_all_scenarios_with_animation_slider(monkeypatch):
+    database = load_test("IOT")
+    database.clone_scenario("baseline", "policy")
+    database.matrices["policy"][_ENUM.Y].iloc[0, 0] += 10
+
+    captured = {"data": None, "animation_frame": None}
+
+    class DummyFigure:
+        def show(self):
+            return None
+
+    def fake_plot(*args, **kwargs):
+        captured["data"] = kwargs.get("data")
+        captured["animation_frame"] = kwargs.get("animation_frame")
+        return DummyFigure()
+
+    monkeypatch.setattr(database, "plot", fake_plot)
+
+    trades = database.calc_trades(
+        "Agriculture",
+        scenario="all",
+        show_plot=True,
+        path=False,
+        auto_open=False,
+    )
+
+    assert set(trades) == {"baseline", "policy"}
+    assert captured["animation_frame"] == "Scenario"
+    assert set(captured["data"]["Scenario"]) == {"baseline", "policy"}
+    assert not trades["baseline"].equals(trades["policy"])
+
+
 def test_calc_trades_requires_at_least_one_component():
     database = load_test("IOT")
 
@@ -623,6 +680,97 @@ def test_parse_exiobase_imports_a_new_parser_scenario(monkeypatch):
         pdt.assert_frame_equal(database["2023"][matrix], value)
     assert database.info["scenario_metadata"]["2023"]["year"] == 2023
     assert _ENUM.X not in database["2023"]
+
+
+def test_parse_from_parquet_imports_a_new_parser_scenario(monkeypatch):
+    database = load_test("SUT")
+    sut_native_blocks = {"U", "S", "Ya", "Yc", "Ea", "Ec", "EY", "Va", "Vc", "VY"}
+    raw_blocks = {
+        name: deepcopy(value)
+        for name, value in database["baseline"].items()
+        if name in sut_native_blocks
+    }
+
+    def fake_parse_from_parquet(*, model="Database", calc_all=False, name=None, source=None, year=None, **kwargs):
+        state = build_parser_state(
+            table=database.meta.table,
+            matrices=raw_blocks,
+            indexes=deepcopy(database._indeces),
+            units=deepcopy(database.units),
+            parser_name="parse_from_parquet",
+            source=source,
+            name=name,
+            year=year,
+        )
+        return build_database_from_state(state, model=model, calc_all=calc_all)
+
+    monkeypatch.setattr("mario.parsers.entrypoints.parse_from_parquet", fake_parse_from_parquet)
+
+    database.parse_from_parquet(
+        path="ignored",
+        table="SUT",
+        mode="flows",
+        flat=True,
+        year=2023,
+        source="GLORIA",
+        name="GLORIA parquet",
+        new_scenario=2023,
+    )
+
+    assert "2023" in database.scenarios
+    for matrix, value in raw_blocks.items():
+        pdt.assert_frame_equal(database["2023"][matrix], value)
+    assert database.info["scenario_metadata"]["2023"]["year"] == 2023
+    assert database.info["scenario_metadata"]["2023"]["source"] == "GLORIA"
+    assert _ENUM.Z not in database["2023"]
+
+
+def test_database_exposes_all_public_parser_entrypoints_as_callables():
+    database = load_test("IOT")
+
+    parser_names = {
+        name
+        for name in public_parsers.__all__
+        if name.startswith(("parse_", "hybrid_"))
+    }
+
+    for parser_name in parser_names:
+        assert callable(getattr(database, parser_name))
+
+
+def test_database_dynamic_parser_attr_imports_parser_scenario(monkeypatch):
+    database = load_test("IOT")
+    raw_blocks = {
+        name: deepcopy(value)
+        for name, value in database["baseline"].items()
+        if name in {_ENUM.Z, _ENUM.E, _ENUM.V, _ENUM.Y, _ENUM.EY, _ENUM.VY}
+    }
+
+    def fake_parse_exiobase_3(*, model="Database", calc_all=False, year=None, version=None, **kwargs):
+        assert version == "3.9.4"
+        state = build_parser_state(
+            table=database.meta.table,
+            matrices=raw_blocks,
+            indexes=deepcopy(database._indeces),
+            units=deepcopy(database.units),
+            parser_name="parse_exiobase_3_9_4",
+            source="EXIOBASE",
+            year=year,
+        )
+        return build_database_from_state(state, model=model, calc_all=calc_all)
+
+    monkeypatch.setattr("mario.parsers.entrypoints.parse_exiobase_3", fake_parse_exiobase_3)
+
+    database.parse_exiobase_3_9_4(
+        "ignored",
+        year=2023,
+        new_scenario=2023,
+    )
+
+    assert "2023" in database.scenarios
+    for matrix, value in raw_blocks.items():
+        pdt.assert_frame_equal(database["2023"][matrix], value)
+    assert database.info["scenario_metadata"]["2023"]["year"] == 2023
 
 
 def test_parse_scenario_rejects_incompatible_parser_payload(monkeypatch):
