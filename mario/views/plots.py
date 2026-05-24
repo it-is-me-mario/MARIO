@@ -189,7 +189,9 @@ def _infer_plot_dimensions(data: pd.DataFrame) -> dict[str, str | None]:
 
 
 def _aggregate_plot_data(data: pd.DataFrame, *, dimensions: list[str], value: str, agg: str) -> pd.DataFrame:
-    valid_dimensions = [dimension for dimension in dimensions if dimension in data.columns]
+    valid_dimensions = list(dict.fromkeys(
+        dimension for dimension in dimensions if dimension in data.columns
+    ))
     if not valid_dimensions:
         return pd.DataFrame({value: [getattr(data[value], agg)()]})
     return data.groupby(valid_dimensions, dropna=False, as_index=False)[value].agg(agg)
