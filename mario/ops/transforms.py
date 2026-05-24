@@ -41,12 +41,7 @@ def _restore_iot_transform_block_specs(database, captured_specs):
 def build_new_instance_from_scenario(database, scenario):
     """Return a new database whose baseline is the requested scenario."""
 
-    if scenario not in database.scenarios:
-        raise WrongInput(
-            "{} is not a valid scenario. Valid scenarios are {}".format(
-                scenario, database.scenarios
-            )
-        )
+    database._validate_scenario(scenario)
 
     data = database.query(
         matrices=[_ENUM.Y, _ENUM.E, _ENUM.V, _ENUM.Z, _ENUM.EY, _ENUM.VY],
@@ -70,6 +65,8 @@ def build_new_instance_from_scenario(database, scenario):
     )
     if hasattr(database, "clusters") and hasattr(new, "set_clusters"):
         new.set_clusters(clusters=database.clusters)
+    if hasattr(database, "baseline_scenario_name") and hasattr(new, "rename_baseline_scenario"):
+        new.rename_baseline_scenario(database.baseline_scenario_name)
     return new
 
 

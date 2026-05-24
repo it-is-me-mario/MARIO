@@ -1851,15 +1851,26 @@ class Database(CoreModel):
         if isinstance(scenarios, str):
             scenarios = [scenarios]
 
-        difference = set(scenarios).difference(self.scenarios)
+        invalid = set()
+        normalized_scenarios = []
+        for scenario in scenarios:
+            try:
+                resolved = self._validate_scenario(scenario)
+            except WrongInput:
+                invalid.add(scenario)
+                continue
 
-        if difference:
+            normalized_scenarios.append(self._public_scenario_name(resolved))
+
+        if invalid:
             raise WrongInput(
                 "Scenarios: {} do not exist in the database. Existing scenarios are:\n{}".format(
-                    difference,
+                    invalid,
                     self.scenarios,
                 )
             )
+
+        scenarios = list(dict.fromkeys(normalized_scenarios))
 
         data = {
             scenario: self.calc_linkages(
@@ -2809,8 +2820,8 @@ class Database(CoreModel):
                 f"Scenario {scenario} already exist. In order to re-write the scenario, you can use force_rewrite = True."
             )
 
-        if scenario == "baseline":
-            raise WrongInput("baseline scenario can not be overwritten.")
+        if self._is_reserved_baseline_name(scenario):
+            raise WrongInput(f"{self.baseline_scenario_name} scenario can not be overwritten.")
 
         clusters = self._resolved_clusters(clusters=clusters, legacy_clusters=legacy_clusters)
         check_clusters(

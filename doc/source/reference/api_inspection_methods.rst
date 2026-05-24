@@ -30,6 +30,7 @@ Sets, Metadata and Scenarios
    ../api_document/mario.CoreModel.sets
    ../api_document/mario.CoreModel.table_type
    ../api_document/mario.CoreModel.scenarios
+   ../api_document/mario.CoreModel.baseline_scenario_name
    ../api_document/mario.CoreModel.directory
    ../api_document/mario.CoreModel.meta_history
    ../api_document/mario.CoreModel.save_meta

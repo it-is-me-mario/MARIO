@@ -298,9 +298,9 @@ def ISARD_TO_CHENERY_MOSES(instance, scenario):
     commodities = instance.get_index(_MASTER_INDEX["c"])
     sN = slice(None)
 
-    U_isard = instance.get_data([_ENUM.U], scenarios=[scenario])[scenario][0]
-    Y_isard = instance.get_data([_ENUM.Y], scenarios=[scenario])[scenario][0]
-    s_isard = instance.get_data([_ENUM.s], scenarios=[scenario])[scenario][0]
+    U_isard = instance.query(_ENUM.U, scenarios=scenario)
+    Y_isard = instance.query(_ENUM.Y, scenarios=scenario)
+    s_isard = instance.query(_ENUM.s, scenarios=scenario)
 
     domestic_use = pd.DataFrame(0.0, index=U_isard.index, columns=regions)
     for region in regions:
@@ -340,7 +340,7 @@ def ISARD_TO_CHENERY_MOSES(instance, scenario):
 
             S_chenery.loc[(region_2, sN, sN), (region, sN, sN)] = market_share @ dom_use
 
-    Z_chenery = instance.get_data([_ENUM.Z], scenarios=[scenario])[scenario][0] * 0.0
+    Z_chenery = instance.query(_ENUM.Z, scenarios=scenario) * 0.0
     Z_chenery.loc[
         (sN, _MASTER_INDEX["a"], sN), (sN, _MASTER_INDEX["c"], sN)
     ] = S_chenery

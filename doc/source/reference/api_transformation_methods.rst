@@ -28,6 +28,7 @@ Scenario Operations
    :maxdepth: 1
 
    ../api_document/mario.Database.clone_scenario
+   ../api_document/mario.Database.rename_baseline_scenario
    ../api_document/mario.Database.update_scenarios
    ../api_document/mario.Database.shock_calc
    ../api_document/mario.Database.reset_to_flows

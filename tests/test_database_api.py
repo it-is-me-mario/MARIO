@@ -910,6 +910,25 @@ def test_build_new_instance_preserves_stored_clusters():
     assert new.clusters == {"Region": {"EU": ["Reg1", "Reg2"]}}
 
 
+@pytest.mark.parametrize("scenario_name", ["reference", "baseline"])
+def test_build_new_instance_preserves_public_baseline_scenario_name(scenario_name):
+    database = load_test("IOT")
+    database.rename_baseline_scenario("reference")
+
+    new = database.build_new_instance(scenario_name)
+
+    assert new.baseline_scenario_name == "reference"
+    assert new.scenarios == ["reference"]
+
+
+def test_shock_calc_rejects_public_baseline_scenario_name(tmp_path):
+    database = load_test("IOT")
+    database.rename_baseline_scenario("reference")
+
+    with pytest.raises(WrongInput, match="reference scenario can not be overwritten"):
+        database.shock_calc(str(tmp_path / "missing.xlsx"), z=True, scenario="reference")
+
+
 def test_get_shock_excel_for_sut_writes_only_nonzero_split_sheets(tmp_path):
     database = load_test("SUT")
     path = tmp_path / "sut_shock.xlsx"
@@ -1214,6 +1233,23 @@ def test_plot_linkages_wrapper_uses_new_plot_engine():
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         figure = database.plot_linkages(path=False, auto_open=False)
+
+    assert len(figure.data) > 0
+    assert any(item.category is DeprecationWarning for item in caught)
+
+
+@pytest.mark.parametrize("scenario_name", ["reference", "baseline"])
+def test_plot_linkages_wrapper_accepts_renamed_baseline_names(scenario_name):
+    database = load_test("IOT")
+    database.rename_baseline_scenario("reference")
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        figure = database.plot_linkages(
+            scenarios=[scenario_name],
+            path=False,
+            auto_open=False,
+        )
 
     assert len(figure.data) > 0
     assert any(item.category is DeprecationWarning for item in caught)

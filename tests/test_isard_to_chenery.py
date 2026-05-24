@@ -96,6 +96,15 @@ def test_is_chenerymoses(CoreDataIOT,CoreDataSUT):
     assert "This test is not implementable on single-region tables" in str(msg.value)  
 
 
+@pytest.mark.parametrize("scenario_name", ["reference", "baseline"])
+def test_sut_structure_checks_accept_renamed_baseline_names(CoreDataSUT, scenario_name):
+
+    CoreDataSUT.rename_baseline_scenario("reference")
+
+    assert CoreDataSUT.is_isard(scenario=scenario_name)
+    assert not CoreDataSUT.is_chenerymoses(scenario=scenario_name)
+
+
 
 def test_to_chenery_moses(CoreDataSUT):
 

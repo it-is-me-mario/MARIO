@@ -119,6 +119,137 @@ def test_rename_scenario_rejects_invalid_targets(CoreDataIOT):
     assert 'already exists' in str(msg.value)
 
 
+def test_rename_baseline_scenario_exposes_public_alias_and_resolves_queries(CoreDataIOT):
+
+    CoreDataIOT.rename_baseline_scenario('reference')
+
+    assert CoreDataIOT.baseline_scenario_name == 'reference'
+    assert CoreDataIOT.scenarios == ['reference']
+
+    pdt.assert_frame_equal(
+        CoreDataIOT['reference'][_ENUM.Z],
+        CoreDataIOT['baseline'][_ENUM.Z],
+    )
+    pdt.assert_frame_equal(
+        CoreDataIOT.query(_ENUM.Z, scenarios='reference'),
+        CoreDataIOT.query(_ENUM.Z, scenarios='baseline'),
+    )
+
+    data = CoreDataIOT.get_data([_ENUM.Z], scenarios=['reference'], format='dict')
+    assert set(data) == {'reference'}
+
+
+def test_clone_and_rename_scenario_support_public_baseline_alias(CoreDataIOT):
+
+    CoreDataIOT.rename_baseline_scenario('reference')
+    CoreDataIOT.clone_scenario('reference', 'dummy')
+
+    assert set(CoreDataIOT.scenarios) == {'reference', 'dummy'}
+
+    CoreDataIOT.rename_scenario('baseline', 'counterfactual')
+
+    assert CoreDataIOT.baseline_scenario_name == 'counterfactual'
+    assert set(CoreDataIOT.scenarios) == {'counterfactual', 'dummy'}
+
+
+def test_rename_baseline_scenario_rejects_existing_scenario_name(CoreDataIOT):
+
+    CoreDataIOT.clone_scenario('baseline', 'dummy')
+
+    with pytest.raises(WrongInput) as msg:
+        CoreDataIOT.rename_baseline_scenario('dummy')
+
+    assert 'already exists' in str(msg.value)
+
+
+@pytest.mark.parametrize('scenario_name', ['reference', 'baseline'])
+def test_renamed_baseline_scenario_supports_coremodel_accessors(CoreDataIOT, scenario_name):
+
+    CoreDataIOT.rename_baseline_scenario('reference')
+    baseline_z = CoreDataIOT['baseline'][_ENUM.Z].copy()
+
+    assert CoreDataIOT.scenarios == ['reference']
+    assert _ENUM.Z in CoreDataIOT.list_matrices(scenario=scenario_name)
+    assert CoreDataIOT.has_matrix(_ENUM.Z, scenario=scenario_name)
+    assert CoreDataIOT.has_block(_ENUM.Z, scenario=scenario_name)
+
+    pdt.assert_frame_equal(
+        CoreDataIOT[scenario_name][_ENUM.Z],
+        baseline_z,
+    )
+    pdt.assert_frame_equal(
+        CoreDataIOT.get_block(_ENUM.Z, scenario=scenario_name),
+        baseline_z,
+    )
+    pdt.assert_frame_equal(
+        CoreDataIOT.get_block_as_pandas(_ENUM.Z, scenario=scenario_name),
+        baseline_z,
+    )
+    pdt.assert_frame_equal(
+        CoreDataIOT.query(_ENUM.Z, scenarios=scenario_name),
+        baseline_z,
+    )
+
+    data = CoreDataIOT.get_data([_ENUM.Z], scenarios=[scenario_name], format='dict')
+    assert set(data) == {'reference'}
+    pdt.assert_frame_equal(data['reference'][_ENUM.Z], baseline_z)
+
+    explanation = CoreDataIOT.explain(_ENUM.X, scenario=scenario_name)
+    assert explanation == CoreDataIOT.explain(_ENUM.X, scenario='baseline')
+    assert _ENUM.X in explanation
+
+
+@pytest.mark.parametrize('scenario_name', ['reference', 'baseline'])
+def test_renamed_baseline_scenario_supports_coremodel_mutations(CoreDataIOT, scenario_name):
+
+    CoreDataIOT.rename_baseline_scenario('reference')
+    updated_z = CoreDataIOT.get_block_as_pandas(_ENUM.Z, scenario='baseline') + 1
+
+    CoreDataIOT.set_block(_ENUM.Z, updated_z, scenario=scenario_name)
+
+    pdt.assert_frame_equal(
+        CoreDataIOT.get_block_as_pandas(_ENUM.Z, scenario='reference'),
+        updated_z,
+    )
+
+    restored_z = updated_z - 1
+    CoreDataIOT.update_scenarios(scenario_name, **{_ENUM.Z: restored_z})
+
+    pdt.assert_frame_equal(
+        CoreDataIOT.get_block_as_pandas(_ENUM.Z, scenario='baseline'),
+        restored_z,
+    )
+
+    CoreDataIOT.calc_all(matrices=[_ENUM.X], scenario=scenario_name)
+
+    pdt.assert_frame_equal(
+        CoreDataIOT.get_block_as_pandas(_ENUM.X, scenario='reference'),
+        CoreDataIOT.get_block_as_pandas(_ENUM.X, scenario='baseline'),
+    )
+    pdt.assert_frame_equal(CoreDataIOT.Z, restored_z)
+
+    iterated = list(iter(CoreDataIOT))
+    assert iterated[0][0] == 'reference'
+    pdt.assert_frame_equal(iterated[0][1][_ENUM.Z], restored_z)
+
+
+def test_renamed_baseline_scenario_supports_reset_methods(CoreDataIOT):
+
+    CoreDataIOT.rename_baseline_scenario('reference')
+    CoreDataIOT.calc_all()
+    del CoreDataIOT['baseline'][_ENUM.Z]
+    del CoreDataIOT['baseline'][_ENUM.E]
+
+    CoreDataIOT.reset_to_flows('baseline')
+
+    assert set(CoreDataIOT['reference']) == {_ENUM.E, _ENUM.V, _ENUM.Y, _ENUM.Z, _ENUM.EY, _ENUM.VY}
+
+    CoreDataIOT.calc_all(scenario='reference')
+    CoreDataIOT.reset_to_coefficients('reference')
+
+    assert set(CoreDataIOT['baseline']) == {_ENUM.e, _ENUM.v, _ENUM.Y, _ENUM.z, _ENUM.EY, _ENUM.VY}
+
+
 def test_reset_to_flows(CoreDataIOT):
 
     CoreDataIOT.clone_scenario(

@@ -60,7 +60,7 @@ def aggregate_database(
             zero_output_epsilon=zero_output_epsilon,
         )
 
-    for scenario in database.scenarios:
+    for scenario in database._storage_scenarios():
         database.matrices[scenario] = new_matrices[scenario]
 
     database.meta._add_history(

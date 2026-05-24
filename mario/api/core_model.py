@@ -305,6 +305,37 @@ class CoreModel:
         if calc_all:
             self.calc_all()
 
+    @property
+    def baseline_scenario_name(self) -> str:
+        """Return the public name exposed for the internal baseline scenario."""
+        return str(self.info.get("baseline_scenario_name", "baseline"))
+
+    def _storage_scenarios(self) -> list[str]:
+        """Return scenario names exactly as stored in ``self.matrices``."""
+        return [*self.matrices]
+
+    def _public_scenario_name(self, scenario: str) -> str:
+        """Map one internal scenario name to the public-facing label."""
+        if scenario == "baseline":
+            return self.baseline_scenario_name
+        return scenario
+
+    def _resolve_scenario_name(self, scenario: str) -> str:
+        """Resolve one public-facing scenario label to the stored scenario key."""
+        token = str(scenario)
+        if token in self.matrices:
+            return token
+        if token == self.baseline_scenario_name and "baseline" in self.matrices:
+            return "baseline"
+        raise WrongInput(f"Acceptable scenarios are {self.scenarios}")
+
+    def _is_reserved_baseline_name(self, scenario) -> bool:
+        """Return whether one label refers to the baseline public name or key."""
+        if scenario is None:
+            return False
+        token = str(scenario)
+        return token in {"baseline", self.baseline_scenario_name}
+
     def calc_all(
         self,
         matrices=[_ENUM.z, _ENUM.v, _ENUM.e, _ENUM.Z, _ENUM.V, _ENUM.E],
@@ -363,7 +394,7 @@ class CoreModel:
             _resolve_canonical_matrix_name(name)
             for name in _normalize_requested_matrices(matrices)
         ]
-        self._validate_scenario(scenario)
+        scenario = self._validate_scenario(scenario)
         self._validate_matrices(requested)
 
         from mario.compute.types import ResolutionContext
@@ -396,9 +427,8 @@ class CoreModel:
                 ) from exc
 
     def _validate_scenario(self, scenario: str) -> None:
-        """Ensure that the requested scenario exists on the database."""
-        if scenario not in self.scenarios:
-            raise WrongInput(f"Acceptable scenarios are {self.scenarios}")
+        """Ensure that the requested scenario exists and return its storage key."""
+        return self._resolve_scenario_name(scenario)
 
     def _validate_matrices(self, matrices: list[str]) -> None:
         """Ensure that all requested matrix names are valid for the table kind."""
@@ -474,6 +504,7 @@ class CoreModel:
 
         removed = False
         previous = None
+        scenario = self._validate_scenario(scenario)
 
         if force_rewrite and self.has_matrix(item, scenario=scenario):
             previous = self.get_block(item, scenario=scenario)
@@ -625,6 +656,7 @@ class CoreModel:
         str
             Human-readable dependency explanation from the resolver.
         """
+        scenario = self._validate_scenario(scenario)
         return _resolver_module().explain(
             _resolve_canonical_matrix_name(matrix),
             self,
@@ -782,7 +814,7 @@ class CoreModel:
         tuple[str, ...]
             Sorted matrix names already materialized for the scenario.
         """
-        self._validate_scenario(scenario)
+        scenario = self._validate_scenario(scenario)
         return tuple(sorted(self.matrices[scenario]))
 
     def has_matrix(self, name: str, scenario: str = "baseline") -> bool:
@@ -800,7 +832,7 @@ class CoreModel:
         bool
             ``True`` when the matrix is already stored in the scenario.
         """
-        self._validate_scenario(scenario)
+        scenario = self._validate_scenario(scenario)
         return _resolve_storage_matrix_name(name) in self.matrices[scenario]
 
     def has_block(self, name: str, scenario: str = "baseline") -> bool:
@@ -822,7 +854,7 @@ class CoreModel:
         object
             Raw stored block object as kept in ``self.matrices``.
         """
-        self._validate_scenario(scenario)
+        scenario = self._validate_scenario(scenario)
         return self.matrices[scenario][_resolve_storage_matrix_name(name)]
 
     def set_block(self, name: str, value, scenario: str = "baseline") -> None:
@@ -837,7 +869,7 @@ class CoreModel:
         scenario:
             Scenario to update.
         """
-        self._validate_scenario(scenario)
+        scenario = self._validate_scenario(scenario)
         self.matrices[scenario][_resolve_storage_matrix_name(name)] = value
 
     def get_block_as_pandas(self, name: str, scenario: str = "baseline"):
@@ -966,6 +998,10 @@ class CoreModel:
             scenarios = [scenarios]
         else:
             scenarios = list(scenarios)
+        scenario_pairs = [
+            (self._public_scenario_name(self._validate_scenario(scenario)), self._validate_scenario(scenario))
+            for scenario in scenarios
+        ]
 
         if type not in ["absolute", "relative"]:
             raise WrongInput("Acceptable values for type are:\n['absolute', 'relative']")
@@ -980,17 +1016,8 @@ class CoreModel:
                 f"{set(invalid)} is/are not an acceptable input/s. Acceptabel values are:\n{options}"
             )
 
-        for scenario in scenarios:
-            if scenario not in [*self.matrices]:
-                raise WrongInput(
-                    f"{scenario} is not an acceptable scenario. Acceptable scenarios are:\n{[*self.matrices]}"
-                )
-
-        if base_scenario is not None and base_scenario not in [*self.matrices]:
-            raise WrongInput(
-                f"{base_scenario} is not an acceptable scenario for base_scenario. "
-                f"Acceptabel scenarios are:\n{[*self.matrices]}"
-            )
+        if base_scenario is not None:
+            base_scenario = self._validate_scenario(base_scenario)
 
         output_fields = list(requested)
         if units:
@@ -999,7 +1026,7 @@ class CoreModel:
             output_fields.append("indeces")
 
         dict_scenarios = {}
-        for scenario in scenarios:
+        for public_scenario, scenario in scenario_pairs:
             data = {}
             for requested_name, resolved_name in zip(requested, resolved_names):
                 value = self._get_matrix(resolved_name, scenario=scenario, auto_calc=auto_calc)
@@ -1023,13 +1050,13 @@ class CoreModel:
                 data["indeces"] = copy.deepcopy(self._indeces)
 
             if format == "dict":
-                dict_scenarios[scenario] = data
+                dict_scenarios[public_scenario] = data
             else:
                 mini_object = namedtuple("data", output_fields)
-                if len(scenario) == 1:
+                if len(scenario_pairs) == 1:
                     dict_scenarios = mini_object(**data)
                 else:
-                    dict_scenarios[scenario] = mini_object(**data)
+                    dict_scenarios[public_scenario] = mini_object(**data)
 
         return dict_scenarios
 
@@ -1073,16 +1100,19 @@ class CoreModel:
         )
 
         if isinstance(scenarios, str):
-            scenarios = [scenarios]
+            public_scenarios = [self._public_scenario_name(self._validate_scenario(scenarios))]
         else:
-            scenarios = list(scenarios)
+            public_scenarios = [
+                self._public_scenario_name(self._validate_scenario(scenario))
+                for scenario in scenarios
+            ]
 
         if len(requested) == 1:
-            for scenario in scenarios:
+            for scenario in public_scenarios:
                 data[scenario] = data[scenario][requested[0]]
 
-        if len(scenarios) == 1:
-            return data[scenarios[0]]
+        if len(public_scenarios) == 1:
+            return data[public_scenarios[0]]
 
         return data
 
@@ -1441,8 +1471,10 @@ class CoreModel:
             The method mutates the stored scenario in place.
         """
 
-        if scenario not in self.scenarios:
-            raise WrongInput(f"Existing scenarios are {self.scenarios}")
+        try:
+            scenario = self._validate_scenario(scenario)
+        except WrongInput as exc:
+            raise WrongInput(f"Existing scenarios are {self.scenarios}") from exc
 
         if not all([isinstance(value, pd.DataFrame) for value in matrices.values()]):
             raise WrongInput("items should be DataFrame")
@@ -1470,15 +1502,50 @@ class CoreModel:
             The new scenario is stored on the current instance.
         """
 
-        if scenario not in self.scenarios:
+        source_name = str(scenario)
+        try:
+            scenario = self._validate_scenario(scenario)
+        except WrongInput as exc:
+            raise WrongInput(f"{source_name} does not exist.") from exc
+        target_name = str(name).strip()
+
+        if not target_name:
+            raise WrongInput("scenario name can not be empty.")
+
+        if target_name == "baseline":
+            raise WrongInput(f"{target_name} already exists and cannot be overwritten.")
+
+        if scenario not in self._storage_scenarios():
             raise WrongInput("f{scenario} does not exist.")
 
-        if name in self.scenarios:
-            raise WrongInput(f"{name} already exists and cannot be overwritten.")
+        if target_name in self.scenarios or target_name in self._storage_scenarios():
+            raise WrongInput(f"{target_name} already exists and cannot be overwritten.")
 
-        self.matrices[name] = copy.deepcopy(self[scenario])
+        self.matrices[target_name] = copy.deepcopy(self[scenario])
         self.meta._add_history(
-            "Scenarios: {name} added to scearios by cloning {scenario}"
+            f"Scenarios: {target_name} added to scenarios by cloning {self._public_scenario_name(scenario)}"
+        )
+
+    def rename_baseline_scenario(self, name):
+        """Change the public name exposed for the baseline scenario."""
+        target_name = str(name).strip()
+        if not target_name:
+            raise WrongInput("baseline scenario name can not be empty.")
+
+        if target_name != "baseline" and target_name in self._storage_scenarios():
+            raise WrongInput(f"{target_name} already exists and cannot be overwritten.")
+
+        previous_name = self.baseline_scenario_name
+        if target_name == previous_name:
+            return
+
+        if target_name == "baseline":
+            self.info.pop("baseline_scenario_name", None)
+        else:
+            self.info["baseline_scenario_name"] = target_name
+
+        self.meta._add_history(
+            f"Scenarios: baseline public name changed from {previous_name} to {self.baseline_scenario_name}"
         )
 
     def rename_scenario(self, scenario, name):
@@ -1497,17 +1564,29 @@ class CoreModel:
             The scenario key is renamed in place.
         """
 
-        target_name = str(name)
+        source_name = str(scenario)
+        try:
+            resolved_scenario = self._validate_scenario(scenario)
+        except WrongInput as exc:
+            raise WrongInput(f"{source_name} does not exist.") from exc
+        target_name = str(name).strip()
 
-        if scenario not in self.scenarios:
-            raise WrongInput(f"{scenario} does not exist.")
+        if not target_name:
+            raise WrongInput("scenario name can not be empty.")
 
-        if target_name in self.scenarios:
+        if resolved_scenario == "baseline":
+            self.rename_baseline_scenario(target_name)
+            return
+
+        if target_name == "baseline":
             raise WrongInput(f"{target_name} already exists and cannot be overwritten.")
 
-        self.matrices[target_name] = self.matrices.pop(scenario)
+        if target_name in self.scenarios or target_name in self._storage_scenarios():
+            raise WrongInput(f"{target_name} already exists and cannot be overwritten.")
+
+        self.matrices[target_name] = self.matrices.pop(resolved_scenario)
         self.meta._add_history(
-            f"Scenarios: {scenario} renamed to {target_name}"
+            f"Scenarios: {self._public_scenario_name(resolved_scenario)} renamed to {target_name}"
         )
 
     def reset_to_flows(
@@ -1532,8 +1611,7 @@ class CoreModel:
         else:
             keep = [_ENUM.Z, _ENUM.E, _ENUM.V, _ENUM.EY, _ENUM.VY, _ENUM.Y]
 
-        if scenario not in self.scenarios:
-            raise WrongInput(f"Acceptable scenarios are {self.scenarios}")
+        scenario = self._validate_scenario(scenario)
 
         matrices = {}
         for key in keep:
@@ -1564,8 +1642,7 @@ class CoreModel:
         else:
             keep = [_ENUM.z, _ENUM.e, _ENUM.v, _ENUM.EY, _ENUM.VY, _ENUM.Y]
 
-        if scenario not in self.scenarios:
-            raise WrongInput(f"Acceptable scenarios are {self.scenarios}")
+        scenario = self._validate_scenario(scenario)
 
         matrices = {}
         for key in keep:
@@ -1823,8 +1900,10 @@ class CoreModel:
                 "This test is not implementable on single-region tables"
             )
 
-        if scenario not in self.scenarios:
-            raise WrongInput("Acceptable data_sets are:\n{}".format(self.scenarios))
+        try:
+            scenario = self._validate_scenario(scenario)
+        except WrongInput as exc:
+            raise WrongInput("Acceptable data_sets are:\n{}".format(self.scenarios)) from exc
 
         if self.has_matrix(
             _ENUM.z, scenario=scenario
@@ -1874,12 +1953,15 @@ class CoreModel:
                 "This test is not implementable on single-region tables"
             )
 
-        if scenario not in self.scenarios:
+        requested_scenario = str(scenario)
+        try:
+            scenario = self._validate_scenario(scenario)
+        except WrongInput as exc:
             raise WrongInput(
                 "{} is not an acceptable scenario. Acceptable data_sets are:\n{}".format(
-                    scenario, self.scenarios
+                    requested_scenario, self.scenarios
                 )
-            )
+            ) from exc
 
         if self.has_matrix(
             _ENUM.z, scenario=scenario
@@ -2073,7 +2155,7 @@ class CoreModel:
         list[str]
             Scenario names in storage order.
         """
-        return [*self.matrices]
+        return [self._public_scenario_name(scenario) for scenario in self._storage_scenarios()]
 
     @property
     def table_type(self):
@@ -2312,14 +2394,8 @@ class CoreModel:
 
     def __getitem__(self, key):
         """Return the matrix dictionary stored for one scenario."""
-        if key not in self.scenarios:
-            raise WrongInput(
-                "{} is not a valid scenario. Valid scenarios are {}".format(
-                    key, self.scenarios
-                )
-            )
-
-        return self.matrices[key]
+        scenario = self._validate_scenario(key)
+        return self.matrices[scenario]
 
     def __iter__(self):
         """Start iteration over available scenarios."""
@@ -2330,7 +2406,7 @@ class CoreModel:
         """Iterate over ``(scenario_name, matrices)`` pairs."""
         if len(self.__it__):
             key = self.__it__[0]
-            value = self.matrices[key]
+            value = self.matrices[self._resolve_scenario_name(key)]
 
             self.__it__.pop(0)
 
@@ -2367,7 +2443,7 @@ class CoreModel:
 
             if resolved_matrix in available_matrices(self.table_type) or attr in all_mat:
                 self.calc_all(matrices=[attr])
-                return self.get_block(attr, scenario="baseline")
+                return self.get_block(attr, scenario=self.baseline_scenario_name)
 
             else:
                 raise AttributeError(attr)
