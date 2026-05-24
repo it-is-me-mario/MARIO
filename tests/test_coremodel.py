@@ -610,8 +610,16 @@ def test_fa_ex_sut_supports_filter(CoreDataSUT):
     result = CoreDataSUT.fa_ex(satellite_accounts=[sat])
 
     ea = CoreDataSUT.query("ea")
+    ec = CoreDataSUT.query("ec")
     waa = CoreDataSUT.query("waa")
-    expected = _prepend_outer_level(waa.mul(ea.loc[sat], axis=0), sat, _MASTER_INDEX["k"])
+    wca = CoreDataSUT.query("wca")
+    expected = pd.concat(
+        [
+            _prepend_outer_level(waa.mul(ea.loc[sat], axis=0), sat, _MASTER_INDEX["k"]),
+            _prepend_outer_level(wca.mul(ec.loc[sat], axis=0), sat, _MASTER_INDEX["k"]),
+        ],
+        axis=0,
+    )
 
     pdt.assert_frame_equal(result, expected)
 
@@ -622,10 +630,17 @@ def test_fc_ex_sut_supports_filter(CoreDataSUT):
     result = CoreDataSUT.fc_ex(satellite_accounts=[sat])
 
     ea = CoreDataSUT.query("ea")
+    ec = CoreDataSUT.query("ec")
     s = CoreDataSUT.query("s")
     wcc = CoreDataSUT.query("wcc")
     transfer = s.dot(wcc)
-    expected = _prepend_outer_level(transfer.mul(ea.loc[sat], axis=0), sat, _MASTER_INDEX["k"])
+    expected = pd.concat(
+        [
+            _prepend_outer_level(transfer.mul(ea.loc[sat], axis=0), sat, _MASTER_INDEX["k"]),
+            _prepend_outer_level(wcc.mul(ec.loc[sat], axis=0), sat, _MASTER_INDEX["k"]),
+        ],
+        axis=0,
+    )
 
     pdt.assert_frame_equal(result, expected)
 
@@ -636,8 +651,16 @@ def test_ma_ex_sut_supports_factor_filter(CoreDataSUT):
     result = CoreDataSUT.ma_ex(factors=[factor])
 
     va = CoreDataSUT.query("va")
+    vc = CoreDataSUT.query("vc")
     waa = CoreDataSUT.query("waa")
-    expected = _prepend_outer_level(waa.mul(va.loc[factor], axis=0), factor, _MASTER_INDEX["f"])
+    wca = CoreDataSUT.query("wca")
+    expected = pd.concat(
+        [
+            _prepend_outer_level(waa.mul(va.loc[factor], axis=0), factor, _MASTER_INDEX["f"]),
+            _prepend_outer_level(wca.mul(vc.loc[factor], axis=0), factor, _MASTER_INDEX["f"]),
+        ],
+        axis=0,
+    )
 
     pdt.assert_frame_equal(result, expected)
 
@@ -648,10 +671,17 @@ def test_mc_ex_sut_supports_factor_filter(CoreDataSUT):
     result = CoreDataSUT.mc_ex(factors=[factor])
 
     va = CoreDataSUT.query("va")
+    vc = CoreDataSUT.query("vc")
     s = CoreDataSUT.query("s")
     wcc = CoreDataSUT.query("wcc")
     transfer = s.dot(wcc)
-    expected = _prepend_outer_level(transfer.mul(va.loc[factor], axis=0), factor, _MASTER_INDEX["f"])
+    expected = pd.concat(
+        [
+            _prepend_outer_level(transfer.mul(va.loc[factor], axis=0), factor, _MASTER_INDEX["f"]),
+            _prepend_outer_level(wcc.mul(vc.loc[factor], axis=0), factor, _MASTER_INDEX["f"]),
+        ],
+        axis=0,
+    )
 
     pdt.assert_frame_equal(result, expected)
 

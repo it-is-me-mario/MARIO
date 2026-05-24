@@ -713,17 +713,71 @@ def build_sut_Ma_from_ma_s_Yc(ma: pd.DataFrame, s: pd.DataFrame, Yc: pd.DataFram
     return scale_columns(ma, activity_total)
 
 
-def build_sut_ma_from_va_waa(va: pd.DataFrame, waa: pd.DataFrame) -> pd.DataFrame:
-    """Build activity-side value-added multipliers from direct coefficients."""
+def _combine_sut_activity_direct_terms(
+    direct_a: pd.DataFrame,
+    direct_c: pd.DataFrame | None,
+    u: pd.DataFrame,
+    *,
+    direct_a_name: str,
+    direct_c_name: str,
+) -> pd.DataFrame:
+    """Add optional commodity-side direct coefficients mapped through ``u``."""
+    if direct_c is None:
+        return direct_a
+
+    require_same_index(direct_c, direct_a, lhs_name=direct_c_name, rhs_name=direct_a_name)
+    require_same_columns(direct_c, u.index, lhs_name=direct_c_name, rhs_name="u.index")
+    return direct_a.add(matmul(direct_c, u), fill_value=0.0)
+
+
+def _combine_sut_commodity_direct_terms(
+    direct_a: pd.DataFrame,
+    direct_c: pd.DataFrame | None,
+    s: pd.DataFrame,
+    *,
+    direct_a_name: str,
+    direct_c_name: str,
+) -> pd.DataFrame:
+    """Add optional commodity-side direct coefficients in commodity space."""
+    require_same_columns(direct_a, s.index, lhs_name=direct_a_name, rhs_name="s.index")
+    combined = matmul(direct_a, s)
+    if direct_c is None:
+        return combined
+
+    require_same_index(direct_c, direct_a, lhs_name=direct_c_name, rhs_name=direct_a_name)
+    require_same_columns(direct_c, s.columns, lhs_name=direct_c_name, rhs_name="s.columns")
+    return combined.add(direct_c, fill_value=0.0)
+
+
+def build_sut_ma_from_va_waa(
+    va: pd.DataFrame,
+    waa: pd.DataFrame,
+    vc: pd.DataFrame | None = None,
+    u: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    """Build activity-side value-added multipliers from split direct coefficients."""
     validate_square(waa)
     require_same_columns(va, waa.index, lhs_name="va", rhs_name="waa")
-    return matmul(va, waa)
+    direct = va
+    if vc is not None:
+        if u is None:
+            raise ValueError("u is required when vc is provided.")
+        require_same_columns(u, waa.index, lhs_name="u", rhs_name="waa")
+        direct = _combine_sut_activity_direct_terms(
+            va,
+            vc,
+            u,
+            direct_a_name="va",
+            direct_c_name="vc",
+        )
+    return matmul(direct, waa)
 
 
 def build_sut_ma_from_va_s_u(
     va: pd.DataFrame,
     s: pd.DataFrame,
     u: pd.DataFrame,
+    vc: pd.DataFrame | None = None,
     *,
     context=None,
     resolver=None,
@@ -733,32 +787,56 @@ def build_sut_ma_from_va_s_u(
     require_same_index(s, u.columns, lhs_name="s", rhs_name="u.columns")
     require_same_columns(va, s.index, lhs_name="va", rhs_name="s.index")
     product = matmul(s, u)
-    solved = _solve_sut_system(product, va.T, transpose=True, context=context, resolver=resolver)
+    direct = _combine_sut_activity_direct_terms(
+        va,
+        vc,
+        u,
+        direct_a_name="va",
+        direct_c_name="vc",
+    )
+    solved = _solve_sut_system(product, direct.T, transpose=True, context=context, resolver=resolver)
     return solved.T
 
 
-def build_sut_mc_from_va_s_wcc(va: pd.DataFrame, s: pd.DataFrame, wcc: pd.DataFrame) -> pd.DataFrame:
-    """Build commodity-side value-added multipliers from activity-side inputs."""
+def build_sut_mc_from_va_s_wcc(
+    va: pd.DataFrame,
+    s: pd.DataFrame,
+    wcc: pd.DataFrame,
+    vc: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    """Build commodity-side value-added multipliers from split direct coefficients."""
     validate_square(wcc)
-    require_same_columns(va, s.index, lhs_name="va", rhs_name="s.index")
     require_same_columns(s, wcc.index, lhs_name="s", rhs_name="wcc")
-    return matmul(matmul(va, s), wcc)
+    direct = _combine_sut_commodity_direct_terms(
+        va,
+        vc,
+        s,
+        direct_a_name="va",
+        direct_c_name="vc",
+    )
+    return matmul(direct, wcc)
 
 
 def build_sut_mc_from_va_s_u(
     va: pd.DataFrame,
     s: pd.DataFrame,
     u: pd.DataFrame,
+    vc: pd.DataFrame | None = None,
     *,
     context=None,
     resolver=None,
 ) -> pd.DataFrame:
     """Build commodity-side value-added multipliers without materializing ``wcc``."""
-    require_same_columns(va, s.index, lhs_name="va", rhs_name="s.index")
     require_same_columns(u, s.index, lhs_name="u", rhs_name="s.index")
     require_same_index(u, s.columns, lhs_name="u", rhs_name="s.columns")
     product = matmul(u, s)
-    direct = matmul(va, s)
+    direct = _combine_sut_commodity_direct_terms(
+        va,
+        vc,
+        s,
+        direct_a_name="va",
+        direct_c_name="vc",
+    )
     solved = _solve_sut_system(product, direct.T, transpose=True, context=context, resolver=resolver)
     return solved.T
 
@@ -788,17 +866,35 @@ def build_sut_Fa_from_fa_s_Yc(fa: pd.DataFrame, s: pd.DataFrame, Yc: pd.DataFram
     return scale_columns(fa, activity_total)
 
 
-def build_sut_fa_from_ea_waa(ea: pd.DataFrame, waa: pd.DataFrame) -> pd.DataFrame:
-    """Build activity-side satellite multipliers from direct coefficients."""
+def build_sut_fa_from_ea_waa(
+    ea: pd.DataFrame,
+    waa: pd.DataFrame,
+    ec: pd.DataFrame | None = None,
+    u: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    """Build activity-side satellite multipliers from split direct coefficients."""
     validate_square(waa)
     require_same_columns(ea, waa.index, lhs_name="ea", rhs_name="waa")
-    return matmul(ea, waa)
+    direct = ea
+    if ec is not None:
+        if u is None:
+            raise ValueError("u is required when ec is provided.")
+        require_same_columns(u, waa.index, lhs_name="u", rhs_name="waa")
+        direct = _combine_sut_activity_direct_terms(
+            ea,
+            ec,
+            u,
+            direct_a_name="ea",
+            direct_c_name="ec",
+        )
+    return matmul(direct, waa)
 
 
 def build_sut_fa_from_ea_s_u(
     ea: pd.DataFrame,
     s: pd.DataFrame,
     u: pd.DataFrame,
+    ec: pd.DataFrame | None = None,
     *,
     context=None,
     resolver=None,
@@ -808,32 +904,56 @@ def build_sut_fa_from_ea_s_u(
     require_same_index(s, u.columns, lhs_name="s", rhs_name="u.columns")
     require_same_columns(ea, s.index, lhs_name="ea", rhs_name="s.index")
     product = matmul(s, u)
-    solved = _solve_sut_system(product, ea.T, transpose=True, context=context, resolver=resolver)
+    direct = _combine_sut_activity_direct_terms(
+        ea,
+        ec,
+        u,
+        direct_a_name="ea",
+        direct_c_name="ec",
+    )
+    solved = _solve_sut_system(product, direct.T, transpose=True, context=context, resolver=resolver)
     return solved.T
 
 
-def build_sut_fc_from_ea_s_wcc(ea: pd.DataFrame, s: pd.DataFrame, wcc: pd.DataFrame) -> pd.DataFrame:
-    """Build commodity-side satellite multipliers from activity-side inputs."""
+def build_sut_fc_from_ea_s_wcc(
+    ea: pd.DataFrame,
+    s: pd.DataFrame,
+    wcc: pd.DataFrame,
+    ec: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    """Build commodity-side satellite multipliers from split direct coefficients."""
     validate_square(wcc)
-    require_same_columns(ea, s.index, lhs_name="ea", rhs_name="s.index")
     require_same_columns(s, wcc.index, lhs_name="s", rhs_name="wcc")
-    return matmul(matmul(ea, s), wcc)
+    direct = _combine_sut_commodity_direct_terms(
+        ea,
+        ec,
+        s,
+        direct_a_name="ea",
+        direct_c_name="ec",
+    )
+    return matmul(direct, wcc)
 
 
 def build_sut_fc_from_ea_s_u(
     ea: pd.DataFrame,
     s: pd.DataFrame,
     u: pd.DataFrame,
+    ec: pd.DataFrame | None = None,
     *,
     context=None,
     resolver=None,
 ) -> pd.DataFrame:
     """Build commodity-side satellite multipliers without materializing ``wcc``."""
-    require_same_columns(ea, s.index, lhs_name="ea", rhs_name="s.index")
     require_same_columns(u, s.index, lhs_name="u", rhs_name="s.index")
     require_same_index(u, s.columns, lhs_name="u", rhs_name="s.columns")
     product = matmul(u, s)
-    direct = matmul(ea, s)
+    direct = _combine_sut_commodity_direct_terms(
+        ea,
+        ec,
+        s,
+        direct_a_name="ea",
+        direct_c_name="ec",
+    )
     solved = _solve_sut_system(product, direct.T, transpose=True, context=context, resolver=resolver)
     return solved.T
 

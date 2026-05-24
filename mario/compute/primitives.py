@@ -369,14 +369,14 @@ def calc_m(v, w):
     return build_iot_m_from_v_w(v, w)
 
 
-def calc_ma(va, waa):
+def calc_ma(va, waa, vc=None, u=None):
     """Calculate the ``ma`` activity-side total value added coefficients matrix."""
-    return build_sut_ma_from_va_waa(va, waa)
+    return build_sut_ma_from_va_waa(va, waa, vc=vc, u=u)
 
 
-def calc_mc(va, s, wcc):
+def calc_mc(va, s, wcc, vc=None):
     """Calculate the ``mc`` commodity-side total value added coefficients matrix."""
-    return build_sut_mc_from_va_s_wcc(va, s, wcc)
+    return build_sut_mc_from_va_s_wcc(va, s, wcc, vc=vc)
 
 
 def calc_M(m, Y):
@@ -493,14 +493,14 @@ def calc_f(e, w):
     return build_iot_f_from_e_w(e, w)
 
 
-def calc_fa(ea, waa):
+def calc_fa(ea, waa, ec=None, u=None):
     """Calculate the ``fa`` activity-side total environmental coefficients matrix."""
-    return build_sut_fa_from_ea_waa(ea, waa)
+    return build_sut_fa_from_ea_waa(ea, waa, ec=ec, u=u)
 
 
-def calc_fc(ea, s, wcc):
+def calc_fc(ea, s, wcc, ec=None):
     """Calculate the ``fc`` commodity-side total environmental coefficients matrix."""
-    return build_sut_fc_from_ea_s_wcc(ea, s, wcc)
+    return build_sut_fc_from_ea_s_wcc(ea, s, wcc, ec=ec)
 
 
 def calc_ea(Ea, Xa):

@@ -12,6 +12,7 @@
 #
 import os
 import sys
+from copy import deepcopy
 from datetime import datetime
 
 sys.path.insert(0, os.path.abspath("."))
@@ -20,6 +21,68 @@ sys.path.insert(0, os.path.abspath("../.."))
 sys.path.insert(0, os.path.abspath("../../.."))
 
 import mario_bibstyles
+import nbsphinx
+
+try:
+    import plotly.io as pio
+    from plotly.offline.offline import get_plotlyjs_version
+except ImportError:  # pragma: no cover - docs fallback when Plotly is absent
+    pio = None
+    get_plotlyjs_version = None
+
+
+_PLOTLY_MIME = "application/vnd.plotly.v1+json"
+_ORIGINAL_FROM_NOTEBOOK_NODE = nbsphinx.Exporter.from_notebook_node
+
+
+def _inject_plotly_html_outputs(nb):
+    """Convert Plotly MIME bundles saved in notebooks to HTML for nbsphinx."""
+
+    if pio is None:
+        return nb
+
+    notebook = deepcopy(nb)
+
+    for cell in notebook.get("cells", []):
+        for output in cell.get("outputs", []):
+            data = output.get("data")
+            if not isinstance(data, dict):
+                continue
+            if _PLOTLY_MIME not in data or "text/html" in data:
+                continue
+
+            figure_bundle = data[_PLOTLY_MIME]
+            if not isinstance(figure_bundle, dict):
+                continue
+
+            figure_payload = {
+                "data": figure_bundle.get("data", []),
+                "layout": figure_bundle.get("layout", {}),
+                "frames": figure_bundle.get("frames", []),
+            }
+            config = figure_bundle.get("config") or {}
+
+            data["text/html"] = pio.to_html(
+                figure_payload,
+                config=config,
+                auto_play=False,
+                full_html=False,
+                include_plotlyjs=False,
+            )
+
+    return notebook
+
+
+def _patched_from_notebook_node(self, nb, resources=None, **kwargs):
+    return _ORIGINAL_FROM_NOTEBOOK_NODE(
+        self,
+        _inject_plotly_html_outputs(nb),
+        resources=resources,
+        **kwargs,
+    )
+
+
+nbsphinx.Exporter.from_notebook_node = _patched_from_notebook_node
 
 # -- Project information -----------------------------------------------------
 
@@ -53,7 +116,7 @@ extensions = [
 ]
 nbsphinx_execute = "never"
 nbsphinx_epilog = r"""
-{% if env.docname.startswith("notebooks/parsers/") or env.docname in ["user_guide/inspection/calc_linkages", "user_guide/inspection/calculate_trades"] %}
+{% if env.docname.startswith("notebooks/parsers/") or env.docname in ["user_guide/inspection/calc_linkages", "user_guide/inspection/calculate_trades", "user_guide/inspection/supply_chain_analyses"] %}
 .. container:: parser-notebook-download
 
    :download:`Download this notebook <{{ env.docname.split("/")[-1] }}.ipynb>`
@@ -119,6 +182,11 @@ html_theme_options = {
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 html_js_files = [
+    (
+        f"https://cdn.plot.ly/plotly-{get_plotlyjs_version()}.min.js"
+        if get_plotlyjs_version is not None
+        else "https://cdn.plot.ly/plotly-2.32.0.min.js"
+    ),
     "external-links.js",
     "terminology-tables.js",
     "parser-coverage.js",

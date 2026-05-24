@@ -15,11 +15,21 @@ Accepted ``indicator`` values are:
 Use ``method='direct'`` for direct coefficients only, ``'total'`` for direct
 plus upstream effects, or ``'upstream'`` for the indirect share only.
 
+Use ``breakdown=True`` to return contributor-level content tables instead of a
+collapsed Region-by-Region total. In that case MARIO keeps the trade pair while
+decomposing the content across the contributing production nodes. Summing the
+breakdown over contributor levels reconstructs the corresponding collapsed
+``db.calc_trades_content(...)`` result for the same ``method``.
+
 For IOT tables, MARIO uses ``e`` and ``v`` for direct content, and ``f`` and
-``m`` for total content.
+``m`` for total content. With ``breakdown=True``, MARIO uses the direct row
+itself for ``method='direct'`` and the exploded matrices ``f_ex`` or ``m_ex``
+for ``'total'`` and ``'upstream'``.
 
 For Isard SUT tables, MARIO uses commodity-side coefficients and multipliers:
 ``ec`` and ``vc`` for direct content, and ``fc`` and ``mc`` for total content.
+With ``breakdown=True``, MARIO uses commodity-side exploded totals built from
+``fc_ex`` and ``mc_ex``.
 
 For Chenery-Moses SUT tables, commodity trade is aggregated from ``S`` and the
 content weights are taken from the activity side instead: ``ea`` and ``va``
@@ -31,6 +41,9 @@ the aggregate case with ``intermediate=True``, ``final=True`` and
 ``item``, ``scenario``, ``clusters``, ``clusters_direction``, ``intermediate``,
 ``final``, ``aggregate`` and ``total`` behave like they do in
 ``db.calc_trades(...)``.
+
+When ``breakdown=True``, Region clustering still applies to the trade axes, but
+plotting and ``total=True`` are not currently supported.
 
 Use ``show_plot=True`` to also build and display a region-by-region heatmap
 while still returning the trade-content matrix.

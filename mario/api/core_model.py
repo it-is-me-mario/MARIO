@@ -1200,7 +1200,7 @@ class CoreModel:
         satellite_accounts=None,
         scenario: str = "baseline",
     ):
-        """Return activity-side exploded satellite footprints for SUT: ``diag(ea) @ waa``.
+        """Return activity-side exploded satellite footprints for SUT.
 
         Parameters
         ----------
@@ -1213,8 +1213,8 @@ class CoreModel:
         Returns
         -------
         pandas.DataFrame
-            DataFrame with a 3-level MultiIndex on the rows
-            ``(satellite account, region, activity)``.
+            DataFrame with a 3-level MultiIndex on the rows describing
+            the satellite account and the contributing activity or commodity.
 
         Notes
         -----
@@ -1224,17 +1224,25 @@ class CoreModel:
             raise WrongInput("fa_ex is only available for SUT. Use f_ex for IOT.")
         self._validate_scenario(scenario)
         ea = self.query("ea", scenarios=[scenario])
+        ec = self.query("ec", scenarios=[scenario])
         waa = self.query("waa", scenarios=[scenario])
+        wca = self.query("wca", scenarios=[scenario])
         selected = self._normalize_exploded_selector(
             satellite_accounts,
             available=ea.index,
             label="satellite accounts",
         )
-        return self._explode_with_left_diagonal(
+        activity = self._explode_with_left_diagonal(
             ea.loc[selected],
             waa,
             outer_name=_MASTER_INDEX["k"],
         )
+        commodity = self._explode_with_left_diagonal(
+            ec.loc[selected],
+            wca,
+            outer_name=_MASTER_INDEX["k"],
+        )
+        return pd.concat([activity, commodity], axis=0)
 
     def fc_ex(
         self,
@@ -1242,7 +1250,7 @@ class CoreModel:
         satellite_accounts=None,
         scenario: str = "baseline",
     ):
-        """Return commodity-side exploded satellite footprints for SUT: ``diag(ea_k) @ (s @ wcc)``.
+        """Return commodity-side exploded satellite footprints for SUT.
 
         Parameters
         ----------
@@ -1255,8 +1263,8 @@ class CoreModel:
         Returns
         -------
         pandas.DataFrame
-            DataFrame with a 3-level MultiIndex on the rows
-            ``(satellite account, region, activity)`` and commodity columns.
+            DataFrame with a 3-level MultiIndex on the rows describing
+            the satellite account and the contributing activity or commodity.
 
         Notes
         -----
@@ -1266,6 +1274,7 @@ class CoreModel:
             raise WrongInput("fc_ex is only available for SUT. Use f_ex for IOT.")
         self._validate_scenario(scenario)
         ea = self.query("ea", scenarios=[scenario])
+        ec = self.query("ec", scenarios=[scenario])
         s = self.query("s", scenarios=[scenario])
         wcc = self.query("wcc", scenarios=[scenario])
         selected = self._normalize_exploded_selector(
@@ -1274,11 +1283,17 @@ class CoreModel:
             label="satellite accounts",
         )
         transfer = s.dot(wcc)
-        return self._explode_with_left_diagonal(
+        activity = self._explode_with_left_diagonal(
             ea.loc[selected],
             transfer,
             outer_name=_MASTER_INDEX["k"],
         )
+        commodity = self._explode_with_left_diagonal(
+            ec.loc[selected],
+            wcc,
+            outer_name=_MASTER_INDEX["k"],
+        )
+        return pd.concat([activity, commodity], axis=0)
 
     def m_ex(
         self,
@@ -1329,7 +1344,7 @@ class CoreModel:
         factors=None,
         scenario: str = "baseline",
     ):
-        """Return activity-side exploded value-added multipliers for SUT: ``diag(va) @ waa``.
+        """Return activity-side exploded value-added multipliers for SUT.
 
         Parameters
         ----------
@@ -1342,8 +1357,8 @@ class CoreModel:
         Returns
         -------
         pandas.DataFrame
-            DataFrame with a 3-level MultiIndex on the rows
-            ``(factor, region, activity)``.
+            DataFrame with a 3-level MultiIndex on the rows describing
+            the factor and the contributing activity or commodity.
 
         Notes
         -----
@@ -1353,17 +1368,25 @@ class CoreModel:
             raise WrongInput("ma_ex is only available for SUT. Use m_ex for IOT.")
         self._validate_scenario(scenario)
         va = self.query("va", scenarios=[scenario])
+        vc = self.query("vc", scenarios=[scenario])
         waa = self.query("waa", scenarios=[scenario])
+        wca = self.query("wca", scenarios=[scenario])
         selected = self._normalize_exploded_selector(
             factors,
             available=va.index,
             label="factors of production",
         )
-        return self._explode_with_left_diagonal(
+        activity = self._explode_with_left_diagonal(
             va.loc[selected],
             waa,
             outer_name=_MASTER_INDEX["f"],
         )
+        commodity = self._explode_with_left_diagonal(
+            vc.loc[selected],
+            wca,
+            outer_name=_MASTER_INDEX["f"],
+        )
+        return pd.concat([activity, commodity], axis=0)
 
     def mc_ex(
         self,
@@ -1371,7 +1394,7 @@ class CoreModel:
         factors=None,
         scenario: str = "baseline",
     ):
-        """Return commodity-side exploded value-added multipliers for SUT: ``diag(va) @ (s @ wcc)``.
+        """Return commodity-side exploded value-added multipliers for SUT.
 
         Parameters
         ----------
@@ -1384,8 +1407,8 @@ class CoreModel:
         Returns
         -------
         pandas.DataFrame
-            DataFrame with a 3-level MultiIndex on the rows
-            ``(factor, region, activity)`` and commodity columns.
+            DataFrame with a 3-level MultiIndex on the rows describing
+            the factor and the contributing activity or commodity.
 
         Notes
         -----
@@ -1395,6 +1418,7 @@ class CoreModel:
             raise WrongInput("mc_ex is only available for SUT. Use m_ex for IOT.")
         self._validate_scenario(scenario)
         va = self.query("va", scenarios=[scenario])
+        vc = self.query("vc", scenarios=[scenario])
         s = self.query("s", scenarios=[scenario])
         wcc = self.query("wcc", scenarios=[scenario])
         selected = self._normalize_exploded_selector(
@@ -1403,11 +1427,17 @@ class CoreModel:
             label="factors of production",
         )
         transfer = s.dot(wcc)
-        return self._explode_with_left_diagonal(
+        activity = self._explode_with_left_diagonal(
             va.loc[selected],
             transfer,
             outer_name=_MASTER_INDEX["f"],
         )
+        commodity = self._explode_with_left_diagonal(
+            vc.loc[selected],
+            wcc,
+            outer_name=_MASTER_INDEX["f"],
+        )
+        return pd.concat([activity, commodity], axis=0)
 
     def add_note(self, notes):
         """Append one or more user notes to the metadata history.

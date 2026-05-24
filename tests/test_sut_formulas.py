@@ -173,14 +173,14 @@ def test_sut_split_formulas_match_database_views():
     pdt.assert_frame_equal(build_sut_Ea_from_ea_Xa(ea, Xa), Ea)
     pdt.assert_frame_equal(build_sut_Ec_from_ec_Xc(ec, Xc), Ec)
 
-    ma = build_sut_ma_from_va_waa(va, waa)
-    mc = build_sut_mc_from_va_s_wcc(va, sut.s, wcc)
-    fa = build_sut_fa_from_ea_waa(ea, waa)
-    fc = build_sut_fc_from_ea_s_wcc(ea, sut.s, wcc)
-    ma_solve = build_sut_ma_from_va_s_u(va, sut.s, sut.u)
-    mc_solve = build_sut_mc_from_va_s_u(va, sut.s, sut.u)
-    fa_solve = build_sut_fa_from_ea_s_u(ea, sut.s, sut.u)
-    fc_solve = build_sut_fc_from_ea_s_u(ea, sut.s, sut.u)
+    ma = build_sut_ma_from_va_waa(va, waa, vc, sut.u)
+    mc = build_sut_mc_from_va_s_wcc(va, sut.s, wcc, vc)
+    fa = build_sut_fa_from_ea_waa(ea, waa, ec, sut.u)
+    fc = build_sut_fc_from_ea_s_wcc(ea, sut.s, wcc, ec)
+    ma_solve = build_sut_ma_from_va_s_u(va, sut.s, sut.u, vc)
+    mc_solve = build_sut_mc_from_va_s_u(va, sut.s, sut.u, vc)
+    fa_solve = build_sut_fa_from_ea_s_u(ea, sut.s, sut.u, ec)
+    fc_solve = build_sut_fc_from_ea_s_u(ea, sut.s, sut.u, ec)
 
     pdt.assert_frame_equal(ma, extract_ma_from_m(sut.m, ordering))
     pdt.assert_frame_equal(mc, extract_mc_from_m(sut.m, ordering))
@@ -205,16 +205,20 @@ def test_sut_split_flow_formulas_match_database_views_when_final_demand_is_commo
     Xa = extract_Xa_from_X(sut.X, ordering)
     Yc = extract_Yc_from_Y(sut.Y, ordering)
     Va = extract_Va_from_V(sut.V, ordering)
+    Vc = extract_Vc_from_V(sut.V, ordering)
     Ea = extract_Ea_from_E(sut.E, ordering)
+    Ec = extract_Ec_from_E(sut.E, ordering)
 
     va = build_sut_va_from_Va_Xa(Va, Xa)
+    vc = build_sut_vc_from_Vc_Xc(Vc, Xc)
     ea = build_sut_ea_from_Ea_Xa(Ea, Xa)
+    ec = build_sut_ec_from_Ec_Xc(Ec, Xc)
     wcc = build_sut_wcc_from_u_s(sut.u, sut.s)
     waa = build_sut_waa_from_s_u(sut.s, sut.u)
-    ma = build_sut_ma_from_va_waa(va, waa)
-    mc = build_sut_mc_from_va_s_wcc(va, sut.s, wcc)
-    fa = build_sut_fa_from_ea_waa(ea, waa)
-    fc = build_sut_fc_from_ea_s_wcc(ea, sut.s, wcc)
+    ma = build_sut_ma_from_va_waa(va, waa, vc, sut.u)
+    mc = build_sut_mc_from_va_s_wcc(va, sut.s, wcc, vc)
+    fa = build_sut_fa_from_ea_waa(ea, waa, ec, sut.u)
+    fc = build_sut_fc_from_ea_s_wcc(ea, sut.s, wcc, ec)
 
     pdt.assert_frame_equal(build_sut_Xc_from_wcc_Yc(wcc, Yc), Xc)
     pdt.assert_frame_equal(build_sut_Xc_from_u_s_Yc(sut.u, sut.s, Yc), Xc)
@@ -222,10 +226,10 @@ def test_sut_split_flow_formulas_match_database_views_when_final_demand_is_commo
     pdt.assert_frame_equal(build_sut_Mc_from_mc_Yc(mc, Yc), extract_Mc_from_M(sut.M, ordering))
     pdt.assert_frame_equal(build_sut_Fa_from_fa_s_Yc(fa, sut.s, Yc), extract_Fa_from_F(sut.F, ordering))
     pdt.assert_frame_equal(build_sut_Fc_from_fc_Yc(fc, Yc), extract_Fc_from_F(sut.F, ordering))
-    pdt.assert_frame_equal(build_sut_fa_from_ea_waa(ea, waa), extract_fa_from_f(sut.f, ordering))
-    pdt.assert_frame_equal(build_sut_mc_from_va_s_u(va, sut.s, sut.u), mc)
-    pdt.assert_frame_equal(build_sut_fc_from_ea_s_u(ea, sut.s, sut.u), fc)
-    pdt.assert_frame_equal(build_sut_fa_from_ea_s_u(ea, sut.s, sut.u), extract_fa_from_f(sut.f, ordering))
+    pdt.assert_frame_equal(build_sut_fa_from_ea_waa(ea, waa, ec, sut.u), extract_fa_from_f(sut.f, ordering))
+    pdt.assert_frame_equal(build_sut_mc_from_va_s_u(va, sut.s, sut.u, vc), mc)
+    pdt.assert_frame_equal(build_sut_fc_from_ea_s_u(ea, sut.s, sut.u, ec), fc)
+    pdt.assert_frame_equal(build_sut_fa_from_ea_s_u(ea, sut.s, sut.u, ec), extract_fa_from_f(sut.f, ordering))
 
 
 def test_public_sut_calc_wrappers_match_split_builders():
@@ -259,14 +263,80 @@ def test_public_sut_calc_wrappers_match_split_builders():
     pdt.assert_frame_equal(mario.calc_Ec(ec, Xc), Ec)
     pdt.assert_frame_equal(mario.calc_ea(Ea, Xa), ea)
     pdt.assert_frame_equal(mario.calc_ec(Ec, Xc), ec)
-    pdt.assert_frame_equal(mario.calc_ma(va, waa), ma)
-    pdt.assert_frame_equal(mario.calc_mc(va, sut.s, wcc), mc)
+    pdt.assert_frame_equal(mario.calc_ma(va, waa, vc=vc, u=sut.u), ma)
+    pdt.assert_frame_equal(mario.calc_mc(va, sut.s, wcc, vc=vc), mc)
     pdt.assert_frame_equal(mario.calc_Ma(ma, sut.s, Yc), extract_Ma_from_M(sut.M, ordering))
     pdt.assert_frame_equal(mario.calc_Mc(mc, Yc), extract_Mc_from_M(sut.M, ordering))
-    pdt.assert_frame_equal(mario.calc_fa(ea, waa), fa)
-    pdt.assert_frame_equal(mario.calc_fc(ea, sut.s, wcc), fc)
+    pdt.assert_frame_equal(mario.calc_fa(ea, waa, ec=ec, u=sut.u), fa)
+    pdt.assert_frame_equal(mario.calc_fc(ea, sut.s, wcc, ec=ec), fc)
     pdt.assert_frame_equal(mario.calc_Fa(fa, sut.s, Yc), extract_Fa_from_F(sut.F, ordering))
     pdt.assert_frame_equal(mario.calc_Fc(fc, Yc), extract_Fc_from_F(sut.F, ordering))
+
+
+def test_sut_multiplier_formulas_include_commodity_side_direct_coefficients():
+    va = pd.DataFrame(
+        [[1.0, 0.0], [0.0, 2.0]],
+        index=["f1", "f2"],
+        columns=["a1", "a2"],
+    )
+    vc = pd.DataFrame(
+        [[3.0, 0.0], [0.0, 4.0]],
+        index=va.index,
+        columns=["c1", "c2"],
+    )
+    ea = pd.DataFrame(
+        [[5.0, 0.0], [0.0, 6.0]],
+        index=["k1", "k2"],
+        columns=va.columns,
+    )
+    ec = pd.DataFrame(
+        [[7.0, 0.0], [0.0, 8.0]],
+        index=ea.index,
+        columns=vc.columns,
+    )
+    s = pd.DataFrame(
+        [[0.2, 0.1], [0.3, 0.2]],
+        index=va.columns,
+        columns=vc.columns,
+    )
+    u = pd.DataFrame(
+        [[0.1, 0.05], [0.02, 0.1]],
+        index=vc.columns,
+        columns=va.columns,
+    )
+
+    waa = build_sut_waa_from_s_u(s, u)
+    wcc = build_sut_wcc_from_u_s(u, s)
+
+    expected_ma = pd.DataFrame(
+        (va.to_numpy() + vc.to_numpy() @ u.to_numpy()) @ waa.to_numpy(),
+        index=va.index,
+        columns=waa.columns,
+    )
+    expected_mc = pd.DataFrame(
+        (va.to_numpy() @ s.to_numpy() + vc.to_numpy()) @ wcc.to_numpy(),
+        index=va.index,
+        columns=wcc.columns,
+    )
+    expected_fa = pd.DataFrame(
+        (ea.to_numpy() + ec.to_numpy() @ u.to_numpy()) @ waa.to_numpy(),
+        index=ea.index,
+        columns=waa.columns,
+    )
+    expected_fc = pd.DataFrame(
+        (ea.to_numpy() @ s.to_numpy() + ec.to_numpy()) @ wcc.to_numpy(),
+        index=ea.index,
+        columns=wcc.columns,
+    )
+
+    pdt.assert_frame_equal(build_sut_ma_from_va_waa(va, waa, vc, u), expected_ma)
+    pdt.assert_frame_equal(build_sut_mc_from_va_s_wcc(va, s, wcc, vc), expected_mc)
+    pdt.assert_frame_equal(build_sut_fa_from_ea_waa(ea, waa, ec, u), expected_fa)
+    pdt.assert_frame_equal(build_sut_fc_from_ea_s_wcc(ea, s, wcc, ec), expected_fc)
+    pdt.assert_frame_equal(build_sut_ma_from_va_s_u(va, s, u, vc), expected_ma)
+    pdt.assert_frame_equal(build_sut_mc_from_va_s_u(va, s, u, vc), expected_mc)
+    pdt.assert_frame_equal(build_sut_fa_from_ea_s_u(ea, s, u, ec), expected_fa)
+    pdt.assert_frame_equal(build_sut_fc_from_ea_s_u(ea, s, u, ec), expected_fc)
 
 
 def test_sut_satellite_multiplier_formulas_handle_pandas_sparse_float32_inputs():

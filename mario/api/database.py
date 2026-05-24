@@ -1713,6 +1713,217 @@ class Database(CoreModel):
             return total_row, unit
         return total_row.subtract(direct_row, fill_value=0.0), unit
 
+    def _resolve_trade_content_total_exploded(
+        self,
+        indicator,
+        *,
+        scenario,
+        use_activity_side: bool,
+    ) -> tuple[pd.DataFrame, str]:
+        """Resolve exploded total content weights for contributor breakdowns."""
+        if self.meta.table == "IOT":
+            factor_total = self.m_ex
+            satellite_total = self.f_ex
+        elif use_activity_side:
+            factor_total = self.ma_ex
+            satellite_total = self.fa_ex
+        else:
+            factor_total = self.mc_ex
+            satellite_total = self.fc_ex
+
+        factor_units = self.units[_MASTER_INDEX["f"]]
+        satellite_units = self.units[_MASTER_INDEX["k"]]
+
+        if self._is_total_value_added_indicator(indicator):
+            exploded = factor_total(scenario=scenario)
+            exploded = exploded.groupby(
+                level=list(range(1, exploded.index.nlevels)),
+                sort=False,
+            ).sum()
+            unit_values = factor_units["unit"].dropna().astype(str).unique().tolist()
+            unit = unit_values[0] if len(unit_values) == 1 else "Value"
+            return exploded, unit
+
+        if indicator in factor_units.index:
+            exploded = factor_total(factors=[indicator], scenario=scenario)
+            unit_value = factor_units.loc[indicator, "unit"]
+            unit = str(unit_value) if pd.notna(unit_value) else "Value"
+        elif indicator in satellite_units.index:
+            exploded = satellite_total(satellite_accounts=[indicator], scenario=scenario)
+            unit_value = satellite_units.loc[indicator, "unit"]
+            unit = str(unit_value) if pd.notna(unit_value) else "Value"
+        else:
+            raise WrongInput(
+                "indicator should be a Satellite account row, a Factor of production row, or 'total value added'."
+            )
+
+        return exploded.droplevel(0), unit
+
+    @staticmethod
+    def _explode_trade_content_direct_row(direct_row: pd.Series) -> pd.DataFrame:
+        """Represent one direct content row as a contributor-by-traded-item matrix."""
+        return pd.DataFrame(
+            np.diag(direct_row.to_numpy()),
+            index=direct_row.index.copy(),
+            columns=direct_row.index.copy(),
+        )
+
+    def _resolve_trade_content_exploded(
+        self,
+        indicator,
+        *,
+        scenario,
+        method: str,
+        use_activity_side: bool,
+    ) -> tuple[pd.DataFrame, str]:
+        """Resolve contributor-level content weights for breakdown outputs."""
+        direct_row, unit = self._resolve_trade_content_row(
+            indicator,
+            scenario=scenario,
+            method="direct",
+            use_activity_side=use_activity_side,
+        )
+        direct_exploded = self._explode_trade_content_direct_row(direct_row)
+
+        if method == "direct":
+            return direct_exploded, unit
+
+        total_exploded, unit = self._resolve_trade_content_total_exploded(
+            indicator,
+            scenario=scenario,
+            use_activity_side=use_activity_side,
+        )
+
+        if method == "total":
+            return total_exploded, unit
+
+        return total_exploded.subtract(direct_exploded, fill_value=0.0), unit
+
+    @staticmethod
+    def _select_trade_rows(matrix: pd.DataFrame, item=None) -> pd.DataFrame:
+        """Select all trade rows or one item subset from a row-oriented block."""
+        if not isinstance(matrix.index, pd.MultiIndex) or matrix.index.nlevels < 3:
+            raise WrongInput("Trade calculation requires a 3-level row MultiIndex.")
+
+        if item is None:
+            return matrix
+
+        items = item if isinstance(item, list) else [item]
+        missing = sorted(set(items).difference(set(matrix.index.get_level_values(-1))))
+        if missing:
+            raise WrongInput(f"Items {missing!r} do not exist in the matrix item index.")
+
+        selector = items if len(items) > 1 else items[0]
+        return matrix.loc[(slice(None), slice(None), selector), :]
+
+    @staticmethod
+    def _select_trade_supply_columns(matrix: pd.DataFrame, item=None) -> pd.DataFrame:
+        """Select all trade columns or one item subset from a supply-oriented block."""
+        if not isinstance(matrix.columns, pd.MultiIndex) or matrix.columns.nlevels < 3:
+            raise WrongInput("Trade calculation requires a 3-level column MultiIndex.")
+
+        if item is None:
+            return matrix
+
+        items = item if isinstance(item, list) else [item]
+        missing = sorted(set(items).difference(set(matrix.columns.get_level_values(-1))))
+        if missing:
+            raise WrongInput(f"Items {missing!r} do not exist in the matrix item index.")
+
+        selector = items if len(items) > 1 else items[0]
+        return matrix.loc[:, (slice(None), slice(None), selector)]
+
+    @staticmethod
+    def _aggregate_trade_content_breakdown_matrix_by_region(
+        matrix: pd.DataFrame,
+        exploded_weights: pd.DataFrame,
+        item=None,
+    ) -> pd.DataFrame:
+        """Break down row-oriented trade content by contributor and trade region pair."""
+        selected = Database._select_trade_rows(matrix, item)
+        origin_regions = list(dict.fromkeys(selected.index.get_level_values(0).tolist()))
+        destination_regions = list(dict.fromkeys(matrix.columns.get_level_values(0).tolist()))
+
+        frames = []
+        for origin_region in origin_regions:
+            origin_block = selected.loc[(origin_region, slice(None), slice(None)), :]
+            contribution = exploded_weights.reindex(columns=origin_block.index, fill_value=0.0).dot(
+                origin_block
+            )
+            contribution = contribution.T.groupby(level=0, sort=False).sum().T
+            contribution = contribution.reindex(columns=destination_regions, fill_value=0.0)
+
+            contribution.index = pd.MultiIndex.from_tuples(
+                [(origin_region, *idx) for idx in contribution.index.tolist()],
+                names=[_MASTER_INDEX["r"], *contribution.index.names],
+            )
+            frames.append(contribution)
+
+        return pd.concat(frames, axis=0)
+
+    @staticmethod
+    def _aggregate_trade_content_breakdown_supply_by_region(
+        matrix: pd.DataFrame,
+        exploded_weights: pd.DataFrame,
+        item=None,
+    ) -> pd.DataFrame:
+        """Break down supply-oriented trade content by contributor and trade region pair."""
+        selected = Database._select_trade_supply_columns(matrix, item)
+        origin_regions = list(dict.fromkeys(selected.index.get_level_values(0).tolist()))
+        destination_regions = list(dict.fromkeys(selected.columns.get_level_values(0).tolist()))
+
+        frames = []
+        for origin_region in origin_regions:
+            origin_block = selected.loc[(origin_region, slice(None), slice(None)), :]
+            contribution = exploded_weights.reindex(columns=origin_block.index, fill_value=0.0).dot(
+                origin_block
+            )
+            contribution = contribution.T.groupby(level=0, sort=False).sum().T
+            contribution = contribution.reindex(columns=destination_regions, fill_value=0.0)
+
+            contribution.index = pd.MultiIndex.from_tuples(
+                [(origin_region, *idx) for idx in contribution.index.tolist()],
+                names=[_MASTER_INDEX["r"], *contribution.index.names],
+            )
+            frames.append(contribution)
+
+        return pd.concat(frames, axis=0)
+
+    @staticmethod
+    def _aggregate_trade_content_breakdown_regions(
+        breakdown: pd.DataFrame,
+        region_aggregation: pd.DataFrame | None,
+        *,
+        clusters_direction: str = "both",
+    ) -> pd.DataFrame:
+        """Aggregate trade axes on contributor-level breakdown outputs."""
+        if region_aggregation is None:
+            return breakdown
+
+        targets = region_aggregation["Aggregation"].to_dict()
+        aggregated = breakdown.copy()
+
+        if clusters_direction in {"origin", "both"}:
+            aggregated.index = pd.MultiIndex.from_tuples(
+                [(targets.get(idx[0], idx[0]), *idx[1:]) for idx in aggregated.index.tolist()],
+                names=aggregated.index.names,
+            )
+            aggregated = aggregated.groupby(
+                level=list(range(aggregated.index.nlevels)),
+                sort=False,
+            ).sum()
+
+        if clusters_direction in {"destination", "both"}:
+            aggregated.columns = pd.Index(
+                [targets.get(label, label) for label in aggregated.columns],
+                name=aggregated.columns.name,
+            )
+            aggregated = aggregated.T.groupby(level=0, sort=False).sum().T
+            column_order = list(dict.fromkeys(region_aggregation["Aggregation"].tolist()))
+            aggregated = aggregated.reindex(columns=column_order, fill_value=0.0)
+
+        return aggregated
+
     def _trade_plot_unit(self, item=None) -> str:
         """Return the unit label for one traded item when available."""
         level = self._trade_item_level()
@@ -2012,6 +2223,7 @@ class Database(CoreModel):
         item=None,
         scenario="baseline",
         method="total",
+        breakdown=False,
         clusters=None,
         clusters_direction="both",
         intermediate=True,
@@ -2041,6 +2253,10 @@ class Database(CoreModel):
             Trade-content accounting mode. Use ``"direct"`` for direct
             coefficients only, ``"total"`` for direct plus upstream effects,
             or ``"upstream"`` for the indirect share only.
+        breakdown:
+            When ``True``, return a contributor-level decomposition instead of
+            collapsing all contributors into one region-by-region total. The
+            rows then carry a MultiIndex ``(origin region, contributor...)``.
         clusters:
             Optional Region aggregation preset or mapping applied before totals.
         clusters_direction:
@@ -2078,7 +2294,8 @@ class Database(CoreModel):
         pandas.DataFrame | dict
             Region-by-region trade-content matrix for one scenario, or a
             dictionary ``{scenario: matrix}`` when more than one scenario is
-            requested.
+            requested. With ``breakdown=True``, MARIO returns contributor-level
+            content tables instead of collapsed trade totals.
         """
 
         if not intermediate and not final:
@@ -2090,6 +2307,9 @@ class Database(CoreModel):
         region_aggregation = self._resolve_trade_region_aggregation(clusters)
         clusters_direction = self._normalize_trade_cluster_direction(clusters_direction)
         content_unit = None
+
+        if breakdown and total:
+            raise NotImplementable("calc_trades_content does not support total=True with breakdown=True.")
 
         matrix_names = []
         if self.meta.table == "SUT":
@@ -2110,19 +2330,23 @@ class Database(CoreModel):
                 and len(self.get_index(_MASTER_INDEX["r"])) > 1
                 and self.is_chenerymoses(scenario=scenario_name)
             )
-            row_weights, _ = self._resolve_trade_content_row(
-                indicator,
-                scenario=scenario_name,
-                method=method,
-                use_activity_side=use_chenery_supply,
-            )
-            if content_unit is None:
-                _, content_unit = self._resolve_trade_content_row(
+            if breakdown:
+                content_weights, resolved_unit = self._resolve_trade_content_exploded(
                     indicator,
                     scenario=scenario_name,
                     method=method,
                     use_activity_side=use_chenery_supply,
                 )
+            else:
+                content_weights, resolved_unit = self._resolve_trade_content_row(
+                    indicator,
+                    scenario=scenario_name,
+                    method=method,
+                    use_activity_side=use_chenery_supply,
+                )
+
+            if content_unit is None:
+                content_unit = resolved_unit
 
             if use_chenery_supply:
                 if not (intermediate and final and aggregate):
@@ -2134,18 +2358,30 @@ class Database(CoreModel):
                 if isinstance(supply_block, dict):
                     supply_block = supply_block[_ENUM.S]
 
-                frame = self._aggregate_trade_supply_by_region(
-                    supply_block,
-                    item_selection,
-                    row_weights=row_weights,
-                )
-                frame = self._aggregate_trade_regions(
-                    frame,
-                    region_aggregation,
-                    clusters_direction=clusters_direction,
-                )
-                if total:
-                    frame = self._add_trade_totals(frame)
+                if breakdown:
+                    frame = self._aggregate_trade_content_breakdown_supply_by_region(
+                        supply_block,
+                        content_weights,
+                        item_selection,
+                    )
+                    frame = self._aggregate_trade_content_breakdown_regions(
+                        frame,
+                        region_aggregation,
+                        clusters_direction=clusters_direction,
+                    )
+                else:
+                    frame = self._aggregate_trade_supply_by_region(
+                        supply_block,
+                        item_selection,
+                        row_weights=content_weights,
+                    )
+                    frame = self._aggregate_trade_regions(
+                        frame,
+                        region_aggregation,
+                        clusters_direction=clusters_direction,
+                    )
+                    if total:
+                        frame = self._add_trade_totals(frame)
                 trades_by_scenario[scenario_name] = frame
                 continue
 
@@ -2156,34 +2392,58 @@ class Database(CoreModel):
             frames = []
             if intermediate:
                 matrix_name = _ENUM.U if self.meta.table == "SUT" else _ENUM.Z
-                frame = self._aggregate_trade_matrix_by_region(
-                    blocks[matrix_name],
-                    item_selection,
-                    row_weights=row_weights,
-                )
-                frame = self._aggregate_trade_regions(
-                    frame,
-                    region_aggregation,
-                    clusters_direction=clusters_direction,
-                )
-                if total:
-                    frame = self._add_trade_totals(frame)
+                if breakdown:
+                    frame = self._aggregate_trade_content_breakdown_matrix_by_region(
+                        blocks[matrix_name],
+                        content_weights,
+                        item_selection,
+                    )
+                    frame = self._aggregate_trade_content_breakdown_regions(
+                        frame,
+                        region_aggregation,
+                        clusters_direction=clusters_direction,
+                    )
+                else:
+                    frame = self._aggregate_trade_matrix_by_region(
+                        blocks[matrix_name],
+                        item_selection,
+                        row_weights=content_weights,
+                    )
+                    frame = self._aggregate_trade_regions(
+                        frame,
+                        region_aggregation,
+                        clusters_direction=clusters_direction,
+                    )
+                    if total:
+                        frame = self._add_trade_totals(frame)
                 frames.append(("Intermediate", frame))
 
             if final:
                 matrix_name = "Yc" if self.meta.table == "SUT" else _ENUM.Y
-                frame = self._aggregate_trade_matrix_by_region(
-                    blocks[matrix_name],
-                    item_selection,
-                    row_weights=row_weights,
-                )
-                frame = self._aggregate_trade_regions(
-                    frame,
-                    region_aggregation,
-                    clusters_direction=clusters_direction,
-                )
-                if total:
-                    frame = self._add_trade_totals(frame)
+                if breakdown:
+                    frame = self._aggregate_trade_content_breakdown_matrix_by_region(
+                        blocks[matrix_name],
+                        content_weights,
+                        item_selection,
+                    )
+                    frame = self._aggregate_trade_content_breakdown_regions(
+                        frame,
+                        region_aggregation,
+                        clusters_direction=clusters_direction,
+                    )
+                else:
+                    frame = self._aggregate_trade_matrix_by_region(
+                        blocks[matrix_name],
+                        item_selection,
+                        row_weights=content_weights,
+                    )
+                    frame = self._aggregate_trade_regions(
+                        frame,
+                        region_aggregation,
+                        clusters_direction=clusters_direction,
+                    )
+                    if total:
+                        frame = self._add_trade_totals(frame)
                 frames.append(("Final", frame))
 
             if len(frames) == 1:
@@ -2205,6 +2465,14 @@ class Database(CoreModel):
             else trades_by_scenario
         )
 
+        if breakdown:
+            output_path = save_plot if save_plot is not None else path
+            if show_plot or output_path not in (None, False):
+                raise NotImplementable(
+                    "calc_trades_content does not support plotting when breakdown=True."
+                )
+            return trades
+
         output_path = save_plot if save_plot is not None else path
         should_render_plot = show_plot or output_path not in (None, False)
         if not should_render_plot:
@@ -2218,6 +2486,283 @@ class Database(CoreModel):
             auto_open=auto_open,
             output_path=output_path,
             show_plot=show_plot and save_plot is None,
+        )
+
+    def calc_trades_content_breakdown(
+        self,
+        indicator,
+        item=None,
+        scenario="baseline",
+        method="total",
+        intermediate=True,
+        final=True,
+        aggregate=True,
+    ):
+        r"""Deprecated wrapper for contributor-level trade content outputs."""
+        warnings.warn(
+            "'calc_trades_content_breakdown' is deprecated; use 'calc_trades_content(..., breakdown=True)' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.calc_trades_content(
+            indicator,
+            item=item,
+            scenario=scenario,
+            method=method,
+            breakdown=True,
+            intermediate=intermediate,
+            final=final,
+            aggregate=aggregate,
+        )
+
+    @staticmethod
+    def _collapse_trade_content_breakdown_by_contributor_region(
+        breakdown: pd.DataFrame,
+    ) -> pd.DataFrame:
+        """Collapse contributor item detail to contributor-region totals."""
+        if not isinstance(breakdown.index, pd.MultiIndex) or breakdown.index.nlevels < 2:
+            raise WrongInput(
+                "Trade content concentration and exposure require breakdown outputs with contributor levels."
+            )
+
+        grouped = breakdown.groupby(level=[0, 1], sort=False).sum()
+        grouped.index = grouped.index.set_names(
+            [breakdown.index.names[0], breakdown.index.names[1]]
+        )
+        return grouped
+
+    @staticmethod
+    def _trade_content_region_shares_from_breakdown(
+        breakdown: pd.DataFrame,
+    ) -> pd.DataFrame:
+        """Convert contributor-region magnitudes into shares by trade pair."""
+        contributor_regions = Database._collapse_trade_content_breakdown_by_contributor_region(
+            breakdown
+        ).abs()
+
+        share_blocks = []
+        origin_name, contributor_name = contributor_regions.index.names
+        for origin_region in contributor_regions.index.get_level_values(0).unique():
+            block = contributor_regions.xs(origin_region, level=0, drop_level=True)
+            totals = block.sum(axis=0)
+            shares = block.div(totals.where(totals != 0), axis=1).fillna(0.0)
+            shares.index = pd.MultiIndex.from_product(
+                [[origin_region], shares.index],
+                names=[origin_name, contributor_name],
+            )
+            share_blocks.append(shares)
+
+        return pd.concat(share_blocks, axis=0)
+
+    def _normalize_trade_content_exposure_targets(self, exposed_to) -> list[str]:
+        """Normalize contributor-region exposure selectors."""
+        available = set(self.get_index(_MASTER_INDEX["r"]))
+        if isinstance(exposed_to, str):
+            targets = [exposed_to]
+        else:
+            targets = list(exposed_to)
+            if not targets:
+                raise WrongInput("exposed_to should contain at least one Region.")
+
+        missing = sorted(set(targets).difference(available))
+        if missing:
+            raise WrongInput(
+                "Contributor Regions: {} do not exist in the database Region index.".format(
+                    missing
+                )
+            )
+        return targets
+
+    @staticmethod
+    def _trade_content_concentration_from_breakdown(
+        breakdown: pd.DataFrame,
+    ) -> pd.DataFrame:
+        """Compute contributor-region HHI concentration from one breakdown table."""
+        shares = Database._trade_content_region_shares_from_breakdown(breakdown)
+        result_blocks = []
+        origin_name = shares.index.names[0]
+
+        for origin_region in shares.index.get_level_values(0).unique():
+            block = shares.xs(origin_region, level=0, drop_level=True)
+            hhi = block.pow(2).sum(axis=0).to_frame().T
+            hhi.index = pd.Index([origin_region], name=origin_name)
+            result_blocks.append(hhi)
+
+        return pd.concat(result_blocks, axis=0)
+
+    @staticmethod
+    def _trade_content_exposure_from_breakdown(
+        breakdown: pd.DataFrame,
+        *,
+        exposed_to: list[str],
+    ) -> pd.DataFrame:
+        """Compute contributor-region exposure shares from one breakdown table."""
+        shares = Database._trade_content_region_shares_from_breakdown(breakdown)
+        result_blocks = []
+        origin_name = shares.index.names[0]
+
+        for origin_region in shares.index.get_level_values(0).unique():
+            block = shares.xs(origin_region, level=0, drop_level=True)
+            selected = block.loc[block.index.isin(exposed_to)]
+            exposure = (
+                selected.sum(axis=0)
+                if len(selected)
+                else pd.Series(0.0, index=block.columns)
+            )
+            exposure = exposure.to_frame().T
+            exposure.index = pd.Index([origin_region], name=origin_name)
+            result_blocks.append(exposure)
+
+        return pd.concat(result_blocks, axis=0)
+
+    def calc_trades_concentration(
+        self,
+        indicator,
+        item=None,
+        scenario="baseline",
+        method="total",
+        clusters=None,
+        clusters_direction="both",
+        intermediate=True,
+        final=True,
+        aggregate=True,
+    ):
+        r"""Calculate contributor-region concentration of embodied trade content.
+
+        This method returns the Herfindahl-Hirschman index computed on the
+        absolute contributor-region shares behind
+        ``calc_trades_content(..., breakdown=True)``.
+        """
+
+        breakdowns = self.calc_trades_content(
+            indicator,
+            item=item,
+            scenario=scenario,
+            method=method,
+            breakdown=True,
+            clusters=clusters,
+            clusters_direction=clusters_direction,
+            intermediate=intermediate,
+            final=final,
+            aggregate=aggregate,
+        )
+
+        if isinstance(breakdowns, dict):
+            return {
+                scenario_name: self._trade_content_concentration_from_breakdown(breakdown)
+                for scenario_name, breakdown in breakdowns.items()
+            }
+
+        return self._trade_content_concentration_from_breakdown(breakdowns)
+
+    def calc_trades_content_concentration(
+        self,
+        indicator,
+        item=None,
+        scenario="baseline",
+        method="total",
+        clusters=None,
+        clusters_direction="both",
+        intermediate=True,
+        final=True,
+        aggregate=True,
+    ):
+        r"""Deprecated wrapper for :meth:`calc_trades_concentration`."""
+        warnings.warn(
+            "'calc_trades_content_concentration' is deprecated; use 'calc_trades_concentration' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.calc_trades_concentration(
+            indicator,
+            item=item,
+            scenario=scenario,
+            method=method,
+            clusters=clusters,
+            clusters_direction=clusters_direction,
+            intermediate=intermediate,
+            final=final,
+            aggregate=aggregate,
+        )
+
+    def calc_trades_exposure(
+        self,
+        indicator,
+        exposed_to,
+        item=None,
+        scenario="baseline",
+        method="total",
+        clusters=None,
+        clusters_direction="both",
+        intermediate=True,
+        final=True,
+        aggregate=True,
+    ):
+        r"""Calculate embodied trade-content exposure to one or more contributor Regions.
+
+        This method returns the share of absolute contributor-region content
+        attributable to the selected Regions behind
+        ``calc_trades_content(..., breakdown=True)``.
+        """
+
+        targets = self._normalize_trade_content_exposure_targets(exposed_to)
+        breakdowns = self.calc_trades_content(
+            indicator,
+            item=item,
+            scenario=scenario,
+            method=method,
+            breakdown=True,
+            clusters=clusters,
+            clusters_direction=clusters_direction,
+            intermediate=intermediate,
+            final=final,
+            aggregate=aggregate,
+        )
+
+        if isinstance(breakdowns, dict):
+            return {
+                scenario_name: self._trade_content_exposure_from_breakdown(
+                    breakdown,
+                    exposed_to=targets,
+                )
+                for scenario_name, breakdown in breakdowns.items()
+            }
+
+        return self._trade_content_exposure_from_breakdown(
+            breakdowns,
+            exposed_to=targets,
+        )
+
+    def calc_trades_content_exposure(
+        self,
+        indicator,
+        exposed_to,
+        item=None,
+        scenario="baseline",
+        method="total",
+        clusters=None,
+        clusters_direction="both",
+        intermediate=True,
+        final=True,
+        aggregate=True,
+    ):
+        r"""Deprecated wrapper for :meth:`calc_trades_exposure`."""
+        warnings.warn(
+            "'calc_trades_content_exposure' is deprecated; use 'calc_trades_exposure' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.calc_trades_exposure(
+            indicator,
+            exposed_to,
+            item=item,
+            scenario=scenario,
+            method=method,
+            clusters=clusters,
+            clusters_direction=clusters_direction,
+            intermediate=intermediate,
+            final=final,
+            aggregate=aggregate,
         )
 
     @staticmethod

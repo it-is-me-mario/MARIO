@@ -765,11 +765,11 @@ COMPUTE_CATALOG = {
             SUT_ACTIVITY_AXIS,
             _extract("m", "extract_ma_from_m", "Extracted from m, only if available"),
             _formula(
-                ("va", "s", "u"),
+                ("va", "s", "u", "vc"),
                 "build_sut_ma_from_va_s_u",
-                "ma = solve(transpose(identity - s @ u), transpose(va))",
+                "ma = solve(transpose(identity - s @ u), transpose(va + vc @ u))",
             ),
-            _formula(("va", "waa"), "build_sut_ma_from_va_waa", "ma = va @ waa"),
+            _formula(("va", "waa", "vc", "u"), "build_sut_ma_from_va_waa", "ma = (va + vc @ u) @ waa"),
         ),
         "mc": _spec(
             SUT,
@@ -779,11 +779,11 @@ COMPUTE_CATALOG = {
             SUT_COMMODITY_AXIS,
             _extract("m", "extract_mc_from_m", "Extracted from m, only if available"),
             _formula(
-                ("va", "s", "u"),
+                ("va", "s", "u", "vc"),
                 "build_sut_mc_from_va_s_u",
-                "mc = solve(transpose(identity - u @ s), transpose(va @ s))",
+                "mc = solve(transpose(identity - u @ s), transpose(va @ s + vc))",
             ),
-            _formula(("va", "s", "wcc"), "build_sut_mc_from_va_s_wcc", "mc = va @ s @ wcc"),
+            _formula(("va", "s", "wcc", "vc"), "build_sut_mc_from_va_s_wcc", "mc = (va @ s + vc) @ wcc"),
         ),
         "Fc": _spec(
             SUT,
@@ -821,11 +821,11 @@ COMPUTE_CATALOG = {
             SUT_ACTIVITY_AXIS,
             _extract("f", "extract_fa_from_f", "Extracted from f, only if available"),
             _formula(
-                ("ea", "s", "u"),
+                ("ea", "s", "u", "ec"),
                 "build_sut_fa_from_ea_s_u",
-                "fa = solve(transpose(identity - s @ u), transpose(ea))",
+                "fa = solve(transpose(identity - s @ u), transpose(ea + ec @ u))",
             ),
-            _formula(("ea", "waa"), "build_sut_fa_from_ea_waa", "fa = ea @ waa"),
+            _formula(("ea", "waa", "ec", "u"), "build_sut_fa_from_ea_waa", "fa = (ea + ec @ u) @ waa"),
         ),
         "fc": _spec(
             SUT,
@@ -835,11 +835,11 @@ COMPUTE_CATALOG = {
             SUT_COMMODITY_AXIS,
             _extract("f", "extract_fc_from_f", "Extracted from f, only if available"),
             _formula(
-                ("ea", "s", "u"),
+                ("ea", "s", "u", "ec"),
                 "build_sut_fc_from_ea_s_u",
-                "fc = solve(transpose(identity - u @ s), transpose(ea @ s))",
+                "fc = solve(transpose(identity - u @ s), transpose(ea @ s + ec))",
             ),
-            _formula(("ea", "s", "wcc"), "build_sut_fc_from_ea_s_wcc", "fc = ea @ s @ wcc"),
+            _formula(("ea", "s", "wcc", "ec"), "build_sut_fc_from_ea_s_wcc", "fc = (ea @ s + ec) @ wcc"),
         ),
         "pc": _spec(
             SUT,

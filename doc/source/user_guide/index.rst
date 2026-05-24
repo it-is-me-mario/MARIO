@@ -23,9 +23,15 @@ The workflows are grouped into three families:
 
    inspection/basic_inspections
    inspection/compute_matrices
-   inspection/supply_chain_analyses
    inspection/visualization
+   inspection/supply_chain_analyses
    inspection/custom_labels_and_aliases
+
+.. toctree::
+   :hidden:
+
+   inspection/calculate_trades
+   inspection/calc_linkages
 
 .. toctree::
    :maxdepth: 1

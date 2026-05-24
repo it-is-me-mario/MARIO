@@ -983,6 +983,236 @@ def test_calc_trades_content_can_plot_all_scenarios_with_animation_slider(monkey
     assert set(captured["data"]["Scenario"]) == {"baseline", "policy"}
 
 
+def test_calc_trades_content_breakdown_iot_sums_back_to_total_content():
+    database = load_test("IOT")
+    indicator = database.get_index(_MASTER_INDEX["f"])[0]
+
+    breakdown = database.calc_trades_content(
+        indicator,
+        item="Agriculture",
+        breakdown=True,
+    )
+    expected = database.calc_trades_content(
+        indicator,
+        item="Agriculture",
+        method="total",
+    )
+
+    restored = breakdown.groupby(level=0, sort=False).sum()
+
+    pdt.assert_frame_equal(restored, expected)
+
+
+def test_calc_trades_content_breakdown_sut_sums_back_to_total_content():
+    database = load_test("SUT")
+    indicator = database.get_index(_MASTER_INDEX["k"])[0]
+
+    breakdown = database.calc_trades_content(
+        indicator,
+        item="Goods",
+        breakdown=True,
+    )
+    expected = database.calc_trades_content(
+        indicator,
+        item="Goods",
+        method="total",
+    )
+
+    restored = breakdown.groupby(level=0, sort=False).sum()
+
+    pdt.assert_frame_equal(restored, expected)
+
+
+def test_calc_trades_content_breakdown_chenery_sut_sums_back_to_total_content():
+    database = load_test("SUT").to_chenery_moses(inplace=False)
+    indicator = database.get_index(_MASTER_INDEX["f"])[0]
+
+    breakdown = database.calc_trades_content(
+        indicator,
+        item="Goods",
+        breakdown=True,
+    )
+    expected = database.calc_trades_content(
+        indicator,
+        item="Goods",
+        method="total",
+    )
+
+    restored = breakdown.groupby(level=0, sort=False).sum()
+
+    pdt.assert_frame_equal(restored, expected)
+
+
+def test_calc_trades_content_breakdown_upstream_sums_back_to_upstream_content():
+    database = load_test("IOT")
+    indicator = database.get_index(_MASTER_INDEX["f"])[0]
+
+    breakdown = database.calc_trades_content(
+        indicator,
+        item="Agriculture",
+        method="upstream",
+        breakdown=True,
+    )
+    expected = database.calc_trades_content(
+        indicator,
+        item="Agriculture",
+        method="upstream",
+    )
+
+    restored = breakdown.groupby(level=0, sort=False).sum()
+
+    pdt.assert_frame_equal(restored, expected)
+
+
+def test_calc_trades_content_breakdown_direct_sums_back_to_direct_content():
+    database = load_test("IOT")
+    indicator = database.get_index(_MASTER_INDEX["f"])[0]
+
+    breakdown = database.calc_trades_content(
+        indicator,
+        item="Agriculture",
+        method="direct",
+        breakdown=True,
+    )
+    expected = database.calc_trades_content(
+        indicator,
+        item="Agriculture",
+        method="direct",
+    )
+
+    restored = breakdown.groupby(level=0, sort=False).sum()
+
+    pdt.assert_frame_equal(restored, expected)
+
+
+def test_calc_trades_content_rejects_plotting_when_breakdown_is_enabled():
+    database = load_test("IOT")
+    indicator = database.get_index(_MASTER_INDEX["f"])[0]
+
+    with pytest.raises(NotImplementable, match="plotting"):
+        database.calc_trades_content(
+            indicator,
+            item="Agriculture",
+            breakdown=True,
+            show_plot=True,
+        )
+
+
+def test_calc_trades_concentration_uses_contributor_region_hhi():
+    database = load_test("IOT")
+    indicator = database.get_index(_MASTER_INDEX["f"])[0]
+
+    concentration = database.calc_trades_concentration(
+        indicator,
+        item="Agriculture",
+    )
+
+    breakdown = database.calc_trades_content(
+        indicator,
+        item="Agriculture",
+        breakdown=True,
+    )
+    contributor_regions = breakdown.groupby(level=[0, 1], sort=False).sum().abs()
+
+    expected_blocks = []
+    for origin_region in contributor_regions.index.get_level_values(0).unique():
+        block = contributor_regions.xs(origin_region, level=0, drop_level=True)
+        shares = block.div(block.sum(axis=0).where(lambda col: col != 0), axis=1).fillna(0.0)
+        hhi = shares.pow(2).sum(axis=0).to_frame().T
+        hhi.index = pd.Index([origin_region], name="Region")
+        expected_blocks.append(hhi)
+    expected = pd.concat(expected_blocks, axis=0)
+
+    pdt.assert_frame_equal(concentration, expected)
+
+
+def test_calc_trades_exposure_returns_selected_region_share():
+    database = load_test("IOT")
+    indicator = database.get_index(_MASTER_INDEX["f"])[0]
+
+    exposure = database.calc_trades_exposure(
+        indicator,
+        exposed_to="Reg1",
+        item="Agriculture",
+    )
+
+    breakdown = database.calc_trades_content(
+        indicator,
+        item="Agriculture",
+        breakdown=True,
+    )
+    contributor_regions = breakdown.groupby(level=[0, 1], sort=False).sum().abs()
+
+    expected_blocks = []
+    for origin_region in contributor_regions.index.get_level_values(0).unique():
+        block = contributor_regions.xs(origin_region, level=0, drop_level=True)
+        selected = block.loc[["Reg1"]].sum(axis=0)
+        shares = selected.div(block.sum(axis=0).where(lambda col: col != 0)).fillna(0.0)
+        shares = shares.to_frame().T
+        shares.index = pd.Index([origin_region], name="Region")
+        expected_blocks.append(shares)
+    expected = pd.concat(expected_blocks, axis=0)
+
+    pdt.assert_frame_equal(exposure, expected)
+
+
+def test_calc_trades_exposure_rejects_unknown_regions():
+    database = load_test("IOT")
+    indicator = database.get_index(_MASTER_INDEX["f"])[0]
+
+    with pytest.raises(WrongInput, match="Contributor Regions"):
+        database.calc_trades_exposure(
+            indicator,
+            exposed_to="__missing__",
+            item="Agriculture",
+        )
+
+
+def test_calc_trades_concentration_can_return_all_scenarios():
+    database = load_test("IOT")
+    indicator = database.get_index(_MASTER_INDEX["f"])[0]
+    database.clone_scenario("baseline", "policy")
+    database.matrices["policy"][_ENUM.Y].iloc[0, 0] += 10
+
+    concentration = database.calc_trades_concentration(
+        indicator,
+        item="Agriculture",
+        scenario="all",
+    )
+
+    assert set(concentration) == {"baseline", "policy"}
+
+
+def test_calc_trades_content_concentration_alias_delegates_with_warning():
+    database = load_test("IOT")
+    indicator = database.get_index(_MASTER_INDEX["f"])[0]
+
+    with pytest.deprecated_call(match="calc_trades_concentration"):
+        result = database.calc_trades_content_concentration(indicator, item="Agriculture")
+
+    expected = database.calc_trades_concentration(indicator, item="Agriculture")
+    pdt.assert_frame_equal(result, expected)
+
+
+def test_calc_trades_content_exposure_alias_delegates_with_warning():
+    database = load_test("IOT")
+    indicator = database.get_index(_MASTER_INDEX["f"])[0]
+
+    with pytest.deprecated_call(match="calc_trades_exposure"):
+        result = database.calc_trades_content_exposure(
+            indicator,
+            exposed_to="Reg1",
+            item="Agriculture",
+        )
+
+    expected = database.calc_trades_exposure(
+        indicator,
+        exposed_to="Reg1",
+        item="Agriculture",
+    )
+    pdt.assert_frame_equal(result, expected)
+
+
 def test_parse_exiobase_imports_a_new_parser_scenario(monkeypatch):
     database = load_test("IOT")
     raw_blocks = {

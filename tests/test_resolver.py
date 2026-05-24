@@ -14,6 +14,7 @@ from mario.compute.primitives import calc_w, calc_z
 from mario.compute.ordering import SUTUnifiedOrderingPolicy
 from mario.compute.sut_formulas import (
     build_sut_ea_from_Ea_Xa,
+    build_sut_ec_from_Ec_Xc,
     build_sut_fc_from_ea_s_wcc,
     build_sut_pa_from_va,
     build_sut_va_from_Va_Xa,
@@ -24,6 +25,7 @@ from mario.compute.sut_formulas import (
 )
 from mario.compute.views import (
     extract_Ea_from_E,
+    extract_Ec_from_E,
     extract_Va_from_V,
     extract_Vc_from_V,
     extract_Xa_from_X,
@@ -158,9 +160,12 @@ def test_resolve_sut_solve_context_avoids_materializing_w_quadrants_for_fc():
     sut = load_test("SUT")
     ordering = SUTUnifiedOrderingPolicy.from_blocks(Z=sut.Z, Y=sut.Y, E=sut.E)
     Xa = extract_Xa_from_X(sut.X, ordering)
+    Xc = extract_Xc_from_X(sut.X, ordering)
     Ea = extract_Ea_from_E(sut.E, ordering)
+    Ec = extract_Ec_from_E(sut.E, ordering)
     ea = build_sut_ea_from_Ea_Xa(Ea, Xa)
-    expected = build_sut_fc_from_ea_s_wcc(ea, sut.s, build_sut_wcc_from_u_s(sut.u, sut.s))
+    ec = build_sut_ec_from_Ec_Xc(Ec, Xc)
+    expected = build_sut_fc_from_ea_s_wcc(ea, sut.s, build_sut_wcc_from_u_s(sut.u, sut.s), ec)
 
     resolved = resolve("fc", sut, context=ResolutionContext(compute_method="solve", linear_solver="scipy"))
 
@@ -174,9 +179,12 @@ def test_resolve_sut_iterative_linear_strategy_avoids_sparse_direct_factorizatio
     sut = load_test("SUT")
     ordering = SUTUnifiedOrderingPolicy.from_blocks(Z=sut.Z, Y=sut.Y, E=sut.E)
     Xa = extract_Xa_from_X(sut.X, ordering)
+    Xc = extract_Xc_from_X(sut.X, ordering)
     Ea = extract_Ea_from_E(sut.E, ordering)
+    Ec = extract_Ec_from_E(sut.E, ordering)
     ea = build_sut_ea_from_Ea_Xa(Ea, Xa)
-    expected = build_sut_fc_from_ea_s_wcc(ea, sut.s, build_sut_wcc_from_u_s(sut.u, sut.s))
+    ec = build_sut_ec_from_Ec_Xc(Ec, Xc)
+    expected = build_sut_fc_from_ea_s_wcc(ea, sut.s, build_sut_wcc_from_u_s(sut.u, sut.s), ec)
 
     def _boom(*args, **kwargs):
         raise AssertionError("factorized should not be called under iterative strategy")
@@ -202,9 +210,12 @@ def test_resolve_sut_iterative_then_direct_failure_falls_back_to_least_squares(m
     sut = load_test("SUT")
     ordering = SUTUnifiedOrderingPolicy.from_blocks(Z=sut.Z, Y=sut.Y, E=sut.E)
     Xa = extract_Xa_from_X(sut.X, ordering)
+    Xc = extract_Xc_from_X(sut.X, ordering)
     Ea = extract_Ea_from_E(sut.E, ordering)
+    Ec = extract_Ec_from_E(sut.E, ordering)
     ea = build_sut_ea_from_Ea_Xa(Ea, Xa)
-    expected = build_sut_fc_from_ea_s_wcc(ea, sut.s, build_sut_wcc_from_u_s(sut.u, sut.s))
+    ec = build_sut_ec_from_Ec_Xc(Ec, Xc)
+    expected = build_sut_fc_from_ea_s_wcc(ea, sut.s, build_sut_wcc_from_u_s(sut.u, sut.s), ec)
 
     def _nonconvergent(*args, **kwargs):
         vector = np.asarray(args[1], dtype=float)
@@ -235,9 +246,12 @@ def test_resolve_sut_direct_linear_strategy_falls_back_to_iterative_when_factori
     sut = load_test("SUT")
     ordering = SUTUnifiedOrderingPolicy.from_blocks(Z=sut.Z, Y=sut.Y, E=sut.E)
     Xa = extract_Xa_from_X(sut.X, ordering)
+    Xc = extract_Xc_from_X(sut.X, ordering)
     Ea = extract_Ea_from_E(sut.E, ordering)
+    Ec = extract_Ec_from_E(sut.E, ordering)
     ea = build_sut_ea_from_Ea_Xa(Ea, Xa)
-    expected = build_sut_fc_from_ea_s_wcc(ea, sut.s, build_sut_wcc_from_u_s(sut.u, sut.s))
+    ec = build_sut_ec_from_Ec_Xc(Ec, Xc)
+    expected = build_sut_fc_from_ea_s_wcc(ea, sut.s, build_sut_wcc_from_u_s(sut.u, sut.s), ec)
 
     def _boom(*args, **kwargs):
         raise RuntimeError("Factor is exactly singular")
