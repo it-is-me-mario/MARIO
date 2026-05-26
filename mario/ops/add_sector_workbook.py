@@ -401,10 +401,11 @@ def read_add_sector_workbook(
         )
 
     inventories_by_sheet = {
+        # filter out missing sheets to allow partial workbooks
         sheet_name: sheets[sheet_name] for sheet_name in inventory_names
         if sheet_name in sheets
     }
-    split_info = _parse_split_sheets(sheets) if table == IOT else None
+    split_info = _parse_split_sheets(sheets) if _has_split_rows(table, master_sheet) else None
 
     return AddSectorWorkbook(
         table=table,
@@ -811,21 +812,26 @@ def _parse_split_sheets(sheets: dict[str, pd.DataFrame]) -> dict[str, pd.DataFra
     }
 
 
-def _workbook_has_split_rows(workbook: AddSectorWorkbook) -> bool:
+def _has_split_rows(table: str, master_sheet: pd.DataFrame) -> bool:
     """Return whether an IOT add-sectors workbook contains split rows."""
-    if workbook.table != IOT:
+    if table != IOT:
         return False
     add_mode_column = ADVANCED_ADD_SECTOR_MASTER_SHEET_COLUMNS[IOT]["add_mode"]
-    if add_mode_column not in workbook.master_sheet.columns:
+    if add_mode_column not in master_sheet.columns:
         return False
     values = (
-        workbook.master_sheet[add_mode_column]
+        master_sheet[add_mode_column]
         .dropna()
         .astype(str)
         .str.strip()
         .str.lower()
     )
     return values.eq("split").any()
+
+
+def _workbook_has_split_rows(workbook: AddSectorWorkbook) -> bool:
+    """Return whether an IOT add-sectors workbook contains split rows."""
+    return _has_split_rows(workbook.table, workbook.master_sheet)
 
 
 def group_inventories_by_target(

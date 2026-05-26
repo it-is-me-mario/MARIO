@@ -1244,11 +1244,9 @@ class AddSectorEngine:
                 
                 if matrix == _ENUM["e"]:
                     weights = self._factor_sat_allocation_weights(matrix, row_labels, region_to, activity)
-                else: 
-                    # Check if it is a cluster
-                    is_cluster =  (matrix == _ENUM["v"] and input_item in self.factors_clusters)
-                    
-                    if is_cluster:
+                else:
+                    #Check if it's a factor in a cluster
+                    if input_item in self.factors_clusters:
                         # Allocate based on existing structure of the cluster for sn columns
                         # If it's a SUT, we use activities as marker
                         marker = MI["a"] if self.table == SUT else MI["s"]
