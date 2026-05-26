@@ -63,6 +63,7 @@ from mario.compute.primitives import (
     calc_X,
     linkages_calculation,
 )
+from mario.compute.helpers import dense_values
 from mario.compute.ordering import SUTUnifiedOrderingPolicy
 from mario.compute.views import (
     concat_sut_Y,
@@ -84,6 +85,7 @@ import warnings
 from pathlib import Path
 from typing import Dict
 import plotly.express as px
+import plotly.graph_objects as go
 
 
 from mario.model.conventions import MATRIX_TITLES, TABLE_LEVELS
@@ -1628,6 +1630,15 @@ class Database(CoreModel):
         frame = working.stack(future_stack=True).rename("Value").reset_index()
         return frame
 
+    @staticmethod
+    def _exclude_domestic_trade_plot_rows(plot_frame: pd.DataFrame) -> pd.DataFrame:
+        """Remove same-label origin-destination pairs from one trade plot frame."""
+        if "Origin Region" not in plot_frame.columns or "Destination Region" not in plot_frame.columns:
+            return plot_frame
+        return plot_frame.loc[
+            plot_frame["Origin Region"].astype(str) != plot_frame["Destination Region"].astype(str)
+        ].reset_index(drop=True)
+
     def _normalize_trade_scenarios(self, scenario):
         """Normalize trade scenario selectors, including the special ``all`` token."""
         if isinstance(scenario, str):
@@ -1641,7 +1652,14 @@ class Database(CoreModel):
         if not scenarios:
             raise WrongInput("No scenarios were selected for trade calculation.")
 
-        missing = set(scenarios).difference(self.scenarios)
+        normalized = []
+        missing = set()
+        for selected in scenarios:
+            try:
+                normalized.append(self._public_scenario_name(self._validate_scenario(selected)))
+            except WrongInput:
+                missing.add(selected)
+
         if missing:
             raise WrongInput(
                 "Scenarios: {} do not exist in the database. Existing scenarios are:\n{}".format(
@@ -1650,7 +1668,90 @@ class Database(CoreModel):
                 )
             )
 
-        return scenarios
+        return list(dict.fromkeys(normalized))
+
+    @staticmethod
+    def _trade_same_label_diagonal(trades: pd.DataFrame) -> pd.Series:
+        """Return the same-label diagonal entries of one trade matrix."""
+        shared = trades.index.intersection(trades.columns)
+        if len(shared) == 0:
+            return pd.Series(dtype=float)
+
+        return pd.Series(
+            [trades.loc[label, label] for label in shared],
+            index=shared,
+            dtype=float,
+        )
+
+    @classmethod
+    def _collapse_embodied_trade_content(cls, trades: pd.DataFrame, *, flow: str):
+        """Collapse bilateral trade content matrices into import/export accounts."""
+        if isinstance(trades.columns, pd.MultiIndex):
+            collapsed = []
+            component_name = trades.columns.names[0]
+            for component in trades.columns.get_level_values(0).unique():
+                block = trades.xs(component, axis=1, level=0, drop_level=True)
+                collapsed.append(
+                    cls._collapse_embodied_trade_content(block, flow=flow).rename(component)
+                )
+
+            frame = pd.concat(collapsed, axis=1)
+            frame.columns.name = component_name
+            return frame
+
+        diagonal = cls._trade_same_label_diagonal(trades)
+        if flow == "imports":
+            collapsed = trades.sum(axis=0)
+            if len(diagonal):
+                collapsed.loc[diagonal.index] = collapsed.loc[diagonal.index].subtract(diagonal)
+            collapsed.index.name = trades.columns.name or _MASTER_INDEX["r"]
+            collapsed.name = "Embodied imports"
+            return collapsed
+
+        if flow == "exports":
+            collapsed = trades.sum(axis=1)
+            if len(diagonal):
+                collapsed.loc[diagonal.index] = collapsed.loc[diagonal.index].subtract(diagonal)
+            collapsed.index.name = trades.index.name or _MASTER_INDEX["r"]
+            collapsed.name = "Embodied exports"
+            return collapsed
+
+        raise WrongInput("flow should be one of 'imports' or 'exports'.")
+
+    def _calc_embodied_trade_account(
+        self,
+        indicator,
+        *,
+        flow: str,
+        item=None,
+        scenario="baseline",
+        method="total",
+        clusters=None,
+        clusters_direction="both",
+        intermediate=True,
+        final=True,
+        aggregate=True,
+    ):
+        """Reuse ``calc_trades_content`` to build embodied trade accounts."""
+        trades = self.calc_trades_content(
+            indicator,
+            item=item,
+            scenario=scenario,
+            method=method,
+            clusters=clusters,
+            clusters_direction=clusters_direction,
+            intermediate=intermediate,
+            final=final,
+            aggregate=aggregate,
+        )
+
+        if isinstance(trades, dict):
+            return {
+                scenario_name: self._collapse_embodied_trade_content(trade_matrix, flow=flow)
+                for scenario_name, trade_matrix in trades.items()
+            }
+
+        return self._collapse_embodied_trade_content(trades, flow=flow)
 
     @staticmethod
     def _normalize_trade_content_method(method: str) -> str:
@@ -1953,6 +2054,7 @@ class Database(CoreModel):
         trades,
         trades_by_scenario: dict,
         *,
+        exclude_domestic_from_plot: bool = False,
         title: str,
         unit_label: str,
         auto_open: bool,
@@ -1973,6 +2075,21 @@ class Database(CoreModel):
             )
             animation_frame = "Scenario"
 
+        if exclude_domestic_from_plot:
+            plot_frame = self._exclude_domestic_trade_plot_rows(plot_frame)
+
+        category_orders = {}
+        if "Origin Region" in plot_frame.columns:
+            category_orders["Origin Region"] = sorted(
+                plot_frame["Origin Region"].dropna().unique().tolist(),
+                key=str,
+            )
+        if "Destination Region" in plot_frame.columns:
+            category_orders["Destination Region"] = sorted(
+                plot_frame["Destination Region"].dropna().unique().tolist(),
+                key=str,
+            )
+
         facet_col = "Component" if "Component" in plot_frame.columns else None
         figure = self.plot(
             data=plot_frame,
@@ -1984,6 +2101,7 @@ class Database(CoreModel):
             heatmap_y="Origin Region",
             facet_col=facet_col,
             animation_frame=animation_frame,
+            category_orders=category_orders,
             path=False,
             auto_open=auto_open,
             title=title,
@@ -2024,6 +2142,7 @@ class Database(CoreModel):
         aggregate=True,
         total=False,
         show_plot=False,
+        exclude_domestic_from_plot=False,
         save_plot=None,
         path=False,
         auto_open=False,
@@ -2064,6 +2183,9 @@ class Database(CoreModel):
         show_plot:
             When ``True``, build and display a region-by-region heatmap for the
             calculated trades.
+        exclude_domestic_from_plot:
+            When ``True``, omit same-label origin-destination pairs from the
+            heatmap only. The returned trade matrix is not modified.
         save_plot:
             Optional HTML output path for the heatmap. When provided, MARIO
             writes the plot to this path.
@@ -2210,6 +2332,7 @@ class Database(CoreModel):
         return self._render_trade_plot(
             trades,
             trades_by_scenario,
+            exclude_domestic_from_plot=exclude_domestic_from_plot,
             title=title or f"Trades for {item_label}",
             unit_label=self._trade_plot_unit(item),
             auto_open=auto_open,
@@ -2483,6 +2606,721 @@ class Database(CoreModel):
             trades_by_scenario,
             title=title or f"{method.title()} {indicator} content in trades for {item_label}",
             unit_label=content_unit or "Value",
+            auto_open=auto_open,
+            output_path=output_path,
+            show_plot=show_plot and save_plot is None,
+        )
+
+    def calc_embodied_imports(
+        self,
+        indicator,
+        item=None,
+        scenario="baseline",
+        method="total",
+        clusters=None,
+        clusters_direction="both",
+        intermediate=True,
+        final=True,
+        aggregate=True,
+    ):
+        r"""Calculate embodied imports by destination Region for one indicator.
+
+        This method collapses ``calc_trades_content(...)`` by summing each
+        destination column and removing the same-label diagonal contribution.
+        With ``aggregate=False``, the output keeps separate ``Intermediate``
+        and ``Final`` columns.
+        """
+
+        return self._calc_embodied_trade_account(
+            indicator,
+            flow="imports",
+            item=item,
+            scenario=scenario,
+            method=method,
+            clusters=clusters,
+            clusters_direction=clusters_direction,
+            intermediate=intermediate,
+            final=final,
+            aggregate=aggregate,
+        )
+
+    def calc_embodied_exports(
+        self,
+        indicator,
+        item=None,
+        scenario="baseline",
+        method="total",
+        clusters=None,
+        clusters_direction="both",
+        intermediate=True,
+        final=True,
+        aggregate=True,
+    ):
+        r"""Calculate embodied exports by origin Region for one indicator.
+
+        This method collapses ``calc_trades_content(...)`` by summing each
+        origin row and removing the same-label diagonal contribution. With
+        ``aggregate=False``, the output keeps separate ``Intermediate`` and
+        ``Final`` columns.
+        """
+
+        return self._calc_embodied_trade_account(
+            indicator,
+            flow="exports",
+            item=item,
+            scenario=scenario,
+            method=method,
+            clusters=clusters,
+            clusters_direction=clusters_direction,
+            intermediate=intermediate,
+            final=final,
+            aggregate=aggregate,
+        )
+
+    def calc_embodied_net_imports(
+        self,
+        indicator,
+        item=None,
+        scenario="baseline",
+        method="total",
+        clusters=None,
+        clusters_direction="both",
+        intermediate=True,
+        final=True,
+        aggregate=True,
+    ):
+        r"""Calculate embodied net imports as imports minus exports.
+
+        Positive values indicate net embodied imports; negative values indicate
+        net embodied exports.
+        """
+
+        imports = self.calc_embodied_imports(
+            indicator,
+            item=item,
+            scenario=scenario,
+            method=method,
+            clusters=clusters,
+            clusters_direction=clusters_direction,
+            intermediate=intermediate,
+            final=final,
+            aggregate=aggregate,
+        )
+        exports = self.calc_embodied_exports(
+            indicator,
+            item=item,
+            scenario=scenario,
+            method=method,
+            clusters=clusters,
+            clusters_direction=clusters_direction,
+            intermediate=intermediate,
+            final=final,
+            aggregate=aggregate,
+        )
+
+        if isinstance(imports, dict):
+            return {
+                scenario_name: imports[scenario_name].subtract(exports[scenario_name], fill_value=0.0)
+                for scenario_name in imports
+            }
+
+        result = imports.subtract(exports, fill_value=0.0)
+        if isinstance(result, pd.Series):
+            result.name = "Embodied net imports"
+        return result
+
+    @staticmethod
+    def _normalize_spa_selector(selection, *, label: str, available: list[str]):
+        """Normalize optional SPA selectors against one available label list."""
+        if selection is None:
+            return None
+
+        if isinstance(selection, str):
+            values = [selection]
+        else:
+            values = list(selection)
+            if not values:
+                raise WrongInput(f"{label} should contain at least one value.")
+
+        missing = sorted(set(values).difference(set(available)))
+        if missing:
+            raise WrongInput(f"{label}: {missing} do not exist in the available labels.")
+
+        return values
+
+    @staticmethod
+    def _format_spa_node(label) -> str:
+        """Render one IO node or final-demand selector as a readable path label."""
+        if isinstance(label, tuple):
+            return " / ".join(map(str, label))
+        return str(label)
+
+    @staticmethod
+    def _build_spa_plot_frame(spa: pd.DataFrame) -> pd.DataFrame:
+        """Prepare one flat plotting frame from a SPA result table."""
+        plot_frame = spa.copy()
+        plot_frame["Path"] = plot_frame["path"]
+        plot_frame["Path label"] = [
+            Database._format_spa_plot_label(path, rank=index + 1)
+            for index, path in enumerate(plot_frame["path"].tolist())
+        ]
+        plot_frame["Contribution"] = plot_frame["contribution"]
+        plot_frame["Depth"] = plot_frame["depth"].astype(str)
+        plot_frame["Share of total"] = plot_frame["share_of_total"]
+        plot_frame["Final demand"] = plot_frame["final_demand"]
+        plot_frame["Terminal item"] = plot_frame["terminal_item"]
+        return plot_frame
+
+    @staticmethod
+    def _build_spa_depth_plot_frame(spa: pd.DataFrame) -> pd.DataFrame:
+        """Prepare one depth-summary frame from a SPA result table."""
+        plot_frame = (
+            spa.groupby("depth", as_index=False)["contribution"]
+            .sum()
+            .rename(columns={"contribution": "Contribution"})
+            .sort_values("depth", kind="stable")
+            .reset_index(drop=True)
+        )
+        total_footprint = float(spa.attrs.get("total_footprint", 0.0))
+        denominator = (
+            total_footprint
+            if total_footprint != 0
+            else float(plot_frame["Contribution"].sum())
+        )
+        if denominator == 0:
+            plot_frame["Share of total"] = 0.0
+        else:
+            plot_frame["Share of total"] = plot_frame["Contribution"] / denominator
+        plot_frame["Depth"] = plot_frame["depth"].astype(str)
+        plot_frame["Share label"] = plot_frame["Share of total"].map(lambda value: f"{value:.1%}")
+        return plot_frame
+
+    @staticmethod
+    def _build_spa_sankey_frame(spa: pd.DataFrame) -> pd.DataFrame:
+        """Prepare one Sankey-link frame from a SPA result table."""
+        sankey_edges = []
+        for row in spa.itertuples(index=False):
+            nodes = [node for node in str(row.path).split(" -> ") if node]
+            if len(nodes) < 2:
+                continue
+
+            labels = [Database._format_spa_sankey_label(node) for node in nodes]
+            for source, target in zip(labels, labels[1:]):
+                sankey_edges.append(
+                    {
+                        "Source": source,
+                        "Target": target,
+                        "Value": abs(float(row.contribution)),
+                    }
+                )
+
+        if not sankey_edges:
+            raise WrongInput(
+                "The selected SPA result does not contain enough paths for a Sankey plot."
+            )
+
+        plot_frame = (
+            pd.DataFrame(sankey_edges)
+            .groupby(["Source", "Target"], as_index=False)["Value"]
+            .sum()
+            .sort_values("Value", ascending=False, kind="stable")
+            .reset_index(drop=True)
+        )
+        total_footprint = float(spa.attrs.get("total_footprint", 0.0))
+        denominator = total_footprint if total_footprint != 0 else float(plot_frame["Value"].sum())
+        if denominator == 0:
+            plot_frame["Share of total"] = 0.0
+        else:
+            plot_frame["Share of total"] = plot_frame["Value"] / denominator
+        plot_frame["Link label"] = plot_frame["Source"] + " -> " + plot_frame["Target"]
+        return plot_frame
+
+    @staticmethod
+    def _format_spa_plot_label(path: str, *, rank: int | None = None, max_item_length: int = 28) -> str:
+        """Build one compact SPA label suitable for a bar-chart axis."""
+
+        def shorten_item(value: str) -> str:
+            return value if len(value) <= max_item_length else f"{value[: max_item_length - 3]}..."
+
+        nodes = []
+        for raw_node in path.split(" -> "):
+            if raw_node.startswith("FD: "):
+                continue
+            parts = raw_node.split(" / ")
+            if len(parts) >= 3:
+                nodes.append(f"{parts[0]} | {shorten_item(parts[-1])}")
+            else:
+                nodes.append(shorten_item(raw_node))
+
+        label = " -> ".join(nodes) if nodes else path
+        if rank is not None:
+            label = f"{rank}. {label}"
+        return label
+
+    @staticmethod
+    def _format_spa_sankey_label(raw_node: str, *, max_item_length: int = 42) -> str:
+        """Build one compact SPA label suitable for Sankey nodes."""
+        node = raw_node.strip()
+        is_final_demand = node.startswith("FD: ")
+        if is_final_demand:
+            node = node[4:]
+
+        parts = [part.strip() for part in node.split(" / ") if part.strip()]
+        if len(parts) >= 2:
+            label = f"{parts[0]} | {parts[-1]}"
+        elif parts:
+            label = parts[0]
+        else:
+            label = raw_node.strip()
+
+        if is_final_demand:
+            label = f"FD {label}"
+        if len(label) > max_item_length:
+            label = f"{label[: max_item_length - 3]}..."
+        return label
+
+    @staticmethod
+    def _color_with_alpha(color: str, alpha: float) -> str:
+        """Translate one hex color into an rgba color with the requested alpha."""
+        if isinstance(color, str) and color.startswith("#") and len(color) == 7:
+            red = int(color[1:3], 16)
+            green = int(color[3:5], 16)
+            blue = int(color[5:7], 16)
+            return f"rgba({red}, {green}, {blue}, {alpha})"
+        return color
+
+    @staticmethod
+    def _normalize_spa_plot_kind(plot) -> str:
+        """Normalize supported SPA plot modes."""
+        aliases = {
+            None: "paths",
+            "path": "paths",
+            "paths": "paths",
+            "sankey": "sankey",
+            "depth": "depth",
+            "depths": "depth",
+        }
+        key = plot if plot is None else str(plot).strip().lower()
+        if key not in aliases:
+            raise WrongInput("plot should be one of 'paths', 'sankey', or 'depth'.")
+        return aliases[key]
+
+    def _render_spa_plot(
+        self,
+        spa: pd.DataFrame,
+        *,
+        plot_kind: str,
+        title: str,
+        auto_open: bool,
+        output_path,
+        show_plot: bool,
+    ):
+        """Render one SPA bar chart and optionally save or show it."""
+        color_sequence = plt._default_color_sequence()
+
+        if plot_kind == "sankey":
+            plot_frame = self._build_spa_sankey_frame(spa)
+            node_labels = pd.unique(
+                pd.concat([plot_frame["Source"], plot_frame["Target"]], ignore_index=True)
+            ).tolist()
+            node_index = {label: index for index, label in enumerate(node_labels)}
+            node_colors = [
+                color_sequence[-1] if label.startswith("FD ") else color_sequence[index % len(color_sequence)]
+                for index, label in enumerate(node_labels)
+            ]
+            node_color_map = dict(zip(node_labels, node_colors))
+            figure = go.Figure(
+                go.Sankey(
+                    arrangement="snap",
+                    node=dict(
+                        pad=18,
+                        thickness=18,
+                        line=dict(color=self._color_with_alpha(color_sequence[0], 0.2), width=0.6),
+                        label=node_labels,
+                        color=node_colors,
+                    ),
+                    link=dict(
+                        source=plot_frame["Source"].map(node_index).astype(int),
+                        target=plot_frame["Target"].map(node_index).astype(int),
+                        value=plot_frame["Value"],
+                        label=plot_frame["Link label"],
+                        customdata=plot_frame["Share of total"],
+                        color=[
+                            self._color_with_alpha(node_color_map[source], 0.35)
+                            for source in plot_frame["Source"].tolist()
+                        ],
+                        hovertemplate=(
+                            "%{label}<br>Contribution: %{value:.3e}"
+                            "<br>Share of total: %{customdata:.2%}<extra></extra>"
+                        ),
+                    ),
+                )
+            )
+            figure.update_layout(
+                **plt._normalize_layout(
+                    {
+                        "title": title,
+                        "height": max(520, 26 * len(node_labels)),
+                        "margin": {"l": 20, "r": 20, "t": 60, "b": 20},
+                    }
+                )
+            )
+        elif plot_kind == "depth":
+            plot_frame = self._build_spa_depth_plot_frame(spa)
+            figure = self.plot(
+                data=plot_frame,
+                kind="bar",
+                preset=None,
+                x="Depth",
+                y="Share of total",
+                color="Depth",
+                text="Share label",
+                path=False,
+                auto_open=auto_open,
+                title=title,
+                category_orders={"Depth": plot_frame["Depth"].tolist()},
+                color_discrete_sequence=color_sequence,
+            )
+            if hasattr(figure, "update_traces"):
+                figure.update_traces(textposition="outside", cliponaxis=False)
+            if hasattr(figure, "update_layout"):
+                figure.update_layout(
+                    height=420,
+                    xaxis_title="Depth",
+                    yaxis_title="Share of total footprint",
+                    showlegend=False,
+                )
+            if hasattr(figure, "update_yaxes"):
+                figure.update_yaxes(tickformat=".0%")
+        else:
+            plot_frame = self._build_spa_plot_frame(spa)
+            figure = self.plot(
+                data=plot_frame,
+                kind="bar",
+                preset=None,
+                x="Share of total",
+                y="Path label",
+                color="Depth",
+                hover_name="Path",
+                orientation="h",
+                path=False,
+                auto_open=auto_open,
+                title=title,
+                category_orders={"Path label": plot_frame["Path label"].iloc[::-1].tolist()},
+                color_discrete_sequence=color_sequence,
+            )
+            if hasattr(figure, "update_layout"):
+                figure.update_layout(
+                    height=max(500, 42 * len(plot_frame)),
+                    xaxis_title="Share of total footprint",
+                    yaxis_title="Structural path",
+                    legend_title_text="Depth",
+                )
+            if hasattr(figure, "update_xaxes"):
+                figure.update_xaxes(tickformat=".0%")
+        if output_path not in (None, False):
+            self._save_trade_plot_figure(figure, output_path, auto_open=False)
+        if show_plot and output_path in (None, False) and run_from_jupyter():
+            figure.show()
+        return spa
+
+    def calc_spa(
+        self,
+        indicator,
+        scenario="baseline",
+        item=None,
+        final_demand_region=None,
+        final_demand_category=None,
+        max_depth=5,
+        cutoff=0.0,
+        top_n=200,
+        plot="paths",
+        show_plot=False,
+        save_plot=None,
+        path=False,
+        auto_open=False,
+        title=None,
+    ):
+        r"""Run a first structural path analysis on one IOT scenario.
+
+        This v1 implementation is currently limited to IOT databases. It
+        expands the demand-driven footprint identity into ordered supply-chain
+        paths using the direct coefficient row for ``indicator``, the ``z``
+        coefficient matrix, and one selected final-demand bundle from ``Y``.
+
+        Parameters
+        ----------
+        indicator:
+            Satellite-account row, factor-of-production row, or
+            ``"total value added"``.
+        scenario:
+            Scenario to analyse. v1 accepts one scenario at a time.
+        item:
+            Optional sector selector applied to the rows of ``Y``. When omitted,
+            MARIO requires homogeneous sector units.
+        final_demand_region:
+            Optional Region label or labels used to filter the final-demand
+            columns of ``Y``.
+        final_demand_category:
+            Optional final-demand category label or labels used to filter the
+            final-demand columns of ``Y``.
+        max_depth:
+            Maximum number of upstream ``z`` rounds included in the reported
+            paths. ``0`` keeps only direct final-demand paths.
+        cutoff:
+            Minimum absolute contribution required for one path to be kept and
+            expanded.
+        top_n:
+            Optional cap on the number of returned paths after sorting by the
+            absolute contribution magnitude. Pass ``None`` to keep all paths.
+        plot:
+            Integrated plotting mode used when ``show_plot=True`` or when
+            ``save_plot``/``path`` request output. Use ``"paths"`` for the
+            default ranked-path view, ``"sankey"`` for a network-style view of
+            the reported paths, or ``"depth"`` for a depth summary.
+        show_plot:
+            When ``True``, build and display the selected integrated SPA plot.
+        save_plot:
+            Optional output path for the SPA plot. When provided, MARIO writes
+            the plot to this path.
+        path:
+            Backward-compatible alias for ``save_plot``. Ignored when neither
+            ``show_plot`` nor ``save_plot`` are requested.
+        auto_open:
+            When ``True``, automatically open the saved plot.
+        title:
+            Optional title for the SPA plot. When omitted, MARIO uses a title
+            based on the selected item and indicator.
+
+        Returns
+        -------
+        pandas.DataFrame
+            One path table sorted by absolute contribution. The dataframe keeps
+            path metadata in columns and summary metadata in ``.attrs``.
+        """
+
+        if self.meta.table != "IOT":
+            raise NotImplementable("calc_spa is currently implemented only for IOT tables.")
+
+        if isinstance(scenario, (list, tuple, set, dict)) or str(scenario).lower() == "all":
+            raise WrongInput("calc_spa currently accepts one scenario at a time.")
+
+        try:
+            max_depth = int(max_depth)
+        except (TypeError, ValueError) as exc:
+            raise WrongInput("max_depth should be an integer greater than or equal to zero.") from exc
+
+        if max_depth < 0:
+            raise WrongInput("max_depth should be an integer greater than or equal to zero.")
+
+        try:
+            cutoff = float(cutoff)
+        except (TypeError, ValueError) as exc:
+            raise WrongInput("cutoff should be a numeric value greater than or equal to zero.") from exc
+
+        if cutoff < 0:
+            raise WrongInput("cutoff should be a numeric value greater than or equal to zero.")
+
+        if top_n is not None:
+            try:
+                top_n = int(top_n)
+            except (TypeError, ValueError) as exc:
+                raise WrongInput("top_n should be a positive integer or None.") from exc
+
+            if top_n <= 0:
+                raise WrongInput("top_n should be a positive integer or None.")
+
+        plot_kind = self._normalize_spa_plot_kind(plot)
+
+        scenario_name = self._public_scenario_name(self._validate_scenario(scenario))
+        item_selection, item_label = self._normalize_trade_item_selection(item)
+
+        fd_regions = self._normalize_spa_selector(
+            final_demand_region,
+            label="final_demand_region",
+            available=self.get_index(_MASTER_INDEX["r"]),
+        )
+        fd_categories = self._normalize_spa_selector(
+            final_demand_category,
+            label="final_demand_category",
+            available=self.get_index(_MASTER_INDEX["n"]),
+        )
+
+        direct_row, unit = self._resolve_trade_content_row(
+            indicator,
+            scenario=scenario_name,
+            method="direct",
+            use_activity_side=False,
+        )
+        total_row, _ = self._resolve_trade_content_row(
+            indicator,
+            scenario=scenario_name,
+            method="total",
+            use_activity_side=False,
+        )
+
+        z = self.query(matrices=[_ENUM.z], scenarios=[scenario_name])
+        Y = self.query(matrices=[_ENUM.Y], scenarios=[scenario_name])
+        selected_Y = self._select_trade_rows(Y, item_selection)
+
+        if fd_regions is not None:
+            selected_Y = selected_Y.loc[
+                :,
+                selected_Y.columns.get_level_values(0).isin(fd_regions),
+            ]
+        if fd_categories is not None:
+            selected_Y = selected_Y.loc[
+                :,
+                selected_Y.columns.get_level_values(-1).isin(fd_categories),
+            ]
+
+        if selected_Y.shape[1] == 0:
+            raise WrongInput("The selected final-demand bundle does not contain any columns.")
+
+        direct_row = direct_row.reindex(z.index, fill_value=0.0)
+        total_row = total_row.reindex(z.index, fill_value=0.0)
+
+        selected_total_y = selected_Y.sum(axis=1).reindex(z.index, fill_value=0.0)
+        total_footprint = float(total_row.dot(selected_total_y))
+
+        upstream_cache = {}
+
+        def upstream_suppliers(node):
+            if node not in upstream_cache:
+                column = z.loc[:, node]
+                values = dense_values(column)
+                nonzero = np.flatnonzero(values)
+                upstream_cache[node] = [
+                    (z.index[index], float(values[index]))
+                    for index in nonzero
+                    if values[index] != 0
+                ]
+            return upstream_cache[node]
+
+        records = []
+
+        def explore(current_node, downstream_weight, path_nodes, depth, fd_column):
+            contribution = float(direct_row.loc[current_node] * downstream_weight)
+            if abs(contribution) < cutoff:
+                return
+
+            records.append(
+                {
+                    "path": " -> ".join(
+                        [*(self._format_spa_node(node) for node in path_nodes), f"FD: {self._format_spa_node(fd_column)}"]
+                    ),
+                    "depth": depth,
+                    "contribution": contribution,
+                    "indicator": str(indicator),
+                    "scenario": scenario_name,
+                    "final_demand": self._format_spa_node(fd_column),
+                    "final_demand_region": fd_column[0] if isinstance(fd_column, tuple) else fd_column,
+                    "final_demand_category": fd_column[-1] if isinstance(fd_column, tuple) else fd_column,
+                    "terminal_item": path_nodes[-1][-1] if isinstance(path_nodes[-1], tuple) else path_nodes[-1],
+                }
+            )
+
+            if depth >= max_depth:
+                return
+
+            for upstream_node, coefficient in upstream_suppliers(current_node):
+                next_weight = float(coefficient * downstream_weight)
+                if next_weight == 0:
+                    continue
+                explore(
+                    upstream_node,
+                    next_weight,
+                    [upstream_node, *path_nodes],
+                    depth + 1,
+                    fd_column,
+                )
+
+        for fd_column in selected_Y.columns:
+            bundle = selected_Y[fd_column].reindex(z.index, fill_value=0.0)
+            values = dense_values(bundle)
+            nonzero = np.flatnonzero(values)
+
+            for index in nonzero:
+                demand_node = bundle.index[index]
+                demand_value = float(values[index])
+                if demand_value == 0:
+                    continue
+                explore(demand_node, demand_value, [demand_node], 0, fd_column)
+
+        result = pd.DataFrame.from_records(
+            records,
+            columns=[
+                "path",
+                "depth",
+                "contribution",
+                "indicator",
+                "scenario",
+                "final_demand",
+                "final_demand_region",
+                "final_demand_category",
+                "terminal_item",
+            ],
+        )
+
+        if result.empty:
+            result.attrs.update(
+                {
+                    "indicator": str(indicator),
+                    "scenario": scenario_name,
+                    "item": item_label,
+                    "unit": unit,
+                    "total_footprint": total_footprint,
+                    "reported_contribution": 0.0,
+                    "coverage_share": 0.0,
+                    "max_depth": max_depth,
+                    "cutoff": cutoff,
+                }
+            )
+            return result
+
+        result["_abs"] = result["contribution"].abs()
+        result = result.sort_values(
+            by=["_abs", "depth", "path"],
+            ascending=[False, True, True],
+            kind="stable",
+        ).reset_index(drop=True)
+
+        if top_n is not None:
+            result = result.head(top_n).copy()
+
+        denominator = total_footprint if total_footprint != 0 else float(result["contribution"].sum())
+        if denominator == 0:
+            result["share_of_total"] = 0.0
+            result["cumulative_share"] = 0.0
+        else:
+            result["share_of_total"] = result["contribution"] / denominator
+            result["cumulative_share"] = result["contribution"].cumsum() / denominator
+
+        reported = float(result["contribution"].sum())
+        result = result.drop(columns=["_abs"])
+        result.attrs.update(
+            {
+                "indicator": str(indicator),
+                "scenario": scenario_name,
+                "item": item_label,
+                "unit": unit,
+                "total_footprint": total_footprint,
+                "reported_contribution": reported,
+                "coverage_share": (reported / total_footprint) if total_footprint != 0 else 0.0,
+                "max_depth": max_depth,
+                "cutoff": cutoff,
+            }
+        )
+
+        output_path = save_plot if save_plot is not None else path
+        should_render_plot = show_plot or output_path not in (None, False)
+        if not should_render_plot:
+            return result
+
+        return self._render_spa_plot(
+            result,
+            plot_kind=plot_kind,
+            title=title or f"SPA for {item_label} ({indicator}) - {scenario_name}",
             auto_open=auto_open,
             output_path=output_path,
             show_plot=show_plot and save_plot is None,

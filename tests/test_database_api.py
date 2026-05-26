@@ -477,6 +477,38 @@ def test_calc_trades_can_show_an_aggregated_heatmap():
     assert trades.columns.nlevels == 1
 
 
+def test_calc_trades_plot_orders_regions_alphabetically(monkeypatch):
+    database = load_test("IOT")
+
+    captured = {"category_orders": None}
+
+    class DummyFigure:
+        def show(self):
+            return None
+
+    def fake_plot(*args, **kwargs):
+        captured["category_orders"] = kwargs.get("category_orders")
+        return DummyFigure()
+
+    monkeypatch.setattr(database, "plot", fake_plot)
+
+    trades = database.calc_trades(
+        "Agriculture",
+        clusters={"Region": {"ZZZ": ["Reg1"]}},
+        show_plot=True,
+        path=False,
+        auto_open=False,
+    )
+
+    assert isinstance(trades, pd.DataFrame)
+    assert trades.index.tolist() == ["ZZZ", "Reg2"]
+    assert trades.columns.tolist() == ["ZZZ", "Reg2"]
+    assert captured["category_orders"] == {
+        "Origin Region": ["Reg2", "ZZZ"],
+        "Destination Region": ["Reg2", "ZZZ"],
+    }
+
+
 def test_calc_trades_displays_plot_inline_but_returns_only_matrix(monkeypatch):
     database = load_test("IOT")
 
@@ -649,6 +681,39 @@ def test_calc_trades_excludes_totals_from_plot_frame(monkeypatch):
     assert captured["data"] is not None
     assert "Total" not in set(captured["data"]["Origin Region"])
     assert "Total" not in set(captured["data"]["Destination Region"])
+
+
+def test_calc_trades_can_exclude_domestic_pairs_from_plot_only(monkeypatch):
+    database = load_test("IOT")
+
+    expected = database.calc_trades("Agriculture")
+    captured = {"data": None}
+
+    class DummyFigure:
+        def show(self):
+            return None
+
+    def fake_plot(*args, **kwargs):
+        captured["data"] = kwargs.get("data")
+        return DummyFigure()
+
+    monkeypatch.setattr(database, "plot", fake_plot)
+
+    trades = database.calc_trades(
+        "Agriculture",
+        show_plot=True,
+        exclude_domestic_from_plot=True,
+        path=False,
+        auto_open=False,
+    )
+
+    pdt.assert_frame_equal(trades, expected)
+    assert expected.values.diagonal().sum() != 0
+    assert captured["data"] is not None
+    assert not (
+        captured["data"]["Origin Region"].astype(str)
+        == captured["data"]["Destination Region"].astype(str)
+    ).any()
 
 
 def test_calc_trades_plot_uses_custom_title_and_table_unit(monkeypatch):
@@ -1211,6 +1276,390 @@ def test_calc_trades_content_exposure_alias_delegates_with_warning():
         item="Agriculture",
     )
     pdt.assert_frame_equal(result, expected)
+
+
+def _expected_embodied_imports(trades):
+    diagonal_labels = trades.index.intersection(trades.columns)
+    imports = trades.sum(axis=0)
+    if len(diagonal_labels):
+        diagonal = pd.Series(
+            [trades.loc[label, label] for label in diagonal_labels],
+            index=diagonal_labels,
+            dtype=float,
+        )
+        imports.loc[diagonal.index] = imports.loc[diagonal.index].subtract(diagonal)
+    imports.index.name = trades.columns.name or "Region"
+    imports.name = "Embodied imports"
+    return imports
+
+
+def _expected_embodied_exports(trades):
+    diagonal_labels = trades.index.intersection(trades.columns)
+    exports = trades.sum(axis=1)
+    if len(diagonal_labels):
+        diagonal = pd.Series(
+            [trades.loc[label, label] for label in diagonal_labels],
+            index=diagonal_labels,
+            dtype=float,
+        )
+        exports.loc[diagonal.index] = exports.loc[diagonal.index].subtract(diagonal)
+    exports.index.name = trades.index.name or "Region"
+    exports.name = "Embodied exports"
+    return exports
+
+
+def test_calc_embodied_imports_and_exports_collapse_trade_content():
+    database = load_test("IOT")
+    indicator = database.get_index(_MASTER_INDEX["f"])[0]
+
+    trades = database.calc_trades_content(indicator, item="Agriculture")
+    imports = database.calc_embodied_imports(indicator, item="Agriculture")
+    exports = database.calc_embodied_exports(indicator, item="Agriculture")
+
+    pdt.assert_series_equal(imports, _expected_embodied_imports(trades))
+    pdt.assert_series_equal(exports, _expected_embodied_exports(trades))
+
+
+def test_calc_embodied_net_imports_is_imports_minus_exports():
+    database = load_test("IOT")
+    indicator = database.get_index(_MASTER_INDEX["f"])[0]
+
+    imports = database.calc_embodied_imports(indicator, item="Agriculture")
+    exports = database.calc_embodied_exports(indicator, item="Agriculture")
+    net_imports = database.calc_embodied_net_imports(indicator, item="Agriculture")
+
+    expected = imports.subtract(exports, fill_value=0.0)
+    expected.name = "Embodied net imports"
+    pdt.assert_series_equal(net_imports, expected)
+
+
+def test_calc_embodied_trade_accounts_keep_intermediate_final_split():
+    database = load_test("IOT")
+    indicator = database.get_index(_MASTER_INDEX["f"])[0]
+
+    trades = database.calc_trades_content(indicator, item="Agriculture", aggregate=False)
+    imports = database.calc_embodied_imports(indicator, item="Agriculture", aggregate=False)
+    exports = database.calc_embodied_exports(indicator, item="Agriculture", aggregate=False)
+
+    expected_imports = pd.concat(
+        {
+            component: _expected_embodied_imports(trades[component])
+            for component in trades.columns.get_level_values(0).unique()
+        },
+        axis=1,
+    )
+    expected_imports.columns.name = trades.columns.names[0]
+
+    expected_exports = pd.concat(
+        {
+            component: _expected_embodied_exports(trades[component])
+            for component in trades.columns.get_level_values(0).unique()
+        },
+        axis=1,
+    )
+    expected_exports.columns.name = trades.columns.names[0]
+
+    pdt.assert_frame_equal(imports, expected_imports)
+    pdt.assert_frame_equal(exports, expected_exports)
+
+
+def test_calc_embodied_imports_can_return_all_scenarios():
+    database = load_test("IOT")
+    indicator = database.get_index(_MASTER_INDEX["f"])[0]
+    database.clone_scenario("baseline", "policy")
+    database.matrices["policy"][_ENUM.Y].iloc[0, 0] += 10
+
+    imports = database.calc_embodied_imports(
+        indicator,
+        item="Agriculture",
+        scenario="all",
+    )
+
+    assert set(imports) == {"baseline", "policy"}
+
+
+def test_calc_embodied_imports_accepts_renamed_baseline_aliases():
+    database = load_test("IOT")
+    indicator = database.get_index(_MASTER_INDEX["f"])[0]
+    database.rename_baseline_scenario("reference")
+
+    internal = database.calc_embodied_imports(
+        indicator,
+        item="Agriculture",
+        scenario="baseline",
+    )
+    public = database.calc_embodied_imports(
+        indicator,
+        item="Agriculture",
+        scenario="reference",
+    )
+
+    pdt.assert_series_equal(internal, public)
+
+
+def test_calc_spa_matches_truncated_direct_series_for_selected_bundle():
+    database = load_test("IOT")
+    indicator = database.get_index("Satellite account")[0]
+    final_demand_column = ("Reg1", "Consumption category", "Final demand")
+
+    spa = database.calc_spa(
+        indicator,
+        item="Agriculture",
+        final_demand_region="Reg1",
+        final_demand_category="Final demand",
+        max_depth=2,
+        cutoff=0,
+        top_n=None,
+    )
+
+    selected_y = pd.Series(0.0, index=database.z.index, dtype=float)
+    selected_y.loc[(slice(None), slice(None), "Agriculture")] = database.Y.loc[
+        (slice(None), slice(None), "Agriculture"),
+        final_demand_column,
+    ]
+
+    expected_truncated = float(
+        database.e.loc[indicator].dot(
+            selected_y + database.z.dot(selected_y) + database.z.dot(database.z.dot(selected_y))
+        )
+    )
+    expected_total = float(database.f.loc[indicator].dot(selected_y))
+
+    assert float(spa["contribution"].sum()) == pytest.approx(expected_truncated)
+    assert spa["depth"].max() == 2
+    assert spa.attrs["total_footprint"] == pytest.approx(expected_total)
+    assert spa.attrs["reported_contribution"] == pytest.approx(expected_truncated)
+
+
+def test_calc_spa_sorts_by_absolute_contribution_and_applies_top_n():
+    database = load_test("IOT")
+    indicator = database.get_index("Satellite account")[0]
+
+    spa = database.calc_spa(
+        indicator,
+        item="Agriculture",
+        max_depth=3,
+        cutoff=0,
+        top_n=10,
+    )
+
+    assert len(spa) == 10
+    assert spa["contribution"].abs().is_monotonic_decreasing
+    assert spa["cumulative_share"].is_monotonic_increasing
+
+
+def test_calc_spa_accepts_renamed_baseline_aliases():
+    database = load_test("IOT")
+    indicator = database.get_index("Satellite account")[0]
+    database.rename_baseline_scenario("reference")
+
+    internal = database.calc_spa(
+        indicator,
+        scenario="baseline",
+        item="Agriculture",
+        max_depth=1,
+        cutoff=0,
+        top_n=20,
+    )
+    public = database.calc_spa(
+        indicator,
+        scenario="reference",
+        item="Agriculture",
+        max_depth=1,
+        cutoff=0,
+        top_n=20,
+    )
+
+    pdt.assert_frame_equal(internal, public)
+    assert internal.attrs == public.attrs
+
+
+def test_calc_spa_is_currently_iot_only():
+    database = load_test("SUT")
+    indicator = database.get_index("Satellite account")[0]
+
+    with pytest.raises(NotImplementable, match="only for IOT"):
+        database.calc_spa(indicator)
+
+
+def test_calc_spa_can_request_integrated_plot(monkeypatch):
+    database = load_test("IOT")
+    indicator = database.get_index("Satellite account")[0]
+    captured = {}
+
+    def fake_plot(*, data=None, kind=None, x=None, y=None, color=None, path=None, title=None, **kwargs):
+        captured["data"] = data.copy()
+        captured["kind"] = kind
+        captured["x"] = x
+        captured["y"] = y
+        captured["color"] = color
+        captured["path"] = path
+        captured["title"] = title
+        captured["kwargs"] = kwargs
+
+        class Figure:
+            def update_traces(self, *args, **kwargs):
+                return None
+
+            def update_layout(self, *args, **kwargs):
+                return None
+
+        return Figure()
+
+    monkeypatch.setattr(database, "plot", fake_plot)
+
+    spa = database.calc_spa(
+        indicator,
+        item="Agriculture",
+        max_depth=1,
+        cutoff=0,
+        top_n=5,
+        show_plot=True,
+    )
+
+    assert len(spa) == 5
+    assert captured["kind"] == "bar"
+    assert captured["x"] == "Share of total"
+    assert captured["y"] == "Path label"
+    assert captured["color"] == "Depth"
+    assert captured["path"] is False
+    assert "Path label" in captured["data"].columns
+    assert "Final demand" in captured["data"].columns
+    assert captured["data"]["Path label"].iloc[0].startswith("1. ")
+
+
+def test_calc_spa_can_request_depth_plot(monkeypatch):
+    database = load_test("IOT")
+    indicator = database.get_index("Satellite account")[0]
+    captured = {}
+
+    def fake_plot(*, data=None, kind=None, x=None, y=None, color=None, path=None, title=None, **kwargs):
+        captured["data"] = data.copy()
+        captured["kind"] = kind
+        captured["x"] = x
+        captured["y"] = y
+        captured["color"] = color
+        captured["path"] = path
+        captured["title"] = title
+        captured["kwargs"] = kwargs
+
+        class Figure:
+            def update_traces(self, *args, **kwargs):
+                return None
+
+            def update_layout(self, *args, **kwargs):
+                return None
+
+            def update_yaxes(self, *args, **kwargs):
+                return None
+
+        return Figure()
+
+    monkeypatch.setattr(database, "plot", fake_plot)
+
+    spa = database.calc_spa(
+        indicator,
+        item="Agriculture",
+        max_depth=2,
+        cutoff=0,
+        top_n=10,
+        show_plot=True,
+        plot="depth",
+    )
+
+    assert len(spa) == 10
+    assert captured["kind"] == "bar"
+    assert captured["x"] == "Depth"
+    assert captured["y"] == "Share of total"
+    assert captured["color"] == "Depth"
+    assert captured["path"] is False
+    assert "Share label" in captured["data"].columns
+    assert captured["data"]["Depth"].tolist() == sorted(
+        captured["data"]["Depth"].tolist(),
+        key=int,
+    )
+
+
+def test_calc_spa_can_request_sankey_plot(monkeypatch, tmp_path):
+    database = load_test("IOT")
+    indicator = database.get_index("Satellite account")[0]
+    captured = {}
+
+    def fake_save(figure, output_path, *, auto_open):
+        captured["figure"] = figure
+        captured["output_path"] = output_path
+        captured["auto_open"] = auto_open
+
+    monkeypatch.setattr(database, "_save_trade_plot_figure", fake_save)
+
+    output_path = tmp_path / "spa-sankey.html"
+    spa = database.calc_spa(
+        indicator,
+        item="Agriculture",
+        max_depth=2,
+        cutoff=0,
+        top_n=8,
+        plot="sankey",
+        save_plot=output_path,
+    )
+
+    assert len(spa) == 8
+    assert captured["output_path"] == output_path
+    assert captured["auto_open"] is False
+    assert captured["figure"].data[0].type == "sankey"
+    assert len(captured["figure"].data[0].node.label) > 0
+    assert len(captured["figure"].data[0].link.source) > 0
+
+
+def test_calc_spa_rejects_unknown_plot_mode():
+    database = load_test("IOT")
+    indicator = database.get_index("Satellite account")[0]
+
+    with pytest.raises(WrongInput, match="plot should be one of 'paths', 'sankey', or 'depth'"):
+        database.calc_spa(indicator, item="Agriculture", plot="unknown")
+
+
+def test_calc_spa_can_save_integrated_plot(monkeypatch, tmp_path):
+    database = load_test("IOT")
+    indicator = database.get_index("Satellite account")[0]
+    calls = {}
+
+    class Figure:
+        def update_traces(self, *args, **kwargs):
+            return None
+
+        def update_layout(self, *args, **kwargs):
+            return None
+
+    def fake_plot(**kwargs):
+        calls["plot"] = kwargs
+        return Figure()
+
+    def fake_save(figure, output_path, *, auto_open):
+        calls["save"] = {
+            "figure": figure,
+            "output_path": output_path,
+            "auto_open": auto_open,
+        }
+
+    monkeypatch.setattr(database, "plot", fake_plot)
+    monkeypatch.setattr(database, "_save_trade_plot_figure", fake_save)
+
+    output_path = tmp_path / "spa.html"
+    spa = database.calc_spa(
+        indicator,
+        item="Agriculture",
+        max_depth=1,
+        cutoff=0,
+        top_n=5,
+        save_plot=output_path,
+        auto_open=True,
+    )
+
+    assert len(spa) == 5
+    assert calls["plot"]["path"] is False
+    assert calls["save"]["output_path"] == output_path
+    assert calls["save"]["auto_open"] is False
 
 
 def test_parse_exiobase_imports_a_new_parser_scenario(monkeypatch):
