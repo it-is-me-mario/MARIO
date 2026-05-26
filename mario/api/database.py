@@ -3888,15 +3888,15 @@ class Database(CoreModel):
         gwp=None,
         label="GHG",
         unit=None,
-        inplace=False,
+        inplace=True,
     ):
-        """Aggregate satellite GHG accounts into a single ``label`` row.
+        """Aggregate satellite GHG accounts into a new ``label`` row.
 
         Profile (and its default GWP factors) is auto-detected from the
         parser metadata when ``profile=None``. Pass ``gwp={...}`` to use
-        custom factors. With ``inplace=True`` the resulting row is appended
-        to the baseline ``e``/``f`` matrices and to the satellite-account
-        units table.
+        custom factors. The aggregation is appended to the baseline ``E`` and
+        ``EY`` matrices, registered as a new satellite account and followed by
+        a recalculation of dependent matrices.
 
         Parameters
         ----------
@@ -3908,15 +3908,16 @@ class Database(CoreModel):
         label:
             Satellite-account label used for the aggregated row.
         unit:
-            Unit string stored alongside the new row (defaults to the
-            profile unit, typically ``"kg CO2eq"``).
+            Optional unit override. When omitted, the new row reuses the
+            shared unit of the aggregated satellite accounts.
         inplace:
-            When ``True`` mutate the database in place.
+            When ``True`` mutate the database in place. When ``False`` return
+            a modified copy.
 
         Returns
         -------
-        (pandas.Series, pandas.Series)
-            Aggregated intensity (``e``) and footprint (``f``) row Series.
+        Database | None
+            Modified database when ``inplace=False``, otherwise ``None``.
         """
         return _calc_ghg(
             self,

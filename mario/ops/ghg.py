@@ -8,7 +8,7 @@ The registry can be extended at runtime via :func:`register_ghg_profile`.
 """
 from __future__ import annotations
 
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional
 import pandas as pd
 
 
@@ -35,9 +35,6 @@ GHG_PROFILES: Dict[str, dict] = {
             "CO2 - combustion - air": 1.0,
             "CH4 - combustion - air": 29.7,
             "N2O - combustion - air": 264.8,
-            "HFC - air": 1.0,
-            "SF6 - air": 23506.0,
-            "CO - combustion - air": 4.1,
         },
     },
     # ---------------- EXIOBASE 3.3.18 hybrid (HSUT / HIOT) ---------------
@@ -327,15 +324,65 @@ def _ghg_row(matrix: pd.DataFrame, gwp: Dict[str, float],
     return matrix.loc[available].mul(weights, axis=0).sum(axis=0).rename(label)
 
 
+def _matched_ghg_labels(index: pd.Index, gwp: Dict[str, float],
+                        match_mode: str = "exact") -> list[str]:
+    """Return the source account labels used by the GHG aggregation."""
+    labels = pd.Index(index)
+
+    if match_mode == "prefix":
+        matched: list[str] = []
+        as_text = labels.astype(str)
+        for prefix in gwp:
+            matched.extend(labels[as_text.str.startswith(prefix)].tolist())
+        matched = list(dict.fromkeys(matched))
+    else:
+        matched = [label for label in gwp if label in labels]
+
+    if not matched:
+        raise KeyError(
+            "None of the requested GHG accounts were found in the database."
+        )
+
+    return matched
+
+
+def _resolve_ghg_unit(db, labels: list[str], unit: Optional[str]) -> str:
+    """Validate that aggregated accounts share one unit and return it."""
+    sat_units = db.units["Satellite account"]
+    source_units = sat_units.loc[pd.Index(labels).unique()]
+
+    if isinstance(source_units, pd.DataFrame):
+        if "unit" in source_units.columns:
+            source_units = source_units["unit"]
+        else:
+            source_units = source_units.iloc[:, 0]
+
+    unique_units = pd.Index(source_units.dropna().tolist()).unique().tolist()
+    if len(unique_units) != 1:
+        raise ValueError(
+            "GHG accounts can be aggregated only when they all share the same unit. "
+            f"Found units for {labels}: {unique_units}"
+        )
+
+    source_unit = unique_units[0]
+    if unit is not None and unit != source_unit:
+        raise ValueError(
+            f"Requested unit '{unit}' does not match the aggregated GHG accounts unit "
+            f"'{source_unit}'."
+        )
+
+    return source_unit
+
+
 def calc_ghg(
     db,
     profile: Optional[str] = None,
     gwp: Optional[Dict[str, float]] = None,
     label: str = "GHG",
     unit: Optional[str] = None,
-    inplace: bool = False,
-) -> Tuple[pd.Series, pd.Series]:
-    """Aggregate GHG satellite accounts into a single ``label`` row.
+    inplace: bool = True,
+):
+    """Aggregate GHG satellite accounts into a new satellite-account row.
 
     Parameters
     ----------
@@ -350,20 +397,22 @@ def calc_ghg(
     label:
         Satellite-account label used for the aggregated row.
     unit:
-        Unit string stored in ``db.units['Satellite account']`` for the new
-        row. Defaults to the profile unit (``"kg CO2eq"``).
+        Optional unit override. When omitted, MARIO reuses the shared unit of
+        the aggregated satellite accounts and raises when those units differ.
     inplace:
-        When ``True``, the new row is appended to the baseline ``e`` and
-        ``f`` matrices and to the satellite-account units table.
+        When ``True`` mutate the current database. When ``False`` return a
+        modified copy.
 
     Returns
     -------
-    (pandas.Series, pandas.Series)
-        The aggregated GHG intensity (e) and footprint (f) row Series.
+    Database | None
+        Modified database when ``inplace=False``, otherwise ``None``.
     """
+    target = db if inplace else db.copy()
+
     if gwp is None:
         if profile is None:
-            profile = _autodetect_profile(db)
+            profile = _autodetect_profile(target)
         if profile is None or profile not in GHG_PROFILES:
             raise ValueError(
                 "Could not auto-detect a GHG profile; pass `profile=` or "
@@ -372,29 +421,33 @@ def calc_ghg(
             )
         spec = GHG_PROFILES[profile]
         gwp = spec["gwp"]
-        if unit is None:
-            unit = spec.get("unit", "kg CO2eq")
         match_mode = spec.get("match_mode", "exact")
     else:
-        if unit is None:
-            unit = "kg CO2eq"
         match_mode = "exact"
 
-    e_row = _ghg_row(db.e, gwp, label, match_mode=match_mode)
-    f_row = _ghg_row(db.f, gwp, label, match_mode=match_mode)
-
-    if inplace:
-        db.matrices["baseline"]["e"] = pd.concat(
-            [db.e, e_row.to_frame().T], axis=0
+    if label in target.get_index("Satellite account"):
+        raise ValueError(
+            f"Satellite account '{label}' already exists in the database."
         )
-        if "f" in db.matrices["baseline"]:
-            db.matrices["baseline"]["f"] = pd.concat(
-                [db.f, f_row.to_frame().T], axis=0
-            )
-        sat_units = db.units["Satellite account"]
-        if isinstance(sat_units, pd.DataFrame):
-            sat_units.loc[label] = unit
-        else:  # Series
-            sat_units.loc[label] = unit
 
-    return e_row, f_row
+    matched_labels = _matched_ghg_labels(target.E.index, gwp, match_mode=match_mode)
+    resolved_unit = _resolve_ghg_unit(target, matched_labels, unit)
+
+    extension_row = _ghg_row(target.E, gwp, label, match_mode=match_mode)
+    final_demand_row = _ghg_row(target.EY, gwp, label, match_mode=match_mode)
+
+    extension = extension_row.to_frame().T
+    extension_fd = final_demand_row.to_frame().T
+    unit_frame = pd.DataFrame({"unit": [resolved_unit]}, index=extension.index.copy())
+
+    target.add_extensions(
+        io=extension,
+        matrix="E",
+        units=unit_frame,
+        inplace=True,
+        calc_all=True,
+        EY=extension_fd,
+    )
+
+    if not inplace:
+        return target
