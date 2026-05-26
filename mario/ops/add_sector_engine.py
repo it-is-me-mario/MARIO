@@ -37,6 +37,15 @@ _MATRIX_SLICES_MAP = {
 }
 
 
+class InventoryRowValidationError(ValueError):
+    """Row-level inventory validation issue collected before failing one sheet."""
+
+    def __init__(self, reason: str, details: str):
+        super().__init__(details)
+        self.reason = reason
+        self.details = details
+
+
 class AddSectorEngine:
     """Apply the workbook-driven add-sectors workflow to one database.
 
@@ -683,90 +692,157 @@ class AddSectorEngine:
         self.converted_quantity_column = cqc
         inventory[cqc] = 0.0
         ureg = pint.UnitRegistry()
+        grouped_errors: dict[str, list[str]] = {}
 
-        for i in inventory.index:
-            item = inventory.loc[i, INC["item_type"]]
-            if item in (MI["c"], MI["s"]):
-                if self.table == SUT:
-                    if inventory.loc[i, INC["db_item"]] in self.commodities:
-                        db_unit = self.units[item].loc[inventory.loc[i, INC["db_item"]], "unit"]
-                    elif inventory.loc[i, INC["db_item"]] in self.new_commodities:
-                        dummy = inventory.loc[i, INC["db_item"]]
-                        db_unit = self.db.add_sectors_master.query(f"{MI['c']}==@dummy")[
-                            MSC[self.table]["unit"]
-                        ].values[0]
-                    elif inventory.loc[i, INC["db_item"]] in self.db.commodities_clusters:
-                        db_units = [
-                            self.units[item].loc[c, "unit"]
-                            for c in self.db.commodities_clusters[inventory.loc[i, INC["db_item"]]]
-                        ]
-                        if len(set(db_units)) != 1:
-                            raise ValueError(
-                                f"Commodities in cluster {inventory.loc[i, INC['db_item']]} have different units."
-                            )
-                        db_unit = db_units[0]
-                    else:
-                        raise ValueError(
-                            f"Issues in converting unit of commodity {inventory.loc[i, INC['db_item']]} "
-                            f"in sheet {sheet_name}."
-                        )
-                else:
-                    if inventory.loc[i, INC["db_item"]] in self.sectors:
-                        db_unit = self.units[item].loc[inventory.loc[i, INC["db_item"]], "unit"]
-                    elif inventory.loc[i, INC["db_item"]] in self.new_sectors:
-                        dummy = inventory.loc[i, INC["db_item"]]
-                        db_unit = self.db.add_sectors_master.query(f"{MI['s']}==@dummy")[
-                            MSC[self.table]["unit"]
-                        ].values[0]
-                    elif inventory.loc[i, INC["db_item"]] in self.db.sectors_clusters:
-                        db_units = [
-                            self.units[item].loc[c, "unit"]
-                            for c in self.db.sectors_clusters[inventory.loc[i, INC["db_item"]]]
-                        ]
-                        if len(set(db_units)) != 1:
-                            raise ValueError(
-                                f"Sectors in cluster {inventory.loc[i, INC['db_item']]} have different units."
-                            )
-                        db_unit = db_units[0]
-                    else:
-                        raise ValueError("Issues in converting unit.")
-            elif item == MI["a"]:
-                raise ValueError(
-                    f"{INC['item_type']} {item} is not recognized: activities cannot be supplied to other activities."
+        for excel_row, i in enumerate(inventory.index, start=2):
+            row = inventory.loc[i]
+            try:
+                db_unit = self._resolve_inventory_db_unit(row)
+                inventory.loc[i, cqc] = self._convert_inventory_quantity(row, db_unit, ureg)
+            except InventoryRowValidationError as exc:
+                grouped_errors.setdefault(exc.reason, []).append(
+                    f"{self._format_inventory_row_context(row, excel_row)}. {exc.details}"
                 )
-            elif item == MI["k"]:
-                db_unit = self.units[MI["k"]].loc[inventory.loc[i, INC["db_item"]], "unit"]
-            elif item == MI["f"]:
-                if inventory.loc[i, INC["db_item"]] in self.units[MI["f"]].index:
-                    db_unit = self.units[MI["f"]].loc[inventory.loc[i, INC["db_item"]], "unit"]
-                elif inventory.loc[i, INC["db_item"]] in self.factors_clusters:
-                    db_units = [
-                        self.units[MI["f"]].loc[c, "unit"]
-                        for c in self.factors_clusters[inventory.loc[i, INC["db_item"]]]
-                    ]
-                    if len(set(db_units)) != 1:
-                        raise ValueError(
-                            f"Factors in cluster {inventory.loc[i, INC['db_item']]} have different units."
-                        )
-                    db_unit = db_units[0]
-                else:
-                    raise ValueError(f"Unknown factor {inventory.loc[i, INC['db_item']]}")
-            else:
-                raise ValueError(f"{INC['item_type']} {item} is not recognized.")
 
-            if inventory.loc[i, INC["unit"]] == db_unit:
-                inventory.loc[i, cqc] = inventory.loc[i, INC["quantity"]]
-            elif ureg(inventory.loc[i, INC["unit"]]).is_compatible_with(db_unit):
-                inventory.loc[i, cqc] = (
-                    inventory.loc[i, INC["quantity"]]
-                    * ureg(inventory.loc[i, INC["unit"]]).to(db_unit).magnitude
-                )
-            else:
-                raise NotImplementedError(
-                    f"{INC['unit']} {inventory.loc[i, INC['unit']]} is not convertible to {db_unit}."
-                )
+        if grouped_errors:
+            raise ValueError(self._format_inventory_validation_errors(sheet_name, grouped_errors))
 
         return inventory
+
+    @staticmethod
+    def _format_inventory_row_context(row: pd.Series, excel_row: int) -> str:
+        """Render one inventory row with the fields most useful for troubleshooting."""
+
+        details = [f"Excel row {excel_row}"]
+        for key in ("input", "item_type", "db_item", "db_region", "unit"):
+            value = row.get(INC[key], "")
+            if pd.isna(value) or value == "":
+                continue
+            details.append(f"{INC[key]}={value!r}")
+
+        return ", ".join(details)
+
+    @staticmethod
+    def _format_inventory_validation_errors(
+        sheet_name: str, grouped_errors: dict[str, list[str]]
+    ) -> str:
+        """Collapse per-row issues into one message grouped by problem type."""
+
+        lines = [f"Issues found while validating inventory sheet {sheet_name}:"]
+        for reason, details in grouped_errors.items():
+            lines.append(f"- {reason}")
+            for detail in details:
+                lines.append(f"  - {detail}")
+
+        return "\n".join(lines)
+
+    def _resolve_inventory_db_unit(self, row: pd.Series) -> str:
+        """Resolve the database unit used by one inventory row."""
+
+        item = row[INC["item_type"]]
+        db_item = row[INC["db_item"]]
+
+        if item in (MI["c"], MI["s"]):
+            if self.table == SUT:
+                if db_item in self.commodities:
+                    return self.units[item].loc[db_item, "unit"]
+                if db_item in self.new_commodities:
+                    return self.db.add_sectors_master.query(f"{MI['c']}==@db_item")[
+                        MSC[self.table]["unit"]
+                    ].values[0]
+                if db_item in self.db.commodities_clusters:
+                    db_units = [
+                        self.units[item].loc[commodity, "unit"]
+                        for commodity in self.db.commodities_clusters[db_item]
+                    ]
+                    if len(set(db_units)) != 1:
+                        raise InventoryRowValidationError(
+                            "Cluster members use inconsistent database units",
+                            f"Commodities in cluster {db_item!r} have different units.",
+                        )
+                    return db_units[0]
+                raise InventoryRowValidationError(
+                    "Database item could not be resolved",
+                    f"{INC['db_item']} {db_item!r} is not an existing commodity, a new commodity, or a commodity cluster.",
+                )
+
+            if db_item in self.sectors:
+                return self.units[item].loc[db_item, "unit"]
+            if db_item in self.new_sectors:
+                return self.db.add_sectors_master.query(f"{MI['s']}==@db_item")[MSC[self.table]["unit"]].values[0]
+            if db_item in self.db.sectors_clusters:
+                db_units = [self.units[item].loc[sector, "unit"] for sector in self.db.sectors_clusters[db_item]]
+                if len(set(db_units)) != 1:
+                    raise InventoryRowValidationError(
+                        "Cluster members use inconsistent database units",
+                        f"Sectors in cluster {db_item!r} have different units.",
+                    )
+                return db_units[0]
+            raise InventoryRowValidationError(
+                "Database item could not be resolved",
+                f"{INC['db_item']} {db_item!r} is not an existing sector, a new sector, or a sector cluster.",
+            )
+
+        if item == MI["a"]:
+            raise InventoryRowValidationError(
+                "Unsupported inventory item type",
+                f"{INC['item_type']} {item!r} is not supported here: activities cannot be supplied to other activities.",
+            )
+
+        if item == MI["k"]:
+            if db_item not in self.units[MI["k"]].index:
+                raise InventoryRowValidationError(
+                    "Database item could not be resolved",
+                    f"Unknown satellite account {db_item!r}.",
+                )
+            return self.units[MI["k"]].loc[db_item, "unit"]
+
+        if item == MI["f"]:
+            if db_item in self.units[MI["f"]].index:
+                return self.units[MI["f"]].loc[db_item, "unit"]
+            if db_item in self.factors_clusters:
+                db_units = [self.units[MI["f"]].loc[factor, "unit"] for factor in self.factors_clusters[db_item]]
+                if len(set(db_units)) != 1:
+                    raise InventoryRowValidationError(
+                        "Cluster members use inconsistent database units",
+                        f"Factors in cluster {db_item!r} have different units.",
+                    )
+                return db_units[0]
+            raise InventoryRowValidationError(
+                "Database item could not be resolved",
+                f"Unknown factor {db_item!r}.",
+            )
+
+        raise InventoryRowValidationError(
+            "Unsupported inventory item type",
+            f"{INC['item_type']} {item!r} is not recognized.",
+        )
+
+    def _convert_inventory_quantity(
+        self, row: pd.Series, db_unit: str, ureg: pint.UnitRegistry
+    ) -> float:
+        """Convert one inventory quantity to the resolved database unit."""
+
+        input_unit = row[INC["unit"]]
+        quantity = row[INC["quantity"]]
+
+        if input_unit == db_unit:
+            return quantity
+
+        try:
+            source_quantity = ureg(input_unit)
+            if source_quantity.is_compatible_with(db_unit):
+                return quantity * source_quantity.to(db_unit).magnitude
+        except pint.errors.PintError as exc:
+            raise InventoryRowValidationError(
+                "Unit conversion could not be evaluated",
+                f"{INC['unit']} {input_unit!r} could not be converted to database unit {db_unit!r}: {exc}.",
+            ) from exc
+
+        raise InventoryRowValidationError(
+            "Provided unit is not compatible with the database unit",
+            f"{INC['unit']} {input_unit!r} is not convertible to database unit {db_unit!r}.",
+        )
 
     def copy_from_parent(
         self,

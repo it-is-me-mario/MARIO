@@ -953,6 +953,68 @@ def test_add_sectors_advanced_engine_adds_iot_sector_from_workbook(tmp_path, Cor
     assert new.uncertainty_matrix.loc[(region, _MASTER_INDEX["s"], existing_sector), (region, _MASTER_INDEX["s"], "New sector")] == 1
 
 
+def test_add_sectors_logs_and_wraps_inventory_validation_errors(tmp_path, CoreDataIOT, caplog):
+    region = CoreDataIOT.get_index(_MASTER_INDEX["r"])[0]
+    existing_sector = CoreDataIOT.get_index(_MASTER_INDEX["s"])[0]
+    unit = CoreDataIOT.units[_MASTER_INDEX["s"]].loc[existing_sector, "unit"]
+    path = tmp_path / "advanced_iot_invalid_units.xlsx"
+
+    CoreDataIOT.get_add_sectors_excel(
+        items=["New sector"],
+        regions=[region],
+        path=path,
+    )
+
+    master = pd.read_excel(path, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET).astype(object)
+    master.loc[0, "Unit"] = unit
+    master.loc[0, "Parent Sector"] = existing_sector
+    with pd.ExcelWriter(path, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+        master.to_excel(writer, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET, index=False)
+        pd.DataFrame(
+            [
+                {
+                    "Quantity": 0.25,
+                    "Unit": unit,
+                    "Input": "bad sector row A",
+                    "Item type": _MASTER_INDEX["s"],
+                    "DB Item": "Missing sector A",
+                    "DB Region": region,
+                    "Change type": "Update",
+                    "Source": "test",
+                    "Notes": "",
+                },
+                {
+                    "Quantity": 0.5,
+                    "Unit": unit,
+                    "Input": "bad sector row B",
+                    "Item type": _MASTER_INDEX["s"],
+                    "DB Item": "Missing sector B",
+                    "DB Region": region,
+                    "Change type": "Update",
+                    "Source": "test",
+                    "Notes": "",
+                },
+            ]
+        ).to_excel(writer, sheet_name="INV_001", index=False)
+
+    with caplog.at_level("ERROR", logger=database_module.logger.name):
+        with pytest.raises(WrongInput) as msg:
+            CoreDataIOT.add_sectors(io=path, inplace=False)
+
+    message = str(msg.value)
+    assert "Database.add_sectors failed during running add-sectors engine" in message
+    assert "Issues found while validating inventory sheet INV_001" in message
+    assert message.count("Database item could not be resolved") == 1
+    assert "Excel row 2" in message
+    assert "Excel row 3" in message
+    assert "Missing sector A" in message
+    assert "Missing sector B" in message
+    assert any(
+        "Database: add_sectors failed during running add-sectors engine" in record.message
+        for record in caplog.records
+    )
+
+
 def test_add_sectors_supports_legacy_regional_extension_rows_iot(tmp_path):
     source_path = tmp_path / "legacy_regional_iot.xlsx"
     _write_legacy_regional_extension_iot(source_path)
@@ -1200,6 +1262,52 @@ def test_add_sectors_advanced_engine_adds_sut_activity_and_commodity(tmp_path, C
     assert new.units[_MASTER_INDEX["c"]].loc["New commodity", "unit"] == unit
     assert new.u.loc[(region, _MASTER_INDEX["c"], existing_commodity), (region, _MASTER_INDEX["a"], "New activity")] == pytest.approx(0.4)
     assert new.s.loc[(region, _MASTER_INDEX["a"], "New activity"), (region, _MASTER_INDEX["c"], "New commodity")] == pytest.approx(1.0)
+
+
+def test_add_sectors_reports_inventory_validation_errors_for_sut(tmp_path, CoreDataSUT):
+    region = CoreDataSUT.get_index(_MASTER_INDEX["r"])[0]
+    existing_activity = CoreDataSUT.get_index(_MASTER_INDEX["a"])[0]
+    unit = CoreDataSUT.units[_MASTER_INDEX["a"]].loc[existing_activity, "unit"]
+    path = tmp_path / "advanced_sut_invalid_inventory.xlsx"
+
+    CoreDataSUT.get_add_sectors_excel(
+        items=["New activity"],
+        regions=[region],
+        path=path,
+        item=_MASTER_INDEX["a"],
+    )
+
+    master = pd.read_excel(path, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET).astype(object)
+    master.loc[0, "Commodity"] = "New commodity"
+    master.loc[0, "Unit"] = unit
+    master.loc[0, "Parent Activity"] = existing_activity
+    master.loc[0, "Market share"] = 1.0
+    with pd.ExcelWriter(path, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+        master.to_excel(writer, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET, index=False)
+        pd.DataFrame(
+            [
+                {
+                    "Quantity": 0.4,
+                    "Unit": unit,
+                    "Input": "bad commodity row",
+                    "Item type": _MASTER_INDEX["c"],
+                    "DB Item": "Missing commodity",
+                    "DB Region": region,
+                    "Change type": "Update",
+                    "Source": "test",
+                    "Notes": "",
+                }
+            ]
+        ).to_excel(writer, sheet_name="INV_001", index=False)
+
+    with pytest.raises(WrongInput) as msg:
+        CoreDataSUT.add_sectors(io=path, inplace=False)
+
+    message = str(msg.value)
+    assert "Database.add_sectors failed during running add-sectors engine" in message
+    assert "Issues found while validating inventory sheet INV_001" in message
+    assert "Database item could not be resolved" in message
+    assert "Missing commodity" in message
 
 
 def test_add_sectors_advanced_engine_supports_custom_sut_factor_and_extension_rows(tmp_path):

@@ -2089,57 +2089,77 @@ class Database(CoreModel):
             return new
 
         self._validate_scenario(scenario)
+        source_label = "loaded inventories" if io == "inventories" else os.fspath(io)
+        workflow_context = (
+            f"table {self.meta.table}, scenario {scenario!r}, split={split}, source {source_label!r}"
+        )
+        log_time(logger, f"Database: add_sectors started ({workflow_context}).")
+        stage = "initialization"
 
-        if io != "inventories":
-            self.read_add_sectors_excel(io, read_inventories=True)
-        elif not hasattr(self, "inventories"):
-            raise LackOfInput(
-                "Inventory sheets are not loaded. Pass an add-sectors workbook path "
-                "or call read_inventory_sheets(...) first."
+        try:
+            stage = "loading add-sectors inputs"
+            if io != "inventories":
+                self.read_add_sectors_excel(io, read_inventories=True)
+            elif not hasattr(self, "inventories"):
+                raise LackOfInput(
+                    "Inventory sheets are not loaded. Pass an add-sectors workbook path "
+                    "or call read_inventory_sheets(...) first."
+                )
+
+            stage = "validating split parameters"
+            if split:
+                validate_split_parameters(
+                    self,
+                    cvxlab_path=cvxlab_path,
+                    input_data_files_type=input_data_files_type,
+                    only_input_data_gen=only_input_data_gen,
+                )
+                prepare_split_support(self)
+                resolved_parent_renames = normalize_split_parent_renames(
+                    self,
+                    parent_name=parent_name,
+                    parent_names=parent_names,
+                )
+            else:
+                if parent_name is not None or parent_names is not None:
+                    raise WrongInput("parent_name and parent_names are supported only when split=True.")
+                resolved_parent_renames = {}
+
+            stage = "checking duplicate target items"
+            item_to_query = _MASTER_INDEX["a"] if self.meta.table == "SUT" else _MASTER_INDEX["s"]
+            duplicates = sorted(set(name for name in self.inventories if name in self.get_index(item_to_query)))
+            if duplicates:
+                raise WrongInput(f"Some items already exist in the table: {duplicates}")
+
+            log_time(
+                logger,
+                "Database: All scenarios will be deleted from the database after add_sectors.",
+                "warning",
             )
 
-        if split:
-            validate_split_parameters(
+            stage = "collecting add-sectors reference matrices"
+            original_reference = collect_add_sector_matrices(self, scenario=scenario) if split else None
+
+            stage = "running add-sectors engine"
+            result = run_add_sector_engine(
                 self,
-                cvxlab_path=cvxlab_path,
-                input_data_files_type=input_data_files_type,
-                only_input_data_gen=only_input_data_gen,
+                scenario=scenario,
+                ignore_warnings=ignore_warnings,
             )
-            prepare_split_support(self)
-            resolved_parent_renames = normalize_split_parent_renames(
-                self,
-                parent_name=parent_name,
-                parent_names=parent_names,
+
+            stage = "collecting baseline VY"
+            baseline_vy = (
+                self.get_block_as_pandas(_ENUM["VY"], scenario=scenario)
+                if self.has_matrix(_ENUM["VY"], scenario=scenario)
+                else self.resolve(_ENUM["VY"], scenario=scenario)
             )
-        else:
-            if parent_name is not None or parent_names is not None:
-                raise WrongInput("parent_name and parent_names are supported only when split=True.")
-            resolved_parent_renames = {}
-
-        item_to_query = _MASTER_INDEX["a"] if self.meta.table == "SUT" else _MASTER_INDEX["s"]
-        duplicates = sorted(set(name for name in self.inventories if name in self.get_index(item_to_query)))
-        if duplicates:
-            raise WrongInput(f"Some items already exist in the table: {duplicates}")
-
-        log_time(
-            logger,
-            "Database: All scenarios will be deleted from the database after add_sectors.",
-            "warning",
-        )
-
-        original_reference = collect_add_sector_matrices(self, scenario=scenario) if split else None
-
-        result = run_add_sector_engine(
-            self,
-            scenario=scenario,
-            ignore_warnings=ignore_warnings,
-        )
-
-        baseline_vy = (
-            self.get_block_as_pandas(_ENUM["VY"], scenario=scenario)
-            if self.has_matrix(_ENUM["VY"], scenario=scenario)
-            else self.resolve(_ENUM["VY"], scenario=scenario)
-        )
+        except (WrongInput, WrongExcelFormat, LackOfInput, NotImplementable, DataMissing) as exc:
+            log_time(logger, f"Database: add_sectors failed during {stage} ({workflow_context}). {exc}", "error")
+            raise
+        except ValueError as exc:
+            message = f"Database.add_sectors failed during {stage} ({workflow_context}). {exc}"
+            log_time(logger, f"Database: add_sectors failed during {stage} ({workflow_context}). {exc}", "error")
+            raise WrongInput(message) from exc
 
         if self.meta.table == "IOT":
             new_matrices, new_units, new_indeces, uncertainty_matrix = result
