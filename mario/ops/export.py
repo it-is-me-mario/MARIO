@@ -214,13 +214,18 @@ def _write_text_frame(frame: pd.DataFrame, path: Path, *, sep: str) -> None:
     frame.to_csv(path, index=False, sep=sep)
 
 
-def _write_parquet_frame(frame: pd.DataFrame, path: Path) -> None:
-    """Write one dataframe payload as parquet."""
+def _coerce_sparse_columns_to_dense(frame: pd.DataFrame) -> pd.DataFrame:
+    """Return a parquet-safe dataframe by densifying pandas sparse columns."""
     payload = frame.copy()
     for column in payload.columns:
         if isinstance(payload[column].dtype, pd.SparseDtype):
             payload[column] = payload[column].sparse.to_dense()
-    payload.to_parquet(path, index=False)
+    return payload
+
+
+def _write_parquet_frame(frame: pd.DataFrame, path: Path) -> None:
+    """Write one dataframe payload as parquet."""
+    _coerce_sparse_columns_to_dense(frame).to_parquet(path, index=False)
 
 
 def _write_metadata_file(database, root: Path) -> None:
@@ -301,14 +306,14 @@ def _export_matrix_directory(
     for key, value in matrices.items():
         target = root / f"{key}.{suffix}"
         if suffix == "parquet":
-            value.to_parquet(target)
+            _coerce_sparse_columns_to_dense(value).to_parquet(target)
         else:
             value.to_csv(target, header=True, index=True, sep=sep)
 
     units = _matrix_units_frame(database)
     units_path = root / f"units.{suffix}"
     if suffix == "parquet":
-        units.to_parquet(units_path)
+        _coerce_sparse_columns_to_dense(units).to_parquet(units_path)
     else:
         units.to_csv(units_path, header=True, index=True, sep=sep)
 

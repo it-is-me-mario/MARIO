@@ -770,7 +770,7 @@ class Database(CoreModel):
         io,
         drop=["unused"],
         levels="all",
-        calc_all=True,
+        calc_all=False,
         ignore_nan=False,
         zero_output_epsilon: float | None = 1e-30,
         inplace=True,

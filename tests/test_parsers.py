@@ -1579,6 +1579,33 @@ def test_parse_state_from_parquet_iot_matrix_roundtrip_preserves_blocks(tmp_path
     pdt.assert_frame_equal(state.compute("X"), database.X)
 
 
+def test_to_parquet_matrix_exports_sparse_backed_flow_blocks(tmp_path):
+    pytest.importorskip("pyarrow")
+
+    database = load_test("IOT")
+    expected_blocks = {
+        matrix_name: database.matrices["baseline"][matrix_name].copy()
+        for matrix_name in ("Z", "Y", "V", "E", "EY", "VY")
+    }
+
+    for matrix_name, frame in expected_blocks.items():
+        database.matrices["baseline"][matrix_name] = frame.astype(
+            pd.SparseDtype("float64", 0.0)
+        )
+
+    database.to_parquet(path=tmp_path, flows=True, coefficients=False, flat=False)
+
+    state = parse_state_from_parquet(
+        path=str(tmp_path / "flows"),
+        table="IOT",
+        mode="flows",
+        name="IOT sparse parquet dataset",
+    )
+
+    for matrix_name, expected in expected_blocks.items():
+        pdt.assert_frame_equal(state.get_block(matrix_name), expected)
+
+
 def test_to_parquet_flat_roundtrip_preserves_custom_iot_layouts_without_level_values(tmp_path):
     pytest.importorskip("pyarrow")
 
