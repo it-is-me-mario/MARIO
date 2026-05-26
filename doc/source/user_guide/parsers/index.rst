@@ -1,5 +1,5 @@
-Parsers
-=======
+Parsing guide
+=============
 
 This section is dedicated to MARIO's parsing methods.
 

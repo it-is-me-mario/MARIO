@@ -15,12 +15,20 @@ when you:
 * :doc:`apply shocks </user_guide/transformations/apply_shocks>` into a new *scenario*
 
 Compatible parser runs can also populate new *scenarios* on the same
-*database* instance. This is useful for time-series workflows such as loading
-multiple years of the same EXIOBASE release into one object instead of opening
-one separate *database* per year.
+*database* instance.
 
-In those workflows, users may also rename ``baseline`` to the first parsed year
-so that all scenario names follow the same convention.
+Users may also
+:doc:`rename the baseline </api_document/mario.Database.rename_baseline_scenario>`
+to any public label they prefer.
+This is safe: MARIO keeps the internal baseline storage consistent, exposes the
+new public label through
+:doc:`CoreModel.baseline_scenario_name </api_document/mario.CoreModel.baseline_scenario_name>`,
+and still accepts ``"baseline"`` as a valid selector in scenario-aware methods.
+
+If you want one uniform API for all scenarios, including the baseline, you can
+also use :doc:`Database.rename_scenario </api_document/mario.Database.rename_scenario>`.
+When the selected scenario is the baseline, it delegates to
+``rename_baseline_scenario(...)``.
 
 The main idea is simple: a *scenario* is another state of the same *table*,
 not a different *database* class.
@@ -58,6 +66,9 @@ Common operations
 Typical scenario-related operations are:
 
 * clone a scenario before applying a shock;
+* rename the baseline to a different public label without breaking
+  ``scenario="baseline"`` calls;
+* rename a non-baseline scenario in place;
 * update one or more *matrices* in an existing *scenario* and keep the rest implicit;
 * compare a policy *scenario* against the baseline;
 * reset *scenarios* to flows or coefficients before changing structural

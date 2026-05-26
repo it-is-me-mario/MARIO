@@ -41,6 +41,9 @@ dictionary ``{scenario: dataframe}`` instead of a single dataframe.
 Use ``show_plot=True`` to also build and display a region-by-region heatmap
 while still returning the trade matrix.
 
+Use ``exclude_domestic_from_plot=True`` to hide same-label origin-destination
+pairs from that heatmap without changing the returned trade matrix.
+
 When more than one scenario is plotted together, MARIO builds one animated
 heatmap with a scenario slider.
 

@@ -94,7 +94,8 @@ editing an Excel workbook by hand.
 
    by_continent.get_index("Region")
 
-Preset values currently supported by ``region_aggregation`` are:
+Preset rely values on the `country_converter package <https://github.com/IndEcol/country_converter>`_.
+The currently supported by ``region_aggregation`` are:
 
 - ``continent``
 - ``UNregion``

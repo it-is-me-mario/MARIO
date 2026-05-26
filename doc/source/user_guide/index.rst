@@ -4,18 +4,20 @@ User guide
 This section shows how to get data into MARIO and how to operate on parsed
 *databases*. It includes parser-specific pages and operational workflows.
 
-The workflows are grouped into three families:
+The workflows are grouped into four families:
 
-* browsing and matrix calculations
-* transformations
-* exports
+* data parsing
+* data inspection, calculations and exporting
+* data transformations
+* advanced workflows
 
-
+   
 .. toctree::
    :maxdepth: 1
-   :caption: Parsers
+   :caption: Database parsers
 
    parsers/index
+   parsers/provide_your_database
 
 .. toctree::
    :maxdepth: 1
@@ -24,14 +26,8 @@ The workflows are grouped into three families:
    inspection/basic_inspections
    inspection/compute_matrices
    inspection/visualization
-   inspection/supply_chain_analyses
    inspection/custom_labels_and_aliases
-
-.. toctree::
-   :hidden:
-
-   inspection/calculate_trades
-   inspection/calc_linkages
+   inspection/export_and_roundtrip
 
 .. toctree::
    :maxdepth: 1
@@ -47,12 +43,8 @@ The workflows are grouped into three families:
 
 .. toctree::
    :maxdepth: 1
-   :caption: Provide your database
+   :caption: Advanced workflows
 
-   provide_your_database
+   advanced/supply_chain_analyses
+   advanced/structural_path_analysis
 
-.. toctree::
-   :maxdepth: 1
-   :caption: Exporting
-
-   exporting/export_and_roundtrip

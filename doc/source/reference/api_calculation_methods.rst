@@ -29,6 +29,14 @@ Database Compute API
      - Aggregate one sector or commodity into a region-by-region trade matrix and optional heatmap.
    * - :doc:`db.calc_trades_content(...) <../api_document/mario.Database.calc_trades_content>`
      - Calculate embodied trade content and, with ``breakdown=True``, decompose it by contributor.
+   * - :doc:`db.calc_spa(...) <../api_document/mario.Database.calc_spa>`
+     - Enumerate demand-driven structural paths for one indicator and final-demand bundle.
+   * - :doc:`db.calc_embodied_imports(...) <../api_document/mario.Database.calc_embodied_imports>`
+     - Collapse embodied trade-content matrices into import accounts by destination Region.
+   * - :doc:`db.calc_embodied_exports(...) <../api_document/mario.Database.calc_embodied_exports>`
+     - Collapse embodied trade-content matrices into export accounts by origin Region.
+   * - :doc:`db.calc_embodied_net_imports(...) <../api_document/mario.Database.calc_embodied_net_imports>`
+     - Calculate embodied net imports as imports minus exports.
    * - :doc:`db.calc_trades_concentration(...) <../api_document/mario.Database.calc_trades_content_concentration>`
      - Calculate contributor-region concentration of embodied trade content.
    * - :doc:`db.calc_trades_exposure(...) <../api_document/mario.Database.calc_trades_content_exposure>`
@@ -43,6 +51,10 @@ Database Compute API
   ../api_document/mario.Database.calc_linkages
   ../api_document/mario.Database.calc_trades
   ../api_document/mario.Database.calc_trades_content
+  ../api_document/mario.Database.calc_spa
+  ../api_document/mario.Database.calc_embodied_imports
+  ../api_document/mario.Database.calc_embodied_exports
+  ../api_document/mario.Database.calc_embodied_net_imports
   ../api_document/mario.Database.calc_trades_content_concentration
   ../api_document/mario.Database.calc_trades_content_exposure
 
