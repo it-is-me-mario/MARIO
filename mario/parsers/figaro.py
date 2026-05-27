@@ -15,6 +15,11 @@ import numpy as np
 import pandas as pd
 import requests
 
+try:
+    import country_converter as coco
+except ModuleNotFoundError:  # pragma: no cover - optional dependency fallback
+    coco = None
+
 from mario.log_exc.exceptions import WrongInput
 from mario.log_exc.logger import log_time
 from mario.model.conventions import _MASTER_INDEX
@@ -40,6 +45,10 @@ FIGARO_GROUPS = (
 )
 FIGARO_SUT_DATAFLOWS = {"supply": "naio_10_fcp_s{suffix}", "use": "naio_10_fcp_u{suffix}"}
 FIGARO_IOT_DATAFLOWS = {"product": "naio_10_fcp_ip{suffix}", "industry": "naio_10_fcp_ii{suffix}"}
+FIGARO_REGION_LABEL_OVERRIDES = {
+    "FIGW1": "Rest of the world",
+    "W2": "Domestic (home or reference area)",
+}
 
 _REPEATED_HYPHEN_RANGE_RE = re.compile(
     r"(?P<prefix>[A-Z_]*)(?P<letter>[A-Z])(?P<start>\d{2})-(?P=letter)(?P<end>\d{2})"
@@ -105,6 +114,14 @@ class FigaroIOTLayout:
 def load_figaro_metadata() -> pd.DataFrame:
     """Load the packaged FIGARO label metadata used to map codes to names."""
     return pd.read_csv(Path(__file__).with_name("figaro_metadata.csv"))
+
+
+@lru_cache(maxsize=1)
+def _country_converter():
+    """Return a shared country converter instance when available."""
+    if coco is None:
+        return None
+    return coco.CountryConverter()
 
 
 def _figaro_suffix(year: int) -> str:
@@ -500,6 +517,23 @@ def _safe_label(code: str, labels: dict[str, str], *, label: str) -> str:
     return labels.get(code, code)
 
 
+def _resolve_figaro_region_label(code: str, labels: dict[str, str]) -> str:
+    """Resolve one FIGARO region label using overrides and country conversion."""
+    override = FIGARO_REGION_LABEL_OVERRIDES.get(code)
+    if override is not None:
+        return override
+
+    converter = _country_converter()
+    if converter is not None:
+        converted = converter.convert(names=[code], src="ISO2", to="name_short")
+        if isinstance(converted, list):
+            converted = converted[0] if converted else None
+        if isinstance(converted, str) and converted not in {"not found", code}:
+            return converted
+
+    return _safe_label(code, labels, label="region")
+
+
 def _regional_axis(
     region_codes: list[str],
     item_codes: list[str],
@@ -513,7 +547,7 @@ def _regional_axis(
     raw_axis = pd.MultiIndex.from_product([region_codes, item_codes])
     labeled_axis = pd.MultiIndex.from_arrays(
         [
-            [_safe_label(region, region_labels, label="region") for region, _ in raw_axis],
+            [_resolve_figaro_region_label(region, region_labels) for region, _ in raw_axis],
             [_MASTER_INDEX[level_code]] * len(raw_axis),
             [_safe_label(item, item_labels, label=item_label) for _, item in raw_axis],
         ]
@@ -752,7 +786,7 @@ def parse_figaro_sut(
     }
 
     indeces = {
-        "r": {"main": [_safe_label(code, region_labels, label="region") for code in region_codes]},
+        "r": {"main": [_resolve_figaro_region_label(code, region_labels) for code in region_codes]},
         "n": {"main": [_safe_label(code, final_demand_labels, label="final demand") for code in final_demand_codes]},
         "k": {"main": list(satellite_axis)},
         "f": {"main": list(factor_axis)},
@@ -930,7 +964,7 @@ def parse_figaro_iot(
         _MASTER_INDEX["k"]: pd.DataFrame({"unit": [FIGARO_SATELLITE_UNIT]}, index=satellite_axis),
     }
     indeces = {
-        "r": {"main": [_safe_label(code, region_labels, label="region") for code in region_codes]},
+        "r": {"main": [_resolve_figaro_region_label(code, region_labels) for code in region_codes]},
         "s": {"main": [_safe_label(code, sector_labels_meta, label=sector_label_name) for code in sector_codes]},
         "f": {"main": list(factor_axis)},
         "k": {"main": list(satellite_axis)},

@@ -97,6 +97,49 @@ def _patch_figaro_api(monkeypatch) -> None:
     monkeypatch.setattr(figaro, "_download_figaro_api_frame", fake_download)
 
 
+def test_figaro_region_labels_use_country_converter_and_special_overrides():
+    assert figaro._resolve_figaro_region_label("AL", {}) == "Albania"
+    assert figaro._resolve_figaro_region_label("EL", {}) == "Greece"
+    assert figaro._resolve_figaro_region_label("FIGW1", {}) == "Rest of the world"
+    assert figaro._resolve_figaro_region_label("W2", {}) == "Domestic (home or reference area)"
+
+
+def test_parse_figaro_sut_resolves_missing_region_metadata_with_country_converter(monkeypatch):
+    supply = pd.DataFrame(
+        [
+            ["AL", "CPA_A01", "EL", "A01", 100.0],
+            ["EL", "CPA_A01", "AL", "A01", 40.0],
+        ],
+        columns=["refArea", "rowCode", "counterpartArea", "colCode", "obsValue"],
+    )
+    use = pd.DataFrame(
+        [
+            ["AL", "CPA_A01", "EL", "A01", 10.0],
+            ["EL", "CPA_A01", "AL", "A01", 20.0],
+            ["AL", "CPA_A01", "EL", "P3_S14", 30.0],
+            ["W2", "D1", "AL", "A01", 40.0],
+            ["W2", "D1", "EL", "A01", 50.0],
+        ],
+        columns=["refArea", "rowCode", "counterpartArea", "colCode", "obsValue"],
+    )
+
+    def fake_download(dataflow, **kwargs):
+        assert kwargs["countries"] == ["AL", "EL"]
+        if dataflow == "naio_10_fcp_s4":
+            return supply
+        if dataflow == "naio_10_fcp_u4":
+            return use
+        raise AssertionError(dataflow)
+
+    monkeypatch.setattr(figaro, "_download_figaro_api_frame", fake_download)
+
+    matrices, indeces, _, _ = figaro.parse_figaro_sut(year=2023, countries=["AL", "EL"])
+
+    assert indeces["r"]["main"] == ["Albania", "Greece"]
+    assert matrices["baseline"]["S"].index.get_level_values(0).tolist() == ["Albania", "Greece"]
+    assert matrices["baseline"]["S"].columns.get_level_values(0).tolist() == ["Albania", "Greece"]
+
+
 def test_parse_figaro_sut_returns_split_native_blocks_from_api(monkeypatch):
     _patch_figaro_api(monkeypatch)
 
