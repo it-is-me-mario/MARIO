@@ -2195,6 +2195,40 @@ def test_shock_calc_for_sut_reads_split_u_sheet(tmp_path):
     pdt.assert_frame_equal(shocked, expected)
 
 
+def test_shock_calc_for_sut_accepts_split_s_alias(tmp_path):
+    database = load_test("SUT")
+    path = tmp_path / "sut_s_alias_shock.xlsx"
+
+    base_s = database.s.copy()
+    row = base_s.index[0]
+    col = base_s.columns[0]
+    updated = 0.654321
+
+    s_sheet = pd.DataFrame(
+        [
+            {
+                SHOCK_FLAT_COLUMNS["region_from"]: row[0],
+                SHOCK_FLAT_COLUMNS["activity_from"]: row[2],
+                SHOCK_FLAT_COLUMNS["region_to"]: col[0],
+                SHOCK_FLAT_COLUMNS["commodity_to"]: col[2],
+                SHOCK_FLAT_COLUMNS["type"]: "Update",
+                SHOCK_FLAT_COLUMNS["value"]: updated,
+            }
+        ]
+    )
+
+    with pd.ExcelWriter(path) as writer:
+        s_sheet.to_excel(writer, sheet_name=_ENUM.s, index=False)
+
+    database.shock_calc(str(path), s=True, scenario="split s alias shock")
+
+    expected = base_s.copy()
+    expected.loc[row, col] = updated
+    shocked = database.query(_ENUM.s, scenarios=["split s alias shock"])
+
+    pdt.assert_frame_equal(shocked, expected)
+
+
 def test_shock_calc_for_sut_reads_split_Yc_sheet(tmp_path):
     database = load_test("SUT")
     path = tmp_path / "sut_yc_shock.xlsx"

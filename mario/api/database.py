@@ -4770,9 +4770,17 @@ class Database(CoreModel):
         self,
         io,
         z=False,
+        u=False,
+        s=False,
         e=False,
+        ea=False,
+        ec=False,
         v=False,
+        va=False,
+        vc=False,
         Y=False,
+        Ya=False,
+        Yc=False,
         clusters=None,
         notes=[],
         scenario=None,
@@ -4793,6 +4801,11 @@ class Database(CoreModel):
             ``e`` and ``Ya``/``Yc`` for ``Y``. When they are not present it
             falls back to the legacy unified worksheets ``z``, ``v``, ``e``
             and ``Y``.
+        u, s, va, vc, ea, ec, Ya, Yc:
+            Optional aliases for the split SUT shock sheets. These are promoted
+            to the corresponding legacy selectors ``z``, ``v``, ``e`` and ``Y``
+            so calls such as ``shock_calc(..., s=True)`` or
+            ``shock_calc(..., Yc=True)`` work directly.
         clusters:
             Preferred cluster payload. When omitted, MARIO uses clusters
             already stored on the database, optionally merged with any legacy
@@ -4812,6 +4825,11 @@ class Database(CoreModel):
         None
             The shocked scenario is materialized on the current database.
         """
+
+        z = z or u or s
+        v = v or va or vc
+        e = e or ea or ec
+        Y = Y or Ya or Yc
 
         # be sure that all the data exist
 
