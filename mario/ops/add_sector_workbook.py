@@ -865,6 +865,416 @@ def group_inventories_by_target(
     return grouped
 
 
+def _copy_add_sector_workbook(workbook: AddSectorWorkbook) -> AddSectorWorkbook:
+    return AddSectorWorkbook(
+        table=workbook.table,
+        master_sheet=workbook.master_sheet.copy(deep=True),
+        regions_clusters={key: list(values) for key, values in workbook.regions_clusters.items()},
+        item_clusters={key: list(values) for key, values in workbook.item_clusters.items()},
+        factors_clusters={key: list(values) for key, values in workbook.factors_clusters.items()},
+        uncertainty_values=dict(workbook.uncertainty_values),
+        inventories_by_sheet={
+            sheet_name: frame.copy(deep=True)
+            for sheet_name, frame in workbook.inventories_by_sheet.items()
+        },
+        split_info=(
+            {sheet_name: frame.copy(deep=True) for sheet_name, frame in workbook.split_info.items()}
+            if workbook.split_info
+            else None
+        ),
+    )
+
+
+def _unique_non_empty_values(frame: pd.DataFrame, column: str) -> list[str]:
+    if column not in frame.columns:
+        return []
+
+    values: list[str] = []
+    for value in frame[column].dropna().tolist():
+        text = str(value).strip()
+        if text and text not in values:
+            values.append(text)
+
+    return values
+
+
+def _cluster_signature(values: list[str]) -> tuple[str, ...]:
+    normalized = {str(value).strip() for value in values if str(value).strip()}
+    return tuple(sorted(normalized))
+
+
+def _next_progressive_name(base_name: str, used_names: set[str]) -> str:
+    counter = 1
+    while True:
+        candidate = f"{base_name} {counter}"
+        if candidate not in used_names:
+            used_names.add(candidate)
+            return candidate
+        counter += 1
+
+
+def _rename_dataframe_column_values(
+    frame: pd.DataFrame,
+    column: str,
+    rename_map: dict[str, str],
+    *,
+    row_mask: pd.Series | None = None,
+) -> None:
+    if column not in frame.columns or not rename_map:
+        return
+
+    mask = frame[column].notna()
+    if row_mask is not None:
+        mask &= row_mask
+
+    if not mask.any():
+        return
+
+    values = frame.loc[mask, column].astype(str)
+    replace_mask = values.isin(rename_map)
+    if not replace_mask.any():
+        return
+
+    frame.loc[values.index[replace_mask], column] = values.loc[replace_mask].map(rename_map).values
+
+
+def _rename_inventory_db_item_values(
+    inventories_by_sheet: dict[str, pd.DataFrame],
+    rename_map: dict[str, str],
+    *,
+    allowed_item_type: str,
+) -> None:
+    item_type_column = ADVANCED_ADD_SECTOR_INVENTORY_SHEET_COLUMNS["item_type"]
+    db_item_column = ADVANCED_ADD_SECTOR_INVENTORY_SHEET_COLUMNS["db_item"]
+
+    for frame in inventories_by_sheet.values():
+        if item_type_column not in frame.columns or db_item_column not in frame.columns:
+            continue
+        row_mask = frame[item_type_column].fillna("").astype(str).eq(allowed_item_type)
+        _rename_dataframe_column_values(frame, db_item_column, rename_map, row_mask=row_mask)
+
+
+def _rename_inventory_db_region_values(
+    inventories_by_sheet: dict[str, pd.DataFrame],
+    rename_map: dict[str, str],
+) -> None:
+    db_region_column = ADVANCED_ADD_SECTOR_INVENTORY_SHEET_COLUMNS["db_region"]
+
+    for frame in inventories_by_sheet.values():
+        _rename_dataframe_column_values(frame, db_region_column, rename_map)
+
+
+def _rename_split_info_region_values(
+    split_info: dict[str, pd.DataFrame] | None,
+    rename_map: dict[str, str],
+) -> None:
+    if not split_info:
+        return
+
+    _rename_dataframe_column_values(
+        split_info[ADD_SECTOR_SPLIT_OUTPUT_SHEET],
+        ADD_SECTOR_SPLIT_OUTPUT_COLUMNS["region"],
+        rename_map,
+    )
+    _rename_dataframe_column_values(
+        split_info[ADD_SECTOR_SPLIT_TRADE_SHEET],
+        ADD_SECTOR_SPLIT_TRADE_COLUMNS["region_from"],
+        rename_map,
+    )
+    _rename_dataframe_column_values(
+        split_info[ADD_SECTOR_SPLIT_TRADE_SHEET],
+        ADD_SECTOR_SPLIT_TRADE_COLUMNS["region_to"],
+        rename_map,
+    )
+    _rename_dataframe_column_values(
+        split_info[ADD_SECTOR_SPLIT_EXCLUSION_SHEET],
+        ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS["region_from"],
+        rename_map,
+    )
+    _rename_dataframe_column_values(
+        split_info[ADD_SECTOR_SPLIT_EXCLUSION_SHEET],
+        ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS["region_to"],
+        rename_map,
+    )
+
+
+def _validate_distinct_master_targets(workbooks: list[AddSectorWorkbook]) -> None:
+    if not workbooks:
+        raise WrongInput("At least one add-sectors workbook is required.")
+
+    table = workbooks[0].table
+
+    def duplicates_for(column: str) -> list[str]:
+        owners: dict[str, set[int]] = {}
+        for workbook_index, workbook in enumerate(workbooks):
+            for value in _unique_non_empty_values(workbook.master_sheet, column):
+                owners.setdefault(value, set()).add(workbook_index)
+        return sorted(value for value, workbook_indexes in owners.items() if len(workbook_indexes) > 1)
+
+    if table == IOT:
+        duplicates = duplicates_for(_MASTER_INDEX["s"])
+        if duplicates:
+            raise WrongInput(
+                "Add-sectors workbooks define duplicate sectors across files: "
+                f"{duplicates}"
+            )
+        return
+
+    activity_duplicates = duplicates_for(_MASTER_INDEX["a"])
+    if activity_duplicates:
+        raise WrongInput(
+            "Add-sectors workbooks define duplicate activities across files: "
+            f"{activity_duplicates}"
+        )
+
+    commodity_duplicates = duplicates_for(_MASTER_INDEX["c"])
+    if commodity_duplicates:
+        raise WrongInput(
+            "Add-sectors workbooks define duplicate commodities across files: "
+            f"{commodity_duplicates}"
+        )
+
+
+def _rename_conflicting_inventory_sheets(workbooks: list[AddSectorWorkbook]) -> None:
+    inventory_column = ADVANCED_ADD_SECTOR_MASTER_SHEET_COLUMNS[workbooks[0].table]["inventory_sheet"]
+    occurrences: dict[str, list[int]] = {}
+
+    for workbook_index, workbook in enumerate(workbooks):
+        for sheet_name in _unique_non_empty_values(workbook.master_sheet, inventory_column):
+            occurrences.setdefault(sheet_name, []).append(workbook_index)
+
+    used_names = {
+        sheet_name for sheet_name, workbook_indexes in occurrences.items() if len(workbook_indexes) == 1
+    }
+    rename_maps = [dict() for _ in workbooks]
+
+    for sheet_name, workbook_indexes in occurrences.items():
+        if len(workbook_indexes) == 1:
+            rename_maps[workbook_indexes[0]][sheet_name] = sheet_name
+            continue
+
+        for workbook_index in workbook_indexes:
+            rename_maps[workbook_index][sheet_name] = _next_progressive_name(sheet_name, used_names)
+
+    for workbook, rename_map in zip(workbooks, rename_maps):
+        rename_map = {old: new for old, new in rename_map.items() if old != new}
+        if not rename_map:
+            continue
+
+        _rename_dataframe_column_values(workbook.master_sheet, inventory_column, rename_map)
+        renamed = {
+            rename_map.get(sheet_name, sheet_name): frame.copy(deep=True)
+            for sheet_name, frame in workbook.inventories_by_sheet.items()
+        }
+        workbook.inventories_by_sheet.clear()
+        workbook.inventories_by_sheet.update(renamed)
+
+
+def _rename_region_cluster_references(
+    workbook: AddSectorWorkbook,
+    rename_map: dict[str, str],
+) -> None:
+    region_column = ADVANCED_ADD_SECTOR_MASTER_SHEET_COLUMNS[workbook.table]["region"]
+    _rename_dataframe_column_values(workbook.master_sheet, region_column, rename_map)
+    _rename_inventory_db_region_values(workbook.inventories_by_sheet, rename_map)
+    _rename_split_info_region_values(workbook.split_info, rename_map)
+
+
+def _rename_item_cluster_references(
+    workbook: AddSectorWorkbook,
+    rename_map: dict[str, str],
+) -> None:
+    allowed_item_type = _MASTER_INDEX["c"] if workbook.table == SUT else _MASTER_INDEX["s"]
+    _rename_inventory_db_item_values(
+        workbook.inventories_by_sheet,
+        rename_map,
+        allowed_item_type=allowed_item_type,
+    )
+
+
+def _rename_factor_cluster_references(
+    workbook: AddSectorWorkbook,
+    rename_map: dict[str, str],
+) -> None:
+    _rename_inventory_db_item_values(
+        workbook.inventories_by_sheet,
+        rename_map,
+        allowed_item_type=_MASTER_INDEX["f"],
+    )
+
+
+def _rename_conflicting_cluster_names(
+    workbooks: list[AddSectorWorkbook],
+    *,
+    attr_name: str,
+    reference_updater,
+) -> None:
+    occurrences: dict[str, list[tuple[int, tuple[str, ...]]]] = {}
+
+    for workbook_index, workbook in enumerate(workbooks):
+        cluster_map = getattr(workbook, attr_name)
+        for cluster_name, members in cluster_map.items():
+            name = str(cluster_name).strip()
+            if not name:
+                continue
+            occurrences.setdefault(name, []).append((workbook_index, _cluster_signature(members)))
+
+    used_names = {
+        name
+        for name, cluster_occurrences in occurrences.items()
+        if len({signature for _, signature in cluster_occurrences}) == 1
+    }
+    rename_maps = [dict() for _ in workbooks]
+
+    for cluster_name, cluster_occurrences in occurrences.items():
+        distinct_signatures = {signature for _, signature in cluster_occurrences}
+        if len(distinct_signatures) == 1:
+            for workbook_index, _ in cluster_occurrences:
+                rename_maps[workbook_index][cluster_name] = cluster_name
+            continue
+
+        signature_to_name: dict[tuple[str, ...], str] = {}
+        for workbook_index, signature in cluster_occurrences:
+            final_name = signature_to_name.get(signature)
+            if final_name is None:
+                final_name = _next_progressive_name(cluster_name, used_names)
+                signature_to_name[signature] = final_name
+            rename_maps[workbook_index][cluster_name] = final_name
+
+    for workbook, rename_map in zip(workbooks, rename_maps):
+        rename_map = {old: new for old, new in rename_map.items() if old != new}
+        if not rename_map:
+            continue
+
+        cluster_map = getattr(workbook, attr_name)
+        renamed = {
+            rename_map.get(cluster_name, cluster_name): list(members)
+            for cluster_name, members in cluster_map.items()
+        }
+        cluster_map.clear()
+        cluster_map.update(renamed)
+        reference_updater(workbook, rename_map)
+
+
+def _merge_cluster_maps(
+    workbooks: list[AddSectorWorkbook],
+    *,
+    attr_name: str,
+) -> dict[str, list[str]]:
+    merged: dict[str, list[str]] = {}
+
+    for workbook in workbooks:
+        cluster_map = getattr(workbook, attr_name)
+        for cluster_name, members in cluster_map.items():
+            values = [str(value).strip() for value in members if str(value).strip()]
+            if cluster_name not in merged:
+                merged[cluster_name] = values
+                continue
+
+            if _cluster_signature(merged[cluster_name]) != _cluster_signature(values):
+                raise WrongInput(
+                    f"Add-sectors cluster '{cluster_name}' has conflicting definitions across files."
+                )
+
+    return merged
+
+
+def _merge_uncertainty_values(workbooks: list[AddSectorWorkbook]) -> dict[str, float]:
+    merged: dict[str, float] = {}
+
+    for workbook in workbooks:
+        for key, value in workbook.uncertainty_values.items():
+            if key not in merged:
+                merged[key] = value
+                continue
+
+            if merged[key] != value:
+                raise WrongInput(
+                    f"Add-sectors uncertainty '{key}' has conflicting values across files."
+                )
+
+    return merged
+
+
+def _merge_split_info(
+    workbooks: list[AddSectorWorkbook],
+) -> dict[str, pd.DataFrame] | None:
+    split_payloads = [workbook.split_info for workbook in workbooks if workbook.split_info]
+    if not split_payloads:
+        return None
+
+    merged: dict[str, pd.DataFrame] = {}
+    for sheet_name in split_payloads[0]:
+        frames = [payload[sheet_name].copy(deep=True) for payload in split_payloads]
+        if sheet_name == ADD_SECTOR_SPLIT_TOLERANCE_SHEET:
+            reference = frames[0].reset_index(drop=True)
+            for frame in frames[1:]:
+                try:
+                    pd.testing.assert_frame_equal(
+                        reference,
+                        frame.reset_index(drop=True),
+                        check_dtype=False,
+                        check_like=True,
+                    )
+                except AssertionError as exc:
+                    raise WrongInput(
+                        "Add-sectors workbooks define conflicting split tolerance sheets."
+                    ) from exc
+            merged[sheet_name] = reference
+            continue
+
+        merged[sheet_name] = pd.concat(frames, ignore_index=True)
+
+    return merged
+
+
+def merge_add_sector_workbooks(
+    workbooks: list[AddSectorWorkbook],
+) -> AddSectorWorkbook:
+    """Merge multiple normalized add-sectors workbooks into one payload."""
+
+    if not workbooks:
+        raise WrongInput("At least one add-sectors workbook is required.")
+
+    copied = [_copy_add_sector_workbook(workbook) for workbook in workbooks]
+    table = copied[0].table
+    if any(workbook.table != table for workbook in copied):
+        raise WrongInput("All add-sectors workbooks must target the same table type.")
+
+    _validate_distinct_master_targets(copied)
+    _rename_conflicting_inventory_sheets(copied)
+    _rename_conflicting_cluster_names(
+        copied,
+        attr_name="regions_clusters",
+        reference_updater=_rename_region_cluster_references,
+    )
+    _rename_conflicting_cluster_names(
+        copied,
+        attr_name="item_clusters",
+        reference_updater=_rename_item_cluster_references,
+    )
+    _rename_conflicting_cluster_names(
+        copied,
+        attr_name="factors_clusters",
+        reference_updater=_rename_factor_cluster_references,
+    )
+
+    return AddSectorWorkbook(
+        table=table,
+        master_sheet=pd.concat([workbook.master_sheet for workbook in copied], ignore_index=True),
+        regions_clusters=_merge_cluster_maps(copied, attr_name="regions_clusters"),
+        item_clusters=_merge_cluster_maps(copied, attr_name="item_clusters"),
+        factors_clusters=_merge_cluster_maps(copied, attr_name="factors_clusters"),
+        uncertainty_values=_merge_uncertainty_values(copied),
+        inventories_by_sheet={
+            sheet_name: frame.copy(deep=True)
+            for workbook in copied
+            for sheet_name, frame in workbook.inventories_by_sheet.items()
+        },
+        split_info=_merge_split_info(copied),
+    )
+
+
 # Backward-compatible aliases for the first port of the workflow.
 AdvancedAddSectorWorkbook = AddSectorWorkbook
 build_advanced_master_sheet = build_add_sector_master_sheet
@@ -872,3 +1282,4 @@ write_advanced_add_sector_workbook = write_add_sector_workbook
 read_advanced_add_sector_workbook = read_add_sector_workbook
 derive_advanced_add_sector_sets = derive_add_sector_sets
 group_advanced_inventories_by_target = group_inventories_by_target
+merge_advanced_add_sector_workbooks = merge_add_sector_workbooks

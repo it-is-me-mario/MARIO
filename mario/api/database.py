@@ -28,6 +28,7 @@ from mario.ops.shocks import (
 from mario.ops.add_sector_workbook import (
     derive_add_sector_sets,
     group_inventories_by_target,
+    merge_add_sector_workbooks,
     read_add_sector_workbook,
     write_add_sector_workbook,
     write_inventory_templates_to_workbook,
@@ -79,6 +80,7 @@ import copy
 import os
 import tempfile
 import warnings
+from pathlib import Path
 from typing import Dict
 import plotly.express as px
 
@@ -1843,12 +1845,13 @@ class Database(CoreModel):
         )
 
     def read_add_sectors_excel(self, path, get_inventories=False, read_inventories=False):
-        """Read one add-sectors workbook and attach its metadata to the database.
+        """Read add-sectors workbook inputs and attach their metadata to the database.
 
         Parameters
         ----------
         path:
-            Path to the add-sectors workbook.
+            Path to one add-sectors workbook. When ``read_inventories=True``,
+            a directory containing multiple workbooks is also supported.
         get_inventories:
             When ``True``, create any missing inventory-sheet templates in the
             workbook after reading the master sheet.
@@ -1869,13 +1872,13 @@ class Database(CoreModel):
         item and stores them on ``self.inventories``.
         """
 
-        workbook = read_add_sector_workbook(
+        workbook, workbook_path = self._load_add_sector_workbook_input(
             path,
-            table=self.meta.table,
-            require_inventory_sheets=read_inventories,
+            get_inventories=get_inventories,
+            read_inventories=read_inventories,
         )
         self.add_sectors_workbook = workbook
-        self.add_sectors_workbook_path = str(path)
+        self.add_sectors_workbook_path = workbook_path
         self.add_sectors_master = workbook.master_sheet
         self.regions_clusters = workbook.regions_clusters
         self.factors_clusters = workbook.factors_clusters
@@ -1902,15 +1905,56 @@ class Database(CoreModel):
 
         if get_inventories:
             self.get_inventory_sheets(path)
-            workbook = read_add_sector_workbook(
+            workbook, workbook_path = self._load_add_sector_workbook_input(
                 path,
-                table=self.meta.table,
-                require_inventory_sheets=False,
+                get_inventories=False,
+                read_inventories=False,
             )
             self.add_sectors_workbook = workbook
+            self.add_sectors_workbook_path = workbook_path
 
         if read_inventories:
             self.inventories = group_inventories_by_target(workbook)
+
+    def _load_add_sector_workbook_input(self, path, get_inventories=False, read_inventories=False):
+        source = Path(os.fspath(path))
+
+        if source.is_dir():
+            if get_inventories or not read_inventories:
+                raise WrongInput(
+                    "Directory add-sectors inputs are currently supported only with read_inventories=True."
+                )
+
+            workbooks = []
+            for candidate in sorted(source.iterdir(), key=lambda item: item.name.lower()):
+                if not candidate.is_file():
+                    continue
+                try:
+                    workbook = read_add_sector_workbook(
+                        candidate,
+                        table=self.meta.table,
+                        require_inventory_sheets=True,
+                    )
+                except Exception as exc:
+                    warnings.warn(
+                        f"Skipping add-sectors file '{candidate.name}' in directory '{source}': {exc}"
+                    )
+                    continue
+                workbooks.append(workbook)
+
+            if not workbooks:
+                raise WrongInput(
+                    f"No valid add-sectors workbooks with inventory sheets were found in directory '{source}'."
+                )
+
+            return merge_add_sector_workbooks(workbooks), str(source)
+
+        workbook = read_add_sector_workbook(
+            path,
+            table=self.meta.table,
+            require_inventory_sheets=read_inventories,
+        )
+        return workbook, str(source)
 
     def get_inventory_sheets(self, path, overwrite=False):
         """Create inventory-sheet templates referenced by an add-sectors workbook.
@@ -1928,6 +1972,11 @@ class Database(CoreModel):
         None
             Inventory templates are written into the workbook in place.
         """
+
+        if Path(os.fspath(path)).is_dir():
+            raise WrongInput(
+                "get_inventory_sheets currently accepts only one add-sectors workbook path, not a directory."
+            )
 
         workbook = getattr(self, "add_sectors_workbook", None)
         workbook_path = getattr(self, "add_sectors_workbook_path", None)
@@ -1965,6 +2014,10 @@ class Database(CoreModel):
             ``{sheet_name: dataframe}`` dictionary ready for the add-sectors
             engine.
         """
+
+        if Path(os.fspath(path)).is_dir():
+            self.read_add_sectors_excel(path, read_inventories=True)
+            return self.inventories
 
         workbook = getattr(self, "add_sectors_workbook", None)
         workbook_path = getattr(self, "add_sectors_workbook_path", None)

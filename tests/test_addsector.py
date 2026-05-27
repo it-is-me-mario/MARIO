@@ -121,6 +121,58 @@ def _configure_split_workbook(instance, path, *, new_sector="Split sector", quan
     }
 
 
+def _configure_directory_add_sector_workbook(
+    instance,
+    path,
+    *,
+    new_sector,
+    target_region,
+    inventory_sheet,
+    cluster_name=None,
+    cluster_members=None,
+):
+    instance.get_add_sectors_excel(items=[new_sector], regions=[target_region], path=path)
+
+    unit = instance.units[_MASTER_INDEX["s"]].iloc[0, 0]
+    db_item = instance.get_index(_MASTER_INDEX["s"])[0]
+    inventory_region = target_region
+
+    master = pd.read_excel(path, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET).astype(object)
+    master.loc[:, "Inventory sheet"] = inventory_sheet
+
+    sheets_to_write = {
+        ADVANCED_ADD_SECTOR_MASTER_SHEET: master,
+    }
+
+    if cluster_name is not None:
+        inventory_region = cluster_name
+        master.loc[:, _MASTER_INDEX["r"]] = cluster_name
+        sheets_to_write[ADVANCED_ADD_SECTOR_MASTER_SHEET] = master
+        sheets_to_write[ADVANCED_ADD_SECTOR_REGIONS_CLUSTERS_SHEET] = pd.DataFrame(
+            {cluster_name: cluster_members or [target_region]}
+        )
+
+    sheets_to_write[inventory_sheet] = pd.DataFrame(
+        [
+            {
+                "Quantity": 1,
+                "Unit": unit,
+                "Input": "demo input",
+                "Item type": _MASTER_INDEX["s"],
+                "DB Item": db_item,
+                "DB Region": inventory_region,
+                "Change type": "Update",
+                "Source": "test",
+                "Notes": "note",
+            }
+        ]
+    )
+
+    with pd.ExcelWriter(path, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+        for sheet_name, frame in sheets_to_write.items():
+            frame.to_excel(writer, sheet_name=sheet_name, index=False)
+
+
 def _write_legacy_regional_extension_iot(path):
     flows = pd.DataFrame(
         [
@@ -708,6 +760,103 @@ def test_database_can_attach_inventories_via_read_add_sectors_excel(tmp_path, Co
 
     assert ret is None
     assert set(CoreDataIOT.inventories) == {"New sector A", "New sector B"}
+
+
+def test_read_add_sectors_excel_can_merge_directory_inputs_with_renames(tmp_path, CoreDataIOT):
+    directory = tmp_path / "multi_add_sectors"
+    directory.mkdir()
+    regions = CoreDataIOT.get_index(_MASTER_INDEX["r"])[:2]
+
+    _configure_directory_add_sector_workbook(
+        CoreDataIOT,
+        directory / "a.xlsx",
+        new_sector="New sector A",
+        target_region=regions[0],
+        inventory_sheet="Pippo",
+        cluster_name="GLOBAL",
+        cluster_members=[regions[0]],
+    )
+    _configure_directory_add_sector_workbook(
+        CoreDataIOT,
+        directory / "b.xlsx",
+        new_sector="New sector B",
+        target_region=regions[1],
+        inventory_sheet="Pippo",
+        cluster_name="GLOBAL",
+        cluster_members=[regions[1]],
+    )
+    (directory / "notes.txt").write_text("not a workbook")
+
+    with pytest.warns(UserWarning, match=r"Skipping add-sectors file 'notes\.txt'"):
+        CoreDataIOT.read_add_sectors_excel(directory, read_inventories=True)
+
+    assert CoreDataIOT.new_sectors == ["New sector A", "New sector B"]
+    assert set(CoreDataIOT.regions_clusters) == {"GLOBAL 1", "GLOBAL 2"}
+    assert CoreDataIOT.regions_clusters["GLOBAL 1"] == [regions[0]]
+    assert CoreDataIOT.regions_clusters["GLOBAL 2"] == [regions[1]]
+    assert set(CoreDataIOT.add_sectors_master[_MASTER_INDEX["r"]]) == {"GLOBAL 1", "GLOBAL 2"}
+    assert set(CoreDataIOT.inventories["New sector A"]) == {"Pippo 1"}
+    assert set(CoreDataIOT.inventories["New sector B"]) == {"Pippo 2"}
+    assert CoreDataIOT.inventories["New sector A"]["Pippo 1"].iloc[0]["DB Region"] == "GLOBAL 1"
+    assert CoreDataIOT.inventories["New sector B"]["Pippo 2"].iloc[0]["DB Region"] == "GLOBAL 2"
+
+
+def test_read_add_sectors_excel_keeps_one_identical_cluster_definition_from_directory(
+    tmp_path, CoreDataIOT
+):
+    directory = tmp_path / "multi_add_sectors_same_cluster"
+    directory.mkdir()
+    all_regions = CoreDataIOT.get_index(_MASTER_INDEX["r"])
+
+    _configure_directory_add_sector_workbook(
+        CoreDataIOT,
+        directory / "a.xlsx",
+        new_sector="New sector A",
+        target_region=all_regions[0],
+        inventory_sheet="A inventory",
+        cluster_name="GLOBAL",
+        cluster_members=all_regions,
+    )
+    _configure_directory_add_sector_workbook(
+        CoreDataIOT,
+        directory / "b.xlsx",
+        new_sector="New sector B",
+        target_region=all_regions[1],
+        inventory_sheet="B inventory",
+        cluster_name="GLOBAL",
+        cluster_members=all_regions,
+    )
+
+    CoreDataIOT.read_add_sectors_excel(directory, read_inventories=True)
+
+    assert list(CoreDataIOT.regions_clusters) == ["GLOBAL"]
+    assert CoreDataIOT.regions_clusters["GLOBAL"] == all_regions
+
+
+def test_read_add_sectors_excel_rejects_duplicate_targets_across_directory_workbooks(
+    tmp_path, CoreDataIOT
+):
+    directory = tmp_path / "multi_add_sectors_duplicates"
+    directory.mkdir()
+    regions = CoreDataIOT.get_index(_MASTER_INDEX["r"])[:2]
+
+    _configure_directory_add_sector_workbook(
+        CoreDataIOT,
+        directory / "a.xlsx",
+        new_sector="New sector",
+        target_region=regions[0],
+        inventory_sheet="A inventory",
+    )
+    _configure_directory_add_sector_workbook(
+        CoreDataIOT,
+        directory / "b.xlsx",
+        new_sector="New sector",
+        target_region=regions[1],
+        inventory_sheet="B inventory",
+    )
+
+    with pytest.raises(WrongInput, match="duplicate sectors across files"):
+        CoreDataIOT.read_add_sectors_excel(directory, read_inventories=True)
 
 
 def test_database_can_read_add_sectors_master_without_inventory_sheets(tmp_path, CoreDataIOT):
