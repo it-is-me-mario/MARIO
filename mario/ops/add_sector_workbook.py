@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+import warnings
 
 import pandas as pd
 from openpyxl import load_workbook
@@ -1273,6 +1274,55 @@ def merge_add_sector_workbooks(
         },
         split_info=_merge_split_info(copied),
     )
+
+
+def load_add_sector_workbook_input(
+    path: str | Path,
+    *,
+    table: str,
+    get_inventories: bool = False,
+    read_inventories: bool = False,
+) -> tuple[AddSectorWorkbook, str]:
+    """Load one add-sectors workbook input or merge a directory of workbooks."""
+
+    source = Path(path)
+
+    if source.is_dir():
+        if get_inventories or not read_inventories:
+            raise WrongInput(
+                "Directory add-sectors inputs are currently supported only with read_inventories=True."
+            )
+
+        workbooks = []
+        for candidate in sorted(source.iterdir(), key=lambda item: item.name.lower()):
+            if not candidate.is_file():
+                continue
+            try:
+                workbook = read_add_sector_workbook(
+                    candidate,
+                    table=table,
+                    require_inventory_sheets=True,
+                )
+            except Exception as exc:
+                warnings.warn(
+                    f"Skipping add-sectors file '{candidate.name}' in directory '{source}': {exc}"
+                )
+                continue
+            workbooks.append(workbook)
+
+        if not workbooks:
+            raise WrongInput(
+                f"No valid add-sectors workbooks with inventory sheets were found in directory '{source}'."
+            )
+
+        return merge_add_sector_workbooks(workbooks), str(source)
+
+    workbook = read_add_sector_workbook(
+        source,
+        table=table,
+        require_inventory_sheets=read_inventories,
+    )
+    return workbook, str(source)
 
 
 # Backward-compatible aliases for the first port of the workflow.

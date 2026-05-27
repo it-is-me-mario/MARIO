@@ -28,7 +28,7 @@ from mario.ops.shocks import (
 from mario.ops.add_sector_workbook import (
     derive_add_sector_sets,
     group_inventories_by_target,
-    merge_add_sector_workbooks,
+    load_add_sector_workbook_input,
     read_add_sector_workbook,
     write_add_sector_workbook,
     write_inventory_templates_to_workbook,
@@ -1872,8 +1872,9 @@ class Database(CoreModel):
         item and stores them on ``self.inventories``.
         """
 
-        workbook, workbook_path = self._load_add_sector_workbook_input(
+        workbook, workbook_path = load_add_sector_workbook_input(
             path,
+            table=self.meta.table,
             get_inventories=get_inventories,
             read_inventories=read_inventories,
         )
@@ -1905,8 +1906,9 @@ class Database(CoreModel):
 
         if get_inventories:
             self.get_inventory_sheets(path)
-            workbook, workbook_path = self._load_add_sector_workbook_input(
+            workbook, workbook_path = load_add_sector_workbook_input(
                 path,
+                table=self.meta.table,
                 get_inventories=False,
                 read_inventories=False,
             )
@@ -1915,46 +1917,6 @@ class Database(CoreModel):
 
         if read_inventories:
             self.inventories = group_inventories_by_target(workbook)
-
-    def _load_add_sector_workbook_input(self, path, get_inventories=False, read_inventories=False):
-        source = Path(os.fspath(path))
-
-        if source.is_dir():
-            if get_inventories or not read_inventories:
-                raise WrongInput(
-                    "Directory add-sectors inputs are currently supported only with read_inventories=True."
-                )
-
-            workbooks = []
-            for candidate in sorted(source.iterdir(), key=lambda item: item.name.lower()):
-                if not candidate.is_file():
-                    continue
-                try:
-                    workbook = read_add_sector_workbook(
-                        candidate,
-                        table=self.meta.table,
-                        require_inventory_sheets=True,
-                    )
-                except Exception as exc:
-                    warnings.warn(
-                        f"Skipping add-sectors file '{candidate.name}' in directory '{source}': {exc}"
-                    )
-                    continue
-                workbooks.append(workbook)
-
-            if not workbooks:
-                raise WrongInput(
-                    f"No valid add-sectors workbooks with inventory sheets were found in directory '{source}'."
-                )
-
-            return merge_add_sector_workbooks(workbooks), str(source)
-
-        workbook = read_add_sector_workbook(
-            path,
-            table=self.meta.table,
-            require_inventory_sheets=read_inventories,
-        )
-        return workbook, str(source)
 
     def get_inventory_sheets(self, path, overwrite=False):
         """Create inventory-sheet templates referenced by an add-sectors workbook.
