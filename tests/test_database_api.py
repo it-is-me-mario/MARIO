@@ -1,6 +1,7 @@
 import warnings
 from copy import deepcopy
 
+import mario
 import mario.parsers as public_parsers
 import pandas as pd
 import pandas.testing as pdt
@@ -37,6 +38,27 @@ from mario.parsers.api import build_database_from_state, build_parser_state
 from mario.test.mario_test import load_test
 from mario.model.conventions import _ENUM, _MASTER_INDEX
 from mario.ops.workbook_specs import SHOCK_COLUMNS, SHOCK_FLAT_COLUMNS
+
+
+def _build_flat_iot_template_database(tmp_path):
+    path = tmp_path / "custom_iot_template.xlsx"
+    mario.write_parse_template(
+        str(path),
+        table="IOT",
+        sets={
+            "regions": ["Reg"],
+            "sectors": ["Sector A", "Sector B"],
+            "final demand": ["Final demand"],
+            "factors": ["Value Added"],
+            "satellites": ["CO2"],
+        },
+        units={
+            "sectors": {"Sector A": "t", "Sector B": "t"},
+            "factors": "EUR",
+            "satellites": "kg",
+        },
+    )
+    return mario.parse_from_excel(str(path), "IOT", "flows")
 
 
 def test_calc_all_iot_uses_catalog_path_for_missing_blocks():
@@ -2237,6 +2259,107 @@ def test_shock_calc_for_iot_accepts_flat_z_sheet(tmp_path):
     expected = base.copy()
     expected.loc[row, col] = updated
     shocked = database.query(_ENUM.z, scenarios=["flat iot shock"])
+
+    pdt.assert_frame_equal(shocked, expected)
+
+
+def test_shock_calc_for_flat_iot_layout_accepts_z_sheet_without_level_axis(tmp_path):
+    database = _build_flat_iot_template_database(tmp_path)
+    path = tmp_path / "flat_iot_z_shock.xlsx"
+
+    base = database.z.copy()
+    row = base.index[0]
+    col = base.columns[0]
+    updated = 0.789
+
+    z_sheet = pd.DataFrame(
+        [
+            {
+                SHOCK_FLAT_COLUMNS["region_from"]: row[0],
+                SHOCK_FLAT_COLUMNS["sector_from"]: row[1],
+                SHOCK_FLAT_COLUMNS["region_to"]: col[0],
+                SHOCK_FLAT_COLUMNS["sector_to"]: col[1],
+                SHOCK_FLAT_COLUMNS["type"]: "Update",
+                SHOCK_FLAT_COLUMNS["value"]: updated,
+            }
+        ]
+    )
+
+    with pd.ExcelWriter(path) as writer:
+        z_sheet.to_excel(writer, sheet_name=_ENUM.z, index=False)
+
+    database.shock_calc(str(path), z=True, scenario="flat iot special z shock")
+
+    expected = base.copy()
+    expected.loc[row, col] = updated
+    shocked = database.query(_ENUM.z, scenarios=["flat iot special z shock"])
+
+    pdt.assert_frame_equal(shocked, expected)
+
+
+def test_shock_calc_for_flat_iot_layout_accepts_y_sheet_without_level_axis(tmp_path):
+    database = _build_flat_iot_template_database(tmp_path)
+    path = tmp_path / "flat_iot_y_shock.xlsx"
+
+    base = database.Y.copy()
+    row = base.index[0]
+    col = base.columns[0]
+    updated = 12.34
+
+    y_sheet = pd.DataFrame(
+        [
+            {
+                SHOCK_FLAT_COLUMNS["region_from"]: row[0],
+                SHOCK_FLAT_COLUMNS["sector_from"]: row[1],
+                SHOCK_FLAT_COLUMNS["region_to"]: col[0],
+                SHOCK_FLAT_COLUMNS["category_to"]: col[1],
+                SHOCK_FLAT_COLUMNS["type"]: "Update",
+                SHOCK_FLAT_COLUMNS["value"]: updated,
+            }
+        ]
+    )
+
+    with pd.ExcelWriter(path) as writer:
+        y_sheet.to_excel(writer, sheet_name=_ENUM.Y, index=False)
+
+    database.shock_calc(str(path), Y=True, scenario="flat iot special y shock")
+
+    expected = base.copy()
+    expected.loc[row, col] = updated
+    shocked = database.query(_ENUM.Y, scenarios=["flat iot special y shock"])
+
+    pdt.assert_frame_equal(shocked, expected)
+
+
+def test_shock_calc_for_flat_iot_layout_reads_factor_column_for_v_sheet(tmp_path):
+    database = _build_flat_iot_template_database(tmp_path)
+    path = tmp_path / "flat_iot_v_shock.xlsx"
+
+    base = database.v.copy()
+    row = base.index[0]
+    col = base.columns[0]
+    updated = 0.3
+
+    v_sheet = pd.DataFrame(
+        [
+            {
+                SHOCK_FLAT_COLUMNS["factor_from"]: row,
+                SHOCK_FLAT_COLUMNS["region_to"]: col[0],
+                SHOCK_FLAT_COLUMNS["sector_to"]: col[1],
+                SHOCK_FLAT_COLUMNS["type"]: "Update",
+                SHOCK_FLAT_COLUMNS["value"]: updated,
+            }
+        ]
+    )
+
+    with pd.ExcelWriter(path) as writer:
+        v_sheet.to_excel(writer, sheet_name=_ENUM.v, index=False)
+
+    database.shock_calc(str(path), v=True, scenario="flat iot special v shock")
+
+    expected = base.copy()
+    expected.loc[row, col] = updated
+    shocked = database.query(_ENUM.v, scenarios=["flat iot special v shock"])
 
     pdt.assert_frame_equal(shocked, expected)
 

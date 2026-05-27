@@ -122,6 +122,26 @@ def get_value(given):
     return given
 
 
+def _io_axis_key(axis, region, level, item):
+    """Build one row/column key matching either legacy or flat IO axes."""
+    if isinstance(axis, pd.MultiIndex):
+        if axis.nlevels >= 3:
+            return (region, level, item)
+        if axis.nlevels == 2:
+            return (region, item)
+    return item
+
+
+def _fd_axis_key(axis, region, category):
+    """Build one final-demand column key for legacy or flat layouts."""
+    if isinstance(axis, pd.MultiIndex):
+        if axis.nlevels >= 3:
+            return (region, _MASTER_INDEX["n"], category)
+        if axis.nlevels == 2:
+            return (region, category)
+    return category
+
+
 def _baseline_block(instance, matrix_name):
     """Return one baseline block through direct storage when already materialized."""
     if instance.has_matrix(matrix_name):
@@ -231,34 +251,17 @@ def Y_shock(instance, path, boolean, clusters, to_baseline):
             clusters=clusters.get(_MASTER_INDEX["n"]),
         )
 
+        row_key = _io_axis_key(Y.index, row_region_, row_level_, row_sector_)
+        col_key = _fd_axis_key(Y.columns, column_region_, demand_category_)
+
         if _type[shock] == "Absolute":
-            Y.loc[
-                (row_region_, row_level_, row_sector_),
-                (column_region_, _MASTER_INDEX["n"], demand_category_),
-            ] = (
-                Y.loc[
-                    (row_region_, row_level_, row_sector_),
-                    (column_region_, _MASTER_INDEX["n"], demand_category_),
-                ]
-                + value[shock]
-            )
+            Y.loc[row_key, col_key] = Y.loc[row_key, col_key] + value[shock]
 
         elif _type[shock] == "Percentage":
-            Y.loc[
-                (row_region_, row_level_, row_sector_),
-                (column_region_, _MASTER_INDEX["n"], demand_category_),
-            ] = Y.loc[
-                (row_region_, row_level_, row_sector_),
-                (column_region_, _MASTER_INDEX["n"], demand_category_),
-            ] * (
-                1 + value[shock]
-            )
+            Y.loc[row_key, col_key] = Y.loc[row_key, col_key] * (1 + value[shock])
 
         elif _type[shock] == "Update":
-            Y.loc[
-                (row_region_, row_level_, row_sector_),
-                (column_region_, _MASTER_INDEX["n"], demand_category_),
-            ] = value[shock]
+            Y.loc[row_key, col_key] = value[shock]
 
         else:
             raise WrongInput(
@@ -285,7 +288,9 @@ def Y_shock(instance, path, boolean, clusters, to_baseline):
 def V_shock(instance, path, matrix, boolean, clusters, to_baseline):
     """Apply value-added or extension shocks in coefficient space."""
     notes = []
-    if matrix == "V":
+    matrix_name = str(matrix).upper()
+
+    if matrix_name == "V":
         coeff = _baseline_block(instance, _ENUM.v)
         flow_matrix = _ENUM.V
         _id = "f"
@@ -313,7 +318,7 @@ def V_shock(instance, path, matrix, boolean, clusters, to_baseline):
 
     from_column = (
         SHOCK_FLAT_COLUMNS["factor_from"]
-        if matrix == _ENUM.v
+        if matrix_name == "V"
         else SHOCK_FLAT_COLUMNS["satellite_from"]
     )
     row_sector = _shock_column(info, from_column, SHOCK_COLUMNS["r_sec"])
@@ -372,31 +377,34 @@ def V_shock(instance, path, matrix, boolean, clusters, to_baseline):
             clusters=clusters.get(column_level_),
         )
 
+        column_key = _io_axis_key(
+            coeff.columns,
+            column_region_,
+            column_level_,
+            column_sector_,
+        )
+        output_key = _io_axis_key(
+            X.index,
+            column_region_,
+            column_level_,
+            column_sector_,
+        )
+
         if _type[shock] == "Percentage":
-            coeff.loc[
-                row_sector_, (column_region_, column_level_, column_sector_)
-            ] = get_value(
-                coeff.loc[row_sector_, (column_region_, column_level_, column_sector_)]
+            coeff.loc[row_sector_, column_key] = get_value(
+                coeff.loc[row_sector_, column_key]
             ) * (
                 1 + value[shock]
             )
 
         elif _type[shock] == "Absolute":
-            coeff.loc[row_sector_, (column_region_, column_level_, column_sector_)] = (
-                get_value(
-                    flow.loc[
-                        row_sector_, (column_region_, column_level_, column_sector_)
-                    ]
-                )
+            coeff.loc[row_sector_, column_key] = (
+                get_value(flow.loc[row_sector_, column_key])
                 + value[shock]
-            ) / get_value(
-                X.loc[(column_region_, column_level_, column_sector_), "production"]
-            )
+            ) / get_value(X.loc[output_key, "production"])
 
         elif _type[shock] == "Update":
-            coeff.loc[
-                row_sector_, (column_region_, column_level_, column_sector_)
-            ] = value[shock]
+            coeff.loc[row_sector_, column_key] = value[shock]
 
         else:
             raise WrongInput(
@@ -409,9 +417,9 @@ def V_shock(instance, path, matrix, boolean, clusters, to_baseline):
             "type: {}, value: {}.".format(
                 matrix.lower(),
                 row_sector_,
-                column_region,
-                column_level,
-                column_sector,
+                column_region_,
+                column_level_,
+                column_sector_,
                 _type[shock],
                 value[shock],
             )
@@ -952,38 +960,21 @@ def Z_shock(instance, path, boolean, clusters, to_baseline):
             clusters=clusters.get(column_level_),
         )
 
+        row_key = _io_axis_key(Z.index, row_region_, row_level_, row_sector_)
+        column_key = _io_axis_key(Z.columns, column_region_, column_level_, column_sector_)
+        output_key = _io_axis_key(X.index, column_region_, column_level_, column_sector_)
+
         if _type[shock] == "Percentage":
-            z.loc[
-                (row_region_, row_level_, row_sector_),
-                (column_region_, column_level_, column_sector_),
-            ] = z.loc[
-                (row_region_, row_level_, row_sector_),
-                (column_region_, column_level_, column_sector_),
-            ] * (
-                1 + value[shock]
-            )
+            z.loc[row_key, column_key] = z.loc[row_key, column_key] * (1 + value[shock])
 
         elif _type[shock] == "Absolute":
-            z.loc[
-                (row_region_, row_level_, row_sector_),
-                (column_region_, column_level_, column_sector_),
-            ] = (
-                get_value(
-                    Z.loc[
-                        (row_region_, row_level_, row_sector_),
-                        (column_region_, column_level_, column_sector_),
-                    ]
-                )
+            z.loc[row_key, column_key] = (
+                get_value(Z.loc[row_key, column_key])
                 + value[shock]
-            ) / get_value(
-                X.loc[(column_region_, column_level_, column_sector_), "production"]
-            )
+            ) / get_value(X.loc[output_key, "production"])
 
         elif _type[shock] == "Update":
-            z.loc[
-                (row_region_, row_level_, row_sector_),
-                (column_region_, column_level_, column_sector_),
-            ] = value[shock]
+            z.loc[row_key, column_key] = value[shock]
 
         else:
             raise WrongInput(
