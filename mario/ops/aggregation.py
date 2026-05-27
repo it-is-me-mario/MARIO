@@ -20,8 +20,9 @@ def aggregate_database(
 ):
     """Aggregate a database while keeping the public Database API stable."""
 
-    for scenario in database.scenarios:
-        database.calc_all([_ENUM.E, _ENUM.V, _ENUM.Z], scenario=scenario)
+    if database.table_type == "IOT":
+        for scenario in database.scenarios:
+            database.calc_all([_ENUM.E, _ENUM.V, _ENUM.Z], scenario=scenario)
 
     if not inplace:
         new = database.copy()
