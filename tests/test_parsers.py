@@ -1717,27 +1717,100 @@ def test_parse_state_from_parquet_supports_matrix_layouts_on_flat_payloads(tmp_p
     )
 
 
-def test_parse_from_parquet_sut_flat_roundtrip_returns_split_native_blocks(tmp_path):
+@pytest.mark.parametrize("flat", [False, True], ids=["matrix", "flat"])
+def test_parse_from_parquet_sut_roundtrip_preserves_split_native_blocks_without_nans(tmp_path, flat):
     pytest.importorskip("pyarrow")
 
     database = load_test("SUT")
-    database.to_parquet(path=tmp_path, flows=True, coefficients=False, flat=True)
+    expected_blocks = {"U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "EY", "VY"}
+
+    original_nan_blocks = [
+        matrix_name
+        for matrix_name in expected_blocks
+        if database["baseline"][matrix_name].isna().any().any()
+    ]
+    assert original_nan_blocks == []
+
+    database.to_parquet(path=tmp_path, flows=True, coefficients=False, flat=flat)
 
     parsed = parse_from_parquet(
         path=str(tmp_path / "flows"),
         table="SUT",
         mode="flows",
-        flat=True,
-        name="SUT flat parquet dataset",
+        flat=flat,
+        name=f"SUT {'flat' if flat else 'matrix'} parquet dataset",
     )
 
     assert "Z" not in parsed["baseline"]
     assert "X" not in parsed["baseline"]
-    assert {"U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "EY", "VY"} <= set(parsed["baseline"])
+    assert expected_blocks <= set(parsed["baseline"])
+
+    parsed_nan_blocks = [
+        matrix_name
+        for matrix_name in expected_blocks
+        if parsed["baseline"][matrix_name].isna().any().any()
+    ]
+    assert parsed_nan_blocks == []
+
+    for matrix_name in expected_blocks:
+        pdt.assert_frame_equal(
+            _sorted_matrix(parsed["baseline"][matrix_name]),
+            _sorted_matrix(database["baseline"][matrix_name]),
+        )
+
     pdt.assert_frame_equal(parsed.Z, database.Z)
     pdt.assert_frame_equal(parsed.Y, database.Y)
     pdt.assert_frame_equal(parsed.V, database.V)
     pdt.assert_frame_equal(parsed.E, database.E)
+
+
+def test_parse_from_parquet_sut_matrix_roundtrip_after_region_style_aggregation_has_no_nans(tmp_path):
+    pytest.importorskip("pyarrow")
+
+    database = load_test("SUT")
+    aggregated = database.aggregate(
+        io={
+            "Activity": pd.DataFrame(
+                {"Aggregation": ["All"] * len(database.activities)},
+                index=database.activities,
+            ),
+            "Commodity": pd.DataFrame(
+                {"Aggregation": ["All"] * len(database.commodities)},
+                index=database.commodities,
+            ),
+        },
+        ignore_nan=True,
+        levels=["Activity", "Commodity"],
+        inplace=False,
+        zero_output_epsilon=None,
+    )
+
+    for matrix_name in ("Z", "Y", "V", "E", "EY", "VY"):
+        assert not aggregated["baseline"][matrix_name].isna().any().any()
+
+    aggregated.to_parquet(path=tmp_path, flows=True, coefficients=False, flat=False)
+
+    parsed = parse_from_parquet(
+        path=str(tmp_path / "flows"),
+        table="SUT",
+        mode="flows",
+        flat=False,
+        name="SUT aggregated parquet dataset",
+        calc_all=False,
+    )
+
+    expected_blocks = {"U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "EY", "VY"}
+    parsed_nan_blocks = [
+        matrix_name
+        for matrix_name in expected_blocks
+        if parsed["baseline"][matrix_name].isna().any().any()
+    ]
+    assert parsed_nan_blocks == []
+
+    pdt.assert_frame_equal(parsed.Z, aggregated.Z)
+    pdt.assert_frame_equal(parsed.Y, aggregated.Y)
+    pdt.assert_frame_equal(parsed.V, aggregated.V)
+    pdt.assert_frame_equal(parsed.E, aggregated.E)
 
 
 def test_parse_state_from_parquet_supports_sut_matrix_layouts_on_matrix_payloads(tmp_path):
