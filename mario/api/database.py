@@ -1844,7 +1844,13 @@ class Database(CoreModel):
             redefine_uncertainties=redefine_uncertainties,
         )
 
-    def read_add_sectors_excel(self, path, get_inventories=False, read_inventories=False):
+    def read_add_sectors_excel(
+        self,
+        path,
+        get_inventories=False,
+        read_inventories=False,
+        split=False,
+    ):
         """Read add-sectors workbook inputs and attach their metadata to the database.
 
         Parameters
@@ -1858,6 +1864,10 @@ class Database(CoreModel):
         read_inventories:
             When ``True``, also read and group the inventory sheets referenced
             by the workbook.
+        split:
+            When ``True``, parse the split-support sheets required by IOT
+            add-sectors workbooks. When ``False`` (default), skip those sheets
+            even if the master contains rows marked ``Split``.
 
         Returns
         -------
@@ -1877,6 +1887,7 @@ class Database(CoreModel):
             table=self.meta.table,
             get_inventories=get_inventories,
             read_inventories=read_inventories,
+            split=split,
         )
         self.add_sectors_workbook = workbook
         self.add_sectors_workbook_path = workbook_path

@@ -342,6 +342,7 @@ def read_add_sector_workbook(
     *,
     table: str,
     require_inventory_sheets: bool = False,
+    parse_split: bool = True,
 ) -> AddSectorWorkbook:
     """Read and validate one add-sectors workbook.
 
@@ -406,7 +407,11 @@ def read_add_sector_workbook(
         sheet_name: sheets[sheet_name] for sheet_name in inventory_names
         if sheet_name in sheets
     }
-    split_info = _parse_split_sheets(sheets) if _has_split_rows(table, master_sheet) else None
+    split_info = (
+        _parse_split_sheets(sheets)
+        if parse_split and _has_split_rows(table, master_sheet)
+        else None
+    )
 
     return AddSectorWorkbook(
         table=table,
@@ -1282,6 +1287,7 @@ def load_add_sector_workbook_input(
     table: str,
     get_inventories: bool = False,
     read_inventories: bool = False,
+    split: bool = False,
 ) -> tuple[AddSectorWorkbook, str]:
     """Load one add-sectors workbook input or merge a directory of workbooks."""
 
@@ -1302,6 +1308,7 @@ def load_add_sector_workbook_input(
                     candidate,
                     table=table,
                     require_inventory_sheets=True,
+                    parse_split=split,
                 )
             except Exception as exc:
                 warnings.warn(
@@ -1321,6 +1328,7 @@ def load_add_sector_workbook_input(
         source,
         table=table,
         require_inventory_sheets=read_inventories,
+        parse_split=split,
     )
     return workbook, str(source)
 
