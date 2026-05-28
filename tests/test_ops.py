@@ -4,6 +4,7 @@ import pandas as pd
 import pandas.testing as pdt
 import pytest
 from pymrio import IOSystem
+from scipy import sparse
 
 from mario.ops import (
     aggregate_database,
@@ -12,6 +13,7 @@ from mario.ops import (
     transform_sut_to_iot,
     transform_to_chenery_moses,
 )
+from mario.ops.aggregation_engine import _aggregate_axis, _aggregate_block, _drop_extension_rows
 from mario.test.mario_test import load_test
 from mario.model.conventions import _ENUM
 from mario.parsers.api import build_database_from_state, build_parser_state
@@ -84,6 +86,34 @@ def _aggregate_expected_standard_axis(frame, *, region_target=None, item_target=
         )
         expected = expected.T.groupby(level=[0], sort=False).sum().T
     return expected
+
+
+def _expected_aggregated_block(instance, matrix_name, frame, agg_indeces, drop):
+    expected = frame.copy()
+    expected.index = _aggregate_axis(
+        instance,
+        matrix_name,
+        expected.index,
+        side="index",
+        agg_indeces=agg_indeces,
+    )
+    row_levels = list(range(expected.index.nlevels)) if isinstance(expected.index, pd.MultiIndex) else [0]
+    expected = expected.groupby(level=row_levels, sort=False).sum()
+    if matrix_name in {"Ea", "Ec", _ENUM.E, _ENUM.EY}:
+        expected = _drop_extension_rows(instance, expected, matrix_name, drop)
+    expected.columns = _aggregate_axis(
+        instance,
+        matrix_name,
+        expected.columns,
+        side="columns",
+        agg_indeces=agg_indeces,
+    )
+    col_levels = (
+        list(range(expected.columns.nlevels))
+        if isinstance(expected.columns, pd.MultiIndex)
+        else [0]
+    )
+    return expected.T.groupby(level=col_levels, sort=False).sum().T
 
 
 def _build_custom_sut_database():
@@ -402,6 +432,129 @@ def test_aggregate_database_preserves_zero_output_sut_coefficients_with_epsilon(
     assert float(without_epsilon_z.loc[:, aggregated_target].abs().sum()) == 0.0
     assert float(with_epsilon_z.loc[:, aggregated_target].abs().sum()) > 0.0
     assert any("zero_output_epsilon" in record.message for record in caplog.records)
+
+
+def test_aggregate_block_dense_backend_avoids_pandas_groupby(monkeypatch):
+    database = load_test("IOT")
+    mapping = {
+        "Region": pd.DataFrame(
+            {"Aggregation": ["world", "world"]},
+            index=database.get_index("Region"),
+        ),
+    }
+    database.read_aggregated_index(mapping, levels=["Region"])
+    agg_indeces = database.get_index("all", "aggregated")
+    expected = _expected_aggregated_block(database, _ENUM.Z, database.Z, agg_indeces, drop=[])
+
+    def _unexpected_groupby(*args, **kwargs):
+        raise AssertionError("dense aggregation backend should not call pandas.DataFrame.groupby")
+
+    monkeypatch.setattr(pd.DataFrame, "groupby", _unexpected_groupby)
+
+    aggregated = _aggregate_block(database, _ENUM.Z, database.Z, agg_indeces, drop=[])
+
+    pdt.assert_frame_equal(aggregated, expected)
+
+
+def test_aggregate_block_sparse_backend_preserves_sparse_blocks():
+    database = load_test("SUT")
+    mapping = {
+        "Region": pd.DataFrame(
+            {"Aggregation": ["world", "world"]},
+            index=database.get_index("Region"),
+        ),
+    }
+    database.read_aggregated_index(mapping, levels=["Region"])
+    agg_indeces = database.get_index("all", "aggregated")
+
+    frame = database["baseline"]["U"]
+    sparse_frame = pd.DataFrame.sparse.from_spmatrix(
+        sparse.csr_matrix(frame.to_numpy()),
+        index=frame.index,
+        columns=frame.columns,
+    ).fillna(0.0)
+    aggregated = _aggregate_block(database, "U", sparse_frame, agg_indeces, drop=[])
+    expected = _expected_aggregated_block(database, "U", frame, agg_indeces, drop=[])
+
+    assert int(aggregated.isna().sum().sum()) == 0
+    pdt.assert_frame_equal(aggregated, expected, check_dtype=False)
+
+
+@pytest.mark.parametrize("matrix_name", ["S", "Ya", "Vc", "Ea", "Ec", "EY"])
+def test_aggregate_block_sparse_backend_fills_structural_zeros_for_split_sut_blocks(matrix_name):
+    database = load_test("SUT")
+    mapping = {
+        "Activity": pd.DataFrame(
+            {"Aggregation": ["All"] * len(database.activities)},
+            index=database.activities,
+        ),
+        "Commodity": pd.DataFrame(
+            {"Aggregation": ["All"] * len(database.commodities)},
+            index=database.commodities,
+        ),
+    }
+    database.read_aggregated_index(mapping, levels=["Activity", "Commodity"])
+    agg_indeces = database.get_index("all", "aggregated")
+
+    frame = database["baseline"][matrix_name]
+    sparse_frame = pd.DataFrame.sparse.from_spmatrix(
+        sparse.csr_matrix(frame.to_numpy(dtype=float)),
+        index=frame.index,
+        columns=frame.columns,
+    ).fillna(0.0)
+
+    aggregated = _aggregate_block(database, matrix_name, sparse_frame, agg_indeces, drop=[])
+    expected = _expected_aggregated_block(database, matrix_name, frame, agg_indeces, drop=[])
+
+    assert int(aggregated.isna().sum().sum()) == 0
+    pdt.assert_frame_equal(aggregated, expected, check_dtype=False)
+
+
+def test_aggregate_sut_uses_split_native_flow_blocks_without_unified_concat(monkeypatch):
+    database = load_test("SUT")
+
+    def _unexpected_concat(*args, **kwargs):
+        raise AssertionError("aggregate() should not build unified SUT views in split-native mode")
+
+    for function_name in (
+        "concat_sut_Z",
+        "concat_sut_Y",
+        "concat_sut_V",
+        "concat_sut_E",
+        "concat_sut_X",
+        "concat_sut_z",
+        "concat_sut_v",
+        "concat_sut_e",
+    ):
+        monkeypatch.setattr(f"mario.compute.views.{function_name}", _unexpected_concat)
+
+    mapping = {
+        "Region": pd.DataFrame({"Aggregation": ["world", "world"]}, index=database.get_index("Region")),
+    }
+
+    aggregated = database.aggregate(
+        io=mapping,
+        levels=["Region"],
+        inplace=False,
+        calc_all=False,
+        zero_output_epsilon=None,
+    )
+
+    assert {
+        "U",
+        "S",
+        "Ya",
+        "Yc",
+        "Va",
+        "Vc",
+        "Ea",
+        "Ec",
+        "EY",
+        "VY",
+        "Xa",
+        "Xc",
+    } <= set(aggregated["baseline"])
+    assert {"Z", "Y", "V", "E"}.isdisjoint(set(aggregated["baseline"]))
 
 
 def test_export_to_pymrio_and_tabular_view_work_from_new_modules():
