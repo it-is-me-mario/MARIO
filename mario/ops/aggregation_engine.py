@@ -210,7 +210,7 @@ def _aggregate_frame_values(frame: pd.DataFrame, row_labels, col_labels) -> pd.D
             aggregated,
             index=unique_rows,
             columns=unique_cols,
-        )
+        ).fillna(0.0)
 
     values = frame.to_numpy(copy=False)
     if values.dtype == object:

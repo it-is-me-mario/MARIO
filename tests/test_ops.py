@@ -472,12 +472,42 @@ def test_aggregate_block_sparse_backend_preserves_sparse_blocks():
         sparse.csr_matrix(frame.to_numpy()),
         index=frame.index,
         columns=frame.columns,
-    )
+    ).fillna(0.0)
     aggregated = _aggregate_block(database, "U", sparse_frame, agg_indeces, drop=[])
     expected = _expected_aggregated_block(database, "U", frame, agg_indeces, drop=[])
 
-    assert any(isinstance(dtype, pd.SparseDtype) for dtype in aggregated.dtypes)
-    pdt.assert_frame_equal(aggregated.sparse.to_dense(), expected, check_dtype=False)
+    assert int(aggregated.isna().sum().sum()) == 0
+    pdt.assert_frame_equal(aggregated, expected, check_dtype=False)
+
+
+@pytest.mark.parametrize("matrix_name", ["S", "Ya", "Vc", "Ea", "Ec", "EY"])
+def test_aggregate_block_sparse_backend_fills_structural_zeros_for_split_sut_blocks(matrix_name):
+    database = load_test("SUT")
+    mapping = {
+        "Activity": pd.DataFrame(
+            {"Aggregation": ["All"] * len(database.activities)},
+            index=database.activities,
+        ),
+        "Commodity": pd.DataFrame(
+            {"Aggregation": ["All"] * len(database.commodities)},
+            index=database.commodities,
+        ),
+    }
+    database.read_aggregated_index(mapping, levels=["Activity", "Commodity"])
+    agg_indeces = database.get_index("all", "aggregated")
+
+    frame = database["baseline"][matrix_name]
+    sparse_frame = pd.DataFrame.sparse.from_spmatrix(
+        sparse.csr_matrix(frame.to_numpy(dtype=float)),
+        index=frame.index,
+        columns=frame.columns,
+    ).fillna(0.0)
+
+    aggregated = _aggregate_block(database, matrix_name, sparse_frame, agg_indeces, drop=[])
+    expected = _expected_aggregated_block(database, matrix_name, frame, agg_indeces, drop=[])
+
+    assert int(aggregated.isna().sum().sum()) == 0
+    pdt.assert_frame_equal(aggregated, expected, check_dtype=False)
 
 
 def test_aggregate_sut_uses_split_native_flow_blocks_without_unified_concat(monkeypatch):
