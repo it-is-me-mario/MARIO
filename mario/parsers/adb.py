@@ -104,6 +104,8 @@ class ADBEmissionsLayout:
     code_row: int
     sector_start: int
     sector_end: int
+    final_demand_start: int
+    final_demand_end: int
 
 
 def _clean_string(value) -> str | None:
@@ -291,11 +293,13 @@ def _find_header_rows(preview: pd.DataFrame) -> tuple[int, int, int, int, int]:
     return label_row, region_row, code_row, sector_start, sector_end, final_demand_start, final_demand_end
 
 
-def _find_emissions_header_rows(preview: pd.DataFrame) -> tuple[int, int, int, int, int]:
+def _find_emissions_header_rows(preview: pd.DataFrame) -> tuple[int, int, int, int, int, int, int]:
     """Detect header rows for one ADB emissions workbook."""
     code_row = None
     sector_start = None
     sector_end = None
+    final_demand_start = None
+    final_demand_end = None
 
     for row_idx in range(min(12, len(preview))):
         row = [_clean_string(value) for value in preview.iloc[row_idx].tolist()]
@@ -306,13 +310,20 @@ def _find_emissions_header_rows(preview: pd.DataFrame) -> tuple[int, int, int, i
         current_end = current_start
         while current_end < len(row) and row[current_end] and _SECTOR_CODE_RE.fullmatch(row[current_end]):
             current_end += 1
+        current_fd_end = current_end
+        while current_fd_end < len(row) and row[current_fd_end] and _FINAL_CODE_RE.fullmatch(row[current_fd_end]):
+            current_fd_end += 1
         code_row = row_idx
         sector_start = current_start
         sector_end = current_end
+        final_demand_start = current_end
+        final_demand_end = current_fd_end
         break
 
     if code_row is None or sector_start is None or sector_end is None:
         raise WrongFormat("Could not detect the ADB emissions sector code row.")
+    if final_demand_start == final_demand_end:
+        raise WrongFormat("Could not detect the ADB emissions final-demand columns.")
 
     region_row = None
     label_row = None
@@ -329,7 +340,15 @@ def _find_emissions_header_rows(preview: pd.DataFrame) -> tuple[int, int, int, i
     if region_row is None or label_row is None:
         raise WrongFormat("Could not detect the ADB emissions header label rows.")
 
-    return label_row, region_row, code_row, sector_start, sector_end
+    return (
+        label_row,
+        region_row,
+        code_row,
+        sector_start,
+        sector_end,
+        final_demand_start,
+        final_demand_end,
+    )
 
 
 def _candidate_layout(path: Path) -> ADBLayout:
@@ -422,7 +441,15 @@ def detect_adb_emissions_layout(path: str | Path) -> ADBEmissionsLayout:
     if _ADB_EMISSIONS_TITLE_RE.search(title) is None:
         raise WrongFormat("The selected workbook does not look like an ADB air-emissions workbook.")
 
-    label_row, region_row, code_row, sector_start, sector_end = _find_emissions_header_rows(preview)
+    (
+        label_row,
+        region_row,
+        code_row,
+        sector_start,
+        sector_end,
+        final_demand_start,
+        final_demand_end,
+    ) = _find_emissions_header_rows(preview)
     return ADBEmissionsLayout(
         path=source,
         sheet_name=sheet_name,
@@ -433,6 +460,8 @@ def detect_adb_emissions_layout(path: str | Path) -> ADBEmissionsLayout:
         code_row=code_row,
         sector_start=sector_start,
         sector_end=sector_end,
+        final_demand_start=final_demand_start,
+        final_demand_end=final_demand_end,
     )
 
 
@@ -615,27 +644,52 @@ def _load_adb_emissions_extensions(
         sector_axis.get_level_values(1)[0],
         sector_items,
     )
+    final_demand_codes = [
+        _clean_string(value)
+        for value in frame.iloc[layout.code_row, layout.final_demand_start:layout.final_demand_end].tolist()
+    ]
+    final_demand_regions = [
+        _clean_string(value)
+        for value in frame.iloc[layout.region_row, layout.final_demand_start:layout.final_demand_end].tolist()
+    ]
+    final_demand_items = [
+        ADB_FINAL_DEMAND_LABELS.get(code, _clean_string(label) or code)
+        for code, label in zip(
+            final_demand_codes,
+            frame.iloc[layout.label_row, layout.final_demand_start:layout.final_demand_end].tolist(),
+        )
+    ]
+    extension_final_demand_axis = _axis_from_pairs(
+        final_demand_regions,
+        final_demand_axis.get_level_values(1)[0],
+        final_demand_items,
+    )
 
     numeric = frame.apply(pd.to_numeric, errors="coerce")
     satellite_labels: list[str] = []
-    rows: list[list[float]] = []
+    sector_rows: list[list[float]] = []
+    final_demand_rows: list[list[float]] = []
     for row_idx in range(layout.code_row + 1, len(frame)):
         satellite = _build_satellite_label(frame.iat[row_idx, 0], frame.iat[row_idx, 1])
         if satellite is None:
             continue
-        values = numeric.iloc[row_idx, layout.sector_start:layout.sector_end]
-        if values.notna().sum() == 0:
+        sector_values = numeric.iloc[row_idx, layout.sector_start:layout.sector_end]
+        final_demand_values = numeric.iloc[row_idx, layout.final_demand_start:layout.final_demand_end]
+        if sector_values.notna().sum() == 0 and final_demand_values.notna().sum() == 0:
             continue
         satellite_labels.append(satellite)
-        rows.append(values.fillna(0.0).astype(float).tolist())
+        sector_rows.append(sector_values.fillna(0.0).astype(float).tolist())
+        final_demand_rows.append(final_demand_values.fillna(0.0).astype(float).tolist())
 
     satellite_axis = pd.Index(satellite_labels, name=None)
-    if rows:
-        E = pd.DataFrame(rows, index=satellite_axis, columns=extension_axis)
+    if sector_rows:
+        E = pd.DataFrame(sector_rows, index=satellite_axis, columns=extension_axis)
         E = E.reindex(columns=sector_axis, fill_value=0.0)
+        EY = pd.DataFrame(final_demand_rows, index=satellite_axis, columns=extension_final_demand_axis)
+        EY = EY.reindex(columns=final_demand_axis, fill_value=0.0)
     else:
         E = _zero_frame(satellite_axis, sector_axis)
-    EY = _zero_frame(satellite_axis, final_demand_axis)
+        EY = _zero_frame(satellite_axis, final_demand_axis)
     extension_units = pd.DataFrame({"unit": [layout.unit] * len(satellite_axis)}, index=satellite_axis)
 
     notes: list[str] = []
@@ -648,7 +702,7 @@ def _load_adb_emissions_extensions(
         notes.append(note)
 
     target_regions = set(sector_axis.get_level_values(0))
-    covered_regions = set(sector_regions)
+    covered_regions = set(sector_regions) | set(final_demand_regions)
     missing_regions = sorted(target_regions.difference(covered_regions))
     if missing_regions:
         note = (

@@ -1913,9 +1913,9 @@ def parse_adb(
         ``62``, ``71``, ``72`` or ``74``.
     add_extensions : str, optional
         optional path to an ADB air-emissions workbook. When provided, MARIO
-        imports the environmental extension matrix ``E`` from that file and
-        keeps ``EY`` zero-filled. The same mechanism works for both MRIO and
-        SRIO economic tables. The matching air-emissions workbooks are
+        imports the environmental extension matrices ``E`` and ``EY`` from
+        that file. The same mechanism works for both MRIO and SRIO economic
+        tables. The matching air-emissions workbooks are
         distributed on the ADB page at
         ``https://kidb.adb.org/globalization/adb_environmentally_extended_multiregional_inputoutput_tables``.
     model : str, optional

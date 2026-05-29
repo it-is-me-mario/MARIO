@@ -166,18 +166,57 @@ def _write_adb_emissions_workbook(path: Path, *, year: int, regions: list[str]) 
         "Manufacturing",
     ]
     sector_codes = ["c1", "c2"]
+    final_demand_codes = ["F1", "F2", "F3", "F4", "F5"]
+    final_demand_labels = [ADB_FINAL_DEMAND_LABELS[code] for code in final_demand_codes]
+
+    width = 3 + len(regions) * (len(sector_labels) + len(final_demand_codes)) + 1
 
     rows: list[list[object]] = []
-    rows.append(["Title:", "Environmentally-Extended Multiregional Input-Output Table (Air Emissions)"] + [None] * 8)
-    rows.append(["Year:", year] + [None] * 8)
-    rows.append(["Unit:", "Gigagrams of Carbon Dioxide equivalent (Gg of CO2e)"] + [None] * 8)
-    rows.append([None] * (3 + len(regions) * len(sector_labels)))
-    rows.append(["Main IPCC Sector", "GHG Sector", None, *sector_labels * len(regions)])
-    rows.append([None, None, None, *sum([[region] * len(sector_labels) for region in regions], [])])
-    rows.append([None, None, None, *sector_codes * len(regions)])
-    rows.append(["Energy production", "CO2", None, *range(1, len(regions) * len(sector_labels) + 1)])
-    rows.append(["Road transport", "CH4", None, *range(11, 11 + len(regions) * len(sector_labels))])
-    rows.append(["Total by substance", "GHG", None, *range(21, 21 + len(regions) * len(sector_labels))])
+    rows.append(["Title:", "Environmentally-Extended Multiregional Input-Output Table (Air Emissions)"] + [None] * (width - 2))
+    rows.append(["Year:", year] + [None] * (width - 2))
+    rows.append(["Unit:", "Gigagrams of Carbon Dioxide equivalent (Gg of CO2e)"] + [None] * (width - 2))
+    rows.append([None] * width)
+    rows.append(
+        [
+            "Main IPCC Sector",
+            "GHG Sector",
+            None,
+            *(sector_labels * len(regions)),
+            *(final_demand_labels * len(regions)),
+            "TOTAL",
+        ]
+    )
+    rows.append(
+        [
+            None,
+            None,
+            None,
+            *sum([[region] * len(sector_labels) for region in regions], []),
+            *sum([[region] * len(final_demand_codes) for region in regions], []),
+            None,
+        ]
+    )
+    rows.append(
+        [
+            None,
+            None,
+            None,
+            *(sector_codes * len(regions)),
+            *(final_demand_codes * len(regions)),
+            None,
+        ]
+    )
+
+    def _row_values(start: int) -> list[float]:
+        sector_values = list(range(start, start + len(regions) * len(sector_labels)))
+        final_demand_values = list(
+            range(start + 100, start + 100 + len(regions) * len(final_demand_codes))
+        )
+        return [*sector_values, *final_demand_values, float(sum(sector_values) + sum(final_demand_values))]
+
+    rows.append(["Energy production", "CO2", None, *_row_values(1)])
+    rows.append(["Road transport", "CH4", None, *_row_values(11)])
+    rows.append(["Total by substance", "GHG", None, *_row_values(21)])
 
     with pd.ExcelWriter(path, engine="openpyxl") as writer:
         pd.DataFrame(rows).to_excel(writer, sheet_name=str(year), header=False, index=False)
@@ -325,6 +364,9 @@ def test_parse_adb_iot_can_add_air_emissions_extensions_and_record_warnings(tmp_
     assert float(database.E.iloc[0, 0]) == 1.0
     assert float(database.E.iloc[0, 1]) == 2.0
     assert float(database.E.iloc[0, 2]) == 0.0
+    assert float(database.EY.iloc[0, 0]) == 101.0
+    assert float(database.EY.iloc[0, 4]) == 105.0
+    assert float(database.EY.iloc[0, 5]) == 0.0
     assert any("does not match the economic table year" in note for note in database.meta._history)
     assert any("does not cover database regions" in note for note in database.meta._history)
 
@@ -353,6 +395,9 @@ def test_parse_adb_supports_srio_extensions_when_region_is_covered(tmp_path):
     assert database.E.shape == (3, 4)
     assert database.EY.shape == (3, 6)
     assert float(database.E.iloc[0, 0]) == 1.0
+    assert float(database.EY.iloc[0, 0]) == 101.0
+    assert float(database.EY.iloc[0, 4]) == 105.0
+    assert float(database.EY.iloc[0, 5]) == 0.0
     assert not any("does not cover database regions" in note for note in database.meta._history)
 
 

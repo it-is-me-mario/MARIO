@@ -48,8 +48,6 @@ GHG_PROFILES: Dict[str, dict] = {
             "CO2 (air - Emiss)": 1.0,
             "CH4 (air - Emiss)": 29.7,
             "N2O (air - Emiss)": 264.8,
-            "SF6 (air - Emiss)": 23506.0,
-            "CO (air - Emiss)": 4.1,
         },
     },
     # ---------------- EORA26 ---------------------------------------------
@@ -232,6 +230,14 @@ GHG_PROFILES: Dict[str, dict] = {
             'I-GHG-N2O emissions (Gg) - Other sources': 264.8,        
         },
     },
+    "adb": {
+        "match": "adb",
+        "unit": "Gigagrams of Carbon Dioxide equivalent (Gg of CO2e)",
+        "gwp": {
+            'GHG | Total by substance': 1.0,
+        }
+    },
+
     "gloria": {
         "match": "gloria",
         "unit": "kg CO2eq",
@@ -247,8 +253,6 @@ GHG_PROFILES: Dict[str, dict] = {
     "emerging": {
         "match": "emerging",
         "unit": "Mt CO2eq",
-        # EMERGING reports already-aggregated CO2eq emissions per energy
-        # carrier (see EMERGING_CO2_LABELS in mario.parsers.specs).
         "gwp": {
             "Coal": 1.0,
             "Natural gas": 1.0,

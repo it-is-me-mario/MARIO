@@ -6,11 +6,11 @@ setup(
     name="mariopy",
     description=(
         "A python package for automating input-output (IO) calculations, models"
-        ",visualization and scenario analysis"
+        ",visualization and scenario and supply-chain analysis"
     ),
     long_description = open("README.rst",encoding="utf8").read(),
     url="https://github.com/it-is-me-mario/MARIO",
-    author="Mohammad Amin Tahavori, Lorenzo Rinaldi, Nicolo Golinucci",
+    author="Lorenzo Rinaldi, Mohammad Amin Tahavori, Nicolo Golinucci",
     author_email="lorenzo.rinaldi@polimi.it",
     version=__version__,
     license="GNU General Public License v3.0",

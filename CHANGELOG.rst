@@ -12,6 +12,8 @@ Architecture and public API
   ``views``, ``storage`` and ``internal`` modules.
 * Moved most legacy logic out of ``core`` and ``tools`` and consolidated the
   public surface around ``Database``.
+* Added support for renamed baseline scenarios, more ergonomic matrix/index
+  inspection helpers, and template-based custom database authoring workflows.
 * Added a unified ``Database.plot(...)`` workflow backed by Plotly Express and
   kept the historical plotting helpers as deprecated compatibility wrappers.
 * Added exploded multiplier and footprint accessors on ``CoreModel`` through
@@ -19,6 +21,8 @@ Architecture and public API
   corresponding ``*_all`` convenience properties.
 * Added a more explicit compute layer with planner, resolver, primitives,
   formula modules and dependency graph utilities.
+* Added trade-analysis APIs, trade-content plotting, parser-based scenario
+  import workflows, and default shock clusters with automatic region mapping.
 * Configured MARIO to default to ``INFO`` logging on import while preserving
   explicit ``set_log_verbosity(...)`` overrides.
 
@@ -35,6 +39,9 @@ Parsing and export
 * Added structural ``tech_assumption`` support for SUT parsing with
   ``industry-based`` / ``product-based`` modes, including automatic fallback to
   ``industry-based`` for non-square SUT tables.
+* Expanded direct parser coverage with BEA supply-use, CEADS, CEPALSTAT,
+  USEEIO and GLORIA support, and improved parser robustness for FIGARO,
+  OECD ICIO, EMERGING bundles and zip-based imports.
 
 Add sectors and structural operations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -54,6 +61,8 @@ Aggregation and transforms
 
 * Made aggregation robust to layout-aware ``V`` and ``E`` blocks without
   breaking the legacy public surface.
+* Changed ``aggregate(...)`` to default to ``calc_all=False`` and hardened
+  sparse export paths, including a fix for sparse ``to_parquet(...)`` output.
 * Added a default ``zero_output_epsilon`` fallback during aggregation so
   zero-output items with non-zero stored coefficients do not lose their
   reconstructed ``z``/``v``/``e`` columns after aggregation.
@@ -74,6 +83,11 @@ Compute and SUT semantics
 * Made SUT technology assumptions a first-class database property that is
   stored in metadata, shown in database summaries, preserved by test fixtures,
   and cleared when transforming SUT databases into IOT form.
+* Added ``Database.calc_ghg(...)`` with built-in EXIOBASE, EORA, GLORIA and
+  EMERGING profiles, plus improved metadata matching and satellite-account
+  aggregation.
+* Added SUT-specific Ghosh formulas alongside the refactored supply-side
+  compute path.
 * Introduced sparse-aware helper routines for shared compute operations such as
   row/column sums, matrix-matrix products, and matrix-vector products, and
   routed more IOT/SUT formulas through those helpers instead of direct
@@ -96,6 +110,8 @@ Testing and documentation
   matrices and the new plotting workflow.
 * Added vendored real-data workbook fixtures for IOT and SUT plus aggregation
   templates, with roundtrip tests for Excel, TXT and Parquet exports.
+* Added pandas 3 compatibility fixes, parser coverage reporting, and broader
+  parser/developer documentation refreshes across the user guide and README.
 * Added a visualization user-guide notebook for ``db.plot(...)`` and updated
   notebook resolution so published docs persist HTML Plotly output instead of
   unsupported ``application/vnd.plotly.v1+json`` payloads.
