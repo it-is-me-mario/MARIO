@@ -8,6 +8,8 @@ import pandas.testing as pdt
 import pytest
 
 from mario.clusters.coverage import build_region_aggregation_index
+from mario.compute.runtime import effective_compute_options
+from mario.compute.types import ComputeOptions, ResolutionContext
 from mario.log_exc.exceptions import NotImplementable, WrongInput
 from mario.log_exc.logger import set_log_verbosity
 from mario.compute.ordering import SUTUnifiedOrderingPolicy
@@ -78,7 +80,10 @@ def test_calc_all_iot_solve_method_resolves_f_without_materializing_w():
     database = load_test("IOT")
     assert _ENUM.w not in database["baseline"]
 
-    database.calc_all([_ENUM.f], compute_method="solve", linear_solver="scipy")
+    database.calc_all(
+        [_ENUM.f],
+        compute_options=ComputeOptions(backend_override="sparse_direct"),
+    )
 
     expected_z = calc_z(database.Z, database.X)
     expected_w = calc_w(expected_z)
@@ -86,6 +91,65 @@ def test_calc_all_iot_solve_method_resolves_f_without_materializing_w():
 
     pdt.assert_frame_equal(database.f, expected_f)
     assert _ENUM.w not in database["baseline"]
+
+
+def test_calc_all_rejects_legacy_runtime_kwargs():
+    database = load_test("IOT")
+
+    with pytest.raises(TypeError):
+        database.calc_all([_ENUM.f], compute_method="solve")
+
+
+def test_calc_all_iot_accepts_advanced_compute_options():
+    database = load_test("IOT")
+    assert _ENUM.w not in database["baseline"]
+
+    database.calc_all(
+        [_ENUM.f],
+        compute_options=ComputeOptions(planning_override="prefer_direct_targets"),
+    )
+
+    expected_z = calc_z(database.Z, database.X)
+    expected_w = calc_w(expected_z)
+    expected_f = database.e.dot(expected_w)
+
+    pdt.assert_frame_equal(database.f, expected_f)
+    assert _ENUM.w not in database["baseline"]
+
+
+def test_dotted_sut_access_materializes_only_requested_target():
+    database = load_test("SUT")
+    initial = set(database["baseline"])
+
+    resolved = database.fc
+
+    assert "fc" in database["baseline"]
+    assert "Xa" not in database["baseline"]
+    assert "ea" not in database["baseline"]
+    assert "Xc" not in database["baseline"]
+    assert "s" not in database["baseline"]
+    assert "u" not in database["baseline"]
+    assert "wcc" not in database["baseline"]
+    assert "ec" not in database["baseline"]
+    assert set(database["baseline"]) == initial | {"fc"}
+    pdt.assert_frame_equal(resolved, database.get_block("fc"))
+
+
+def test_effective_compute_options_translates_public_advanced_options():
+    context = ResolutionContext(
+        compute=ComputeOptions(
+            backend_override="sparse_direct",
+            auto_memory_fraction=0.4,
+            auto_inverse_overhead_factor=5.0,
+        )
+    )
+
+    options = effective_compute_options(context)
+
+    assert options.compute_method == "solve"
+    assert options.linear_strategy == "direct"
+    assert options.auto_w_memory_fraction == 0.4
+    assert options.auto_w_overhead_factor == 5.0
 
 
 def test_dotted_access_logs_selected_iot_runtime_method(capsys):
@@ -170,7 +234,10 @@ def test_calc_all_sut_resolves_unified_blocks_from_split_dependencies():
     pdt.assert_frame_equal(database.u, expected_u)
     pdt.assert_frame_equal(database.s, expected_s)
     pdt.assert_frame_equal(database.w, expected_w)
-    assert {"wcc", "wca", "wac", "waa"}.issubset(set(database["baseline"]))
+    assert "wcc" not in database["baseline"]
+    assert "wca" not in database["baseline"]
+    assert "wac" not in database["baseline"]
+    assert "waa" not in database["baseline"]
 
 
 def test_calc_linkages_supports_sut_specific_ghosh_blocks():

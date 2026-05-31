@@ -51,9 +51,15 @@ from mario.compute.sut_formulas import (
     build_sut_va_from_Va_Xa,
     build_sut_vc_from_Vc_Xc,
     build_sut_waa_from_s_u,
+    build_sut_waa_from_s_u_solve,
+    build_sut_wac_from_waa_s,
+    build_sut_wac_from_s_u_solve,
     build_sut_wac_from_s_u,
+    build_sut_wca_from_wcc_u,
+    build_sut_wca_from_u_s_solve,
     build_sut_wca_from_u_s,
     build_sut_wcc_from_u_s,
+    build_sut_wcc_from_u_s_solve,
 )
 from mario.compute.views import (
     extract_Ea_from_E,
@@ -137,11 +143,21 @@ def test_sut_split_formulas_match_database_views():
     wca = build_sut_wca_from_u_s(sut.u, sut.s)
     wac = build_sut_wac_from_s_u(sut.s, sut.u)
     waa = build_sut_waa_from_s_u(sut.s, sut.u)
+    wcc_solve = build_sut_wcc_from_u_s_solve(sut.u, sut.s)
+    wca_solve = build_sut_wca_from_u_s_solve(sut.u, sut.s)
+    wac_solve = build_sut_wac_from_s_u_solve(sut.s, sut.u)
+    waa_solve = build_sut_waa_from_s_u_solve(sut.s, sut.u)
 
     pdt.assert_frame_equal(wcc, extract_wcc_from_w(sut.w, ordering))
     pdt.assert_frame_equal(wca, extract_wca_from_w(sut.w, ordering))
     pdt.assert_frame_equal(wac, extract_wac_from_w(sut.w, ordering))
     pdt.assert_frame_equal(waa, extract_waa_from_w(sut.w, ordering))
+    pdt.assert_frame_equal(wcc_solve, wcc)
+    pdt.assert_frame_equal(wca_solve, wca)
+    pdt.assert_frame_equal(wac_solve, wac)
+    pdt.assert_frame_equal(waa_solve, waa)
+    pdt.assert_frame_equal(build_sut_wca_from_wcc_u(wcc_solve, sut.u), wca)
+    pdt.assert_frame_equal(build_sut_wac_from_waa_s(waa_solve, sut.s), wac)
     pdt.assert_frame_equal(build_sut_Xc_from_wcc_Yc(wcc, Yc), Xc)
     pdt.assert_frame_equal(build_sut_Xc_from_u_s_Yc(sut.u, sut.s, Yc), Xc)
 

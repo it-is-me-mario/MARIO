@@ -25,18 +25,24 @@ from mario.compute.types import (
 from mario.model.enums import TableKind
 
 _IOT_SOLVE_FORMULAS = {
+    "build_iot_w_from_z_solve",
     "build_iot_X_from_z_Y",
     "build_iot_m_from_v_z",
     "build_iot_f_from_e_z",
     "build_iot_p_from_v_z",
 }
 _IOT_INVERSE_FORMULAS = {
+    "build_iot_w_from_z",
     "build_iot_X_from_w_Y",
     "build_iot_m_from_v_w",
     "build_iot_f_from_e_w",
     "build_iot_p_from_v_w",
 }
 _SUT_SOLVE_FORMULAS = {
+    "build_sut_wcc_from_u_s_solve",
+    "build_sut_wca_from_u_s_solve",
+    "build_sut_wac_from_s_u_solve",
+    "build_sut_waa_from_s_u_solve",
     "build_sut_Xc_from_u_s_Yc",
     "build_sut_ma_from_va_s_u",
     "build_sut_mc_from_va_s_u",
@@ -46,6 +52,10 @@ _SUT_SOLVE_FORMULAS = {
     "build_sut_pa_from_v_s_u",
 }
 _SUT_INVERSE_FORMULAS = {
+    "build_sut_wcc_from_u_s",
+    "build_sut_wca_from_u_s",
+    "build_sut_wac_from_s_u",
+    "build_sut_waa_from_s_u",
     "build_sut_Xc_from_wcc_Yc",
     "build_sut_ma_from_va_waa",
     "build_sut_mc_from_va_s_wcc",

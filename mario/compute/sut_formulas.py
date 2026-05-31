@@ -104,6 +104,7 @@ def _solve_sut_system(
     rhs: pd.DataFrame | pd.Series,
     *,
     transpose: bool = False,
+    cache_key=None,
     context=None,
     resolver=None,
 ) -> pd.DataFrame | pd.Series:
@@ -141,14 +142,16 @@ def _solve_sut_system(
             "debug",
         )
         cache = _resolver_linear_cache(resolver)
-        cache_key = ("sut", id(product), bool(transpose), options.linear_solver)
+        solver_cache_key = (
+            ("sut", id(product)) if cache_key is None else tuple(cache_key)
+        ) + (bool(transpose), options.linear_solver)
 
         def _get_factor():
-            factor = cache.get(cache_key) if cache is not None else None
+            factor = cache.get(solver_cache_key) if cache is not None else None
             if factor is None:
                 factor = factorized(lhs_sparse)
                 if cache is not None:
-                    cache[cache_key] = factor
+                    cache[solver_cache_key] = factor
             return factor
 
         def _solve_least_squares(rhs_array):
@@ -302,16 +305,93 @@ def build_sut_wcc_from_u_s(u: pd.DataFrame, s: pd.DataFrame) -> pd.DataFrame:
     return safe_inverse(identity_like(product) - product)
 
 
+def build_sut_wcc_from_u_s_solve(
+    u: pd.DataFrame,
+    s: pd.DataFrame,
+    *,
+    context=None,
+    resolver=None,
+) -> pd.DataFrame:
+    """Build ``wcc`` by solving ``(I - u @ s) W = I``."""
+    require_same_columns(u, s.index, lhs_name="u", rhs_name="s.index")
+    require_same_index(u, s.columns, lhs_name="u", rhs_name="s.columns")
+    product = matmul(u, s)
+    validate_square(product)
+    return _solve_sut_system(
+        product,
+        identity_like(product),
+        cache_key=("sut", "u@s", id(u), id(s)),
+        context=context,
+        resolver=resolver,
+    )
+
+
 def build_sut_wca_from_u_s(u: pd.DataFrame, s: pd.DataFrame) -> pd.DataFrame:
     """Build the commodity-to-activity quadrant ``wca`` from ``u`` and ``s``."""
     require_same_columns(u, s.index, lhs_name="u", rhs_name="s.index")
     return matmul(build_sut_wcc_from_u_s(u, s), u)
 
 
+def build_sut_wca_from_wcc_u(wcc: pd.DataFrame, u: pd.DataFrame) -> pd.DataFrame:
+    """Build the commodity-to-activity quadrant ``wca`` from ``wcc`` and ``u``."""
+    validate_square(wcc)
+    require_same_columns(wcc, u.index, lhs_name="wcc", rhs_name="u.index")
+    return matmul(wcc, u)
+
+
+def build_sut_wca_from_u_s_solve(
+    u: pd.DataFrame,
+    s: pd.DataFrame,
+    *,
+    context=None,
+    resolver=None,
+) -> pd.DataFrame:
+    """Build ``wca`` by solving ``(I - u @ s) W = u``."""
+    require_same_columns(u, s.index, lhs_name="u", rhs_name="s.index")
+    require_same_index(u, s.columns, lhs_name="u", rhs_name="s.columns")
+    product = matmul(u, s)
+    validate_square(product)
+    return _solve_sut_system(
+        product,
+        u,
+        cache_key=("sut", "u@s", id(u), id(s)),
+        context=context,
+        resolver=resolver,
+    )
+
+
 def build_sut_wac_from_s_u(s: pd.DataFrame, u: pd.DataFrame) -> pd.DataFrame:
     """Build the activity-to-commodity quadrant ``wac`` from ``s`` and ``u``."""
     require_same_columns(s, u.index, lhs_name="s", rhs_name="u.index")
     return matmul(build_sut_waa_from_s_u(s, u), s)
+
+
+def build_sut_wac_from_waa_s(waa: pd.DataFrame, s: pd.DataFrame) -> pd.DataFrame:
+    """Build the activity-to-commodity quadrant ``wac`` from ``waa`` and ``s``."""
+    validate_square(waa)
+    require_same_columns(waa, s.index, lhs_name="waa", rhs_name="s.index")
+    return matmul(waa, s)
+
+
+def build_sut_wac_from_s_u_solve(
+    s: pd.DataFrame,
+    u: pd.DataFrame,
+    *,
+    context=None,
+    resolver=None,
+) -> pd.DataFrame:
+    """Build ``wac`` by solving ``(I - s @ u) W = s``."""
+    require_same_columns(s, u.index, lhs_name="s", rhs_name="u.index")
+    require_same_index(s, u.columns, lhs_name="s", rhs_name="u.columns")
+    product = matmul(s, u)
+    validate_square(product)
+    return _solve_sut_system(
+        product,
+        s,
+        cache_key=("sut", "s@u", id(s), id(u)),
+        context=context,
+        resolver=resolver,
+    )
 
 
 def build_sut_waa_from_s_u(s: pd.DataFrame, u: pd.DataFrame) -> pd.DataFrame:
@@ -321,6 +401,27 @@ def build_sut_waa_from_s_u(s: pd.DataFrame, u: pd.DataFrame) -> pd.DataFrame:
     product = matmul(s, u)
     validate_square(product)
     return safe_inverse(identity_like(product) - product)
+
+
+def build_sut_waa_from_s_u_solve(
+    s: pd.DataFrame,
+    u: pd.DataFrame,
+    *,
+    context=None,
+    resolver=None,
+) -> pd.DataFrame:
+    """Build ``waa`` by solving ``(I - s @ u) W = I``."""
+    require_same_columns(s, u.index, lhs_name="s", rhs_name="u.index")
+    require_same_index(s, u.columns, lhs_name="s", rhs_name="u.columns")
+    product = matmul(s, u)
+    validate_square(product)
+    return _solve_sut_system(
+        product,
+        identity_like(product),
+        cache_key=("sut", "s@u", id(s), id(u)),
+        context=context,
+        resolver=resolver,
+    )
 
 
 def build_sut_bu_from_Xc_U(Xc: pd.DataFrame | pd.Series, U: pd.DataFrame) -> pd.DataFrame:
@@ -432,7 +533,13 @@ def build_sut_Xc_from_u_s_Yc(
     product = matmul(u, s)
     y_total = sum_final_demand(Yc)
     require_same_index(product, y_total, lhs_name="u@s", rhs_name="Yc_total")
-    total = _solve_sut_system(product, y_total, context=context, resolver=resolver)
+    total = _solve_sut_system(
+        product,
+        y_total,
+        cache_key=("sut", "u@s", id(u), id(s)),
+        context=context,
+        resolver=resolver,
+    )
     return _production_frame(total)
 
 
@@ -794,7 +901,14 @@ def build_sut_ma_from_va_s_u(
         direct_a_name="va",
         direct_c_name="vc",
     )
-    solved = _solve_sut_system(product, direct.T, transpose=True, context=context, resolver=resolver)
+    solved = _solve_sut_system(
+        product,
+        direct.T,
+        transpose=True,
+        cache_key=("sut", "s@u", id(s), id(u)),
+        context=context,
+        resolver=resolver,
+    )
     return solved.T
 
 
@@ -837,7 +951,14 @@ def build_sut_mc_from_va_s_u(
         direct_a_name="va",
         direct_c_name="vc",
     )
-    solved = _solve_sut_system(product, direct.T, transpose=True, context=context, resolver=resolver)
+    solved = _solve_sut_system(
+        product,
+        direct.T,
+        transpose=True,
+        cache_key=("sut", "u@s", id(u), id(s)),
+        context=context,
+        resolver=resolver,
+    )
     return solved.T
 
 
@@ -911,7 +1032,14 @@ def build_sut_fa_from_ea_s_u(
         direct_a_name="ea",
         direct_c_name="ec",
     )
-    solved = _solve_sut_system(product, direct.T, transpose=True, context=context, resolver=resolver)
+    solved = _solve_sut_system(
+        product,
+        direct.T,
+        transpose=True,
+        cache_key=("sut", "s@u", id(s), id(u)),
+        context=context,
+        resolver=resolver,
+    )
     return solved.T
 
 
@@ -954,7 +1082,14 @@ def build_sut_fc_from_ea_s_u(
         direct_a_name="ea",
         direct_c_name="ec",
     )
-    solved = _solve_sut_system(product, direct.T, transpose=True, context=context, resolver=resolver)
+    solved = _solve_sut_system(
+        product,
+        direct.T,
+        transpose=True,
+        cache_key=("sut", "u@s", id(u), id(s)),
+        context=context,
+        resolver=resolver,
+    )
     return solved.T
 
 
@@ -990,7 +1125,14 @@ def build_sut_pc_from_v_s_u(
     direct_c = sum_columns(vc)
     rhs = transpose_matvec(s, direct_a) + direct_c
     product = matmul(u, s)
-    values = _solve_sut_system(product, rhs, transpose=True, context=context, resolver=resolver)
+    values = _solve_sut_system(
+        product,
+        rhs,
+        transpose=True,
+        cache_key=("sut", "u@s", id(u), id(s)),
+        context=context,
+        resolver=resolver,
+    )
     return as_column_frame(values, PRICE_INDEX_LABEL)
 
 
@@ -1026,5 +1168,12 @@ def build_sut_pa_from_v_s_u(
     direct_c = sum_columns(vc)
     rhs = direct_a + transpose_matvec(u, direct_c)
     product = matmul(s, u)
-    values = _solve_sut_system(product, rhs, transpose=True, context=context, resolver=resolver)
+    values = _solve_sut_system(
+        product,
+        rhs,
+        transpose=True,
+        cache_key=("sut", "s@u", id(s), id(u)),
+        context=context,
+        resolver=resolver,
+    )
     return as_column_frame(values, PRICE_INDEX_LABEL)

@@ -23,6 +23,7 @@ from mario.compute.iot_formulas import (
     build_iot_p_from_v_w,
     build_iot_v_from_V_X,
     build_iot_w_from_z,
+    build_iot_w_from_z_solve,
     build_iot_z_from_Z_X,
 )
 from mario.compute.primitives import (
@@ -58,6 +59,7 @@ def test_new_iot_formulas_match_public_primitives():
         (build_iot_Z_from_z_X(data[_ENUM.z], data[_ENUM.X]), calc_Z(data[_ENUM.z], data[_ENUM.X])),
         (build_iot_z_from_Z_X(data[_ENUM.Z], data[_ENUM.X]), calc_z(data[_ENUM.Z], data[_ENUM.X])),
         (build_iot_w_from_z(data[_ENUM.z]), calc_w(data[_ENUM.z])),
+        (build_iot_w_from_z_solve(data[_ENUM.z]), calc_w(data[_ENUM.z])),
         (build_iot_X_from_Z_Y(data[_ENUM.Z], data[_ENUM.Y]), calc_X(data[_ENUM.Z], data[_ENUM.Y])),
         (build_iot_X_from_z_Y(data[_ENUM.z], data[_ENUM.Y]), calc_X_from_z(data[_ENUM.z], data[_ENUM.Y])),
         (build_iot_X_from_w_Y(data[_ENUM.w], data[_ENUM.Y]), calc_X_from_w(data[_ENUM.w], data[_ENUM.Y])),
@@ -84,6 +86,10 @@ def test_new_iot_formulas_match_public_primitives():
 def test_direct_solve_iot_formulas_match_inverse_based_results():
     data = load_dummy("IOT")
 
+    pdt.assert_frame_equal(
+        build_iot_w_from_z_solve(data[_ENUM.z]),
+        build_iot_w_from_z(data[_ENUM.z]),
+    )
     pdt.assert_frame_equal(
         build_iot_X_from_z_Y(data[_ENUM.z], data[_ENUM.Y]),
         build_iot_X_from_w_Y(data[_ENUM.w], data[_ENUM.Y]),

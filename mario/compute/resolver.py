@@ -21,6 +21,7 @@ from mario.compute.types import (
     ConcatStrategy,
     ExtractStrategy,
     FormulaStrategy,
+    MaterializationMode,
     OperatorStrategy,
     ParsedStrategy,
     ResolutionContext,
@@ -56,9 +57,27 @@ def _collect_blocks(store: ResolutionStore):
     return blocks
 
 
-def _build_ordering(store: ResolutionStore, extra_blocks: dict[str, object] | None = None):
+def _normalize_materialization_mode(context: ResolutionContext | None) -> str:
+    """Return the effective persistence mode for one resolution request."""
+    compute = getattr(context, "compute", None)
+    value = getattr(compute, "materialization", MaterializationMode.REQUESTED_ONLY)
+    if isinstance(value, MaterializationMode):
+        return value.value
+    if value is None:
+        return MaterializationMode.REQUESTED_ONLY.value
+    return str(value).strip().lower()
+
+
+def _build_ordering(
+    store: ResolutionStore,
+    extra_blocks: dict[str, object] | None = None,
+    *,
+    visible_blocks: dict[str, object] | None = None,
+):
     """Build the unified SUT ordering policy from visible blocks and overrides."""
     blocks = _collect_blocks(store)
+    if visible_blocks:
+        blocks.update(visible_blocks)
     if extra_blocks:
         blocks.update(extra_blocks)
 
@@ -76,6 +95,8 @@ def _execute_strategy(
     resolver=None,
 ):
     """Execute one selected strategy against the current store state."""
+    visible_get = getattr(resolver, "_visible_get", store.get)
+
     if isinstance(strategy, ParsedStrategy):
         if store.has(target):
             return store.get(target)
@@ -86,9 +107,13 @@ def _execute_strategy(
         if function is None:
             raise ResolutionError(f"Extractor implementation {strategy.extractor} is missing.")
 
-        source = store.get(strategy.source)
+        source = visible_get(strategy.source)
         if table_kind == TableKind.SUT:
-            ordering = _build_ordering(store, {strategy.source: source})
+            ordering = _build_ordering(
+                store,
+                {strategy.source: source},
+                visible_blocks=getattr(resolver, "_memo", None),
+            )
             return function(source, ordering)
         return function(source)
 
@@ -97,9 +122,13 @@ def _execute_strategy(
         if function is None:
             raise ResolutionError(f"View builder implementation {strategy.builder} is missing.")
 
-        blocks = [store.get(source) for source in strategy.sources]
+        blocks = [visible_get(source) for source in strategy.sources]
         if table_kind == TableKind.SUT:
-            ordering = _build_ordering(store, {name: value for name, value in zip(strategy.sources, blocks)})
+            ordering = _build_ordering(
+                store,
+                {name: value for name, value in zip(strategy.sources, blocks)},
+                visible_blocks=getattr(resolver, "_memo", None),
+            )
             return function(*blocks, ordering)
         return function(*blocks)
 
@@ -187,6 +216,41 @@ class Resolver:
         self._memo: dict[str, object] = {}
         self._active: list[str] = []
         self._linear_solver_cache: dict[tuple[object, ...], object] = {}
+        self._requested_targets: set[str] = set()
+        self._materialization_mode = _normalize_materialization_mode(self.context)
+
+    def _visible_has(self, target: str) -> bool:
+        """Return whether one block is visible through persisted or memoized state."""
+        return target in self._memo or self.store.has(target)
+
+    def _visible_get(self, target: str):
+        """Read one block from memoized state first, then persisted storage."""
+        if target in self._memo:
+            return self._memo[target]
+        return self.store.get(target)
+
+    def _should_persist(self, target: str) -> bool:
+        """Return whether one resolved block should remain materialized."""
+        if self._materialization_mode == MaterializationMode.ALL.value:
+            return True
+        if self._materialization_mode == MaterializationMode.NONE.value:
+            return False
+        return target in self._requested_targets
+
+    def mark_requested_targets(self, targets: list[str] | tuple[str, ...] | set[str]) -> None:
+        """Mark a set of user-requested targets as persistent outputs."""
+        self._requested_targets.update(targets)
+        for target in targets:
+            if target in self._memo and not self.store.has(target) and self._should_persist(target):
+                self.store.set(target, self._memo[target])
+
+    def resolve_requested(self, target: str):
+        """Resolve one user-requested target and persist it according to policy."""
+        self.mark_requested_targets([target])
+        value = self.resolve(target)
+        if not self.store.has(target) and self._should_persist(target):
+            self.store.set(target, value)
+        return value
 
     def resolve(self, target: str):
         """Materialize one target block and store it back into the dataset."""
@@ -228,7 +292,7 @@ class Resolver:
                     if isinstance(strategy, ParsedStrategy):
                         value = _execute_strategy(strategy, target, self.store, self.table_kind, {}, resolver=self)
                     elif isinstance(strategy, ExtractStrategy):
-                        if not self.store.has(strategy.source):
+                        if not self._visible_has(strategy.source):
                             errors.append(f"{strategy.kind.value}: source {strategy.source} is not materialized")
                             continue
                         value = _execute_strategy(strategy, target, self.store, self.table_kind, {}, resolver=self)
@@ -261,8 +325,9 @@ class Resolver:
                             resolver=self,
                         )
 
-                    self.store.set(target, value)
                     self._memo[target] = value
+                    if self._should_persist(target):
+                        self.store.set(target, value)
                     if _should_emit_info_resolution_log(root_request=root_request, strategy=strategy):
                         log_time(
                             logger,
@@ -288,6 +353,7 @@ class Resolver:
 
     def resolve_many(self, targets: list[str] | tuple[str, ...]):
         """Resolve several targets and return them as a name-to-block mapping."""
+        self.mark_requested_targets(targets)
         return {target: self.resolve(target) for target in targets}
 
     def explain(self, target: str) -> str:
@@ -302,7 +368,7 @@ class Resolver:
 
 def resolve(target: str, dataset, scenario: str = "baseline", context: ResolutionContext | None = None):
     """Convenience wrapper that resolves one block with a temporary resolver."""
-    return Resolver(dataset, scenario=scenario, context=context).resolve(target)
+    return Resolver(dataset, scenario=scenario, context=context).resolve_requested(target)
 
 
 def resolve_many(

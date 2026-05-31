@@ -56,7 +56,22 @@ def test_resolve_iot_materializes_expected_result():
     expected = calc_w(calc_z(iot.Z, iot.X))
 
     pdt.assert_frame_equal(resolved, expected)
-    assert "z" in iot["baseline"]
+    assert "z" not in iot["baseline"]
+    assert "w" in iot["baseline"]
+
+
+def test_resolve_iot_solve_context_materializes_w_via_linear_solve(monkeypatch):
+    iot = load_test("IOT")
+    expected = calc_w(calc_z(iot.Z, iot.X))
+
+    def _boom(*args, **kwargs):
+        raise AssertionError("safe_inverse should not be called under solve context")
+
+    monkeypatch.setattr("mario.compute.iot_formulas.safe_inverse", _boom)
+
+    resolved = resolve("w", iot, context=ResolutionContext(compute_method="solve", linear_solver="scipy"))
+
+    pdt.assert_frame_equal(resolved, expected)
     assert "w" in iot["baseline"]
 
 
@@ -331,7 +346,30 @@ def test_build_plan_resolves_sut_unified_w_through_quadrants():
     resolved = resolve("w", sut)
     expected = calc_w(calc_z(sut.Z, sut.X))
     pdt.assert_frame_equal(resolved, expected)
-    assert {"wcc", "wca", "wac", "waa", "w"}.issubset(set(sut["baseline"]))
+    assert "w" in sut["baseline"]
+    assert "wcc" not in sut["baseline"]
+    assert "wca" not in sut["baseline"]
+    assert "wac" not in sut["baseline"]
+    assert "waa" not in sut["baseline"]
+
+
+def test_resolve_sut_solve_context_materializes_w_via_linear_solve(monkeypatch):
+    sut = load_test("SUT")
+    expected = calc_w(calc_z(sut.Z, sut.X))
+
+    def _boom(*args, **kwargs):
+        raise AssertionError("safe_inverse should not be called under solve context")
+
+    monkeypatch.setattr("mario.compute.sut_formulas.safe_inverse", _boom)
+
+    resolved = resolve("w", sut, context=ResolutionContext(compute_method="solve", linear_solver="scipy"))
+
+    pdt.assert_frame_equal(resolved, expected)
+    assert "w" in sut["baseline"]
+    assert "wcc" not in sut["baseline"]
+    assert "wca" not in sut["baseline"]
+    assert "wac" not in sut["baseline"]
+    assert "waa" not in sut["baseline"]
 
 
 def test_explain_plans_sut_formula_resolution():

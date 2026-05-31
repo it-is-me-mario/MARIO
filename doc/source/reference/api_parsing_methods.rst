@@ -4,6 +4,20 @@ Parsing and Data Loading
 These pages cover parser entry points, dataset-specific parsers, and related
 loading helpers.
 
+Import Parser Data Into an Existing Database
+--------------------------------------------
+
+.. toctree::
+   :maxdepth: 1
+
+   ../api_document/mario.Database.parse_scenario
+   ../api_document/mario.Database.parse_exiobase
+   ../api_document/mario.Database.parse_from_parquet
+
+
+Top-Level Parser Entrypoints
+----------------------------
+
 .. toctree::
    :maxdepth: 1
 

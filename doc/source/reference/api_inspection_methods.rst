@@ -13,9 +13,29 @@ Query and Block Access
    ../api_document/mario.Database.query
    ../api_document/mario.Database.get_data
    ../api_document/mario.CoreModel.get_block
+   ../api_document/mario.CoreModel.get_block_as_pandas
+   ../api_document/mario.CoreModel.get_block_as_table
+   ../api_document/mario.CoreModel.get_block_as_matrix
+   ../api_document/mario.CoreModel.set_block
+   ../api_document/mario.CoreModel.has_block
    ../api_document/mario.CoreModel.has_matrix
    ../api_document/mario.CoreModel.list_matrices
    ../api_document/mario.CoreModel.available_matrices
+   ../api_document/mario.CoreModel.available_blocks
+   ../api_document/mario.Database.DataFrame
+
+
+Custom Blocks and Operators
+---------------------------
+
+.. toctree::
+   :maxdepth: 1
+
+   ../api_document/mario.CoreModel.get_block_spec
+   ../api_document/mario.CoreModel.register_block_spec
+   ../api_document/mario.CoreModel.list_custom_block_specs
+   ../api_document/mario.CoreModel.register_operator
+   ../api_document/mario.CoreModel.list_custom_operators
 
 
 Sets, Metadata and Scenarios
@@ -27,13 +47,18 @@ Sets, Metadata and Scenarios
    ../api_document/mario.CoreModel.get_index
    ../api_document/mario.CoreModel.search
    ../api_document/mario.CoreModel.sets
+   ../api_document/mario.CoreModel.units
    ../api_document/mario.CoreModel.table_type
+   ../api_document/mario.CoreModel.tech_assumption
    ../api_document/mario.CoreModel.scenarios
    ../api_document/mario.CoreModel.baseline_scenario_name
    ../api_document/mario.CoreModel.directory
    ../api_document/mario.CoreModel.meta_history
    ../api_document/mario.CoreModel.save_meta
    ../api_document/mario.CoreModel.add_note
+   ../api_document/mario.Database.clusters
+   ../api_document/mario.Database.default_clusters
+   ../api_document/mario.Database.available_clusters
    ../api_document/mario.Database.copy
    ../api_document/mario.Database.backup
 

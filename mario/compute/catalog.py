@@ -143,6 +143,7 @@ COMPUTE_CATALOG = {
             KEEP,
             IOT_ENTITY_AXIS,
             IOT_ENTITY_AXIS,
+            _formula(("z",), "build_iot_w_from_z_solve", "w = solve(identity - z, identity)"),
             _formula(("z",), "build_iot_w_from_z", "w = minverse(identity - z)"),
         ),
         "Y": _spec(
@@ -334,6 +335,7 @@ COMPUTE_CATALOG = {
             SUT_COMMODITY_AXIS,
             SUT_COMMODITY_AXIS,
             _extract("w", "extract_wcc_from_w", "Extracted from w, only if available"),
+            _formula(("u", "s"), "build_sut_wcc_from_u_s_solve", "wcc = solve(identity - u @ s, identity)"),
             _formula(("u", "s"), "build_sut_wcc_from_u_s", "wcc = minverse(identity - u @ s)"),
         ),
         "wca": _spec(
@@ -343,6 +345,7 @@ COMPUTE_CATALOG = {
             SUT_COMMODITY_AXIS,
             SUT_ACTIVITY_AXIS,
             _extract("w", "extract_wca_from_w", "Extracted from w, only if available"),
+            _formula(("u", "s"), "build_sut_wca_from_u_s_solve", "wca = solve(identity - u @ s, u)"),
             _formula(("u", "s"), "build_sut_wca_from_u_s", "wca = minverse(identity - u @ s) @ u"),
         ),
         "wac": _spec(
@@ -352,6 +355,7 @@ COMPUTE_CATALOG = {
             SUT_ACTIVITY_AXIS,
             SUT_COMMODITY_AXIS,
             _extract("w", "extract_wac_from_w", "Extracted from w, only if available"),
+            _formula(("s", "u"), "build_sut_wac_from_s_u_solve", "wac = solve(identity - s @ u, s)"),
             _formula(("s", "u"), "build_sut_wac_from_s_u", "wac = minverse(identity - s @ u) @ s"),
         ),
         "waa": _spec(
@@ -361,6 +365,7 @@ COMPUTE_CATALOG = {
             SUT_ACTIVITY_AXIS,
             SUT_ACTIVITY_AXIS,
             _extract("w", "extract_waa_from_w", "Extracted from w, only if available"),
+            _formula(("s", "u"), "build_sut_waa_from_s_u_solve", "waa = solve(identity - s @ u, identity)"),
             _formula(("s", "u"), "build_sut_waa_from_s_u", "waa = minverse(identity - s @ u)"),
         ),
         "Y": _spec(

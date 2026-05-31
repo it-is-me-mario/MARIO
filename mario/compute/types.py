@@ -31,6 +31,43 @@ class MatrixStatus(str, Enum):
     ADD = "add"
 
 
+class ExecutionMode(str, Enum):
+    """High-level execution intent exposed by the advanced compute API."""
+
+    AUTO = "auto"
+    PREFER_SPEED = "prefer_speed"
+    PREFER_MEMORY = "prefer_memory"
+    DEBUG = "debug"
+
+
+class PlanningOverride(str, Enum):
+    """Optional override for the planning phase of one compute request."""
+
+    AUTO = "auto"
+    PREFER_EXPLICIT_INTERMEDIATES = "prefer_explicit_intermediates"
+    PREFER_DIRECT_TARGETS = "prefer_direct_targets"
+
+
+class BackendOverride(str, Enum):
+    """Optional override for the numerical backend used by one request."""
+
+    AUTO = "auto"
+    DENSE_INVERSE = "dense_inverse"
+    DENSE_SOLVE = "dense_solve"
+    SPARSE_DIRECT = "sparse_direct"
+    SPARSE_ITERATIVE = "sparse_iterative"
+
+
+class MaterializationMode(str, Enum):
+    """Policy that controls which resolved blocks remain materialized."""
+
+    AUTO = "auto"
+    REQUESTED_ONLY = "requested_only"
+    REUSE_HEAVY = "reuse_heavy"
+    ALL = "all"
+    NONE = "none"
+
+
 @dataclass(frozen=True)
 class MatrixKey:
     """Unique matrix identifier inside the compute catalog."""
@@ -161,6 +198,20 @@ class MatrixSpec:
 
 
 @dataclass(frozen=True)
+class ComputeOptions:
+    """Advanced compute options carried by one resolution request."""
+
+    execution_mode: ExecutionMode | str = ExecutionMode.AUTO
+    planning_override: PlanningOverride | str = PlanningOverride.AUTO
+    backend_override: BackendOverride | str = BackendOverride.AUTO
+    materialization: MaterializationMode | str = MaterializationMode.REQUESTED_ONLY
+    auto_memory_fraction: float | None = None
+    auto_inverse_overhead_factor: float | None = None
+    debug_explain_decisions: bool = False
+    allow_fallbacks: bool = True
+
+
+@dataclass(frozen=True)
 class ResolutionContext:
     """Planner options that influence strategy selection and explanation."""
 
@@ -168,6 +219,9 @@ class ResolutionContext:
     materialized: frozenset[str] = frozenset()
     prefer_materialized_views: bool = True
     allow_formula: bool = True
+    compute: ComputeOptions | None = None
+    # Legacy compute overrides kept for backward compatibility while the
+    # advanced compute API is rolled out across the public surface.
     compute_method: str | None = None
     linear_solver: str | None = None
     linear_strategy: str | None = None

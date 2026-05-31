@@ -287,6 +287,22 @@ def build_iot_w_from_z(z: pd.DataFrame) -> pd.DataFrame:
     return safe_inverse(identity_like(z) - z)
 
 
+def build_iot_w_from_z_solve(
+    z: pd.DataFrame,
+    *,
+    context=None,
+    resolver=None,
+) -> pd.DataFrame:
+    """Build the Leontief inverse by solving ``(I - z) W = I``."""
+    validate_square(z)
+    return _solve_iot_system(
+        z,
+        identity_like(z),
+        context=context,
+        resolver=resolver,
+    )
+
+
 def build_iot_X_from_z_Y(
     z: pd.DataFrame,
     Y: pd.DataFrame,

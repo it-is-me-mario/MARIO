@@ -23,12 +23,18 @@ Database Compute API
      - Resolve one matrix and return the materialized block.
    * - :doc:`db.resolve_many(...) <../api_document/mario.CoreModel.resolve_many>`
      - Resolve several matrices and return a mapping.
+   * - :doc:`db.explain(...) <../api_document/mario.CoreModel.explain>`
+     - Explain which compute path MARIO would use for one matrix.
    * - :doc:`db.calc_linkages(...) <../api_document/mario.Database.calc_linkages>`
      - Calculate backward and forward linkage indicators.
+   * - :doc:`db.calc_ghg(...) <../api_document/mario.Database.calc_ghg>`
+     - Build a greenhouse-gas aggregate extension from selected satellite rows.
    * - :doc:`db.calc_trades(...) <../api_document/mario.Database.calc_trades>`
      - Aggregate one sector or commodity into a region-by-region trade matrix and optional heatmap.
    * - :doc:`db.calc_trades_content(...) <../api_document/mario.Database.calc_trades_content>`
      - Calculate embodied trade content and, with ``breakdown=True``, decompose it by contributor.
+   * - :doc:`db.calc_trades_content_breakdown(...) <../api_document/mario.Database.calc_trades_content_breakdown>`
+     - Shortcut for ``db.calc_trades_content(..., breakdown=True)``.
    * - :doc:`db.calc_spa(...) <../api_document/mario.Database.calc_spa>`
      - Enumerate demand-driven structural paths for one indicator and final-demand bundle.
    * - :doc:`db.calc_embodied_imports(...) <../api_document/mario.Database.calc_embodied_imports>`
@@ -37,9 +43,9 @@ Database Compute API
      - Collapse embodied trade-content matrices into export accounts by origin Region.
    * - :doc:`db.calc_embodied_net_imports(...) <../api_document/mario.Database.calc_embodied_net_imports>`
      - Calculate embodied net imports as imports minus exports.
-   * - :doc:`db.calc_trades_concentration(...) <../api_document/mario.Database.calc_trades_content_concentration>`
+   * - :doc:`db.calc_trades_concentration(...) <../api_document/mario.Database.calc_trades_concentration>`
      - Calculate contributor-region concentration of embodied trade content.
-   * - :doc:`db.calc_trades_exposure(...) <../api_document/mario.Database.calc_trades_content_exposure>`
+   * - :doc:`db.calc_trades_exposure(...) <../api_document/mario.Database.calc_trades_exposure>`
      - Calculate embodied trade-content exposure to selected contributor Regions.
 
 .. toctree::
@@ -48,15 +54,19 @@ Database Compute API
   ../api_document/mario.CoreModel.calc_all
   ../api_document/mario.CoreModel.resolve
   ../api_document/mario.CoreModel.resolve_many
+  ../api_document/mario.CoreModel.explain
   ../api_document/mario.Database.calc_linkages
+  ../api_document/mario.Database.calc_ghg
   ../api_document/mario.Database.calc_trades
   ../api_document/mario.Database.calc_trades_content
+  ../api_document/mario.Database.calc_trades_content_breakdown
   ../api_document/mario.Database.calc_spa
   ../api_document/mario.Database.calc_embodied_imports
   ../api_document/mario.Database.calc_embodied_exports
   ../api_document/mario.Database.calc_embodied_net_imports
-  ../api_document/mario.Database.calc_trades_content_concentration
-  ../api_document/mario.Database.calc_trades_content_exposure
+  ../api_document/mario.Database.calc_trades_concentration
+  ../api_document/mario.Database.calc_trades_exposure
+  api_resolvable_matrices
 
 
 Runtime Compute Options
@@ -73,6 +83,17 @@ matrix or through linear-system solves.
 See :doc:`mario.set_compute_method <../api_document/mario.set_compute_method>`,
 :doc:`mario.set_linear_solver <../api_document/mario.set_linear_solver>` and
 :doc:`mario.set_linear_strategy <../api_document/mario.set_linear_strategy>`.
+
+
+Resolvable Database Blocks
+--------------------------
+
+Many SUT and IOT results do not have dedicated Python methods. They are still
+part of the public compute API through ``db.resolve(...)``, ``db.resolve_many(...)``,
+``db.calc_all(...)`` and dotted access such as ``db.Xa`` or ``db.wcc``.
+
+See :doc:`api_resolvable_matrices` for the authoritative list of built-in block
+names currently supported by MARIO.
 
 
 Standalone IOT Helpers

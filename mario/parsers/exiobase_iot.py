@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import json
 import logging
 from pathlib import Path
@@ -229,7 +229,12 @@ def _detect_exiobase_iot_layout(root: Path) -> ExiobaseIOTLayout:
 
 def detect_exiobase_iot_layout(path: str | Path) -> ExiobaseIOTLayout:
     """Inspect one EXIOBASE IOT folder and detect the parse layout."""
-    return _detect_exiobase_iot_layout(Path(path))
+    source = Path(path)
+    with _open_exiobase_iot_root(source) as root:
+        layout = _detect_exiobase_iot_layout(root)
+    if source.suffix.lower() == ".zip":
+        return replace(layout, root=source)
+    return layout
 
 
 def _validate_exiobase_iot_version(layout: ExiobaseIOTLayout, version: str | None) -> None:

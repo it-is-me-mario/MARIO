@@ -1,4 +1,5 @@
 import json
+import zipfile
 
 import pandas as pd
 import pandas.testing as pdt
@@ -82,6 +83,12 @@ def _write_exiobase_sut(root):
             }
         )
     )
+
+
+def _zip_tree(root, archive_path):
+    with zipfile.ZipFile(archive_path, "w") as archive:
+        for path in root.rglob("*"):
+            archive.write(path, arcname=path.relative_to(root.parent))
 
 
 def _write_matching_exiobase_iot(root):
@@ -201,6 +208,20 @@ def test_parse_exiobase_sut_keeps_split_native_blocks_demand_driven(tmp_path):
     assert {"Z", "Y", "V"} <= set(db.matrices["baseline"])
 
 
+def test_parse_exiobase_sut_accepts_zip_bundle(tmp_path):
+    root = tmp_path / "Exiobase 3.8.2 - MRSUT_2011_ixi"
+    archive = tmp_path / "Exiobase 3.8.2 - MRSUT_2011_ixi.zip"
+    _write_exiobase_sut(root)
+    _zip_tree(root, archive)
+
+    db = parse_exiobase_sut(str(archive), calc_all=False)
+
+    assert db.meta.year == 2011
+    assert db.meta.price == "current"
+    assert "version 3.8.2" in db.meta.source
+    assert set(db.matrices["baseline"]) == {"EY", "Ea", "Ec", "S", "U", "Va", "Vc", "Ya", "Yc"}
+
+
 def test_parse_exiobase_sut_can_import_extensions_from_matching_iot(tmp_path):
     sut_root = tmp_path / "Exiobase 3.8.2 - MRSUT_2011_ixi"
     iot_root = tmp_path / "Exiobase 3.8.2 - IOT_2011_ixi"
@@ -241,6 +262,26 @@ def test_parse_exiobase_sut_can_import_extensions_from_matching_iot(tmp_path):
     assert (db.Ec == 0).all().all()
     assert db.get_index(_MASTER_INDEX["k"]) == ["CO2", "Water use"]
     assert db.units[_MASTER_INDEX["k"]].loc["CO2", "unit"] == "kg"
+
+
+def test_parse_exiobase_sut_can_import_extensions_from_matching_iot_zip(tmp_path):
+    sut_root = tmp_path / "Exiobase 3.8.2 - MRSUT_2011_ixi"
+    iot_root = tmp_path / "Exiobase 3.8.2 - IOT_2011_ixi"
+    iot_archive = tmp_path / "Exiobase 3.8.2 - IOT_2011_ixi.zip"
+    _write_exiobase_sut(sut_root)
+    _write_matching_exiobase_iot(iot_root)
+    _zip_tree(iot_root, iot_archive)
+
+    db = parse_exiobase_sut(
+        str(sut_root),
+        add_extensions=str(iot_archive),
+        calc_all=False,
+    )
+
+    assert db.get_index(_MASTER_INDEX["k"]) == ["CO2", "Water use"]
+    assert db.units[_MASTER_INDEX["k"]].loc["CO2", "unit"] == "kg"
+    assert db.Ea.loc["CO2"].sum() > 0
+    assert db.EY.loc["CO2"].sum() > 0
 
 
 def test_parse_exiobase_sut_rejects_invalid_extension_path_before_reading_sut(tmp_path, monkeypatch):

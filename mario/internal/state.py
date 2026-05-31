@@ -228,7 +228,7 @@ class ModelState:
         log_time(logger, f"ModelState: compute {requested} for {scenario}.", "info")
         resolver = Resolver(self, scenario=scenario, context=context)
         if isinstance(name, str):
-            return resolver.resolve(name)
+            return resolver.resolve_requested(name)
         return resolver.resolve_many(list(name))
 
     def explain(self, name: str, scenario: str = "baseline", context: ResolutionContext | None = None) -> str:

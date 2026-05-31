@@ -34,3 +34,16 @@ Scenario Operations
    ../api_document/mario.Database.shock_calc
    ../api_document/mario.Database.reset_to_flows
    ../api_document/mario.Database.reset_to_coefficients
+
+
+Clusters and Helper Mutations
+-----------------------------
+
+.. toctree::
+   :maxdepth: 1
+
+   ../api_document/mario.Database.set_clusters
+   ../api_document/mario.Database.add_cluster
+   ../api_document/mario.Database.clear_clusters
+   ../api_document/mario.Database.replace_units_name
+   ../api_document/mario.Database.build_new_instance

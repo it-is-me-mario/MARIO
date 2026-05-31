@@ -88,6 +88,13 @@ from mario.compute.primitives import (
     calc_p,
     calc_p_from_z,
 )
+from mario.compute.types import (
+    BackendOverride,
+    ComputeOptions,
+    ExecutionMode,
+    MaterializationMode,
+    PlanningOverride,
+)
 from mario.log_exc.logger import set_log_verbosity
 from mario.model.builders import (
     MatrixBuilder,

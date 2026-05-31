@@ -27,3 +27,15 @@ Workflow Helper Workbooks
    ../api_document/mario.Database.get_extensions_excel
    ../api_document/mario.Database.get_add_sectors_excel
    ../api_document/mario.Database.get_shock_excel
+
+
+Read Filled Workflow Workbooks
+------------------------------
+
+.. toctree::
+   :maxdepth: 1
+
+   ../api_document/mario.Database.read_aggregated_index
+   ../api_document/mario.Database.read_add_sectors_excel
+   ../api_document/mario.Database.get_inventory_sheets
+   ../api_document/mario.Database.read_inventory_sheets

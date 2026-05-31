@@ -35,7 +35,7 @@ def test_catalog_covers_iot_and_sut_blocks():
     iot_p = get_matrix_spec("IOT", "p")
     iot_vy = get_matrix_spec("IOT", "VY")
 
-    assert len(sut_wcc.strategies) == 2
+    assert len(sut_wcc.strategies) == 3
     assert sut_bu.strategies[-1].function == "build_sut_bu_from_Xc_U"
     assert sut_gcc.strategies[-1].function == "build_sut_gcc_from_bu_bs"
     assert sut_c.axes.rows == (INDEX_LABELS["r"], INDEX_LABELS["c"], ITEM_LABEL)

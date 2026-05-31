@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from dataclasses import dataclass
 import json
 import logging
 from pathlib import Path
 import re
+import tempfile
+import zipfile
 
 import numpy as np
 import pandas as pd
@@ -64,9 +67,49 @@ def _normalize_version(value: object) -> str | None:
     return text
 
 
-def detect_exiobase_sut_layout(path: str | Path) -> ExiobaseSUTLayout:
-    """Inspect one EXIOBASE monetary SUT folder and detect its parse layout."""
+def _looks_like_exiobase_sut_root(root: Path) -> bool:
+    """Return whether one directory looks like an EXIOBASE SUT bundle root."""
+    if not root.is_dir():
+        return False
+
+    required_files = ("supply.csv", "use.csv", "final_demand.csv", "value_added.csv")
+    return all((root / file_name).exists() for file_name in required_files)
+
+
+def _resolve_extracted_sut_root(root: Path) -> Path:
+    """Resolve the bundle root after extracting one EXIOBASE SUT archive."""
+    if _looks_like_exiobase_sut_root(root):
+        return root
+
+    candidates = [candidate for candidate in root.rglob("*") if _looks_like_exiobase_sut_root(candidate)]
+    if not candidates:
+        return root
+
+    candidates.sort(key=lambda candidate: (len(candidate.relative_to(root).parts), str(candidate)))
+    return candidates[0]
+
+
+@contextmanager
+def _open_exiobase_sut_root(path: str | Path):
+    """Yield an EXIOBASE SUT directory, extracting zip archives on demand."""
     root = Path(path)
+    if root.suffix.lower() != ".zip":
+        yield root
+        return
+
+    if not root.exists():
+        raise FileNotFoundError(root)
+
+    with tempfile.TemporaryDirectory(prefix="mario_exiobase_sut_") as extracted_dir:
+        extraction_root = Path(extracted_dir)
+        log_time(logger, f"Parser: extracting EXIOBASE SUT archive {root}.", "debug")
+        with zipfile.ZipFile(root) as archive:
+            archive.extractall(extraction_root)
+        yield _resolve_extracted_sut_root(extraction_root)
+
+
+def _detect_exiobase_sut_layout(root: Path) -> ExiobaseSUTLayout:
+    """Inspect one EXIOBASE monetary SUT folder and detect its parse layout."""
     if not root.exists():
         raise FileNotFoundError(root)
     if not root.is_dir():
@@ -108,6 +151,11 @@ def detect_exiobase_sut_layout(path: str | Path) -> ExiobaseSUTLayout:
         "debug",
     )
     return layout
+
+
+def detect_exiobase_sut_layout(path: str | Path) -> ExiobaseSUTLayout:
+    """Inspect one EXIOBASE monetary SUT folder and detect its parse layout."""
+    return _detect_exiobase_sut_layout(Path(path))
 
 
 def _read_numeric_matrix(path: Path, *, index_col, header) -> pd.DataFrame:
@@ -234,107 +282,108 @@ def parse_exiobase_sut_monetary(
     the parser reads only the IOT satellite blocks and maps them onto the SUT
     activity/final-demand axes.
     """
-    layout = detect_exiobase_sut_layout(path)
     if add_extensions is not None:
         detect_exiobase_iot_layout(add_extensions)
-    log_time(logger, f"Parser: reading EXIOBASE SUT from {layout.root}.", "info")
+    with _open_exiobase_sut_root(path) as root:
+        layout = _detect_exiobase_sut_layout(root)
+        log_time(logger, f"Parser: reading EXIOBASE SUT from {layout.root}.", "info")
 
-    supply = _read_numeric_matrix(layout.root / "supply.csv", index_col=[0, 1], header=[0, 1])
-    use = _read_numeric_matrix(layout.root / "use.csv", index_col=[0, 1], header=[0, 1])
-    final_demand = _read_numeric_matrix(layout.root / "final_demand.csv", index_col=[0, 1], header=[0, 1])
-    value_added = _read_numeric_matrix(layout.root / "value_added.csv", index_col=[0], header=[0, 1])
+        supply = _read_numeric_matrix(layout.root / "supply.csv", index_col=[0, 1], header=[0, 1])
+        use = _read_numeric_matrix(layout.root / "use.csv", index_col=[0, 1], header=[0, 1])
+        final_demand = _read_numeric_matrix(layout.root / "final_demand.csv", index_col=[0, 1], header=[0, 1])
+        value_added = _read_numeric_matrix(layout.root / "value_added.csv", index_col=[0], header=[0, 1])
 
-    commodity_axis = _commodity_axis(use.index)
-    activity_axis = _activity_axis(supply.columns)
-    final_demand_axis = _final_demand_axis(final_demand.columns)
-    factor_axis = pd.Index(value_added.index.tolist(), name=None)
-    satellite_axis = pd.Index(["-"], name=None)
+        commodity_axis = _commodity_axis(use.index)
+        activity_axis = _activity_axis(supply.columns)
+        final_demand_axis = _final_demand_axis(final_demand.columns)
+        factor_axis = pd.Index(value_added.index.tolist(), name=None)
+        satellite_axis = pd.Index(["-"], name=None)
 
-    U = use.copy()
-    U.index = commodity_axis
-    U.columns = activity_axis
+        U = use.copy()
+        U.index = commodity_axis
+        U.columns = activity_axis
 
-    S = supply.copy().T
-    S.index = activity_axis
-    S.columns = commodity_axis
+        S = supply.copy().T
+        S.index = activity_axis
+        S.columns = commodity_axis
 
-    Yc = final_demand.copy()
-    Yc.index = commodity_axis
-    Yc.columns = final_demand_axis
+        Yc = final_demand.copy()
+        Yc.index = commodity_axis
+        Yc.columns = final_demand_axis
 
-    Ya = _zero_frame(activity_axis, final_demand_axis)
+        Ya = _zero_frame(activity_axis, final_demand_axis)
 
-    Va = value_added.copy()
-    Va.columns = activity_axis
+        Va = value_added.copy()
+        Va.columns = activity_axis
 
-    Vc = _zero_frame(factor_axis, commodity_axis)
-    if add_extensions is None:
-        Ea = _zero_frame(satellite_axis, activity_axis)
-        Ec = _zero_frame(satellite_axis, commodity_axis)
-        EY = _zero_frame(satellite_axis, final_demand_axis)
-        extension_units = pd.DataFrame({"unit": ["None"]}, index=satellite_axis)
-        log_time(
-            logger,
-            "Parser: no matching IOT provided; using empty satellite extensions.",
-            "info",
-        )
-    else:
-        log_time(
-            logger,
-            f"Parser: importing satellite extensions from matching IOT at {add_extensions}.",
-            "info",
-        )
-        Ea, Ec, extension_units, satellite_axis, EY = _load_extensions_from_iot(
-            add_extensions,
-            activity_axis=activity_axis,
-            commodity_axis=commodity_axis,
-            final_demand_axis=final_demand_axis,
-        )
+        Vc = _zero_frame(factor_axis, commodity_axis)
+        if add_extensions is None:
+            Ea = _zero_frame(satellite_axis, activity_axis)
+            Ec = _zero_frame(satellite_axis, commodity_axis)
+            EY = _zero_frame(satellite_axis, final_demand_axis)
+            extension_units = pd.DataFrame({"unit": ["None"]}, index=satellite_axis)
+            log_time(
+                logger,
+                "Parser: no matching IOT provided; using empty satellite extensions.",
+                "info",
+            )
+        else:
+            log_time(
+                logger,
+                f"Parser: importing satellite extensions from matching IOT at {add_extensions}.",
+                "info",
+            )
+            Ea, Ec, extension_units, satellite_axis, EY = _load_extensions_from_iot(
+                add_extensions,
+                activity_axis=activity_axis,
+                commodity_axis=commodity_axis,
+                final_demand_axis=final_demand_axis,
+            )
 
-    matrices = {
-        "baseline": {
-            "U": U,
-            "S": S,
-            "Ya": Ya,
-            "Yc": Yc,
-            "Va": Va,
-            "Vc": Vc,
-            "Ea": Ea,
-            "Ec": Ec,
-            "EY": EY,
+        matrices = {
+            "baseline": {
+                "U": U,
+                "S": S,
+                "Ya": Ya,
+                "Yc": Yc,
+                "Va": Va,
+                "Vc": Vc,
+                "Ea": Ea,
+                "Ec": Ec,
+                "EY": EY,
+            }
         }
-    }
 
-    unit_label = _currency_unit(layout.currency)
-    units = {
-        _MASTER_INDEX["a"]: pd.DataFrame({"unit": [unit_label] * len(activity_axis.unique(2))}, index=delete_duplicates(list(activity_axis.get_level_values(2)))),
-        _MASTER_INDEX["c"]: pd.DataFrame({"unit": [unit_label] * len(commodity_axis.unique(2))}, index=delete_duplicates(list(commodity_axis.get_level_values(2)))),
-        _MASTER_INDEX["f"]: pd.DataFrame({"unit": [unit_label] * len(factor_axis)}, index=factor_axis),
-        _MASTER_INDEX["k"]: extension_units,
-    }
+        unit_label = _currency_unit(layout.currency)
+        units = {
+            _MASTER_INDEX["a"]: pd.DataFrame({"unit": [unit_label] * len(activity_axis.unique(2))}, index=delete_duplicates(list(activity_axis.get_level_values(2)))),
+            _MASTER_INDEX["c"]: pd.DataFrame({"unit": [unit_label] * len(commodity_axis.unique(2))}, index=delete_duplicates(list(commodity_axis.get_level_values(2)))),
+            _MASTER_INDEX["f"]: pd.DataFrame({"unit": [unit_label] * len(factor_axis)}, index=factor_axis),
+            _MASTER_INDEX["k"]: extension_units,
+        }
 
-    indeces = {
-        "r": {"main": delete_duplicates(list(commodity_axis.get_level_values(0)))},
-        "n": {"main": delete_duplicates(list(final_demand_axis.get_level_values(2)))},
-        "k": {"main": list(satellite_axis)},
-        "f": {"main": list(factor_axis)},
-        "a": {"main": delete_duplicates(list(activity_axis.get_level_values(2)))},
-        "c": {"main": delete_duplicates(list(commodity_axis.get_level_values(2)))},
-        "s": {
-            "main": delete_duplicates(list(activity_axis.get_level_values(2)))
-            + delete_duplicates(list(commodity_axis.get_level_values(2)))
-        },
-    }
+        indeces = {
+            "r": {"main": delete_duplicates(list(commodity_axis.get_level_values(0)))},
+            "n": {"main": delete_duplicates(list(final_demand_axis.get_level_values(2)))},
+            "k": {"main": list(satellite_axis)},
+            "f": {"main": list(factor_axis)},
+            "a": {"main": delete_duplicates(list(activity_axis.get_level_values(2)))},
+            "c": {"main": delete_duplicates(list(commodity_axis.get_level_values(2)))},
+            "s": {
+                "main": delete_duplicates(list(activity_axis.get_level_values(2)))
+                + delete_duplicates(list(commodity_axis.get_level_values(2)))
+            },
+        }
 
-    rename_index(matrices["baseline"])
-    log_time(
-        logger,
-        (
-            "Parser: EXIOBASE SUT parsed with "
-            f"{len(indeces['a']['main'])} activities, "
-            f"{len(indeces['c']['main'])} commodities, "
-            f"{len(indeces['f']['main'])} value-added rows."
-        ),
-        "info",
-    )
-    return matrices, indeces, units, layout
+        rename_index(matrices["baseline"])
+        log_time(
+            logger,
+            (
+                "Parser: EXIOBASE SUT parsed with "
+                f"{len(indeces['a']['main'])} activities, "
+                f"{len(indeces['c']['main'])} commodities, "
+                f"{len(indeces['f']['main'])} value-added rows."
+            ),
+            "info",
+        )
+        return matrices, indeces, units, layout
