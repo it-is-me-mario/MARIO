@@ -2,7 +2,7 @@
 Release History
 ****************
 
-Unreleased
+v1.0.0
 ----------
 
 Architecture and public API
@@ -119,6 +119,7 @@ Testing and documentation
   keeping their parser implementations in the package.
 * Rewrote and expanded developer-facing documentation, tutorials and parser
   development guidance.
+
 
 v 0.3.4
 -------

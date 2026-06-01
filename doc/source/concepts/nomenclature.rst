@@ -57,6 +57,9 @@ Below, the default names for indices and matrices are listed, along with their a
    blocked explicitly to avoid ambiguous API calls.
 
 
+The same tables are available :download:`downloading the terminology workbook </_static/data/supporting_files/Terminology.xlsx>`.
+
+
 Indices
 ~~~~~~~
 

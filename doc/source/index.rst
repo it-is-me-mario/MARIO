@@ -21,19 +21,23 @@ needed for research and applied analysis.
    If you want to start using this version before the PyPI release, follow
    the temporary installation steps in :doc:`setup/installation`.
 
-What MARIO supports
--------------------
+
+What you can do
+-----------------------
 
 MARIO can parse tables from many well-known sources out of the box, including
-EXIOBASE, EORA, EUROSTAT, FIGARO, WIOD, OECD, and more. When data are not
+:doc:`EXIOBASE (monetary) <notebooks/parsers/exiobase/monetary>`,
+:doc:`EXIOBASE (hybrid) <notebooks/parsers/exiobase/hybrid>`,
+:doc:`EORA <notebooks/parsers/eora/walkthrough_eora>`,
+:doc:`EUROSTAT <notebooks/parsers/eurostat/walkthrough_eurostat>`,
+:doc:`FIGARO <notebooks/parsers/figaro/walkthrough_figaro>`,
+:doc:`WIOD <notebooks/parsers/wiod/walkthrough_wiod>`,
+:doc:`OECD <notebooks/parsers/oecd/walkthrough_oecd>`, and more. When data are not
 already structured for a known format, MARIO also accepts custom databases
 through Excel, CSV, text files, or pandas DataFrames.
 
 Supported table types include single-region and multi-region systems, monetary
 and hybrid tables, Input-Output Tables, and Supply and Use Tables.
-
-What you can do with it
------------------------
 
 Beyond parsing, MARIO provides a set of analytical and transformation tools:
 
@@ -48,8 +52,8 @@ Beyond parsing, MARIO provides a set of analytical and transformation tools:
 
 Quickstart
 ----------
-
-A minimal IOT and SUT test database is included in MARIO:
+After installing MARIO, you can perform a quick test with the minimal IOT 
+or SUT example databases included in the package. For example, for IOT workflows:
 
 .. code-block:: python
 
@@ -72,6 +76,8 @@ For SUT workflows:
 
    sut.calc_all()
    sut.to_txt(path="output_folder", coefficients=True)
+
+Detailed documentation and examples are available in the :doc:`user guide <user_guide/index>`.
 
 Citation
 --------
@@ -104,7 +110,9 @@ MARIO grows across two complementary settings.
              </a>
           </td>
           <td valign="top">
-             <strong>Politecnico di Milano</strong>. Development stays closer to the academic side: research methods, modelling choices, scientific validation, and documentation-oriented workflows.
+             <a href="https://www.polimi.it" target="_blank" rel="noopener" style="color: inherit;">
+                <strong>Politecnico di Milano</strong>
+             </a> Development stays closer to the academic side: research methods, modelling choices, scientific validation, and documentation-oriented workflows.
           </td>
        </tr>
        <tr>
@@ -114,7 +122,9 @@ MARIO grows across two complementary settings.
              </a>
           </td>
           <td valign="top">
-             <strong>eNextGen</strong>. As a spin-off of Politecnico di Milano, eNextGen brings MARIO into applied settings for companies and organisations, where the same analytical core supports real decarbonisation, sustainability, and decision-support cases.
+             <a href="https://enextgen.it" target="_blank" rel="noopener" style="color: inherit;">
+                <strong>eNextGen</strong>
+             </a> As a spin-off of Politecnico di Milano, eNextGen brings MARIO into applied settings for companies and organisations, where the same analytical core supports real decarbonisation, sustainability, and decision-support cases.
           </td>
        </tr>
     </table>
