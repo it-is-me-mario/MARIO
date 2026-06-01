@@ -7,10 +7,10 @@ import pytest
 import requests
 import pandas as pd
 from pandas import testing as pdt
+from tests._paths import HYBRID_EXIOBASE_MOCK_ROOT
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-MAIN_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-FILES_PATH = f"{MAIN_PATH}/tests/mocks/temp_files"
+FILES_PATH = str(HYBRID_EXIOBASE_MOCK_ROOT)
 
 from mario import hybrid_sut_exiobase, hybrid_iot_exiobase, parse_exiobase
 from mario.log_exc.exceptions import WrongInput
@@ -42,6 +42,11 @@ def download_exiobase_files(exiobase_files):
             open(path, "wb").write(response.content)
 
 
+def ensure_exiobase_files():
+    if not os.path.exists(f"{FILES_PATH}/metadata.xlsx"):
+        download_exiobase_files(exiobase_files)
+
+
 def test_parse_wrong_extension():
     with pytest.raises(WrongInput) as msg:
         hybrid_sut_exiobase("dummy", ["dummy"])
@@ -56,6 +61,7 @@ def test_parse_wrong_extension_string_is_not_split_into_characters():
     assert "dummy" in str(msg.value)
 
 def test_parse_main_data():
+    ensure_exiobase_files()
 
     # no extension to parse
     db = hybrid_sut_exiobase(FILES_PATH)
@@ -127,7 +133,7 @@ def test_parse_main_data():
 
 
 def test_parse_hybrid_iot_main_data():
-    download_exiobase_files(exiobase_files)
+    ensure_exiobase_files()
 
     db = hybrid_iot_exiobase(FILES_PATH)
 
@@ -165,7 +171,7 @@ def test_parse_hybrid_iot_main_data():
 
 
 def test_parse_exiobase_supports_hybrid_iot():
-    download_exiobase_files(exiobase_files)
+    ensure_exiobase_files()
 
     db = parse_exiobase(table="IOT", unit="Hybrid", path=FILES_PATH)
 
@@ -173,6 +179,7 @@ def test_parse_exiobase_supports_hybrid_iot():
     assert db.V.shape[0] == 7
 
 def test_read_extensions():
+    ensure_exiobase_files()
 
     # reading all extensions (if read all extensions works, single ones should also work)
     db = hybrid_sut_exiobase(

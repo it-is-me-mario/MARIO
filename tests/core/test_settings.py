@@ -7,6 +7,7 @@ import sys
 import yaml
 from copy import deepcopy
 from mario.log_exc.exceptions import WrongFormat
+from tests._paths import MOCKS_ROOT
 
 
 from mario.model.conventions import _ENUM
@@ -21,8 +22,7 @@ from mario.settings.settings import (
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
-MAIN_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MOCK_PATH = f"{MAIN_PATH}/tests/mocks"
+MOCK_PATH = str(MOCKS_ROOT)
 
 def test_download_settings():
     

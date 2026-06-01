@@ -6,9 +6,10 @@ import pytest
 import yaml
 
 import mario
+from tests._paths import TESTS_ROOT
 
 
-DEFAULT_ENV_FILE = Path(__file__).with_name("realdata.local.env")
+DEFAULT_ENV_FILE = TESTS_ROOT / "realdata.local.env"
 ENV_FILE_KEYS = {
     "MARIO_REALDATA_ROOT",
     "MARIO_REALDATA_CONFIG",

@@ -1768,6 +1768,7 @@ def test_parse_from_parquet_sut_matrix_roundtrip_after_region_style_aggregation_
     pytest.importorskip("pyarrow")
 
     database = load_test("SUT")
+    expected_blocks = {"U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "EY", "VY"}
     aggregated = database.aggregate(
         io={
             "Activity": pd.DataFrame(
@@ -1785,7 +1786,7 @@ def test_parse_from_parquet_sut_matrix_roundtrip_after_region_style_aggregation_
         zero_output_epsilon=None,
     )
 
-    for matrix_name in ("Z", "Y", "V", "E", "EY", "VY"):
+    for matrix_name in expected_blocks:
         assert not aggregated["baseline"][matrix_name].isna().any().any()
 
     aggregated.to_parquet(path=tmp_path, flows=True, coefficients=False, flat=False)
@@ -1799,7 +1800,6 @@ def test_parse_from_parquet_sut_matrix_roundtrip_after_region_style_aggregation_
         calc_all=False,
     )
 
-    expected_blocks = {"U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "EY", "VY"}
     parsed_nan_blocks = [
         matrix_name
         for matrix_name in expected_blocks

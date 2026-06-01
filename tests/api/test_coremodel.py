@@ -7,12 +7,13 @@ import pytest
 import pandas.testing as pdt
 import pandas as pd
 from scipy import sparse
+from tests._paths import REPO_ROOT
 
 from mario.model.conventions import _ENUM, _MASTER_INDEX
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
-MAIN_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MAIN_PATH = str(REPO_ROOT)
 
 from mario.api.core_model import CoreModel
 from mario.api import Database

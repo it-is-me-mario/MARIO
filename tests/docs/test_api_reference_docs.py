@@ -2,9 +2,10 @@ from pathlib import Path
 
 from mario.api.core_model import CoreModel
 from mario.api.database import Database
+from tests._paths import REPO_ROOT
 
 
-DOC_ROOT = Path(__file__).resolve().parents[1] / "doc" / "source"
+DOC_ROOT = REPO_ROOT / "doc" / "source"
 API_DOC_ROOT = DOC_ROOT / "api_document"
 
 

@@ -1700,8 +1700,12 @@ def test_add_sectors_split_zeroes_sub_threshold_input_values(tmp_path, CoreDataI
 
 def test_add_sectors_split_old_tables_include_non_split_added_sectors(tmp_path):
     pytest.importorskip("cvxlab")
-    database = load_test("IOT")
-    workbook = Path("mario/test/supporting_files/add_sector_iot_inventories_filled.xlsx")
+    database = parse_from_excel(
+        "mario/test/supporting_files/add_sectors/add_sector_iot_table.xlsx",
+        table="IOT",
+        mode="flows",
+    )
+    workbook = Path("mario/test/supporting_files/add_sectors/add_sector_iot_inventories_filled.xlsx")
 
     new = database.add_sectors(
         io=workbook,

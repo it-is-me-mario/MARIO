@@ -20,10 +20,10 @@ from mario.parsers.api import build_database_from_state, build_parser_state
 from mario.parsers.entrypoints import parse_from_excel
 from mario.parsers.matrix_layouts import sut_block_specs_for_matrix_layouts
 from mario.views import build_database_frame
+from tests._paths import MOCKS_ROOT
 
 
-MAIN_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MOCK_PATH = f"{MAIN_PATH}/tests/mocks"
+MOCK_PATH = str(MOCKS_ROOT)
 
 
 def _write_iot_layout_workbook(path):

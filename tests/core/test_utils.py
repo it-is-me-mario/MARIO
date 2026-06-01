@@ -9,6 +9,7 @@ import sys
 
 import pandas as pd
 import numpy as np
+from tests._paths import MOCKS_ROOT
 
 
 
@@ -21,7 +22,7 @@ from mario.model.conventions import _ENUM
 from mario.log_exc.exceptions import WrongInput
 
 MAIN_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MOCK_PATH = f"{MAIN_PATH}/tests/mocks"
+MOCK_PATH = str(MOCKS_ROOT)
 
 @pytest.fixture()
 def CoreDataIOT():

@@ -9,9 +9,9 @@ from mario.parsers.entrypoints import (
     parse_from_parquet,
     parse_from_txt,
 )
+from tests._paths import REALDATA_ROOT
 
 
-REALDATA_ROOT = Path(__file__).parent / "fixtures" / "realdata"
 REALDATA_DATA = REALDATA_ROOT / "data"
 REALDATA_AGGREGATIONS = REALDATA_ROOT / "aggregations"
 
@@ -40,7 +40,7 @@ REALDATA_DATASETS = {
             "IOT_sf.xlsx",
         ],
     },
-    "IOT_Vr_Esr.xlsx": {
+    "IOT_Vssr_Esr.xlsx": {
         "table": "IOT",
         "matrix_layouts": {"V": "Region", "E": ("Region", "Sector"), "EY": ("Region", "Sector")},
         "aggregation_files": [

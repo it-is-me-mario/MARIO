@@ -9,13 +9,13 @@ import pytest
 import pandas.testing as pdt
 import pandas as pd
 from pymrio import Extension,IOSystem
+from tests._paths import MOCKS_ROOT
 
 from mario.model.conventions import _ENUM
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
-MAIN_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MOCK_PATH = f"{MAIN_PATH}/tests/mocks"
+MOCK_PATH = str(MOCKS_ROOT)
 
 from mario.api.core_model import CoreModel
 from mario.api.database import Database
