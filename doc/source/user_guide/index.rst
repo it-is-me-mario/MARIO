@@ -45,6 +45,7 @@ The workflows are grouped into four families:
    :maxdepth: 1
    :caption: Advanced workflows
 
+   advanced/greenhouse_gas_calculations
    advanced/supply_chain_analyses
    advanced/structural_path_analysis
 

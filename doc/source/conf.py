@@ -116,7 +116,7 @@ extensions = [
 ]
 nbsphinx_execute = "never"
 nbsphinx_epilog = r"""
-{% if env.docname.startswith("notebooks/parsers/") or env.docname in ["user_guide/inspection/calc_linkages", "user_guide/inspection/calculate_trades", "user_guide/inspection/supply_chain_analyses"] %}
+{% if env.docname.startswith("notebooks/parsers/") or env.docname.startswith("user_guide/advanced/") or env.docname in ["user_guide/inspection/calc_linkages", "user_guide/inspection/calculate_trades", "user_guide/inspection/supply_chain_analyses"] %}
 .. container:: parser-notebook-download
 
    :download:`Download this notebook <{{ env.docname.split("/")[-1] }}.ipynb>`

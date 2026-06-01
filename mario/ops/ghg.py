@@ -45,7 +45,7 @@ GHG_PROFILES: Dict[str, dict] = {
         "match": ("exiobase", "hybrid"),
         "unit": "kg CO2eq",
         "gwp": {
-            "CO2 (air - Emiss)": 1.0,
+            "Carbon dioxide, fossil (air - Emiss)": 1.0,
             "CH4 (air - Emiss)": 29.7,
             "N2O (air - Emiss)": 264.8,
         },

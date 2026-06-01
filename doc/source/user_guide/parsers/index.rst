@@ -56,6 +56,16 @@ Other MRIO and SRIO databases
 Coverage query
 --------------
 
+The packaged country coverage workbook used by parser coverage checks and
+runtime region reconciliation is documented on a dedicated page:
+
+- :doc:`country_coverage`
+
+.. toctree::
+   :hidden:
+
+   country_coverage
+
 Use the query below to check which parser/source combinations are available for
 each country and time range.
 

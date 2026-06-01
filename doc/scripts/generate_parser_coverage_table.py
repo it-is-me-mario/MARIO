@@ -7,7 +7,10 @@ from pathlib import Path
 import country_converter as coco
 import pandas as pd
 
-from mario.clusters.coverage import load_concordance as load_runtime_concordance
+from mario.clusters.coverage import (
+    coverage_workbook_resource,
+    load_concordance as load_runtime_concordance,
+)
 
 try:
     import pycountry
@@ -133,7 +136,8 @@ def expand_years(years: str) -> list[str]:
 
 
 def normalize_coverage_rows() -> list[dict[str, str]]:
-    coverage = pd.read_excel(WORKBOOK, sheet_name="coverage")
+    with coverage_workbook_resource().open("rb") as handle:
+        coverage = pd.read_excel(handle, sheet_name="coverage")
     concordance = load_concordance()
     converter = coco.CountryConverter()
 
