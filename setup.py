@@ -1,6 +1,38 @@
 # -*- coding: utf-8 -*-
 
+from pathlib import Path
+
 from setuptools import find_packages, setup
+
+
+def read_long_description():
+    lines = Path(__file__).with_name("README.rst").read_text(encoding="utf8").splitlines()
+    cleaned = []
+    i = 0
+
+    while i < len(lines):
+        if lines[i].startswith(".. raw::"):
+            i += 1
+
+            while i < len(lines) and not lines[i].strip():
+                i += 1
+
+            while i < len(lines):
+                line = lines[i]
+                if line.startswith(("   ", "\t")) or not line.strip():
+                    i += 1
+                    continue
+                break
+
+            cleaned.append("")
+            continue
+
+        cleaned.append(lines[i])
+        i += 1
+
+    return "\n".join(cleaned)
+
+
 exec(open("mario/version.py").read())
 setup(
     name="mariopy",
@@ -8,7 +40,8 @@ setup(
         "A python package for automating input-output (IO) calculations, models"
         ",visualization and scenario and supply-chain analysis"
     ),
-    long_description = open("README.rst",encoding="utf8").read(),
+    long_description=read_long_description(),
+    long_description_content_type="text/x-rst",
     url="https://github.com/it-is-me-mario/MARIO",
     author="Lorenzo Rinaldi, Mohammad Amin Tahavori, Nicolo Golinucci",
     author_email="lorenzo.rinaldi@polimi.it",
