@@ -11,11 +11,11 @@
       "The documentation currently follows main and points to temporary installation steps.",
       "Setup is the right starting point before loading data or running notebooks."
     ],
-    "primary_href": "setup/installation.html",
+    "primary_href": "setup/index.html#installation",
     "links": [
       {
         "label": "Installation guide",
-        "href": "setup/installation.html",
+        "href": "setup/index.html#installation",
         "reason": "Environment setup and current install path."
       },
       {

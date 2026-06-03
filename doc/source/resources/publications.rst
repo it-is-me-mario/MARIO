@@ -17,8 +17,7 @@ The primary reference to cite when using MARIO is the paper below.
 
       Tahavori2023
 
-This is the canonical MARIO citation and should be the default reference unless
-your journal or project requires a different citation policy.
+This is the canonical MARIO citation and should be the default reference.
 
 Publications
 ------------
@@ -31,6 +30,7 @@ from the most recent publication to the oldest one.
    :style: mario_abbr
    :list: enumerated
 
+   Daun2026
    Fragkos2026
    Schau2026
    Tan2025

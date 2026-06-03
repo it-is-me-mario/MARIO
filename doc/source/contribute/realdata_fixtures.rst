@@ -14,7 +14,7 @@ Vendored fixtures
 
 External local datasets
    Larger or non-redistributable datasets discovered through local environment
-   configuration in ``tests/test_external_realdata_workflow.py``.
+   configuration in ``tests/parsers/test_external_realdata_workflow.py``.
 
 
 What the Vendored Fixtures Cover
@@ -26,8 +26,9 @@ The committed fixtures are split into:
 * ``tests/fixtures/realdata/aggregations`` for aggregation templates applied to
   those workbooks.
 
-The central regression harness is ``tests/test_realdata_workbooks.py``. It uses
-these fixtures to verify:
+The central regression harness is
+``tests/parsers/test_realdata_workbooks.py``. It uses these fixtures to
+verify:
 
 * Excel parsing across legacy and explicit layout variants;
 * TXT and Parquet roundtrips in both matrix and flat export modes;
@@ -70,7 +71,7 @@ For the current test harness, the workflow is:
 2. add or reuse any matching aggregation templates under
    ``tests/fixtures/realdata/aggregations``;
 3. register the case in ``REALDATA_DATASETS`` inside
-   ``tests/test_realdata_workbooks.py`` with:
+   ``tests/parsers/test_realdata_workbooks.py`` with:
 
    * ``table`` set to ``"IOT"`` or ``"SUT"``;
    * ``matrix_layouts`` describing any non-default row layout expectations;
@@ -103,13 +104,18 @@ External Real-Data Workflows
 Some parser checks cannot live in the repository because the datasets are too
 large, licensed differently, or environment-specific.
 
-Those workflows are handled by ``tests/test_external_realdata_workflow.py`` and
-the optional env file ``tests/realdata.local.env``. The relevant variables are:
+Those workflows are handled by
+``tests/parsers/test_external_realdata_workflow.py`` and the optional env file
+``tests/realdata.local.env``. Start from the committed example file
+``tests/realdata.env.example`` and copy it locally. The relevant variables are:
 
 * ``MARIO_REALDATA_ROOT``;
 * ``MARIO_REALDATA_CONFIG``;
 * ``MARIO_REALDATA_FILTER``;
 * ``MARIO_REALDATA_RUN_AGGREGATE``.
+
+If needed, you can also override the env-file location itself with
+``MARIO_REALDATA_ENV``.
 
 Use that path when the goal is to validate a local mirror of a real source
 family without making the repository heavier or less shareable.
@@ -122,12 +128,13 @@ For vendored fixtures, the minimum useful check is:
 
 .. code-block:: bash
 
-   pytest tests/test_realdata_workbooks.py -q
+   pytest tests/parsers/test_realdata_workbooks.py -q
 
 For local external datasets, run:
 
 .. code-block:: bash
 
-   pytest tests/test_external_realdata_workflow.py -q
+   cp tests/realdata.env.example tests/realdata.local.env
+   pytest tests/parsers/test_external_realdata_workflow.py -q
 
 before merging parser changes that rely on those sources.

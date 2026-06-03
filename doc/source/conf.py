@@ -116,7 +116,25 @@ extensions = [
 ]
 nbsphinx_execute = "never"
 nbsphinx_epilog = r"""
-{% if env.docname.startswith("notebooks/parsers/") or env.docname.startswith("user_guide/advanced/") or env.docname in ["user_guide/inspection/calc_linkages", "user_guide/inspection/calculate_trades", "user_guide/inspection/supply_chain_analyses"] %}
+{% set notebook_download_pages = [
+    "user_guide/parsers/provide_your_database",
+    "user_guide/inspection/basic_inspections",
+    "user_guide/inspection/compute_matrices",
+    "user_guide/inspection/visualization",
+    "user_guide/inspection/custom_labels_and_aliases",
+    "user_guide/inspection/export_and_roundtrip",
+    "user_guide/inspection/calc_linkages",
+    "user_guide/inspection/calculate_trades",
+    "user_guide/inspection/supply_chain_analyses",
+    "user_guide/transformations/aggregate",
+    "user_guide/transformations/add_extensions",
+    "user_guide/transformations/apply_shocks",
+    "user_guide/transformations/add_sectors",
+    "user_guide/transformations/sut_to_iot",
+    "user_guide/transformations/mrio_to_srio",
+    "user_guide/transformations/to_chenery_moses",
+] %}
+{% if env.docname.startswith("notebooks/parsers/") or env.docname.startswith("user_guide/advanced/") or env.docname in notebook_download_pages %}
 .. container:: parser-notebook-download
 
    :download:`Download this notebook <{{ env.docname.split("/")[-1] }}.ipynb>`
@@ -143,7 +161,6 @@ exclude_patterns = [
     "user_guide/inspection/custom_labels.ipynb",
     "user_guide/advanced/change_settings.ipynb",
     "user_guide/advanced/large_database_workflows.ipynb",
-    "contribute/documentation.rst",
     "resources/changelog.rst",
 ]
 

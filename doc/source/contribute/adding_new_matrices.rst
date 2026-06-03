@@ -99,18 +99,23 @@ Required Tests
 A new matrix normally needs coverage at three levels.
 
 Catalog tests
-   Update or extend ``tests/test_compute_catalog.py`` so the new matrix has the
-   expected table kind, axes, and strategies.
+  Update or extend ``tests/compute/test_compute_catalog.py`` so the new matrix
+  has the expected table kind, axes, and strategies.
 
 Resolver tests
-   Add a resolver-level test in ``tests/test_resolver.py`` when the new block
-   introduces a new dependency path, runtime option interaction, or SUT
-   ordering edge case.
+  Add a resolver-level test in ``tests/compute/test_resolver.py`` when the
+  new block introduces a new dependency path, runtime option interaction, or
+  SUT ordering edge case.
 
 Formula or view tests
-   Add focused numeric tests in ``tests/test_iot_formulas.py``,
-   ``tests/test_sut_formulas.py``, or ``tests/test_compute_views.py`` depending
-   on where the implementation lives.
+  Add focused numeric tests in ``tests/compute/test_iot_formulas.py``,
+  ``tests/compute/test_sut_formulas.py``, or
+  ``tests/compute/test_compute_views.py`` depending on where the
+  implementation lives.
+
+Docs and API-surface tests
+  If the new block becomes part of the public reference surface, update or
+  extend ``tests/docs/test_api_reference_docs.py`` as needed.
 
 As a rule, test the semantics closest to where they can fail. Pure algebra goes
 in formula tests; dependency selection and materialization behaviour go in

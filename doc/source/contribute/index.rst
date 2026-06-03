@@ -17,6 +17,15 @@ If you are trying to read the codebase efficiently, start with:
 * :doc:`compute_layer` for the catalog/resolver/formula model used to build
    matrices on demand.
 
+If you already know which slice you need to touch, use this shorter path:
+
+* parser work: :doc:`parsers`, then :doc:`realdata_fixtures` and
+  :doc:`testing_strategy`;
+* compute semantics or matrix availability: :doc:`compute_layer`, then
+  :doc:`adding_new_matrices` and :doc:`testing_strategy`;
+* documentation or notebook-backed pages: :doc:`documentation`;
+* broad repository orientation: :doc:`architecture_overview` first.
+
 .. toctree::
    :maxdepth: 1
 
@@ -24,6 +33,7 @@ If you are trying to read the codebase efficiently, start with:
    parsers
    compute_layer
    adding_new_matrices
+   documentation
    testing_strategy
    realdata_fixtures
 
