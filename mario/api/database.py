@@ -35,6 +35,7 @@ from mario.ops.add_sector_workbook import (
 )
 from mario.ops.add_sector_engine import run_add_sector_engine
 from mario.ops.add_sector_engine import collect_add_sector_matrices
+from mario.ops.add_sector_engine import warn_missing_factor_of_production_inputs
 from mario.ops.add_sector_split import (
     apply_split_parent_renames,
     build_split_flow_scenario,
@@ -2028,6 +2029,7 @@ class Database(CoreModel):
         parent_name=None,
         parent_names=None,
         residue=None,
+        VA_fix=False,
     ):
         """Apply the add-sectors workbook to the selected scenario.
 
@@ -2052,6 +2054,10 @@ class Database(CoreModel):
         split:
             When ``True`` and the table is an IOT, run the split workflow after
             the standard coefficient-side insertion.
+        VA_fix:
+            When ``True``, warn about any database factor-of-production rows
+            that are missing from the workbook inventories before slice filling
+            starts.
         keep_all_split_steps:
             When ``False`` and ``split=True``, keep only the final available
             split result as ``baseline`` and discard intermediate scenarios such
@@ -2111,6 +2117,7 @@ class Database(CoreModel):
                 parent_name=parent_name,
                 parent_names=parent_names,
                 residue=residue,
+                VA_fix=VA_fix,
             )
             return new
 
@@ -2131,6 +2138,10 @@ class Database(CoreModel):
                     "Inventory sheets are not loaded. Pass an add-sectors workbook path "
                     "or call read_inventory_sheets(...) first."
                 )
+
+            stage = "checking factor-of-production inventory rows"
+            if VA_fix:
+                warn_missing_factor_of_production_inputs(self)
 
             stage = "validating split parameters"
             if split:
@@ -2171,6 +2182,7 @@ class Database(CoreModel):
                 self,
                 scenario=scenario,
                 ignore_warnings=ignore_warnings,
+                VA_fix=VA_fix,
             )
 
             stage = "collecting baseline VY"
