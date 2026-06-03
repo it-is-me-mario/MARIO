@@ -4726,6 +4726,8 @@ class Database(CoreModel):
         gwp=None,
         label="GHG",
         unit=None,
+        time_horizon=100,
+        ipcc_report="AR6",
         inplace=True,
     ):
         """Aggregate satellite GHG accounts into a new ``label`` row.
@@ -4748,6 +4750,17 @@ class Database(CoreModel):
         unit:
             Optional unit override. When omitted, the new row reuses the
             shared unit of the aggregated satellite accounts.
+        time_horizon:
+            Time horizon used to resolve built-in profile GWPs when available.
+            Default is ``100``. At the moment this matters only for built-in
+            profile gases whose factors vary across horizons, such as ``CH4``
+            and ``N2O``. Ignored when ``gwp=...`` is provided.
+        ipcc_report:
+            IPCC assessment report used to resolve built-in profile GWPs when
+            available. Supported built-in values currently are ``AR4``,
+            ``AR5``, and ``AR6``. At the moment this matters only for gases
+            whose factors vary across reports, such as ``CH4`` and ``N2O``.
+            Ignored when ``gwp=...`` is provided.
         inplace:
             When ``True`` mutate the database in place. When ``False`` return
             a modified copy.
@@ -4763,6 +4776,8 @@ class Database(CoreModel):
             gwp=gwp,
             label=label,
             unit=unit,
+            time_horizon=time_horizon,
+            ipcc_report=ipcc_report,
             inplace=inplace,
         )
 

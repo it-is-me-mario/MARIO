@@ -2,21 +2,52 @@
 
 Defines a small registry of GHG satellite-account profiles per supported
 parser (EXIOBASE, EORA, GLORIA, EMERGING, ...) together with their default
-GWP-100 factors, and a `calc_ghg` helper used by `Database.calc_ghg()`.
+GWP factors, and a `calc_ghg` helper used by `Database.calc_ghg()`.
 
 The registry can be extended at runtime via :func:`register_ghg_profile`.
 """
 from __future__ import annotations
 
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 import pandas as pd
+
+GWPScalar = Union[int, float]
+GWPValue = Union[GWPScalar, Dict[int, Dict[str, GWPScalar]]]
+GWPMapping = Dict[str, GWPValue]
+
+GWPs = {
+    'GHG': 1,
+    'Carbon dioxide': 1,
+    'Methane - fossil': {
+        100: {
+            'AR6': 29.8,
+            'AR5': 30,
+            'AR4': 25,
+        },
+    },
+    'Methane - non fossil': {
+        100: {
+            'AR6': 29.8,
+            'AR5': 30,
+            'AR4': 25,
+        },
+    },
+    'Nitrous oxide': {
+        100: {
+            'AR6': 273,
+            'AR5': 265,
+            'AR4': 298,
+        }
+    }
+}
 
 
 # ---------------------------------------------------------------- registry
 # Each entry is a dict with:
 #   match : substring or tuple of substrings (case-insensitive, AND-matched)
 #           against db.meta.source / db.meta.name
-#   gwp   : {satellite-account label : GWP-100 factor}
+#   gwp   : {satellite-account label : GWP factor or
+#            {time_horizon: {ipcc_report: factor}}}
 #   unit  : unit label used for the aggregated row (default "kg CO2eq")
 #
 # Profiles are evaluated in declaration order; the first matching profile
@@ -32,9 +63,9 @@ GHG_PROFILES: Dict[str, dict] = {
         "match": ("exiobase", "monetary"),
         "unit": "kg CO2eq",
         "gwp": {
-            "CO2 - combustion - air": 1.0,
-            "CH4 - combustion - air": 29.7,
-            "N2O - combustion - air": 264.8,
+            "CO2 - combustion - air": GWPs['Carbon dioxide'],
+            "CH4 - combustion - air": GWPs['Methane - fossil'],
+            "N2O - combustion - air": GWPs['Nitrous oxide'],
         },
     },
     # ---------------- EXIOBASE 3.3.18 hybrid (HSUT / HIOT) ---------------
@@ -45,9 +76,9 @@ GHG_PROFILES: Dict[str, dict] = {
         "match": ("exiobase", "hybrid"),
         "unit": "kg CO2eq",
         "gwp": {
-            "Carbon dioxide, fossil (air - Emiss)": 1.0,
-            "CH4 (air - Emiss)": 29.7,
-            "N2O (air - Emiss)": 264.8,
+            "Carbon dioxide, fossil (air - Emiss)": GWPs['Carbon dioxide'],
+            "CH4 (air - Emiss)": GWPs['Methane - fossil'],
+            "N2O (air - Emiss)": GWPs['Nitrous oxide'],
         },
     },
     # ---------------- EORA26 ---------------------------------------------
@@ -63,178 +94,178 @@ GHG_PROFILES: Dict[str, dict] = {
         "match_mode": "prefix",
         "unit": "Gg CO2eq",
         "gwp": {
-            'I-GHG-CO2 emissions (Gg) - Public electricity and heat production': 1,
-            'I-GHG-CO2 emissions (Gg) - Other Energy Industries': 1,
-            'I-GHG-CO2 emissions (Gg) - Manufacturing Industries and Construction': 1,
-            'I-GHG-CO2 emissions (Gg) - Domestic aviation': 1,
-            'I-GHG-CO2 emissions (Gg) - Road transportation': 1,
-            'I-GHG-CO2 emissions (Gg) - Rail transportation': 1,
-            'I-GHG-CO2 emissions (Gg) - Inland navigation': 1,
-            'I-GHG-CO2 emissions (Gg) - Other transportation': 1,
-            'I-GHG-CO2 emissions (Gg) - Residential and other sectors': 1,
-            'I-GHG-CO2 emissions (Gg) - Fugitive emissions from solid fuels': 1,
-            'I-GHG-CO2 emissions (Gg) - Fugitive emissions from oil and gas': 1,
-            'I-GHG-CO2 emissions (Gg) - Memo: International aviation': 1,
-            'I-GHG-CO2 emissions (Gg) - Memo: International navigation': 1,
-            'I-GHG-CO2 emissions (Gg) - Production of minerals': 1,
-            'I-GHG-CO2 emissions (Gg) - Cement production': 1,
-            'I-GHG-CO2 emissions (Gg) - Lime production': 1,
-            'I-GHG-CO2 emissions (Gg) - Production of chemicals': 1,
-            'I-GHG-CO2 emissions (Gg) - Production of metals': 1,
-            'I-GHG-CO2 emissions (Gg) - Production of pulp/paper/food/drink': 1,
-            'I-GHG-CO2 emissions (Gg) - Production of halocarbons and SF6': 1,
-            'I-GHG-CO2 emissions (Gg) - Refrigeration and Air Conditioning': 1,
-            'I-GHG-CO2 emissions (Gg) - Foam Blowing': 1,
-            'I-GHG-CO2 emissions (Gg) - Fire Extinguishers': 1,
-            'I-GHG-CO2 emissions (Gg) - Aerosols': 1,
-            'I-GHG-CO2 emissions (Gg) - F-gas as Solvent': 1,
-            'I-GHG-CO2 emissions (Gg) - Semiconductor/Electronics Manufacture': 1,
-            'I-GHG-CO2 emissions (Gg) - Electrical Equipment': 1,
-            'I-GHG-CO2 emissions (Gg) - Other F-gas use': 1,
-            'I-GHG-CO2 emissions (Gg) - Non-energy use of lubricants/waxes (CO2)': 1,
-            'I-GHG-CO2 emissions (Gg) - Solvent and other product use: paint': 1,
-            'I-GHG-CO2 emissions (Gg) - Solvent and other product use: degrease': 1,
-            'I-GHG-CO2 emissions (Gg) - Solvent and other product use: chemicals': 1,
-            'I-GHG-CO2 emissions (Gg) - Solvent and other product use: other': 1,
-            'I-GHG-CO2 emissions (Gg) - Enteric fermentation': 1,
-            'I-GHG-CO2 emissions (Gg) - Manure management': 1,
-            'I-GHG-CO2 emissions (Gg) - Rice cultivation': 1,
-            'I-GHG-CO2 emissions (Gg) - Direct soil emissions': 1,
-            'I-GHG-CO2 emissions (Gg) - Manure in pasture/range/paddock': 1,
-            'I-GHG-CO2 emissions (Gg) - Indirect N2O from agriculture': 1,
-            'I-GHG-CO2 emissions (Gg) - Other direct soil emissions': 1,
-            'I-GHG-CO2 emissions (Gg) - Savanna burning': 1,
-            'I-GHG-CO2 emissions (Gg) - Agricultural waste burning': 1,
-            'I-GHG-CO2 emissions (Gg) - Forest fires': 1,
-            'I-GHG-CO2 emissions (Gg) - Grassland fires': 1,
-            'I-GHG-CO2 emissions (Gg) - Decay of wetlands/peatlands': 1,
-            'I-GHG-CO2 emissions (Gg) - Other vegetation fires': 1,
-            'I-GHG-CO2 emissions (Gg) - Forest Fires-Post burn decay': 1,
-            'I-GHG-CO2 emissions (Gg) - Solid waste disposal on land': 1,
-            'I-GHG-CO2 emissions (Gg) - Wastewater handling': 1,
-            'I-GHG-CO2 emissions (Gg) - Waste incineration': 1,
-            'I-GHG-CO2 emissions (Gg) - Other waste handling': 1,
-            'I-GHG-CO2 emissions (Gg) - Fossil fuel fires': 1,
-            'I-GHG-CO2 emissions (Gg) - Indirect N2O from non-agricultural NOx': 1,
-            'I-GHG-CO2 emissions (Gg) - Indirect N2O from non-agricultural NH3': 1,
-            'I-GHG-CO2 emissions (Gg) - Other sources': 1.0,
-            'I-GHG-CH4 emissions (Gg) - Public electricity and heat production': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Other Energy Industries': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Manufacturing Industries and Construction': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Domestic aviation': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Road transportation': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Rail transportation': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Inland navigation': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Other transportation': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Residential and other sectors': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Fugitive emissions from solid fuels': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Fugitive emissions from oil and gas': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Memo: International aviation': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Memo: International navigation': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Production of minerals': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Cement production': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Lime production': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Production of chemicals': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Production of metals': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Production of pulp/paper/food/drink': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Production of halocarbons and SF6': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Refrigeration and Air Conditioning': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Foam Blowing': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Fire Extinguishers': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Aerosols': 29.7,
-            'I-GHG-CH4 emissions (Gg) - F-gas as Solvent': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Semiconductor/Electronics Manufacture': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Electrical Equipment': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Other F-gas use': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Non-energy use of lubricants/waxes (CO2)': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Solvent and other product use: paint': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Solvent and other product use: degrease': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Solvent and other product use: chemicals': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Solvent and other product use: other': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Enteric fermentation': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Manure management': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Rice cultivation': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Direct soil emissions': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Manure in pasture/range/paddock': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Indirect N2O from agriculture': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Other direct soil emissions': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Savanna burning': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Agricultural waste burning': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Forest fires': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Grassland fires': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Decay of wetlands/peatlands': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Other vegetation fires': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Forest Fires-Post burn decay': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Solid waste disposal on land': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Wastewater handling': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Waste incineration': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Other waste handling': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Fossil fuel fires': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Indirect N2O from non-agricultural NOx': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Indirect N2O from non-agricultural NH3': 29.7,
-            'I-GHG-CH4 emissions (Gg) - Other sources': 29.7,
-            'I-GHG-N2O emissions (Gg) - Public electricity and heat production': 264.8,
-            'I-GHG-N2O emissions (Gg) - Other Energy Industries': 264.8,
-            'I-GHG-N2O emissions (Gg) - Manufacturing Industries and Construction': 264.8,
-            'I-GHG-N2O emissions (Gg) - Domestic aviation': 264.8,
-            'I-GHG-N2O emissions (Gg) - Road transportation': 264.8,
-            'I-GHG-N2O emissions (Gg) - Rail transportation': 264.8,
-            'I-GHG-N2O emissions (Gg) - Inland navigation': 264.8,
-            'I-GHG-N2O emissions (Gg) - Other transportation': 264.8,
-            'I-GHG-N2O emissions (Gg) - Residential and other sectors': 264.8,
-            'I-GHG-N2O emissions (Gg) - Fugitive emissions from solid fuels': 264.8,
-            'I-GHG-N2O emissions (Gg) - Fugitive emissions from oil and gas': 264.8,
-            'I-GHG-N2O emissions (Gg) - Memo: International aviation': 264.8,
-            'I-GHG-N2O emissions (Gg) - Memo: International navigation': 264.8,
-            'I-GHG-N2O emissions (Gg) - Production of minerals': 264.8,
-            'I-GHG-N2O emissions (Gg) - Cement production': 264.8,
-            'I-GHG-N2O emissions (Gg) - Lime production': 264.8,
-            'I-GHG-N2O emissions (Gg) - Production of chemicals': 264.8,
-            'I-GHG-N2O emissions (Gg) - Production of metals': 264.8,
-            'I-GHG-N2O emissions (Gg) - Production of pulp/paper/food/drink': 264.8,
-            'I-GHG-N2O emissions (Gg) - Production of halocarbons and SF6': 264.8,
-            'I-GHG-N2O emissions (Gg) - Refrigeration and Air Conditioning': 264.8,
-            'I-GHG-N2O emissions (Gg) - Foam Blowing': 264.8,
-            'I-GHG-N2O emissions (Gg) - Fire Extinguishers': 264.8,
-            'I-GHG-N2O emissions (Gg) - Aerosols': 264.8,
-            'I-GHG-N2O emissions (Gg) - F-gas as Solvent': 264.8,
-            'I-GHG-N2O emissions (Gg) - Semiconductor/Electronics Manufacture': 264.8,
-            'I-GHG-N2O emissions (Gg) - Electrical Equipment': 264.8,
-            'I-GHG-N2O emissions (Gg) - Other F-gas use': 264.8,
-            'I-GHG-N2O emissions (Gg) - Non-energy use of lubricants/waxes (CO2)': 264.8,
-            'I-GHG-N2O emissions (Gg) - Solvent and other product use: paint': 264.8,
-            'I-GHG-N2O emissions (Gg) - Solvent and other product use: degrease': 264.8,
-            'I-GHG-N2O emissions (Gg) - Solvent and other product use: chemicals': 264.8,
-            'I-GHG-N2O emissions (Gg) - Solvent and other product use: other': 264.8,
-            'I-GHG-N2O emissions (Gg) - Enteric fermentation': 264.8,
-            'I-GHG-N2O emissions (Gg) - Manure management': 264.8,
-            'I-GHG-N2O emissions (Gg) - Rice cultivation': 264.8,
-            'I-GHG-N2O emissions (Gg) - Direct soil emissions': 264.8,
-            'I-GHG-N2O emissions (Gg) - Manure in pasture/range/paddock': 264.8,
-            'I-GHG-N2O emissions (Gg) - Indirect N2O from agriculture': 264.8,
-            'I-GHG-N2O emissions (Gg) - Other direct soil emissions': 264.8,
-            'I-GHG-N2O emissions (Gg) - Savanna burning': 264.8,
-            'I-GHG-N2O emissions (Gg) - Agricultural waste burning': 264.8,
-            'I-GHG-N2O emissions (Gg) - Forest fires': 264.8,
-            'I-GHG-N2O emissions (Gg) - Grassland fires': 264.8,
-            'I-GHG-N2O emissions (Gg) - Decay of wetlands/peatlands': 264.8,
-            'I-GHG-N2O emissions (Gg) - Other vegetation fires': 264.8,
-            'I-GHG-N2O emissions (Gg) - Forest Fires-Post burn decay': 264.8,
-            'I-GHG-N2O emissions (Gg) - Solid waste disposal on land': 264.8,
-            'I-GHG-N2O emissions (Gg) - Wastewater handling': 264.8,
-            'I-GHG-N2O emissions (Gg) - Waste incineration': 264.8,
-            'I-GHG-N2O emissions (Gg) - Other waste handling': 264.8,
-            'I-GHG-N2O emissions (Gg) - Fossil fuel fires': 264.8,
-            'I-GHG-N2O emissions (Gg) - Indirect N2O from non-agricultural NOx': 264.8,
-            'I-GHG-N2O emissions (Gg) - Indirect N2O from non-agricultural NH3': 264.8,
-            'I-GHG-N2O emissions (Gg) - Other sources': 264.8,        
+            'I-GHG-CO2 emissions (Gg) - Public electricity and heat production': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Other Energy Industries': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Manufacturing Industries and Construction': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Domestic aviation': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Road transportation': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Rail transportation': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Inland navigation': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Other transportation': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Residential and other sectors': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Fugitive emissions from solid fuels': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Fugitive emissions from oil and gas': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Memo: International aviation': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Memo: International navigation': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Production of minerals': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Cement production': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Lime production': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Production of chemicals': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Production of metals': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Production of pulp/paper/food/drink': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Production of halocarbons and SF6': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Refrigeration and Air Conditioning': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Foam Blowing': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Fire Extinguishers': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Aerosols': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - F-gas as Solvent': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Semiconductor/Electronics Manufacture': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Electrical Equipment': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Other F-gas use': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Non-energy use of lubricants/waxes (CO2)': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Solvent and other product use: paint': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Solvent and other product use: degrease': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Solvent and other product use: chemicals': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Solvent and other product use: other': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Enteric fermentation': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Manure management': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Rice cultivation': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Direct soil emissions': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Manure in pasture/range/paddock': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Indirect N2O from agriculture': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Other direct soil emissions': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Savanna burning': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Agricultural waste burning': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Forest fires': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Grassland fires': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Decay of wetlands/peatlands': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Other vegetation fires': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Forest Fires-Post burn decay': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Solid waste disposal on land': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Wastewater handling': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Waste incineration': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Other waste handling': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Fossil fuel fires': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Indirect N2O from non-agricultural NOx': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Indirect N2O from non-agricultural NH3': GWPs['Carbon dioxide'],
+            'I-GHG-CO2 emissions (Gg) - Other sources': GWPs['Carbon dioxide'],
+            'I-GHG-CH4 emissions (Gg) - Public electricity and heat production': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Other Energy Industries': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Manufacturing Industries and Construction': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Domestic aviation': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Road transportation': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Rail transportation': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Inland navigation': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Other transportation': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Residential and other sectors': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Fugitive emissions from solid fuels': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Fugitive emissions from oil and gas': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Memo: International aviation': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Memo: International navigation': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Production of minerals': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Cement production': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Lime production': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Production of chemicals': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Production of metals': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Production of pulp/paper/food/drink': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Production of halocarbons and SF6': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Refrigeration and Air Conditioning': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Foam Blowing': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Fire Extinguishers': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Aerosols': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - F-gas as Solvent': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Semiconductor/Electronics Manufacture': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Electrical Equipment': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Other F-gas use': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Non-energy use of lubricants/waxes (CO2)': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Solvent and other product use: paint': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Solvent and other product use: degrease': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Solvent and other product use: chemicals': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Solvent and other product use: other': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Enteric fermentation': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Manure management': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Rice cultivation': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Direct soil emissions': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Manure in pasture/range/paddock': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Indirect N2O from agriculture': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Other direct soil emissions': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Savanna burning': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Agricultural waste burning': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Forest fires': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Grassland fires': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Decay of wetlands/peatlands': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Other vegetation fires': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Forest Fires-Post burn decay': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Solid waste disposal on land': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Wastewater handling': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Waste incineration': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Other waste handling': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Fossil fuel fires': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Indirect N2O from non-agricultural NOx': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Indirect N2O from non-agricultural NH3': GWPs['Methane - fossil'],
+            'I-GHG-CH4 emissions (Gg) - Other sources': GWPs['Methane - fossil'],
+            'I-GHG-N2O emissions (Gg) - Public electricity and heat production': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Other Energy Industries': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Manufacturing Industries and Construction': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Domestic aviation': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Road transportation': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Rail transportation': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Inland navigation': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Other transportation': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Residential and other sectors': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Fugitive emissions from solid fuels': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Fugitive emissions from oil and gas': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Memo: International aviation': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Memo: International navigation': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Production of minerals': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Cement production': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Lime production': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Production of chemicals': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Production of metals': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Production of pulp/paper/food/drink': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Production of halocarbons and SF6': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Refrigeration and Air Conditioning': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Foam Blowing': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Fire Extinguishers': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Aerosols': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - F-gas as Solvent': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Semiconductor/Electronics Manufacture': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Electrical Equipment': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Other F-gas use': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Non-energy use of lubricants/waxes (CO2)': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Solvent and other product use: paint': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Solvent and other product use: degrease': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Solvent and other product use: chemicals': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Solvent and other product use: other': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Enteric fermentation': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Manure management': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Rice cultivation': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Direct soil emissions': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Manure in pasture/range/paddock': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Indirect N2O from agriculture': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Other direct soil emissions': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Savanna burning': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Agricultural waste burning': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Forest fires': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Grassland fires': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Decay of wetlands/peatlands': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Other vegetation fires': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Forest Fires-Post burn decay': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Solid waste disposal on land': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Wastewater handling': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Waste incineration': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Other waste handling': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Fossil fuel fires': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Indirect N2O from non-agricultural NOx': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Indirect N2O from non-agricultural NH3': GWPs['Nitrous oxide'],
+            'I-GHG-N2O emissions (Gg) - Other sources': GWPs['Nitrous oxide'],        
         },
     },
     "adb": {
         "match": "adb",
         "unit": "Gigagrams of Carbon Dioxide equivalent (Gg of CO2e)",
         "gwp": {
-            'GHG | Total by substance': 1.0,
+            'GHG | Total by substance': GWPs['GHG'],
         }
     },
 
@@ -242,31 +273,28 @@ GHG_PROFILES: Dict[str, dict] = {
         "match": "gloria",
         "unit": "kg CO2eq",
         "gwp": {
-            "Emissions (EDGAR) | 'co2_excl_short_cycle_org_c_total_EDGAR_consistent'": 1.0,
-            "Emissions (EDGAR) | 'ch4_total_EDGAR_consistent'": 29.7,
-            "Emissions (EDGAR) | 'n2o_total_EDGAR_consistent'": 264.8,
-            "Emissions (EDGAR) | 'hfc_23_total_EDGAR_consistent'": 1.0,
-            "Emissions (EDGAR) | 'sf6_total_EDGAR_consistent'": 23506.0,
-            "Emissions (EDGAR) | 'co_total_EDGAR_consistent'": 4.1,
+            "Emissions (EDGAR) | 'co2_excl_short_cycle_org_c_total_EDGAR_consistent'": GWPs['Carbon dioxide'],
+            "Emissions (EDGAR) | 'ch4_total_EDGAR_consistent'": GWPs['Methane - fossil'],
+            "Emissions (EDGAR) | 'n2o_total_EDGAR_consistent'": GWPs['Nitrous oxide'],
         },
     },
     "emerging": {
         "match": "emerging",
         "unit": "Mt CO2eq",
         "gwp": {
-            "Coal": 1.0,
-            "Natural gas": 1.0,
-            "Oil products": 1.0,
-            "Crude, NGL, Ref Feeds.": 1.0,
-            "Oil shale & oil sands": 1.0,
-            "Peat & Peat products": 1.0,
-            "Other": 1.0,
+            "Coal": GWPs['GHG'],
+            "Natural gas": GWPs['GHG'],
+            "Oil products": GWPs['GHG'],
+            "Crude, NGL, Ref Feeds.": GWPs['GHG'],
+            "Oil shale & oil sands": GWPs['GHG'],
+            "Peat & Peat products": GWPs['GHG'],
+            "Other": GWPs['GHG'],
         },
     },
 }
 
 
-def register_ghg_profile(name: str, match, gwp: Dict[str, float],
+def register_ghg_profile(name: str, match, gwp: GWPMapping,
                          unit: str = "kg CO2eq",
                          match_mode: str = "exact") -> None:
     """Register or overwrite a GHG profile.
@@ -283,6 +311,41 @@ def register_ghg_profile(name: str, match, gwp: Dict[str, float],
                           "match_mode": match_mode}
 
 
+def _resolve_profile_gwp(
+    gwp: GWPMapping,
+    time_horizon: int = 100,
+    ipcc_report: str = "AR6",
+) -> Dict[str, GWPScalar]:
+    """Resolve a profile GWP mapping into flat scalar factors."""
+    report = str(ipcc_report).strip().upper()
+    resolved: Dict[str, GWPScalar] = {}
+
+    for account, factor in gwp.items():
+        if not isinstance(factor, dict):
+            resolved[account] = factor
+            continue
+
+        if time_horizon not in factor:
+            available_horizons = ", ".join(map(str, sorted(factor)))
+            raise ValueError(
+                f"Time horizon {time_horizon} is not available for '{account}'. "
+                f"Available horizons: {available_horizons}."
+            )
+
+        report_factors = factor[time_horizon]
+        if report not in report_factors:
+            available_reports = ", ".join(sorted(report_factors))
+            raise ValueError(
+                f"IPCC report '{report}' is not available for '{account}' "
+                f"at time horizon {time_horizon}. Available reports: "
+                f"{available_reports}."
+            )
+
+        resolved[account] = report_factors[report]
+
+    return resolved
+
+
 def _autodetect_profile(db) -> Optional[str]:
     """Match db.meta.source / db.meta.name against profile substrings."""
     haystack = " ".join(
@@ -296,7 +359,7 @@ def _autodetect_profile(db) -> Optional[str]:
     return None
 
 
-def _ghg_row(matrix: pd.DataFrame, gwp: Dict[str, float],
+def _ghg_row(matrix: pd.DataFrame, gwp: Dict[str, GWPScalar],
              label: str, match_mode: str = "exact") -> pd.Series:
     """Multiply each ghg row by its GWP and return their sum as a Series
     indexed by ``matrix.columns`` and named ``label``.
@@ -328,7 +391,7 @@ def _ghg_row(matrix: pd.DataFrame, gwp: Dict[str, float],
     return matrix.loc[available].mul(weights, axis=0).sum(axis=0).rename(label)
 
 
-def _matched_ghg_labels(index: pd.Index, gwp: Dict[str, float],
+def _matched_ghg_labels(index: pd.Index, gwp: Dict[str, GWPScalar],
                         match_mode: str = "exact") -> list[str]:
     """Return the source account labels used by the GHG aggregation."""
     labels = pd.Index(index)
@@ -381,9 +444,11 @@ def _resolve_ghg_unit(db, labels: list[str], unit: Optional[str]) -> str:
 def calc_ghg(
     db,
     profile: Optional[str] = None,
-    gwp: Optional[Dict[str, float]] = None,
+    gwp: Optional[Dict[str, GWPScalar]] = None,
     label: str = "GHG",
     unit: Optional[str] = None,
+    time_horizon: int = 100,
+    ipcc_report: str = "AR6",
     inplace: bool = True,
 ):
     """Aggregate GHG satellite accounts into a new satellite-account row.
@@ -403,6 +468,13 @@ def calc_ghg(
     unit:
         Optional unit override. When omitted, MARIO reuses the shared unit of
         the aggregated satellite accounts and raises when those units differ.
+    time_horizon:
+        Time horizon used to resolve built-in profile GWPs when profiles store
+        multiple horizons. Ignored when ``gwp=...`` is provided.
+    ipcc_report:
+        IPCC assessment report used to resolve built-in profile GWPs when
+        profiles store multiple report variants. Ignored when ``gwp=...`` is
+        provided.
     inplace:
         When ``True`` mutate the current database. When ``False`` return a
         modified copy.
@@ -424,7 +496,18 @@ def calc_ghg(
                 f"{sorted(GHG_PROFILES)}"
             )
         spec = GHG_PROFILES[profile]
-        gwp = spec["gwp"]
+        try:
+            time_horizon = int(time_horizon)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                f"Invalid time horizon '{time_horizon}'. Expected an integer."
+            ) from exc
+
+        gwp = _resolve_profile_gwp(
+            spec["gwp"],
+            time_horizon=time_horizon,
+            ipcc_report=ipcc_report,
+        )
         match_mode = spec.get("match_mode", "exact")
     else:
         match_mode = "exact"
