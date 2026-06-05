@@ -28,7 +28,7 @@ from mario.utils import rename_index
 logger = logging.getLogger(__name__)
 
 _CEPALSTAT_FILE_RE = re.compile(
-    r"^(?P<country>[A-Z]{3})_(?P<dataset>COU|MIP)_(?P<start>\d{4})(?:_(?P<end>\d{4}))?(?P<suffix>.*)\.(?P<ext>zip|xlsx|xls|xlsm)$",
+    r"^(?:(?P<country>[A-Z]{3})[_\s-]+)?(?P<dataset>COU|MIP)[_\s-]+(?P<start>\d{4})(?:[_\s-]+(?P<end>\d{4}))?(?P<suffix>.*)\.(?P<ext>zip|xlsx|xls|xlsm)$",
     flags=re.IGNORECASE,
 )
 _DOMESTIC_IOT_TOTAL_LABEL = "TOTAL INSUMOS INTERMEDIOS (a precios de comprador)"
@@ -114,7 +114,7 @@ def _parse_candidate_metadata(path: Path) -> dict[str, object] | None:
     start = int(match.group("start"))
     end = int(match.group("end") or match.group("start"))
     return {
-        "country": str(match.group("country")).upper(),
+        "country": str(match.group("country")).upper() if match.group("country") else None,
         "dataset": dataset,
         "start": start,
         "end": end,
@@ -152,9 +152,9 @@ def _list_candidate_files(
         info = _parse_candidate_metadata(candidate)
         if info is None or info["dataset"] != dataset:
             continue
-        if normalized_country is not None and info["country"] != normalized_country:
+        if normalized_country is not None and info["country"] not in {None, normalized_country}:
             continue
-        if table == "IOT" and year is not None and not (int(info["start"]) <= int(year) <= int(info["end"])):
+        if not source.is_file() and year is not None and not (int(info["start"]) <= int(year) <= int(info["end"])):
             continue
         if table == "IOT" and iot_mode != "auto" and info["mode"] is not None and info["mode"] != iot_mode:
             continue
@@ -171,6 +171,18 @@ def _list_candidate_files(
             filtered = preferred
 
     return sorted(filtered)
+
+
+def _resolve_layout_country(metadata: dict[str, object], country: str | None) -> str:
+    """Resolve the layout country from filename metadata or the explicit parser argument."""
+    parsed_country = metadata.get("country")
+    if isinstance(parsed_country, str) and parsed_country:
+        return parsed_country
+    if country is not None:
+        return country.upper()
+    raise WrongInput(
+        "The selected CEPALSTAT file name does not encode the country. Please provide the explicit country argument."
+    )
 
 
 def _select_candidate_file(
@@ -190,6 +202,19 @@ def _select_candidate_file(
         iot_mode=iot_mode,
     )
     if len(candidates) > 1:
+        ranked = sorted(
+            candidates,
+            key=lambda item: (_member_price_rank(item.name), -_member_dimension_score(item.name), item.name.lower()),
+        )
+        best = ranked[0]
+        best_key = (_member_price_rank(best.name), _member_dimension_score(best.name))
+        equally_ranked = [
+            candidate
+            for candidate in ranked
+            if (_member_price_rank(candidate.name), _member_dimension_score(candidate.name)) == best_key
+        ]
+        if len(equally_ranked) == 1:
+            return equally_ranked[0]
         raise WrongInput(
             "More than one CEPALSTAT bundle matches the selected arguments. "
             "Please point to one file or refine country/year/mode. "
@@ -308,6 +333,188 @@ def _extract_year(header: pd.DataFrame) -> int | None:
         if match is not None:
             matches.append(int(match.group(1)))
     return matches[0] if matches else None
+
+
+def _find_header_row(frame: pd.DataFrame, patterns: tuple[str, ...], *, search_rows: range = range(0, 20)) -> int:
+    """Find the first row whose flattened text contains all requested patterns."""
+    for row in search_rows:
+        if row >= len(frame):
+            continue
+        row_text = " | ".join(_plain(_text(value)) for value in frame.iloc[row].to_list() if _text(value))
+        if all(pattern in row_text for pattern in patterns):
+            return row
+    joined = ", ".join(patterns)
+    raise WrongFormat(f"Could not detect the CEPALSTAT header row containing {joined}.")
+
+
+def _find_col_by_pattern(frame: pd.DataFrame, row: int, pattern: str, *, start: int = 0) -> int:
+    """Find one column by substring match on a given header row."""
+    target = _plain(pattern)
+    for column in range(start, frame.shape[1]):
+        if target in _plain(_text(frame.iat[row, column])):
+            return column
+    raise WrongFormat(f"Could not find required column matching '{pattern}' in the CEPALSTAT workbook.")
+
+
+def _find_col_in_rows(
+    frame: pd.DataFrame,
+    rows: tuple[int, ...],
+    labels: str | tuple[str, ...],
+    *,
+    start: int = 0,
+) -> int:
+    """Find one exact header label across a small set of rows."""
+    if isinstance(labels, str):
+        targets = {_plain(labels)}
+    else:
+        targets = {_plain(label) for label in labels}
+    for row in rows:
+        if row >= len(frame):
+            continue
+        for column in range(start, frame.shape[1]):
+            if _plain(_text(frame.iat[row, column])) in targets:
+                return column
+    expected = labels if isinstance(labels, str) else " / ".join(labels)
+    raise WrongFormat(f"Could not find required column '{expected}' in the CEPALSTAT workbook.")
+
+
+def _find_price_column_within_group(
+    frame: pd.DataFrame,
+    labels: str | tuple[str, ...],
+    *,
+    header_rows: tuple[int, ...],
+    start: int = 0,
+    width: int = 8,
+) -> int:
+    """Find the buyer-price value column within one grouped final-demand header block."""
+    anchor = _find_col_in_rows(frame, header_rows, labels, start=start)
+    for column in range(anchor, min(anchor + width, frame.shape[1])):
+        texts = {_plain(_text(frame.iat[row, column])) for row in header_rows if row < len(frame)}
+        if "a precios de comprador" in texts:
+            return column
+    return anchor
+
+
+def _find_export_total_column(frame: pd.DataFrame, *, header_rows: tuple[int, ...]) -> int:
+    """Find the total exports-at-purchaser-prices column in one CEPALSTAT use sheet."""
+    anchor = None
+    try:
+        anchor = _find_col_in_rows(frame, header_rows, "Exportaciones")
+    except WrongFormat:
+        anchor = None
+
+    if anchor is not None:
+        for column in range(anchor, min(anchor + 8, frame.shape[1])):
+            texts = [_plain(_text(frame.iat[row, column])) for row in header_rows if row < len(frame)]
+            if "total" in texts and "a precios de comprador" in texts:
+                return column
+
+    fallback = [
+        column
+        for column in range(frame.shape[1])
+        if "total" in [_plain(_text(frame.iat[row, column])) for row in header_rows if row < len(frame)]
+        and "a precios de comprador" in [_plain(_text(frame.iat[row, column])) for row in header_rows if row < len(frame)]
+    ]
+    if fallback:
+        return fallback[-1]
+    raise WrongFormat("Could not detect the export final-demand column in the CEPALSTAT use sheet.")
+
+
+def _scan_colombia_sut_index_pairs(workbook: pd.ExcelFile, *, digits: str = "dos") -> dict[int, dict[str, str]]:
+    """Scan the DANE-style Índice sheet and map years to offer/use Cuadro pairs."""
+    if "Índice" not in workbook.sheet_names:
+        return {}
+
+    index_frame = pd.read_excel(workbook, sheet_name="Índice", header=None)
+    pairs: dict[int, dict[str, str]] = {}
+    current_year: int | None = None
+    current_digits: str | None = None
+
+    for row in range(len(index_frame)):
+        row_values = [_text(value) for value in index_frame.iloc[row].to_list() if _text(value)]
+        if not row_values:
+            continue
+        row_text = " | ".join(_plain(value) for value in row_values)
+        title_match = re.search(
+            r"cuadro oferta[- ]utilizacion (?P<year>\d{4})(?: [a-z]+)? a (?P<digits>dos|seis) digitos",
+            row_text,
+        )
+        if title_match is not None:
+            current_year = int(title_match.group("year"))
+            current_digits = title_match.group("digits")
+            continue
+
+        if current_year is None or current_digits != digits:
+            continue
+
+        sheet_name = next(
+            (
+                value.strip()
+                for value in row_values
+                if re.match(r"^Cuadro\s+\d+\s*$", value, flags=re.IGNORECASE)
+            ),
+            None,
+        )
+        if sheet_name is None:
+            continue
+        if "cuadro oferta" in row_text:
+            pairs.setdefault(current_year, {})["offer"] = sheet_name
+        elif "cuadro utilizacion" in row_text:
+            pairs.setdefault(current_year, {})["use"] = sheet_name
+
+    return {year: item for year, item in pairs.items() if {"offer", "use"}.issubset(item)}
+
+
+def _resolve_colombia_legacy_iot_sheet(
+    workbook: pd.ExcelFile,
+    *,
+    year: int | None,
+    iot_mode: str,
+) -> str | None:
+    """Resolve one year-specific sheet inside the legacy Colombian 2005/2010 IOT workbooks."""
+    available_years = sorted({int(name) for sheet in workbook.sheet_names for name in _member_years(sheet)})
+    if year is None:
+        if len(available_years) != 1:
+            raise WrongInput(
+                "The selected CEPALSTAT Colombian IOT workbook contains more than one year. "
+                f"Available years: {available_years}. Please specify year."
+            )
+        target_year = available_years[0]
+    else:
+        target_year = int(year)
+        if available_years and target_year not in available_years:
+            raise WrongInput(
+                f"The selected CEPALSTAT Colombian IOT workbook does not contain year {target_year}. "
+                f"Available years: {available_years}."
+            )
+
+    if iot_mode == "axa":
+        exact = next((sheet for sheet in workbook.sheet_names if sheet.strip() == str(target_year)), None)
+        if exact is not None:
+            return exact
+        return None
+
+    exact = next(
+        (
+            sheet
+            for sheet in workbook.sheet_names
+            if _plain(sheet) == _plain(f"Matriz Insumo-Producto {target_year}")
+        ),
+        None,
+    )
+    if exact is not None:
+        return exact
+
+    for sheet in workbook.sheet_names:
+        normalized = _plain(sheet)
+        if (
+            "matriz insumo-producto" in normalized
+            and "dom" not in normalized
+            and "multiplicador" not in normalized
+            and target_year in _member_years(sheet)
+        ):
+            return sheet
+    return None
 
 
 def _scan_integrated_sut_sheet_pairs(workbook: pd.ExcelFile) -> dict[int, dict[str, str]]:
@@ -471,6 +678,7 @@ def detect_cepalstat_sut_layout(
     metadata = _parse_candidate_metadata(data_path)
     if metadata is None:
         raise WrongInput("The selected CEPALSTAT file name does not match a supported SUT bundle.")
+    resolved_country = _resolve_layout_country(metadata, country)
 
     if data_path.suffix.lower() == ".zip":
         members = _zip_excel_members(data_path)
@@ -504,13 +712,48 @@ def detect_cepalstat_sut_layout(
         workbook_members = [None]
 
     integrated_candidate: CEPALSTATLayout | None = None
+    colombia_candidate: CEPALSTATLayout | None = None
     arg_candidate: CEPALSTATLayout | None = None
     chi_candidate: CEPALSTATLayout | None = None
     integrated_years: set[int] = set()
+    colombia_years: set[int] = set()
     arg_years: set[int] = set()
 
     for member in workbook_members:
         workbook = _open_excel_member(data_path, member)
+        colombia_pairs = _scan_colombia_sut_index_pairs(workbook, digits="dos")
+        if colombia_pairs:
+            colombia_years.update(int(item) for item in colombia_pairs)
+            target_year = year
+            if target_year is None:
+                if len(colombia_pairs) != 1:
+                    raise WrongInput(
+                        "The selected CEPALSTAT SUT workbook contains more than one two-digit Colombia year. "
+                        f"Available years: {sorted(colombia_pairs)}. Please specify year."
+                    )
+                target_year = next(iter(sorted(colombia_pairs)))
+            if int(target_year) in colombia_pairs:
+                candidate = CEPALSTATLayout(
+                    root=data_path.parent,
+                    data_path=data_path,
+                    country=resolved_country,
+                    year=int(target_year),
+                    table="SUT",
+                    family="col_indexed_sut",
+                    workbook_member=member,
+                    sheet_names=(colombia_pairs[int(target_year)]["offer"], colombia_pairs[int(target_year)]["use"]),
+                    notes=(
+                        "Parsed from the CEPALSTAT/Colombia indexed two-digit SUT layout.",
+                    ),
+                )
+                if (
+                    colombia_candidate is None
+                    or _member_price_rank(candidate.workbook_member or data_path.name)
+                    < _member_price_rank(colombia_candidate.workbook_member or data_path.name)
+                ):
+                    colombia_candidate = candidate
+                continue
+
         pairs = _scan_integrated_sut_sheet_pairs(workbook)
         if pairs:
             integrated_years.update(int(item) for item in pairs)
@@ -526,7 +769,7 @@ def detect_cepalstat_sut_layout(
                 candidate = CEPALSTATLayout(
                     root=data_path.parent,
                     data_path=data_path,
-                    country=str(metadata["country"]),
+                    country=resolved_country,
                     year=int(target_year),
                     table="SUT",
                     family="integrated_sut_cuadros",
@@ -565,7 +808,7 @@ def detect_cepalstat_sut_layout(
                 arg_candidate = CEPALSTATLayout(
                     root=data_path.parent,
                     data_path=data_path,
-                    country=str(metadata["country"]),
+                    country=resolved_country,
                     year=int(resolved_year),
                     table="SUT",
                     family="arg_two_sheet_sut",
@@ -584,7 +827,7 @@ def detect_cepalstat_sut_layout(
                 chi_candidate = CEPALSTATLayout(
                     root=data_path.parent,
                     data_path=data_path,
-                    country=str(metadata["country"]),
+                    country=resolved_country,
                     year=int(year) if year is not None else int(metadata["start"]),
                     table="SUT",
                     family="chi_multicuadro_sut",
@@ -603,8 +846,16 @@ def detect_cepalstat_sut_layout(
         return arg_candidate
     if chi_candidate is not None:
         return chi_candidate
+    if colombia_candidate is not None:
+        return colombia_candidate
     if integrated_candidate is not None:
         return integrated_candidate
+    if year is not None and colombia_years:
+        raise WrongInput(
+            "The selected CEPALSTAT SUT bundle does not contain year "
+            f"{year} in the supported indexed Colombia layout. "
+            f"Available years: {sorted(colombia_years)}."
+        )
     if year is not None and integrated_years:
         raise WrongInput(
             "The selected CEPALSTAT SUT bundle does not contain year "
@@ -644,6 +895,7 @@ def detect_cepalstat_iot_layout(
     metadata = _parse_candidate_metadata(data_path)
     if metadata is None:
         raise WrongInput("The selected CEPALSTAT file name does not match a supported IOT bundle.")
+    resolved_country = _resolve_layout_country(metadata, country)
 
     if data_path.suffix.lower() == ".zip":
         members = _zip_excel_members(data_path)
@@ -657,7 +909,7 @@ def detect_cepalstat_iot_layout(
         return CEPALSTATLayout(
             root=data_path.parent,
             data_path=data_path,
-            country=str(metadata["country"]),
+            country=resolved_country,
             year=int(year) if year is not None else int(metadata["start"]),
             table="IOT",
             family="bra_demand_basic_iot",
@@ -676,7 +928,7 @@ def detect_cepalstat_iot_layout(
         return CEPALSTATLayout(
             root=data_path.parent,
             data_path=data_path,
-            country=str(metadata["country"]),
+            country=resolved_country,
             year=int(year) if year is not None else int(metadata["start"]),
             table="IOT",
             family="arg_symmetric_iot",
@@ -707,6 +959,43 @@ def detect_cepalstat_iot_layout(
             selected_member = ranked_members[0][0]
 
         workbook = _open_excel_member(data_path, selected_member if data_path.suffix.lower() == ".zip" else None)
+        if {"Cuadro 3", "Cuadro 7"}.issubset(set(workbook.sheet_names)):
+            sheet_name = "Cuadro 7" if preferred_mode == "axa" else "Cuadro 3"
+            resolved_mode = "axa" if sheet_name == "Cuadro 7" else "pxp"
+            return CEPALSTATLayout(
+                root=data_path.parent,
+                data_path=data_path,
+                country=resolved_country,
+                year=int(year) if year is not None else int(metadata["start"]),
+                table="IOT",
+                family="col_cuadro_iot",
+                workbook_member=selected_member if data_path.suffix.lower() == ".zip" else Path(selected_member).name,
+                sheet_names=(sheet_name,),
+                iot_mode=resolved_mode,
+                notes=("Parsed from the CEPALSTAT/Colombia IOT cuadro workbook layout.",),
+            )
+        legacy_colombia_sheet = None
+        if resolved_country == "COL":
+            legacy_colombia_sheet = _resolve_colombia_legacy_iot_sheet(
+                workbook,
+                year=year,
+                iot_mode=preferred_mode,
+            )
+        if legacy_colombia_sheet is not None:
+            return CEPALSTATLayout(
+                root=data_path.parent,
+                data_path=data_path,
+                country=resolved_country,
+                year=int(year) if year is not None else int(metadata["start"]),
+                table="IOT",
+                family="col_legacy_iot",
+                workbook_member=selected_member if data_path.suffix.lower() == ".zip" else Path(selected_member).name,
+                sheet_names=(legacy_colombia_sheet,),
+                iot_mode=preferred_mode,
+                notes=(
+                    "Parsed from the legacy CEPALSTAT/Colombia 2005-2010 multi-year IOT workbook layout.",
+                ),
+            )
         target_sheet = next((sheet for sheet in workbook.sheet_names if sheet.lower().startswith("mip")), None)
         if target_sheet is None:
             target_sheet = _find_first_sheet(workbook, ("matriz insumo-producto",), nrows=8)
@@ -728,7 +1017,7 @@ def detect_cepalstat_iot_layout(
         return CEPALSTATLayout(
             root=data_path.parent,
             data_path=data_path,
-            country=str(metadata["country"]),
+            country=resolved_country,
             year=int(year) if year is not None else int(metadata["start"]),
             table="IOT",
             family=family,
@@ -747,7 +1036,7 @@ def detect_cepalstat_iot_layout(
             return CEPALSTATLayout(
                 root=data_path.parent,
                 data_path=data_path,
-                country=str(metadata["country"]),
+                country=resolved_country,
                 year=int(year) if year is not None else int(metadata["start"]),
                 table="IOT",
                 family="col_cuadro_iot",
@@ -761,7 +1050,7 @@ def detect_cepalstat_iot_layout(
             return CEPALSTATLayout(
                 root=data_path.parent,
                 data_path=data_path,
-                country=str(metadata["country"]),
+                country=resolved_country,
                 year=int(year) if year is not None else int(metadata["start"]),
                 table="IOT",
                 family="chi_matrix_iot",
@@ -1239,15 +1528,67 @@ def _parse_integrated_sut_layout(layout: CEPALSTATLayout):
     offer = _read_cepalstat_sheet(layout, layout.sheet_names[0])
     use = _read_cepalstat_sheet(layout, layout.sheet_names[1])
 
-    offer_activity_cols = _find_activity_columns_in_offer(offer)
-    use_activity_cols = _find_activity_columns_in_use(use)
-    activity_labels = [_text(offer.iat[11, column]) or _norm(offer.iat[10, column]) for column in offer_activity_cols]
-    use_activity_labels = [_strip_activity_code(_text(use.iat[10, column])) for column in use_activity_cols]
-    if activity_labels != use_activity_labels:
-        raise WrongFormat("The CEPALSTAT offer/use sheets expose different activity axes.")
+    try:
+        offer_header_row = _find_header_row(
+            offer,
+            ("total oferta a precios comprador", "margenes de comercio"),
+        )
+    except WrongFormat:
+        offer_header_row = _find_header_row(
+            offer,
+            ("margenes de comercio", "margenes de transporte"),
+        )
+    offer_code_row = offer_header_row + 1
+    offer_label_row = offer_header_row + 2
+    offer_total_col = _find_col(offer, offer_code_row, "Total", start=10)
+    offer_activity_cols = [column for column in range(10, offer_total_col) if _norm(offer.iat[offer_code_row, column])]
 
-    product_rows = _find_product_rows(offer, start_row=13)
-    use_product_rows = _find_product_rows(use, start_row=14)
+    try:
+        use_header_row = _find_header_row(
+            use,
+            ("total oferta a precios comprador", "consumo intermedio"),
+        )
+    except WrongFormat:
+        use_header_row = _find_header_row(
+            use,
+            ("hogares", "gobierno"),
+        )
+    current_row_activity_labels = sum(1 for column in range(5, min(40, use.shape[1])) if _text(use.iat[use_header_row, column]))
+    use_activity_row = use_header_row if current_row_activity_labels > 1 else use_header_row + 1
+    use_header_rows = tuple(
+        row for row in (use_header_row, use_activity_row, use_activity_row + 1, use_activity_row + 2) if row < len(use)
+    )
+    stop_markers = {
+        "total",
+        "a precios de comprador",
+        "a precios basicos",
+        "impuestos excepto iva",
+    }
+    total_intermediate_col = None
+    for column in range(5, use.shape[1]):
+        if _plain(_text(use.iat[use_activity_row, column])) in stop_markers:
+            total_intermediate_col = column
+            break
+    if total_intermediate_col is None:
+        raise WrongFormat("Could not detect the end of the activity block in the CEPALSTAT use sheet.")
+    if current_row_activity_labels > 1:
+        use_activity_cols = [column for column in range(5, total_intermediate_col) if _text(use.iat[use_activity_row, column])]
+    else:
+        use_activity_cols = list(range(5, total_intermediate_col))
+
+    activity_labels = [
+        _text(offer.iat[offer_label_row, column]) or _norm(offer.iat[offer_code_row, column])
+        for column in offer_activity_cols
+    ]
+    use_activity_labels = [_strip_activity_code(_text(use.iat[use_activity_row, column])) for column in use_activity_cols]
+    if any(use_activity_labels):
+        if activity_labels != use_activity_labels:
+            raise WrongFormat("The CEPALSTAT offer/use sheets expose different activity axes.")
+    elif len(activity_labels) != len(use_activity_cols):
+        raise WrongFormat("The CEPALSTAT offer/use sheets expose different activity-axis lengths.")
+
+    product_rows = _find_product_rows(offer, start_row=offer_label_row + 2)
+    use_product_rows = _find_product_rows(use, start_row=use_activity_row + 3)
     offer_product_map = {_norm(offer.iat[row, 0]): row for row in product_rows}
     use_product_map = {_norm(use.iat[row, 0]): row for row in use_product_rows}
     product_codes = list(offer_product_map)
@@ -1284,30 +1625,43 @@ def _parse_integrated_sut_layout(layout: CEPALSTATLayout):
     U.index = commodity_axis
     U.columns = activity_axis
 
-    household_col = _find_col(use, 10, "Hogares", start=70)
-    npish_col = _find_col(
+    household_col = _find_price_column_within_group(
         use,
-        10,
+        "Hogares",
+        header_rows=use_header_rows,
+        start=max(use_activity_cols) + 1,
+    )
+    npish_col = _find_price_column_within_group(
+        use,
         ("Instituciones sin fines de lucro que sirven a los hogares", "ISFLH1"),
+        header_rows=use_header_rows,
         start=household_col + 1,
     )
-    government_col = None
-    for column in range(npish_col + 1, use.shape[1]):
-        if _text(use.iat[11, column]).strip().lower() == "total" and _text(use.iat[12, column]).strip().lower() == "a precios de comprador":
-            government_col = column
-            break
-    if government_col is None:
-        raise WrongFormat("Could not detect the government final-demand column in the CEPALSTAT use sheet.")
-    gfcf_col = _find_col(use, 10, "Formación bruta de capital fijo", start=government_col + 1)
-    inventory_col = _find_col(use, 10, "Variación de existencias", start=gfcf_col + 1)
-    valuables_col = _find_col(use, 10, "Adquisición menos disposición de objetos valiosos", start=inventory_col + 1)
-    export_col = None
-    for column in range(valuables_col + 1, use.shape[1]):
-        if _text(use.iat[10, column]).strip().lower() == "total" and _text(use.iat[11, column]).strip().lower() == "a precios de comprador":
-            export_col = column
-            break
-    if export_col is None:
-        raise WrongFormat("Could not detect the export final-demand column in the CEPALSTAT use sheet.")
+    government_col = _find_price_column_within_group(
+        use,
+        "Gobierno",
+        header_rows=use_header_rows,
+        start=npish_col + 1,
+    )
+    gfcf_col = _find_price_column_within_group(
+        use,
+        "Formación bruta de capital fijo",
+        header_rows=use_header_rows,
+        start=government_col + 1,
+    )
+    inventory_col = _find_price_column_within_group(
+        use,
+        "Variación de existencias",
+        header_rows=use_header_rows,
+        start=gfcf_col + 1,
+    )
+    valuables_col = _find_price_column_within_group(
+        use,
+        "Adquisición menos disposición de objetos valiosos",
+        header_rows=use_header_rows,
+        start=inventory_col + 1,
+    )
+    export_col = _find_export_total_column(use, header_rows=use_header_rows)
 
     Yc = _initialize_standard_yc(commodity_axis, final_axis)
     mapped_columns = {
@@ -1325,19 +1679,19 @@ def _parse_integrated_sut_layout(layout: CEPALSTATLayout):
     Ya = _zero_frame(activity_axis, final_axis)
 
     vc_columns = {
-        "Trade margins": _find_col(offer, 9, "Márgenes de comercio"),
-        "Transport margins": _find_col(offer, 9, "Márgenes de transporte"),
-        "Import duties": _find_col(offer, 9, "Impuestos y derechos a las importaciones"),
-        "Non-deductible VAT": _find_col(offer, 9, "IVA no deducible"),
+        "Trade margins": _find_col(offer, offer_header_row, "Márgenes de comercio"),
+        "Transport margins": _find_col(offer, offer_header_row, "Márgenes de transporte"),
+        "Import duties": _find_col(offer, offer_header_row, "Impuestos y derechos a las importaciones"),
+        "Non-deductible VAT": _find_col(offer, offer_header_row, "IVA no deducible"),
         "Other product taxes": _find_col(
             offer,
-            9,
+            offer_header_row,
             "Impuestos a los productos (excepto impuestos a importaciones e IVA no deducible)",
         ),
-        "Product subsidies": _find_col(offer, 9, "Subvenciones a los productos"),
-        "CIF / FOB adjustment on imports": _find_col(offer, 10, "Ajustes  CIF/FOB sobre importaciones", start=70),
-        "Imports of goods": _find_col(offer, 10, "Bienes", start=70),
-        "Imports of services": _find_col(offer, 10, "Servicios", start=70),
+        "Product subsidies": _find_col(offer, offer_header_row, "Subvenciones a los productos"),
+        "CIF / FOB adjustment on imports": _find_col(offer, offer_code_row, "Ajustes  CIF/FOB sobre importaciones", start=70),
+        "Imports of goods": _find_col(offer, offer_code_row, "Bienes", start=70),
+        "Imports of services": _find_col(offer, offer_code_row, "Servicios", start=70),
     }
     va_rows = {
         "Compensation of employees": _find_row_by_pattern(use, "remuneración de los asalariados"),
@@ -1774,7 +2128,7 @@ def parse_cepalstat_sut(
 ]:
     """Parse one supported CEPALSTAT SUT bundle."""
     layout = detect_cepalstat_sut_layout(path, year=year, country=country)
-    if layout.family == "integrated_sut_cuadros":
+    if layout.family in {"integrated_sut_cuadros", "col_indexed_sut"}:
         return _parse_integrated_sut_layout(layout)
     if layout.family == "arg_two_sheet_sut":
         return _parse_arg_sut_layout(layout)
@@ -1811,7 +2165,7 @@ def parse_cepalstat_iot(
             return "Households"
         if "gobierno" in normalized or "government" in normalized:
             return "Government"
-        if "capital fijo" in normalized:
+        if "capital fijo" in normalized or "formacion bruta de capital" in normalized:
             return "Gross fixed capital formation"
         if "existenc" in normalized or "stock" in normalized:
             return "Changes in inventories"
@@ -2078,6 +2432,61 @@ def parse_cepalstat_iot(
             code_col=0,
             label_col=1,
             header_rows=(9, 10, 11),
+        )
+
+    if layout.family == "col_legacy_iot":
+        if layout.iot_mode == "axa":
+            total_col = _find_col_by_pattern(frame, 8, "Total ramas de actividad", start=2)
+            sector_rows = [
+                row
+                for row in range(10, len(frame))
+                if re.fullmatch(r"\d{1,3}", _norm(frame.iat[row, 0]))
+            ]
+            result = _parse_matrix_sheet(
+                layout,
+                frame,
+                sector_col_start=2,
+                total_col=total_col,
+                sector_row_start=sector_rows[0],
+                code_col=0,
+                label_col=1,
+                header_rows=(8, 9),
+                row_groups=[[row] for row in sector_rows],
+            )
+            log_time(
+                logger,
+                (
+                    "Parser: CEPALSTAT legacy Colombia AxA workbook exposes aggregated final consumption and capital columns. "
+                    "MARIO maps them to the standard final-demand axis with zeroes for unavailable splits."
+                ),
+                "warning",
+            )
+            return result
+
+        total_col = _find_col_by_pattern(frame, 10, "Consumo intermedio total", start=2)
+        sector_rows = [
+            row
+            for row in range(12, len(frame))
+            if re.fullmatch(r"\d{1,3}", _norm(frame.iat[row, 0]))
+        ]
+        return _parse_matrix_sheet(
+            layout,
+            frame,
+            sector_col_start=2,
+            total_col=total_col,
+            sector_row_start=sector_rows[0],
+            code_col=0,
+            label_col=1,
+            header_rows=(10, 11),
+            output_col=next(
+                (
+                    column
+                    for column in range(total_col + 1, frame.shape[1])
+                    if "produccion" in _plain(_text(frame.iat[10, column]))
+                ),
+                None,
+            ),
+            row_groups=[[row] for row in sector_rows],
         )
 
     if layout.family == "arg_symmetric_iot":

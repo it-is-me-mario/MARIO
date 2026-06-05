@@ -347,6 +347,39 @@ def _arg_iot_workbook() -> dict[str, pd.DataFrame]:
     return {"Cuadro 12": frame}
 
 
+def _col_legacy_pxp_sheet(base_value: float) -> pd.DataFrame:
+    """Create one compact legacy Colombia-style PxP IOT sheet."""
+    frame = pd.DataFrame("", index=range(24), columns=range(12), dtype=object)
+    frame.iat[4, 0] = "Matriz simétrica total de insumo-producto, producto por producto"
+    frame.iat[5, 0] = "Año 2005 a precios corrientes"
+    frame.iat[10, 2] = "Consumo intermedio por producto"
+    frame.iat[10, 4] = "Consumo intermedio total"
+    frame.iat[10, 6] = "Hogares"
+    frame.iat[10, 7] = "Gobierno"
+    frame.iat[10, 8] = "Formación bruta de capital fijo"
+    frame.iat[10, 9] = "Variación de existencias"
+    frame.iat[10, 10] = "Exportaciones"
+    frame.iat[10, 11] = "Producción por producto"
+    frame.iat[11, 2] = "01"
+    frame.iat[11, 3] = "02"
+    frame.iloc[12, :12] = ["01", "Product 1", base_value, 2.0, 0.0, "", 5.0, 1.0, 2.0, 0.1, 3.0, 10.0]
+    frame.iloc[13, :12] = ["02", "Product 2", 4.0, base_value, 0.0, "", 6.0, 1.5, 1.0, 0.2, 4.0, 12.0]
+    frame.iat[15, 0] = "Valor agregado"
+    frame.iat[16, 0] = "Remuneración de los asalariados"
+    frame.iat[16, 2] = 7.0
+    frame.iat[16, 3] = 8.0
+    frame.iat[17, 0] = "Impuestos menos subvenciones sobre la producción"
+    frame.iat[17, 2] = 1.0
+    frame.iat[17, 3] = 0.5
+    frame.iat[18, 0] = "Ingreso mixto"
+    frame.iat[18, 2] = 2.0
+    frame.iat[18, 3] = 1.0
+    frame.iat[19, 0] = "Excedente bruto de explotación"
+    frame.iat[19, 2] = 3.0
+    frame.iat[19, 3] = 4.0
+    return frame
+
+
 def _bra_iot_workbook() -> dict[str, dict[str, pd.DataFrame]]:
     """Create one compact Brazil-style demand-basic IOT workbook without explicit factor rows."""
     frame = pd.DataFrame("", index=range(10), columns=range(13), dtype=object)
@@ -440,6 +473,58 @@ def test_parse_cepalstat_integrated_sut_bundle_reports_missing_year(tmp_path: Pa
         parse_cepalstat(str(archive), table="SUT", year=2021, calc_all=False)
 
 
+def test_parse_cepalstat_colombia_indexed_sut_uses_indice_mapping(tmp_path: Path):
+    offer, use = _cepalstat_sut_frames()
+    offer.iat[5, 0] = ""
+    use.iat[5, 0] = ""
+    indice = pd.DataFrame("", index=range(10), columns=range(3), dtype=object)
+    indice.iat[3, 0] = "Cuadro oferta-utilización 2021 a dos dígitos"
+    indice.iat[4, 1] = "Cuadro 15"
+    indice.iat[4, 2] = "Cuadro oferta"
+    indice.iat[5, 1] = "Cuadro 16"
+    indice.iat[5, 2] = "Cuadro utilización"
+    archive = _write_zip_with_workbooks(
+        tmp_path / "COL_COU_2021.zip",
+        {"COU_2021_PRECIOSCORRIENTES.xlsx": {"Índice": indice, "Cuadro 15": offer, "Cuadro 16": use}},
+    )
+
+    database = parse_cepalstat(str(archive), table="SUT", country="COL", year=2021, calc_all=False)
+
+    assert database.meta.name == "CEPALSTAT SUT COL 2021"
+    assert database.S.shape == (2, 2)
+    assert float(database.Yc.iloc[0, 0]) == 5.0
+
+
+def test_parse_cepalstat_sut_directory_filters_colombia_bundle_by_year(tmp_path: Path):
+    offer, use = _cepalstat_sut_frames()
+    indice_2004 = pd.DataFrame("", index=range(10), columns=range(3), dtype=object)
+    indice_2004.iat[3, 0] = "Cuadro oferta-utilización 2004 a dos dígitos"
+    indice_2004.iat[4, 1] = "Cuadro 1"
+    indice_2004.iat[4, 2] = "Cuadro oferta"
+    indice_2004.iat[5, 1] = "Cuadro 2"
+    indice_2004.iat[5, 2] = "Cuadro utilización"
+    _write_zip_with_workbooks(
+        tmp_path / "COL_COU_2000_2004.zip",
+        {"COU_2004_PRECIOSCORRIENTES.xlsx": {"Índice": indice_2004, "Cuadro 1": offer, "Cuadro 2": use}},
+    )
+
+    indice_2005 = pd.DataFrame("", index=range(10), columns=range(3), dtype=object)
+    indice_2005.iat[3, 0] = "Cuadro oferta-utilización 2005 a dos dígitos"
+    indice_2005.iat[4, 1] = "Cuadro 1"
+    indice_2005.iat[4, 2] = "Cuadro oferta"
+    indice_2005.iat[5, 1] = "Cuadro 2"
+    indice_2005.iat[5, 2] = "Cuadro utilización"
+    _write_zip_with_workbooks(
+        tmp_path / "COL_COU_2005_2019.zip",
+        {"COU_2005_PRECIOSCORRIENTES.xlsx": {"Índice": indice_2005, "Cuadro 1": offer, "Cuadro 2": use}},
+    )
+
+    database = parse_cepalstat(str(tmp_path), table="SUT", country="COL", year=2005, calc_all=False)
+
+    assert database.meta.year == 2005
+    assert database.meta.name == "CEPALSTAT SUT COL 2005"
+
+
 def test_parse_cepalstat_direct_iot_bundle_prefers_requested_mode(tmp_path: Path):
     pxp_frame = _cepalstat_iot_frame(10.0)
     axa_frame = _cepalstat_iot_frame(99.0)
@@ -462,6 +547,36 @@ def test_parse_cepalstat_direct_iot_bundle_prefers_requested_mode(tmp_path: Path
     assert database.V.shape == (7, 2)
     assert float(database.Z.iloc[0, 0]) == 10.0
     assert float(database.Y.iloc[0, 0]) == 5.0
+
+
+def test_parse_cepalstat_direct_iot_single_file_without_country_prefix(tmp_path: Path):
+    path = tmp_path / "MIP_2012_24x24_PxP.xlsx"
+    with pd.ExcelWriter(path, engine="openpyxl") as writer:
+        _cepalstat_iot_frame(10.0).to_excel(writer, sheet_name="MIP", header=False, index=False)
+
+    database = parse_cepalstat(str(path), table="IOT", country="COL", year=2012, iot_mode="pxp", calc_all=False)
+
+    assert database.meta.name == "CEPALSTAT IOT COL 2012 PXP"
+    assert database.Z.shape == (2, 2)
+
+
+def test_parse_cepalstat_legacy_colombia_iot_bundle_selects_requested_year(tmp_path: Path):
+    archive = _write_zip_with_workbooks(
+        tmp_path / "COL_MIP_2005_2010.zip",
+        {
+            "MIP_2005_2010_2x2_PxP.xlsx": {
+                "Índice": pd.DataFrame("", index=range(2), columns=range(2), dtype=object),
+                "Matriz Insumo-Producto 2005": _col_legacy_pxp_sheet(10.0),
+                "Matriz Insumo-Producto 2010": _col_legacy_pxp_sheet(99.0),
+            }
+        },
+    )
+
+    database = parse_cepalstat(str(archive), table="IOT", country="COL", year=2005, iot_mode="pxp", calc_all=False)
+
+    assert database.meta.name == "CEPALSTAT IOT COL 2005 PXP"
+    assert database.Z.shape == (2, 2)
+    assert float(database.Z.iloc[0, 0]) == 10.0
 
 
 def test_parse_cepalstat_argentina_two_sheet_sut_uses_vab_fallback(tmp_path: Path):
