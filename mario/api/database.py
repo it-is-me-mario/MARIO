@@ -2030,6 +2030,7 @@ class Database(CoreModel):
         parent_names=None,
         residue=None,
         VA_fix=False,
+        accept_non_unitary_sum=False,
     ):
         """Apply the add-sectors workbook to the selected scenario.
 
@@ -2058,6 +2059,11 @@ class Database(CoreModel):
             When ``True``, warn about any database factor-of-production rows
             that are missing from the workbook inventories before slice filling
             starts.
+        accept_non_unitary_sum:
+            When ``True``, allow inventory sheets whose factor/sector rows do
+            not sum to 1. Sheets whose factor/sector rows sum to 0 are skipped
+            entirely; other non-unitary inventories proceed with a warning
+            instead of raising during ``VA_fix`` augmentation.
         keep_all_split_steps:
             When ``False`` and ``split=True``, keep only the final available
             split result as ``baseline`` and discard intermediate scenarios such
@@ -2118,6 +2124,7 @@ class Database(CoreModel):
                 parent_names=parent_names,
                 residue=residue,
                 VA_fix=VA_fix,
+                accept_non_unitary_sum=accept_non_unitary_sum,
             )
             return new
 
@@ -2168,6 +2175,22 @@ class Database(CoreModel):
             if duplicates:
                 raise WrongInput(f"Some items already exist in the table: {duplicates}")
 
+            if self.meta.table == "IOT":
+                log_time(
+                    logger,
+                    f"Database: add_sectors will process {len(getattr(self, 'new_sectors', []))} sector(s): "
+                    f"{getattr(self, 'new_sectors', [])}",
+                    "info",
+                )
+            else:
+                log_time(
+                    logger,
+                    f"Database: add_sectors will process {len(getattr(self, 'new_activities', []))} activity/activities "
+                    f"{getattr(self, 'new_activities', [])} and {len(getattr(self, 'new_commodities', []))} "
+                    f"commodity/commodities {getattr(self, 'new_commodities', [])}.",
+                    "info",
+                )
+
             log_time(
                 logger,
                 "Database: All scenarios will be deleted from the database after add_sectors.",
@@ -2183,6 +2206,7 @@ class Database(CoreModel):
                 scenario=scenario,
                 ignore_warnings=ignore_warnings,
                 VA_fix=VA_fix,
+                accept_non_unitary_sum=accept_non_unitary_sum,
             )
 
             stage = "collecting baseline VY"

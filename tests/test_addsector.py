@@ -34,6 +34,7 @@ from mario.ops.add_sector_workbook import (
     group_advanced_inventories_by_target,
     read_advanced_add_sector_workbook,
 )
+from mario.ops.add_sector_engine import collect_missing_factor_of_production_inputs
 from mario.log_exc.exceptions import NotImplementable, WrongExcelFormat, WrongInput
 from mario.ops.sectoradd import get_corresponding_keys,matrix_concat,fill_matrix
 from mario.model.conventions import _MASTER_INDEX
@@ -42,6 +43,7 @@ from mario.ops.workbook_specs import ADD_SECTOR_SHEETS
 import pandas.testing as pdt
 import pandas as pd
 import pytest
+from types import SimpleNamespace
 from mario.api import database as database_module
 from mario import load_test
 from mario.parsers.api import build_database_from_state, build_parser_state
@@ -1162,6 +1164,114 @@ def test_add_sectors_logs_and_wraps_inventory_validation_errors(tmp_path, CoreDa
         "Database: add_sectors failed during running add-sectors engine" in record.message
         for record in caplog.records
     )
+
+
+def test_add_sectors_can_accept_non_unitary_inventory_sum_with_va_fix(tmp_path, CoreDataIOT):
+    region = CoreDataIOT.get_index(_MASTER_INDEX["r"])[0]
+    parent_sector = CoreDataIOT.get_index(_MASTER_INDEX["s"])[0]
+    unit = CoreDataIOT.units[_MASTER_INDEX["s"]].loc[parent_sector, "unit"]
+    factor = "Capital"
+    path = tmp_path / "advanced_iot_nonunitary_sum.xlsx"
+
+    CoreDataIOT.get_add_sectors_excel(
+        items=["New sector"],
+        regions=[region],
+        path=path,
+    )
+
+    master = pd.read_excel(path, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET).astype(object)
+    master.loc[0, "Unit"] = unit
+    master.loc[0, "Parent Sector"] = parent_sector
+    inventory = pd.DataFrame(
+        [
+            {
+                "Quantity": 0.6,
+                "Unit": unit,
+                "Input": "sector row",
+                "Item type": _MASTER_INDEX["s"],
+                "DB Item": parent_sector,
+                "DB Region": region,
+                "Change type": "Update",
+                "Source": "test",
+                "Notes": "",
+            },
+            {
+                "Quantity": 0.2,
+                "Unit": CoreDataIOT.units[_MASTER_INDEX["f"]].loc[factor, "unit"],
+                "Input": "factor row",
+                "Item type": _MASTER_INDEX["f"],
+                "DB Item": factor,
+                "DB Region": "",
+                "Change type": "Update",
+                "Source": "test",
+                "Notes": "",
+            },
+        ]
+    )
+
+    with pd.ExcelWriter(path, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+        master.to_excel(writer, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET, index=False)
+        inventory.to_excel(writer, sheet_name="INV_001", index=False)
+
+    with pytest.raises(WrongInput, match="expected 1.0"):
+        CoreDataIOT.add_sectors(io=path, inplace=False, VA_fix=True)
+
+    new = CoreDataIOT.add_sectors(
+        io=path,
+        inplace=False,
+        VA_fix=True,
+        accept_non_unitary_sum=True,
+    )
+
+    assert "New sector" in new.get_index(_MASTER_INDEX["s"])
+
+
+def test_add_sectors_can_skip_zero_sum_inventory_with_accept_non_unitary_sum(tmp_path, CoreDataIOT):
+    region = CoreDataIOT.get_index(_MASTER_INDEX["r"])[0]
+    parent_sector = CoreDataIOT.get_index(_MASTER_INDEX["s"])[0]
+    unit = CoreDataIOT.units[_MASTER_INDEX["s"]].loc[parent_sector, "unit"]
+    path = tmp_path / "advanced_iot_zero_sum.xlsx"
+
+    CoreDataIOT.get_add_sectors_excel(
+        items=["Zero sector"],
+        regions=[region],
+        path=path,
+    )
+
+    master = pd.read_excel(path, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET).astype(object)
+    master.loc[0, "Unit"] = unit
+    master.loc[0, "Parent Sector"] = parent_sector
+    inventory = pd.DataFrame(
+        [
+            {
+                "Quantity": 0.0,
+                "Unit": unit,
+                "Input": "zero row",
+                "Item type": _MASTER_INDEX["s"],
+                "DB Item": parent_sector,
+                "DB Region": region,
+                "Change type": "Update",
+                "Source": "test",
+                "Notes": "",
+            },
+        ]
+    )
+
+    with pd.ExcelWriter(path, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+        master.to_excel(writer, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET, index=False)
+        inventory.to_excel(writer, sheet_name="INV_001", index=False)
+
+    new = CoreDataIOT.add_sectors(
+        io=path,
+        inplace=False,
+        VA_fix=True,
+        accept_non_unitary_sum=True,
+    )
+
+    new_column = (region, _MASTER_INDEX["s"], "Zero sector")
+    assert new.z.loc[:, new_column].sum() == pytest.approx(0.0)
+    assert new.v.loc[:, new_column].sum() == pytest.approx(0.0)
+    assert new.e.loc[:, new_column].sum() == pytest.approx(0.0)
 
 
 def test_add_sectors_supports_legacy_regional_extension_rows_iot(tmp_path):
@@ -2330,3 +2440,42 @@ def test_add_sectors_split_can_rename_parent_sector(tmp_path, CoreDataIOT, monke
     assert parent_name in new.matrices["baseline"][_ENUM["Z"]].index.get_level_values(2)
     assert parent_name in new.matrices["baseline"][_ENUM["Z"]].columns.get_level_values(2)
     assert parent_name in new.units[_MASTER_INDEX["s"]].index
+
+
+def test_collect_missing_factors_counts_cluster_members_as_present():
+    instance = SimpleNamespace(
+        units={
+            _MASTER_INDEX["f"]: pd.DataFrame(
+                {"unit": ["M USD", "M USD", "M USD", "M USD"]},
+                index=["Tax", "TTM", "Capital", "Labor"],
+            )
+        },
+        inventories={
+            "HVC": {
+                "HVC_GLOBAL_ROW": pd.DataFrame(
+                    [
+                        {"Item type": _MASTER_INDEX["f"], "DB Item": "Capital", "DB Region": "GLOBAL"},
+                        {"Item type": _MASTER_INDEX["f"], "DB Item": "Labor", "DB Region": "GLOBAL"},
+                        {"Item type": _MASTER_INDEX["f"], "DB Item": "OthVAnoTech", "DB Region": "GLOBAL"},
+                    ]
+                ),
+            },
+            "PCP": {
+                "PCP_AUT": pd.DataFrame(
+                    [
+                        {"Item type": _MASTER_INDEX["f"], "DB Item": "Tax", "DB Region": "GLOBAL"},
+                        {"Item type": _MASTER_INDEX["f"], "DB Item": "Capital", "DB Region": "GLOBAL"},
+                        {"Item type": _MASTER_INDEX["f"], "DB Item": "Labor", "DB Region": "GLOBAL"},
+                    ]
+                ),
+            }
+        },
+        factors_clusters={
+            "OthVAnoTech": ["Capital", "Labor", "Tax", "TTM"],
+        },
+    )
+
+    missing = collect_missing_factor_of_production_inputs(instance)
+
+    assert "HVC" not in missing
+    assert missing["PCP"]["PCP_AUT"] == ["TTM"]

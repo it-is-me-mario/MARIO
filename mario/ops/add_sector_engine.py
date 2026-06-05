@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import logging
 import warnings
 from copy import deepcopy
 
@@ -10,6 +11,7 @@ import pandas as pd
 import pint
 
 from mario.log_exc.exceptions import LackOfInput, NotImplementable
+from mario.log_exc.logger import log_time
 from mario.model.conventions import IOT, SUT, _ENUM, _MASTER_INDEX as MI
 from mario.ops.add_sector_specs import (
     ADVANCED_ADD_SECTOR_INVENTORY_SHEET_COLUMNS as INC,
@@ -18,6 +20,7 @@ from mario.ops.add_sector_specs import (
 
 
 sn = slice(None)
+logger = logging.getLogger(__name__)
 
 
 _MATRIX_SLICES_MAP = {
@@ -376,7 +379,7 @@ class AddSectorEngine:
         weight = 1 / len(row_labels)
         return pd.Series(weight, index=row_labels, dtype=float)
 
-    def to_iot(self,VA_fix: bool = False):
+    def to_iot(self, VA_fix: bool = False, accept_non_unitary_sum: bool = False):
         """Return an IOT with the new sectors inserted in coefficient form."""
 
         if self.table != IOT:
@@ -390,7 +393,8 @@ class AddSectorEngine:
         self.uncertainty_matrix = deepcopy(self.matrices[_ENUM["z"]]) * 0 + 1
 
         for sector in self.new_sectors:
-            self.fill_slices(sector, VA_fix)
+            log_time(logger, f"Add-sectors engine: filling IOT slices for sector {sector!r}.", "info")
+            self.fill_slices(sector, VA_fix, accept_non_unitary_sum)
 
         self.add_slices()
         self.reindex_matrices()
@@ -418,6 +422,7 @@ class AddSectorEngine:
         empty_slices = self.get_empty_table_slices()
         self.filled_slices = deepcopy(empty_slices)
         for activity in self.new_activities:
+            log_time(logger, f"Add-sectors engine: filling SUT slices for activity {activity!r}.", "info")
             self.fill_slices(activity)
 
         self.add_slices()
@@ -598,7 +603,25 @@ class AddSectorEngine:
 
         return new_index, new_columns
 
-    def fill_slices(self, activity: str, VA_fix: bool = False) -> None:
+    @staticmethod
+    def _inventory_factor_or_sector_total(inventory: pd.DataFrame) -> float:
+        """Return the total quantity across sector and factor rows for one inventory."""
+
+        if INC["item_type"] not in inventory.columns or INC["quantity"] not in inventory.columns:
+            return float("nan")
+
+        mask = inventory[INC["item_type"]].fillna("").astype(str).isin([MI["f"], MI["s"]])
+        if not mask.any():
+            return 0.0
+
+        return float(pd.to_numeric(inventory.loc[mask, INC["quantity"]], errors="coerce").fillna(0.0).sum())
+
+    def fill_slices(
+        self,
+        activity: str,
+        VA_fix: bool = False,
+        accept_non_unitary_sum: bool = False,
+    ) -> None:
         """Fill all coefficient slices for one target item from its inventories."""
 
         slices = self.get_empty_table_slices()
@@ -609,6 +632,11 @@ class AddSectorEngine:
 
         for sheet_name, inventory in inventories.items():
             if self.leave_empty(sheet_name):
+                log_time(
+                    logger,
+                    f"Add-sectors engine: skipping inventory {sheet_name!r} for {activity!r} because it is marked leave-empty.",
+                    "debug",
+                )
                 continue
 
             regions = self.db.add_sectors_master.query(
@@ -626,6 +654,12 @@ class AddSectorEngine:
                         "nor in the regions cluster map."
                     )
             target_regions = list(dict.fromkeys(target_regions))
+            log_time(
+                logger,
+                f"Add-sectors engine: processing inventory {sheet_name!r} for {activity!r} "
+                f"across {len(target_regions)} target region(s): {target_regions}.",
+                "debug",
+            )
 
             if self.table == SUT:
                 parent_activity = self.db.add_sectors_master.query(
@@ -636,22 +670,49 @@ class AddSectorEngine:
                     f"`{MSC[self.table]['inventory_sheet']}`==@sheet_name"
                 )[MSC[self.table]["parent_sector"]].values[0]
 
+            inventory = self.make_units_consistent_to_database(inventory.copy(), sheet_name)
+            inventory_total = self._inventory_factor_or_sector_total(inventory)
+            if accept_non_unitary_sum and pd.notna(inventory_total):
+                if abs(inventory_total) <= 1e-12:
+                    warnings.warn(
+                        f"Inventory {sheet_name} for activity {activity!r} sums to 0 across sectors/factors "
+                        "and will be skipped because accept_non_unitary_sum=True.",
+                        stacklevel=2,
+                    )
+                    continue
+                if abs(inventory_total - 1.0) > 1e-4:
+                    warnings.warn(
+                        f"Inventory {sheet_name} for activity {activity!r} sums to {inventory_total} across "
+                        "sectors/factors and will be accepted because accept_non_unitary_sum=True.",
+                        stacklevel=2,
+                    )
+
             if pd.isna(parent_activity) is False:
+                log_time(
+                    logger,
+                    f"Add-sectors engine: bootstrapping {activity!r} from parent {parent_activity!r} "
+                    f"for inventory {sheet_name!r}.",
+                    "debug",
+                )
                 slices = self.copy_from_parent(
                     activity, parent_activity, target_regions, slices, inventory
                 )
 
-            inventory = self.make_units_consistent_to_database(inventory.copy(), sheet_name)
-
             for region_to in target_regions:
+                log_time(
+                    logger,
+                    f"Add-sectors engine: applying inventory {sheet_name!r} for {activity!r} in region {region_to!r}.",
+                    "debug",
+                )
                 if VA_fix:
-                    inventory,slices = self._augment_inventory_with_missing_factors(
+                    inventory, slices = self._augment_inventory_with_missing_factors(
                         inventory,
                         sheet_name=sheet_name,
                         region_to=region_to,
                         activity=activity,
                         slices=slices,
                         parent_activity=parent_activity,
+                        accept_non_unitary_sum=accept_non_unitary_sum,
                     )
 
                 if self.table == SUT:
@@ -684,6 +745,7 @@ class AddSectorEngine:
         activity: str,
         slices: dict,
         parent_activity: str | None,
+        accept_non_unitary_sum: bool = False,
     ):
         """Add missing factor rows from the parent V block and rescale existing factor rows."""
 
@@ -754,6 +816,19 @@ class AddSectorEngine:
 
         factor_total = augmented_inventory.loc[factor_or_sector_mask, INC["quantity"]].sum() + missing_total
         if abs(factor_total - 1.0) > 1e-4:
+            if accept_non_unitary_sum:
+                warnings.warn(
+                    f"Augmented inventory {sheet_name} for {region_to} and activity {activity!r} sums to "
+                    f"{factor_total}; continuing because accept_non_unitary_sum=True.",
+                    stacklevel=2,
+                )
+                return (
+                    pd.concat(
+                        [augmented_inventory, pd.DataFrame(added_rows, columns=augmented_inventory.columns)],
+                        ignore_index=True,
+                    ),
+                    slices,
+                )
             raise InventoryRowValidationError(
                 "Augmented factor inventory does not sum to 1",
                 f"Inventory {sheet_name} for {region_to} and activity {activity!r} sums to {factor_total}, expected 1.0.",
@@ -1660,6 +1735,7 @@ def collect_missing_factor_of_production_inputs(instance) -> dict[str, dict[str,
     expected_factors = [
         str(factor).strip() for factor in factor_units.index.tolist() if str(factor).strip()
     ]
+    factor_clusters = getattr(instance, "factors_clusters", {}) or {}
 
     missing_factors: dict[str, dict[str, dict[object, list[str]]]] = {}
 
@@ -1674,7 +1750,17 @@ def collect_missing_factor_of_production_inputs(instance) -> dict[str, dict[str,
                 [db_item_column] + ([db_region_column] if db_region_column in inventory.columns else []),
             ]
 
-            present_factors = set(factor_rows[db_item_column].str.strip())
+            present_factors: set[str] = set()
+            for raw_factor in factor_rows[db_item_column].dropna().tolist():
+                factor_name = str(raw_factor).strip()
+                if not factor_name:
+                    continue
+                present_factors.add(factor_name)
+                present_factors.update(
+                    str(member).strip()
+                    for member in factor_clusters.get(factor_name, [])
+                    if str(member).strip()
+                )
 
             missing = [factor for factor in expected_factors if factor not in present_factors]
 
@@ -1692,16 +1778,26 @@ def warn_missing_factor_of_production_inputs(instance) -> None:
     """Warn when workbook inventories omit database factor-of-production rows."""
 
     missing_factors = collect_missing_factor_of_production_inputs(instance)
-    for activity, sheets in missing_factors.items():
-            for sheet_name, factors in sheets.items():
-                for factor in factors:
-                    warnings.warn(
-                        f"{factor.capitalize()} factor of production is missing in inventory {sheet_name}.",
-                        stacklevel=2,
-                    )
+    if not missing_factors:
+        return
+
+    warning_lines = ["Factors of production missing in add-sectors inventories:"]
+
+    for activity, sheets in sorted(missing_factors.items()):
+        for sheet_name, factors in sorted(sheets.items()):
+            factor_list = ", ".join(sorted(dict.fromkeys(factor.capitalize() for factor in factors)))
+            warning_lines.append(f"- {sheet_name} [{activity}]: {factor_list}")
+
+    warnings.warn("\n".join(warning_lines), stacklevel=2)
 
 
-def run_add_sector_engine(instance, scenario: str = "baseline", ignore_warnings: bool = True,VA_fix: bool = False) -> dict[str, pd.DataFrame]:
+def run_add_sector_engine(
+    instance,
+    scenario: str = "baseline",
+    ignore_warnings: bool = True,
+    VA_fix: bool = False,
+    accept_non_unitary_sum: bool = False,
+) -> dict[str, pd.DataFrame]:
     """Run the add-sectors engine and return updated coefficient matrices."""
 
     if not hasattr(instance, "inventories"):
@@ -1711,7 +1807,7 @@ def run_add_sector_engine(instance, scenario: str = "baseline", ignore_warnings:
     engine = AddSectorEngine(instance, matrices, ignore_warnings=ignore_warnings)
     engine.missing_factors_of_production = getattr(instance, "missing_factors_of_production", {})
     if instance.table_type == IOT:
-        return engine.to_iot(VA_fix=VA_fix)
+        return engine.to_iot(VA_fix=VA_fix, accept_non_unitary_sum=accept_non_unitary_sum)
     return engine.to_sut()
 
 
