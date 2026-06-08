@@ -13,6 +13,7 @@ when you:
 
 * :doc:`clone </api_document/mario.Database.clone_scenario>` an existing *scenario*
 * :doc:`apply shocks </user_guide/transformations/apply_shocks>` into a new *scenario*
+* manually edit stored matrices through the manual workflow described in :doc:`apply shocks </user_guide/transformations/apply_shocks>`
 
 Compatible parser runs can also populate new *scenarios* on the same
 *database* instance.
@@ -35,6 +36,8 @@ not a different *database* class.
 
 If a scenario already exists, you can still :doc:`update </api_document/mario.Database.update_scenarios>` selected stored *matrices*.
 Such operation mutates an existing *scenario* and does not create a new one.
+The manual workflow is documented in
+:doc:`user guide: apply shocks </user_guide/transformations/apply_shocks>`.
 
 
 What is stored in a scenario
@@ -51,6 +54,13 @@ This matters because:
 * *scenarios* stay lighter than a full eager copy of every *matrix*
 * users can choose whether to keep flows or coefficients after an operation
 * derived quantities can be recomputed consistently from the *scenario* state
+
+.. note::
+
+   Dotted access such as ``db.Z`` or ``db.X`` refers to the baseline
+   scenario. To inspect or edit a non-baseline scenario, use
+   :doc:`Database.query </api_document/mario.Database.query>` or
+   ``get_block(..., scenario=...)`` instead.
 
 If you want to check which *matrices* are available in the ``baseline`` (or any other) *scenario*:
  
@@ -72,7 +82,11 @@ Typical scenario-related operations are:
 * update one or more *matrices* in an existing *scenario* and keep the rest implicit;
 * compare a policy *scenario* against the baseline;
 * reset *scenarios* to flows or coefficients before changing structural
-  settings.
+  settings or before applying manual matrix updates.
+
+For a complete worked explanation of
+``clone_scenario(...) + reset_to_flows/reset_to_coefficients(...) + update_scenarios(...)``,
+see :doc:`apply shocks </user_guide/transformations/apply_shocks>`.
 
 .. important::
 

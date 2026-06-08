@@ -1449,7 +1449,7 @@ class CoreModel:
             self.meta._add_history(f"User Note: {note}")
 
     def update_scenarios(self, scenario, **matrices):
-        """Replace selected matrices in an existing scenario.
+        """Replace selected stored matrices in an existing scenario.
 
         Parameters
         ----------
@@ -1457,11 +1457,42 @@ class CoreModel:
             Existing scenario name to update.
         **matrices:
             Keyword mapping ``matrix_name=dataframe`` for the blocks to replace.
+            Only the provided blocks are overwritten.
 
         Returns
         -------
         None
             The method mutates the stored scenario in place.
+
+        Notes
+        -----
+        ``update_scenarios(...)`` is a low-level storage operation. It does
+        not create a new scenario, does not recompute dependent matrices and
+        does not clear already materialized derived matrices automatically.
+
+        This means that manual scenario edits are safest when paired with
+        either :meth:`reset_to_flows` or :meth:`reset_to_coefficients` before
+        changing the selected blocks. Those reset methods collapse the scenario
+        to one consistent storage mode and avoid keeping stale derived
+        matrices around.
+
+        When preparing an editable matrix taken from the database, use
+        ``.copy()`` before mutating it. For example, ``Z = db.Z.copy()`` or
+        ``z = db.query("z", scenarios="policy").copy()``. Without the copy,
+        in-place edits such as ``*=`` mutate the scenario storage immediately.
+
+        Examples
+        --------
+        Manual coefficient-side update in a non-baseline scenario::
+
+            db.clone_scenario("baseline", "policy")
+            db.reset_to_coefficients("policy")
+            z = db.query("z", scenarios="policy").copy()
+            z.loc[:, :] *= 0.95
+            db.update_scenarios("policy", z=z)
+
+        After the update, derived matrices such as ``X`` or ``V`` can be
+        rebuilt on demand from the stored coefficient-side state.
         """
 
         try:
@@ -1597,6 +1628,22 @@ class CoreModel:
         -------
         None
             The selected scenario is replaced with its flow blocks only.
+
+        Notes
+        -----
+        This is useful before manual flow-side edits with
+        :meth:`update_scenarios`. After the reset, already materialized
+        coefficient-side or derived matrices are discarded so the scenario is
+        left in one consistent flow representation.
+
+        For IOT databases, the kept blocks are ``Z``, ``E``, ``V``, ``EY``,
+        ``VY`` and ``Y``.
+
+        For SUT databases, the kept blocks are ``U``, ``S``, ``Ea``, ``Ec``,
+        ``Va``, ``Vc``, ``Ya``, ``Yc``, ``EY`` and ``VY``.
+
+        Accessing other matrices afterwards can still trigger on-demand
+        reconstruction from the stored flow-side state.
         """
 
         if self.table_type == "SUT":
@@ -1629,6 +1676,24 @@ class CoreModel:
         -------
         None
             The selected scenario is replaced with its coefficient blocks only.
+
+        Notes
+        -----
+        This is useful before manual coefficient-side edits with
+        :meth:`update_scenarios`. After the reset, already materialized
+        flow-side or derived matrices are discarded so the scenario is left in
+        one consistent coefficient representation.
+
+        For IOT databases, the kept blocks are ``z``, ``e``, ``v``, ``EY``,
+        ``VY`` and ``Y``.
+
+        For SUT databases, the kept blocks are ``u``, ``s``, ``ea``, ``ec``,
+        ``va``, ``vc``, ``Ya``, ``Yc``, ``EY`` and ``VY``.
+
+        Accessing other matrices afterwards can still trigger on-demand
+        reconstruction from the stored coefficient-side state. This is the
+        preferred setup when a manual shock should propagate through ``X`` and
+        then rebuild dependent flow matrices such as ``Z``, ``V`` and ``E``.
         """
         if self.table_type == "SUT":
             keep = ["u", "s", "ea", "ec", "va", "vc", "Ya", "Yc", _ENUM.EY, _ENUM.VY]

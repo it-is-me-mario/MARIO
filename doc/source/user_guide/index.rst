@@ -48,4 +48,3 @@ The workflows are grouped into four families:
    advanced/greenhouse_gas_calculations
    advanced/supply_chain_analyses
    advanced/structural_path_analysis
-

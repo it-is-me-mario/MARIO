@@ -24,6 +24,9 @@ Database Transformations
 Scenario Operations
 -------------------
 
+For workbook-free manual shocks and programmatic scenario edits, see
+:doc:`../user_guide/transformations/apply_shocks`.
+
 .. toctree::
    :maxdepth: 1
 
