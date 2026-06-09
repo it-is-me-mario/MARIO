@@ -241,14 +241,7 @@ def build_split_flow_scenario(
     region_col = ADD_SECTOR_SPLIT_OUTPUT_COLUMNS["region"]
     quantity_col = ADD_SECTOR_SPLIT_OUTPUT_COLUMNS["quantity"]
 
-    old_X = (
-        instance.get_block_as_pandas(_ENUM["X"], scenario=base_scenario)
-        if instance.has_matrix(_ENUM["X"], scenario=base_scenario)
-        else calc_X_from_w(
-            calc_w(instance.get_block_as_pandas(_ENUM["z"], scenario=base_scenario)),
-            instance.get_block_as_pandas(_ENUM["Y"], scenario=base_scenario),
-        )
-    )
+    old_X = copy.deepcopy(instance.X)
     X = copy.deepcopy(old_X)
 
     for sector in getattr(instance, "to_split_sectors", []):
@@ -331,6 +324,10 @@ def build_split_flow_scenario(
         Z[negative_mask] = 0.0
         if getattr(instance, "uncertainty_matrix", None) is not None:
             instance.uncertainty_matrix[negative_mask] = instance.uncertainty_values["forced zero"]
+
+    Z = calc_Z(z, X)
+    E = calc_E(e, X)
+    V = calc_V(v, X)
 
     instance.matrices[split_scenario] = {
         _ENUM["Z"]: Z,
