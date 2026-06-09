@@ -85,14 +85,17 @@ setup(
             "pyxlsb",
             "cvxlab>=1.0.0b1",
         ],
+        "parquet": [
+            "pyarrow>=17",
+        ],
         "storage": [
-            "pyarrow",
+            "pyarrow>=17",
         ],
         "dev": [
             "pytest",
             "scipy",
             "h5py",
-            "pyarrow",
+            "pyarrow>=17",
             "pyxlsb",
             "cvxlab>=1.0.0b1",
         ],
@@ -100,7 +103,7 @@ setup(
             "pytest",
             "scipy",
             "h5py",
-            "pyarrow",
+            "pyarrow>=17",
             "pyxlsb",
             "cvxlab>=1.0.0b1",
         ],

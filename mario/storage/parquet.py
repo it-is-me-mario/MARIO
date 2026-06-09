@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from mario._optional import require_pyarrow
 from mario.storage.base import BlockRepository
 
 
@@ -34,6 +35,7 @@ class ParquetBlockRepository(BlockRepository):
 
     def get(self, key: str):
         """Load a dataframe or series block from parquet storage."""
+        require_pyarrow(feature="Parquet block storage")
         data_path = self._data_path(key)
         meta_path = self._meta_path(key)
 
@@ -52,6 +54,7 @@ class ParquetBlockRepository(BlockRepository):
 
     def put(self, key: str, value) -> None:
         """Persist a dataframe or series block to parquet storage."""
+        require_pyarrow(feature="Parquet block storage")
         data_path = self._data_path(key)
         meta_path = self._meta_path(key)
         data_path.parent.mkdir(parents=True, exist_ok=True)

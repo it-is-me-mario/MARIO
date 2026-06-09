@@ -62,6 +62,12 @@ Install from PyPI:
 
    pip install mariopy
 
+Install with Parquet support:
+
+.. code-block:: bash
+
+   pip install "mariopy[parquet]"
+
 Install from source:
 
 .. code-block:: bash

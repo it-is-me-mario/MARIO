@@ -11,7 +11,7 @@ xlsxwriter==3.2.9
 pytest
 scipy
 h5py
-pyarrow
+pyarrow>=17
 pyxlsb
 pymrio
 cvxlab>=1.0.0b1

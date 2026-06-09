@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 import pymrio
 
+from mario._optional import require_pyarrow
 from mario.log_exc.exceptions import NotImplementable, WrongInput
 from mario.log_exc.logger import log_time
 from mario.ops.export_specs import (
@@ -463,6 +464,8 @@ def export_database_to_parquet(
 
     if flows is False and coefficients is False:
         raise WrongInput("At least one of the flows or coefficients should be True")
+
+    require_pyarrow(feature="Parquet export")
 
     export_root = Path(database._getdir(path, "Database", ""))
     log_time(

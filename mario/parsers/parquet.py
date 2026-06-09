@@ -7,6 +7,7 @@ import logging
 
 import pandas as pd
 
+from mario._optional import require_pyarrow
 from mario.internal import ModelState
 from mario.log_exc.exceptions import WrongInput
 from mario.log_exc.logger import log_time
@@ -211,6 +212,7 @@ class ParquetParser(BaseParser):
         repository: BlockRepository | None = None,
     ) -> ModelState:
         """Parse a folder of parquet files into a canonical ``ModelState``."""
+        require_pyarrow(feature="Parquet parsing", error_type=WrongInput)
         layout = "flat" if flat else "matrix"
         log_time(
             logger,
