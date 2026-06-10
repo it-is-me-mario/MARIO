@@ -317,9 +317,9 @@ different scenario.
    ../api_document/mario.CoreModel.ma_ex_all
    ../api_document/mario.CoreModel.mc_ex
    ../api_document/mario.CoreModel.mc_ex_all
-    ../api_document/mario.CoreModel.p_ex
-    ../api_document/mario.CoreModel.p_ex_all
-    ../api_document/mario.CoreModel.pa_ex
-    ../api_document/mario.CoreModel.pa_ex_all
-    ../api_document/mario.CoreModel.pc_ex
-    ../api_document/mario.CoreModel.pc_ex_all
+   ../api_document/mario.CoreModel.p_ex
+   ../api_document/mario.CoreModel.p_ex_all
+   ../api_document/mario.CoreModel.pa_ex
+   ../api_document/mario.CoreModel.pa_ex_all
+   ../api_document/mario.CoreModel.pc_ex
+   ../api_document/mario.CoreModel.pc_ex_all
