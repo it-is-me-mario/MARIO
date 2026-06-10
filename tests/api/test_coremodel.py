@@ -818,6 +818,56 @@ def test_mc_ex_sut_supports_factor_filter(CoreDataSUT):
     pdt.assert_frame_equal(result, expected)
 
 
+def test_p_ex_iot_returns_price_contributions(CoreDataIOT):
+
+    result = CoreDataIOT.p_ex()
+
+    v = CoreDataIOT.query(_ENUM.v)
+    w = CoreDataIOT.query("w")
+    expected = w.mul(v.sum(axis=0), axis=0)
+
+    pdt.assert_frame_equal(result, expected)
+
+
+def test_pa_ex_sut_returns_activity_side_price_contributions(CoreDataSUT):
+
+    result = CoreDataSUT.pa_ex()
+
+    va = CoreDataSUT.query("va")
+    vc = CoreDataSUT.query("vc")
+    waa = CoreDataSUT.query("waa")
+    wca = CoreDataSUT.query("wca")
+    expected = pd.concat(
+        [
+            waa.mul(va.sum(axis=0), axis=0),
+            wca.mul(vc.sum(axis=0), axis=0),
+        ],
+        axis=0,
+    )
+
+    pdt.assert_frame_equal(result, expected)
+
+
+def test_pc_ex_sut_returns_commodity_side_price_contributions(CoreDataSUT):
+
+    result = CoreDataSUT.pc_ex()
+
+    va = CoreDataSUT.query("va")
+    vc = CoreDataSUT.query("vc")
+    s = CoreDataSUT.query("s")
+    wcc = CoreDataSUT.query("wcc")
+    transfer = s.dot(wcc)
+    expected = pd.concat(
+        [
+            transfer.mul(va.sum(axis=0), axis=0),
+            wcc.mul(vc.sum(axis=0), axis=0),
+        ],
+        axis=0,
+    )
+
+    pdt.assert_frame_equal(result, expected)
+
+
 def test_ex_methods_raise_on_unknown_selector(CoreDataIOT):
 
     with pytest.raises(WrongInput) as msg_f:
@@ -838,6 +888,9 @@ def test_ex_methods_raise_on_wrong_table_type(CoreDataIOT, CoreDataSUT):
         CoreDataSUT.m_ex()
 
     with pytest.raises(WrongInput):
+        CoreDataSUT.p_ex()
+
+    with pytest.raises(WrongInput):
         CoreDataIOT.fa_ex()
 
     with pytest.raises(WrongInput):
@@ -848,6 +901,12 @@ def test_ex_methods_raise_on_wrong_table_type(CoreDataIOT, CoreDataSUT):
 
     with pytest.raises(WrongInput):
         CoreDataIOT.mc_ex()
+
+    with pytest.raises(WrongInput):
+        CoreDataIOT.pa_ex()
+
+    with pytest.raises(WrongInput):
+        CoreDataIOT.pc_ex()
 
 
 def test___eq__(CoreDataIOT,CoreDataSUT):

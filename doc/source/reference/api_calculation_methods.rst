@@ -246,9 +246,12 @@ want one standalone numerical helper instead of resolving through a
 Exploded Multiplier Matrices
 -----------------------------
 
-These methods decompose multiplier (``f``, ``m``) matrices by stacking
-one scaled transfer matrix per account/factor, yielding a ``(account, region,
-sector)`` MultiIndex result. IOT and SUT use separate methods.
+These methods decompose multiplier (``f``, ``m``, ``p``) matrices by stacking
+scaled transfer matrices. IOT and SUT use separate methods.
+
+The ``f_ex`` and ``m_ex`` families return a ``(account/factor, region,
+sector)`` MultiIndex on rows, while the ``p_ex`` family returns aggregated
+contributions whose rows identify the contributing region-sector.
 
 The ``_all`` property variants (e.g. ``db.f_ex_all``) are zero-argument
 shorthands that return the full matrix for all accounts/factors at baseline
@@ -286,6 +289,18 @@ different scenario.
      - :doc:`db.mc_ex_all <../api_document/mario.CoreModel.mc_ex_all>`
      - SUT
      - ``diag(va_f) @ (s @ wcc)``
+   * - :doc:`db.p_ex(...) <../api_document/mario.CoreModel.p_ex>`
+     - :doc:`db.p_ex_all <../api_document/mario.CoreModel.p_ex_all>`
+     - IOT
+     - ``diag(v @ 1) @ w``
+   * - :doc:`db.pa_ex(...) <../api_document/mario.CoreModel.pa_ex>`
+     - :doc:`db.pa_ex_all <../api_document/mario.CoreModel.pa_ex_all>`
+     - SUT
+     - ``diag(va @ 1) @ waa``
+   * - :doc:`db.pc_ex(...) <../api_document/mario.CoreModel.pc_ex>`
+     - :doc:`db.pc_ex_all <../api_document/mario.CoreModel.pc_ex_all>`
+     - SUT
+     - ``diag(va @ 1) @ (s @ wcc)``
 
 .. toctree::
    :maxdepth: 1
@@ -302,3 +317,9 @@ different scenario.
    ../api_document/mario.CoreModel.ma_ex_all
    ../api_document/mario.CoreModel.mc_ex
    ../api_document/mario.CoreModel.mc_ex_all
+    ../api_document/mario.CoreModel.p_ex
+    ../api_document/mario.CoreModel.p_ex_all
+    ../api_document/mario.CoreModel.pa_ex
+    ../api_document/mario.CoreModel.pa_ex_all
+    ../api_document/mario.CoreModel.pc_ex
+    ../api_document/mario.CoreModel.pc_ex_all

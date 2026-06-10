@@ -1126,6 +1126,34 @@ class CoreModel:
         return pd.concat(blocks, axis=0)
 
     @staticmethod
+    def _explode_with_summed_rows(
+        direct: pd.DataFrame,
+        transfer: pd.DataFrame,
+    ) -> pd.DataFrame:
+        """Explode the sum of direct rows against a transfer matrix.
+
+        This builds ``diag(direct.sum(0)) @ transfer`` and preserves the
+        transfer row axis as the contributor dimension.
+        """
+        if not isinstance(direct, pd.DataFrame):
+            raise TypeError("direct should be a pandas DataFrame.")
+        if not isinstance(transfer, pd.DataFrame):
+            raise TypeError("transfer should be a pandas DataFrame.")
+
+        if direct.shape[0] == 0:
+            return pd.DataFrame(index=transfer.index, columns=transfer.columns)
+
+        missing = direct.columns.difference(transfer.index)
+        if len(missing):
+            raise WrongInput(
+                f"direct columns are not aligned with transfer index. Missing labels in transfer: {list(missing)}"
+            )
+
+        aligned_transfer = transfer.loc[direct.columns, :]
+        weights = direct.sum(axis=0)
+        return aligned_transfer.mul(weights, axis=0)
+
+    @staticmethod
     def _normalize_exploded_selector(values, *, available: pd.Index, label: str) -> list:
         """Normalize optional exploded-matrix selectors and validate membership."""
         if values is None:
@@ -1430,6 +1458,116 @@ class CoreModel:
             wcc,
             outer_name=_MASTER_INDEX["f"],
         )
+        return pd.concat([activity, commodity], axis=0)
+
+    def p_ex(
+        self,
+        *,
+        scenario: str = "baseline",
+    ):
+        """Return exploded price-index contributions for IOT.
+
+        This is the aggregated analogue of :meth:`m_ex`: it sums value-added
+        rows first and then returns ``diag(v.sum(0)) @ w``.
+
+        Parameters
+        ----------
+        scenario:
+            Scenario used to read source matrices.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame whose rows identify the contributing region-sector and
+            whose column sums equal ``p``.
+
+        Notes
+        -----
+        For SUT models use :meth:`pa_ex` (activity side) or
+        :meth:`pc_ex` (commodity side).
+        """
+        if self.table_type != "IOT":
+            raise WrongInput("p_ex is only available for IOT. Use pa_ex or pc_ex for SUT.")
+        self._validate_scenario(scenario)
+        v = self.query(_ENUM.v, scenarios=[scenario])
+        w = self.query("w", scenarios=[scenario])
+        return self._explode_with_summed_rows(v, w)
+
+    def pa_ex(
+        self,
+        *,
+        scenario: str = "baseline",
+    ):
+        """Return activity-side exploded price-index contributions for SUT.
+
+        This is the aggregated analogue of :meth:`ma_ex`: it sums factor rows
+        first and returns activity and commodity contributors stacked on the
+        rows.
+
+        Parameters
+        ----------
+        scenario:
+            Scenario used to read source matrices.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame whose rows describe the contributing activity or
+            commodity and whose column sums equal ``pa``.
+
+        Notes
+        -----
+        For IOT models use :meth:`p_ex`. For the commodity side use
+        :meth:`pc_ex`.
+        """
+        if self.table_type != "SUT":
+            raise WrongInput("pa_ex is only available for SUT. Use p_ex for IOT.")
+        self._validate_scenario(scenario)
+        va = self.query("va", scenarios=[scenario])
+        vc = self.query("vc", scenarios=[scenario])
+        waa = self.query("waa", scenarios=[scenario])
+        wca = self.query("wca", scenarios=[scenario])
+        activity = self._explode_with_summed_rows(va, waa)
+        commodity = self._explode_with_summed_rows(vc, wca)
+        return pd.concat([activity, commodity], axis=0)
+
+    def pc_ex(
+        self,
+        *,
+        scenario: str = "baseline",
+    ):
+        """Return commodity-side exploded price-index contributions for SUT.
+
+        This is the aggregated analogue of :meth:`mc_ex`: it sums factor rows
+        first and returns activity and commodity contributors stacked on the
+        rows.
+
+        Parameters
+        ----------
+        scenario:
+            Scenario used to read source matrices.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame whose rows describe the contributing activity or
+            commodity and whose column sums equal ``pc``.
+
+        Notes
+        -----
+        For IOT models use :meth:`p_ex`. For the activity side use
+        :meth:`pa_ex`.
+        """
+        if self.table_type != "SUT":
+            raise WrongInput("pc_ex is only available for SUT. Use p_ex for IOT.")
+        self._validate_scenario(scenario)
+        va = self.query("va", scenarios=[scenario])
+        vc = self.query("vc", scenarios=[scenario])
+        s = self.query("s", scenarios=[scenario])
+        wcc = self.query("wcc", scenarios=[scenario])
+        transfer = s.dot(wcc)
+        activity = self._explode_with_summed_rows(va, transfer)
+        commodity = self._explode_with_summed_rows(vc, wcc)
         return pd.concat([activity, commodity], axis=0)
 
     def add_note(self, notes):
@@ -2449,6 +2587,45 @@ class CoreModel:
         pandas.DataFrame
         """
         return self.mc_ex()
+
+    @property
+    def p_ex_all(self):
+        """Exploded price-index contributions (IOT, baseline).
+
+        Shorthand for ``db.p_ex()`` with default arguments. For non-baseline
+        scenarios call :meth:`p_ex` directly.
+
+        Returns
+        -------
+        pandas.DataFrame
+        """
+        return self.p_ex()
+
+    @property
+    def pa_ex_all(self):
+        """Activity-side exploded price-index contributions (SUT, baseline).
+
+        Shorthand for ``db.pa_ex()`` with default arguments. For non-baseline
+        scenarios call :meth:`pa_ex` directly.
+
+        Returns
+        -------
+        pandas.DataFrame
+        """
+        return self.pa_ex()
+
+    @property
+    def pc_ex_all(self):
+        """Commodity-side exploded price-index contributions (SUT, baseline).
+
+        Shorthand for ``db.pc_ex()`` with default arguments. For non-baseline
+        scenarios call :meth:`pc_ex` directly.
+
+        Returns
+        -------
+        pandas.DataFrame
+        """
+        return self.pc_ex()
 
     def __getitem__(self, key):
         """Return the matrix dictionary stored for one scenario."""
