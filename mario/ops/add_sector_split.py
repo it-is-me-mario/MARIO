@@ -318,16 +318,16 @@ def build_split_flow_scenario(
             f"Check rows: {X.loc[negatives].index.tolist()}"
         )
 
+    Z = calc_Z(z, X)
+    E = calc_E(e, X)
+    V = calc_V(v, X)
+
     negative_mask = Z < 0
     if negative_mask.any().any():
         warnings.warn("Negative values found in split matrix Z. They are clipped to zero.")
         Z[negative_mask] = 0.0
         if getattr(instance, "uncertainty_matrix", None) is not None:
             instance.uncertainty_matrix[negative_mask] = instance.uncertainty_values["forced zero"]
-
-    Z = calc_Z(z, X)
-    E = calc_E(e, X)
-    V = calc_V(v, X)
 
     instance.matrices[split_scenario] = {
         _ENUM["Z"]: Z,
