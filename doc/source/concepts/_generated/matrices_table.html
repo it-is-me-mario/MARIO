@@ -170,12 +170,12 @@
         <td>Satellite account*</td>
         <td>Region, Sector</td>
       </tr>
-      <tr data-search="f coefficients iot m total (direct+indirect) environmental transaction coefficients matrix satellite account* region, sector">
+      <tr data-search="f coefficients iot m total (direct+indirect) environmental coefficients matrix satellite account* region, sector">
         <td><strong>f</strong></td>
         <td>Coefficients</td>
         <td>IOT</td>
         <td>M</td>
-        <td>Total (direct+indirect) environmental transaction coefficients matrix</td>
+        <td>Total (direct+indirect) environmental coefficients matrix</td>
         <td>Satellite account*</td>
         <td>Region, Sector</td>
       </tr>
@@ -196,6 +196,15 @@
         <td>Price index vector</td>
         <td>Region, Sector</td>
         <td>-</td>
+      </tr>
+      <tr data-search="p_ex coefficients iot  price index, exploded by origin region and sector factor of production, region, sector region, sector">
+        <td><strong>p_ex</strong></td>
+        <td>Coefficients</td>
+        <td>IOT</td>
+        <td></td>
+        <td>Price index, exploded by origin region and sector</td>
+        <td>Factor of production, Region, Sector</td>
+        <td>Region, Sector</td>
       </tr>
       <tr data-search="u flows sut t use transaction flows matrix region, commodity region, activity">
         <td><strong>U</strong></td>
@@ -422,19 +431,19 @@
         <td>Factor of production*</td>
         <td>Region, Activity</td>
       </tr>
-      <tr data-search="mc_ex coefficients sut  total (direct+indirect) value added coefficients by commodity matrix, exploded by origin region and activity factor of production, region, activity region, commodity">
+      <tr data-search="mc_ex coefficients iot  total (direct+indirect) value added coefficients by commodity matrix, exploded by origin region and activity factor of production, region, activity region, commodity">
         <td><strong>mc_ex</strong></td>
         <td>Coefficients</td>
-        <td>SUT</td>
+        <td>IOT</td>
         <td></td>
         <td>Total (direct+indirect) value added coefficients by commodity matrix, exploded by origin region and activity</td>
         <td>Factor of production, Region, Activity</td>
         <td>Region, Commodity</td>
       </tr>
-      <tr data-search="ma_ex coefficients sut  total (direct+indirect) value added coefficients by activity matrix, exploded by origin region and activity factor of production, region, activity region, activity">
+      <tr data-search="ma_ex coefficients iot  total (direct+indirect) value added coefficients by activity matrix, exploded by origin region and activity factor of production, region, activity region, activity">
         <td><strong>ma_ex</strong></td>
         <td>Coefficients</td>
-        <td>SUT</td>
+        <td>IOT</td>
         <td></td>
         <td>Total (direct+indirect) value added coefficients by activity matrix, exploded by origin region and activity</td>
         <td>Factor of production, Region, Activity</td>
@@ -458,37 +467,37 @@
         <td>Satellite account*</td>
         <td>Region, Activity</td>
       </tr>
-      <tr data-search="fc coefficients sut  total (direct+indirect) environmental transaction coefficients by commodity matrix satellite account* region, commodity">
+      <tr data-search="fc coefficients sut  total (direct+indirect) environmental coefficients by commodity matrix satellite account* region, commodity">
         <td><strong>fc</strong></td>
         <td>Coefficients</td>
         <td>SUT</td>
         <td></td>
-        <td>Total (direct+indirect) environmental transaction coefficients by commodity matrix</td>
+        <td>Total (direct+indirect) environmental coefficients by commodity matrix</td>
         <td>Satellite account*</td>
         <td>Region, Commodity</td>
       </tr>
-      <tr data-search="fa coefficients sut  total (direct+indirect) environmental transaction coefficients by activity matrix satellite account* region, activity">
+      <tr data-search="fa coefficients sut  total (direct+indirect) environmental coefficients by activity matrix satellite account* region, activity">
         <td><strong>fa</strong></td>
         <td>Coefficients</td>
         <td>SUT</td>
         <td></td>
-        <td>Total (direct+indirect) environmental transaction coefficients by activity matrix</td>
+        <td>Total (direct+indirect) environmental coefficients by activity matrix</td>
         <td>Satellite account*</td>
         <td>Region, Activity</td>
       </tr>
-      <tr data-search="fc_ex coefficients sut  total (direct+indirect) environmental coefficients by commodity matrix, exploded by origin region and activity satellite account, region, activity region, commodity">
+      <tr data-search="fc_ex coefficients iot  total (direct+indirect) environmental coefficients by commodity matrix, exploded by origin region and activity satellite account, region, activity region, commodity">
         <td><strong>fc_ex</strong></td>
         <td>Coefficients</td>
-        <td>SUT</td>
+        <td>IOT</td>
         <td></td>
         <td>Total (direct+indirect) environmental coefficients by commodity matrix, exploded by origin region and activity</td>
         <td>Satellite account, Region, Activity</td>
         <td>Region, Commodity</td>
       </tr>
-      <tr data-search="fa_ex coefficients sut  total (direct+indirect) environmental coefficients by activity matrix, exploded by origin region and activity satellite account, region, activity region, activity">
+      <tr data-search="fa_ex coefficients iot  total (direct+indirect) environmental coefficients by activity matrix, exploded by origin region and activity satellite account, region, activity region, activity">
         <td><strong>fa_ex</strong></td>
         <td>Coefficients</td>
-        <td>SUT</td>
+        <td>IOT</td>
         <td></td>
         <td>Total (direct+indirect) environmental coefficients by activity matrix, exploded by origin region and activity</td>
         <td>Satellite account, Region, Activity</td>
@@ -512,14 +521,23 @@
         <td>Region, Activity</td>
         <td>-</td>
       </tr>
-      <tr data-search="b coefficients iot b intersectoral transaction direct-output coefficients matrix region, sector region, sector">
-        <td><strong>b</strong></td>
+      <tr data-search="pc_ex coefficients iot  price indices by commodity, exploded by origin region and activity factor of production, region, activity region, commodity">
+        <td><strong>pc_ex</strong></td>
         <td>Coefficients</td>
         <td>IOT</td>
-        <td>B</td>
-        <td>Intersectoral transaction direct-output coefficients matrix</td>
-        <td>Region, Sector</td>
-        <td>Region, Sector</td>
+        <td></td>
+        <td>Price indices by commodity, exploded by origin region and activity</td>
+        <td>Factor of production, Region, Activity</td>
+        <td>Region, Commodity</td>
+      </tr>
+      <tr data-search="pa_ex coefficients iot  price indices by activity, exploded by origin region and activity factor of production, region, activity region, activity">
+        <td><strong>pa_ex</strong></td>
+        <td>Coefficients</td>
+        <td>IOT</td>
+        <td></td>
+        <td>Price indices by activity, exploded by origin region and activity</td>
+        <td>Factor of production, Region, Activity</td>
+        <td>Region, Activity</td>
       </tr>
       <tr data-search="g coefficients iot g ghosh coefficients matrix region, sector region, sector">
         <td><strong>g</strong></td>
@@ -530,59 +548,14 @@
         <td>Region, Sector</td>
         <td>Region, Sector</td>
       </tr>
-      <tr data-search="bu coefficients sut b use transaction direct-output coefficients matrix region, commodity region, activity">
-        <td><strong>bu</strong></td>
+      <tr data-search="b coefficients iot b intersectoral transaction direct-output coefficients matrix region, sector region, sector">
+        <td><strong>b</strong></td>
         <td>Coefficients</td>
-        <td>SUT</td>
+        <td>IOT</td>
         <td>B</td>
-        <td>Use transaction direct-output coefficients matrix</td>
-        <td>Region, Commodity</td>
-        <td>Region, Activity</td>
-      </tr>
-      <tr data-search="bs coefficients sut b supply transaction direct-output coefficients matrix region, activity region, commodity">
-        <td><strong>bs</strong></td>
-        <td>Coefficients</td>
-        <td>SUT</td>
-        <td>B</td>
-        <td>Supply transaction direct-output coefficients matrix</td>
-        <td>Region, Activity</td>
-        <td>Region, Commodity</td>
-      </tr>
-      <tr data-search="gcc coefficients sut g ghosh inverse matrix, commodity-by-commodity coefficients region, commodity region, commodity">
-        <td><strong>gcc</strong></td>
-        <td>Coefficients</td>
-        <td>SUT</td>
-        <td>G</td>
-        <td>Ghosh inverse matrix, commodity-by-commodity coefficients</td>
-        <td>Region, Commodity</td>
-        <td>Region, Commodity</td>
-      </tr>
-      <tr data-search="gca coefficients sut g ghosh inverse matrix, commodity-by-activity coefficients region, commodity region, activity">
-        <td><strong>gca</strong></td>
-        <td>Coefficients</td>
-        <td>SUT</td>
-        <td>G</td>
-        <td>Ghosh inverse matrix, commodity-by-activity coefficients</td>
-        <td>Region, Commodity</td>
-        <td>Region, Activity</td>
-      </tr>
-      <tr data-search="gac coefficients sut g ghosh inverse matrix, activity-by-commodity coefficients region, activity region, commodity">
-        <td><strong>gac</strong></td>
-        <td>Coefficients</td>
-        <td>SUT</td>
-        <td>G</td>
-        <td>Ghosh inverse matrix, activity-by-commodity coefficients</td>
-        <td>Region, Activity</td>
-        <td>Region, Commodity</td>
-      </tr>
-      <tr data-search="gaa coefficients sut g ghosh inverse matrix, activity-by-activity coefficients region, activity region, activity">
-        <td><strong>gaa</strong></td>
-        <td>Coefficients</td>
-        <td>SUT</td>
-        <td>G</td>
-        <td>Ghosh inverse matrix, activity-by-activity coefficients</td>
-        <td>Region, Activity</td>
-        <td>Region, Activity</td>
+        <td>Intersectoral transaction direct-output coefficients matrix</td>
+        <td>Region, Sector</td>
+        <td>Region, Sector</td>
       </tr>
     </tbody>
   </table>
