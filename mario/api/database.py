@@ -103,6 +103,7 @@ from mario.ops import (
     transform_sut_to_iot,
     transform_to_chenery_moses,
 )
+from mario.parsers.matrix_layouts import iot_block_specs_for_matrix_layouts
 from mario.views import build_database_frame
 
 logger = logging.getLogger(__name__)
@@ -1032,7 +1033,13 @@ class Database(CoreModel):
             for note in notes:
                 self.meta._add_history(f"User note: {note}")
 
-    def to_region_subset(self, regions, inplace=True, trade_mode="aggregate"):
+    def to_region_subset(
+        self,
+        regions,
+        inplace=True,
+        trade_mode="aggregate",
+        externalized_trade_layout="legacy",
+    ):
         """Keep one explicit region subset and externalize the remaining regions.
 
         Parameters
@@ -1046,7 +1053,17 @@ class Database(CoreModel):
             ``"aggregate"`` collapses the excluded regions into one aggregated
             imports row plus export categories. ``"by_region"`` keeps one
             explicit import row and one explicit export category per excluded
-            region.
+            region. ``"by_sector"`` is shorthand for sectorized imports plus
+            one aggregate export column per selected region. 
+            ``"by_region_and_sector"`` is shorthand for sectorized imports and
+            exports with one explicit excluded-region partner label.
+        externalized_trade_layout:
+            ``"legacy"`` keeps the historical subset layout with one aggregated
+            imports row plus separate intermediate/final-demand export
+            categories. ``"sectorized"`` groups factor rows by endogenous
+            region through ``matrix_layouts``, adds one imports row per
+            selected region-sector pair, and uses one aggregate ``Export``
+            column per selected region.
 
         Returns
         -------
@@ -1085,6 +1102,7 @@ class Database(CoreModel):
                 regions=regions,
                 inplace=True,
                 trade_mode=trade_mode,
+                externalized_trade_layout=externalized_trade_layout,
             )
 
             return new
@@ -1122,14 +1140,33 @@ class Database(CoreModel):
                 "Selected regions already cover the full database; choose a strict subset."
             )
 
+        trade_mode_aliases = {
+            "by_sector": ("aggregate", "sectorized"),
+            "by_region_and_sector": ("by_region", "sectorized"),
+        }
+        if trade_mode in trade_mode_aliases:
+            trade_mode, implied_layout = trade_mode_aliases[trade_mode]
+            if externalized_trade_layout == "legacy":
+                externalized_trade_layout = implied_layout
+            elif externalized_trade_layout != implied_layout:
+                raise WrongInput(
+                    "trade_mode alias requires externalized_trade_layout='sectorized'."
+                )
+
         if trade_mode not in {"aggregate", "by_region"}:
             raise WrongInput(
-                "trade_mode should be either 'aggregate' or 'by_region'."
+                "trade_mode should be one of 'aggregate', 'by_region', 'by_sector', or 'by_region_and_sector'."
+            )
+
+        if externalized_trade_layout not in {"legacy", "sectorized"}:
+            raise WrongInput(
+                "externalized_trade_layout should be either 'legacy' or 'sectorized'."
             )
 
         excluded_regions = [
             region for region in available_regions if region not in set(selected_regions)
         ]
+        sector_labels = self.get_index(_MASTER_INDEX["s"])
 
         log_time(
             logger,
@@ -1156,78 +1193,193 @@ class Database(CoreModel):
         Z = Z.loc[selected_axis, selected_axis]
 
         V = V.loc[:, selected_axis]
-        if trade_mode == "aggregate":
-            import_rows = imports_from_excluded.sum(axis=0).to_frame().T
-            import_labels = ["imports"]
-            import_rows.index = import_labels
+        if externalized_trade_layout == "legacy":
+            if trade_mode == "aggregate":
+                import_rows = imports_from_excluded.sum(axis=0).to_frame().T
+                import_labels = ["imports"]
+                import_rows.index = import_labels
+            else:
+                import_rows = (
+                    imports_from_excluded.groupby(level=0, sort=False).sum().reindex(excluded_regions)
+                )
+                import_labels = [f"imports from {region}" for region in excluded_regions]
+                import_rows.index = import_labels
+            V = pd.concat([V, import_rows])
+            v_layout = ()
         else:
-            import_rows = (
-                imports_from_excluded.groupby(level=0, sort=False).sum().reindex(excluded_regions)
-            )
-            import_labels = [f"imports from {region}" for region in excluded_regions]
-            import_rows.index = import_labels
-        V = pd.concat([V, import_rows])
+            regional_v_rows = []
+            for region in selected_regions:
+                region_columns = V.columns[V.columns.get_level_values(0) == region]
+                region_v = V.loc[:, region_columns].reindex(columns=V.columns, fill_value=0.0)
+                region_v.index = pd.MultiIndex.from_tuples(
+                    [(region, factor) for factor in V.index],
+                    names=[_MASTER_INDEX["r"], _MASTER_INDEX["f"]],
+                )
+                regional_v_rows.append(region_v)
+
+            V = pd.concat(regional_v_rows)
+            import_row_frames = []
+            import_labels = []
+
+            for region in selected_regions:
+                region_columns = Z.columns[Z.columns.get_level_values(0) == region]
+                if trade_mode == "aggregate":
+                    region_imports = (
+                        imports_from_excluded.loc[:, region_columns]
+                        .groupby(level=2, sort=False)
+                        .sum()
+                        .reindex(sector_labels, fill_value=0.0)
+                    )
+                    region_imports = region_imports.reindex(columns=Z.columns, fill_value=0.0)
+                    labels = [f"imports of {sector}" for sector in sector_labels]
+                    region_imports.index = pd.MultiIndex.from_tuples(
+                        [(region, label) for label in labels],
+                        names=[_MASTER_INDEX["r"], _MASTER_INDEX["f"]],
+                    )
+                    import_row_frames.append(region_imports)
+                    import_labels.extend(labels)
+                    continue
+
+                for excluded_region in excluded_regions:
+                    region_imports = (
+                        imports_from_excluded.loc[
+                            (excluded_region, slice(None), slice(None)),
+                            region_columns,
+                        ]
+                        .groupby(level=2, sort=False)
+                        .sum()
+                        .reindex(sector_labels, fill_value=0.0)
+                    )
+                    region_imports = region_imports.reindex(columns=Z.columns, fill_value=0.0)
+                    labels = [
+                        f"imports of {sector} from {excluded_region}"
+                        for sector in sector_labels
+                    ]
+                    import_row_frames.append(
+                        region_imports.set_axis(
+                            pd.MultiIndex.from_tuples(
+                                [(region, label) for label in labels],
+                                names=[_MASTER_INDEX["r"], _MASTER_INDEX["f"]],
+                            ),
+                            axis=0,
+                            copy=False,
+                        )
+                    )
+                    import_labels.extend(labels)
+
+            V = pd.concat([V, *import_row_frames])
+            import_labels = list(dict.fromkeys(import_labels))
+            v_layout = (_MASTER_INDEX["r"],)
 
         Y_local = Y.loc[selected_axis, selected_axis]
         Y_exports_to_excluded = Y.loc[selected_axis, excluded_axis]
 
-        def _build_export_frame(source, item_label_template):
+        if externalized_trade_layout == "legacy":
+            def _build_export_frame(source, item_label_template):
+                if trade_mode == "aggregate":
+                    export_item_labels = [item_label_template]
+                else:
+                    export_item_labels = [
+                        f"{item_label_template} to {region}" for region in excluded_regions
+                    ]
+
+                export_columns = pd.MultiIndex.from_tuples(
+                    [
+                        (region, _MASTER_INDEX["n"], item_label)
+                        for region in selected_regions
+                        for item_label in export_item_labels
+                    ],
+                    names=Y.columns.names,
+                )
+                export_frame = pd.DataFrame(0.0, index=source.index, columns=export_columns)
+
+                for region in selected_regions:
+                    row_mask = source.index.get_level_values(0) == region
+                    if not row_mask.any():
+                        continue
+
+                    region_rows = source.loc[row_mask]
+                    if trade_mode == "aggregate":
+                        export_frame.loc[
+                            row_mask,
+                            (region, _MASTER_INDEX["n"], item_label_template),
+                        ] = region_rows.sum(axis=1).to_numpy(dtype=float)
+                        continue
+
+                    for excluded_region in excluded_regions:
+                        export_frame.loc[
+                            row_mask,
+                            (
+                                region,
+                                _MASTER_INDEX["n"],
+                                f"{item_label_template} to {excluded_region}",
+                            ),
+                        ] = region_rows.loc[
+                            :, (excluded_region, slice(None), slice(None))
+                        ].sum(axis=1).to_numpy(dtype=float)
+
+                return export_frame, export_item_labels
+
+            Y_final_demand_exports, fd_export_labels = _build_export_frame(
+                Y_exports_to_excluded,
+                "Final Demand exports",
+            )
+            Y_intermediate_exports, intermediate_export_labels = _build_export_frame(
+                exports_to_excluded,
+                "Intermediate exports",
+            )
+
+            Y = pd.concat([Y_local, Y_final_demand_exports, Y_intermediate_exports], axis=1)
+            export_columns = Y_final_demand_exports.columns.append(Y_intermediate_exports.columns)
+            export_labels = fd_export_labels + intermediate_export_labels
+        else:
             if trade_mode == "aggregate":
-                export_item_labels = [item_label_template]
+                export_labels = ["Export"]
             else:
-                export_item_labels = [
-                    f"{item_label_template} to {region}" for region in excluded_regions
-                ]
+                export_labels = [f"Export to {region}" for region in excluded_regions]
 
             export_columns = pd.MultiIndex.from_tuples(
                 [
                     (region, _MASTER_INDEX["n"], item_label)
                     for region in selected_regions
-                    for item_label in export_item_labels
+                    for item_label in export_labels
                 ],
                 names=Y.columns.names,
             )
-            export_frame = pd.DataFrame(0.0, index=source.index, columns=export_columns)
+            Y_exports = pd.DataFrame(0.0, index=Y_local.index, columns=export_columns)
 
             for region in selected_regions:
-                row_mask = source.index.get_level_values(0) == region
+                row_mask = Y_local.index.get_level_values(0) == region
                 if not row_mask.any():
                     continue
 
-                region_rows = source.loc[row_mask]
+                region_fd_exports = Y_exports_to_excluded.loc[row_mask]
+                region_intermediate_exports = exports_to_excluded.loc[row_mask]
                 if trade_mode == "aggregate":
-                    export_frame.loc[
+                    Y_exports.loc[
                         row_mask,
-                        (region, _MASTER_INDEX["n"], item_label_template),
-                    ] = region_rows.sum(axis=1).to_numpy(dtype=float)
+                        (region, _MASTER_INDEX["n"], "Export"),
+                    ] = (
+                        region_fd_exports.sum(axis=1).to_numpy(dtype=float)
+                        + region_intermediate_exports.sum(axis=1).to_numpy(dtype=float)
+                    )
                     continue
 
                 for excluded_region in excluded_regions:
-                    export_frame.loc[
+                    Y_exports.loc[
                         row_mask,
-                        (
-                            region,
-                            _MASTER_INDEX["n"],
-                            f"{item_label_template} to {excluded_region}",
-                        ),
-                    ] = region_rows.loc[
-                        :, (excluded_region, slice(None), slice(None))
-                    ].sum(axis=1).to_numpy(dtype=float)
+                        (region, _MASTER_INDEX["n"], f"Export to {excluded_region}"),
+                    ] = (
+                        region_fd_exports.loc[
+                            :, (excluded_region, slice(None), slice(None))
+                        ].sum(axis=1).to_numpy(dtype=float)
+                        + region_intermediate_exports.loc[
+                            :, (excluded_region, slice(None), slice(None))
+                        ].sum(axis=1).to_numpy(dtype=float)
+                    )
 
-            return export_frame, export_item_labels
+            Y = pd.concat([Y_local, Y_exports], axis=1)
 
-        Y_final_demand_exports, fd_export_labels = _build_export_frame(
-            Y_exports_to_excluded,
-            "Final Demand exports",
-        )
-        Y_intermediate_exports, intermediate_export_labels = _build_export_frame(
-            exports_to_excluded,
-            "Intermediate exports",
-        )
-
-        Y = pd.concat([Y_local, Y_final_demand_exports, Y_intermediate_exports], axis=1)
-
-        export_columns = Y_final_demand_exports.columns.append(Y_intermediate_exports.columns)
         EY = EY.loc[:, selected_axis]
         EY = pd.concat(
             [
@@ -1238,10 +1390,22 @@ class Database(CoreModel):
         )
 
         VY = VY.loc[:, selected_axis]
+        if externalized_trade_layout == "sectorized":
+            regional_vy_rows = []
+            for region in selected_regions:
+                region_columns = VY.columns[VY.columns.get_level_values(0) == region]
+                region_vy = VY.loc[:, region_columns].reindex(columns=VY.columns, fill_value=0.0)
+                region_vy.index = pd.MultiIndex.from_tuples(
+                    [(region, factor) for factor in VY.index],
+                    names=[_MASTER_INDEX["r"], _MASTER_INDEX["f"]],
+                )
+                regional_vy_rows.append(region_vy)
+            VY = pd.concat(regional_vy_rows)
+        VY = VY.reindex(index=V.index, fill_value=0.0)
         VY = pd.concat(
             [
                 VY,
-                pd.DataFrame(0.0, index=VY.index, columns=export_columns),
+                pd.DataFrame(0.0, index=V.index, columns=export_columns),
             ],
             axis=1,
         )
@@ -1254,9 +1418,7 @@ class Database(CoreModel):
         new_indeces = {
             "r": selected_regions,
             "f": all_indeces[_MASTER_INDEX["f"]] + import_labels,
-            "n": all_indeces[_MASTER_INDEX["n"]]
-            + fd_export_labels
-            + intermediate_export_labels,
+            "n": all_indeces[_MASTER_INDEX["n"]] + export_labels,
         }
 
         _manage_indeces(self, "single_region", **new_indeces)
@@ -1267,6 +1429,12 @@ class Database(CoreModel):
         self.matrices = {"baseline": {}}
         for matrix in ["Y", "Z", "E", "EY", "VY", "V", "X"]:
             self.matrices["baseline"][_ENUM[matrix]] = eval(matrix)
+        for matrix_name in ("V", "v", "VY", "m", "M"):
+            self._custom_block_specs.pop(matrix_name, None)
+        if v_layout:
+            for spec in iot_block_specs_for_matrix_layouts({"V": v_layout}):
+                if spec.name in {"V", "v", "VY", "m", "M"}:
+                    self.register_block_spec(spec, replace=True)
         log_time(logger, "Transformation: New baseline added to the database")
 
         slicer = _MASTER_INDEX["a"] if self.table_type == "SUT" else _MASTER_INDEX["s"]
@@ -1280,22 +1448,40 @@ class Database(CoreModel):
             "Transformation: Database transformed into a region subset database keeping "
             f"{region_note}."
         )
-        if trade_mode == "aggregate":
-            self.meta._add_history(
-                "Transformation: Excluded regions are aggregated into one 'imports' row in "
-                "the Value Added Matrix and two export categories in the Final Demand Matrix."
-            )
+        if externalized_trade_layout == "legacy":
+            if trade_mode == "aggregate":
+                self.meta._add_history(
+                    "Transformation: Excluded regions are aggregated into one 'imports' row in "
+                    "the Value Added Matrix and two export categories in the Final Demand Matrix."
+                )
+            else:
+                self.meta._add_history(
+                    "Transformation: Excluded regions are kept separate as one import row and one "
+                    "pair of export categories per excluded region."
+                )
         else:
-            self.meta._add_history(
-                "Transformation: Excluded regions are kept separate as one import row and one "
-                "pair of export categories per excluded region."
-            )
+            if trade_mode == "aggregate":
+                self.meta._add_history(
+                    "Transformation: Excluded regions are aggregated into region-grouped "
+                    "sectorized import rows and one 'Export' category per selected region."
+                )
+            else:
+                self.meta._add_history(
+                    "Transformation: Excluded regions are externalized through region-grouped "
+                    "sectorized import rows and one 'Export to <region>' category per excluded region."
+                )
         self.meta._add_history(
             "Transformation: The Final Demand emissions are considered only for endogenous "
             "final demand columns."
         )
 
-    def to_single_region(self, region, inplace=True, trade_mode="aggregate"):
+    def to_single_region(
+        self,
+        region,
+        inplace=True,
+        trade_mode="aggregate",
+        externalized_trade_layout="legacy",
+    ):
         """Extract one region from a multi-regional database.
 
         Parameters
@@ -1309,6 +1495,10 @@ class Database(CoreModel):
             ``"aggregate"`` collapses all excluded regions into aggregated
             imports and export categories. ``"by_region"`` keeps one explicit
             import row and one explicit export category per excluded region.
+            ``"by_sector"`` and ``"by_region_and_sector"`` are forwarded to
+            :meth:`to_region_subset`.
+        externalized_trade_layout:
+            Forwarded to :meth:`to_region_subset`.
 
         Returns
         -------
@@ -1325,6 +1515,7 @@ class Database(CoreModel):
             regions=[region],
             inplace=inplace,
             trade_mode=trade_mode,
+            externalized_trade_layout=externalized_trade_layout,
         )
 
     def calc_linkages(

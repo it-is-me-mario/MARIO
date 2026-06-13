@@ -624,6 +624,9 @@ def test_to_region_subset_keeps_selected_regions_explicit_and_externalizes_rest(
         ("R1", _MASTER_INDEX["s"], "s1"),
         ("R2", _MASTER_INDEX["n"], "Intermediate exports"),
     ] == pytest.approx(0.0)
+    assert subset.VY.index.equals(subset.V.index)
+    assert subset.VY.columns.equals(subset.Y.columns)
+    assert subset.VY.loc["imports"].eq(0.0).all()
 
 
 def test_to_region_subset_by_region_keeps_exogenous_trade_by_region():
@@ -641,6 +644,129 @@ def test_to_region_subset_by_region_keeps_exogenous_trade_by_region():
         ("R2", _MASTER_INDEX["s"], "s1"),
         ("R2", _MASTER_INDEX["n"], "Intermediate exports to R3"),
     ] == pytest.approx(6.0)
+    assert subset.VY.index.equals(subset.V.index)
+    assert subset.VY.columns.equals(subset.Y.columns)
+    assert subset.VY.loc["imports from R3"].eq(0.0).all()
+
+
+def test_to_region_subset_sectorized_trade_groups_factor_rows_by_region():
+    database = _build_three_region_iot_database()
+
+    subset = database.to_region_subset(
+        ["R1", "R2"],
+        inplace=False,
+        externalized_trade_layout="sectorized",
+    )
+
+    assert subset.V.index.names == ["Region", "Factor of production"]
+    assert tuple(axis.id for axis in subset.get_block_spec("V").row_axes) == (
+        "Region",
+        "Factor of production",
+    )
+    assert subset.V.loc[("R1", "VA"), ("R1", _MASTER_INDEX["s"], "s1")] == pytest.approx(100.0)
+    assert subset.V.loc[("R1", "VA"), ("R2", _MASTER_INDEX["s"], "s1")] == pytest.approx(0.0)
+    assert subset.V.loc[("R2", "VA"), ("R2", _MASTER_INDEX["s"], "s1")] == pytest.approx(200.0)
+    assert subset.V.loc[("R1", "imports of s1"), ("R1", _MASTER_INDEX["s"], "s1")] == pytest.approx(7.0)
+    assert subset.V.loc[("R1", "imports of s1"), ("R2", _MASTER_INDEX["s"], "s1")] == pytest.approx(0.0)
+    assert subset.V.loc[("R2", "imports of s1"), ("R2", _MASTER_INDEX["s"], "s1")] == pytest.approx(8.0)
+    assert subset.Y.loc[
+        ("R1", _MASTER_INDEX["s"], "s1"),
+        ("R1", _MASTER_INDEX["n"], "Export"),
+    ] == pytest.approx(33.0)
+    assert subset.Y.loc[
+        ("R2", _MASTER_INDEX["s"], "s1"),
+        ("R2", _MASTER_INDEX["n"], "Export"),
+    ] == pytest.approx(66.0)
+    assert subset.VY.index.equals(subset.V.index)
+    assert subset.VY.columns.equals(subset.Y.columns)
+    assert subset.VY.loc[("R1", "imports of s1")].eq(0.0).all()
+
+
+def test_to_region_subset_sectorized_trade_by_region_keeps_partner_detail():
+    database = _build_three_region_iot_database()
+
+    subset = database.to_region_subset(
+        ["R1", "R2"],
+        inplace=False,
+        trade_mode="by_region",
+        externalized_trade_layout="sectorized",
+    )
+
+    assert subset.V.index.names == ["Region", "Factor of production"]
+    assert subset.V.loc[
+        ("R1", "imports of s1 from R3"),
+        ("R1", _MASTER_INDEX["s"], "s1"),
+    ] == pytest.approx(7.0)
+    assert subset.V.loc[
+        ("R2", "imports of s1 from R3"),
+        ("R2", _MASTER_INDEX["s"], "s1"),
+    ] == pytest.approx(8.0)
+    assert subset.Y.loc[
+        ("R1", _MASTER_INDEX["s"], "s1"),
+        ("R1", _MASTER_INDEX["n"], "Export to R3"),
+    ] == pytest.approx(33.0)
+    assert subset.Y.loc[
+        ("R2", _MASTER_INDEX["s"], "s1"),
+        ("R2", _MASTER_INDEX["n"], "Export to R3"),
+    ] == pytest.approx(66.0)
+    assert subset.VY.index.equals(subset.V.index)
+
+
+def test_to_region_subset_sectorized_trade_exports_to_excel(tmp_path):
+    subset = _build_three_region_iot_database().to_region_subset(
+        ["R1", "R2"],
+        inplace=False,
+        externalized_trade_layout="sectorized",
+    )
+
+    export_path = tmp_path / "subset_sectorized.xlsx"
+    subset.to_excel(path=str(export_path), flows=True, coefficients=False)
+
+    exported = pd.read_excel(export_path, sheet_name="flows", header=None)
+    flat_values = {
+        value for value in exported.to_numpy().ravel().tolist() if isinstance(value, str)
+    }
+    assert "Export" in flat_values
+    assert "imports of s1" in flat_values
+
+
+def test_to_region_subset_by_sector_alias_matches_sectorized_layout():
+    database = _build_three_region_iot_database()
+
+    explicit = database.to_region_subset(
+        ["R1", "R2"],
+        inplace=False,
+        externalized_trade_layout="sectorized",
+    )
+    aliased = database.to_region_subset(
+        ["R1", "R2"],
+        inplace=False,
+        trade_mode="by_sector",
+    )
+
+    pdt.assert_frame_equal(explicit.V, aliased.V)
+    pdt.assert_frame_equal(explicit.VY, aliased.VY)
+    pdt.assert_frame_equal(explicit.Y, aliased.Y)
+
+
+def test_to_region_subset_by_region_and_sector_alias_matches_sectorized_layout():
+    database = _build_three_region_iot_database()
+
+    explicit = database.to_region_subset(
+        ["R1", "R2"],
+        inplace=False,
+        trade_mode="by_region",
+        externalized_trade_layout="sectorized",
+    )
+    aliased = database.to_region_subset(
+        ["R1", "R2"],
+        inplace=False,
+        trade_mode="by_region_and_sector",
+    )
+
+    pdt.assert_frame_equal(explicit.V, aliased.V)
+    pdt.assert_frame_equal(explicit.VY, aliased.VY)
+    pdt.assert_frame_equal(explicit.Y, aliased.Y)
 
 
 def test_to_single_region_by_region_explodes_each_excluded_region():
