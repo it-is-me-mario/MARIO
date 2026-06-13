@@ -5,12 +5,36 @@ Release History
 v1.0.1
 ------
 
-Packaging
-~~~~~~~~~
+Core calculations and regional subsets
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+* Added exploded price-contribution accessors for the price index workflow:
+  ``p_ex`` / ``p_ex_all`` for IOT databases and ``pa_ex`` / ``pa_ex_all`` plus
+  ``pc_ex`` / ``pc_ex_all`` for SUT activity- and commodity-side
+  contributions.
+* Expanded ``Database.to_region_subset(...)`` and ``to_single_region(...)``
+  with sectorized external-trade layouts via
+  ``externalized_trade_layout="sectorized"`` and the shorthand trade modes
+  ``"by_sector"`` and ``"by_region_and_sector"``.
+
+Parquet and packaging
+~~~~~~~~~~~~~~~~~~~~~
+
+* Made ``pyarrow>=17`` an explicit optional dependency for Parquet parsing,
+  export and storage workflows, added clearer runtime guidance when Parquet
+  support is unavailable, and exposed a dedicated ``mariopy[parquet]`` extra.
 * Hardened PyPI packaging metadata by sanitizing ``README.rst`` raw-directive
   blocks before publishing it as the package long description and by declaring
   the ``text/x-rst`` content type explicitly in ``setup.py``.
+
+Documentation
+~~~~~~~~~~~~~
+
+* Added installation guidance for optional Parquet support and refreshed the
+  README setup instructions.
+* Reworked API-reference navigation and expanded the shock-workflow and
+  transformation documentation, including doc-build warning fixes and notebook
+  metadata cleanup for the published docs.
 
 v1.0.0
 ------
