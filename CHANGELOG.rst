@@ -16,6 +16,14 @@ Core calculations and regional subsets
   with sectorized external-trade layouts via
   ``externalized_trade_layout="sectorized"`` and the shorthand trade modes
   ``"by_sector"`` and ``"by_region_and_sector"``.
+* Fixed IOT sectorized subset export so ``to_excel(...)`` writes a coherent
+  explicit special-layout workbook, including aligned ``VY`` rows and public
+  ``Region/Sector`` plus ``Region/Consumption category`` axes without legacy
+  ``Level`` markers.
+* Added an explicit ``NotImplementable`` guard for SUT
+  ``to_region_subset(...)`` calls that request custom ``trade_mode`` or
+  non-legacy externalized-trade layouts, while preserving the standard legacy
+  subset workflow for SUT tables.
 
 Parquet and packaging
 ~~~~~~~~~~~~~~~~~~~~~
@@ -62,6 +70,10 @@ Architecture and public API
 
 Parsing and export
 ~~~~~~~~~~~~~~~~~~
+
+* Added ``matrix_layout`` as a backward-compatible alias for
+  ``matrix_layouts`` in Excel parsing entry points and reject ambiguous calls
+  that pass both names at once.
 
 * Unified Excel, TXT and Parquet parsing through a shared parser-state flow.
 * Added native flat TXT/Parquet export and matching re-import support.

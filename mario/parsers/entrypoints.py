@@ -466,6 +466,12 @@ def parse_from_excel(
     -------
     mario.Database
     """
+    matrix_layout = kwargs.pop("matrix_layout", None)
+    if matrix_layout is not None:
+        if matrix_layouts is not None:
+            raise WrongInput("Use only one of 'matrix_layouts' or its alias 'matrix_layout'.")
+        matrix_layouts = matrix_layout
+
     validate_parse_request(table=table, mode=mode, model=model)
 
     state = parse_state_from_excel(

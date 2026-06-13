@@ -658,6 +658,10 @@ def test_to_region_subset_sectorized_trade_groups_factor_rows_by_region():
         externalized_trade_layout="sectorized",
     )
 
+    assert subset.Z.index.names == ["Region", "Sector"]
+    assert subset.Z.columns.names == ["Region", "Sector"]
+    assert subset.Y.index.names == ["Region", "Sector"]
+    assert subset.Y.columns.names == ["Region", "Consumption category"]
     assert subset.V.index.names == ["Region", "Factor of production"]
     assert tuple(axis.id for axis in subset.get_block_spec("V").row_axes) == (
         "Region",
@@ -728,6 +732,8 @@ def test_to_region_subset_sectorized_trade_exports_to_excel(tmp_path):
     }
     assert "Export" in flat_values
     assert "imports of s1" in flat_values
+    assert "Sector" not in flat_values
+    assert "Consumption category" not in flat_values
 
 
 def test_to_region_subset_by_sector_alias_matches_sectorized_layout():
@@ -801,6 +807,35 @@ def test_to_single_region_aggregate_matches_region_subset_single_region():
     pdt.assert_frame_equal(from_single.E, from_subset.E)
     pdt.assert_frame_equal(from_single.EY, from_subset.EY)
     pdt.assert_frame_equal(from_single.VY, from_subset.VY)
+
+
+def test_to_region_subset_rejects_trade_mode_for_sut():
+    database = load_test("SUT")
+
+    with pytest.raises(
+        NotImplementable,
+        match="supported only for IOT tables",
+    ):
+        database.to_region_subset(
+            [database.get_index("Region")[0]],
+            inplace=False,
+            trade_mode="by_region",
+        )
+
+
+def test_to_region_subset_sut_legacy_no_longer_fails_on_sector_lookup():
+    database = load_test("SUT")
+
+    try:
+        subset = database.to_region_subset(
+            [database.get_index("Region")[0]],
+            inplace=False,
+        )
+    except WrongInput as exc:
+        assert "'None' is not a valid index" not in str(exc)
+        raise
+
+    assert subset.table_type == "SUT"
 
 
 def test_sets(CoreDataIOT,CoreDataSUT):

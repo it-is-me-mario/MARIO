@@ -812,6 +812,37 @@ def test_parse_from_excel_accepts_tuple_matrix_layouts(tmp_path):
     assert database.E.index.names == ["Region", "Level", "Item"]
 
 
+def test_parse_from_excel_accepts_matrix_layout_alias(tmp_path):
+    path = tmp_path / "mriot_regional_v_alias.xlsx"
+    _write_mriot_regional_extensions_and_factors_explicit_workbook(path)
+
+    database = parse_from_excel(
+        path=str(path),
+        table="IOT",
+        mode="flows",
+        matrix_layout={"V": "Region"},
+        calc_all=False,
+        name="MRIOT regional factors alias",
+    )
+
+    assert database.V.index.names == ["Region", "Factor of production"]
+
+
+def test_parse_from_excel_rejects_conflicting_matrix_layout_aliases(tmp_path):
+    path = tmp_path / "mriot_regional_v_conflict.xlsx"
+    _write_mriot_regional_extensions_and_factors_explicit_workbook(path)
+
+    with pytest.raises(WrongInput, match="Use only one of 'matrix_layouts' or its alias 'matrix_layout'"):
+        parse_from_excel(
+            path=str(path),
+            table="IOT",
+            mode="flows",
+            matrix_layouts={"V": "Region"},
+            matrix_layout={"V": "Region"},
+            calc_all=False,
+        )
+
+
 def test_parse_from_excel_accepts_fully_empty_standard_excel_matrices(tmp_path):
     path = tmp_path / "standard_iot.xlsx"
     load_test("IOT").to_excel(path=str(path), flows=True, coefficients=False)

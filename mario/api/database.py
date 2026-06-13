@@ -1163,10 +1163,16 @@ class Database(CoreModel):
                 "externalized_trade_layout should be either 'legacy' or 'sectorized'."
             )
 
+        if self.table_type == "SUT" and (
+            trade_mode != "aggregate" or externalized_trade_layout != "legacy"
+        ):
+            raise NotImplementable(
+                "to_region_subset with trade_mode or externalized_trade_layout is currently supported only for IOT tables."
+            )
+
         excluded_regions = [
             region for region in available_regions if region not in set(selected_regions)
         ]
-        sector_labels = self.get_index(_MASTER_INDEX["s"])
 
         log_time(
             logger,
@@ -1220,6 +1226,7 @@ class Database(CoreModel):
             V = pd.concat(regional_v_rows)
             import_row_frames = []
             import_labels = []
+            sector_labels = self.get_index(_MASTER_INDEX["s"])
 
             for region in selected_regions:
                 region_columns = Z.columns[Z.columns.get_level_values(0) == region]
@@ -1380,6 +1387,36 @@ class Database(CoreModel):
 
             Y = pd.concat([Y_local, Y_exports], axis=1)
 
+        if externalized_trade_layout == "sectorized":
+            Z.index = pd.MultiIndex.from_tuples(
+                [
+                    (region, item)
+                    for region, _, item in Z.index.tolist()
+                ],
+                names=[_MASTER_INDEX["r"], _MASTER_INDEX["s"]],
+            )
+            Z.columns = pd.MultiIndex.from_tuples(
+                [
+                    (region, item)
+                    for region, _, item in Z.columns.tolist()
+                ],
+                names=[_MASTER_INDEX["r"], _MASTER_INDEX["s"]],
+            )
+            Y.index = pd.MultiIndex.from_tuples(
+                [
+                    (region, item)
+                    for region, _, item in Y.index.tolist()
+                ],
+                names=[_MASTER_INDEX["r"], _MASTER_INDEX["s"]],
+            )
+            Y.columns = pd.MultiIndex.from_tuples(
+                [
+                    (region, item)
+                    for region, _, item in Y.columns.tolist()
+                ],
+                names=[_MASTER_INDEX["r"], _MASTER_INDEX["n"]],
+            )
+
         EY = EY.loc[:, selected_axis]
         EY = pd.concat(
             [
@@ -1411,6 +1448,11 @@ class Database(CoreModel):
         )
 
         E = E.loc[:, selected_axis]
+        if externalized_trade_layout == "sectorized":
+            V.columns = Z.columns
+            E.columns = Z.columns
+            EY.columns = Y.columns
+            VY.columns = Y.columns
         X = calc_X(Z=Z, Y=Y)
 
         all_indeces = self.get_index("all")
