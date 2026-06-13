@@ -30,6 +30,7 @@ from the most recent publication to the oldest one.
    :style: mario_abbr
    :list: enumerated
 
+   Ghezzi2026
    Daun2026
    Fragkos2026
    Schau2026
