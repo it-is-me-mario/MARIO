@@ -2,6 +2,16 @@
 Release History
 ****************
 
+v1.0.1
+------
+
+Packaging
+~~~~~~~~~
+
+* Hardened PyPI packaging metadata by sanitizing ``README.rst`` raw-directive
+  blocks before publishing it as the package long description and by declaring
+  the ``text/x-rst`` content type explicitly in ``setup.py``.
+
 v1.0.0
 ------
 
@@ -112,9 +122,6 @@ Testing and documentation
   templates, with roundtrip tests for Excel, TXT and Parquet exports.
 * Added pandas 3 compatibility fixes, parser coverage reporting, and broader
   parser/developer documentation refreshes across the user guide and README.
-* Hardened PyPI packaging metadata by sanitizing ``README.rst`` raw-directive
-  blocks before publishing it as the package long description and by declaring
-  the ``text/x-rst`` content type explicitly in ``setup.py``.
 * Added a visualization user-guide notebook for ``db.plot(...)`` and updated
   notebook resolution so published docs persist HTML Plotly output instead of
   unsupported ``application/vnd.plotly.v1+json`` payloads.
