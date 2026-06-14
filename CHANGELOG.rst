@@ -2,6 +2,29 @@
 Release History
 ****************
 
+v1.0.2
+------
+
+Packaging and installation
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Installed Parquet support by default by shipping the package with the
+  required dependency out of the box, refreshed the installation guidance,
+  refined optional-dependency messaging, and added package-metadata regression
+  coverage. Resolved issue `#142 <https://github.com/it-is-me-mario/MARIO/issues/142>`_.
+
+SUT scenarios and native matrix workflows
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Extended SUT scenario updates so unified ``Z``, ``Y`` and ``E`` inputs are
+  accepted directly and normalized through the shared ordering logic, with
+  dedicated regression tests for the new update paths. Resolved issue
+  `#144 <https://github.com/it-is-me-mario/MARIO/issues/144>`_.
+* Switched SUT export and parser roundtrips to native SUT blocks instead of
+  legacy unified IOT-style matrices, while preserving backward-compatible
+  parsing of historical TXT, Parquet and Excel layouts. Resolved issue
+  `#146 <https://github.com/it-is-me-mario/MARIO/issues/146>`_.
+
 v1.0.1
 ------
 
