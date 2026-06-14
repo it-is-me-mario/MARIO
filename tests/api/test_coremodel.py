@@ -1343,6 +1343,96 @@ def test_update_scenarios(CoreDataIOT):
     )
 
 
+def test_update_scenarios_sut_accepts_unified_z(CoreDataSUT):
+    scenario = "legacy unified z"
+    CoreDataSUT.clone_scenario("baseline", scenario)
+    CoreDataSUT.reset_to_coefficients(scenario)
+
+    new_z = CoreDataSUT.query(_ENUM.z, scenarios=scenario).copy()
+    u = CoreDataSUT.get_block("u", scenario=scenario)
+    s = CoreDataSUT.get_block("s", scenario=scenario)
+    new_z.loc[u.index[0], u.columns[0]] += 1
+    new_z.loc[s.index[0], s.columns[0]] += 2
+
+    CoreDataSUT.update_scenarios(scenario, **{_ENUM.z: new_z})
+
+    pdt.assert_frame_equal(
+        CoreDataSUT.get_block("u", scenario=scenario),
+        new_z.loc[u.index, u.columns],
+    )
+    pdt.assert_frame_equal(
+        CoreDataSUT.get_block("s", scenario=scenario),
+        new_z.loc[s.index, s.columns],
+    )
+    pdt.assert_frame_equal(CoreDataSUT.get_block(_ENUM.z, scenario=scenario), new_z)
+
+
+def test_update_scenarios_sut_accepts_unified_Y(CoreDataSUT):
+    scenario = "legacy unified Y"
+    CoreDataSUT.clone_scenario("baseline", scenario)
+    CoreDataSUT.reset_to_flows(scenario)
+
+    new_y = CoreDataSUT.query(_ENUM.Y, scenarios=scenario).copy()
+    ya = CoreDataSUT.get_block("Ya", scenario=scenario)
+    yc = CoreDataSUT.get_block("Yc", scenario=scenario)
+    new_y.loc[ya.index[0], ya.columns[0]] += 3
+    new_y.loc[yc.index[0], yc.columns[0]] += 4
+
+    CoreDataSUT.update_scenarios(scenario, **{_ENUM.Y: new_y})
+
+    pdt.assert_frame_equal(
+        CoreDataSUT.get_block("Ya", scenario=scenario),
+        new_y.loc[ya.index, ya.columns],
+    )
+    pdt.assert_frame_equal(
+        CoreDataSUT.get_block("Yc", scenario=scenario),
+        new_y.loc[yc.index, yc.columns],
+    )
+    pdt.assert_frame_equal(CoreDataSUT.get_block(_ENUM.Y, scenario=scenario), new_y)
+
+
+def test_update_scenarios_sut_accepts_unified_E(CoreDataSUT):
+    scenario = "legacy unified E"
+    CoreDataSUT.clone_scenario("baseline", scenario)
+    CoreDataSUT.reset_to_flows(scenario)
+
+    new_e = CoreDataSUT.query(_ENUM.E, scenarios=scenario).copy()
+    ea = CoreDataSUT.get_block("Ea", scenario=scenario)
+    ec = CoreDataSUT.get_block("Ec", scenario=scenario)
+    new_e.loc[ea.index[0], ea.columns[0]] += 5
+    new_e.loc[ec.index[0], ec.columns[0]] += 6
+
+    CoreDataSUT.update_scenarios(scenario, **{_ENUM.E: new_e})
+
+    pdt.assert_frame_equal(
+        CoreDataSUT.get_block("Ea", scenario=scenario),
+        new_e.loc[ea.index, ea.columns],
+    )
+    pdt.assert_frame_equal(
+        CoreDataSUT.get_block("Ec", scenario=scenario),
+        new_e.loc[ec.index, ec.columns],
+    )
+    pdt.assert_frame_equal(CoreDataSUT.get_block(_ENUM.E, scenario=scenario), new_e)
+
+
+@pytest.mark.parametrize("matrix", [_ENUM.p, _ENUM.f, _ENUM.m])
+def test_update_scenarios_rejects_iot_derived_matrices(CoreDataIOT, matrix):
+    CoreDataIOT.clone_scenario("baseline", "derived reject")
+    derived = CoreDataIOT.query(matrix, scenarios="derived reject").copy()
+
+    with pytest.raises(WrongInput, match="cannot be updated with update_scenarios"):
+        CoreDataIOT.update_scenarios("derived reject", **{matrix: derived})
+
+
+@pytest.mark.parametrize("matrix", [_ENUM.p, _ENUM.f, _ENUM.m])
+def test_update_scenarios_rejects_sut_derived_matrices(CoreDataSUT, matrix):
+    CoreDataSUT.clone_scenario("baseline", "derived reject")
+    derived = CoreDataSUT.query(matrix, scenarios="derived reject").copy()
+
+    with pytest.raises(WrongInput, match="cannot be updated with update_scenarios"):
+        CoreDataSUT.update_scenarios("derived reject", **{matrix: derived})
+
+
 def test_GDP(CoreDataIOT,CoreDataSUT):
     # iot
     # total

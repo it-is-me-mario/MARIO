@@ -93,7 +93,11 @@ class SUTUnifiedOrderingPolicy:
         X: pd.DataFrame | None = None,
         Y: pd.DataFrame | None = None,
         V: pd.DataFrame | None = None,
+        v: pd.DataFrame | None = None,
         E: pd.DataFrame | None = None,
+        e: pd.DataFrame | None = None,
+        u: pd.DataFrame | None = None,
+        s: pd.DataFrame | None = None,
         bu: pd.DataFrame | None = None,
         bs: pd.DataFrame | None = None,
         gcc: pd.DataFrame | None = None,
@@ -106,8 +110,12 @@ class SUTUnifiedOrderingPolicy:
         Yc: pd.DataFrame | None = None,
         Va: pd.DataFrame | None = None,
         Vc: pd.DataFrame | None = None,
+        va: pd.DataFrame | None = None,
+        vc: pd.DataFrame | None = None,
         Ea: pd.DataFrame | None = None,
         Ec: pd.DataFrame | None = None,
+        ea: pd.DataFrame | None = None,
+        ec: pd.DataFrame | None = None,
     ) -> "SUTUnifiedOrderingPolicy":
         """Infer canonical split and unified ordering from available SUT blocks."""
         unified_axis = _first_multiindex(
@@ -119,12 +127,16 @@ class SUTUnifiedOrderingPolicy:
             _take_axis(X, "index"),
             _take_axis(Y, "index"),
             _take_axis(V, "columns"),
+            _take_axis(v, "columns"),
             _take_axis(E, "columns"),
+            _take_axis(e, "columns"),
         )
 
         activity_index = _first_multiindex(
             _take_axis(S, "index"),
             _take_axis(U, "columns"),
+            _take_axis(s, "index"),
+            _take_axis(u, "columns"),
             _take_axis(bs, "index"),
             _take_axis(bu, "columns"),
             _take_axis(gaa, "index"),
@@ -133,11 +145,15 @@ class SUTUnifiedOrderingPolicy:
             _take_axis(Xa, "index"),
             _take_axis(Ya, "index"),
             _take_axis(Va, "columns"),
+            _take_axis(va, "columns"),
             _take_axis(Ea, "columns"),
+            _take_axis(ea, "columns"),
         )
         commodity_index = _first_multiindex(
             _take_axis(U, "index"),
             _take_axis(S, "columns"),
+            _take_axis(u, "index"),
+            _take_axis(s, "columns"),
             _take_axis(bu, "index"),
             _take_axis(bs, "columns"),
             _take_axis(gcc, "index"),
@@ -146,7 +162,9 @@ class SUTUnifiedOrderingPolicy:
             _take_axis(Xc, "index"),
             _take_axis(Yc, "index"),
             _take_axis(Vc, "columns"),
+            _take_axis(vc, "columns"),
             _take_axis(Ec, "columns"),
+            _take_axis(ec, "columns"),
         )
 
         if unified_axis is not None:

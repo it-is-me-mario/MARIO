@@ -107,6 +107,103 @@ def _normalize_parsed_matrix_name(name: str) -> str:
         return name
 
 
+_SUT_ORDERING_BLOCK_NAMES = (
+    "U",
+    "S",
+    "Z",
+    "z",
+    "Y",
+    "V",
+    "v",
+    "E",
+    "e",
+    "u",
+    "s",
+    "bu",
+    "bs",
+    "gcc",
+    "gca",
+    "gac",
+    "gaa",
+    "Xa",
+    "Xc",
+    "Ya",
+    "Yc",
+    "Va",
+    "Vc",
+    "va",
+    "vc",
+    "Ea",
+    "Ec",
+    "ea",
+    "ec",
+)
+
+
+_IOT_UPDATEABLE_MATRICES = frozenset(("Z", "Y", "EY", "V", "VY", "E", "z", "e", "v"))
+_SUT_SPLIT_UPDATEABLE_MATRICES = frozenset(
+    ("U", "u", "S", "s", "Yc", "Ya", "Va", "va", "Vc", "vc", "Ea", "ea", "Ec", "ec", "VY", "EY")
+)
+_SUT_LEGACY_UNIFIED_UPDATEABLE_MATRICES = frozenset(("Z", "z", "Y", "V", "v", "E", "e"))
+_SUT_UPDATEABLE_MATRICES = _SUT_SPLIT_UPDATEABLE_MATRICES | _SUT_LEGACY_UNIFIED_UPDATEABLE_MATRICES
+
+
+def _sut_unified_update_extractors():
+    """Return split-block extractors for unified SUT update payloads."""
+    from mario.compute import views
+
+    return {
+        "Z": (("U", views.extract_U_from_Z), ("S", views.extract_S_from_Z)),
+        "z": (("u", views.extract_u_from_z), ("s", views.extract_s_from_z)),
+        "Y": (("Ya", views.extract_Ya_from_Y), ("Yc", views.extract_Yc_from_Y)),
+        "V": (("Va", views.extract_Va_from_V), ("Vc", views.extract_Vc_from_V)),
+        "v": (("va", views.extract_va_from_v), ("vc", views.extract_vc_from_v)),
+        "E": (("Ea", views.extract_Ea_from_E), ("Ec", views.extract_Ec_from_E)),
+        "e": (("ea", views.extract_ea_from_e), ("ec", views.extract_ec_from_e)),
+    }
+
+
+def _sut_ordering_from_blocks(blocks: dict[str, object]):
+    """Build SUT unified ordering from the available visible blocks."""
+    from mario.compute.ordering import SUTUnifiedOrderingPolicy
+
+    ordering_blocks = {
+        name: blocks[name]
+        for name in _SUT_ORDERING_BLOCK_NAMES
+        if name in blocks
+    }
+    return SUTUnifiedOrderingPolicy.from_blocks(**ordering_blocks)
+
+
+def _expand_sut_unified_update_payload(
+    *,
+    matrix: str,
+    value: pd.DataFrame,
+    visible_blocks: dict[str, object],
+) -> dict[str, pd.DataFrame]:
+    """Expand one unified SUT update into its native split blocks."""
+    canonical = _resolve_canonical_matrix_name(matrix)
+    extractors = _sut_unified_update_extractors().get(canonical)
+    if extractors is None:
+        return {canonical: value}
+
+    blocks = dict(visible_blocks)
+    blocks[canonical] = value
+
+    try:
+        ordering = _sut_ordering_from_blocks(blocks)
+        split_payload = {
+            split_name: extractor(value, ordering)
+            for split_name, extractor in extractors
+        }
+    except (KeyError, TypeError, ValueError) as exc:
+        raise WrongInput(
+            f"Cannot decompose SUT unified matrix {canonical!r} into split blocks: {exc}"
+        ) from exc
+
+    return {canonical: value, **split_payload}
+
+
 def _main_index_count(indeces: dict[str, dict[str, list[object]]], code: str) -> int | None:
     """Return the size of one main database index when available."""
     levels = indeces.get(code)
@@ -1640,6 +1737,38 @@ class CoreModel:
 
         if not all([isinstance(value, pd.DataFrame) for value in matrices.values()]):
             raise WrongInput("items should be DataFrame")
+
+        canonical_matrices = {
+            _resolve_canonical_matrix_name(matrix): value
+            for matrix, value in matrices.items()
+        }
+        acceptable_updates = (
+            _SUT_UPDATEABLE_MATRICES
+            if self.table_type == "SUT"
+            else _IOT_UPDATEABLE_MATRICES
+        )
+        invalid_updates = set(canonical_matrices).difference(acceptable_updates)
+        if invalid_updates:
+            raise WrongInput(
+                f"{invalid_updates} cannot be updated with update_scenarios. "
+                f"Acceptable matrices are {sorted(acceptable_updates)}"
+            )
+        matrices = canonical_matrices
+
+        if self.table_type == "SUT":
+            visible_blocks = {
+                _resolve_canonical_matrix_name(name): block
+                for name, block in self.matrices[scenario].items()
+            }
+            expanded_matrices = {}
+            for matrix, value in matrices.items():
+                updates = _expand_sut_unified_update_payload(
+                    matrix=matrix,
+                    value=value,
+                    visible_blocks={**visible_blocks, **expanded_matrices},
+                )
+                expanded_matrices.update(updates)
+            matrices = expanded_matrices
 
         for matrix, value in matrices.items():
             self.set_block(matrix, value, scenario=scenario)
