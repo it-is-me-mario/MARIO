@@ -51,6 +51,19 @@ def _flat_matrix_names_for_mode(mode: str) -> tuple[str, ...]:
     return _MATRIX_COEFFICIENT_FILES if mode == "coefficients" else _MATRIX_FLOW_FILES
 
 
+def _resolve_parquet_bundle_root(path: str | Path, mode: str) -> Path:
+    """Resolve one parquet bundle root, auto-entering the mode subfolder when present."""
+    root = Path(path)
+    if root.name.lower() == mode:
+        return root
+
+    candidate = root / mode
+    if candidate.is_dir():
+        return candidate
+
+    return root
+
+
 def matrix_parquet_parser(path: str, table: str, mode: str):
     """Parse the matrix-per-file parquet layout exported by ``Database.to_parquet``."""
     root = Path(path)
@@ -317,31 +330,32 @@ class ParquetParser(BaseParser):
     ) -> ModelState:
         """Parse a folder of parquet files into a canonical ``ModelState``."""
         require_pyarrow(feature="Parquet parsing", error_type=WrongInput)
+        resolved_path = _resolve_parquet_bundle_root(path, mode)
         layout = "flat" if flat else "matrix"
         log_time(
             logger,
-            f"Parser: parquet reading {table} {mode} from {path} in {layout} mode.",
+            f"Parser: parquet reading {table} {mode} from {resolved_path} in {layout} mode.",
             "info",
         )
         normalized_layouts = normalize_matrix_layouts(matrix_layouts, table=table)
         if normalized_layouts:
             if flat:
                 matrices, indexes, units, extra = flat_parquet_parser(
-                    path,
+                    str(resolved_path),
                     table,
                     mode,
                     matrix_layouts=normalized_layouts,
                 )
             else:
                 matrices, indexes, units, extra = matrix_parquet_parser_with_layouts(
-                    path,
+                    str(resolved_path),
                     table=table,
                     mode=mode,
                     matrix_layouts=normalized_layouts,
                 )
         else:
             parser = flat_parquet_parser if flat else matrix_parquet_parser
-            parsed = parser(path, table, mode)
+            parsed = parser(str(resolved_path), table, mode)
             if len(parsed) == 4:
                 matrices, indexes, units, extra = parsed
             else:
@@ -356,11 +370,11 @@ class ParquetParser(BaseParser):
             parser_name=self.name,
             mode=mode,
             name=name,
-            source=source or str(Path(path)),
+            source=source or str(resolved_path),
             year=year,
             price=price,
             tech_assumption=tech_assumption,
-            source_path=path,
+            source_path=str(resolved_path),
             repository=repository,
         )
         state.metadata.extra.update(extra)

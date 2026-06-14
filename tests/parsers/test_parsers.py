@@ -656,6 +656,31 @@ def test_parse_state_from_excel_sut_promotes_split_native_blocks():
     pdt.assert_frame_equal(state.get_units("a"), database.units["Activity"])
 
 
+def test_to_excel_preserves_standard_sut_layout_for_standard_workbooks(tmp_path):
+    database = load_test("SUT")
+
+    export_path = tmp_path / "sut_standard_roundtrip.xlsx"
+    database.to_excel(path=str(export_path), flows=True, coefficients=False)
+
+    source = pd.read_excel("mario/test/tables/test_SUT_standard.xlsx", sheet_name="flows", header=None)
+    exported = pd.read_excel(export_path, sheet_name="flows", header=None)
+
+    assert source.shape == exported.shape
+    pdt.assert_frame_equal(source, exported, check_exact=False, rtol=1e-12, atol=1e-9)
+
+    roundtrip = parse_from_excel(
+        path=str(export_path),
+        table="SUT",
+        mode="flows",
+        calc_all=False,
+    )
+
+    pdt.assert_frame_equal(roundtrip.Z, database.Z)
+    pdt.assert_frame_equal(roundtrip.V, database.V)
+    pdt.assert_frame_equal(roundtrip.E, database.E)
+    pdt.assert_frame_equal(roundtrip.Y, database.Y)
+
+
 def test_to_excel_exports_custom_sut_layouts_and_parse_from_excel_roundtrips_them(tmp_path):
     database = _build_custom_sut_database()
 
@@ -664,7 +689,7 @@ def test_to_excel_exports_custom_sut_layouts_and_parse_from_excel_roundtrips_the
 
     exported = pd.read_excel(export_path, sheet_name="flows", header=None)
     assert tuple(exported.iloc[0, 3:7]) == ("r1", "r1", "r1", "r1")
-    assert tuple(exported.iloc[1, 3:7]) == ("a1", "a2", "c1", "c2")
+    assert tuple(exported.iloc[1, 3:7]) == ("c1", "c2", "a1", "a2")
     left_rows = {tuple(row) for row in exported.iloc[:, 0:3].dropna(how="all").itertuples(index=False, name=None)}
     assert ("r1", "a1", "taxes") in left_rows
     assert ("r1", "a1", "CO2") in left_rows
@@ -820,7 +845,7 @@ def test_parse_from_excel_accepts_matrix_layout_alias(tmp_path):
         path=str(path),
         table="IOT",
         mode="flows",
-        matrix_layout={"V": "Region"},
+        matrix_layout={"V": "Region", "E": "Region", "EY": "Region"},
         calc_all=False,
         name="MRIOT regional factors alias",
     )
@@ -1803,6 +1828,27 @@ def test_parse_from_parquet_sut_roundtrip_preserves_split_native_blocks_without_
     pdt.assert_frame_equal(parsed.E, database.E)
 
 
+def test_parse_from_parquet_accepts_bundle_root_for_sut_matrix_exports(tmp_path):
+    pytest.importorskip("pyarrow")
+
+    database = load_test("SUT")
+    database.to_parquet(path=tmp_path, flows=True, coefficients=False, flat=False)
+
+    parsed = parse_from_parquet(
+        path=str(tmp_path),
+        table="SUT",
+        mode="flows",
+        flat=False,
+        name="SUT parquet dataset from root",
+        calc_all=False,
+    )
+
+    pdt.assert_frame_equal(parsed.Z, database.Z)
+    pdt.assert_frame_equal(parsed.Y, database.Y)
+    pdt.assert_frame_equal(parsed.V, database.V)
+    pdt.assert_frame_equal(parsed.E, database.E)
+
+
 def test_parse_from_parquet_sut_matrix_roundtrip_after_region_style_aggregation_has_no_nans(tmp_path):
     pytest.importorskip("pyarrow")
 
@@ -1895,6 +1941,97 @@ def test_parse_state_from_parquet_supports_sut_matrix_layouts_on_flat_payloads(t
     pdt.assert_frame_equal(_sorted_matrix(parsed.compute("Y")), _sorted_matrix(blocks["Y"]))
     pdt.assert_frame_equal(_sorted_matrix(parsed.compute("V")), _sorted_matrix(blocks["V"]))
     pdt.assert_frame_equal(_sorted_matrix(parsed.compute("E")), _sorted_matrix(blocks["E"]))
+
+
+_LOAD_TEST_LAYOUTS = {
+    ("IOT", "standard"): None,
+    ("IOT", "special"): {"V": ("Region", "Sector"), "E": "Region"},
+    ("SUT", "standard"): None,
+    ("SUT", "special"): {"E": ("Region", "Commodity")},
+}
+
+_ROUNDTRIP_FLOW_KEYS = ("Z", "Y", "V", "E", "EY", "VY")
+_ROUNDTRIP_COEFF_KEYS = ("z", "Y", "v", "e", "EY", "VY")
+
+
+def _export_and_parse(database, table, layout, mode, fmt, tmp_path, *, matrix_layouts):
+    """Export ``database`` in ``fmt``/``mode`` and parse it back."""
+    flows = mode == "flows"
+    coefficients = mode == "coefficients"
+    sub = "flows" if flows else "coefficients"
+
+    if fmt == "excel":
+        target = tmp_path / f"{table}_{layout}_{mode}.xlsx"
+        database.to_excel(path=str(target), flows=flows, coefficients=coefficients)
+        return parse_from_excel(
+            path=str(target),
+            table=table,
+            mode=mode,
+            matrix_layouts=matrix_layouts,
+            calc_all=False,
+        )
+    if fmt == "txt":
+        root = tmp_path / f"{table}_{layout}_{mode}_txt"
+        database.to_txt(path=str(root), flows=flows, coefficients=coefficients, sep=",")
+        return parse_from_txt(
+            path=str(root / sub),
+            table=table,
+            mode=mode,
+            sep=",",
+            matrix_layouts=matrix_layouts,
+            calc_all=False,
+        )
+    root = tmp_path / f"{table}_{layout}_{mode}_pq"
+    database.to_parquet(path=str(root), flows=flows, coefficients=coefficients)
+    return parse_from_parquet(
+        path=str(root / sub),
+        table=table,
+        mode=mode,
+        matrix_layouts=matrix_layouts,
+        calc_all=False,
+    )
+
+
+@pytest.mark.parametrize("table, layout", list(_LOAD_TEST_LAYOUTS))
+@pytest.mark.parametrize("fmt", ["excel", "txt", "parquet"])
+@pytest.mark.parametrize("mode", ["flows", "coefficients"])
+def test_export_parse_roundtrip_for_all_layouts_and_formats(tmp_path, table, layout, fmt, mode):
+    """to_excel/to_txt/to_parquet round-trip for standard and special layouts."""
+    if fmt == "parquet":
+        pytest.importorskip("pyarrow")
+
+    matrix_layouts = _LOAD_TEST_LAYOUTS[(table, layout)]
+    database = load_test(table, layout=layout)
+
+    roundtrip = _export_and_parse(
+        database, table, layout, mode, fmt, tmp_path, matrix_layouts=matrix_layouts
+    )
+
+    keys = _ROUNDTRIP_FLOW_KEYS if mode == "flows" else _ROUNDTRIP_COEFF_KEYS
+    for key in keys:
+        pdt.assert_frame_equal(
+            _sorted_matrix(getattr(roundtrip, key)),
+            _sorted_matrix(getattr(database, key)),
+            check_exact=False,
+            rtol=1e-9,
+            atol=1e-9,
+            check_names=False,
+        )
+
+
+@pytest.mark.parametrize("table, layout", [("IOT", "special"), ("SUT", "special")])
+@pytest.mark.parametrize("fmt", ["excel", "txt", "parquet"])
+def test_special_layout_exports_require_matrix_layouts_to_parse(tmp_path, table, layout, fmt):
+    """Special-layout exports cannot be parsed without their matrix layouts."""
+    if fmt == "parquet":
+        pytest.importorskip("pyarrow")
+
+    database = load_test(table, layout=layout)
+
+    with pytest.raises(Exception):
+        _export_and_parse(
+            database, table, layout, "flows", fmt, tmp_path, matrix_layouts=None
+        )
 
 
 def test_parser_registry_supports_third_party_registration():

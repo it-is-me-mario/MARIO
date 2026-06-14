@@ -25,6 +25,22 @@ SUT scenarios and native matrix workflows
   parsing of historical TXT, Parquet and Excel layouts. Resolved issue
   `#146 <https://github.com/it-is-me-mario/MARIO/issues/146>`_.
 
+Parser and export roundtrip fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Fixed ``coefficients``-mode parsing of native SUT and special-layout IOT
+  bundles from TXT and Parquet, which raised ``KeyError: 'Z'`` because the
+  index builders only looked up the upper-case flow matrix name.
+* Fixed the explicit SUT Excel export so productive columns are written in the
+  same commodity-first order as the rows, allowing workbooks with overlapping
+  ``Activity``/``Commodity`` item labels to round-trip correctly.
+* Fixed flat TXT/CSV parsing of standard IOT bundles, which raised
+  ``ValueError: not enough values to unpack`` due to an inconsistent parser
+  return signature.
+* Added a full export/parse roundtrip test matrix covering the ``standard`` and
+  ``special`` layouts across Excel, TXT and Parquet in both ``flows`` and
+  ``coefficients`` modes.
+
 v1.0.1
 ------
 

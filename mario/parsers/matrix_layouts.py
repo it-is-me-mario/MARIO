@@ -418,9 +418,10 @@ def build_iot_indexes_from_units_and_y(units_frame: pd.DataFrame, matrices: dict
             return _dedupe(axis.get_level_values(0).tolist())
         return []
 
+    productive = matrices["Z"] if "Z" in matrices else matrices["z"]
     regions = (
-        _regions_from_axis(matrices["Z"].index)
-        or _regions_from_axis(matrices["Z"].columns)
+        _regions_from_axis(productive.index)
+        or _regions_from_axis(productive.columns)
         or _regions_from_axis(matrices["Y"].index)
         or _regions_from_axis(matrices["Y"].columns)
     )
@@ -549,7 +550,7 @@ def build_sut_indexes_from_units_and_y(units_frame: pd.DataFrame, matrices: dict
             return _dedupe(axis.get_level_values(0).tolist())
         return []
 
-    productive = matrices["Z"]
+    productive = matrices["Z"] if "Z" in matrices else matrices["z"]
     regions = (
         _regions_from_axis(productive.index)
         or _regions_from_axis(productive.columns)

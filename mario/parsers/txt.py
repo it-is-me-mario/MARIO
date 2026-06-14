@@ -1579,7 +1579,7 @@ def parse_flat_frames(
     )
     units = get_units(_flat_units_to_legacy(unit_table), table, indeces)
     rename_index(matrices)
-    return {"baseline": matrices}, indeces, units
+    return {"baseline": matrices}, indeces, units, {}
 
 
 def flat_txt_parser(

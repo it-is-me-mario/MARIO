@@ -428,6 +428,86 @@ def _prepare_iot_excel_export_frame(frame, *, matrix_name):
     return exported
 
 
+def _write_standard_sut_matrices(
+    sheet,
+    U,
+    S,
+    Va,
+    Vc,
+    Ea,
+    Ec,
+    Ya,
+    Yc,
+    EY,
+    VY,
+    value_format,
+    header_format,
+):
+    """Write the historical standard SUT workbook layout with ``Level`` headers."""
+    commodity_columns = list(S.columns)
+    activity_columns = list(U.columns)
+    productive_columns = commodity_columns + activity_columns
+    final_demand_columns = list(Yc.columns)
+
+    for col, column in enumerate(productive_columns, start=3):
+        sheet.write(0, col, column[0], header_format)
+        sheet.write(1, col, column[1], header_format)
+        sheet.write(2, col, column[2], header_format)
+
+    for offset, column in enumerate(final_demand_columns, start=3 + len(productive_columns)):
+        sheet.write(0, offset, column[0], header_format)
+        sheet.write(1, offset, column[1], header_format)
+        sheet.write(2, offset, column[2], header_format)
+
+    blank_commodity = [0] * len(commodity_columns)
+    blank_activity = [0] * len(activity_columns)
+
+    def _write_body_row(row_number, tokens, productive_values, final_demand_values):
+        for col, value in enumerate(tokens):
+            _write_header_value(sheet, row_number, col, value, header_format)
+        for col, value in enumerate(productive_values, start=3):
+            sheet.write(row_number, col, value, value_format)
+        for col, value in enumerate(final_demand_values, start=3 + len(productive_columns)):
+            sheet.write(row_number, col, value, value_format)
+
+    row_number = 3
+    for row in U.index:
+        _write_body_row(
+            row_number,
+            [row[0], _MASTER_INDEX["c"], row[2]],
+            blank_commodity + U.loc[row, activity_columns].tolist(),
+            Yc.loc[row, final_demand_columns].tolist(),
+        )
+        row_number += 1
+
+    for row in S.index:
+        _write_body_row(
+            row_number,
+            [row[0], _MASTER_INDEX["a"], row[2]],
+            S.loc[row, commodity_columns].tolist() + blank_activity,
+            Ya.loc[row, final_demand_columns].tolist(),
+        )
+        row_number += 1
+
+    for row in Va.index:
+        _write_body_row(
+            row_number,
+            [None, _MASTER_INDEX["f"], row],
+            Vc.loc[row, commodity_columns].tolist() + Va.loc[row, activity_columns].tolist(),
+            VY.loc[row, final_demand_columns].tolist(),
+        )
+        row_number += 1
+
+    for row in Ea.index:
+        _write_body_row(
+            row_number,
+            [None, _MASTER_INDEX["k"], row],
+            Ec.loc[row, commodity_columns].tolist() + Ea.loc[row, activity_columns].tolist(),
+            EY.loc[row, final_demand_columns].tolist(),
+        )
+        row_number += 1
+
+
 def _reindex_iot_excel_export_frame(frame, *, index=None, columns=None, label):
     """Reindex one export block only when its labels match exactly."""
     if index is not None:
@@ -601,22 +681,16 @@ def wrirte_matrices(sheet, Z, V, E, Y, EY, VY, flow_format, header_format):
     col_counter = 0
     # indeces
     for row in range(Z.shape[0]):
-        sheet.write(
-            "A{}".format(row + 4), Z.index.get_level_values(0)[row], header_format
-        )
-        sheet.write(
-            "B{}".format(row + 4), Z.index.get_level_values(1)[row], header_format
-        )
-        sheet.write(
-            "C{}".format(row + 4), Z.index.get_level_values(2)[row], header_format
-        )
+        _write_header_value(sheet, row + 3, 0, Z.index.get_level_values(0)[row], header_format)
+        _write_header_value(sheet, row + 3, 1, Z.index.get_level_values(1)[row], header_format)
+        _write_header_value(sheet, row + 3, 2, Z.index.get_level_values(2)[row], header_format)
         row_counter += 1
 
     # columns
     for row in range(Z.shape[1]):
-        sheet.write(0, row + 3, Z.columns.get_level_values(0)[row], header_format)
-        sheet.write(1, row + 3, Z.columns.get_level_values(1)[row], header_format)
-        sheet.write(2, row + 3, Z.columns.get_level_values(2)[row], header_format)
+        _write_header_value(sheet, 0, row + 3, Z.columns.get_level_values(0)[row], header_format)
+        _write_header_value(sheet, 1, row + 3, Z.columns.get_level_values(1)[row], header_format)
+        _write_header_value(sheet, 2, row + 3, Z.columns.get_level_values(2)[row], header_format)
         col_counter += 1
 
     for row in range(Z.shape[0]):
@@ -626,21 +700,9 @@ def wrirte_matrices(sheet, Z, V, E, Y, EY, VY, flow_format, header_format):
     # Filling the V
     row_v_counter = row_counter
     for row in range(V.shape[0]):
-        sheet.write(
-            "A{}".format(row + 4 + row_counter),
-            V.index.get_level_values(0)[row],
-            header_format,
-        )
-        sheet.write(
-            "B{}".format(row + 4 + row_counter),
-            V.index.get_level_values(1)[row],
-            header_format,
-        )
-        sheet.write(
-            "C{}".format(row + 4 + row_counter),
-            V.index.get_level_values(2)[row],
-            header_format,
-        )
+        _write_header_value(sheet, row + 3 + row_counter, 0, V.index.get_level_values(0)[row], header_format)
+        _write_header_value(sheet, row + 3 + row_counter, 1, V.index.get_level_values(1)[row], header_format)
+        _write_header_value(sheet, row + 3 + row_counter, 2, V.index.get_level_values(2)[row], header_format)
         row_v_counter += 1
 
     for row in range(V.shape[0]):
@@ -649,21 +711,9 @@ def wrirte_matrices(sheet, Z, V, E, Y, EY, VY, flow_format, header_format):
 
     # Filling the E
     for row in range(E.shape[0]):
-        sheet.write(
-            "A{}".format(row + 4 + row_v_counter),
-            E.index.get_level_values(0)[row],
-            header_format,
-        )
-        sheet.write(
-            "B{}".format(row + 4 + row_v_counter),
-            E.index.get_level_values(1)[row],
-            header_format,
-        )
-        sheet.write(
-            "C{}".format(row + 4 + row_v_counter),
-            E.index.get_level_values(2)[row],
-            header_format,
-        )
+        _write_header_value(sheet, row + 3 + row_v_counter, 0, E.index.get_level_values(0)[row], header_format)
+        _write_header_value(sheet, row + 3 + row_v_counter, 1, E.index.get_level_values(1)[row], header_format)
+        _write_header_value(sheet, row + 3 + row_v_counter, 2, E.index.get_level_values(2)[row], header_format)
 
     for row in range(E.shape[0]):
         for col in range(E.shape[1]):
@@ -672,15 +722,9 @@ def wrirte_matrices(sheet, Z, V, E, Y, EY, VY, flow_format, header_format):
     # Filling Y
     # columns
     for row in range(Y.shape[1]):
-        sheet.write(
-            0, row + 3 + col_counter, Y.columns.get_level_values(0)[row], header_format
-        )
-        sheet.write(
-            1, row + 3 + col_counter, Y.columns.get_level_values(1)[row], header_format
-        )
-        sheet.write(
-            2, row + 3 + col_counter, Y.columns.get_level_values(2)[row], header_format
-        )
+        _write_header_value(sheet, 0, row + 3 + col_counter, Y.columns.get_level_values(0)[row], header_format)
+        _write_header_value(sheet, 1, row + 3 + col_counter, Y.columns.get_level_values(1)[row], header_format)
+        _write_header_value(sheet, 2, row + 3 + col_counter, Y.columns.get_level_values(2)[row], header_format)
 
     for row in range(Y.shape[0]):
         for col in range(Y.shape[1]):
@@ -738,7 +782,7 @@ def _write_explicit_sut_matrices(
     """Write one native split SUT workbook without materializing unified Z/Y."""
     activity_columns = list(U.columns)
     commodity_columns = list(S.columns)
-    productive_columns = activity_columns + commodity_columns
+    productive_columns = commodity_columns + activity_columns
     final_demand_columns = list(Ya.columns)
 
     for col, column in enumerate(productive_columns, start=3):
@@ -768,7 +812,7 @@ def _write_explicit_sut_matrices(
         _write_body_row(
             row_number,
             _row_tokens_for_explicit_sut_export(row, productive=True),
-            U.loc[row, activity_columns].tolist() + blank_commodity,
+            blank_commodity + U.loc[row, activity_columns].tolist(),
             Yc.loc[row, final_demand_columns].tolist(),
         )
         row_number += 1
@@ -777,7 +821,7 @@ def _write_explicit_sut_matrices(
         _write_body_row(
             row_number,
             _row_tokens_for_explicit_sut_export(row, productive=True),
-            blank_activity + S.loc[row, commodity_columns].tolist(),
+            S.loc[row, commodity_columns].tolist() + blank_activity,
             Ya.loc[row, final_demand_columns].tolist(),
         )
         row_number += 1
@@ -786,7 +830,7 @@ def _write_explicit_sut_matrices(
         _write_body_row(
             row_number,
             _row_tokens_for_explicit_sut_export(row, productive=False),
-            Va.loc[row, activity_columns].tolist() + Vc.loc[row, commodity_columns].tolist(),
+            Vc.loc[row, commodity_columns].tolist() + Va.loc[row, activity_columns].tolist(),
             VY.loc[row, final_demand_columns].tolist(),
         )
         row_number += 1
@@ -795,10 +839,15 @@ def _write_explicit_sut_matrices(
         _write_body_row(
             row_number,
             _row_tokens_for_explicit_sut_export(row, productive=False),
-            Ea.loc[row, activity_columns].tolist() + Ec.loc[row, commodity_columns].tolist(),
+            Ec.loc[row, commodity_columns].tolist() + Ea.loc[row, activity_columns].tolist(),
             EY.loc[row, final_demand_columns].tolist(),
         )
         row_number += 1
+
+
+def _needs_explicit_sut_excel_export(instance) -> bool:
+    """Return ``True`` when a SUT workbook must use the explicit layout."""
+    return bool(instance.list_custom_block_specs())
 
 
 def database_excel(instance, flows, coefficients, directory, scenario):
@@ -813,25 +862,46 @@ def database_excel(instance, flows, coefficients, directory, scenario):
         flows = workbook.add_worksheet("flows")
         flow_format = workbook.add_format({"num_format": "0.0;-0.0;-"})
         if instance.table_type == "SUT":
-            data = instance.query(
-                matrices=["U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", _ENUM.EY, _ENUM.VY],
-                scenarios=scenario,
-            )
-            _write_explicit_sut_matrices(
-                flows,
-                data["U"],
-                data["S"],
-                data["Va"],
-                data["Vc"],
-                data["Ea"],
-                data["Ec"],
-                data["Ya"],
-                data["Yc"],
-                data[_ENUM.EY],
-                data[_ENUM.VY],
-                flow_format,
-                header_format,
-            )
+            if _needs_explicit_sut_excel_export(instance):
+                data = instance.query(
+                    matrices=["U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", _ENUM.EY, _ENUM.VY],
+                    scenarios=scenario,
+                )
+                _write_explicit_sut_matrices(
+                    flows,
+                    data["U"],
+                    data["S"],
+                    data["Va"],
+                    data["Vc"],
+                    data["Ea"],
+                    data["Ec"],
+                    data["Ya"],
+                    data["Yc"],
+                    data[_ENUM.EY],
+                    data[_ENUM.VY],
+                    flow_format,
+                    header_format,
+                )
+            else:
+                data = instance.query(
+                    matrices=["U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", _ENUM.EY, _ENUM.VY],
+                    scenarios=scenario,
+                )
+                _write_standard_sut_matrices(
+                    flows,
+                    data["U"],
+                    data["S"],
+                    data["Va"],
+                    data["Vc"],
+                    data["Ea"],
+                    data["Ec"],
+                    data["Ya"],
+                    data["Yc"],
+                    data[_ENUM.EY],
+                    data[_ENUM.VY],
+                    flow_format,
+                    header_format,
+                )
         else:
             data = instance.query(
                 matrices=[_ENUM.V, _ENUM.E, _ENUM.Z, _ENUM.Y, _ENUM.EY, _ENUM.VY],
@@ -871,25 +941,46 @@ def database_excel(instance, flows, coefficients, directory, scenario):
         coefficients = workbook.add_worksheet("coefficients")
         coeff_format = workbook.add_format({"num_format": "0.000;-0.000;-"})
         if instance.table_type == "SUT":
-            data = instance.query(
-                matrices=["u", "s", "Ya", "Yc", "va", "vc", "ea", "ec", _ENUM.EY, _ENUM.VY],
-                scenarios=scenario,
-            )
-            _write_explicit_sut_matrices(
-                coefficients,
-                data["u"],
-                data["s"],
-                data["va"],
-                data["vc"],
-                data["ea"],
-                data["ec"],
-                data["Ya"],
-                data["Yc"],
-                data[_ENUM.EY],
-                data[_ENUM.VY],
-                coeff_format,
-                header_format,
-            )
+            if _needs_explicit_sut_excel_export(instance):
+                data = instance.query(
+                    matrices=["u", "s", "Ya", "Yc", "va", "vc", "ea", "ec", _ENUM.EY, _ENUM.VY],
+                    scenarios=scenario,
+                )
+                _write_explicit_sut_matrices(
+                    coefficients,
+                    data["u"],
+                    data["s"],
+                    data["va"],
+                    data["vc"],
+                    data["ea"],
+                    data["ec"],
+                    data["Ya"],
+                    data["Yc"],
+                    data[_ENUM.EY],
+                    data[_ENUM.VY],
+                    coeff_format,
+                    header_format,
+                )
+            else:
+                data = instance.query(
+                    matrices=["u", "s", "Ya", "Yc", "va", "vc", "ea", "ec", _ENUM.EY, _ENUM.VY],
+                    scenarios=scenario,
+                )
+                _write_standard_sut_matrices(
+                    coefficients,
+                    data["u"],
+                    data["s"],
+                    data["va"],
+                    data["vc"],
+                    data["ea"],
+                    data["ec"],
+                    data["Ya"],
+                    data["Yc"],
+                    data[_ENUM.EY],
+                    data[_ENUM.VY],
+                    coeff_format,
+                    header_format,
+                )
         else:
             matrices = [_ENUM.v, _ENUM.e, _ENUM.z, _ENUM.Y, _ENUM.EY, _ENUM.VY]
             data = instance.query(
