@@ -38,6 +38,25 @@ _FLAT_EXPORT_MATRICES = {
     "coefficients": [_ENUM.v, _ENUM.e, _ENUM.z, _ENUM.Y, _ENUM.EY, _ENUM.VY],
 }
 
+_SUT_NATIVE_MATRIX_EXPORT_MATRICES = {
+    "flows": ["U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", _ENUM.EY, _ENUM.VY],
+    "coefficients": ["u", "s", "Ya", "Yc", "va", "vc", "ea", "ec", _ENUM.EY, _ENUM.VY],
+}
+
+
+def _matrix_export_names(database, mode: str) -> list[str]:
+    """Return the matrix names to export for one database and mode."""
+    if database.table_type == "SUT":
+        return _SUT_NATIVE_MATRIX_EXPORT_MATRICES[mode]
+    return _MATRIX_EXPORT_MATRICES[mode]
+
+
+def _flat_export_names(database, mode: str) -> list[str]:
+    """Return the flat matrix names to export for one database and mode."""
+    if database.table_type == "SUT":
+        return _SUT_NATIVE_MATRIX_EXPORT_MATRICES[mode]
+    return _FLAT_EXPORT_MATRICES[mode]
+
 
 class _AxisOneGroupBy:
     """Proxy for legacy pandas ``groupby(axis=1).sum()`` calls."""
@@ -159,11 +178,11 @@ def _infer_axis_mapping(index, *, matrix_name: str, side: str) -> list[dict[str,
                     mapping[name] = value
                 elif name == "Item":
                     # Legacy simple axes, mostly factors/extensions.
-                    if matrix_name in {_ENUM.V, _ENUM.v, "M", "m", _ENUM.VY} and side == "from":
+                    if matrix_name in {_ENUM.V, _ENUM.v, "Va", "va", "Vc", "vc", "M", "m", _ENUM.VY} and side == "from":
                         mapping[_MASTER_INDEX["f"]] = value
-                    elif matrix_name in {_ENUM.E, _ENUM.e, _ENUM.EY, _ENUM.F, _ENUM.f} and side == "from":
+                    elif matrix_name in {_ENUM.E, _ENUM.e, "Ea", "ea", "Ec", "ec", _ENUM.EY, _ENUM.F, _ENUM.f} and side == "from":
                         mapping[_MASTER_INDEX["k"]] = value
-                    elif matrix_name in {_ENUM.Y, _ENUM.EY, _ENUM.VY} and side == "to":
+                    elif matrix_name in {_ENUM.Y, "Ya", "Yc", _ENUM.EY, _ENUM.VY} and side == "to":
                         mapping[_MASTER_INDEX["n"]] = value
                     else:
                         mapping["Item"] = value
@@ -196,6 +215,24 @@ def _matrix_to_flat_frame(matrix_name: str, frame: pd.DataFrame, *, scenario: st
     flat.insert(0, FLAT_DATA_COLUMNS[0], scenario)
     flat.columns = list(FLAT_DATA_COLUMNS)
     return flat
+
+
+def _prepare_export_matrix(database, matrix_name: str, frame: pd.DataFrame) -> pd.DataFrame:
+    """Normalize one matrix just before writing it to disk."""
+    if database.table_type != "SUT":
+        return frame
+
+    prepared = frame.copy()
+    if matrix_name in {"Va", "Vc", "va", "vc", _ENUM.VY} and not isinstance(prepared.index, pd.MultiIndex):
+        order = [item for item in database.get_index(_MASTER_INDEX["f"]) if item in prepared.index]
+        if order:
+            prepared = prepared.loc[order, :]
+    elif matrix_name in {"Ea", "Ec", "ea", "ec", _ENUM.EY} and not isinstance(prepared.index, pd.MultiIndex):
+        order = [item for item in database.get_index(_MASTER_INDEX["k"]) if item in prepared.index]
+        if order:
+            prepared = prepared.loc[order, :]
+
+    return prepared
 
 
 def _trim_flat_frame_columns(frame: pd.DataFrame) -> pd.DataFrame:
@@ -248,14 +285,19 @@ def _export_flat_directory(
 ) -> None:
     """Export one scenario as a single flat data file plus units."""
     root.mkdir(parents=True, exist_ok=True)
+    export_matrices = _flat_export_names(database, mode)
     matrices = database.query(
-        matrices=_FLAT_EXPORT_MATRICES[mode],
+        matrices=export_matrices,
         scenarios=[scenario],
     )
+    matrices = {
+        matrix_name: _prepare_export_matrix(database, matrix_name, frame)
+        for matrix_name, frame in matrices.items()
+    }
     flat_data = pd.concat(
         [
             _matrix_to_flat_frame(matrix_name, matrices[matrix_name], scenario=scenario)
-            for matrix_name in _FLAT_EXPORT_MATRICES[mode]
+            for matrix_name in export_matrices
         ],
         ignore_index=True,
     )
@@ -274,7 +316,7 @@ def _export_flat_directory(
     if not separate_files:
         return
 
-    for matrix_name in _FLAT_EXPORT_MATRICES[mode]:
+    for matrix_name in export_matrices:
         flat_matrix = _matrix_to_flat_frame(
             matrix_name,
             matrices[matrix_name],
@@ -300,9 +342,13 @@ def _export_matrix_directory(
     """Export one scenario as one file per matrix plus a units file."""
     root.mkdir(parents=True, exist_ok=True)
     matrices = database.query(
-        matrices=_MATRIX_EXPORT_MATRICES[mode],
+        matrices=_matrix_export_names(database, mode),
         scenarios=[scenario],
     )
+    matrices = {
+        matrix_name: _prepare_export_matrix(database, matrix_name, frame)
+        for matrix_name, frame in matrices.items()
+    }
 
     for key, value in matrices.items():
         target = root / f"{key}.{suffix}"
@@ -421,15 +467,24 @@ def export_database_to_txt(
                 separate_files=separate_files,
             )
     else:
-        database_txt(
-            database,
-            flows,
-            coefficients,
-            str(export_root),
-            scenario,
-            _format,
-            sep,
-        )
+        if flows:
+            _export_matrix_directory(
+                database,
+                root=export_root / "flows",
+                scenario=scenario,
+                mode="flows",
+                suffix=_format,
+                sep=sep,
+            )
+        if coefficients:
+            _export_matrix_directory(
+                database,
+                root=export_root / "coefficients",
+                scenario=scenario,
+                mode="coefficients",
+                suffix=_format,
+                sep=sep,
+            )
 
     if include_meta:
         _write_metadata_file(database, export_root)

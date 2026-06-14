@@ -26,6 +26,8 @@ from mario.parsers.matrix_layouts import (
     sut_block_specs_for_matrix_layouts,
     sut_units_from_frame,
 )
+from mario.compute.ordering import SUTUnifiedOrderingPolicy
+from mario.compute.views import concat_sut_E, concat_sut_V, concat_sut_Y, concat_sut_Z, concat_sut_e, concat_sut_v, concat_sut_z
 from mario.parsers.registry import register_parser
 from mario.ops.export_specs import (
     FLAT_AXIS_SETS,
@@ -513,6 +515,296 @@ def _normalize_sut_matrix(frame: pd.DataFrame, matrix_name: str, matrix_layouts:
     return normalized, None
 
 
+_SUT_NATIVE_FLOW_MATRICES = ("U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "EY", "VY")
+_SUT_NATIVE_REQUIRED_FLOW_MATRICES = ("U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec")
+_SUT_NATIVE_COEFFICIENT_MATRICES = ("u", "s", "Ya", "Yc", "va", "vc", "ea", "ec", "EY", "VY")
+_SUT_NATIVE_REQUIRED_COEFFICIENT_MATRICES = ("u", "s", "Ya", "Yc", "va", "vc", "ea", "ec")
+
+
+def _sut_native_matrix_names(mode: str) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Return native SUT matrix names for one parser mode."""
+    if mode == "coefficients":
+        return _SUT_NATIVE_COEFFICIENT_MATRICES, _SUT_NATIVE_REQUIRED_COEFFICIENT_MATRICES
+    return _SUT_NATIVE_FLOW_MATRICES, _SUT_NATIVE_REQUIRED_FLOW_MATRICES
+
+
+def _looks_like_sut_native_matrix_bundle(path: Path, *, suffixes: set[str], mode: str) -> bool:
+    """Return whether one matrix-per-file bundle contains native SUT block files."""
+    expected, required = _sut_native_matrix_names(mode)
+    present = {
+        matrix_name
+        for matrix_name in expected
+        if any((path / f"{matrix_name}{suffix}").exists() for suffix in suffixes)
+    }
+    return bool(present.intersection(required))
+
+
+def _normalize_sut_native_matrix(
+    frame: pd.DataFrame,
+    matrix_name: str,
+    matrix_layouts: dict[str, tuple[str, ...]],
+) -> tuple[pd.DataFrame, tuple[str, ...] | None]:
+    """Normalize one native split SUT matrix."""
+    normalized = frame.copy()
+
+    if matrix_name in {"U", "S", "u", "s", "Ya", "Yc"}:
+        normalized.index = _normalize_sut_unified_axis(normalized.index)
+    elif matrix_name in {"Va", "Vc", "va", "vc", "VY"}:
+        normalized.index, _, _ = _interpret_sut_extension_axis(
+            normalized.index,
+            "V",
+            matrix_layouts,
+        )
+    elif matrix_name in {"Ea", "Ec", "ea", "ec", "EY"}:
+        normalized.index, _, _ = _interpret_sut_extension_axis(
+            normalized.index,
+            "E",
+            matrix_layouts,
+        )
+
+    if matrix_name in {"U", "u"}:
+        normalized.columns = _normalize_sut_unified_axis(normalized.columns)
+        return normalized, None
+    if matrix_name in {"S", "s"}:
+        normalized.columns = _normalize_sut_unified_axis(normalized.columns)
+        return normalized, None
+    if matrix_name in {"Va", "Vc", "Ea", "Ec", "va", "vc", "ea", "ec"}:
+        normalized.columns = _normalize_sut_unified_axis(normalized.columns)
+        return normalized, None
+
+    raw_values = normalized.columns.tolist() if isinstance(normalized.columns, pd.MultiIndex) else [
+        (value,) for value in normalized.columns.tolist()
+    ]
+    public_values: list[tuple[object, ...]] = []
+    public_names: tuple[str, ...] | None = None
+    semantic_col_names: tuple[str, ...] | None = None
+    for value in raw_values:
+        current_semantic, current_semantic_names, current_public, current_public_names = (
+            interpret_iot_final_demand_tokens(value)
+        )
+        if public_names is None:
+            public_names = current_public_names
+            semantic_col_names = current_semantic_names
+        public_values.append(current_public)
+
+    assert public_names is not None
+    assert semantic_col_names is not None
+    if len(public_names) == 1:
+        normalized.columns = pd.Index([value[0] for value in public_values], name=public_names[0])
+    else:
+        normalized.columns = pd.MultiIndex.from_tuples(public_values, names=list(public_names))
+    return normalized, semantic_col_names
+
+
+def _sut_native_matrix_read_plan(matrix_name: str, matrix_layouts: dict[str, tuple[str, ...]]) -> tuple[int, tuple[int, ...], str]:
+    """Return row/header parsing hints for one native SUT matrix file."""
+    if matrix_name in {"U", "S", "u", "s", "Ya", "Yc"}:
+        row_levels = 3
+    elif matrix_name in {"Va", "Vc", "va", "vc", "VY"}:
+        row_levels = len(sut_axis_names("V", "from", matrix_layouts))
+    else:
+        row_levels = len(sut_axis_names("E", "from", matrix_layouts))
+
+    if matrix_name in {"Ya", "Yc", "EY", "VY"}:
+        header_candidates = (1, 2, 3)
+    else:
+        header_candidates = (3,)
+    return row_levels, header_candidates, matrix_name
+
+
+def _read_sut_native_matrix_text_with_layout(
+    path: Path,
+    *,
+    matrix_name: str,
+    sep: str,
+    matrix_layouts: dict[str, tuple[str, ...]],
+    suffixes: set[str],
+) -> tuple[pd.DataFrame, tuple[str, ...] | None]:
+    """Read one native split SUT matrix text payload."""
+    file_path = _find_flat_payload(path, matrix_name, suffixes)
+    row_levels, header_candidates, _ = _sut_native_matrix_read_plan(matrix_name, matrix_layouts)
+
+    attempts = []
+    for index_levels in (row_levels, row_levels + 1):
+        for header_levels in header_candidates:
+            candidate = (index_levels, header_levels)
+            if candidate not in attempts:
+                attempts.append(candidate)
+
+    last_error = None
+    successful_reads: list[tuple[tuple[int, ...], pd.DataFrame, tuple[str, ...] | None]] = []
+    for index_levels, header_levels in attempts:
+        try:
+            frame = pd.read_csv(
+                file_path,
+                sep=sep,
+                index_col=list(range(index_levels)),
+                header=list(range(header_levels)),
+                keep_default_na=False,
+            )
+            normalized, final_demand_axis_names = _normalize_sut_native_matrix(
+                frame,
+                matrix_name,
+                matrix_layouts,
+            )
+            successful_reads.append(
+                (
+                    (
+                        len(final_demand_axis_names or ()),
+                        normalized.columns.nlevels if isinstance(normalized.columns, pd.MultiIndex) else 1,
+                        header_levels,
+                        -abs(index_levels - row_levels),
+                    ),
+                    normalized,
+                    final_demand_axis_names,
+                )
+            )
+        except Exception as exc:  # pragma: no cover - diagnostic fallback path
+            last_error = exc
+
+    if successful_reads:
+        successful_reads.sort(key=lambda item: item[0], reverse=True)
+        _, normalized, final_demand_axis_names = successful_reads[0]
+        return normalized, final_demand_axis_names
+
+    raise WrongInput(
+        f"Unable to read {file_path.name} as a native SUT matrix payload. Last parser error: {last_error}"
+    )
+
+
+def _build_sut_native_index_matrices(matrices: dict[str, pd.DataFrame], *, mode: str) -> dict[str, pd.DataFrame]:
+    """Build temporary unified SUT matrices from native split blocks for index extraction."""
+    ordering_inputs = {
+        key: value
+        for key, value in matrices.items()
+        if key in {"U", "S", "u", "s", "Ya", "Yc", "Va", "Vc", "va", "vc", "Ea", "Ec", "ea", "ec"}
+    }
+    ordering = SUTUnifiedOrderingPolicy.from_blocks(**ordering_inputs)
+    if mode == "coefficients":
+        z_key, v_key, e_key = "z", "v", "e"
+        index_matrices = {
+            "z": concat_sut_z(matrices["u"], matrices["s"], ordering),
+            "v": concat_sut_v(matrices["va"], matrices["vc"], ordering),
+            "e": concat_sut_e(matrices["ea"], matrices["ec"], ordering),
+        }
+    else:
+        z_key, v_key, e_key = "Z", "V", "E"
+        index_matrices = {
+            "Z": concat_sut_Z(matrices["U"], matrices["S"], ordering),
+            "V": concat_sut_V(matrices["Va"], matrices["Vc"], ordering),
+            "E": concat_sut_E(matrices["Ea"], matrices["Ec"], ordering),
+        }
+
+    ya = matrices["Ya"]
+    yc = matrices["Yc"]
+    index_matrices["Y"] = concat_sut_Y(ya, yc, ordering)
+    index_matrices["EY"] = matrices["EY"]
+    index_matrices["VY"] = matrices["VY"]
+    return index_matrices
+
+
+def _apply_default_sut_native_public_axes(
+    matrices: dict[str, pd.DataFrame],
+    units_frame: pd.DataFrame,
+    *,
+    matrix_layouts: dict[str, tuple[str, ...]],
+) -> None:
+    """Match legacy public row labels when native SUT payloads use default layouts."""
+    if matrix_layouts:
+        return
+
+    factor_order = (
+        units_frame.loc[["Factor of production"]].droplevel(0).index.tolist()
+        if "Factor of production" in units_frame.index.get_level_values(0)
+        else []
+    )
+    satellite_order = (
+        units_frame.loc[["Satellite account"]].droplevel(0).index.tolist()
+        if "Satellite account" in units_frame.index.get_level_values(0)
+        else []
+    )
+
+    for matrix_name in ("Va", "Vc", "va", "vc", "VY"):
+        frame = matrices.get(matrix_name)
+        if frame is None or isinstance(frame.index, pd.MultiIndex):
+            continue
+        order = [item for item in factor_order if item in frame.index]
+        if order:
+            matrices[matrix_name] = frame.loc[order, :]
+        matrices[matrix_name].index = pd.Index(matrices[matrix_name].index.tolist(), name="Item")
+
+    for matrix_name in ("Ea", "Ec", "ea", "ec", "EY"):
+        frame = matrices.get(matrix_name)
+        if frame is None or isinstance(frame.index, pd.MultiIndex):
+            continue
+        order = [item for item in satellite_order if item in frame.index]
+        if order:
+            matrices[matrix_name] = frame.loc[order, :]
+        matrices[matrix_name].index = pd.Index(matrices[matrix_name].index.tolist(), name="Item")
+
+
+def parse_sut_native_text_frames_with_layouts(
+    path: str,
+    *,
+    mode: str,
+    sep: str,
+    matrix_layouts: dict[str, tuple[str, ...]],
+    _format: str | None = None,
+):
+    """Parse native split SUT matrix-per-file txt/csv payloads."""
+    root = Path(path)
+    suffixes = _allowed_text_suffixes(_format)
+    expected_matrices, required_matrices = _sut_native_matrix_names(mode)
+
+    matrices = {}
+    final_demand_axis_names: tuple[str, ...] | None = None
+    for matrix_name in expected_matrices:
+        try:
+            matrices[matrix_name], current_fd_axis_names = _read_sut_native_matrix_text_with_layout(
+                root,
+                matrix_name=matrix_name,
+                sep=sep,
+                matrix_layouts=matrix_layouts,
+                suffixes=suffixes,
+            )
+            if current_fd_axis_names is not None:
+                if final_demand_axis_names is None:
+                    final_demand_axis_names = current_fd_axis_names
+                elif final_demand_axis_names != current_fd_axis_names:
+                    raise WrongInput(
+                        f"Mixed semantic final-demand axes are not supported: {final_demand_axis_names} and {current_fd_axis_names}."
+                    )
+        except FileNotFoundError:
+            if matrix_name not in required_matrices:
+                continue
+            raise
+
+    extension_matrix = matrices.get("Ea", matrices.get("ea"))
+    factor_matrix = matrices.get("Va", matrices.get("va"))
+    final_demand_matrix = matrices["Ya"] if "Ya" in matrices else matrices["Yc"]
+    if "EY" not in matrices:
+        matrices["EY"] = pd.DataFrame(0, index=extension_matrix.index, columns=final_demand_matrix.columns)
+    if "VY" not in matrices:
+        matrices["VY"] = pd.DataFrame(0, index=factor_matrix.index, columns=final_demand_matrix.columns)
+
+    units_path = _find_flat_payload(root, "units", suffixes)
+    units_frame = pd.read_csv(units_path, sep=sep, index_col=[0, 1], header=[0], keep_default_na=False)
+    units_frame.columns = ["unit"]
+    units_frame.index.names = ["level", "item"]
+
+    _apply_default_sut_native_public_axes(matrices, units_frame, matrix_layouts=matrix_layouts)
+    sort_frames(matrices)
+    indexes = build_sut_indexes_from_units_and_y(units_frame, _build_sut_native_index_matrices(matrices, mode=mode))
+    units = sut_units_from_frame(units_frame)
+    extra = {
+        "block_specs": sut_block_specs_for_matrix_layouts(
+            matrix_layouts,
+            final_demand_axis_names=final_demand_axis_names or ("Region", "Consumption category"),
+        )
+    }
+    return {"baseline": matrices}, indexes, units, extra
+
+
 def _read_matrix_text_with_layout(
     path: Path,
     *,
@@ -715,6 +1007,14 @@ def parse_sut_text_frames_with_layouts(
     """Parse matrix-per-file txt/csv SUT payloads using semantic matrix layouts."""
     root = Path(path)
     suffixes = _allowed_text_suffixes(_format)
+    if _looks_like_sut_native_matrix_bundle(root, suffixes=suffixes, mode=mode):
+        return parse_sut_native_text_frames_with_layouts(
+            path,
+            mode=mode,
+            sep=sep,
+            matrix_layouts=matrix_layouts,
+            _format=_format,
+        )
     expected_matrices = _FLAT_COEFFICIENT_MATRICES if mode == "coefficients" else _FLAT_FLOW_MATRICES
     required_matrices = _FLAT_REQUIRED_COEFFICIENT_MATRICES if mode == "coefficients" else _FLAT_REQUIRED_FLOW_MATRICES
 
@@ -775,6 +1075,147 @@ def parse_flat_frames(
         data = _coerce_legacy_flat_data(data)
     else:
         data = _coerce_sparse_flat_data(data)
+
+    native_expected_matrices, native_required_matrices = _sut_native_matrix_names(mode)
+    has_native_sut_matrices = table == "SUT" and bool(set(data["Matrix"]).intersection(native_required_matrices))
+
+    if has_native_sut_matrices:
+        matrices = {}
+        final_demand_axis_names: tuple[str, ...] | None = None
+        active_layouts = matrix_layouts or {}
+        for matrix_name in native_expected_matrices:
+            subset = data.loc[data["Matrix"] == matrix_name].copy()
+            if subset.empty:
+                if matrix_name in native_required_matrices:
+                    raise ValueError(f"Flat payload is missing required matrix {matrix_name!r}.")
+                continue
+
+            subset["Value"] = pd.to_numeric(subset["Value"], errors="raise")
+            if matrix_name in {"U", "S", "u", "s", "Ya", "Yc"}:
+                subset["from_key"] = [
+                    _sut_unified_tokens_from_flat(row, side="from")
+                    for _, row in subset.iterrows()
+                ]
+                subset["from_public_key"] = subset["from_key"]
+            else:
+                expected_from = sut_axis_names(
+                    "V" if matrix_name in {"Va", "Vc", "va", "vc", "VY"} else "E",
+                    "from",
+                    active_layouts,
+                )
+                semantic_matrix = "V" if matrix_name in {"Va", "Vc", "va", "vc", "VY"} else "E"
+                subset["from_key"] = [
+                    interpret_axis_tokens(
+                        _tuple_from_set_columns(row, expected_from, side="from"),
+                        expected_from,
+                        matrix_name=semantic_matrix,
+                        side="from",
+                    )[0]
+                    for _, row in subset.iterrows()
+                ]
+                subset["from_public_key"] = [
+                    interpret_axis_tokens(
+                        _tuple_from_set_columns(row, expected_from, side="from"),
+                        expected_from,
+                        matrix_name=semantic_matrix,
+                        side="from",
+                    )[2]
+                    for _, row in subset.iterrows()
+                ]
+
+            if matrix_name in {"Ya", "Yc", "EY", "VY"}:
+                subset["to_key"] = [
+                    interpret_iot_final_demand_tokens(
+                        _tokens_for_expected_row(
+                            row,
+                            _final_demand_expected_names(subset, side="to"),
+                            side="to",
+                        )
+                    )[0]
+                    for _, row in subset.iterrows()
+                ]
+                subset["to_public_key"] = [
+                    _legacy_sut_final_demand_public(
+                        _tokens_for_expected_row(
+                            row,
+                            _final_demand_expected_names(subset, side="to"),
+                            side="to",
+                        )
+                    )
+                    for _, row in subset.iterrows()
+                ]
+                if final_demand_axis_names is None and not subset.empty:
+                    final_demand_axis_names = interpret_iot_final_demand_tokens(
+                        _tokens_for_expected_row(
+                            subset.iloc[0],
+                            _final_demand_expected_names(subset, side="to"),
+                            side="to",
+                        )
+                    )[1]
+            else:
+                subset["to_key"] = [
+                    _sut_unified_tokens_from_flat(row, side="to")
+                    for _, row in subset.iterrows()
+                ]
+                subset["to_public_key"] = subset["to_key"]
+
+            row_order = list(dict.fromkeys(subset["from_key"].tolist()))
+            column_order = list(dict.fromkeys(subset["to_key"].tolist()))
+            row_public_order = list(dict.fromkeys(subset["from_public_key"].tolist()))
+            column_public_order = list(dict.fromkeys(subset["to_public_key"].tolist()))
+            frame = subset.pivot(index="from_key", columns="to_key", values="Value")
+            frame = frame.reindex(index=row_order, columns=column_order)
+            frame = frame.fillna(0)
+
+            if matrix_name in {"U", "S", "u", "s", "Ya", "Yc"}:
+                frame.index = pd.MultiIndex.from_tuples(row_public_order, names=["Region", "Level", "Item"])
+            else:
+                semantic_matrix = "V" if matrix_name in {"Va", "Vc", "va", "vc", "VY"} else "E"
+                expected_from = sut_axis_names(semantic_matrix, "from", active_layouts)
+                row_sample = interpret_axis_tokens(
+                    _tuple_from_set_columns(subset.iloc[0], expected_from, side="from"),
+                    expected_from,
+                    matrix_name=semantic_matrix,
+                    side="from",
+                )
+                row_public_names = row_sample[3]
+                if len(row_public_names) == 1:
+                    frame.index = pd.Index([value[0] for value in row_public_order], name=row_public_names[0])
+                else:
+                    frame.index = pd.MultiIndex.from_tuples(row_public_order, names=list(row_public_names))
+
+            if matrix_name in {"Ya", "Yc", "EY", "VY"}:
+                frame.columns = pd.MultiIndex.from_tuples(
+                    column_public_order,
+                    names=["Region", "Level", "Item"],
+                )
+            else:
+                frame.columns = pd.MultiIndex.from_tuples(column_public_order, names=["Region", "Level", "Item"])
+            matrices[matrix_name] = frame
+
+        extension_matrix = matrices.get("Ea", matrices.get("ea"))
+        factor_matrix = matrices.get("Va", matrices.get("va"))
+        final_demand_matrix = matrices["Ya"] if "Ya" in matrices else matrices["Yc"]
+        if "EY" not in matrices:
+            matrices["EY"] = pd.DataFrame(0, index=extension_matrix.index, columns=final_demand_matrix.columns)
+        if "VY" not in matrices:
+            matrices["VY"] = pd.DataFrame(0, index=factor_matrix.index, columns=final_demand_matrix.columns)
+
+        units_frame = _flat_units_to_legacy(unit_table)
+        _apply_default_sut_native_public_axes(matrices, units_frame, matrix_layouts=active_layouts)
+        sort_frames(matrices)
+        indexes = build_sut_indexes_from_units_and_y(
+            units_frame,
+            _build_sut_native_index_matrices(matrices, mode=mode),
+        )
+        units = sut_units_from_frame(units_frame)
+        extra = {
+            "block_specs": sut_block_specs_for_matrix_layouts(
+                active_layouts,
+                final_demand_axis_names=final_demand_axis_names or ("Region", "Consumption category"),
+            )
+        }
+        return {"baseline": matrices}, indexes, units, extra
 
     if matrix_layouts:
         if table == "IOT":
@@ -1222,11 +1663,23 @@ class TxtParser(BaseParser):
                 )
         else:
             if flat:
-                matrices, indexes, units = flat_txt_parser(
+                matrices, indexes, units, extra = flat_txt_parser(
                     str(resolved_path),
                     table,
                     mode,
                     sep,
+                    _format=requested_format,
+                )
+            elif table == "SUT" and _looks_like_sut_native_matrix_bundle(
+                resolved_path,
+                suffixes=_allowed_text_suffixes(requested_format),
+                mode=mode,
+            ):
+                matrices, indexes, units, extra = parse_sut_native_text_frames_with_layouts(
+                    str(resolved_path),
+                    mode=mode,
+                    sep=sep,
+                    matrix_layouts={},
                     _format=requested_format,
                 )
             else:
@@ -1237,7 +1690,7 @@ class TxtParser(BaseParser):
                     sep,
                     requested_format,
                 )
-            extra = {}
+                extra = {}
         state = build_parser_state(
             table=table,
             matrices=matrices,

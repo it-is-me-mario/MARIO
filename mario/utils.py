@@ -97,7 +97,10 @@ def sort_frames(_dict):
             _dict[key] = value.sort_index(axis=1, level=1)
 
         else:
-            _dict[key] = value.sort_index(axis=1, level=1).sort_index(axis=0, level=1)
+            sorted_value = value.sort_index(axis=1, level=1)
+            if isinstance(sorted_value.index, pd.MultiIndex):
+                sorted_value = sorted_value.sort_index(axis=0, level=1)
+            _dict[key] = sorted_value
 
 
 def delete_duplicates(_list: [list, tuple]) -> list:

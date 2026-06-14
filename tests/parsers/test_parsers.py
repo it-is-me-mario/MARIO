@@ -664,7 +664,7 @@ def test_to_excel_exports_custom_sut_layouts_and_parse_from_excel_roundtrips_the
 
     exported = pd.read_excel(export_path, sheet_name="flows", header=None)
     assert tuple(exported.iloc[0, 3:7]) == ("r1", "r1", "r1", "r1")
-    assert tuple(exported.iloc[1, 3:7]) == ("Activity", "Activity", "Commodity", "Commodity")
+    assert tuple(exported.iloc[1, 3:7]) == ("a1", "a2", "c1", "c2")
     left_rows = {tuple(row) for row in exported.iloc[:, 0:3].dropna(how="all").itertuples(index=False, name=None)}
     assert ("r1", "a1", "taxes") in left_rows
     assert ("r1", "a1", "CO2") in left_rows
@@ -1187,6 +1187,10 @@ def test_to_txt_roundtrip_preserves_custom_sut_matrix_layouts(tmp_path):
     database = _build_custom_sut_database()
     database.to_txt(path=tmp_path, flows=True, coefficients=False, sep=",", flat=False)
 
+    assert (tmp_path / "flows" / "U.txt").exists()
+    assert (tmp_path / "flows" / "S.txt").exists()
+    assert not (tmp_path / "flows" / "Z.txt").exists()
+
     parsed = parse_from_txt(
         path=str(tmp_path / "flows"),
         table="SUT",
@@ -1205,6 +1209,10 @@ def test_to_txt_roundtrip_preserves_custom_sut_matrix_layouts(tmp_path):
 def test_parse_from_txt_sut_roundtrip_returns_split_native_blocks(tmp_path):
     database = load_test("SUT")
     database.to_txt(path=tmp_path, flows=True, coefficients=False, sep=",")
+
+    assert (tmp_path / "flows" / "U.txt").exists()
+    assert (tmp_path / "flows" / "S.txt").exists()
+    assert not (tmp_path / "flows" / "Z.txt").exists()
 
     parsed = parse_from_txt(
         path=str(tmp_path / "flows"),
@@ -1460,7 +1468,7 @@ def test_to_txt_flat_roundtrip_preserves_custom_iot_layouts_without_level_values
     pdt.assert_frame_equal(_sorted_matrix(parsed.Y), _sorted_matrix(database.Y))
 
 
-def test_parse_from_txt_sut_flat_roundtrip_uses_unified_export_and_split_parse(tmp_path):
+def test_parse_from_txt_sut_flat_roundtrip_uses_native_export_and_split_parse(tmp_path):
     database = load_test("SUT")
     database.to_txt(path=tmp_path, flows=True, coefficients=False, sep=",", flat=True)
 
@@ -1474,9 +1482,7 @@ def test_parse_from_txt_sut_flat_roundtrip_uses_unified_export_and_split_parse(t
         flat=True,
     )
 
-    assert "Z" in set(data["Matrix"])
-    assert "U" not in set(data["Matrix"])
-    assert "S" not in set(data["Matrix"])
+    assert set(data["Matrix"]) == {"U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "EY", "VY"}
     assert "Z" not in parsed["baseline"]
     assert "X" not in parsed["baseline"]
     assert {"U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "EY", "VY"} <= set(parsed["baseline"])
@@ -1491,6 +1497,7 @@ def test_to_txt_flat_roundtrip_preserves_custom_sut_layouts(tmp_path):
     database.to_txt(path=tmp_path, flows=True, coefficients=False, sep=",", flat=True)
 
     data = pd.read_csv(tmp_path / "flows" / "data.txt", sep=",", keep_default_na=False)
+    assert set(data["Matrix"]) == {"U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "EY", "VY"}
     assert "Sector_from" not in data.columns
     assert "Activity_from" in data.columns
     assert "Commodity_from" in data.columns
@@ -1682,6 +1689,7 @@ def test_to_parquet_flat_roundtrip_preserves_custom_sut_layouts(tmp_path):
     database.to_parquet(path=tmp_path, flows=True, coefficients=False, flat=True)
 
     data = pd.read_parquet(tmp_path / "flows" / "data.parquet")
+    assert set(data["Matrix"]) == {"U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "EY", "VY"}
     assert "Sector_from" not in data.columns
     assert "Activity_from" in data.columns
     assert "Commodity_from" in data.columns

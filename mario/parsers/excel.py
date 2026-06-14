@@ -30,6 +30,8 @@ from mario.parsers.matrix_layouts import (
 from mario.parsers.registry import register_parser
 from mario.storage.base import BlockRepository
 from mario.parsers.tabular import coerce_excel_numeric_block, excel_parser
+from mario.compute.ordering import SUTUnifiedOrderingPolicy
+from mario.compute.views import concat_sut_Y, concat_sut_Z
 
 logger = logging.getLogger(__name__)
 
@@ -772,7 +774,7 @@ def parse_explicit_sut_excel_layout(
             )
 
     productive_rows = [
-        {"public": public, "position": position}
+        {"public": public, "position": position, "public_names": ("Region", "Level", "Item")}
         for public, position in zip(
             _resolve_sut_productive_public_sequence(productive_raw_rows, units_frame=units_frame),
             productive_row_positions,
@@ -782,7 +784,7 @@ def parse_explicit_sut_excel_layout(
     if not productive_rows or not factor_rows or not satellite_rows:
         raise WrongExcelFormat("Explicit SUT layout should contain productive, factor, and satellite rows.")
 
-    def _matrix_from(row_info, column_positions, matrix_name):
+    def _matrix_from(row_info, column_positions, matrix_name, *, column_labels=None):
         frame = values.iloc[[item["position"] for item in row_info], column_positions].copy()
         frame = coerce_excel_numeric_block(frame, matrix_name)
         row_public_labels = [item["public"] for item in row_info]
@@ -792,25 +794,83 @@ def parse_explicit_sut_excel_layout(
             row_public_names = row_info[0]["public_names"]
             frame.index = coerce_axis_names(pd.MultiIndex.from_tuples(row_public_labels), row_public_names)
 
-        if matrix_name in {"Y", "EY", "VY"}:
+        if matrix_name in {"Y", "Ya", "Yc", "EY", "VY"}:
             frame.columns = pd.MultiIndex.from_tuples(
                 final_demand_public_columns,
                 names=["Region", "Level", "Item"],
             )
         else:
             frame.columns = pd.MultiIndex.from_tuples(
-                productive_public_columns,
+                productive_public_columns if column_labels is None else column_labels,
                 names=["Region", "Level", "Item"],
             )
         return frame
 
-    logical_matrices = {
-        "Z": _matrix_from(productive_rows, productive_positions, "Z"),
-        "Y": _matrix_from(productive_rows, final_demand_positions, "Y"),
-        "V": _matrix_from(factor_rows, productive_positions, "V"),
+    activity_positions = [
+        position
+        for position, public in zip(productive_positions, productive_public_columns)
+        if public[1] == "Activity"
+    ]
+    commodity_positions = [
+        position
+        for position, public in zip(productive_positions, productive_public_columns)
+        if public[1] == "Commodity"
+    ]
+    activity_rows = [item for item in productive_rows if item["public"][1] == "Activity"]
+    commodity_rows = [item for item in productive_rows if item["public"][1] == "Commodity"]
+
+    native_matrices = {
+        "U": _matrix_from(
+            commodity_rows,
+            activity_positions,
+            "U",
+            column_labels=[label for label in productive_public_columns if label[1] == "Activity"],
+        ),
+        "S": _matrix_from(
+            activity_rows,
+            commodity_positions,
+            "S",
+            column_labels=[label for label in productive_public_columns if label[1] == "Commodity"],
+        ),
+        "Yc": _matrix_from(commodity_rows, final_demand_positions, "Yc"),
+        "Ya": _matrix_from(activity_rows, final_demand_positions, "Ya"),
+        "Va": _matrix_from(
+            factor_rows,
+            activity_positions,
+            "Va",
+            column_labels=[label for label in productive_public_columns if label[1] == "Activity"],
+        ),
+        "Vc": _matrix_from(
+            factor_rows,
+            commodity_positions,
+            "Vc",
+            column_labels=[label for label in productive_public_columns if label[1] == "Commodity"],
+        ),
         "VY": _matrix_from(factor_rows, final_demand_positions, "VY"),
-        "E": _matrix_from(satellite_rows, productive_positions, "E"),
+        "Ea": _matrix_from(
+            satellite_rows,
+            activity_positions,
+            "Ea",
+            column_labels=[label for label in productive_public_columns if label[1] == "Activity"],
+        ),
+        "Ec": _matrix_from(
+            satellite_rows,
+            commodity_positions,
+            "Ec",
+            column_labels=[label for label in productive_public_columns if label[1] == "Commodity"],
+        ),
         "EY": _matrix_from(satellite_rows, final_demand_positions, "EY"),
+    }
+
+    ordering_inputs = {
+        key: value
+        for key, value in native_matrices.items()
+        if key in {"U", "S", "u", "s", "Ya", "Yc", "Va", "Vc", "va", "vc", "Ea", "Ec", "ea", "ec"}
+    }
+    ordering = SUTUnifiedOrderingPolicy.from_blocks(**ordering_inputs)
+    logical_matrices = {
+        "Z": concat_sut_Z(native_matrices["U"], native_matrices["S"], ordering),
+        "Y": concat_sut_Y(native_matrices["Ya"], native_matrices["Yc"], ordering),
     }
 
     indexes = build_sut_indexes_from_units_and_y(units_frame, logical_matrices)
@@ -823,15 +883,19 @@ def parse_explicit_sut_excel_layout(
     }
     if mode == "coefficients":
         matrices = {
-            "z": logical_matrices["Z"],
-            "v": logical_matrices["V"],
-            "e": logical_matrices["E"],
-            "Y": logical_matrices["Y"],
-            "EY": logical_matrices["EY"],
-            "VY": logical_matrices["VY"],
+            "u": native_matrices["U"],
+            "s": native_matrices["S"],
+            "Ya": native_matrices["Ya"],
+            "Yc": native_matrices["Yc"],
+            "va": native_matrices["Va"],
+            "vc": native_matrices["Vc"],
+            "ea": native_matrices["Ea"],
+            "ec": native_matrices["Ec"],
+            "EY": native_matrices["EY"],
+            "VY": native_matrices["VY"],
         }
     else:
-        matrices = logical_matrices
+        matrices = native_matrices
     return {"baseline": matrices}, indexes, units, extra
 
 

@@ -707,6 +707,100 @@ def wrirte_matrices(sheet, Z, V, E, Y, EY, VY, flow_format, header_format):
             )
 
 
+def _row_tokens_for_explicit_sut_export(label, *, productive: bool) -> list[object | None]:
+    """Return the explicit SUT row tokens written to the Excel export."""
+    if isinstance(label, tuple):
+        values = list(label)
+    else:
+        values = [label]
+
+    if productive and len(values) == 3:
+        return [values[0], values[2], None]
+
+    return values + [None] * max(0, 3 - len(values))
+
+
+def _write_explicit_sut_matrices(
+    sheet,
+    U,
+    S,
+    Va,
+    Vc,
+    Ea,
+    Ec,
+    Ya,
+    Yc,
+    EY,
+    VY,
+    flow_format,
+    header_format,
+):
+    """Write one native split SUT workbook without materializing unified Z/Y."""
+    activity_columns = list(U.columns)
+    commodity_columns = list(S.columns)
+    productive_columns = activity_columns + commodity_columns
+    final_demand_columns = list(Ya.columns)
+
+    for col, column in enumerate(productive_columns, start=3):
+        sheet.write(0, col, column[0], header_format)
+        sheet.write(1, col, column[2], header_format)
+
+    for offset, column in enumerate(final_demand_columns, start=3 + len(productive_columns)):
+        sheet.write(0, offset, column[0], header_format)
+        sheet.write(1, offset, column[2], header_format)
+
+    blank_activity = [None] * len(activity_columns)
+    blank_commodity = [None] * len(commodity_columns)
+
+    def _write_body_row(row_number, tokens, productive_values, final_demand_values):
+        for col, value in enumerate(tokens):
+            if value is not None:
+                sheet.write(row_number, col, value, header_format)
+        for col, value in enumerate(productive_values, start=3):
+            if value is not None:
+                sheet.write(row_number, col, value, flow_format)
+        for col, value in enumerate(final_demand_values, start=3 + len(productive_columns)):
+            if value is not None:
+                sheet.write(row_number, col, value, flow_format)
+
+    row_number = 2
+    for row in U.index:
+        _write_body_row(
+            row_number,
+            _row_tokens_for_explicit_sut_export(row, productive=True),
+            U.loc[row, activity_columns].tolist() + blank_commodity,
+            Yc.loc[row, final_demand_columns].tolist(),
+        )
+        row_number += 1
+
+    for row in S.index:
+        _write_body_row(
+            row_number,
+            _row_tokens_for_explicit_sut_export(row, productive=True),
+            blank_activity + S.loc[row, commodity_columns].tolist(),
+            Ya.loc[row, final_demand_columns].tolist(),
+        )
+        row_number += 1
+
+    for row in Va.index:
+        _write_body_row(
+            row_number,
+            _row_tokens_for_explicit_sut_export(row, productive=False),
+            Va.loc[row, activity_columns].tolist() + Vc.loc[row, commodity_columns].tolist(),
+            VY.loc[row, final_demand_columns].tolist(),
+        )
+        row_number += 1
+
+    for row in Ea.index:
+        _write_body_row(
+            row_number,
+            _row_tokens_for_explicit_sut_export(row, productive=False),
+            Ea.loc[row, activity_columns].tolist() + Ec.loc[row, commodity_columns].tolist(),
+            EY.loc[row, final_demand_columns].tolist(),
+        )
+        row_number += 1
+
+
 def database_excel(instance, flows, coefficients, directory, scenario):
     """Export one scenario to the standard MARIO Excel workbook format."""
     file = directory
@@ -716,81 +810,121 @@ def database_excel(instance, flows, coefficients, directory, scenario):
     header_format = workbook.add_format(HEADER_CELL_FORMAT)
 
     if flows:
-        data = instance.query(
-            matrices=[_ENUM.V, _ENUM.E, _ENUM.Z, _ENUM.Y, _ENUM.EY, _ENUM.VY],
-            scenarios=scenario,
-        )
-        data[_ENUM.Z], data[_ENUM.V], data[_ENUM.E], data[_ENUM.Y], data[_ENUM.EY], data[_ENUM.VY] = _align_iot_excel_export_blocks(
-            data[_ENUM.Z],
-            data[_ENUM.V],
-            data[_ENUM.E],
-            data[_ENUM.Y],
-            data[_ENUM.EY],
-            data[_ENUM.VY],
-        )
-
-        # Filling the index indeces sheet
         flows = workbook.add_worksheet("flows")
         flow_format = workbook.add_format({"num_format": "0.0;-0.0;-"})
-        if _needs_explicit_iot_excel_export(data):
-            _write_explicit_iot_matrices(
+        if instance.table_type == "SUT":
+            data = instance.query(
+                matrices=["U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", _ENUM.EY, _ENUM.VY],
+                scenarios=scenario,
+            )
+            _write_explicit_sut_matrices(
                 flows,
-                data[_ENUM.Z],
-                data[_ENUM.V],
-                data[_ENUM.E],
-                data[_ENUM.Y],
+                data["U"],
+                data["S"],
+                data["Va"],
+                data["Vc"],
+                data["Ea"],
+                data["Ec"],
+                data["Ya"],
+                data["Yc"],
                 data[_ENUM.EY],
                 data[_ENUM.VY],
                 flow_format,
                 header_format,
             )
         else:
-            Z = _prepare_iot_excel_export_frame(data[_ENUM.Z], matrix_name=_ENUM.Z)
-            Y = _prepare_iot_excel_export_frame(data[_ENUM.Y], matrix_name=_ENUM.Y)
-            V = _prepare_iot_excel_export_frame(data[_ENUM.V], matrix_name=_ENUM.V)
-            E = _prepare_iot_excel_export_frame(data[_ENUM.E], matrix_name=_ENUM.E)
-            EY = _prepare_iot_excel_export_frame(data[_ENUM.EY], matrix_name=_ENUM.EY)
-            VY = _prepare_iot_excel_export_frame(data[_ENUM.VY], matrix_name=_ENUM.VY)
-            wrirte_matrices(flows, Z, V, E, Y, EY, VY, flow_format, header_format)
+            data = instance.query(
+                matrices=[_ENUM.V, _ENUM.E, _ENUM.Z, _ENUM.Y, _ENUM.EY, _ENUM.VY],
+                scenarios=scenario,
+            )
+            data[_ENUM.Z], data[_ENUM.V], data[_ENUM.E], data[_ENUM.Y], data[_ENUM.EY], data[_ENUM.VY] = _align_iot_excel_export_blocks(
+                data[_ENUM.Z],
+                data[_ENUM.V],
+                data[_ENUM.E],
+                data[_ENUM.Y],
+                data[_ENUM.EY],
+                data[_ENUM.VY],
+            )
+
+            if _needs_explicit_iot_excel_export(data):
+                _write_explicit_iot_matrices(
+                    flows,
+                    data[_ENUM.Z],
+                    data[_ENUM.V],
+                    data[_ENUM.E],
+                    data[_ENUM.Y],
+                    data[_ENUM.EY],
+                    data[_ENUM.VY],
+                    flow_format,
+                    header_format,
+                )
+            else:
+                Z = _prepare_iot_excel_export_frame(data[_ENUM.Z], matrix_name=_ENUM.Z)
+                Y = _prepare_iot_excel_export_frame(data[_ENUM.Y], matrix_name=_ENUM.Y)
+                V = _prepare_iot_excel_export_frame(data[_ENUM.V], matrix_name=_ENUM.V)
+                E = _prepare_iot_excel_export_frame(data[_ENUM.E], matrix_name=_ENUM.E)
+                EY = _prepare_iot_excel_export_frame(data[_ENUM.EY], matrix_name=_ENUM.EY)
+                VY = _prepare_iot_excel_export_frame(data[_ENUM.VY], matrix_name=_ENUM.VY)
+                wrirte_matrices(flows, Z, V, E, Y, EY, VY, flow_format, header_format)
 
     if coefficients:
-        matrices = [_ENUM.v, _ENUM.e, _ENUM.z, _ENUM.Y, _ENUM.EY, _ENUM.VY]
-        data = instance.query(
-            matrices=matrices,
-            scenarios=scenario,
-        )
-        data[_ENUM.z], data[_ENUM.v], data[_ENUM.e], data[_ENUM.Y], data[_ENUM.EY], data[_ENUM.VY] = _align_iot_excel_export_blocks(
-            data[_ENUM.z],
-            data[_ENUM.v],
-            data[_ENUM.e],
-            data[_ENUM.Y],
-            data[_ENUM.EY],
-            data[_ENUM.VY],
-        )
-
-        # Filling the index indeces sheet
         coefficients = workbook.add_worksheet("coefficients")
         coeff_format = workbook.add_format({"num_format": "0.000;-0.000;-"})
-        if _needs_explicit_iot_excel_export(data):
-            _write_explicit_iot_matrices(
+        if instance.table_type == "SUT":
+            data = instance.query(
+                matrices=["u", "s", "Ya", "Yc", "va", "vc", "ea", "ec", _ENUM.EY, _ENUM.VY],
+                scenarios=scenario,
+            )
+            _write_explicit_sut_matrices(
                 coefficients,
-                data[_ENUM.z],
-                data[_ENUM.v],
-                data[_ENUM.e],
-                data[_ENUM.Y],
+                data["u"],
+                data["s"],
+                data["va"],
+                data["vc"],
+                data["ea"],
+                data["ec"],
+                data["Ya"],
+                data["Yc"],
                 data[_ENUM.EY],
                 data[_ENUM.VY],
                 coeff_format,
                 header_format,
             )
         else:
-            Z = _prepare_iot_excel_export_frame(data[_ENUM.z], matrix_name=_ENUM.z)
-            Y = _prepare_iot_excel_export_frame(data[_ENUM.Y], matrix_name=_ENUM.Y)
-            V = _prepare_iot_excel_export_frame(data[_ENUM.v], matrix_name=_ENUM.v)
-            E = _prepare_iot_excel_export_frame(data[_ENUM.e], matrix_name=_ENUM.e)
-            EY = _prepare_iot_excel_export_frame(data[_ENUM.EY], matrix_name=_ENUM.EY)
-            VY = _prepare_iot_excel_export_frame(data[_ENUM.VY], matrix_name=_ENUM.VY)
-            wrirte_matrices(coefficients, Z, V, E, Y, EY, VY, coeff_format, header_format)
+            matrices = [_ENUM.v, _ENUM.e, _ENUM.z, _ENUM.Y, _ENUM.EY, _ENUM.VY]
+            data = instance.query(
+                matrices=matrices,
+                scenarios=scenario,
+            )
+            data[_ENUM.z], data[_ENUM.v], data[_ENUM.e], data[_ENUM.Y], data[_ENUM.EY], data[_ENUM.VY] = _align_iot_excel_export_blocks(
+                data[_ENUM.z],
+                data[_ENUM.v],
+                data[_ENUM.e],
+                data[_ENUM.Y],
+                data[_ENUM.EY],
+                data[_ENUM.VY],
+            )
+
+            if _needs_explicit_iot_excel_export(data):
+                _write_explicit_iot_matrices(
+                    coefficients,
+                    data[_ENUM.z],
+                    data[_ENUM.v],
+                    data[_ENUM.e],
+                    data[_ENUM.Y],
+                    data[_ENUM.EY],
+                    data[_ENUM.VY],
+                    coeff_format,
+                    header_format,
+                )
+            else:
+                Z = _prepare_iot_excel_export_frame(data[_ENUM.z], matrix_name=_ENUM.z)
+                Y = _prepare_iot_excel_export_frame(data[_ENUM.Y], matrix_name=_ENUM.Y)
+                V = _prepare_iot_excel_export_frame(data[_ENUM.v], matrix_name=_ENUM.v)
+                E = _prepare_iot_excel_export_frame(data[_ENUM.e], matrix_name=_ENUM.e)
+                EY = _prepare_iot_excel_export_frame(data[_ENUM.EY], matrix_name=_ENUM.EY)
+                VY = _prepare_iot_excel_export_frame(data[_ENUM.VY], matrix_name=_ENUM.VY)
+                wrirte_matrices(coefficients, Z, V, E, Y, EY, VY, coeff_format, header_format)
 
     units = workbook.add_worksheet("units")
 
