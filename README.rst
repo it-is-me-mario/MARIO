@@ -53,7 +53,7 @@ Preferably, create a clean Python environment first:
 
 .. code-block:: bash
 
-   conda create -n mario python=3.10
+   conda create -n mario python=3.11
    conda activate mario
 
 Install from PyPI:
@@ -62,11 +62,7 @@ Install from PyPI:
 
    pip install mariopy
 
-Install with Parquet support:
-
-.. code-block:: bash
-
-   pip install "mariopy[parquet]"
+Parquet import and export support is included in the default installation.
 
 Install from source:
 

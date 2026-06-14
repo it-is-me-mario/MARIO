@@ -47,7 +47,7 @@ setup(
     author_email="lorenzo.rinaldi@polimi.it",
     version=__version__,
     license="GNU General Public License v3.0",
-    #python_requires=">.3.7.0",
+    python_requires=">=3.11",
     include_package_data=True,
     packages=find_packages(include=("mario", "mario.*")),
     package_data={
@@ -76,6 +76,7 @@ setup(
         "pymrio",
         "pyyaml",
         "country_converter",
+        "pyarrow>=17",
 
     ],
     extras_require={
