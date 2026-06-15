@@ -991,11 +991,33 @@ def _write_input_data(
         )
         input_data["Zero_Y_mask"].loc[mask, "values"] = 1
 
+    #Imposing zeroes according to original V
+    input_data["Zero_V_mask"]["values"] = 0
+
+    vold = input_data["Vold"]
+    parent_vrow_zeros = vold[
+        vold["sector_to_Name"].isin(parent_sectors_set) & (vold["values"] == 0)
+    ]
+    for _, vrow in parent_vrow_zeros.iterrows():
+        fp, rt, st_parent = (
+            vrow["fact_prod_Name"],
+            vrow["region_to_Name"],
+            vrow["sector_to_Name"],
+        )
+        sectors_from_mask = [st_parent] + parent_to_children.get(st_parent, [])
+        v_mask = input_data["Zero_V_mask"]
+        mask = (
+            (v_mask["fact_prod_Name"] == fp)
+            & (v_mask["sector_to_Name"].isin(sectors_from_mask))
+            & (v_mask["region_to_Name"] == rt)
+        )
+        input_data["Zero_V_mask"].loc[mask, "values"] = 1
+
     #Remove values below the residue threshold, if specified.
     if residue is not None:
         threshold = float(residue)
         for table_name, df in input_data.items():
-            if table_name in {"Trade_selector", "tol", "Zero_use_mask", "Zero_supply_mask", "Zero_Y_mask"} or "values" not in df.columns:
+            if table_name in {"Trade_selector", "tol", "Zero_use_mask", "Zero_supply_mask", "Zero_V_mask","Zero_Y_mask"} or "values" not in df.columns:
                 continue
             input_data[table_name] = df.assign(values=df["values"].where(df["values"] >= threshold, 0))
 
