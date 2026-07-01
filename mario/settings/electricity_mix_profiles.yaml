@@ -1,0 +1,57 @@
+profiles:
+  disaggregated_electricity_generation:
+    ember_variables:
+      coal: Coal
+      gas: Gas
+      nuclear: Nuclear
+      hydro: Hydro
+      wind: Wind
+      solar: Solar
+      bioenergy: Bioenergy
+      other_renewables: Other Renewables
+      other_fossil: Other Fossil
+    required_groups:
+      - coal
+      - gas
+      - nuclear
+      - hydro
+      - wind
+      - solar
+      - bioenergy
+      - other_renewables
+      - other_fossil
+    groups:
+      coal:
+        - production of electricity by coal
+      gas:
+        - production of electricity by gas
+      nuclear:
+        - production of electricity by nuclear
+      hydro:
+        - production of electricity by hydro
+      wind:
+        - production of electricity by wind
+      solar:
+        - production of electricity by solar photovoltaic
+        - production of electricity by solar thermal
+      bioenergy:
+        - production of electricity by biomass and waste
+      other_renewables:
+        - production of electricity by geothermal
+        - production of electricity by tide, wave, ocean
+      other_fossil:
+        - production of electricity by petroleum and other oil derivatives
+        - production of electricity nec
+    excluded_sectors:
+      - transmission of electricity
+      - distribution and trade of electricity
+    fallback_order:
+      solar:
+        - production of electricity by solar photovoltaic
+        - production of electricity by solar thermal
+      other_renewables:
+        - production of electricity by geothermal
+        - production of electricity by tide, wave, ocean
+      other_fossil:
+        - production of electricity by petroleum and other oil derivatives
+        - production of electricity nec

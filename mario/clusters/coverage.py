@@ -8,6 +8,7 @@ from functools import lru_cache
 from importlib import resources
 
 import pandas as pd
+import yaml
 
 from mario.log_exc.exceptions import WrongInput
 
@@ -68,6 +69,7 @@ REGION_AGGREGATION_ALIASES = {
     "g7": "G7",
     "g20": "G20",
 }
+_EXIOBASE_REGION_MEMBERS_FILE = "exiobase_region_members.yaml"
 
 
 def _dedupe(sequence):
@@ -75,9 +77,30 @@ def _dedupe(sequence):
     return list(dict.fromkeys(sequence))
 
 
+def _normalize_lookup_token(value) -> str:
+    """Normalize one lookup token for concordance matching."""
+    return str(value).strip().casefold()
+
+
 def coverage_workbook_resource():
     """Return the packaged country coverage workbook resource."""
     return resources.files("mario.clusters").joinpath("Country_coverage.xlsx")
+
+
+@lru_cache(maxsize=1)
+def load_exiobase_region_members() -> dict[str, list[str]]:
+    """Load packaged EXIOBASE aggregate-region memberships keyed by alias."""
+    path = resources.files("mario.clusters").joinpath(_EXIOBASE_REGION_MEMBERS_FILE)
+    with path.open("r", encoding="utf-8") as handle:
+        data = yaml.safe_load(handle) or {}
+
+    alias_lookup: dict[str, list[str]] = {}
+    for payload in (data.get("regions") or {}).values():
+        members = [str(member).strip().upper() for member in payload.get("members", []) if str(member).strip()]
+        for alias in payload.get("aliases", []):
+            alias_lookup[_normalize_lookup_token(alias)] = members
+
+    return alias_lookup
 
 
 @lru_cache(maxsize=1)
@@ -139,6 +162,39 @@ def _source_concordance_mapping(source):
     return mapping
 
 
+def resolve_region_labels_to_iso3_members(labels, *, source=None) -> dict[str, list[str]]:
+    """Resolve region labels to one or more ISO3 members.
+
+    Aggregate EXIOBASE region aliases such as ``WA`` or ``RoW Africa`` are
+    expanded to all packaged ISO3 members. All other labels are resolved to a
+    single ISO3 code when possible.
+    """
+    resolved: dict[str, list[str]] = {}
+    source_value = str(source or "").casefold()
+    aggregate_lookup = load_exiobase_region_members() if "exiobase" in source_value else {}
+    source_lookup = _source_concordance_mapping(source)
+
+    for label in labels:
+        token = _normalize_lookup_token(label)
+
+        aggregate_members = aggregate_lookup.get(token)
+        if aggregate_members is not None:
+            resolved[str(label)] = list(aggregate_members)
+            continue
+
+        iso3 = source_lookup.get(token)
+        if iso3 is None:
+            for column in _preferred_country_converter_columns(source):
+                iso3 = _classification_lookup(column).get(token)
+                if iso3:
+                    break
+
+        if iso3 is not None:
+            resolved[str(label)] = [str(iso3).upper()]
+
+    return resolved
+
+
 def _preferred_country_converter_columns(source):
     """Choose country-converter source columns using source-specific hints first."""
     source_value = str(source or "").casefold()
@@ -170,28 +226,14 @@ def database_region_to_iso3(database):
     """Map database region labels to ISO3 codes using concordance and fallbacks."""
     labels = list(database.get_index("Region"))
     iso3_to_labels = {}
-    source_lookup = _source_concordance_mapping(getattr(database.meta, "source", None))
-
-    for label in labels:
-        iso3 = source_lookup.get(str(label).casefold())
-        if iso3 is None:
-            continue
-        iso3_to_labels.setdefault(iso3, [])
-        if label not in iso3_to_labels[iso3]:
-            iso3_to_labels[iso3].append(label)
-
-    already_mapped = {label for values in iso3_to_labels.values() for label in values}
-    pending = [label for label in labels if label not in already_mapped]
-
-    for label in pending:
-        iso3 = None
-        for column in _preferred_country_converter_columns(getattr(database.meta, "source", None)):
-            iso3 = _classification_lookup(column).get(str(label).casefold())
-            if iso3:
-                break
-        if iso3 is None:
+    for label, members in resolve_region_labels_to_iso3_members(
+        labels,
+        source=getattr(database.meta, "source", None),
+    ).items():
+        if len(members) != 1:
             continue
 
+        iso3 = members[0]
         iso3_to_labels.setdefault(iso3, [])
         if label not in iso3_to_labels[iso3]:
             iso3_to_labels[iso3].append(label)

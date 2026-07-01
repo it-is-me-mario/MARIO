@@ -20,6 +20,7 @@ from mario.api.core_model import CoreModel
 from mario.api import Database
 from mario.test.mario_test import load_test
 from mario.log_exc.exceptions import DataMissing, LackOfInput, WrongInput, NotImplementable
+from mario.log_exc.logger import set_log_verbosity
 from mario import calc_Z
 from mario.compute.sut_formulas import build_sut_c_from_S_Xa
 import warnings
@@ -604,6 +605,74 @@ def _build_three_region_iot_database():
     )
 
 
+def _build_electricity_mix_iot_database():
+    regions = ["ITA", "DEU", "R3"]
+    sectors = [
+        "production of electricity by coal",
+        "production of electricity by gas",
+        "production of electricity by nuclear",
+        "production of electricity by hydro",
+        "production of electricity by wind",
+        "production of electricity by petroleum and other oil derivatives",
+        "production of electricity by biomass and waste",
+        "production of electricity by solar photovoltaic",
+        "production of electricity by solar thermal",
+        "production of electricity by tide, wave, ocean",
+        "production of electricity by geothermal",
+        "production of electricity nec",
+        "transmission of electricity",
+        "distribution and trade of electricity",
+    ]
+    factors = ["VA"]
+    satellite_accounts = ["CO2"]
+    final_demand = ["FD"]
+
+    sector_axis = pd.MultiIndex.from_product(
+        [regions, [_MASTER_INDEX["s"]], sectors],
+        names=["Region", "Level", "Item"],
+    )
+    final_demand_axis = pd.MultiIndex.from_product(
+        [regions, [_MASTER_INDEX["n"]], final_demand],
+        names=["Region", "Level", "Item"],
+    )
+
+    diagonal = np.eye(len(sector_axis), dtype=float)
+    Z = pd.DataFrame(diagonal, index=sector_axis, columns=sector_axis)
+    Y = pd.DataFrame(1.0, index=sector_axis, columns=final_demand_axis)
+    V = pd.DataFrame(1.0, index=factors, columns=sector_axis)
+    E = pd.DataFrame(1.0, index=satellite_accounts, columns=sector_axis)
+    EY = pd.DataFrame(0.0, index=satellite_accounts, columns=final_demand_axis)
+    VY = pd.DataFrame(0.0, index=factors, columns=final_demand_axis)
+
+    units = {
+        _MASTER_INDEX["s"]: pd.DataFrame({"unit": ["USD"] * len(sectors)}, index=sectors),
+        _MASTER_INDEX["f"]: pd.DataFrame({"unit": ["USD"]}, index=factors),
+        _MASTER_INDEX["k"]: pd.DataFrame({"unit": ["kg"]}, index=satellite_accounts),
+    }
+
+    database = Database(
+        name="electricity-mix-iot",
+        table="IOT",
+        Z=Z,
+        V=V,
+        E=E,
+        EY=EY,
+        VY=VY,
+        Y=Y,
+        units=units,
+        calc_all=True,
+    )
+    database.meta.source = "EXIOBASE test bundle"
+    return database
+
+
+def _set_region_row_totals(z, Y, *, region, row_totals):
+    for sector, row_total in row_totals.items():
+        row_key = (region, _MASTER_INDEX["s"], sector)
+        z.loc[row_key, :] = row_total
+        Y.loc[row_key, :] = row_total / 10.0
+
+
 def test_to_region_subset_keeps_selected_regions_explicit_and_externalizes_rest():
     database = _build_three_region_iot_database()
 
@@ -668,19 +737,19 @@ def test_to_region_subset_sectorized_trade_groups_factor_rows_by_region():
         "Region",
         "Factor of production",
     )
-    assert subset.V.loc[("R1", "VA"), ("R1", _MASTER_INDEX["s"], "s1")] == pytest.approx(100.0)
-    assert subset.V.loc[("R1", "VA"), ("R2", _MASTER_INDEX["s"], "s1")] == pytest.approx(0.0)
-    assert subset.V.loc[("R2", "VA"), ("R2", _MASTER_INDEX["s"], "s1")] == pytest.approx(200.0)
-    assert subset.V.loc[("R1", "imports of s1"), ("R1", _MASTER_INDEX["s"], "s1")] == pytest.approx(7.0)
-    assert subset.V.loc[("R1", "imports of s1"), ("R2", _MASTER_INDEX["s"], "s1")] == pytest.approx(0.0)
-    assert subset.V.loc[("R2", "imports of s1"), ("R2", _MASTER_INDEX["s"], "s1")] == pytest.approx(8.0)
+    assert subset.V.loc[("R1", "VA"), ("R1", "s1")] == pytest.approx(100.0)
+    assert subset.V.loc[("R1", "VA"), ("R2", "s1")] == pytest.approx(0.0)
+    assert subset.V.loc[("R2", "VA"), ("R2", "s1")] == pytest.approx(200.0)
+    assert subset.V.loc[("R1", "imports of s1"), ("R1", "s1")] == pytest.approx(7.0)
+    assert subset.V.loc[("R1", "imports of s1"), ("R2", "s1")] == pytest.approx(0.0)
+    assert subset.V.loc[("R2", "imports of s1"), ("R2", "s1")] == pytest.approx(8.0)
     assert subset.Y.loc[
-        ("R1", _MASTER_INDEX["s"], "s1"),
-        ("R1", _MASTER_INDEX["n"], "Export"),
+        ("R1", "s1"),
+        ("R1", "Export"),
     ] == pytest.approx(33.0)
     assert subset.Y.loc[
-        ("R2", _MASTER_INDEX["s"], "s1"),
-        ("R2", _MASTER_INDEX["n"], "Export"),
+        ("R2", "s1"),
+        ("R2", "Export"),
     ] == pytest.approx(66.0)
     assert subset.VY.index.equals(subset.V.index)
     assert subset.VY.columns.equals(subset.Y.columns)
@@ -700,19 +769,19 @@ def test_to_region_subset_sectorized_trade_by_region_keeps_partner_detail():
     assert subset.V.index.names == ["Region", "Factor of production"]
     assert subset.V.loc[
         ("R1", "imports of s1 from R3"),
-        ("R1", _MASTER_INDEX["s"], "s1"),
+        ("R1", "s1"),
     ] == pytest.approx(7.0)
     assert subset.V.loc[
         ("R2", "imports of s1 from R3"),
-        ("R2", _MASTER_INDEX["s"], "s1"),
+        ("R2", "s1"),
     ] == pytest.approx(8.0)
     assert subset.Y.loc[
-        ("R1", _MASTER_INDEX["s"], "s1"),
-        ("R1", _MASTER_INDEX["n"], "Export to R3"),
+        ("R1", "s1"),
+        ("R1", "Export to R3"),
     ] == pytest.approx(33.0)
     assert subset.Y.loc[
-        ("R2", _MASTER_INDEX["s"], "s1"),
-        ("R2", _MASTER_INDEX["n"], "Export to R3"),
+        ("R2", "s1"),
+        ("R2", "Export to R3"),
     ] == pytest.approx(66.0)
     assert subset.VY.index.equals(subset.V.index)
 
@@ -1344,7 +1413,7 @@ def test_update_scenarios(CoreDataIOT):
     )
 
 
-def test_update_mix_iot_rewrites_z_and_y(CoreDataIOT):
+def test_update_supply_mix_iot_rewrites_z_and_y(CoreDataIOT):
     scenario = "redistribute"
     CoreDataIOT.clone_scenario("baseline", scenario)
 
@@ -1353,7 +1422,7 @@ def test_update_mix_iot_rewrites_z_and_y(CoreDataIOT):
     shares = {"Reg1": {"Agriculture": 2.0, "Industry": 8.0}}
     selector = ("Reg1", "Sector", ["Agriculture", "Industry"])
 
-    CoreDataIOT.update_mix_iot(shares, scenario=scenario, rescale=True)
+    CoreDataIOT.update_supply_mix_iot(shares, scenario=scenario, rescale=True)
 
     z_after = CoreDataIOT.get_block_as_pandas(_ENUM.z, scenario=scenario)
     y_after = CoreDataIOT.get_block_as_pandas(_ENUM.Y, scenario=scenario)
@@ -1393,10 +1462,10 @@ def test_update_mix_iot_rewrites_z_and_y(CoreDataIOT):
     )
 
 
-def test_update_mix_iot_clones_missing_target_scenario(CoreDataIOT):
+def test_update_supply_mix_iot_clones_missing_target_scenario(CoreDataIOT):
     shares = {"Reg1": {"Agriculture": 1.0, "Industry": 3.0}}
 
-    CoreDataIOT.update_mix_iot(
+    CoreDataIOT.update_supply_mix_iot(
         shares,
         scenario="policy mix",
         clone_from="baseline",
@@ -1420,7 +1489,70 @@ def test_update_mix_iot_clones_missing_target_scenario(CoreDataIOT):
     pdt.assert_frame_equal(z_after.loc[selector, :], expected, check_dtype=False)
 
 
-def test_update_mix_iot_accepts_near_unit_mix_and_rescales(CoreDataIOT):
+def test_get_mix_returns_region_sector_shares_and_stores_them(CoreDataIOT):
+    sectors = CoreDataIOT.get_index(_MASTER_INDEX["s"])[:2]
+    mix = CoreDataIOT.get_mix(sectors)
+    x = CoreDataIOT.query(_ENUM.X, scenarios="baseline")
+
+    assert mix == CoreDataIOT.mix
+
+    for region in CoreDataIOT.get_index(_MASTER_INDEX["r"]):
+        region_key = str(region)
+        selector = (region, _MASTER_INDEX["s"], sectors)
+        region_x = x.loc[selector, :].iloc[:, 0].astype(float)
+        total = float(region_x.sum())
+        expected = region_x / total if total > 0 else region_x * 0.0
+
+        assert set(mix[region_key]) == set(region_x.index.get_level_values("Item"))
+        assert sum(mix[region_key].values()) == pytest.approx(1.0 if total > 0 else 0.0)
+
+        for sector, value in zip(region_x.index.get_level_values("Item"), expected.to_numpy()):
+            assert mix[region_key][sector] == pytest.approx(float(value))
+
+
+def test_get_mix_requires_selected_sectors(CoreDataIOT):
+    with pytest.raises(TypeError):
+        CoreDataIOT.get_mix()
+
+    with pytest.raises(WrongInput):
+        CoreDataIOT.get_mix([])
+
+    with pytest.raises(WrongInput):
+        CoreDataIOT.get_mix(["Missing sector"])
+
+
+def test_get_mix_supports_electricity_bundle_keyword():
+    database = _build_electricity_mix_iot_database()
+
+    mix = database.get_mix("electricity")
+
+    expected_sectors = {
+        "production of electricity by coal",
+        "production of electricity by gas",
+        "production of electricity by nuclear",
+        "production of electricity by hydro",
+        "production of electricity by wind",
+        "production of electricity by petroleum and other oil derivatives",
+        "production of electricity by biomass and waste",
+        "production of electricity by solar photovoltaic",
+        "production of electricity by solar thermal",
+        "production of electricity by tide, wave, ocean",
+        "production of electricity by geothermal",
+        "production of electricity nec",
+    }
+
+    assert set(mix["ITA"]) == expected_sectors
+    assert "transmission of electricity" not in mix["ITA"]
+    assert "distribution and trade of electricity" not in mix["ITA"]
+    assert sum(mix["ITA"].values()) == pytest.approx(1.0)
+
+
+def test_get_mix_rejects_sut(CoreDataSUT):
+    with pytest.raises(NotImplementable):
+        CoreDataSUT.get_mix(["Commodity"])
+
+
+def test_update_supply_mix_iot_accepts_near_unit_mix_and_rescales(CoreDataIOT):
     scenario = "near unit mix"
     CoreDataIOT.clone_scenario("baseline", scenario)
 
@@ -1428,7 +1560,7 @@ def test_update_mix_iot_accepts_near_unit_mix_and_rescales(CoreDataIOT):
     selector = ("Reg1", "Sector", ["Agriculture", "Industry"])
     z_before = CoreDataIOT.query(_ENUM.z, scenarios=scenario).copy()
 
-    CoreDataIOT.update_mix_iot(shares, scenario=scenario)
+    CoreDataIOT.update_supply_mix_iot(shares, scenario=scenario)
 
     z_after = CoreDataIOT.get_block_as_pandas(_ENUM.z, scenario=scenario)
     expected_weights = pd.Series(shares["Reg1"], dtype=float)
@@ -1445,7 +1577,7 @@ def test_update_mix_iot_accepts_near_unit_mix_and_rescales(CoreDataIOT):
     pdt.assert_frame_equal(z_after.loc[selector, :], expected, check_dtype=False)
 
 
-def test_update_mix_iot_supports_sparse_z_and_y(CoreDataIOT):
+def test_update_supply_mix_iot_supports_sparse_z_and_y(CoreDataIOT):
     scenario = "sparse mix"
     CoreDataIOT.clone_scenario("baseline", scenario)
     CoreDataIOT.reset_to_coefficients(scenario)
@@ -1461,7 +1593,7 @@ def test_update_mix_iot_supports_sparse_z_and_y(CoreDataIOT):
     selector = ("Reg1", "Sector", ["Agriculture", "Industry"])
     z_before = CoreDataIOT.get_block_as_pandas(_ENUM.z, scenario=scenario).copy()
 
-    CoreDataIOT.update_mix_iot(shares, scenario=scenario, rescale=True)
+    CoreDataIOT.update_supply_mix_iot(shares, scenario=scenario, rescale=True)
 
     z_after = CoreDataIOT.get_block_as_pandas(_ENUM.z, scenario=scenario)
     expected_weights = pd.Series(shares["Reg1"], dtype=float)
@@ -1478,33 +1610,461 @@ def test_update_mix_iot_supports_sparse_z_and_y(CoreDataIOT):
     pdt.assert_frame_equal(z_after.loc[selector, :], expected, check_dtype=False)
 
 
-def test_update_mix_iot_requires_clone_from_for_missing_target_scenario(CoreDataIOT):
+def test_update_supply_mix_iot_requires_clone_from_for_missing_target_scenario(CoreDataIOT):
     with pytest.raises(WrongInput, match="Pass clone_from"):
-        CoreDataIOT.update_mix_iot(
+        CoreDataIOT.update_supply_mix_iot(
             {"Reg1": {"Agriculture": 1.0}},
             scenario="missing scenario",
         )
 
 
-def test_update_mix_iot_rejects_non_unit_mix_without_rescale(CoreDataIOT):
+def test_update_supply_mix_iot_rejects_non_unit_mix_without_rescale(CoreDataIOT):
     with pytest.raises(WrongInput, match="must sum to 1"):
-        CoreDataIOT.update_mix_iot(
+        CoreDataIOT.update_supply_mix_iot(
             {"Reg1": {"Agriculture": 2.0, "Industry": 8.0}},
             scenario="baseline",
         )
 
 
-def test_update_mix_iot_rejects_unknown_region_or_sector(CoreDataIOT):
+def test_update_supply_mix_iot_rejects_unknown_region_or_sector(CoreDataIOT):
     with pytest.raises(WrongInput, match="does not exist"):
-        CoreDataIOT.update_mix_iot({"Missing": {"Agriculture": 1.0}})
+        CoreDataIOT.update_supply_mix_iot({"Missing": {"Agriculture": 1.0}})
 
     with pytest.raises(WrongInput, match="unknown sectors"):
-        CoreDataIOT.update_mix_iot({"Reg1": {"Missing sector": 1.0}})
+        CoreDataIOT.update_supply_mix_iot({"Reg1": {"Missing sector": 1.0}})
 
 
-def test_update_mix_iot_rejects_sut(CoreDataSUT):
+def test_update_supply_mix_iot_rejects_sut(CoreDataSUT):
     with pytest.raises(NotImplementable, match="only for IOT"):
-        CoreDataSUT.update_mix_iot({"Reg1": {"Commodity": 1.0}})
+        CoreDataSUT.update_supply_mix_iot({"Reg1": {"Commodity": 1.0}})
+
+
+def test_update_supply_mix_iot_electricity_defaults_to_latest_available_year(tmp_path, capsys):
+    database = _build_electricity_mix_iot_database()
+    implicit_scenario = "implicit-latest"
+    explicit_scenario = "explicit-latest"
+    database.clone_scenario("baseline", implicit_scenario)
+    database.clone_scenario("baseline", explicit_scenario)
+
+    ember_snapshot = pd.DataFrame(
+        [
+            ("ITA", 2020, "Coal", 40.0),
+            ("ITA", 2020, "Gas", 20.0),
+            ("ITA", 2020, "Nuclear", 10.0),
+            ("ITA", 2020, "Hydro", 5.0),
+            ("ITA", 2020, "Wind", 8.0),
+            ("ITA", 2020, "Solar", 9.0),
+            ("ITA", 2020, "Bioenergy", 4.0),
+            ("ITA", 2020, "Other Renewables", 2.0),
+            ("ITA", 2020, "Other Fossil", 2.0),
+            ("DEU", 2021, "Coal", 100.0),
+            ("DEU", 2021, "Gas", 0.0),
+            ("DEU", 2021, "Nuclear", 0.0),
+            ("DEU", 2021, "Hydro", 0.0),
+            ("DEU", 2021, "Wind", 0.0),
+            ("DEU", 2021, "Solar", 0.0),
+            ("DEU", 2021, "Bioenergy", 0.0),
+            ("DEU", 2021, "Other Renewables", 0.0),
+            ("DEU", 2021, "Other Fossil", 0.0),
+        ],
+        columns=["ISO3", "Year", "Variable", "Value"],
+    )
+    ember_path = tmp_path / "ember_generation.csv"
+    ember_snapshot.to_csv(ember_path, index=False)
+
+    set_log_verbosity("info", capture_warnings=False, include_dependency_logs=False)
+    database.update_supply_mix_iot(
+        "electricity",
+        scenario=implicit_scenario,
+        ember_path=ember_path,
+    )
+
+    database.update_supply_mix_iot(
+        "electricity",
+        scenario=explicit_scenario,
+        year=2021,
+        ember_path=ember_path,
+    )
+
+    output = capsys.readouterr().out
+    assert "using latest EMBER year 2021" in output
+    assert "using nearest year" in output and "ITA (ITA -> 2020)" in output
+    assert "update_supply_mix_iot('electricity')" not in output
+
+    pd.testing.assert_frame_equal(
+        database.get_block_as_pandas(_ENUM.z, scenario=implicit_scenario),
+        database.get_block_as_pandas(_ENUM.z, scenario=explicit_scenario),
+    )
+    pd.testing.assert_frame_equal(
+        database.get_block_as_pandas(_ENUM.Y, scenario=implicit_scenario),
+        database.get_block_as_pandas(_ENUM.Y, scenario=explicit_scenario),
+    )
+
+
+def test_update_supply_mix_iot_electricity_uses_ember_snapshot_and_preserves_grid_sectors(tmp_path, capsys):
+    database = _build_electricity_mix_iot_database()
+    scenario = "policy"
+    database.clone_scenario("baseline", scenario)
+    database.reset_to_coefficients(scenario)
+
+    z = database.get_block_as_pandas(_ENUM.z, scenario=scenario).copy()
+    Y = database.get_block_as_pandas(_ENUM.Y, scenario=scenario).copy()
+
+    generation_sectors = [
+        "production of electricity by coal",
+        "production of electricity by gas",
+        "production of electricity by nuclear",
+        "production of electricity by hydro",
+        "production of electricity by wind",
+        "production of electricity by petroleum and other oil derivatives",
+        "production of electricity by biomass and waste",
+        "production of electricity by solar photovoltaic",
+        "production of electricity by solar thermal",
+        "production of electricity by tide, wave, ocean",
+        "production of electricity by geothermal",
+        "production of electricity nec",
+    ]
+    transmission = [
+        "transmission of electricity",
+        "distribution and trade of electricity",
+    ]
+
+    ita_row_totals = {
+        "production of electricity by coal": 9.0,
+        "production of electricity by gas": 8.0,
+        "production of electricity by nuclear": 7.0,
+        "production of electricity by hydro": 6.0,
+        "production of electricity by wind": 5.0,
+        "production of electricity by petroleum and other oil derivatives": 2.0,
+        "production of electricity by biomass and waste": 4.0,
+        "production of electricity by solar photovoltaic": 3.0,
+        "production of electricity by solar thermal": 1.0,
+        "production of electricity by tide, wave, ocean": 4.0,
+        "production of electricity by geothermal": 6.0,
+        "production of electricity nec": 3.0,
+        "transmission of electricity": 11.0,
+        "distribution and trade of electricity": 12.0,
+    }
+    deu_row_totals = {
+        "production of electricity by coal": 1.0,
+        "production of electricity by gas": 2.0,
+        "production of electricity by nuclear": 3.0,
+        "production of electricity by hydro": 4.0,
+        "production of electricity by wind": 5.0,
+        "production of electricity by petroleum and other oil derivatives": 4.0,
+        "production of electricity by biomass and waste": 6.0,
+        "production of electricity by solar photovoltaic": 2.0,
+        "production of electricity by solar thermal": 2.0,
+        "production of electricity by tide, wave, ocean": 1.0,
+        "production of electricity by geothermal": 3.0,
+        "production of electricity nec": 2.0,
+        "transmission of electricity": 9.0,
+        "distribution and trade of electricity": 10.0,
+    }
+
+    for region, row_totals in {"ITA": ita_row_totals, "DEU": deu_row_totals, "R3": ita_row_totals}.items():
+        for sector, row_total in row_totals.items():
+            row_key = (region, _MASTER_INDEX["s"], sector)
+            z.loc[row_key, :] = row_total
+            Y.loc[row_key, :] = row_total / 10.0
+
+    database.update_scenarios(scenario, z=z, Y=Y)
+
+    ember_snapshot = pd.DataFrame(
+        [
+            ("ITA", 2020, "Coal", 40.0),
+            ("ITA", 2020, "Gas", 20.0),
+            ("ITA", 2020, "Nuclear", 10.0),
+            ("ITA", 2020, "Hydro", 5.0),
+            ("ITA", 2020, "Wind", 8.0),
+            ("ITA", 2020, "Solar", 9.0),
+            ("ITA", 2020, "Bioenergy", 4.0),
+            ("ITA", 2020, "Other Renewables", 2.0),
+            ("ITA", 2020, "Other Fossil", 2.0),
+            ("DEU", 2019, "Coal", 5.0),
+            ("DEU", 2019, "Gas", 10.0),
+            ("DEU", 2019, "Nuclear", 15.0),
+            ("DEU", 2019, "Hydro", 20.0),
+            ("DEU", 2019, "Wind", 10.0),
+            ("DEU", 2019, "Solar", 10.0),
+            ("DEU", 2019, "Bioenergy", 10.0),
+            ("DEU", 2019, "Other Renewables", 10.0),
+            ("DEU", 2019, "Other Fossil", 10.0),
+            ("DEU", 2021, "Coal", 100.0),
+            ("DEU", 2021, "Gas", 0.0),
+            ("DEU", 2021, "Nuclear", 0.0),
+            ("DEU", 2021, "Hydro", 0.0),
+            ("DEU", 2021, "Wind", 0.0),
+            ("DEU", 2021, "Solar", 0.0),
+            ("DEU", 2021, "Bioenergy", 0.0),
+            ("DEU", 2021, "Other Renewables", 0.0),
+            ("DEU", 2021, "Other Fossil", 0.0),
+        ],
+        columns=["ISO3", "Year", "Variable", "Value"],
+    )
+    ember_path = tmp_path / "ember_generation.csv"
+    ember_snapshot.to_csv(ember_path, index=False)
+
+    z_before = database.get_block_as_pandas(_ENUM.z, scenario=scenario).copy()
+    y_before = database.get_block_as_pandas(_ENUM.Y, scenario=scenario).copy()
+
+    set_log_verbosity("info", capture_warnings=False, include_dependency_logs=False)
+    database.update_supply_mix_iot(
+        "electricity",
+        scenario=scenario,
+        year=2020,
+        ember_path=ember_path,
+    )
+
+    output = capsys.readouterr().out
+    assert "aggregating database sectors to EMBER groups" in output
+    assert "using nearest year" in output and "DEU (DEU -> 2019)" in output
+    assert "left unchanged" in output and "R3" in output
+
+    z_after = database.get_block_as_pandas(_ENUM.z, scenario=scenario)
+    y_after = database.get_block_as_pandas(_ENUM.Y, scenario=scenario)
+
+    ita_weights = pd.Series(
+        {
+            "production of electricity by coal": 0.40,
+            "production of electricity by gas": 0.20,
+            "production of electricity by nuclear": 0.10,
+            "production of electricity by hydro": 0.05,
+            "production of electricity by wind": 0.08,
+            "production of electricity by petroleum and other oil derivatives": 0.008,
+            "production of electricity by biomass and waste": 0.04,
+            "production of electricity by solar photovoltaic": 0.0675,
+            "production of electricity by solar thermal": 0.0225,
+            "production of electricity by tide, wave, ocean": 0.008,
+            "production of electricity by geothermal": 0.012,
+            "production of electricity nec": 0.012,
+        },
+        dtype=float,
+    )
+
+    deu_weights = pd.Series(
+        {
+            "production of electricity by coal": 0.05,
+            "production of electricity by gas": 0.10,
+            "production of electricity by nuclear": 0.15,
+            "production of electricity by hydro": 0.20,
+            "production of electricity by wind": 0.10,
+            "production of electricity by petroleum and other oil derivatives": 0.06666666666666667,
+            "production of electricity by biomass and waste": 0.10,
+            "production of electricity by solar photovoltaic": 0.05,
+            "production of electricity by solar thermal": 0.05,
+            "production of electricity by tide, wave, ocean": 0.025,
+            "production of electricity by geothermal": 0.075,
+            "production of electricity nec": 0.03333333333333333,
+        },
+        dtype=float,
+    )
+
+    for region, weights in {"ITA": ita_weights, "DEU": deu_weights}.items():
+        selector = (region, _MASTER_INDEX["s"], generation_sectors)
+        z_before_block = z_before.loc[selector, :]
+        y_before_block = y_before.loc[selector, :]
+        ordered_weights = weights.reindex(z_before_block.index.get_level_values("Item"))
+        z_expected = pd.DataFrame(
+            np.multiply.outer(ordered_weights.to_numpy(), z_before_block.sum(axis=0).to_numpy()),
+            index=z_before_block.index,
+            columns=z_before_block.columns,
+        )
+        y_expected = pd.DataFrame(
+            np.multiply.outer(ordered_weights.to_numpy(), y_before_block.sum(axis=0).to_numpy()),
+            index=y_before_block.index,
+            columns=y_before_block.columns,
+        )
+
+        pdt.assert_frame_equal(z_after.loc[selector, :], z_expected)
+        pdt.assert_frame_equal(y_after.loc[selector, :], y_expected)
+
+    for region in ["ITA", "DEU", "R3"]:
+        selector = (region, _MASTER_INDEX["s"], transmission)
+        pdt.assert_frame_equal(z_after.loc[selector, :], z_before.loc[selector, :])
+        pdt.assert_frame_equal(y_after.loc[selector, :], y_before.loc[selector, :])
+
+    selector = ("R3", _MASTER_INDEX["s"], generation_sectors)
+    pdt.assert_frame_equal(z_after.loc[selector, :], z_before.loc[selector, :])
+    pdt.assert_frame_equal(y_after.loc[selector, :], y_before.loc[selector, :])
+
+
+def test_update_supply_mix_iot_can_aggregate_database_as_ember_groups(tmp_path):
+    database = _build_electricity_mix_iot_database()
+
+    ember_snapshot = pd.DataFrame(
+        [
+            ("ITA", 2020, "Coal", 40.0),
+            ("ITA", 2020, "Gas", 20.0),
+            ("ITA", 2020, "Nuclear", 10.0),
+            ("ITA", 2020, "Hydro", 5.0),
+            ("ITA", 2020, "Wind", 8.0),
+            ("ITA", 2020, "Solar", 9.0),
+            ("ITA", 2020, "Bioenergy", 4.0),
+            ("ITA", 2020, "Other Renewables", 2.0),
+            ("ITA", 2020, "Other Fossil", 2.0),
+            ("DEU", 2020, "Coal", 30.0),
+            ("DEU", 2020, "Gas", 30.0),
+            ("DEU", 2020, "Nuclear", 10.0),
+            ("DEU", 2020, "Hydro", 5.0),
+            ("DEU", 2020, "Wind", 5.0),
+            ("DEU", 2020, "Solar", 10.0),
+            ("DEU", 2020, "Bioenergy", 5.0),
+            ("DEU", 2020, "Other Renewables", 3.0),
+            ("DEU", 2020, "Other Fossil", 2.0),
+        ],
+        columns=["ISO3", "Year", "Variable", "Value"],
+    )
+    ember_path = tmp_path / "ember_generation.csv"
+    ember_snapshot.to_csv(ember_path, index=False)
+
+    database.update_supply_mix_iot(
+        "electricity",
+        scenario="baseline",
+        year=2020,
+        ember_path=ember_path,
+        aggregate_as_ember=True,
+    )
+
+    sectors = set(database.get_index(_MASTER_INDEX["s"]))
+    expected_grouped = {
+        "production of electricity by coal",
+        "production of electricity by gas",
+        "production of electricity by nuclear",
+        "production of electricity by hydro",
+        "production of electricity by wind",
+        "production of electricity by solar",
+        "production of electricity by bioenergy",
+        "production of electricity by other renewables",
+        "production of electricity by other fossil",
+        "transmission of electricity",
+        "distribution and trade of electricity",
+    }
+
+    assert expected_grouped.issubset(sectors)
+    assert "production of electricity by solar thermal" not in sectors
+    assert "production of electricity by solar photovoltaic" not in sectors
+    assert "production of electricity by geothermal" not in sectors
+    assert "production of electricity by tide, wave, ocean" not in sectors
+
+    mix = database.get_mix("electricity")
+    assert set(mix["ITA"]) == expected_grouped.difference({
+        "transmission of electricity",
+        "distribution and trade of electricity",
+    })
+    assert sum(mix["ITA"].values()) == pytest.approx(1.0)
+
+
+def test_update_supply_mix_iot_rejects_aggregate_as_ember_without_electricity_keyword(CoreDataIOT):
+    with pytest.raises(WrongInput):
+        CoreDataIOT.update_supply_mix_iot(
+            {"Reg1": {"Agriculture": 1.0}},
+            aggregate_as_ember=True,
+        )
+
+
+def test_aggregate_saves_region_aggregation_map_for_electricity_mix():
+    database = _build_electricity_mix_iot_database()
+
+    aggregated = database.aggregate(
+        io=None,
+        levels="Region",
+        inplace=False,
+        region_aggregation={"EU": ["ITA", "DEU"]},
+    )
+
+    assert aggregated.meta.region_aggregation_map["EU"] == ["ITA", "DEU"]
+    assert aggregated.meta.region_aggregation_map["R3"] == ["R3"]
+
+
+def test_update_supply_mix_iot_electricity_accepts_explicit_region_aggregation_on_aggregated_database(tmp_path):
+    database = _build_electricity_mix_iot_database()
+    auto = database.aggregate(
+        io=None,
+        levels="Region",
+        inplace=False,
+        region_aggregation={"EU": ["ITA", "DEU"]},
+    )
+    explicit = auto.copy()
+    if hasattr(explicit.meta, "region_aggregation_map"):
+        delattr(explicit.meta, "region_aggregation_map")
+
+    scenario = "policy"
+    row_totals = {
+        "production of electricity by coal": 8.0,
+        "production of electricity by gas": 4.0,
+        "production of electricity by nuclear": 1.0,
+        "production of electricity by hydro": 1.0,
+        "production of electricity by wind": 1.0,
+        "production of electricity by petroleum and other oil derivatives": 1.0,
+        "production of electricity by biomass and waste": 1.0,
+        "production of electricity by solar photovoltaic": 1.0,
+        "production of electricity by solar thermal": 1.0,
+        "production of electricity by tide, wave, ocean": 1.0,
+        "production of electricity by geothermal": 1.0,
+        "production of electricity nec": 1.0,
+        "transmission of electricity": 2.0,
+        "distribution and trade of electricity": 2.0,
+    }
+    ember_snapshot = pd.DataFrame(
+        [
+            ("ITA", 2020, "Coal", 40.0),
+            ("ITA", 2020, "Gas", 60.0),
+            ("ITA", 2020, "Nuclear", 0.0),
+            ("ITA", 2020, "Hydro", 0.0),
+            ("ITA", 2020, "Wind", 0.0),
+            ("ITA", 2020, "Solar", 0.0),
+            ("ITA", 2020, "Bioenergy", 0.0),
+            ("ITA", 2020, "Other Renewables", 0.0),
+            ("ITA", 2020, "Other Fossil", 0.0),
+            ("DEU", 2020, "Coal", 60.0),
+            ("DEU", 2020, "Gas", 40.0),
+            ("DEU", 2020, "Nuclear", 0.0),
+            ("DEU", 2020, "Hydro", 0.0),
+            ("DEU", 2020, "Wind", 0.0),
+            ("DEU", 2020, "Solar", 0.0),
+            ("DEU", 2020, "Bioenergy", 0.0),
+            ("DEU", 2020, "Other Renewables", 0.0),
+            ("DEU", 2020, "Other Fossil", 0.0),
+        ],
+        columns=["ISO3", "Year", "Variable", "Value"],
+    )
+    ember_path = tmp_path / "ember_generation.csv"
+    ember_snapshot.to_csv(ember_path, index=False)
+
+    for database_variant in (auto, explicit):
+        database_variant.clone_scenario("baseline", scenario)
+        database_variant.reset_to_coefficients(scenario)
+        z = database_variant.get_block_as_pandas(_ENUM.z, scenario=scenario).copy()
+        Y = database_variant.get_block_as_pandas(_ENUM.Y, scenario=scenario).copy()
+        _set_region_row_totals(z, Y, region="EU", row_totals=row_totals)
+        database_variant.update_scenarios(scenario, z=z, Y=Y)
+
+    z_before = auto.get_block_as_pandas(_ENUM.z, scenario=scenario).copy()
+
+    auto.update_supply_mix_iot(
+        "electricity",
+        scenario=scenario,
+        year=2020,
+        ember_path=ember_path,
+    )
+    explicit.update_supply_mix_iot(
+        "electricity",
+        scenario=scenario,
+        year=2020,
+        ember_path=ember_path,
+        region_aggregation={"ITA": "EU", "DEU": "EU"},
+    )
+
+    auto_z = auto.get_block_as_pandas(_ENUM.z, scenario=scenario)
+    explicit_z = explicit.get_block_as_pandas(_ENUM.z, scenario=scenario)
+    auto_y = auto.get_block_as_pandas(_ENUM.Y, scenario=scenario)
+    explicit_y = explicit.get_block_as_pandas(_ENUM.Y, scenario=scenario)
+    selector = ("EU", _MASTER_INDEX["s"], list(row_totals))
+
+    pdt.assert_frame_equal(auto_z, explicit_z)
+    pdt.assert_frame_equal(auto_y, explicit_y)
+    assert not auto_z.loc[selector, :].equals(z_before.loc[selector, :])
 
 
 def test_update_scenarios_sut_accepts_unified_z(CoreDataSUT):

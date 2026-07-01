@@ -3,8 +3,43 @@
 from __future__ import annotations
 
 from mario.ops.aggregation_engine import _aggregator
-from mario.model.conventions import _ENUM
+from mario.model.conventions import TABLE_LEVELS, _ENUM, _MASTER_INDEX
 from mario.utils import _manage_indeces
+
+
+def _build_region_aggregation_map(database) -> dict[str, list[str]] | None:
+    """Compose the current Region aggregation against any previously stored base map."""
+    region_level = TABLE_LEVELS[database.meta.table][_MASTER_INDEX["r"]]
+    region_index = database._indeces.get(region_level, {}).get("aggregated")
+    if region_index is None:
+        return None
+
+    previous = getattr(database.meta, "region_aggregation_map", None)
+    mapping: dict[str, list[str]] = {}
+    for source_region, target_region in region_index["Aggregation"].items():
+        target_key = str(target_region)
+        source_key = str(source_region)
+        members = previous.get(source_key, [source_key]) if isinstance(previous, dict) else [source_key]
+        mapping.setdefault(target_key, [])
+        for member in members:
+            if member not in mapping[target_key]:
+                mapping[target_key].append(member)
+
+    return mapping
+
+
+def _store_region_aggregation_map(database) -> None:
+    """Persist one structured Region aggregation map on public metadata."""
+    mapping = _build_region_aggregation_map(database)
+    if mapping is None:
+        return
+
+    previous = getattr(database.meta, "region_aggregation_map", None)
+    database.meta.region_aggregation_map = mapping
+    if previous != mapping:
+        database.meta._add_history(
+            f"Metadata: saved region aggregation map for {len(mapping)} aggregated regions."
+        )
 
 
 def aggregate_database(
@@ -55,6 +90,7 @@ def aggregate_database(
             io=io,
             ignore_nan=ignore_nan,
         )
+        _store_region_aggregation_map(database)
         new_matrices, units = _aggregator(
             database,
             drop,

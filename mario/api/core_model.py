@@ -8,6 +8,7 @@ from mario.log_exc.exceptions import (
 )
 from mario.log_exc.logger import log_time
 from mario.api.metadata import MARIOMetaData
+from mario.compute.helpers import _is_sparse_backed_dataframe, sum_columns
 from mario.internal.access import block_to_matrix, block_to_pandas, block_to_table
 from mario.model.assumptions import resolve_tech_assumption
 from mario.parsers.tabular import dataframe_parser
@@ -23,6 +24,7 @@ import logging
 import os
 import copy
 import re
+import warnings
 
 # constants
 from mario.model.conventions import (
@@ -51,6 +53,38 @@ def _resolver_module():
     from mario.compute import resolver as resolver_module
 
     return resolver_module
+
+
+def _electricity_mix_module():
+    """Import electricity-mix helpers lazily to avoid circular imports at module load time."""
+    from mario.model import electricity_mix as electricity_mix_module
+
+    return electricity_mix_module
+
+
+def _replace_selected_rows(
+    frame: pd.DataFrame,
+    *,
+    selector,
+    target_index: pd.Index,
+    replacement: pd.DataFrame,
+) -> pd.DataFrame:
+    """Replace selected rows, rebuilding sparse-backed frames when needed."""
+    if not frame.columns.equals(replacement.columns):
+        raise ValueError("Replacement columns do not match target frame columns.")
+
+    if not target_index.equals(replacement.index):
+        raise ValueError("Replacement index does not match the selected target rows.")
+
+    if not _is_sparse_backed_dataframe(frame):
+        frame.loc[selector, :] = replacement
+        return frame
+
+    updated = pd.concat(
+        [frame.loc[~frame.index.isin(target_index), :], replacement],
+        axis=0,
+    ).reindex(frame.index)
+    return updated.astype(frame.dtypes.to_dict())
 
 
 def _build_resolution_context(
@@ -1773,22 +1807,118 @@ class CoreModel:
         for matrix, value in matrices.items():
             self.set_block(matrix, value, scenario=scenario)
 
-    def update_mix_iot(
+    def get_mix(
+        self,
+        sectors,
+        *,
+        scenario: str = "baseline",
+    ) -> dict[str, dict[str, float]]:
+        """Return one region-by-sector production mix from ``X``.
+
+        Parameters
+        ----------
+        sectors:
+            Non-empty iterable of sector labels whose regional production mix
+            should be calculated. The special string ``"electricity"`` uses
+            the same generation-sector bundle resolved by
+            :meth:`update_supply_mix_iot`.
+        scenario:
+            Scenario whose production vector should be converted to one
+            ``region -> {sector: share}`` mapping.
+
+        Returns
+        -------
+        dict[str, dict[str, float]]
+            Nested dictionary keyed first by Region and then by Sector.
+
+        Notes
+        -----
+        This helper is currently implemented only for IOT tables. For each
+        region, the selected sector values are normalized by the total
+        production of the same selected sector bundle in ``X``. Regions with
+        zero total production over the selected sectors return zero shares.
+        The resulting mapping is also stored on ``self.mix``.
+        """
+
+        if self.table_type != "IOT":
+            raise NotImplementable("get_mix is currently implemented only for IOT tables.")
+
+        scenario = self._validate_scenario(scenario)
+        if isinstance(sectors, str) and sectors.strip().casefold() == "electricity":
+            sectors = _electricity_mix_module().resolve_electricity_mix_sectors(self)
+        elif isinstance(sectors, str):
+            sectors = [sectors]
+        else:
+            sectors = list(sectors)
+
+        if not sectors:
+            raise WrongInput("sectors must be one non-empty iterable of sector labels.")
+
+        valid_sectors = set(self.get_index(_MASTER_INDEX["s"]))
+        missing_sectors = [sector for sector in sectors if sector not in valid_sectors]
+        if missing_sectors:
+            raise WrongInput(f"get_mix references unknown sectors: {missing_sectors}")
+
+        production = self.query(_ENUM.X, scenarios=scenario)
+        if not isinstance(production, pd.DataFrame):
+            raise TypeError("Expected X to resolve to a pandas DataFrame.")
+
+        mix: dict[str, dict[str, float]] = {}
+        for region in self.get_index(_MASTER_INDEX["r"]):
+            region_block = production.loc[(region, _MASTER_INDEX["s"], sectors), :]
+            values = region_block.iloc[:, 0].astype(float)
+            total = float(values.sum())
+            if total > 0:
+                shares = values / total
+            else:
+                shares = values * 0.0
+
+            mix[str(region)] = {
+                str(item): float(value)
+                for item, value in zip(
+                    region_block.index.get_level_values("Item"),
+                    shares.to_numpy(),
+                )
+            }
+
+        self.mix = mix
+        return mix
+
+    def update_supply_mix_iot(
         self,
         shares_by_region,
         *,
         scenario: str = "baseline",
         clone_from: str | None = None,
         rescale: bool = False,
+        year: int | None = None,
+        ember_path: str | os.PathLike[str] | None = None,
+        region_aggregation=None,
+        aggregate_as_ember: bool = False,
     ) -> None:
         """Update one IOT regional sector mix across ``z`` and ``Y``.
 
         Parameters
         ----------
         shares_by_region:
-            Mapping ``region -> {sector: share}`` describing how the combined
-            coefficient rows of the selected sectors should be redistributed
-            within each region.
+            Either one explicit mapping ``region -> {sector: share}`` describing
+            how the combined coefficient rows of the selected sectors should be
+            redistributed within each region, or the special string
+            ``"electricity"``.
+
+            When ``"electricity"`` is used, MARIO derives one generation mix
+            from EMBER electricity-generation data for the requested ``year``.
+            The EMBER taxonomy is more aggregated than the disaggregated
+            electricity sectors exposed by EXIOBASE IOT and EMERGING-E, so the
+            database electricity bundle is first aggregated to the compatible
+            EMBER fuel groups before the update is applied. The resulting group
+            totals are then redistributed back to the original database sectors
+            using the current internal composition of each aggregated group.
+
+            This means that detailed technologies such as geothermal,
+            tide/wave/ocean and solar thermal are updated only through their
+            parent aggregated EMBER groups. Transmission and distribution
+            sectors are left unchanged.
         scenario:
             Scenario to update in place. When it does not exist yet, provide
             ``clone_from=...`` to create it first.
@@ -1799,6 +1929,32 @@ class CoreModel:
             When ``True``, rescale each region-level vector to sum to one even
             when the provided values are totals or otherwise do not already
             form a near-unit mix.
+        year:
+            EMBER year to use when ``shares_by_region="electricity"``. When
+            omitted, MARIO uses the latest year available in the selected
+            EMBER snapshot. When one covered region has no exact observation
+            for the requested year, MARIO falls back to the nearest available
+            year for that region and emits one warning.
+        ember_path:
+            Optional path to one EMBER CSV snapshot. When omitted, MARIO uses
+            the packaged reduced EMBER electricity-generation snapshot. The
+            upstream EMBER yearly full release is published at
+            https://files.ember-energy.org/public-downloads/yearly_full_release_long_format.csv
+        region_aggregation:
+            Optional Region aggregation metadata used only when
+            ``shares_by_region="electricity"``. This can be one Region sheet
+            workbook path, one pandas Series/DataFrame, one mapping shaped like
+            an aggregation workbook Region sheet, or one explicit
+            ``aggregated_region -> [original_region, ...]`` mapping.
+
+            When omitted, MARIO automatically reuses ``db.meta.region_aggregation_map``
+            if the database was aggregated earlier through :meth:`aggregate`.
+        aggregate_as_ember:
+            When ``True`` and ``shares_by_region="electricity"``, aggregate
+            the database Sector classification to the coarser EMBER fuel-group
+            names after applying the updated mix. The aggregation is structural
+            and therefore affects the whole database, not only the selected
+            scenario.
 
         Returns
         -------
@@ -1814,15 +1970,13 @@ class CoreModel:
         The method resets the target scenario to coefficient-side storage
         internally before applying the redistribution, so callers do not need
         an extra ``reset_to_coefficients(...)`` around this operation.
+
+        Regions that are not covered by EMBER are left unchanged and generate
+        one warning when ``shares_by_region="electricity"``.
         """
 
         if self.table_type != "IOT":
-            raise NotImplementable("update_mix_iot is currently implemented only for IOT tables.")
-
-        if not isinstance(shares_by_region, MutableMapping) or not shares_by_region:
-            raise WrongInput(
-                "shares_by_region must be one non-empty mapping of regions to sector-share mappings."
-            )
+            raise NotImplementable("update_supply_mix_iot is currently implemented only for IOT tables.")
 
         requested_scenario = str(scenario).strip()
         if not requested_scenario:
@@ -1837,6 +1991,40 @@ class CoreModel:
                 ) from exc
             self.clone_scenario(clone_from, requested_scenario)
             scenario = self._validate_scenario(requested_scenario)
+
+        coefficients_ready = False
+        electricity_requested = isinstance(shares_by_region, str)
+
+        if isinstance(shares_by_region, str):
+            if shares_by_region.strip().casefold() != "electricity":
+                raise WrongInput(
+                    "String-valued shares_by_region is currently supported only for 'electricity'."
+                )
+
+            self.reset_to_coefficients(scenario)
+            coefficients_ready = True
+            shares_by_region = _electricity_mix_module().build_electricity_mix_shares(
+                self,
+                scenario=scenario,
+                year=year,
+                ember_path=ember_path,
+                region_aggregation=region_aggregation,
+            )
+            if not shares_by_region:
+                log_time(
+                    logger,
+                    "Electricity mix: no database regions updated because no EMBER mix could be resolved.",
+                    "warning",
+                )
+                return
+
+        if aggregate_as_ember and not electricity_requested:
+            raise WrongInput("aggregate_as_ember is currently supported only with shares_by_region='electricity'.")
+
+        if not isinstance(shares_by_region, MutableMapping) or not shares_by_region:
+            raise WrongInput(
+                "shares_by_region must be one non-empty mapping of regions to sector-share mappings."
+            )
 
         valid_regions = set(self.get_index(_MASTER_INDEX["r"]))
         valid_sectors = set(self.get_index(_MASTER_INDEX["s"]))
@@ -1881,52 +2069,64 @@ class CoreModel:
 
             normalized_shares[region] = weights
 
-        self.reset_to_coefficients(scenario)
+        if not coefficients_ready:
+            self.reset_to_coefficients(scenario)
         z = self.get_block_as_pandas(_ENUM.z, scenario=scenario).copy()
         Y = self.get_block_as_pandas(_ENUM.Y, scenario=scenario).copy()
-        z_updates = []
-        y_updates = []
 
         for region, weights in normalized_shares.items():
             selector = (region, _MASTER_INDEX["s"], list(weights.index))
 
             z_block = z.loc[selector, :]
             z_weights = weights.reindex(z_block.index.get_level_values("Item"))
-            z_updates.append(
-                pd.DataFrame(
-                    np.multiply.outer(z_weights.to_numpy(), z_block.sum(axis=0).to_numpy()),
+            z = _replace_selected_rows(
+                z,
+                selector=selector,
+                target_index=z_block.index,
+                replacement=pd.DataFrame(
+                    np.multiply.outer(z_weights.to_numpy(), sum_columns(z_block).to_numpy()),
                     index=z_block.index,
                     columns=z_block.columns,
-                )
+                ),
             )
 
             Y_block = Y.loc[selector, :]
             y_weights = weights.reindex(Y_block.index.get_level_values("Item"))
-            y_updates.append(
-                pd.DataFrame(
-                    np.multiply.outer(y_weights.to_numpy(), Y_block.sum(axis=0).to_numpy()),
+            Y = _replace_selected_rows(
+                Y,
+                selector=selector,
+                target_index=Y_block.index,
+                replacement=pd.DataFrame(
+                    np.multiply.outer(y_weights.to_numpy(), sum_columns(Y_block).to_numpy()),
                     index=Y_block.index,
                     columns=Y_block.columns,
-                )
+                ),
             )
 
-        def _replace_row_blocks(frame: pd.DataFrame, updates: list[pd.DataFrame]) -> pd.DataFrame:
-            if not updates:
-                return frame
-
-            original_index = frame.index
-            replacement = pd.concat(updates, axis=0)
-            remaining = frame.drop(index=replacement.index)
-            return pd.concat([remaining, replacement], axis=0).reindex(original_index)
-
-        z = _replace_row_blocks(z, z_updates)
-        Y = _replace_row_blocks(Y, y_updates)
-
         self.update_scenarios(scenario, z=z, Y=Y)
+
+        if aggregate_as_ember:
+            if not hasattr(self, "aggregate"):
+                raise NotImplementable(
+                    "aggregate_as_ember requires a Database instance exposing aggregate()."
+                )
+
+            sector_aggregation = _electricity_mix_module().build_electricity_ember_sector_aggregation(self)
+            self.aggregate(
+                io={_MASTER_INDEX["s"]: sector_aggregation},
+                levels=_MASTER_INDEX["s"],
+                calc_all=False,
+                inplace=True,
+            )
+
         self.meta._add_history(
             "Database: updated IOT sector mix in scenario "
             f"{self._public_scenario_name(scenario)} for regions {sorted(normalized_shares)}."
         )
+
+    def update_mix_iot(self, *args, **kwargs) -> None:
+        """Backward-compatible alias for :meth:`update_supply_mix_iot`."""
+        return self.update_supply_mix_iot(*args, **kwargs)
 
     def clone_scenario(
         self,

@@ -7,7 +7,7 @@ import pandas as pd
 import pandas.testing as pdt
 import pytest
 
-from mario.clusters.coverage import build_region_aggregation_index
+from mario.clusters.coverage import build_region_aggregation_index, resolve_region_labels_to_iso3_members
 from mario.compute.runtime import effective_compute_options
 from mario.compute.types import ComputeOptions, ResolutionContext
 from mario.log_exc.exceptions import NotImplementable, WrongInput
@@ -2084,6 +2084,15 @@ def test_build_region_aggregation_index_uses_packaged_country_coverage():
     assert aggregation.loc["GER", "Aggregation"] == "Europe"
     assert aggregation.loc["UKG", "Aggregation"] == "Europe"
     assert aggregation.loc["TAP", "Aggregation"] == "Asia"
+
+
+def test_resolve_region_labels_to_iso3_members_expands_exiobase_macro_regions():
+    resolved = resolve_region_labels_to_iso3_members(["WA", "WM"], source="EXIOBASE test bundle")
+
+    assert "AFG" in resolved["WA"]
+    assert "VNM" in resolved["WA"]
+    assert "SAU" in resolved["WM"]
+    assert "ARE" in resolved["WM"]
 
 
 def test_available_clusters_merge_defaults_and_user_clusters():

@@ -1,0 +1,194 @@
+regions:
+  WA:
+    aliases:
+      - WA
+      - RoW Asia and Pacific
+    members:
+      - AFG
+      - ARM
+      - AZE
+      - BGD
+      - BTN
+      - BRN
+      - KHM
+      - HKG
+      - MAC
+      - COK
+      - PRK
+      - FJI
+      - PYF
+      - GEO
+      - KAZ
+      - KIR
+      - KGZ
+      - LAO
+      - MYS
+      - MDV
+      - MHL
+      - FSM
+      - MNG
+      - MMR
+      - NRU
+      - NPL
+      - NCL
+      - NZL
+      - PAK
+      - PLW
+      - PNG
+      - PHL
+      - WSM
+      - SGP
+      - SLB
+      - LKA
+      - TJK
+      - THA
+      - TLS
+      - TON
+      - TKM
+      - TUV
+      - UZB
+      - VUT
+      - VNM
+  WL:
+    aliases:
+      - WL
+      - RoW America
+    members:
+      - AIA
+      - ATG
+      - ARG
+      - ABW
+      - BHS
+      - BRB
+      - BLZ
+      - BMU
+      - BOL
+      - VGB
+      - CYM
+      - CHL
+      - COL
+      - CRI
+      - CUB
+      - CUW
+      - DMA
+      - DOM
+      - ECU
+      - SLV
+      - GRL
+      - GRD
+      - GTM
+      - GUY
+      - HTI
+      - HND
+      - JAM
+      - MSR
+      - NIC
+      - PAN
+      - PRY
+      - PER
+      - PRI
+      - KNA
+      - LCA
+      - SXM
+      - VCT
+      - SUR
+      - TTO
+      - TCA
+      - URY
+      - VEN
+  WE:
+    aliases:
+      - WE
+      - RoW Europe
+    members:
+      - ALB
+      - AND
+      - BLR
+      - BIH
+      - ISL
+      - XKX
+      - LIE
+      - MCO
+      - MNE
+      - MDA
+      - SMR
+      - SRB
+      - MKD
+      - UKR
+  WF:
+    aliases:
+      - WF
+      - RoW Africa
+    members:
+      - DZA
+      - AGO
+      - BEN
+      - BWA
+      - BFA
+      - BDI
+      - CPV
+      - CMR
+      - CAF
+      - TCD
+      - COM
+      - COG
+      - CIV
+      - COD
+      - DJI
+      - GNQ
+      - ERI
+      - ETH
+      - GAB
+      - GMB
+      - GHA
+      - GIN
+      - GNB
+      - KEN
+      - LSO
+      - LBR
+      - LBY
+      - MDG
+      - MWI
+      - MLI
+      - MRT
+      - MUS
+      - MAR
+      - MOZ
+      - NAM
+      - NER
+      - NGA
+      - RWA
+      - STP
+      - SEN
+      - SYC
+      - SLE
+      - SOM
+      - SSD
+      - SDN
+      - SWZ
+      - TGO
+      - TUN
+      - TZA
+      - UGA
+      - ZMB
+      - ZWE
+  WM:
+    aliases:
+      - WM
+      - RoW Middle East
+    members:
+      - BHR
+      - EGY
+      - IRN
+      - IRQ
+      - ISR
+      - JOR
+      - KWT
+      - LBN
+      - OMN
+      - QAT
+      - SAU
+      - PSE
+      - SYR
+      - ARE
+      - YEM
