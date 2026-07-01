@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import logging
 from contextlib import contextmanager
 import inspect
@@ -268,8 +267,8 @@ def _write_parquet_frame(frame: pd.DataFrame, path: Path) -> None:
 
 def _write_metadata_file(database, root: Path) -> None:
     """Write database metadata to one export directory."""
-    with (root / "metadata.json").open("w") as fp:
-        json.dump(database.meta._to_dict(), fp)
+    root.mkdir(parents=True, exist_ok=True)
+    database.save_meta(str(root / "metadata"), format="json")
 
 
 def _export_flat_directory(
@@ -386,23 +385,18 @@ def export_database_to_excel(
     if flows is False and coefficients is False:
         raise WrongInput("At least one of the flows or coefficients should be True")
 
+    output_path = Path(database._getdir(path, "Database", "New_Database.xlsx"))
     log_time(logger, f"Export: writing Excel database for {scenario}.", "info")
     database_excel(
         database,
         flows,
         coefficients,
-        database._getdir(path, "Database", "New_Database.xlsx"),
+        str(output_path),
         scenario,
     )
 
     if include_meta:
-        meta = database.meta._to_dict()
-        meta_path = database._getdir(path, "Database", "")
-        meta_path = meta_path.split("/")[:-1]
-        meta_path = ("/").join(meta_path) + "/metadata.json"
-
-        with open(meta_path, "w") as fp:
-            json.dump(meta, fp)
+        _write_metadata_file(database, output_path.parent)
     log_time(logger, "Export: Excel database written.", "info")
 
 

@@ -6,12 +6,14 @@ import mario.parsers as public_parsers
 import pandas as pd
 import pandas.testing as pdt
 import pytest
+from pathlib import Path
 
 from mario.clusters.coverage import build_region_aggregation_index, resolve_region_labels_to_iso3_members
 from mario.compute.runtime import effective_compute_options
 from mario.compute.types import ComputeOptions, ResolutionContext
 from mario.log_exc.exceptions import NotImplementable, WrongInput
 from mario.log_exc.logger import set_log_verbosity
+from mario.ops import export as export_module
 from mario.compute.ordering import SUTUnifiedOrderingPolicy
 from mario.compute.primitives import calc_w, calc_z
 from mario.compute.views import (
@@ -2084,6 +2086,33 @@ def test_build_region_aggregation_index_uses_packaged_country_coverage():
     assert aggregation.loc["GER", "Aggregation"] == "Europe"
     assert aggregation.loc["UKG", "Aggregation"] == "Europe"
     assert aggregation.loc["TAP", "Aggregation"] == "Asia"
+
+
+def test_exports_with_include_meta_delegate_to_save_meta(monkeypatch, tmp_path):
+    database = load_test("IOT")
+    calls = []
+
+    def fake_save_meta(path, format="txt"):
+        calls.append((Path(path), format))
+
+    monkeypatch.setattr(database, "save_meta", fake_save_meta)
+    monkeypatch.setattr(export_module, "database_excel", lambda *args, **kwargs: None)
+    monkeypatch.setattr(export_module, "_export_matrix_directory", lambda *args, **kwargs: None)
+    monkeypatch.setattr(export_module, "require_pyarrow", lambda *args, **kwargs: None)
+
+    excel_path = tmp_path / "database.xlsx"
+    txt_root = tmp_path / "txt_export"
+    parquet_root = tmp_path / "parquet_export"
+
+    database.to_excel(path=str(excel_path), include_meta=True)
+    database.to_txt(path=str(txt_root), include_meta=True)
+    database.to_parquet(path=str(parquet_root), include_meta=True)
+
+    assert calls == [
+        (excel_path.parent / "metadata", "json"),
+        (txt_root / "metadata", "json"),
+        (parquet_root / "metadata", "json"),
+    ]
 
 
 def test_resolve_region_labels_to_iso3_members_expands_exiobase_macro_regions():
