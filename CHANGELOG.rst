@@ -5,6 +5,22 @@ Release History
 Unreleased
 ----------
 
+Electricity supply mix update
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Added ``Database.update_supply_mix_iot`` (with the ``update_mix_iot`` alias)
+  to overwrite the electricity generation mix of an IOT database across the
+  ``z`` and ``Y`` blocks of one scenario, together with ``Database.get_mix`` to
+  read back a sector bundle's production mix. It works for any IOT database that
+  exposes a disaggregated power sector (currently EXIOBASE and EMERGING-E): the
+  ``"electricity"`` mode derives shares from EMBER generation data for the
+  requested ``year``, aggregating to the compatible EMBER fuel groups and
+  redistributing them with each group's current internal composition. Aggregate
+  regions (built-in EXIOBASE Rest-of-World regions or user aggregations) are
+  resolved to their member countries automatically, and an explicit
+  ``region -> {sector: share}`` mapping is also accepted. Documented under a new
+  user-guide page.
+
 Matrix-specific export
 ~~~~~~~~~~~~~~~~~~~~~~~~
 

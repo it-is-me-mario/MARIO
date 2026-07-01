@@ -129,6 +129,7 @@ nbsphinx_epilog = r"""
     "user_guide/transformations/aggregate",
     "user_guide/transformations/add_extensions",
     "user_guide/transformations/apply_shocks",
+    "user_guide/transformations/update_electricity_mix",
     "user_guide/transformations/add_sectors",
     "user_guide/transformations/sut_to_iot",
     "user_guide/transformations/mrio_to_srio",
