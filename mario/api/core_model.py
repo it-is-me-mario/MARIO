@@ -299,6 +299,8 @@ class CoreModel:
         units=None,
         price=None,
         source=None,
+        license=None,
+        version=None,
         tech_assumption: str | None = None,
         calc_all=True,
         year=None,
@@ -321,6 +323,10 @@ class CoreModel:
             Price system label stored in metadata.
         source:
             Source label stored in metadata.
+        license:
+            Optional dataset license stored in metadata.
+        version:
+            Optional dataset version stored in metadata.
         tech_assumption:
             Optional technology assumption for SUT databases. Accepted values
             are ``"industry-based"``, ``"product-based"``, ``"IT"`` and
@@ -399,6 +405,8 @@ class CoreModel:
             table=table,
             price=price,
             source=source,
+            license=license,
+            version=version,
             year=year,
             tech_assumption=resolved_tech_assumption,
         )
