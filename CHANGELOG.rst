@@ -5,6 +5,20 @@ Release History
 Unreleased
 ----------
 
+EMERGING-E parser
+~~~~~~~~~~~~~~~~~
+
+* Extended ``parse_emerging`` with the ``variant="E"`` EMERGING-E bundle, which
+  parses the power-disaggregated table (146 sectors, with electricity split into
+  14 generation sub-sectors) directly from ``EMERGING_E_<year>.mat``. MARIO
+  auto-detects a sibling label workbook and otherwise falls back to a packaged
+  EMERGING-E sector classification (use ``labels_path=`` to override detection).
+* Added CO2 projection for EMERGING-E: when only a standard EMERGING
+  ``EMERGING_CO2_<year>`` companion is available, MARIO projects the 7 fuel rows
+  of the aggregated ``electricity`` sector onto the EMERGING-E generation
+  sub-sectors through a fixed fuel-to-technology mapping. Pass ``co2_path=`` to
+  point at a specific companion file.
+
 Electricity supply mix update
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
