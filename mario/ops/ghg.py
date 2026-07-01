@@ -441,11 +441,23 @@ def _resolve_ghg_unit(db, labels: list[str], unit: Optional[str]) -> str:
     return source_unit
 
 
+def _default_ghg_label(ipcc_report: str, time_horizon: int, explicit_gwp: bool) -> str:
+    """Compose the default satellite-account label for the aggregated GHG row.
+
+    Built-in profiles resolve their GWPs from one IPCC report and time horizon,
+    so the label encodes both, e.g. ``"GHG AR6 GWP-100"``. Custom ``gwp=...``
+    mappings ignore those arguments, so the plain ``"GHG"`` label is used.
+    """
+    if explicit_gwp:
+        return "GHG"
+    return f"GHG {str(ipcc_report).strip().upper()} GWP-{int(time_horizon)}"
+
+
 def calc_ghg(
     db,
     profile: Optional[str] = None,
     gwp: Optional[Dict[str, GWPScalar]] = None,
-    label: str = "GHG",
+    label: Optional[str] = None,
     unit: Optional[str] = None,
     time_horizon: int = 100,
     ipcc_report: str = "AR6",
@@ -464,7 +476,10 @@ def calc_ghg(
         Optional ``{account: factor}`` mapping. Overrides the profile's
         default factors when given.
     label:
-        Satellite-account label used for the aggregated row.
+        Satellite-account label used for the aggregated row. When omitted, the
+        label is derived from the GWP basis: built-in profiles yield
+        ``"GHG {ipcc_report} GWP-{time_horizon}"`` (e.g. ``"GHG AR6 GWP-100"``),
+        while custom ``gwp=...`` mappings yield ``"GHG"``.
     unit:
         Optional unit override. When omitted, MARIO reuses the shared unit of
         the aggregated satellite accounts and raises when those units differ.
@@ -485,6 +500,7 @@ def calc_ghg(
         Modified database when ``inplace=False``, otherwise ``None``.
     """
     target = db if inplace else db.copy()
+    explicit_gwp = gwp is not None
 
     if gwp is None:
         if profile is None:
@@ -511,6 +527,9 @@ def calc_ghg(
         match_mode = spec.get("match_mode", "exact")
     else:
         match_mode = "exact"
+
+    if label is None:
+        label = _default_ghg_label(ipcc_report, time_horizon, explicit_gwp)
 
     if label in target.get_index("Satellite account"):
         raise ValueError(

@@ -24,6 +24,16 @@ Matrix-specific export
   (``Z``/``z``) no longer collide on case-insensitive filesystems: the
   coefficient token is doubled (``zz``).
 
+GHG aggregation
+~~~~~~~~~~~~~~~
+
+* ``Database.calc_ghg`` now names the aggregated satellite account after its GWP
+  basis when ``label`` is omitted: built-in profiles yield
+  ``"GHG {ipcc_report} GWP-{time_horizon}"`` (e.g. ``"GHG AR6 GWP-100"``), while
+  custom ``gwp=...`` mappings keep the plain ``"GHG"`` label. Pass ``label=...``
+  to override. This changes the previous default label ``"GHG"`` for built-in
+  profiles.
+
 v1.0.2
 ------
 

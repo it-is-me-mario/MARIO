@@ -5028,7 +5028,7 @@ class Database(CoreModel):
         self,
         profile=None,
         gwp=None,
-        label="GHG",
+        label=None,
         unit=None,
         time_horizon=100,
         ipcc_report="AR6",
@@ -5050,7 +5050,11 @@ class Database(CoreModel):
             Optional ``{satellite-account: factor}`` mapping that overrides
             the profile defaults.
         label:
-            Satellite-account label used for the aggregated row.
+            Satellite-account label used for the aggregated row. When omitted,
+            the label is derived from the GWP basis: built-in profiles yield
+            ``"GHG {ipcc_report} GWP-{time_horizon}"`` (e.g.
+            ``"GHG AR6 GWP-100"``), while custom ``gwp=...`` mappings yield
+            ``"GHG"``.
         unit:
             Optional unit override. When omitted, the new row reuses the
             shared unit of the aggregated satellite accounts.

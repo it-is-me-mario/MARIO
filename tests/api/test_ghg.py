@@ -81,10 +81,11 @@ def test_calc_ghg_adds_weighted_row_to_E_and_EY():
 
     result = database.calc_ghg(profile="exiobase_monetary")
 
+    label = "GHG AR6 GWP-100"
     assert result is None
-    assert "GHG" in database.get_index("Satellite account")
-    assert database.units["Satellite account"].loc["GHG", "unit"] == "kg"
-    assert "GHG" in database.e.index
+    assert label in database.get_index("Satellite account")
+    assert database.units["Satellite account"].loc[label, "unit"] == "kg"
+    assert label in database.e.index
 
     expected_e = (
         database.E.loc["CO2 - combustion - air"]
@@ -97,8 +98,29 @@ def test_calc_ghg_adds_weighted_row_to_E_and_EY():
         + database.EY.loc["N2O - combustion - air"] * 273
     )
 
-    pdt.assert_series_equal(database.E.loc["GHG"], expected_e, check_names=False)
-    pdt.assert_series_equal(database.EY.loc["GHG"], expected_ey, check_names=False)
+    pdt.assert_series_equal(database.E.loc[label], expected_e, check_names=False)
+    pdt.assert_series_equal(database.EY.loc[label], expected_ey, check_names=False)
+
+
+def test_calc_ghg_default_label_encodes_report_and_horizon():
+    database = _build_ghg_database()
+
+    database.calc_ghg(profile="exiobase_monetary", ipcc_report="ar5", time_horizon=100)
+
+    assert "GHG AR5 GWP-100" in database.get_index("Satellite account")
+
+
+def test_calc_ghg_custom_gwp_default_label_is_plain_ghg():
+    database = _build_ghg_database()
+
+    database.calc_ghg(
+        gwp={"CO2 - combustion - air": 1},
+        ipcc_report="AR6",
+        time_horizon=100,
+    )
+
+    assert "GHG" in database.get_index("Satellite account")
+    assert "GHG AR6 GWP-100" not in database.get_index("Satellite account")
 
 
 def test_calc_ghg_requires_consistent_source_units():
@@ -118,6 +140,7 @@ def test_calc_ghg_resolves_requested_ipcc_report():
         ipcc_report="AR4",
     )
 
+    label = "GHG AR4 GWP-100"
     expected_e = (
         database.E.loc["CO2 - combustion - air"]
         + database.E.loc["CH4 - combustion - air"] * 25
@@ -129,8 +152,8 @@ def test_calc_ghg_resolves_requested_ipcc_report():
         + database.EY.loc["N2O - combustion - air"] * 298
     )
 
-    pdt.assert_series_equal(database.E.loc["GHG"], expected_e, check_names=False)
-    pdt.assert_series_equal(database.EY.loc["GHG"], expected_ey, check_names=False)
+    pdt.assert_series_equal(database.E.loc[label], expected_e, check_names=False)
+    pdt.assert_series_equal(database.EY.loc[label], expected_ey, check_names=False)
 
 
 def test_calc_ghg_custom_gwp_ignores_profile_resolution_arguments():
