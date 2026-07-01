@@ -6,6 +6,7 @@ import os
 import pytest
 import pandas.testing as pdt
 import pandas as pd
+import numpy as np
 from scipy import sparse
 from tests._paths import REPO_ROOT
 
@@ -1341,6 +1342,169 @@ def test_update_scenarios(CoreDataIOT):
     pdt.assert_frame_equal(
         CoreDataIOT['dummy'][_ENUM.z],new_z
     )
+
+
+def test_update_mix_iot_rewrites_z_and_y(CoreDataIOT):
+    scenario = "redistribute"
+    CoreDataIOT.clone_scenario("baseline", scenario)
+
+    z_before = CoreDataIOT.query(_ENUM.z, scenarios=scenario).copy()
+    y_before = CoreDataIOT.query(_ENUM.Y, scenarios=scenario).copy()
+    shares = {"Reg1": {"Agriculture": 2.0, "Industry": 8.0}}
+    selector = ("Reg1", "Sector", ["Agriculture", "Industry"])
+
+    CoreDataIOT.update_mix_iot(shares, scenario=scenario, rescale=True)
+
+    z_after = CoreDataIOT.get_block_as_pandas(_ENUM.z, scenario=scenario)
+    y_after = CoreDataIOT.get_block_as_pandas(_ENUM.Y, scenario=scenario)
+
+    z_before_block = z_before.loc[selector, :]
+    y_before_block = y_before.loc[selector, :]
+    weights = pd.Series(shares["Reg1"], dtype=float)
+
+    z_expected = pd.DataFrame(
+        np.multiply.outer(
+            (weights / weights.sum()).reindex(z_before_block.index.get_level_values("Item")).to_numpy(),
+            z_before_block.sum(axis=0).to_numpy(),
+        ),
+        index=z_before_block.index,
+        columns=z_before_block.columns,
+    )
+    y_expected = pd.DataFrame(
+        np.multiply.outer(
+            (weights / weights.sum()).reindex(y_before_block.index.get_level_values("Item")).to_numpy(),
+            y_before_block.sum(axis=0).to_numpy(),
+        ),
+        index=y_before_block.index,
+        columns=y_before_block.columns,
+    )
+
+    pdt.assert_frame_equal(z_after.loc[selector, :], z_expected)
+    pdt.assert_frame_equal(y_after.loc[selector, :], y_expected)
+    pdt.assert_series_equal(z_after.loc[selector, :].sum(axis=0), z_before_block.sum(axis=0))
+    pdt.assert_series_equal(y_after.loc[selector, :].sum(axis=0), y_before_block.sum(axis=0))
+    pdt.assert_frame_equal(
+        z_after.drop(index=z_before_block.index),
+        z_before.drop(index=z_before_block.index),
+    )
+    pdt.assert_frame_equal(
+        y_after.drop(index=y_before_block.index),
+        y_before.drop(index=y_before_block.index),
+    )
+
+
+def test_update_mix_iot_clones_missing_target_scenario(CoreDataIOT):
+    shares = {"Reg1": {"Agriculture": 1.0, "Industry": 3.0}}
+
+    CoreDataIOT.update_mix_iot(
+        shares,
+        scenario="policy mix",
+        clone_from="baseline",
+        rescale=True,
+    )
+
+    assert "policy mix" in CoreDataIOT.scenarios
+    z_after = CoreDataIOT.get_block_as_pandas(_ENUM.z, scenario="policy mix")
+    selector = ("Reg1", "Sector", ["Agriculture", "Industry"])
+    expected_weights = pd.Series(shares["Reg1"], dtype=float)
+    expected_weights = expected_weights / expected_weights.sum()
+    expected = pd.DataFrame(
+        np.multiply.outer(
+            expected_weights.reindex(z_after.loc[selector, :].index.get_level_values("Item")).to_numpy(),
+            CoreDataIOT.query(_ENUM.z, scenarios="baseline").loc[selector, :].sum(axis=0).to_numpy(),
+        ),
+        index=z_after.loc[selector, :].index,
+        columns=z_after.loc[selector, :].columns,
+    )
+
+    pdt.assert_frame_equal(z_after.loc[selector, :], expected, check_dtype=False)
+
+
+def test_update_mix_iot_accepts_near_unit_mix_and_rescales(CoreDataIOT):
+    scenario = "near unit mix"
+    CoreDataIOT.clone_scenario("baseline", scenario)
+
+    shares = {"Reg1": {"Agriculture": 0.201, "Industry": 0.8}}
+    selector = ("Reg1", "Sector", ["Agriculture", "Industry"])
+    z_before = CoreDataIOT.query(_ENUM.z, scenarios=scenario).copy()
+
+    CoreDataIOT.update_mix_iot(shares, scenario=scenario)
+
+    z_after = CoreDataIOT.get_block_as_pandas(_ENUM.z, scenario=scenario)
+    expected_weights = pd.Series(shares["Reg1"], dtype=float)
+    expected_weights = expected_weights / expected_weights.sum()
+    expected = pd.DataFrame(
+        np.multiply.outer(
+            expected_weights.reindex(z_after.loc[selector, :].index.get_level_values("Item")).to_numpy(),
+            z_before.loc[selector, :].sum(axis=0).to_numpy(),
+        ),
+        index=z_after.loc[selector, :].index,
+        columns=z_after.loc[selector, :].columns,
+    )
+
+    pdt.assert_frame_equal(z_after.loc[selector, :], expected, check_dtype=False)
+
+
+def test_update_mix_iot_supports_sparse_z_and_y(CoreDataIOT):
+    scenario = "sparse mix"
+    CoreDataIOT.clone_scenario("baseline", scenario)
+    CoreDataIOT.reset_to_coefficients(scenario)
+
+    z = CoreDataIOT.get_block_as_pandas(_ENUM.z, scenario=scenario).copy()
+    Y = CoreDataIOT.get_block_as_pandas(_ENUM.Y, scenario=scenario).copy()
+    sparse_dtype = pd.SparseDtype("float64", 0.0)
+    z = z.astype(sparse_dtype)
+    Y = Y.astype(sparse_dtype)
+    CoreDataIOT.update_scenarios(scenario, z=z, Y=Y)
+
+    shares = {"Reg1": {"Agriculture": 2.0, "Industry": 8.0}}
+    selector = ("Reg1", "Sector", ["Agriculture", "Industry"])
+    z_before = CoreDataIOT.get_block_as_pandas(_ENUM.z, scenario=scenario).copy()
+
+    CoreDataIOT.update_mix_iot(shares, scenario=scenario, rescale=True)
+
+    z_after = CoreDataIOT.get_block_as_pandas(_ENUM.z, scenario=scenario)
+    expected_weights = pd.Series(shares["Reg1"], dtype=float)
+    expected_weights = expected_weights / expected_weights.sum()
+    expected = pd.DataFrame(
+        np.multiply.outer(
+            expected_weights.reindex(z_after.loc[selector, :].index.get_level_values("Item")).to_numpy(),
+            z_before.loc[selector, :].sum(axis=0).to_numpy(),
+        ),
+        index=z_after.loc[selector, :].index,
+        columns=z_after.loc[selector, :].columns,
+    )
+
+    pdt.assert_frame_equal(z_after.loc[selector, :], expected, check_dtype=False)
+
+
+def test_update_mix_iot_requires_clone_from_for_missing_target_scenario(CoreDataIOT):
+    with pytest.raises(WrongInput, match="Pass clone_from"):
+        CoreDataIOT.update_mix_iot(
+            {"Reg1": {"Agriculture": 1.0}},
+            scenario="missing scenario",
+        )
+
+
+def test_update_mix_iot_rejects_non_unit_mix_without_rescale(CoreDataIOT):
+    with pytest.raises(WrongInput, match="must sum to 1"):
+        CoreDataIOT.update_mix_iot(
+            {"Reg1": {"Agriculture": 2.0, "Industry": 8.0}},
+            scenario="baseline",
+        )
+
+
+def test_update_mix_iot_rejects_unknown_region_or_sector(CoreDataIOT):
+    with pytest.raises(WrongInput, match="does not exist"):
+        CoreDataIOT.update_mix_iot({"Missing": {"Agriculture": 1.0}})
+
+    with pytest.raises(WrongInput, match="unknown sectors"):
+        CoreDataIOT.update_mix_iot({"Reg1": {"Missing sector": 1.0}})
+
+
+def test_update_mix_iot_rejects_sut(CoreDataSUT):
+    with pytest.raises(NotImplementable, match="only for IOT"):
+        CoreDataSUT.update_mix_iot({"Reg1": {"Commodity": 1.0}})
 
 
 def test_update_scenarios_sut_accepts_unified_z(CoreDataSUT):

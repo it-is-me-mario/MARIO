@@ -1773,6 +1773,161 @@ class CoreModel:
         for matrix, value in matrices.items():
             self.set_block(matrix, value, scenario=scenario)
 
+    def update_mix_iot(
+        self,
+        shares_by_region,
+        *,
+        scenario: str = "baseline",
+        clone_from: str | None = None,
+        rescale: bool = False,
+    ) -> None:
+        """Update one IOT regional sector mix across ``z`` and ``Y``.
+
+        Parameters
+        ----------
+        shares_by_region:
+            Mapping ``region -> {sector: share}`` describing how the combined
+            coefficient rows of the selected sectors should be redistributed
+            within each region.
+        scenario:
+            Scenario to update in place. When it does not exist yet, provide
+            ``clone_from=...`` to create it first.
+        clone_from:
+            Optional existing source scenario to clone when ``scenario`` does
+            not exist yet.
+        rescale:
+            When ``True``, rescale each region-level vector to sum to one even
+            when the provided values are totals or otherwise do not already
+            form a near-unit mix.
+
+        Returns
+        -------
+        None
+            The selected scenario is updated in place.
+
+        Notes
+        -----
+        This helper is currently implemented only for IOT tables. It rewrites
+        the coefficient-side ``z`` and ``Y`` blocks, preserving the original
+        column totals of each selected regional sector bundle.
+
+        The method resets the target scenario to coefficient-side storage
+        internally before applying the redistribution, so callers do not need
+        an extra ``reset_to_coefficients(...)`` around this operation.
+        """
+
+        if self.table_type != "IOT":
+            raise NotImplementable("update_mix_iot is currently implemented only for IOT tables.")
+
+        if not isinstance(shares_by_region, MutableMapping) or not shares_by_region:
+            raise WrongInput(
+                "shares_by_region must be one non-empty mapping of regions to sector-share mappings."
+            )
+
+        requested_scenario = str(scenario).strip()
+        if not requested_scenario:
+            raise WrongInput("scenario can not be empty.")
+
+        try:
+            scenario = self._validate_scenario(requested_scenario)
+        except WrongInput as exc:
+            if clone_from is None:
+                raise WrongInput(
+                    f"{requested_scenario} does not exist. Pass clone_from=... to create it first."
+                ) from exc
+            self.clone_scenario(clone_from, requested_scenario)
+            scenario = self._validate_scenario(requested_scenario)
+
+        valid_regions = set(self.get_index(_MASTER_INDEX["r"]))
+        valid_sectors = set(self.get_index(_MASTER_INDEX["s"]))
+        normalized_shares = {}
+        sum_tolerance = 0.01
+
+        for region, sector_shares in shares_by_region.items():
+            if region not in valid_regions:
+                raise WrongInput(
+                    f"Region {region!r} does not exist. Valid regions are: {self.get_index(_MASTER_INDEX['r'])}"
+                )
+
+            if not isinstance(sector_shares, MutableMapping) or not sector_shares:
+                raise WrongInput(
+                    f"Region {region!r} must map to one non-empty mapping of sector shares."
+                )
+
+            weights = pd.Series(sector_shares, dtype=float)
+            if weights.isna().any() or not np.isfinite(weights.to_numpy()).all():
+                raise WrongInput(f"Region {region!r} contains non-finite sector shares.")
+
+            if (weights < 0).any():
+                raise WrongInput(f"Region {region!r} contains negative sector shares.")
+
+            missing_sectors = [sector for sector in weights.index if sector not in valid_sectors]
+            if missing_sectors:
+                raise WrongInput(
+                    f"Region {region!r} references unknown sectors: {missing_sectors}"
+                )
+
+            total = float(weights.sum())
+            if total <= 0:
+                raise WrongInput(f"Region {region!r} sector shares must sum to a positive value.")
+
+            if not rescale and abs(total - 1.0) >= sum_tolerance:
+                raise WrongInput(
+                    f"Region {region!r} sector shares must sum to 1 within {sum_tolerance}. "
+                    "Pass rescale=True to normalize arbitrary positive totals."
+                )
+
+            weights = weights / total
+
+            normalized_shares[region] = weights
+
+        self.reset_to_coefficients(scenario)
+        z = self.get_block_as_pandas(_ENUM.z, scenario=scenario).copy()
+        Y = self.get_block_as_pandas(_ENUM.Y, scenario=scenario).copy()
+        z_updates = []
+        y_updates = []
+
+        for region, weights in normalized_shares.items():
+            selector = (region, _MASTER_INDEX["s"], list(weights.index))
+
+            z_block = z.loc[selector, :]
+            z_weights = weights.reindex(z_block.index.get_level_values("Item"))
+            z_updates.append(
+                pd.DataFrame(
+                    np.multiply.outer(z_weights.to_numpy(), z_block.sum(axis=0).to_numpy()),
+                    index=z_block.index,
+                    columns=z_block.columns,
+                )
+            )
+
+            Y_block = Y.loc[selector, :]
+            y_weights = weights.reindex(Y_block.index.get_level_values("Item"))
+            y_updates.append(
+                pd.DataFrame(
+                    np.multiply.outer(y_weights.to_numpy(), Y_block.sum(axis=0).to_numpy()),
+                    index=Y_block.index,
+                    columns=Y_block.columns,
+                )
+            )
+
+        def _replace_row_blocks(frame: pd.DataFrame, updates: list[pd.DataFrame]) -> pd.DataFrame:
+            if not updates:
+                return frame
+
+            original_index = frame.index
+            replacement = pd.concat(updates, axis=0)
+            remaining = frame.drop(index=replacement.index)
+            return pd.concat([remaining, replacement], axis=0).reindex(original_index)
+
+        z = _replace_row_blocks(z, z_updates)
+        Y = _replace_row_blocks(Y, y_updates)
+
+        self.update_scenarios(scenario, z=z, Y=Y)
+        self.meta._add_history(
+            "Database: updated IOT sector mix in scenario "
+            f"{self._public_scenario_name(scenario)} for regions {sorted(normalized_shares)}."
+        )
+
     def clone_scenario(
         self,
         scenario,
