@@ -96,6 +96,7 @@ from mario.ops import (
     aggregate_database,
     build_new_instance_from_scenario,
     calc_ghg as _calc_ghg,
+    export_database_matrices,
     export_database_to_excel,
     export_database_to_parquet,
     export_database_to_pymrio,
@@ -4290,6 +4291,76 @@ class Database(CoreModel):
             include_meta=include_meta,
             flat=flat,
             separate_files=separate_files,
+        )
+
+    def export(
+        self,
+        matrices,
+        scenarios="baseline",
+        format="csv",
+        path=None,
+        split="scenario",
+        include_meta=False,
+        sep=",",
+        filters=None,
+        **meta_overrides,
+    ):
+        """Export selected matrices as flat, matrix-specific files.
+
+        Parameters
+        ----------
+        matrices:
+            One matrix name or an iterable of names. Standard MARIO matrices
+            as well as exploded accessors (``f_ex``, ``m_ex``, ``p_ex`` and the
+            SUT variants) are supported.
+        scenarios:
+            One scenario name or an iterable of scenario names to export.
+        format:
+            Output format, one of ``"csv"``, ``"txt"`` or ``"parquet"``.
+        path:
+            Output directory. Defaults to the database export directory.
+        split:
+            ``"scenario"`` writes one file per scenario (all matrices inside);
+            ``"matrix"`` writes one file per matrix (all scenarios inside).
+        include_meta:
+            When ``True``, prepend one metadata row per scenario to each file
+            (schema key/value metadata for parquet).
+        sep:
+            Column separator used for the ``csv``/``txt`` formats.
+        filters:
+            Optional mapping restricting which axis labels are exported, e.g.
+            ``{"Satellite account": ["CO2"]}`` to export only the CO2 rows of
+            the footprint matrices. Keys are axis sets, optionally suffixed with
+            ``"_from"``/``"_to"`` to target a single side; a bare set name
+            applies wherever that set appears. Matrices without the filtered
+            axis are left untouched.
+        **meta_overrides:
+            Metadata fields to set or override before exporting, e.g.
+            ``license``, ``version`` or ``release_date``.
+
+        Returns
+        -------
+        None
+            Export files are written to disk.
+
+        Notes
+        -----
+        The output is long-format with ``Scenario`` and ``Matrix`` columns and
+        a ``Unit`` column. Flow matrices carry the numerator unit; coefficient
+        and exploded matrices carry the ratio ``numerator/denominator``.
+        """
+
+        return export_database_matrices(
+            self,
+            matrices=matrices,
+            scenarios=scenarios,
+            format=format,
+            path=path,
+            split=split,
+            include_meta=include_meta,
+            sep=sep,
+            filters=filters,
+            **meta_overrides,
         )
 
     def to_pymrio(

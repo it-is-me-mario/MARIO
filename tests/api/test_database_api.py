@@ -2115,6 +2115,176 @@ def test_exports_with_include_meta_delegate_to_save_meta(monkeypatch, tmp_path):
     ]
 
 
+def _read_flat_export_csv(path):
+    """Read one flat matrix-specific export, skipping a metadata header block."""
+    with open(path, encoding="utf-8") as handle:
+        lines = handle.read().splitlines()
+    if "Scenario" in lines[0]:
+        return pd.read_csv(path)
+    start = next(i for i, line in enumerate(lines) if line.startswith("Scenario,"))
+    return pd.read_csv(path, skiprows=start)
+
+
+def test_export_matrix_specific_split_by_scenario(tmp_path):
+    database = load_test("IOT")
+    database.calc_all()
+
+    database.export(["Z", "z"], scenarios="baseline", format="csv", path=str(tmp_path))
+
+    files = sorted(p.name for p in tmp_path.iterdir())
+    assert files == ["IOT-test-(standard)_baseline_IOT.csv"]
+
+    frame = _read_flat_export_csv(tmp_path / files[0])
+    assert set(frame["Matrix"]) == {"Z", "z"}
+    assert set(frame.loc[frame["Matrix"] == "Z", "Unit"]) == {"M EUR"}
+    assert set(frame.loc[frame["Matrix"] == "z", "Unit"]) == {"M EUR/M EUR"}
+
+
+def test_export_matrix_specific_units_use_numerator_over_denominator(tmp_path):
+    database = load_test("IOT")
+    database.calc_all()
+
+    database.export("e", scenarios="baseline", format="csv", path=str(tmp_path))
+    frame = _read_flat_export_csv(next(tmp_path.iterdir()))
+
+    assert set(frame["Unit"]) == {"1000 p/M EUR", "kg/M EUR"}
+
+
+def test_export_matrix_specific_supports_exploded_accessors(tmp_path):
+    database = load_test("IOT")
+    database.calc_all()
+
+    database.export("f_ex", scenarios="baseline", format="csv", path=str(tmp_path))
+    frame = _read_flat_export_csv(next(tmp_path.iterdir()))
+
+    assert set(frame["Matrix"]) == {"f_ex"}
+    assert set(frame["Unit"]) == {"1000 p/M EUR", "kg/M EUR"}
+
+
+def test_export_matrix_specific_split_by_matrix_disambiguates_case(tmp_path):
+    database = load_test("IOT")
+    database.calc_all()
+
+    database.export(["Z", "z"], scenarios="baseline", format="csv", path=str(tmp_path), split="matrix")
+
+    files = sorted(p.name for p in tmp_path.iterdir())
+    assert files == [
+        "IOT-test-(standard)_Z_IOT.csv",
+        "IOT-test-(standard)_zz_IOT.csv",
+    ]
+
+    z_flat = _read_flat_export_csv(tmp_path / "IOT-test-(standard)_Z_IOT.csv")
+    zz_flat = _read_flat_export_csv(tmp_path / "IOT-test-(standard)_zz_IOT.csv")
+    assert set(z_flat["Matrix"]) == {"Z"}
+    assert set(zz_flat["Matrix"]) == {"z"}
+
+
+def test_export_matrix_specific_filters_labels_by_set(tmp_path):
+    database = load_test("IOT")
+    database.calc_all()
+
+    database.export(
+        "f_ex",
+        scenarios="baseline",
+        format="csv",
+        path=str(tmp_path),
+        filters={"Satellite account": ["CO2"]},
+    )
+    frame = _read_flat_export_csv(next(tmp_path.iterdir()))
+
+    assert set(frame["Satellite account_from"]) == {"CO2"}
+    assert set(frame["Unit"]) == {"kg/M EUR"}
+
+
+def test_export_matrix_specific_filters_leave_untargeted_axes_untouched(tmp_path):
+    database = load_test("IOT")
+    database.calc_all()
+
+    # A satellite filter must not drop Z rows, which have no satellite axis.
+    database.export(
+        ["Z", "e"],
+        scenarios="baseline",
+        format="csv",
+        path=str(tmp_path),
+        filters={"Satellite account": ["CO2"], "Region_to": ["Reg1"]},
+    )
+    frame = _read_flat_export_csv(next(tmp_path.iterdir()))
+
+    z_rows = frame[frame["Matrix"] == "Z"]
+    e_rows = frame[frame["Matrix"] == "e"]
+    assert not z_rows.empty
+    assert set(z_rows["Region_to"]) == {"Reg1"}
+    assert set(e_rows["Satellite account_from"]) == {"CO2"}
+    assert set(e_rows["Region_to"]) == {"Reg1"}
+
+
+def test_export_matrix_specific_rejects_unknown_filter_set(tmp_path):
+    database = load_test("IOT")
+    database.calc_all()
+
+    with pytest.raises(WrongInput):
+        database.export("Z", path=str(tmp_path), filters={"NotASet": ["x"]})
+
+
+def test_export_matrix_specific_include_meta_prepends_scenario_rows(tmp_path):
+    database = load_test("IOT")
+    database.calc_all()
+    database.clone_scenario("baseline", "high")
+
+    database.export(
+        "Z",
+        scenarios=["baseline", "high"],
+        format="csv",
+        path=str(tmp_path),
+        split="matrix",
+        include_meta=True,
+        license="CC-BY-4.0",
+        release_date="2026-07-01",
+    )
+
+    target = next(tmp_path.iterdir())
+    header = pd.read_csv(target, nrows=2)
+    assert list(header["name"]) == [
+        "IOT test (standard)_baseline",
+        "IOT test (standard)_high",
+    ]
+    assert set(header["license"]) == {"CC-BY-4.0"}
+    assert set(header["release_date"]) == {"2026-07-01"}
+    assert database.meta.release_date == "2026-07-01"
+
+
+def test_export_matrix_specific_parquet_stores_metadata_in_schema(tmp_path):
+    pytest.importorskip("pyarrow")
+    import json
+
+    import pyarrow.parquet as pq
+
+    database = load_test("IOT")
+    database.calc_all()
+
+    database.export("Z", scenarios="baseline", format="parquet", path=str(tmp_path), include_meta=True, version="1.0")
+
+    target = next(tmp_path.iterdir())
+    schema_metadata = pq.read_table(target).schema.metadata
+    records = json.loads(schema_metadata[b"mario_metadata"])
+    assert records[0]["version"] == "1.0"
+    assert records[0]["name"] == "IOT test (standard)_baseline"
+
+
+def test_export_matrix_specific_rejects_unknown_scenarios_and_formats(tmp_path):
+    database = load_test("IOT")
+    database.calc_all()
+
+    with pytest.raises(WrongInput):
+        database.export("Z", scenarios="missing", path=str(tmp_path))
+
+    with pytest.raises(WrongInput):
+        database.export("Z", format="xml", path=str(tmp_path))
+
+    with pytest.raises(WrongInput):
+        database.export([], path=str(tmp_path))
+
+
 def test_metadata_to_dict_includes_table():
     database = load_test("IOT")
 
