@@ -38,7 +38,7 @@ from mario.settings.settings import (
     set_linear_strategy,
     upload_settings,
 )
-from mario.parsers.api import build_database_from_state, build_parser_state
+from mario.parsers.api import build_database_from_state, build_state_from_parser_output
 from mario.test.mario_test import load_test
 from mario.model.conventions import _ENUM, _MASTER_INDEX
 from mario.ops.workbook_specs import SHOCK_COLUMNS, SHOCK_FLAT_COLUMNS
@@ -2113,6 +2113,45 @@ def test_exports_with_include_meta_delegate_to_save_meta(monkeypatch, tmp_path):
         (txt_root / "metadata", "json"),
         (parquet_root / "metadata", "json"),
     ]
+
+
+def test_metadata_to_dict_includes_table():
+    database = load_test("IOT")
+
+    payload = database.meta._to_dict()
+
+    assert payload["table"] == "IOT"
+
+
+def test_metadata_to_dict_includes_optional_license_and_version():
+    database = load_test("IOT")
+    database.meta._add_attribute(license="CC-BY-4.0", version="2024.1")
+
+    payload = database.meta._to_dict()
+
+    assert payload["license"] == "CC-BY-4.0"
+    assert payload["version"] == "2024.1"
+
+
+def test_build_database_from_state_propagates_optional_license_and_version():
+    baseline = load_test("IOT")
+    state = build_state_from_parser_output(
+        table="IOT",
+        matrices={"baseline": baseline.matrices["baseline"]},
+        indexes=baseline._indeces,
+        units=baseline.units,
+        parser_name="test parser",
+        name="payload",
+        source="fixture",
+        license="ODC-BY",
+        version="v2",
+        year=2020,
+    )
+
+    database = build_database_from_state(state, calc_all=False)
+
+    assert database.meta.license == "ODC-BY"
+    assert database.meta.version == "v2"
 
 
 def test_resolve_region_labels_to_iso3_members_expands_exiobase_macro_regions():
