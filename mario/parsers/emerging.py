@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import functools
 import logging
 from pathlib import Path
 import re
@@ -10,6 +11,7 @@ import re
 import h5py
 import numpy as np
 import pandas as pd
+import yaml
 from scipy.io import loadmat
 from scipy.sparse import coo_matrix
 
@@ -64,6 +66,18 @@ _EMERGING_E_MAIN_PATTERNS = (
 _EMERGING_E_CO2_RE = re.compile(r"EMERGING_E_CO2_(?P<year>\d{4})\.mat$", flags=re.IGNORECASE)
 _EMERGING_E_FIGURE_DATA_RE = re.compile(r"Figure data\.xlsx$", flags=re.IGNORECASE)
 _EMERGING_STANDARD_VARIANTS = {"standard", "default", "base", "core"}
+_EMERGING_E_SECTORS_FILE = "emerging_e_sectors.yaml"
+_EMERGING_STANDARD_SECTOR_COUNT = 133
+_EMERGING_STANDARD_ELECTRICITY_INDEX = 96
+_EMERGING_E_FUEL_TO_SECTOR_INDEX = {
+    0: 96,   # Coal -> production of electricity by coal
+    1: 97,   # Natural gas -> production of electricity by gas
+    2: 101,  # Oil products -> production of electricity by petroleum and other oil derivatives
+    3: 101,  # Crude, NGL, Ref Feeds. -> production of electricity by petroleum and other oil derivatives
+    4: 107,  # Other -> production of electricity nec
+    5: 101,  # Oil shale & oil sands -> production of electricity by petroleum and other oil derivatives
+    6: 102,  # Peat & Peat products -> production of electricity by biomass and waste
+}
 
 
 @dataclass(frozen=True)
@@ -507,6 +521,26 @@ def _read_emerging_e_sector_labels_from_workbook(
     return None
 
 
+@functools.lru_cache(maxsize=1)
+def _load_emerging_e_builtin_sectors() -> tuple[str, ...]:
+    """Load the EMERGING-E sector classification shipped with MARIO."""
+    path = Path(__file__).with_name(_EMERGING_E_SECTORS_FILE)
+    with path.open("r", encoding="utf-8") as handle:
+        data = yaml.safe_load(handle)
+    sectors = data.get("sectors") if isinstance(data, dict) else None
+    if not sectors:
+        return ()
+    return tuple(str(value) for value in sectors)
+
+
+def _builtin_emerging_e_sector_labels(sector_count: int) -> list[str] | None:
+    """Return the built-in EMERGING-E sector labels when they match the bundle size."""
+    sectors = _load_emerging_e_builtin_sectors()
+    if len(sectors) == sector_count:
+        return list(sectors)
+    return None
+
+
 def _read_emerging_e_sector_labels(layout: EMERGINGLayout, sector_count: int) -> list[str] | None:
     """Read EMERGING-E sector labels from one explicit or auto-detected workbook."""
     if layout.labels_path is not None:
@@ -585,6 +619,62 @@ def _load_emerging_companion_co2(path: Path, *, expected_rows: int) -> np.ndarra
     )
 
 
+def _load_emerging_companion_co2_candidates(path: Path) -> list[np.ndarray]:
+    """Load every 2-D numeric candidate matrix exposed by one companion MAT file."""
+    data = loadmat(path)
+    candidates = [
+        np.asarray(value, dtype=float)
+        for key, value in data.items()
+        if not key.startswith("__") and isinstance(value, np.ndarray) and value.ndim == 2
+    ]
+    if not candidates:
+        raise WrongFormat(f"The companion CO2 file '{path.name}' exposes no 2-D numeric matrix.")
+    return candidates
+
+
+def _project_standard_emerging_power_co2_to_emerging_e(
+    co2: np.ndarray,
+    *,
+    region_positions: list[int],
+    sector_count: int,
+) -> np.ndarray:
+    """Project one standard 133-sector EMERGING companion onto the 146-sector EMERGING-E layout."""
+    if co2.shape[1] != len(EMERGING_CO2_LABELS):
+        raise WrongFormat(
+            "Standard EMERGING CO2 projection to EMERGING-E requires one 7-column fuel matrix."
+        )
+    if sector_count < 146:
+        raise WrongFormat(
+            "Standard EMERGING CO2 projection to EMERGING-E requires the full 146-sector layout."
+        )
+
+    projected = np.zeros((len(EMERGING_CO2_LABELS), len(region_positions) * sector_count), dtype=float)
+    for selected_region_position, region in enumerate(region_positions):
+        source_offset = region * _EMERGING_STANDARD_SECTOR_COUNT
+        target_offset = selected_region_position * sector_count
+
+        # Standard sectors 1..96 map directly to EMERGING-E sectors 1..96.
+        projected[:, target_offset : target_offset + _EMERGING_STANDARD_ELECTRICITY_INDEX] = co2[
+            source_offset : source_offset + _EMERGING_STANDARD_ELECTRICITY_INDEX,
+            :,
+        ].T
+
+        # Split the standard aggregated electricity sector across the 14 EMERGING-E
+        # electricity sub-sectors using the fixed fuel-to-technology mapping.
+        source_row = source_offset + _EMERGING_STANDARD_ELECTRICITY_INDEX
+        electricity_fuels = co2[source_row, :]
+        for fuel_index, target_sector_index in _EMERGING_E_FUEL_TO_SECTOR_INDEX.items():
+            projected[fuel_index, target_offset + target_sector_index] = electricity_fuels[fuel_index]
+
+        # Standard sectors 98..133 shift after the 14 EMERGING-E electricity sectors.
+        projected[:, target_offset + 110 : target_offset + 146] = co2[
+            source_offset + 97 : source_offset + _EMERGING_STANDARD_SECTOR_COUNT,
+            :,
+        ].T
+
+    return projected
+
+
 def parse_emerging_iot(
     path: str | Path,
     *,
@@ -623,6 +713,15 @@ def parse_emerging_iot(
             region_codes = _read_emerging_e_region_codes(layout, region_count)
             sector_labels = _read_emerging_e_sector_labels(layout, sector_count)
             if sector_labels is None:
+                sector_labels = _builtin_emerging_e_sector_labels(sector_count)
+                if sector_labels is not None:
+                    log_time(
+                        logger,
+                        "Parser: applied the MARIO built-in EMERGING-E "
+                        f"{sector_count}-sector classification.",
+                        "info",
+                    )
+            if sector_labels is None:
                 sector_labels = _generic_labels("Sector", sector_count)
             final_labels = _generic_labels("Final demand", final_count)
             selected_regions, region_positions = _select_regions(region_codes, regions=regions)
@@ -636,7 +735,8 @@ def parse_emerging_iot(
             if layout.labels_path is None:
                 log_time(
                     logger,
-                    "Parser: EMERGING-E sector labels workbook not provided; using generic sector identifiers.",
+                    "Parser: EMERGING-E sector labels workbook not provided; "
+                    "falling back to the built-in classification when available.",
                     "debug",
                 )
 
@@ -703,8 +803,31 @@ def parse_emerging_iot(
         satellite_axis = pd.Index([EMERGING_SATELLITE_PLACEHOLDER], name=None)
         if layout.co2_path is not None:
             log_time(logger, f"Parser: reading EMERGING-E CO2 file {layout.co2_path.name}.", "info")
-            co2 = _load_emerging_companion_co2(layout.co2_path, expected_rows=region_count * sector_count)
-            co2_selected = np.asarray(co2[sector_positions, :], dtype=float).T
+            co2_candidates = _load_emerging_companion_co2_candidates(layout.co2_path)
+            co2_selected = None
+            full_emerging_e_rows = region_count * sector_count
+            standard_emerging_rows = region_count * _EMERGING_STANDARD_SECTOR_COUNT
+            for candidate in co2_candidates:
+                if candidate.shape[0] == full_emerging_e_rows:
+                    co2_selected = np.asarray(candidate[sector_positions, :], dtype=float).T
+                    break
+                if candidate.shape[0] == standard_emerging_rows:
+                    co2_selected = _project_standard_emerging_power_co2_to_emerging_e(
+                        np.asarray(candidate, dtype=float),
+                        region_positions=region_positions,
+                        sector_count=sector_count,
+                    )
+                    break
+
+            if co2_selected is None:
+                raise WrongFormat(
+                    (
+                        f"No EMERGING-E-compatible CO2 matrix was found in '{layout.co2_path.name}'. "
+                        f"Expected either {full_emerging_e_rows} rows (full EMERGING-E companion) "
+                        f"or {standard_emerging_rows} rows (standard EMERGING companion)."
+                    )
+                )
+
             if co2_selected.shape[0] == len(EMERGING_CO2_LABELS):
                 satellite_labels = list(EMERGING_CO2_LABELS)
             else:

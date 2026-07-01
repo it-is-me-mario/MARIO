@@ -53,7 +53,7 @@ setup(
     package_data={
         "mario.settings": ["*.yaml"],
         "mario.clusters": ["*.yaml", "*.xlsx"],
-        "mario.parsers": ["*.csv"],
+        "mario.parsers": ["*.csv", "*.yaml"],
         "mario.test":["*.xlsx"],
         "mario.ops.cvxlab_models": [
             "Split_sectors/*.xlsx",

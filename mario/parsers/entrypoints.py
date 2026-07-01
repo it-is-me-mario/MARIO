@@ -2030,7 +2030,12 @@ def parse_emerging(
     first tries to auto-detect a compatible sibling ``.xlsx`` workbook with one
     ``Sector``/``Label``/``Name`` column exposing the full EMERGING-E sector
     list; use ``labels_path=`` to override that detection explicitly. If no
-    compatible workbook is found, MARIO falls back to generic sector labels.
+    compatible workbook is found, MARIO falls back to a built-in EMERGING-E
+    sector classification (146 sectors: the standard EMERGING sectors with the
+    electricity sector disaggregated into 14 power sub-sectors) whenever the
+    bundle dimensions match, and only otherwise to generic sector labels. The
+    EMERGING-E Zenodo record itself ships no sector-name file, so this built-in
+    classification is what provides explicit sector names by default.
 
     Parameters
     ----------
@@ -2052,7 +2057,12 @@ def parse_emerging(
         accounts as placeholders.
     co2_path : str, optional
         explicit path to the companion CO2 MATLAB file. When provided it
-        overrides sibling auto-detection.
+        overrides sibling auto-detection. For ``variant="E"``, MARIO accepts
+        either an EMERGING-E-specific CO2 companion already aligned to the
+        146-sector layout or one standard EMERGING ``EMERGING_CO2_<year>``
+        companion. In the latter case, MARIO projects the 7 fuel rows of the
+        original aggregated ``electricity`` sector onto the EMERGING-E power
+        generation sub-sectors using a fixed fuel-to-technology mapping.
     labels_path : str, optional
         explicit path to one Excel workbook containing sector labels. For
         ``variant="E"`` this overrides the automatic search among sibling

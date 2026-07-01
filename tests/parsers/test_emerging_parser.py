@@ -183,6 +183,68 @@ def _write_emerging_e_bundle(
     return main_path, co2_path, figure_path
 
 
+def _write_emerging_e_full_bundle(
+    root: Path,
+    *,
+    year: int = 2018,
+    region_codes: tuple[str, ...] = ("AAA", "BBB"),
+) -> tuple[Path, Path, Path]:
+    """Write one 146-sector EMERGING-E-like bundle for projection tests."""
+    root.mkdir(parents=True, exist_ok=True)
+    main_path = root / f"EMERGING_E_{year}.mat"
+    figure_path = root / "Figure data.xlsx"
+    labels_path = root / "EMERGING_E_sector_labels_full.xlsx"
+
+    sector_count = 146
+    final_count = 3
+    region_count = len(region_codes)
+    total_sectors = sector_count * region_count
+
+    z = np.eye(total_sectors, dtype=float)
+    y = np.arange(1, region_count * final_count * total_sectors + 1, dtype=float).reshape(region_count * final_count, total_sectors)
+    va = np.arange(100.0, 100.0 + total_sectors, dtype=float).reshape(total_sectors, 1)
+    x = np.arange(1000.0, 1000.0 + total_sectors, dtype=float).reshape(1, total_sectors)
+
+    with h5py.File(main_path, "w") as handle:
+        group = handle.create_group("EMERGING_Power")
+        group.create_dataset("MRIO_Z_E", data=z)
+        group.create_dataset("MRIO_F_E", data=y)
+        group.create_dataset("MRIO_VA_E", data=va)
+        group.create_dataset("MRIO_X_E", data=x)
+
+    with pd.ExcelWriter(figure_path, engine="openpyxl") as writer:
+        pd.DataFrame(
+            {
+                "Number": list(range(1, region_count + 1)),
+                "Country": [f"Country {code}" for code in region_codes],
+                "ISO3": list(region_codes),
+                "EMERGING": [0.0] * region_count,
+                "EMERGING-E": [0.0] * region_count,
+            }
+        ).to_excel(writer, sheet_name="Figure S4", index=False)
+
+    labels = [f"Sector {index:03d}" for index in range(1, sector_count + 1)]
+    labels[96] = "production of electricity by coal"
+    labels[97] = "production of electricity by gas"
+    labels[98] = "production of electricity by nuclear"
+    labels[99] = "production of electricity by hydro"
+    labels[100] = "production of electricity by wind"
+    labels[101] = "production of electricity by petroleum and other oil derivatives"
+    labels[102] = "production of electricity by biomass and waste"
+    labels[103] = "production of electricity by solar photovoltaic"
+    labels[104] = "production of electricity by solar thermal"
+    labels[105] = "production of electricity by tide, wave, ocean"
+    labels[106] = "production of electricity by geothermal"
+    labels[107] = "production of electricity nec"
+    labels[108] = "transmission of electricity"
+    labels[109] = "distribution and trade of electricity"
+
+    with pd.ExcelWriter(labels_path, engine="openpyxl") as writer:
+        pd.DataFrame({"Sector": labels}).to_excel(writer, sheet_name="Sector", index=False)
+
+    return main_path, figure_path, labels_path
+
+
 def _write_emerging_e_labels_workbook(root: Path) -> Path:
     """Write one explicit EMERGING-E sector-label workbook."""
     labels_path = root / "EMERGING_E_sector_labels.xlsx"
@@ -395,3 +457,47 @@ def test_public_parse_emerging_supports_emerging_e_variant(tmp_path):
     assert database.Y.shape == (6, 6)
     assert database.V.shape == (1, 6)
     assert database.E.shape == (2, 6)
+
+
+def test_parse_emerging_iot_projects_standard_emerging_power_co2_to_emerging_e(tmp_path):
+    main_path, _, labels_path = _write_emerging_e_full_bundle(tmp_path)
+    co2_path = tmp_path / "EMERGING_CO2_2018.mat"
+    co2 = np.zeros((266, 7), dtype=float)
+    co2[133, :] = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
+    co2[96, :] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]
+    co2[97, :] = [8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0]
+    co2[229, :] = [10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0]
+    co2[230, :] = [80.0, 90.0, 100.0, 110.0, 120.0, 130.0, 140.0]
+    savemat(co2_path, {"CO2": co2})
+
+    matrices, _, _, _ = parse_emerging_iot(
+        main_path,
+        variant="E",
+        regions=["BBB"],
+        co2_path=co2_path,
+        labels_path=labels_path,
+    )
+
+    base = matrices["baseline"]
+    labels = list(base["E"].columns.get_level_values(-1))
+    coal_column = labels.index("production of electricity by coal")
+    gas_column = labels.index("production of electricity by gas")
+    petroleum_column = labels.index("production of electricity by petroleum and other oil derivatives")
+    biomass_column = labels.index("production of electricity by biomass and waste")
+    other_column = labels.index("production of electricity nec")
+    first_column = labels.index("Sector 001")
+    shifted_column = labels.index("Sector 111")
+
+    assert base["E"].shape == (7, 146)
+    assert float(base["E"].iloc[0, first_column]) == 0.1
+    assert float(base["E"].iloc[6, first_column]) == 0.7
+    assert float(base["E"].iloc[0, coal_column]) == 10.0
+    assert float(base["E"].iloc[1, gas_column]) == 20.0
+    assert float(base["E"].iloc[2, petroleum_column]) == 30.0
+    assert float(base["E"].iloc[3, petroleum_column]) == 40.0
+    assert float(base["E"].iloc[4, other_column]) == 50.0
+    assert float(base["E"].iloc[5, petroleum_column]) == 60.0
+    assert float(base["E"].iloc[6, biomass_column]) == 70.0
+    assert float(base["E"].iloc[0, shifted_column]) == 80.0
+    assert float(base["E"].iloc[6, shifted_column]) == 140.0
+    assert float(base["E"].sum().sum()) == 1052.8
