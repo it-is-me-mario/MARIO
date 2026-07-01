@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import MutableMapping
 from contextlib import contextmanager
 import inspect
 from pathlib import Path
@@ -362,6 +363,484 @@ def _export_matrix_directory(
         _coerce_sparse_columns_to_dense(units).to_parquet(units_path)
     else:
         units.to_csv(units_path, header=True, index=True, sep=sep)
+
+
+_FLOW_MATRIX_NAMES = {
+    "Z", "Y", "V", "E", "EY", "VY", "X",
+    "U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec",
+}
+
+_NUMERATOR_SET_PRIORITY = (
+    _MASTER_INDEX["k"],
+    _MASTER_INDEX["f"],
+    _MASTER_INDEX["s"],
+    _MASTER_INDEX["a"],
+    _MASTER_INDEX["c"],
+)
+
+_DENOMINATOR_SET_PRIORITY = (
+    _MASTER_INDEX["s"],
+    _MASTER_INDEX["a"],
+    _MASTER_INDEX["c"],
+    _MASTER_INDEX["f"],
+    _MASTER_INDEX["k"],
+)
+
+_META_HEADER_FIELDS = (
+    "name",
+    "year",
+    "license",
+    "version",
+    "release_date",
+    "tech_assumption",
+    "table",
+)
+
+_FILENAME_META_FIELDS = ("name", "year", "table", "version", "tech_assumption")
+
+
+def _unit_lookup(database) -> dict[str, dict[str, str]]:
+    """Build one ``set -> {item: unit}`` lookup for unit-bearing levels."""
+    lookups: dict[str, dict[str, str]] = {}
+    for set_name in (
+        _MASTER_INDEX["s"],
+        _MASTER_INDEX["a"],
+        _MASTER_INDEX["c"],
+        _MASTER_INDEX["f"],
+        _MASTER_INDEX["k"],
+    ):
+        try:
+            frame = database.units[set_name]
+        except KeyError:
+            continue
+        if frame is None or frame.shape[0] == 0:
+            continue
+        series = frame.iloc[:, 0]
+        lookups[set_name] = {
+            str(item): ("" if pd.isna(unit) else str(unit))
+            for item, unit in series.items()
+        }
+    return lookups
+
+
+def _resolve_side_units(
+    flat: pd.DataFrame,
+    lookups: dict[str, dict[str, str]],
+    *,
+    side: str,
+    priority: tuple[str, ...],
+) -> pd.Series:
+    """Resolve one per-row unit token by walking one axis-set priority order."""
+    resolved = pd.Series("", index=flat.index, dtype=object)
+    filled = pd.Series(False, index=flat.index)
+    for set_name in priority:
+        column = f"{set_name}_{side}"
+        if column not in flat.columns or set_name not in lookups:
+            continue
+        values = flat[column].astype(object)
+        mask = (~filled) & values.ne("") & values.notna()
+        if mask.any():
+            resolved.loc[mask] = values.loc[mask].map(lookups[set_name]).fillna("")
+            filled.loc[mask] = True
+    return resolved
+
+
+def _flat_units_column(
+    flat: pd.DataFrame,
+    lookups: dict[str, dict[str, str]],
+    *,
+    is_coefficient: bool,
+) -> pd.Series:
+    """Build the per-row Unit column for one flat matrix payload."""
+    numerator = _resolve_side_units(
+        flat, lookups, side="from", priority=_NUMERATOR_SET_PRIORITY
+    )
+    if not is_coefficient:
+        return numerator
+
+    denominator = _resolve_side_units(
+        flat, lookups, side="to", priority=_DENOMINATOR_SET_PRIORITY
+    )
+    unit = numerator.copy()
+    ratio_mask = numerator.ne("") & denominator.ne("")
+    unit.loc[ratio_mask] = numerator.loc[ratio_mask] + "/" + denominator.loc[ratio_mask]
+    return unit
+
+
+def _get_export_matrix_frame(database, matrix_name: str, scenario: str) -> pd.DataFrame:
+    """Return one matrix frame, supporting exploded ``*_ex`` accessors."""
+    if matrix_name.endswith("_ex"):
+        accessor = getattr(database, matrix_name, None)
+        if accessor is None or not callable(accessor):
+            raise WrongInput(f"Unknown exploded matrix accessor: {matrix_name!r}.")
+        return accessor(scenario=scenario)
+
+    return database.query(matrix_name, scenarios=[scenario])
+
+
+def _normalize_export_filters(filters) -> dict[tuple[str, str | None], set[str]]:
+    """Normalize the ``filters`` mapping to ``(set, side) -> allowed labels``.
+
+    Keys may be a bare axis set (applied to both sides where it appears) or a
+    side-specific ``"<set>_from"`` / ``"<set>_to"`` column name.
+    """
+    if filters is None:
+        return {}
+    if not isinstance(filters, MutableMapping):
+        raise WrongInput(
+            "filters must be one mapping of axis set (optionally suffixed with "
+            "'_from'/'_to') to allowed labels."
+        )
+
+    normalized: dict[tuple[str, str | None], set[str]] = {}
+    for key, values in filters.items():
+        key_str = str(key)
+        set_name: str = key_str
+        side: str | None = None
+        for suffix in ("_from", "_to"):
+            candidate = key_str[: -len(suffix)]
+            if key_str.endswith(suffix) and candidate in FLAT_AXIS_SETS:
+                set_name, side = candidate, suffix[1:]
+                break
+
+        if set_name not in FLAT_AXIS_SETS:
+            raise WrongInput(
+                f"Unknown filter set {key_str!r}. Valid sets are {list(FLAT_AXIS_SETS)}, "
+                "optionally suffixed with '_from' or '_to'."
+            )
+
+        allowed = [values] if isinstance(values, str) else list(values)
+        if not allowed:
+            raise WrongInput(f"filters[{key_str!r}] must list at least one label.")
+        normalized.setdefault((set_name, side), set()).update(str(value) for value in allowed)
+
+    return normalized
+
+
+def _apply_export_filters(
+    flat: pd.DataFrame, filters: dict[tuple[str, str | None], set[str]]
+) -> pd.DataFrame:
+    """Keep only rows matching every requested axis-label filter.
+
+    A filter constrains a row only on the sides where its set is populated, so
+    filtering by e.g. ``Satellite account`` leaves matrices without that axis
+    untouched. Bare set keys apply to both the ``_from`` and ``_to`` columns.
+    """
+    if not filters:
+        return flat
+
+    mask = pd.Series(True, index=flat.index)
+    for (set_name, side), allowed in filters.items():
+        sides = [side] if side is not None else ["from", "to"]
+        for current_side in sides:
+            column = f"{set_name}_{current_side}"
+            if column not in flat.columns:
+                continue
+            values = flat[column].astype(object)
+            present = values.ne("") & values.notna()
+            mask &= (~present) | values.isin(allowed)
+
+    return flat.loc[mask]
+
+
+def _matrix_flat_with_units(
+    database,
+    matrix_name: str,
+    scenario: str,
+    lookups: dict[str, dict[str, str]],
+    filters: dict[tuple[str, str | None], set[str]],
+) -> pd.DataFrame:
+    """Build one untrimmed flat frame including the Unit column."""
+    frame = _get_export_matrix_frame(database, matrix_name, scenario)
+    if not isinstance(frame, pd.DataFrame):
+        frame = frame.to_frame()
+    frame = _prepare_export_matrix(database, matrix_name, frame)
+    flat = _matrix_to_flat_frame(matrix_name, frame, scenario=scenario)
+    is_coefficient = matrix_name not in _FLOW_MATRIX_NAMES
+    unit = _flat_units_column(flat, lookups, is_coefficient=is_coefficient)
+    flat.insert(len(flat.columns) - 1, "Unit", unit)
+    return _apply_export_filters(flat, filters)
+
+
+def _trim_flat_with_units(frame: pd.DataFrame) -> pd.DataFrame:
+    """Drop empty axis columns while keeping Scenario, Matrix, Unit and Value."""
+    keep_columns = ["Scenario", "Matrix"]
+    for side in ("from", "to"):
+        for set_name in FLAT_AXIS_SETS:
+            column = f"{set_name}_{side}"
+            if column in frame.columns and frame[column].replace("", pd.NA).dropna().any():
+                keep_columns.append(column)
+    keep_columns.extend(["Unit", "Value"])
+    return frame.loc[:, keep_columns]
+
+
+def _meta_value(meta, field: str, scenario: str | None):
+    """Resolve one metadata header value, combining name with the scenario."""
+    if field == "name":
+        base = getattr(meta, "name", None)
+        base = "" if base is None else str(base)
+        if scenario is None:
+            return base
+        return f"{base}_{scenario}" if base else str(scenario)
+
+    value = getattr(meta, field, None)
+    return "" if value is None else value
+
+
+def _meta_header_frame(database, scenarios: list[str]) -> pd.DataFrame:
+    """Build the one-row-per-scenario metadata header table."""
+    rows = [
+        {field: _meta_value(database.meta, field, scenario) for field in _META_HEADER_FIELDS}
+        for scenario in scenarios
+    ]
+    return pd.DataFrame(rows, columns=list(_META_HEADER_FIELDS))
+
+
+def _sanitize_filename_token(value) -> str:
+    """Normalize one filename token to a filesystem-friendly slug."""
+    text = str(value).strip()
+    for character in (" ", "/", "\\", ":"):
+        text = text.replace(character, "-")
+    return text
+
+
+def _export_filename(
+    database,
+    *,
+    variable_token: str,
+    suffix: str,
+) -> str:
+    """Compose one export filename from metadata and the split-specific token."""
+    tokens: list[str] = []
+    for field in _FILENAME_META_FIELDS:
+        if field == "name":
+            value = getattr(database.meta, "name", None)
+            if value:
+                tokens.append(_sanitize_filename_token(value))
+            tokens.append(_sanitize_filename_token(variable_token))
+        else:
+            value = getattr(database.meta, field, None)
+            if value not in (None, ""):
+                tokens.append(_sanitize_filename_token(value))
+
+    if not tokens:
+        tokens.append(_sanitize_filename_token(variable_token))
+
+    return f"{'_'.join(tokens)}.{suffix}"
+
+
+def _disambiguate_variable_tokens(
+    variable_field: str, variable_values: list[str]
+) -> dict[str, str]:
+    """Return collision-free filename tokens for one split axis.
+
+    Matrix names that differ only in case (e.g. ``Z``/``z``) collide on
+    case-insensitive filesystems, so the flow keeps its name while the
+    coefficient is doubled (``z`` -> ``zz``); any residual collision gets a
+    numeric suffix.
+    """
+    counts: dict[str, int] = {}
+    for value in variable_values:
+        counts[value.casefold()] = counts.get(value.casefold(), 0) + 1
+
+    tokens: dict[str, str] = {}
+    seen: dict[str, int] = {}
+    for value in variable_values:
+        token = value
+        if (
+            variable_field == "matrix"
+            and counts[value.casefold()] > 1
+            and value not in _FLOW_MATRIX_NAMES
+        ):
+            token = value * 2
+        folded = token.casefold()
+        seen[folded] = seen.get(folded, 0) + 1
+        if seen[folded] > 1:
+            token = f"{token}-{seen[folded]}"
+        tokens[value] = token
+    return tokens
+
+
+def _write_flat_text_with_meta(
+    data: pd.DataFrame,
+    meta_frame: pd.DataFrame | None,
+    path: Path,
+    *,
+    sep: str,
+) -> None:
+    """Write one flat text file, optionally prefixed by a metadata header block."""
+    with open(path, "w", encoding="utf-8", newline="") as handle:
+        if meta_frame is not None:
+            meta_frame.to_csv(handle, index=False, sep=sep)
+            handle.write("\n")
+        data.to_csv(handle, index=False, sep=sep)
+
+
+def _write_flat_parquet_with_meta(
+    data: pd.DataFrame,
+    meta_frame: pd.DataFrame | None,
+    path: Path,
+) -> None:
+    """Write one flat parquet file, storing metadata in the schema key/value store."""
+    import json
+
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    table = pa.Table.from_pandas(_coerce_sparse_columns_to_dense(data), preserve_index=False)
+    if meta_frame is not None:
+        existing = dict(table.schema.metadata or {})
+        existing[b"mario_metadata"] = json.dumps(
+            meta_frame.astype(object).where(meta_frame.notna(), None).to_dict(orient="records")
+        ).encode("utf-8")
+        table = table.replace_schema_metadata(existing)
+    pq.write_table(table, path)
+
+
+def export_database_matrices(
+    database,
+    *,
+    matrices,
+    scenarios="baseline",
+    format: str = "csv",
+    path=None,
+    split: str = "scenario",
+    include_meta: bool = False,
+    sep: str = ",",
+    filters=None,
+    **meta_overrides,
+) -> None:
+    """Export selected matrices as flat, matrix-specific files.
+
+    Parameters
+    ----------
+    matrices:
+        One matrix name or an iterable of names. Standard MARIO matrices as
+        well as exploded accessors (``f_ex``, ``m_ex``, ``p_ex`` and the SUT
+        variants) are supported.
+    scenarios:
+        One scenario name or an iterable of scenario names to export.
+    format:
+        Output format, one of ``"csv"``, ``"txt"`` or ``"parquet"``.
+    path:
+        Output directory. Defaults to the database export directory.
+    split:
+        ``"scenario"`` writes one file per scenario (all matrices inside);
+        ``"matrix"`` writes one file per matrix (all scenarios inside).
+    include_meta:
+        When ``True``, prepend one metadata row per scenario to each file
+        (schema key/value metadata for parquet).
+    sep:
+        Column separator used for the ``csv``/``txt`` formats.
+    filters:
+        Optional mapping restricting which axis labels are exported, e.g.
+        ``{"Satellite account": ["CO2"]}`` to export only the CO2 rows of the
+        footprint matrices. Keys are axis sets, optionally suffixed with
+        ``"_from"``/``"_to"`` to target a single side; a bare set name applies
+        wherever that set appears. A filter constrains a matrix only on the
+        sides where its set is populated, so matrices without that axis are
+        left untouched.
+    **meta_overrides:
+        Metadata fields to set or override before exporting, e.g. ``license``,
+        ``version`` or ``release_date``.
+    """
+    if isinstance(matrices, str):
+        requested_matrices = [matrices]
+    else:
+        requested_matrices = list(dict.fromkeys(matrices))
+    if not requested_matrices:
+        raise WrongInput("matrices must be one non-empty matrix name or iterable of names.")
+
+    if isinstance(scenarios, str):
+        requested_scenarios = [scenarios]
+    else:
+        requested_scenarios = list(dict.fromkeys(scenarios))
+    if not requested_scenarios:
+        raise WrongInput("scenarios must be one non-empty scenario name or iterable of names.")
+
+    available_scenarios = set(database.scenarios)
+    unknown_scenarios = [s for s in requested_scenarios if s not in available_scenarios]
+    if unknown_scenarios:
+        raise WrongInput(
+            f"Unknown scenarios: {unknown_scenarios}. Existing scenarios are {database.scenarios}."
+        )
+
+    format = str(format).strip().lower()
+    if format not in {"csv", "txt", "parquet"}:
+        raise WrongInput("format must be one of 'csv', 'txt' or 'parquet'.")
+
+    if split not in {"scenario", "matrix"}:
+        raise WrongInput("split must be either 'scenario' or 'matrix'.")
+
+    normalized_filters = _normalize_export_filters(filters)
+
+    for field, value in meta_overrides.items():
+        setattr(database.meta, field, value)
+        database.meta._add_history(f"Export: metadata field {field!r} set to {value!r}.")
+
+    if format == "parquet":
+        require_pyarrow(feature="Parquet matrix export")
+
+    export_root = Path(database._getdir(path, "Database", ""))
+    export_root.mkdir(parents=True, exist_ok=True)
+    suffix = format
+    lookups = _unit_lookup(database)
+
+    log_time(
+        logger,
+        f"Export: writing {len(requested_matrices)} matrix/matrices for "
+        f"{len(requested_scenarios)} scenario(s) as {format}, split by {split}.",
+        "info",
+    )
+
+    # Build every (scenario, matrix) flat payload once.
+    flat_frames: dict[tuple[str, str], pd.DataFrame] = {}
+    for scenario in requested_scenarios:
+        for matrix_name in requested_matrices:
+            flat_frames[(scenario, matrix_name)] = _matrix_flat_with_units(
+                database, matrix_name, scenario, lookups, normalized_filters
+            )
+
+    if split == "scenario":
+        groups = [
+            (
+                "scenario",
+                scenario,
+                [scenario],
+                [flat_frames[(scenario, m)] for m in requested_matrices],
+            )
+            for scenario in requested_scenarios
+        ]
+    else:
+        groups = [
+            (
+                "matrix",
+                matrix_name,
+                requested_scenarios,
+                [flat_frames[(s, matrix_name)] for s in requested_scenarios],
+            )
+            for matrix_name in requested_matrices
+        ]
+
+    variable_tokens = _disambiguate_variable_tokens(
+        groups[0][0], [group[1] for group in groups]
+    )
+
+    for variable_field, variable_value, group_scenarios, frames in groups:
+        data = _trim_flat_with_units(pd.concat(frames, ignore_index=True))
+        meta_frame = _meta_header_frame(database, group_scenarios) if include_meta else None
+        filename = _export_filename(
+            database,
+            variable_token=variable_tokens[variable_value],
+            suffix=suffix,
+        )
+        target = export_root / filename
+        if format == "parquet":
+            _write_flat_parquet_with_meta(data, meta_frame, target)
+        else:
+            _write_flat_text_with_meta(data, meta_frame, target, sep=sep)
+
+    log_time(logger, f"Export: matrix-specific {format} export written to {export_root}.", "info")
 
 
 def export_database_to_excel(

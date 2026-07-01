@@ -102,7 +102,7 @@ class MARIOMetaData:
         """Serialize core metadata fields and history into a dictionary."""
         meta_as_dict = {}
 
-        for attr in ["table", "price", "name", "year", "source", "license", "version", "tech_assumption"]:
+        for attr in ["table", "price", "name", "year", "source", "license", "version", "release_date", "tech_assumption"]:
             try:
                 meta_as_dict[attr] = getattr(self, attr)
             except AttributeError:

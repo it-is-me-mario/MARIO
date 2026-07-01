@@ -2,6 +2,28 @@
 Release History
 ****************
 
+Unreleased
+----------
+
+Matrix-specific export
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Added ``Database.export(matrices, scenarios=..., format="csv"|"txt"|"parquet",
+  split="scenario"|"matrix", include_meta=False, **meta_overrides)`` to write
+  selected matrices as flat long-format files with ``Scenario``, ``Matrix``,
+  ``Unit`` and ``Value`` columns. Flow matrices carry the numerator unit while
+  coefficient and exploded (``f_ex``, ``m_ex``, ``p_ex`` and SUT variants)
+  matrices carry the ``numerator/denominator`` unit ratio. Files can be split
+  one-per-scenario or one-per-matrix, an optional metadata header is written
+  (one row per scenario, or parquet schema key/value metadata), and
+  ``release_date`` and other metadata fields can be supplied at export time.
+  A ``filters`` argument restricts the exported rows to selected axis labels,
+  e.g. ``filters={"Satellite account": ["CO2"]}`` to export only the CO2
+  footprint rows; keys may be suffixed with ``"_from"``/``"_to"`` to target a
+  single side. When splitting one-per-matrix, a flow and its coefficient
+  (``Z``/``z``) no longer collide on case-insensitive filesystems: the
+  coefficient token is doubled (``zz``).
+
 v1.0.2
 ------
 
