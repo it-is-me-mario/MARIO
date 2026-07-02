@@ -395,7 +395,7 @@ def test_parse_emerging_iot_reads_emerging_e_variant_and_region_codes(tmp_path):
     assert base["E"].shape == (1, 3)
     assert indeces["r"]["main"] == ["BBB"]
     assert indeces["s"]["main"] == ["Sector 001", "Sector 002", "Sector 003"]
-    assert indeces["n"]["main"] == ["Final demand 001", "Final demand 002", "Final demand 003"]
+    assert indeces["n"]["main"] == ["household", "government", "capital"]
     assert units["Satellite account"].iloc[0, 0] == "None"
 
 

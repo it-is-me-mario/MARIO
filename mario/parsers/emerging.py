@@ -67,6 +67,7 @@ _EMERGING_E_CO2_RE = re.compile(r"EMERGING_E_CO2_(?P<year>\d{4})\.mat$", flags=r
 _EMERGING_E_FIGURE_DATA_RE = re.compile(r"Figure data\.xlsx$", flags=re.IGNORECASE)
 _EMERGING_STANDARD_VARIANTS = {"standard", "default", "base", "core"}
 _EMERGING_E_SECTORS_FILE = "emerging_e_sectors.yaml"
+_EMERGING_FINAL_LABELS = ("household", "government", "capital")
 _EMERGING_STANDARD_SECTOR_COUNT = 133
 _EMERGING_STANDARD_ELECTRICITY_INDEX = 96
 _EMERGING_E_FUEL_TO_SECTOR_INDEX = {
@@ -430,6 +431,13 @@ def _generic_labels(prefix: str, count: int) -> list[str]:
     return [f"{prefix} {index:0{width}d}" for index in range(1, count + 1)]
 
 
+def _builtin_emerging_final_labels(final_count: int) -> list[str] | None:
+    """Return the standard EMERGING final-demand labels when the size matches."""
+    if final_count == len(_EMERGING_FINAL_LABELS):
+        return list(_EMERGING_FINAL_LABELS)
+    return None
+
+
 def _infer_emerging_e_dimensions(group: h5py.Group | h5py.File) -> tuple[int, int, int]:
     """Infer region, sector and final-demand counts from one EMERGING-E bundle."""
     z_rows, z_cols = group["MRIO_Z_E"].shape
@@ -723,7 +731,9 @@ def parse_emerging_iot(
                     )
             if sector_labels is None:
                 sector_labels = _generic_labels("Sector", sector_count)
-            final_labels = _generic_labels("Final demand", final_count)
+            final_labels = _builtin_emerging_final_labels(final_count)
+            if final_labels is None:
+                final_labels = _generic_labels("Final demand", final_count)
             selected_regions, region_positions = _select_regions(region_codes, regions=regions)
 
             if layout.figure_data_path is None:
