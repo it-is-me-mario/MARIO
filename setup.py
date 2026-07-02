@@ -51,9 +51,9 @@ setup(
     include_package_data=True,
     packages=find_packages(include=("mario", "mario.*")),
     package_data={
-        "mario.settings": ["*.yaml"],
+        "mario.settings": ["*.yaml", "*.csv"],
         "mario.clusters": ["*.yaml", "*.xlsx"],
-        "mario.parsers": ["*.csv"],
+        "mario.parsers": ["*.csv", "*.yaml"],
         "mario.test":["*.xlsx"],
         "mario.ops.cvxlab_models": [
             "Split_sectors/*.xlsx",

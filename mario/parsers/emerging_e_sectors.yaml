@@ -1,0 +1,157 @@
+# EMERGING-E (variant 'E') sector classification: 146 sectors.
+# Derived from the standard EMERGING 133-sector list (HS/EBOPS), with the single
+# 'electricity' sector (#97) disaggregated in place into 14 power sub-sectors
+# (12 generation technologies + transmission + distribution), per the EMERGING-E
+# paper (One Earth; record doi:10.5281/zenodo.18303090).
+# Standard sectors 1-96 -> positions 1-96; electricity -> positions 97-110;
+# standard sectors 98-133 -> positions 111-146. Verified empirically against
+# EMERGING_E_2018.mat (per-region X aligns on all 245 regions).
+# The 14 electricity sub-sector names (codes 97-110) are the official labels from
+# Table 1 "Electricity sector classification in EMERGING-E" of the source paper.
+sectors:
+  - live animals
+  - meat and edible meat offal
+  - fish, crustaceans, molluscs, aquatic invertebrates ne
+  - dairy products, eggs, honey, edible animal product ne
+  - products of animal origin, nes
+  - live trees, plants, bulbs, roots, cut flowers etc
+  - edible vegetables and certain roots and tubers
+  - edible fruit, nuts, peel of citrus fruit, melons
+  - coffee, tea, mate and spices
+  - cereals
+  - milling products, malt, starches, inulin, wheat glute
+  - oil seed, oleagic fruits, grain, seed, fruit, etc, ne
+  - lac, gums, resins, vegetable saps and extracts nes
+  - vegetable plaiting materials, vegetable products nes
+  - animal,vegetable fats and oils, cleavage products, et
+  - meat, fish and seafood food preparations nes
+  - sugars and sugar confectionery
+  - cocoa and cocoa preparations
+  - cereal, flour, starch, milk preparations and products
+  - vegetable, fruit, nut, etc food preparations
+  - miscellaneous edible preparations
+  - beverages, spirits and vinegar
+  - residues, wastes of food industry, animal fodder
+  - tobacco and manufactured tobacco substitutes
+  - salt, sulphur, earth, stone, plaster, lime and cement
+  - ores, slag and ash
+  - inorganic chemicals, precious metal compound, isotope
+  - organic chemicals
+  - pharmaceutical products
+  - fertilizers
+  - tanning, dyeing extracts, tannins, derivs,pigments et
+  - essential oils, perfumes, cosmetics, toileteries
+  - soaps, lubricants, waxes, candles, modelling pastes
+  - albuminoids, modified starches, glues, enzymes
+  - explosives, pyrotechnics, matches, pyrophorics, etc
+  - photographic or cinematographic goods
+  - miscellaneous chemical products
+  - plastics and articles thereof
+  - rubber and articles thereof
+  - raw hides and skins (other than furskins) and leather
+  - articles of leather, animal gut, harness, travel good
+  - furskins and artificial fur, manufactures thereof
+  - wood and articles of wood, wood charcoal
+  - cork and articles of cork
+  - manufactures of plaiting material, basketwork, etc.
+  - pulp of wood, fibrous cellulosic material, waste etc
+  - paper & paperboard, articles of pulp, paper and board
+  - printed books, newspapers, pictures etc
+  - silk
+  - wool, animal hair, horsehair yarn and fabric thereof
+  - cotton
+  - vegetable textile fibres nes, paper yarn, woven fabri
+  - manmade filaments
+  - manmade staple fibres
+  - wadding, felt, nonwovens, yarns, twine, cordage, etc
+  - carpets and other textile floor coverings
+  - special woven or tufted fabric, lace, tapestry etc
+  - impregnated, coated or laminated textile fabric
+  - knitted or crocheted fabric
+  - articles of apparel, accessories, knit or crochet
+  - articles of apparel, accessories, not knit or crochet
+  - other made textile articles, sets, worn clothing etc
+  - footwear, gaiters and the like, parts thereof
+  - headgear and parts thereof
+  - umbrellas, walking-sticks, seat-sticks, whips, etc
+  - bird skin, feathers, artificial flowers, human hair
+  - stone, plaster, cement, asbestos, mica, etc articles
+  - ceramic products undata
+  - glass and glassware
+  - pearls, precious stones, metals, coins, etc
+  - iron and steel
+  - articles of iron or steel
+  - copper and articles thereof
+  - nickel and articles thereof
+  - aluminium and articles thereof
+  - lead and articles thereof
+  - zinc and articles thereof
+  - tin and articles thereof
+  - other base metals, cermets, articles thereof
+  - tools, implements, cutlery, etc of base metal
+  - miscellaneous articles of base metal
+  - nuclear reactors, boilers, machinery, etc
+  - electrical, electronic equipment
+  - railway, tramway locomotives, rolling stock, equipmen
+  - vehicles other than railway, tramway
+  - aircraft, spacecraft, and parts thereof
+  - ships, boats and other floating structures
+  - optical, photo, technical, medical, etc apparatus
+  - clocks and watches and parts thereof
+  - musical instruments, parts and accessories
+  - arms and ammunition, parts and accessories thereof
+  - furniture, lighting, signs, prefabricated buildings
+  - toys, games, sports requisites
+  - miscellaneous manufactured articles
+  - works of art, collectors pieces and antiques
+  - commodities not specified according to kind
+  - production of electricity by coal
+  - production of electricity by gas
+  - production of electricity by nuclear
+  - production of electricity by hydro
+  - production of electricity by wind
+  - production of electricity by petroleum and other oil derivatives
+  - production of electricity by biomass and waste
+  - production of electricity by solar photovoltaic
+  - production of electricity by solar thermal
+  - production of electricity by tide, wave, ocean
+  - production of electricity by geothermal
+  - production of electricity nec
+  - transmission of electricity
+  - distribution and trade of electricity
+  - gas manufacture, distribution
+  - water collection, puriﬁcation, and distribution
+  - coal
+  - oil
+  - gas
+  - petroleum, coal products
+  - manufacturing services on physical inputs owned by others
+  - maintenance and repair services n.i.e.
+  - sea transport
+  - air transport
+  - other modes of transport
+  - postal and courier services
+  - goods (travel)
+  - local transport services
+  - accommodation services
+  - food-serving services
+  - construction
+  - direct insurance
+  - pension and standardized guaranteed services
+  - financial services
+  - real estate
+  - charges for the use of intellectual property n.i.e.
+  - telecommunications services
+  - computer services
+  - information services
+  - research and development services
+  - professional and management consulting services
+  - engineering
+  - waste treatment and de-pollution agricultural and mining services
+  - operating leasing services
+  - other business services n.i.e.
+  - audiovisual and related services
+  - health services
+  - education services
+  - recreation & other services
+  - government goods and services n.i.e.
