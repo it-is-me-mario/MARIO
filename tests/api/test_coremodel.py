@@ -667,19 +667,19 @@ def test_to_region_subset_sectorized_trade_groups_factor_rows_by_region():
         "Region",
         "Factor of production",
     )
-    assert subset.V.loc[("R1", "VA"), ("R1", _MASTER_INDEX["s"], "s1")] == pytest.approx(100.0)
-    assert subset.V.loc[("R1", "VA"), ("R2", _MASTER_INDEX["s"], "s1")] == pytest.approx(0.0)
-    assert subset.V.loc[("R2", "VA"), ("R2", _MASTER_INDEX["s"], "s1")] == pytest.approx(200.0)
-    assert subset.V.loc[("R1", "imports of s1"), ("R1", _MASTER_INDEX["s"], "s1")] == pytest.approx(7.0)
-    assert subset.V.loc[("R1", "imports of s1"), ("R2", _MASTER_INDEX["s"], "s1")] == pytest.approx(0.0)
-    assert subset.V.loc[("R2", "imports of s1"), ("R2", _MASTER_INDEX["s"], "s1")] == pytest.approx(8.0)
+    assert subset.V.loc[("R1", "VA"), ("R1", "s1")] == pytest.approx(100.0)
+    assert subset.V.loc[("R1", "VA"), ("R2", "s1")] == pytest.approx(0.0)
+    assert subset.V.loc[("R2", "VA"), ("R2", "s1")] == pytest.approx(200.0)
+    assert subset.V.loc[("R1", "imports of s1"), ("R1", "s1")] == pytest.approx(7.0)
+    assert subset.V.loc[("R1", "imports of s1"), ("R2", "s1")] == pytest.approx(0.0)
+    assert subset.V.loc[("R2", "imports of s1"), ("R2", "s1")] == pytest.approx(8.0)
     assert subset.Y.loc[
-        ("R1", _MASTER_INDEX["s"], "s1"),
-        ("R1", _MASTER_INDEX["n"], "Export"),
+        ("R1", "s1"),
+        ("R1", "Export"),
     ] == pytest.approx(33.0)
     assert subset.Y.loc[
-        ("R2", _MASTER_INDEX["s"], "s1"),
-        ("R2", _MASTER_INDEX["n"], "Export"),
+        ("R2", "s1"),
+        ("R2", "Export"),
     ] == pytest.approx(66.0)
     assert subset.VY.index.equals(subset.V.index)
     assert subset.VY.columns.equals(subset.Y.columns)
@@ -699,19 +699,19 @@ def test_to_region_subset_sectorized_trade_by_region_keeps_partner_detail():
     assert subset.V.index.names == ["Region", "Factor of production"]
     assert subset.V.loc[
         ("R1", "imports of s1 from R3"),
-        ("R1", _MASTER_INDEX["s"], "s1"),
+        ("R1", "s1"),
     ] == pytest.approx(7.0)
     assert subset.V.loc[
         ("R2", "imports of s1 from R3"),
-        ("R2", _MASTER_INDEX["s"], "s1"),
+        ("R2", "s1"),
     ] == pytest.approx(8.0)
     assert subset.Y.loc[
-        ("R1", _MASTER_INDEX["s"], "s1"),
-        ("R1", _MASTER_INDEX["n"], "Export to R3"),
+        ("R1", "s1"),
+        ("R1", "Export to R3"),
     ] == pytest.approx(33.0)
     assert subset.Y.loc[
-        ("R2", _MASTER_INDEX["s"], "s1"),
-        ("R2", _MASTER_INDEX["n"], "Export to R3"),
+        ("R2", "s1"),
+        ("R2", "Export to R3"),
     ] == pytest.approx(66.0)
     assert subset.VY.index.equals(subset.V.index)
 
