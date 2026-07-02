@@ -2,7 +2,7 @@
 Release History
 ****************
 
-Unreleased
+v1.0.3
 ----------
 
 EMERGING-E parser
