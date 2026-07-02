@@ -18,6 +18,7 @@ EMERGING-E parser
   of the aggregated ``electricity`` sector onto the EMERGING-E generation
   sub-sectors through a fixed fuel-to-technology mapping. Pass ``co2_path=`` to
   point at a specific companion file.
+
 Matrix-specific export
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
