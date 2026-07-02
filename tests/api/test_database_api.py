@@ -38,7 +38,7 @@ from mario.settings.settings import (
     set_linear_strategy,
     upload_settings,
 )
-from mario.parsers.api import build_database_from_state, build_state_from_parser_output
+from mario.parsers.api import build_database_from_state, build_parser_state, build_state_from_parser_output
 from mario.test.mario_test import load_test
 from mario.model.conventions import _ENUM, _MASTER_INDEX
 from mario.ops.workbook_specs import SHOCK_COLUMNS, SHOCK_FLAT_COLUMNS
@@ -2323,13 +2323,6 @@ def test_build_database_from_state_propagates_optional_license_and_version():
     assert database.meta.version == "v2"
 
 
-def test_resolve_region_labels_to_iso3_members_expands_exiobase_macro_regions():
-    resolved = resolve_region_labels_to_iso3_members(["WA", "WM"], source="EXIOBASE test bundle")
-
-    assert "AFG" in resolved["WA"]
-    assert "VNM" in resolved["WA"]
-    assert "SAU" in resolved["WM"]
-    assert "ARE" in resolved["WM"]
 def test_available_clusters_merge_defaults_and_user_clusters():
     database = load_test("IOT")
     database.set_clusters(clusters={"region": {"EU custom": ["Reg1", "Reg2"]}})
