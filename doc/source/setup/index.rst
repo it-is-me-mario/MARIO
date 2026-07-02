@@ -13,6 +13,13 @@ transform and export.
 Installation
 ------------
 
+.. note::
+
+   MARIO supports Python 3.11, 3.12 and 3.13. Python 3.14 is **not** supported
+   yet: MARIO pins ``numpy==2.1.1``, which does not ship prebuilt wheels for
+   Python 3.14, so the installation falls back to building NumPy from source and
+   fails. Use Python 3.13 or earlier for now.
+
 1. Create and activate a clean Python environment.
 
    .. code-block:: bash
