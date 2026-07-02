@@ -9,7 +9,7 @@
     :target: https://badge.fury.io/py/mariopy
 
 .. image:: https://zenodo.org/badge/421900437.svg
-   :target: https://doi.org/10.5281/zenodo.5879382
+   :target: https://doi.org/10.5281/zenodo.21135803
 
 *******
 MARIO
