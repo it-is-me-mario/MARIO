@@ -5,19 +5,14 @@ Release History
 Unreleased
 ----------
 
-EMERGING-E parser
-~~~~~~~~~~~~~~~~~
+Shock scenarios
+~~~~~~~~~~~~~~~
 
-* Extended ``parse_emerging`` with the ``variant="E"`` EMERGING-E bundle, which
-  parses the power-disaggregated table (146 sectors, with electricity split into
-  14 generation sub-sectors) directly from ``EMERGING_E_<year>.mat``. MARIO
-  auto-detects a sibling label workbook and otherwise falls back to a packaged
-  EMERGING-E sector classification (use ``labels_path=`` to override detection).
-* Added CO2 projection for EMERGING-E: when only a standard EMERGING
-  ``EMERGING_CO2_<year>`` companion is available, MARIO projects the 7 fuel rows
-  of the aggregated ``electricity`` sector onto the EMERGING-E generation
-  sub-sectors through a fixed fuel-to-technology mapping. Pass ``co2_path=`` to
-  point at a specific companion file.
+* ``Database.shock_calc`` gained a ``base_scenario`` parameter (default: the
+  baseline) so a shock can be built on top of any existing scenario instead of
+  always starting from the baseline. All shock readers (``z``/``Y``/``e``/``v``
+  and the SUT split readers) now read their base blocks from the selected
+  scenario.
 
 Electricity supply mix update
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -34,6 +29,33 @@ Electricity supply mix update
   resolved to their member countries automatically, and an explicit
   ``region -> {sector: share}`` mapping is also accepted. Documented under a new
   user-guide page.
+
+GHG aggregation
+~~~~~~~~~~~~~~~
+
+* ``Database.calc_ghg`` now names the aggregated satellite account after its GWP
+  basis when ``label`` is omitted: built-in profiles yield
+  ``"GHG {ipcc_report} GWP-{time_horizon}"`` (e.g. ``"GHG AR6 GWP-100"``), while
+  custom ``gwp=...`` mappings keep the plain ``"GHG"`` label. Pass ``label=...``
+  to override. This changes the previous default label ``"GHG"`` for built-in
+  profiles.
+
+v1.0.3
+------
+
+EMERGING-E parser
+~~~~~~~~~~~~~~~~~
+
+* Extended ``parse_emerging`` with the ``variant="E"`` EMERGING-E bundle, which
+  parses the power-disaggregated table (146 sectors, with electricity split into
+  14 generation sub-sectors) directly from ``EMERGING_E_<year>.mat``. MARIO
+  auto-detects a sibling label workbook and otherwise falls back to a packaged
+  EMERGING-E sector classification (use ``labels_path=`` to override detection).
+* Added CO2 projection for EMERGING-E: when only a standard EMERGING
+  ``EMERGING_CO2_<year>`` companion is available, MARIO projects the 7 fuel rows
+  of the aggregated ``electricity`` sector onto the EMERGING-E generation
+  sub-sectors through a fixed fuel-to-technology mapping. Pass ``co2_path=`` to
+  point at a specific companion file.
 
 Matrix-specific export
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -53,16 +75,6 @@ Matrix-specific export
   single side. When splitting one-per-matrix, a flow and its coefficient
   (``Z``/``z``) no longer collide on case-insensitive filesystems: the
   coefficient token is doubled (``zz``).
-
-GHG aggregation
-~~~~~~~~~~~~~~~
-
-* ``Database.calc_ghg`` now names the aggregated satellite account after its GWP
-  basis when ``label`` is omitted: built-in profiles yield
-  ``"GHG {ipcc_report} GWP-{time_horizon}"`` (e.g. ``"GHG AR6 GWP-100"``), while
-  custom ``gwp=...`` mappings keep the plain ``"GHG"`` label. Pass ``label=...``
-  to override. This changes the previous default label ``"GHG"`` for built-in
-  profiles.
 
 v1.0.2
 ------
