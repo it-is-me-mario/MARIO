@@ -31,7 +31,11 @@ def _sh_excel(instance, num_shock, directory, clusters):
     extensions = dc(instance.get_index(_MASTER_INDEX["k"]))
     categories = dc(instance.get_index(_MASTER_INDEX["n"]))
     types = ["Percentage", "Absolute", "Update"]
-    yn = ["Yes", "No"]
+    # z and Y also accept supply-mix redistributions (one number per region mix).
+    types_with_supply_mix = types + [f"Supply mix {n}" for n in range(1, 11)]
+    # Extend the data-validation dropdowns well past the pre-filled rows so users
+    # can keep adding shocks without losing the picklists.
+    validation_rows = max(num_shock, 100)
 
     cluster_targets = {
         _MASTER_INDEX["r"]: regions,
@@ -78,7 +82,7 @@ def _sh_excel(instance, num_shock, directory, clusters):
         for idx, column in enumerate(columns):
             sheet.write(0, idx, column, header_format)
 
-        for row in range(num_shock):
+        for row in range(validation_rows):
             excel_row = row + 2
             for col_idx, source in validations.items():
                 sheet.data_validation(
@@ -123,24 +127,6 @@ def _sh_excel(instance, num_shock, directory, clusters):
         extensions_ref = "=indeces!$E$1:$E${}".format(len(extensions))
         categories_ref = "=indeces!$F$1:$F${}".format(len(categories))
 
-    # Building the main sheet
-    main = workbook.add_worksheet("main")
-
-    main.write("A1", "Legend", header_format)
-    main.write("B1", "Description", header_format)
-    main.write("C1", "Value", header_format)
-    main.write("D1", "Unit of measure", header_format)
-    main.write("E1", "Sensitivity", header_format)
-    main.write("F1", "Min", header_format)
-    main.write("G1", "Max", header_format)
-    main.write("H1", "Step", header_format)
-    main.write("I1", "Affected Parameter", header_format)
-    main.write("J1", "Notes", header_format)
-    main.write("K1", "References", header_format)
-
-    for i in range(num_shock * 3):
-        main.data_validation("E{}".format(i + 2), {"validate": "list", "source": yn})
-
     if instance.meta.table == "IOT":
         _write_shock_sheet(
             workbook,
@@ -159,7 +145,7 @@ def _sh_excel(instance, num_shock, directory, clusters):
                 1: sectors_ref,
                 2: regions_ref,
                 3: categories_ref,
-                4: types,
+                4: types_with_supply_mix,
             },
         )
         _write_shock_sheet(
@@ -200,7 +186,13 @@ def _sh_excel(instance, num_shock, directory, clusters):
                 SHOCK_FLAT_COLUMNS["type"],
                 SHOCK_FLAT_COLUMNS["value"],
             ],
-            validations={0: regions_ref, 1: sectors_ref, 2: regions_ref, 3: sectors_ref, 4: types},
+            validations={
+                0: regions_ref,
+                1: sectors_ref,
+                2: regions_ref,
+                3: sectors_ref,
+                4: types_with_supply_mix,
+            },
         )
     else:
         sheet_specs = [
@@ -316,6 +308,14 @@ def _sh_excel(instance, num_shock, directory, clusters):
                 columns=columns,
                 validations=validations,
             )
+
+    # The indeces sheet only backs the dropdown sources; hide it. A hidden sheet
+    # cannot be the active one, so activate a data sheet first.
+    for worksheet in workbook.worksheets():
+        if worksheet.name != "indeces":
+            worksheet.activate()
+            break
+    indeces.hide()
 
     workbook.close()
 

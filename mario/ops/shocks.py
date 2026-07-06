@@ -122,6 +122,76 @@ def get_value(given):
     return given
 
 
+def _is_supply_mix_type(value):
+    """Return whether one shock ``Type`` cell selects a supply-mix redistribution."""
+    return str(value).strip().casefold().startswith("supply mix")
+
+
+def _mix_target_selector(values):
+    """Return the distinct target labels, or ``None`` when any is the ``all`` wildcard."""
+    selected = []
+    for value in values:
+        token = "" if pd.isna(value) else str(value).strip()
+        if token == "" or token.casefold() in {"all", "global"}:
+            return None
+        if value not in selected:
+            selected.append(value)
+    return selected or None
+
+
+def read_supply_mix_specs(instance, path):
+    """Collect ``Type='Supply mix N'`` groups from the ``z`` and ``Y`` shock sheets.
+
+    Each ``(Region_from, 'Supply mix N')`` group is one mix: its ``Sector_from``
+    rows are the members and ``Value`` their shares. ``Region_to``/``Sector_to``
+    select the target columns (``all`` means every column). Because
+    ``update_supply_mix_iot`` rewrites both ``z`` and ``Y``, a mix authored in
+    either sheet has the same effect; the operation is idempotent so a mix
+    repeated in both sheets is harmless. Returns dicts ready for
+    ``update_supply_mix_iot``.
+    """
+    specs = []
+    sheets = (
+        ((_ENUM.z, _ENUM.Z, str(_ENUM.z).lower(), str(_ENUM.Z).upper()), True),
+        ((_ENUM.Y, str(_ENUM.Y).lower(), str(_ENUM.Y).upper()), False),
+    )
+    for candidates, has_sector_to in sheets:
+        info = _read_shock_sheet(path, *candidates)
+        if info is None:
+            continue
+        _type = _shock_column(info, SHOCK_FLAT_COLUMNS["type"], SHOCK_COLUMNS["type"])
+        region_from = _shock_column(info, SHOCK_FLAT_COLUMNS["region_from"], SHOCK_COLUMNS["r_reg"])
+        sector_from = _shock_column(info, SHOCK_FLAT_COLUMNS["sector_from"], SHOCK_COLUMNS["r_sec"])
+        region_to = _shock_column(info, SHOCK_FLAT_COLUMNS["region_to"], SHOCK_COLUMNS["c_reg"])
+        sector_to = (
+            _shock_column(info, SHOCK_FLAT_COLUMNS["sector_to"], SHOCK_COLUMNS["c_sec"])
+            if has_sector_to
+            else None
+        )
+        value = _shock_column(info, SHOCK_FLAT_COLUMNS["value"], SHOCK_COLUMNS["value"])
+
+        groups = {}
+        for row in range(len(info)):
+            if not _is_supply_mix_type(_type[row]):
+                continue
+            groups.setdefault((region_from[row], str(_type[row]).strip()), []).append(row)
+
+        for (region, _mix_id), rows in groups.items():
+            shares = {region: {sector_from[row]: float(value[row]) for row in rows}}
+            specs.append(
+                {
+                    "shares": shares,
+                    "column_regions": _mix_target_selector([region_to[row] for row in rows]),
+                    "column_sectors": (
+                        _mix_target_selector([sector_to[row] for row in rows])
+                        if has_sector_to
+                        else None
+                    ),
+                }
+            )
+    return specs
+
+
 def _io_axis_key(axis, region, level, item):
     """Build one row/column key matching either legacy or flat IO axes."""
     if isinstance(axis, pd.MultiIndex):
@@ -214,6 +284,9 @@ def Y_shock(instance, path, boolean, clusters, to_baseline):
         )
 
     for shock in range(len(info)):
+        if _is_supply_mix_type(_type[shock]):
+            # Supply-mix rows are collected and applied by ``read_supply_mix_specs``.
+            continue
         if nan_check(info, shock, _type[shock]):
             log_time(
                 logger,
@@ -915,6 +988,9 @@ def Z_shock(instance, path, boolean, clusters, to_baseline):
         )
 
     for shock in range(len(info)):
+        if _is_supply_mix_type(_type[shock]):
+            # Supply-mix rows are collected and applied by ``read_supply_mix_specs``.
+            continue
         if nan_check(info, shock, _type[shock]):
             log_time(
                 logger,

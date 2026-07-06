@@ -13,6 +13,19 @@ Shock scenarios
   always starting from the baseline. All shock readers (``z``/``Y``/``e``/``v``
   and the SUT split readers) now read their base blocks from the selected
   scenario.
+* Added a ``Type='Supply mix N'`` shock (with ``N`` from 1 to 10) to the ``z``
+  and ``Y`` shock sheets. Rows sharing the same ``(Region_from, 'Supply mix N')``
+  describe one regional bundle: their ``Sector_from`` entries are the mix members
+  and ``Value`` their shares, while ``Region_to``/``Sector_to`` select the buyer
+  columns to rewrite (``all`` targets every column). ``shock_calc`` groups the
+  rows and applies :meth:`Database.update_supply_mix_iot` on top of the shocked
+  scenario, redistributing the bundle while preserving each selected column
+  total. Shares are used as given when they sum to 1 (±1%) and otherwise
+  rescaled with a warning. IOT only.
+* ``get_shock_excel`` now extends the picklists on the ``z``/``Y`` sheets with
+  the ``Supply mix 1`` … ``Supply mix 10`` options, covers 100 shock rows with
+  data validation, drops the unused ``main`` sheet and hides the auxiliary
+  ``indeces`` sheet.
 
 Electricity supply mix update
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -26,6 +26,7 @@ from mario.ops.shocks import (
     ea_shock,
     ec_shock,
     has_shock_sheet,
+    read_supply_mix_specs,
 )
 from mario.ops.add_sector_workbook import (
     derive_add_sector_sets,
@@ -5332,6 +5333,28 @@ class Database(CoreModel):
                 self.__counter += 1
 
             self.matrices[scenario] = _results
+
+            # Type='Supply mix N' rows redistribute a regional sector bundle over
+            # its buyer columns. They are collected from the z/Y sheets and applied
+            # on top of the freshly materialized scenario (IOT only).
+            if self.table_type != "SUT" and (z or Y):
+                for spec in read_supply_mix_specs(self, shock_io):
+                    (mix_region, members), = spec["shares"].items()
+                    total = sum(members.values())
+                    if abs(total - 1.0) > 0.01:
+                        log_time(
+                            logger,
+                            f"Shock: supply mix for region '{mix_region}' sums to "
+                            f"{total:.4f}, rescaling shares to 1.",
+                            "warning",
+                        )
+                    self.update_supply_mix_iot(
+                        spec["shares"],
+                        scenario=scenario,
+                        column_regions=spec["column_regions"],
+                        column_sectors=spec["column_sectors"],
+                        rescale=True,
+                    )
 
             self.meta._add_history(f"Shocks implemented from {io} as follow:")
 

@@ -2354,6 +2354,34 @@ def test_get_shock_excel_uses_stored_clusters(tmp_path):
     assert "EU" in indeces.iloc[:, 0].dropna().tolist()
 
 
+def test_get_shock_excel_template_layout(tmp_path):
+    openpyxl = pytest.importorskip("openpyxl")
+    database = load_test("IOT")
+    path = tmp_path / "template.xlsx"
+
+    database.get_shock_excel(path=str(path), num_shock=2)
+
+    workbook = openpyxl.load_workbook(path)
+    # the auxiliary 'main' sheet is gone and 'indeces' is hidden but kept.
+    assert "main" not in workbook.sheetnames
+    assert workbook["indeces"].sheet_state == "hidden"
+    assert workbook.active.title != "indeces"
+
+    # z/Y expose the supply-mix picklist; validation rows extend past num_shock.
+    z_sheet = workbook["z"]
+    supply_mix = next(
+        dv for dv in z_sheet.data_validations.dataValidation if "Supply mix" in str(dv.formula1)
+    )
+    assert "Supply mix 1" in str(supply_mix.formula1)
+    assert "Supply mix 10" in str(supply_mix.formula1)
+    covered = max(
+        int("".join(ch for ch in str(rng).split(":")[-1] if ch.isdigit()) or 0)
+        for dv in z_sheet.data_validations.dataValidation
+        for rng in str(dv.sqref).split()
+    )
+    assert covered >= 100
+
+
 def test_shock_calc_base_scenario_chains_on_scenario(tmp_path):
     database = load_test("IOT")
     z = database.z
@@ -2394,6 +2422,90 @@ def test_shock_calc_base_scenario_chains_on_scenario(tmp_path):
 
     with pytest.raises(WrongInput):
         database.shock_calc(str(path_a), z=True, scenario="s3", base_scenario="missing")
+
+
+def _write_supply_mix_sheet(path, rows):
+    sheet = pd.DataFrame(
+        [
+            {
+                SHOCK_FLAT_COLUMNS["region_from"]: region_from,
+                SHOCK_FLAT_COLUMNS["sector_from"]: sector_from,
+                SHOCK_FLAT_COLUMNS["region_to"]: region_to,
+                SHOCK_FLAT_COLUMNS["sector_to"]: sector_to,
+                SHOCK_FLAT_COLUMNS["type"]: mix_type,
+                SHOCK_FLAT_COLUMNS["value"]: value,
+            }
+            for region_from, sector_from, region_to, sector_to, mix_type, value in rows
+        ]
+    )
+    with pd.ExcelWriter(path) as writer:
+        sheet.to_excel(writer, sheet_name=_ENUM.z, index=False)
+
+
+def test_shock_calc_applies_supply_mix_type(tmp_path):
+    database = load_test("IOT")
+    base_z = database.z
+    s = _MASTER_INDEX["s"]
+    agri = ("Reg1", s, "Agriculture")
+    ind = ("Reg1", s, "Industry")
+    serv = ("Reg1", s, "Services")
+
+    path = tmp_path / "supply_mix.xlsx"
+    _write_supply_mix_sheet(
+        path,
+        [
+            ("Reg1", "Agriculture", "Reg1", "all", "Supply mix 1", 0.2),
+            ("Reg1", "Industry", "Reg1", "all", "Supply mix 1", 0.8),
+        ],
+    )
+
+    database.shock_calc(str(path), z=True, scenario="mix")
+    shocked = database.query(_ENUM.z, scenarios="mix")
+
+    reg1_cols = [c for c in base_z.columns if c[0] == "Reg1"]
+    reg2_cols = [c for c in base_z.columns if c[0] == "Reg2"]
+
+    for col in reg1_cols:
+        bundle = base_z.loc[agri, col] + base_z.loc[ind, col]
+        # the bundle is redistributed 20/80 while its column total is preserved.
+        assert shocked.loc[agri, col] == pytest.approx(0.2 * bundle)
+        assert shocked.loc[ind, col] == pytest.approx(0.8 * bundle)
+        assert shocked.loc[agri, col] + shocked.loc[ind, col] == pytest.approx(bundle)
+        # a row outside the bundle stays untouched.
+        assert shocked.loc[serv, col] == pytest.approx(base_z.loc[serv, col])
+
+    # buyer columns of another region are left untouched.
+    for col in reg2_cols:
+        assert shocked.loc[agri, col] == pytest.approx(base_z.loc[agri, col])
+        assert shocked.loc[ind, col] == pytest.approx(base_z.loc[ind, col])
+
+
+def test_shock_calc_supply_mix_rescales_and_warns(tmp_path, caplog):
+    database = load_test("IOT")
+    base_z = database.z
+    s = _MASTER_INDEX["s"]
+    agri = ("Reg1", s, "Agriculture")
+    ind = ("Reg1", s, "Industry")
+
+    path = tmp_path / "supply_mix_scaled.xlsx"
+    # values sum to 10, not 1: they must be rescaled to the 0.2/0.8 mix.
+    _write_supply_mix_sheet(
+        path,
+        [
+            ("Reg1", "Agriculture", "Reg1", "all", "Supply mix 1", 2.0),
+            ("Reg1", "Industry", "Reg1", "all", "Supply mix 1", 8.0),
+        ],
+    )
+
+    with caplog.at_level("WARN"):
+        database.shock_calc(str(path), z=True, scenario="scaled")
+    assert any("supply mix" in message.casefold() for message in caplog.messages)
+
+    shocked = database.query(_ENUM.z, scenarios="scaled")
+    col = next(c for c in base_z.columns if c[0] == "Reg1")
+    bundle = base_z.loc[agri, col] + base_z.loc[ind, col]
+    assert shocked.loc[agri, col] == pytest.approx(0.2 * bundle)
+    assert shocked.loc[ind, col] == pytest.approx(0.8 * bundle)
 
 
 def test_shock_calc_uses_stored_clusters(tmp_path):
@@ -2479,7 +2591,7 @@ def test_get_shock_excel_for_sut_writes_only_nonzero_split_sheets(tmp_path):
     database.get_shock_excel(path=str(path), num_shock=2)
 
     with pd.ExcelFile(path) as workbook:
-        assert set(workbook.sheet_names) == {"indeces", "main", _ENUM.u, _ENUM.s, "Yc", "va", "ea"}
+        assert set(workbook.sheet_names) == {"indeces", _ENUM.u, _ENUM.s, "Yc", "va", "ea"}
         assert _ENUM.z not in workbook.sheet_names
         assert "Ya" not in workbook.sheet_names
         assert "vc" not in workbook.sheet_names
