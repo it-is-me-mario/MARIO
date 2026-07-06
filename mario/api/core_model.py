@@ -1903,6 +1903,8 @@ class CoreModel:
         ember_path: str | os.PathLike[str] | None = None,
         region_aggregation=None,
         aggregate_as_ember: bool = False,
+        column_regions=None,
+        column_sectors=None,
     ) -> None:
         """Update one IOT regional sector mix across ``z`` and ``Y``.
 
@@ -1963,6 +1965,17 @@ class CoreModel:
             names after applying the updated mix. The aggregation is structural
             and therefore affects the whole database, not only the selected
             scenario.
+        column_regions:
+            Restrict the redistribution to buyer/demand columns of these regions
+            only. Accepts one region or an iterable of regions. When ``None``
+            (default) the mix is applied across all columns. The operation stays
+            matricial: the selected columns are extracted and rewritten, the
+            others are left untouched.
+        column_sectors:
+            Restrict the redistribution to buyer columns of these sectors only
+            (applies to the ``z`` block; the ``Y`` block has no sector columns so
+            it is filtered by ``column_regions`` only). Accepts one sector or an
+            iterable. ``None`` (default) means all sectors.
 
         Returns
         -------
@@ -2077,38 +2090,73 @@ class CoreModel:
 
             normalized_shares[region] = weights
 
+        def _normalize_column_selector(values, *, name, valid):
+            if values is None:
+                return None
+            values = [values] if isinstance(values, str) else list(values)
+            unknown = [value for value in values if value not in valid]
+            if unknown:
+                raise WrongInput(f"{name} references unknown values: {unknown}")
+            return set(values)
+
+        col_regions = _normalize_column_selector(
+            column_regions, name="column_regions", valid=valid_regions
+        )
+        col_sectors = _normalize_column_selector(
+            column_sectors, name="column_sectors", valid=valid_sectors
+        )
+
+        def _column_mask(columns, *, with_sector):
+            mask = np.ones(len(columns), dtype=bool)
+            if col_regions is not None:
+                mask &= columns.get_level_values(0).isin(col_regions)
+            if with_sector and col_sectors is not None:
+                mask &= columns.get_level_values(-1).isin(col_sectors)
+            return mask
+
         if not coefficients_ready:
             self.reset_to_coefficients(scenario)
         z = self.get_block_as_pandas(_ENUM.z, scenario=scenario).copy()
         Y = self.get_block_as_pandas(_ENUM.Y, scenario=scenario).copy()
 
+        # Column subsets the mix is applied to (all columns by default). The
+        # redistribution stays matricial: the selected columns are rewritten,
+        # the others keep their original coefficients.
+        z_col_mask = _column_mask(z.columns, with_sector=True)
+        Y_col_mask = _column_mask(Y.columns, with_sector=False)
+
+        def _redistribute(block, weights, col_mask):
+            # Dense replacement: selected columns are redistributed by the mix,
+            # the others keep their original coefficients. Built densely so it
+            # works for sparse-backed blocks too.
+            values = np.asarray(block.to_numpy(), dtype=float).copy()
+            if col_mask.any():
+                row_weights = weights.reindex(
+                    block.index.get_level_values("Item")
+                ).to_numpy()
+                redistributed = np.multiply.outer(
+                    row_weights, sum_columns(block).to_numpy()
+                )
+                values[:, col_mask] = redistributed[:, col_mask]
+            return pd.DataFrame(values, index=block.index, columns=block.columns)
+
         for region, weights in normalized_shares.items():
             selector = (region, _MASTER_INDEX["s"], list(weights.index))
 
             z_block = z.loc[selector, :]
-            z_weights = weights.reindex(z_block.index.get_level_values("Item"))
             z = _replace_selected_rows(
                 z,
                 selector=selector,
                 target_index=z_block.index,
-                replacement=pd.DataFrame(
-                    np.multiply.outer(z_weights.to_numpy(), sum_columns(z_block).to_numpy()),
-                    index=z_block.index,
-                    columns=z_block.columns,
-                ),
+                replacement=_redistribute(z_block, weights, z_col_mask),
             )
 
             Y_block = Y.loc[selector, :]
-            y_weights = weights.reindex(Y_block.index.get_level_values("Item"))
             Y = _replace_selected_rows(
                 Y,
                 selector=selector,
                 target_index=Y_block.index,
-                replacement=pd.DataFrame(
-                    np.multiply.outer(y_weights.to_numpy(), sum_columns(Y_block).to_numpy()),
-                    index=Y_block.index,
-                    columns=Y_block.columns,
-                ),
+                replacement=_redistribute(Y_block, weights, Y_col_mask),
             )
 
         self.update_scenarios(scenario, z=z, Y=Y)

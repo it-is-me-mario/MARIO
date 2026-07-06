@@ -1462,6 +1462,49 @@ def test_update_supply_mix_iot_rewrites_z_and_y(CoreDataIOT):
     )
 
 
+def test_update_supply_mix_iot_scopes_to_column_regions(CoreDataIOT):
+    scenario = "scoped_mix"
+    CoreDataIOT.clone_scenario("baseline", scenario)
+
+    z_before = CoreDataIOT.query(_ENUM.z, scenarios=scenario).copy()
+    shares = {"Reg1": {"Agriculture": 2.0, "Industry": 8.0}}
+    selector = ("Reg1", "Sector", ["Agriculture", "Industry"])
+
+    CoreDataIOT.update_supply_mix_iot(
+        shares, scenario=scenario, rescale=True, column_regions="Reg1"
+    )
+    z_after = CoreDataIOT.get_block_as_pandas(_ENUM.z, scenario=scenario)
+
+    reg1_cols = [column for column in z_before.columns if column[0] == "Reg1"]
+    reg2_cols = [column for column in z_before.columns if column[0] == "Reg2"]
+
+    # Buyer columns of the untargeted region keep their original coefficients.
+    pdt.assert_frame_equal(
+        z_after.loc[selector, reg2_cols], z_before.loc[selector, reg2_cols]
+    )
+
+    # Targeted columns follow the 20/80 mix while preserving their totals.
+    weights = pd.Series(shares["Reg1"], dtype=float)
+    z_before_reg1 = z_before.loc[selector, reg1_cols]
+    z_expected_reg1 = pd.DataFrame(
+        np.multiply.outer(
+            (weights / weights.sum())
+            .reindex(z_before_reg1.index.get_level_values("Item"))
+            .to_numpy(),
+            z_before_reg1.sum(axis=0).to_numpy(),
+        ),
+        index=z_before_reg1.index,
+        columns=z_before_reg1.columns,
+    )
+    pdt.assert_frame_equal(z_after.loc[selector, reg1_cols], z_expected_reg1)
+
+    # Rows outside the redistributed bundle are unchanged everywhere.
+    pdt.assert_frame_equal(
+        z_after.drop(index=z_before.loc[selector, :].index),
+        z_before.drop(index=z_before.loc[selector, :].index),
+    )
+
+
 def test_update_supply_mix_iot_clones_missing_target_scenario(CoreDataIOT):
     shares = {"Reg1": {"Agriculture": 1.0, "Industry": 3.0}}
 

@@ -29,6 +29,11 @@ Electricity supply mix update
   resolved to their member countries automatically, and an explicit
   ``region -> {sector: share}`` mapping is also accepted. Documented under a new
   user-guide page.
+* ``update_supply_mix_iot`` gained ``column_regions``/``column_sectors``
+  selectors to restrict the coefficient redistribution to a subset of
+  buyer/demand columns (default: all columns). The operation stays matricial —
+  the selected columns are rewritten, the others keep their original
+  coefficients.
 
 GHG aggregation
 ~~~~~~~~~~~~~~~
