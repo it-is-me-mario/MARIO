@@ -5107,6 +5107,7 @@ class Database(CoreModel):
         clusters=None,
         notes=[],
         scenario=None,
+        base_scenario=None,
         force_rewrite=False,
         **legacy_clusters,
     ):
@@ -5138,6 +5139,9 @@ class Database(CoreModel):
         scenario:
             Name of the output scenario. When omitted, MARIO creates
             ``shock <n>`` automatically.
+        base_scenario:
+            Scenario the shock is built on top of. Defaults to the baseline,
+            so shocks can be chained on any existing scenario.
         force_rewrite:
             When ``True``, allow overwriting an existing non-baseline scenario.
         **legacy_clusters:
@@ -5164,15 +5168,25 @@ class Database(CoreModel):
         if self._is_reserved_baseline_name(scenario):
             raise WrongInput(f"{self.baseline_scenario_name} scenario can not be overwritten.")
 
+        base_scenario = base_scenario or self.baseline_scenario_name
+        if base_scenario not in self.matrices:
+            raise WrongInput(
+                f"base_scenario {base_scenario!r} does not exist. Available scenarios are "
+                f"{list(self.matrices)}."
+            )
+        # Shared with the module-level shock readers (mario.ops.shocks) so every
+        # base block is read from the chosen scenario, not just baseline.
+        self._shock_base_scenario = base_scenario
+
         clusters = self._resolved_clusters(clusters=clusters, legacy_clusters=legacy_clusters)
         check_clusters(
             index_dict=self.get_index("all"), table=self.table_type, clusters=clusters
         )
 
         def _baseline_block(matrix_name):
-            if self.has_matrix(matrix_name):
-                return self.get_block_as_pandas(matrix_name)
-            return self.query(matrix_name)
+            if self.has_matrix(matrix_name, scenario=base_scenario):
+                return self.get_block_as_pandas(matrix_name, scenario=base_scenario)
+            return self.query(matrix_name, scenarios=base_scenario)
 
         opened_workbook = pd.ExcelFile(io) if isinstance(io, str) else None
         shock_io = opened_workbook or io
@@ -5345,6 +5359,7 @@ class Database(CoreModel):
 
             log_time(logger, "Shock: Shock implemented successfully.")
         finally:
+            self._shock_base_scenario = None
             if opened_workbook is not None:
                 opened_workbook.close()
 

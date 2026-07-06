@@ -143,10 +143,16 @@ def _fd_axis_key(axis, region, category):
 
 
 def _baseline_block(instance, matrix_name):
-    """Return one baseline block through direct storage when already materialized."""
-    if instance.has_matrix(matrix_name):
-        return instance.get_block_as_pandas(matrix_name)
-    return instance.query(matrix_name)
+    """Return one base block through direct storage when already materialized.
+
+    The base scenario defaults to the baseline but is overridden by
+    ``instance._shock_base_scenario`` when ``shock_calc`` builds a shock on top
+    of another scenario.
+    """
+    scenario = getattr(instance, "_shock_base_scenario", None) or "baseline"
+    if instance.has_matrix(matrix_name, scenario=scenario):
+        return instance.get_block_as_pandas(matrix_name, scenario=scenario)
+    return instance.query(matrix_name, scenarios=scenario)
 
 
 def nan_check(dataframe, row, shock_type):

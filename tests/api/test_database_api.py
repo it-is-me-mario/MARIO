@@ -2354,6 +2354,48 @@ def test_get_shock_excel_uses_stored_clusters(tmp_path):
     assert "EU" in indeces.iloc[:, 0].dropna().tolist()
 
 
+def test_shock_calc_base_scenario_chains_on_scenario(tmp_path):
+    database = load_test("IOT")
+    z = database.z
+    cA, cB = list(z.columns)[0], list(z.columns)[1]
+    item = next(row for row in z.index if row[0] == "Reg1")[2]
+
+    def _write(path, col, value):
+        sheet = pd.DataFrame(
+            [
+                {
+                    SHOCK_FLAT_COLUMNS["region_from"]: "Reg1",
+                    SHOCK_FLAT_COLUMNS["sector_from"]: item,
+                    SHOCK_FLAT_COLUMNS["region_to"]: col[0],
+                    SHOCK_FLAT_COLUMNS["sector_to"]: col[2],
+                    SHOCK_FLAT_COLUMNS["type"]: "Update",
+                    SHOCK_FLAT_COLUMNS["value"]: value,
+                }
+            ]
+        )
+        with pd.ExcelWriter(path) as writer:
+            sheet.to_excel(writer, sheet_name=_ENUM.z, index=False)
+
+    path_a = tmp_path / "shock_a.xlsx"
+    path_b = tmp_path / "shock_b.xlsx"
+    _write(path_a, cA, 0.111)
+    _write(path_b, cB, 0.222)
+
+    database.shock_calc(str(path_a), z=True, scenario="s1")
+    database.shock_calc(str(path_b), z=True, scenario="s2", base_scenario="s1")
+
+    key = ("Reg1", _MASTER_INDEX["s"], item)
+    s2 = database.query(_ENUM.z, scenarios="s2")
+    # s2 is built on s1: it keeps s1's shocked cellA and adds the new cellB shock.
+    assert s2.loc[(key, cA)] == pytest.approx(0.111)
+    assert s2.loc[(key, cB)] == pytest.approx(0.222)
+    # the base-scenario flag is cleaned up after the call.
+    assert database._shock_base_scenario is None
+
+    with pytest.raises(WrongInput):
+        database.shock_calc(str(path_a), z=True, scenario="s3", base_scenario="missing")
+
+
 def test_shock_calc_uses_stored_clusters(tmp_path):
     database = load_test("IOT")
     database.set_clusters(clusters={"region": {"EU": ["Reg1", "Reg2"]}})
