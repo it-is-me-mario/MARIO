@@ -31,7 +31,8 @@ def _sh_excel(instance, num_shock, directory, clusters):
     extensions = dc(instance.get_index(_MASTER_INDEX["k"]))
     categories = dc(instance.get_index(_MASTER_INDEX["n"]))
     types = ["Percentage", "Absolute", "Update"]
-    # z and Y also accept supply-mix redistributions (one number per region mix).
+    # z/Y (IOT) and u/s/Yc (SUT) also accept supply-mix redistributions
+    # (one number per region mix).
     types_with_supply_mix = types + [f"Supply mix {n}" for n in range(1, 11)]
     # Extend the data-validation dropdowns well past the pre-filled rows so users
     # can keep adding shocks without losing the picklists.
@@ -207,7 +208,7 @@ def _sh_excel(instance, num_shock, directory, clusters):
                     SHOCK_FLAT_COLUMNS["type"],
                     SHOCK_FLAT_COLUMNS["value"],
                 ],
-                {0: regions_ref, 1: commodities_ref, 2: regions_ref, 3: activities_ref, 4: types},
+                {0: regions_ref, 1: commodities_ref, 2: regions_ref, 3: activities_ref, 4: types_with_supply_mix},
             ),
             (
                 _ENUM.s,
@@ -220,7 +221,7 @@ def _sh_excel(instance, num_shock, directory, clusters):
                     SHOCK_FLAT_COLUMNS["type"],
                     SHOCK_FLAT_COLUMNS["value"],
                 ],
-                {0: regions_ref, 1: activities_ref, 2: regions_ref, 3: commodities_ref, 4: types},
+                {0: regions_ref, 1: activities_ref, 2: regions_ref, 3: commodities_ref, 4: types_with_supply_mix},
             ),
             (
                 "Ya",
@@ -246,7 +247,7 @@ def _sh_excel(instance, num_shock, directory, clusters):
                     SHOCK_FLAT_COLUMNS["type"],
                     SHOCK_FLAT_COLUMNS["value"],
                 ],
-                {0: regions_ref, 1: commodities_ref, 2: regions_ref, 3: categories_ref, 4: types},
+                {0: regions_ref, 1: commodities_ref, 2: regions_ref, 3: categories_ref, 4: types_with_supply_mix},
             ),
             (
                 "va",

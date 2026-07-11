@@ -125,34 +125,103 @@ def _match_aggregated_ember_groups(
     return None
 
 
-def _resolve_electricity_profile(database) -> tuple[dict[str, object], dict[str, list[str]]]:
-    """Resolve the supported electricity profile for one database."""
-    sectors = list(database.get_index(_MASTER_INDEX["s"]))
+def _resolve_electricity_profile(
+    database,
+    *,
+    level: str | None = None,
+) -> tuple[dict[str, object], dict[str, list[str]]]:
+    """Resolve the supported electricity profile for one database.
+
+    ``level`` selects the classification the profile aliases are matched
+    against: the IOT ``Sector`` index by default, or the SUT ``Activity``
+    index for market-share updates.
+    """
+    if level is None:
+        level = _MASTER_INDEX["s"]
+    labels = list(database.get_index(level))
     for profile in _load_electricity_mix_profiles().values():
-        matched = _match_profile_sectors(sectors, profile)
+        matched = _match_profile_sectors(labels, profile)
         if matched is not None:
             return profile, matched
 
-        matched = _match_aggregated_ember_groups(sectors, profile)
+        matched = _match_aggregated_ember_groups(labels, profile)
         if matched is not None:
             return profile, matched
 
     raise NotImplementable(
-        "update_supply_mix_iot('electricity') currently supports only IOT databases exposing the expected "
-        "electricity generation sectors, either in the original disaggregated form or already aggregated "
-        "to the compatible EMBER groups."
+        "update_supply_mix('electricity') currently supports only databases exposing the expected "
+        f"electricity generation {level} labels, either in the original disaggregated form or already "
+        "aggregated to the compatible EMBER groups."
     )
 
 
-def resolve_electricity_mix_sectors(database) -> list[str]:
-    """Return the generation sectors covered by ``update_supply_mix_iot('electricity')``."""
-    _, matched_groups = _resolve_electricity_profile(database)
+def resolve_electricity_mix_sectors(database, *, level: str | None = None) -> list[str]:
+    """Return the generation labels covered by ``update_supply_mix('electricity')``."""
+    _, matched_groups = _resolve_electricity_profile(database, level=level)
     sectors = []
     for members in matched_groups.values():
         for sector in members:
             if sector not in sectors:
                 sectors.append(sector)
     return sectors
+
+
+def _match_profile_commodities(
+    commodities: list[str],
+    profile: dict[str, object],
+) -> dict[str, list[str]] | None:
+    """Match one profile's commodity aliases against the database Commodity list."""
+    groups = profile.get("commodity_groups", {})
+    if not groups:
+        return None
+
+    required_groups = set(profile.get("required_groups", []))
+    matched_groups: dict[str, list[str]] = {}
+    for group, aliases in groups.items():
+        normalized_aliases = {_normalize_label(alias) for alias in aliases}
+        matched = [
+            commodity
+            for commodity in commodities
+            if _normalize_label(commodity) in normalized_aliases
+        ]
+        if group in required_groups and not matched:
+            return None
+        matched_groups[group] = matched
+
+    return matched_groups
+
+
+def resolve_electricity_commodity_aggregation(database) -> dict[str, list[str]]:
+    """Return one ``{aggregated_commodity: [member commodities]}`` mapping for SUT databases.
+
+    The mapping feeds the structural Commodity aggregation performed before an
+    electricity market-share update. When the database already exposes one
+    commodity carrying the aggregated label, an identity mapping is returned so
+    callers can skip the aggregation step.
+    """
+    commodities = list(database.get_index(_MASTER_INDEX["c"]))
+    normalized_commodities = {_normalize_label(c): c for c in commodities}
+
+    for profile in _load_electricity_mix_profiles().values():
+        label = str(profile.get("aggregated_commodity_label", "electricity"))
+        matched = _match_profile_commodities(commodities, profile)
+        if matched is not None:
+            members: list[str] = []
+            for group_members in matched.values():
+                for commodity in group_members:
+                    if commodity not in members:
+                        members.append(commodity)
+            return {label: members}
+
+        existing = normalized_commodities.get(_normalize_label(label))
+        if existing is not None:
+            return {existing: [existing]}
+
+    raise NotImplementable(
+        "update_supply_mix('electricity') on SUT databases requires either the expected disaggregated "
+        "electricity commodities or one already-aggregated electricity commodity. Pass "
+        "aggregate_commodity={'<new name>': [<commodities>]} to describe a custom layout."
+    )
 
 
 def _electricity_group_prefix(matched_groups: dict[str, list[str]]) -> str:
@@ -221,9 +290,12 @@ def _group_internal_weights(
     region: str,
     sectors: list[str],
     fallback_order: list[str],
+    level: str | None = None,
 ) -> pd.Series:
     """Return one within-group sector split based on the current database composition."""
-    selector = (region, _MASTER_INDEX["s"], sectors)
+    if level is None:
+        level = _MASTER_INDEX["s"]
+    selector = (region, level, sectors)
     totals = row_totals.loc[selector].groupby(level="Item").sum().astype(float)
     total = float(totals.sum())
     if total > 0:
@@ -371,9 +443,25 @@ def build_electricity_mix_shares(
     year: int | None,
     ember_path: str | Path | None = None,
     region_aggregation=None,
+    level: str | None = None,
+    weight_matrix: str | None = None,
+    weight_columns=None,
 ) -> dict[str, dict[str, float]]:
-    """Build one ``region -> sector shares`` mapping from EMBER electricity generation data."""
-    profile, matched_groups = _resolve_electricity_profile(database)
+    """Build one ``region -> sector shares`` mapping from EMBER electricity generation data.
+
+    ``level`` selects the classification carrying the generation labels
+    (``Sector`` for IOT, ``Activity`` for SUT market shares) and
+    ``weight_matrix`` the coefficient block whose row totals provide the
+    within-group internal composition (``z`` for IOT, ``s`` for SUT).
+    ``weight_columns`` optionally restricts those row totals to selected
+    column items, e.g. the aggregated electricity commodity of one SUT.
+    """
+    if level is None:
+        level = _MASTER_INDEX["s"]
+    if weight_matrix is None:
+        weight_matrix = _ENUM.z
+
+    profile, matched_groups = _resolve_electricity_profile(database, level=level)
     snapshot = _load_ember_snapshot(ember_path)
     if snapshot.empty:
         raise WrongInput("The EMBER snapshot does not contain any valid electricity-generation observations.")
@@ -391,12 +479,15 @@ def build_electricity_mix_shares(
     ember_variables: dict[str, str] = profile["ember_variables"]
     fallback_order: dict[str, list[str]] = profile.get("fallback_order", {})
     all_profile_sectors = sorted({sector for members in matched_groups.values() for sector in members})
-    z_row_totals = (
-        database.get_block_as_pandas(_ENUM.z, scenario=scenario)
-        .loc[(slice(None), _MASTER_INDEX["s"], all_profile_sectors), :]
-        .sum(axis=1)
-        .astype(float)
-    )
+    weight_block = database.get_block_as_pandas(weight_matrix, scenario=scenario).loc[
+        (slice(None), level, all_profile_sectors), :
+    ]
+    if weight_columns is not None:
+        weight_labels = {weight_columns} if isinstance(weight_columns, str) else set(weight_columns)
+        weight_block = weight_block.loc[
+            :, weight_block.columns.get_level_values(-1).isin(weight_labels)
+        ]
+    z_row_totals = weight_block.sum(axis=1).astype(float)
 
     log_time(
         logger,
@@ -455,6 +546,7 @@ def build_electricity_mix_shares(
                 region=region,
                 sectors=members,
                 fallback_order=fallback_order.get(group, members),
+                level=level,
             )
             fine_shares = fine_shares.add(weights * float(group_shares.get(group, 0.0)), fill_value=0.0)
 

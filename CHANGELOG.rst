@@ -48,6 +48,45 @@ Electricity supply mix update
   the selected columns are rewritten, the others keep their original
   coefficients.
 
+Supply mix on SUT databases
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Generalized the supply-mix update to SUT databases through the new
+  ``Database.update_supply_mix`` (``update_supply_mix_iot`` and
+  ``update_mix_iot`` remain as IOT-only aliases). The share labels select the
+  behaviour, with ``level='Activity'``/``'Commodity'`` available to
+  disambiguate labels existing in both classifications:
+
+  * **Commodity mixes** redistribute the commodity bundle rows across the use
+    block ``u`` and the final-demand block ``Yc``, exactly like the IOT case,
+    with ``column_regions``/``column_sectors`` (buyer activities) selectors.
+  * **Activity mixes (market shares)** rewrite the supply block ``s`` on the
+    commodity columns selected by the new required ``commodities=...``
+    argument. The shares are rescaled onto the combined market share currently
+    held by the listed activities, so producers outside the bundle (e.g.
+    by-product suppliers of the same commodity) keep their share untouched.
+
+* Added the ``aggregate_commodity={'new commodity': [existing commodities]}``
+  argument: the mapping is structurally aggregated (through ``aggregate``)
+  before the mix update so that several activities compete on one shared
+  commodity market. The aggregation affects the whole database, not only the
+  selected scenario.
+* ``update_supply_mix("electricity")`` now works on SUT databases: MARIO
+  aggregates the disaggregated electricity commodities into one shared
+  ``electricity`` commodity using the packaged profile (extended with the
+  EXIOBASE product-side aliases) and rewrites the market shares of the
+  generation activities with the EMBER-derived mix, keeping transmission and
+  distribution commodities separate.
+* ``Type='Supply mix N'`` shock rows are now applied on SUT workbooks too:
+  ``u``/``Yc`` sheets author commodity mixes and the ``s`` sheet authors
+  market-share mixes (``Commodity_to`` must name the target commodity there;
+  ``all`` is rejected). ``get_shock_excel`` extends the ``u``/``s``/``Yc``
+  picklists with the ``Supply mix 1`` … ``Supply mix 10`` options. Supply-mix
+  rows on the legacy unified ``z``/``Y`` sheets or on the ``Ya`` sheet of one
+  SUT workbook — previously ignored silently — now emit one warning.
+* Documented the supply-mix shock type in the shock-analyses user-guide page
+  and extended the electricity supply mix page with the SUT workflow.
+
 GHG aggregation
 ~~~~~~~~~~~~~~~
 

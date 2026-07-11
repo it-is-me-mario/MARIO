@@ -2508,6 +2508,175 @@ def test_shock_calc_supply_mix_rescales_and_warns(tmp_path, caplog):
     assert shocked.loc[ind, col] == pytest.approx(0.8 * bundle)
 
 
+def _write_sut_supply_mix_workbook(path, *, s_rows=None, u_rows=None, yc_rows=None):
+    with pd.ExcelWriter(path) as writer:
+        if s_rows is not None:
+            pd.DataFrame(
+                [
+                    {
+                        SHOCK_FLAT_COLUMNS["region_from"]: region_from,
+                        SHOCK_FLAT_COLUMNS["activity_from"]: activity_from,
+                        SHOCK_FLAT_COLUMNS["region_to"]: region_to,
+                        SHOCK_FLAT_COLUMNS["commodity_to"]: commodity_to,
+                        SHOCK_FLAT_COLUMNS["type"]: mix_type,
+                        SHOCK_FLAT_COLUMNS["value"]: value,
+                    }
+                    for region_from, activity_from, region_to, commodity_to, mix_type, value in s_rows
+                ]
+            ).to_excel(writer, sheet_name="s", index=False)
+        if u_rows is not None:
+            pd.DataFrame(
+                [
+                    {
+                        SHOCK_FLAT_COLUMNS["region_from"]: region_from,
+                        SHOCK_FLAT_COLUMNS["commodity_from"]: commodity_from,
+                        SHOCK_FLAT_COLUMNS["region_to"]: region_to,
+                        SHOCK_FLAT_COLUMNS["activity_to"]: activity_to,
+                        SHOCK_FLAT_COLUMNS["type"]: mix_type,
+                        SHOCK_FLAT_COLUMNS["value"]: value,
+                    }
+                    for region_from, commodity_from, region_to, activity_to, mix_type, value in u_rows
+                ]
+            ).to_excel(writer, sheet_name="u", index=False)
+        if yc_rows is not None:
+            pd.DataFrame(
+                [
+                    {
+                        SHOCK_FLAT_COLUMNS["region_from"]: region_from,
+                        SHOCK_FLAT_COLUMNS["commodity_from"]: commodity_from,
+                        SHOCK_FLAT_COLUMNS["region_to"]: region_to,
+                        SHOCK_FLAT_COLUMNS["category_to"]: category_to,
+                        SHOCK_FLAT_COLUMNS["type"]: mix_type,
+                        SHOCK_FLAT_COLUMNS["value"]: value,
+                    }
+                    for region_from, commodity_from, region_to, category_to, mix_type, value in yc_rows
+                ]
+            ).to_excel(writer, sheet_name="Yc", index=False)
+
+
+def test_shock_calc_sut_applies_supply_mix_on_s_and_u_sheets(tmp_path):
+    database = load_test("SUT")
+    a = _MASTER_INDEX["a"]
+    c = _MASTER_INDEX["c"]
+    base_u = database.query("u", scenarios="baseline").copy()
+
+    path = tmp_path / "sut_supply_mix.xlsx"
+    _write_sut_supply_mix_workbook(
+        path,
+        s_rows=[
+            ("Region 1", "Manufacturing", "Region 1", "Goods", "Supply mix 1", 0.7),
+            ("Region 1", "Services", "Region 1", "Goods", "Supply mix 1", 0.3),
+        ],
+        u_rows=[
+            ("Region 2", "Goods", "all", "all", "Supply mix 1", 0.6),
+            ("Region 2", "Services", "all", "all", "Supply mix 1", 0.4),
+        ],
+    )
+
+    database.shock_calc(str(path), z=True, scenario="mixed")
+
+    s = database.get_block_as_pandas("s", scenario="mixed")
+    goods_r1 = ("Region 1", c, "Goods")
+    # the market shares of (Region 1, Goods) follow the authored 70/30 mix.
+    assert s.loc[("Region 1", a, "Manufacturing"), goods_r1] == pytest.approx(0.7)
+    assert s.loc[("Region 1", a, "Services"), goods_r1] == pytest.approx(0.3)
+    # other commodity markets keep their baseline shares.
+    baseline_s = database.query("s", scenarios="baseline")
+    goods_r2 = ("Region 2", c, "Goods")
+    pdt.assert_series_equal(s.loc[:, goods_r2], baseline_s.loc[:, goods_r2])
+
+    u = database.get_block_as_pandas("u", scenario="mixed")
+    for col in u.columns:
+        bundle = (
+            base_u.loc[("Region 2", c, "Goods"), col]
+            + base_u.loc[("Region 2", c, "Services"), col]
+        )
+        assert u.loc[("Region 2", c, "Goods"), col] == pytest.approx(0.6 * bundle)
+        assert u.loc[("Region 2", c, "Services"), col] == pytest.approx(0.4 * bundle)
+
+
+def test_shock_calc_sut_supply_mix_on_s_requires_target_commodity(tmp_path):
+    database = load_test("SUT")
+    path = tmp_path / "sut_supply_mix_all.xlsx"
+    _write_sut_supply_mix_workbook(
+        path,
+        s_rows=[
+            ("Region 1", "Manufacturing", "Region 1", "all", "Supply mix 1", 0.7),
+            ("Region 1", "Services", "Region 1", "all", "Supply mix 1", 0.3),
+        ],
+    )
+
+    with pytest.raises(WrongInput, match="target commodity"):
+        database.shock_calc(str(path), z=True, scenario="broken")
+
+
+def test_shock_calc_sut_warns_on_legacy_supply_mix_rows(tmp_path, caplog):
+    database = load_test("SUT")
+    base_z = database.query(_ENUM.z, scenarios="baseline").copy()
+
+    # one legacy unified z sheet carrying supply-mix rows: they are ignored
+    # with one warning and the scenario keeps the baseline coefficients.
+    legacy = pd.DataFrame(
+        [
+            {
+                "row region": "Region 1",
+                "row level": _MASTER_INDEX["c"],
+                "row sector": "Goods",
+                "column region": "all",
+                "column level": "all",
+                "column sector": "all",
+                "type": "Supply mix 1",
+                "value": 0.5,
+            },
+            {
+                "row region": "Region 1",
+                "row level": _MASTER_INDEX["c"],
+                "row sector": "Services",
+                "column region": "all",
+                "column level": "all",
+                "column sector": "all",
+                "type": "Supply mix 1",
+                "value": 0.5,
+            },
+        ]
+    )
+    path = tmp_path / "sut_legacy_supply_mix.xlsx"
+    with pd.ExcelWriter(path) as writer:
+        legacy.to_excel(writer, sheet_name=_ENUM.z, index=False)
+
+    with caplog.at_level("WARN"):
+        database.shock_calc(str(path), z=True, scenario="legacy")
+
+    assert any("legacy unified 'z'" in message for message in caplog.messages)
+    pdt.assert_frame_equal(database.query(_ENUM.z, scenarios="legacy"), base_z)
+
+
+def test_get_shock_excel_sut_template_supply_mix_picklists(tmp_path):
+    openpyxl = pytest.importorskip("openpyxl")
+    database = load_test("SUT")
+    path = tmp_path / "sut_template.xlsx"
+
+    database.get_shock_excel(path=str(path), num_shock=2)
+
+    workbook = openpyxl.load_workbook(path)
+
+    def _has_supply_mix_picklist(sheet_name):
+        sheet = workbook[sheet_name]
+        return any(
+            "Supply mix" in str(dv.formula1)
+            for dv in sheet.data_validations.dataValidation
+        )
+
+    # u/s/Yc drive the supply-mix update; Ya and the factor sheets do not.
+    # (all-zero blocks such as Ya may be skipped from the template entirely.)
+    assert _has_supply_mix_picklist("u")
+    assert _has_supply_mix_picklist("s")
+    assert _has_supply_mix_picklist("Yc")
+    if "Ya" in workbook.sheetnames:
+        assert not _has_supply_mix_picklist("Ya")
+    assert not _has_supply_mix_picklist("va")
+
+
 def test_shock_calc_uses_stored_clusters(tmp_path):
     database = load_test("IOT")
     database.set_clusters(clusters={"region": {"EU": ["Reg1", "Reg2"]}})

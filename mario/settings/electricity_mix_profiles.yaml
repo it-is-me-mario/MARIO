@@ -45,6 +45,34 @@ profiles:
     excluded_sectors:
       - transmission of electricity
       - distribution and trade of electricity
+    # SUT side: commodity aliases used to build the aggregated electricity
+    # commodity before a market-share update (EXIOBASE product labels).
+    aggregated_commodity_label: electricity
+    commodity_groups:
+      coal:
+        - electricity by coal
+      gas:
+        - electricity by gas
+      nuclear:
+        - electricity by nuclear
+      hydro:
+        - electricity by hydro
+      wind:
+        - electricity by wind
+      solar:
+        - electricity by solar photovoltaic
+        - electricity by solar thermal
+      bioenergy:
+        - electricity by biomass and waste
+      other_renewables:
+        - electricity by geothermal
+        - electricity by tide, wave, ocean
+      other_fossil:
+        - electricity by petroleum and other oil derivatives
+        - electricity nec
+    excluded_commodities:
+      - transmission services of electricity
+      - distribution and trade services of electricity
     fallback_order:
       solar:
         - production of electricity by solar photovoltaic

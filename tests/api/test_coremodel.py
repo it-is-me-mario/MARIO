@@ -1673,7 +1673,7 @@ def test_update_supply_mix_iot_rejects_unknown_region_or_sector(CoreDataIOT):
     with pytest.raises(WrongInput, match="does not exist"):
         CoreDataIOT.update_supply_mix_iot({"Missing": {"Agriculture": 1.0}})
 
-    with pytest.raises(WrongInput, match="unknown sectors"):
+    with pytest.raises(WrongInput, match="unknown Sector labels"):
         CoreDataIOT.update_supply_mix_iot({"Reg1": {"Missing sector": 1.0}})
 
 
@@ -2108,6 +2108,400 @@ def test_update_supply_mix_iot_electricity_accepts_explicit_region_aggregation_o
     pdt.assert_frame_equal(auto_z, explicit_z)
     pdt.assert_frame_equal(auto_y, explicit_y)
     assert not auto_z.loc[selector, :].equals(z_before.loc[selector, :])
+
+
+def _build_supply_mix_sut_database():
+    """One-region SUT where 'paper mill' supplies electricity as a by-product."""
+    regions = ["R1"]
+    activities = ["gen coal", "gen wind", "paper mill"]
+    commodities = ["electricity", "paper"]
+
+    activity_axis = pd.MultiIndex.from_product(
+        [regions, [_MASTER_INDEX["a"]], activities],
+        names=["Region", "Level", "Item"],
+    )
+    commodity_axis = pd.MultiIndex.from_product(
+        [regions, [_MASTER_INDEX["c"]], commodities],
+        names=["Region", "Level", "Item"],
+    )
+    rows = activity_axis.append(commodity_axis)
+    final_demand_axis = pd.MultiIndex.from_product(
+        [regions, [_MASTER_INDEX["n"]], ["FD"]],
+        names=["Region", "Level", "Item"],
+    )
+
+    Z = pd.DataFrame(0.0, index=rows, columns=rows)
+    Z.loc[("R1", _MASTER_INDEX["c"], "electricity"), :] = [10.0, 5.0, 8.0, 0.0, 0.0]
+    Z.loc[("R1", _MASTER_INDEX["c"], "paper"), :] = [1.0, 1.0, 2.0, 0.0, 0.0]
+    Z.loc[("R1", _MASTER_INDEX["a"], "gen coal"), ("R1", _MASTER_INDEX["c"], "electricity")] = 60.0
+    Z.loc[("R1", _MASTER_INDEX["a"], "gen wind"), ("R1", _MASTER_INDEX["c"], "electricity")] = 25.0
+    Z.loc[("R1", _MASTER_INDEX["a"], "paper mill"), ("R1", _MASTER_INDEX["c"], "electricity")] = 15.0
+    Z.loc[("R1", _MASTER_INDEX["a"], "paper mill"), ("R1", _MASTER_INDEX["c"], "paper")] = 50.0
+
+    Y = pd.DataFrame(0.0, index=rows, columns=final_demand_axis)
+    Y.loc[("R1", _MASTER_INDEX["c"], "electricity")] = 77.0
+    Y.loc[("R1", _MASTER_INDEX["c"], "paper")] = 46.0
+
+    V = pd.DataFrame(1.0, index=["VA"], columns=rows)
+    E = pd.DataFrame(1.0, index=["CO2"], columns=rows)
+    EY = pd.DataFrame(0.0, index=["CO2"], columns=final_demand_axis)
+    VY = pd.DataFrame(0.0, index=["VA"], columns=final_demand_axis)
+
+    units = {
+        _MASTER_INDEX["a"]: pd.DataFrame({"unit": ["EUR"] * len(activities)}, index=activities),
+        _MASTER_INDEX["c"]: pd.DataFrame({"unit": ["EUR"] * len(commodities)}, index=commodities),
+        _MASTER_INDEX["f"]: pd.DataFrame({"unit": ["EUR"]}, index=["VA"]),
+        _MASTER_INDEX["k"]: pd.DataFrame({"unit": ["kg"]}, index=["CO2"]),
+    }
+
+    return Database(
+        name="supply-mix-sut",
+        table="SUT",
+        Z=Z,
+        V=V,
+        E=E,
+        EY=EY,
+        VY=VY,
+        Y=Y,
+        units=units,
+        calc_all=True,
+    )
+
+
+def test_update_supply_mix_sut_activity_rescales_onto_bundle_share():
+    database = _build_supply_mix_sut_database()
+    database.clone_scenario("baseline", "policy")
+
+    database.update_supply_mix(
+        {"R1": {"gen coal": 0.3, "gen wind": 0.7}},
+        scenario="policy",
+        commodities="electricity",
+    )
+
+    s = database.get_block_as_pandas("s", scenario="policy")
+    electricity_col = ("R1", _MASTER_INDEX["c"], "electricity")
+    paper_col = ("R1", _MASTER_INDEX["c"], "paper")
+    coal = ("R1", _MASTER_INDEX["a"], "gen coal")
+    wind = ("R1", _MASTER_INDEX["a"], "gen wind")
+    mill = ("R1", _MASTER_INDEX["a"], "paper mill")
+
+    # baseline market shares are 0.60/0.25/0.15: the 0.3/0.7 mix is rescaled
+    # onto the 0.85 held by the selected bundle, the by-product share stays.
+    assert s.loc[coal, electricity_col] == pytest.approx(0.85 * 0.3)
+    assert s.loc[wind, electricity_col] == pytest.approx(0.85 * 0.7)
+    assert s.loc[mill, electricity_col] == pytest.approx(0.15)
+    assert float(s.loc[:, electricity_col].sum()) == pytest.approx(1.0)
+
+    # other commodity markets are untouched.
+    assert s.loc[mill, paper_col] == pytest.approx(1.0)
+
+    # the use side and the baseline scenario are untouched.
+    baseline_s = database.query("s", scenarios="baseline")
+    assert baseline_s.loc[coal, electricity_col] == pytest.approx(0.60)
+    u = database.get_block_as_pandas("u", scenario="policy")
+    baseline_u = database.query("u", scenarios="baseline")
+    pdt.assert_frame_equal(u, baseline_u)
+
+
+def test_update_supply_mix_sut_commodity_rewrites_u_and_yc():
+    database = _build_supply_mix_sut_database()
+    database.clone_scenario("baseline", "policy")
+    database.reset_to_coefficients("policy")
+    base_u = database.get_block_as_pandas("u", scenario="policy").copy()
+    base_yc = database.get_block_as_pandas("Yc", scenario="policy").copy()
+
+    # commodity labels are unambiguous here, so the level is auto-detected.
+    database.update_supply_mix(
+        {"R1": {"electricity": 0.9, "paper": 0.1}},
+        scenario="policy",
+    )
+
+    u = database.get_block_as_pandas("u", scenario="policy")
+    yc = database.get_block_as_pandas("Yc", scenario="policy")
+    electricity = ("R1", _MASTER_INDEX["c"], "electricity")
+    paper = ("R1", _MASTER_INDEX["c"], "paper")
+
+    for col in u.columns:
+        bundle = base_u.loc[electricity, col] + base_u.loc[paper, col]
+        assert u.loc[electricity, col] == pytest.approx(0.9 * bundle)
+        assert u.loc[paper, col] == pytest.approx(0.1 * bundle)
+
+    yc_col = yc.columns[0]
+    yc_bundle = base_yc.loc[electricity, yc_col] + base_yc.loc[paper, yc_col]
+    assert yc.loc[electricity, yc_col] == pytest.approx(0.9 * yc_bundle)
+    assert yc.loc[paper, yc_col] == pytest.approx(0.1 * yc_bundle)
+
+    # the supply side is untouched by a commodity mix.
+    s = database.get_block_as_pandas("s", scenario="policy")
+    baseline_s = database.query("s", scenarios="baseline")
+    pdt.assert_frame_equal(s, baseline_s)
+
+
+def test_update_supply_mix_sut_requires_level_when_ambiguous(CoreDataSUT):
+    # 'Services' exists both as an Activity and as a Commodity in the test SUT,
+    # so a mix made of that label alone cannot be resolved automatically.
+    CoreDataSUT.clone_scenario("baseline", "policy")
+
+    with pytest.raises(WrongInput, match="level="):
+        CoreDataSUT.update_supply_mix(
+            {"Region 1": {"Services": 1.0}},
+            scenario="policy",
+        )
+
+    # 'Goods' only exists as a Commodity, so this mix is auto-detected; the
+    # equivalent explicit level call must behave identically.
+    CoreDataSUT.update_supply_mix(
+        {"Region 1": {"Goods": 0.5, "Services": 0.5}},
+        scenario="policy",
+        level=_MASTER_INDEX["c"],
+    )
+
+    u = CoreDataSUT.get_block_as_pandas("u", scenario="policy")
+    goods = ("Region 1", _MASTER_INDEX["c"], "Goods")
+    services = ("Region 1", _MASTER_INDEX["c"], "Services")
+    for col in u.columns:
+        assert u.loc[goods, col] == pytest.approx(u.loc[services, col])
+
+
+def test_update_supply_mix_sut_activity_argument_validation():
+    database = _build_supply_mix_sut_database()
+    database.clone_scenario("baseline", "policy")
+
+    with pytest.raises(WrongInput, match="commodities="):
+        database.update_supply_mix(
+            {"R1": {"gen coal": 0.5, "gen wind": 0.5}},
+            scenario="policy",
+        )
+
+    with pytest.raises(WrongInput, match="column_sectors does not apply"):
+        database.update_supply_mix(
+            {"R1": {"gen coal": 0.5, "gen wind": 0.5}},
+            scenario="policy",
+            commodities="electricity",
+            column_sectors="gen coal",
+        )
+
+    with pytest.raises(WrongInput, match="unknown values"):
+        database.update_supply_mix(
+            {"R1": {"gen coal": 0.5, "gen wind": 0.5}},
+            scenario="policy",
+            commodities="missing commodity",
+        )
+
+    # commodities does not apply to commodity-level mixes.
+    with pytest.raises(WrongInput, match="Activity-level"):
+        database.update_supply_mix(
+            {"R1": {"electricity": 0.9, "paper": 0.1}},
+            scenario="policy",
+            commodities="electricity",
+        )
+
+
+def test_update_supply_mix_rejects_sut_arguments_on_iot(CoreDataIOT):
+    with pytest.raises(WrongInput, match="only for SUT"):
+        CoreDataIOT.update_supply_mix(
+            {"Reg1": {"Agriculture": 1.0}},
+            aggregate_commodity={"bundle": ["Agriculture"]},
+        )
+
+    with pytest.raises(WrongInput, match="SUT"):
+        CoreDataIOT.update_supply_mix(
+            {"Reg1": {"Agriculture": 1.0}},
+            commodities="Agriculture",
+        )
+
+
+def test_update_supply_mix_aggregate_commodity_builds_shared_market():
+    database = _build_supply_mix_sut_database()
+    database.clone_scenario("baseline", "policy")
+
+    database.update_supply_mix(
+        {"R1": {"gen coal": 0.5, "gen wind": 0.5}},
+        scenario="policy",
+        aggregate_commodity={"products": ["electricity", "paper"]},
+    )
+
+    assert database.get_index(_MASTER_INDEX["c"]) == ["products"]
+
+    s = database.get_block_as_pandas("s", scenario="policy")
+    products = ("R1", _MASTER_INDEX["c"], "products")
+    # baseline flows: coal 60, wind 25, mill 65 over 150 -> the selected bundle
+    # holds 85/150 and is split 50/50; the mill keeps its 65/150.
+    assert s.loc[("R1", _MASTER_INDEX["a"], "gen coal"), products] == pytest.approx(85.0 / 150.0 / 2)
+    assert s.loc[("R1", _MASTER_INDEX["a"], "gen wind"), products] == pytest.approx(85.0 / 150.0 / 2)
+    assert s.loc[("R1", _MASTER_INDEX["a"], "paper mill"), products] == pytest.approx(65.0 / 150.0)
+
+
+def test_update_supply_mix_aggregate_commodity_validation():
+    database = _build_supply_mix_sut_database()
+    database.clone_scenario("baseline", "policy")
+
+    with pytest.raises(WrongInput, match="not found in the Commodity index"):
+        database.update_supply_mix(
+            {"R1": {"gen coal": 1.0}},
+            scenario="policy",
+            aggregate_commodity={"bundle": ["electricity", "missing"]},
+        )
+
+    with pytest.raises(WrongInput, match="already exists"):
+        database.update_supply_mix(
+            {"R1": {"gen coal": 1.0}},
+            scenario="policy",
+            aggregate_commodity={"paper": ["electricity"]},
+        )
+
+    with pytest.raises(WrongInput, match="more than one target"):
+        database.update_supply_mix(
+            {"R1": {"gen coal": 1.0}},
+            scenario="policy",
+            aggregate_commodity={
+                "bundle a": ["electricity"],
+                "bundle b": ["electricity", "paper"],
+            },
+        )
+
+
+def _build_electricity_mix_sut_database():
+    """One-region SUT with the disaggregated EXIOBASE-style electricity layout."""
+    generation = [
+        "coal",
+        "gas",
+        "nuclear",
+        "hydro",
+        "wind",
+        "petroleum and other oil derivatives",
+        "biomass and waste",
+        "solar photovoltaic",
+        "solar thermal",
+        "tide, wave, ocean",
+        "geothermal",
+    ]
+    activities = (
+        [f"production of electricity by {fuel}" for fuel in generation]
+        + ["production of electricity nec", "transmission of electricity", "mill"]
+    )
+    commodities = (
+        [f"electricity by {fuel}" for fuel in generation]
+        + ["electricity nec", "transmission services of electricity", "flour"]
+    )
+
+    regions = ["ITA"]
+    activity_axis = pd.MultiIndex.from_product(
+        [regions, [_MASTER_INDEX["a"]], activities],
+        names=["Region", "Level", "Item"],
+    )
+    commodity_axis = pd.MultiIndex.from_product(
+        [regions, [_MASTER_INDEX["c"]], commodities],
+        names=["Region", "Level", "Item"],
+    )
+    rows = activity_axis.append(commodity_axis)
+    final_demand_axis = pd.MultiIndex.from_product(
+        [regions, [_MASTER_INDEX["n"]], ["FD"]],
+        names=["Region", "Level", "Item"],
+    )
+
+    Z = pd.DataFrame(0.0, index=rows, columns=rows)
+    for fuel in generation:
+        Z.loc[
+            ("ITA", _MASTER_INDEX["a"], f"production of electricity by {fuel}"),
+            ("ITA", _MASTER_INDEX["c"], f"electricity by {fuel}"),
+        ] = 10.0
+    Z.loc[
+        ("ITA", _MASTER_INDEX["a"], "production of electricity nec"),
+        ("ITA", _MASTER_INDEX["c"], "electricity nec"),
+    ] = 10.0
+    Z.loc[
+        ("ITA", _MASTER_INDEX["a"], "transmission of electricity"),
+        ("ITA", _MASTER_INDEX["c"], "transmission services of electricity"),
+    ] = 30.0
+    Z.loc[("ITA", _MASTER_INDEX["a"], "mill"), ("ITA", _MASTER_INDEX["c"], "flour")] = 100.0
+    # the mill also supplies electricity as one by-product.
+    Z.loc[("ITA", _MASTER_INDEX["a"], "mill"), ("ITA", _MASTER_INDEX["c"], "electricity by gas")] = 2.0
+    for commodity in commodities:
+        Z.loc[
+            ("ITA", _MASTER_INDEX["c"], commodity),
+            (slice(None), _MASTER_INDEX["a"], slice(None)),
+        ] = 0.5
+
+    Y = pd.DataFrame(0.0, index=rows, columns=final_demand_axis)
+    for commodity in commodities:
+        key = ("ITA", _MASTER_INDEX["c"], commodity)
+        supply = float(Z.loc[(slice(None), _MASTER_INDEX["a"], slice(None)), key].sum())
+        Y.loc[key] = max(supply - float(Z.loc[key].sum()), 0.0)
+
+    V = pd.DataFrame(1.0, index=["VA"], columns=rows)
+    E = pd.DataFrame(1.0, index=["CO2"], columns=rows)
+    EY = pd.DataFrame(0.0, index=["CO2"], columns=final_demand_axis)
+    VY = pd.DataFrame(0.0, index=["VA"], columns=final_demand_axis)
+
+    units = {
+        _MASTER_INDEX["a"]: pd.DataFrame({"unit": ["EUR"] * len(activities)}, index=activities),
+        _MASTER_INDEX["c"]: pd.DataFrame({"unit": ["EUR"] * len(commodities)}, index=commodities),
+        _MASTER_INDEX["f"]: pd.DataFrame({"unit": ["EUR"]}, index=["VA"]),
+        _MASTER_INDEX["k"]: pd.DataFrame({"unit": ["kg"]}, index=["CO2"]),
+    }
+
+    database = Database(
+        name="electricity-mix-sut",
+        table="SUT",
+        Z=Z,
+        V=V,
+        E=E,
+        EY=EY,
+        VY=VY,
+        Y=Y,
+        units=units,
+        calc_all=True,
+    )
+    database.meta.source = "EXIOBASE test bundle"
+    return database
+
+
+def test_update_supply_mix_sut_electricity_aggregates_commodities_and_rewrites_market_shares(tmp_path):
+    database = _build_electricity_mix_sut_database()
+    database.clone_scenario("baseline", "policy")
+
+    ember_snapshot = pd.DataFrame(
+        [
+            ("ITA", 2020, "Coal", 40.0),
+            ("ITA", 2020, "Gas", 30.0),
+            ("ITA", 2020, "Wind", 30.0),
+        ],
+        columns=["ISO3", "Year", "Variable", "Value"],
+    )
+    ember_path = tmp_path / "ember_generation.csv"
+    ember_snapshot.to_csv(ember_path, index=False)
+
+    database.update_supply_mix(
+        "electricity",
+        scenario="policy",
+        year=2020,
+        ember_path=ember_path,
+    )
+
+    # the twelve electricity commodities are aggregated into one shared market;
+    # transmission services and flour survive as separate commodities.
+    commodities = database.get_index(_MASTER_INDEX["c"])
+    assert "electricity" in commodities
+    assert "transmission services of electricity" in commodities
+    assert "flour" in commodities
+    assert len(commodities) == 3
+
+    s = database.get_block_as_pandas("s", scenario="policy")
+    electricity = ("ITA", _MASTER_INDEX["c"], "electricity")
+    # generation supplies 120 of 122: the EMBER mix is rescaled onto that share
+    # while the mill by-product keeps its 2/122.
+    bundle_share = 120.0 / 122.0
+    assert s.loc[("ITA", _MASTER_INDEX["a"], "production of electricity by coal"), electricity] == pytest.approx(0.4 * bundle_share)
+    assert s.loc[("ITA", _MASTER_INDEX["a"], "production of electricity by gas"), electricity] == pytest.approx(0.3 * bundle_share)
+    assert s.loc[("ITA", _MASTER_INDEX["a"], "production of electricity by wind"), electricity] == pytest.approx(0.3 * bundle_share)
+    assert s.loc[("ITA", _MASTER_INDEX["a"], "mill"), electricity] == pytest.approx(2.0 / 122.0)
+    assert s.loc[("ITA", _MASTER_INDEX["a"], "production of electricity by nuclear"), electricity] == pytest.approx(0.0)
+    assert float(s.loc[:, electricity].sum()) == pytest.approx(1.0)
+
+    # non-electricity markets are untouched.
+    flour = ("ITA", _MASTER_INDEX["c"], "flour")
+    assert s.loc[("ITA", _MASTER_INDEX["a"], "mill"), flour] == pytest.approx(1.0)
 
 
 def test_update_scenarios_sut_accepts_unified_z(CoreDataSUT):

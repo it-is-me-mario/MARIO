@@ -1829,7 +1829,7 @@ class CoreModel:
             Non-empty iterable of sector labels whose regional production mix
             should be calculated. The special string ``"electricity"`` uses
             the same generation-sector bundle resolved by
-            :meth:`update_supply_mix_iot`.
+            :meth:`update_supply_mix`.
         scenario:
             Scenario whose production vector should be converted to one
             ``region -> {sector: share}`` mapping.
@@ -1892,7 +1892,7 @@ class CoreModel:
         self.mix = mix
         return mix
 
-    def update_supply_mix_iot(
+    def update_supply_mix(
         self,
         shares_by_region,
         *,
@@ -1905,30 +1905,53 @@ class CoreModel:
         aggregate_as_ember: bool = False,
         column_regions=None,
         column_sectors=None,
+        level: str | None = None,
+        commodities=None,
+        aggregate_commodity=None,
     ) -> None:
-        """Update one IOT regional sector mix across ``z`` and ``Y``.
+        """Update one regional supply mix in the selected scenario.
+
+        For IOT databases the mix redistributes the combined coefficient rows
+        of one regional sector bundle across ``z`` and ``Y``.
+
+        For SUT databases the behaviour depends on the classification the
+        share labels belong to:
+
+        * **Commodity mix** — the bundle rows are redistributed across the use
+          block ``u`` and the final-demand block ``Yc``, exactly like the IOT
+          case with commodities playing the sector role.
+        * **Activity mix (market shares)** — the bundle rows are redistributed
+          inside the supply block ``s``, restricted to the commodity columns
+          selected by ``commodities=...``. This rewrites the market shares of
+          the selected activities in producing those commodities. The shares
+          are rescaled onto the combined share currently held by the selected
+          activities, so producers outside the bundle (e.g. by-product
+          suppliers of the same commodity) keep their share untouched.
 
         Parameters
         ----------
         shares_by_region:
-            Either one explicit mapping ``region -> {sector: share}`` describing
-            how the combined coefficient rows of the selected sectors should be
+            Either one explicit mapping ``region -> {label: share}`` describing
+            how the combined coefficient rows of the selected labels should be
             redistributed within each region, or the special string
             ``"electricity"``.
 
             When ``"electricity"`` is used, MARIO derives one generation mix
             from EMBER electricity-generation data for the requested ``year``.
             The EMBER taxonomy is more aggregated than the disaggregated
-            electricity sectors exposed by EXIOBASE IOT and EMERGING-E, so the
-            database electricity bundle is first aggregated to the compatible
-            EMBER fuel groups before the update is applied. The resulting group
-            totals are then redistributed back to the original database sectors
-            using the current internal composition of each aggregated group.
+            electricity classification exposed by EXIOBASE and EMERGING-E, so
+            the database electricity bundle is first aggregated to the
+            compatible EMBER fuel groups before the update is applied. The
+            resulting group totals are then redistributed back to the original
+            database labels using the current internal composition of each
+            aggregated group.
 
-            This means that detailed technologies such as geothermal,
-            tide/wave/ocean and solar thermal are updated only through their
-            parent aggregated EMBER groups. Transmission and distribution
-            sectors are left unchanged.
+            On IOT databases the update targets the generation sectors across
+            ``z`` and ``Y``. On SUT databases MARIO first aggregates the
+            disaggregated electricity commodities into one shared commodity
+            (see ``aggregate_commodity``) and then rewrites the market shares
+            of the generation activities in ``s``. Transmission and
+            distribution labels are left unchanged in both cases.
         scenario:
             Scenario to update in place. When it does not exist yet, provide
             ``clone_from=...`` to create it first.
@@ -1960,11 +1983,11 @@ class CoreModel:
             When omitted, MARIO automatically reuses ``db.meta.region_aggregation_map``
             if the database was aggregated earlier through :meth:`aggregate`.
         aggregate_as_ember:
-            When ``True`` and ``shares_by_region="electricity"``, aggregate
-            the database Sector classification to the coarser EMBER fuel-group
-            names after applying the updated mix. The aggregation is structural
-            and therefore affects the whole database, not only the selected
-            scenario.
+            When ``True`` and ``shares_by_region="electricity"`` on one IOT
+            database, aggregate the database Sector classification to the
+            coarser EMBER fuel-group names after applying the updated mix. The
+            aggregation is structural and therefore affects the whole
+            database, not only the selected scenario.
         column_regions:
             Restrict the redistribution to buyer/demand columns of these regions
             only. Accepts one region or an iterable of regions. When ``None``
@@ -1972,10 +1995,29 @@ class CoreModel:
             matricial: the selected columns are extracted and rewritten, the
             others are left untouched.
         column_sectors:
-            Restrict the redistribution to buyer columns of these sectors only
-            (applies to the ``z`` block; the ``Y`` block has no sector columns so
-            it is filtered by ``column_regions`` only). Accepts one sector or an
-            iterable. ``None`` (default) means all sectors.
+            Restrict the redistribution to buyer columns of these labels only.
+            On IOT databases these are the buyer sectors of ``z``; on SUT
+            commodity mixes they are the buyer activities of ``u``. Final-demand
+            blocks have no such columns and are filtered by ``column_regions``
+            only. Not accepted for Activity-level mixes, whose rewritten
+            columns are selected by ``commodities=...`` instead.
+        level:
+            Classification of the share labels. Optional on SUT databases when
+            the labels resolve unambiguously to Activities or Commodities;
+            required (``'Activity'`` or ``'Commodity'``) when one label exists
+            in both classifications. IOT databases always operate on Sectors.
+        commodities:
+            SUT Activity-level mixes only: the commodity (or commodities) whose
+            market shares should be rewritten in ``s``. Defaults to the targets
+            of ``aggregate_commodity`` when that argument is provided.
+        aggregate_commodity:
+            SUT only. Optional ``{'new commodity': [existing commodities]}``
+            mapping structurally aggregated (through :meth:`aggregate`) before
+            the mix update, so that several activities compete on one shared
+            commodity market. The aggregation affects the whole database, not
+            only the selected scenario. With ``shares_by_region="electricity"``
+            the mapping defaults to the packaged electricity profile, so it can
+            be omitted for EXIOBASE-style layouts.
 
         Returns
         -------
@@ -1984,20 +2026,45 @@ class CoreModel:
 
         Notes
         -----
-        This helper is currently implemented only for IOT tables. It rewrites
-        the coefficient-side ``z`` and ``Y`` blocks, preserving the original
-        column totals of each selected regional sector bundle.
+        The method rewrites coefficient-side blocks preserving the original
+        column totals of each selected regional bundle: ``z``/``Y`` for IOT,
+        ``u``/``Yc`` for SUT commodity mixes and ``s`` for SUT activity
+        mixes.
 
-        The method resets the target scenario to coefficient-side storage
-        internally before applying the redistribution, so callers do not need
-        an extra ``reset_to_coefficients(...)`` around this operation.
+        The target scenario is reset to coefficient-side storage internally
+        before applying the redistribution, so callers do not need an extra
+        ``reset_to_coefficients(...)`` around this operation.
 
         Regions that are not covered by EMBER are left unchanged and generate
         one warning when ``shares_by_region="electricity"``.
         """
 
-        if self.table_type != "IOT":
-            raise NotImplementable("update_supply_mix_iot is currently implemented only for IOT tables.")
+        is_sut = self.table_type == "SUT"
+
+        if not is_sut:
+            if aggregate_commodity is not None:
+                raise WrongInput("aggregate_commodity is available only for SUT databases.")
+            if commodities is not None:
+                raise WrongInput(
+                    "commodities applies only to Activity-level mixes on SUT databases."
+                )
+            if level is not None and str(level) != _MASTER_INDEX["s"]:
+                raise WrongInput(
+                    f"IOT supply mixes operate on the {_MASTER_INDEX['s']} level; got level={level!r}."
+                )
+        else:
+            if aggregate_as_ember:
+                raise WrongInput(
+                    "aggregate_as_ember is currently supported only for IOT databases."
+                )
+            if level is not None and str(level) not in (
+                _MASTER_INDEX["a"],
+                _MASTER_INDEX["c"],
+            ):
+                raise WrongInput(
+                    f"SUT supply mixes accept level='{_MASTER_INDEX['a']}' or "
+                    f"level='{_MASTER_INDEX['c']}'; got {level!r}."
+                )
 
         requested_scenario = str(scenario).strip()
         if not requested_scenario:
@@ -2013,24 +2080,65 @@ class CoreModel:
             self.clone_scenario(clone_from, requested_scenario)
             scenario = self._validate_scenario(requested_scenario)
 
-        coefficients_ready = False
         electricity_requested = isinstance(shares_by_region, str)
-
-        if isinstance(shares_by_region, str):
-            if shares_by_region.strip().casefold() != "electricity":
-                raise WrongInput(
-                    "String-valued shares_by_region is currently supported only for 'electricity'."
-                )
-
-            self.reset_to_coefficients(scenario)
-            coefficients_ready = True
-            shares_by_region = _electricity_mix_module().build_electricity_mix_shares(
-                self,
-                scenario=scenario,
-                year=year,
-                ember_path=ember_path,
-                region_aggregation=region_aggregation,
+        if electricity_requested and shares_by_region.strip().casefold() != "electricity":
+            raise WrongInput(
+                "String-valued shares_by_region is currently supported only for 'electricity'."
             )
+        if aggregate_as_ember and not electricity_requested:
+            raise WrongInput("aggregate_as_ember is currently supported only with shares_by_region='electricity'.")
+
+        # Structural commodity aggregation happens before anything reads the
+        # Commodity index; the electricity mode derives the mapping from the
+        # packaged profile when it is not provided explicitly.
+        aggregated_commodities: list[str] = []
+        if is_sut:
+            if electricity_requested and aggregate_commodity is None:
+                aggregate_commodity = _electricity_mix_module().resolve_electricity_commodity_aggregation(self)
+            if aggregate_commodity is not None:
+                performed = self._apply_commodity_aggregation(aggregate_commodity)
+                aggregated_commodities = [str(target) for target in aggregate_commodity]
+                if performed:
+                    self.meta._add_history(
+                        "Database: aggregated commodities ahead of the supply-mix update "
+                        f"into {aggregated_commodities}."
+                    )
+
+        coefficients_ready = False
+
+        if electricity_requested:
+            if is_sut:
+                row_level = _MASTER_INDEX["a"]
+                if commodities is None:
+                    commodities = list(aggregated_commodities) or None
+                if not commodities:
+                    raise WrongInput(
+                        "update_supply_mix('electricity') on SUT databases could not resolve the "
+                        "target commodity. Pass commodities=... or aggregate_commodity=... explicitly."
+                    )
+                self.reset_to_coefficients(scenario)
+                coefficients_ready = True
+                shares_by_region = _electricity_mix_module().build_electricity_mix_shares(
+                    self,
+                    scenario=scenario,
+                    year=year,
+                    ember_path=ember_path,
+                    region_aggregation=region_aggregation,
+                    level=row_level,
+                    weight_matrix="s",
+                    weight_columns=commodities,
+                )
+            else:
+                row_level = _MASTER_INDEX["s"]
+                self.reset_to_coefficients(scenario)
+                coefficients_ready = True
+                shares_by_region = _electricity_mix_module().build_electricity_mix_shares(
+                    self,
+                    scenario=scenario,
+                    year=year,
+                    ember_path=ember_path,
+                    region_aggregation=region_aggregation,
+                )
             if not shares_by_region:
                 log_time(
                     logger,
@@ -2039,50 +2147,89 @@ class CoreModel:
                 )
                 return
 
-        if aggregate_as_ember and not electricity_requested:
-            raise WrongInput("aggregate_as_ember is currently supported only with shares_by_region='electricity'.")
-
         if not isinstance(shares_by_region, MutableMapping) or not shares_by_region:
             raise WrongInput(
-                "shares_by_region must be one non-empty mapping of regions to sector-share mappings."
+                "shares_by_region must be one non-empty mapping of regions to share mappings."
             )
 
         valid_regions = set(self.get_index(_MASTER_INDEX["r"]))
-        valid_sectors = set(self.get_index(_MASTER_INDEX["s"]))
-        normalized_shares = {}
-        sum_tolerance = 0.01
-
         for region, sector_shares in shares_by_region.items():
             if region not in valid_regions:
                 raise WrongInput(
                     f"Region {region!r} does not exist. Valid regions are: {self.get_index(_MASTER_INDEX['r'])}"
                 )
-
             if not isinstance(sector_shares, MutableMapping) or not sector_shares:
                 raise WrongInput(
-                    f"Region {region!r} must map to one non-empty mapping of sector shares."
+                    f"Region {region!r} must map to one non-empty mapping of shares."
                 )
 
+        if not electricity_requested:
+            if not is_sut:
+                row_level = _MASTER_INDEX["s"]
+            elif level is not None:
+                row_level = str(level)
+            else:
+                member_labels = {
+                    str(label)
+                    for sector_shares in shares_by_region.values()
+                    for label in sector_shares
+                }
+                activity_labels = set(self.get_index(_MASTER_INDEX["a"]))
+                commodity_labels = set(self.get_index(_MASTER_INDEX["c"]))
+                only_activities = member_labels <= activity_labels
+                only_commodities = member_labels <= commodity_labels
+                if only_activities and not only_commodities:
+                    row_level = _MASTER_INDEX["a"]
+                elif only_commodities and not only_activities:
+                    row_level = _MASTER_INDEX["c"]
+                else:
+                    raise WrongInput(
+                        "Could not infer whether the SUT supply mix targets Activities or "
+                        f"Commodities from the share labels {sorted(member_labels)}. Pass "
+                        f"level='{_MASTER_INDEX['a']}' or level='{_MASTER_INDEX['c']}' explicitly."
+                    )
+
+        if is_sut and row_level == _MASTER_INDEX["a"]:
+            if commodities is None and aggregated_commodities:
+                commodities = list(aggregated_commodities)
+            if commodities is None:
+                raise WrongInput(
+                    "Activity-level supply mixes rewrite market shares in 's' and need the target "
+                    "market: pass commodities=... (or aggregate_commodity=... to build it first)."
+                )
+            if column_sectors is not None:
+                raise WrongInput(
+                    "column_sectors does not apply to Activity-level supply mixes; the rewritten "
+                    "columns are the ones selected by commodities=... (and column_regions)."
+                )
+        elif commodities is not None:
+            raise WrongInput("commodities applies only to Activity-level mixes on SUT databases.")
+
+        valid_items = set(self.get_index(row_level))
+        normalized_shares = {}
+        sum_tolerance = 0.01
+
+        for region, sector_shares in shares_by_region.items():
             weights = pd.Series(sector_shares, dtype=float)
             if weights.isna().any() or not np.isfinite(weights.to_numpy()).all():
-                raise WrongInput(f"Region {region!r} contains non-finite sector shares.")
+                raise WrongInput(f"Region {region!r} contains non-finite shares.")
 
             if (weights < 0).any():
-                raise WrongInput(f"Region {region!r} contains negative sector shares.")
+                raise WrongInput(f"Region {region!r} contains negative shares.")
 
-            missing_sectors = [sector for sector in weights.index if sector not in valid_sectors]
-            if missing_sectors:
+            missing_items = [item for item in weights.index if item not in valid_items]
+            if missing_items:
                 raise WrongInput(
-                    f"Region {region!r} references unknown sectors: {missing_sectors}"
+                    f"Region {region!r} references unknown {row_level} labels: {missing_items}"
                 )
 
             total = float(weights.sum())
             if total <= 0:
-                raise WrongInput(f"Region {region!r} sector shares must sum to a positive value.")
+                raise WrongInput(f"Region {region!r} shares must sum to a positive value.")
 
             if not rescale and abs(total - 1.0) >= sum_tolerance:
                 raise WrongInput(
-                    f"Region {region!r} sector shares must sum to 1 within {sum_tolerance}. "
+                    f"Region {region!r} shares must sum to 1 within {sum_tolerance}. "
                     "Pass rescale=True to normalize arbitrary positive totals."
                 )
 
@@ -2102,28 +2249,54 @@ class CoreModel:
         col_regions = _normalize_column_selector(
             column_regions, name="column_regions", valid=valid_regions
         )
-        col_sectors = _normalize_column_selector(
-            column_sectors, name="column_sectors", valid=valid_sectors
-        )
+        if not is_sut:
+            col_items = _normalize_column_selector(
+                column_sectors, name="column_sectors", valid=valid_items
+            )
+        elif row_level == _MASTER_INDEX["c"]:
+            col_items = _normalize_column_selector(
+                column_sectors,
+                name="column_sectors",
+                valid=set(self.get_index(_MASTER_INDEX["a"])),
+            )
+        else:
+            col_items = _normalize_column_selector(
+                commodities,
+                name="commodities",
+                valid=set(self.get_index(_MASTER_INDEX["c"])),
+            )
 
-        def _column_mask(columns, *, with_sector):
+        def _column_mask(columns, *, with_items):
             mask = np.ones(len(columns), dtype=bool)
             if col_regions is not None:
                 mask &= columns.get_level_values(0).isin(col_regions)
-            if with_sector and col_sectors is not None:
-                mask &= columns.get_level_values(-1).isin(col_sectors)
+            if with_items and col_items is not None:
+                mask &= columns.get_level_values(-1).isin(col_items)
             return mask
 
         if not coefficients_ready:
             self.reset_to_coefficients(scenario)
-        z = self.get_block_as_pandas(_ENUM.z, scenario=scenario).copy()
-        Y = self.get_block_as_pandas(_ENUM.Y, scenario=scenario).copy()
 
+        # Blocks rewritten by the mix. Final-demand blocks expose no item
+        # columns, so they are filtered by column_regions only.
+        if not is_sut:
+            block_plan = {"z": True, "Y": False}
+        elif row_level == _MASTER_INDEX["c"]:
+            block_plan = {"u": True, "Yc": False}
+        else:
+            block_plan = {"s": True}
+
+        target_blocks = {
+            name: self.get_block_as_pandas(name, scenario=scenario).copy()
+            for name in block_plan
+        }
         # Column subsets the mix is applied to (all columns by default). The
         # redistribution stays matricial: the selected columns are rewritten,
         # the others keep their original coefficients.
-        z_col_mask = _column_mask(z.columns, with_sector=True)
-        Y_col_mask = _column_mask(Y.columns, with_sector=False)
+        column_masks = {
+            name: _column_mask(frame.columns, with_items=block_plan[name])
+            for name, frame in target_blocks.items()
+        }
 
         def _redistribute(block, weights, col_mask):
             # Dense replacement: selected columns are redistributed by the mix,
@@ -2141,25 +2314,18 @@ class CoreModel:
             return pd.DataFrame(values, index=block.index, columns=block.columns)
 
         for region, weights in normalized_shares.items():
-            selector = (region, _MASTER_INDEX["s"], list(weights.index))
+            selector = (region, row_level, list(weights.index))
 
-            z_block = z.loc[selector, :]
-            z = _replace_selected_rows(
-                z,
-                selector=selector,
-                target_index=z_block.index,
-                replacement=_redistribute(z_block, weights, z_col_mask),
-            )
+            for name, frame in target_blocks.items():
+                block = frame.loc[selector, :]
+                target_blocks[name] = _replace_selected_rows(
+                    frame,
+                    selector=selector,
+                    target_index=block.index,
+                    replacement=_redistribute(block, weights, column_masks[name]),
+                )
 
-            Y_block = Y.loc[selector, :]
-            Y = _replace_selected_rows(
-                Y,
-                selector=selector,
-                target_index=Y_block.index,
-                replacement=_redistribute(Y_block, weights, Y_col_mask),
-            )
-
-        self.update_scenarios(scenario, z=z, Y=Y)
+        self.update_scenarios(scenario, **target_blocks)
 
         if aggregate_as_ember:
             if not hasattr(self, "aggregate"):
@@ -2176,9 +2342,86 @@ class CoreModel:
             )
 
         self.meta._add_history(
-            "Database: updated IOT sector mix in scenario "
+            f"Database: updated {row_level} supply mix ({', '.join(target_blocks)}) in scenario "
             f"{self._public_scenario_name(scenario)} for regions {sorted(normalized_shares)}."
         )
+
+    def _apply_commodity_aggregation(self, aggregate_commodity) -> bool:
+        """Structurally aggregate SUT commodities ahead of one supply-mix update.
+
+        ``aggregate_commodity`` maps each new commodity label to the existing
+        commodities it absorbs. Identity entries (one commodity aggregated onto
+        itself) are skipped. Returns whether one aggregation was performed.
+        """
+        if not isinstance(aggregate_commodity, MutableMapping) or not aggregate_commodity:
+            raise WrongInput(
+                "aggregate_commodity must be one non-empty mapping of "
+                "{'new commodity': [existing commodities]}."
+            )
+        if not hasattr(self, "aggregate"):
+            raise NotImplementable(
+                "aggregate_commodity requires a Database instance exposing aggregate()."
+            )
+
+        current = list(self.get_index(_MASTER_INDEX["c"]))
+        current_set = set(current)
+        aggregation = pd.DataFrame({"Aggregation": current}, index=current)
+        assigned: dict[str, str] = {}
+        performed = False
+
+        for target, members in aggregate_commodity.items():
+            member_list = [members] if isinstance(members, str) else list(members)
+            if not member_list:
+                raise WrongInput(
+                    f"aggregate_commodity target {target!r} has no member commodities."
+                )
+
+            missing = [member for member in member_list if member not in current_set]
+            if missing:
+                raise WrongInput(
+                    f"aggregate_commodity members not found in the Commodity index: {missing}"
+                )
+
+            target_label = str(target)
+            if target_label in current_set and target_label not in member_list:
+                raise WrongInput(
+                    f"aggregate_commodity target {target_label!r} already exists as a different "
+                    "commodity. Include it among its members to merge, or pick one new label."
+                )
+
+            duplicated = [member for member in member_list if member in assigned]
+            if duplicated:
+                raise WrongInput(
+                    f"aggregate_commodity members assigned to more than one target: {duplicated}"
+                )
+            for member in member_list:
+                assigned[member] = target_label
+
+            if member_list == [target_label]:
+                continue
+
+            aggregation.loc[member_list, "Aggregation"] = target_label
+            performed = True
+
+        if not performed:
+            return False
+
+        self.aggregate(
+            io={_MASTER_INDEX["c"]: aggregation},
+            levels=_MASTER_INDEX["c"],
+            calc_all=False,
+            inplace=True,
+        )
+        return True
+
+    def update_supply_mix_iot(self, *args, **kwargs) -> None:
+        """IOT-only alias for :meth:`update_supply_mix`, kept for backward compatibility."""
+        if self.table_type != "IOT":
+            raise NotImplementable(
+                "update_supply_mix_iot is implemented only for IOT tables. "
+                "Use update_supply_mix for SUT databases."
+            )
+        return self.update_supply_mix(*args, **kwargs)
 
     def update_mix_iot(self, *args, **kwargs) -> None:
         """Backward-compatible alias for :meth:`update_supply_mix_iot`."""

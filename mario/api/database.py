@@ -5334,10 +5334,11 @@ class Database(CoreModel):
 
             self.matrices[scenario] = _results
 
-            # Type='Supply mix N' rows redistribute a regional sector bundle over
-            # its buyer columns. They are collected from the z/Y sheets and applied
-            # on top of the freshly materialized scenario (IOT only).
-            if self.table_type != "SUT" and (z or Y):
+            # Type='Supply mix N' rows redistribute a regional bundle over its
+            # buyer columns. They are collected from the z/Y sheets (IOT) or the
+            # split u/s/Yc sheets (SUT) and applied on top of the freshly
+            # materialized scenario.
+            if z or Y:
                 for spec in read_supply_mix_specs(self, shock_io):
                     (mix_region, members), = spec["shares"].items()
                     total = sum(members.values())
@@ -5348,11 +5349,13 @@ class Database(CoreModel):
                             f"{total:.4f}, rescaling shares to 1.",
                             "warning",
                         )
-                    self.update_supply_mix_iot(
+                    self.update_supply_mix(
                         spec["shares"],
                         scenario=scenario,
+                        level=spec["level"],
                         column_regions=spec["column_regions"],
                         column_sectors=spec["column_sectors"],
+                        commodities=spec["commodities"],
                         rescale=True,
                     )
 
