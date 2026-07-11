@@ -18,7 +18,7 @@ dependencies:
   - sphinx-copybutton
   - myst-parser
   - nbconvert
-  - nbformat
+  - nbformat>=5.10.4
   - sphinxcontrib-bibtex
   - pyyaml
   - country_converter

@@ -65,6 +65,7 @@ setup(
         "numpy == 2.1.1",
         "xlsxwriter == 3.2.9",
         "plotly",
+        "nbformat>=5.10.4",
         "tabulate",
         "openpyxl == 3.1.5",
         "pint == 0.25.3",

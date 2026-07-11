@@ -58,6 +58,14 @@ GHG aggregation
   to override. This changes the previous default label ``"GHG"`` for built-in
   profiles.
 
+Plotting
+~~~~~~~~
+
+* Plot helpers no longer fail when the inline Jupyter rendering backend is
+  unavailable: the figure HTML is always written to disk first, and inline
+  display errors are downgraded to one warning. ``nbformat>=5.10.4`` (required
+  by Plotly for notebook rendering) is now installed by default.
+
 v1.0.3
 ------
 

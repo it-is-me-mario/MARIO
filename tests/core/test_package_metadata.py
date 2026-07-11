@@ -19,5 +19,11 @@ def test_pyarrow_is_installed_by_default_for_parquet_support():
     assert "pyarrow>=17" in install_requires
 
 
+def test_nbformat_is_installed_by_default_for_plotly_notebook_rendering():
+    install_requires = _setup_keyword("install_requires")
+
+    assert "nbformat>=5.10.4" in install_requires
+
+
 def test_package_declares_supported_python_runtime():
     assert _setup_keyword("python_requires") == ">=3.11"

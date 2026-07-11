@@ -1,6 +1,7 @@
 numpy==2.1.1
 pandas==3.0.2
 plotly
+nbformat>=5.10.4
 tabulate
 openpyxl==3.1.5
 pint==0.25.3

@@ -34,11 +34,14 @@ def set_palette(mario_palettes=None, user_palette=None):
 
 def _plotter(fig, directory, auto_open):
     """Render a figure inline in notebooks and persist it to HTML."""
-    if run_from_jupyter():
-        pltly.init_notebook_mode(connected=False)
-        pltly.iplot({"data": fig.data, "layout": fig.layout})
-
     fig.write_html(directory, auto_open=auto_open)
+
+    if run_from_jupyter():
+        try:
+            pltly.init_notebook_mode(connected=False)
+            pltly.iplot({"data": fig.data, "layout": fig.layout})
+        except ValueError as exc:
+            logger.warning("Could not render Plotly figure inline in Jupyter: %s", exc)
 
 
 def _default_color_sequence() -> list[str]:
