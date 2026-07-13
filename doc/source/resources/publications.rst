@@ -22,23 +22,25 @@ This is the canonical MARIO citation and should be the default reference.
 Publications
 ------------
 
-The list below is generated from the bundled BibTeX file and ordered manually
-from the most recent publication to the oldest one.
+The list below contains the main publications where MARIO is used. 
 
 .. bibliography:: ../publications/mario.bib
    :filter: False
    :style: mario_abbr
-   :list: enumerated
+   :list: bullet
 
-   Ghezzi2026
+   ComeZebra2026
    Daun2026
    Fragkos2026
+   Ghezzi2026
    Schau2026
-   Tan2025
+   AguilarHernandez2025
    Golinucci2025
+   Namazifard2025
+   Tan2025
+   ComeZebra2024
    Rinaldi2024
    Vinciguerra2024
-   ComeZebra2024
 
 Projects
 -----------------
