@@ -1953,10 +1953,22 @@ class CoreModel:
         Parameters
         ----------
         shares_by_region:
-            Either one explicit mapping ``region -> {label: share}`` describing
-            how the combined coefficient rows of the selected labels should be
-            redistributed within each region, or the special string
-            ``"electricity"``.
+            Either one explicit mapping ``region -> {label: share}`` or the
+            special string ``"electricity"``. Example::
+
+                db.update_supply_mix({"IT": {"wind": 0.6, "solar": 0.4}})
+
+            moves the weight currently held by wind and solar in Italy to a
+            60/40 split between them, leaving every other technology and the
+            region's total electricity input per buyer unchanged.
+
+            The listed labels form one bundle whose combined column total is
+            preserved; rows outside it keep their coefficients, so a subset
+            rewrites only the split among its members. A label is a Sector
+            (IOT) or a Commodity/Activity (SUT, see ``level``); all labels of
+            one region share the same classification. Shares are relative
+            weights expected to sum to one (±0.01); pass ``rescale=True`` for
+            arbitrary positive totals.
 
             When ``"electricity"`` is used, MARIO derives one generation mix
             from EMBER electricity-generation data for the requested ``year``.
