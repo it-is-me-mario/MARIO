@@ -753,6 +753,61 @@ def _flatten_X(frame: pd.DataFrame, scenario: str) -> pd.DataFrame:
     return flat.drop(columns=["Level_from"])
 
 
+def _set_mask_from_coordinates(
+    mask_df: pd.DataFrame,
+    coordinates: pd.DataFrame,
+    *,
+    join_cols: list[str],
+    value: int = 1,
+) -> pd.DataFrame:
+    """Set ``mask_df['values'] = value`` on every row whose ``join_cols`` appear in *coordinates*.
+
+    This is the vectorized replacement for the historical ``iterrows`` + boolean
+    mask loops. Each of those loops rescanned the whole mask table once per source
+    row (``O(n_source * n_mask)``); this performs a single hash join instead
+    (``O(n_source + n_mask)``), which is what dominates ``add_sectors`` runtime on
+    large multi-region databases.
+
+    The mask is matched on coordinate columns only, so the returned frame keeps
+    ``mask_df``'s row order, columns, and every row that is *not* in *coordinates*
+    untouched.
+    """
+
+    if coordinates.empty:
+        return mask_df
+
+    keys = coordinates.loc[:, join_cols].drop_duplicates()
+    keys["__hit__"] = value
+
+    merged = mask_df.merge(keys, on=join_cols, how="left")
+    hit = merged["__hit__"].notna()
+    merged.loc[hit, "values"] = merged.loc[hit, "__hit__"]
+    return merged.drop(columns="__hit__")
+
+
+def _expand_parent_to_children(
+    coordinates: pd.DataFrame,
+    *,
+    sector_col: str,
+    parent_to_children: dict[str, list[str]],
+) -> pd.DataFrame:
+    """Return *coordinates* with each parent-sector row duplicated for its children.
+
+    Mirrors the historical ``[st_parent] + parent_to_children.get(st_parent, [])``
+    expansion, but built with a vectorized explode instead of a Python loop.
+    """
+
+    if coordinates.empty:
+        return coordinates
+
+    expanded = coordinates.copy()
+    expanded[sector_col] = [
+        [sector] + parent_to_children.get(sector, [])
+        for sector in expanded[sector_col]
+    ]
+    return expanded.explode(sector_col, ignore_index=True)
+
+
 def _write_input_data(
     instance,
     *,
@@ -856,19 +911,19 @@ def _write_input_data(
     selector = input_data["Trade_selector"].copy()
     selector["values"] = 0
     split_sectors = set(getattr(instance, "to_split_sectors", []))
-    for idx, row in selector.iterrows():
-        mask = (
-            (trade_sheet["region_from_Name"] == row["region_from_Name"])
-            & (trade_sheet["region_to_Name"] == row["region_to_Name"])
-            & (trade_sheet["sector_from_Name"] == row["sector_from_Name"])
-        )
-        if (
-            row["region_from_Name"] != row["region_to_Name"]
-            and row["sector_from_Name"] in split_sectors
-            and mask.any()
-        ):
-            selector.at[idx, "values"] = 1
-    input_data["Trade_selector"] = selector
+
+    selector_join_cols = ["region_from_Name", "region_to_Name", "sector_from_Name"]
+    trade_keys = (
+        trade_sheet.loc[:, selector_join_cols].drop_duplicates().assign(__present__=1)
+    )
+    merged_selector = selector.merge(trade_keys, on=selector_join_cols, how="left")
+    hit = (
+        (merged_selector["region_from_Name"] != merged_selector["region_to_Name"])
+        & merged_selector["sector_from_Name"].isin(split_sectors)
+        & merged_selector["__present__"].notna()
+    )
+    merged_selector.loc[hit, "values"] = 1
+    input_data["Trade_selector"] = merged_selector.drop(columns="__present__")
 
     #Impose zeroes in Z with specific exclusions
     input_data["Zero_use_mask"]["values"] = 0
@@ -884,28 +939,40 @@ def _write_input_data(
         parent_map = _split_parent_lookup(instance)
         new_and_parent_sectors |= {p for p in parent_map.values() if p}
 
-        for _, row in exclusions.iterrows():
-            rf, rt, sf, st = row[excl_region_from], row[excl_region_to], row[excl_sector_from], row[excl_sector_to]
-            use_mask = input_data["Zero_use_mask"]
-            supply_mask = input_data["Zero_supply_mask"]
-            # Zero_use_mask: all sectors from, new+parent sectors to
-            if st in new_and_parent_sectors:
-                mask = (
-                    (use_mask["region_from_Name"] == rf)
-                    & (use_mask["region_to_Name"] == rt)
-                    & (use_mask["sector_from_Name"] == sf)
-                    & (use_mask["sector_to_Name"] == st)
-                )
-                input_data["Zero_use_mask"].loc[mask, "values"] = 1
-            # Zero_supply_mask: new+parent sectors from, all sectors to
-            elif sf in new_and_parent_sectors:
-                mask = (
-                    (supply_mask["region_from_Name"] == rf)
-                    & (supply_mask["region_to_Name"] == rt)
-                    & (supply_mask["sector_from_Name"] == sf)
-                    & (supply_mask["sector_to_Name"] == st)
-                )
-                input_data["Zero_supply_mask"].loc[mask, "values"] = 1
+        excl_coords = exclusions.rename(
+            columns={
+                excl_region_from: "region_from_Name",
+                excl_region_to: "region_to_Name",
+                excl_sector_from: "sector_from_Name",
+                excl_sector_to: "sector_to_Name",
+            }
+        )
+        mask_join_cols = [
+            "region_from_Name",
+            "region_to_Name",
+            "sector_from_Name",
+            "sector_to_Name",
+        ]
+        # Zero_use_mask: all sectors from, new+parent sectors to.
+        # The original loop applied the sector_from == sf check via the use-mask
+        # rows themselves; here sector_to membership is the deciding condition and
+        # sector_from/sector_to are matched exactly, matching the legacy result.
+        use_coords = excl_coords[
+            excl_coords["sector_to_Name"].isin(new_and_parent_sectors)
+        ]
+        input_data["Zero_use_mask"] = _set_mask_from_coordinates(
+            input_data["Zero_use_mask"], use_coords, join_cols=mask_join_cols
+        )
+        # Zero_supply_mask: new+parent sectors from, all sectors to. The legacy
+        # loop only reached this branch when sector_to was NOT new+parent (elif),
+        # so reproduce that exclusivity here.
+        supply_coords = excl_coords[
+            excl_coords["sector_from_Name"].isin(new_and_parent_sectors)
+            & ~excl_coords["sector_to_Name"].isin(new_and_parent_sectors)
+        ]
+        input_data["Zero_supply_mask"] = _set_mask_from_coordinates(
+            input_data["Zero_supply_mask"], supply_coords, join_cols=mask_join_cols
+        )
 
 
     # Propagate structural zeros from Zold and Yold to the masks.
@@ -921,97 +988,88 @@ def _write_input_data(
 
     zold = input_data["Zold"]
 
-    # Zero_use_mask: columns whose sector_to is a parent sector.
-    parent_col_zeros = zold[
-        zold["sector_to_Name"].isin(parent_sectors_set) & (zold["values"] == 0)
+    zold_join_cols = [
+        "region_from_Name",
+        "region_to_Name",
+        "sector_from_Name",
+        "sector_to_Name",
     ]
-    for _, zrow in parent_col_zeros.iterrows():
-        rf, rt, sf, st_parent = (
-            zrow["region_from_Name"],
-            zrow["region_to_Name"],
-            zrow["sector_from_Name"],
-            zrow["sector_to_Name"],
-        )
-        sectors_to_mask = [st_parent] + parent_to_children.get(st_parent, [])
-        use_mask = input_data["Zero_use_mask"]
-        mask = (
-            (use_mask["region_from_Name"] == rf)
-            & (use_mask["region_to_Name"] == rt)
-            & (use_mask["sector_from_Name"] == sf)
-            & (use_mask["sector_to_Name"].isin(sectors_to_mask))
-        )
-        input_data["Zero_use_mask"].loc[mask, "values"] = 1
 
-    # Zero_supply_mask: rows where sector_from is a parent sector and sector_to is stable.
+    # Zero_use_mask: columns whose sector_to is a parent sector. Each parent
+    # column also masks its child columns (same region_from/region_to/sector_from).
+    parent_col_zeros = zold.loc[
+        zold["sector_to_Name"].isin(parent_sectors_set) & (zold["values"] == 0),
+        zold_join_cols,
+    ]
+    parent_col_zeros = _expand_parent_to_children(
+        parent_col_zeros,
+        sector_col="sector_to_Name",
+        parent_to_children=parent_to_children,
+    )
+    input_data["Zero_use_mask"] = _set_mask_from_coordinates(
+        input_data["Zero_use_mask"], parent_col_zeros, join_cols=zold_join_cols
+    )
+
+    # Zero_supply_mask: rows where sector_from is a parent sector and sector_to is
+    # stable. Each parent row also masks its child rows (same coordinates otherwise).
     all_sectors = set(instance.get_index(MI["s"]))
     stable_sectors_set = all_sectors - new_sectors_set - parent_sectors_set
-    parent_row_zeros = zold[
+    parent_row_zeros = zold.loc[
         zold["sector_from_Name"].isin(parent_sectors_set)
         & zold["sector_to_Name"].isin(stable_sectors_set)
-        & (zold["values"] == 0)
+        & (zold["values"] == 0),
+        zold_join_cols,
     ]
-    for _, zrow in parent_row_zeros.iterrows():
-        rf, rt, sf_parent, st = (
-            zrow["region_from_Name"],
-            zrow["region_to_Name"],
-            zrow["sector_from_Name"],
-            zrow["sector_to_Name"],
-        )
-        sectors_from_mask = [sf_parent] + parent_to_children.get(sf_parent, [])
-        supply_mask = input_data["Zero_supply_mask"]
-        mask = (
-            (supply_mask["region_from_Name"] == rf)
-            & (supply_mask["region_to_Name"] == rt)
-            & (supply_mask["sector_from_Name"].isin(sectors_from_mask))
-            & (supply_mask["sector_to_Name"] == st)
-        )
-        input_data["Zero_supply_mask"].loc[mask, "values"] = 1
+    parent_row_zeros = _expand_parent_to_children(
+        parent_row_zeros,
+        sector_col="sector_from_Name",
+        parent_to_children=parent_to_children,
+    )
+    input_data["Zero_supply_mask"] = _set_mask_from_coordinates(
+        input_data["Zero_supply_mask"], parent_row_zeros, join_cols=zold_join_cols
+    )
 
     #Imposing zeroes according to original Y
     input_data["Zero_Y_mask"]["values"] = 0
 
     yold = input_data["Yold"]
-    parent_yrow_zeros = yold[
-        yold["sector_from_Name"].isin(parent_sectors_set) & (yold["values"] == 0)
+    y_join_cols = [
+        "region_from_Name",
+        "sector_from_Name",
+        "region_to_Name",
+        "cons_categ_Name",
     ]
-    for _, yrow in parent_yrow_zeros.iterrows():
-        rf, sf_parent, rt, cc = (
-            yrow["region_from_Name"],
-            yrow["sector_from_Name"],
-            yrow["region_to_Name"],
-            yrow["cons_categ_Name"],
-        )
-        sectors_from_mask = [sf_parent] + parent_to_children.get(sf_parent, [])
-        y_mask = input_data["Zero_Y_mask"]
-        mask = (
-            (y_mask["region_from_Name"] == rf)
-            & (y_mask["sector_from_Name"].isin(sectors_from_mask))
-            & (y_mask["region_to_Name"] == rt)
-            & (y_mask["cons_categ_Name"] == cc)
-        )
-        input_data["Zero_Y_mask"].loc[mask, "values"] = 1
+    parent_yrow_zeros = yold.loc[
+        yold["sector_from_Name"].isin(parent_sectors_set) & (yold["values"] == 0),
+        y_join_cols,
+    ]
+    parent_yrow_zeros = _expand_parent_to_children(
+        parent_yrow_zeros,
+        sector_col="sector_from_Name",
+        parent_to_children=parent_to_children,
+    )
+    input_data["Zero_Y_mask"] = _set_mask_from_coordinates(
+        input_data["Zero_Y_mask"], parent_yrow_zeros, join_cols=y_join_cols
+    )
 
     #Imposing zeroes according to original V
     input_data["Zero_V_mask"]["values"] = 0
 
     vold = input_data["Vold"]
-    parent_vrow_zeros = vold[
-        vold["sector_to_Name"].isin(parent_sectors_set) & (vold["values"] == 0)
+    v_factor_col = "fact_prod_Name" if "fact_prod_Name" in vold.columns else "factor_Name"
+    v_join_cols = [v_factor_col, "region_to_Name", "sector_to_Name"]
+    parent_vrow_zeros = vold.loc[
+        vold["sector_to_Name"].isin(parent_sectors_set) & (vold["values"] == 0),
+        v_join_cols,
     ]
-    for _, vrow in parent_vrow_zeros.iterrows():
-        fp, rt, st_parent = (
-            vrow["fact_prod_Name"],
-            vrow["region_to_Name"],
-            vrow["sector_to_Name"],
-        )
-        sectors_from_mask = [st_parent] + parent_to_children.get(st_parent, [])
-        v_mask = input_data["Zero_V_mask"]
-        mask = (
-            (v_mask["fact_prod_Name"] == fp)
-            & (v_mask["sector_to_Name"].isin(sectors_from_mask))
-            & (v_mask["region_to_Name"] == rt)
-        )
-        input_data["Zero_V_mask"].loc[mask, "values"] = 1
+    parent_vrow_zeros = _expand_parent_to_children(
+        parent_vrow_zeros,
+        sector_col="sector_to_Name",
+        parent_to_children=parent_to_children,
+    )
+    input_data["Zero_V_mask"] = _set_mask_from_coordinates(
+        input_data["Zero_V_mask"], parent_vrow_zeros, join_cols=v_join_cols
+    )
 
     #Remove values below the residue threshold, if specified.
     if residue is not None:
