@@ -2,8 +2,8 @@
 Release History
 ****************
 
-Unreleased
-----------
+v1.0.4
+------
 
 Shock scenarios
 ~~~~~~~~~~~~~~~
@@ -86,6 +86,59 @@ Supply mix on SUT databases
   SUT workbook — previously ignored silently — now emit one warning.
 * Documented the supply-mix shock type in the shock-analyses user-guide page
   and extended the electricity supply mix page with the SUT workflow.
+
+Trade mixes
+~~~~~~~~~~~~
+
+* Added ``Database.update_trade_mix``, the dual of ``update_supply_mix``: it
+  redistributes one traded item across its **origin regions** inside the
+  columns of each destination market (``destination -> {origin: share}``),
+  preserving every selected column total. Origins that are not listed keep
+  their share, so partial sourcing updates are well defined. The rewritten
+  blocks follow the table layout: ``z``/``Y`` on IOT, ``u``/``Yc`` on Isard
+  SUTs (Commodity level) and the ``s`` market-share columns selected by
+  ``commodities=...`` on pooled/Chenery-Moses SUTs (Activity level, with
+  ``level=`` available to disambiguate). Applying one destination-level mix to
+  every buyer column imposes the Chenery-Moses uniform-sourcing hypothesis on
+  an Isard table; ``column_sectors`` keeps selected buyers on their original
+  sourcing, and the docs spell out the same caveat for technology mixes on
+  Chenery-Moses tables (where ``column_regions`` restrictions would decouple
+  the domestic mix from the exported one).
+* Added ``Database.pool_trade(commodities, supply_suffix=" - supply",
+  need_suffix=" - need")``: a structural transformation that pools the trade
+  of selected commodities behind one pass-through layer (one
+  ``"{c} - supply"`` activity and one ``"{c} - need"`` commodity per region).
+  Buyers are rewired onto the domestic need commodity keeping their totals,
+  and the supply block routes each destination market to the origin
+  pass-through activities with the bilateral flows observed on the Isard use
+  side — so the pooled table preserves destination-level trade totals exactly
+  and the initial ``s`` market shares equal the observed origin shares.
+  Technology and trade mixes then live in two separate ``s`` columns and can
+  be updated independently. The pooled pairs are recorded on
+  ``meta.pooled_trade_map``; like other structural transforms, the pooling
+  rebuilds the baseline and drops other scenarios with one warning.
+* Added the ``Type='Trade mix N'`` shock family: rows sharing the same
+  ``(item, Region_to, 'Trade mix N')`` triple form one destination mix, with
+  ``Region_from`` carrying the origins and ``Value`` their shares
+  (``Region_to='all'`` is rejected). IOT workbooks author them on the ``z``/``Y``
+  sheets, SUT workbooks on ``u``/``Yc`` (Isard sourcing) and ``s`` (pooled
+  market shares, with a mandatory ``Commodity_to``). The template picklists
+  now offer both mix families through the hidden ``indeces`` sheet, working
+  around Excel's 255-character limit on inline validation lists.
+* Added the "Update trade mixes" user-guide page covering
+  ``update_trade_mix``, ``pool_trade``, the Chenery-Moses uniformity caveats
+  and the Excel route.
+* Both mix methods gained one ``column_categories`` selector restricting the
+  final-demand redistribution (``Y`` on IOT, ``Yc`` on SUT commodity mixes) to
+  selected consumption categories. The ``Consumption category_to`` field of
+  the ``Y``/``Yc`` shock sheets — previously ignored for mix rows — now feeds
+  that selector.
+* ``update_supply_mix("electricity")`` now recognises databases whose labels
+  carry the plain EMBER group names (``Coal``, ``Wind``, ``Other Renewables``,
+  ...), such as tables aggregated to the EMBER technology resolution, and
+  ``ember_path`` accepts the raw EMBER ``yearly_full_release_long_format.csv``
+  download directly (reduced on the fly with the same filters used to build
+  the packaged snapshot).
 
 GHG aggregation
 ~~~~~~~~~~~~~~~

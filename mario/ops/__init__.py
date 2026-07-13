@@ -15,6 +15,7 @@ from mario.ops.ghg import (
 )
 from mario.ops.transforms import (
     build_new_instance_from_scenario,
+    transform_pool_trade,
     transform_sut_to_iot,
     transform_to_chenery_moses,
 )
@@ -30,6 +31,7 @@ __all__ = [
     "export_database_to_pymrio",
     "export_database_to_txt",
     "register_ghg_profile",
+    "transform_pool_trade",
     "transform_sut_to_iot",
     "transform_to_chenery_moses",
 ]

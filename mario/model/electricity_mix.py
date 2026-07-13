@@ -61,8 +61,45 @@ def _load_electricity_mix_profiles() -> dict[str, dict[str, object]]:
     return data.get("profiles", {})
 
 
+_EMBER_RAW_RELEASE_VARIABLES = (
+    "Bioenergy",
+    "Coal",
+    "Gas",
+    "Hydro",
+    "Nuclear",
+    "Other Fossil",
+    "Other Renewables",
+    "Solar",
+    "Wind",
+)
+
+
+def _reduce_ember_raw_release(frame: pd.DataFrame) -> pd.DataFrame:
+    """Reduce one raw EMBER yearly-full-release frame to the snapshot columns.
+
+    Mirrors ``scripts/build_ember_generation_snapshot.py``: country rows only,
+    electricity generation by fuel in TWh, restricted to the EMBER fuel
+    groups.
+    """
+    reduced = frame.loc[
+        (frame["Area type"] == "Country or economy")
+        & (frame["Category"] == "Electricity generation")
+        & (frame["Subcategory"] == "Fuel")
+        & (frame["Unit"] == "TWh")
+        & (frame["Variable"].isin(_EMBER_RAW_RELEASE_VARIABLES)),
+        ["ISO 3 code", "Year", "Variable", "Value"],
+    ].rename(columns={"ISO 3 code": "ISO3"})
+    return reduced.loc[reduced["ISO3"].astype(str).str.strip() != "", :]
+
+
 def _load_ember_snapshot(ember_path: str | Path | None) -> pd.DataFrame:
-    """Load the reduced EMBER electricity-generation snapshot."""
+    """Load one EMBER electricity-generation snapshot.
+
+    Accepts both the reduced format packaged with MARIO (``ISO3``, ``Year``,
+    ``Variable``, ``Value``) and the raw EMBER yearly full release, which is
+    reduced on the fly with the same filters used to build the packaged
+    snapshot.
+    """
     if ember_path is None:
         path = resources.files("mario.settings").joinpath(_EMBER_SNAPSHOT_FILE)
     else:
@@ -72,9 +109,15 @@ def _load_ember_snapshot(ember_path: str | Path | None) -> pd.DataFrame:
     required_columns = {"ISO3", "Year", "Variable", "Value"}
     missing = required_columns.difference(frame.columns)
     if missing:
-        raise WrongInput(
-            f"The EMBER snapshot '{path}' is missing required columns: {sorted(missing)}"
-        )
+        raw_release_columns = {"ISO 3 code", "Area type", "Category", "Subcategory", "Unit"}
+        if raw_release_columns.issubset(frame.columns):
+            frame = _reduce_ember_raw_release(frame)
+        else:
+            raise WrongInput(
+                f"The EMBER snapshot '{path}' is missing required columns: {sorted(missing)}. "
+                "Pass either the reduced MARIO format (ISO3, Year, Variable, Value) or the "
+                "raw EMBER yearly full release."
+            )
 
     snapshot = frame.loc[:, ["ISO3", "Year", "Variable", "Value"]].copy()
     snapshot["ISO3"] = snapshot["ISO3"].astype(str).str.strip().str.upper()
@@ -108,14 +151,22 @@ def _match_aggregated_ember_groups(
     sectors: list[str],
     profile: dict[str, object],
 ) -> dict[str, list[str]] | None:
-    """Match one database already aggregated to EMBER-like electricity groups."""
+    """Match one database already aggregated to EMBER-like electricity groups.
+
+    The empty prefix covers databases whose labels carry the plain EMBER
+    variable names (``Coal``, ``Wind``, ``Other Renewables``, ...); the match
+    still requires every EMBER group to be present, so partial coincidences
+    with unrelated labels (e.g. one ``Coal`` mining sector) cannot trigger it.
+    """
     normalized_sectors = {_normalize_label(sector): sector for sector in sectors}
     ember_variables = profile.get("ember_variables", {})
 
-    for prefix in ("production of electricity by ", "electricity by "):
+    for prefix in ("production of electricity by ", "electricity by ", ""):
         matched_groups: dict[str, list[str]] = {}
         for group, variable in ember_variables.items():
-            label = normalized_sectors.get(_normalize_label(f"{prefix}{str(variable).strip().lower()}"))
+            variable_token = str(variable).strip()
+            candidate = f"{prefix}{variable_token.lower()}" if prefix else variable_token
+            label = normalized_sectors.get(_normalize_label(candidate))
             if label is None:
                 break
             matched_groups[group] = [label]

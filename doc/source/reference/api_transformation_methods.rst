@@ -18,7 +18,29 @@ Database Transformations
    ../api_document/mario.Database.to_region_subset
    ../api_document/mario.Database.to_single_region
    ../api_document/mario.Database.to_chenery_moses
+   ../api_document/mario.Database.pool_trade
    ../api_document/mario.Database.change_assumption
+
+
+Supply and Trade Mixes
+----------------------
+
+Scenario-level redistribution of one regional bundle preserving the selected
+column totals: technology/market shares with ``update_supply_mix`` and
+regional sourcing with ``update_trade_mix``. See
+:doc:`../user_guide/transformations/update_electricity_mix` and
+:doc:`../user_guide/transformations/update_trade_mix` for the workflows.
+``update_supply_mix_iot`` and ``update_mix_iot`` are kept as IOT-only
+backward-compatible aliases of ``update_supply_mix``.
+
+.. toctree::
+   :maxdepth: 1
+
+   ../api_document/mario.Database.update_supply_mix
+   ../api_document/mario.Database.update_trade_mix
+   ../api_document/mario.Database.get_mix
+   ../api_document/mario.Database.update_supply_mix_iot
+   ../api_document/mario.Database.update_mix_iot
 
 
 Scenario Operations

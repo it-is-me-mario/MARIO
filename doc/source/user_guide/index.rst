@@ -37,6 +37,7 @@ The workflows are grouped into four families:
    transformations/add_extensions
    transformations/apply_shocks
    transformations/update_electricity_mix
+   transformations/update_trade_mix
    transformations/add_sectors
    transformations/sut_to_iot
    transformations/mrio_to_srio

@@ -27,6 +27,7 @@ from mario.ops.shocks import (
     ec_shock,
     has_shock_sheet,
     read_supply_mix_specs,
+    read_trade_mix_specs,
 )
 from mario.ops.add_sector_workbook import (
     derive_add_sector_sets,
@@ -102,6 +103,7 @@ from mario.ops import (
     export_database_to_parquet,
     export_database_to_pymrio,
     export_database_to_txt,
+    transform_pool_trade,
     transform_sut_to_iot,
     transform_to_chenery_moses,
 )
@@ -601,6 +603,75 @@ class Database(CoreModel):
             self,
             inplace=inplace,
             scenarios=scenarios,
+        )
+
+    def pool_trade(
+        self,
+        commodities,
+        *,
+        supply_suffix: str = " - supply",
+        need_suffix: str = " - need",
+        inplace: bool = True,
+    ):
+        """Pool the trade of selected commodities behind one pass-through layer.
+
+        For each selected commodity ``c`` MARIO adds, per region, one
+        ``"{c}{supply_suffix}"`` activity and one ``"{c}{need_suffix}"``
+        commodity. The pass-through activity consumes the whole domestic
+        output of ``c``; every buyer (intermediate use and final demand) is
+        rewired onto the domestic need commodity, keeping its total input; and
+        the supply block routes each destination market to the origin
+        pass-through activities with the bilateral trade flows observed on the
+        Isard use side. The rest of the table keeps its Isard layout.
+
+        After the pooling, the technology mix of ``c`` and its trade mix live
+        in two separate market-share columns of ``s`` and can be updated
+        independently with :meth:`update_supply_mix` and
+        :meth:`update_trade_mix` (the latter with ``items="{c}{supply_suffix}"``
+        and ``commodities="{c}{need_suffix}"``).
+
+        Parameters
+        ----------
+        commodities:
+            One commodity label or an iterable of labels to pool.
+        supply_suffix:
+            Suffix appended to the commodity label to name the pass-through
+            activity.
+        need_suffix:
+            Suffix appended to the commodity label to name the pooled market
+            commodity.
+        inplace:
+            When ``True``, mutate the current database. When ``False``, return
+            a transformed copy.
+
+        Returns
+        -------
+        Database | None
+            Transformed database when ``inplace=False``, otherwise ``None``.
+
+        Notes
+        -----
+        The pooling is a **representation change, not a data change** at the
+        destination level: bilateral trade totals per destination region are
+        preserved exactly, and the initial market shares written in ``s``
+        equal the observed origin shares of each destination's total use.
+        What is averaged away is the buyer-specific sourcing heterogeneity
+        inside each destination region — the Chenery-Moses hypothesis, applied
+        only to the selected commodities. For grid-like commodities such as
+        electricity this is typically more realistic than the Isard
+        buyer-specific sourcing.
+
+        The transformation is structural: it rebuilds the baseline and drops
+        any other scenario (with one warning), like the other structural
+        transforms. The pooled pairs are recorded on
+        ``meta.pooled_trade_map``.
+        """
+        return transform_pool_trade(
+            self,
+            commodities,
+            supply_suffix=supply_suffix,
+            need_suffix=need_suffix,
+            inplace=inplace,
         )
 
     def get_aggregation_excel(
@@ -5334,10 +5405,10 @@ class Database(CoreModel):
 
             self.matrices[scenario] = _results
 
-            # Type='Supply mix N' rows redistribute a regional bundle over its
-            # buyer columns. They are collected from the z/Y sheets (IOT) or the
-            # split u/s/Yc sheets (SUT) and applied on top of the freshly
-            # materialized scenario.
+            # Type='Supply mix N' and Type='Trade mix N' rows redistribute a
+            # row bundle over selected buyer columns. They are collected from
+            # the z/Y sheets (IOT) or the split u/s/Yc sheets (SUT) and applied
+            # on top of the freshly materialized scenario.
             if z or Y:
                 for spec in read_supply_mix_specs(self, shock_io):
                     (mix_region, members), = spec["shares"].items()
@@ -5355,6 +5426,28 @@ class Database(CoreModel):
                         level=spec["level"],
                         column_regions=spec["column_regions"],
                         column_sectors=spec["column_sectors"],
+                        column_categories=spec["column_categories"],
+                        commodities=spec["commodities"],
+                        rescale=True,
+                    )
+
+                for spec in read_trade_mix_specs(self, shock_io):
+                    (destination, origins), = spec["shares"].items()
+                    total = sum(origins.values())
+                    if abs(total - 1.0) > 0.01:
+                        log_time(
+                            logger,
+                            f"Shock: trade mix of {spec['items']} into '{destination}' sums "
+                            f"to {total:.4f}, rescaling shares to 1.",
+                            "warning",
+                        )
+                    self.update_trade_mix(
+                        spec["shares"],
+                        items=spec["items"],
+                        scenario=scenario,
+                        level=spec["level"],
+                        column_sectors=spec["column_sectors"],
+                        column_categories=spec["column_categories"],
                         commodities=spec["commodities"],
                         rescale=True,
                     )
@@ -5427,6 +5520,15 @@ class Database(CoreModel):
         compatibility. For both IOT and SUT, the new template uses flat-style
         column names such as ``Region_from`` and ``Sector_to`` instead of the
         legacy explicit level columns.
+
+        Beyond ``Percentage``/``Absolute``/``Update``, the coefficient and
+        final-demand sheets that drive the mix updates (``z``/``Y`` on IOT,
+        ``u``/``s``/``Yc`` on SUT) offer the ``Supply mix 1-10`` and
+        ``Trade mix 1-10`` options, applied through
+        :meth:`update_supply_mix` and :meth:`update_trade_mix`. The combined
+        option list is stored on the hidden ``indeces`` sheet and referenced
+        by the picklists (Excel limits inline validation lists to 255
+        characters).
         """
 
         clusters = self._resolved_clusters(clusters=clusters, legacy_clusters=legacy_clusters)

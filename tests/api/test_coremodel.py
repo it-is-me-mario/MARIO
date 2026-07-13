@@ -2504,6 +2504,499 @@ def test_update_supply_mix_sut_electricity_aggregates_commodities_and_rewrites_m
     assert s.loc[("ITA", _MASTER_INDEX["a"], "mill"), flour] == pytest.approx(1.0)
 
 
+def test_update_trade_mix_iot_redistributes_origins_within_destination():
+    database = _build_three_region_iot_database()
+    database.clone_scenario("baseline", "policy")
+    database.reset_to_coefficients("policy")
+    base_z = database.get_block_as_pandas(_ENUM.z, scenario="policy").copy()
+    base_y = database.get_block_as_pandas(_ENUM.Y, scenario="policy").copy()
+
+    database.update_trade_mix(
+        {"R1": {"R1": 0.25, "R2": 0.75}},
+        items="s1",
+        scenario="policy",
+    )
+
+    z = database.get_block_as_pandas(_ENUM.z, scenario="policy")
+    Y = database.get_block_as_pandas(_ENUM.Y, scenario="policy")
+    s = _MASTER_INDEX["s"]
+    r1, r2, r3 = ("R1", s, "s1"), ("R2", s, "s1"), ("R3", s, "s1")
+
+    for col in [c for c in z.columns if c[0] == "R1"]:
+        bundle = base_z.loc[r1, col] + base_z.loc[r2, col]
+        # listed origins are redistributed 25/75 onto their combined share...
+        assert z.loc[r1, col] == pytest.approx(0.25 * bundle)
+        assert z.loc[r2, col] == pytest.approx(0.75 * bundle)
+        # ...while the unlisted origin keeps its share (partial sourcing update).
+        assert z.loc[r3, col] == pytest.approx(base_z.loc[r3, col])
+
+    # other destination markets are untouched.
+    for col in [c for c in z.columns if c[0] != "R1"]:
+        for row in (r1, r2, r3):
+            assert z.loc[row, col] == pytest.approx(base_z.loc[row, col])
+
+    y_col = next(c for c in Y.columns if c[0] == "R1")
+    y_bundle = base_y.loc[r1, y_col] + base_y.loc[r2, y_col]
+    assert Y.loc[r1, y_col] == pytest.approx(0.25 * y_bundle)
+    assert Y.loc[r2, y_col] == pytest.approx(0.75 * y_bundle)
+    assert Y.loc[r3, y_col] == pytest.approx(base_y.loc[r3, y_col])
+
+
+def test_update_trade_mix_sut_commodity_rewrites_u_and_yc(CoreDataSUT):
+    CoreDataSUT.reset_to_coefficients("baseline")
+    base_u = CoreDataSUT.get_block_as_pandas("u", scenario="baseline").copy()
+    base_yc = CoreDataSUT.get_block_as_pandas("Yc", scenario="baseline").copy()
+    CoreDataSUT.clone_scenario("baseline", "policy")
+
+    CoreDataSUT.update_trade_mix(
+        {"Region 1": {"Region 1": 0.5, "Region 2": 0.5}},
+        items="Goods",
+        scenario="policy",
+    )
+
+    u = CoreDataSUT.get_block_as_pandas("u", scenario="policy")
+    yc = CoreDataSUT.get_block_as_pandas("Yc", scenario="policy")
+    c = _MASTER_INDEX["c"]
+    g1, g2 = ("Region 1", c, "Goods"), ("Region 2", c, "Goods")
+
+    for col in [col for col in u.columns if col[0] == "Region 1"]:
+        bundle = base_u.loc[g1, col] + base_u.loc[g2, col]
+        assert u.loc[g1, col] == pytest.approx(0.5 * bundle)
+        assert u.loc[g2, col] == pytest.approx(0.5 * bundle)
+
+    for col in [col for col in u.columns if col[0] == "Region 2"]:
+        assert u.loc[g1, col] == pytest.approx(base_u.loc[g1, col])
+        assert u.loc[g2, col] == pytest.approx(base_u.loc[g2, col])
+
+    # the other commodity keeps its sourcing everywhere.
+    s1 = ("Region 1", c, "Services")
+    pdt.assert_series_equal(u.loc[s1, :], base_u.loc[s1, :])
+
+    yc_col = next(col for col in yc.columns if col[0] == "Region 1")
+    yc_bundle = base_yc.loc[g1, yc_col] + base_yc.loc[g2, yc_col]
+    assert yc.loc[g1, yc_col] == pytest.approx(0.5 * yc_bundle)
+    assert yc.loc[g2, yc_col] == pytest.approx(0.5 * yc_bundle)
+
+
+def _build_pooled_trade_sut_database():
+    """Two-region pooled SUT: 'elec - supply' activities trade 'elec - need'."""
+    regions = ["R1", "R2"]
+    activities = ["gen", "elec - supply", "factory"]
+    commodities = ["electricity", "elec - need", "widgets"]
+
+    activity_axis = pd.MultiIndex.from_product(
+        [regions, [_MASTER_INDEX["a"]], activities],
+        names=["Region", "Level", "Item"],
+    )
+    commodity_axis = pd.MultiIndex.from_product(
+        [regions, [_MASTER_INDEX["c"]], commodities],
+        names=["Region", "Level", "Item"],
+    )
+    rows = activity_axis.append(commodity_axis)
+    final_demand_axis = pd.MultiIndex.from_product(
+        [regions, [_MASTER_INDEX["n"]], ["FD"]],
+        names=["Region", "Level", "Item"],
+    )
+
+    A, C = _MASTER_INDEX["a"], _MASTER_INDEX["c"]
+    Z = pd.DataFrame(0.0, index=rows, columns=rows)
+    # R1 ships 48, R2 ships 72 (60 domestic + 12 exported to R1).
+    Z.loc[("R1", A, "gen"), ("R1", C, "electricity")] = 48.0
+    Z.loc[("R2", A, "gen"), ("R2", C, "electricity")] = 72.0
+    Z.loc[("R1", C, "electricity"), ("R1", A, "elec - supply")] = 48.0
+    Z.loc[("R2", C, "electricity"), ("R2", A, "elec - supply")] = 72.0
+    Z.loc[("R1", A, "elec - supply"), ("R1", C, "elec - need")] = 48.0
+    Z.loc[("R2", A, "elec - supply"), ("R1", C, "elec - need")] = 12.0
+    Z.loc[("R2", A, "elec - supply"), ("R2", C, "elec - need")] = 60.0
+    for region in regions:
+        Z.loc[(region, A, "factory"), (region, C, "widgets")] = 50.0
+        Z.loc[(region, C, "elec - need"), (region, A, "factory")] = 40.0
+
+    Y = pd.DataFrame(0.0, index=rows, columns=final_demand_axis)
+    for region in regions:
+        Y.loc[(region, C, "elec - need"), (region, _MASTER_INDEX["n"], "FD")] = 20.0
+        Y.loc[(region, C, "widgets"), (region, _MASTER_INDEX["n"], "FD")] = 50.0
+
+    V = pd.DataFrame(1.0, index=["VA"], columns=rows)
+    E = pd.DataFrame(1.0, index=["CO2"], columns=rows)
+    EY = pd.DataFrame(0.0, index=["CO2"], columns=final_demand_axis)
+    VY = pd.DataFrame(0.0, index=["VA"], columns=final_demand_axis)
+
+    units = {
+        _MASTER_INDEX["a"]: pd.DataFrame({"unit": ["EUR"] * len(activities)}, index=activities),
+        _MASTER_INDEX["c"]: pd.DataFrame({"unit": ["EUR"] * len(commodities)}, index=commodities),
+        _MASTER_INDEX["f"]: pd.DataFrame({"unit": ["EUR"]}, index=["VA"]),
+        _MASTER_INDEX["k"]: pd.DataFrame({"unit": ["kg"]}, index=["CO2"]),
+    }
+
+    return Database(
+        name="pooled-trade-sut",
+        table="SUT",
+        Z=Z,
+        V=V,
+        E=E,
+        EY=EY,
+        VY=VY,
+        Y=Y,
+        units=units,
+        calc_all=True,
+    )
+
+
+def test_update_trade_mix_sut_pooled_market_shares():
+    database = _build_pooled_trade_sut_database()
+    database.clone_scenario("baseline", "policy")
+
+    database.update_trade_mix(
+        {"R1": {"R1": 0.5, "R2": 0.5}},
+        items="elec - supply",
+        commodities="elec - need",
+        scenario="policy",
+    )
+
+    s = database.get_block_as_pandas("s", scenario="policy")
+    A, C = _MASTER_INDEX["a"], _MASTER_INDEX["c"]
+    need_r1 = ("R1", C, "elec - need")
+    need_r2 = ("R2", C, "elec - need")
+
+    # the sourcing of R1's market moves from 80/20 to 50/50.
+    assert s.loc[("R1", A, "elec - supply"), need_r1] == pytest.approx(0.5)
+    assert s.loc[("R2", A, "elec - supply"), need_r1] == pytest.approx(0.5)
+    # R2's market and the technology market shares are untouched.
+    assert s.loc[("R2", A, "elec - supply"), need_r2] == pytest.approx(1.0)
+    assert s.loc[("R1", A, "gen"), ("R1", C, "electricity")] == pytest.approx(1.0)
+
+    baseline_s = database.query("s", scenarios="baseline")
+    assert baseline_s.loc[("R1", A, "elec - supply"), need_r1] == pytest.approx(0.8)
+
+
+def test_update_trade_mix_argument_validation():
+    database = _build_pooled_trade_sut_database()
+    database.clone_scenario("baseline", "policy")
+
+    with pytest.raises(WrongInput, match="Destination region"):
+        database.update_trade_mix(
+            {"Missing": {"R1": 1.0}},
+            items="elec - supply",
+            commodities="elec - need",
+            scenario="policy",
+        )
+
+    with pytest.raises(WrongInput, match="unknown origin regions"):
+        database.update_trade_mix(
+            {"R1": {"Missing": 1.0}},
+            items="elec - supply",
+            commodities="elec - need",
+            scenario="policy",
+        )
+
+    with pytest.raises(WrongInput, match="unknown Activity labels"):
+        database.update_trade_mix(
+            {"R1": {"R1": 1.0}},
+            items="missing item",
+            level=_MASTER_INDEX["a"],
+            commodities="elec - need",
+            scenario="policy",
+        )
+
+    with pytest.raises(WrongInput, match="destination market"):
+        database.update_trade_mix(
+            {"R1": {"R1": 1.0}},
+            items="elec - supply",
+            scenario="policy",
+        )
+
+    with pytest.raises(WrongInput, match="column_sectors does not apply"):
+        database.update_trade_mix(
+            {"R1": {"R1": 1.0}},
+            items="elec - supply",
+            commodities="elec - need",
+            column_sectors="factory",
+            scenario="policy",
+        )
+
+    with pytest.raises(WrongInput, match="commodities applies only"):
+        database.update_trade_mix(
+            {"R1": {"R1": 1.0}},
+            items="electricity",
+            commodities="elec - need",
+            scenario="policy",
+        )
+
+    with pytest.raises(WrongInput, match="must sum to 1"):
+        database.update_trade_mix(
+            {"R1": {"R1": 2.0, "R2": 8.0}},
+            items="elec - supply",
+            commodities="elec - need",
+            scenario="policy",
+        )
+
+
+def test_update_trade_mix_iot_rejects_sut_arguments(CoreDataIOT):
+    with pytest.raises(WrongInput, match="SUT"):
+        CoreDataIOT.update_trade_mix(
+            {"Reg1": {"Reg1": 1.0}},
+            items="Agriculture",
+            commodities="Agriculture",
+        )
+
+
+def _build_two_category_iot_database():
+    """Two-region IOT with two final-demand categories for column scoping tests."""
+    regions = ["R1", "R2"]
+    sectors = ["s1", "s2"]
+    categories = ["Households", "Government"]
+
+    sector_axis = pd.MultiIndex.from_product(
+        [regions, [_MASTER_INDEX["s"]], sectors],
+        names=["Region", "Level", "Item"],
+    )
+    final_demand_axis = pd.MultiIndex.from_product(
+        [regions, [_MASTER_INDEX["n"]], categories],
+        names=["Region", "Level", "Item"],
+    )
+
+    Z = pd.DataFrame(2.0, index=sector_axis, columns=sector_axis)
+    Y = pd.DataFrame(
+        np.arange(1.0, 1.0 + len(sector_axis) * len(final_demand_axis)).reshape(
+            len(sector_axis), len(final_demand_axis)
+        ),
+        index=sector_axis,
+        columns=final_demand_axis,
+    )
+    V = pd.DataFrame(1.0, index=["VA"], columns=sector_axis)
+    E = pd.DataFrame(1.0, index=["CO2"], columns=sector_axis)
+    EY = pd.DataFrame(0.0, index=["CO2"], columns=final_demand_axis)
+    VY = pd.DataFrame(0.0, index=["VA"], columns=final_demand_axis)
+
+    units = {
+        _MASTER_INDEX["s"]: pd.DataFrame({"unit": ["USD"] * len(sectors)}, index=sectors),
+        _MASTER_INDEX["f"]: pd.DataFrame({"unit": ["USD"]}, index=["VA"]),
+        _MASTER_INDEX["k"]: pd.DataFrame({"unit": ["kg"]}, index=["CO2"]),
+    }
+
+    return Database(
+        name="two-category-iot",
+        table="IOT",
+        Z=Z,
+        V=V,
+        E=E,
+        EY=EY,
+        VY=VY,
+        Y=Y,
+        units=units,
+        calc_all=True,
+    )
+
+
+def test_update_supply_mix_scopes_to_column_categories():
+    database = _build_two_category_iot_database()
+    database.clone_scenario("baseline", "policy")
+    database.reset_to_coefficients("policy")
+    base_y = database.get_block_as_pandas(_ENUM.Y, scenario="policy").copy()
+
+    database.update_supply_mix(
+        {"R1": {"s1": 0.3, "s2": 0.7}},
+        scenario="policy",
+        column_categories="Households",
+    )
+
+    Y = database.get_block_as_pandas(_ENUM.Y, scenario="policy")
+    s = _MASTER_INDEX["s"]
+    n = _MASTER_INDEX["n"]
+    r1s1, r1s2 = ("R1", s, "s1"), ("R1", s, "s2")
+
+    for region in ("R1", "R2"):
+        households = (region, n, "Households")
+        bundle = base_y.loc[r1s1, households] + base_y.loc[r1s2, households]
+        assert Y.loc[r1s1, households] == pytest.approx(0.3 * bundle)
+        assert Y.loc[r1s2, households] == pytest.approx(0.7 * bundle)
+        # the other category keeps its composition.
+        government = (region, n, "Government")
+        assert Y.loc[r1s1, government] == pytest.approx(base_y.loc[r1s1, government])
+        assert Y.loc[r1s2, government] == pytest.approx(base_y.loc[r1s2, government])
+
+    # column_categories does not restrict the intermediate block: z buyer
+    # columns follow column_regions/column_sectors as usual.
+    z = database.get_block_as_pandas(_ENUM.z, scenario="policy")
+    z_col = z.columns[0]
+    z_bundle_total = z.loc[r1s1, z_col] + z.loc[r1s2, z_col]
+    assert z.loc[r1s1, z_col] == pytest.approx(0.3 * z_bundle_total)
+
+    with pytest.raises(WrongInput, match="column_categories references unknown"):
+        database.update_supply_mix(
+            {"R1": {"s1": 1.0}},
+            scenario="policy",
+            column_categories="Missing category",
+        )
+
+
+def test_update_trade_mix_scopes_to_column_categories():
+    database = _build_two_category_iot_database()
+    database.clone_scenario("baseline", "policy")
+    database.reset_to_coefficients("policy")
+    base_y = database.get_block_as_pandas(_ENUM.Y, scenario="policy").copy()
+
+    database.update_trade_mix(
+        {"R1": {"R1": 0.2, "R2": 0.8}},
+        items="s1",
+        scenario="policy",
+        column_categories="Households",
+    )
+
+    Y = database.get_block_as_pandas(_ENUM.Y, scenario="policy")
+    s = _MASTER_INDEX["s"]
+    n = _MASTER_INDEX["n"]
+    r1, r2 = ("R1", s, "s1"), ("R2", s, "s1")
+
+    households = ("R1", n, "Households")
+    bundle = base_y.loc[r1, households] + base_y.loc[r2, households]
+    assert Y.loc[r1, households] == pytest.approx(0.2 * bundle)
+    assert Y.loc[r2, households] == pytest.approx(0.8 * bundle)
+    government = ("R1", n, "Government")
+    assert Y.loc[r1, government] == pytest.approx(base_y.loc[r1, government])
+    assert Y.loc[r2, government] == pytest.approx(base_y.loc[r2, government])
+
+
+def test_mix_updates_reject_column_categories_on_activity_level():
+    database = _build_pooled_trade_sut_database()
+    database.clone_scenario("baseline", "policy")
+
+    with pytest.raises(WrongInput, match="column_categories does not apply"):
+        database.update_trade_mix(
+            {"R1": {"R1": 1.0}},
+            items="elec - supply",
+            commodities="elec - need",
+            column_categories="FD",
+            scenario="policy",
+        )
+
+    supply_mix_db = _build_supply_mix_sut_database()
+    supply_mix_db.clone_scenario("baseline", "policy")
+    with pytest.raises(WrongInput, match="column_categories does not apply"):
+        supply_mix_db.update_supply_mix(
+            {"R1": {"gen coal": 0.5, "gen wind": 0.5}},
+            scenario="policy",
+            commodities="electricity",
+            column_categories="FD",
+        )
+
+
+def _build_plain_ember_sut_database():
+    """One-region SUT whose activities carry the plain EMBER group labels."""
+    ember_groups = [
+        "Bioenergy",
+        "Coal",
+        "Gas",
+        "Hydro",
+        "Nuclear",
+        "Other Fossil",
+        "Other Renewables",
+        "Solar",
+        "Wind",
+    ]
+    activities = ember_groups + ["Steel", "Mill"]
+    commodities = ["Electricity", "Steel goods"]
+    regions = ["AT"]
+
+    activity_axis = pd.MultiIndex.from_product(
+        [regions, [_MASTER_INDEX["a"]], activities],
+        names=["Region", "Level", "Item"],
+    )
+    commodity_axis = pd.MultiIndex.from_product(
+        [regions, [_MASTER_INDEX["c"]], commodities],
+        names=["Region", "Level", "Item"],
+    )
+    rows = activity_axis.append(commodity_axis)
+    final_demand_axis = pd.MultiIndex.from_product(
+        [regions, [_MASTER_INDEX["n"]], ["FD"]],
+        names=["Region", "Level", "Item"],
+    )
+
+    A, C = _MASTER_INDEX["a"], _MASTER_INDEX["c"]
+    Z = pd.DataFrame(0.0, index=rows, columns=rows)
+    for tech in ember_groups:
+        Z.loc[("AT", A, tech), ("AT", C, "Electricity")] = 10.0
+    Z.loc[("AT", A, "Mill"), ("AT", C, "Electricity")] = 10.0
+    Z.loc[("AT", A, "Steel"), ("AT", C, "Steel goods")] = 50.0
+    Z.loc[("AT", C, "Electricity"), ("AT", A, "Steel")] = 30.0
+
+    Y = pd.DataFrame(0.0, index=rows, columns=final_demand_axis)
+    Y.loc[("AT", C, "Electricity")] = 70.0
+    Y.loc[("AT", C, "Steel goods")] = 50.0
+
+    V = pd.DataFrame(1.0, index=["VA"], columns=rows)
+    E = pd.DataFrame(1.0, index=["CO2"], columns=rows)
+    EY = pd.DataFrame(0.0, index=["CO2"], columns=final_demand_axis)
+    VY = pd.DataFrame(0.0, index=["VA"], columns=final_demand_axis)
+
+    units = {
+        _MASTER_INDEX["a"]: pd.DataFrame({"unit": ["TJ"] * len(activities)}, index=activities),
+        _MASTER_INDEX["c"]: pd.DataFrame({"unit": ["TJ"] * len(commodities)}, index=commodities),
+        _MASTER_INDEX["f"]: pd.DataFrame({"unit": ["EUR"]}, index=["VA"]),
+        _MASTER_INDEX["k"]: pd.DataFrame({"unit": ["kg"]}, index=["CO2"]),
+    }
+
+    database = Database(
+        name="plain-ember-sut",
+        table="SUT",
+        Z=Z,
+        V=V,
+        E=E,
+        EY=EY,
+        VY=VY,
+        Y=Y,
+        units=units,
+        calc_all=True,
+    )
+    database.meta.source = "EXIOBASE Hybrid 3.3.18"
+    return database
+
+
+def test_update_supply_mix_electricity_matches_plain_ember_labels_and_raw_release(tmp_path):
+    database = _build_plain_ember_sut_database()
+
+    # the snapshot is provided in the raw EMBER yearly-full-release layout:
+    # only country-level TWh fuel rows must survive the reduction.
+    raw_release = pd.DataFrame(
+        [
+            ("Austria", "AUT", 2024, "Country or economy", "Electricity generation", "Fuel", "Coal", "TWh", 2.0),
+            ("Austria", "AUT", 2024, "Country or economy", "Electricity generation", "Fuel", "Wind", "TWh", 8.0),
+            ("Austria", "AUT", 2024, "Country or economy", "Electricity generation", "Fuel", "Hydro", "TWh", 40.0),
+            ("Austria", "AUT", 2024, "Country or economy", "Electricity generation", "Aggregate fuel", "Fossil", "TWh", 99.0),
+            ("Austria", "AUT", 2024, "Country or economy", "Electricity generation", "Fuel", "Coal", "%", 4.0),
+            ("Europe", "", 2024, "Region", "Electricity generation", "Fuel", "Coal", "TWh", 500.0),
+        ],
+        columns=["Area", "ISO 3 code", "Year", "Area type", "Category", "Subcategory", "Variable", "Unit", "Value"],
+    )
+    ember_path = tmp_path / "ember_raw_release.csv"
+    raw_release.to_csv(ember_path, index=False)
+
+    database.update_supply_mix(
+        "electricity",
+        scenario="baseline",
+        year=2024,
+        ember_path=ember_path,
+    )
+
+    database.reset_to_coefficients("baseline")
+    s = database.get_block_as_pandas("s", scenario="baseline")
+    A, C = _MASTER_INDEX["a"], _MASTER_INDEX["c"]
+    electricity = ("AT", C, "Electricity")
+
+    # the EMBER technologies hold 90/100 of the market: the 2/8/40 TWh mix is
+    # rescaled onto that share while the Mill by-product keeps its 0.1. The
+    # 'Electricity' commodity is already aggregated, so no commodity
+    # aggregation is performed.
+    assert database.get_index(C) == ["Electricity", "Steel goods"]
+    assert s.loc[("AT", A, "Coal"), electricity] == pytest.approx(0.9 * 2.0 / 50.0)
+    assert s.loc[("AT", A, "Wind"), electricity] == pytest.approx(0.9 * 8.0 / 50.0)
+    assert s.loc[("AT", A, "Hydro"), electricity] == pytest.approx(0.9 * 40.0 / 50.0)
+    assert s.loc[("AT", A, "Mill"), electricity] == pytest.approx(0.1)
+    assert s.loc[("AT", A, "Nuclear"), electricity] == pytest.approx(0.0)
+    assert float(s.loc[:, electricity].sum()) == pytest.approx(1.0)
+
+
 def test_update_scenarios_sut_accepts_unified_z(CoreDataSUT):
     scenario = "legacy unified z"
     CoreDataSUT.clone_scenario("baseline", scenario)

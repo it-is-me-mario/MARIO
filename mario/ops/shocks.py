@@ -127,6 +127,20 @@ def _is_supply_mix_type(value):
     return str(value).strip().casefold().startswith("supply mix")
 
 
+def _is_trade_mix_type(value):
+    """Return whether one shock ``Type`` cell selects a trade-mix redistribution."""
+    return str(value).strip().casefold().startswith("trade mix")
+
+
+def _is_mix_type(value):
+    """Return whether one shock ``Type`` cell selects any mix redistribution.
+
+    Mix rows are collected by the dedicated spec readers and must be skipped
+    by the cell-wise shock readers.
+    """
+    return _is_supply_mix_type(value) or _is_trade_mix_type(value)
+
+
 def _mix_target_selector(values):
     """Return the distinct target labels, or ``None`` when any is the ``all`` wildcard."""
     selected = []
@@ -174,15 +188,62 @@ def _collect_supply_mix_groups(info, *, member_column, target_column, legacy_mem
     return collected
 
 
-def _warn_ignored_supply_mix_rows(path, candidates, message):
-    """Warn when one sheet contains supply-mix rows that will not be applied."""
+def _collect_trade_mix_groups(info, *, item_column, target_column, legacy_item, legacy_target):
+    """Group the trade-mix rows of one shock sheet by ``(item, Region_to, mix id)``.
+
+    Within one group ``Region_from`` carries the origin regions and ``Value``
+    their shares; ``Region_to`` is the destination market and must be one
+    explicit region.
+    """
+    _type = _shock_column(info, SHOCK_FLAT_COLUMNS["type"], SHOCK_COLUMNS["type"])
+    region_from = _shock_column(info, SHOCK_FLAT_COLUMNS["region_from"], SHOCK_COLUMNS["r_reg"])
+    item_from = _shock_column(info, item_column, legacy_item)
+    region_to = _shock_column(info, SHOCK_FLAT_COLUMNS["region_to"], SHOCK_COLUMNS["c_reg"])
+    target_to = (
+        _shock_column(info, target_column, legacy_target)
+        if target_column is not None
+        else None
+    )
+    value = _shock_column(info, SHOCK_FLAT_COLUMNS["value"], SHOCK_COLUMNS["value"])
+
+    groups = {}
+    for row in range(len(info)):
+        if not _is_trade_mix_type(_type[row]):
+            continue
+        destination = region_to[row]
+        token = "" if pd.isna(destination) else str(destination).strip()
+        if token == "" or token.casefold() in {"all", "global"}:
+            raise WrongInput(
+                "Type='Trade mix N' rows must name one explicit destination region in "
+                f"'{SHOCK_FLAT_COLUMNS['region_to']}' ('all' is not allowed)."
+            )
+        groups.setdefault(
+            (item_from[row], token, str(_type[row]).strip()), []
+        ).append(row)
+
+    collected = []
+    for (item, destination, _mix_id), rows in groups.items():
+        collected.append(
+            {
+                "shares": {destination: {region_from[row]: float(value[row]) for row in rows}},
+                "items": [item],
+                "targets": (
+                    _mix_target_selector([target_to[row] for row in rows])
+                    if target_to is not None
+                    else None
+                ),
+            }
+        )
+    return collected
+
+
+def _warn_ignored_mix_rows(path, candidates, message):
+    """Warn when one sheet contains mix rows that will not be applied."""
     info = _read_shock_sheet(path, *candidates)
     if info is None:
         return
     _type = _shock_column(info, SHOCK_FLAT_COLUMNS["type"], SHOCK_COLUMNS["type"], required=False)
-    if _type is None:
-        return
-    if any(_is_supply_mix_type(_type[row]) for row in range(len(info))):
+    if any(_is_mix_type(_type[row]) for row in range(len(info))):
         log_time(logger, message, "warning")
 
 
@@ -231,6 +292,7 @@ def read_supply_mix_specs(instance, path):
                         "level": _MASTER_INDEX["c"],
                         "column_regions": group["column_regions"],
                         "column_sectors": group["targets"],
+                        "column_categories": None,
                         "commodities": None,
                     }
                 )
@@ -257,6 +319,7 @@ def read_supply_mix_specs(instance, path):
                         "level": _MASTER_INDEX["a"],
                         "column_regions": group["column_regions"],
                         "column_sectors": None,
+                        "column_categories": None,
                         "commodities": group["targets"],
                     }
                 )
@@ -266,9 +329,9 @@ def read_supply_mix_specs(instance, path):
             for group in _collect_supply_mix_groups(
                 info,
                 member_column=SHOCK_FLAT_COLUMNS["commodity_from"],
-                target_column=None,
+                target_column=SHOCK_FLAT_COLUMNS["category_to"],
                 legacy_member=SHOCK_COLUMNS["r_sec"],
-                legacy_target=None,
+                legacy_target=SHOCK_COLUMNS["d_cat"],
             ):
                 specs.append(
                     {
@@ -276,28 +339,29 @@ def read_supply_mix_specs(instance, path):
                         "level": _MASTER_INDEX["c"],
                         "column_regions": group["column_regions"],
                         "column_sectors": None,
+                        "column_categories": group["targets"],
                         "commodities": None,
                     }
                 )
 
-        _warn_ignored_supply_mix_rows(
+        _warn_ignored_mix_rows(
             path,
             (_ENUM.z, _ENUM.Z, str(_ENUM.z).lower(), str(_ENUM.Z).upper()),
-            "Shock: Type='Supply mix N' rows on the legacy unified 'z' sheet are ignored for SUT "
-            "databases. Author commodity mixes on the 'u'/'Yc' sheets and market-share mixes on "
-            "the 's' sheet.",
+            "Shock: 'Supply mix N'/'Trade mix N' rows on the legacy unified 'z' sheet are ignored "
+            "for SUT databases. Author commodity mixes on the 'u'/'Yc' sheets and market-share "
+            "mixes on the 's' sheet.",
         )
-        _warn_ignored_supply_mix_rows(
+        _warn_ignored_mix_rows(
             path,
             (_ENUM.Y, str(_ENUM.Y).lower(), str(_ENUM.Y).upper()),
-            "Shock: Type='Supply mix N' rows on the legacy unified 'Y' sheet are ignored for SUT "
-            "databases. Author commodity mixes on the 'u'/'Yc' sheets.",
+            "Shock: 'Supply mix N'/'Trade mix N' rows on the legacy unified 'Y' sheet are ignored "
+            "for SUT databases. Author commodity mixes on the 'u'/'Yc' sheets.",
         )
-        _warn_ignored_supply_mix_rows(
+        _warn_ignored_mix_rows(
             path,
             ("Ya",),
-            "Shock: Type='Supply mix N' rows on the 'Ya' sheet are ignored. Activities have no "
-            "final-demand mix; author market-share mixes on the 's' sheet.",
+            "Shock: 'Supply mix N'/'Trade mix N' rows on the 'Ya' sheet are ignored. Activities "
+            "have no final-demand mix; author market-share and trade mixes on the 's' sheet.",
         )
 
         return specs
@@ -313,16 +377,147 @@ def read_supply_mix_specs(instance, path):
         for group in _collect_supply_mix_groups(
             info,
             member_column=SHOCK_FLAT_COLUMNS["sector_from"],
-            target_column=SHOCK_FLAT_COLUMNS["sector_to"] if has_sector_to else None,
+            target_column=(
+                SHOCK_FLAT_COLUMNS["sector_to"]
+                if has_sector_to
+                else SHOCK_FLAT_COLUMNS["category_to"]
+            ),
             legacy_member=SHOCK_COLUMNS["r_sec"],
-            legacy_target=SHOCK_COLUMNS["c_sec"] if has_sector_to else None,
+            legacy_target=SHOCK_COLUMNS["c_sec"] if has_sector_to else SHOCK_COLUMNS["d_cat"],
         ):
             specs.append(
                 {
                     "shares": group["shares"],
                     "level": None,
                     "column_regions": group["column_regions"],
-                    "column_sectors": group["targets"],
+                    "column_sectors": group["targets"] if has_sector_to else None,
+                    "column_categories": None if has_sector_to else group["targets"],
+                    "commodities": None,
+                }
+            )
+    return specs
+
+
+def read_trade_mix_specs(instance, path):
+    """Collect ``Type='Trade mix N'`` groups from the shock workbook.
+
+    Each ``(item, Region_to, 'Trade mix N')`` group is one destination mix:
+    its rows carry the origin regions in ``Region_from`` and their shares in
+    ``Value``, while ``Region_to`` names the destination market (one explicit
+    region; ``all`` is rejected). Returns dicts ready for
+    ``update_trade_mix``.
+
+    IOT workbooks read the ``z`` and ``Y`` sheets (traded item:
+    ``Sector_from``; ``Sector_to`` on ``z`` optionally restricts the buyer
+    columns). SUT workbooks read the split sheets:
+
+    * ``u``/``Yc`` — Commodity-level (Isard) trade mixes; ``Activity_to`` on
+      the ``u`` sheet restricts the buyer activities.
+    * ``s`` — Activity-level trade mixes for pooled/Chenery-Moses layouts;
+      each group must name the destination market commodity in
+      ``Commodity_to`` (``all`` is not allowed).
+
+    Mix rows found on the legacy unified sheets or on ``Ya`` are reported by
+    ``read_supply_mix_specs``, which runs on the same workbook.
+    """
+    specs = []
+
+    if instance.meta.table == "SUT":
+        info = _read_shock_sheet(path, _ENUM.u, str(_ENUM.u).lower())
+        if info is not None:
+            for group in _collect_trade_mix_groups(
+                info,
+                item_column=SHOCK_FLAT_COLUMNS["commodity_from"],
+                target_column=SHOCK_FLAT_COLUMNS["activity_to"],
+                legacy_item=SHOCK_COLUMNS["r_sec"],
+                legacy_target=SHOCK_COLUMNS["c_sec"],
+            ):
+                specs.append(
+                    {
+                        "shares": group["shares"],
+                        "items": group["items"],
+                        "level": _MASTER_INDEX["c"],
+                        "column_sectors": group["targets"],
+                        "column_categories": None,
+                        "commodities": None,
+                    }
+                )
+
+        info = _read_shock_sheet(path, _ENUM.s, str(_ENUM.s).lower())
+        if info is not None:
+            for group in _collect_trade_mix_groups(
+                info,
+                item_column=SHOCK_FLAT_COLUMNS["activity_from"],
+                target_column=SHOCK_FLAT_COLUMNS["commodity_to"],
+                legacy_item=SHOCK_COLUMNS["r_sec"],
+                legacy_target=SHOCK_COLUMNS["c_sec"],
+            ):
+                if group["targets"] is None:
+                    (destination,) = group["shares"]
+                    raise WrongInput(
+                        "Type='Trade mix N' rows on the 's' sheet rewrite market shares and must "
+                        f"name the destination market commodity in '{SHOCK_FLAT_COLUMNS['commodity_to']}' "
+                        f"('all' is not allowed). Offending mix: destination {destination!r}."
+                    )
+                specs.append(
+                    {
+                        "shares": group["shares"],
+                        "items": group["items"],
+                        "level": _MASTER_INDEX["a"],
+                        "column_sectors": None,
+                        "column_categories": None,
+                        "commodities": group["targets"],
+                    }
+                )
+
+        info = _read_shock_sheet(path, "Yc")
+        if info is not None:
+            for group in _collect_trade_mix_groups(
+                info,
+                item_column=SHOCK_FLAT_COLUMNS["commodity_from"],
+                target_column=SHOCK_FLAT_COLUMNS["category_to"],
+                legacy_item=SHOCK_COLUMNS["r_sec"],
+                legacy_target=SHOCK_COLUMNS["d_cat"],
+            ):
+                specs.append(
+                    {
+                        "shares": group["shares"],
+                        "items": group["items"],
+                        "level": _MASTER_INDEX["c"],
+                        "column_sectors": None,
+                        "column_categories": group["targets"],
+                        "commodities": None,
+                    }
+                )
+
+        return specs
+
+    sheets = (
+        ((_ENUM.z, _ENUM.Z, str(_ENUM.z).lower(), str(_ENUM.Z).upper()), True),
+        ((_ENUM.Y, str(_ENUM.Y).lower(), str(_ENUM.Y).upper()), False),
+    )
+    for candidates, has_sector_to in sheets:
+        info = _read_shock_sheet(path, *candidates)
+        if info is None:
+            continue
+        for group in _collect_trade_mix_groups(
+            info,
+            item_column=SHOCK_FLAT_COLUMNS["sector_from"],
+            target_column=(
+                SHOCK_FLAT_COLUMNS["sector_to"]
+                if has_sector_to
+                else SHOCK_FLAT_COLUMNS["category_to"]
+            ),
+            legacy_item=SHOCK_COLUMNS["r_sec"],
+            legacy_target=SHOCK_COLUMNS["c_sec"] if has_sector_to else SHOCK_COLUMNS["d_cat"],
+        ):
+            specs.append(
+                {
+                    "shares": group["shares"],
+                    "items": group["items"],
+                    "level": None,
+                    "column_sectors": group["targets"] if has_sector_to else None,
+                    "column_categories": None if has_sector_to else group["targets"],
                     "commodities": None,
                 }
             )
@@ -421,8 +616,8 @@ def Y_shock(instance, path, boolean, clusters, to_baseline):
         )
 
     for shock in range(len(info)):
-        if _is_supply_mix_type(_type[shock]):
-            # Supply-mix rows are collected and applied by ``read_supply_mix_specs``.
+        if _is_mix_type(_type[shock]):
+            # Mix rows are collected and applied by the dedicated spec readers.
             continue
         if nan_check(info, shock, _type[shock]):
             log_time(
@@ -703,8 +898,8 @@ def _split_intermediate_shock(
     value = _shock_column(info, SHOCK_FLAT_COLUMNS["value"], SHOCK_COLUMNS["value"])
 
     for shock in range(len(info)):
-        if _is_supply_mix_type(_type[shock]):
-            # Supply-mix rows are collected and applied by ``read_supply_mix_specs``.
+        if _is_mix_type(_type[shock]):
+            # Mix rows are collected and applied by the dedicated spec readers.
             continue
         if nan_check(info, shock, _type[shock]):
             log_time(
@@ -848,8 +1043,8 @@ def _split_final_demand_shock(
     value = _shock_column(info, SHOCK_FLAT_COLUMNS["value"], SHOCK_COLUMNS["value"])
 
     for shock in range(len(info)):
-        if _is_supply_mix_type(_type[shock]):
-            # Supply-mix rows are collected and applied by ``read_supply_mix_specs``.
+        if _is_mix_type(_type[shock]):
+            # Mix rows are collected and applied by the dedicated spec readers.
             continue
         row_region_ = check_replace_clusters(
             userValue=row_region[shock],
@@ -1131,8 +1326,8 @@ def Z_shock(instance, path, boolean, clusters, to_baseline):
         )
 
     for shock in range(len(info)):
-        if _is_supply_mix_type(_type[shock]):
-            # Supply-mix rows are collected and applied by ``read_supply_mix_specs``.
+        if _is_mix_type(_type[shock]):
+            # Mix rows are collected and applied by the dedicated spec readers.
             continue
         if nan_check(info, shock, _type[shock]):
             log_time(

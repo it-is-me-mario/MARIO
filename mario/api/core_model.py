@@ -87,6 +87,27 @@ def _replace_selected_rows(
     return updated.astype(frame.dtypes.to_dict())
 
 
+def _redistribute_bundle_rows(block, weights, col_mask, *, weight_level="Item"):
+    """Rewrite the selected columns of one row bundle as weights times the bundle column totals.
+
+    ``weight_level`` names the index level the weights are aligned on: the
+    ``Item`` labels for supply mixes (labels competing within one region) or
+    the ``Region`` labels for trade mixes (origins of one traded item).
+    Columns outside ``col_mask`` keep their original coefficients. The dense
+    replacement also works for sparse-backed blocks.
+    """
+    values = np.asarray(block.to_numpy(), dtype=float).copy()
+    if col_mask.any():
+        row_weights = weights.reindex(
+            block.index.get_level_values(weight_level)
+        ).to_numpy()
+        redistributed = np.multiply.outer(
+            row_weights, sum_columns(block).to_numpy()
+        )
+        values[:, col_mask] = redistributed[:, col_mask]
+    return pd.DataFrame(values, index=block.index, columns=block.columns)
+
+
 def _build_resolution_context(
     *,
     compute_options=None,
@@ -1905,6 +1926,7 @@ class CoreModel:
         aggregate_as_ember: bool = False,
         column_regions=None,
         column_sectors=None,
+        column_categories=None,
         level: str | None = None,
         commodities=None,
         aggregate_commodity=None,
@@ -1999,8 +2021,13 @@ class CoreModel:
             On IOT databases these are the buyer sectors of ``z``; on SUT
             commodity mixes they are the buyer activities of ``u``. Final-demand
             blocks have no such columns and are filtered by ``column_regions``
-            only. Not accepted for Activity-level mixes, whose rewritten
-            columns are selected by ``commodities=...`` instead.
+            and ``column_categories``. Not accepted for Activity-level mixes,
+            whose rewritten columns are selected by ``commodities=...`` instead.
+        column_categories:
+            Restrict the final-demand redistribution to these consumption
+            categories only (the ``Y`` block on IOT, ``Yc`` on SUT commodity
+            mixes). ``None`` (default) means all categories. Not accepted for
+            Activity-level mixes, which rewrite no final-demand block.
         level:
             Classification of the share labels. Optional on SUT databases when
             the labels resolve unambiguously to Activities or Commodities;
@@ -2037,6 +2064,21 @@ class CoreModel:
 
         Regions that are not covered by EMBER are left unchanged and generate
         one warning when ``shares_by_region="electricity"``.
+
+        .. warning::
+            On **Chenery-Moses SUTs** (see :meth:`to_chenery_moses`) the
+            supply block entangles technology and trade: one region's
+            technology mix is replicated, scaled by its trade shares, inside
+            the ``s`` columns of *every* destination market it exports to.
+            Updating a technology mix there requires rewriting the region's
+            rows in **all** destination columns — which is what the default
+            ``column_regions=None`` does, preserving each destination's trade
+            share. Restricting ``column_regions`` to the domestic market only
+            would leave the exported production on the old mix: the same
+            fleet would carry two different technology mixes depending on the
+            buyer. Layouts that separate the two informations (Isard tables,
+            or pooled tables built with :meth:`pool_trade`) are immune by
+            construction.
         """
 
         is_sut = self.table_type == "SUT"
@@ -2202,6 +2244,11 @@ class CoreModel:
                     "column_sectors does not apply to Activity-level supply mixes; the rewritten "
                     "columns are the ones selected by commodities=... (and column_regions)."
                 )
+            if column_categories is not None:
+                raise WrongInput(
+                    "column_categories does not apply to Activity-level supply mixes; they rewrite "
+                    "no final-demand block."
+                )
         elif commodities is not None:
             raise WrongInput("commodities applies only to Activity-level mixes on SUT databases.")
 
@@ -2265,26 +2312,33 @@ class CoreModel:
                 name="commodities",
                 valid=set(self.get_index(_MASTER_INDEX["c"])),
             )
+        col_categories = _normalize_column_selector(
+            column_categories,
+            name="column_categories",
+            valid=set(self.get_index(_MASTER_INDEX["n"])),
+        )
 
-        def _column_mask(columns, *, with_items):
+        def _column_mask(columns, *, kind):
             mask = np.ones(len(columns), dtype=bool)
             if col_regions is not None:
                 mask &= columns.get_level_values(0).isin(col_regions)
-            if with_items and col_items is not None:
+            if kind == "items" and col_items is not None:
                 mask &= columns.get_level_values(-1).isin(col_items)
+            if kind == "categories" and col_categories is not None:
+                mask &= columns.get_level_values(-1).isin(col_categories)
             return mask
 
         if not coefficients_ready:
             self.reset_to_coefficients(scenario)
 
-        # Blocks rewritten by the mix. Final-demand blocks expose no item
-        # columns, so they are filtered by column_regions only.
+        # Blocks rewritten by the mix. Final-demand blocks expose consumption
+        # categories instead of item columns.
         if not is_sut:
-            block_plan = {"z": True, "Y": False}
+            block_plan = {"z": "items", "Y": "categories"}
         elif row_level == _MASTER_INDEX["c"]:
-            block_plan = {"u": True, "Yc": False}
+            block_plan = {"u": "items", "Yc": "categories"}
         else:
-            block_plan = {"s": True}
+            block_plan = {"s": "items"}
 
         target_blocks = {
             name: self.get_block_as_pandas(name, scenario=scenario).copy()
@@ -2294,24 +2348,9 @@ class CoreModel:
         # redistribution stays matricial: the selected columns are rewritten,
         # the others keep their original coefficients.
         column_masks = {
-            name: _column_mask(frame.columns, with_items=block_plan[name])
+            name: _column_mask(frame.columns, kind=block_plan[name])
             for name, frame in target_blocks.items()
         }
-
-        def _redistribute(block, weights, col_mask):
-            # Dense replacement: selected columns are redistributed by the mix,
-            # the others keep their original coefficients. Built densely so it
-            # works for sparse-backed blocks too.
-            values = np.asarray(block.to_numpy(), dtype=float).copy()
-            if col_mask.any():
-                row_weights = weights.reindex(
-                    block.index.get_level_values("Item")
-                ).to_numpy()
-                redistributed = np.multiply.outer(
-                    row_weights, sum_columns(block).to_numpy()
-                )
-                values[:, col_mask] = redistributed[:, col_mask]
-            return pd.DataFrame(values, index=block.index, columns=block.columns)
 
         for region, weights in normalized_shares.items():
             selector = (region, row_level, list(weights.index))
@@ -2322,7 +2361,9 @@ class CoreModel:
                     frame,
                     selector=selector,
                     target_index=block.index,
-                    replacement=_redistribute(block, weights, column_masks[name]),
+                    replacement=_redistribute_bundle_rows(
+                        block, weights, column_masks[name], weight_level="Item"
+                    ),
                 )
 
         self.update_scenarios(scenario, **target_blocks)
@@ -2413,6 +2454,323 @@ class CoreModel:
             inplace=True,
         )
         return True
+
+    def update_trade_mix(
+        self,
+        shares_by_destination,
+        *,
+        items,
+        scenario: str = "baseline",
+        clone_from: str | None = None,
+        rescale: bool = False,
+        level: str | None = None,
+        commodities=None,
+        column_sectors=None,
+        column_categories=None,
+    ) -> None:
+        """Update the regional sourcing mix of one traded item per destination market.
+
+        The trade mix is the dual of the supply mix: instead of redistributing
+        several labels within one region, it redistributes one item across its
+        **origin regions** inside the columns of each destination region,
+        preserving every selected column total. Each buyer therefore keeps its
+        total input of the item; only the sourcing split changes.
+
+        The blocks rewritten depend on where the table stores trade:
+
+        * **IOT (Isard)** — the bundle rows are ``(origin, Sector, item)`` and
+          the rewritten columns are the destination region's ``z`` and ``Y``
+          columns.
+        * **SUT, Commodity level (Isard, e.g. raw EXIOBASE)** — the bundle rows
+          are ``(origin, Commodity, item)`` and the rewritten columns are the
+          destination's ``u`` and ``Yc`` columns.
+        * **SUT, Activity level (pooled / Chenery-Moses layouts)** — the bundle
+          rows are ``(origin, Activity, item)`` (e.g. one ``"... - supply"``
+          pass-through activity) and the rewritten columns are the destination
+          market columns of ``s`` selected by ``commodities=...`` (e.g. the
+          ``"... - need"`` commodity).
+
+        Parameters
+        ----------
+        shares_by_destination:
+            Mapping ``destination_region -> {origin_region: share}``. The
+            domestic share is one origin like any other: include the
+            destination itself to rewrite it, omit it to preserve it. Origins
+            that are not listed keep their current share: the provided shares
+            (summing to one) are rescaled onto the combined share currently
+            held by the listed origins, so partial updates (e.g. only the
+            intra-EU sourcing) are well defined.
+        items:
+            One item label or an iterable of labels naming what is traded. All
+            items must live on the same classification level; the mix is
+            applied to each item independently (each item's per-column totals
+            are preserved separately).
+        scenario:
+            Scenario to update in place. When it does not exist yet, provide
+            ``clone_from=...`` to create it first.
+        clone_from:
+            Optional existing source scenario to clone when ``scenario`` does
+            not exist yet.
+        rescale:
+            When ``True``, rescale each destination-level vector to sum to one
+            even when the provided values are totals or otherwise do not
+            already form a near-unit mix.
+        level:
+            Classification of ``items``. Optional on SUT databases when the
+            labels resolve unambiguously to Activities or Commodities;
+            required when one label exists in both classifications. IOT
+            databases always operate on Sectors.
+        commodities:
+            SUT Activity-level mixes only: the commodity market column(s) of
+            ``s`` rewritten in each destination region.
+        column_sectors:
+            Isard cases only: restrict the rewritten buyer columns to these
+            labels (sectors of ``z`` on IOT, activities of ``u`` on SUT).
+            Final-demand blocks have no such columns and follow the
+            destination region and ``column_categories``.
+        column_categories:
+            Isard cases only: restrict the final-demand redistribution to
+            these consumption categories (the ``Y`` block on IOT, ``Yc`` on
+            SUT). ``None`` (default) means all categories. Not accepted for
+            Activity-level mixes, which rewrite no final-demand block.
+
+        Returns
+        -------
+        None
+            The selected scenario is updated in place.
+
+        Notes
+        -----
+        Applying one destination-level mix to every buyer column imposes the
+        Chenery-Moses hypothesis of uniform sourcing on the selected columns
+        of an Isard table: after the update, each rewritten buyer shares the
+        same origin profile. Use ``column_sectors`` to keep selected buyers on
+        their original (heterogeneous) sourcing.
+
+        The method resets the target scenario to coefficient-side storage
+        internally before applying the redistribution, so callers do not need
+        an extra ``reset_to_coefficients(...)`` around this operation.
+        """
+
+        is_sut = self.table_type == "SUT"
+
+        if not is_sut:
+            if commodities is not None:
+                raise WrongInput(
+                    "commodities applies only to Activity-level trade mixes on SUT databases."
+                )
+            if level is not None and str(level) != _MASTER_INDEX["s"]:
+                raise WrongInput(
+                    f"IOT trade mixes operate on the {_MASTER_INDEX['s']} level; got level={level!r}."
+                )
+        elif level is not None and str(level) not in (
+            _MASTER_INDEX["a"],
+            _MASTER_INDEX["c"],
+        ):
+            raise WrongInput(
+                f"SUT trade mixes accept level='{_MASTER_INDEX['a']}' or "
+                f"level='{_MASTER_INDEX['c']}'; got {level!r}."
+            )
+
+        requested_scenario = str(scenario).strip()
+        if not requested_scenario:
+            raise WrongInput("scenario can not be empty.")
+
+        try:
+            scenario = self._validate_scenario(requested_scenario)
+        except WrongInput as exc:
+            if clone_from is None:
+                raise WrongInput(
+                    f"{requested_scenario} does not exist. Pass clone_from=... to create it first."
+                ) from exc
+            self.clone_scenario(clone_from, requested_scenario)
+            scenario = self._validate_scenario(requested_scenario)
+
+        items = [items] if isinstance(items, str) else list(dict.fromkeys(items))
+        if not items:
+            raise WrongInput("items must be one non-empty item label or iterable of labels.")
+
+        if not is_sut:
+            row_level = _MASTER_INDEX["s"]
+        elif level is not None:
+            row_level = str(level)
+        else:
+            item_labels = {str(item) for item in items}
+            activity_labels = set(self.get_index(_MASTER_INDEX["a"]))
+            commodity_labels = set(self.get_index(_MASTER_INDEX["c"]))
+            only_activities = item_labels <= activity_labels
+            only_commodities = item_labels <= commodity_labels
+            if only_activities and not only_commodities:
+                row_level = _MASTER_INDEX["a"]
+            elif only_commodities and not only_activities:
+                row_level = _MASTER_INDEX["c"]
+            else:
+                raise WrongInput(
+                    "Could not infer whether the SUT trade mix targets Activities or "
+                    f"Commodities from the items {sorted(item_labels)}. Pass "
+                    f"level='{_MASTER_INDEX['a']}' or level='{_MASTER_INDEX['c']}' explicitly."
+                )
+
+        valid_items = set(self.get_index(row_level))
+        unknown_items = [item for item in items if item not in valid_items]
+        if unknown_items:
+            raise WrongInput(
+                f"items references unknown {row_level} labels: {unknown_items}"
+            )
+
+        if is_sut and row_level == _MASTER_INDEX["a"]:
+            if commodities is None:
+                raise WrongInput(
+                    "Activity-level trade mixes rewrite market shares in 's' and need the "
+                    "destination market: pass commodities=... naming the target commodity."
+                )
+            if column_sectors is not None:
+                raise WrongInput(
+                    "column_sectors does not apply to Activity-level trade mixes; the "
+                    "rewritten columns are the ones selected by commodities=... in each "
+                    "destination region."
+                )
+            if column_categories is not None:
+                raise WrongInput(
+                    "column_categories does not apply to Activity-level trade mixes; they "
+                    "rewrite no final-demand block."
+                )
+        elif commodities is not None:
+            raise WrongInput(
+                "commodities applies only to Activity-level trade mixes on SUT databases."
+            )
+
+        if not isinstance(shares_by_destination, MutableMapping) or not shares_by_destination:
+            raise WrongInput(
+                "shares_by_destination must be one non-empty mapping of destination "
+                "regions to origin-share mappings."
+            )
+
+        valid_regions = set(self.get_index(_MASTER_INDEX["r"]))
+        normalized_shares = {}
+        sum_tolerance = 0.01
+
+        for destination, origin_shares in shares_by_destination.items():
+            if destination not in valid_regions:
+                raise WrongInput(
+                    f"Destination region {destination!r} does not exist. Valid regions are: "
+                    f"{self.get_index(_MASTER_INDEX['r'])}"
+                )
+
+            if not isinstance(origin_shares, MutableMapping) or not origin_shares:
+                raise WrongInput(
+                    f"Destination {destination!r} must map to one non-empty mapping of origin shares."
+                )
+
+            weights = pd.Series(origin_shares, dtype=float)
+            if weights.isna().any() or not np.isfinite(weights.to_numpy()).all():
+                raise WrongInput(f"Destination {destination!r} contains non-finite origin shares.")
+
+            if (weights < 0).any():
+                raise WrongInput(f"Destination {destination!r} contains negative origin shares.")
+
+            unknown_origins = [origin for origin in weights.index if origin not in valid_regions]
+            if unknown_origins:
+                raise WrongInput(
+                    f"Destination {destination!r} references unknown origin regions: {unknown_origins}"
+                )
+
+            total = float(weights.sum())
+            if total <= 0:
+                raise WrongInput(
+                    f"Destination {destination!r} origin shares must sum to a positive value."
+                )
+
+            if not rescale and abs(total - 1.0) >= sum_tolerance:
+                raise WrongInput(
+                    f"Destination {destination!r} origin shares must sum to 1 within {sum_tolerance}. "
+                    "Pass rescale=True to normalize arbitrary positive totals."
+                )
+
+            normalized_shares[destination] = weights / total
+
+        def _normalize_column_selector(values, *, name, valid):
+            if values is None:
+                return None
+            values = [values] if isinstance(values, str) else list(values)
+            unknown = [value for value in values if value not in valid]
+            if unknown:
+                raise WrongInput(f"{name} references unknown values: {unknown}")
+            return set(values)
+
+        if not is_sut:
+            col_items = _normalize_column_selector(
+                column_sectors, name="column_sectors", valid=valid_items
+            )
+        elif row_level == _MASTER_INDEX["c"]:
+            col_items = _normalize_column_selector(
+                column_sectors,
+                name="column_sectors",
+                valid=set(self.get_index(_MASTER_INDEX["a"])),
+            )
+        else:
+            col_items = _normalize_column_selector(
+                commodities,
+                name="commodities",
+                valid=set(self.get_index(_MASTER_INDEX["c"])),
+            )
+        col_categories = _normalize_column_selector(
+            column_categories,
+            name="column_categories",
+            valid=set(self.get_index(_MASTER_INDEX["n"])),
+        )
+
+        self.reset_to_coefficients(scenario)
+
+        # Blocks rewritten by the mix. Final-demand blocks expose consumption
+        # categories instead of item columns.
+        if not is_sut:
+            block_plan = {"z": "items", "Y": "categories"}
+        elif row_level == _MASTER_INDEX["c"]:
+            block_plan = {"u": "items", "Yc": "categories"}
+        else:
+            block_plan = {"s": "items"}
+
+        target_blocks = {
+            name: self.get_block_as_pandas(name, scenario=scenario).copy()
+            for name in block_plan
+        }
+
+        def _destination_mask(columns, destination, *, kind):
+            mask = np.asarray(columns.get_level_values(0) == destination)
+            if kind == "items" and col_items is not None:
+                mask &= columns.get_level_values(-1).isin(col_items)
+            if kind == "categories" and col_categories is not None:
+                mask &= columns.get_level_values(-1).isin(col_categories)
+            return mask
+
+        for destination, weights in normalized_shares.items():
+            origins = list(weights.index)
+
+            for name, frame in target_blocks.items():
+                col_mask = _destination_mask(
+                    frame.columns, destination, kind=block_plan[name]
+                )
+                for item in items:
+                    selector = (origins, row_level, item)
+                    block = frame.loc[selector, :]
+                    frame = _replace_selected_rows(
+                        frame,
+                        selector=selector,
+                        target_index=block.index,
+                        replacement=_redistribute_bundle_rows(
+                            block, weights, col_mask, weight_level="Region"
+                        ),
+                    )
+                target_blocks[name] = frame
+
+        self.update_scenarios(scenario, **target_blocks)
+
+        self.meta._add_history(
+            f"Database: updated {row_level} trade mix of {items} ({', '.join(target_blocks)}) "
+            f"in scenario {self._public_scenario_name(scenario)} for destinations "
+            f"{sorted(normalized_shares)}."
+        )
 
     def update_supply_mix_iot(self, *args, **kwargs) -> None:
         """IOT-only alias for :meth:`update_supply_mix`, kept for backward compatibility."""

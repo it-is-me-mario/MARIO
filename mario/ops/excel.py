@@ -31,9 +31,15 @@ def _sh_excel(instance, num_shock, directory, clusters):
     extensions = dc(instance.get_index(_MASTER_INDEX["k"]))
     categories = dc(instance.get_index(_MASTER_INDEX["n"]))
     types = ["Percentage", "Absolute", "Update"]
-    # z/Y (IOT) and u/s/Yc (SUT) also accept supply-mix redistributions
-    # (one number per region mix).
-    types_with_supply_mix = types + [f"Supply mix {n}" for n in range(1, 11)]
+    # z/Y (IOT) and u/s/Yc (SUT) also accept supply-mix and trade-mix
+    # redistributions (one number per mix row). The combined option list
+    # exceeds Excel's 255-character limit for inline validation lists, so it
+    # is written to the hidden indeces sheet and referenced by range.
+    types_with_mixes = (
+        types
+        + [f"Supply mix {n}" for n in range(1, 11)]
+        + [f"Trade mix {n}" for n in range(1, 11)]
+    )
     # Extend the data-validation dropdowns well past the pre-filled rows so users
     # can keep adding shocks without losing the picklists.
     validation_rows = max(num_shock, 100)
@@ -107,12 +113,14 @@ def _sh_excel(instance, num_shock, directory, clusters):
         _write_index_column(indeces, "C", factors)
         _write_index_column(indeces, "D", extensions)
         _write_index_column(indeces, "E", categories)
+        _write_index_column(indeces, "F", types_with_mixes)
 
         regions_ref = "=indeces!$A$1:$A${}".format(len(regions))
         sectors_ref = "=indeces!$B$1:$B${}".format(len(sectors))
         factors_ref = "=indeces!$C$1:$C${}".format(len(factors))
         extensions_ref = "=indeces!$D$1:$D${}".format(len(extensions))
         categories_ref = "=indeces!$E$1:$E${}".format(len(categories))
+        mix_types_ref = "=indeces!$F$1:$F${}".format(len(types_with_mixes))
     else:
         _write_index_column(indeces, "A", regions)
         _write_index_column(indeces, "B", activities)
@@ -120,6 +128,7 @@ def _sh_excel(instance, num_shock, directory, clusters):
         _write_index_column(indeces, "D", factors)
         _write_index_column(indeces, "E", extensions)
         _write_index_column(indeces, "F", categories)
+        _write_index_column(indeces, "G", types_with_mixes)
 
         regions_ref = "=indeces!$A$1:$A${}".format(len(regions))
         activities_ref = "=indeces!$B$1:$B${}".format(len(activities))
@@ -127,6 +136,7 @@ def _sh_excel(instance, num_shock, directory, clusters):
         factors_ref = "=indeces!$D$1:$D${}".format(len(factors))
         extensions_ref = "=indeces!$E$1:$E${}".format(len(extensions))
         categories_ref = "=indeces!$F$1:$F${}".format(len(categories))
+        mix_types_ref = "=indeces!$G$1:$G${}".format(len(types_with_mixes))
 
     if instance.meta.table == "IOT":
         _write_shock_sheet(
@@ -146,7 +156,7 @@ def _sh_excel(instance, num_shock, directory, clusters):
                 1: sectors_ref,
                 2: regions_ref,
                 3: categories_ref,
-                4: types_with_supply_mix,
+                4: mix_types_ref,
             },
         )
         _write_shock_sheet(
@@ -192,7 +202,7 @@ def _sh_excel(instance, num_shock, directory, clusters):
                 1: sectors_ref,
                 2: regions_ref,
                 3: sectors_ref,
-                4: types_with_supply_mix,
+                4: mix_types_ref,
             },
         )
     else:
@@ -208,7 +218,7 @@ def _sh_excel(instance, num_shock, directory, clusters):
                     SHOCK_FLAT_COLUMNS["type"],
                     SHOCK_FLAT_COLUMNS["value"],
                 ],
-                {0: regions_ref, 1: commodities_ref, 2: regions_ref, 3: activities_ref, 4: types_with_supply_mix},
+                {0: regions_ref, 1: commodities_ref, 2: regions_ref, 3: activities_ref, 4: mix_types_ref},
             ),
             (
                 _ENUM.s,
@@ -221,7 +231,7 @@ def _sh_excel(instance, num_shock, directory, clusters):
                     SHOCK_FLAT_COLUMNS["type"],
                     SHOCK_FLAT_COLUMNS["value"],
                 ],
-                {0: regions_ref, 1: activities_ref, 2: regions_ref, 3: commodities_ref, 4: types_with_supply_mix},
+                {0: regions_ref, 1: activities_ref, 2: regions_ref, 3: commodities_ref, 4: mix_types_ref},
             ),
             (
                 "Ya",
@@ -247,7 +257,7 @@ def _sh_excel(instance, num_shock, directory, clusters):
                     SHOCK_FLAT_COLUMNS["type"],
                     SHOCK_FLAT_COLUMNS["value"],
                 ],
-                {0: regions_ref, 1: commodities_ref, 2: regions_ref, 3: categories_ref, 4: types_with_supply_mix},
+                {0: regions_ref, 1: commodities_ref, 2: regions_ref, 3: categories_ref, 4: mix_types_ref},
             ),
             (
                 "va",
