@@ -180,7 +180,7 @@ def _infer_axis_mapping(index, *, matrix_name: str, side: str) -> list[dict[str,
                     # Legacy simple axes, mostly factors/extensions.
                     if matrix_name in {_ENUM.V, _ENUM.v, "Va", "va", "Vc", "vc", "M", "m", _ENUM.VY} and side == "from":
                         mapping[_MASTER_INDEX["f"]] = value
-                    elif matrix_name in {_ENUM.E, _ENUM.e, "Ea", "ea", "Ec", "ec", _ENUM.EY, _ENUM.F, _ENUM.f} and side == "from":
+                    elif matrix_name in {_ENUM.E, _ENUM.e, "Ea", "ea", "Ec", "ec", "fa", "fc", _ENUM.EY, _ENUM.F, _ENUM.f} and side == "from":
                         mapping[_MASTER_INDEX["k"]] = value
                     elif matrix_name in {_ENUM.Y, "Ya", "Yc", _ENUM.EY, _ENUM.VY} and side == "to":
                         mapping[_MASTER_INDEX["n"]] = value
