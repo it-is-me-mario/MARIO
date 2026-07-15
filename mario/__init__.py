@@ -96,6 +96,7 @@ from mario.compute.types import (
     PlanningOverride,
 )
 from mario.log_exc.logger import set_log_verbosity
+from mario.model._api_key import set_api_keys
 from mario.model.builders import (
     MatrixBuilder,
     DataTemplate,

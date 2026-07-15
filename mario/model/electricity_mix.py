@@ -15,6 +15,7 @@ import yaml
 from mario.clusters.coverage import resolve_region_labels_to_iso3_members
 from mario.log_exc.exceptions import NotImplementable, WrongInput
 from mario.log_exc.logger import log_time
+from mario.model._api_key import resolve_api_key
 from mario.model.conventions import _ENUM, _MASTER_INDEX
 
 
@@ -119,6 +120,11 @@ def _load_ember_snapshot(ember_path: str | Path | None) -> pd.DataFrame:
                 "raw EMBER yearly full release."
             )
 
+    return _normalize_ember_frame(frame)
+
+
+def _normalize_ember_frame(frame: pd.DataFrame) -> pd.DataFrame:
+    """Normalize an ``ISO3, Year, Variable, Value`` frame from any source (CSV or API)."""
     snapshot = frame.loc[:, ["ISO3", "Year", "Variable", "Value"]].copy()
     snapshot["ISO3"] = snapshot["ISO3"].astype(str).str.strip().str.upper()
     snapshot["Year"] = snapshot["Year"].astype(int)
@@ -493,6 +499,7 @@ def build_electricity_mix_shares(
     scenario: str,
     year: int | None,
     ember_path: str | Path | None = None,
+    api_key=None,
     region_aggregation=None,
     level: str | None = None,
     weight_matrix: str | None = None,
@@ -513,7 +520,22 @@ def build_electricity_mix_shares(
         weight_matrix = _ENUM.z
 
     profile, matched_groups = _resolve_electricity_profile(database, level=level)
-    snapshot = _load_ember_snapshot(ember_path)
+    provider, key = resolve_api_key(api_key, {"ember", "nxbase"})
+    if provider is not None and ember_path is not None:
+        raise WrongInput("Pass either ember_path (snapshot) or api_key (live fetch), not both.")
+    if provider == "ember":
+        if year is None:
+            raise WrongInput("A live Ember fetch needs an explicit year=.")
+        from mario.model.ember_fetch import fetch_generation
+
+        snapshot = _normalize_ember_frame(fetch_generation(key, int(year)))
+    elif provider == "nxbase":
+        raise NotImplementable(
+            "The 'nxbase' online data source is not available yet; pass ember_path=... "
+            "with a snapshot CSV, or api_key={'ember': '<key>'} for a live fetch."
+        )
+    else:
+        snapshot = _load_ember_snapshot(ember_path)
     if snapshot.empty:
         raise WrongInput("The EMBER snapshot does not contain any valid electricity-generation observations.")
 

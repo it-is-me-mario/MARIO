@@ -1,0 +1,13 @@
+# Global API keys for MARIO's live data fetches (optional).
+#
+# Copy this file to `api_keys.yaml` (same folder) and fill in your keys. That
+# file is git-ignored -- never commit real keys. These are the lowest-precedence
+# source: an inline api_key=... at a call site, mario.set_api_keys(...), or a
+# <PROVIDER>_API_KEY environment variable all override it.
+#
+# Providers:
+#   entsoe -> update_trade_mix('electricity')  (register: transparency.entsoe.eu)
+#   ember  -> update_supply_mix('electricity') (register: ember-energy.org/data/api)
+
+entsoe: "your-entsoe-transparency-platform-token"
+ember: "your-ember-api-key"

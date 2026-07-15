@@ -10,6 +10,7 @@ amin_test.py
 temp_folder
 doc/build
 Output/
+uv.lock
 
 # os files
 .DS_Store
@@ -150,3 +151,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# MARIO live-fetch API keys (never commit real keys)
+mario/settings/api_keys.yaml

@@ -78,7 +78,10 @@ setup(
         "pyyaml",
         "country_converter",
         "pyarrow>=17",
-
+        # Live ENTSO-E import-mix fetch for update_trade_mix('electricity'). Only
+        # its raw XML client is used (pandas-version agnostic), so it coexists
+        # with the pinned pandas 3; pinned to the tested version.
+        "entsoe-py == 0.8.0",
     ],
     extras_require={
         "dataset": [

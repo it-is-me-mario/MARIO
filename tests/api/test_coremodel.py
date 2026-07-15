@@ -2741,6 +2741,256 @@ def test_update_trade_mix_iot_rejects_sut_arguments(CoreDataIOT):
         )
 
 
+def _write_import_mix_snapshot(path, rows):
+    """rows: list of (destination, origin, share); one packaged year (2024)."""
+    frame = pd.DataFrame(rows, columns=["destination", "origin", "share"])
+    frame.insert(0, "year", 2024)
+    frame.to_csv(path, index=False)
+    return path
+
+
+def test_update_trade_mix_electricity_replaces_sourcing_from_snapshot(tmp_path):
+    # Electricity mode: the snapshot fully replaces each destination's sourcing
+    # (unlisted origins are zeroed, not partially kept), and regions the
+    # snapshot does not cover are set domestic-only.
+    snapshot = _write_import_mix_snapshot(
+        tmp_path / "imx.csv",
+        [("R1", "R1", 0.25), ("R1", "R2", 0.75), ("R2", "R2", 0.6), ("R2", "R3", 0.4)],
+    )
+    database = _build_three_region_iot_database()
+    database.clone_scenario("baseline", "policy")
+    database.reset_to_coefficients("policy")
+    base_z = database.get_block_as_pandas(_ENUM.z, scenario="policy").copy()
+
+    database.update_trade_mix(
+        "electricity",
+        items="s1",
+        scenario="policy",
+        year=2024,
+        entsoe_path=snapshot,
+        fill_uncovered_domestic=True,
+    )
+
+    z = database.get_block_as_pandas(_ENUM.z, scenario="policy")
+    s = _MASTER_INDEX["s"]
+    r1, r2, r3 = ("R1", s, "s1"), ("R2", s, "s1"), ("R3", s, "s1")
+
+    # R1: full replacement onto the combined bundle of all three origins.
+    for col in [c for c in z.columns if c[0] == "R1"]:
+        bundle = base_z.loc[r1, col] + base_z.loc[r2, col] + base_z.loc[r3, col]
+        assert z.loc[r1, col] == pytest.approx(0.25 * bundle)
+        assert z.loc[r2, col] == pytest.approx(0.75 * bundle)
+        assert z.loc[r3, col] == pytest.approx(0.0)  # unlisted origin zeroed
+
+    # R3 is not a snapshot destination -> domestic-only (100% self).
+    for col in [c for c in z.columns if c[0] == "R3"]:
+        bundle = base_z.loc[r1, col] + base_z.loc[r2, col] + base_z.loc[r3, col]
+        assert z.loc[r3, col] == pytest.approx(bundle)
+        assert z.loc[r1, col] == pytest.approx(0.0)
+        assert z.loc[r2, col] == pytest.approx(0.0)
+
+
+def test_update_trade_mix_electricity_keep_uncovered_leaves_sourcing(tmp_path):
+    snapshot = _write_import_mix_snapshot(
+        tmp_path / "imx.csv", [("R1", "R1", 0.5), ("R1", "R2", 0.5)]
+    )
+    database = _build_three_region_iot_database()
+    database.clone_scenario("baseline", "policy")
+    database.reset_to_coefficients("policy")
+    base_z = database.get_block_as_pandas(_ENUM.z, scenario="policy").copy()
+
+    database.update_trade_mix(
+        "electricity",
+        items="s1",
+        scenario="policy",
+        entsoe_path=snapshot,
+        fill_uncovered_domestic=False,
+    )
+
+    z = database.get_block_as_pandas(_ENUM.z, scenario="policy")
+    # R2 and R3 uncovered and left unchanged.
+    for col in [c for c in z.columns if c[0] in ("R2", "R3")]:
+        for row in z.index:
+            assert z.loc[row, col] == pytest.approx(base_z.loc[row, col])
+
+
+def test_build_electricity_trade_shares_drops_unknown_and_renormalizes(tmp_path):
+    from mario.model.electricity_trade import build_electricity_trade_shares
+
+    snapshot = _write_import_mix_snapshot(
+        tmp_path / "imx.csv",
+        # ZZ is not a database region -> dropped, R1 renormalized to sum 1.
+        [("R1", "R1", 0.6), ("R1", "R2", 0.2), ("R1", "ZZ", 0.2)],
+    )
+    database = _build_three_region_iot_database()
+    shares = build_electricity_trade_shares(
+        database, year=2024, entsoe_path=snapshot, fill_uncovered_domestic=True
+    )
+
+    assert set(shares) == {"R1", "R2", "R3"}  # R2, R3 filled domestic-only
+    # domestic-only is a full vector (self=1, others=0) to zero imports.
+    assert shares["R2"] == {"R1": 0.0, "R2": 1.0, "R3": 0.0}
+    assert shares["R3"] == {"R1": 0.0, "R2": 0.0, "R3": 1.0}
+    # R1: ZZ dropped, {R1:0.6, R2:0.2} renormalized onto 0.8, R3 explicit zero.
+    assert shares["R1"]["R1"] == pytest.approx(0.75)
+    assert shares["R1"]["R2"] == pytest.approx(0.25)
+    assert shares["R1"]["R3"] == pytest.approx(0.0)
+    assert sum(shares["R1"].values()) == pytest.approx(1.0)
+
+
+def test_update_trade_mix_rejects_entsoe_args_without_electricity():
+    database = _build_three_region_iot_database()
+    database.clone_scenario("baseline", "policy")
+    with pytest.raises(WrongInput, match="apply only to shares_by_destination"):
+        database.update_trade_mix(
+            {"R1": {"R1": 1.0}}, items="s1", scenario="policy", year=2024
+        )
+
+
+def test_update_trade_mix_electricity_uses_api_key_fetch(monkeypatch):
+    # The live-fetch path: no snapshot, an API key -> MARIO calls
+    # entsoe_fetch.fetch_import_mix (mocked here) and applies its frame.
+    import mario.model.entsoe_fetch as entsoe_fetch
+
+    calls = {}
+
+    def fake_fetch(api_key, year):
+        calls["api_key"] = api_key
+        calls["year"] = year
+        return pd.DataFrame(
+            [("R1", "R1", 0.4), ("R1", "R2", 0.6)],
+            columns=["destination", "origin", "share"],
+        )
+
+    monkeypatch.setattr(entsoe_fetch, "fetch_import_mix", fake_fetch)
+
+    database = _build_three_region_iot_database()
+    database.clone_scenario("baseline", "policy")
+    database.reset_to_coefficients("policy")
+    base_z = database.get_block_as_pandas(_ENUM.z, scenario="policy").copy()
+
+    database.update_trade_mix(
+        "electricity", items="s1", scenario="policy", year=2024,
+        api_key={"entsoe": "SECRET"},
+    )
+
+    assert calls == {"api_key": "SECRET", "year": 2024}
+    z = database.get_block_as_pandas(_ENUM.z, scenario="policy")
+    s = _MASTER_INDEX["s"]
+    r1, r2, r3 = ("R1", s, "s1"), ("R2", s, "s1"), ("R3", s, "s1")
+    for col in [c for c in z.columns if c[0] == "R1"]:
+        bundle = base_z.loc[r1, col] + base_z.loc[r2, col] + base_z.loc[r3, col]
+        assert z.loc[r1, col] == pytest.approx(0.4 * bundle)
+        assert z.loc[r2, col] == pytest.approx(0.6 * bundle)
+
+
+def test_update_trade_mix_electricity_path_and_key_mutually_exclusive(tmp_path):
+    snapshot = _write_import_mix_snapshot(tmp_path / "imx.csv", [("R1", "R1", 1.0)])
+    database = _build_three_region_iot_database()
+    database.clone_scenario("baseline", "policy")
+    with pytest.raises(WrongInput, match="either entsoe_path .* or api_key"):
+        database.update_trade_mix(
+            "electricity",
+            items="s1",
+            scenario="policy",
+            year=2024,
+            entsoe_path=snapshot,
+            api_key={"entsoe": "SECRET"},
+        )
+
+
+def test_update_trade_mix_electricity_rejects_wrong_api_key_provider():
+    database = _build_three_region_iot_database()
+    database.clone_scenario("baseline", "policy")
+    with pytest.raises(WrongInput, match="provider 'ember' is not available"):
+        database.update_trade_mix(
+            "electricity", items="s1", scenario="policy", year=2024,
+            api_key={"ember": "SECRET"},
+        )
+
+
+def _fake_ember_frame(year):
+    fuels = ["Coal", "Gas", "Nuclear", "Hydro", "Wind", "Solar", "Bioenergy",
+             "Other Renewables", "Other Fossil"]
+    rows = []
+    for iso3, base in (("ITA", 5.0), ("DEU", 3.0)):
+        for i, fuel in enumerate(fuels):
+            rows.append((iso3, year, fuel, base + i))
+    return pd.DataFrame(rows, columns=["ISO3", "Year", "Variable", "Value"])
+
+
+def test_update_supply_mix_electricity_uses_api_key_fetch(monkeypatch):
+    # Supply-side twin of the trade api_key test: {"ember": key} -> MARIO calls
+    # ember_fetch.fetch_generation (mocked) and applies the generation mix.
+    import mario.model.ember_fetch as ember_fetch
+
+    calls = {}
+
+    def fake_fetch(api_key, year):
+        calls["api_key"] = api_key
+        calls["year"] = year
+        return _fake_ember_frame(year)
+
+    monkeypatch.setattr(ember_fetch, "fetch_generation", fake_fetch)
+
+    database = _build_electricity_mix_iot_database()
+    database.clone_scenario("baseline", "policy")
+    before = database.get_block_as_pandas(_ENUM.z, scenario="policy").copy()
+
+    database.update_supply_mix(
+        "electricity", scenario="policy", year=2024, api_key={"ember": "SECRET"}
+    )
+
+    assert calls == {"api_key": "SECRET", "year": 2024}
+    after = database.get_block_as_pandas(_ENUM.z, scenario="policy")
+    assert not after.equals(before)  # the generation mix was applied
+
+
+def test_update_supply_mix_electricity_rejects_wrong_api_key_provider():
+    database = _build_electricity_mix_iot_database()
+    database.clone_scenario("baseline", "policy")
+    with pytest.raises(WrongInput, match="provider 'entsoe' is not available"):
+        database.update_supply_mix(
+            "electricity", scenario="policy", year=2024, api_key={"entsoe": "SECRET"}
+        )
+
+
+def test_api_key_global_store_and_string_provider_form(monkeypatch):
+    # api_key="entsoe" (just the provider name) pulls the key from the global
+    # store set via mario.set_api_keys -- inline key omitted at the call site.
+    import mario
+    import mario.model.entsoe_fetch as entsoe_fetch
+
+    captured = {}
+
+    def fake_fetch(api_key, year):
+        captured["key"] = api_key
+        return pd.DataFrame(
+            [("R1", "R1", 1.0)], columns=["destination", "origin", "share"]
+        )
+
+    monkeypatch.setattr(entsoe_fetch, "fetch_import_mix", fake_fetch)
+    mario.set_api_keys(entsoe="GLOBAL_KEY")
+    try:
+        database = _build_three_region_iot_database()
+        database.clone_scenario("baseline", "policy")
+        database.update_trade_mix(
+            "electricity", items="s1", scenario="policy", year=2024, api_key="entsoe"
+        )
+        assert captured["key"] == "GLOBAL_KEY"
+    finally:
+        mario.set_api_keys(entsoe=None)
+
+
+def test_api_key_no_key_configured_raises(monkeypatch):
+    from mario.model._api_key import resolve_api_key
+
+    monkeypatch.delenv("ENTSOE_API_KEY", raising=False)
+    monkeypatch.setattr("mario.model._api_key._file_keys", lambda: {})
+    with pytest.raises(WrongInput, match="No API key found for 'entsoe'"):
+        resolve_api_key("entsoe", {"entsoe", "nxbase"})
+
+
 def _build_two_category_iot_database():
     """Two-region IOT with two final-demand categories for column scoping tests."""
     regions = ["R1", "R2"]

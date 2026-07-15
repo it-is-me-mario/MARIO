@@ -62,6 +62,13 @@ def _electricity_mix_module():
     return electricity_mix_module
 
 
+def _electricity_trade_module():
+    """Import electricity-trade helpers lazily to avoid circular imports at module load time."""
+    from mario.model import electricity_trade as electricity_trade_module
+
+    return electricity_trade_module
+
+
 def _replace_selected_rows(
     frame: pd.DataFrame,
     *,
@@ -1922,6 +1929,7 @@ class CoreModel:
         rescale: bool = False,
         year: int | None = None,
         ember_path: str | os.PathLike[str] | None = None,
+        api_key=None,
         region_aggregation=None,
         aggregate_as_ember: bool = False,
         column_regions=None,
@@ -2003,10 +2011,29 @@ class CoreModel:
             for the requested year, MARIO falls back to the nearest available
             year for that region and emits one warning.
         ember_path:
-            Optional path to one EMBER CSV snapshot. When omitted, MARIO uses
-            the packaged reduced EMBER electricity-generation snapshot. The
-            upstream EMBER yearly full release is published at
+            Optional path to one EMBER CSV snapshot. When omitted (and no
+            ``api_key``), MARIO uses the packaged reduced EMBER
+            electricity-generation snapshot. The upstream EMBER yearly full
+            release is published at
             https://files.ember-energy.org/public-downloads/yearly_full_release_long_format.csv
+        api_key:
+            ``shares_by_region="electricity"`` only: a one-entry mapping naming a
+            live data provider, ``{"ember": "<key>"}`` -- MARIO fetches
+            generation-by-fuel for ``year`` from the Ember API (the path for
+            users without a snapshot; register a key at
+            https://ember-energy.org/data/api/). Pass just ``"ember"`` to use a
+            key configured globally via :func:`mario.set_api_keys`, the
+            ``EMBER_API_KEY`` env var, or ``mario/settings/api_keys.yaml``.
+            ``{"nxbase": "<key>"}`` is reserved for the hosted nxbase (not
+            available yet). Mutually exclusive with ``ember_path``; requires an
+            explicit ``year``. Same ``api_key`` interface as
+            :meth:`update_trade_mix` (``{"entsoe": ...}`` there).
+
+            The generation (supply) mix uses **Ember, not ENTSO-E**, because
+            Ember covers **every country** worldwide, whereas ENTSO-E is limited
+            to the European synchronous area. The trade mix is the mirror image
+            (:meth:`update_trade_mix` uses ENTSO-E: it is the one with bilateral
+            cross-border flows, which matter only inside that area).
         region_aggregation:
             Optional Region aggregation metadata used only when
             ``shares_by_region="electricity"``. This can be one Region sheet
@@ -2177,6 +2204,7 @@ class CoreModel:
                     scenario=scenario,
                     year=year,
                     ember_path=ember_path,
+                    api_key=api_key,
                     region_aggregation=region_aggregation,
                     level=row_level,
                     weight_matrix="s",
@@ -2191,6 +2219,7 @@ class CoreModel:
                     scenario=scenario,
                     year=year,
                     ember_path=ember_path,
+                    api_key=api_key,
                     region_aggregation=region_aggregation,
                 )
             if not shares_by_region:
@@ -2479,6 +2508,10 @@ class CoreModel:
         commodities=None,
         column_sectors=None,
         column_categories=None,
+        year: int | None = None,
+        entsoe_path: str | os.PathLike[str] | None = None,
+        api_key=None,
+        fill_uncovered_domestic: bool = False,
     ) -> None:
         """Update the regional sourcing mix of one traded item per destination market.
 
@@ -2487,6 +2520,28 @@ class CoreModel:
         **origin regions** inside the columns of each destination region,
         preserving every selected column total. Each buyer therefore keeps its
         total input of the item; only the sourcing split changes.
+
+        Electricity mode
+        ----------------
+        Passing ``shares_by_destination="electricity"`` derives the mix from an
+        ENTSO-E electricity import-mix snapshot (the trade-side companion of
+        ``update_supply_mix("electricity")``, which reads EMBER generation). The
+        mix is a **first-order net commercial** decomposition -- what each market
+        net-sources from its adjacent neighbours on scheduled commercial
+        exchanges (ENTSO-E A09), *not* cross-border flows.
+
+        The trade mix uses **ENTSO-E, not Ember** (the mirror image of the supply
+        mix): ENTSO-E is the source with **bilateral cross-border exchanges**,
+        which is what a trade mix needs -- and those only exist for the European
+        synchronous area anyway. Ember has global coverage but no bilateral trade,
+        so it drives the supply (generation) mix instead.
+
+        Caveats: ENTSO-E (European) area only -- non-ENTSO-E regions (US, CN,
+        JP, ... and RoW aggregates) are near-isolated can be set domestic-only
+        (see ``fill_uncovered_domestic``) or left unchanged. The basis was validated
+        against Electricity Maps, whose data is proprietary and cannot be redistributed.
+        ENTSO-E is not always right though: non-EU zones with poor coverage 
+        can be unreliable and are kept as-is. 
 
         The blocks rewritten depend on where the table stores trade:
 
@@ -2545,6 +2600,38 @@ class CoreModel:
             these consumption categories (the ``Y`` block on IOT, ``Yc`` on
             SUT). ``None`` (default) means all categories. Not accepted for
             Activity-level mixes, which rewrite no final-demand block.
+        year:
+            Electricity mode only: the ENTSO-E vintage to read from the
+            snapshot. When omitted, the latest year available is used; a year
+            absent from the snapshot falls back to the nearest available one
+            with a warning.
+        entsoe_path:
+            Electricity mode only: optional path to an ENTSO-E import-mix
+            snapshot CSV (flat ``destination, origin, share[, year]``, as
+            written by nxbase entsoe_pull.py or an nxbase query). When omitted
+            (and no ``api_key``), MARIO uses the packaged snapshot at
+            ``mario/settings/entsoe_electricity_import_mix.csv`` -- which also
+            doubles as a **copyable template** for the format, the reliable
+            fallback when a live fetch is unavailable. Mirrors ``ember_path`` on
+            the supply side.
+        api_key:
+            Electricity mode only: a one-entry mapping naming a live data
+            provider, ``{"entsoe": "<key>"}`` -- MARIO fetches the mix from the
+            ENTSO-E Transparency Platform for ``year`` (the path for users
+            without an nxbase snapshot). Pass just ``"entsoe"`` (or
+            ``{"entsoe": None}``) to use a key configured globally via
+            :func:`mario.set_api_keys`, the ``ENTSOE_API_KEY`` env var, or
+            ``mario/settings/api_keys.yaml``. ``{"nxbase": "<key>"}`` is reserved
+            for the hosted nxbase (not available yet). Mutually exclusive with
+            ``entsoe_path``; requires an explicit ``year``. The same ``api_key``
+            interface is shared with :meth:`update_supply_mix`
+            (``{"ember": ...}`` there).
+        fill_uncovered_domestic:
+            Electricity mode only: when ``True``, database regions the mix does
+            not cover (non-ENTSO-E: US, CN, JP, ..., RoW) are set domestic-only
+            (100% self), the near-isolation simplification. ``False`` (default)
+            leaves them on their original table sourcing -- the mix only rewrites
+            the regions it actually observed.
 
         Returns
         -------
@@ -2650,6 +2737,33 @@ class CoreModel:
         elif commodities is not None:
             raise WrongInput(
                 "commodities applies only to Activity-level trade mixes on SUT databases."
+            )
+
+        electricity_requested = isinstance(shares_by_destination, str)
+        if electricity_requested:
+            if shares_by_destination.strip().casefold() != "electricity":
+                raise WrongInput(
+                    "String-valued shares_by_destination is currently supported only "
+                    "for 'electricity'."
+                )
+            shares_by_destination = _electricity_trade_module().build_electricity_trade_shares(
+                self,
+                year=year,
+                entsoe_path=entsoe_path,
+                api_key=api_key,
+                fill_uncovered_domestic=fill_uncovered_domestic,
+            )
+            if not shares_by_destination:
+                log_time(
+                    logger,
+                    "Electricity trade mix: no destinations updated (no import mix resolved).",
+                    "warning",
+                )
+                return
+        elif year is not None or entsoe_path is not None or api_key is not None:
+            raise WrongInput(
+                "year, entsoe_path and api_key apply only to "
+                "shares_by_destination='electricity'."
             )
 
         if not isinstance(shares_by_destination, MutableMapping) or not shares_by_destination:
