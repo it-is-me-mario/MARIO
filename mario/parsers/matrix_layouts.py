@@ -231,6 +231,16 @@ def interpret_axis_tokens(
     side: str | None = None,
 ) -> tuple[tuple[object, ...], tuple[str, ...], tuple[object, ...], tuple[str, ...]]:
     """Interpret one raw axis tuple as both semantic and public axis values."""
+    raw = tuple(tokens)
+    # Exact-length tuples with no genuinely empty token are taken verbatim:
+    # compaction exists to drop legacy "None"/"" padding, but "None" can also
+    # be a real label (e.g. the EXIOBASE Hybrid factor row literally named
+    # "None") and must survive the round-trip.
+    if len(raw) == len(expected_names) and all(
+        not pd.isna(value) and value != "" for value in raw
+    ):
+        return raw, expected_names, raw, expected_names
+
     compact = _compact_axis_tokens(tokens)
 
     if len(compact) == len(expected_names):

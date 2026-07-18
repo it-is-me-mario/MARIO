@@ -612,6 +612,36 @@ def _sut_native_matrix_read_plan(matrix_name: str, matrix_layouts: dict[str, tup
     return row_levels, header_candidates, matrix_name
 
 
+def _fold_index_name_row(frame: pd.DataFrame) -> pd.DataFrame:
+    """Fold back the pandas index-name row our own ``to_txt`` round-trips.
+
+    ``to_csv`` on a frame with MultiIndex columns writes one extra line that
+    carries the row-index names (e.g. ``Item,,,...``). Reading it back with
+    ``keep_default_na=False`` (needed: real labels such as ``"None"`` must not
+    become NaN) turns that line's trailing blanks into empty strings, so
+    pandas no longer recognizes it as the index-name row and returns it as
+    the first *data* row — all-empty and forcing object dtypes. Detect it,
+    restore the index names, drop the row and re-coerce the payload to
+    numbers.
+    """
+    if not len(frame):
+        return frame
+    first = frame.iloc[0]
+    if not all(str(value) == "" for value in first.tolist()):
+        return frame
+    names = frame.index[0]
+    names = list(names) if isinstance(names, tuple) else [names]
+    frame = frame.iloc[1:].copy()
+    if len(names) == frame.index.nlevels:
+        frame.index.names = [name if str(name) != "" else None for name in names]
+    for column in frame.columns:
+        try:
+            frame[column] = pd.to_numeric(frame[column])
+        except (TypeError, ValueError):
+            pass
+    return frame
+
+
 def _read_sut_native_matrix_text_with_layout(
     path: Path,
     *,
@@ -642,6 +672,7 @@ def _read_sut_native_matrix_text_with_layout(
                 header=list(range(header_levels)),
                 keep_default_na=False,
             )
+            frame = _fold_index_name_row(frame)
             normalized, final_demand_axis_names = _normalize_sut_native_matrix(
                 frame,
                 matrix_name,
