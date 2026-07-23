@@ -974,8 +974,21 @@ def _write_input_data(
             input_data["Zero_supply_mask"], supply_coords, join_cols=mask_join_cols
         )
 
-
     # Propagate structural zeros from Zold and Yold to the masks.
+    
+    # Set near-zero numerical residues to exactly zero before deriving the zero masks
+    if residue is not None:
+        zero_threshold = float(residue)
+        for _old_table in ("Zold", "Yold", "Vold"):
+            _old_df = input_data.get(_old_table)
+            if _old_df is None or "values" not in _old_df.columns:
+                continue
+            input_data[_old_table] = _old_df.assign(
+                values=_old_df["values"].where(
+                    _old_df["values"].abs() >= zero_threshold, 0
+                )
+            )
+
     # Build a parent -> [children] reverse map from the child->parent lookup.
     child_to_parent = _split_parent_lookup(instance)
     parent_to_children: dict[str, list[str]] = {}
