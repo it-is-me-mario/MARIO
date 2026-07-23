@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 import copy
+import statistics
 import warnings
 from pathlib import Path
 
@@ -130,6 +131,8 @@ def prepare_split_support(instance) -> dict[str, pd.DataFrame]:
     trade_quantity_col = ADD_SECTOR_SPLIT_TRADE_COLUMNS["quantity"]
     trade_unit_col = ADD_SECTOR_SPLIT_TRADE_COLUMNS["unit"]
 
+    exclusion_region_from_col = ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS["region_from"]
+    exclusion_region_to_col = ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS["region_to"]
     exclusion_sector_from_col = ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS["sector_from"]
     exclusion_sector_to_col = ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS["sector_to"]
 
@@ -142,7 +145,7 @@ def prepare_split_support(instance) -> dict[str, pd.DataFrame]:
         how="any",
     )
     exclusion_sheet = exclusion_sheet.dropna(
-        subset=[exclusion_sector_from_col, exclusion_sector_to_col],
+        subset=[exclusion_region_from_col, exclusion_region_to_col, exclusion_sector_from_col, exclusion_sector_to_col],
         how="all",
     )
 
@@ -238,31 +241,23 @@ def build_split_flow_scenario(
     region_col = ADD_SECTOR_SPLIT_OUTPUT_COLUMNS["region"]
     quantity_col = ADD_SECTOR_SPLIT_OUTPUT_COLUMNS["quantity"]
 
-    old_X = (
-        instance.get_block_as_pandas(_ENUM["X"], scenario=base_scenario)
-        if instance.has_matrix(_ENUM["X"], scenario=base_scenario)
-        else calc_X_from_w(
-            calc_w(instance.get_block_as_pandas(_ENUM["z"], scenario=base_scenario)),
-            instance.get_block_as_pandas(_ENUM["Y"], scenario=base_scenario),
-        )
-    )
+    old_X = copy.deepcopy(instance.X)
     X = copy.deepcopy(old_X)
 
     for sector in getattr(instance, "to_split_sectors", []):
         parent_sector = sector_to_parent_map[sector]
         sector_rows = split_output.loc[split_output[sector_col] == sector, [region_col, quantity_col]]
+
         for _, row in sector_rows.iterrows():
             region = row[region_col]
             quantity = float(row[quantity_col])
-            X.loc[(region, MI["s"], sector), "production"] = quantity
-
             parent_output = float(old_X.loc[(region, MI["s"], parent_sector), "production"])
             if quantity > parent_output:
-                warnings.warn(
-                    f"Total output for split sector {sector} in region {region} exceeds the output of "
-                    f"its parent sector {parent_sector}. The child output is capped at the parent output."
+                raise WrongInput(
+                    f"Split sector output larger than parent sector: sector '{sector}' in region "
+                    f"'{region}' has output {quantity} which exceeds parent '{parent_sector}' output {parent_output}."
                 )
-                X.loc[(region, MI["s"], sector), "production"] = parent_output
+            X.loc[(region, MI["s"], sector), "production"] = quantity
 
     z = instance.get_block_as_pandas(_ENUM["z"], scenario=base_scenario)
     e = instance.get_block_as_pandas(_ENUM["e"], scenario=base_scenario)
@@ -277,16 +272,44 @@ def build_split_flow_scenario(
 
     for sector in getattr(instance, "to_split_sectors", []):
         parent_sector = sector_to_parent_map[sector]
-        for region in instance.get_index(MI["r"]):
-            Z.loc[:, (region, MI["s"], parent_sector)] -= Z.loc[:, (region, MI["s"], sector)]
-            E.loc[:, (region, MI["s"], parent_sector)] -= E.loc[:, (region, MI["s"], sector)]
-            V.loc[:, (region, MI["s"], parent_sector)] -= V.loc[:, (region, MI["s"], sector)]
+        all_regions = list(instance.get_index(MI["r"]))
+
+        # For each matrix, cap overflow regions per row using the per-row median share
+        # computed from valid regions (where child <= parent for that row).
+        for mat in (Z, E, V):
+            row_labels = mat.index
+            row_shares: dict = {row: [] for row in row_labels}
+            overflow_regions = []
+
+            for region in all_regions:
+                child_col = mat.loc[:, (region, MI["s"], sector)]
+                parent_col = mat.loc[:, (region, MI["s"], parent_sector)]
+                if (child_col > parent_col).any():
+                    overflow_regions.append(region)
+                else:
+                    for row in row_labels:
+                        p = float(parent_col.loc[row])
+                        c = float(child_col.loc[row])
+                        if p > 0:
+                            row_shares[row].append(c / p)
+
+            row_median: dict = {
+                row: statistics.median(shares) if shares else 0.0
+                for row, shares in row_shares.items()
+            }
+
+            for region in overflow_regions:
+                parent_col = mat.loc[:, (region, MI["s"], parent_sector)]
+                for row in row_labels:
+                    mat.loc[row, (region, MI["s"], sector)] = float(parent_col.loc[row]) * row_median[row]
+
+            for region in all_regions:
+                mat.loc[:, (region, MI["s"], parent_sector)] -= mat.loc[:, (region, MI["s"], sector)]
+
+        for region in all_regions:
             child_output = float(X.loc[(region, MI["s"], sector), "production"])
             parent_output = float(X.loc[(region, MI["s"], parent_sector), "production"])
-            if child_output < parent_output:
-                X.loc[(region, MI["s"], parent_sector), "production"] = parent_output - child_output
-            else:
-                X.loc[(region, MI["s"], parent_sector), "production"] = 0.0
+            X.loc[(region, MI["s"], parent_sector), "production"] = parent_output - child_output
 
     negatives = X["production"] < 0
     if negatives.any():
@@ -294,6 +317,10 @@ def build_split_flow_scenario(
             "Split total outputs generate negative parent-sector outputs. "
             f"Check rows: {X.loc[negatives].index.tolist()}"
         )
+
+    Z = calc_Z(z, X)
+    E = calc_E(e, X)
+    V = calc_V(v, X)
 
     negative_mask = Z < 0
     if negative_mask.any().any():

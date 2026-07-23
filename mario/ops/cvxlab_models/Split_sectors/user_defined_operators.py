@@ -95,7 +95,7 @@ def entropy(A,A0):
     """
     #Not used kl_div because it includes -A + A0 terms
     #Scipy function rel_entr is equivalent to A * log(A / A0) and is 0 when A=0
-    return cp.rel_entr(A+0.00001,A0+0.00001) 
+    return cp.rel_entr(A,A0+0.00000001) 
 
 
 def block_diag(

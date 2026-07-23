@@ -34,6 +34,7 @@ from mario.ops.add_sector_workbook import (
     group_advanced_inventories_by_target,
     read_advanced_add_sector_workbook,
 )
+from mario.ops.add_sector_engine import collect_missing_factor_of_production_inputs
 from mario.log_exc.exceptions import NotImplementable, WrongExcelFormat, WrongInput
 from mario.ops.sectoradd import get_corresponding_keys,matrix_concat,fill_matrix
 from mario.model.conventions import _MASTER_INDEX
@@ -42,6 +43,7 @@ from mario.ops.workbook_specs import ADD_SECTOR_SHEETS
 import pandas.testing as pdt
 import pandas as pd
 import pytest
+from types import SimpleNamespace
 from mario.api import database as database_module
 from mario import load_test
 from mario.parsers.api import build_database_from_state, build_parser_state
@@ -119,6 +121,58 @@ def _configure_split_workbook(instance, path, *, new_sector="Split sector", quan
         "unit": unit,
         "new_sector": new_sector,
     }
+
+
+def _configure_directory_add_sector_workbook(
+    instance,
+    path,
+    *,
+    new_sector,
+    target_region,
+    inventory_sheet,
+    cluster_name=None,
+    cluster_members=None,
+):
+    instance.get_add_sectors_excel(items=[new_sector], regions=[target_region], path=path)
+
+    unit = instance.units[_MASTER_INDEX["s"]].iloc[0, 0]
+    db_item = instance.get_index(_MASTER_INDEX["s"])[0]
+    inventory_region = target_region
+
+    master = pd.read_excel(path, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET).astype(object)
+    master.loc[:, "Inventory sheet"] = inventory_sheet
+
+    sheets_to_write = {
+        ADVANCED_ADD_SECTOR_MASTER_SHEET: master,
+    }
+
+    if cluster_name is not None:
+        inventory_region = cluster_name
+        master.loc[:, _MASTER_INDEX["r"]] = cluster_name
+        sheets_to_write[ADVANCED_ADD_SECTOR_MASTER_SHEET] = master
+        sheets_to_write[ADVANCED_ADD_SECTOR_REGIONS_CLUSTERS_SHEET] = pd.DataFrame(
+            {cluster_name: cluster_members or [target_region]}
+        )
+
+    sheets_to_write[inventory_sheet] = pd.DataFrame(
+        [
+            {
+                "Quantity": 1,
+                "Unit": unit,
+                "Input": "demo input",
+                "Item type": _MASTER_INDEX["s"],
+                "DB Item": db_item,
+                "DB Region": inventory_region,
+                "Change type": "Update",
+                "Source": "test",
+                "Notes": "note",
+            }
+        ]
+    )
+
+    with pd.ExcelWriter(path, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+        for sheet_name, frame in sheets_to_write.items():
+            frame.to_excel(writer, sheet_name=sheet_name, index=False)
 
 
 def _write_legacy_regional_extension_iot(path):
@@ -710,6 +764,103 @@ def test_database_can_attach_inventories_via_read_add_sectors_excel(tmp_path, Co
     assert set(CoreDataIOT.inventories) == {"New sector A", "New sector B"}
 
 
+def test_read_add_sectors_excel_can_merge_directory_inputs_with_renames(tmp_path, CoreDataIOT):
+    directory = tmp_path / "multi_add_sectors"
+    directory.mkdir()
+    regions = CoreDataIOT.get_index(_MASTER_INDEX["r"])[:2]
+
+    _configure_directory_add_sector_workbook(
+        CoreDataIOT,
+        directory / "a.xlsx",
+        new_sector="New sector A",
+        target_region=regions[0],
+        inventory_sheet="Pippo",
+        cluster_name="GLOBAL",
+        cluster_members=[regions[0]],
+    )
+    _configure_directory_add_sector_workbook(
+        CoreDataIOT,
+        directory / "b.xlsx",
+        new_sector="New sector B",
+        target_region=regions[1],
+        inventory_sheet="Pippo",
+        cluster_name="GLOBAL",
+        cluster_members=[regions[1]],
+    )
+    (directory / "notes.txt").write_text("not a workbook")
+
+    with pytest.warns(UserWarning, match=r"Skipping add-sectors file 'notes\.txt'"):
+        CoreDataIOT.read_add_sectors_excel(directory, read_inventories=True)
+
+    assert CoreDataIOT.new_sectors == ["New sector A", "New sector B"]
+    assert set(CoreDataIOT.regions_clusters) == {"GLOBAL 1", "GLOBAL 2"}
+    assert CoreDataIOT.regions_clusters["GLOBAL 1"] == [regions[0]]
+    assert CoreDataIOT.regions_clusters["GLOBAL 2"] == [regions[1]]
+    assert set(CoreDataIOT.add_sectors_master[_MASTER_INDEX["r"]]) == {"GLOBAL 1", "GLOBAL 2"}
+    assert set(CoreDataIOT.inventories["New sector A"]) == {"Pippo 1"}
+    assert set(CoreDataIOT.inventories["New sector B"]) == {"Pippo 2"}
+    assert CoreDataIOT.inventories["New sector A"]["Pippo 1"].iloc[0]["DB Region"] == "GLOBAL 1"
+    assert CoreDataIOT.inventories["New sector B"]["Pippo 2"].iloc[0]["DB Region"] == "GLOBAL 2"
+
+
+def test_read_add_sectors_excel_keeps_one_identical_cluster_definition_from_directory(
+    tmp_path, CoreDataIOT
+):
+    directory = tmp_path / "multi_add_sectors_same_cluster"
+    directory.mkdir()
+    all_regions = CoreDataIOT.get_index(_MASTER_INDEX["r"])
+
+    _configure_directory_add_sector_workbook(
+        CoreDataIOT,
+        directory / "a.xlsx",
+        new_sector="New sector A",
+        target_region=all_regions[0],
+        inventory_sheet="A inventory",
+        cluster_name="GLOBAL",
+        cluster_members=all_regions,
+    )
+    _configure_directory_add_sector_workbook(
+        CoreDataIOT,
+        directory / "b.xlsx",
+        new_sector="New sector B",
+        target_region=all_regions[1],
+        inventory_sheet="B inventory",
+        cluster_name="GLOBAL",
+        cluster_members=all_regions,
+    )
+
+    CoreDataIOT.read_add_sectors_excel(directory, read_inventories=True)
+
+    assert list(CoreDataIOT.regions_clusters) == ["GLOBAL"]
+    assert CoreDataIOT.regions_clusters["GLOBAL"] == all_regions
+
+
+def test_read_add_sectors_excel_rejects_duplicate_targets_across_directory_workbooks(
+    tmp_path, CoreDataIOT
+):
+    directory = tmp_path / "multi_add_sectors_duplicates"
+    directory.mkdir()
+    regions = CoreDataIOT.get_index(_MASTER_INDEX["r"])[:2]
+
+    _configure_directory_add_sector_workbook(
+        CoreDataIOT,
+        directory / "a.xlsx",
+        new_sector="New sector",
+        target_region=regions[0],
+        inventory_sheet="A inventory",
+    )
+    _configure_directory_add_sector_workbook(
+        CoreDataIOT,
+        directory / "b.xlsx",
+        new_sector="New sector",
+        target_region=regions[1],
+        inventory_sheet="B inventory",
+    )
+
+    with pytest.raises(WrongInput, match="duplicate sectors across files"):
+        CoreDataIOT.read_add_sectors_excel(directory, read_inventories=True)
+
+
 def test_database_can_read_add_sectors_master_without_inventory_sheets(tmp_path, CoreDataIOT):
     regions = CoreDataIOT.get_index(_MASTER_INDEX["r"])[:2]
     path = tmp_path / "advanced_add_sector_iot_master_only.xlsx"
@@ -951,6 +1102,176 @@ def test_add_sectors_advanced_engine_adds_iot_sector_from_workbook(tmp_path, Cor
     assert new.e.loc[satellite, (region, _MASTER_INDEX["s"], "New sector")] == pytest.approx(0.2)
     assert hasattr(new, "uncertainty_matrix")
     assert new.uncertainty_matrix.loc[(region, _MASTER_INDEX["s"], existing_sector), (region, _MASTER_INDEX["s"], "New sector")] == 1
+
+
+def test_add_sectors_logs_and_wraps_inventory_validation_errors(tmp_path, CoreDataIOT, caplog):
+    region = CoreDataIOT.get_index(_MASTER_INDEX["r"])[0]
+    existing_sector = CoreDataIOT.get_index(_MASTER_INDEX["s"])[0]
+    unit = CoreDataIOT.units[_MASTER_INDEX["s"]].loc[existing_sector, "unit"]
+    path = tmp_path / "advanced_iot_invalid_units.xlsx"
+
+    CoreDataIOT.get_add_sectors_excel(
+        items=["New sector"],
+        regions=[region],
+        path=path,
+    )
+
+    master = pd.read_excel(path, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET).astype(object)
+    master.loc[0, "Unit"] = unit
+    master.loc[0, "Parent Sector"] = existing_sector
+    with pd.ExcelWriter(path, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+        master.to_excel(writer, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET, index=False)
+        pd.DataFrame(
+            [
+                {
+                    "Quantity": 0.25,
+                    "Unit": unit,
+                    "Input": "bad sector row A",
+                    "Item type": _MASTER_INDEX["s"],
+                    "DB Item": "Missing sector A",
+                    "DB Region": region,
+                    "Change type": "Update",
+                    "Source": "test",
+                    "Notes": "",
+                },
+                {
+                    "Quantity": 0.5,
+                    "Unit": unit,
+                    "Input": "bad sector row B",
+                    "Item type": _MASTER_INDEX["s"],
+                    "DB Item": "Missing sector B",
+                    "DB Region": region,
+                    "Change type": "Update",
+                    "Source": "test",
+                    "Notes": "",
+                },
+            ]
+        ).to_excel(writer, sheet_name="INV_001", index=False)
+
+    with caplog.at_level("ERROR", logger=database_module.logger.name):
+        with pytest.raises(WrongInput) as msg:
+            CoreDataIOT.add_sectors(io=path, inplace=False)
+
+    message = str(msg.value)
+    assert "Database.add_sectors failed during running add-sectors engine" in message
+    assert "Issues found while validating inventory sheet INV_001" in message
+    assert message.count("Database item could not be resolved") == 1
+    assert "Excel row 2" in message
+    assert "Excel row 3" in message
+    assert "Missing sector A" in message
+    assert "Missing sector B" in message
+    assert any(
+        "Database: add_sectors failed during running add-sectors engine" in record.message
+        for record in caplog.records
+    )
+
+
+def test_add_sectors_can_accept_non_unitary_inventory_sum_with_va_fix(tmp_path, CoreDataIOT):
+    region = CoreDataIOT.get_index(_MASTER_INDEX["r"])[0]
+    parent_sector = CoreDataIOT.get_index(_MASTER_INDEX["s"])[0]
+    unit = CoreDataIOT.units[_MASTER_INDEX["s"]].loc[parent_sector, "unit"]
+    factor = "Capital"
+    path = tmp_path / "advanced_iot_nonunitary_sum.xlsx"
+
+    CoreDataIOT.get_add_sectors_excel(
+        items=["New sector"],
+        regions=[region],
+        path=path,
+    )
+
+    master = pd.read_excel(path, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET).astype(object)
+    master.loc[0, "Unit"] = unit
+    master.loc[0, "Parent Sector"] = parent_sector
+    inventory = pd.DataFrame(
+        [
+            {
+                "Quantity": 0.6,
+                "Unit": unit,
+                "Input": "sector row",
+                "Item type": _MASTER_INDEX["s"],
+                "DB Item": parent_sector,
+                "DB Region": region,
+                "Change type": "Update",
+                "Source": "test",
+                "Notes": "",
+            },
+            {
+                "Quantity": 0.2,
+                "Unit": CoreDataIOT.units[_MASTER_INDEX["f"]].loc[factor, "unit"],
+                "Input": "factor row",
+                "Item type": _MASTER_INDEX["f"],
+                "DB Item": factor,
+                "DB Region": "",
+                "Change type": "Update",
+                "Source": "test",
+                "Notes": "",
+            },
+        ]
+    )
+
+    with pd.ExcelWriter(path, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+        master.to_excel(writer, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET, index=False)
+        inventory.to_excel(writer, sheet_name="INV_001", index=False)
+
+    with pytest.raises(WrongInput, match="expected 1.0"):
+        CoreDataIOT.add_sectors(io=path, inplace=False, VA_fix=True)
+
+    new = CoreDataIOT.add_sectors(
+        io=path,
+        inplace=False,
+        VA_fix=True,
+        accept_non_unitary_sum=True,
+    )
+
+    assert "New sector" in new.get_index(_MASTER_INDEX["s"])
+
+
+def test_add_sectors_can_skip_zero_sum_inventory_with_accept_non_unitary_sum(tmp_path, CoreDataIOT):
+    region = CoreDataIOT.get_index(_MASTER_INDEX["r"])[0]
+    parent_sector = CoreDataIOT.get_index(_MASTER_INDEX["s"])[0]
+    unit = CoreDataIOT.units[_MASTER_INDEX["s"]].loc[parent_sector, "unit"]
+    path = tmp_path / "advanced_iot_zero_sum.xlsx"
+
+    CoreDataIOT.get_add_sectors_excel(
+        items=["Zero sector"],
+        regions=[region],
+        path=path,
+    )
+
+    master = pd.read_excel(path, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET).astype(object)
+    master.loc[0, "Unit"] = unit
+    master.loc[0, "Parent Sector"] = parent_sector
+    inventory = pd.DataFrame(
+        [
+            {
+                "Quantity": 0.0,
+                "Unit": unit,
+                "Input": "zero row",
+                "Item type": _MASTER_INDEX["s"],
+                "DB Item": parent_sector,
+                "DB Region": region,
+                "Change type": "Update",
+                "Source": "test",
+                "Notes": "",
+            },
+        ]
+    )
+
+    with pd.ExcelWriter(path, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+        master.to_excel(writer, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET, index=False)
+        inventory.to_excel(writer, sheet_name="INV_001", index=False)
+
+    new = CoreDataIOT.add_sectors(
+        io=path,
+        inplace=False,
+        VA_fix=True,
+        accept_non_unitary_sum=True,
+    )
+
+    new_column = (region, _MASTER_INDEX["s"], "Zero sector")
+    assert new.z.loc[:, new_column].sum() == pytest.approx(0.0)
+    assert new.v.loc[:, new_column].sum() == pytest.approx(0.0)
+    assert new.e.loc[:, new_column].sum() == pytest.approx(0.0)
 
 
 def test_add_sectors_supports_legacy_regional_extension_rows_iot(tmp_path):
@@ -1200,6 +1521,52 @@ def test_add_sectors_advanced_engine_adds_sut_activity_and_commodity(tmp_path, C
     assert new.units[_MASTER_INDEX["c"]].loc["New commodity", "unit"] == unit
     assert new.u.loc[(region, _MASTER_INDEX["c"], existing_commodity), (region, _MASTER_INDEX["a"], "New activity")] == pytest.approx(0.4)
     assert new.s.loc[(region, _MASTER_INDEX["a"], "New activity"), (region, _MASTER_INDEX["c"], "New commodity")] == pytest.approx(1.0)
+
+
+def test_add_sectors_reports_inventory_validation_errors_for_sut(tmp_path, CoreDataSUT):
+    region = CoreDataSUT.get_index(_MASTER_INDEX["r"])[0]
+    existing_activity = CoreDataSUT.get_index(_MASTER_INDEX["a"])[0]
+    unit = CoreDataSUT.units[_MASTER_INDEX["a"]].loc[existing_activity, "unit"]
+    path = tmp_path / "advanced_sut_invalid_inventory.xlsx"
+
+    CoreDataSUT.get_add_sectors_excel(
+        items=["New activity"],
+        regions=[region],
+        path=path,
+        item=_MASTER_INDEX["a"],
+    )
+
+    master = pd.read_excel(path, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET).astype(object)
+    master.loc[0, "Commodity"] = "New commodity"
+    master.loc[0, "Unit"] = unit
+    master.loc[0, "Parent Activity"] = existing_activity
+    master.loc[0, "Market share"] = 1.0
+    with pd.ExcelWriter(path, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+        master.to_excel(writer, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET, index=False)
+        pd.DataFrame(
+            [
+                {
+                    "Quantity": 0.4,
+                    "Unit": unit,
+                    "Input": "bad commodity row",
+                    "Item type": _MASTER_INDEX["c"],
+                    "DB Item": "Missing commodity",
+                    "DB Region": region,
+                    "Change type": "Update",
+                    "Source": "test",
+                    "Notes": "",
+                }
+            ]
+        ).to_excel(writer, sheet_name="INV_001", index=False)
+
+    with pytest.raises(WrongInput) as msg:
+        CoreDataSUT.add_sectors(io=path, inplace=False)
+
+    message = str(msg.value)
+    assert "Database.add_sectors failed during running add-sectors engine" in message
+    assert "Issues found while validating inventory sheet INV_001" in message
+    assert "Database item could not be resolved" in message
+    assert "Missing commodity" in message
 
 
 def test_add_sectors_advanced_engine_supports_custom_sut_factor_and_extension_rows(tmp_path):
@@ -2077,3 +2444,42 @@ def test_add_sectors_split_can_rename_parent_sector(tmp_path, CoreDataIOT, monke
     assert parent_name in new.matrices["baseline"][_ENUM["Z"]].index.get_level_values(2)
     assert parent_name in new.matrices["baseline"][_ENUM["Z"]].columns.get_level_values(2)
     assert parent_name in new.units[_MASTER_INDEX["s"]].index
+
+
+def test_collect_missing_factors_counts_cluster_members_as_present():
+    instance = SimpleNamespace(
+        units={
+            _MASTER_INDEX["f"]: pd.DataFrame(
+                {"unit": ["M USD", "M USD", "M USD", "M USD"]},
+                index=["Tax", "TTM", "Capital", "Labor"],
+            )
+        },
+        inventories={
+            "HVC": {
+                "HVC_GLOBAL_ROW": pd.DataFrame(
+                    [
+                        {"Item type": _MASTER_INDEX["f"], "DB Item": "Capital", "DB Region": "GLOBAL"},
+                        {"Item type": _MASTER_INDEX["f"], "DB Item": "Labor", "DB Region": "GLOBAL"},
+                        {"Item type": _MASTER_INDEX["f"], "DB Item": "OthVAnoTech", "DB Region": "GLOBAL"},
+                    ]
+                ),
+            },
+            "PCP": {
+                "PCP_AUT": pd.DataFrame(
+                    [
+                        {"Item type": _MASTER_INDEX["f"], "DB Item": "Tax", "DB Region": "GLOBAL"},
+                        {"Item type": _MASTER_INDEX["f"], "DB Item": "Capital", "DB Region": "GLOBAL"},
+                        {"Item type": _MASTER_INDEX["f"], "DB Item": "Labor", "DB Region": "GLOBAL"},
+                    ]
+                ),
+            }
+        },
+        factors_clusters={
+            "OthVAnoTech": ["Capital", "Labor", "Tax", "TTM"],
+        },
+    )
+
+    missing = collect_missing_factor_of_production_inputs(instance)
+
+    assert "HVC" not in missing
+    assert missing["PCP"]["PCP_AUT"] == ["TTM"]

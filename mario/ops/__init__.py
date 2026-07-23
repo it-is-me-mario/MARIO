@@ -1,6 +1,7 @@
 """Operational modules for the parallel MARIO 2 architecture."""
 
 from mario.ops.aggregation import aggregate_database
+from mario.ops.balance import ras
 from mario.ops.export import (
     export_database_matrices,
     export_database_to_excel,
@@ -30,6 +31,7 @@ __all__ = [
     "export_database_to_parquet",
     "export_database_to_pymrio",
     "export_database_to_txt",
+    "ras",
     "register_ghg_profile",
     "transform_pool_trade",
     "transform_sut_to_iot",

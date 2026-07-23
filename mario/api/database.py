@@ -32,12 +32,14 @@ from mario.ops.shocks import (
 from mario.ops.add_sector_workbook import (
     derive_add_sector_sets,
     group_inventories_by_target,
+    load_add_sector_workbook_input,
     read_add_sector_workbook,
     write_add_sector_workbook,
     write_inventory_templates_to_workbook,
 )
 from mario.ops.add_sector_engine import run_add_sector_engine
 from mario.ops.add_sector_engine import collect_add_sector_matrices
+from mario.ops.add_sector_engine import warn_missing_factor_of_production_inputs
 from mario.ops.add_sector_split import (
     apply_split_parent_renames,
     build_split_flow_scenario,
@@ -50,6 +52,7 @@ from mario.ops.cvxlab_bridge import (
     create_split_input_data,
     optimize_split_in_cvxlab,
 )
+from mario.ops.balance import ras as ras_balance_matrix
 from mario.utils import (
     _manage_indeces,
     check_clusters,
@@ -554,6 +557,90 @@ class Database(CoreModel):
         """
 
         return build_new_instance_from_scenario(self, scenario)
+
+    def ras(
+        self,
+        target_rows,
+        target_cols,
+        scenario: str = "baseline",
+        inplace: bool = True,
+        calc_all: bool = True,
+        notes=None,
+        tol: float = 1e-8,
+        max_iter: int = 1000,
+    ):
+        """Balance the ``Z`` block of one IOT scenario with the RAS method.
+
+        Parameters
+        ----------
+        target_rows:
+            Desired row sums for the ``Z`` matrix.
+        target_cols:
+            Desired column sums for the ``Z`` matrix.
+        scenario:
+            Scenario whose ``Z`` block should be balanced.
+        inplace:
+            When ``True``, mutate the current database. When ``False``, return
+            a balanced copy.
+        calc_all:
+            When ``True``, recompute the standard dependent matrices after
+            replacing ``Z``.
+        notes:
+            Optional user notes appended to metadata history.
+        tol:
+            Absolute convergence tolerance passed to :func:`mario.ras`.
+        max_iter:
+            Maximum number of RAS iterations.
+
+        Returns
+        -------
+        Database | None
+            Balanced database when ``inplace=False``, otherwise ``None``.
+        """
+        if self.table_type != "IOT":
+            raise WrongInput("ras is only available for IOT databases.")
+
+        if not inplace:
+            new = self.copy()
+            new.ras(
+                target_rows=target_rows,
+                target_cols=target_cols,
+                scenario=scenario,
+                inplace=True,
+                calc_all=calc_all,
+                notes=notes,
+                tol=tol,
+                max_iter=max_iter,
+            )
+            return new
+
+        self._validate_scenario(scenario)
+
+        balanced_Z = ras_balance_matrix(
+            self._get_matrix(_ENUM.Z, scenario=scenario, auto_calc=True),
+            target_rows=target_rows,
+            target_cols=target_cols,
+            tol=tol,
+            max_iter=max_iter,
+        )
+
+        self.reset_to_flows(scenario=scenario)
+        self.set_block(_ENUM.Z, balanced_Z, scenario=scenario)
+
+        if calc_all:
+            self.calc_all(scenario=scenario)
+
+        log_time(logger, f"Database: {scenario} balanced with RAS.")
+        self.meta._add_history(
+            f"Database: scenario '{scenario}' balanced with RAS on Z "
+            f"(tol={tol}, max_iter={max_iter})."
+        )
+
+        if notes:
+            if isinstance(notes, str):
+                notes = [notes]
+            for note in notes:
+                self.meta._add_history(f"User note: {note}")
 
     def to_iot(
         self,
@@ -4563,19 +4650,30 @@ class Database(CoreModel):
             redefine_uncertainties=redefine_uncertainties,
         )
 
-    def read_add_sectors_excel(self, path, get_inventories=False, read_inventories=False):
-        """Read one add-sectors workbook and attach its metadata to the database.
+    def read_add_sectors_excel(
+        self,
+        path,
+        get_inventories=False,
+        read_inventories=False,
+        split=False,
+    ):
+        """Read add-sectors workbook inputs and attach their metadata to the database.
 
         Parameters
         ----------
         path:
-            Path to the add-sectors workbook.
+            Path to one add-sectors workbook. When ``read_inventories=True``,
+            a directory containing multiple workbooks is also supported.
         get_inventories:
             When ``True``, create any missing inventory-sheet templates in the
             workbook after reading the master sheet.
         read_inventories:
             When ``True``, also read and group the inventory sheets referenced
             by the workbook.
+        split:
+            When ``True``, parse the split-support sheets required by IOT
+            add-sectors workbooks. When ``False`` (default), skip those sheets
+            even if the master contains rows marked ``Split``.
 
         Returns
         -------
@@ -4590,15 +4688,18 @@ class Database(CoreModel):
         item and stores them on ``self.inventories``.
         """
 
-        workbook = read_add_sector_workbook(
+        workbook, workbook_path = load_add_sector_workbook_input(
             path,
             table=self.meta.table,
-            require_inventory_sheets=read_inventories,
+            get_inventories=get_inventories,
+            read_inventories=read_inventories,
+            split=split,
         )
         self.add_sectors_workbook = workbook
-        self.add_sectors_workbook_path = str(path)
+        self.add_sectors_workbook_path = workbook_path
         self.add_sectors_master = workbook.master_sheet
         self.regions_clusters = workbook.regions_clusters
+        self.factors_clusters = workbook.factors_clusters
         self.uncertainty_values = workbook.uncertainty_values
 
         if self.meta.table == "IOT":
@@ -4622,12 +4723,14 @@ class Database(CoreModel):
 
         if get_inventories:
             self.get_inventory_sheets(path)
-            workbook = read_add_sector_workbook(
+            workbook, workbook_path = load_add_sector_workbook_input(
                 path,
                 table=self.meta.table,
-                require_inventory_sheets=False,
+                get_inventories=False,
+                read_inventories=False,
             )
             self.add_sectors_workbook = workbook
+            self.add_sectors_workbook_path = workbook_path
 
         if read_inventories:
             self.inventories = group_inventories_by_target(workbook)
@@ -4648,6 +4751,11 @@ class Database(CoreModel):
         None
             Inventory templates are written into the workbook in place.
         """
+
+        if Path(os.fspath(path)).is_dir():
+            raise WrongInput(
+                "get_inventory_sheets currently accepts only one add-sectors workbook path, not a directory."
+            )
 
         workbook = getattr(self, "add_sectors_workbook", None)
         workbook_path = getattr(self, "add_sectors_workbook_path", None)
@@ -4686,6 +4794,10 @@ class Database(CoreModel):
             engine.
         """
 
+        if Path(os.fspath(path)).is_dir():
+            self.read_add_sectors_excel(path, read_inventories=True)
+            return self.inventories
+
         workbook = getattr(self, "add_sectors_workbook", None)
         workbook_path = getattr(self, "add_sectors_workbook_path", None)
 
@@ -4721,6 +4833,9 @@ class Database(CoreModel):
         solver_parameters=None,
         parent_name=None,
         parent_names=None,
+        residue=None,
+        VA_fix=False,
+        accept_non_unitary_sum=False,
     ):
         """Apply the add-sectors workbook to the selected scenario.
 
@@ -4745,6 +4860,15 @@ class Database(CoreModel):
         split:
             When ``True`` and the table is an IOT, run the split workflow after
             the standard coefficient-side insertion.
+        VA_fix:
+            When ``True``, warn about any database factor-of-production rows
+            that are missing from the workbook inventories before slice filling
+            starts.
+        accept_non_unitary_sum:
+            When ``True``, allow inventory sheets whose factor/sector rows do
+            not sum to 1. Sheets whose factor/sector rows sum to 0 are skipped
+            entirely; other non-unitary inventories proceed with a warning
+            instead of raising during ``VA_fix`` augmentation.
         keep_all_split_steps:
             When ``False`` and ``split=True``, keep only the final available
             split result as ``baseline`` and discard intermediate scenarios such
@@ -4772,6 +4896,11 @@ class Database(CoreModel):
             parent label. This is useful when you want the residual parent
             sector to be renamed after the split, for example
             ``{"Non metallic minerals": "Other non metallic minerals"}``.
+        residue:
+            Threshold for zeroing out small positive values in the CVXLab
+            input data. Values strictly below this threshold are set to zero
+            before writing the input files. When ``None`` (default), no
+            correction is applied.
 
         Notes
         -----
@@ -4788,7 +4917,7 @@ class Database(CoreModel):
                 scenario=scenario,
                 inplace=True,
                 split=split,
-            keep_all_split_steps=keep_all_split_steps,
+                keep_all_split_steps=keep_all_split_steps,
                 notes=notes,
                 ignore_warnings=ignore_warnings,
                 cvxlab_path=cvxlab_path,
@@ -4798,78 +4927,123 @@ class Database(CoreModel):
                 solver_parameters=solver_parameters,
                 parent_name=parent_name,
                 parent_names=parent_names,
+                residue=residue,
+                VA_fix=VA_fix,
+                accept_non_unitary_sum=accept_non_unitary_sum,
             )
             return new
 
         self._validate_scenario(scenario)
-
-        if io != "inventories":
-            self.read_add_sectors_excel(io, read_inventories=True)
-        elif not hasattr(self, "inventories"):
-            raise LackOfInput(
-                "Inventory sheets are not loaded. Pass an add-sectors workbook path "
-                "or call read_inventory_sheets(...) first."
-            )
-
-        if split:
-            validate_split_parameters(
-                self,
-                cvxlab_path=cvxlab_path,
-                input_data_files_type=input_data_files_type,
-                only_input_data_gen=only_input_data_gen,
-            )
-            prepare_split_support(self)
-            resolved_parent_renames = normalize_split_parent_renames(
-                self,
-                parent_name=parent_name,
-                parent_names=parent_names,
-            )
-        else:
-            if parent_name is not None or parent_names is not None:
-                raise WrongInput("parent_name and parent_names are supported only when split=True.")
-            resolved_parent_renames = {}
-
-        item_to_query = _MASTER_INDEX["a"] if self.meta.table == "SUT" else _MASTER_INDEX["s"]
-        duplicates = sorted(set(name for name in self.inventories if name in self.get_index(item_to_query)))
-        if duplicates:
-            raise WrongInput(f"Some items already exist in the table: {duplicates}")
-
-        log_time(
-            logger,
-            "Database: All scenarios will be deleted from the database after add_sectors.",
-            "warning",
+        source_label = "loaded inventories" if io == "inventories" else os.fspath(io)
+        workflow_context = (
+            f"table {self.meta.table}, scenario {scenario!r}, split={split}, source {source_label!r}"
         )
+        log_time(logger, f"Database: add_sectors started ({workflow_context}).")
+        stage = "initialization"
 
-        original_reference = collect_add_sector_matrices(self, scenario=scenario) if split else None
-
-        # add_sectors' positional groupbys drop the MultiIndex level names;
-        # snapshot the original per-matrix axis names now so we can restore them
-        # on the engine output below (downstream ops such as update_supply_mix
-        # rely on named levels, e.g. groupby(level='Item')). Capturing the source
-        # names — rather than hardcoding — preserves custom parser layouts.
-        _orig_axis_names: dict = {}
-        for _key in (_ENUM["z"], _ENUM["u"], _ENUM["s"], _ENUM["e"], _ENUM["v"], _ENUM["Y"], _ENUM["EY"]):
-            try:
-                _blk = (
-                    self.get_block_as_pandas(_key, scenario=scenario)
-                    if self.has_matrix(_key, scenario=scenario)
-                    else self.resolve(_key, scenario=scenario)
+        try:
+            stage = "loading add-sectors inputs"
+            if io != "inventories":
+                self.read_add_sectors_excel(io, read_inventories=True)
+            elif not hasattr(self, "inventories"):
+                raise LackOfInput(
+                    "Inventory sheets are not loaded. Pass an add-sectors workbook path "
+                    "or call read_inventory_sheets(...) first."
                 )
-                _orig_axis_names[_key] = (list(_blk.index.names), list(_blk.columns.names))
-            except Exception:  # noqa: BLE001 (missing block for this table type)
-                pass
 
-        result = run_add_sector_engine(
-            self,
-            scenario=scenario,
-            ignore_warnings=ignore_warnings,
-        )
+            stage = "checking factor-of-production inventory rows"
+            if VA_fix:
+                warn_missing_factor_of_production_inputs(self)
 
-        baseline_vy = (
-            self.get_block_as_pandas(_ENUM["VY"], scenario=scenario)
-            if self.has_matrix(_ENUM["VY"], scenario=scenario)
-            else self.resolve(_ENUM["VY"], scenario=scenario)
-        )
+            stage = "validating split parameters"
+            if split:
+                validate_split_parameters(
+                    self,
+                    cvxlab_path=cvxlab_path,
+                    input_data_files_type=input_data_files_type,
+                    only_input_data_gen=only_input_data_gen,
+                )
+                prepare_split_support(self)
+                resolved_parent_renames = normalize_split_parent_renames(
+                    self,
+                    parent_name=parent_name,
+                    parent_names=parent_names,
+                )
+            else:
+                if parent_name is not None or parent_names is not None:
+                    raise WrongInput("parent_name and parent_names are supported only when split=True.")
+                resolved_parent_renames = {}
+
+            stage = "checking duplicate target items"
+            item_to_query = _MASTER_INDEX["a"] if self.meta.table == "SUT" else _MASTER_INDEX["s"]
+            duplicates = sorted(set(name for name in self.inventories if name in self.get_index(item_to_query)))
+            if duplicates:
+                raise WrongInput(f"Some items already exist in the table: {duplicates}")
+
+            if self.meta.table == "IOT":
+                log_time(
+                    logger,
+                    f"Database: add_sectors will process {len(getattr(self, 'new_sectors', []))} sector(s): "
+                    f"{getattr(self, 'new_sectors', [])}",
+                    "info",
+                )
+            else:
+                log_time(
+                    logger,
+                    f"Database: add_sectors will process {len(getattr(self, 'new_activities', []))} activity/activities "
+                    f"{getattr(self, 'new_activities', [])} and {len(getattr(self, 'new_commodities', []))} "
+                    f"commodity/commodities {getattr(self, 'new_commodities', [])}.",
+                    "info",
+                )
+
+            log_time(
+                logger,
+                "Database: All scenarios will be deleted from the database after add_sectors.",
+                "warning",
+            )
+
+            stage = "collecting add-sectors reference matrices"
+            original_reference = collect_add_sector_matrices(self, scenario=scenario) if split else None
+
+            # add_sectors' positional groupbys drop the MultiIndex level names;
+            # snapshot the original per-matrix axis names now so we can restore them
+            # on the engine output below (downstream ops such as update_supply_mix
+            # rely on named levels, e.g. groupby(level='Item')). Capturing the source
+            # names — rather than hardcoding — preserves custom parser layouts.
+            _orig_axis_names: dict = {}
+            for _key in (_ENUM["z"], _ENUM["u"], _ENUM["s"], _ENUM["e"], _ENUM["v"], _ENUM["Y"], _ENUM["EY"]):
+                try:
+                    _blk = (
+                        self.get_block_as_pandas(_key, scenario=scenario)
+                        if self.has_matrix(_key, scenario=scenario)
+                        else self.resolve(_key, scenario=scenario)
+                    )
+                    _orig_axis_names[_key] = (list(_blk.index.names), list(_blk.columns.names))
+                except Exception:  # noqa: BLE001 (missing block for this table type)
+                    pass
+
+            stage = "running add-sectors engine"
+            result = run_add_sector_engine(
+                self,
+                scenario=scenario,
+                ignore_warnings=ignore_warnings,
+                VA_fix=VA_fix,
+                accept_non_unitary_sum=accept_non_unitary_sum,
+            )
+
+            stage = "collecting baseline VY"
+            baseline_vy = (
+                self.get_block_as_pandas(_ENUM["VY"], scenario=scenario)
+                if self.has_matrix(_ENUM["VY"], scenario=scenario)
+                else self.resolve(_ENUM["VY"], scenario=scenario)
+            )
+        except (WrongInput, WrongExcelFormat, LackOfInput, NotImplementable, DataMissing) as exc:
+            log_time(logger, f"Database: add_sectors failed during {stage} ({workflow_context}). {exc}", "error")
+            raise
+        except ValueError as exc:
+            message = f"Database.add_sectors failed during {stage} ({workflow_context}). {exc}"
+            log_time(logger, f"Database: add_sectors failed during {stage} ({workflow_context}). {exc}", "error")
+            raise WrongInput(message) from exc
 
         if self.meta.table == "IOT":
             new_matrices, new_units, new_indeces, uncertainty_matrix = result
@@ -4970,6 +5144,7 @@ class Database(CoreModel):
                     main_dir_path=cvxlab_path,
                     scenario_label=scenario,
                     input_data_files_type=input_data_files_type,
+                    residue=residue,
                 )
                 self.meta._add_history(
                     f"Database: CVXLab split input data generated in '{dest_dir}'."
@@ -4982,6 +5157,7 @@ class Database(CoreModel):
                     input_data_files_type=input_data_files_type,
                     solver=solver,
                     solver_parameters=solver_parameters,
+                    residue=residue,
                 )
                 split_cvxlab = {
                     _ENUM["Z"]: optimized.get(_ENUM["Z"], self.matrices[split_scenario][_ENUM["Z"]]),

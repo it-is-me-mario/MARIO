@@ -52,6 +52,7 @@ ADVANCED_ADD_SECTOR_INVENTORY_SHEET_COLUMNS = {
 
 
 ADVANCED_ADD_SECTOR_REGIONS_CLUSTERS_SHEET = "Regions Clusters"
+ADVANCED_ADD_SECTOR_FACTORS_CLUSTERS_SHEET = "Factors Clusters"
 ADVANCED_ADD_SECTOR_ITEMS_CLUSTERS_SHEET = {
     SUT: "Commodities Clusters",
     IOT: "Sectors Clusters",
@@ -115,6 +116,8 @@ ADD_SECTOR_SPLIT_TRADE_COLUMNS = {
 
 ADD_SECTOR_SPLIT_EXCLUSION_SHEET = "Exclusions"
 ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS = {
+    "region_from": f"{_MASTER_INDEX['r']}_from",
+    "region_to": f"{_MASTER_INDEX['r']}_to",
     "sector_from": f"{_MASTER_INDEX['s']}_from",
     "sector_to": f"{_MASTER_INDEX['s']}_to",
     "notes": "Notes",

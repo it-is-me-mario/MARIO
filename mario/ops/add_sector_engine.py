@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import logging
 import warnings
 from copy import deepcopy
 
@@ -10,6 +11,7 @@ import pandas as pd
 import pint
 
 from mario.log_exc.exceptions import LackOfInput, NotImplementable
+from mario.log_exc.logger import log_time
 from mario.model.conventions import IOT, SUT, _ENUM, _MASTER_INDEX as MI
 from mario.ops.add_sector_specs import (
     ADVANCED_ADD_SECTOR_INVENTORY_SHEET_COLUMNS as INC,
@@ -18,6 +20,7 @@ from mario.ops.add_sector_specs import (
 
 
 sn = slice(None)
+logger = logging.getLogger(__name__)
 
 
 _MATRIX_SLICES_MAP = {
@@ -37,6 +40,15 @@ _MATRIX_SLICES_MAP = {
 }
 
 
+class InventoryRowValidationError(ValueError):
+    """Row-level inventory validation issue collected before failing one sheet."""
+
+    def __init__(self, reason: str, details: str):
+        super().__init__(details)
+        self.reason = reason
+        self.details = details
+
+
 class AddSectorEngine:
     """Apply the workbook-driven add-sectors workflow to one database.
 
@@ -52,6 +64,7 @@ class AddSectorEngine:
         self.db = instance
         self.matrices = matrices
         self._iot_public_axis_names: dict[tuple[str, str], tuple[object, ...]] = {}
+        self.missing_factors_of_production = getattr(instance, "missing_factors_of_production", {})
         self.regions = instance.get_index(MI["r"])
         self.units = copy.deepcopy(instance.units)
         self.table = self.db.meta.table
@@ -70,6 +83,7 @@ class AddSectorEngine:
             self.sectors_clusters = getattr(instance, "sectors_clusters", {})
 
         self.regions_clusters = getattr(instance, "regions_clusters", {})
+        self.factors_clusters = getattr(instance, "factors_clusters", {})
 
         if ignore_warnings:
             warnings.filterwarnings("ignore")
@@ -289,7 +303,14 @@ class AddSectorEngine:
         region_position = self._matrix_row_region_position(matrix)
 
         if isinstance(labels, pd.MultiIndex):
-            mask = labels.get_level_values(terminal_position) == input_item
+            # Resolve item clusters (factors)
+            item_values = {input_item}
+            col_id = MI["f"] if matrix == _ENUM["v"] else MI["k"]
+            if col_id == MI["f"] and input_item in self.factors_clusters:
+                item_values = set(self.factors_clusters[input_item])
+
+            mask = labels.get_level_values(terminal_position).isin(item_values)
+
             if region_position is not None and not (row_region in (None, "") or pd.isna(row_region)):
                 if row_region in self.regions:
                     region_values = {row_region}
@@ -302,6 +323,9 @@ class AddSectorEngine:
 
         if not (row_region in (None, "") or pd.isna(row_region)) and self._matrix_row_region_position(matrix) is not None:
             raise ValueError(f"Unknown DB region {row_region}.")
+        if matrix == _ENUM["v"] and input_item in self.factors_clusters:
+            item_values = [v for v in self.factors_clusters[input_item] if v in labels]
+            return pd.Index(item_values, name=labels.name)
         if input_item not in labels:
             return pd.Index([], name=labels.name)
         return pd.Index([input_item], name=labels.name)
@@ -355,7 +379,7 @@ class AddSectorEngine:
         weight = 1 / len(row_labels)
         return pd.Series(weight, index=row_labels, dtype=float)
 
-    def to_iot(self):
+    def to_iot(self, VA_fix: bool = False, accept_non_unitary_sum: bool = False):
         """Return an IOT with the new sectors inserted in coefficient form."""
 
         if self.table != IOT:
@@ -369,7 +393,8 @@ class AddSectorEngine:
         self.uncertainty_matrix = deepcopy(self.matrices[_ENUM["z"]]) * 0 + 1
 
         for sector in self.new_sectors:
-            self.fill_slices(sector)
+            log_time(logger, f"Add-sectors engine: filling IOT slices for sector {sector!r}.", "info")
+            self.fill_slices(sector, VA_fix, accept_non_unitary_sum)
 
         self.add_slices()
         self.reindex_matrices()
@@ -397,6 +422,7 @@ class AddSectorEngine:
         empty_slices = self.get_empty_table_slices()
         self.filled_slices = deepcopy(empty_slices)
         for activity in self.new_activities:
+            log_time(logger, f"Add-sectors engine: filling SUT slices for activity {activity!r}.", "info")
             self.fill_slices(activity)
 
         self.add_slices()
@@ -577,7 +603,25 @@ class AddSectorEngine:
 
         return new_index, new_columns
 
-    def fill_slices(self, activity: str) -> None:
+    @staticmethod
+    def _inventory_factor_or_sector_total(inventory: pd.DataFrame) -> float:
+        """Return the total quantity across sector and factor rows for one inventory."""
+
+        if INC["item_type"] not in inventory.columns or INC["quantity"] not in inventory.columns:
+            return float("nan")
+
+        mask = inventory[INC["item_type"]].fillna("").astype(str).isin([MI["f"], MI["s"]])
+        if not mask.any():
+            return 0.0
+
+        return float(pd.to_numeric(inventory.loc[mask, INC["quantity"]], errors="coerce").fillna(0.0).sum())
+
+    def fill_slices(
+        self,
+        activity: str,
+        VA_fix: bool = False,
+        accept_non_unitary_sum: bool = False,
+    ) -> None:
         """Fill all coefficient slices for one target item from its inventories."""
 
         slices = self.get_empty_table_slices()
@@ -588,6 +632,11 @@ class AddSectorEngine:
 
         for sheet_name, inventory in inventories.items():
             if self.leave_empty(sheet_name):
+                log_time(
+                    logger,
+                    f"Add-sectors engine: skipping inventory {sheet_name!r} for {activity!r} because it is marked leave-empty.",
+                    "debug",
+                )
                 continue
 
             regions = self.db.add_sectors_master.query(
@@ -605,6 +654,12 @@ class AddSectorEngine:
                         "nor in the regions cluster map."
                     )
             target_regions = list(dict.fromkeys(target_regions))
+            log_time(
+                logger,
+                f"Add-sectors engine: processing inventory {sheet_name!r} for {activity!r} "
+                f"across {len(target_regions)} target region(s): {target_regions}.",
+                "debug",
+            )
 
             if self.table == SUT:
                 parent_activity = self.db.add_sectors_master.query(
@@ -615,14 +670,51 @@ class AddSectorEngine:
                     f"`{MSC[self.table]['inventory_sheet']}`==@sheet_name"
                 )[MSC[self.table]["parent_sector"]].values[0]
 
+            inventory = self.make_units_consistent_to_database(inventory.copy(), sheet_name)
+            inventory_total = self._inventory_factor_or_sector_total(inventory)
+            if accept_non_unitary_sum and pd.notna(inventory_total):
+                if abs(inventory_total) <= 1e-12:
+                    warnings.warn(
+                        f"Inventory {sheet_name} for activity {activity!r} sums to 0 across sectors/factors "
+                        "and will be skipped because accept_non_unitary_sum=True.",
+                        stacklevel=2,
+                    )
+                    continue
+                if abs(inventory_total - 1.0) > 1e-4:
+                    warnings.warn(
+                        f"Inventory {sheet_name} for activity {activity!r} sums to {inventory_total} across "
+                        "sectors/factors and will be accepted because accept_non_unitary_sum=True.",
+                        stacklevel=2,
+                    )
+
             if pd.isna(parent_activity) is False:
+                log_time(
+                    logger,
+                    f"Add-sectors engine: bootstrapping {activity!r} from parent {parent_activity!r} "
+                    f"for inventory {sheet_name!r}.",
+                    "debug",
+                )
                 slices = self.copy_from_parent(
                     activity, parent_activity, target_regions, slices, inventory
                 )
 
-            inventory = self.make_units_consistent_to_database(inventory.copy(), sheet_name)
-
             for region_to in target_regions:
+                log_time(
+                    logger,
+                    f"Add-sectors engine: applying inventory {sheet_name!r} for {activity!r} in region {region_to!r}.",
+                    "debug",
+                )
+                if VA_fix:
+                    inventory, slices = self._augment_inventory_with_missing_factors(
+                        inventory,
+                        sheet_name=sheet_name,
+                        region_to=region_to,
+                        activity=activity,
+                        slices=slices,
+                        parent_activity=parent_activity,
+                        accept_non_unitary_sum=accept_non_unitary_sum,
+                    )
+
                 if self.table == SUT:
                     slices = self.fill_commodities_inputs(
                         inventory, region_to, activity, slices, parent_activity
@@ -643,6 +735,106 @@ class AddSectorEngine:
 
         if self.table == IOT:
             self.filled_uncertainty_slices += slices_uncertainty
+
+    def _augment_inventory_with_missing_factors(
+        self,
+        inventory: pd.DataFrame,
+        *,
+        sheet_name: str,
+        region_to: str,
+        activity: str,
+        slices: dict,
+        parent_activity: str | None,
+        accept_non_unitary_sum: bool = False,
+    ):
+        """Add missing factor rows from the parent V block and rescale existing factor rows."""
+
+        if parent_activity is None:
+            return inventory, slices
+
+        parent_column = self._parent_output_column(region_to, activity)
+        if parent_column is None:
+            return inventory, slices
+
+        factor_missing = self.missing_factors_of_production.get(activity, {}).get(sheet_name, {})
+        if not factor_missing:
+            return inventory, slices
+
+        factor_type_column = INC["item_type"]
+        factor_item_column = INC["db_item"]
+        factor_region_column = INC["db_region"]
+        quantity_column = INC["quantity"]
+
+        if factor_type_column not in inventory.columns or factor_item_column not in inventory.columns:
+            return inventory, slices
+
+        augmented_inventory = inventory.copy()
+        added_rows = []
+        factor_or_sector_mask = augmented_inventory[factor_type_column].fillna("").astype(str).isin(
+            [MI["f"], MI["s"]]
+        )
+
+        missing_total = 0.0
+
+        for factor in factor_missing:          
+            row_labels = self._matching_factor_sat_rows(_ENUM["v"], factor,None)
+            if len(row_labels) == 0:
+                continue
+
+            parent_value = self.matrices[_ENUM["v"]].loc[row_labels, parent_column]
+            if isinstance(parent_value, pd.DataFrame):
+                parent_value = parent_value.iloc[:, 0]
+            parent_value = float(parent_value.sum())
+            if parent_value == 0:
+                continue
+            
+            #Set parent to null
+            slices['v'].loc[factor,(region_to,'Sector',activity)] = 0 
+
+            missing_total += parent_value
+
+            new_row = inventory.iloc[0].copy()
+            new_row[factor_type_column] = MI["f"]
+            new_row[factor_item_column] = factor
+            new_row[factor_region_column] = None
+            new_row[INC["input"]] = f"Parent {factor}"
+            new_row[INC["change_type"]] = inventory[INC["change_type"]].iloc[0] if INC["change_type"] in inventory.columns else "Update"
+            new_row[INC["quantity"]] = parent_value
+            if hasattr(self, "converted_quantity_column") and self.converted_quantity_column in new_row.index:
+                new_row[self.converted_quantity_column] = parent_value
+            added_rows.append(new_row)
+
+        if missing_total != 0.0:
+            scale = 1 - missing_total
+            augmented_inventory.loc[factor_or_sector_mask, INC["quantity"]] = (
+                augmented_inventory.loc[factor_or_sector_mask, INC["quantity"]].astype(float) * scale
+            )
+            if hasattr(self, "converted_quantity_column") and self.converted_quantity_column in augmented_inventory.columns:
+                augmented_inventory.loc[factor_or_sector_mask, self.converted_quantity_column] = (
+                    augmented_inventory.loc[factor_or_sector_mask, self.converted_quantity_column].astype(float) * scale
+                )
+
+        factor_total = augmented_inventory.loc[factor_or_sector_mask, INC["quantity"]].sum() + missing_total
+        if abs(factor_total - 1.0) > 1e-4:
+            if accept_non_unitary_sum:
+                warnings.warn(
+                    f"Augmented inventory {sheet_name} for {region_to} and activity {activity!r} sums to "
+                    f"{factor_total}; continuing because accept_non_unitary_sum=True.",
+                    stacklevel=2,
+                )
+                return (
+                    pd.concat(
+                        [augmented_inventory, pd.DataFrame(added_rows, columns=augmented_inventory.columns)],
+                        ignore_index=True,
+                    ),
+                    slices,
+                )
+            raise InventoryRowValidationError(
+                "Augmented factor inventory does not sum to 1",
+                f"Inventory {sheet_name} for {region_to} and activity {activity!r} sums to {factor_total}, expected 1.0.",
+            )
+
+        return pd.concat([augmented_inventory, pd.DataFrame(added_rows, columns=augmented_inventory.columns)], ignore_index=True), slices
 
     def reindex_matrices(self) -> None:
         """Sort index and columns after concatenating the new slices."""
@@ -672,77 +864,157 @@ class AddSectorEngine:
         self.converted_quantity_column = cqc
         inventory[cqc] = 0.0
         ureg = pint.UnitRegistry()
+        grouped_errors: dict[str, list[str]] = {}
 
-        for i in inventory.index:
-            item = inventory.loc[i, INC["item_type"]]
-            if item in (MI["c"], MI["s"]):
-                if self.table == SUT:
-                    if inventory.loc[i, INC["db_item"]] in self.commodities:
-                        db_unit = self.units[item].loc[inventory.loc[i, INC["db_item"]], "unit"]
-                    elif inventory.loc[i, INC["db_item"]] in self.new_commodities:
-                        dummy = inventory.loc[i, INC["db_item"]]
-                        db_unit = self.db.add_sectors_master.query(f"{MI['c']}==@dummy")[
-                            MSC[self.table]["unit"]
-                        ].values[0]
-                    elif inventory.loc[i, INC["db_item"]] in self.db.commodities_clusters:
-                        db_units = [
-                            self.units[item].loc[c, "unit"]
-                            for c in self.db.commodities_clusters[inventory.loc[i, INC["db_item"]]]
-                        ]
-                        if len(set(db_units)) != 1:
-                            raise ValueError(
-                                f"Commodities in cluster {inventory.loc[i, INC['db_item']]} have different units."
-                            )
-                        db_unit = db_units[0]
-                    else:
-                        raise ValueError(
-                            f"Issues in converting unit of commodity {inventory.loc[i, INC['db_item']]} "
-                            f"in sheet {sheet_name}."
-                        )
-                else:
-                    if inventory.loc[i, INC["db_item"]] in self.sectors:
-                        db_unit = self.units[item].loc[inventory.loc[i, INC["db_item"]], "unit"]
-                    elif inventory.loc[i, INC["db_item"]] in self.new_sectors:
-                        dummy = inventory.loc[i, INC["db_item"]]
-                        db_unit = self.db.add_sectors_master.query(f"{MI['s']}==@dummy")[
-                            MSC[self.table]["unit"]
-                        ].values[0]
-                    elif inventory.loc[i, INC["db_item"]] in self.db.sectors_clusters:
-                        db_units = [
-                            self.units[item].loc[c, "unit"]
-                            for c in self.db.sectors_clusters[inventory.loc[i, INC["db_item"]]]
-                        ]
-                        if len(set(db_units)) != 1:
-                            raise ValueError(
-                                f"Sectors in cluster {inventory.loc[i, INC['db_item']]} have different units."
-                            )
-                        db_unit = db_units[0]
-                    else:
-                        raise ValueError("Issues in converting unit.")
-            elif item == MI["a"]:
-                raise ValueError(
-                    f"{INC['item_type']} {item} is not recognized: activities cannot be supplied to other activities."
+        for excel_row, i in enumerate(inventory.index, start=2):
+            row = inventory.loc[i]
+            try:
+                db_unit = self._resolve_inventory_db_unit(row)
+                inventory.loc[i, cqc] = self._convert_inventory_quantity(row, db_unit, ureg)
+            except InventoryRowValidationError as exc:
+                grouped_errors.setdefault(exc.reason, []).append(
+                    f"{self._format_inventory_row_context(row, excel_row)}. {exc.details}"
                 )
-            elif item == MI["k"]:
-                db_unit = self.units[MI["k"]].loc[inventory.loc[i, INC["db_item"]], "unit"]
-            elif item == MI["f"]:
-                db_unit = self.units[MI["f"]].loc[inventory.loc[i, INC["db_item"]], "unit"]
-            else:
-                raise ValueError(f"{INC['item_type']} {item} is not recognized.")
 
-            if inventory.loc[i, INC["unit"]] == db_unit:
-                inventory.loc[i, cqc] = inventory.loc[i, INC["quantity"]]
-            elif ureg(inventory.loc[i, INC["unit"]]).is_compatible_with(db_unit):
-                inventory.loc[i, cqc] = (
-                    inventory.loc[i, INC["quantity"]]
-                    * ureg(inventory.loc[i, INC["unit"]]).to(db_unit).magnitude
-                )
-            else:
-                raise NotImplementedError(
-                    f"{INC['unit']} {inventory.loc[i, INC['unit']]} is not convertible to {db_unit}."
-                )
+        if grouped_errors:
+            raise ValueError(self._format_inventory_validation_errors(sheet_name, grouped_errors))
 
         return inventory
+
+    @staticmethod
+    def _format_inventory_row_context(row: pd.Series, excel_row: int) -> str:
+        """Render one inventory row with the fields most useful for troubleshooting."""
+
+        details = [f"Excel row {excel_row}"]
+        for key in ("input", "item_type", "db_item", "db_region", "unit"):
+            value = row.get(INC[key], "")
+            if pd.isna(value) or value == "":
+                continue
+            details.append(f"{INC[key]}={value!r}")
+
+        return ", ".join(details)
+
+    @staticmethod
+    def _format_inventory_validation_errors(
+        sheet_name: str, grouped_errors: dict[str, list[str]]
+    ) -> str:
+        """Collapse per-row issues into one message grouped by problem type."""
+
+        lines = [f"Issues found while validating inventory sheet {sheet_name}:"]
+        for reason, details in grouped_errors.items():
+            lines.append(f"- {reason}")
+            for detail in details:
+                lines.append(f"  - {detail}")
+
+        return "\n".join(lines)
+
+    def _resolve_inventory_db_unit(self, row: pd.Series) -> str:
+        """Resolve the database unit used by one inventory row."""
+
+        item = row[INC["item_type"]]
+        db_item = row[INC["db_item"]]
+
+        if item in (MI["c"], MI["s"]):
+            if self.table == SUT:
+                if db_item in self.commodities:
+                    return self.units[item].loc[db_item, "unit"]
+                if db_item in self.new_commodities:
+                    return self.db.add_sectors_master.query(f"{MI['c']}==@db_item")[
+                        MSC[self.table]["unit"]
+                    ].values[0]
+                if db_item in self.db.commodities_clusters:
+                    db_units = [
+                        self.units[item].loc[commodity, "unit"]
+                        for commodity in self.db.commodities_clusters[db_item]
+                    ]
+                    if len(set(db_units)) != 1:
+                        raise InventoryRowValidationError(
+                            "Cluster members use inconsistent database units",
+                            f"Commodities in cluster {db_item!r} have different units.",
+                        )
+                    return db_units[0]
+                raise InventoryRowValidationError(
+                    "Database item could not be resolved",
+                    f"{INC['db_item']} {db_item!r} is not an existing commodity, a new commodity, or a commodity cluster.",
+                )
+
+            if db_item in self.sectors:
+                return self.units[item].loc[db_item, "unit"]
+            if db_item in self.new_sectors:
+                return self.db.add_sectors_master.query(f"{MI['s']}==@db_item")[MSC[self.table]["unit"]].values[0]
+            if db_item in self.db.sectors_clusters:
+                db_units = [self.units[item].loc[sector, "unit"] for sector in self.db.sectors_clusters[db_item]]
+                if len(set(db_units)) != 1:
+                    raise InventoryRowValidationError(
+                        "Cluster members use inconsistent database units",
+                        f"Sectors in cluster {db_item!r} have different units.",
+                    )
+                return db_units[0]
+            raise InventoryRowValidationError(
+                "Database item could not be resolved",
+                f"{INC['db_item']} {db_item!r} is not an existing sector, a new sector, or a sector cluster.",
+            )
+
+        if item == MI["a"]:
+            raise InventoryRowValidationError(
+                "Unsupported inventory item type",
+                f"{INC['item_type']} {item!r} is not supported here: activities cannot be supplied to other activities.",
+            )
+
+        if item == MI["k"]:
+            if db_item not in self.units[MI["k"]].index:
+                raise InventoryRowValidationError(
+                    "Database item could not be resolved",
+                    f"Unknown satellite account {db_item!r}.",
+                )
+            return self.units[MI["k"]].loc[db_item, "unit"]
+
+        if item == MI["f"]:
+            if db_item in self.units[MI["f"]].index:
+                return self.units[MI["f"]].loc[db_item, "unit"]
+            if db_item in self.factors_clusters:
+                db_units = [self.units[MI["f"]].loc[factor, "unit"] for factor in self.factors_clusters[db_item]]
+                if len(set(db_units)) != 1:
+                    raise InventoryRowValidationError(
+                        "Cluster members use inconsistent database units",
+                        f"Factors in cluster {db_item!r} have different units.",
+                    )
+                return db_units[0]
+            raise InventoryRowValidationError(
+                "Database item could not be resolved",
+                f"Unknown factor {db_item!r}.",
+            )
+
+        raise InventoryRowValidationError(
+            "Unsupported inventory item type",
+            f"{INC['item_type']} {item!r} is not recognized.",
+        )
+
+    def _convert_inventory_quantity(
+        self, row: pd.Series, db_unit: str, ureg: pint.UnitRegistry
+    ) -> float:
+        """Convert one inventory quantity to the resolved database unit."""
+
+        input_unit = row[INC["unit"]]
+        quantity = row[INC["quantity"]]
+
+        if input_unit == db_unit:
+            return quantity
+
+        try:
+            source_quantity = ureg(input_unit)
+            if source_quantity.is_compatible_with(db_unit):
+                return quantity * source_quantity.to(db_unit).magnitude
+        except pint.errors.PintError as exc:
+            raise InventoryRowValidationError(
+                "Unit conversion could not be evaluated",
+                f"{INC['unit']} {input_unit!r} could not be converted to database unit {db_unit!r}: {exc}.",
+            ) from exc
+
+        raise InventoryRowValidationError(
+            "Provided unit is not compatible with the database unit",
+            f"{INC['unit']} {input_unit!r} is not convertible to database unit {db_unit!r}.",
+        )
 
     def copy_from_parent(
         self,
@@ -1217,7 +1489,29 @@ class AddSectorEngine:
             if change_type == "Update":
                 if len(row_labels) == 0:
                     continue
-                weights = self._factor_sat_allocation_weights(matrix, row_labels, region_to, activity)
+                
+                if matrix == _ENUM["e"]:
+                    weights = self._factor_sat_allocation_weights(matrix, row_labels, region_to, activity)
+                else:
+                    #Check if it's a factor in a cluster
+                    if input_item in self.factors_clusters:
+                        # Allocate based on existing structure of the cluster for sn columns
+                        # If it's a SUT, we use activities as marker
+                        marker = MI["a"] if self.table == SUT else MI["s"]
+                        cluster_data = self.matrices[matrix].loc[row_labels, (sn, marker, sn)]
+                        if isinstance(cluster_data, pd.Series):
+                            cluster_data = cluster_data.to_frame()
+                        
+                        row_sums = cluster_data.sum(axis=1)
+                        total_sum = row_sums.sum()
+                        
+                        if total_sum > 0:
+                            weights = row_sums / total_sum
+                        else:
+                            weights = pd.Series(1 / len(row_labels), index=row_labels)
+                    else:
+                        weights = self._factor_sat_allocation_weights(matrix, row_labels, region_to, activity)
+                    
                 slices[matrix].loc[row_labels, target_column] += weights * quantity
             elif change_type == "Percentage":
                 if len(row_labels) == 0:
@@ -1422,7 +1716,88 @@ def collect_add_sector_matrices(instance, scenario: str = "baseline") -> dict[st
     return matrices
 
 
-def run_add_sector_engine(instance, scenario: str = "baseline", ignore_warnings: bool = True):
+def collect_missing_factor_of_production_inputs(instance) -> dict[str, dict[str, dict[object, list[str]]]]:
+    """Collect missing factor-of-production rows for every inventory sheet."""
+
+    if not hasattr(instance, "inventories"):
+        instance.missing_factors_of_production = {}
+        return {}
+
+    factor_units = instance.units.get(MI["f"])
+    if factor_units is None or factor_units.empty:
+        warnings.warn("No factors of production in the database.", stacklevel=2)
+        instance.missing_factors_of_production = {}
+        return {}
+
+    item_type_column = INC["item_type"]
+    db_item_column = INC["db_item"]
+    db_region_column = INC["db_region"]
+    expected_factors = [
+        str(factor).strip() for factor in factor_units.index.tolist() if str(factor).strip()
+    ]
+    factor_clusters = getattr(instance, "factors_clusters", {}) or {}
+
+    missing_factors: dict[str, dict[str, dict[object, list[str]]]] = {}
+
+    for activity, inventories in instance.inventories.items():
+        activity_missing: dict[str, dict[object, list[str]]] = {}
+        for sheet_name, inventory in inventories.items():
+            if item_type_column not in inventory.columns or db_item_column not in inventory.columns:
+                continue
+
+            factor_rows = inventory.loc[
+                inventory[item_type_column].fillna("").astype(str).eq(MI["f"]),
+                [db_item_column] + ([db_region_column] if db_region_column in inventory.columns else []),
+            ]
+
+            present_factors: set[str] = set()
+            for raw_factor in factor_rows[db_item_column].dropna().tolist():
+                factor_name = str(raw_factor).strip()
+                if not factor_name:
+                    continue
+                present_factors.add(factor_name)
+                present_factors.update(
+                    str(member).strip()
+                    for member in factor_clusters.get(factor_name, [])
+                    if str(member).strip()
+                )
+
+            missing = [factor for factor in expected_factors if factor not in present_factors]
+
+            if missing:
+                activity_missing[sheet_name] = missing
+
+        if activity_missing:
+            missing_factors[activity] = activity_missing
+
+    instance.missing_factors_of_production = missing_factors
+    return missing_factors
+
+
+def warn_missing_factor_of_production_inputs(instance) -> None:
+    """Warn when workbook inventories omit database factor-of-production rows."""
+
+    missing_factors = collect_missing_factor_of_production_inputs(instance)
+    if not missing_factors:
+        return
+
+    warning_lines = ["Factors of production missing in add-sectors inventories:"]
+
+    for activity, sheets in sorted(missing_factors.items()):
+        for sheet_name, factors in sorted(sheets.items()):
+            factor_list = ", ".join(sorted(dict.fromkeys(factor.capitalize() for factor in factors)))
+            warning_lines.append(f"- {sheet_name} [{activity}]: {factor_list}")
+
+    warnings.warn("\n".join(warning_lines), stacklevel=2)
+
+
+def run_add_sector_engine(
+    instance,
+    scenario: str = "baseline",
+    ignore_warnings: bool = True,
+    VA_fix: bool = False,
+    accept_non_unitary_sum: bool = False,
+) -> dict[str, pd.DataFrame]:
     """Run the add-sectors engine and return updated coefficient matrices."""
 
     if not hasattr(instance, "inventories"):
@@ -1430,8 +1805,9 @@ def run_add_sector_engine(instance, scenario: str = "baseline", ignore_warnings:
 
     matrices = collect_add_sector_matrices(instance, scenario=scenario)
     engine = AddSectorEngine(instance, matrices, ignore_warnings=ignore_warnings)
+    engine.missing_factors_of_production = getattr(instance, "missing_factors_of_production", {})
     if instance.table_type == IOT:
-        return engine.to_iot()
+        return engine.to_iot(VA_fix=VA_fix, accept_non_unitary_sum=accept_non_unitary_sum)
     return engine.to_sut()
 
 

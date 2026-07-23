@@ -95,6 +95,7 @@ from mario.compute.types import (
     MaterializationMode,
     PlanningOverride,
 )
+from mario.ops import ras
 from mario.log_exc.logger import set_log_verbosity
 from mario.model._api_key import set_api_keys
 from mario.model.builders import (

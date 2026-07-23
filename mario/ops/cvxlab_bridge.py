@@ -16,6 +16,8 @@ import pandas as pd
 from mario.log_exc.exceptions import NotImplementable, WrongInput
 from mario.model.conventions import _ENUM, _MASTER_INDEX as MI
 from mario.ops.add_sector_specs import (
+    ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS,
+    ADD_SECTOR_SPLIT_EXCLUSION_SHEET,
     ADD_SECTOR_SPLIT_OUTPUT_COLUMNS,
     ADD_SECTOR_SPLIT_OUTPUT_SHEET,
     ADD_SECTOR_SPLIT_TOLERANCE_COLUMNS,
@@ -45,6 +47,7 @@ def create_split_input_data(
     scenario_label: str,
     input_data_files_type: str = "xlsx",
     model_dir_name: str = CVXLAB_SPLIT_MODEL_NAME,
+    residue=None,
 ) -> Path:
     """Generate the CVXLab model directory and input data for split sectors."""
 
@@ -72,6 +75,7 @@ def create_split_input_data(
         flat_matrices=flat_matrices,
         scenario_label=scenario_label,
         input_data_files_type=input_data_files_type,
+        residue=residue,
     )
     return dest_dir
 
@@ -85,6 +89,7 @@ def optimize_split_in_cvxlab(
     solver=None,
     solver_parameters=None,
     model_dir_name: str = CVXLAB_SPLIT_MODEL_NAME,
+    residue=None,
 ) -> dict[str, pd.DataFrame]:
     """Run the split optimization in CVXLab and return optimized MARIO matrices."""
 
@@ -110,6 +115,7 @@ def optimize_split_in_cvxlab(
         flat_matrices=flat_matrices,
         scenario_label=scenario_label,
         input_data_files_type=input_data_files_type,
+        residue=residue,
     )
 
     solver = _resolve_split_solver(solver)
@@ -140,9 +146,11 @@ def optimize_split_in_cvxlab(
         if solver_parameters is not None:
             run_model_signature = inspect.signature(model.run_model).parameters
             if "solver_settings" in run_model_signature:
-                run_kwargs["solver_settings"] = solver_parameters
-            else:
-                run_kwargs["mosek_params"] = solver_parameters
+                if solver == "MOSEK":
+                    run_kwargs["mosek_params"] = solver_parameters
+                else:
+                    run_kwargs["solver_settings"] = solver_parameters
+            
         model.run_model(**run_kwargs)
 
         if not _cvxlab_problem_solved_optimally(model.core.problem.problem_status):
@@ -151,7 +159,7 @@ def optimize_split_in_cvxlab(
             )
 
         model.load_results_to_database(force_overwrite=True)
-    return _parse_split_results(dest_dir, flat_matrices)
+    return _parse_split_results(dest_dir, flat_matrices, residue=residue)
 
 
 def _resolve_split_solver(solver):
@@ -446,6 +454,13 @@ def _prepare_split_model_directory(*, main_dir_path, model_dir_name: str) -> Pat
     root = _normalize_main_dir_path(main_dir_path)
     dest_dir = root / model_dir_name
     if dest_dir.exists():
+        answer = input(
+            f"Directory '{dest_dir}' already exists. Overwrite? [y/n]: "
+        ).strip().lower()
+        if answer != "y":
+            raise WrongInput(
+                f"Aborted: directory '{dest_dir}' was not overwritten."
+            )
         shutil.rmtree(dest_dir, onerror=_handle_remove_readonly)
     dest_dir.mkdir(parents=True, exist_ok=True)
 
@@ -738,6 +753,61 @@ def _flatten_X(frame: pd.DataFrame, scenario: str) -> pd.DataFrame:
     return flat.drop(columns=["Level_from"])
 
 
+def _set_mask_from_coordinates(
+    mask_df: pd.DataFrame,
+    coordinates: pd.DataFrame,
+    *,
+    join_cols: list[str],
+    value: int = 1,
+) -> pd.DataFrame:
+    """Set ``mask_df['values'] = value`` on every row whose ``join_cols`` appear in *coordinates*.
+
+    This is the vectorized replacement for the historical ``iterrows`` + boolean
+    mask loops. Each of those loops rescanned the whole mask table once per source
+    row (``O(n_source * n_mask)``); this performs a single hash join instead
+    (``O(n_source + n_mask)``), which is what dominates ``add_sectors`` runtime on
+    large multi-region databases.
+
+    The mask is matched on coordinate columns only, so the returned frame keeps
+    ``mask_df``'s row order, columns, and every row that is *not* in *coordinates*
+    untouched.
+    """
+
+    if coordinates.empty:
+        return mask_df
+
+    keys = coordinates.loc[:, join_cols].drop_duplicates()
+    keys["__hit__"] = value
+
+    merged = mask_df.merge(keys, on=join_cols, how="left")
+    hit = merged["__hit__"].notna()
+    merged.loc[hit, "values"] = merged.loc[hit, "__hit__"]
+    return merged.drop(columns="__hit__")
+
+
+def _expand_parent_to_children(
+    coordinates: pd.DataFrame,
+    *,
+    sector_col: str,
+    parent_to_children: dict[str, list[str]],
+) -> pd.DataFrame:
+    """Return *coordinates* with each parent-sector row duplicated for its children.
+
+    Mirrors the historical ``[st_parent] + parent_to_children.get(st_parent, [])``
+    expansion, but built with a vectorized explode instead of a Python loop.
+    """
+
+    if coordinates.empty:
+        return coordinates
+
+    expanded = coordinates.copy()
+    expanded[sector_col] = [
+        [sector] + parent_to_children.get(sector, [])
+        for sector in expanded[sector_col]
+    ]
+    return expanded.explode(sector_col, ignore_index=True)
+
+
 def _write_input_data(
     instance,
     *,
@@ -747,6 +817,7 @@ def _write_input_data(
     flat_matrices: dict[str, pd.DataFrame],
     scenario_label: str,
     input_data_files_type: str,
+    residue=None,
 ) -> None:
     """Fill the blank CVXLab input data with MARIO split data."""
     split_scenario = f"split_{scenario_label}"
@@ -809,9 +880,11 @@ def _write_input_data(
         == input_data[identity_table]["sector_to_Name"]
     ).astype(int)
 
+    #Tolerances
     tolerance_sheet = instance.split_info[ADD_SECTOR_SPLIT_TOLERANCE_SHEET].copy()
     input_data["tol"]["values"] = tolerance_sheet[ADD_SECTOR_SPLIT_TOLERANCE_COLUMNS["value"]].astype(float).tolist()
 
+    #Trades
     trade_sheet = instance.split_info[ADD_SECTOR_SPLIT_TRADE_SHEET].copy()
     trade_sheet = trade_sheet.rename(
         columns={
@@ -830,30 +903,194 @@ def _write_input_data(
         table_name="Trade",
     )
     input_data["Trade"]["values"] = input_data["Trade"]["values"].fillna(0.0)
+    same_region = (
+        input_data["Trade"]["region_from_Name"] == input_data["Trade"]["region_to_Name"]
+    )
+    input_data["Trade"].loc[same_region, "values"] = 0.0
 
     selector = input_data["Trade_selector"].copy()
     selector["values"] = 0
     split_sectors = set(getattr(instance, "to_split_sectors", []))
-    for idx, row in selector.iterrows():
-        mask = (
-            (trade_sheet["region_from_Name"] == row["region_from_Name"])
-            & (trade_sheet["region_to_Name"] == row["region_to_Name"])
-            & (trade_sheet["sector_from_Name"] == row["sector_from_Name"])
-        )
-        if (
-            row["region_from_Name"] != row["region_to_Name"]
-            and row["sector_from_Name"] in split_sectors
-            and mask.any()
-        ):
-            selector.at[idx, "values"] = 1
-    input_data["Trade_selector"] = selector
 
-    # Mirror the historical split-model fix: drop tiny positive residues before
-    # writing CVXLab inputs, but keep tolerance and selector sheets intact.
-    for table_name, df in input_data.items():
-        if table_name in {"Trade_selector", "tol"} or "values" not in df.columns:
-            continue
-        input_data[table_name] = df.assign(values=df["values"].where(df["values"] >= 1e-6, 0))
+    selector_join_cols = ["region_from_Name", "region_to_Name", "sector_from_Name"]
+    trade_keys = (
+        trade_sheet.loc[:, selector_join_cols].drop_duplicates().assign(__present__=1)
+    )
+    merged_selector = selector.merge(trade_keys, on=selector_join_cols, how="left")
+    hit = (
+        (merged_selector["region_from_Name"] != merged_selector["region_to_Name"])
+        & merged_selector["sector_from_Name"].isin(split_sectors)
+        & merged_selector["__present__"].notna()
+    )
+    merged_selector.loc[hit, "values"] = 1
+    input_data["Trade_selector"] = merged_selector.drop(columns="__present__")
+
+    #Impose zeroes in Z with specific exclusions
+    input_data["Zero_use_mask"]["values"] = 0
+    input_data["Zero_supply_mask"]["values"] = 0
+    exclusions = instance.split_info.get(ADD_SECTOR_SPLIT_EXCLUSION_SHEET)
+    if exclusions is not None and not exclusions.empty:
+        excl_region_from = ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS["region_from"]
+        excl_region_to = ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS["region_to"]
+        excl_sector_from = ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS["sector_from"]
+        excl_sector_to = ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS["sector_to"]
+
+        new_and_parent_sectors = set(getattr(instance, "to_split_sectors", []))
+        parent_map = _split_parent_lookup(instance)
+        new_and_parent_sectors |= {p for p in parent_map.values() if p}
+
+        excl_coords = exclusions.rename(
+            columns={
+                excl_region_from: "region_from_Name",
+                excl_region_to: "region_to_Name",
+                excl_sector_from: "sector_from_Name",
+                excl_sector_to: "sector_to_Name",
+            }
+        )
+        mask_join_cols = [
+            "region_from_Name",
+            "region_to_Name",
+            "sector_from_Name",
+            "sector_to_Name",
+        ]
+        # Zero_use_mask: all sectors from, new+parent sectors to.
+        # The original loop applied the sector_from == sf check via the use-mask
+        # rows themselves; here sector_to membership is the deciding condition and
+        # sector_from/sector_to are matched exactly, matching the legacy result.
+        use_coords = excl_coords[
+            excl_coords["sector_to_Name"].isin(new_and_parent_sectors)
+        ]
+        input_data["Zero_use_mask"] = _set_mask_from_coordinates(
+            input_data["Zero_use_mask"], use_coords, join_cols=mask_join_cols
+        )
+        # Zero_supply_mask: new+parent sectors from, all sectors to. The legacy
+        # loop only reached this branch when sector_to was NOT new+parent (elif),
+        # so reproduce that exclusivity here.
+        supply_coords = excl_coords[
+            excl_coords["sector_from_Name"].isin(new_and_parent_sectors)
+            & ~excl_coords["sector_to_Name"].isin(new_and_parent_sectors)
+        ]
+        input_data["Zero_supply_mask"] = _set_mask_from_coordinates(
+            input_data["Zero_supply_mask"], supply_coords, join_cols=mask_join_cols
+        )
+
+    # Propagate structural zeros from Zold and Yold to the masks.
+    
+    # Set near-zero numerical residues to exactly zero before deriving the zero masks
+    if residue is not None:
+        zero_threshold = float(residue)
+        for _old_table in ("Zold", "Yold", "Vold"):
+            _old_df = input_data.get(_old_table)
+            if _old_df is None or "values" not in _old_df.columns:
+                continue
+            input_data[_old_table] = _old_df.assign(
+                values=_old_df["values"].where(
+                    _old_df["values"].abs() >= zero_threshold, 0
+                )
+            )
+
+    # Build a parent -> [children] reverse map from the child->parent lookup.
+    child_to_parent = _split_parent_lookup(instance)
+    parent_to_children: dict[str, list[str]] = {}
+    new_sectors_set = set(getattr(instance, "to_split_sectors", []))
+    for child, parent in child_to_parent.items():
+        if child in new_sectors_set and parent:
+            parent_to_children.setdefault(parent, []).append(child)
+
+    parent_sectors_set = set(parent_to_children.keys())
+
+    zold = input_data["Zold"]
+
+    zold_join_cols = [
+        "region_from_Name",
+        "region_to_Name",
+        "sector_from_Name",
+        "sector_to_Name",
+    ]
+
+    # Zero_use_mask: columns whose sector_to is a parent sector. Each parent
+    # column also masks its child columns (same region_from/region_to/sector_from).
+    parent_col_zeros = zold.loc[
+        zold["sector_to_Name"].isin(parent_sectors_set) & (zold["values"] == 0),
+        zold_join_cols,
+    ]
+    parent_col_zeros = _expand_parent_to_children(
+        parent_col_zeros,
+        sector_col="sector_to_Name",
+        parent_to_children=parent_to_children,
+    )
+    input_data["Zero_use_mask"] = _set_mask_from_coordinates(
+        input_data["Zero_use_mask"], parent_col_zeros, join_cols=zold_join_cols
+    )
+
+    # Zero_supply_mask: rows where sector_from is a parent sector and sector_to is
+    # stable. Each parent row also masks its child rows (same coordinates otherwise).
+    all_sectors = set(instance.get_index(MI["s"]))
+    stable_sectors_set = all_sectors - new_sectors_set - parent_sectors_set
+    parent_row_zeros = zold.loc[
+        zold["sector_from_Name"].isin(parent_sectors_set)
+        & zold["sector_to_Name"].isin(stable_sectors_set)
+        & (zold["values"] == 0),
+        zold_join_cols,
+    ]
+    parent_row_zeros = _expand_parent_to_children(
+        parent_row_zeros,
+        sector_col="sector_from_Name",
+        parent_to_children=parent_to_children,
+    )
+    input_data["Zero_supply_mask"] = _set_mask_from_coordinates(
+        input_data["Zero_supply_mask"], parent_row_zeros, join_cols=zold_join_cols
+    )
+
+    #Imposing zeroes according to original Y
+    input_data["Zero_Y_mask"]["values"] = 0
+
+    yold = input_data["Yold"]
+    y_join_cols = [
+        "region_from_Name",
+        "sector_from_Name",
+        "region_to_Name",
+        "cons_categ_Name",
+    ]
+    parent_yrow_zeros = yold.loc[
+        yold["sector_from_Name"].isin(parent_sectors_set) & (yold["values"] == 0),
+        y_join_cols,
+    ]
+    parent_yrow_zeros = _expand_parent_to_children(
+        parent_yrow_zeros,
+        sector_col="sector_from_Name",
+        parent_to_children=parent_to_children,
+    )
+    input_data["Zero_Y_mask"] = _set_mask_from_coordinates(
+        input_data["Zero_Y_mask"], parent_yrow_zeros, join_cols=y_join_cols
+    )
+
+    #Imposing zeroes according to original V
+    input_data["Zero_V_mask"]["values"] = 0
+
+    vold = input_data["Vold"]
+    v_factor_col = "fact_prod_Name" if "fact_prod_Name" in vold.columns else "factor_Name"
+    v_join_cols = [v_factor_col, "region_to_Name", "sector_to_Name"]
+    parent_vrow_zeros = vold.loc[
+        vold["sector_to_Name"].isin(parent_sectors_set) & (vold["values"] == 0),
+        v_join_cols,
+    ]
+    parent_vrow_zeros = _expand_parent_to_children(
+        parent_vrow_zeros,
+        sector_col="sector_to_Name",
+        parent_to_children=parent_to_children,
+    )
+    input_data["Zero_V_mask"] = _set_mask_from_coordinates(
+        input_data["Zero_V_mask"], parent_vrow_zeros, join_cols=v_join_cols
+    )
+
+    #Remove values below the residue threshold, if specified.
+    if residue is not None:
+        threshold = float(residue)
+        for table_name, df in input_data.items():
+            if table_name in {"Trade_selector", "tol", "Zero_use_mask", "Zero_supply_mask", "Zero_V_mask","Zero_Y_mask"} or "values" not in df.columns:
+                continue
+            input_data[table_name] = df.assign(values=df["values"].where(df["values"] >= threshold, 0))
 
     _write_input_data_files(
         dest_dir=dest_dir,
@@ -1004,19 +1241,28 @@ def _split_parent_lookup(instance) -> dict[str, str]:
     return mapping
 
 
-def _parse_split_results(dest_dir: Path, flat_matrices: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
+def _parse_split_results(dest_dir: Path, flat_matrices: dict[str, pd.DataFrame], residue=None) -> dict[str, pd.DataFrame]:
     """Parse optimized split results back into MARIO matrices."""
 
-    conn = sqlite3.connect(dest_dir / cl.Defaults.ConfigFiles.SQLITE_DATABASE_FILE)
+    conn = sqlite3.connect(Path(dest_dir) / cl.Defaults.ConfigFiles.SQLITE_DATABASE_FILE)
     db_Z_supply = pd.read_sql_query("SELECT * FROM Z_supply", conn).drop(columns=["id"])
     db_Z_use = pd.read_sql_query("SELECT * FROM Z_use", conn).drop(columns=["id"])
     db_Y = pd.read_sql_query("SELECT * FROM Y", conn).drop(columns=["id"])
     db_V = pd.read_sql_query("SELECT * FROM V", conn).drop(columns=["id"])
     conn.close()
 
-    mapping = pd.read_excel(dest_dir / "mapping.xlsx", sheet_name=None, index_col=0)
+    #Remove values below the residue threshold, if specified.
+    if residue is not None:
+        print(f"Applying residue threshold: {residue}")
+        threshold = float(residue)
+        db_Z_supply["values"] = db_Z_supply["values"].where(db_Z_supply["values"] >= threshold, 0)
+        db_Z_use["values"] = db_Z_use["values"].where(db_Z_use["values"] >= threshold, 0)
+        db_Y["values"] = db_Y["values"].where(db_Y["values"] >= threshold, 0)
+        db_V["values"] = db_V["values"].where(db_V["values"] >= threshold, 0)
+
+    mapping = pd.read_excel(Path(dest_dir) / "mapping.xlsx", sheet_name=None, index_col=0)
     set_map = dict(zip(mapping["sets"].index.to_list(), mapping["sets"]["cvxlab"]))
-    sets = pd.read_excel(dest_dir / cl.Defaults.ConfigFiles.SETS_FILE, sheet_name=None)
+    sets = pd.read_excel(Path(dest_dir) / cl.Defaults.ConfigFiles.SETS_FILE, sheet_name=None)
     sectors_df = sets["_set_SECTOR_FROM"]
     sectors_stable = sectors_df[sectors_df["sector_from_category"] == "stable"]["sector_from_Name"].tolist()
     sector_order = sectors_df["sector_from_Name"].tolist()
