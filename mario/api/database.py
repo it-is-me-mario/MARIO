@@ -4842,6 +4842,23 @@ class Database(CoreModel):
 
         original_reference = collect_add_sector_matrices(self, scenario=scenario) if split else None
 
+        # add_sectors' positional groupbys drop the MultiIndex level names;
+        # snapshot the original per-matrix axis names now so we can restore them
+        # on the engine output below (downstream ops such as update_supply_mix
+        # rely on named levels, e.g. groupby(level='Item')). Capturing the source
+        # names — rather than hardcoding — preserves custom parser layouts.
+        _orig_axis_names: dict = {}
+        for _key in (_ENUM["z"], _ENUM["u"], _ENUM["s"], _ENUM["e"], _ENUM["v"], _ENUM["Y"], _ENUM["EY"]):
+            try:
+                _blk = (
+                    self.get_block_as_pandas(_key, scenario=scenario)
+                    if self.has_matrix(_key, scenario=scenario)
+                    else self.resolve(_key, scenario=scenario)
+                )
+                _orig_axis_names[_key] = (list(_blk.index.names), list(_blk.columns.names))
+            except Exception:  # noqa: BLE001 (missing block for this table type)
+                pass
+
         result = run_add_sector_engine(
             self,
             scenario=scenario,
@@ -4885,6 +4902,19 @@ class Database(CoreModel):
                 _MASTER_INDEX["c"]: getattr(self, "new_commodities", []),
             }
             added_label = None
+
+        # Restore the per-matrix axis names dropped by the engine's positional
+        # groupbys (snapshotted above), so the output keeps the source table's
+        # level names — standard ('Region', 'Level', 'Item') or a custom layout.
+        for _key, m in baseline.items():
+            names = _orig_axis_names.get(_key)
+            if names is None:
+                continue
+            idx_names, col_names = names
+            if m.index.nlevels == len(idx_names):
+                m.index = m.index.set_names(idx_names)
+            if m.columns.nlevels == len(col_names):
+                m.columns = m.columns.set_names(col_names)
 
         if split and self.meta.table == "IOT":
             self.matrices = {
