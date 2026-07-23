@@ -5,6 +5,51 @@ Release History
 v1.1.0
 ------
 
+Add sectors: value added and inventory handling
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* ``Database.add_sectors`` gained ``VA_fix`` and ``accept_non_unitary_sum``.
+  ``VA_fix=True`` warns about database factor-of-production rows missing from
+  the workbook inventories before slice filling and augments the missing
+  factors of production from the parent sectors. ``accept_non_unitary_sum=True``
+  accepts inventory sheets whose factor/sector rows do not sum to 1: sheets
+  summing to 0 are skipped entirely, other non-unitary inventories proceed with
+  a warning instead of raising.
+* ``read_add_sectors_excel`` now reads grouped inventory sheets from multiple
+  sheets in a single call and accepts ``split=True/False``; the add-sector
+  workbook input loader was moved to ``mario/ops/add_sector_workbook.py``.
+* Total output and flow computations are corrected after inserting a new sector
+  column, and the value-added block ``V`` is now zero-masked as well.
+* ``add_sectors`` runs inside a stage-aware error handler that reports which
+  step failed, and restores the source per-matrix axis level names dropped by
+  the engine's positional groupbys (so downstream ops such as
+  ``update_supply_mix`` that rely on named index levels keep working).
+
+Sector split workflow
+~~~~~~~~~~~~~~~~~~~~~~~
+
+* Reworked the sector-split routine used by ``add_sectors(split=True)``:
+  zeroes stay zeroes, small digits are cleaned, incompatible exogenous data and
+  exclusions are validated, factor-of-production clusters are allowed, and the
+  split routine is invoked only when needed. Disaggregation optimization
+  problems are built faster and the split-constraint formulation was improved.
+  A new ``residue`` threshold zeroes out small positive CVXLab input values, and
+  the split no longer overwrites an existing output folder.
+
+RAS balancing
+~~~~~~~~~~~~~~
+
+* Added a RAS balancing API for IOT databases. ``Database.ras(target_rows,
+  target_cols, ...)`` rebalances the flow matrix ``z`` of a scenario to the
+  given row and column margins with the biproportional RAS algorithm
+  (``tol``/``max_iter`` controls, ``inplace``/``calc_all`` options), backed by
+  the reusable ``mario.ops.ras`` helper.
+
+Settings
+~~~~~~~~
+
+* The default ``compute.compute_method`` changed from ``auto`` to ``inverse``.
+
 Shock scenarios
 ~~~~~~~~~~~~~~~
 
