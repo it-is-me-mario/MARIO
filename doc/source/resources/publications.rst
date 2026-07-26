@@ -29,6 +29,7 @@ The list below contains the main publications where MARIO is used.
    :style: mario_abbr
    :list: bullet
 
+   Citterio2026
    ComeZebra2026
    Daun2026
    Fragkos2026

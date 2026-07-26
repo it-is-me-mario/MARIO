@@ -4,6 +4,8 @@ Transformations and Scenarios
 These methods change the structure or scenario state of a database.
 ``Database.aggregate(...)`` now also supports workbook-free Region
 aggregation through ``region_aggregation`` presets or explicit mappings.
+``Database.ras(...)`` rebalances the ``Z`` block of an IOT scenario to target
+row and column margins with the biproportional RAS algorithm.
 
 Database Transformations
 ------------------------
@@ -14,6 +16,7 @@ Database Transformations
    ../api_document/mario.Database.aggregate
    ../api_document/mario.Database.add_extensions
    ../api_document/mario.Database.add_sectors
+   ../api_document/mario.Database.ras
    ../api_document/mario.Database.to_iot
    ../api_document/mario.Database.to_region_subset
    ../api_document/mario.Database.to_single_region
@@ -28,10 +31,10 @@ Supply and Trade Mixes
 Scenario-level redistribution of one regional bundle preserving the selected
 column totals: technology/market shares with ``update_supply_mix`` and
 regional sourcing with ``update_trade_mix``. See
-:doc:`../user_guide/transformations/update_electricity_mix` and
-:doc:`../user_guide/transformations/update_trade_mix` for the workflows.
-``update_supply_mix_iot`` and ``update_mix_iot`` are kept as IOT-only
-backward-compatible aliases of ``update_supply_mix``.
+:doc:`../user_guide/advanced/electricity_mix` for the end-to-end workflow
+(EMBER supply mix, ENTSO-E trade mix, ``pool_trade`` and the data-provider
+API keys). ``update_supply_mix_iot`` and ``update_mix_iot`` are kept as
+IOT-only backward-compatible aliases of ``update_supply_mix``.
 
 .. toctree::
    :maxdepth: 1

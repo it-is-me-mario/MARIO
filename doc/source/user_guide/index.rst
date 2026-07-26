@@ -36,8 +36,6 @@ The workflows are grouped into four families:
    transformations/aggregate
    transformations/add_extensions
    transformations/apply_shocks
-   transformations/update_electricity_mix
-   transformations/update_trade_mix
    transformations/add_sectors
    transformations/sut_to_iot
    transformations/mrio_to_srio
@@ -47,6 +45,7 @@ The workflows are grouped into four families:
    :maxdepth: 1
    :caption: Advanced workflows
 
+   advanced/electricity_mix
    advanced/greenhouse_gas_calculations
    advanced/supply_chain_analyses
    advanced/structural_path_analysis
