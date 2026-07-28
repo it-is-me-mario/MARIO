@@ -176,6 +176,7 @@ exclude_patterns = [
 html_theme = "pydata_sphinx_theme"
 html_title = "MARIO"
 html_logo = "_static/images/mario-logo.png"
+html_favicon = "_static/images/mario-favicon.ico"
 html_theme_options = {
     "logo": {
         "text": "MARIO",
