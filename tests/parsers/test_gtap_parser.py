@@ -304,6 +304,39 @@ def test_build_gtap_mrio_from_gdx_containers_with_region_sector_layouts():
     assert units[_MASTER_INDEX["k"]].loc["E_P_CO2", "unit"] == "M ton"
 
 
+def test_csv_output_based_emission_records_with_total_source_are_captured():
+    frames = _gtap_csv_frames()
+    frames["E+EY - Emissions"] = pd.concat(
+        [
+            frames["E+EY - Emissions"],
+            pd.DataFrame(
+                [
+                    # output-based account: SRC is the "TOT" placeholder, the
+                    # emission belongs to the destination region
+                    {"VAR": "DOM", "EM": "CO2", "COMM": "QO", "AGT": "SEC", "SRC": "TOT", "DST": "R1", "VALUE": 9.0},
+                    {"VAR": "DOM", "EM": "CO2", "COMM": "QO", "AGT": "HH", "SRC": "TOT", "DST": "R1", "VALUE": 1.5},
+                ]
+            ),
+        ],
+        ignore_index=True,
+    )
+
+    matrices, indeces, units = build_gtap_mrio_from_csv_frames(frames)
+    base = matrices["baseline"]
+
+    assert "EMI_CO2_dms_QO" in indeces["k"]["main"]
+    assert float(base["E"].loc["EMI_CO2_dms_QO"].sum()) == 9.0
+    assert float(base["EY"].loc["EMI_CO2_dms_QO"].sum()) == 1.5
+    assert units[_MASTER_INDEX["k"]].loc["EMI_CO2_dms_QO", "unit"] == "M ton"
+
+    layout_matrices, _, _ = build_gtap_mrio_from_csv_frames(
+        frames, matrix_layouts=_REGION_SECTOR_LAYOUTS
+    )
+    layout_base = layout_matrices["baseline"]
+    assert ("TOTAL", "QO", "EMI_CO2_dms") in layout_base["E"].index
+    assert np.array_equal(layout_base["E"].to_numpy(), base["E"].to_numpy())
+
+
 def test_gtap_matrix_layouts_validation_errors():
     with pytest.raises(WrongInput):
         build_gtap_mrio_from_csv_frames(

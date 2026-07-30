@@ -597,6 +597,25 @@ def _var_mask(frame: pd.DataFrame, value: str, column: str = "VAR") -> np.ndarra
     return (frame[column] == value).to_numpy()
 
 
+def _warn_uncaptured_satellite_mass(label: str, raw_total: float, blocks) -> None:
+    """Emit a warning when satellite records did not fully land in E/EY.
+
+    The assembly is record-exact by construction, so any residual means the
+    source file contains keys the parser does not recognize (for example
+    domestic records pointing at two different real regions). Losing that
+    mass silently would be worse than the warning noise.
+    """
+    captured = float(sum(block.to_numpy().sum() for block in blocks))
+    difference = raw_total - captured
+    if abs(difference) > max(1e-6, 1e-9 * abs(raw_total)):
+        log_time(
+            logger,
+            f"Parser: {difference:,.6f} of the {label} record mass was not captured in E/EY "
+            "(records with unrecognized regions/agents or non-diagonal domestic keys).",
+            "warning",
+        )
+
+
 # ---------------------------------------------------------------------------
 # Shared block builders
 # ---------------------------------------------------------------------------
@@ -834,8 +853,15 @@ def _satellite_domestic_blocks(
     item_series: pd.Series,
     name_builder,
     tuple_builder=None,
+    pseudo_diagonal: np.ndarray | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Domestic satellite rows: one row per observed (gas, item), values on SRC==DST."""
+    """Domestic satellite rows: one row per observed (gas, item), values on SRC==DST.
+
+    ``pseudo_diagonal`` marks records whose source is a placeholder token
+    rather than a region (GTAP csv exports write ``SRC="TOT"`` for output- and
+    value-added-based emission accounts): they belong to the destination
+    region and are accumulated on the diagonal like any domestic record.
+    """
     item_codes = item_series.cat.codes.to_numpy().astype(np.int64)
     item_categories = item_series.cat.categories
     if gas_series is None:
@@ -860,6 +886,8 @@ def _satellite_domestic_blocks(
         else None
     )
     diagonal = domestic_mask & (codes.source >= 0) & (codes.source == codes.destination)
+    if pseudo_diagonal is not None:
+        diagonal |= domestic_mask & pseudo_diagonal & (codes.destination >= 0)
     block = _scatter_matrix(
         len(row_names),
         axes.n_sector_columns,
@@ -1112,6 +1140,9 @@ def build_gtap_mrio_from_csv_frames(
         source_column="SRC",
         destination_column="DST",
     )
+    # output/value-added based emission accounts are exported with SRC="TOT":
+    # they belong to the destination region like any domestic record
+    emission_pseudo_diagonal = (emissions["SRC"] == "TOT").to_numpy()
     E_dom, EY_dom = _satellite_domestic_blocks(
         axes,
         emission_codes,
@@ -1124,6 +1155,7 @@ def build_gtap_mrio_from_csv_frames(
             if e_structured
             else None
         ),
+        pseudo_diagonal=emission_pseudo_diagonal,
     )
     E_imp, EY_imp = _satellite_import_blocks(
         axes,
@@ -1137,6 +1169,10 @@ def build_gtap_mrio_from_csv_frames(
             if e_structured
             else None
         ),
+    )
+
+    _warn_uncaptured_satellite_mass(
+        "emissions", float(emission_codes.values.sum()), (E_dom, EY_dom, E_imp, EY_imp)
     )
 
     log_time(logger, "Parser: assembling satellite blocks (E, EY) from energy volumes.", "info")
@@ -1159,6 +1195,7 @@ def build_gtap_mrio_from_csv_frames(
             if e_structured
             else None
         ),
+        pseudo_diagonal=(energy["SRC"] == "TOT").to_numpy(),
     )
     E_ene_imp, EY_ene_imp = _satellite_import_blocks(
         axes,
@@ -1172,6 +1209,10 @@ def build_gtap_mrio_from_csv_frames(
             if e_structured
             else None
         ),
+    )
+
+    _warn_uncaptured_satellite_mass(
+        "energy volume", float(energy_codes.values.sum()), (E_ene_dom, EY_ene_dom, E_ene_imp, EY_ene_imp)
     )
 
     E = pd.concat([E_dom, E_imp, E_ene_dom, E_ene_imp], axis=0)
@@ -1369,6 +1410,7 @@ def build_gtap_mrio_from_gdx_containers(
     emission_blocks: list[pd.DataFrame] = []
     emission_y_blocks: list[pd.DataFrame] = []
     emissions_container = containers["Emissions"]
+    emission_raw_totals: dict[str, float] = {}
 
     for symbol, source_value in (
         ("Emi_COMB", "DOM"),
@@ -1389,6 +1431,7 @@ def build_gtap_mrio_from_gdx_containers(
             destination_column="DST",
             value_column="value",
         )
+        emission_raw_totals.setdefault(symbol, float(codes.values.sum()))
         source_mask = (records["source"] == source_value).to_numpy()
         if source_value == "DOM":
             block, block_y = _satellite_domestic_blocks(
@@ -1403,6 +1446,7 @@ def build_gtap_mrio_from_gdx_containers(
                     if e_structured
                     else None
                 ),
+                pseudo_diagonal=(records["SRC"] == "TOT").to_numpy(),
             )
         else:
             block, block_y = _satellite_import_blocks(
@@ -1430,6 +1474,7 @@ def build_gtap_mrio_from_gdx_containers(
             destination_column="REG",
             value_column="value",
         )
+        emission_raw_totals["Emi_Proc"] = float(codes.values.sum())
         gas_codes = records["em"].cat.codes.to_numpy().astype(np.int64)
         item_codes = records["comm"].cat.codes.to_numpy().astype(np.int64)
         item_categories = records["comm"].cat.categories
@@ -1477,6 +1522,12 @@ def build_gtap_mrio_from_gdx_containers(
             )
         )
 
+    _warn_uncaptured_satellite_mass(
+        "emissions",
+        float(sum(emission_raw_totals.values())),
+        (*emission_blocks, *emission_y_blocks),
+    )
+
     energy_records = _gdx_records(containers["Energy"], "NRG", ["ERG", "agt", "SRC", "DST"])
     energy_codes = _FlowCodes(
         energy_records,
@@ -1498,6 +1549,7 @@ def build_gtap_mrio_from_gdx_containers(
             if e_structured
             else None
         ),
+        pseudo_diagonal=(energy_records["SRC"] == "TOT").to_numpy(),
     )
     energy_imp, energy_y_imp = _satellite_import_blocks(
         axes,
@@ -1511,6 +1563,12 @@ def build_gtap_mrio_from_gdx_containers(
             if e_structured
             else None
         ),
+    )
+
+    _warn_uncaptured_satellite_mass(
+        "energy volume",
+        float(energy_codes.values.sum()),
+        (energy_dom, energy_y_dom, energy_imp, energy_y_imp),
     )
 
     E = pd.concat([*emission_blocks, energy_dom, energy_imp], axis=0)

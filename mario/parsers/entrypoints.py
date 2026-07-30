@@ -2414,7 +2414,15 @@ def parse_gtap(
     Notes
     -----
     The GDX path requires the GAMS Python API in the active environment
-    because MARIO relies on ``gams.transfer`` to read the GDX containers.
+    because MARIO relies on ``gams.transfer`` to read the GDX containers
+    (the pip package ``gamsapi[transfer]`` is sufficient).
+
+    Output- and value-added-based emission accounts, which the csv export
+    encodes with the ``SRC="TOT"`` placeholder, are captured as domestic
+    satellite rows of the destination region (e.g. ``EMI_CH4_dms_QO``),
+    mirroring how the GDX bundles store them. Any satellite record mass the
+    parser cannot attribute is reported with a warning instead of being
+    silently dropped.
     """
     if model not in models:
         raise WrongInput("Available models are {}".format([*models]))
