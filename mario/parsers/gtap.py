@@ -28,6 +28,11 @@ import pandas as pd
 from mario.log_exc.exceptions import WrongFormat, WrongInput
 from mario.log_exc.logger import log_time
 from mario.model.conventions import _MASTER_INDEX
+from mario.parsers.matrix_layouts import (
+    iot_block_specs_for_matrix_layouts,
+    iot_row_layout,
+    normalize_matrix_layouts,
+)
 from mario.parsers.specs import (
     GTAP_INPUT_FORMATS,
     GTAP_LAYOUTS,
@@ -194,6 +199,69 @@ def _gtap_units(indexes: dict[str, list[str]]) -> dict[str, pd.DataFrame]:
     }
 
 
+# ---------------------------------------------------------------------------
+# Optional structured row layouts
+#
+# By default GTAP factor and satellite rows keep the historical flat string
+# names ("MTAX_AUS_GRO", "EMI_CO2_AUS_COA", ...). When one of the supported
+# ``matrix_layouts`` is requested, the same rows are exposed instead as a
+# semantic ``(Region, Sector, item)`` MultiIndex, with the sentinel label
+# below on levels that do not apply to a row family (e.g. PTAX has neither a
+# region nor a sector of its own). MARIO's aggregation maps labels with
+# ``mapping.get(value, value)``, so sentinel labels pass through untouched.
+# ---------------------------------------------------------------------------
+
+_GTAP_LAYOUT_SENTINEL = "TOTAL"
+_GTAP_SUPPORTED_ROW_LAYOUT = ("Region", "Sector")
+_GTAP_V_ROW_AXIS_NAMES = (_MASTER_INDEX["r"], _MASTER_INDEX["s"], _MASTER_INDEX["f"])
+_GTAP_E_ROW_AXIS_NAMES = (_MASTER_INDEX["r"], _MASTER_INDEX["s"], _MASTER_INDEX["k"])
+
+
+def _normalize_gtap_matrix_layouts(matrix_layouts) -> dict[str, tuple[str, ...]]:
+    """Validate the requested GTAP matrix layouts.
+
+    The GTAP parser currently supports only the standard flat rows or the
+    full ``("Region", "Sector")`` row layout, and requires VY/EY to resolve to
+    the same layout as V/E because their rows are built family by family.
+    """
+    normalized = normalize_matrix_layouts(matrix_layouts, table="IOT")
+    unsupported = {
+        name: layout
+        for name, layout in normalized.items()
+        if layout not in ((), _GTAP_SUPPORTED_ROW_LAYOUT)
+    }
+    if unsupported:
+        raise WrongInput(
+            "The GTAP parser currently supports only the ('Region', 'Sector') matrix "
+            f"layout (or the standard flat rows). Unsupported entries: {unsupported}."
+        )
+    for paired in (("V", "VY"), ("E", "EY")):
+        resolved = {name: iot_row_layout(name, normalized) for name in paired}
+        if resolved[paired[0]] != resolved[paired[1]]:
+            raise WrongInput(
+                f"The GTAP parser requires {paired[0]} and {paired[1]} to share the same "
+                f"row layout, got {resolved}."
+            )
+    return normalized
+
+
+def _gtap_structured_rows(matrix_layouts: dict[str, tuple[str, ...]] | None) -> tuple[bool, bool]:
+    """Return whether V/VY and E/EY rows are region-sector structured."""
+    normalized = matrix_layouts or {}
+    return (
+        iot_row_layout("V", normalized) == _GTAP_SUPPORTED_ROW_LAYOUT,
+        iot_row_layout("E", normalized) == _GTAP_SUPPORTED_ROW_LAYOUT,
+    )
+
+
+def gtap_block_specs(matrix_layouts: dict[str, object] | None) -> list:
+    """Return the semantic block specs implied by validated GTAP matrix layouts."""
+    normalized = _normalize_gtap_matrix_layouts(matrix_layouts)
+    if not normalized:
+        return []
+    return iot_block_specs_for_matrix_layouts(normalized)
+
+
 def _gtap_finalize_iot(
     *,
     Z: pd.DataFrame,
@@ -205,6 +273,7 @@ def _gtap_finalize_iot(
     regions: list[str],
     sectors: list[str],
     final_demand: list[str],
+    matrix_layouts: dict[str, tuple[str, ...]] | None = None,
 ) -> tuple[dict[str, dict[str, pd.DataFrame]], dict[str, dict[str, list[str]]], dict[str, pd.DataFrame]]:
     raw_sector_columns = Z.columns
     raw_final_demand_columns = Y.columns
@@ -256,12 +325,19 @@ def _gtap_finalize_iot(
             "EY": EY,
         }
     }
+    v_structured, e_structured = _gtap_structured_rows(matrix_layouts)
+    factor_rows = (
+        delete_duplicates(V.index.get_level_values(-1).tolist()) if v_structured else V.index.tolist()
+    )
+    satellite_rows = (
+        delete_duplicates(E.index.get_level_values(-1).tolist()) if e_structured else E.index.tolist()
+    )
     indexes = {
         "r": {"main": list(regions)},
         "s": {"main": list(sectors)},
         "n": {"main": list(final_demand)},
-        "f": {"main": V.index.tolist()},
-        "k": {"main": E.index.tolist()},
+        "f": {"main": factor_rows},
+        "k": {"main": satellite_rows},
     }
     units = _gtap_units(
         {
@@ -272,6 +348,14 @@ def _gtap_finalize_iot(
         }
     )
     rename_index(matrices["baseline"])
+    # rename_index applies the generic Region/Level/Item names everywhere;
+    # structured factor/satellite rows keep their semantic axis names instead.
+    if v_structured:
+        for name in ("V", "VY"):
+            matrices["baseline"][name].index.names = list(_GTAP_V_ROW_AXIS_NAMES)
+    if e_structured:
+        for name in ("E", "EY"):
+            matrices["baseline"][name].index.names = list(_GTAP_E_ROW_AXIS_NAMES)
     sort_frames(matrices["baseline"])
     return matrices, indexes, units
 
@@ -397,9 +481,29 @@ def _sector_space_frame(matrix: np.ndarray, axes: _GTAPAxes, columns: pd.MultiIn
     return pd.DataFrame(matrix, index=index, columns=columns)
 
 
-def _sorted_row_frame(row_names: list[str], matrix: np.ndarray, columns: pd.MultiIndex) -> pd.DataFrame:
+def _sorted_row_frame(
+    row_names: list[str],
+    matrix: np.ndarray,
+    columns: pd.MultiIndex,
+    *,
+    row_tuples: list[tuple[str, str, str]] | None = None,
+    tuple_names: tuple[str, ...] | None = None,
+) -> pd.DataFrame:
+    """Build one row block sorted by flat row name.
+
+    Rows are always ordered by the flat name so the structured (layout) and
+    flat variants of the same block stay value-identical row by row; only the
+    index representation changes.
+    """
     order = sorted(range(len(row_names)), key=row_names.__getitem__)
-    index = pd.Index([row_names[position] for position in order], name="row_name")
+    if row_tuples is None:
+        index = pd.Index([row_names[position] for position in order], name="row_name")
+    elif row_names:
+        index = pd.MultiIndex.from_tuples(
+            [row_tuples[position] for position in order], names=list(tuple_names)
+        )
+    else:
+        index = pd.MultiIndex.from_arrays([[] for _ in tuple_names], names=list(tuple_names))
     if order != list(range(len(row_names))):
         matrix = matrix[order]
     return pd.DataFrame(matrix, index=index, columns=columns)
@@ -531,9 +635,20 @@ def _region_sector_rowname_blocks(
     axes: _GTAPAxes,
     codes: _FlowCodes,
     mask: np.ndarray | None,
+    *,
+    structured: bool = False,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Blocks with one dense row per (source region, sector), e.g. MTAX/ITTM."""
     row_names = _region_sector_row_names(categ, axes)
+    row_tuples = (
+        [
+            (region, sector, categ)
+            for region in axes.sorted_regions
+            for sector in axes.sorted_sectors
+        ]
+        if structured
+        else None
+    )
     rows = _combined_positions(codes.source, codes.sector, axes.n_sectors)
     block = _scatter_matrix(
         len(row_names),
@@ -552,8 +667,14 @@ def _region_sector_rowname_blocks(
         mask,
     )
     return (
-        _sorted_row_frame(row_names, block, axes.sector_axis),
-        _sorted_row_frame(row_names, block_y, axes.final_demand_axis),
+        _sorted_row_frame(
+            row_names, block, axes.sector_axis,
+            row_tuples=row_tuples, tuple_names=_GTAP_V_ROW_AXIS_NAMES,
+        ),
+        _sorted_row_frame(
+            row_names, block_y, axes.final_demand_axis,
+            row_tuples=row_tuples, tuple_names=_GTAP_V_ROW_AXIS_NAMES,
+        ),
     )
 
 
@@ -566,9 +687,15 @@ def _region_rowname_block(
     column_sectors: np.ndarray,
     values: np.ndarray,
     mask: np.ndarray | None,
+    structured: bool = False,
 ) -> pd.DataFrame:
     """Block with one row per region, e.g. ETAX."""
     row_names = [f"{categ}_{region}" for region in axes.sorted_regions]
+    row_tuples = (
+        [(region, _GTAP_LAYOUT_SENTINEL, categ) for region in axes.sorted_regions]
+        if structured
+        else None
+    )
     block = _scatter_matrix(
         len(row_names),
         axes.n_sector_columns,
@@ -577,7 +704,10 @@ def _region_rowname_block(
         values,
         mask,
     )
-    return _sorted_row_frame(row_names, block, axes.sector_axis)
+    return _sorted_row_frame(
+        row_names, block, axes.sector_axis,
+        row_tuples=row_tuples, tuple_names=_GTAP_V_ROW_AXIS_NAMES,
+    )
 
 
 def _single_rowname_block(
@@ -588,6 +718,8 @@ def _single_rowname_block(
     column_sectors: np.ndarray,
     values: np.ndarray,
     mask: np.ndarray | None,
+    structured: bool = False,
+    item_label: str | None = None,
 ) -> pd.DataFrame:
     """Block with one aggregate row, e.g. PTAX."""
     rows = np.zeros(len(values), dtype=np.int64)
@@ -599,7 +731,15 @@ def _single_rowname_block(
         values,
         mask,
     )
-    return _sorted_row_frame([row_name], block, axes.sector_axis)
+    row_tuples = (
+        [(_GTAP_LAYOUT_SENTINEL, _GTAP_LAYOUT_SENTINEL, item_label or row_name)]
+        if structured
+        else None
+    )
+    return _sorted_row_frame(
+        [row_name], block, axes.sector_axis,
+        row_tuples=row_tuples, tuple_names=_GTAP_V_ROW_AXIS_NAMES,
+    )
 
 
 def _observed_item_rowname_block(
@@ -611,11 +751,21 @@ def _observed_item_rowname_block(
     column_sectors: np.ndarray,
     values: np.ndarray,
     mask: np.ndarray,
+    structured: bool = False,
+    item_prefix: str | None = None,
 ) -> pd.DataFrame:
     """Block with one row per observed row-item, e.g. VAAD/VTAX endowments."""
     item_codes = item_series.cat.codes.to_numpy().astype(np.int64)
     labels, lookup = _observed_labels(item_codes, item_series.cat.categories, mask)
     row_names = [f"{categ_prefix}{label}" for label in labels]
+    row_tuples = (
+        [
+            (_GTAP_LAYOUT_SENTINEL, _GTAP_LAYOUT_SENTINEL, f"{item_prefix or categ_prefix}{label}")
+            for label in labels
+        ]
+        if structured
+        else None
+    )
     rows = lookup[item_codes]
     block = _scatter_matrix(
         len(row_names),
@@ -625,7 +775,10 @@ def _observed_item_rowname_block(
         values,
         mask,
     )
-    return _sorted_row_frame(row_names, block, axes.sector_axis)
+    return _sorted_row_frame(
+        row_names, block, axes.sector_axis,
+        row_tuples=row_tuples, tuple_names=_GTAP_V_ROW_AXIS_NAMES,
+    )
 
 
 def _dense_sector_rowname_blocks(
@@ -635,9 +788,15 @@ def _dense_sector_rowname_blocks(
     mask: np.ndarray | None,
     *,
     column_regions: np.ndarray,
+    structured: bool = False,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Blocks with one dense row per sector, e.g. DTAX/ITAX."""
     row_names = [f"{categ}_REG_{sector}" for sector in axes.sorted_sectors]
+    row_tuples = (
+        [(_GTAP_LAYOUT_SENTINEL, sector, categ) for sector in axes.sorted_sectors]
+        if structured
+        else None
+    )
     block = _scatter_matrix(
         len(row_names),
         axes.n_sector_columns,
@@ -655,8 +814,14 @@ def _dense_sector_rowname_blocks(
         mask,
     )
     return (
-        _sorted_row_frame(row_names, block, axes.sector_axis),
-        _sorted_row_frame(row_names, block_y, axes.final_demand_axis),
+        _sorted_row_frame(
+            row_names, block, axes.sector_axis,
+            row_tuples=row_tuples, tuple_names=_GTAP_V_ROW_AXIS_NAMES,
+        ),
+        _sorted_row_frame(
+            row_names, block_y, axes.final_demand_axis,
+            row_tuples=row_tuples, tuple_names=_GTAP_V_ROW_AXIS_NAMES,
+        ),
     )
 
 
@@ -668,13 +833,14 @@ def _satellite_domestic_blocks(
     gas_series: pd.Series | None,
     item_series: pd.Series,
     name_builder,
+    tuple_builder=None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Domestic satellite rows: one row per observed (gas, item), values on SRC==DST."""
     item_codes = item_series.cat.codes.to_numpy().astype(np.int64)
     item_categories = item_series.cat.categories
     if gas_series is None:
         labels, lookup = _observed_labels(item_codes, item_categories, domestic_mask)
-        row_names = [name_builder(None, label) for label in labels]
+        pair_labels = [(None, label) for label in labels]
         rows = lookup[item_codes]
     else:
         gas_codes = gas_series.cat.codes.to_numpy().astype(np.int64)
@@ -682,11 +848,17 @@ def _satellite_domestic_blocks(
         observed, _, rows = _observed_pairs(
             gas_codes, item_codes, len(item_categories), domestic_mask
         )
-        row_names = [
-            name_builder(str(gas_categories[pair // len(item_categories)]),
-                         str(item_categories[pair % len(item_categories)]))
+        pair_labels = [
+            (str(gas_categories[pair // len(item_categories)]),
+             str(item_categories[pair % len(item_categories)]))
             for pair in observed
         ]
+    row_names = [name_builder(gas_label, item_label) for gas_label, item_label in pair_labels]
+    row_tuples = (
+        [tuple_builder(gas_label, item_label) for gas_label, item_label in pair_labels]
+        if tuple_builder is not None
+        else None
+    )
     diagonal = domestic_mask & (codes.source >= 0) & (codes.source == codes.destination)
     block = _scatter_matrix(
         len(row_names),
@@ -705,8 +877,14 @@ def _satellite_domestic_blocks(
         diagonal,
     )
     return (
-        _sorted_row_frame(row_names, block, axes.sector_axis),
-        _sorted_row_frame(row_names, block_y, axes.final_demand_axis),
+        _sorted_row_frame(
+            row_names, block, axes.sector_axis,
+            row_tuples=row_tuples, tuple_names=_GTAP_E_ROW_AXIS_NAMES,
+        ),
+        _sorted_row_frame(
+            row_names, block_y, axes.final_demand_axis,
+            row_tuples=row_tuples, tuple_names=_GTAP_E_ROW_AXIS_NAMES,
+        ),
     )
 
 
@@ -718,6 +896,7 @@ def _satellite_import_blocks(
     gas_series: pd.Series | None,
     item_series: pd.Series,
     name_builder,
+    tuple_builder=None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Import satellite rows: observed (gas, item) pairs expanded over all source regions."""
     item_codes = item_series.cat.codes.to_numpy().astype(np.int64)
@@ -742,6 +921,15 @@ def _satellite_import_blocks(
         for gas_label, item_label in pair_labels
         for region in axes.sorted_regions
     ]
+    row_tuples = (
+        [
+            tuple_builder(gas_label, region, item_label)
+            for gas_label, item_label in pair_labels
+            for region in axes.sorted_regions
+        ]
+        if tuple_builder is not None
+        else None
+    )
     rows = np.where(
         (pair_rows >= 0) & (codes.source >= 0),
         pair_rows * axes.n_regions + codes.source,
@@ -764,8 +952,14 @@ def _satellite_import_blocks(
         import_mask,
     )
     return (
-        _sorted_row_frame(row_names, block, axes.sector_axis),
-        _sorted_row_frame(row_names, block_y, axes.final_demand_axis),
+        _sorted_row_frame(
+            row_names, block, axes.sector_axis,
+            row_tuples=row_tuples, tuple_names=_GTAP_E_ROW_AXIS_NAMES,
+        ),
+        _sorted_row_frame(
+            row_names, block_y, axes.final_demand_axis,
+            row_tuples=row_tuples, tuple_names=_GTAP_E_ROW_AXIS_NAMES,
+        ),
     )
 
 
@@ -785,8 +979,11 @@ _GTAP_CSV_KEY_COLUMNS = {
 
 def build_gtap_mrio_from_csv_frames(
     frames: dict[str, pd.DataFrame],
+    matrix_layouts: dict[str, object] | None = None,
 ) -> tuple[dict[str, dict[str, pd.DataFrame]], dict[str, dict[str, list[str]]], dict[str, pd.DataFrame]]:
     """Build canonical MARIO IOT blocks from GTAP Power MRIO csv frames."""
+    normalized_layouts = _normalize_gtap_matrix_layouts(matrix_layouts)
+    v_structured, e_structured = _gtap_structured_rows(normalized_layouts)
     srcxdst = _categorize_keys(frames["SRCxDST"], _GTAP_CSV_KEY_COLUMNS["SRCxDST"])
     value_added = _categorize_keys(frames["V"], _GTAP_CSV_KEY_COLUMNS["V"])
     value_taxes = _categorize_keys(frames["V - Tax"], _GTAP_CSV_KEY_COLUMNS["V - Tax"])
@@ -823,8 +1020,12 @@ def build_gtap_mrio_from_csv_frames(
     )
 
     log_time(logger, "Parser: assembling factor of production blocks (V, VY).", "info")
-    V_mtax, VY_mtax = _region_sector_rowname_blocks("MTAX", axes, flow, _var_mask(srcxdst, "MTAX"))
-    V_ittm, VY_ittm = _region_sector_rowname_blocks("ITTM", axes, flow, _var_mask(srcxdst, "ITTM"))
+    V_mtax, VY_mtax = _region_sector_rowname_blocks(
+        "MTAX", axes, flow, _var_mask(srcxdst, "MTAX"), structured=v_structured
+    )
+    V_ittm, VY_ittm = _region_sector_rowname_blocks(
+        "ITTM", axes, flow, _var_mask(srcxdst, "ITTM"), structured=v_structured
+    )
 
     taxes = _FlowCodes(
         value_taxes,
@@ -841,6 +1042,7 @@ def build_gtap_mrio_from_csv_frames(
         column_sectors=taxes.sector,
         values=taxes.values,
         mask=_var_mask(value_taxes, "ETAX"),
+        structured=v_structured,
     )
     V_ptax = _single_rowname_block(
         "PTAX_REG",
@@ -849,6 +1051,8 @@ def build_gtap_mrio_from_csv_frames(
         column_sectors=taxes.sector,
         values=taxes.values,
         mask=_var_mask(value_taxes, "PTAX"),
+        structured=v_structured,
+        item_label="PTAX",
     )
 
     added = _FlowCodes(
@@ -866,6 +1070,8 @@ def build_gtap_mrio_from_csv_frames(
         column_sectors=added.agent_sector,
         values=added.values,
         mask=_var_mask(value_added, "VA"),
+        structured=v_structured,
+        item_prefix="VAAD_",
     )
     V_vtax = _observed_item_rowname_block(
         "VTAX_REG_",
@@ -875,6 +1081,8 @@ def build_gtap_mrio_from_csv_frames(
         column_sectors=added.agent_sector,
         values=added.values,
         mask=_var_mask(value_added, "VTAX"),
+        structured=v_structured,
+        item_prefix="VTAX_",
     )
     V_idtax, VY_idtax = _dense_sector_rowname_blocks(
         "DTAX",
@@ -882,6 +1090,7 @@ def build_gtap_mrio_from_csv_frames(
         added,
         _var_mask(value_added, "IDTAX"),
         column_regions=added.destination,
+        structured=v_structured,
     )
     V_imtax, VY_imtax = _dense_sector_rowname_blocks(
         "ITAX",
@@ -889,6 +1098,7 @@ def build_gtap_mrio_from_csv_frames(
         added,
         _var_mask(value_added, "IMTAX"),
         column_regions=added.destination,
+        structured=v_structured,
     )
 
     V = pd.concat([V_mtax, V_ittm, V_etax, V_ptax, V_va, V_vtax, V_idtax, V_imtax], axis=0)
@@ -909,6 +1119,11 @@ def build_gtap_mrio_from_csv_frames(
         gas_series=emissions["EM"],
         item_series=emissions["COMM"],
         name_builder=lambda gas, item: f"EMI_{gas}_dms_{item}",
+        tuple_builder=(
+            (lambda gas, item: (_GTAP_LAYOUT_SENTINEL, item, f"EMI_{gas}_dms"))
+            if e_structured
+            else None
+        ),
     )
     E_imp, EY_imp = _satellite_import_blocks(
         axes,
@@ -917,6 +1132,11 @@ def build_gtap_mrio_from_csv_frames(
         gas_series=emissions["EM"],
         item_series=emissions["COMM"],
         name_builder=lambda gas, region, item: f"EMI_{gas}_{region}_{item}",
+        tuple_builder=(
+            (lambda gas, region, item: (region, item, f"EMI_{gas}"))
+            if e_structured
+            else None
+        ),
     )
 
     log_time(logger, "Parser: assembling satellite blocks (E, EY) from energy volumes.", "info")
@@ -934,6 +1154,11 @@ def build_gtap_mrio_from_csv_frames(
         gas_series=None,
         item_series=energy["COMM"],
         name_builder=lambda gas, item: f"ENE_dms_{item}",
+        tuple_builder=(
+            (lambda gas, item: (_GTAP_LAYOUT_SENTINEL, item, "ENE_dms"))
+            if e_structured
+            else None
+        ),
     )
     E_ene_imp, EY_ene_imp = _satellite_import_blocks(
         axes,
@@ -942,6 +1167,11 @@ def build_gtap_mrio_from_csv_frames(
         gas_series=None,
         item_series=energy["COMM"],
         name_builder=lambda gas, region, item: f"ENE_{region}_{item}",
+        tuple_builder=(
+            (lambda gas, region, item: (region, item, "ENE"))
+            if e_structured
+            else None
+        ),
     )
 
     E = pd.concat([E_dom, E_imp, E_ene_dom, E_ene_imp], axis=0)
@@ -958,6 +1188,7 @@ def build_gtap_mrio_from_csv_frames(
         regions=regions,
         sectors=sectors,
         final_demand=final_demand,
+        matrix_layouts=normalized_layouts,
     )
 
 
@@ -985,8 +1216,11 @@ def _gdx_records(container: Any, symbol: str, key_columns: list[str]) -> pd.Data
 
 def build_gtap_mrio_from_gdx_containers(
     containers: dict[str, Any],
+    matrix_layouts: dict[str, object] | None = None,
 ) -> tuple[dict[str, dict[str, pd.DataFrame]], dict[str, dict[str, list[str]]], dict[str, pd.DataFrame]]:
     """Build canonical MARIO IOT blocks from GTAP Power MRIO GDX containers."""
+    normalized_layouts = _normalize_gtap_matrix_layouts(matrix_layouts)
+    v_structured, e_structured = _gtap_structured_rows(normalized_layouts)
     srcxdst = containers["SRCxDST"]
     sectors = _require_gdx_symbol(srcxdst, "comm", file_label="GSDFSRCxDST").records["uni"].astype(str).tolist()
     regions = _require_gdx_symbol(srcxdst, "REG", file_label="GSDFSRCxDST").records["uni"].astype(str).tolist()
@@ -1035,7 +1269,9 @@ def build_gtap_mrio_from_gdx_containers(
             destination_column="DST",
             value_column="value",
         )
-        block, block_y = _region_sector_rowname_blocks(categ, axes, codes, None)
+        block, block_y = _region_sector_rowname_blocks(
+            categ, axes, codes, None, structured=v_structured
+        )
         V_blocks.append(block)
         VY_blocks.append(block_y)
 
@@ -1057,6 +1293,7 @@ def build_gtap_mrio_from_gdx_containers(
             column_sectors=etax.sector,
             values=etax.values,
             mask=None,
+            structured=v_structured,
         )
     )
     ptax = _FlowCodes(
@@ -1074,11 +1311,16 @@ def build_gtap_mrio_from_gdx_containers(
             column_sectors=ptax.sector,
             values=ptax.values,
             mask=None,
+            structured=v_structured,
+            item_label="PTAX",
         )
     )
 
     added_container = containers["V"]
-    for prefix, symbol in (("VAAD_REG_", "VA"), ("VTAX_REG_", "VTAX")):
+    for prefix, item_prefix, symbol in (
+        ("VAAD_REG_", "VAAD_", "VA"),
+        ("VTAX_REG_", "VTAX_", "VTAX"),
+    ):
         records = _gdx_records(added_container, symbol, ["ENDW", "acts", "DST"])
         codes = _FlowCodes(
             records,
@@ -1096,6 +1338,8 @@ def build_gtap_mrio_from_gdx_containers(
                 column_sectors=codes.agent_sector,
                 values=codes.values,
                 mask=np.ones(len(records), dtype=bool),
+                structured=v_structured,
+                item_prefix=item_prefix,
             )
         )
 
@@ -1114,6 +1358,7 @@ def build_gtap_mrio_from_gdx_containers(
             codes,
             None,
             column_regions=codes.destination,
+            structured=v_structured,
         )
         V_blocks.append(block)
         VY_blocks.append(block_y)
@@ -1153,6 +1398,11 @@ def build_gtap_mrio_from_gdx_containers(
                 gas_series=records["em"],
                 item_series=records["inputs"],
                 name_builder=lambda gas, item: f"EMI_{gas}_dms_{item}",
+                tuple_builder=(
+                    (lambda gas, item: (_GTAP_LAYOUT_SENTINEL, item, f"EMI_{gas}_dms"))
+                    if e_structured
+                    else None
+                ),
             )
         else:
             block, block_y = _satellite_import_blocks(
@@ -1162,6 +1412,11 @@ def build_gtap_mrio_from_gdx_containers(
                 gas_series=records["em"],
                 item_series=records["inputs"],
                 name_builder=lambda gas, region, item: f"EMI_{gas}_{region}_{item}",
+                tuple_builder=(
+                    (lambda gas, region, item: (region, item, f"EMI_{gas}"))
+                    if e_structured
+                    else None
+                ),
             )
         emission_blocks.append(block)
         emission_y_blocks.append(block_y)
@@ -1182,10 +1437,17 @@ def build_gtap_mrio_from_gdx_containers(
         observed, _, rows = _observed_pairs(
             gas_codes, item_codes, len(item_categories), np.ones(len(records), dtype=bool)
         )
-        row_names = [
-            f"E_P_{gas_categories[pair // len(item_categories)]}_REG_{item_categories[pair % len(item_categories)]}"
+        pair_labels = [
+            (str(gas_categories[pair // len(item_categories)]),
+             str(item_categories[pair % len(item_categories)]))
             for pair in observed
         ]
+        row_names = [f"E_P_{gas}_REG_{item}" for gas, item in pair_labels]
+        row_tuples = (
+            [(_GTAP_LAYOUT_SENTINEL, item, f"E_P_{gas}") for gas, item in pair_labels]
+            if e_structured
+            else None
+        )
         block = _scatter_matrix(
             len(row_names),
             axes.n_sector_columns,
@@ -1202,8 +1464,18 @@ def build_gtap_mrio_from_gdx_containers(
             codes.values,
             None,
         )
-        emission_blocks.append(_sorted_row_frame(row_names, block, axes.sector_axis))
-        emission_y_blocks.append(_sorted_row_frame(row_names, block_y, axes.final_demand_axis))
+        emission_blocks.append(
+            _sorted_row_frame(
+                row_names, block, axes.sector_axis,
+                row_tuples=row_tuples, tuple_names=_GTAP_E_ROW_AXIS_NAMES,
+            )
+        )
+        emission_y_blocks.append(
+            _sorted_row_frame(
+                row_names, block_y, axes.final_demand_axis,
+                row_tuples=row_tuples, tuple_names=_GTAP_E_ROW_AXIS_NAMES,
+            )
+        )
 
     energy_records = _gdx_records(containers["Energy"], "NRG", ["ERG", "agt", "SRC", "DST"])
     energy_codes = _FlowCodes(
@@ -1221,6 +1493,11 @@ def build_gtap_mrio_from_gdx_containers(
         gas_series=None,
         item_series=energy_records["ERG"],
         name_builder=lambda gas, item: f"ENE_dms_{item}",
+        tuple_builder=(
+            (lambda gas, item: (_GTAP_LAYOUT_SENTINEL, item, "ENE_dms"))
+            if e_structured
+            else None
+        ),
     )
     energy_imp, energy_y_imp = _satellite_import_blocks(
         axes,
@@ -1229,6 +1506,11 @@ def build_gtap_mrio_from_gdx_containers(
         gas_series=None,
         item_series=energy_records["ERG"],
         name_builder=lambda gas, region, item: f"ENE_{region}_{item}",
+        tuple_builder=(
+            (lambda gas, region, item: (region, item, "ENE"))
+            if e_structured
+            else None
+        ),
     )
 
     E = pd.concat([*emission_blocks, energy_dom, energy_imp], axis=0)
@@ -1244,6 +1526,7 @@ def build_gtap_mrio_from_gdx_containers(
         regions=regions,
         sectors=sectors,
         final_demand=final_demand,
+        matrix_layouts=normalized_layouts,
     )
 
 
@@ -1289,6 +1572,7 @@ def parse_gtap_mrio_csv(
     path: str | Path,
     *,
     layout: GTAPLayout | None = None,
+    matrix_layouts: dict[str, object] | None = None,
 ) -> tuple[
     dict[str, dict[str, pd.DataFrame]],
     dict[str, dict[str, list[str]]],
@@ -1302,7 +1586,7 @@ def parse_gtap_mrio_csv(
         key: _read_gtap_csv_frame(resolved.root / filename)
         for key, filename in files.items()
     }
-    matrices, indexes, units = build_gtap_mrio_from_csv_frames(frames)
+    matrices, indexes, units = build_gtap_mrio_from_csv_frames(frames, matrix_layouts=matrix_layouts)
     return matrices, indexes, units, resolved
 
 
@@ -1310,6 +1594,7 @@ def parse_gtap_mrio_gdx(
     path: str | Path,
     *,
     layout: GTAPLayout | None = None,
+    matrix_layouts: dict[str, object] | None = None,
 ) -> tuple[
     dict[str, dict[str, pd.DataFrame]],
     dict[str, dict[str, list[str]]],
@@ -1324,5 +1609,5 @@ def parse_gtap_mrio_gdx(
         key: gt.Container(str(resolved.root / filename))
         for key, filename in files.items()
     }
-    matrices, indexes, units = build_gtap_mrio_from_gdx_containers(containers)
+    matrices, indexes, units = build_gtap_mrio_from_gdx_containers(containers, matrix_layouts=matrix_layouts)
     return matrices, indexes, units, resolved
