@@ -2,17 +2,20 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
 import mario
-from mario.log_exc.exceptions import WrongFormat
+from mario.log_exc.exceptions import WrongFormat, WrongInput
 from mario.model.conventions import _MASTER_INDEX
 from mario.parsers.gtap import (
     build_gtap_mrio_from_csv_frames,
     build_gtap_mrio_from_gdx_containers,
     detect_gtap_layout,
 )
+
+_REGION_SECTOR_LAYOUTS = {"V": ("Region", "Sector"), "E": ("Region", "Sector")}
 
 
 def _gtap_csv_frames() -> dict[str, pd.DataFrame]:
@@ -249,6 +252,123 @@ def test_build_gtap_mrio_from_gdx_containers_tolerates_string_metadata_columns()
     assert float(base["Z"].iloc[0, 0]) == 11.0
     assert indeces["s"]["main"] == ["SEC"]
     assert units[_MASTER_INDEX["f"]].loc["VAAD_REG_LAB", "unit"] == "M USD"
+
+
+def test_build_gtap_mrio_from_csv_frames_with_region_sector_layouts():
+    flat_matrices, _, _ = build_gtap_mrio_from_csv_frames(_gtap_csv_frames())
+    matrices, indeces, units = build_gtap_mrio_from_csv_frames(
+        _gtap_csv_frames(), matrix_layouts=_REGION_SECTOR_LAYOUTS
+    )
+    base = matrices["baseline"]
+    flat = flat_matrices["baseline"]
+
+    assert base["V"].index.names == ["Region", "Sector", "Factor of production"]
+    assert base["VY"].index.names == ["Region", "Sector", "Factor of production"]
+    assert base["E"].index.names == ["Region", "Sector", "Satellite account"]
+    assert base["EY"].index.names == ["Region", "Sector", "Satellite account"]
+    # values are bit-identical to the flat parse: only the index representation changes
+    for name in ["Z", "Y", "V", "VY", "E", "EY"]:
+        assert np.array_equal(base[name].to_numpy(), flat[name].to_numpy())
+
+    assert ("R1", "SEC", "MTAX") in base["V"].index
+    assert ("R1", "TOTAL", "ETAX") in base["V"].index
+    assert ("TOTAL", "TOTAL", "PTAX") in base["V"].index
+    assert ("TOTAL", "TOTAL", "VAAD_LAB") in base["V"].index
+    assert ("TOTAL", "SEC", "DTAX") in base["V"].index
+    assert ("TOTAL", "coal", "EMI_CO2_dms") in base["E"].index
+    assert ("R1", "coal", "EMI_CO2") in base["E"].index
+    assert ("TOTAL", "coal", "ENE_dms") in base["E"].index
+    assert ("R1", "coal", "ENE") in base["E"].index
+
+    assert indeces["f"]["main"] == [
+        "MTAX", "ITTM", "ETAX", "PTAX", "VAAD_LAB", "VTAX_PROD", "DTAX", "ITAX"
+    ]
+    assert indeces["k"]["main"] == ["EMI_CO2_dms", "EMI_CO2", "ENE_dms", "ENE"]
+    assert units[_MASTER_INDEX["f"]].loc["MTAX", "unit"] == "M USD"
+    assert units[_MASTER_INDEX["k"]].loc["EMI_CO2_dms", "unit"] == "M ton"
+    assert units[_MASTER_INDEX["k"]].loc["ENE", "unit"] == "M toe"
+
+
+def test_build_gtap_mrio_from_gdx_containers_with_region_sector_layouts():
+    flat_matrices, _, _ = build_gtap_mrio_from_gdx_containers(_gtap_gdx_containers())
+    matrices, indeces, units = build_gtap_mrio_from_gdx_containers(
+        _gtap_gdx_containers(), matrix_layouts=_REGION_SECTOR_LAYOUTS
+    )
+    base = matrices["baseline"]
+    flat = flat_matrices["baseline"]
+
+    for name in ["Z", "Y", "V", "VY", "E", "EY"]:
+        assert np.array_equal(base[name].to_numpy(), flat[name].to_numpy())
+    assert ("TOTAL", "SEC", "E_P_CO2") in base["E"].index
+    assert "E_P_CO2" in indeces["k"]["main"]
+    assert units[_MASTER_INDEX["k"]].loc["E_P_CO2", "unit"] == "M ton"
+
+
+def test_csv_output_based_emission_records_with_total_source_are_captured():
+    frames = _gtap_csv_frames()
+    frames["E+EY - Emissions"] = pd.concat(
+        [
+            frames["E+EY - Emissions"],
+            pd.DataFrame(
+                [
+                    # output-based account: SRC is the "TOT" placeholder, the
+                    # emission belongs to the destination region
+                    {"VAR": "DOM", "EM": "CO2", "COMM": "QO", "AGT": "SEC", "SRC": "TOT", "DST": "R1", "VALUE": 9.0},
+                    {"VAR": "DOM", "EM": "CO2", "COMM": "QO", "AGT": "HH", "SRC": "TOT", "DST": "R1", "VALUE": 1.5},
+                ]
+            ),
+        ],
+        ignore_index=True,
+    )
+
+    matrices, indeces, units = build_gtap_mrio_from_csv_frames(frames)
+    base = matrices["baseline"]
+
+    assert "EMI_CO2_dms_QO" in indeces["k"]["main"]
+    assert float(base["E"].loc["EMI_CO2_dms_QO"].sum()) == 9.0
+    assert float(base["EY"].loc["EMI_CO2_dms_QO"].sum()) == 1.5
+    assert units[_MASTER_INDEX["k"]].loc["EMI_CO2_dms_QO", "unit"] == "M ton"
+
+    layout_matrices, _, _ = build_gtap_mrio_from_csv_frames(
+        frames, matrix_layouts=_REGION_SECTOR_LAYOUTS
+    )
+    layout_base = layout_matrices["baseline"]
+    assert ("TOTAL", "QO", "EMI_CO2_dms") in layout_base["E"].index
+    assert np.array_equal(layout_base["E"].to_numpy(), base["E"].to_numpy())
+
+
+def test_gtap_matrix_layouts_validation_errors():
+    with pytest.raises(WrongInput):
+        build_gtap_mrio_from_csv_frames(
+            _gtap_csv_frames(), matrix_layouts={"V": ("Region",)}
+        )
+    with pytest.raises(WrongInput):
+        build_gtap_mrio_from_csv_frames(
+            _gtap_csv_frames(), matrix_layouts={"VY": ("Region", "Sector")}
+        )
+
+
+def test_public_parse_gtap_with_layouts_registers_block_specs(tmp_path):
+    _write_gtap_csv_bundle(tmp_path)
+
+    database = mario.parse_gtap(
+        str(tmp_path), calc_all=False, matrix_layouts=_REGION_SECTOR_LAYOUTS
+    )
+
+    assert tuple(axis.id for axis in database.get_block_spec("V").row_axes) == (
+        "Region",
+        "Sector",
+        "Factor of production",
+    )
+    assert tuple(axis.id for axis in database.get_block_spec("E").row_axes) == (
+        "Region",
+        "Sector",
+        "Satellite account",
+    )
+    assert database.get_index(_MASTER_INDEX["f"]) == [
+        "MTAX", "ITTM", "ETAX", "PTAX", "VAAD_LAB", "VTAX_PROD", "DTAX", "ITAX"
+    ]
+    assert database.V.index.names == ["Region", "Sector", "Factor of production"]
 
 
 def test_detect_gtap_layout_prefers_csv_when_both_bundles_exist(tmp_path):

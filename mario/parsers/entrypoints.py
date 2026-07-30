@@ -57,6 +57,7 @@ from mario.parsers.gloria import (
     _select_gloria_satellites,
 )
 from mario.parsers.gtap import (
+    gtap_block_specs,
     parse_gtap_mrio_csv,
     parse_gtap_mrio_gdx,
 )
@@ -2370,6 +2371,7 @@ def parse_gtap(
     variant: str = "power",
     layout: str = "MRIO",
     input_format: str = "auto",
+    matrix_layouts: dict | None = None,
     model: str = "Database",
     name: str | None = None,
     year: int | None = None,
@@ -2397,11 +2399,30 @@ def parse_gtap(
     input_format : str, optional
         one of ``auto``, ``csv`` or ``gdx``. ``auto`` prefers the CSV bundle
         when both bundles are present in the same directory.
+    matrix_layouts : dict, optional
+        opt-in semantic row layouts for the factor and satellite blocks, e.g.
+        ``{"V": ("Region", "Sector"), "E": ("Region", "Sector")}``. By default
+        (``None``) the historical flat row names are kept
+        ("MTAX_AUS_GRO", "EMI_CO2_AUS_COA", ...). With the layout enabled the
+        same rows are exposed as a ``(Region, Sector, item)`` MultiIndex --
+        values are identical, only the index representation changes -- and
+        row families without a region or sector of their own (PTAX, VAAD,
+        ETAX, DTAX, domestic satellite accounts) carry the sentinel label
+        ``"TOTAL"`` on the levels that do not apply. Only the full
+        ``("Region", "Sector")`` layout is currently supported.
 
     Notes
     -----
     The GDX path requires the GAMS Python API in the active environment
-    because MARIO relies on ``gams.transfer`` to read the GDX containers.
+    because MARIO relies on ``gams.transfer`` to read the GDX containers
+    (the pip package ``gamsapi[transfer]`` is sufficient).
+
+    Output- and value-added-based emission accounts, which the csv export
+    encodes with the ``SRC="TOT"`` placeholder, are captured as domestic
+    satellite rows of the destination region (e.g. ``EMI_CH4_dms_QO``),
+    mirroring how the GDX bundles store them. Any satellite record mass the
+    parser cannot attribute is reported with a warning instead of being
+    silently dropped.
     """
     if model not in models:
         raise WrongInput("Available models are {}".format([*models]))
@@ -2423,17 +2444,25 @@ def parse_gtap(
     if normalized_layout != "MRIO" or normalized_variant != "power":
         raise NotImplementable("Only GTAP Power MRIO is currently implemented.")
 
+    block_specs = gtap_block_specs(matrix_layouts)
+
     if normalized_input_format == "gdx":
-        matrices, indeces, units, parsed_layout = parse_gtap_mrio_gdx(path)
+        matrices, indeces, units, parsed_layout = parse_gtap_mrio_gdx(
+            path, matrix_layouts=matrix_layouts
+        )
     else:
         try:
-            matrices, indeces, units, parsed_layout = parse_gtap_mrio_csv(path)
+            matrices, indeces, units, parsed_layout = parse_gtap_mrio_csv(
+                path, matrix_layouts=matrix_layouts
+            )
         except WrongInput:
             if normalized_input_format != "auto":
                 raise
-            matrices, indeces, units, parsed_layout = parse_gtap_mrio_gdx(path)
+            matrices, indeces, units, parsed_layout = parse_gtap_mrio_gdx(
+                path, matrix_layouts=matrix_layouts
+            )
 
-    return models[model](
+    database = models[model](
         name=name or parsed_layout.dataset_name,
         table="IOT",
         source=parsed_layout.source,
@@ -2442,6 +2471,9 @@ def parse_gtap(
         calc_all=calc_all,
         **kwargs,
     )
+    for spec in block_specs:
+        database.register_block_spec(spec, replace=True)
+    return database
 
 
 def parse_useeio(

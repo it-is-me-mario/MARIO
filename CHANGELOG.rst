@@ -2,6 +2,50 @@
 Release History
 ****************
 
+v1.1.1
+------
+
+GTAP parser rewrite
+~~~~~~~~~~~~~~~~~~~~
+
+* The GTAP Power MRIO parser was rebuilt around a record-scatter assembly
+  engine shared by the csv and gdx backends: records are mapped onto integer
+  axis positions and accumulated directly into dense blocks, so the build cost
+  scales with the number of records instead of the size of the cartesian label
+  space. The full GTAP 2023 csv bundle (~7 GB, ~140M records) parses
+  end-to-end in about 80 seconds where the previous implementation ran for
+  20+ minutes before failing; csv reading prefers the multithreaded pyarrow
+  engine and logs per-file progress.
+* Fixed csv parsing failures and silent distortions on recent GTAP exports:
+  duplicated record keys (several GDX symbols flattened into one csv file) now
+  sum instead of raising ``cannot handle a non-unique multi-index``; the
+  spurious all-zero ``EMI_0_*`` satellite rows are no longer produced; E and
+  EY expose one dense, aligned satellite row set matching the gdx backend
+  semantics.
+* Output- and value-added-based emission accounts, which the csv export
+  encodes with the ``SRC="TOT"`` placeholder, are now captured as domestic
+  satellite rows of the destination region (e.g. ``EMI_CH4_dms_QO``) instead
+  of being silently dropped -- previously about one third of the emission
+  record mass in the GTAP 2023 csv bundle was lost. Satellite record mass the
+  parser cannot attribute is now reported with a parser warning.
+
+Optional GTAP structured row layouts
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* ``parse_gtap`` gained an opt-in ``matrix_layouts`` argument, e.g.
+  ``{"V": ("Region", "Sector"), "E": ("Region", "Sector")}``: factor and
+  satellite rows are exposed as a semantic ``(Region, Sector, item)``
+  MultiIndex instead of the flat string names, and the matching block
+  specifications are registered on the database. Values are identical to the
+  flat parse -- only the index representation changes. Row families without a
+  region or sector of their own (PTAX, VAAD/VTAX endowments, ETAX, DTAX/ITAX,
+  domestic satellite accounts) carry the ``"TOTAL"`` sentinel on the levels
+  that do not apply; the sentinel is not part of the Region/Sector sets and
+  passes through aggregation untouched. The default keeps the historical flat
+  rows unchanged.
+* The gdx backend requires the GAMS Python API in the active environment; the
+  pip package ``gamsapi[transfer]`` is sufficient to read GDX bundles.
+
 v1.1.0
 ------
 

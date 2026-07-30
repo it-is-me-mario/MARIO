@@ -3,6 +3,15 @@
 The current implementation targets the GTAP Power MRIO layout that was used in
 the historical MARIO branch. The parser surface is structured so new GTAP
 branches can be added later without changing the public entry point shape.
+
+Internally the parser uses a dense-block assembly engine: every record is
+mapped onto integer axis positions and accumulated directly into preallocated
+dense matrices (``np.add.at``). This keeps the build cost proportional to the
+number of records instead of the size of the cartesian label space, and it
+gives duplicated record keys well-defined sum semantics -- recent GTAP csv
+exports flatten several GDX symbols (for example combustion and non-combustion
+emissions) into one file, so the same key can legitimately appear more than
+once.
 """
 
 from __future__ import annotations
@@ -10,6 +19,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import logging
 from pathlib import Path
+import time
 from typing import Any
 
 import numpy as np
@@ -18,6 +28,11 @@ import pandas as pd
 from mario.log_exc.exceptions import WrongFormat, WrongInput
 from mario.log_exc.logger import log_time
 from mario.model.conventions import _MASTER_INDEX
+from mario.parsers.matrix_layouts import (
+    iot_block_specs_for_matrix_layouts,
+    iot_row_layout,
+    normalize_matrix_layouts,
+)
 from mario.parsers.specs import (
     GTAP_INPUT_FORMATS,
     GTAP_LAYOUTS,
@@ -30,20 +45,6 @@ from mario.parsers.specs import (
 from mario.utils import delete_duplicates, rename_index, sort_frames
 
 logger = logging.getLogger(__name__)
-
-
-def _safe_reindex_records(frame: pd.DataFrame, index: pd.MultiIndex) -> pd.DataFrame:
-    """Reindex GDX record tables without forcing numeric fill values into string metadata.
-
-    ``gams.transfer`` can expose auxiliary string columns alongside the numeric
-    ``value`` column. Reindexing with ``fill_value=0`` writes the scalar into all
-    remaining columns, which raises on pandas string dtypes.
-    """
-    reindexed = frame.reindex(index)
-    for column in reindexed.columns:
-        if pd.api.types.is_numeric_dtype(reindexed[column]):
-            reindexed[column] = reindexed[column].fillna(0)
-    return reindexed
 
 
 @dataclass(frozen=True)
@@ -198,6 +199,69 @@ def _gtap_units(indexes: dict[str, list[str]]) -> dict[str, pd.DataFrame]:
     }
 
 
+# ---------------------------------------------------------------------------
+# Optional structured row layouts
+#
+# By default GTAP factor and satellite rows keep the historical flat string
+# names ("MTAX_AUS_GRO", "EMI_CO2_AUS_COA", ...). When one of the supported
+# ``matrix_layouts`` is requested, the same rows are exposed instead as a
+# semantic ``(Region, Sector, item)`` MultiIndex, with the sentinel label
+# below on levels that do not apply to a row family (e.g. PTAX has neither a
+# region nor a sector of its own). MARIO's aggregation maps labels with
+# ``mapping.get(value, value)``, so sentinel labels pass through untouched.
+# ---------------------------------------------------------------------------
+
+_GTAP_LAYOUT_SENTINEL = "TOTAL"
+_GTAP_SUPPORTED_ROW_LAYOUT = ("Region", "Sector")
+_GTAP_V_ROW_AXIS_NAMES = (_MASTER_INDEX["r"], _MASTER_INDEX["s"], _MASTER_INDEX["f"])
+_GTAP_E_ROW_AXIS_NAMES = (_MASTER_INDEX["r"], _MASTER_INDEX["s"], _MASTER_INDEX["k"])
+
+
+def _normalize_gtap_matrix_layouts(matrix_layouts) -> dict[str, tuple[str, ...]]:
+    """Validate the requested GTAP matrix layouts.
+
+    The GTAP parser currently supports only the standard flat rows or the
+    full ``("Region", "Sector")`` row layout, and requires VY/EY to resolve to
+    the same layout as V/E because their rows are built family by family.
+    """
+    normalized = normalize_matrix_layouts(matrix_layouts, table="IOT")
+    unsupported = {
+        name: layout
+        for name, layout in normalized.items()
+        if layout not in ((), _GTAP_SUPPORTED_ROW_LAYOUT)
+    }
+    if unsupported:
+        raise WrongInput(
+            "The GTAP parser currently supports only the ('Region', 'Sector') matrix "
+            f"layout (or the standard flat rows). Unsupported entries: {unsupported}."
+        )
+    for paired in (("V", "VY"), ("E", "EY")):
+        resolved = {name: iot_row_layout(name, normalized) for name in paired}
+        if resolved[paired[0]] != resolved[paired[1]]:
+            raise WrongInput(
+                f"The GTAP parser requires {paired[0]} and {paired[1]} to share the same "
+                f"row layout, got {resolved}."
+            )
+    return normalized
+
+
+def _gtap_structured_rows(matrix_layouts: dict[str, tuple[str, ...]] | None) -> tuple[bool, bool]:
+    """Return whether V/VY and E/EY rows are region-sector structured."""
+    normalized = matrix_layouts or {}
+    return (
+        iot_row_layout("V", normalized) == _GTAP_SUPPORTED_ROW_LAYOUT,
+        iot_row_layout("E", normalized) == _GTAP_SUPPORTED_ROW_LAYOUT,
+    )
+
+
+def gtap_block_specs(matrix_layouts: dict[str, object] | None) -> list:
+    """Return the semantic block specs implied by validated GTAP matrix layouts."""
+    normalized = _normalize_gtap_matrix_layouts(matrix_layouts)
+    if not normalized:
+        return []
+    return iot_block_specs_for_matrix_layouts(normalized)
+
+
 def _gtap_finalize_iot(
     *,
     Z: pd.DataFrame,
@@ -209,6 +273,7 @@ def _gtap_finalize_iot(
     regions: list[str],
     sectors: list[str],
     final_demand: list[str],
+    matrix_layouts: dict[str, tuple[str, ...]] | None = None,
 ) -> tuple[dict[str, dict[str, pd.DataFrame]], dict[str, dict[str, list[str]]], dict[str, pd.DataFrame]]:
     raw_sector_columns = Z.columns
     raw_final_demand_columns = Y.columns
@@ -260,12 +325,19 @@ def _gtap_finalize_iot(
             "EY": EY,
         }
     }
+    v_structured, e_structured = _gtap_structured_rows(matrix_layouts)
+    factor_rows = (
+        delete_duplicates(V.index.get_level_values(-1).tolist()) if v_structured else V.index.tolist()
+    )
+    satellite_rows = (
+        delete_duplicates(E.index.get_level_values(-1).tolist()) if e_structured else E.index.tolist()
+    )
     indexes = {
         "r": {"main": list(regions)},
         "s": {"main": list(sectors)},
         "n": {"main": list(final_demand)},
-        "f": {"main": V.index.tolist()},
-        "k": {"main": E.index.tolist()},
+        "f": {"main": factor_rows},
+        "k": {"main": satellite_rows},
     }
     units = _gtap_units(
         {
@@ -276,415 +348,877 @@ def _gtap_finalize_iot(
         }
     )
     rename_index(matrices["baseline"])
+    # rename_index applies the generic Region/Level/Item names everywhere;
+    # structured factor/satellite rows keep their semantic axis names instead.
+    if v_structured:
+        for name in ("V", "VY"):
+            matrices["baseline"][name].index.names = list(_GTAP_V_ROW_AXIS_NAMES)
+    if e_structured:
+        for name in ("E", "EY"):
+            matrices["baseline"][name].index.names = list(_GTAP_E_ROW_AXIS_NAMES)
     sort_frames(matrices["baseline"])
     return matrices, indexes, units
 
 
-def _csv_missing(df: pd.DataFrame, variant: str, indexes: dict[str, dict[str, list[str]]]) -> pd.DataFrame:
-    regions = list(indexes["r"]["main"])
-    sectors = list(indexes["s"]["main"])
-    final_demand = list(indexes["n"]["main"])
-    agents = sectors + final_demand
+# ---------------------------------------------------------------------------
+# Dense-block assembly engine
+#
+# Records never get reindexed onto cartesian products. Each label column is
+# categorized once, category codes are translated to positions on the sorted
+# dense axes, and values are accumulated straight into ``np.zeros`` blocks.
+# Missing combinations therefore stay zero for free, and duplicated keys sum.
+# ---------------------------------------------------------------------------
 
-    if variant == "dom":
-        base = df.copy()
-        if "DST" in base.columns:
-            base = base.drop(columns=["DST"])
-        filled = (
-            base.set_index(["COMM", "AGENT", "SRC"])
-            .reindex(
-                pd.MultiIndex.from_product([sectors, agents, regions], names=["COMM", "AGENT", "SRC"]),
-                fill_value=0,
-            )
-            .reset_index()
+
+def _appearance_unique(series: pd.Series) -> list[str]:
+    """Return unique values in order of first appearance, as plain strings."""
+    values = series.unique()
+    if isinstance(values, pd.Categorical):
+        values = np.asarray(values.astype(str))
+    return [str(value) for value in values]
+
+
+def _categorize_keys(frame: pd.DataFrame, key_columns: list[str]) -> pd.DataFrame:
+    """Return a copy of ``frame`` with stripped column names and categorical keys."""
+    prepared = frame.copy()
+    prepared.columns = [str(column).strip() for column in prepared.columns]
+    for column in key_columns:
+        if not isinstance(prepared[column].dtype, pd.CategoricalDtype):
+            prepared[column] = prepared[column].astype("category")
+    return prepared
+
+
+def _position_codes(series: pd.Series, positions: dict[str, int]) -> np.ndarray:
+    """Translate one categorical column onto axis positions (-1 = unmapped)."""
+    categories = series.cat.categories
+    table = np.full(len(categories) + 1, -1, dtype=np.int64)
+    for category_index, category in enumerate(categories):
+        table[category_index] = positions.get(str(category), -1)
+    codes = series.cat.codes.to_numpy()
+    # missing values carry code -1, which safely hits the sentinel slot
+    return table[codes]
+
+
+def _values_array(series: pd.Series) -> np.ndarray:
+    values = series.to_numpy(dtype=np.float64)
+    if np.isnan(values).any():
+        values = np.nan_to_num(values, nan=0.0)
+    return values
+
+
+def _combined_positions(region_positions: np.ndarray, item_positions: np.ndarray, n_items: int) -> np.ndarray:
+    valid = (region_positions >= 0) & (item_positions >= 0)
+    return np.where(valid, region_positions * n_items + item_positions, -1)
+
+
+def _accumulate(
+    matrix: np.ndarray,
+    row_positions: np.ndarray,
+    column_positions: np.ndarray,
+    values: np.ndarray,
+    mask: np.ndarray | None = None,
+) -> None:
+    valid = (row_positions >= 0) & (column_positions >= 0)
+    if mask is not None:
+        valid &= mask
+    if not valid.any():
+        return
+    if valid.all():
+        np.add.at(matrix, (row_positions, column_positions), values)
+    else:
+        np.add.at(matrix, (row_positions[valid], column_positions[valid]), values[valid])
+
+
+def _scatter_matrix(
+    n_rows: int,
+    n_columns: int,
+    row_positions: np.ndarray,
+    column_positions: np.ndarray,
+    values: np.ndarray,
+    mask: np.ndarray | None = None,
+) -> np.ndarray:
+    matrix = np.zeros((n_rows, n_columns), dtype=np.float64)
+    _accumulate(matrix, row_positions, column_positions, values, mask)
+    return matrix
+
+
+class _GTAPAxes:
+    """Dense sorted axes plus appearance-order public index lists."""
+
+    def __init__(self, regions: list[str], sectors: list[str], final_demand: list[str]):
+        self.regions = [str(region) for region in regions]
+        self.sectors = [str(sector) for sector in sectors]
+        self.final_demand = [str(item) for item in final_demand]
+
+        self.sorted_regions = sorted(self.regions)
+        self.sorted_sectors = sorted(self.sectors)
+        self.sorted_final_demand = sorted(self.final_demand)
+
+        self.region_positions = {label: position for position, label in enumerate(self.sorted_regions)}
+        self.sector_positions = {label: position for position, label in enumerate(self.sorted_sectors)}
+        self.final_demand_positions = {
+            label: position for position, label in enumerate(self.sorted_final_demand)
+        }
+
+        self.n_regions = len(self.sorted_regions)
+        self.n_sectors = len(self.sorted_sectors)
+        self.n_final_demand = len(self.sorted_final_demand)
+        self.n_sector_columns = self.n_regions * self.n_sectors
+        self.n_final_columns = self.n_regions * self.n_final_demand
+
+        self.sector_axis = pd.MultiIndex.from_product(
+            [self.sorted_regions, self.sorted_sectors], names=["DST", "AGENT"]
         )
-        filled["DST"] = filled["SRC"]
-        return filled
-
-    if variant == "general":
-        return (
-            df.set_index(["COMM", "AGENT", "SRC", "DST"])
-            .reindex(
-                pd.MultiIndex.from_product(
-                    [sectors, agents, regions, regions],
-                    names=["COMM", "AGENT", "SRC", "DST"],
-                ),
-                fill_value=0,
-            )
-            .reset_index()
+        self.final_demand_axis = pd.MultiIndex.from_product(
+            [self.sorted_regions, self.sorted_final_demand], names=["DST", "AGENT"]
         )
 
-    if variant == "tax":
-        return (
-            df.set_index(["COMM", "SRC", "DST"])
-            .reindex(
-                pd.MultiIndex.from_product([sectors, regions, regions], names=["COMM", "SRC", "DST"]),
-                fill_value=0,
-            )
-            .reset_index()
-        )
 
-    if variant == "ptax":
-        base = df.copy()
-        extra_cols = [column for column in base.columns if column not in {"COMM", "DST", "VALUE"}]
-        if extra_cols:
-            base = base.drop(columns=extra_cols)
-        return (
-            base.set_index(["COMM", "DST"])
-            .reindex(
-                pd.MultiIndex.from_product([sectors, regions], names=["COMM", "DST"]),
-                fill_value=0,
-            )
-            .reset_index()
-        )
-
-    if variant == "single_region":
-        return (
-            df.set_index(["COMM", "AGENT", "REG"])
-            .reindex(
-                pd.MultiIndex.from_product([sectors, agents, regions], names=["COMM", "AGENT", "REG"]),
-                fill_value=0,
-            )
-            .reset_index()
-        )
-
-    if variant == "single_region_va":
-        row_categories = delete_duplicates(df["COMM"].astype(str))
-        return (
-            df.set_index(["COMM", "AGENT", "REG"])
-            .reindex(
-                pd.MultiIndex.from_product([row_categories, sectors, regions], names=["COMM", "AGENT", "REG"]),
-                fill_value=0,
-            )
-            .reset_index()
-        )
-
-    if variant in {"emi_dom", "emi_imp", "ene_dom", "ene_imp"}:
-        group_col = "EM" if variant.startswith("emi") else "COMM"
-        item_col = "COMM"
-        activity_col = "AGT"
-        frames: list[pd.DataFrame] = []
-        for _, group_frame in df.groupby(group_col, sort=False):
-            item_values = delete_duplicates(group_frame[item_col].astype(str))
-            names = [item_col, activity_col, "SRC", "DST"]
-            index = pd.MultiIndex.from_product([item_values, agents, regions, regions], names=names)
-            if variant.endswith("dom"):
-                index = index[index.get_level_values("SRC") == index.get_level_values("DST")]
-            reindexed = (
-                group_frame.set_index(names)
-                .reindex(index, fill_value=0)
-                .reset_index()
-            )
-            if group_col not in reindexed.columns:
-                reindexed[group_col] = group_frame.iloc[0][group_col]
-            frames.append(reindexed)
-        return pd.concat(frames, ignore_index=True) if frames else df.copy()
-
-    raise ValueError(f"Unrecognized GTAP csv fill variant: {variant}")
+def _sector_space_frame(matrix: np.ndarray, axes: _GTAPAxes, columns: pd.MultiIndex) -> pd.DataFrame:
+    index = pd.MultiIndex.from_product(
+        [axes.sorted_regions, axes.sorted_sectors], names=["SRC", "COMM"]
+    )
+    return pd.DataFrame(matrix, index=index, columns=columns)
 
 
-def _csv_to_matrix(
-    df: pd.DataFrame,
+def _sorted_row_frame(
+    row_names: list[str],
+    matrix: np.ndarray,
+    columns: pd.MultiIndex,
     *,
-    var: str,
-    variant_missing: str,
-    indexes: dict[str, dict[str, list[str]]],
-    pivot_index: list[str],
-    pivot_columns: list[str],
+    row_tuples: list[tuple[str, str, str]] | None = None,
+    tuple_names: tuple[str, ...] | None = None,
+) -> pd.DataFrame:
+    """Build one row block sorted by flat row name.
+
+    Rows are always ordered by the flat name so the structured (layout) and
+    flat variants of the same block stay value-identical row by row; only the
+    index representation changes.
+    """
+    order = sorted(range(len(row_names)), key=row_names.__getitem__)
+    if row_tuples is None:
+        index = pd.Index([row_names[position] for position in order], name="row_name")
+    elif row_names:
+        index = pd.MultiIndex.from_tuples(
+            [row_tuples[position] for position in order], names=list(tuple_names)
+        )
+    else:
+        index = pd.MultiIndex.from_arrays([[] for _ in tuple_names], names=list(tuple_names))
+    if order != list(range(len(row_names))):
+        matrix = matrix[order]
+    return pd.DataFrame(matrix, index=index, columns=columns)
+
+
+def _observed_labels(codes: np.ndarray, categories: pd.Index, mask: np.ndarray) -> tuple[list[str], np.ndarray]:
+    """Appearance-ordered observed category labels plus a code -> row lookup table."""
+    valid = mask & (codes >= 0)
+    observed = pd.unique(codes[valid])
+    lookup = np.full(len(categories) + 1, -1, dtype=np.int64)
+    lookup[observed] = np.arange(len(observed))
+    labels = [str(categories[code]) for code in observed]
+    return labels, lookup
+
+
+def _observed_pairs(
+    primary_codes: np.ndarray,
+    secondary_codes: np.ndarray,
+    n_secondary: int,
+    mask: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Appearance-ordered observed (primary, secondary) pairs plus a lookup table."""
+    valid = mask & (primary_codes >= 0) & (secondary_codes >= 0)
+    combined = primary_codes * n_secondary + secondary_codes
+    sentinel = combined.max(initial=0) + 1 if valid.any() else 1
+    safe = np.where(valid | ((primary_codes >= 0) & (secondary_codes >= 0)), combined, sentinel)
+    observed = pd.unique(combined[valid])
+    lookup = np.full(int(max(sentinel, combined.max(initial=0))) + 2, -1, dtype=np.int64)
+    lookup[observed] = np.arange(len(observed))
+    row_codes = np.where((primary_codes >= 0) & (secondary_codes >= 0), lookup[safe], -1)
+    return observed, lookup, row_codes
+
+
+def _region_sector_row_names(categ: str, axes: _GTAPAxes) -> list[str]:
+    return [
+        f"{categ}_{region}_{sector}"
+        for region in axes.sorted_regions
+        for sector in axes.sorted_sectors
+    ]
+
+
+# ---------------------------------------------------------------------------
+# Coded record views
+# ---------------------------------------------------------------------------
+
+
+class _FlowCodes:
+    """Integer-coded view of one record table with region/agent key columns."""
+
+    def __init__(
+        self,
+        frame: pd.DataFrame,
+        axes: _GTAPAxes,
+        *,
+        sector_column: str | None = None,
+        agent_column: str | None = None,
+        source_column: str | None = None,
+        destination_column: str | None = None,
+        value_column: str = "VALUE",
+    ):
+        self.frame = frame
+        self.values = _values_array(frame[value_column])
+        self.sector = (
+            _position_codes(frame[sector_column], axes.sector_positions)
+            if sector_column is not None
+            else None
+        )
+        self.agent_sector = (
+            _position_codes(frame[agent_column], axes.sector_positions)
+            if agent_column is not None
+            else None
+        )
+        self.agent_final = (
+            _position_codes(frame[agent_column], axes.final_demand_positions)
+            if agent_column is not None
+            else None
+        )
+        self.source = (
+            _position_codes(frame[source_column], axes.region_positions)
+            if source_column is not None
+            else None
+        )
+        self.destination = (
+            _position_codes(frame[destination_column], axes.region_positions)
+            if destination_column is not None
+            else None
+        )
+
+
+def _var_mask(frame: pd.DataFrame, value: str, column: str = "VAR") -> np.ndarray:
+    return (frame[column] == value).to_numpy()
+
+
+def _warn_uncaptured_satellite_mass(label: str, raw_total: float, blocks) -> None:
+    """Emit a warning when satellite records did not fully land in E/EY.
+
+    The assembly is record-exact by construction, so any residual means the
+    source file contains keys the parser does not recognize (for example
+    domestic records pointing at two different real regions). Losing that
+    mass silently would be worse than the warning noise.
+    """
+    captured = float(sum(block.to_numpy().sum() for block in blocks))
+    difference = raw_total - captured
+    if abs(difference) > max(1e-6, 1e-9 * abs(raw_total)):
+        log_time(
+            logger,
+            f"Parser: {difference:,.6f} of the {label} record mass was not captured in E/EY "
+            "(records with unrecognized regions/agents or non-diagonal domestic keys).",
+            "warning",
+        )
+
+
+# ---------------------------------------------------------------------------
+# Shared block builders
+# ---------------------------------------------------------------------------
+
+
+def _flow_blocks(
+    axes: _GTAPAxes,
+    contributions: list[tuple[_FlowCodes, np.ndarray | None, np.ndarray]],
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    filtered = df.loc[df["VAR"] == var].drop(columns=["VAR"]).copy()
-    filled = _csv_missing(filtered, variant_missing, indexes)
-    intermediate = filled.loc[filled["AGENT"].isin(indexes["s"]["main"])]
-    final = filled.loc[filled["AGENT"].isin(indexes["n"]["main"])]
-    Z = intermediate.pivot_table(
-        index=pivot_index,
-        columns=pivot_columns,
-        values="VALUE",
-        aggfunc="sum",
-    ).fillna(0.0)
-    Y = final.pivot_table(
-        index=pivot_index,
-        columns=pivot_columns,
-        values="VALUE",
-        aggfunc="sum",
-    ).fillna(0.0)
+    """Assemble Z and Y from (codes, mask, column-region positions) contributions."""
+    z_matrix = np.zeros((axes.n_sector_columns, axes.n_sector_columns), dtype=np.float64)
+    y_matrix = np.zeros((axes.n_sector_columns, axes.n_final_columns), dtype=np.float64)
+    for codes, mask, column_regions in contributions:
+        rows = _combined_positions(codes.source, codes.sector, axes.n_sectors)
+        _accumulate(
+            z_matrix,
+            rows,
+            _combined_positions(column_regions, codes.agent_sector, axes.n_sectors),
+            codes.values,
+            mask,
+        )
+        _accumulate(
+            y_matrix,
+            rows,
+            _combined_positions(column_regions, codes.agent_final, axes.n_final_demand),
+            codes.values,
+            mask,
+        )
+    Z = _sector_space_frame(z_matrix, axes, axes.sector_axis)
+    Y = _sector_space_frame(y_matrix, axes, axes.final_demand_axis)
     return Z, Y
 
 
-def _csv_to_matrix_rowname(
-    df: pd.DataFrame,
+def _region_sector_rowname_blocks(
+    categ: str,
+    axes: _GTAPAxes,
+    codes: _FlowCodes,
+    mask: np.ndarray | None,
     *,
-    var: str,
-    variant_missing: str,
-    indexes: dict[str, dict[str, list[str]]],
-    row_name_setting: str,
-    row_name_categ: str,
-    row_name_reg: str = "",
-    pivot_index: list[str],
-    pivot_columns: list[str],
-    split_agent: bool = False,
-) -> pd.DataFrame | tuple[pd.DataFrame, pd.DataFrame]:
-    filtered = df.loc[df["VAR"] == var].drop(columns=["VAR"]).copy()
-    filled = _csv_missing(filtered, variant_missing, indexes)
+    structured: bool = False,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Blocks with one dense row per (source region, sector), e.g. MTAX/ITTM."""
+    row_names = _region_sector_row_names(categ, axes)
+    row_tuples = (
+        [
+            (region, sector, categ)
+            for region in axes.sorted_regions
+            for sector in axes.sorted_sectors
+        ]
+        if structured
+        else None
+    )
+    rows = _combined_positions(codes.source, codes.sector, axes.n_sectors)
+    block = _scatter_matrix(
+        len(row_names),
+        axes.n_sector_columns,
+        rows,
+        _combined_positions(codes.destination, codes.agent_sector, axes.n_sectors),
+        codes.values,
+        mask,
+    )
+    block_y = _scatter_matrix(
+        len(row_names),
+        axes.n_final_columns,
+        rows,
+        _combined_positions(codes.destination, codes.agent_final, axes.n_final_demand),
+        codes.values,
+        mask,
+    )
+    return (
+        _sorted_row_frame(
+            row_names, block, axes.sector_axis,
+            row_tuples=row_tuples, tuple_names=_GTAP_V_ROW_AXIS_NAMES,
+        ),
+        _sorted_row_frame(
+            row_names, block_y, axes.final_demand_axis,
+            row_tuples=row_tuples, tuple_names=_GTAP_V_ROW_AXIS_NAMES,
+        ),
+    )
 
-    if row_name_setting == "only_region":
-        filled["row_name"] = row_name_categ + "_" + filled[row_name_reg].astype(str)
-    elif row_name_setting == "reg_comm":
-        filled["row_name"] = (
-            row_name_categ + "_" + filled[row_name_reg].astype(str) + "_" + filled["COMM"].astype(str)
-        )
-        filled = filled.drop(columns=["COMM", row_name_reg])
-    elif row_name_setting == "only_comm":
-        filled["row_name"] = row_name_categ + "_REG_" + filled["COMM"].astype(str)
-    elif row_name_setting == "only_categ":
-        filled["row_name"] = row_name_categ + "_REG"
-    elif row_name_setting == "emi_dom":
-        filled["row_name"] = (
-            row_name_categ
-            + "_"
-            + filled["EM"].astype(str)
-            + "_dms_"
-            + filled["COMM"].astype(str)
-        )
-        filled = filled.drop(columns=["EM", "COMM", "SRC"])
-    elif row_name_setting == "emi_imp":
-        filled["row_name"] = (
-            row_name_categ
-            + "_"
-            + filled["EM"].astype(str)
-            + "_"
-            + filled["SRC"].astype(str)
-            + "_"
-            + filled["COMM"].astype(str)
-        )
-        filled = filled.drop(columns=["EM", "COMM", "SRC"])
-    elif row_name_setting == "ene_dom":
-        filled["row_name"] = row_name_categ + "_dms_" + filled["COMM"].astype(str)
-        filled = filled.drop(columns=["COMM", "SRC"])
-    elif row_name_setting == "ene_imp":
-        filled["row_name"] = (
-            row_name_categ + "_" + filled["SRC"].astype(str) + "_" + filled["COMM"].astype(str)
-        )
-        filled = filled.drop(columns=["COMM", "SRC"])
+
+def _region_rowname_block(
+    categ: str,
+    axes: _GTAPAxes,
+    *,
+    row_regions: np.ndarray,
+    column_regions: np.ndarray,
+    column_sectors: np.ndarray,
+    values: np.ndarray,
+    mask: np.ndarray | None,
+    structured: bool = False,
+) -> pd.DataFrame:
+    """Block with one row per region, e.g. ETAX."""
+    row_names = [f"{categ}_{region}" for region in axes.sorted_regions]
+    row_tuples = (
+        [(region, _GTAP_LAYOUT_SENTINEL, categ) for region in axes.sorted_regions]
+        if structured
+        else None
+    )
+    block = _scatter_matrix(
+        len(row_names),
+        axes.n_sector_columns,
+        row_regions,
+        _combined_positions(column_regions, column_sectors, axes.n_sectors),
+        values,
+        mask,
+    )
+    return _sorted_row_frame(
+        row_names, block, axes.sector_axis,
+        row_tuples=row_tuples, tuple_names=_GTAP_V_ROW_AXIS_NAMES,
+    )
+
+
+def _single_rowname_block(
+    row_name: str,
+    axes: _GTAPAxes,
+    *,
+    column_regions: np.ndarray,
+    column_sectors: np.ndarray,
+    values: np.ndarray,
+    mask: np.ndarray | None,
+    structured: bool = False,
+    item_label: str | None = None,
+) -> pd.DataFrame:
+    """Block with one aggregate row, e.g. PTAX."""
+    rows = np.zeros(len(values), dtype=np.int64)
+    block = _scatter_matrix(
+        1,
+        axes.n_sector_columns,
+        rows,
+        _combined_positions(column_regions, column_sectors, axes.n_sectors),
+        values,
+        mask,
+    )
+    row_tuples = (
+        [(_GTAP_LAYOUT_SENTINEL, _GTAP_LAYOUT_SENTINEL, item_label or row_name)]
+        if structured
+        else None
+    )
+    return _sorted_row_frame(
+        [row_name], block, axes.sector_axis,
+        row_tuples=row_tuples, tuple_names=_GTAP_V_ROW_AXIS_NAMES,
+    )
+
+
+def _observed_item_rowname_block(
+    categ_prefix: str,
+    axes: _GTAPAxes,
+    *,
+    item_series: pd.Series,
+    column_regions: np.ndarray,
+    column_sectors: np.ndarray,
+    values: np.ndarray,
+    mask: np.ndarray,
+    structured: bool = False,
+    item_prefix: str | None = None,
+) -> pd.DataFrame:
+    """Block with one row per observed row-item, e.g. VAAD/VTAX endowments."""
+    item_codes = item_series.cat.codes.to_numpy().astype(np.int64)
+    labels, lookup = _observed_labels(item_codes, item_series.cat.categories, mask)
+    row_names = [f"{categ_prefix}{label}" for label in labels]
+    row_tuples = (
+        [
+            (_GTAP_LAYOUT_SENTINEL, _GTAP_LAYOUT_SENTINEL, f"{item_prefix or categ_prefix}{label}")
+            for label in labels
+        ]
+        if structured
+        else None
+    )
+    rows = lookup[item_codes]
+    block = _scatter_matrix(
+        len(row_names),
+        axes.n_sector_columns,
+        rows,
+        _combined_positions(column_regions, column_sectors, axes.n_sectors),
+        values,
+        mask,
+    )
+    return _sorted_row_frame(
+        row_names, block, axes.sector_axis,
+        row_tuples=row_tuples, tuple_names=_GTAP_V_ROW_AXIS_NAMES,
+    )
+
+
+def _dense_sector_rowname_blocks(
+    categ: str,
+    axes: _GTAPAxes,
+    codes: _FlowCodes,
+    mask: np.ndarray | None,
+    *,
+    column_regions: np.ndarray,
+    structured: bool = False,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Blocks with one dense row per sector, e.g. DTAX/ITAX."""
+    row_names = [f"{categ}_REG_{sector}" for sector in axes.sorted_sectors]
+    row_tuples = (
+        [(_GTAP_LAYOUT_SENTINEL, sector, categ) for sector in axes.sorted_sectors]
+        if structured
+        else None
+    )
+    block = _scatter_matrix(
+        len(row_names),
+        axes.n_sector_columns,
+        codes.sector,
+        _combined_positions(column_regions, codes.agent_sector, axes.n_sectors),
+        codes.values,
+        mask,
+    )
+    block_y = _scatter_matrix(
+        len(row_names),
+        axes.n_final_columns,
+        codes.sector,
+        _combined_positions(column_regions, codes.agent_final, axes.n_final_demand),
+        codes.values,
+        mask,
+    )
+    return (
+        _sorted_row_frame(
+            row_names, block, axes.sector_axis,
+            row_tuples=row_tuples, tuple_names=_GTAP_V_ROW_AXIS_NAMES,
+        ),
+        _sorted_row_frame(
+            row_names, block_y, axes.final_demand_axis,
+            row_tuples=row_tuples, tuple_names=_GTAP_V_ROW_AXIS_NAMES,
+        ),
+    )
+
+
+def _satellite_domestic_blocks(
+    axes: _GTAPAxes,
+    codes: _FlowCodes,
+    *,
+    domestic_mask: np.ndarray,
+    gas_series: pd.Series | None,
+    item_series: pd.Series,
+    name_builder,
+    tuple_builder=None,
+    pseudo_diagonal: np.ndarray | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Domestic satellite rows: one row per observed (gas, item), values on SRC==DST.
+
+    ``pseudo_diagonal`` marks records whose source is a placeholder token
+    rather than a region (GTAP csv exports write ``SRC="TOT"`` for output- and
+    value-added-based emission accounts): they belong to the destination
+    region and are accumulated on the diagonal like any domestic record.
+    """
+    item_codes = item_series.cat.codes.to_numpy().astype(np.int64)
+    item_categories = item_series.cat.categories
+    if gas_series is None:
+        labels, lookup = _observed_labels(item_codes, item_categories, domestic_mask)
+        pair_labels = [(None, label) for label in labels]
+        rows = lookup[item_codes]
     else:
-        raise ValueError(f"Unsupported GTAP csv row naming mode: {row_name_setting}")
+        gas_codes = gas_series.cat.codes.to_numpy().astype(np.int64)
+        gas_categories = gas_series.cat.categories
+        observed, _, rows = _observed_pairs(
+            gas_codes, item_codes, len(item_categories), domestic_mask
+        )
+        pair_labels = [
+            (str(gas_categories[pair // len(item_categories)]),
+             str(item_categories[pair % len(item_categories)]))
+            for pair in observed
+        ]
+    row_names = [name_builder(gas_label, item_label) for gas_label, item_label in pair_labels]
+    row_tuples = (
+        [tuple_builder(gas_label, item_label) for gas_label, item_label in pair_labels]
+        if tuple_builder is not None
+        else None
+    )
+    diagonal = domestic_mask & (codes.source >= 0) & (codes.source == codes.destination)
+    if pseudo_diagonal is not None:
+        diagonal |= domestic_mask & pseudo_diagonal & (codes.destination >= 0)
+    block = _scatter_matrix(
+        len(row_names),
+        axes.n_sector_columns,
+        rows,
+        _combined_positions(codes.destination, codes.agent_sector, axes.n_sectors),
+        codes.values,
+        diagonal,
+    )
+    block_y = _scatter_matrix(
+        len(row_names),
+        axes.n_final_columns,
+        rows,
+        _combined_positions(codes.destination, codes.agent_final, axes.n_final_demand),
+        codes.values,
+        diagonal,
+    )
+    return (
+        _sorted_row_frame(
+            row_names, block, axes.sector_axis,
+            row_tuples=row_tuples, tuple_names=_GTAP_E_ROW_AXIS_NAMES,
+        ),
+        _sorted_row_frame(
+            row_names, block_y, axes.final_demand_axis,
+            row_tuples=row_tuples, tuple_names=_GTAP_E_ROW_AXIS_NAMES,
+        ),
+    )
 
-    activity_column = "AGENT" if "AGENT" in filled.columns else "AGT"
-    if split_agent:
-        V = filled.loc[filled[activity_column].isin(indexes["s"]["main"])].pivot_table(
-            index=pivot_index,
-            columns=pivot_columns,
-            values="VALUE",
-            aggfunc="sum",
-        ).fillna(0.0)
-        VY = filled.loc[filled[activity_column].isin(indexes["n"]["main"])].pivot_table(
-            index=pivot_index,
-            columns=pivot_columns,
-            values="VALUE",
-            aggfunc="sum",
-        ).fillna(0.0)
-        return V, VY
 
-    return filled.pivot_table(
-        index=pivot_index,
-        columns=pivot_columns,
-        values="VALUE",
-        aggfunc="sum",
-    ).fillna(0.0)
+def _satellite_import_blocks(
+    axes: _GTAPAxes,
+    codes: _FlowCodes,
+    *,
+    import_mask: np.ndarray,
+    gas_series: pd.Series | None,
+    item_series: pd.Series,
+    name_builder,
+    tuple_builder=None,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Import satellite rows: observed (gas, item) pairs expanded over all source regions."""
+    item_codes = item_series.cat.codes.to_numpy().astype(np.int64)
+    item_categories = item_series.cat.categories
+    if gas_series is None:
+        labels, lookup = _observed_labels(item_codes, item_categories, import_mask)
+        pair_rows = lookup[item_codes]
+        pair_labels = [(None, label) for label in labels]
+    else:
+        gas_codes = gas_series.cat.codes.to_numpy().astype(np.int64)
+        gas_categories = gas_series.cat.categories
+        observed, _, pair_rows = _observed_pairs(
+            gas_codes, item_codes, len(item_categories), import_mask
+        )
+        pair_labels = [
+            (str(gas_categories[pair // len(item_categories)]),
+             str(item_categories[pair % len(item_categories)]))
+            for pair in observed
+        ]
+    row_names = [
+        name_builder(gas_label, region, item_label)
+        for gas_label, item_label in pair_labels
+        for region in axes.sorted_regions
+    ]
+    row_tuples = (
+        [
+            tuple_builder(gas_label, region, item_label)
+            for gas_label, item_label in pair_labels
+            for region in axes.sorted_regions
+        ]
+        if tuple_builder is not None
+        else None
+    )
+    rows = np.where(
+        (pair_rows >= 0) & (codes.source >= 0),
+        pair_rows * axes.n_regions + codes.source,
+        -1,
+    )
+    block = _scatter_matrix(
+        len(row_names),
+        axes.n_sector_columns,
+        rows,
+        _combined_positions(codes.destination, codes.agent_sector, axes.n_sectors),
+        codes.values,
+        import_mask,
+    )
+    block_y = _scatter_matrix(
+        len(row_names),
+        axes.n_final_columns,
+        rows,
+        _combined_positions(codes.destination, codes.agent_final, axes.n_final_demand),
+        codes.values,
+        import_mask,
+    )
+    return (
+        _sorted_row_frame(
+            row_names, block, axes.sector_axis,
+            row_tuples=row_tuples, tuple_names=_GTAP_E_ROW_AXIS_NAMES,
+        ),
+        _sorted_row_frame(
+            row_names, block_y, axes.final_demand_axis,
+            row_tuples=row_tuples, tuple_names=_GTAP_E_ROW_AXIS_NAMES,
+        ),
+    )
+
+
+# ---------------------------------------------------------------------------
+# CSV backend
+# ---------------------------------------------------------------------------
+
+
+_GTAP_CSV_KEY_COLUMNS = {
+    "SRCxDST": ["VAR", "COMM", "AGENT", "SRC", "DST"],
+    "V": ["VAR", "COMM", "AGENT", "REG"],
+    "V - Tax": ["VAR", "COMM", "SRC", "DST"],
+    "E+EY - Emissions": ["VAR", "EM", "COMM", "AGT", "SRC", "DST"],
+    "E+EY - Energy": ["VAR", "COMM", "AGT", "SRC", "DST"],
+}
 
 
 def build_gtap_mrio_from_csv_frames(
     frames: dict[str, pd.DataFrame],
+    matrix_layouts: dict[str, object] | None = None,
 ) -> tuple[dict[str, dict[str, pd.DataFrame]], dict[str, dict[str, list[str]]], dict[str, pd.DataFrame]]:
     """Build canonical MARIO IOT blocks from GTAP Power MRIO csv frames."""
-    srcxdst = frames["SRCxDST"].copy()
-    value_added = frames["V"].copy()
-    value_taxes = frames["V - Tax"].copy()
-    emissions = frames["E+EY - Emissions"].copy()
-    energy = frames["E+EY - Energy"].copy()
+    normalized_layouts = _normalize_gtap_matrix_layouts(matrix_layouts)
+    v_structured, e_structured = _gtap_structured_rows(normalized_layouts)
+    srcxdst = _categorize_keys(frames["SRCxDST"], _GTAP_CSV_KEY_COLUMNS["SRCxDST"])
+    value_added = _categorize_keys(frames["V"], _GTAP_CSV_KEY_COLUMNS["V"])
+    value_taxes = _categorize_keys(frames["V - Tax"], _GTAP_CSV_KEY_COLUMNS["V - Tax"])
+    emissions = _categorize_keys(frames["E+EY - Emissions"], _GTAP_CSV_KEY_COLUMNS["E+EY - Emissions"])
+    energy = _categorize_keys(frames["E+EY - Energy"], _GTAP_CSV_KEY_COLUMNS["E+EY - Energy"])
 
-    for frame in [srcxdst, value_added, value_taxes, emissions, energy]:
-        frame.columns = [str(column).strip() for column in frame.columns]
-
-    srcxdst["COMM"] = srcxdst["COMM"].astype(str)
-    srcxdst["AGENT"] = srcxdst["AGENT"].astype(str)
-    srcxdst["SRC"] = srcxdst["SRC"].astype(str)
-    srcxdst["DST"] = srcxdst["DST"].astype(str)
-
-    sectors = delete_duplicates(srcxdst["COMM"].tolist())
+    sectors = _appearance_unique(srcxdst["COMM"])
     sector_set = set(sectors)
-    final_demand = [item for item in delete_duplicates(srcxdst["AGENT"].tolist()) if item not in sector_set]
-    regions = delete_duplicates(pd.concat([srcxdst["SRC"], srcxdst["DST"]]).astype(str).tolist())
-
-    indexes = {
-        "r": {"main": regions},
-        "s": {"main": sectors},
-        "n": {"main": final_demand},
-    }
+    final_demand = [item for item in _appearance_unique(srcxdst["AGENT"]) if item not in sector_set]
+    regions = delete_duplicates(
+        _appearance_unique(srcxdst["SRC"]) + _appearance_unique(srcxdst["DST"])
+    )
+    axes = _GTAPAxes(regions=regions, sectors=sectors, final_demand=final_demand)
 
     log_time(logger, "Parser: building GTAP Power MRIO matrices from CSV frames.", "info")
-    Z_dom, Y_dom = _csv_to_matrix(
-        srcxdst,
-        var="DOM",
-        variant_missing="dom",
-        indexes=indexes,
-        pivot_index=["SRC", "COMM"],
-        pivot_columns=["DST", "AGENT"],
-    )
-    Z_imp, Y_imp = _csv_to_matrix(
-        srcxdst,
-        var="VFOB",
-        variant_missing="general",
-        indexes=indexes,
-        pivot_index=["SRC", "COMM"],
-        pivot_columns=["DST", "AGENT"],
-    )
-    Z = Z_dom.add(Z_imp, fill_value=0.0)
-    Y = Y_dom.add(Y_imp, fill_value=0.0)
 
-    V_mtax, VY_mtax = _csv_to_matrix_rowname(
+    flow = _FlowCodes(
         srcxdst,
-        var="MTAX",
-        variant_missing="general",
-        indexes=indexes,
-        row_name_setting="reg_comm",
-        row_name_categ="MTAX",
-        row_name_reg="SRC",
-        pivot_index=["row_name"],
-        pivot_columns=["DST", "AGENT"],
-        split_agent=True,
+        axes,
+        sector_column="COMM",
+        agent_column="AGENT",
+        source_column="SRC",
+        destination_column="DST",
     )
-    V_ittm, VY_ittm = _csv_to_matrix_rowname(
-        srcxdst,
-        var="ITTM",
-        variant_missing="general",
-        indexes=indexes,
-        row_name_setting="reg_comm",
-        row_name_categ="ITTM",
-        row_name_reg="SRC",
-        pivot_index=["row_name"],
-        pivot_columns=["DST", "AGENT"],
-        split_agent=True,
-    )
-    V = pd.concat([V_mtax, V_ittm], axis=0)
-    VY = pd.concat([VY_mtax, VY_ittm], axis=0)
 
-    V_etax = _csv_to_matrix_rowname(
+    log_time(logger, "Parser: assembling intermediate and final demand flows (Z, Y).", "info")
+    Z, Y = _flow_blocks(
+        axes,
+        [
+            # domestic flows: the destination region is the source region itself
+            (flow, _var_mask(srcxdst, "DOM"), flow.source),
+            (flow, _var_mask(srcxdst, "VFOB"), flow.destination),
+        ],
+    )
+
+    log_time(logger, "Parser: assembling factor of production blocks (V, VY).", "info")
+    V_mtax, VY_mtax = _region_sector_rowname_blocks(
+        "MTAX", axes, flow, _var_mask(srcxdst, "MTAX"), structured=v_structured
+    )
+    V_ittm, VY_ittm = _region_sector_rowname_blocks(
+        "ITTM", axes, flow, _var_mask(srcxdst, "ITTM"), structured=v_structured
+    )
+
+    taxes = _FlowCodes(
         value_taxes,
-        var="ETAX",
-        variant_missing="tax",
-        indexes=indexes,
-        row_name_setting="only_region",
-        row_name_categ="ETAX",
-        row_name_reg="DST",
-        pivot_index=["row_name"],
-        pivot_columns=["SRC", "COMM"],
+        axes,
+        sector_column="COMM",
+        source_column="SRC",
+        destination_column="DST",
     )
-    V_ptax = _csv_to_matrix_rowname(
-        value_taxes,
-        var="PTAX",
-        variant_missing="ptax",
-        indexes=indexes,
-        row_name_setting="only_categ",
-        row_name_categ="PTAX",
-        pivot_index=["row_name"],
-        pivot_columns=["DST", "COMM"],
+    V_etax = _region_rowname_block(
+        "ETAX",
+        axes,
+        row_regions=taxes.destination,
+        column_regions=taxes.source,
+        column_sectors=taxes.sector,
+        values=taxes.values,
+        mask=_var_mask(value_taxes, "ETAX"),
+        structured=v_structured,
     )
-    V = pd.concat([V, V_etax, V_ptax], axis=0)
+    V_ptax = _single_rowname_block(
+        "PTAX_REG",
+        axes,
+        column_regions=taxes.destination,
+        column_sectors=taxes.sector,
+        values=taxes.values,
+        mask=_var_mask(value_taxes, "PTAX"),
+        structured=v_structured,
+        item_label="PTAX",
+    )
 
-    V_va = _csv_to_matrix_rowname(
+    added = _FlowCodes(
         value_added,
-        var="VA",
-        variant_missing="single_region_va",
-        indexes=indexes,
-        row_name_setting="only_comm",
-        row_name_categ="VAAD",
-        pivot_index=["row_name"],
-        pivot_columns=["REG", "AGENT"],
+        axes,
+        sector_column="COMM",
+        agent_column="AGENT",
+        destination_column="REG",
     )
-    V_vtax = _csv_to_matrix_rowname(
-        value_added,
-        var="VTAX",
-        variant_missing="single_region_va",
-        indexes=indexes,
-        row_name_setting="only_comm",
-        row_name_categ="VTAX",
-        pivot_index=["row_name"],
-        pivot_columns=["REG", "AGENT"],
+    V_va = _observed_item_rowname_block(
+        "VAAD_REG_",
+        axes,
+        item_series=value_added["COMM"],
+        column_regions=added.destination,
+        column_sectors=added.agent_sector,
+        values=added.values,
+        mask=_var_mask(value_added, "VA"),
+        structured=v_structured,
+        item_prefix="VAAD_",
     )
-    V_idtax, VY_idtax = _csv_to_matrix_rowname(
-        value_added,
-        var="IDTAX",
-        variant_missing="single_region",
-        indexes=indexes,
-        row_name_setting="only_comm",
-        row_name_categ="DTAX",
-        pivot_index=["row_name"],
-        pivot_columns=["REG", "AGENT"],
-        split_agent=True,
+    V_vtax = _observed_item_rowname_block(
+        "VTAX_REG_",
+        axes,
+        item_series=value_added["COMM"],
+        column_regions=added.destination,
+        column_sectors=added.agent_sector,
+        values=added.values,
+        mask=_var_mask(value_added, "VTAX"),
+        structured=v_structured,
+        item_prefix="VTAX_",
     )
-    V_imtax, VY_imtax = _csv_to_matrix_rowname(
-        value_added,
-        var="IMTAX",
-        variant_missing="single_region",
-        indexes=indexes,
-        row_name_setting="only_comm",
-        row_name_categ="ITAX",
-        pivot_index=["row_name"],
-        pivot_columns=["REG", "AGENT"],
-        split_agent=True,
+    V_idtax, VY_idtax = _dense_sector_rowname_blocks(
+        "DTAX",
+        axes,
+        added,
+        _var_mask(value_added, "IDTAX"),
+        column_regions=added.destination,
+        structured=v_structured,
     )
-    V = pd.concat([V, V_va, V_vtax, V_idtax, V_imtax], axis=0)
-    VY = pd.concat([VY, VY_idtax, VY_imtax], axis=0)
+    V_imtax, VY_imtax = _dense_sector_rowname_blocks(
+        "ITAX",
+        axes,
+        added,
+        _var_mask(value_added, "IMTAX"),
+        column_regions=added.destination,
+        structured=v_structured,
+    )
 
-    E_dom, EY_dom = _csv_to_matrix_rowname(
+    V = pd.concat([V_mtax, V_ittm, V_etax, V_ptax, V_va, V_vtax, V_idtax, V_imtax], axis=0)
+    VY = pd.concat([VY_mtax, VY_ittm, VY_idtax, VY_imtax], axis=0)
+
+    log_time(logger, "Parser: assembling satellite blocks (E, EY) from emissions.", "info")
+    emission_codes = _FlowCodes(
         emissions,
-        var="DOM",
-        variant_missing="emi_dom",
-        indexes=indexes,
-        row_name_setting="emi_dom",
-        row_name_categ="EMI",
-        pivot_index=["row_name"],
-        pivot_columns=["DST", "AGT"],
-        split_agent=True,
+        axes,
+        agent_column="AGT",
+        source_column="SRC",
+        destination_column="DST",
     )
-    E_imp, EY_imp = _csv_to_matrix_rowname(
-        emissions,
-        var="IMP",
-        variant_missing="emi_imp",
-        indexes=indexes,
-        row_name_setting="emi_imp",
-        row_name_categ="EMI",
-        pivot_index=["row_name"],
-        pivot_columns=["DST", "AGT"],
-        split_agent=True,
+    # output/value-added based emission accounts are exported with SRC="TOT":
+    # they belong to the destination region like any domestic record
+    emission_pseudo_diagonal = (emissions["SRC"] == "TOT").to_numpy()
+    E_dom, EY_dom = _satellite_domestic_blocks(
+        axes,
+        emission_codes,
+        domestic_mask=_var_mask(emissions, "DOM"),
+        gas_series=emissions["EM"],
+        item_series=emissions["COMM"],
+        name_builder=lambda gas, item: f"EMI_{gas}_dms_{item}",
+        tuple_builder=(
+            (lambda gas, item: (_GTAP_LAYOUT_SENTINEL, item, f"EMI_{gas}_dms"))
+            if e_structured
+            else None
+        ),
+        pseudo_diagonal=emission_pseudo_diagonal,
     )
-    E_ene_dom, EY_ene_dom = _csv_to_matrix_rowname(
+    E_imp, EY_imp = _satellite_import_blocks(
+        axes,
+        emission_codes,
+        import_mask=_var_mask(emissions, "IMP"),
+        gas_series=emissions["EM"],
+        item_series=emissions["COMM"],
+        name_builder=lambda gas, region, item: f"EMI_{gas}_{region}_{item}",
+        tuple_builder=(
+            (lambda gas, region, item: (region, item, f"EMI_{gas}"))
+            if e_structured
+            else None
+        ),
+    )
+
+    _warn_uncaptured_satellite_mass(
+        "emissions", float(emission_codes.values.sum()), (E_dom, EY_dom, E_imp, EY_imp)
+    )
+
+    log_time(logger, "Parser: assembling satellite blocks (E, EY) from energy volumes.", "info")
+    energy_codes = _FlowCodes(
         energy,
-        var="DOM",
-        variant_missing="ene_dom",
-        indexes=indexes,
-        row_name_setting="ene_dom",
-        row_name_categ="ENE",
-        pivot_index=["row_name"],
-        pivot_columns=["DST", "AGT"],
-        split_agent=True,
+        axes,
+        agent_column="AGT",
+        source_column="SRC",
+        destination_column="DST",
     )
-    E_ene_imp, EY_ene_imp = _csv_to_matrix_rowname(
-        energy,
-        var="IMP",
-        variant_missing="ene_imp",
-        indexes=indexes,
-        row_name_setting="ene_imp",
-        row_name_categ="ENE",
-        pivot_index=["row_name"],
-        pivot_columns=["DST", "AGT"],
-        split_agent=True,
+    E_ene_dom, EY_ene_dom = _satellite_domestic_blocks(
+        axes,
+        energy_codes,
+        domestic_mask=_var_mask(energy, "DOM"),
+        gas_series=None,
+        item_series=energy["COMM"],
+        name_builder=lambda gas, item: f"ENE_dms_{item}",
+        tuple_builder=(
+            (lambda gas, item: (_GTAP_LAYOUT_SENTINEL, item, "ENE_dms"))
+            if e_structured
+            else None
+        ),
+        pseudo_diagonal=(energy["SRC"] == "TOT").to_numpy(),
+    )
+    E_ene_imp, EY_ene_imp = _satellite_import_blocks(
+        axes,
+        energy_codes,
+        import_mask=_var_mask(energy, "IMP"),
+        gas_series=None,
+        item_series=energy["COMM"],
+        name_builder=lambda gas, region, item: f"ENE_{region}_{item}",
+        tuple_builder=(
+            (lambda gas, region, item: (region, item, "ENE"))
+            if e_structured
+            else None
+        ),
+    )
+
+    _warn_uncaptured_satellite_mass(
+        "energy volume", float(energy_codes.values.sum()), (E_ene_dom, EY_ene_dom, E_ene_imp, EY_ene_imp)
     )
 
     E = pd.concat([E_dom, E_imp, E_ene_dom, E_ene_imp], axis=0)
     EY = pd.concat([EY_dom, EY_imp, EY_ene_dom, EY_ene_imp], axis=0)
 
+    log_time(logger, "Parser: finalizing GTAP Power MRIO blocks.", "info")
     return _gtap_finalize_iot(
         Z=Z,
         Y=Y,
@@ -695,319 +1229,13 @@ def build_gtap_mrio_from_csv_frames(
         regions=regions,
         sectors=sectors,
         final_demand=final_demand,
+        matrix_layouts=normalized_layouts,
     )
 
 
-def _gdx_missing(df: pd.DataFrame, variant: str, indexes: dict[str, dict[str, list[str]]]) -> pd.DataFrame:
-    regions = list(indexes["r"]["main"])
-    sectors = list(indexes["s"]["main"])
-    final_demand = list(indexes["n"]["main"])
-    agents = sectors + final_demand
-
-    if variant == "dom":
-        filled = (
-            df.set_index(["COMM", "agt", "REG"])
-        )
-        filled = _safe_reindex_records(
-            filled,
-            pd.MultiIndex.from_product([sectors, agents, regions], names=["COMM", "agt", "REG"]),
-        ).reset_index()
-        filled["DST"] = filled["REG"]
-        filled = filled.rename(columns={"REG": "SRC"})
-        return filled
-
-    if variant == "general":
-        return _safe_reindex_records(
-            df.set_index(["COMM", "agt", "SRC", "DST"]),
-            pd.MultiIndex.from_product(
-                [sectors, agents, regions, regions],
-                names=["COMM", "agt", "SRC", "DST"],
-            ),
-        ).reset_index()
-
-    if variant == "tax":
-        return _safe_reindex_records(
-            df.set_index(["COMM", "SRC", "DST"]),
-            pd.MultiIndex.from_product([sectors, regions, regions], names=["COMM", "SRC", "DST"]),
-        ).reset_index()
-
-    if variant == "ptax":
-        base = df.drop(columns=["acts"]).copy() if "acts" in df.columns else df.copy()
-        return _safe_reindex_records(
-            base.set_index(["COMM", "REG"]),
-            pd.MultiIndex.from_product([sectors, regions], names=["COMM", "REG"]),
-        ).reset_index()
-
-    if variant == "single_region":
-        return _safe_reindex_records(
-            df.set_index(["COMM", "agt", "DST"]),
-            pd.MultiIndex.from_product([sectors, agents, regions], names=["COMM", "agt", "DST"]),
-        ).reset_index()
-
-    if variant == "single_region_va":
-        endw = delete_duplicates(df["ENDW"].astype(str))
-        return _safe_reindex_records(
-            df.set_index(["ENDW", "acts", "DST"]),
-            pd.MultiIndex.from_product([endw, sectors, regions], names=["ENDW", "acts", "DST"]),
-        ).reset_index()
-
-    if variant in {"emi_dom", "emi_imp", "emi_proc", "ene_dom", "ene_imp"}:
-        if variant.startswith("emi"):
-            group_col = "em"
-            key_cols = {
-                "emi_dom": ["inputs", "agt", "SRC", "DST"],
-                "emi_imp": ["inputs", "agt", "SRC", "DST"],
-                "emi_proc": ["comm", "acts", "REG"],
-            }[variant]
-        else:
-            group_col = "ERG"
-            key_cols = {
-                "ene_dom": ["ERG", "agt", "SRC", "DST"],
-                "ene_imp": ["ERG", "agt", "SRC", "DST"],
-            }[variant]
-
-        frames: list[pd.DataFrame] = []
-        for group_value, group_frame in df.groupby(group_col, sort=False):
-            indexed = group_frame.set_index(key_cols)
-            if variant == "emi_dom":
-                item_values = delete_duplicates(group_frame["inputs"].astype(str))
-                index = pd.MultiIndex.from_product(
-                    [item_values, agents, regions, regions],
-                    names=["inputs", "agt", "SRC", "DST"],
-                )
-                index = index[index.get_level_values("SRC") == index.get_level_values("DST")]
-            elif variant == "emi_imp":
-                item_values = delete_duplicates(group_frame["inputs"].astype(str))
-                index = pd.MultiIndex.from_product(
-                    [item_values, agents, regions, regions],
-                    names=["inputs", "agt", "SRC", "DST"],
-                )
-            elif variant == "emi_proc":
-                item_values = delete_duplicates(group_frame["comm"].astype(str))
-                index = pd.MultiIndex.from_product(
-                    [item_values, agents, regions],
-                    names=["comm", "acts", "REG"],
-                )
-            elif variant == "ene_dom":
-                item_values = delete_duplicates(group_frame["ERG"].astype(str))
-                index = pd.MultiIndex.from_product(
-                    [item_values, agents, regions, regions],
-                    names=["ERG", "agt", "SRC", "DST"],
-                )
-                index = index[index.get_level_values("SRC") == index.get_level_values("DST")]
-            else:
-                item_values = delete_duplicates(group_frame["ERG"].astype(str))
-                index = pd.MultiIndex.from_product(
-                    [item_values, agents, regions, regions],
-                    names=["ERG", "agt", "SRC", "DST"],
-                )
-
-            for column in indexed.columns:
-                if getattr(indexed[column].dtype, "name", "") == "category":
-                    indexed[column] = indexed[column].astype(str)
-
-            reindexed = _safe_reindex_records(indexed, index).reset_index()
-            reindexed[group_col] = group_value
-            frames.append(reindexed)
-        return pd.concat(frames, ignore_index=True) if frames else df.copy()
-
-    raise ValueError(f"Unrecognized GTAP gdx fill variant: {variant}")
-
-
-def _gdx_to_matrix(
-    container: Any,
-    *,
-    var: str,
-    variant_missing: str,
-    indexes: dict[str, dict[str, list[str]]],
-    pivot_index: list[str],
-    pivot_columns: list[str],
-) -> tuple[pd.DataFrame, pd.DataFrame]:
-    try:
-        filtered = container.data[var].records
-    except KeyError as exc:
-        raise WrongFormat(f"GTAP GDX bundle is missing symbol {var!r}.") from exc
-    filled = _gdx_missing(filtered.copy(), variant_missing, indexes)
-    Z = filled.loc[filled["agt"].isin(indexes["s"]["main"])].pivot_table(
-        index=pivot_index,
-        columns=pivot_columns,
-        values="value",
-        aggfunc="sum",
-    ).fillna(0.0)
-    Y = filled.loc[filled["agt"].isin(indexes["n"]["main"])].pivot_table(
-        index=pivot_index,
-        columns=pivot_columns,
-        values="value",
-        aggfunc="sum",
-    ).fillna(0.0)
-    return Z, Y
-
-
-def _gdx_to_matrix_rowname(
-    container: Any,
-    *,
-    var: str,
-    variant_missing: str,
-    indexes: dict[str, dict[str, list[str]]],
-    row_name_setting: str,
-    row_name_categ: str,
-    row_name_reg: str = "",
-    pivot_index: list[str],
-    pivot_columns: list[str],
-    split_agent: bool = False,
-) -> pd.DataFrame | tuple[pd.DataFrame, pd.DataFrame]:
-    try:
-        filtered = container.data[var].records.copy()
-    except KeyError as exc:
-        raise WrongFormat(f"GTAP GDX bundle is missing symbol {var!r}.") from exc
-
-    filled = _gdx_missing(filtered, variant_missing, indexes)
-
-    if row_name_setting == "only_region":
-        filled["row_name"] = row_name_categ + "_" + filled[row_name_reg].astype(str)
-    elif row_name_setting == "only_categ":
-        filled["row_name"] = row_name_categ + "_REG"
-    elif row_name_setting == "reg_comm":
-        filled["row_name"] = (
-            row_name_categ + "_" + filled[row_name_reg].astype(str) + "_" + filled["COMM"].astype(str)
-        )
-        filled = filled.drop(columns=["SRC", "COMM"])
-    elif row_name_setting == "only_endw":
-        filled["row_name"] = row_name_categ + "_REG_" + filled["ENDW"].astype(str)
-    elif row_name_setting == "only_comm":
-        filled["row_name"] = row_name_categ + "_REG_" + filled["COMM"].astype(str)
-    else:
-        raise ValueError(f"Unsupported GTAP gdx row naming mode: {row_name_setting}")
-
-    if split_agent:
-        V = filled.loc[filled["agt"].isin(indexes["s"]["main"])].pivot_table(
-            index=pivot_index,
-            columns=pivot_columns,
-            values="value",
-            aggfunc="sum",
-        ).fillna(0.0)
-        VY = filled.loc[filled["agt"].isin(indexes["n"]["main"])].pivot_table(
-            index=pivot_index,
-            columns=pivot_columns,
-            values="value",
-            aggfunc="sum",
-        ).fillna(0.0)
-        return V, VY
-
-    return filled.pivot_table(
-        index=pivot_index,
-        columns=pivot_columns,
-        values="value",
-        aggfunc="sum",
-    ).fillna(0.0)
-
-
-def _gdx_to_matrix_satellite(
-    container: Any,
-    *,
-    var: str,
-    variant_missing: str,
-    indexes: dict[str, dict[str, list[str]]],
-    row_name_setting: str,
-    row_name_categ: str,
-    pivot_index: list[str],
-    pivot_columns: list[str],
-    split_agent: bool = False,
-) -> pd.DataFrame | tuple[pd.DataFrame, pd.DataFrame]:
-    try:
-        filtered = container.data[var].records.copy()
-    except KeyError as exc:
-        raise WrongFormat(f"GTAP GDX bundle is missing symbol {var!r}.") from exc
-
-    filter_config = {
-        "emi_dom": ("source", "DOM"),
-        "emi_imp": ("source", "IMP"),
-        "ene_dom": ("SOURCE", "DOM"),
-        "ene_imp": ("SOURCE", "IMP"),
-    }
-    if row_name_setting in filter_config:
-        column, value = filter_config[row_name_setting]
-        filtered = filtered.loc[filtered[column] == value].drop(columns=[column])
-
-    filled = _gdx_missing(filtered, variant_missing, indexes)
-
-    if row_name_setting == "emi_dom":
-        filled["row_name"] = (
-            row_name_categ + "_" + filled["em"].astype(str) + "_dms_" + filled["inputs"].astype(str)
-        )
-        filled = filled.drop(columns=["em", "SRC", "inputs"])
-    elif row_name_setting == "emi_imp":
-        filled["row_name"] = (
-            row_name_categ
-            + "_"
-            + filled["em"].astype(str)
-            + "_"
-            + filled["SRC"].astype(str)
-            + "_"
-            + filled["inputs"].astype(str)
-        )
-        filled = filled.drop(columns=["em", "SRC", "inputs"])
-    elif row_name_setting == "emi_proc":
-        filled["row_name"] = (
-            row_name_categ + "_" + filled["em"].astype(str) + "_REG_" + filled["comm"].astype(str)
-        )
-        filled = filled.drop(columns=["em", "comm"])
-    elif row_name_setting == "ene_dom":
-        filled["row_name"] = row_name_categ + "_dms_" + filled["ERG"].astype(str)
-        filled = filled.drop(columns=["SRC", "ERG"])
-    elif row_name_setting == "ene_imp":
-        filled["row_name"] = (
-            row_name_categ + "_" + filled["SRC"].astype(str) + "_" + filled["ERG"].astype(str)
-        )
-        filled = filled.drop(columns=["SRC", "ERG"])
-    else:
-        raise ValueError(f"Unsupported GTAP gdx satellite row naming mode: {row_name_setting}")
-
-    if split_agent:
-        if row_name_setting == "emi_proc":
-            V = filled.loc[filled["acts"].isin(indexes["s"]["main"])].pivot_table(
-                index=pivot_index,
-                columns=pivot_columns,
-                values="value",
-                aggfunc="sum",
-            ).fillna(0.0)
-            VY = filled.loc[filled["acts"].isin(indexes["n"]["main"])].pivot_table(
-                index=pivot_index,
-                columns=pivot_columns,
-                values="value",
-                aggfunc="sum",
-            ).fillna(0.0)
-        else:
-            V = filled.loc[filled["agt"].isin(indexes["s"]["main"])].pivot_table(
-                index=pivot_index,
-                columns=pivot_columns,
-                values="value",
-                aggfunc="sum",
-            ).fillna(0.0)
-            VY = filled.loc[filled["agt"].isin(indexes["n"]["main"])].pivot_table(
-                index=pivot_index,
-                columns=pivot_columns,
-                values="value",
-                aggfunc="sum",
-            ).fillna(0.0)
-        return V, VY
-
-    return filled.pivot_table(
-        index=pivot_index,
-        columns=pivot_columns,
-        values="value",
-        aggfunc="sum",
-    ).fillna(0.0)
-
-
-def _optional_gdx_satellite_symbol(
-    container: Any,
-    symbol: str,
-    callback,
-):
-    if symbol not in container.data:
-        return None
-    return callback()
+# ---------------------------------------------------------------------------
+# GDX backend
+# ---------------------------------------------------------------------------
 
 
 def _require_gdx_symbol(container: Any, symbol: str, *, file_label: str) -> Any:
@@ -1019,209 +1247,328 @@ def _require_gdx_symbol(container: Any, symbol: str, *, file_label: str) -> Any:
     return container.data[symbol]
 
 
+def _gdx_records(container: Any, symbol: str, key_columns: list[str]) -> pd.DataFrame:
+    try:
+        records = container.data[symbol].records
+    except KeyError as exc:
+        raise WrongFormat(f"GTAP GDX bundle is missing symbol {symbol!r}.") from exc
+    return _categorize_keys(records, key_columns)
+
+
 def build_gtap_mrio_from_gdx_containers(
     containers: dict[str, Any],
+    matrix_layouts: dict[str, object] | None = None,
 ) -> tuple[dict[str, dict[str, pd.DataFrame]], dict[str, dict[str, list[str]]], dict[str, pd.DataFrame]]:
     """Build canonical MARIO IOT blocks from GTAP Power MRIO GDX containers."""
+    normalized_layouts = _normalize_gtap_matrix_layouts(matrix_layouts)
+    v_structured, e_structured = _gtap_structured_rows(normalized_layouts)
     srcxdst = containers["SRCxDST"]
     sectors = _require_gdx_symbol(srcxdst, "comm", file_label="GSDFSRCxDST").records["uni"].astype(str).tolist()
     regions = _require_gdx_symbol(srcxdst, "REG", file_label="GSDFSRCxDST").records["uni"].astype(str).tolist()
     agents = _require_gdx_symbol(srcxdst, "agt", file_label="GSDFSRCxDST").records["uni"].astype(str).tolist()
     sector_set = set(sectors)
     final_demand = [item for item in agents if item not in sector_set]
-    indexes = {
-        "r": {"main": regions},
-        "s": {"main": sectors},
-        "n": {"main": final_demand},
-    }
+    axes = _GTAPAxes(regions=regions, sectors=sectors, final_demand=final_demand)
 
     log_time(logger, "Parser: building GTAP Power MRIO matrices from GDX containers.", "info")
-    Z_dom, Y_dom = _gdx_to_matrix(
-        srcxdst,
-        var="VDBA",
-        variant_missing="dom",
-        indexes=indexes,
-        pivot_index=["SRC", "COMM"],
-        pivot_columns=["DST", "agt"],
-    )
-    Z_imp, Y_imp = _gdx_to_matrix(
-        srcxdst,
-        var="VFOB",
-        variant_missing="general",
-        indexes=indexes,
-        pivot_index=["SRC", "COMM"],
-        pivot_columns=["DST", "agt"],
-    )
-    Z = Z_dom.add(Z_imp, fill_value=0.0)
-    Y = Y_dom.add(Y_imp, fill_value=0.0)
 
-    V_mtax, VY_mtax = _gdx_to_matrix_rowname(
-        srcxdst,
-        var="MTAX",
-        variant_missing="general",
-        indexes=indexes,
-        row_name_setting="reg_comm",
-        row_name_categ="MTAX",
-        row_name_reg="SRC",
-        pivot_index=["row_name"],
-        pivot_columns=["DST", "agt"],
-        split_agent=True,
+    vdba = _FlowCodes(
+        _gdx_records(srcxdst, "VDBA", ["COMM", "agt", "REG"]),
+        axes,
+        sector_column="COMM",
+        agent_column="agt",
+        source_column="REG",
+        destination_column="REG",
+        value_column="value",
     )
-    V_ittm, VY_ittm = _gdx_to_matrix_rowname(
-        srcxdst,
-        var="ITTM",
-        variant_missing="general",
-        indexes=indexes,
-        row_name_setting="reg_comm",
-        row_name_categ="ITTM",
-        row_name_reg="SRC",
-        pivot_index=["row_name"],
-        pivot_columns=["DST", "agt"],
-        split_agent=True,
+    vfob = _FlowCodes(
+        _gdx_records(srcxdst, "VFOB", ["COMM", "agt", "SRC", "DST"]),
+        axes,
+        sector_column="COMM",
+        agent_column="agt",
+        source_column="SRC",
+        destination_column="DST",
+        value_column="value",
     )
-    V = pd.concat([V_mtax, V_ittm], axis=0)
-    VY = pd.concat([VY_mtax, VY_ittm], axis=0)
+    Z, Y = _flow_blocks(
+        axes,
+        [
+            (vdba, None, vdba.destination),
+            (vfob, None, vfob.destination),
+        ],
+    )
 
-    V_etax = _gdx_to_matrix_rowname(
-        containers["V-Tax"],
-        var="ETAX",
-        variant_missing="tax",
-        indexes=indexes,
-        row_name_setting="only_region",
-        row_name_categ="ETAX",
-        row_name_reg="DST",
-        pivot_index=["row_name"],
-        pivot_columns=["SRC", "COMM"],
-    )
-    V_ptax = _gdx_to_matrix_rowname(
-        containers["V-Tax"],
-        var="PTAX",
-        variant_missing="ptax",
-        indexes=indexes,
-        row_name_setting="only_categ",
-        row_name_categ="PTAX",
-        pivot_index=["row_name"],
-        pivot_columns=["REG", "COMM"],
-    )
-    V = pd.concat([V, V_etax, V_ptax], axis=0)
+    V_blocks: list[pd.DataFrame] = []
+    VY_blocks: list[pd.DataFrame] = []
+    for categ, symbol in (("MTAX", "MTAX"), ("ITTM", "ITTM")):
+        codes = _FlowCodes(
+            _gdx_records(srcxdst, symbol, ["COMM", "agt", "SRC", "DST"]),
+            axes,
+            sector_column="COMM",
+            agent_column="agt",
+            source_column="SRC",
+            destination_column="DST",
+            value_column="value",
+        )
+        block, block_y = _region_sector_rowname_blocks(
+            categ, axes, codes, None, structured=v_structured
+        )
+        V_blocks.append(block)
+        VY_blocks.append(block_y)
 
-    V_va = _gdx_to_matrix_rowname(
-        containers["V"],
-        var="VA",
-        variant_missing="single_region_va",
-        indexes=indexes,
-        row_name_setting="only_endw",
-        row_name_categ="VAAD",
-        pivot_index=["row_name"],
-        pivot_columns=["DST", "acts"],
+    taxes_container = containers["V-Tax"]
+    etax = _FlowCodes(
+        _gdx_records(taxes_container, "ETAX", ["COMM", "SRC", "DST"]),
+        axes,
+        sector_column="COMM",
+        source_column="SRC",
+        destination_column="DST",
+        value_column="value",
     )
-    V_vtax = _gdx_to_matrix_rowname(
-        containers["V"],
-        var="VTAX",
-        variant_missing="single_region_va",
-        indexes=indexes,
-        row_name_setting="only_endw",
-        row_name_categ="VTAX",
-        pivot_index=["row_name"],
-        pivot_columns=["DST", "acts"],
+    V_blocks.append(
+        _region_rowname_block(
+            "ETAX",
+            axes,
+            row_regions=etax.destination,
+            column_regions=etax.source,
+            column_sectors=etax.sector,
+            values=etax.values,
+            mask=None,
+            structured=v_structured,
+        )
     )
-    V_idtax, VY_idtax = _gdx_to_matrix_rowname(
-        containers["V"],
-        var="IDTAX",
-        variant_missing="single_region",
-        indexes=indexes,
-        row_name_setting="only_comm",
-        row_name_categ="DTAX",
-        pivot_index=["row_name"],
-        pivot_columns=["DST", "agt"],
-        split_agent=True,
+    ptax = _FlowCodes(
+        _gdx_records(taxes_container, "PTAX", ["COMM", "REG"]),
+        axes,
+        sector_column="COMM",
+        destination_column="REG",
+        value_column="value",
     )
-    V_imtax, VY_imtax = _gdx_to_matrix_rowname(
-        containers["V"],
-        var="IMTAX",
-        variant_missing="single_region",
-        indexes=indexes,
-        row_name_setting="only_comm",
-        row_name_categ="ITAX",
-        pivot_index=["row_name"],
-        pivot_columns=["DST", "agt"],
-        split_agent=True,
+    V_blocks.append(
+        _single_rowname_block(
+            "PTAX_REG",
+            axes,
+            column_regions=ptax.destination,
+            column_sectors=ptax.sector,
+            values=ptax.values,
+            mask=None,
+            structured=v_structured,
+            item_label="PTAX",
+        )
     )
-    V = pd.concat([V, V_va, V_vtax, V_idtax, V_imtax], axis=0)
-    VY = pd.concat([VY, VY_idtax, VY_imtax], axis=0)
+
+    added_container = containers["V"]
+    for prefix, item_prefix, symbol in (
+        ("VAAD_REG_", "VAAD_", "VA"),
+        ("VTAX_REG_", "VTAX_", "VTAX"),
+    ):
+        records = _gdx_records(added_container, symbol, ["ENDW", "acts", "DST"])
+        codes = _FlowCodes(
+            records,
+            axes,
+            agent_column="acts",
+            destination_column="DST",
+            value_column="value",
+        )
+        V_blocks.append(
+            _observed_item_rowname_block(
+                prefix,
+                axes,
+                item_series=records["ENDW"],
+                column_regions=codes.destination,
+                column_sectors=codes.agent_sector,
+                values=codes.values,
+                mask=np.ones(len(records), dtype=bool),
+                structured=v_structured,
+                item_prefix=item_prefix,
+            )
+        )
+
+    for categ, symbol in (("DTAX", "IDTAX"), ("ITAX", "IMTAX")):
+        codes = _FlowCodes(
+            _gdx_records(added_container, symbol, ["COMM", "agt", "DST"]),
+            axes,
+            sector_column="COMM",
+            agent_column="agt",
+            destination_column="DST",
+            value_column="value",
+        )
+        block, block_y = _dense_sector_rowname_blocks(
+            categ,
+            axes,
+            codes,
+            None,
+            column_regions=codes.destination,
+            structured=v_structured,
+        )
+        V_blocks.append(block)
+        VY_blocks.append(block_y)
+
+    V = pd.concat(V_blocks, axis=0)
+    VY = pd.concat(VY_blocks, axis=0)
 
     emission_blocks: list[pd.DataFrame] = []
     emission_y_blocks: list[pd.DataFrame] = []
-    emissions = containers["Emissions"]
+    emissions_container = containers["Emissions"]
+    emission_raw_totals: dict[str, float] = {}
 
-    for symbol, row_setting, category in [
-        ("Emi_COMB", "emi_dom", "EMI"),
-        ("Emi_COMB", "emi_imp", "EMI"),
-        ("Emi", "emi_dom", "EMI"),
-        ("Emi", "emi_imp", "EMI"),
-    ]:
-        result = _optional_gdx_satellite_symbol(
-            emissions,
-            symbol,
-            lambda symbol=symbol, row_setting=row_setting, category=category: _gdx_to_matrix_satellite(
-                emissions,
-                var=symbol,
-                variant_missing=row_setting,
-                indexes=indexes,
-                row_name_setting=row_setting,
-                row_name_categ=category,
-                pivot_index=["row_name"],
-                pivot_columns=["DST", "agt"],
-                split_agent=True,
-            ),
-        )
-        if result is None:
+    for symbol, source_value in (
+        ("Emi_COMB", "DOM"),
+        ("Emi_COMB", "IMP"),
+        ("Emi", "DOM"),
+        ("Emi", "IMP"),
+    ):
+        if symbol not in emissions_container.data:
             continue
-        block, block_y = result
+        records = _gdx_records(
+            emissions_container, symbol, ["em", "inputs", "agt", "SRC", "DST"]
+        )
+        codes = _FlowCodes(
+            records,
+            axes,
+            agent_column="agt",
+            source_column="SRC",
+            destination_column="DST",
+            value_column="value",
+        )
+        emission_raw_totals.setdefault(symbol, float(codes.values.sum()))
+        source_mask = (records["source"] == source_value).to_numpy()
+        if source_value == "DOM":
+            block, block_y = _satellite_domestic_blocks(
+                axes,
+                codes,
+                domestic_mask=source_mask,
+                gas_series=records["em"],
+                item_series=records["inputs"],
+                name_builder=lambda gas, item: f"EMI_{gas}_dms_{item}",
+                tuple_builder=(
+                    (lambda gas, item: (_GTAP_LAYOUT_SENTINEL, item, f"EMI_{gas}_dms"))
+                    if e_structured
+                    else None
+                ),
+                pseudo_diagonal=(records["SRC"] == "TOT").to_numpy(),
+            )
+        else:
+            block, block_y = _satellite_import_blocks(
+                axes,
+                codes,
+                import_mask=source_mask,
+                gas_series=records["em"],
+                item_series=records["inputs"],
+                name_builder=lambda gas, region, item: f"EMI_{gas}_{region}_{item}",
+                tuple_builder=(
+                    (lambda gas, region, item: (region, item, f"EMI_{gas}"))
+                    if e_structured
+                    else None
+                ),
+            )
         emission_blocks.append(block)
         emission_y_blocks.append(block_y)
 
-    process_result = _optional_gdx_satellite_symbol(
-        emissions,
-        "Emi_Proc",
-        lambda: _gdx_to_matrix_satellite(
-            emissions,
-            var="Emi_Proc",
-            variant_missing="emi_proc",
-            indexes=indexes,
-            row_name_setting="emi_proc",
-            row_name_categ="E_P",
-            pivot_index=["row_name"],
-            pivot_columns=["REG", "acts"],
-            split_agent=True,
+    if "Emi_Proc" in emissions_container.data:
+        records = _gdx_records(emissions_container, "Emi_Proc", ["em", "comm", "acts", "REG"])
+        codes = _FlowCodes(
+            records,
+            axes,
+            agent_column="acts",
+            destination_column="REG",
+            value_column="value",
+        )
+        emission_raw_totals["Emi_Proc"] = float(codes.values.sum())
+        gas_codes = records["em"].cat.codes.to_numpy().astype(np.int64)
+        item_codes = records["comm"].cat.codes.to_numpy().astype(np.int64)
+        item_categories = records["comm"].cat.categories
+        gas_categories = records["em"].cat.categories
+        observed, _, rows = _observed_pairs(
+            gas_codes, item_codes, len(item_categories), np.ones(len(records), dtype=bool)
+        )
+        pair_labels = [
+            (str(gas_categories[pair // len(item_categories)]),
+             str(item_categories[pair % len(item_categories)]))
+            for pair in observed
+        ]
+        row_names = [f"E_P_{gas}_REG_{item}" for gas, item in pair_labels]
+        row_tuples = (
+            [(_GTAP_LAYOUT_SENTINEL, item, f"E_P_{gas}") for gas, item in pair_labels]
+            if e_structured
+            else None
+        )
+        block = _scatter_matrix(
+            len(row_names),
+            axes.n_sector_columns,
+            rows,
+            _combined_positions(codes.destination, codes.agent_sector, axes.n_sectors),
+            codes.values,
+            None,
+        )
+        block_y = _scatter_matrix(
+            len(row_names),
+            axes.n_final_columns,
+            rows,
+            _combined_positions(codes.destination, codes.agent_final, axes.n_final_demand),
+            codes.values,
+            None,
+        )
+        emission_blocks.append(
+            _sorted_row_frame(
+                row_names, block, axes.sector_axis,
+                row_tuples=row_tuples, tuple_names=_GTAP_E_ROW_AXIS_NAMES,
+            )
+        )
+        emission_y_blocks.append(
+            _sorted_row_frame(
+                row_names, block_y, axes.final_demand_axis,
+                row_tuples=row_tuples, tuple_names=_GTAP_E_ROW_AXIS_NAMES,
+            )
+        )
+
+    _warn_uncaptured_satellite_mass(
+        "emissions",
+        float(sum(emission_raw_totals.values())),
+        (*emission_blocks, *emission_y_blocks),
+    )
+
+    energy_records = _gdx_records(containers["Energy"], "NRG", ["ERG", "agt", "SRC", "DST"])
+    energy_codes = _FlowCodes(
+        energy_records,
+        axes,
+        agent_column="agt",
+        source_column="SRC",
+        destination_column="DST",
+        value_column="value",
+    )
+    energy_dom, energy_y_dom = _satellite_domestic_blocks(
+        axes,
+        energy_codes,
+        domestic_mask=(energy_records["SOURCE"] == "DOM").to_numpy(),
+        gas_series=None,
+        item_series=energy_records["ERG"],
+        name_builder=lambda gas, item: f"ENE_dms_{item}",
+        tuple_builder=(
+            (lambda gas, item: (_GTAP_LAYOUT_SENTINEL, item, "ENE_dms"))
+            if e_structured
+            else None
+        ),
+        pseudo_diagonal=(energy_records["SRC"] == "TOT").to_numpy(),
+    )
+    energy_imp, energy_y_imp = _satellite_import_blocks(
+        axes,
+        energy_codes,
+        import_mask=(energy_records["SOURCE"] == "IMP").to_numpy(),
+        gas_series=None,
+        item_series=energy_records["ERG"],
+        name_builder=lambda gas, region, item: f"ENE_{region}_{item}",
+        tuple_builder=(
+            (lambda gas, region, item: (region, item, "ENE"))
+            if e_structured
+            else None
         ),
     )
-    if process_result is not None:
-        block, block_y = process_result
-        emission_blocks.append(block)
-        emission_y_blocks.append(block_y)
 
-    energy_dom, energy_y_dom = _gdx_to_matrix_satellite(
-        containers["Energy"],
-        var="NRG",
-        variant_missing="ene_dom",
-        indexes=indexes,
-        row_name_setting="ene_dom",
-        row_name_categ="ENE",
-        pivot_index=["row_name"],
-        pivot_columns=["DST", "agt"],
-        split_agent=True,
-    )
-    energy_imp, energy_y_imp = _gdx_to_matrix_satellite(
-        containers["Energy"],
-        var="NRG",
-        variant_missing="ene_imp",
-        indexes=indexes,
-        row_name_setting="ene_imp",
-        row_name_categ="ENE",
-        pivot_index=["row_name"],
-        pivot_columns=["DST", "agt"],
-        split_agent=True,
+    _warn_uncaptured_satellite_mass(
+        "energy volume",
+        float(energy_codes.values.sum()),
+        (energy_dom, energy_y_dom, energy_imp, energy_y_imp),
     )
 
     E = pd.concat([*emission_blocks, energy_dom, energy_imp], axis=0)
@@ -1237,6 +1584,7 @@ def build_gtap_mrio_from_gdx_containers(
         regions=regions,
         sectors=sectors,
         final_demand=final_demand,
+        matrix_layouts=normalized_layouts,
     )
 
 
@@ -1250,10 +1598,39 @@ def _import_gams_transfer():
     return gt
 
 
+def _read_gtap_csv_frame(path: Path) -> pd.DataFrame:
+    """Read one GTAP csv table with categorical key columns.
+
+    Key columns are read as categories so the assembly engine can reuse the
+    category codes directly; the pyarrow engine is preferred for its
+    multithreaded parsing and silently falls back to the default engine.
+    """
+    size_mb = path.stat().st_size / 1e6
+    log_time(logger, f"Parser: reading {path.name} ({size_mb:,.0f} MB).", "info")
+    started = time.perf_counter()
+    header = pd.read_csv(path, nrows=0)
+    dtypes = {
+        column: "category"
+        for column in header.columns
+        if str(column).strip().upper() != "VALUE"
+    }
+    try:
+        frame = pd.read_csv(path, dtype=dtypes, engine="pyarrow")
+    except (ImportError, ValueError, TypeError):
+        frame = pd.read_csv(path, dtype=dtypes)
+    log_time(
+        logger,
+        f"Parser: finished reading {path.name} in {time.perf_counter() - started:,.1f} seconds.",
+        "debug",
+    )
+    return frame
+
+
 def parse_gtap_mrio_csv(
     path: str | Path,
     *,
     layout: GTAPLayout | None = None,
+    matrix_layouts: dict[str, object] | None = None,
 ) -> tuple[
     dict[str, dict[str, pd.DataFrame]],
     dict[str, dict[str, list[str]]],
@@ -1264,10 +1641,10 @@ def parse_gtap_mrio_csv(
     resolved = layout or detect_gtap_layout(path, variant="power", layout="MRIO", input_format="csv")
     files = _expected_gtap_files(variant=resolved.variant, layout=resolved.layout, input_format="csv")
     frames = {
-        key: pd.read_csv(resolved.root / filename)
+        key: _read_gtap_csv_frame(resolved.root / filename)
         for key, filename in files.items()
     }
-    matrices, indexes, units = build_gtap_mrio_from_csv_frames(frames)
+    matrices, indexes, units = build_gtap_mrio_from_csv_frames(frames, matrix_layouts=matrix_layouts)
     return matrices, indexes, units, resolved
 
 
@@ -1275,6 +1652,7 @@ def parse_gtap_mrio_gdx(
     path: str | Path,
     *,
     layout: GTAPLayout | None = None,
+    matrix_layouts: dict[str, object] | None = None,
 ) -> tuple[
     dict[str, dict[str, pd.DataFrame]],
     dict[str, dict[str, list[str]]],
@@ -1289,5 +1667,5 @@ def parse_gtap_mrio_gdx(
         key: gt.Container(str(resolved.root / filename))
         for key, filename in files.items()
     }
-    matrices, indexes, units = build_gtap_mrio_from_gdx_containers(containers)
+    matrices, indexes, units = build_gtap_mrio_from_gdx_containers(containers, matrix_layouts=matrix_layouts)
     return matrices, indexes, units, resolved
