@@ -29,6 +29,7 @@ Top-Level Parser Entrypoints
    ../api_document/mario.parse_exiobase
    ../api_document/mario.parse_figaro
    ../api_document/mario.parse_gloria
+   ../api_document/mario.parse_gtap
    ../api_document/mario.parse_wiod
    ../api_document/mario.parse_oecd
    ../api_document/mario.parse_eora
