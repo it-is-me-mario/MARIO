@@ -5,6 +5,13 @@ availability and failure semantics remain in mario.settings.parser_profiles.
 """
 
 PARSER_COMPUTE_PROFILES: dict[str, dict] = {
+    "exiobase_rex": {
+        "compute_method": "solve",
+        "linear_solver": "umfpack",
+        "linear_solver_fallback": "scipy",
+        "linear_strategy": "direct",
+        "singular_policy": "raise",
+    },
     "bonsai": {
         "compute_method": "solve",
         "linear_solver": "umfpack",

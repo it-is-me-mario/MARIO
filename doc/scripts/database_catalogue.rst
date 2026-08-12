@@ -38,6 +38,11 @@ AST, records their literal options and a call fingerprint, and refreshes
 It never executes a notebook or parser. An example requiring an in-memory object
 (the pymrio bridge) is registered but cannot be run from a path-only JSON job.
 
+Preparation also includes BONSAI's shared companion at
+``source/user_guide/examples/bonsai.ipynb`` under its source-guide identity
+``user_guide/parsers/bonsai``. Keep that route when regenerating the registry;
+the companion does not live under the parser-notebook directory.
+
 ``--plan`` lists the recipes while there is no local configuration. Once a local
 configuration exists it checks inputs, notebook fingerprints and basic options
 without reading a database. Changed examples must be reviewed and the recipes
@@ -196,3 +201,23 @@ have 48 regions without TW, while the published classification workbook lists
 49 with TW. The parser reads these CSV axes directly. Aggregate memberships are
 therefore still awaiting a reading-specific concordance; they are not borrowed
 from the monetary profile. The model's aggregate names remain visible in the UI.
+
+REX3 source nomenclature
+------------------------
+
+REX3 is one version within the EXIOBASE family in the scope explorer. Its
+geography, native activity labels and CC BY 4.0 terms remain distinct from
+standard EXIOBASE. Before a new full MRIO run is available, the public label
+bundle can supply a ``source_verified`` inventory without economic values::
+
+    python doc/scripts/build_rex3_scope.py --labels /path/to/REX3_Labels
+    python doc/scripts/build_sectoral_scope.py --country-output doc/source/_static/data/economy/country-scope.json
+    python doc/scripts/build_extension_scope.py
+
+The first command validates the country-sector label ordering and records
+source checksums. It updates only REX3 in the external-profile registry and
+country lookup, preserving the existing reviewed mappings and parsed releases.
+It does not read ``T_REX3`` or create numerical indicator readings. Historical
+regions retain their labels; ambiguous territorial names remain unresolved.
+The source-described six GHG/LULUCF account labels supplement the economic
+label inventory. Do not mark this metadata-only refresh as a full parser run.

@@ -84,8 +84,12 @@ def prepare(doc=DOC):
     """Refresh the recipe manifest and guide registry, retaining parsed profiles."""
     doc = Path(doc)
     guides, recipes = [], []
-    for path in sorted((doc / "source/notebooks/parsers").glob("*/*.ipynb")):
-        family = path.parent.name
+    notebooks = list((doc / "source/notebooks/parsers").glob("*/*.ipynb"))
+    bonsai = doc / "source/user_guide/examples/bonsai.ipynb"
+    if bonsai.is_file():
+        notebooks = [p for p in notebooks if p.parent.name != "bonsai"] + [bonsai]
+    for path in sorted(notebooks, key=lambda p: ("bonsai" if p == bonsai else p.parent.name, p.stem)):
+        family = "bonsai" if path == bonsai else path.parent.name
         key = family if family not in {"exiobase", "custom_database"} else f"{family}-{path.stem}".replace("_", "-")
         label = SOURCE_NAMES[family]
         if family == "exiobase":
@@ -94,7 +98,7 @@ def prepare(doc=DOC):
             label = {"from_excel": "Excel custom parser", "from_txt": "TXT, CSV and Parquet custom parser",
                      "from_pymrio": "Pymrio bridge"}[path.stem]
         guide = {"id": key, "source": SOURCE_NAMES[family], "label": label,
-                 "doc": path.relative_to(doc / "source").with_suffix("").as_posix()}
+                 "doc": "user_guide/parsers/bonsai" if path == bonsai else path.relative_to(doc / "source").with_suffix("").as_posix()}
         guides.append(guide)
         for number, call in enumerate(notebook_calls(path), 1):
             recipes.append({"id": f"{key}--{number:02}", "guide": key,

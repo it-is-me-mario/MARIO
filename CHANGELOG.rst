@@ -8,6 +8,13 @@ package on PyPI, and dates are its publication dates.
 Unreleased
 ----------
 
+* Integrate the REX3 monetary IOT parser and downloader through
+  ``parse_exiobase(..., variant="REX3")``, with the mandatory detailed
+  GHG/LULUCF companion. Support nested economic/GHG version folders, identify
+  REX3 separately from standard EXIOBASE, and preserve absolute LULUCF at zero
+  output. Add a dedicated GHG recipe without double-counting the native
+  climate aggregate, a solve-based parser preset, and a linked guide/notebook.
+
 * ``update_supply_mix`` estimates missing input recipes when a mix activates
   previously inactive producers, for arbitrary sectors, commodities and
   activities as well as the electricity preset. Output-weighted donor recipes

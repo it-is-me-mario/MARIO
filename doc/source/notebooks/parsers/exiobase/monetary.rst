@@ -13,6 +13,9 @@ The monetary SUT parser reads both the public 3.8.2 bundles and locally supplied
 Check extension coverage by year: recent economic years can contain now-cast
 emissions rather than observed inventories.
 
+For the separately resolved REX3 database and its GHG/LULUCF companion, see
+:doc:`rex3` and select ``variant="REX3"`` when parsing.
+
 Import
 ------
 

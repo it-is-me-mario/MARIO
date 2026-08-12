@@ -136,6 +136,12 @@ Shared metadata and generated assets
        ``doc/source/_static/data/database_profiles.json`` is the summary
      - Parser cards and guide panels, explorer coverage, native-set downloads
        and source notices
+   * - REX3 source-only nomenclature and scope
+     - ``doc/scripts/build_rex3_scope.py`` reads the pinned public label bundle;
+       the sectoral and extension scope generators compile its reviewed metadata
+     - REX3 guide and companion, external profile, source notice, scope views and
+       native-set download. Keep EXIOBASE as the Overview family and REX3 as a
+       separate geographical Version; do not inherit standard concordances.
    * - Explorer indicators
      - Source-specific scripts in ``doc/scripts/`` and their saved provenance
      - Indicator definitions, units, characterization, reference year,

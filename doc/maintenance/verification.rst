@@ -70,6 +70,14 @@ Example verification
   activated producer in reversed update order; donor weights and sourcing must
   come from the pre-update scenario, not earlier imputed columns.
 
+* For REX3, verify nested economic/GHG version folders and explicit companion
+  selectors, including the requested year and country-sector label alignment.
+  Check MATLAB orientation against source cells, coefficient-to-flow GHG
+  reconstruction using complete output, and absolute LULUCF on a zero-output
+  sector. Keep the detailed GHG sum separate from the overlapping native
+  aggregate. Saved notebook outputs document a previous run, not a current
+  integration test; rerun a full real bundle when it is locally available.
+
 Rendered review
 ---------------
 

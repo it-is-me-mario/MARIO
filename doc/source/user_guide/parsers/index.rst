@@ -36,6 +36,13 @@ Environmentally-extended databases
       The hybrid EXIOBASE bundle, as supply-use and input-output tables, with a
       choice of extensions.
 
+   .. mario-card:: :doc:`EXIOBASE REX3 <../../notebooks/parsers/exiobase/rex3>`
+      :kicker: mario.parse_exiobase_rex
+      :database: exiobase-rex3
+      :logo: /_static/images/logos/exiobase.png
+
+      The complete REX3 monetary IOT with its detailed GHG and LULUCF companion.
+
    .. mario-card:: :doc:`BONSAI <bonsai>`
       :kicker: mario.parse_bonsai
       :logo: /_static/images/logos/bonsai.webp
@@ -104,6 +111,7 @@ Environmentally-extended databases
 
    EXIOBASE, monetary <../../notebooks/parsers/exiobase/monetary>
    EXIOBASE, hybrid <../../notebooks/parsers/exiobase/hybrid>
+   EXIOBASE REX3 <../../notebooks/parsers/exiobase/rex3>
    BONSAI <bonsai>
    EORA <../../notebooks/parsers/eora/walkthrough_eora>
    GLORIA <../../notebooks/parsers/gloria/walkthrough_gloria>

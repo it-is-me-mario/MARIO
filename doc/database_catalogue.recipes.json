@@ -17,7 +17,7 @@
       "id": "bonsai",
       "source": "BONSAI",
       "label": "BONSAI",
-      "doc": "notebooks/parsers/bonsai/walkthrough_bonsai"
+      "doc": "user_guide/parsers/bonsai"
     },
     {
       "id": "ceads",
@@ -78,6 +78,12 @@
       "source": "EXIOBASE",
       "label": "EXIOBASE, monetary",
       "doc": "notebooks/parsers/exiobase/monetary"
+    },
+    {
+      "id": "exiobase-rex3",
+      "source": "EXIOBASE",
+      "label": "EXIOBASE, rex3",
+      "doc": "notebooks/parsers/exiobase/rex3"
     },
     {
       "id": "figaro",
@@ -254,7 +260,7 @@
     {
       "id": "bonsai--01",
       "guide": "bonsai",
-      "notebook": "source/notebooks/parsers/bonsai/walkthrough_bonsai.ipynb",
+      "notebook": "source/user_guide/examples/bonsai.ipynb",
       "parser": "parse_bonsai",
       "cell": 7,
       "fingerprint": "bab36446dcbca62e01ce26eb41c00548d5ac1fc911fcb03e3a9d8d4ac7ed3248",
@@ -266,7 +272,7 @@
     {
       "id": "bonsai--02",
       "guide": "bonsai",
-      "notebook": "source/notebooks/parsers/bonsai/walkthrough_bonsai.ipynb",
+      "notebook": "source/user_guide/examples/bonsai.ipynb",
       "parser": "parse_bonsai",
       "cell": 12,
       "fingerprint": "a9b37ddab8490dc31eecdf599e6aeac6c1952639363ac87adf6c101852e4e0b0",
@@ -693,11 +699,12 @@
       "notebook": "source/notebooks/parsers/exiobase/monetary.ipynb",
       "parser": "parse_exiobase",
       "cell": 19,
-      "fingerprint": "a5605070edc3eacf662113f8fcc820b1ee77a573a4a683c40ffbb7272b437c78",
+      "fingerprint": "d45eb04b7f3274efda0fcd9739d9b027dbe2dc23e866feb8b157548ce4b5d723",
       "parameters": {
-        "path": "/path/to/MRSUT_2019",
+        "path": "/path/to/MRSUT_2024.zip",
         "table": "SUT",
-        "unit": "Monetary"
+        "unit": "Monetary",
+        "version": "3.11.2"
       },
       "runnable": true
     },
@@ -715,6 +722,17 @@
         "add_extensions": "/path/to/IOT_2019_ixi"
       },
       "runnable": true
+    },
+    {
+      "id": "exiobase-rex3--01",
+      "guide": "exiobase-rex3",
+      "notebook": "source/notebooks/parsers/exiobase/rex3.ipynb",
+      "parser": "parse_exiobase",
+      "cell": 12,
+      "fingerprint": "f24f9b2edb4b044696355d15c9e3f62e63b9fe2cbf4ba7555c355b659d9c747d",
+      "parameters": {},
+      "runnable": false,
+      "reason": "This example needs in-memory Python objects, not only file paths."
     },
     {
       "id": "figaro--01",

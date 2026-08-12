@@ -22,4 +22,5 @@ Automatic Download Helpers
    ../api_document/mario.download_emerging
    ../api_document/mario.download_hybrid_exiobase
    ../api_document/mario.download_exiobase3
+   ../api_document/mario.download_exiobase_rex
    ../api_document/mario.download_exiobase_monetary

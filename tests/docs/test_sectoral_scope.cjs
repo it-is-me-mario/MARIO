@@ -141,7 +141,7 @@ test('each intermediate step has an attributable source and no proposed nxbase r
  }
 });
 test('unchanged annual EXIOBASE and ADB classifications share one column',()=>{
- assert.equal(model.columns.filter(c=>c.family==='EXIOBASE'&&c.units==='Monetary').length,1);
+ assert.equal(model.columns.filter(c=>c.family==='EXIOBASE'&&c.units==='Monetary'&&c.variant!=='REX3').length,1);
  assert.ok(col('EXIOBASE').releases.includes('3.8.2'));assert.ok(col('EXIOBASE').releases.includes('3.11.2'));
  assert.equal(model.columns.filter(c=>c.family==='ADB').length,1);assert.ok(col('ADB').releases.length>1);
  assert.equal(col('CEDA').native_count,400);assert.equal(col('CEDA').guide,null);

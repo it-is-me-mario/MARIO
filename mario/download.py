@@ -42,6 +42,10 @@ from mario.parsers.specs import (
     EXIOBASE_HYBRID_3318_SOURCE,
     EXIOBASE_HYBRID_3318_ZENODO_URL,
     EXIOBASE_MONETARY_ZENODO_RECORDS,
+    REX3_GHG_RECORD_ID,
+    REX3_GHG_ZENODO_URL,
+    REX3_RECORD_ID,
+    REX3_ZENODO_URL,
     FIGARO_SOURCE,
     ISTAT_IO_RELEASE_PAGES,
     ISTAT_IO_SOURCE,
@@ -76,6 +80,7 @@ __all__ = [
     "download_hybrid_exiobase",
     "download_exiobase3",
     "download_exiobase_monetary",
+    "download_exiobase_rex",
     "download_oecd_icio",
     "download_gloria",
     "download_adb",
@@ -1267,6 +1272,98 @@ def download_exiobase3(
         "download_dir": str(root),
         "archives": [str(item) for item in downloaded if item.exists()],
         "extracted": extracted,
+    }
+
+
+def download_exiobase_rex(
+    path: str | Path,
+    *,
+    years,
+    keep_archives: bool = False,
+    overwrite: bool = False,
+) -> dict[str, object]:
+    """Download REX3 yearly tables, labels, and the detailed GHG extension.
+
+    The economic tables and labels come from Zenodo record ``10354283``;
+    the environmental companion comes from record ``14724086``.  Labels and
+    the GHG companion are always included because the REX3 parser needs both.
+
+    Parameters
+    ----------
+    path : str or Path
+        Destination for the extracted yearly, labels and GHG bundles.
+    years : int or iterable of int
+        Requested source years, from 1995 through 2022.
+    keep_archives : bool, optional
+        Keep downloaded ZIP files after extraction. Defaults to ``False``.
+    overwrite : bool, optional
+        Download and extract again even when destination directories exist.
+
+    Returns
+    -------
+    dict
+        Pinned source records, selected years, download root, extracted year,
+        labels and GHG directories, and retained archives.
+    """
+    normalized_years = _coerce_years(years)
+    invalid_years = [year for year in normalized_years if year < 1995 or year > 2022]
+    if invalid_years:
+        raise WrongInput(
+            f"REX3 covers 1995 through 2022; invalid requested years: {invalid_years}."
+        )
+
+    root = _ensure_directory(path)
+    economic_names = ["REX3_Labels.zip", *[f"REX3_{year}.zip" for year in normalized_years]]
+    ghg_names = ["GHG_data_REX3.zip"]
+
+    def _download_and_extract(record_id: str, names: list[str]) -> list[Path]:
+        extracted: list[Path] = []
+        names_to_download = [
+            name
+            for name in names
+            if overwrite or not (root / Path(name).stem).is_dir()
+        ]
+        downloaded = (
+            _download_zenodo_selection(
+                record_id=record_id,
+                root=root,
+                file_names=names_to_download,
+                overwrite=overwrite,
+            )
+            if names_to_download
+            else []
+        )
+        downloaded_by_name = {item.name: item for item in downloaded}
+        for name in names:
+            extract_dir = root / Path(name).stem
+            archive_path = downloaded_by_name.get(name)
+            if archive_path is not None:
+                _extract_zip(
+                    archive_path,
+                    extract_dir,
+                    overwrite=overwrite,
+                    keep_archive=keep_archives,
+                )
+            extracted.append(extract_dir)
+        return extracted
+
+    economic_dirs = _download_and_extract(REX3_RECORD_ID, economic_names)
+    ghg_dirs = _download_and_extract(REX3_GHG_RECORD_ID, ghg_names)
+    year_dirs = economic_dirs[1:]
+
+    return {
+        "source": REX3_ZENODO_URL,
+        "extension_source": REX3_GHG_ZENODO_URL,
+        "years": normalized_years,
+        "download_dir": str(root),
+        "year_dirs": [str(item) for item in year_dirs],
+        "labels_dir": str(economic_dirs[0]),
+        "ghg_dir": str(ghg_dirs[0]),
+        "archives": [
+            str(item)
+            for item in root.glob("*.zip")
+            if item.name in set(economic_names + ghg_names)
+        ],
     }
 
 

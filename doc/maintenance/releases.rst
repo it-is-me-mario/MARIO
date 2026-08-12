@@ -10,6 +10,11 @@ Confirm the release scope
 
 1. Fetch remote branches and tags. Check the working tree, branch and open PRs;
    preserve unrelated work and use an isolated checkout when needed.
+   Before removing integrated branches, inspect commit ancestry or patch
+   equivalence and active worktrees. Keep a local archival ref for unique
+   checkpoint/backup commits; do not merge or publish their payload merely to
+   retire a feature branch. Remove only worktree records whose directories no
+   longer exist, and verify each requested remote deletion.
 2. Compare the requested version with ``mario/version.py``, GitHub releases and
    the ``mariopy`` versions on PyPI. A published version cannot be reused for a
    new artifact. Resolve a conflicting requested number before tagging or

@@ -248,6 +248,35 @@
         "other",
         " \\| (?:Water|Soil|undef)$"
       ]
+    ],
+    "REX3": [
+      [
+        "ghg",
+        "^(Climate change impacts|GHG emissions from|Land use change climate impacts)",
+        {
+          "gas": "total"
+        }
+      ],
+      [
+        "materials",
+        "^Total material footprint$"
+      ],
+      [
+        "water",
+        "^(Blue water consumption|Water stress)$"
+      ],
+      [
+        "employment",
+        "^Workforce$"
+      ],
+      [
+        "land",
+        "^(Total land|Land use area|Land-use related|Conversion of|Other land conversion)"
+      ],
+      [
+        "other",
+        "^(Particulate-matter related|Freshwater eutrophication|Marine eutrophication)"
+      ]
     ]
   },
   "without": {
