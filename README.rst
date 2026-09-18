@@ -49,11 +49,15 @@ Installation
 
 The package name on PyPI is ``mariopy``, while the import name is ``mario``.
 
-Preferably, create a clean Python environment first:
+MARIO requires **Python 3.11, 3.12 or 3.13** (``>=3.11,<3.14``).
+Python 3.14 and later are not supported because the pinned NumPy version
+(``numpy==2.1.1``) supports Python only up to 3.13.
+
+Create a clean environment with an explicit supported Python version:
 
 .. code-block:: bash
 
-   conda create -n mario python=3.11
+   conda create -n mario python=3.12
    conda activate mario
 
 Install from PyPI:

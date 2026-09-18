@@ -15,10 +15,10 @@ Installation
 
 .. note::
 
-   MARIO supports Python 3.11, 3.12 and 3.13. Python 3.14 is **not** supported
-   yet: MARIO pins ``numpy==2.1.1``, which does not ship prebuilt wheels for
-   Python 3.14, so the installation falls back to building NumPy from source and
-   fails. Use Python 3.13 or earlier for now.
+   MARIO requires **Python 3.11, 3.12 or 3.13** (``>=3.11,<3.14``).
+   Python 3.14 and later are **not supported**: MARIO pins ``numpy==2.1.1``,
+   which supports Python only up to 3.13. Always specify a supported Python
+   version when creating an environment, as in the example below.
 
 1. Create and activate a clean Python environment.
 
@@ -52,6 +52,10 @@ Advanced installation
 
 Use this path if you want to work with a specific Git branch, an unreleased
 commit, or a local editable checkout.
+
+The same Python 3.11-3.13 requirement applies to editable installations
+(``pip install -e .``). Check an existing environment with ``python --version``;
+if it uses Python 3.14 or later, create a new environment with a supported version.
 
 1. Create and activate a clean Python environment.
 

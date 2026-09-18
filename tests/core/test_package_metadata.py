@@ -26,4 +26,4 @@ def test_nbformat_is_installed_by_default_for_plotly_notebook_rendering():
 
 
 def test_package_declares_supported_python_runtime():
-    assert _setup_keyword("python_requires") == ">=3.11"
+    assert _setup_keyword("python_requires") == ">=3.11,<3.14"
