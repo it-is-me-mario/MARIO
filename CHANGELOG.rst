@@ -13,6 +13,9 @@ EXIOBASE 3.11.2
   systems for 1995--2024.
 * Added explicit discovery of the new ``deforestation`` environmental
   extension alongside the other split EXIOBASE satellite accounts.
+* Updated the monetary EXIOBASE walkthrough with a 3.10.2--3.11.2 comparison,
+  source-year versus now-cast coverage, and guidance on the populated 2024
+  CO2 combustion rows.
 
 v1.1.1
 ------
