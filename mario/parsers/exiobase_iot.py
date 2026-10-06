@@ -28,6 +28,7 @@ _EXTENSION_DIRECTORY_ORDER = (
     "employment",
     "labour",
     "air_emissions",
+    "deforestation",
     "energy",
     "land",
     "nutrients",
