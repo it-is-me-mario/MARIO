@@ -2,6 +2,18 @@
 Release History
 ****************
 
+v1.2.0
+------
+
+EXIOBASE 3.11.2
+~~~~~~~~~~~~~~~~
+
+* Added download and parsing support for the official EXIOBASE 3.11.2 IOT
+  release on Zenodo (record ``23039074``), including both ``ixi`` and ``pxp``
+  systems for 1995--2024.
+* Added explicit discovery of the new ``deforestation`` environmental
+  extension alongside the other split EXIOBASE satellite accounts.
+
 v1.1.1
 ------
 

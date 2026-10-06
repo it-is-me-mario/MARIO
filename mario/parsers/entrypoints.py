@@ -586,8 +586,8 @@ def parse_exiobase_3(
         compatibility check.
 
         Monetary IOT releases currently supported through MARIO include
-        EXIOBASE ``3.8.2``, ``3.9.4``, ``3.9.5``, ``3.9.6``, ``3.10.1``, and
-        ``3.10.2``.
+        EXIOBASE ``3.8.2``, ``3.9.4``, ``3.9.5``, ``3.9.6``, ``3.10.1``,
+        ``3.10.2``, and ``3.11.2``.
 
     Parameters
     ----------

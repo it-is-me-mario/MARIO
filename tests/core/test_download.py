@@ -151,7 +151,7 @@ def test_download_exiobase3_extracts_selected_archive(monkeypatch, tmp_path):
 
 
 def test_download_exiobase3_accepts_latest_iot_release(monkeypatch, tmp_path):
-    record_url = "https://zenodo.org/api/records/20051562"
+    record_url = "https://zenodo.org/api/records/23039074"
     archive = _zip_bytes(
         {
             "metadata.json": b"{}",
@@ -164,6 +164,9 @@ def test_download_exiobase3_accepts_latest_iot_release(monkeypatch, tmp_path):
             "employment/F.txt": b"",
             "employment/F_Y.txt": b"",
             "employment/unit.txt": b"",
+            "deforestation/F.txt": b"",
+            "deforestation/F_Y.txt": b"",
+            "deforestation/unit.txt": b"",
         }
     )
     record_payload = {
@@ -186,15 +189,18 @@ def test_download_exiobase3_accepts_latest_iot_release(monkeypatch, tmp_path):
         years=[2024],
         system="pxp",
         table="IOT",
-        version="3.10.2",
+        version="3.11.2",
     )
 
+    assert info["source"] == "https://doi.org/10.5281/zenodo.23039074"
+    assert info["version"] == "3.11.2"
     assert info["years"] == [2024]
     assert info["archives"] == []
     extracted = Path(info["extracted"][0])
     assert extracted.name == "IOT_2024_pxp"
     assert (extracted / "factor_inputs" / "F.txt").exists()
     assert (extracted / "employment" / "F.txt").exists()
+    assert (extracted / "deforestation" / "F.txt").exists()
 
 
 def test_download_exiobase3_rejects_unavailable_sut_release(tmp_path):

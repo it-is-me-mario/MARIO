@@ -166,6 +166,23 @@ def test_parse_exiobase_3_parses_split_extensions_without_version_argument(tmp_p
     assert db.units[_MASTER_INDEX["k"]].loc["CO2", "unit"] == "kg"
 
 
+def test_parse_exiobase_3_parses_3_11_2_deforestation_extension(tmp_path):
+    root = tmp_path / "Exiobase 3.11.2 - IOT_2011_ixi"
+    _write_split_exiobase(root, version="3.11.2", extension_dir="deforestation")
+
+    db = parse_exiobase_3(
+        str(root),
+        version="3.11.2",
+        system="ixi",
+        calc_all=False,
+    )
+
+    assert db.meta.year == 2011
+    assert "version 3.11.2" in db.meta.source
+    assert db.get_index(_MASTER_INDEX["k"]) == ["CO2", "Water use"]
+    assert db.units[_MASTER_INDEX["k"]].loc["Water use", "unit"] == "m3"
+
+
 def test_parse_exiobase_3_accepts_split_bundle_zip(tmp_path):
     root = tmp_path / "Exiobase 3.10.1 - IOT_2011_ixi"
     archive = tmp_path / "Exiobase 3.10.1 - IOT_2011_ixi.zip"

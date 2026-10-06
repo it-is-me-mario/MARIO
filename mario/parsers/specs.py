@@ -81,6 +81,11 @@ EXIOBASE_HYBRID_3318_SOURCE = (
     f"({EXIOBASE_HYBRID_3318_ZENODO_URL})"
 )
 EXIOBASE_MONETARY_ZENODO_RECORDS = {
+    "3.11.2": {
+        "record_id": "23039074",
+        "doi": "https://doi.org/10.5281/zenodo.23039074",
+        "tables": ("IOT",),
+    },
     "3.10.2": {
         "record_id": "20051562",
         "doi": "https://doi.org/10.5281/zenodo.20051562",
