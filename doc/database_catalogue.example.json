@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "jobs": [
+    {
+      "id": "exiobase-hybrid-3318-sut-2011-all-extensions",
+      "label": "EXIOBASE Hybrid 3.3.18 · 2011 · all extensions",
+      "source": "EXIOBASE",
+      "release": "3.3.18",
+      "year": 2011,
+      "expected_table": "SUT",
+      "recipe": "exiobase-hybrid--01",
+      "parameters": {"path": "/path/to/exiobase-hybrid-3.3.18"}
+    },
+    {
+      "id": "gtap-power-mrio-csv",
+      "label": "GTAP Power · MRIO · CSV (supply release and year)",
+      "source": "GTAP",
+      "release": "",
+      "expected_table": "IOT",
+      "recipe": "gtap--01",
+      "parameters": {"path": "/path/to/gtap-power-mrio"}
+    },
+    {
+      "id": "custom-sut-from-excel",
+      "label": "Custom SUT · supplied Excel workbook",
+      "source": "Custom database",
+      "release": "",
+      "expected_table": "SUT",
+      "recipe": "custom-database-from-excel--03",
+      "parameters": {"path": "/path/to/custom-sut.xlsx"}
+    }
+  ]
+}

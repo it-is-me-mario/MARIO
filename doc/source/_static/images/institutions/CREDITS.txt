@@ -1,0 +1,16 @@
+Supporting institution logos
+
+Provided by Lorenzo on 2026-10-08 for the MARIO homepage.
+
+Politecnico di Milano: official 04_logotipo set, two-line, left-aligned wordmark
+("bandiera"). Original files 04_Polimi_logotipo_bandiera_positivo.jpg and
+04_Polimi_logotipo_bandiera_negativo.jpg. These JPEGs are copied unchanged;
+CSS multiply/screen blending makes their white/black backgrounds blend with
+the current page surface while retaining the supplied lettering.
+
+All eNextGen logos are supplied PNG originals, copied unchanged:
+Logo_transparent_black.png and eNextGen_logo_transparent_white.png.
+
+The logos remain trademarks of their respective owners. This directory holds
+local display assets for the light and dark themes, so the homepage does not
+rely on remote image URLs.

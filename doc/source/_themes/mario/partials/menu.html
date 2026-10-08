@@ -1,0 +1,18 @@
+{#- Phones only: section menu that appears top-left once the hero tabs scroll out of view. -#}
+{%- from "partials/icons.html" import icon %}
+{%- set current = (mario.tabs | selectattr("active") | list | first) if (mario.tabs | selectattr("active") | list) else none %}
+<div class="mario-menu" data-menu>
+  <details class="mario-menu__details" data-pagebar-menu>
+    <summary aria-label="{{ mario.section_label }} menu">{{ icon("menu") }}<span class="mario-menu__label">{{ current.label if current else mario.section_label }}</span></summary>
+    <div class="mario-pagebar__panel mario-menu__panel mario-sidenav">
+      <p class="mario-sidenav__title">{{ mario.section_label }}</p>
+      <ul class="mario-sidenav__list">
+        {%- for tab in mario.tabs %}
+        <li class="{% if tab.active %}is-active is-open{% endif %}"{% if tab.key %} data-group="{{ tab.key }}"{% endif %}>
+          <a href="{{ tab.url }}"{% if tab.active %} aria-current="{{ 'true' if mario.sidebar else 'page' }}"{% endif %}>{{ tab.label }}</a>
+        </li>
+        {%- endfor %}
+      </ul>
+    </div>
+  </details>
+</div>

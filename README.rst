@@ -107,20 +107,28 @@ For SUT workflows:
 Documentation Map
 -----------------
 
-The published documentation is organized into a few main sections:
+The published documentation is organized into three sections:
 
-* `Setup <https://mario-suite.readthedocs.io/en/latest/setup/index.html>`_ for installation and first checks;
-* `Concepts <https://mario-suite.readthedocs.io/en/latest/concepts/index.html>`_ for MARIO terminology and conventions;
-* `User guide <https://mario-suite.readthedocs.io/en/latest/user_guide/index.html>`_ for parsers, inspection, transformations, custom databases, and exports;
-* `API reference <https://mario-suite.readthedocs.io/en/latest/reference/api_library.html>`_ for method-level documentation;
-* `Publications <https://mario-suite.readthedocs.io/en/latest/resources/publications.html>`_ for the software paper and related research.
+* `Get started <https://mario-suite.readthedocs.io/en/latest/get_started/index.html>`_ for installation, nomenclature, table formats and scenarios;
+* `Docs <https://mario-suite.readthedocs.io/en/latest/user_guide/index.html>`_ for parsers, inspection, transformations, advanced workflows and the
+  `API reference <https://mario-suite.readthedocs.io/en/latest/reference/api_library.html>`_;
+* `Resources <https://mario-suite.readthedocs.io/en/latest/resources/research.html>`_ for the software paper and related research.
 
 
 Citation
 --------
 
 Citation guidance and the up-to-date list of publications using MARIO are maintained in the
-`Research section of the documentation <https://mario-suite.readthedocs.io/en/latest/resources/publications.html>`_.
+`Resources section of the documentation <https://mario-suite.readthedocs.io/en/latest/resources/research.html>`_.
+
+
+Contributing
+------------
+
+Contributions are welcome. To report a bug or suggest a feature, open an
+`issue on GitHub <https://github.com/it-is-me-mario/MARIO/issues>`_. To contribute
+code or documentation, open a pull request against ``main``; for larger changes,
+open an issue first or contact the maintainers so we can agree on the approach.
 
 
 License

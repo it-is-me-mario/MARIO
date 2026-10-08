@@ -154,3 +154,6 @@ dmypy.json
 
 # MARIO live-fetch API keys (never commit real keys)
 mario/settings/api_keys.yaml
+
+# Private inputs for documentation database set profiles
+doc/database_catalogue.local.json

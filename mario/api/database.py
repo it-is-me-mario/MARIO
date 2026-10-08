@@ -4063,6 +4063,8 @@ class Database(CoreModel):
         barmode="relative",
         log_x=False,
         log_y=False,
+        log_color=False,
+        color_clip=None,
         title=None,
         return_data=False,
         **kwargs,
@@ -4086,7 +4088,10 @@ class Database(CoreModel):
         preset:
             Convenience preset for the non-expert workflow. Accepted values are
             ``"overview"``, ``"composition"``, ``"trend"``,
-            ``"heatmap"``, ``"treemap"`` and ``"sunburst"``.
+            ``"heatmap"``, ``"treemap"`` and ``"sunburst"``. With
+            ``"heatmap"`` and no ``x``, a matrix is drawn as it is stored: one
+            row per matrix row, one column per matrix column, in the original
+            order. Pass ``x`` and ``heatmap_y`` to pivot on other columns.
         kind:
             Plotly Express chart type. When omitted, MARIO infers a sensible
             default from ``preset``.
@@ -4118,6 +4123,15 @@ class Database(CoreModel):
             Bar stacking mode used for bar plots.
         log_x, log_y:
             Whether to use logarithmic scaling.
+        log_color:
+            Heatmaps only. When ``True``, color cells by ``log10`` of their
+            value so that a few very large entries, such as the diagonal of
+            ``Z``, do not flatten the rest of the matrix. Zero cells are left
+            blank and negative values raise an error.
+        color_clip:
+            Heatmaps only. Optional pair of quantiles, for example
+            ``(0.05, 0.995)``. Color values outside this range are clipped to
+            it, which softens outliers. Applied after ``log_color``.
         title:
             Optional plot title.
         return_data:
@@ -4186,6 +4200,8 @@ class Database(CoreModel):
             barmode=barmode,
             log_x=log_x,
             log_y=log_y,
+            log_color=log_color,
+            color_clip=color_clip,
             title=resolved_title,
             return_data=return_data,
             **kwargs,

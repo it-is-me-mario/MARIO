@@ -48,7 +48,7 @@ def test_all_public_database_symbols_have_api_document_pages():
 def test_api_reference_exposes_resolvable_matrix_catalog():
     page = (DOC_ROOT / "reference" / "api_resolvable_matrices.rst").read_text(encoding="utf-8")
 
-    assert "../concepts/_generated/matrices_table.html" in page
+    assert "../get_started/_generated/matrices_table.html" in page
     assert 'db.resolve("Xa")' in page
     assert "Xc" in page
     assert "Cx" in page

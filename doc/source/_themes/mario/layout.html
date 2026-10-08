@@ -1,0 +1,64 @@
+{#- MARIO documentation theme. Structure comes from doc/source/_ext/mario_site.py. -#}
+{%- extends "basic/layout.html" %}
+{%- set mario = mario_page %}
+
+{%- block extrahead %}
+    <meta name="color-scheme" content="light dark">
+    <script>
+      (function () {
+        try {
+          var theme = localStorage.getItem("mario-theme");
+          if (theme === "light" || theme === "dark") {
+            document.documentElement.dataset.theme = theme;
+          }
+        } catch (error) {}
+        try {
+          var tab = JSON.parse(sessionStorage.getItem("mario-tab-nav") || "null");
+          if (tab && tab.to === location.pathname && Date.now() - tab.t < 15000) {
+            document.documentElement.classList.add("mario-tab-nav");
+          }
+        } catch (error) {}
+        document.documentElement.classList.add("mario-js");
+      })();
+    </script>
+    <script defer src="{{ pathto('_static/mario.js', 1) }}"></script>
+{%- endblock %}
+
+{%- block body_tag %}<body class="mario-layout-{{ mario.layout }}" data-section="{{ mario.section_key }}" data-group="{{ mario.group_key }}">{% endblock %}
+
+{%- block header %}
+  <a class="mario-skip" href="#mario-main">Skip to content</a>
+  <div class="mario-bg" aria-hidden="true">
+    <div class="mario-bg__heat"></div>
+    <div class="mario-bg__dots"></div>
+  </div>
+  {%- include "partials/header.html" %}
+{%- endblock %}
+
+{%- block relbar1 %}{% endblock %}
+{%- block relbar2 %}{% endblock %}
+
+{%- block content %}
+  <div id="mario-main" class="mario-main">
+    {%- include "partials/hero.html" %}
+    {%- if mario.tabs %}{% include "partials/tabs.html" %}{% include "partials/menu.html" %}{% endif %}
+    <div class="mario-shell mario-shell--{{ mario.layout }}{% if pagename.startswith('resources/benchmarks/') and pagename != 'resources/benchmarks/index' %} mario-shell--benchmark{% endif %}">
+      {%- if mario.sidebar %}{% include "partials/sidebar.html" %}{% endif %}
+      <div class="mario-content">
+        {#- Pages with tabs always keep the page-bar row, even when it is empty, so the box starts at the same height everywhere. #}
+        {%- if mario.tabs or (mario.local_toc and mario.local_toc|length > 1) %}{% include "partials/pagebar.html" %}{% endif %}
+        <article class="mario-box mario-article" data-snap>
+          <div class="mario-body" role="main">
+            {% if mario.layout == "home" %}{% include "partials/home-navigation.html" %}{% endif %}
+            {% block body %}{% endblock %}
+          </div>
+        </article>
+      </div>
+    </div>
+  </div>
+{%- endblock %}
+
+{%- block footer %}
+  {%- include "partials/footer.html" %}
+  {%- include "partials/palette.html" %}
+{%- endblock %}

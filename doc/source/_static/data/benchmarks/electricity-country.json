@@ -1,0 +1,6349 @@
+{
+  "records": [
+    {
+      "country": "Austria",
+      "iso": "AT",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 198.5
+    },
+    {
+      "country": "Belgium",
+      "iso": "BE",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 188.0
+    },
+    {
+      "country": "Bulgaria",
+      "iso": "BG",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 403.5
+    },
+    {
+      "country": "Croatia",
+      "iso": "HR",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 303.0
+    },
+    {
+      "country": "Czechia",
+      "iso": "CZ",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 528.3
+    },
+    {
+      "country": "Denmark",
+      "iso": "DK",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 174.4
+    },
+    {
+      "country": "Estonia",
+      "iso": "EE",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 211.5
+    },
+    {
+      "country": "Finland",
+      "iso": "FI",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 187.8
+    },
+    {
+      "country": "France",
+      "iso": "FR",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 103.1
+    },
+    {
+      "country": "Germany",
+      "iso": "DE",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 630.9
+    },
+    {
+      "country": "Greece",
+      "iso": "GR",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 706.3
+    },
+    {
+      "country": "Hungary",
+      "iso": "HU",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 265.8
+    },
+    {
+      "country": "Ireland",
+      "iso": "IE",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 582.6
+    },
+    {
+      "country": "Italy",
+      "iso": "IT",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 315.8
+    },
+    {
+      "country": "Latvia",
+      "iso": "LV",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 148.9
+    },
+    {
+      "country": "Lithuania",
+      "iso": "LT",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 64.0
+    },
+    {
+      "country": "Netherlands",
+      "iso": "NL",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 444.7
+    },
+    {
+      "country": "Poland",
+      "iso": "PL",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 727.0
+    },
+    {
+      "country": "Portugal",
+      "iso": "PT",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 481.6
+    },
+    {
+      "country": "Romania",
+      "iso": "RO",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 369.8
+    },
+    {
+      "country": "Slovakia",
+      "iso": "SK",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 267.4
+    },
+    {
+      "country": "Slovenia",
+      "iso": "SI",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 336.0
+    },
+    {
+      "country": "Spain",
+      "iso": "ES",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 290.0
+    },
+    {
+      "country": "Sweden",
+      "iso": "SE",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 28.6
+    },
+    {
+      "country": "United States",
+      "iso": "US",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 425.4
+    },
+    {
+      "country": "Austria",
+      "iso": "AT",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 252.5
+    },
+    {
+      "country": "Belgium",
+      "iso": "BE",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 235.6
+    },
+    {
+      "country": "Bulgaria",
+      "iso": "BG",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 507.9
+    },
+    {
+      "country": "Croatia",
+      "iso": "HR",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 376.7
+    },
+    {
+      "country": "Czechia",
+      "iso": "CZ",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 622.2
+    },
+    {
+      "country": "Denmark",
+      "iso": "DK",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 208.3
+    },
+    {
+      "country": "Estonia",
+      "iso": "EE",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 961.1
+    },
+    {
+      "country": "Finland",
+      "iso": "FI",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 226.9
+    },
+    {
+      "country": "France",
+      "iso": "FR",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 134.7
+    },
+    {
+      "country": "Germany",
+      "iso": "DE",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 705.1
+    },
+    {
+      "country": "Greece",
+      "iso": "GR",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 840.3
+    },
+    {
+      "country": "Hungary",
+      "iso": "HU",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 318.2
+    },
+    {
+      "country": "Ireland",
+      "iso": "IE",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 637.9
+    },
+    {
+      "country": "Italy",
+      "iso": "IT",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 392.2
+    },
+    {
+      "country": "Latvia",
+      "iso": "LV",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 200.1
+    },
+    {
+      "country": "Lithuania",
+      "iso": "LT",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 93.1
+    },
+    {
+      "country": "Netherlands",
+      "iso": "NL",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 516.7
+    },
+    {
+      "country": "Poland",
+      "iso": "PL",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 866.0
+    },
+    {
+      "country": "Portugal",
+      "iso": "PT",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 566.0
+    },
+    {
+      "country": "Romania",
+      "iso": "RO",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 451.3
+    },
+    {
+      "country": "Slovakia",
+      "iso": "SK",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 350.9
+    },
+    {
+      "country": "Slovenia",
+      "iso": "SI",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 433.7
+    },
+    {
+      "country": "Spain",
+      "iso": "ES",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 367.3
+    },
+    {
+      "country": "Sweden",
+      "iso": "SE",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 38.4
+    },
+    {
+      "country": "United States",
+      "iso": "US",
+      "source": "GTAP",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 494.2
+    },
+    {
+      "country": "Austria",
+      "iso": "AT",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 24.9
+    },
+    {
+      "country": "Belgium",
+      "iso": "BE",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 120.1
+    },
+    {
+      "country": "Bulgaria",
+      "iso": "BG",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 380.0
+    },
+    {
+      "country": "Croatia",
+      "iso": "HR",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 140.5
+    },
+    {
+      "country": "Czechia",
+      "iso": "CZ",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 249.9
+    },
+    {
+      "country": "Denmark",
+      "iso": "DK",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 11.2
+    },
+    {
+      "country": "Estonia",
+      "iso": "EE",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 266.1
+    },
+    {
+      "country": "Finland",
+      "iso": "FI",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 60.2
+    },
+    {
+      "country": "France",
+      "iso": "FR",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 37.8
+    },
+    {
+      "country": "Germany",
+      "iso": "DE",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 171.7
+    },
+    {
+      "country": "Greece",
+      "iso": "GR",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 176.7
+    },
+    {
+      "country": "Hungary",
+      "iso": "HU",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 126.9
+    },
+    {
+      "country": "Ireland",
+      "iso": "IE",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 318.4
+    },
+    {
+      "country": "Italy",
+      "iso": "IT",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 189.7
+    },
+    {
+      "country": "Latvia",
+      "iso": "LV",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 26.2
+    },
+    {
+      "country": "Lithuania",
+      "iso": "LT",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 14.4
+    },
+    {
+      "country": "Netherlands",
+      "iso": "NL",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 220.7
+    },
+    {
+      "country": "Poland",
+      "iso": "PL",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 427.7
+    },
+    {
+      "country": "Portugal",
+      "iso": "PT",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 168.9
+    },
+    {
+      "country": "Romania",
+      "iso": "RO",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 291.8
+    },
+    {
+      "country": "Slovakia",
+      "iso": "SK",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 86.1
+    },
+    {
+      "country": "Slovenia",
+      "iso": "SI",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 189.0
+    },
+    {
+      "country": "Spain",
+      "iso": "ES",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 232.7
+    },
+    {
+      "country": "Sweden",
+      "iso": "SE",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 1.7
+    },
+    {
+      "country": "United States",
+      "iso": "US",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 457.3
+    },
+    {
+      "country": "Austria",
+      "iso": "AT",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 73.6
+    },
+    {
+      "country": "Belgium",
+      "iso": "BE",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 150.6
+    },
+    {
+      "country": "Bulgaria",
+      "iso": "BG",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 418.2
+    },
+    {
+      "country": "Croatia",
+      "iso": "HR",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 213.1
+    },
+    {
+      "country": "Czechia",
+      "iso": "CZ",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 304.7
+    },
+    {
+      "country": "Denmark",
+      "iso": "DK",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 30.1
+    },
+    {
+      "country": "Estonia",
+      "iso": "EE",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 290.9
+    },
+    {
+      "country": "Finland",
+      "iso": "FI",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 70.9
+    },
+    {
+      "country": "France",
+      "iso": "FR",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 62.8
+    },
+    {
+      "country": "Germany",
+      "iso": "DE",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 206.5
+    },
+    {
+      "country": "Greece",
+      "iso": "GR",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 246.7
+    },
+    {
+      "country": "Hungary",
+      "iso": "HU",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 152.7
+    },
+    {
+      "country": "Ireland",
+      "iso": "IE",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 343.1
+    },
+    {
+      "country": "Italy",
+      "iso": "IT",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 243.3
+    },
+    {
+      "country": "Latvia",
+      "iso": "LV",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 55.1
+    },
+    {
+      "country": "Lithuania",
+      "iso": "LT",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 44.8
+    },
+    {
+      "country": "Netherlands",
+      "iso": "NL",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 256.6
+    },
+    {
+      "country": "Poland",
+      "iso": "PL",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 460.7
+    },
+    {
+      "country": "Portugal",
+      "iso": "PT",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 290.2
+    },
+    {
+      "country": "Romania",
+      "iso": "RO",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 360.5
+    },
+    {
+      "country": "Slovakia",
+      "iso": "SK",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 168.0
+    },
+    {
+      "country": "Slovenia",
+      "iso": "SI",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 217.9
+    },
+    {
+      "country": "Spain",
+      "iso": "ES",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 259.9
+    },
+    {
+      "country": "Sweden",
+      "iso": "SE",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 9.5
+    },
+    {
+      "country": "United States",
+      "iso": "US",
+      "source": "EXIOBASE ixi",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 464.4
+    },
+    {
+      "country": "Austria",
+      "iso": "AT",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 18.7
+    },
+    {
+      "country": "Belgium",
+      "iso": "BE",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 103.1
+    },
+    {
+      "country": "Bulgaria",
+      "iso": "BG",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 407.9
+    },
+    {
+      "country": "Croatia",
+      "iso": "HR",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 113.7
+    },
+    {
+      "country": "Czechia",
+      "iso": "CZ",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 253.7
+    },
+    {
+      "country": "Denmark",
+      "iso": "DK",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 6.8
+    },
+    {
+      "country": "Estonia",
+      "iso": "EE",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 238.4
+    },
+    {
+      "country": "Finland",
+      "iso": "FI",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 51.8
+    },
+    {
+      "country": "France",
+      "iso": "FR",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 37.8
+    },
+    {
+      "country": "Germany",
+      "iso": "DE",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 151.6
+    },
+    {
+      "country": "Greece",
+      "iso": "GR",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 175.3
+    },
+    {
+      "country": "Hungary",
+      "iso": "HU",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 132.0
+    },
+    {
+      "country": "Ireland",
+      "iso": "IE",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 304.7
+    },
+    {
+      "country": "Italy",
+      "iso": "IT",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 175.6
+    },
+    {
+      "country": "Latvia",
+      "iso": "LV",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 13.1
+    },
+    {
+      "country": "Lithuania",
+      "iso": "LT",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 8.1
+    },
+    {
+      "country": "Netherlands",
+      "iso": "NL",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 196.3
+    },
+    {
+      "country": "Poland",
+      "iso": "PL",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 372.2
+    },
+    {
+      "country": "Portugal",
+      "iso": "PT",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 140.0
+    },
+    {
+      "country": "Romania",
+      "iso": "RO",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 291.8
+    },
+    {
+      "country": "Slovakia",
+      "iso": "SK",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 40.1
+    },
+    {
+      "country": "Slovenia",
+      "iso": "SI",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 128.5
+    },
+    {
+      "country": "Spain",
+      "iso": "ES",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 189.8
+    },
+    {
+      "country": "Sweden",
+      "iso": "SE",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 0.9
+    },
+    {
+      "country": "United States",
+      "iso": "US",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 426.9
+    },
+    {
+      "country": "Austria",
+      "iso": "AT",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 64.3
+    },
+    {
+      "country": "Belgium",
+      "iso": "BE",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 133.1
+    },
+    {
+      "country": "Bulgaria",
+      "iso": "BG",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 443.0
+    },
+    {
+      "country": "Croatia",
+      "iso": "HR",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 180.1
+    },
+    {
+      "country": "Czechia",
+      "iso": "CZ",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 307.8
+    },
+    {
+      "country": "Denmark",
+      "iso": "DK",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 17.2
+    },
+    {
+      "country": "Estonia",
+      "iso": "EE",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 260.7
+    },
+    {
+      "country": "Finland",
+      "iso": "FI",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 62.9
+    },
+    {
+      "country": "France",
+      "iso": "FR",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 63.0
+    },
+    {
+      "country": "Germany",
+      "iso": "DE",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 186.8
+    },
+    {
+      "country": "Greece",
+      "iso": "GR",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 231.7
+    },
+    {
+      "country": "Hungary",
+      "iso": "HU",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 158.8
+    },
+    {
+      "country": "Ireland",
+      "iso": "IE",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 328.6
+    },
+    {
+      "country": "Italy",
+      "iso": "IT",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 226.8
+    },
+    {
+      "country": "Latvia",
+      "iso": "LV",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 35.4
+    },
+    {
+      "country": "Lithuania",
+      "iso": "LT",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 36.8
+    },
+    {
+      "country": "Netherlands",
+      "iso": "NL",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 231.5
+    },
+    {
+      "country": "Poland",
+      "iso": "PL",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 404.2
+    },
+    {
+      "country": "Portugal",
+      "iso": "PT",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 250.6
+    },
+    {
+      "country": "Romania",
+      "iso": "RO",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 360.5
+    },
+    {
+      "country": "Slovakia",
+      "iso": "SK",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 107.6
+    },
+    {
+      "country": "Slovenia",
+      "iso": "SI",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 152.8
+    },
+    {
+      "country": "Spain",
+      "iso": "ES",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 214.7
+    },
+    {
+      "country": "Sweden",
+      "iso": "SE",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 8.7
+    },
+    {
+      "country": "United States",
+      "iso": "US",
+      "source": "EXIOBASE pxp",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 434.2
+    },
+    {
+      "country": "Austria",
+      "iso": "AT",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 126.8
+    },
+    {
+      "country": "Belgium",
+      "iso": "BE",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 163.0
+    },
+    {
+      "country": "Bulgaria",
+      "iso": "BG",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 489.6
+    },
+    {
+      "country": "Croatia",
+      "iso": "HR",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 259.0
+    },
+    {
+      "country": "Czechia",
+      "iso": "CZ",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 533.7
+    },
+    {
+      "country": "Denmark",
+      "iso": "DK",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 293.7
+    },
+    {
+      "country": "Estonia",
+      "iso": "EE",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 789.1
+    },
+    {
+      "country": "Finland",
+      "iso": "FI",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 223.2
+    },
+    {
+      "country": "France",
+      "iso": "FR",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 74.7
+    },
+    {
+      "country": "Germany",
+      "iso": "DE",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 470.8
+    },
+    {
+      "country": "Greece",
+      "iso": "GR",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 553.9
+    },
+    {
+      "country": "Hungary",
+      "iso": "HU",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 296.5
+    },
+    {
+      "country": "Ireland",
+      "iso": "IE",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 488.4
+    },
+    {
+      "country": "Italy",
+      "iso": "IT",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 339.9
+    },
+    {
+      "country": "Latvia",
+      "iso": "LV",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 139.7
+    },
+    {
+      "country": "Lithuania",
+      "iso": "LT",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 142.6
+    },
+    {
+      "country": "Netherlands",
+      "iso": "NL",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 618.3
+    },
+    {
+      "country": "Poland",
+      "iso": "PL",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 843.8
+    },
+    {
+      "country": "Portugal",
+      "iso": "PT",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 420.9
+    },
+    {
+      "country": "Romania",
+      "iso": "RO",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 358.5
+    },
+    {
+      "country": "Slovakia",
+      "iso": "SK",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 147.2
+    },
+    {
+      "country": "Slovenia",
+      "iso": "SI",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 302.4
+    },
+    {
+      "country": "Spain",
+      "iso": "ES",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 307.7
+    },
+    {
+      "country": "Sweden",
+      "iso": "SE",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 12.0
+    },
+    {
+      "country": "United States",
+      "iso": "US",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 473.9
+    },
+    {
+      "country": "Austria",
+      "iso": "AT",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 72.5
+    },
+    {
+      "country": "Belgium",
+      "iso": "BE",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 125.4
+    },
+    {
+      "country": "Bulgaria",
+      "iso": "BG",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 371.4
+    },
+    {
+      "country": "Croatia",
+      "iso": "HR",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 189.8
+    },
+    {
+      "country": "Czechia",
+      "iso": "CZ",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 428.5
+    },
+    {
+      "country": "Denmark",
+      "iso": "DK",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 181.9
+    },
+    {
+      "country": "Estonia",
+      "iso": "EE",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 522.6
+    },
+    {
+      "country": "Finland",
+      "iso": "FI",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 81.9
+    },
+    {
+      "country": "France",
+      "iso": "FR",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 48.5
+    },
+    {
+      "country": "Germany",
+      "iso": "DE",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 359.3
+    },
+    {
+      "country": "Greece",
+      "iso": "GR",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 297.6
+    },
+    {
+      "country": "Hungary",
+      "iso": "HU",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 211.6
+    },
+    {
+      "country": "Ireland",
+      "iso": "IE",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 313.1
+    },
+    {
+      "country": "Italy",
+      "iso": "IT",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 320.8
+    },
+    {
+      "country": "Latvia",
+      "iso": "LV",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 135.7
+    },
+    {
+      "country": "Lithuania",
+      "iso": "LT",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 101.6
+    },
+    {
+      "country": "Netherlands",
+      "iso": "NL",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 396.0
+    },
+    {
+      "country": "Poland",
+      "iso": "PL",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 685.0
+    },
+    {
+      "country": "Portugal",
+      "iso": "PT",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 135.3
+    },
+    {
+      "country": "Romania",
+      "iso": "RO",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 234.2
+    },
+    {
+      "country": "Slovakia",
+      "iso": "SK",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 99.7
+    },
+    {
+      "country": "Slovenia",
+      "iso": "SI",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 223.5
+    },
+    {
+      "country": "Spain",
+      "iso": "ES",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 141.3
+    },
+    {
+      "country": "Sweden",
+      "iso": "SE",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 12.2
+    },
+    {
+      "country": "United States",
+      "iso": "US",
+      "source": "NREL",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 385.6
+    },
+    {
+      "country": "Austria",
+      "iso": "AT",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 131.2
+    },
+    {
+      "country": "Belgium",
+      "iso": "BE",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 163.1
+    },
+    {
+      "country": "Bulgaria",
+      "iso": "BG",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 414.8
+    },
+    {
+      "country": "Croatia",
+      "iso": "HR",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 246.7
+    },
+    {
+      "country": "Czechia",
+      "iso": "CZ",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 452.1
+    },
+    {
+      "country": "Denmark",
+      "iso": "DK",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 262.8
+    },
+    {
+      "country": "Estonia",
+      "iso": "EE",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 782.3
+    },
+    {
+      "country": "Finland",
+      "iso": "FI",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 200.9
+    },
+    {
+      "country": "France",
+      "iso": "FR",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 72.3
+    },
+    {
+      "country": "Germany",
+      "iso": "DE",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 409.9
+    },
+    {
+      "country": "Greece",
+      "iso": "GR",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 494.8
+    },
+    {
+      "country": "Hungary",
+      "iso": "HU",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 270.0
+    },
+    {
+      "country": "Ireland",
+      "iso": "IE",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 453.5
+    },
+    {
+      "country": "Italy",
+      "iso": "IT",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 322.4
+    },
+    {
+      "country": "Latvia",
+      "iso": "LV",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 149.2
+    },
+    {
+      "country": "Lithuania",
+      "iso": "LT",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 146.6
+    },
+    {
+      "country": "Netherlands",
+      "iso": "NL",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 560.6
+    },
+    {
+      "country": "Poland",
+      "iso": "PL",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 711.6
+    },
+    {
+      "country": "Portugal",
+      "iso": "PT",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 383.2
+    },
+    {
+      "country": "Romania",
+      "iso": "RO",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 317.8
+    },
+    {
+      "country": "Slovakia",
+      "iso": "SK",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 133.5
+    },
+    {
+      "country": "Slovenia",
+      "iso": "SI",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 259.3
+    },
+    {
+      "country": "Spain",
+      "iso": "ES",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 280.2
+    },
+    {
+      "country": "Sweden",
+      "iso": "SE",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 17.2
+    },
+    {
+      "country": "United States",
+      "iso": "US",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 423.8
+    },
+    {
+      "country": "Austria",
+      "iso": "AT",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 81.0
+    },
+    {
+      "country": "Belgium",
+      "iso": "BE",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 124.0
+    },
+    {
+      "country": "Bulgaria",
+      "iso": "BG",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 316.5
+    },
+    {
+      "country": "Croatia",
+      "iso": "HR",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 186.1
+    },
+    {
+      "country": "Czechia",
+      "iso": "CZ",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 365.0
+    },
+    {
+      "country": "Denmark",
+      "iso": "DK",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 163.1
+    },
+    {
+      "country": "Estonia",
+      "iso": "EE",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 504.4
+    },
+    {
+      "country": "Finland",
+      "iso": "FI",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 76.5
+    },
+    {
+      "country": "France",
+      "iso": "FR",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 48.4
+    },
+    {
+      "country": "Germany",
+      "iso": "DE",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 314.5
+    },
+    {
+      "country": "Greece",
+      "iso": "GR",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 279.4
+    },
+    {
+      "country": "Hungary",
+      "iso": "HU",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 195.5
+    },
+    {
+      "country": "Ireland",
+      "iso": "IE",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 303.1
+    },
+    {
+      "country": "Italy",
+      "iso": "IT",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 310.1
+    },
+    {
+      "country": "Latvia",
+      "iso": "LV",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 145.5
+    },
+    {
+      "country": "Lithuania",
+      "iso": "LT",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 101.5
+    },
+    {
+      "country": "Netherlands",
+      "iso": "NL",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 369.9
+    },
+    {
+      "country": "Poland",
+      "iso": "PL",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 582.4
+    },
+    {
+      "country": "Portugal",
+      "iso": "PT",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 138.7
+    },
+    {
+      "country": "Romania",
+      "iso": "RO",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 215.2
+    },
+    {
+      "country": "Slovakia",
+      "iso": "SK",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 95.9
+    },
+    {
+      "country": "Slovenia",
+      "iso": "SI",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 195.4
+    },
+    {
+      "country": "Spain",
+      "iso": "ES",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 138.0
+    },
+    {
+      "country": "Sweden",
+      "iso": "SE",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 17.3
+    },
+    {
+      "country": "United States",
+      "iso": "US",
+      "source": "IPCC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 359.5
+    },
+    {
+      "country": "Austria",
+      "iso": "AT",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 315.5
+    },
+    {
+      "country": "Belgium",
+      "iso": "BE",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 217.1
+    },
+    {
+      "country": "Bulgaria",
+      "iso": "BG",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 658.4
+    },
+    {
+      "country": "Croatia",
+      "iso": "HR",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 418.9
+    },
+    {
+      "country": "Czechia",
+      "iso": "CZ",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 659.6
+    },
+    {
+      "country": "Denmark",
+      "iso": "DK",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 140.6
+    },
+    {
+      "country": "Estonia",
+      "iso": "EE",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 1032.5
+    },
+    {
+      "country": "Finland",
+      "iso": "FI",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 98.5
+    },
+    {
+      "country": "France",
+      "iso": "FR",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 87.2
+    },
+    {
+      "country": "Germany",
+      "iso": "DE",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 474.8
+    },
+    {
+      "country": "Greece",
+      "iso": "GR",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 615.2
+    },
+    {
+      "country": "Hungary",
+      "iso": "HU",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 282.3
+    },
+    {
+      "country": "Ireland",
+      "iso": "IE",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 422.8
+    },
+    {
+      "country": "Italy",
+      "iso": "IT",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 327.7
+    },
+    {
+      "country": "Latvia",
+      "iso": "LV",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 370.2
+    },
+    {
+      "country": "Lithuania",
+      "iso": "LT",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 70.7
+    },
+    {
+      "country": "Netherlands",
+      "iso": "NL",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 466.0
+    },
+    {
+      "country": "Poland",
+      "iso": "PL",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 867.6
+    },
+    {
+      "country": "Portugal",
+      "iso": "PT",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 423.5
+    },
+    {
+      "country": "Romania",
+      "iso": "RO",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 471.2
+    },
+    {
+      "country": "Slovakia",
+      "iso": "SK",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 429.1
+    },
+    {
+      "country": "Slovenia",
+      "iso": "SI",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 235.5
+    },
+    {
+      "country": "Spain",
+      "iso": "ES",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 338.1
+    },
+    {
+      "country": "Sweden",
+      "iso": "SE",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 17.0
+    },
+    {
+      "country": "Austria",
+      "iso": "AT",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 292.5
+    },
+    {
+      "country": "Belgium",
+      "iso": "BE",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 230.4
+    },
+    {
+      "country": "Bulgaria",
+      "iso": "BG",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 573.8
+    },
+    {
+      "country": "Croatia",
+      "iso": "HR",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 386.0
+    },
+    {
+      "country": "Czechia",
+      "iso": "CZ",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 624.1
+    },
+    {
+      "country": "Denmark",
+      "iso": "DK",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 170.6
+    },
+    {
+      "country": "Estonia",
+      "iso": "EE",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 725.2
+    },
+    {
+      "country": "Finland",
+      "iso": "FI",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 95.5
+    },
+    {
+      "country": "France",
+      "iso": "FR",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 86.1
+    },
+    {
+      "country": "Germany",
+      "iso": "DE",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 441.6
+    },
+    {
+      "country": "Greece",
+      "iso": "GR",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 651.4
+    },
+    {
+      "country": "Hungary",
+      "iso": "HU",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 289.2
+    },
+    {
+      "country": "Ireland",
+      "iso": "IE",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 401.1
+    },
+    {
+      "country": "Italy",
+      "iso": "IT",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 382.0
+    },
+    {
+      "country": "Latvia",
+      "iso": "LV",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 477.0
+    },
+    {
+      "country": "Lithuania",
+      "iso": "LT",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 89.0
+    },
+    {
+      "country": "Netherlands",
+      "iso": "NL",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 476.3
+    },
+    {
+      "country": "Poland",
+      "iso": "PL",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 872.8
+    },
+    {
+      "country": "Portugal",
+      "iso": "PT",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 352.7
+    },
+    {
+      "country": "Romania",
+      "iso": "RO",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 503.4
+    },
+    {
+      "country": "Slovakia",
+      "iso": "SK",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 397.3
+    },
+    {
+      "country": "Slovenia",
+      "iso": "SI",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 249.6
+    },
+    {
+      "country": "Spain",
+      "iso": "ES",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 301.5
+    },
+    {
+      "country": "Sweden",
+      "iso": "SE",
+      "source": "JRC",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 27.5
+    },
+    {
+      "country": "Austria",
+      "iso": "AT",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 162.9
+    },
+    {
+      "country": "Belgium",
+      "iso": "BE",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 159.5
+    },
+    {
+      "country": "Bulgaria",
+      "iso": "BG",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 502.9
+    },
+    {
+      "country": "Croatia",
+      "iso": "HR",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 255.7
+    },
+    {
+      "country": "Czechia",
+      "iso": "CZ",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 542.3
+    },
+    {
+      "country": "Denmark",
+      "iso": "DK",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 282.9
+    },
+    {
+      "country": "Estonia",
+      "iso": "EE",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 582.8
+    },
+    {
+      "country": "Finland",
+      "iso": "FI",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 186.2
+    },
+    {
+      "country": "France",
+      "iso": "FR",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 78.3
+    },
+    {
+      "country": "Germany",
+      "iso": "DE",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 469.7
+    },
+    {
+      "country": "Greece",
+      "iso": "GR",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 579.8
+    },
+    {
+      "country": "Hungary",
+      "iso": "HU",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 290.7
+    },
+    {
+      "country": "Ireland",
+      "iso": "IE",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 405.7
+    },
+    {
+      "country": "Italy",
+      "iso": "IT",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 392.8
+    },
+    {
+      "country": "Latvia",
+      "iso": "LV",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 140.8
+    },
+    {
+      "country": "Lithuania",
+      "iso": "LT",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 182.6
+    },
+    {
+      "country": "Netherlands",
+      "iso": "NL",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 489.7
+    },
+    {
+      "country": "Poland",
+      "iso": "PL",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 805.5
+    },
+    {
+      "country": "Portugal",
+      "iso": "PT",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 433.8
+    },
+    {
+      "country": "Romania",
+      "iso": "RO",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 369.2
+    },
+    {
+      "country": "Slovakia",
+      "iso": "SK",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 183.1
+    },
+    {
+      "country": "Slovenia",
+      "iso": "SI",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 318.4
+    },
+    {
+      "country": "Spain",
+      "iso": "ES",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 329.2
+    },
+    {
+      "country": "Sweden",
+      "iso": "SE",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 42.5
+    },
+    {
+      "country": "United States",
+      "iso": "US",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 469.0
+    },
+    {
+      "country": "Austria",
+      "iso": "AT",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 111.2
+    },
+    {
+      "country": "Belgium",
+      "iso": "BE",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 134.6
+    },
+    {
+      "country": "Bulgaria",
+      "iso": "BG",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 338.1
+    },
+    {
+      "country": "Croatia",
+      "iso": "HR",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 197.3
+    },
+    {
+      "country": "Czechia",
+      "iso": "CZ",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 442.6
+    },
+    {
+      "country": "Denmark",
+      "iso": "DK",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 151.4
+    },
+    {
+      "country": "Estonia",
+      "iso": "EE",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 388.0
+    },
+    {
+      "country": "Finland",
+      "iso": "FI",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 81.6
+    },
+    {
+      "country": "France",
+      "iso": "FR",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 53.6
+    },
+    {
+      "country": "Germany",
+      "iso": "DE",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 365.0
+    },
+    {
+      "country": "Greece",
+      "iso": "GR",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 336.9
+    },
+    {
+      "country": "Hungary",
+      "iso": "HU",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 196.2
+    },
+    {
+      "country": "Ireland",
+      "iso": "IE",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 284.4
+    },
+    {
+      "country": "Italy",
+      "iso": "IT",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 323.3
+    },
+    {
+      "country": "Latvia",
+      "iso": "LV",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 119.3
+    },
+    {
+      "country": "Lithuania",
+      "iso": "LT",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 120.9
+    },
+    {
+      "country": "Netherlands",
+      "iso": "NL",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 267.8
+    },
+    {
+      "country": "Poland",
+      "iso": "PL",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 654.8
+    },
+    {
+      "country": "Portugal",
+      "iso": "PT",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 158.3
+    },
+    {
+      "country": "Romania",
+      "iso": "RO",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 243.2
+    },
+    {
+      "country": "Slovakia",
+      "iso": "SK",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 115.1
+    },
+    {
+      "country": "Slovenia",
+      "iso": "SI",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 225.1
+    },
+    {
+      "country": "Spain",
+      "iso": "ES",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 169.3
+    },
+    {
+      "country": "Sweden",
+      "iso": "SE",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 38.5
+    },
+    {
+      "country": "United States",
+      "iso": "US",
+      "source": "EMBER",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 392.9
+    },
+    {
+      "country": "United States",
+      "iso": "US",
+      "source": "Egrid",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2023,
+      "value": 349.6
+    },
+    {
+      "country": "Austria",
+      "iso": "AT",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 90.5
+    },
+    {
+      "country": "Belgium",
+      "iso": "BE",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 141.3
+    },
+    {
+      "country": "Bulgaria",
+      "iso": "BG",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 545.0
+    },
+    {
+      "country": "Croatia",
+      "iso": "HR",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 229.1
+    },
+    {
+      "country": "Czechia",
+      "iso": "CZ",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 553.2
+    },
+    {
+      "country": "Denmark",
+      "iso": "DK",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 173.3
+    },
+    {
+      "country": "Estonia",
+      "iso": "EE",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 574.3
+    },
+    {
+      "country": "Finland",
+      "iso": "FI",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 155.9
+    },
+    {
+      "country": "France",
+      "iso": "FR",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 51.0
+    },
+    {
+      "country": "Germany",
+      "iso": "DE",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 448.7
+    },
+    {
+      "country": "Greece",
+      "iso": "GR",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 604.6
+    },
+    {
+      "country": "Hungary",
+      "iso": "HU",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 320.6
+    },
+    {
+      "country": "Ireland",
+      "iso": "IE",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 505.2
+    },
+    {
+      "country": "Italy",
+      "iso": "IT",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 384.6
+    },
+    {
+      "country": "Latvia",
+      "iso": "LV",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 134.8
+    },
+    {
+      "country": "Lithuania",
+      "iso": "LT",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 104.4
+    },
+    {
+      "country": "Netherlands",
+      "iso": "NL",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 528.0
+    },
+    {
+      "country": "Poland",
+      "iso": "PL",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 916.4
+    },
+    {
+      "country": "Portugal",
+      "iso": "PT",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 393.2
+    },
+    {
+      "country": "Romania",
+      "iso": "RO",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 430.1
+    },
+    {
+      "country": "Slovakia",
+      "iso": "SK",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 169.1
+    },
+    {
+      "country": "Slovenia",
+      "iso": "SI",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 305.8
+    },
+    {
+      "country": "Spain",
+      "iso": "ES",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 314.7
+    },
+    {
+      "country": "Sweden",
+      "iso": "SE",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 1.5
+    },
+    {
+      "country": "United States",
+      "iso": "US",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2017,
+      "value": 438.9
+    },
+    {
+      "country": "Austria",
+      "iso": "AT",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2023,
+      "value": 43.1
+    },
+    {
+      "country": "Belgium",
+      "iso": "BE",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2023,
+      "value": 121.1
+    },
+    {
+      "country": "Bulgaria",
+      "iso": "BG",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2023,
+      "value": 405.1
+    },
+    {
+      "country": "Croatia",
+      "iso": "HR",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2023,
+      "value": 164.7
+    },
+    {
+      "country": "Czechia",
+      "iso": "CZ",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2023,
+      "value": 440.5
+    },
+    {
+      "country": "Denmark",
+      "iso": "DK",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2023,
+      "value": 97.3
+    },
+    {
+      "country": "Estonia",
+      "iso": "EE",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2023,
+      "value": 382.5
+    },
+    {
+      "country": "Finland",
+      "iso": "FI",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2023,
+      "value": 47.6
+    },
+    {
+      "country": "France",
+      "iso": "FR",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2023,
+      "value": 26.9
+    },
+    {
+      "country": "Germany",
+      "iso": "DE",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2023,
+      "value": 328.3
+    },
+    {
+      "country": "Greece",
+      "iso": "GR",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2023,
+      "value": 277.5
+    },
+    {
+      "country": "Hungary",
+      "iso": "HU",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2023,
+      "value": 211.0
+    },
+    {
+      "country": "Ireland",
+      "iso": "IE",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2023,
+      "value": 299.5
+    },
+    {
+      "country": "Italy",
+      "iso": "IT",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2023,
+      "value": 294.7
+    },
+    {
+      "country": "Latvia",
+      "iso": "LV",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2023,
+      "value": 103.6
+    },
+    {
+      "country": "Lithuania",
+      "iso": "LT",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2023,
+      "value": 57.4
+    },
+    {
+      "country": "Netherlands",
+      "iso": "NL",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2023,
+      "value": 405.9
+    },
+    {
+      "country": "Poland",
+      "iso": "PL",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2023,
+      "value": 728.4
+    },
+    {
+      "country": "Portugal",
+      "iso": "PT",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2023,
+      "value": 86.6
+    },
+    {
+      "country": "Romania",
+      "iso": "RO",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2023,
+      "value": 272.8
+    },
+    {
+      "country": "Slovakia",
+      "iso": "SK",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2023,
+      "value": 97.6
+    },
+    {
+      "country": "Slovenia",
+      "iso": "SI",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2023,
+      "value": 220.9
+    },
+    {
+      "country": "Spain",
+      "iso": "ES",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2023,
+      "value": 108.4
+    },
+    {
+      "country": "Sweden",
+      "iso": "SE",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2023,
+      "value": 1.3
+    },
+    {
+      "country": "United States",
+      "iso": "US",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "direct",
+      "year": 2023,
+      "value": 341.3
+    },
+    {
+      "country": "Austria",
+      "iso": "AT",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 156.0
+    },
+    {
+      "country": "Belgium",
+      "iso": "BE",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 203.0
+    },
+    {
+      "country": "Bulgaria",
+      "iso": "BG",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 552.0
+    },
+    {
+      "country": "Croatia",
+      "iso": "HR",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 261.0
+    },
+    {
+      "country": "Czechia",
+      "iso": "CZ",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 601.0
+    },
+    {
+      "country": "Denmark",
+      "iso": "DK",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 294.0
+    },
+    {
+      "country": "Estonia",
+      "iso": "EE",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 778.0
+    },
+    {
+      "country": "Finland",
+      "iso": "FI",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 229.0
+    },
+    {
+      "country": "France",
+      "iso": "FR",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 72.0
+    },
+    {
+      "country": "Germany",
+      "iso": "DE",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 520.0
+    },
+    {
+      "country": "Greece",
+      "iso": "GR",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 776.0
+    },
+    {
+      "country": "Hungary",
+      "iso": "HU",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 354.0
+    },
+    {
+      "country": "Ireland",
+      "iso": "IE",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 409.0
+    },
+    {
+      "country": "Italy",
+      "iso": "IT",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 456.0
+    },
+    {
+      "country": "Latvia",
+      "iso": "LV",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 211.0
+    },
+    {
+      "country": "Lithuania",
+      "iso": "LT",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 190.0
+    },
+    {
+      "country": "Netherlands",
+      "iso": "NL",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 579.0
+    },
+    {
+      "country": "Poland",
+      "iso": "PL",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 956.0
+    },
+    {
+      "country": "Portugal",
+      "iso": "PT",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 476.0
+    },
+    {
+      "country": "Romania",
+      "iso": "RO",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 488.0
+    },
+    {
+      "country": "Slovakia",
+      "iso": "SK",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 234.0
+    },
+    {
+      "country": "Slovenia",
+      "iso": "SI",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 327.0
+    },
+    {
+      "country": "Spain",
+      "iso": "ES",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 329.0
+    },
+    {
+      "country": "Sweden",
+      "iso": "SE",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 20.0
+    },
+    {
+      "country": "United States",
+      "iso": "US",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 468.0
+    },
+    {
+      "country": "Austria",
+      "iso": "AT",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 76.0
+    },
+    {
+      "country": "Belgium",
+      "iso": "BE",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 171.0
+    },
+    {
+      "country": "Bulgaria",
+      "iso": "BG",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 412.0
+    },
+    {
+      "country": "Croatia",
+      "iso": "HR",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 238.0
+    },
+    {
+      "country": "Czechia",
+      "iso": "CZ",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 506.0
+    },
+    {
+      "country": "Denmark",
+      "iso": "DK",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 166.0
+    },
+    {
+      "country": "Estonia",
+      "iso": "EE",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 572.0
+    },
+    {
+      "country": "Finland",
+      "iso": "FI",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 92.0
+    },
+    {
+      "country": "France",
+      "iso": "FR",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 42.0
+    },
+    {
+      "country": "Germany",
+      "iso": "DE",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 405.0
+    },
+    {
+      "country": "Greece",
+      "iso": "GR",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 305.0
+    },
+    {
+      "country": "Hungary",
+      "iso": "HU",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 246.0
+    },
+    {
+      "country": "Ireland",
+      "iso": "IE",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 415.0
+    },
+    {
+      "country": "Italy",
+      "iso": "IT",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 362.0
+    },
+    {
+      "country": "Latvia",
+      "iso": "LV",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 157.0
+    },
+    {
+      "country": "Lithuania",
+      "iso": "LT",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 127.0
+    },
+    {
+      "country": "Netherlands",
+      "iso": "NL",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 288.0
+    },
+    {
+      "country": "Poland",
+      "iso": "PL",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 777.0
+    },
+    {
+      "country": "Portugal",
+      "iso": "PT",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 152.0
+    },
+    {
+      "country": "Romania",
+      "iso": "RO",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 280.0
+    },
+    {
+      "country": "Slovakia",
+      "iso": "SK",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 139.0
+    },
+    {
+      "country": "Slovenia",
+      "iso": "SI",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 251.0
+    },
+    {
+      "country": "Spain",
+      "iso": "ES",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 155.0
+    },
+    {
+      "country": "Sweden",
+      "iso": "SE",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 21.0
+    },
+    {
+      "country": "United States",
+      "iso": "US",
+      "source": "Electricity Maps",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 421.0
+    },
+    {
+      "country": "Austria",
+      "iso": "AT",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 53.3
+    },
+    {
+      "country": "Belgium",
+      "iso": "BE",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 178.2
+    },
+    {
+      "country": "Bulgaria",
+      "iso": "BG",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 242.7
+    },
+    {
+      "country": "Croatia",
+      "iso": "HR",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 191.5
+    },
+    {
+      "country": "Czechia",
+      "iso": "CZ",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 184.7
+    },
+    {
+      "country": "Denmark",
+      "iso": "DK",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 182.6
+    },
+    {
+      "country": "Estonia",
+      "iso": "EE",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 393.0
+    },
+    {
+      "country": "Finland",
+      "iso": "FI",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 212.2
+    },
+    {
+      "country": "France",
+      "iso": "FR",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 44.6
+    },
+    {
+      "country": "Germany",
+      "iso": "DE",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 158.1
+    },
+    {
+      "country": "Greece",
+      "iso": "GR",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 386.7
+    },
+    {
+      "country": "Hungary",
+      "iso": "HU",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 127.3
+    },
+    {
+      "country": "Ireland",
+      "iso": "IE",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 310.2
+    },
+    {
+      "country": "Italy",
+      "iso": "IT",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 190.0
+    },
+    {
+      "country": "Latvia",
+      "iso": "LV",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 126.7
+    },
+    {
+      "country": "Lithuania",
+      "iso": "LT",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 104.7
+    },
+    {
+      "country": "Netherlands",
+      "iso": "NL",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 147.3
+    },
+    {
+      "country": "Poland",
+      "iso": "PL",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 311.8
+    },
+    {
+      "country": "Portugal",
+      "iso": "PT",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 178.7
+    },
+    {
+      "country": "Romania",
+      "iso": "RO",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 134.8
+    },
+    {
+      "country": "Slovakia",
+      "iso": "SK",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 52.7
+    },
+    {
+      "country": "Slovenia",
+      "iso": "SI",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 269.0
+    },
+    {
+      "country": "Spain",
+      "iso": "ES",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 192.8
+    },
+    {
+      "country": "Sweden",
+      "iso": "SE",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 42.0
+    },
+    {
+      "country": "United States",
+      "iso": "US",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 360.1
+    },
+    {
+      "country": "Austria",
+      "iso": "AT",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 115.4
+    },
+    {
+      "country": "Belgium",
+      "iso": "BE",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 233.8
+    },
+    {
+      "country": "Bulgaria",
+      "iso": "BG",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 431.9
+    },
+    {
+      "country": "Croatia",
+      "iso": "HR",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 377.9
+    },
+    {
+      "country": "Czechia",
+      "iso": "CZ",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 526.5
+    },
+    {
+      "country": "Denmark",
+      "iso": "DK",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 242.1
+    },
+    {
+      "country": "Estonia",
+      "iso": "EE",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 651.7
+    },
+    {
+      "country": "Finland",
+      "iso": "FI",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 276.2
+    },
+    {
+      "country": "France",
+      "iso": "FR",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 87.2
+    },
+    {
+      "country": "Germany",
+      "iso": "DE",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 222.0
+    },
+    {
+      "country": "Greece",
+      "iso": "GR",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 461.3
+    },
+    {
+      "country": "Hungary",
+      "iso": "HU",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 267.7
+    },
+    {
+      "country": "Ireland",
+      "iso": "IE",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 426.5
+    },
+    {
+      "country": "Italy",
+      "iso": "IT",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 274.9
+    },
+    {
+      "country": "Latvia",
+      "iso": "LV",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 279.2
+    },
+    {
+      "country": "Lithuania",
+      "iso": "LT",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 276.7
+    },
+    {
+      "country": "Netherlands",
+      "iso": "NL",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 240.9
+    },
+    {
+      "country": "Poland",
+      "iso": "PL",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 418.3
+    },
+    {
+      "country": "Portugal",
+      "iso": "PT",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 271.8
+    },
+    {
+      "country": "Romania",
+      "iso": "RO",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 451.5
+    },
+    {
+      "country": "Slovakia",
+      "iso": "SK",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 182.8
+    },
+    {
+      "country": "Slovenia",
+      "iso": "SI",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 466.2
+    },
+    {
+      "country": "Spain",
+      "iso": "ES",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 264.2
+    },
+    {
+      "country": "Sweden",
+      "iso": "SE",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 49.5
+    },
+    {
+      "country": "United States",
+      "iso": "US",
+      "source": "EORA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 404.7
+    },
+    {
+      "country": "Austria",
+      "iso": "AT",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 155.2
+    },
+    {
+      "country": "Belgium",
+      "iso": "BE",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 187.5
+    },
+    {
+      "country": "Bulgaria",
+      "iso": "BG",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 731.6
+    },
+    {
+      "country": "Croatia",
+      "iso": "HR",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 221.0
+    },
+    {
+      "country": "Czechia",
+      "iso": "CZ",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 461.6
+    },
+    {
+      "country": "Denmark",
+      "iso": "DK",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 154.4
+    },
+    {
+      "country": "Estonia",
+      "iso": "EE",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 647.3
+    },
+    {
+      "country": "Finland",
+      "iso": "FI",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 157.9
+    },
+    {
+      "country": "France",
+      "iso": "FR",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 105.6
+    },
+    {
+      "country": "Germany",
+      "iso": "DE",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 270.3
+    },
+    {
+      "country": "Greece",
+      "iso": "GR",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 231.3
+    },
+    {
+      "country": "Hungary",
+      "iso": "HU",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 234.3
+    },
+    {
+      "country": "Ireland",
+      "iso": "IE",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 395.6
+    },
+    {
+      "country": "Italy",
+      "iso": "IT",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 284.7
+    },
+    {
+      "country": "Latvia",
+      "iso": "LV",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 147.1
+    },
+    {
+      "country": "Lithuania",
+      "iso": "LT",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 93.4
+    },
+    {
+      "country": "Netherlands",
+      "iso": "NL",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 305.6
+    },
+    {
+      "country": "Poland",
+      "iso": "PL",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 629.2
+    },
+    {
+      "country": "Portugal",
+      "iso": "PT",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 282.5
+    },
+    {
+      "country": "Romania",
+      "iso": "RO",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 311.9
+    },
+    {
+      "country": "Slovakia",
+      "iso": "SK",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 238.9
+    },
+    {
+      "country": "Slovenia",
+      "iso": "SI",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 211.2
+    },
+    {
+      "country": "Spain",
+      "iso": "ES",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 270.7
+    },
+    {
+      "country": "Sweden",
+      "iso": "SE",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 48.3
+    },
+    {
+      "country": "United States",
+      "iso": "US",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 413.0
+    },
+    {
+      "country": "Austria",
+      "iso": "AT",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 292.8
+    },
+    {
+      "country": "Belgium",
+      "iso": "BE",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 191.2
+    },
+    {
+      "country": "Bulgaria",
+      "iso": "BG",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 472.2
+    },
+    {
+      "country": "Croatia",
+      "iso": "HR",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 256.5
+    },
+    {
+      "country": "Czechia",
+      "iso": "CZ",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 597.6
+    },
+    {
+      "country": "Denmark",
+      "iso": "DK",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 138.9
+    },
+    {
+      "country": "Estonia",
+      "iso": "EE",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 435.4
+    },
+    {
+      "country": "Finland",
+      "iso": "FI",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 136.6
+    },
+    {
+      "country": "France",
+      "iso": "FR",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 89.3
+    },
+    {
+      "country": "Germany",
+      "iso": "DE",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 224.0
+    },
+    {
+      "country": "Greece",
+      "iso": "GR",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 463.6
+    },
+    {
+      "country": "Hungary",
+      "iso": "HU",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 308.2
+    },
+    {
+      "country": "Ireland",
+      "iso": "IE",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 499.6
+    },
+    {
+      "country": "Italy",
+      "iso": "IT",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 382.9
+    },
+    {
+      "country": "Latvia",
+      "iso": "LV",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 121.4
+    },
+    {
+      "country": "Lithuania",
+      "iso": "LT",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 99.6
+    },
+    {
+      "country": "Netherlands",
+      "iso": "NL",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 402.3
+    },
+    {
+      "country": "Poland",
+      "iso": "PL",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 797.1
+    },
+    {
+      "country": "Portugal",
+      "iso": "PT",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 308.5
+    },
+    {
+      "country": "Romania",
+      "iso": "RO",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 125.4
+    },
+    {
+      "country": "Slovakia",
+      "iso": "SK",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 312.5
+    },
+    {
+      "country": "Slovenia",
+      "iso": "SI",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 259.3
+    },
+    {
+      "country": "Spain",
+      "iso": "ES",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 242.2
+    },
+    {
+      "country": "Sweden",
+      "iso": "SE",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 37.8
+    },
+    {
+      "country": "United States",
+      "iso": "US",
+      "source": "GLORIA",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 649.7
+    },
+    {
+      "country": "Austria",
+      "iso": "AT",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 24.6
+    },
+    {
+      "country": "Belgium",
+      "iso": "BE",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 20.7
+    },
+    {
+      "country": "Bulgaria",
+      "iso": "BG",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 488.3
+    },
+    {
+      "country": "Croatia",
+      "iso": "HR",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 60.1
+    },
+    {
+      "country": "Czechia",
+      "iso": "CZ",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 169.7
+    },
+    {
+      "country": "Denmark",
+      "iso": "DK",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 48.1
+    },
+    {
+      "country": "Estonia",
+      "iso": "EE",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 561.6
+    },
+    {
+      "country": "Finland",
+      "iso": "FI",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 116.6
+    },
+    {
+      "country": "France",
+      "iso": "FR",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 25.3
+    },
+    {
+      "country": "Germany",
+      "iso": "DE",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 288.7
+    },
+    {
+      "country": "Greece",
+      "iso": "GR",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 250.6
+    },
+    {
+      "country": "Hungary",
+      "iso": "HU",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 83.9
+    },
+    {
+      "country": "Ireland",
+      "iso": "IE",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 207.9
+    },
+    {
+      "country": "Italy",
+      "iso": "IT",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 86.3
+    },
+    {
+      "country": "Latvia",
+      "iso": "LV",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 36.9
+    },
+    {
+      "country": "Lithuania",
+      "iso": "LT",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 5.9
+    },
+    {
+      "country": "Netherlands",
+      "iso": "NL",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 242.4
+    },
+    {
+      "country": "Poland",
+      "iso": "PL",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 356.9
+    },
+    {
+      "country": "Portugal",
+      "iso": "PT",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 255.4
+    },
+    {
+      "country": "Romania",
+      "iso": "RO",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 128.6
+    },
+    {
+      "country": "Slovakia",
+      "iso": "SK",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 52.7
+    },
+    {
+      "country": "Slovenia",
+      "iso": "SI",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 200.5
+    },
+    {
+      "country": "Spain",
+      "iso": "ES",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 58.8
+    },
+    {
+      "country": "Sweden",
+      "iso": "SE",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 7.3
+    },
+    {
+      "country": "United States",
+      "iso": "US",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2017,
+      "value": 359.0
+    },
+    {
+      "country": "Austria",
+      "iso": "AT",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 67.2
+    },
+    {
+      "country": "Belgium",
+      "iso": "BE",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 81.1
+    },
+    {
+      "country": "Bulgaria",
+      "iso": "BG",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 758.2
+    },
+    {
+      "country": "Croatia",
+      "iso": "HR",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 117.6
+    },
+    {
+      "country": "Czechia",
+      "iso": "CZ",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 247.9
+    },
+    {
+      "country": "Denmark",
+      "iso": "DK",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 71.3
+    },
+    {
+      "country": "Estonia",
+      "iso": "EE",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 755.1
+    },
+    {
+      "country": "Finland",
+      "iso": "FI",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 154.1
+    },
+    {
+      "country": "France",
+      "iso": "FR",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 59.8
+    },
+    {
+      "country": "Germany",
+      "iso": "DE",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 398.3
+    },
+    {
+      "country": "Greece",
+      "iso": "GR",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 420.8
+    },
+    {
+      "country": "Hungary",
+      "iso": "HU",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 124.6
+    },
+    {
+      "country": "Ireland",
+      "iso": "IE",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 271.6
+    },
+    {
+      "country": "Italy",
+      "iso": "IT",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 149.0
+    },
+    {
+      "country": "Latvia",
+      "iso": "LV",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 83.3
+    },
+    {
+      "country": "Lithuania",
+      "iso": "LT",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 30.8
+    },
+    {
+      "country": "Netherlands",
+      "iso": "NL",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 333.6
+    },
+    {
+      "country": "Poland",
+      "iso": "PL",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 434.0
+    },
+    {
+      "country": "Portugal",
+      "iso": "PT",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 462.8
+    },
+    {
+      "country": "Romania",
+      "iso": "RO",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 239.6
+    },
+    {
+      "country": "Slovakia",
+      "iso": "SK",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 155.3
+    },
+    {
+      "country": "Slovenia",
+      "iso": "SI",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 255.6
+    },
+    {
+      "country": "Spain",
+      "iso": "ES",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 139.6
+    },
+    {
+      "country": "Sweden",
+      "iso": "SE",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 16.4
+    },
+    {
+      "country": "United States",
+      "iso": "US",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 410.6
+    },
+    {
+      "country": "Austria",
+      "iso": "AT",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2023,
+      "value": 213.9
+    },
+    {
+      "country": "Belgium",
+      "iso": "BE",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2023,
+      "value": 185.6
+    },
+    {
+      "country": "Bulgaria",
+      "iso": "BG",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2023,
+      "value": 185.3
+    },
+    {
+      "country": "Croatia",
+      "iso": "HR",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2023,
+      "value": 200.0
+    },
+    {
+      "country": "Czechia",
+      "iso": "CZ",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2023,
+      "value": 911.1
+    },
+    {
+      "country": "Denmark",
+      "iso": "DK",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2023,
+      "value": 147.8
+    },
+    {
+      "country": "Estonia",
+      "iso": "EE",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2023,
+      "value": 345.2
+    },
+    {
+      "country": "Finland",
+      "iso": "FI",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2023,
+      "value": 71.9
+    },
+    {
+      "country": "France",
+      "iso": "FR",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2023,
+      "value": 61.0
+    },
+    {
+      "country": "Germany",
+      "iso": "DE",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2023,
+      "value": 176.1
+    },
+    {
+      "country": "Greece",
+      "iso": "GR",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2023,
+      "value": 461.1
+    },
+    {
+      "country": "Hungary",
+      "iso": "HU",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2023,
+      "value": 342.5
+    },
+    {
+      "country": "Ireland",
+      "iso": "IE",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2023,
+      "value": 303.4
+    },
+    {
+      "country": "Italy",
+      "iso": "IT",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2023,
+      "value": 170.4
+    },
+    {
+      "country": "Latvia",
+      "iso": "LV",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2023,
+      "value": 352.4
+    },
+    {
+      "country": "Lithuania",
+      "iso": "LT",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2023,
+      "value": 75.0
+    },
+    {
+      "country": "Netherlands",
+      "iso": "NL",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2023,
+      "value": 163.3
+    },
+    {
+      "country": "Poland",
+      "iso": "PL",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2023,
+      "value": 761.5
+    },
+    {
+      "country": "Portugal",
+      "iso": "PT",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2023,
+      "value": 128.5
+    },
+    {
+      "country": "Romania",
+      "iso": "RO",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2023,
+      "value": 901.8
+    },
+    {
+      "country": "Slovakia",
+      "iso": "SK",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2023,
+      "value": 329.0
+    },
+    {
+      "country": "Slovenia",
+      "iso": "SI",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2023,
+      "value": 386.2
+    },
+    {
+      "country": "Spain",
+      "iso": "ES",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2023,
+      "value": 95.4
+    },
+    {
+      "country": "Sweden",
+      "iso": "SE",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2023,
+      "value": 13.7
+    },
+    {
+      "country": "United States",
+      "iso": "US",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "direct",
+      "year": 2023,
+      "value": 581.6
+    },
+    {
+      "country": "Austria",
+      "iso": "AT",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 447.8
+    },
+    {
+      "country": "Belgium",
+      "iso": "BE",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 246.8
+    },
+    {
+      "country": "Bulgaria",
+      "iso": "BG",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 285.5
+    },
+    {
+      "country": "Croatia",
+      "iso": "HR",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 263.2
+    },
+    {
+      "country": "Czechia",
+      "iso": "CZ",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 1122.3
+    },
+    {
+      "country": "Denmark",
+      "iso": "DK",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 201.9
+    },
+    {
+      "country": "Estonia",
+      "iso": "EE",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 425.5
+    },
+    {
+      "country": "Finland",
+      "iso": "FI",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 96.2
+    },
+    {
+      "country": "France",
+      "iso": "FR",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 138.8
+    },
+    {
+      "country": "Germany",
+      "iso": "DE",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 250.8
+    },
+    {
+      "country": "Greece",
+      "iso": "GR",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 725.1
+    },
+    {
+      "country": "Hungary",
+      "iso": "HU",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 413.3
+    },
+    {
+      "country": "Ireland",
+      "iso": "IE",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 423.6
+    },
+    {
+      "country": "Italy",
+      "iso": "IT",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 330.5
+    },
+    {
+      "country": "Latvia",
+      "iso": "LV",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 513.9
+    },
+    {
+      "country": "Lithuania",
+      "iso": "LT",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 134.5
+    },
+    {
+      "country": "Netherlands",
+      "iso": "NL",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 275.7
+    },
+    {
+      "country": "Poland",
+      "iso": "PL",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 836.5
+    },
+    {
+      "country": "Portugal",
+      "iso": "PT",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 228.4
+    },
+    {
+      "country": "Romania",
+      "iso": "RO",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 1083.1
+    },
+    {
+      "country": "Slovakia",
+      "iso": "SK",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 511.4
+    },
+    {
+      "country": "Slovenia",
+      "iso": "SI",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 521.7
+    },
+    {
+      "country": "Spain",
+      "iso": "ES",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 161.9
+    },
+    {
+      "country": "Sweden",
+      "iso": "SE",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 23.2
+    },
+    {
+      "country": "United States",
+      "iso": "US",
+      "source": "EMERGING",
+      "type": "Monetary",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 643.3
+    },
+    {
+      "country": "Austria",
+      "iso": "AT",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 219.3
+    },
+    {
+      "country": "Belgium",
+      "iso": "BE",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 221.0
+    },
+    {
+      "country": "Bulgaria",
+      "iso": "BG",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 655.6
+    },
+    {
+      "country": "Czechia",
+      "iso": "CZ",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 715.6
+    },
+    {
+      "country": "Germany",
+      "iso": "DE",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 455.2
+    },
+    {
+      "country": "Denmark",
+      "iso": "DK",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 243.1
+    },
+    {
+      "country": "Estonia",
+      "iso": "EE",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 683.4
+    },
+    {
+      "country": "Spain",
+      "iso": "ES",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 358.4
+    },
+    {
+      "country": "Finland",
+      "iso": "FI",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 182.0
+    },
+    {
+      "country": "France",
+      "iso": "FR",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 123.1
+    },
+    {
+      "country": "Greece",
+      "iso": "GR",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 678.0
+    },
+    {
+      "country": "Croatia",
+      "iso": "HR",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 302.3
+    },
+    {
+      "country": "Hungary",
+      "iso": "HU",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 305.1
+    },
+    {
+      "country": "Ireland",
+      "iso": "IE",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 449.4
+    },
+    {
+      "country": "Italy",
+      "iso": "IT",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 411.7
+    },
+    {
+      "country": "Lithuania",
+      "iso": "LT",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 288.5
+    },
+    {
+      "country": "Latvia",
+      "iso": "LV",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 405.0
+    },
+    {
+      "country": "Netherlands",
+      "iso": "NL",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 486.5
+    },
+    {
+      "country": "Poland",
+      "iso": "PL",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 833.8
+    },
+    {
+      "country": "Portugal",
+      "iso": "PT",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 465.6
+    },
+    {
+      "country": "Romania",
+      "iso": "RO",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 480.5
+    },
+    {
+      "country": "Sweden",
+      "iso": "SE",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 25.8
+    },
+    {
+      "country": "Slovenia",
+      "iso": "SI",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 351.0
+    },
+    {
+      "country": "Slovakia",
+      "iso": "SK",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 426.9
+    },
+    {
+      "country": "United States",
+      "iso": "US",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2017,
+      "value": 485.6
+    },
+    {
+      "country": "Austria",
+      "iso": "AT",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 205.7
+    },
+    {
+      "country": "Belgium",
+      "iso": "BE",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 181.2
+    },
+    {
+      "country": "Bulgaria",
+      "iso": "BG",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 427.5
+    },
+    {
+      "country": "Czechia",
+      "iso": "CZ",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 594.9
+    },
+    {
+      "country": "Germany",
+      "iso": "DE",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 354.5
+    },
+    {
+      "country": "Denmark",
+      "iso": "DK",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 158.6
+    },
+    {
+      "country": "Estonia",
+      "iso": "EE",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 231.9
+    },
+    {
+      "country": "Spain",
+      "iso": "ES",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 182.0
+    },
+    {
+      "country": "Finland",
+      "iso": "FI",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 135.7
+    },
+    {
+      "country": "France",
+      "iso": "FR",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 82.9
+    },
+    {
+      "country": "Greece",
+      "iso": "GR",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 409.2
+    },
+    {
+      "country": "Croatia",
+      "iso": "HR",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 233.3
+    },
+    {
+      "country": "Hungary",
+      "iso": "HU",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 226.3
+    },
+    {
+      "country": "Ireland",
+      "iso": "IE",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 311.9
+    },
+    {
+      "country": "Italy",
+      "iso": "IT",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 331.3
+    },
+    {
+      "country": "Lithuania",
+      "iso": "LT",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 204.3
+    },
+    {
+      "country": "Latvia",
+      "iso": "LV",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 320.9
+    },
+    {
+      "country": "Netherlands",
+      "iso": "NL",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 309.4
+    },
+    {
+      "country": "Poland",
+      "iso": "PL",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 690.9
+    },
+    {
+      "country": "Portugal",
+      "iso": "PT",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 163.5
+    },
+    {
+      "country": "Romania",
+      "iso": "RO",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 357.4
+    },
+    {
+      "country": "Sweden",
+      "iso": "SE",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 27.0
+    },
+    {
+      "country": "Slovenia",
+      "iso": "SI",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 244.0
+    },
+    {
+      "country": "Slovakia",
+      "iso": "SK",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 258.3
+    },
+    {
+      "country": "United States",
+      "iso": "US",
+      "source": "nxsut 3.0",
+      "type": "Physical",
+      "flow": "lifecycle",
+      "year": 2023,
+      "value": 386.6
+    }
+  ],
+  "sources": [
+    {
+      "label": "GTAP",
+      "type": "Monetary"
+    },
+    {
+      "label": "EXIOBASE ixi",
+      "type": "Monetary"
+    },
+    {
+      "label": "EXIOBASE pxp",
+      "type": "Monetary"
+    },
+    {
+      "label": "NREL",
+      "type": "Physical"
+    },
+    {
+      "label": "IPCC",
+      "type": "Physical"
+    },
+    {
+      "label": "JRC",
+      "type": "Physical"
+    },
+    {
+      "label": "EMBER",
+      "type": "Physical"
+    },
+    {
+      "label": "Egrid",
+      "type": "Physical"
+    },
+    {
+      "label": "Electricity Maps",
+      "type": "Physical"
+    },
+    {
+      "label": "EORA",
+      "type": "Monetary"
+    },
+    {
+      "label": "GLORIA",
+      "type": "Monetary"
+    },
+    {
+      "label": "EMERGING",
+      "type": "Monetary"
+    },
+    {
+      "label": "nxsut 3.0",
+      "type": "Physical"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{%- from "partials/icons.html" import icon %}
+<header class="mario-header" data-header>
+  <div class="mario-header__inner mario-wide">
+    <a class="mario-brand" href="{{ mario.home_url }}">
+      <img src="{{ pathto('_static/images/mario-logo.png', 1) }}" alt="" width="32" height="32">
+      <span>MARIO</span>
+    </a>
+    <nav class="mario-nav" aria-label="Main">
+      {%- for item in mario.nav %}
+      <div class="mario-nav__item" data-header-menu data-nav-section="{{ item.key }}">
+        <a class="mario-nav__link" href="{{ item.url }}"{% if item.active %} aria-current="true"{% endif %}>{{ item.label }}</a>
+        <button type="button" class="mario-nav__toggle" data-header-menu-toggle aria-label="Toggle {{ item.label }} navigation" aria-expanded="false" aria-controls="mario-nav-{{ item.key }}">{{ icon("chevron") }}</button>
+        <div class="mario-nav__panel" id="mario-nav-{{ item.key }}" hidden>
+          <ul>
+            {%- for child in item.children %}
+            <li><a href="{{ child.url }}"{% if child.active %} aria-current="{{ 'page' if child.exact else 'true' }}"{% endif %}>{{ child.label }}</a></li>
+            {%- endfor %}
+          </ul>
+        </div>
+      </div>
+      {%- endfor %}
+    </nav>
+    <div class="mario-header__actions">
+      <button type="button" class="mario-search-button" data-palette-open aria-label="Search the documentation">
+        {{ icon("search") }}<span class="mario-search-button__label">Search</span><kbd data-shortcut>⌘K</kbd>
+      </button>
+      <a class="mario-icon-button mario-header__github" href="{{ mario.github }}" aria-label="MARIO on GitHub">{{ icon("github") }}</a>
+      <button type="button" class="mario-icon-button" data-theme-toggle aria-label="Switch between light and dark theme">{{ icon("theme") }}</button>
+    </div>
+  </div>
+</header>

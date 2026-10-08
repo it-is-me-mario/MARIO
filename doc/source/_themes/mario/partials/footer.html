@@ -1,0 +1,21 @@
+{%- from "partials/icons.html" import icon %}
+<footer class="mario-footer" data-snap>
+  <div class="mario-footer__inner mario-wide">
+    <div class="mario-footer__brand">
+      <img src="{{ pathto('_static/images/mario-logo.png', 1) }}" alt="" width="40" height="40">
+      <div>
+        <strong>MARIO</strong>
+        <p>Multifunctional Analysis of Regions through <span class="mario-nowrap">Input-Output</span></p>
+      </div>
+    </div>
+    <nav class="mario-footer__links" aria-label="Footer">
+      {%- for item in mario.nav %}<a href="{{ item.url }}">{{ item.label }}</a>{% endfor %}
+      <a href="{{ mario.github }}">{{ icon("github") }} GitHub</a>
+      {%- if mario.pypi %}<a href="{{ mario.pypi }}">PyPI</a>{% endif %}
+      <button type="button" class="mario-icon-button" data-theme-toggle aria-label="Switch between light and dark theme">{{ icon("theme") }}</button>
+    </nav>
+    <p class="mario-footer__meta">
+      <span>&copy; {{ copyright }}</span>
+    </p>
+  </div>
+</footer>

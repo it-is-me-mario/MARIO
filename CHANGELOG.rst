@@ -2,6 +2,38 @@
 Release History
 ****************
 
+Unreleased
+----------
+
+Documentation
+~~~~~~~~~~~~~
+
+* New documentation site built on a custom Sphinx theme: three sections
+  (Get started, Docs, Resources), centred tabs, a short sidebar per Docs
+  group, a filterable API index and a Cmd+K search palette. The background is
+  a real EXIOBASE 3.11.2 matrix block drawn with the new heatmap options.
+* Setup and Concepts were merged into Get started; Clusters now lives in
+  Nomenclature and Technology assumptions in Table formats. Old URLs redirect
+  to the new pages.
+* Removed the developer guide and the experimental "Ask MARIO Docs" assistant.
+* The terminology workbook is now the "Nomenclature and formulas" workbook
+  (``Nomenclature_and_formulas.xlsx``), since it holds the worked calculations too.
+* Resources gathers research, teaching material and, later, benchmarks. The
+  publication list is generated from ``mario.bib`` and now includes two 2026 papers.
+* The IOT and SUT block schemes are drawn in HTML instead of PNG images, so
+  they follow the theme, stay sharp at any zoom and stack on phones.
+
+Plotting
+~~~~~~~~
+
+* ``Database.plot(preset="heatmap")`` now draws a matrix as it is stored, one
+  row per matrix row and one column per matrix column, in the original order.
+  Previously the preset collapsed the row axis onto the column labels.
+* New ``log_color`` and ``color_clip`` options for heatmaps colour cells on a
+  logarithmic scale and clip outliers to chosen quantiles.
+* Heatmaps without facets or animation are rendered with ``plotly.express.imshow``,
+  including the region-by-region heatmaps of ``calc_trades``.
+
 v1.2.0
 ------
 

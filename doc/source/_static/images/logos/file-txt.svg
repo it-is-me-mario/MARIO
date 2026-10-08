@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 48" width="40" height="48" role="img" aria-label="TXT file">
+  <path d="M8 2h18l10 10v32a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" fill="#fff" stroke="#46392f" stroke-width="1.6" stroke-linejoin="round"/>
+  <path d="M26 2v8a2 2 0 0 0 2 2h8" fill="none" stroke="#46392f" stroke-width="1.6" stroke-linejoin="round"/>
+  <path d="M12 16h12M12 20.5h16" stroke="#d6b866" stroke-width="1.6" stroke-linecap="round"/>
+  <rect x="2" y="27" width="31" height="12" rx="2" fill="#46392f"/>
+  <text x="17.5" y="35.7" text-anchor="middle" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-size="7.5" font-weight="700" letter-spacing="0.3" fill="#fff">TXT</text>
+</svg>

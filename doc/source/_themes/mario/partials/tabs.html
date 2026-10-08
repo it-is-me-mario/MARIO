@@ -1,0 +1,9 @@
+<nav class="mario-tabs" aria-label="{{ mario.section_label or 'Section' }} pages" data-tabs data-snap>
+  <div class="mario-tabs__track" data-tabs-track>
+    <ul class="mario-tabs__list">
+      {%- for tab in mario.tabs %}
+      <li{% if tab.key %} data-group="{{ tab.key }}"{% endif %}><a href="{{ tab.url }}"{% if tab.active %} aria-current="page"{% endif %}>{{ tab.label }}</a></li>
+      {%- endfor %}
+    </ul>
+  </div>
+</nav>

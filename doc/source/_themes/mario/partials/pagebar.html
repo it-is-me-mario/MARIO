@@ -1,0 +1,40 @@
+{%- from "partials/icons.html" import icon %}
+{%- macro render_toc(items) %}
+<ul>
+  {%- for item in items %}
+  <li><a href="{{ item.anchor }}">{{ item.title }}</a>{% if item.children %}{{ render_toc(item.children) }}{% endif %}</li>
+  {%- endfor %}
+</ul>
+{%- endmacro %}
+<div class="mario-pagebar" data-pagebar>
+  {%- if mario.sidebar %}
+  <details class="mario-pagebar__menu mario-pagebar__pages" data-pagebar-menu>
+    <summary><span class="mario-pagebar__long">{{ mario.sidebar_label }} pages</span><span class="mario-pagebar__short">Pages</span> {{ icon("chevron") }}</summary>
+    <div class="mario-pagebar__panel mario-sidenav">
+      {%- for group in mario.sidebar %}
+        {%- if group.caption %}<p class="mario-sidenav__caption">{{ group.caption }}</p>{% endif %}
+        <ul class="mario-sidenav__list">
+          {%- for item in group['items'] %}
+          <li class="{% if item.active %}is-active{% endif %}"><a href="{{ item.url }}"{% if item.active %} aria-current="page"{% endif %}>{{ item.title }}</a>
+            {%- for sub in item.children %}
+              {%- if sub.caption %}<p class="mario-sidenav__caption">{{ sub.caption }}</p>{% endif %}
+              <ul class="mario-sidenav__list">
+                {%- for child in sub['items'] %}
+                <li class="{% if child.active %}is-active{% endif %}"><a href="{{ child.url }}"{% if child.active %} aria-current="page"{% endif %}>{{ child.title }}</a></li>
+                {%- endfor %}
+              </ul>
+            {%- endfor %}
+          </li>
+          {%- endfor %}
+        </ul>
+      {%- endfor %}
+    </div>
+  </details>
+  {%- endif %}
+  {%- if mario.local_toc and mario.local_toc|length > 1 %}
+  <details class="mario-pagebar__menu mario-pagebar__toc" data-pagebar-menu>
+    <summary>On this page {{ icon("chevron") }}</summary>
+    <div class="mario-pagebar__panel mario-localtoc">{{ render_toc(mario.local_toc) }}</div>
+  </details>
+  {%- endif %}
+</div>

@@ -11,6 +11,17 @@ Use it in two ways:
 * advanced workflow: pass explicit Plotly Express mappings such as ``x=``,
   ``color=``, ``facet_col=`` and ``animation_frame=``.
 
+To look at a whole matrix, use ``preset="heatmap"``: the matrix is drawn as
+it is stored, with rows and columns in their original order. Add
+``log_color=True`` when a few large entries, such as the diagonal of ``Z``,
+would flatten everything else, and ``color_clip=(0.05, 0.995)`` to soften
+outliers. Combine it with ``filters`` to draw one block, for example
+``filters={"Region_from": ["DE"], "Region_to": ["IT"]}``.
+
+.. code-block:: python
+
+   db.plot(matrix="Z", preset="heatmap", log_color=True, color_clip=(0.05, 0.995))
+
 The historical methods are still available as deprecated wrappers for backward
 compatibility, but new code should use ``db.plot(...)`` directly.
 

@@ -13,14 +13,12 @@ pint
 scipy
 h5py
 sphinx >= 1.6.4
-pydata-sphinx-theme
 nbsphinx
 ipykernel
 sphinx-autobuild
 pymrio >= 0.4.6
 nbconvert
 nbformat
-sphinx_wagtail_theme
 sphinx-copybutton
 myst_parser
 pybtex

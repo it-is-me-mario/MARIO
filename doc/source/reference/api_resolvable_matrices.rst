@@ -28,4 +28,4 @@ and therefore covers both IOT and SUT built-ins, along with their table format,
 mode and default axes.
 
 .. raw:: html
-   :file: ../concepts/_generated/matrices_table.html
+   :file: ../get_started/_generated/matrices_table.html
