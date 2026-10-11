@@ -682,17 +682,39 @@ def _load_adb_emissions_extensions(
         final_demand_rows.append(final_demand_values.fillna(0.0).astype(float).tolist())
 
     satellite_axis = pd.Index(satellite_labels, name=None)
+    target_regions = set(sector_axis.get_level_values(0))
+    covered_regions = set(sector_regions) | set(final_demand_regions)
+    # If both global MRIOTs have a RoW and all target economies are covered,
+    # the extension's additional economies belong to the target's larger RoW.
+    # Reindexing alone would discard those emissions and understate world totals.
+    extra_regions = sorted(covered_regions.difference(target_regions))
+    fold_regions = extra_regions if (
+        "RoW" in target_regions and "RoW" in covered_regions
+        and target_regions.issubset(covered_regions)
+    ) else []
+
+    def align(frame, target):
+        if fold_regions:
+            frame.columns = pd.MultiIndex.from_tuples(
+                [("RoW" if region in fold_regions else region, level, item)
+                 for region, level, item in frame.columns], names=frame.columns.names,
+            )
+            frame = frame.T.groupby(level=[0, 1, 2], sort=False).sum().T
+        return frame.reindex(columns=target, fill_value=0.0)
+
     if sector_rows:
-        E = pd.DataFrame(sector_rows, index=satellite_axis, columns=extension_axis)
-        E = E.reindex(columns=sector_axis, fill_value=0.0)
-        EY = pd.DataFrame(final_demand_rows, index=satellite_axis, columns=extension_final_demand_axis)
-        EY = EY.reindex(columns=final_demand_axis, fill_value=0.0)
+        E = align(pd.DataFrame(sector_rows, index=satellite_axis, columns=extension_axis), sector_axis)
+        EY = align(pd.DataFrame(final_demand_rows, index=satellite_axis, columns=extension_final_demand_axis), final_demand_axis)
     else:
         E = _zero_frame(satellite_axis, sector_axis)
         EY = _zero_frame(satellite_axis, final_demand_axis)
     extension_units = pd.DataFrame({"unit": [layout.unit] * len(satellite_axis)}, index=satellite_axis)
 
     notes: list[str] = []
+    if fold_regions:
+        note = f"Parser: ADB emissions regions {fold_regions} were aggregated into RoW to match the economic region set."
+        log_time(logger, note, "info")
+        notes.append(note)
     if expected_year is not None and int(expected_year) != layout.year:
         note = (
             "Parser: ADB emissions year "

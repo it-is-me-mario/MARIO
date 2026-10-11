@@ -223,3 +223,27 @@ def test_parse_exiobase_3_rejects_explicit_version_mismatch(tmp_path):
 
     with pytest.raises(WrongInput):
         parse_exiobase_3(str(root), version="3.8.2", calc_all=False)
+
+
+def test_official_382_archive_resolves_stale_381_metadata(tmp_path):
+    root = tmp_path / "IOT_2011_ixi"
+    _write_legacy_exiobase(root)
+    metadata = json.loads((root / "metadata.json").read_text())
+    metadata["name"] = "exio382_ntnu"
+    (root / "metadata.json").write_text(json.dumps(metadata))
+    archive = tmp_path / "IOT_2011_ixi.zip"
+    _zip_tree(root, archive)
+
+    db = parse_exiobase_3(str(archive), version="3.8.2", system="ixi", calc_all=False)
+
+    assert db.meta.year == 2011
+    assert "version 3.8.2" in db.meta.source
+    assert db.get_index(_MASTER_INDEX["k"]) == ["CO2", "Water use"]
+
+
+def test_stale_version_workaround_does_not_relabel_381_data(tmp_path):
+    root = tmp_path / "IOT_2011_ixi"
+    _write_legacy_exiobase(root)
+    assert detect_exiobase_iot_layout(root).version == "3.8.1"
+    with pytest.raises(WrongInput, match="does not match"):
+        parse_exiobase_3(str(root), version="3.8.2", calc_all=False)

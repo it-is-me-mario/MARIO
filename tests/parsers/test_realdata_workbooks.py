@@ -223,6 +223,8 @@ def _compare_flow_blocks(original, roundtrip, table: str) -> None:
         pdt.assert_frame_equal(
             _normalized_unit_frame(original_unit),
             _normalized_unit_frame(roundtrip.units[label]),
+            # pandas 3 infers string dtype where earlier releases used object.
+            check_dtype=False,
         )
 
     pdt.assert_frame_equal(_sorted_frame(original.V), _sorted_frame(roundtrip.V))

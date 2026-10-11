@@ -95,7 +95,8 @@ def test_parse_main_data():
     pdt.assert_frame_equal(
         db.units[_MASTER_INDEX["a"]],pd.DataFrame(
             index = db.get_index(_MASTER_INDEX["a"],),columns=['unit']
-        ).fillna("None")
+        ).fillna("None"),
+        check_dtype=False,  # Unit labels are unchanged by pandas string inference.
     )
 
     # factor rows and units come from the monetary subset of HIOT VA_act metadata

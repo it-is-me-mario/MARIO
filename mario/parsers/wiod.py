@@ -1218,6 +1218,12 @@ def build_wiod_sut_from_frames(
             dtype=float,
             copy=True,
         )
+        if normalized_row_mode == "external_account":
+            # The USE source also publishes these factor rows on final uses.
+            # Preserve signed taxes and adjustments alongside external imports.
+            VY_data[: len(base_factor_labels), final_demand_slices[region]] = block.loc[
+                factor_codes, final_demand_codes
+            ].to_numpy(dtype=float, copy=True)
 
     S = pd.DataFrame(S_data, index=activity_axis, columns=commodity_axis)
     U = pd.DataFrame(U_data, index=commodity_axis, columns=activity_axis)

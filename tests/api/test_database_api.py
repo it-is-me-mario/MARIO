@@ -38,7 +38,7 @@ from mario.settings.settings import (
     set_linear_strategy,
     upload_settings,
 )
-from mario.parsers.api import build_database_from_state, build_state_from_parser_output
+from mario.parsers.api import build_database_from_state, build_parser_state, build_state_from_parser_output
 from mario.test.mario_test import load_test
 from mario.model.conventions import _ENUM, _MASTER_INDEX
 from mario.ops.workbook_specs import SHOCK_COLUMNS, SHOCK_FLAT_COLUMNS

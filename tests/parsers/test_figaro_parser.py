@@ -333,3 +333,32 @@ def test_figaro_jsonstat_converter_handles_sparse_payload():
         {"freq": "A", "prd_ava": "CPA_A01", "c_dest": "IT", "obsValue": 10.0},
         {"freq": "A", "prd_ava": "CPA_A02", "c_dest": "ME", "obsValue": 20.0},
     ]
+
+
+def test_current_supply_api_geo_becomes_domestic_regional_supply(monkeypatch, tmp_path):
+    dimensions = {"geo": ["IT", "WRL_REST"], "cpa2_1": ["CPA_A01"], "nace_r2": ["A01"]}
+    monkeypatch.setattr(figaro, "_load_figaro_dimensions", lambda *a, **kw: dimensions)
+    calls = []
+    def request(dataflow, **kw):
+        calls.append(kw["params"])
+        return {}
+    monkeypatch.setattr(figaro, "_request_figaro_json", request)
+    monkeypatch.setattr(figaro, "_jsonstat_to_frame", lambda payload: pd.DataFrame({
+        "geo": ["IT", "WRL_REST"], "cpa2_1": ["CPA_A01", "CPA_A01"],
+        "nace_r2": ["A01", "A01"], "obsValue": [100., 40.]}))
+    frame = figaro._download_figaro_api_frame("naio_10_fcp_s4", year=2024, unit="MIO_EUR",
+        row_dim="cpa2_1", col_dim="nace_r2", cache_path=tmp_path)
+    assert frame.refArea.tolist() == frame.counterpartArea.tolist() == ["IT", "FIGW1"]
+    assert frame.obsValue.tolist() == [100., 40.]
+    assert calls == [{"time": 2024, "unit": "MIO_EUR"}]
+    # The normalized cache remains compatible with the usual MARIO path option.
+    cached = figaro._download_figaro_api_frame("naio_10_fcp_s4", year=2024, unit="MIO_EUR",
+        row_dim="cpa2_1", col_dim="nace_r2", cache_path=tmp_path)
+    pd.testing.assert_frame_equal(frame, cached)
+    assert len(calls) == 1
+    selected = figaro._download_figaro_api_frame("naio_10_fcp_s4", year=2024, unit="MIO_EUR",
+        row_dim="cpa2_1", col_dim="nace_r2", countries=["IT"])
+    assert selected.refArea.tolist() == ["IT"]
+    with pytest.raises(WrongInput, match="not available"):
+        figaro._download_figaro_api_frame("naio_10_fcp_s4", year=2024, unit="MIO_EUR",
+            row_dim="cpa2_1", col_dim="nace_r2", countries=["XX"])

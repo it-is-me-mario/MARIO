@@ -60,7 +60,7 @@ def _write_emerging_bundle(
         va = np.array([[100.0, 101.0, 102.0, 103.0]])
         X = np.array([[111.0, 112.0, 113.0, 114.0]])
 
-        group.create_dataset("z", data=z)
+        group.create_dataset("z", data=z.T)
         group.create_dataset("f", data=f)
         group.create_dataset("va", data=va)
         group.create_dataset("X", data=X)
@@ -207,7 +207,7 @@ def _write_emerging_e_full_bundle(
 
     with h5py.File(main_path, "w") as handle:
         group = handle.create_group("EMERGING_Power")
-        group.create_dataset("MRIO_Z_E", data=z)
+        group.create_dataset("MRIO_Z_E", data=z.T)
         group.create_dataset("MRIO_F_E", data=y)
         group.create_dataset("MRIO_VA_E", data=va)
         group.create_dataset("MRIO_X_E", data=x)
@@ -501,3 +501,64 @@ def test_parse_emerging_iot_projects_standard_emerging_power_co2_to_emerging_e(t
     assert float(base["E"].iloc[0, shifted_column]) == 80.0
     assert float(base["E"].iloc[6, shifted_column]) == 140.0
     assert float(base["E"].sum().sum()) == 1052.8
+
+
+@pytest.mark.parametrize("selected_rows", [list(range(11)), [0, 3, 8, 10]])
+@pytest.mark.parametrize("selected_columns", [list(range(600)), list(range(12, 285)), [0, 2, 3, 13, 256, 260, 599]])
+def test_compressed_emerging_blocks_preserve_full_and_disjoint_axes(tmp_path, selected_rows, selected_columns):
+    from mario.parsers.emerging import _dense_or_sparse_frame_from_hdf5
+    raw = np.arange(11 * 600, dtype=float).reshape(11, 600) - 500
+    raw[raw % 5 == 0] = 0
+    path = tmp_path / "compressed.mat"
+    index = pd.Index([f"row-{i}" for i in selected_rows])
+    columns = pd.Index([f"column-{i}" for i in selected_columns])
+    with h5py.File(path, "w") as handle:
+        dataset = handle.create_dataset("z", data=raw, chunks=(4, 257), compression="gzip")
+        parsed = _dense_or_sparse_frame_from_hdf5(dataset, row_positions=np.array(selected_rows),
+                   column_positions=np.array(selected_columns), index=index, columns=columns)
+    assert parsed.index.equals(index) and parsed.columns.equals(columns)
+    np.testing.assert_array_equal(parsed.sparse.to_dense().to_numpy(), raw[np.ix_(selected_rows, selected_columns)])
+
+
+def test_emerging_matlab_orientation_reconciles_output_and_input_balances(tmp_path):
+    path, _, labels_path = _write_emerging_bundle(tmp_path)
+    with h5py.File(path, "r+") as handle:
+        group = handle["EMERGING_V2_2018"]
+        native_z = group["z"][()].T
+        native_y = group["f"][()].T
+        output = native_z.sum(axis=1) + native_y.sum(axis=1)
+        added = output - native_z.sum(axis=0)
+        group["X"][...] = output.reshape(1, -1)
+        group["va"][...] = added.reshape(1, -1)
+    matrices, _, _, _ = parse_emerging_iot(path, labels_path=labels_path)
+    base = matrices["baseline"]
+    z = base["Z"].sparse.to_dense().to_numpy()
+    y = base["Y"].sparse.to_dense().to_numpy()
+    np.testing.assert_array_equal(z, native_z)
+    assert z[0, 2] == 2 and z[2, 0] == 5
+    np.testing.assert_array_equal(z.sum(axis=1) + y.sum(axis=1), output)
+    np.testing.assert_array_equal(z.sum(axis=0) + base["V"].to_numpy().reshape(-1), output)
+
+
+def test_emerging_e_matlab_orientation_preserves_direction_and_output_balance(tmp_path):
+    path, _, _ = _write_emerging_e_bundle(tmp_path)
+    with h5py.File(path, "r+") as handle:
+        group = handle["EMERGING_Power"]
+        raw = group["MRIO_Z_E"][()]
+        raw[4, 0] = 5
+        raw[0, 4] = 8
+        native_z = raw.T
+        native_y = group["MRIO_F_E"][()].T
+        output = native_z.sum(axis=1) + native_y.sum(axis=1)
+        added = output - native_z.sum(axis=0)
+        group["MRIO_Z_E"][...] = raw
+        group["MRIO_X_E"][...] = output.reshape(group["MRIO_X_E"].shape)
+        group["MRIO_VA_E"][...] = added.reshape(group["MRIO_VA_E"].shape)
+    matrices, _, _, _ = parse_emerging_iot(path, variant="E")
+    base = matrices["baseline"]
+    z = base["Z"].sparse.to_dense().to_numpy()
+    y = base["Y"].sparse.to_dense().to_numpy()
+    np.testing.assert_array_equal(z, native_z)
+    assert z[0, 4] == 5 and z[4, 0] == 8
+    np.testing.assert_array_equal(z.sum(axis=1) + y.sum(axis=1), output)
+    np.testing.assert_array_equal(z.sum(axis=0) + base["V"].to_numpy().reshape(-1), output)
