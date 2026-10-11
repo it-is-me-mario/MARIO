@@ -1296,6 +1296,12 @@ a.headerlink:focus-visible {
   color: var(--ink);
 }
 
+/* Long inline API arguments may wrap; code blocks retain their own scrolling. */
+.mario-article :not(pre) > code.literal .pre {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .mario-article a code {
   color: inherit;
 }
