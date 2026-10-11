@@ -8,7 +8,7 @@
     </div>
     <ul>
       {%- for link in area.children %}
-      <li><a href="{{ link.url }}"><span class="mario-home-area__label">{{ link.label }} {{ icon("next") }}</span><span class="mario-home-area__description">{{ link.summary }}</span></a></li>
+      <li{% if link.featured %} class="mario-home-featured"{% endif %}><a href="{{ link.url }}"><span class="mario-home-area__label">{% if link.featured %}<span class="mario-home-area__name">{{ icon("flame") }} {{ link.label }}</span>{% else %}{{ link.label }}{% endif %} {{ icon("next") }}</span><span class="mario-home-area__description">{{ link.summary }}</span></a></li>
       {%- endfor %}
     </ul>
   </section>

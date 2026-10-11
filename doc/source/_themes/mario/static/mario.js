@@ -7,7 +7,6 @@
 
   const root = document.documentElement;
   const contentRoot = root.dataset.content_root || "./";
-  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const shortWindow = window.matchMedia("(max-height: 31.25em)");
 
   const storage = {
@@ -763,118 +762,6 @@
     });
   }
 
-  /* ------------------- background: grid cells light up under the pointer */
-
-  // Surfaces with a solid background: the grid is not visible under them.
-  const OPAQUE = ".mario-box, .mario-sidebar, .mario-header, .mario-footer, .mario-pagebar summary, " +
-    ".mario-pagebar__panel, .mario-palette, .mario-install, .mario-button, .mario-search-button";
-
-  function initBackgroundCells() {
-    const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
-    if (!finePointer.matches || reduceMotion.matches) {
-      return;
-    }
-    // One canvas the size of the window, between the background and the content.
-    const canvas = document.createElement("canvas");
-    canvas.className = "mario-cells";
-    canvas.setAttribute("aria-hidden", "true");
-    document.body.appendChild(canvas);
-    const context = canvas.getContext("2d");
-    const energy = new Map(); // key "column,row" in page cells -> 0..1
-    const yellow = "253, 202, 39";
-    let frame = null;
-    let last = null;
-
-    const resize = () => {
-      const ratio = window.devicePixelRatio || 1;
-      canvas.width = Math.round(window.innerWidth * ratio);
-      canvas.height = Math.round(window.innerHeight * ratio);
-      context.setTransform(ratio, 0, 0, ratio, 0, 0);
-      schedule();
-    };
-
-    const light = (x, y) => {
-      const cell = cellSize();
-      const column = Math.floor((x - root.clientWidth / 2) / cell);
-      const row = Math.floor((y + window.scrollY) / cell);
-      for (let dx = -2; dx <= 2; dx += 1) {
-        for (let dy = -2; dy <= 2; dy += 1) {
-          const distance = Math.hypot(dx, dy);
-          if (distance > 2.3) {
-            continue;
-          }
-          const key = `${column + dx},${row + dy}`;
-          energy.set(key, Math.max(energy.get(key) || 0, 1 - distance / 2.6));
-        }
-      }
-    };
-
-    const draw = () => {
-      frame = null;
-      const cell = cellSize();
-      const centre = root.clientWidth / 2;
-      const scrollY = window.scrollY;
-      const alpha = effectiveTheme() === "dark" ? 0.5 : 0.75;
-      context.clearRect(0, 0, canvas.width, canvas.height);
-      energy.forEach((value, key) => {
-        const [column, row] = key.split(",").map(Number);
-        const x = centre + column * cell;
-        const y = row * cell - scrollY;
-        if (y > -cell && y < window.innerHeight) {
-          context.fillStyle = `rgba(${yellow}, ${alpha * value})`;
-          context.fillRect(x + 1, y + 1, cell - 1, cell - 1);
-        }
-        const next = value * 0.94 - 0.004;
-        if (next <= 0.01) {
-          energy.delete(key);
-        } else {
-          energy.set(key, next);
-        }
-      });
-      if (energy.size) {
-        frame = window.requestAnimationFrame(draw);
-      } else {
-        context.clearRect(0, 0, canvas.width, canvas.height);
-      }
-    };
-
-    function schedule() {
-      if (frame === null) {
-        frame = window.requestAnimationFrame(draw);
-      }
-    }
-
-    document.addEventListener(
-      "pointermove",
-      (event) => {
-        if (event.pointerType && event.pointerType !== "mouse") {
-          return;
-        }
-        const target = event.target instanceof Element ? event.target : null;
-        const overGrid = !target || !target.closest(OPAQUE);
-        const point = { x: event.clientX, y: event.clientY + window.scrollY };
-        if (overGrid) {
-          // Fill the cells between two events so fast moves leave a continuous trail.
-          const cell = cellSize();
-          // A long jump means the pointer left and came back: no trail across the page.
-          const from = last && Math.hypot(point.x - last.x, point.y - last.y) < 10 * cell ? last : point;
-          const steps = Math.max(1, Math.ceil(Math.hypot(point.x - from.x, point.y - from.y) / (cell / 2)));
-          for (let step = 1; step <= steps; step += 1) {
-            const t = step / steps;
-            light(from.x + (point.x - from.x) * t, from.y + (point.y - from.y) * t - window.scrollY);
-          }
-          schedule();
-        }
-        last = overGrid ? point : null;
-      },
-      { passive: true }
-    );
-    root.addEventListener("pointerleave", () => (last = null));
-    window.addEventListener("scroll", () => energy.size && schedule(), { passive: true });
-    window.addEventListener("resize", resize);
-    resize();
-  }
-
   /* ------------------------------------------------------------- start */
 
   function start() {
@@ -891,12 +778,75 @@
     initCopy();
     initPalette();
     initApiIndex();
-    initBackgroundCells();
   }
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", start);
   } else {
     start();
+  }
+})();
+
+
+/* Resources hero: a single disclosure for the Data explorer pages. */
+(() => {
+  const hoverPointer = window.matchMedia("(hover: hover) and (pointer: fine)");
+  for (const menu of document.querySelectorAll("[data-tab-menu]")) {
+    const button = menu.querySelector("[data-tab-toggle]");
+    const panel = menu.querySelector(".mario-tab-panel");
+    const links = Array.from(panel.querySelectorAll("a"));
+    let pinned = false;
+    let closeTimer;
+
+    const setOpen = (open) => {
+      window.clearTimeout(closeTimer);
+      panel.hidden = !open;
+      button.setAttribute("aria-expanded", String(open));
+      if (!open) pinned = false;
+    };
+    button.addEventListener("click", () => {
+      // Hover may already have opened the panel before pointer activation.
+      // The first click keeps it open; a second explicit click closes it.
+      const open = !pinned;
+      setOpen(open);
+      pinned = open;
+    });
+    menu.addEventListener("pointerenter", (event) => {
+      if (hoverPointer.matches && event.pointerType === "mouse") setOpen(true);
+    });
+    menu.addEventListener("pointerleave", (event) => {
+      if (event.pointerType !== "mouse") return;
+      window.clearTimeout(closeTimer);
+      closeTimer = window.setTimeout(() => {
+        if (!pinned && !menu.contains(document.activeElement)) setOpen(false);
+      }, 150);
+    });
+    menu.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setOpen(false);
+        button.focus();
+      }
+      if (event.target === button && ["ArrowDown", "ArrowUp"].includes(event.key)) {
+        event.preventDefault();
+        setOpen(true);
+        (event.key === "ArrowDown" ? links[0] : links[links.length - 1])?.focus();
+      }
+    });
+    menu.addEventListener("focusin", () => window.clearTimeout(closeTimer));
+    menu.addEventListener("focusout", (event) => {
+      // Safari can report a null destination before activating a clicked link.
+      if (event.relatedTarget && !menu.contains(event.relatedTarget)) setOpen(false);
+    });
+    links.forEach((link) => link.addEventListener("click", () => {
+      // Keep the target visible until native navigation has handled the click.
+      window.setTimeout(() => setOpen(false), 0);
+    }));
+    document.addEventListener("click", (event) => {
+      if (!menu.contains(event.target)) setOpen(false);
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") setOpen(false);
+    });
   }
 })();

@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import mario
+
 from mario.api.core_model import CoreModel
 from mario.api.database import Database
 from tests._paths import REPO_ROOT
@@ -52,3 +54,17 @@ def test_api_reference_exposes_resolvable_matrix_catalog():
     assert 'db.resolve("Xa")' in page
     assert "Xc" in page
     assert "Cx" in page
+
+
+def test_public_parser_entrypoints_have_reachable_api_pages():
+    documented = _documented_api_pages()
+    reference = (DOC_ROOT / "reference" / "api_parsing_methods.rst").read_text()
+    config = (DOC_ROOT / "conf.py").read_text()
+    for name, obj in vars(mario).items():
+        if not name.startswith("parse_") or not callable(obj):
+            continue
+        if obj.__module__ != "mario.parsers.entrypoints":
+            continue
+        assert f"mario.{name}" in documented, name
+        assert f"../api_document/mario.{name}" in reference, name
+        assert f'"api_document/mario.{name}.rst"' not in config, name

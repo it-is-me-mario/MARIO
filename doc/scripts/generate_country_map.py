@@ -74,8 +74,8 @@ def main():
             code = props["ADM0_A3"]
         if code != "ATA":
             # Natural Earth's KOS identifies Kosovo, stored as XKX in the registry.
-            code = {"KOS": "XKX"}.get(code, code)
-            shapes.append({"iso3": code, "name": props["NAME_LONG"], "path": svg_path(feature["geometry"])})
+            code = {"KOS": "XKX", "SOL": "SOM"}.get(code, code)
+            shapes.append({"iso3": code, "name": "Somalia" if code == "SOM" else props["NAME_LONG"], "path": svg_path(feature["geometry"])})
     countries = []
     for row in coco.CountryConverter().data.to_dict("records"):
         country = {"iso3": row["ISO3"], "iso2": row["ISO2"], "name": row["name_short"], "official_name": row["name_official"]}
@@ -89,7 +89,7 @@ def main():
             "source": {"name": "Natural Earth · 1:110m", "url": "https://www.naturalearthdata.com/downloads/110m-cultural-vectors/110m-admin-0-countries/",
                        "download": URL, "sha256": hashlib.sha256(response.content).hexdigest(),
                        "boundary_processing": "Shared undirected segments are deduplicated and joined into a single border mesh.",
-                       "geometry_code_aliases": {"KOS": "XKX"}},
+                       "geometry_code_aliases": {"KOS": "XKX", "SOL": "SOM"}},
             "registry_source": {"name": "country_converter packaged country registry", "version": coco.__version__,
                                 "normalization": "Canonical GR and GB, with EL and UK recorded as exact alternatives."}}
     TARGET.parent.mkdir(parents=True, exist_ok=True)

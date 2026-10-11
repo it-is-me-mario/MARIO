@@ -35,9 +35,24 @@ Top-Level Parser Entrypoints
    ../api_document/mario.parse_eora
    ../api_document/mario.parse_emerging
    ../api_document/mario.parse_ceads
+   ../api_document/mario.parse_cepalstat
    ../api_document/mario.parse_bea
    ../api_document/mario.parse_adb
    ../api_document/mario.parse_useeio
    ../api_document/mario.parse_statcan
    ../api_document/mario.parse_istat
    ../api_document/mario.parse_eurostat
+
+
+EXIOBASE-Specific Loaders
+-------------------------
+
+These public helpers load monetary IOT and SUT tables directly.
+Use :doc:`mario.parse_exiobase <../api_document/mario.parse_exiobase>` to
+select the table format and monetary or hybrid units through one entry point.
+
+.. toctree::
+   :maxdepth: 1
+
+   ../api_document/mario.parse_exiobase_3
+   ../api_document/mario.parse_exiobase_sut

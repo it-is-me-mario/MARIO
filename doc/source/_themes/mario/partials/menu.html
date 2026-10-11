@@ -10,6 +10,7 @@
         {%- for tab in mario.tabs %}
         <li class="{% if tab.active %}is-active is-open{% endif %}"{% if tab.key %} data-group="{{ tab.key }}"{% endif %}>
           <a href="{{ tab.url }}"{% if tab.active %} aria-current="{{ 'true' if mario.sidebar else 'page' }}"{% endif %}>{{ tab.label }}</a>
+          {% if tab.children %}<ul>{% for child in tab.children %}<li><a href="{{ child.url }}"{% if child.active %} aria-current="page"{% endif %}>{{ child.label }}</a></li>{% endfor %}</ul>{% endif %}
         </li>
         {%- endfor %}
       </ul>

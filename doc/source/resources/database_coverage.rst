@@ -1,14 +1,10 @@
-.. _database-coverage:
+:orphan:
 
-Database comparisons
-====================
+Geographical coverage
+=====================
 
-Find the databases that include a country as an individual region, or explore
-the geographic coverage of a database by version and year.
+Explore :doc:`Database scope <data-explorer/scope>` for indicators, geographical coverage and analyses.
 
-Geographic coverage
--------------------
+.. raw:: html
 
-.. mario-geographic-coverage::
-
-Download complete region and set lists in :ref:`Downloadable material <database-set-downloads>`.
+   <script>window.location.replace("data-explorer/scope.html#geographical-coverage");</script>

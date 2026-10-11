@@ -11,9 +11,14 @@
   const downloads = prefix + "resources/material.html#database-set-downloads";
   const rows = profile => profile.geography.regions;
   const direct = (profile, iso3) => rows(profile).some(r => r.kind === "country" && r.iso3 === iso3);
-  const aggregate = (profile, iso3) => rows(profile).some(r => r.kind === "aggregate" && (r.members || []).includes(iso3));
+  const aggregate = (profile, iso3) => !direct(profile,iso3) && (profile.geography.scope === "global" || rows(profile).some(r => r.kind === "aggregate" && (r.members || []).includes(iso3)));
   const geographyKey = p => p.coverage_signatures?.geography || JSON.stringify(rows(p).map(r => r.label).sort());
   profiles.sort((a, b) => Number(b.year || 0) - Number(a.year || 0) || a.label.localeCompare(b.label));
+  const releaseOrder = (a,b) => {
+    const numericA=/^\d/.test(a), numericB=/^\d/.test(b);
+    return Number(numericB)-Number(numericA) || (numericA
+      ? b.localeCompare(a,undefined,{numeric:true}) : a.localeCompare(b,undefined,{numeric:true}));
+  };
   const versions = source => {
     const groups = new Map();
     for (const profile of profiles.filter(p => p.source === source)) {
@@ -22,18 +27,26 @@
       groups.get(key).profiles.push(profile);
     }
     return [...groups.values()].map(group => {
-      const releases = [...new Set(group.profiles.map(p => p.release).filter(Boolean))];
+      const releases = [...new Set(group.profiles.map(p => p.release).filter(Boolean))].sort(releaseOrder);
       const type = source === "EXIOBASE" ? (group.profiles.every(p => p.guide === "exiobase-hybrid") ? "Hybrid" : "Monetary") : "";
-      group.label = [type, source === "FIGARO" ? "Eurostat snapshot" : releases.join(" / ") || name(source)].filter(Boolean).join(" · ");
+      group.label = type === "Monetary" ? "Monetary - All versions" : [type, source === "WIOD" ? `${releases.join(" / ")} · ${[...new Set(group.profiles.map(p=>p.table))].join(" / ")}` : source === "FIGARO" ? [...new Set(group.profiles.map(p=>[p.table,p.provenance?.options?.iot_mode==="product"?"pxp":p.provenance?.options?.iot_mode==="industry"?"ixi":null].filter(Boolean).join(" · ")))].join(" / ") : releases.join(" / ") || name(source)].filter(Boolean).join(" · ");
       return group;
     });
   };
   if (!profiles.length) return;
+  root.setAttribute("aria-busy", "true");
 
-  fetch(prefix + "_static/data/world-country-map.json").then(response => {
-    if (!response.ok) throw new Error("Map asset unavailable");
-    return response.json();
-  }).then(world => {
+  Promise.all(["world-country-map.json", "geography-concordances.json"].map(file=>
+    fetch(prefix + "_static/data/" + file).then(response=>{
+      if(!response.ok)throw new Error("Geographic asset unavailable");return response.json();
+    }))).then(([world,concordances]) => {
+    for(const profile of profiles) {
+      profile.geography.scope=profile.geography.scope || (concordances.global_families.includes(profile.source)?"global":"national");
+      const exact=profile.source==="EXIOBASE" && JSON.stringify(rows(profile).map(r=>r.label).sort())===JSON.stringify(concordances.exiobase.native_regions);
+      if(exact) for(const region of rows(profile)) {
+        if(concordances.exiobase.members[region.label]) region.members=concordances.exiobase.members[region.label];
+      }
+    }
     const countries = world.countries.filter(c => c.iso3 !== "ATA");
     const countryById = new Map(countries.map(c => [c.iso3, c]));
     const shapes = world.features.filter(f => countryById.has(f.iso3));
@@ -43,7 +56,7 @@
     let selectedYear = "all";
     let view = "map";
     let query = "";
-    const withinYear = p => selectedYear === "all" || String(p.year) === selectedYear;
+    const withinYear = p => selectedYear === "all" || (p.years || [p.year]).map(String).includes(selectedYear);
     const withinVersion = p => selectedSource === "all" || geographyKey(p) === selectedVersion;
     const activeProfiles = () => profiles.filter(p => withinYear(p) && (selectedSource === "all" || p.source === selectedSource && withinVersion(p)));
     const relevantSources = () => [...new Set(activeProfiles().map(p => p.source))];
@@ -51,6 +64,8 @@
       const selected = pool.filter(p => p.source === source);
       return selected.some(p => direct(p, iso3)) ? "direct" : selected.some(p => aggregate(p, iso3)) ? "aggregate" : "unspecified";
     };
+    const aggregateLabel = (source,iso3) => [...new Set(activeProfiles().filter(p=>p.source===source)
+      .flatMap(p=>rows(p).filter(r=>r.kind==="aggregate"&&(r.members||[]).includes(iso3)).map(r=>`${r.label} · ${r.name}`)))].join(" / ");
     const coverageCount = iso3 => relevantSources().filter(source => status(source, iso3) === "direct").length;
     const coverageColor = count => {
       if (!count) return "var(--coverage-none)";
@@ -80,7 +95,7 @@
           <g data-map-viewport>
           <path class="coverage-map-land" d="${world.features.map(f => f.path).join("")}"/>
           ${shapes.map(f => `<path d="${f.path}" data-map-country="${escape(f.iso3)}" role="button" tabindex="-1" aria-label="${escape(f.name)}"><title>${escape(f.name)}</title></path>`).join("")}
-          <path class="coverage-border-mesh" d="${world.borders || ""}" aria-hidden="true"/>
+          <path class="coverage-border-mesh" d="${world.borders || ""}" aria-hidden="true"/><g data-coverage-selection aria-hidden="true"></g>
           </g>
         </svg>
         <small class="coverage-map-credit">Map: <a href="${escape(world.source.url)}" target="_blank" rel="noopener">${escape(world.source.name)}</a></small>
@@ -91,11 +106,11 @@
         <label class="coverage-search">Find a country or ISO code<input type="search" data-coverage-search placeholder="e.g. Italy, ITA, Brazil…" autocomplete="off"></label>
         <div class="coverage-country-table" tabindex="0" role="region" aria-label="Country and database comparison"><table><thead data-coverage-table-head></thead><tbody data-coverage-table-body></tbody></table></div>
       </div>
+      <div class="coverage-model-detail" data-coverage-model-detail></div>
       <div class="coverage-country-detail">
         <label>Which databases include this country as an individual region?<select data-coverage-country>${countries.map(c => `<option value="${escape(c.iso3)}">${escape(c.name)} (${escape(c.iso3)})</option>`).join("")}</select></label>
         <p class="coverage-database-names" data-coverage-country-results aria-live="polite"></p>
-      </div>
-      <div class="coverage-model-detail" data-coverage-model-detail></div>`);
+      </div>`);
     root.querySelector("[data-comparison-loading]").remove();
     const databaseControl = root.querySelector("[data-coverage-database]");
     const versionControl = root.querySelector("[data-coverage-version]");
@@ -166,14 +181,14 @@
 
     function updateYears() {
       const eligible = profiles.filter(p => selectedSource === "all" || p.source === selectedSource && withinVersion(p));
-      const years = [...new Set(eligible.map(p => p.year).filter(y => y != null).map(String))].sort((a, b) => Number(b) - Number(a));
+      const years = [...new Set(eligible.flatMap(p => p.years || [p.year]).filter(y => y != null).map(String))].sort((a, b) => Number(b) - Number(a));
       if (!years.includes(selectedYear)) selectedYear = "all";
       yearControl.innerHTML = '<option value="all">All available years</option>' + years.map(y => `<option value="${escape(y)}">${escape(y)}</option>`).join("");
       yearControl.value = selectedYear;
     }
-    function badge(kind) {
+    function badge(kind,source,iso3) {
       const text = {direct: "Individual region", aggregate: "Aggregate region", unspecified: "—"}[kind];
-      return `<span class="coverage-status coverage-status--${kind}">${text}</span>`;
+      return `<span class="coverage-status coverage-status--${kind}"${kind==="aggregate"?` title="${escape(aggregateLabel(source,iso3)||"Global aggregate coverage; specific group not yet documented")}"`:""}>${text}</span>`;
     }
     function renderCountry() {
       countryControl.value = selectedCountry;
@@ -182,8 +197,9 @@
       const included = sources.filter(source => status(source, selectedCountry, pool) === "direct");
       root.querySelector("[data-coverage-country-results]").innerHTML = included.length
         ? included.map(source => {
-            const profile = pool.find(p => p.source === source && direct(p, selectedCountry));
-            return `<a href="${escape(profile.guide_url)}" title="${escape(profile.label)}" data-coverage-guide="${escape(source)}">${escape(name(source))}</a>`;
+            const representations = pool.filter(p => p.source === source && direct(p, selectedCountry));
+            const profile = representations.find(p => p.parser_supported !== false) || representations[0];
+            return `<a href="${escape(profile.guide_url)}" title="${escape(profile.label+(profile.parser_supported===false?" · Source metadata; no MARIO parser":""))}" data-coverage-guide="${escape(source)}">${escape(name(source))}</a>`;
           }).join('<span class="coverage-name-separator" aria-hidden="true">·</span>')
         : "No individual region in the selected versions and years.";
       for (const path of root.querySelectorAll("[data-map-country]")) {
@@ -192,27 +208,28 @@
         path.setAttribute("aria-pressed", String(selected));
         path.setAttribute("tabindex", selected ? "0" : "-1");
       }
+      root.querySelector("[data-coverage-selection]").innerHTML=shapes.filter(f=>f.iso3===selectedCountry).map(f=>`<path class="coverage-selection-halo" d="${f.path}"/><path class="coverage-selection-outline" d="${f.path}"/>`).join("");
       root.querySelector(".coverage-world-map").setAttribute("aria-label", `Country coverage map. Selected: ${countryById.get(selectedCountry).name}.`);
     }
     function renderList() {
       const columns = relevantSources();
       root.querySelector("[data-coverage-table-head]").innerHTML = `<tr><th scope="col">Country</th>${columns.map(s => `<th scope="col">${escape(name(s))}</th>`).join("")}</tr>`;
       const filtered = countries.filter(c => `${c.name} ${c.iso3} ${c.iso2}`.toLowerCase().includes(query.toLowerCase()));
-      root.querySelector("[data-coverage-table-body]").innerHTML = filtered.map(c => `<tr><th scope="row"><button type="button" data-list-country="${c.iso3}">${escape(c.name)} <small>${c.iso3}</small></button></th>${columns.map(s => `<td>${badge(status(s, c.iso3))}</td>`).join("")}</tr>`).join("") || `<tr><td colspan="${columns.length + 1}">No country matches this search.</td></tr>`;
+      root.querySelector("[data-coverage-table-body]").innerHTML = filtered.map(c => `<tr><th scope="row"><button type="button" data-list-country="${c.iso3}">${escape(c.name)} <small>${c.iso3}</small></button></th>${columns.map(s => `<td>${badge(status(s, c.iso3),s,c.iso3)}</td>`).join("")}</tr>`).join("") || `<tr><td colspan="${columns.length + 1}">No country matches this search.</td></tr>`;
     }
     function renderModel() {
       const panel = root.querySelector("[data-coverage-model-detail]");
       if (selectedSource === "all") { panel.innerHTML = ""; return; }
       const profile = activeProfiles()[0];
-      if (!profile) { panel.innerHTML = "No parsed inventory is available for this year."; return; }
-      const aggregates = rows(profile).filter(r => r.kind === "aggregate");
+      if (!profile) { panel.innerHTML = "No verified coverage inventory is available for this year."; return; }
+      const aggregates = [...rows(profile).filter(r => r.kind === "aggregate"),...(profile.geography.external_accounts || [])];
       const missing = aggregates.filter(r => !r.members?.length);
-      panel.innerHTML = aggregates.length ? `<p class="coverage-aggregate-title">Aggregate regions</p><ul class="coverage-aggregate-list">${aggregates.map(r => `<li><code>${escape(r.label)}</code> ${escape(r.name)}</li>`).join("")}</ul>${missing.length ? '<p class="coverage-aggregate-note">Country membership is not yet available for these aggregate regions.</p>' : ""}` : "";
+      panel.innerHTML = aggregates.length ? `<p class="coverage-aggregate-title">Aggregate regions</p><ul class="coverage-aggregate-list">${aggregates.map(r => `<li><code>${escape(r.label)}</code> ${escape(r.name)}${r.representation==="external_account"?" · external account":""}</li>`).join("")}</ul>${missing.length ? '<p class="coverage-aggregate-note">Global coverage includes the remaining countries in aggregate regions; their exact group membership is not yet documented here.</p>' : ""}` : "";
     }
     function renderLegend() {
       const legend = root.querySelector("[data-coverage-legend]");
       if (selectedSource !== "all") {
-        legend.innerHTML = '<span><i class="coverage-key-individual"></i>Individual region</span><span><i class="coverage-key-aggregate"></i>Aggregate regions</span><span><i class="coverage-key-none"></i>Unspecified</span>';
+        legend.innerHTML = `<span><i class="coverage-key-individual"></i>Individual region</span><span><i class="coverage-key-aggregate"></i>Aggregate regions</span>${activeProfiles().some(p=>p.geography.scope==="global")?"":'<span><i class="coverage-key-none"></i>Outside national scope</span>'}`;
         return;
       }
       const maximum = relevantSources().length;
@@ -223,7 +240,7 @@
       const count = relevantSources().length;
       root.querySelector("[data-coverage-headline]").innerHTML = selectedSource === "all"
         ? `<strong>${countries.filter(c => coverageCount(c.iso3) > 0).length}</strong> countries / territories · <strong>${count}</strong> ${count === 1 ? "database" : "databases"}`
-        : pool.length ? `<strong>${pool[0].geography.individual_countries}</strong> individual regions · <strong>${pool[0].geography.aggregate_count}</strong> aggregate regions` : "No parsed inventory for this year.";
+        : pool.length ? `<strong>${pool[0].geography.individual_countries}</strong> individual regions · <strong>${pool[0].geography.aggregate_count}</strong> aggregate regions` : "No verified coverage inventory for this year.";
       renderLegend();
       for (const path of root.querySelectorAll("[data-map-country]")) {
         const iso = path.dataset.mapCountry;
@@ -234,11 +251,12 @@
         path.style.fill = selectedSource === "all" ? coverageColor(number) : {direct: "var(--coverage-individual)", aggregate: "var(--coverage-aggregate)", unspecified: "var(--coverage-none)"}[kind];
         path.querySelector("title").textContent = selectedSource === "all"
           ? `${countryById.get(iso).name}: individual region in ${number} ${number === 1 ? "database" : "databases"}`
-          : `${countryById.get(iso).name}: ${{direct: "Individual region", aggregate: "Aggregate region", unspecified: "Unspecified"}[kind]}`;
+          : `${countryById.get(iso).name}: ${{direct: "Individual region", aggregate: "Aggregate region", unspecified: "Outside national scope"}[kind]}${kind==="aggregate"&&aggregateLabel(selectedSource,iso)?" · "+aggregateLabel(selectedSource,iso):""}`;
       }
       root.querySelector("[data-coverage-map-panel]").hidden = view !== "map";
       root.querySelector("[data-coverage-list-panel]").hidden = view !== "list";
       for (const button of root.querySelectorAll("[data-coverage-view]")) button.setAttribute("aria-pressed", String(button.dataset.coverageView === view));
+      for(const control of [databaseControl,versionControl,yearControl]) {control.disabled=control.options.length<=1;control.closest("label").classList.toggle("is-disabled",control.disabled);}
       renderCountry(); renderList(); renderModel();
     }
     databaseControl.addEventListener("change", () => {
@@ -247,7 +265,7 @@
       selectedVersion = choices[0]?.key || null;
       versionControl.innerHTML = choices.map(v => `<option value="${escape(v.key)}">${escape(v.label)}</option>`).join("");
       versionControl.value = selectedVersion || "";
-      root.querySelector("[data-coverage-version-label]").hidden = selectedSource === "all";
+      root.querySelector("[data-coverage-version-label]").hidden = selectedSource === "all" || choices.length <= 1 && profiles.filter(p=>p.source===selectedSource).every(p=>!p.release);
       updateYears(); render();
     });
     versionControl.addEventListener("change", () => { selectedVersion = versionControl.value; updateYears(); render(); });
@@ -271,9 +289,10 @@
         renderCountry(); root.querySelector(`[data-map-country="${selectedCountry}"]`).focus();
       }
     });
-    updateYears(); render();
+    updateYears(); render();root.setAttribute("aria-busy", "false");
   }).catch(() => {
     const notice = root.querySelector("[data-comparison-loading]") || root.appendChild(document.createElement("p"));
     notice.innerHTML = `The country explorer could not load. Set lists are available in <a href="${escape(downloads)}">Downloadable material</a>.`;
+    root.setAttribute("aria-busy", "false");
   });
 })();

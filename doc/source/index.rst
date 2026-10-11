@@ -37,7 +37,7 @@ MARIO
              </span>
              <span><strong>Politecnico di Milano</strong><small>Research and scientific development</small></span>
            </a>
-           <a href="https://enextgen.it" class="mario-home-partner">
+           <a href="https://enextgen.it/en/" class="mario-home-partner">
              <span class="mario-home-partner__logo">
                <img class="institution-logo institution-logo--light" src="_static/images/institutions/enextgen-light.png" alt="" width="68" height="70">
                <img class="institution-logo institution-logo--dark" src="_static/images/institutions/enextgen-dark.png" alt="" width="68" height="70">
@@ -69,7 +69,7 @@ MARIO
    :hidden:
 
    resources/database_coverage
-   resources/benchmarks/index
-   resources/research
+   resources/data-explorer/browsers
+   resources/projects_publications
    resources/teaching
    resources/material

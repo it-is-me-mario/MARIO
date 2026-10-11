@@ -1,0 +1,10 @@
+.database-scope-chart { --scope-extended:#177f83; --scope-base:#9a718c; margin:1.5rem 0; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); overflow:hidden; }
+:root[data-theme="dark"] .database-scope-chart { --scope-extended:#69c7c5; --scope-base:#cca0be; }
+@media(prefers-color-scheme:dark) { :root:not([data-theme="light"]) .database-scope-chart { --scope-extended:#69c7c5; --scope-base:#cca0be; } }
+.scope-extension-key { display:flex; flex-wrap:wrap; gap:.5rem 1.5rem; padding:1rem 1.2rem 0; font-size:.75rem; color:var(--ink-muted); }
+.scope-extension-key span { display:inline-flex; align-items:center; gap:.45rem; }
+.scope-extension-key i { width:9px; height:9px; border-radius:50%; }
+.scope-extended { background:var(--scope-extended); }
+.scope-base { background:var(--scope-base); }
+[data-scope-chart] { width:100%; min-width:0; }
+.database-scope-chart .modebar-btn path { fill:var(--ink-muted) !important; }

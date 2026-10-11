@@ -230,7 +230,7 @@ def test_profile_rendering_is_shared_and_links_work_from_deep_guides(tmp_path):
     assert "ADB 2020 &lt;fixture&gt;" in card
     assert workbook not in card
     assert f'href="../../../{workbook}"' in guide
-    assert 'href="../../../resources/database_coverage.html"' in guide
+    assert 'href="../../../resources/data-explorer/scope.html#geographical-coverage"' in guide
     assert extension._summary_html(app, "user_guide/parsers/index", "adb", [], compact=True) == ""
     empty_guide = extension._summary_html(app, "notebooks/parsers/adb/walkthrough_adb", "adb", [])
     assert empty_guide == ""
@@ -247,11 +247,11 @@ def test_catalogue_dependency_is_registered_before_environment_pickle(tmp_path):
     tree = nodes.document("", "")
     tree += extension.database_profile_summary("", guide="adb")
     extension._note_dependency(app, tree)
-    assert dependencies == [str(tmp_path / extension.CATALOGUE)]
+    assert dependencies == [str(tmp_path / extension.CATALOGUE), str(tmp_path / extension.LICENCES)]
     dependencies.clear()
     env.docname = "notebooks/parsers/adb/walkthrough_adb"
     extension._note_dependency(app, nodes.document("", ""))
-    assert dependencies == [str(tmp_path / extension.CATALOGUE)]
+    assert dependencies == [str(tmp_path / extension.CATALOGUE), str(tmp_path / extension.LICENCES)]
 
 
 def test_empty_satellite_placeholder_is_retained_but_not_counted():
@@ -385,3 +385,103 @@ def test_guide_summary_follows_existing_intro_and_lists():
     panel=nodes.container(classes=["database-guide-summary"])
     extension._insert_guide_summary(top,panel)
     assert top.children == [title,intro,focus,panel,section]
+
+
+def test_exiobase_source_concordance_covers_territories_without_conflicting_with_individuals():
+    geography = _import("database_geography", REPO_ROOT / "doc/scripts/database_geography.py")
+    profile = json.loads((REPO_ROOT / "doc/source/_static/data/database_profiles/exiobase-3112-2024-ixi.json").read_text())
+    geography.add_geography(profile)
+    geo = profile["geography"]
+    membership = {r["iso3"]: r["region"] for r in geo["country_memberships"]}
+    assert membership["SOM"] == "WF" and membership["PSE"] == "WM"
+    assert membership["GUF"] == "WL" and membership["GUM"] == "WA"
+    assert "ITA" not in membership and "TWN" not in membership
+    assert len(membership) == len(geo["country_memberships"])
+    assert geo["scope"] == "global"
+    assert geo["aggregate_mapping_source"]["sheet"] == "Classification (extended)"
+    hybrid = json.loads((REPO_ROOT / "doc/source/_static/data/database_profiles/exiobase-hybrid-3318-2011-sut.json").read_text())
+    geography.add_geography(hybrid)
+    assert hybrid["geography"]["scope"] == "global"
+    assert not hybrid["geography"]["country_memberships"]  # Different native set: no guessed group membership.
+
+
+def test_map_geometry_matches_database_reporting_units_and_preserves_palestine():
+    world = json.loads((REPO_ROOT / "doc/source/_static/data/world-country-map.json").read_text())
+    assert len([f for f in world["features"] if f["iso3"] == "SOM"]) == 2
+    assert not any(f["iso3"] == "SOL" for f in world["features"])
+    assert any(f["iso3"] == "PSE" for f in world["features"])
+    assert any(c["iso3"] == "PSE" for c in world["countries"])
+
+
+def test_shared_set_downloads_preserve_verified_years_and_gaps(tmp_path):
+    extension = _import("mario_database_profiles", REPO_ROOT / "doc/source/_ext/mario_database_profiles.py")
+    path = tmp_path / "_static/shared.xlsx"
+    path.parent.mkdir();path.touch()
+    profile = {"id":"shared", "year":2024, "years":[1995,1996,1998,2024], "release":"3.11.2", "table":"IOT", "workbook":"_static/shared.xlsx", "label":"Shared native sets", "provenance":{"options":{"system":"ixi"}}}
+    app = SimpleNamespace(srcdir=str(tmp_path), config=SimpleNamespace(root_doc="index"), builder=SimpleNamespace(get_relative_uri=lambda a,b:"../"+b+".html"))
+    links = extension._download_html(app, "resources/material", [profile])
+    assert "1995–1996, 1998, 2024" in links
+    assert "1995–2024" not in links
+    assert "3.11.2 · ixi" in links
+
+
+def test_parser_release_titles_and_downloads_use_numeric_order(tmp_path):
+    extension = _import("mario_database_profiles", REPO_ROOT / "doc/source/_ext/mario_database_profiles.py")
+    profiles = [{"id":release, "guide":"exiobase-monetary", "release":release,
+        "year":2024, "table":"IOT", "source":"EXIOBASE", "coverage_signatures":{"geography":"same"},
+        "label":release, "provenance":{"options":{"system":"ixi"}}}
+        for release in ["3.10.1","3.8.2","3.11.2","3.9.6","3.9.4"]]
+    title = extension._version_title(profiles)
+    assert title == "Monetary · 3.11.2 / 3.10.1 / 3.9.6 / 3.9.4 / 3.8.2"
+    assert [p["release"] for p in extension.geographic_groups(profiles)[0]] == ["3.11.2","3.10.1","3.9.6","3.9.4","3.8.2"]
+    economies = [{**profiles[0], "guide":"adb", "release":f"{n} economies"} for n in [62,74,71,72]]
+    assert extension._version_title(economies) == "74 economies / 72 economies / 71 economies / 62 economies"
+
+
+def test_adb_lac_geography_uses_source_legend_identifiers():
+    geography = _import("database_geography", REPO_ROOT / "doc/scripts/database_geography.py")
+    world = json.loads((REPO_ROOT / "doc/source/_static/data/world-country-map.json").read_text())
+    result = geography.resolve_geography({"source":"Asian Development Bank","guide":"adb","sets":{"Region":["PAR","RoLAC","RoW"]}},world["countries"])
+    assert result["regions"][0]["iso3"] == "PRY"
+    assert result["aggregate_count"] == 2 and result["unresolved_count"] == 0
+
+
+def test_emerging_shared_nomenclature_requires_an_exact_verified_native_set():
+    geography = _import("database_geography", REPO_ROOT / "doc/scripts/database_geography.py")
+    countries = json.loads((REPO_ROOT / "doc/source/_static/data/world-country-map.json").read_text())["countries"]
+    known = json.loads((REPO_ROOT / "doc/source/_static/data/database_profiles/emerging-22-2023-co2.json").read_text())
+    for release in ["1.0", "2.0", "2.2", "E"]:
+        profile = {"source": "EMERGING", "guide": "emerging", "release": release, "year": 2018,
+                   "sets": {"Region": known["sets"]["Region"]}}
+        result = geography.resolve_geography(profile, countries)
+        assert result["unresolved_count"] == 0
+        assert result["individual_countries"] == 243 and result["aggregate_count"] == 2
+        assert not any(r.get("iso3") == "SRB" for r in result["regions"])
+        assert result["region_mapping_sources"][0]["native_geography_sha256"] == known["coverage_signatures"]["geography"]
+    profile["sets"] = {"Region": ["ANT", "SER", "TMP", "MNE"]}
+    assert geography.resolve_geography(profile, countries)["unresolved_count"] == 3
+
+
+def test_shared_economic_counts_name_every_equivalent_release():
+    extension = _import("mario_database_profiles", REPO_ROOT / "doc/source/_ext/mario_database_profiles.py")
+    profiles = [{"id":release,"source":"EMERGING","guide":"emerging","release":release,"year":2018,
+                 "counts":{"Region":245,"Sector":sectors},
+                 "coverage_signatures":{"geography":"same","economic":classification}}
+                for release,sectors,classification in [("2.2",133,"v2"),("2.0",133,"v2"),("1.0",134,"v1"),("E",146,"e")]]
+    metrics=extension._economic_metrics(profiles)
+    assert (133,"sectors","2.2 / 2.0") in metrics
+    assert (134,"sectors","1.0") in metrics
+    assert (146,"sectors","E") in metrics
+    assert len(metrics)==3
+
+
+def test_licence_metadata_covers_guides_and_distinguishes_exiobase_releases():
+    extension = _import("mario_database_profiles", REPO_ROOT / "doc/source/_ext/mario_database_profiles.py")
+    catalogue=json.loads((REPO_ROOT / "doc/source/_static/data/database_profiles.json").read_text())
+    licences=json.loads((REPO_ROOT / "doc/source/_static/data/database_licences.json").read_text())
+    assert {g["id"] for g in catalogue["guides"]} == set(licences["guides"])
+    rendered=extension._licence_html("exiobase-monetary",licences)
+    assert "CC BY-SA 4.0" in rendered and "3.8.2" in rendered
+    assert "Custom non-commercial licence" in rendered and "LICENSE.txt" in rendered
+    assert "Source licence" in rendered and "Reuse &amp; attribution" in rendered
+    assert "Input database licence" in extension._licence_html("custom-database-from-excel",licences)

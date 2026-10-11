@@ -21,7 +21,6 @@
         document.documentElement.classList.add("mario-js");
       })();
     </script>
-    <script defer src="{{ pathto('_static/mario.js', 1) }}"></script>
 {%- endblock %}
 
 {%- block body_tag %}<body class="mario-layout-{{ mario.layout }}" data-section="{{ mario.section_key }}" data-group="{{ mario.group_key }}">{% endblock %}
@@ -42,7 +41,7 @@
   <div id="mario-main" class="mario-main">
     {%- include "partials/hero.html" %}
     {%- if mario.tabs %}{% include "partials/tabs.html" %}{% include "partials/menu.html" %}{% endif %}
-    <div class="mario-shell mario-shell--{{ mario.layout }}{% if pagename.startswith('resources/benchmarks/') and pagename != 'resources/benchmarks/index' %} mario-shell--benchmark{% endif %}">
+    <div class="mario-shell mario-shell--{{ mario.layout }}{% if pagename.startswith('resources/data-explorer/') %} mario-shell--benchmark{% endif %}">
       {%- if mario.sidebar %}{% include "partials/sidebar.html" %}{% endif %}
       <div class="mario-content">
         {#- Pages with tabs always keep the page-bar row, even when it is empty, so the box starts at the same height everywhere. #}

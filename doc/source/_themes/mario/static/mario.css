@@ -31,6 +31,11 @@
   --ribbon-lilac-deep: #7a4f8f;
   --ribbon-end: #16100d;
 
+  /* Roles swap yellow and orange only in the dark theme. Logo colours stay fixed. */
+  --accent: var(--mario-yellow);
+  --accent-rgb: 253, 202, 39;
+  --accent-alt: var(--ribbon-orange);
+
   /* Light theme */
   --paper: #fff7e2;
   --surface: #fffdf7;
@@ -45,7 +50,7 @@
   --link: #8a5a00;
   --link-hover: var(--ribbon-orange-deep);
   --focus: var(--ribbon-orange-deep);
-  --mark: var(--mario-yellow);
+  --mark: var(--accent);
   --mark-ink: #16100d;
   --heat-hero: 0.46;
   --heat-page: 0.17;
@@ -60,7 +65,7 @@
   --code-name: #1f6f78;
   --code-operator: #46392f;
 
-  --group-color: var(--mario-yellow);
+  --group-color: var(--accent);
   --group-deep: #8a5a00;
 
   --font-sans: "Avenir Next", Avenir, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -71,66 +76,78 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --paper: #13100d;
-    --surface: #1c1713;
-    --surface-2: #261f19;
-    --surface-3: #33291f;
-    --ink: #fff3d6;
-    --ink-soft: #ead9b8;
-    --ink-muted: #b8a68a;
-    --line: #3a2f25;
-    --line-strong: #5a4834;
-    --dot: rgb(255 236 177 / 0.16);
-    --link: #fdca27;
-    --link-hover: #fc8a5f;
-    --focus: #fdca27;
+    --accent: var(--ribbon-orange);
+    --accent-rgb: 252, 107, 60;
+    --accent-alt: var(--mario-yellow);
+    --paper: #141110;
+    --surface: #1c1816;
+    --surface-2: #25201d;
+    --surface-3: #302925;
+    --ink: #f3f1ec;
+    --ink-soft: #d4d1ca;
+    --ink-muted: #9a978f;
+    --line: #332b27;
+    --line-strong: #4d413b;
+    --dot: rgb(255 255 255 / 0.1);
+    --link: var(--accent);
+    --link-hover: var(--accent-alt);
+    --focus: var(--accent);
     --heat-hero: 0.15;
     --heat-page: 0.055;
-    --shadow: 0 12px 32px -18px rgb(0 0 0 / 0.8);
-    --code-keyword: #fc8a5f;
+    --shadow: 0 12px 32px -18px rgb(0 0 0 / 0.85);
+    --code-keyword: var(--accent-alt);
     --code-string: #7fdc9b;
     --code-number: #e2c2f0;
-    --code-comment: #a8957c;
+    --code-comment: #9d978e;
     --code-name: #8adbea;
     --code-operator: #ead9b8;
-    --group-deep: #fdca27;
+    --group-deep: var(--accent);
     color-scheme: dark;
   }
 }
 
 :root[data-theme="dark"] {
-  --paper: #13100d;
-  --surface: #1c1713;
-  --surface-2: #261f19;
-  --surface-3: #33291f;
-  --ink: #fff3d6;
-  --ink-soft: #ead9b8;
-  --ink-muted: #b8a68a;
-  --line: #3a2f25;
-  --line-strong: #5a4834;
-  --dot: rgb(255 236 177 / 0.16);
-  --link: #fdca27;
-  --link-hover: #fc8a5f;
-  --focus: #fdca27;
+  --accent: var(--ribbon-orange);
+  --accent-rgb: 252, 107, 60;
+  --accent-alt: var(--mario-yellow);
+  --paper: #141110;
+  --surface: #1c1816;
+  --surface-2: #25201d;
+  --surface-3: #302925;
+  --ink: #f3f1ec;
+  --ink-soft: #d4d1ca;
+  --ink-muted: #9a978f;
+  --line: #332b27;
+  --line-strong: #4d413b;
+  --dot: rgb(255 255 255 / 0.1);
+  --link: var(--accent);
+  --link-hover: var(--accent-alt);
+  --focus: var(--accent);
   --heat-hero: 0.15;
   --heat-page: 0.055;
-  --shadow: 0 12px 32px -18px rgb(0 0 0 / 0.8);
-  --code-keyword: #fc8a5f;
+  --shadow: 0 12px 32px -18px rgb(0 0 0 / 0.85);
+  --code-keyword: var(--accent-alt);
   --code-string: #7fdc9b;
   --code-number: #e2c2f0;
-  --code-comment: #a8957c;
+  --code-comment: #9d978e;
   --code-name: #8adbea;
   --code-operator: #ead9b8;
-  --group-deep: #fdca27;
+  --group-deep: var(--accent);
   color-scheme: dark;
 }
 
 /* Docs groups take the colours of the four logo ribbons; the API takes the dark ribbon ends. */
-[data-group="parsers"] { --group-color: var(--ribbon-orange); --group-deep: var(--ribbon-orange-deep); }
+[data-group="parsers"] { --group-color: var(--accent-alt); --group-deep: var(--ribbon-orange-deep); }
 [data-group="inspection"] { --group-color: var(--ribbon-green); --group-deep: var(--ribbon-green-deep); }
 [data-group="transformations"] { --group-color: var(--ribbon-cyan); --group-deep: var(--ribbon-cyan-deep); }
 [data-group="advanced"] { --group-color: var(--ribbon-lilac); --group-deep: var(--ribbon-lilac-deep); }
 [data-group="api"] { --group-color: var(--ink); --group-deep: var(--ink); }
+
+/* Parser text uses the bright counterpart in both dark-theme entry points. */
+:root[data-theme="dark"] [data-group="parsers"] { --group-deep: var(--accent-alt); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) [data-group="parsers"] { --group-deep: var(--accent-alt); }
+}
 
 /* ------------------------------------------------------------------- base */
 
@@ -162,7 +179,7 @@ body {
 }
 
 ::selection {
-  background: var(--mario-yellow);
+  background: var(--accent);
   color: var(--mark-ink);
 }
 
@@ -317,6 +334,15 @@ kbd {
   );
 }
 
+:root[data-theme="dark"] .mario-bg__heat {
+  background-image: url("images/heatmap-background-dark.png");
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .mario-bg__heat {
+    background-image: url("images/heatmap-background-dark.png");
+  }
+}
+
 .mario-bg__dots {
   background-image: radial-gradient(circle at center, var(--dot) 0 1px, transparent 1.4px);
   background-size: var(--cell) var(--cell);
@@ -337,7 +363,7 @@ kbd {
   top: 0;
   z-index: 40;
   height: var(--header-h);
-  border-top: 4px solid var(--mario-yellow);
+  border-top: 4px solid var(--accent);
   border-bottom: 1px solid var(--line);
   background: var(--surface);
   transition: transform 0.25s ease;
@@ -416,7 +442,7 @@ html.mario-header-hidden .mario-header {
   bottom: 0.15rem;
   height: 3px;
   border-radius: 2px;
-  background: var(--mario-yellow);
+  background: var(--accent);
 }
 
 .mario-header__actions {
@@ -616,16 +642,6 @@ html.mario-header-hidden .mario-header {
   color: var(--paper);
 }
 
-/* Pointer trail: a window-sized canvas between the background and the content. */
-.mario-cells {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-
 /* ------------------------------------------------------------------- tabs */
 
 .mario-tabs {
@@ -698,10 +714,10 @@ html.mario-header-hidden .mario-header {
   bottom: 0.3rem;
   height: 3px;
   border-radius: 2px;
-  background: var(--mario-yellow);
+  background: var(--accent);
 }
 
-.mario-tabs__list li[data-group="parsers"] { --tab-color: var(--ribbon-orange); }
+.mario-tabs__list li[data-group="parsers"] { --tab-color: var(--accent-alt); }
 .mario-tabs__list li[data-group="inspection"] { --tab-color: var(--ribbon-green); }
 .mario-tabs__list li[data-group="transformations"] { --tab-color: var(--ribbon-cyan); }
 .mario-tabs__list li[data-group="advanced"] { --tab-color: var(--ribbon-lilac); }
@@ -1139,7 +1155,7 @@ html.mario-header-hidden .mario-pagebar {
 .mario-palette__results li[aria-selected="true"] a,
 .mario-palette__results li a:hover {
   background: var(--surface-2);
-  box-shadow: inset 3px 0 0 var(--mario-yellow);
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 
 .mario-palette__results .is-api span {
@@ -1467,11 +1483,11 @@ a.mario-zoomable {
 }
 
 .mario-article .admonition.important,
-.mario-article .admonition.attention { --admonition-color: var(--mario-yellow); }
+.mario-article .admonition.attention { --admonition-color: var(--accent); }
 .mario-article .admonition.warning,
 .mario-article .admonition.caution,
 .mario-article .admonition.danger,
-.mario-article .admonition.error { --admonition-color: var(--ribbon-orange); }
+.mario-article .admonition.error { --admonition-color: var(--accent-alt); }
 .mario-article .admonition.tip,
 .mario-article .admonition.hint { --admonition-color: var(--ribbon-green); }
 .mario-article .admonition.seealso { --admonition-color: var(--ribbon-lilac); }
@@ -1529,7 +1545,7 @@ a.mario-zoomable {
   margin: 0 0 0.85rem;
   padding: 0.75rem 1rem;
   border: 1px solid var(--line);
-  border-left: 4px solid var(--mario-yellow);
+  border-left: 4px solid var(--accent);
   border-radius: var(--radius);
   background: var(--surface-2);
   font-family: var(--font-mono);
@@ -1639,7 +1655,7 @@ a.mario-zoomable {
   flex-direction: column;
   padding: var(--cell);
   border: 1px solid var(--line);
-  border-top: 4px solid var(--group-color, var(--mario-yellow));
+  border-top: 4px solid var(--group-color, var(--accent));
   border-radius: var(--radius);
   background: var(--paper);
 }
@@ -1725,7 +1741,7 @@ a.mario-zoomable {
 
 .mario-article div.nbinput div.input_area > div[class*="highlight"] > pre,
 .mario-article div.nbinput div.input_area pre {
-  border-left: 4px solid var(--group-color, var(--mario-yellow));
+  border-left: 4px solid var(--group-color, var(--accent));
 }
 
 .mario-article div.nbinput.nblast.container + div.nboutput.container,
@@ -1751,7 +1767,7 @@ a.mario-zoomable {
 }
 
 .mario-article div.nboutput div.output_area.stderr {
-  background: color-mix(in srgb, var(--ribbon-orange) 8%, var(--surface));
+  background: color-mix(in srgb, var(--accent-alt) 8%, var(--surface));
 }
 
 .mario-article div.rendered_html table {
@@ -1898,7 +1914,7 @@ a.mario-zoomable {
   margin: 0 0 1.25rem;
   padding: 1rem 1.15rem;
   border: 1px solid var(--line);
-  border-left: 4px solid var(--mario-yellow);
+  border-left: 4px solid var(--accent);
   border-radius: var(--radius);
   background: var(--surface-2);
 }
@@ -2353,8 +2369,7 @@ span.highlighted {
   .mario-sidebar,
   .mario-pagebar,
   .mario-footer,
-  .mario-palette,
-  .mario-cells {
+  .mario-palette {
     display: none !important;
   }
 
@@ -2489,7 +2504,7 @@ html.mario-tab-nav .mario-tabs { view-transition-name: mario-tabs; }
   width: 0.6rem;
   height: 0.6rem;
   border-radius: 2px;
-  background: var(--group-color, var(--mario-yellow));
+  background: var(--group-color, var(--accent));
 }
 
 .mario-article .mario-card__kicker {
@@ -2696,7 +2711,7 @@ html.mario-tab-nav .mario-tabs { view-transition-name: mario-tabs; }
   width: 0.6rem;
   height: 0.6rem;
   border-radius: 2px;
-  background: var(--group-color, var(--mario-yellow));
+  background: var(--group-color, var(--accent));
 }
 
 .mario-step__body {
@@ -2786,7 +2801,7 @@ html:not(.mario-js) .mario-switch {
   align-self: flex-start;
   padding: 0.08rem 0.5rem;
   border-radius: 4px;
-  background: var(--mario-yellow);
+  background: var(--accent);
   color: var(--mark-ink);
   font-size: 0.75rem;
   font-weight: 800;
@@ -2860,7 +2875,7 @@ html:not(.mario-js) .mario-switch {
 }
 
 .mario-blocks__cell.is-core { background: var(--ribbon-cyan); }
-.mario-blocks__cell.is-demand { background: var(--mario-yellow); }
+.mario-blocks__cell.is-demand { background: var(--accent); }
 .mario-blocks__cell.is-factors { background: var(--ribbon-lilac); }
 .mario-blocks__cell.is-satellite { background: var(--ribbon-green); }
 
@@ -2961,7 +2976,7 @@ html:not(.mario-js) .mario-switch {
 }
 
 .mario-scheme__cell.is-core { background: var(--ribbon-cyan); }
-.mario-scheme__cell.is-demand { background: var(--mario-yellow); }
+.mario-scheme__cell.is-demand { background: var(--accent); }
 .mario-scheme__cell.is-factors { background: var(--ribbon-lilac); }
 .mario-scheme__cell.is-satellite { background: var(--ribbon-green); }
 .mario-scheme__cell.is-final.is-factors { background: color-mix(in srgb, var(--ribbon-lilac) 60%, #fff); }
@@ -3159,10 +3174,10 @@ html:not(.mario-js) .mario-switch {
     height: 0.55rem;
     margin-right: 0.5rem;
     border-radius: 2px;
-    background: var(--tab-color, var(--mario-yellow));
+    background: var(--tab-color, var(--accent));
   }
 
-  .mario-menu li[data-group="parsers"] { --tab-color: var(--ribbon-orange); }
+  .mario-menu li[data-group="parsers"] { --tab-color: var(--accent-alt); }
   .mario-menu li[data-group="inspection"] { --tab-color: var(--ribbon-green); }
   .mario-menu li[data-group="transformations"] { --tab-color: var(--ribbon-cyan); }
   .mario-menu li[data-group="advanced"] { --tab-color: var(--ribbon-lilac); }
@@ -3182,7 +3197,7 @@ html:not(.mario-js) .mario-switch {
 
 @media (max-width: 48em) {
   .mario-menu .mario-sidenav__title::before {
-    background: var(--mario-yellow);
+    background: var(--accent);
   }
 
 }
@@ -3289,7 +3304,7 @@ html:not(.mario-js) .mario-switch {
 }
 
 .mario-card__logo.is-monogram {
-  border-bottom: 3px solid var(--group-color, var(--mario-yellow));
+  border-bottom: 3px solid var(--group-color, var(--accent));
 }
 
 .mario-card__logo.is-monogram span {
@@ -3339,7 +3354,7 @@ html:not(.mario-js) .mario-switch {
 }
 
 .mario-article div.rendered_html tbody tr:hover {
-  background: color-mix(in srgb, var(--mario-yellow) 18%, var(--surface));
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface));
 }
 
 .mario-article div.rendered_html th,
@@ -3375,7 +3390,7 @@ html:not(.mario-js) .mario-switch {
   margin: var(--cell) 0 calc(1.5 * var(--cell));
   padding: var(--cell);
   border: 1px solid var(--line);
-  border-left: 4px solid var(--mario-yellow);
+  border-left: 4px solid var(--accent);
   border-radius: var(--radius);
   background: var(--paper);
 }
@@ -3595,12 +3610,12 @@ html:not(.mario-js) .mario-switch {
 .mario-downloads__group {
   padding: var(--cell);
   border: 1px solid var(--line);
-  border-top: 4px solid var(--group-color, var(--mario-yellow));
+  border-top: 4px solid var(--group-color, var(--accent));
   border-radius: var(--radius);
   background: var(--paper);
 }
 
-.mario-downloads__group.is-parsers { --group-color: var(--ribbon-orange); }
+.mario-downloads__group.is-parsers { --group-color: var(--accent-alt); }
 .mario-downloads__group.is-inspection { --group-color: var(--ribbon-green); }
 .mario-downloads__group.is-transformations { --group-color: var(--ribbon-cyan); }
 .mario-downloads__group.is-advanced { --group-color: var(--ribbon-lilac); }
@@ -3907,7 +3922,7 @@ html:not(.mario-js) .mario-nav__item:is(:hover, :focus-within) .mario-nav__panel
   display: inline-block;
   margin-bottom: .5rem;
   padding: .3rem .6rem;
-  border-left: 3px solid var(--mario-yellow);
+  border-left: 3px solid var(--accent);
   background: var(--surface-2);
   color: var(--ink);
   font-size: .82rem;
@@ -3951,15 +3966,15 @@ html:not(.mario-js) .mario-nav__item:is(:hover, :focus-within) .mario-nav__panel
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .coverage-explorer {
-    --coverage-low: #f9e9a0; --coverage-high: #bd8610;
-    --coverage-none: #494139; --coverage-border: #2c251d;
-    --coverage-individual: #edc243; --coverage-aggregate: var(--ribbon-cyan);
+    --coverage-low: color-mix(in srgb, var(--accent) 25%, var(--ink)); --coverage-high: color-mix(in srgb, var(--accent) 68%, var(--paper));
+    --coverage-none: var(--surface-3); --coverage-border: var(--surface);
+    --coverage-individual: var(--accent); --coverage-aggregate: var(--ribbon-cyan);
   }
 }
 :root[data-theme="dark"] .coverage-explorer {
-  --coverage-low: #f9e9a0; --coverage-high: #bd8610;
-  --coverage-none: #494139; --coverage-border: #2c251d;
-  --coverage-individual: #edc243; --coverage-aggregate: var(--ribbon-cyan);
+  --coverage-low: color-mix(in srgb, var(--accent) 25%, var(--ink)); --coverage-high: color-mix(in srgb, var(--accent) 68%, var(--paper));
+  --coverage-none: var(--surface-3); --coverage-border: var(--surface);
+  --coverage-individual: var(--accent); --coverage-aggregate: var(--ribbon-cyan);
 }
 .coverage-explorer [hidden] { display: none !important; }
 .coverage-toolbar { display: flex; gap: 1rem; align-items: end; flex-wrap: wrap; }
@@ -3978,9 +3993,9 @@ html:not(.mario-js) .mario-nav__item:is(:hover, :focus-within) .mario-nav__panel
   border: 1px solid var(--line); border-radius: var(--radius); padding: .5rem .75rem;
   background: var(--surface); color: var(--ink); font-size: .8rem;
 }
-.coverage-view-buttons button[aria-pressed="true"] { background: var(--mario-yellow); color: var(--mark-ink); border-color: var(--mario-yellow); font-weight: 650; }
+.coverage-view-buttons button[aria-pressed="true"] { background: var(--accent); color: var(--mark-ink); border-color: var(--accent); font-weight: 650; }
 .coverage-world-map { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: var(--radius); }
-.coverage-map-ocean { fill: var(--surface); }
+.coverage-map-ocean { fill: var(--surface-2); }
 .coverage-map-land { fill: var(--coverage-none); pointer-events: none; }
 .coverage-world-map [data-map-country] { fill: var(--coverage-none); stroke: none; cursor: pointer; transition: fill .15s; }
 .coverage-world-map [data-map-country].is-selected,
@@ -4030,6 +4045,11 @@ html:not(.mario-js) .mario-nav__item:is(:hover, :focus-within) .mario-nav__panel
 
 /* Coverage belongs after each guide's introductory prose. */
 .database-guide-summary { margin: var(--cell) 0; padding: 0; border: 0; background: transparent; }
+.database-guide-licence { margin: 1.2rem 0; padding: .8rem 1rem; border-left: 3px solid var(--accent); background: var(--surface); font-size: .88rem; color: var(--muted); }
+.database-guide-licence > strong { color: var(--ink); font-size: .92rem; }
+.database-guide-licence p { margin: .3rem 0; }
+.database-guide-licence details { margin-top: .4rem; }
+.database-guide-licence summary { cursor: pointer; }
 .database-guide-coverage { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
 .database-guide-coverage__header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; padding: .8rem 1rem; background: var(--surface-2); font-size: .83rem; }
 .database-guide-coverage__header > a { font-size: .77rem; }
@@ -4092,9 +4112,9 @@ html:not(.mario-js) .mario-nav__item:is(:hover, :focus-within) .mario-nav__panel
 .mario-home-actions .mario-hero__actions { margin-top: 0; }
 .mario-home-map { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--cell); }
 .mario-home-area { min-width: 0; padding: 1.5rem; border: 1px solid var(--line); border-top: 3px solid var(--home-accent); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
-.mario-home-area--get_started { --home-accent: var(--mario-yellow); }
+.mario-home-area--get_started { --home-accent: var(--accent); }
 .mario-home-area--docs { --home-accent: var(--ribbon-cyan); }
-.mario-home-area--resources { --home-accent: var(--ribbon-orange); }
+.mario-home-area--resources { --home-accent: var(--accent-alt); }
 .mario-layout-home .mario-article h2 { margin: 0 0 .65rem; padding: 0; border: 0; }
 .mario-home-area__intro { min-height: 6.2rem; }
 .mario-home-area h2 a,
@@ -4111,6 +4131,28 @@ html:not(.mario-js) .mario-nav__item:is(:hover, :focus-within) .mario-nav__panel
 .mario-home-area__label { display: flex; justify-content: space-between; align-items: center; gap: .5rem; font-size: .98rem; font-weight: 650; line-height: 1.35; }
 .mario-home-area__label .mario-icon { flex: none; color: var(--ink-muted); }
 .mario-home-area__description { display: block; margin-top: .25rem; color: var(--ink-soft); font-size: .81rem; line-height: 1.5; }
+/* The explorer is the primary entry in the Resources area. */
+.mario-home-map li.mario-home-featured { margin: .5rem -.6rem; border: 0; }
+.mario-home-map li.mario-home-featured > a,
+.mario-home-map li.mario-home-featured > a:visited {
+  padding: .85rem .6rem;
+  border: 1px solid color-mix(in srgb, var(--home-accent) 45%, var(--line));
+  border-left: 3px solid var(--home-accent);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--home-accent) 9%, var(--surface));
+}
+.mario-home-featured .mario-home-area__label { font-weight: 750; }
+.mario-home-area__name { display: inline-flex; align-items: center; gap: .4rem; }
+.mario-home-area__label .mario-icon--flame {
+  width: 1.25rem; height: 1.4rem; color: var(--home-accent);
+  fill: color-mix(in srgb, var(--home-accent) 15%, transparent);
+}
+.mario-home-map li.mario-home-featured > a:hover,
+.mario-home-map li.mario-home-featured > a:focus-visible {
+  background: color-mix(in srgb, var(--home-accent) 16%, var(--surface));
+  border-color: var(--home-accent);
+}
+
 .mario-layout-home .mario-article .mario-home-footer { display: grid; grid-template-columns: 1.15fr 1fr; gap: var(--cell); margin-top: var(--cell); }
 .mario-home-footer > div { min-width: 0; padding: calc(1.5 * var(--cell)); border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
 .mario-layout-home .mario-home-footer h2 { font-size: 1.25rem; }
@@ -4142,4 +4184,38 @@ html:not(.mario-js) .mario-nav__item:is(:hover, :focus-within) .mario-nav__panel
   .mario-home-area,
   .mario-home-footer > div { padding: 1rem; }
   .mario-home-partner { grid-template-columns: 84px 1fr; gap: .65rem; }
+}
+
+/* Country selection stays above the shared border mesh. */
+.coverage-selection-halo, .coverage-selection-outline { fill: none; stroke: var(--surface); stroke-width: 5; vector-effect: non-scaling-stroke; pointer-events: none; stroke-linejoin: round; }
+.coverage-selection-outline { stroke: var(--accent-alt); stroke-width: 2.5; }
+.coverage-explorer .is-disabled { opacity: .46; }
+.coverage-methods { font-size: .75rem; color: var(--ink-muted); margin-top: 1rem; }
+.coverage-methods summary { cursor: pointer; }
+.mario-article .coverage-methods p { font-size: .75rem; }
+
+/* Resource tabs retain one hero; Data explorer reveals its peer pages. */
+.mario-tabs:has([data-tab-menu]) { z-index: 22; }
+.mario-tabs:has([data-tab-menu]) .mario-tabs__track { overflow: visible; }
+[data-tab-menu] { position: relative; }
+.mario-tab-toggle { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 2.75rem; padding: 0; border: 0; background: transparent; color: var(--ink-muted); cursor: pointer; font: inherit; font-size: 1.02rem; font-weight: 550; white-space: nowrap; }
+.mario-tab-toggle:hover, .mario-tab-toggle[aria-expanded="true"], .mario-tab-toggle.is-active { color: var(--ink); }
+.mario-tab-toggle.is-active { font-weight: 700; }
+.mario-tab-toggle.is-active::after { content: ""; position: absolute; left: 0; right: 0; bottom: .3rem; height: 3px; border-radius: 2px; background: var(--accent); }
+.mario-tab-toggle > span { transition: transform .15s ease; }
+.mario-tab-toggle[aria-expanded="true"] > span { transform: rotate(180deg); }
+.mario-tab-panel { position: absolute; top: 100%; left: 0; min-width: 210px; padding: .45rem; border: 1px solid var(--line-strong); border-radius: 7px; background: var(--surface); box-shadow: 0 8px 22px #0002; z-index: 25; }
+.mario-tabs__list .mario-tab-panel a { display: flex; min-height: 44px; padding: .5rem .8rem; font-size: .9rem; white-space: nowrap; justify-content: flex-start; }
+.mario-tabs__list .mario-tab-panel a:hover, .mario-tabs__list .mario-tab-panel a:focus-visible { background: var(--surface-2); }
+.mario-tabs__list .mario-tab-panel a[aria-current=page]::after { display: none; }
+.mario-tabs__list .mario-tab-panel a[aria-current=page] { color: var(--ink); background: var(--surface-2); }
+
+/* Feedback invitation shared by the explorer and its scope overview. */
+.mario-article .explorer-feedback {
+  margin: -0.35rem 0 1.5rem;
+  color: var(--ink-soft);
+}
+.mario-article .explorer-feedback p {
+  font-size: 0.85rem;
+  line-height: 1.6;
 }

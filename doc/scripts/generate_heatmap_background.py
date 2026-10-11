@@ -7,8 +7,8 @@ aggregated to ten macro-regions with ``Database.aggregate`` and the
 ``UNregion`` preset, and colors come from
 ``Database.plot(preset="heatmap", log_color=True)``.
 
-The script runs once, locally. Read the Docs never downloads EXIOBASE: it only
-serves the two files written here, which are committed to the repository.
+The script runs once, locally. Read the Docs serves the committed images
+and stylesheet; it never downloads EXIOBASE.
 
 Usage
 -----
@@ -27,6 +27,8 @@ Outputs
 
 * ``doc/source/_static/images/heatmap-background.png``: one pixel per matrix
   cell, MARIO yellow with the intensity level stored in the alpha channel.
+* ``doc/source/_static/images/heatmap-background-dark.png``: identical matrix
+  levels and alpha, with MARIO orange for the dark theme.
 * ``doc/source/_static/heatmap-background.css``: matrix size and the column
   shown at the centre of the page, as CSS custom properties.
 """
@@ -46,9 +48,11 @@ from mario.clusters.coverage import build_region_aggregation_index
 
 DOC_SOURCE = Path(__file__).resolve().parents[1] / "source"
 PNG_PATH = DOC_SOURCE / "_static" / "images" / "heatmap-background.png"
+DARK_PNG_PATH = PNG_PATH.with_name("heatmap-background-dark.png")
 CSS_PATH = DOC_SOURCE / "_static" / "heatmap-background.css"
 
 MARIO_YELLOW = (253, 202, 39)
+MARIO_ORANGE = (252, 107, 60)
 LEVELS = 8
 COLOR_CLIP = (0.03, 0.995)
 WINDOW_COLUMNS = 64
@@ -151,13 +155,15 @@ def narrow_window_centre(levels: np.ndarray, centre: float, width: int) -> float
     return best + width / 2
 
 
-def write_png(levels: np.ndarray, path: Path) -> None:
-    """Write a palette PNG: one color (MARIO yellow), one alpha value per level."""
+def write_png(
+    levels: np.ndarray, path: Path, color: tuple[int, int, int] = MARIO_YELLOW
+) -> None:
+    """Write a palette PNG: one colour, one alpha value per level."""
     from PIL import Image
 
     alpha_ramp = [0] + [round(255 * (level / LEVELS) ** 0.9) for level in range(1, LEVELS + 1)]
     image = Image.fromarray(levels.astype(np.uint8), mode="L").convert("P")
-    image.putpalette(list(MARIO_YELLOW) * (LEVELS + 1))
+    image.putpalette(list(color) * (LEVELS + 1))
     path.parent.mkdir(parents=True, exist_ok=True)
     image.save(path, optimize=True, transparency=bytes(alpha_ramp))
 
@@ -181,6 +187,7 @@ def main() -> None:
     parser.add_argument("--source-label", default="EXIOBASE 3.11.2, IOT ixi, 2022")
     parser.add_argument("--levels-method", choices=["rank", "linear"], default="rank")
     parser.add_argument("--png", type=Path, default=PNG_PATH)
+    parser.add_argument("--dark-png", type=Path, default=DARK_PNG_PATH)
     parser.add_argument("--css", type=Path, default=CSS_PATH)
     args = parser.parse_args()
 
@@ -213,6 +220,7 @@ def main() -> None:
     )
     levels = quantize(colors, LEVELS, args.levels_method)
     write_png(levels, args.png)
+    write_png(levels, args.dark_png, MARIO_ORANGE)
 
     meta = {
         "source": args.source_label,

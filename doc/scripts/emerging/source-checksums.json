@@ -1,0 +1,143 @@
+{
+  "description": "Published MD5 checksums for the supplied official EMERGING files. URLs identify release-specific records.",
+  "files": [
+    {
+      "release": "2.0",
+      "filename": "EMERGING_V2_2018_m.mat",
+      "md5": "ddcecbd79075a385b771c1bd79f2c7fd",
+      "verified_against": "https://zenodo.org/records/17557778"
+    },
+    {
+      "release": "2.0",
+      "filename": "EMERGING_CO2_2018.mat",
+      "md5": "1643b36857f530327ffb8d26982b6dde",
+      "verified_against": "https://zenodo.org/records/17557778"
+    },
+    {
+      "release": "2.2",
+      "filename": "EMERGING_V2_2015_m.mat",
+      "md5": "9a7d42a1ac8bc5a39164e03ca8b66355",
+      "verified_against": "https://zenodo.org/records/19461860"
+    },
+    {
+      "release": "2.2",
+      "filename": "EMERGING_CO2_2015.mat",
+      "md5": "30810e29ee8c126ba3e9e47b4435189c",
+      "verified_against": "https://zenodo.org/records/19461860"
+    },
+    {
+      "release": "2.2",
+      "filename": "EMERGING_V2_2018_m.mat",
+      "md5": "ddcecbd79075a385b771c1bd79f2c7fd",
+      "verified_against": "https://zenodo.org/records/19461860"
+    },
+    {
+      "release": "2.2",
+      "filename": "EMERGING_CO2_2018.mat",
+      "md5": "74082977b93da9e50faf13494712e66e",
+      "verified_against": "https://zenodo.org/records/19461860"
+    },
+    {
+      "release": "2.2",
+      "filename": "EMERGING_V2_2021_m.mat",
+      "md5": "1a52ee054a52469a3becc706c34fe20d",
+      "verified_against": "https://zenodo.org/records/19461860"
+    },
+    {
+      "release": "2.2",
+      "filename": "EMERGING_CO2_2021.mat",
+      "md5": "d702b7c1ca0544880c9d521c2f78fee5",
+      "verified_against": "https://zenodo.org/records/19461860"
+    },
+    {
+      "release": "2.2",
+      "filename": "EMERGING_V2_2023_m.mat",
+      "md5": "bdf07897059c08fbd2e5af855cd20b76",
+      "verified_against": "https://zenodo.org/records/19461860"
+    },
+    {
+      "release": "2.2",
+      "filename": "EMERGING_CO2_2023.mat",
+      "md5": "1e381b44e57acb69f20854752a32f1c4",
+      "verified_against": "https://zenodo.org/records/19461860"
+    },
+    {
+      "release": "1.0",
+      "filename": "global_mrio_2010.mat",
+      "md5": "71c0be75d14d0c7b8af85b0bb0d96f2b",
+      "verified_against": "https://zenodo.org/records/10956623"
+    },
+    {
+      "release": "1.0",
+      "filename": "EMERGING_CO2_2010.mat",
+      "md5": "6ed7b6a2a71b881e4d9f4f15d45a6fbb",
+      "verified_against": "https://zenodo.org/records/10956623"
+    },
+    {
+      "release": "1.0",
+      "filename": "global_mrio_2015.mat",
+      "md5": "d9a22a31ac131cc260c7d12ba74c6734",
+      "verified_against": "https://zenodo.org/records/10956623"
+    },
+    {
+      "release": "1.0",
+      "filename": "EMERGING_CO2_2015.mat",
+      "md5": "75d5e4f4d45ce275d5c85a69b20b18f5",
+      "verified_against": "https://zenodo.org/records/10956623"
+    },
+    {
+      "release": "1.0",
+      "filename": "global_mrio_2016.mat",
+      "md5": "61f85668a3a16b7f591e65eb6375e39f",
+      "verified_against": "https://zenodo.org/records/10956623"
+    },
+    {
+      "release": "1.0",
+      "filename": "EMERGING_CO2_2016.mat",
+      "md5": "16941df8f3dd4c670857a020ecdea8e7",
+      "verified_against": "https://zenodo.org/records/10956623"
+    },
+    {
+      "release": "1.0",
+      "filename": "global_mrio_2017.mat",
+      "md5": "347666d0324fcc61b2be54ca93272b5b",
+      "verified_against": "https://zenodo.org/records/10956623"
+    },
+    {
+      "release": "1.0",
+      "filename": "EMERGING_CO2_2017.mat",
+      "md5": "93f6b76795bc2d7b004441cc2f375968",
+      "verified_against": "https://zenodo.org/records/10956623"
+    },
+    {
+      "release": "1.0",
+      "filename": "global_mrio_2018.mat",
+      "md5": "aa228f3ca3c9e8ebc0d4cd14668cbe92",
+      "verified_against": "https://zenodo.org/records/10956623"
+    },
+    {
+      "release": "1.0",
+      "filename": "EMERGING_CO2_2018.mat",
+      "md5": "cb2ce5c0600f7ec39ada8125c28af8a7",
+      "verified_against": "https://zenodo.org/records/10956623"
+    },
+    {
+      "release": "1.0",
+      "filename": "global_mrio_2019.mat",
+      "md5": "3338d08509c519e9a3815e5694338235",
+      "verified_against": "https://zenodo.org/records/10956623"
+    },
+    {
+      "release": "1.0",
+      "filename": "EMERGING_CO2_2019.mat",
+      "md5": "bac957559815d4493428403251bf78ec",
+      "verified_against": "https://zenodo.org/records/10956623"
+    },
+    {
+      "release": "E",
+      "filename": "EMERGING_E_2018.mat",
+      "md5": "b4b96cc11ca6fa5fa0c63cc34a9a4d2f",
+      "verified_against": "https://zenodo.org/records/18303090"
+    }
+  ]
+}

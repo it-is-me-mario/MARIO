@@ -1,8 +1,8 @@
 Benchmark documentation assets
 ==============================
 
-The Database comparisons and Analyses & benchmarks pages embed committed HTML
-fragments generated from local data.
+The Data explorer section (Browsers, Database scope and Analyses) embed committed snapshots
+and HTML fragments generated from local data.
 The Sphinx build does not run a parser, query nxbase, or depend on a neighbouring
 checkout of the eNextGen site or paper repository.
 
@@ -66,3 +66,19 @@ Parsed release profiles are managed separately by
 notebook-derived recipe registry, local inputs, original-set Excel export and
 shared counts in parser cards/walkthroughs. The geographic catalogue above
 remains a folded reference view, separate from parsed release counts.
+
+
+The geographic view uses ``geography-concordances.json`` to distinguish global
+MRIO coverage from national BEA/USEEIO scope. Exact EXIOBASE memberships were
+reviewed against the supplied ``region-classification.xlsx``, sheet
+``Classification (extended)`` (250 reporting identifiers, reviewed 2026-10-09).
+Apply this concordance only when the complete native region set matches; Hybrid
+omits Taiwan as an individual region and therefore retains only the global
+coverage fallback until its own exact membership is documented. Do not infer
+which specific RoW contains a country from a global flag. The set downloads
+retain their original extraction metadata and native sets.
+
+Natural Earth's SOL geometry is assigned to the SOM reporting unit. PSE is
+retained independently. This is a database identifier concordance, not a list of
+sovereign states. Both map widgets draw selection outlines above their border
+mesh, including every polygon belonging to the selected reporting identifier.

@@ -1,0 +1,993 @@
+{
+  "schema_version": 1,
+  "source": {
+    "id": "S25",
+    "publisher": "EXIOBASE",
+    "title": "EXIOBASE 3 monetary industry classifications",
+    "url": "https://github.com/EXIOBASE/00-class/blob/main/class/exio3class.xlsx",
+    "filename": "exio3class.xlsx",
+    "sha256": "6a789314d8e984eee1352a0b87cdd5a5b2c618e6211e5a5582f7922afd99dbe2",
+    "retrieved": "2026-10-10",
+    "role": "Published industry codes, labels and aliases. Shared Hybrid identities require matching code, label and alias in both publisher classifications."
+  },
+  "activities": [
+    {
+      "name": "Cultivation of paddy rice",
+      "code": "i01.a",
+      "alias": "A_PARI",
+      "location": "industries!B2:D2"
+    },
+    {
+      "name": "Cultivation of wheat",
+      "code": "i01.b",
+      "alias": "A_WHEA",
+      "location": "industries!B3:D3"
+    },
+    {
+      "name": "Cultivation of cereal grains nec",
+      "code": "i01.c",
+      "alias": "A_OCER",
+      "location": "industries!B4:D4"
+    },
+    {
+      "name": "Cultivation of vegetables, fruit, nuts",
+      "code": "i01.d",
+      "alias": "A_FVEG",
+      "location": "industries!B5:D5"
+    },
+    {
+      "name": "Cultivation of oil seeds",
+      "code": "i01.e",
+      "alias": "A_OILS",
+      "location": "industries!B6:D6"
+    },
+    {
+      "name": "Cultivation of sugar cane, sugar beet",
+      "code": "i01.f",
+      "alias": "A_SUGB",
+      "location": "industries!B7:D7"
+    },
+    {
+      "name": "Cultivation of plant-based fibers",
+      "code": "i01.g",
+      "alias": "A_FIBR",
+      "location": "industries!B8:D8"
+    },
+    {
+      "name": "Cultivation of crops nec",
+      "code": "i01.h",
+      "alias": "A_OTCR",
+      "location": "industries!B9:D9"
+    },
+    {
+      "name": "Cattle farming",
+      "code": "i01.i",
+      "alias": "A_CATL",
+      "location": "industries!B10:D10"
+    },
+    {
+      "name": "Pigs farming",
+      "code": "i01.j",
+      "alias": "A_PIGS",
+      "location": "industries!B11:D11"
+    },
+    {
+      "name": "Poultry farming",
+      "code": "i01.k",
+      "alias": "A_PLTR",
+      "location": "industries!B12:D12"
+    },
+    {
+      "name": "Meat animals nec",
+      "code": "i01.l",
+      "alias": "A_OMEA",
+      "location": "industries!B13:D13"
+    },
+    {
+      "name": "Animal products nec",
+      "code": "i01.m",
+      "alias": "A_OANP",
+      "location": "industries!B14:D14"
+    },
+    {
+      "name": "Raw milk",
+      "code": "i01.n",
+      "alias": "A_MILK",
+      "location": "industries!B15:D15"
+    },
+    {
+      "name": "Wool, silk-worm cocoons",
+      "code": "i01.o",
+      "alias": "A_WOOL",
+      "location": "industries!B16:D16"
+    },
+    {
+      "name": "Manure treatment (conventional), storage and land application",
+      "code": "i01.w.1",
+      "alias": "A_MANC",
+      "location": "industries!B17:D17"
+    },
+    {
+      "name": "Manure treatment (biogas), storage and land application",
+      "code": "i01.w.2",
+      "alias": "A_MANB",
+      "location": "industries!B18:D18"
+    },
+    {
+      "name": "Forestry, logging and related service activities (02)",
+      "code": "i02",
+      "alias": "A_FORE",
+      "location": "industries!B19:D19"
+    },
+    {
+      "name": "Fishing, operating of fish hatcheries and fish farms; service activities incidental to fishing (05)",
+      "code": "i05",
+      "alias": "A_FISH",
+      "location": "industries!B20:D20"
+    },
+    {
+      "name": "Mining of coal and lignite; extraction of peat (10)",
+      "code": "i10",
+      "alias": "A_COAL",
+      "location": "industries!B21:D21"
+    },
+    {
+      "name": "Extraction of crude petroleum and services related to crude oil extraction, excluding surveying",
+      "code": "i11.a",
+      "alias": "A_COIL",
+      "location": "industries!B22:D22"
+    },
+    {
+      "name": "Extraction of natural gas and services related to natural gas extraction, excluding surveying",
+      "code": "i11.b",
+      "alias": "A_GASE",
+      "location": "industries!B23:D23"
+    },
+    {
+      "name": "Extraction, liquefaction, and regasification of other petroleum and gaseous materials",
+      "code": "i11.c",
+      "alias": "A_OGPL",
+      "location": "industries!B24:D24"
+    },
+    {
+      "name": "Mining of uranium and thorium ores (12)",
+      "code": "i12",
+      "alias": "A_ORAN",
+      "location": "industries!B25:D25"
+    },
+    {
+      "name": "Mining of iron ores",
+      "code": "i13.1",
+      "alias": "A_IRON",
+      "location": "industries!B26:D26"
+    },
+    {
+      "name": "Mining of copper ores and concentrates",
+      "code": "i13.20.11",
+      "alias": "A_COPO",
+      "location": "industries!B27:D27"
+    },
+    {
+      "name": "Mining of nickel ores and concentrates",
+      "code": "i13.20.12",
+      "alias": "A_NIKO",
+      "location": "industries!B28:D28"
+    },
+    {
+      "name": "Mining of aluminium ores and concentrates",
+      "code": "i13.20.13",
+      "alias": "A_ALUO",
+      "location": "industries!B29:D29"
+    },
+    {
+      "name": "Mining of precious metal ores and concentrates",
+      "code": "i13.20.14",
+      "alias": "A_PREO",
+      "location": "industries!B30:D30"
+    },
+    {
+      "name": "Mining of lead, zinc and tin ores and concentrates",
+      "code": "i13.20.15",
+      "alias": "A_LZTO",
+      "location": "industries!B31:D31"
+    },
+    {
+      "name": "Mining of other non-ferrous metal ores and concentrates",
+      "code": "i13.20.16",
+      "alias": "A_ONFO",
+      "location": "industries!B32:D32"
+    },
+    {
+      "name": "Quarrying of stone",
+      "code": "i14.1",
+      "alias": "A_STON",
+      "location": "industries!B33:D33"
+    },
+    {
+      "name": "Quarrying of sand and clay",
+      "code": "i14.2",
+      "alias": "A_SDCL",
+      "location": "industries!B34:D34"
+    },
+    {
+      "name": "Mining of chemical and fertilizer minerals, production of salt, other mining and quarrying n.e.c.",
+      "code": "i14.3",
+      "alias": "A_CHMF",
+      "location": "industries!B35:D35"
+    },
+    {
+      "name": "Processing of meat cattle",
+      "code": "i15.a",
+      "alias": "A_PCAT",
+      "location": "industries!B36:D36"
+    },
+    {
+      "name": "Processing of meat pigs",
+      "code": "i15.b",
+      "alias": "A_PPIG",
+      "location": "industries!B37:D37"
+    },
+    {
+      "name": "Processing of meat poultry",
+      "code": "i15.c",
+      "alias": "A_PPLT",
+      "location": "industries!B38:D38"
+    },
+    {
+      "name": "Production of meat products nec",
+      "code": "i15.d",
+      "alias": "A_POME",
+      "location": "industries!B39:D39"
+    },
+    {
+      "name": "Processing vegetable oils and fats",
+      "code": "i15.e",
+      "alias": "A_VOIL",
+      "location": "industries!B40:D40"
+    },
+    {
+      "name": "Processing of dairy products",
+      "code": "i15.f",
+      "alias": "A_DAIR",
+      "location": "industries!B41:D41"
+    },
+    {
+      "name": "Processed rice",
+      "code": "i15.g",
+      "alias": "A_RICE",
+      "location": "industries!B42:D42"
+    },
+    {
+      "name": "Sugar refining",
+      "code": "i15.h",
+      "alias": "A_SUGR",
+      "location": "industries!B43:D43"
+    },
+    {
+      "name": "Processing of Food products nec",
+      "code": "i15.i",
+      "alias": "A_OFOD",
+      "location": "industries!B44:D44"
+    },
+    {
+      "name": "Manufacture of beverages",
+      "code": "i15.j",
+      "alias": "A_BEVR",
+      "location": "industries!B45:D45"
+    },
+    {
+      "name": "Manufacture of fish products",
+      "code": "i15.k",
+      "alias": "A_FSHP",
+      "location": "industries!B46:D46"
+    },
+    {
+      "name": "Manufacture of tobacco products (16)",
+      "code": "i16",
+      "alias": "A_TOBC",
+      "location": "industries!B47:D47"
+    },
+    {
+      "name": "Manufacture of textiles (17)",
+      "code": "i17",
+      "alias": "A_TEXT",
+      "location": "industries!B48:D48"
+    },
+    {
+      "name": "Manufacture of wearing apparel; dressing and dyeing of fur (18)",
+      "code": "i18",
+      "alias": "A_GARM",
+      "location": "industries!B49:D49"
+    },
+    {
+      "name": "Tanning and dressing of leather; manufacture of luggage, handbags, saddlery, harness and footwear (19)",
+      "code": "i19",
+      "alias": "A_LETH",
+      "location": "industries!B50:D50"
+    },
+    {
+      "name": "Manufacture of wood and of products of wood and cork, except furniture; manufacture of articles of straw and plaiting materials (20)",
+      "code": "i20",
+      "alias": "A_WOOD",
+      "location": "industries!B51:D51"
+    },
+    {
+      "name": "Re-processing of secondary wood material into new wood material",
+      "code": "i20.w",
+      "alias": "A_WOOW",
+      "location": "industries!B52:D52"
+    },
+    {
+      "name": "Pulp",
+      "code": "i21.1",
+      "alias": "A_PULP",
+      "location": "industries!B53:D53"
+    },
+    {
+      "name": "Re-processing of secondary paper into new pulp",
+      "code": "i21.w.1",
+      "alias": "A_PAPR",
+      "location": "industries!B54:D54"
+    },
+    {
+      "name": "Paper",
+      "code": "i21.2",
+      "alias": "A_PAPE",
+      "location": "industries!B55:D55"
+    },
+    {
+      "name": "Publishing, printing and reproduction of recorded media (22)",
+      "code": "i22",
+      "alias": "A_MDIA",
+      "location": "industries!B56:D56"
+    },
+    {
+      "name": "Manufacture of coke oven products",
+      "code": "i23.1",
+      "alias": "A_COKE",
+      "location": "industries!B57:D57"
+    },
+    {
+      "name": "Petroleum Refinery",
+      "code": "i23.2",
+      "alias": "A_REFN",
+      "location": "industries!B58:D58"
+    },
+    {
+      "name": "Processing of nuclear fuel",
+      "code": "i23.3",
+      "alias": "A_NUCF",
+      "location": "industries!B59:D59"
+    },
+    {
+      "name": "Plastics, basic",
+      "code": "i24.a",
+      "alias": "A_PLAS",
+      "location": "industries!B60:D60"
+    },
+    {
+      "name": "Re-processing of secondary plastic into new plastic",
+      "code": "i24.a.w",
+      "alias": "A_PLAW",
+      "location": "industries!B61:D61"
+    },
+    {
+      "name": "N-fertiliser",
+      "code": "i24.b",
+      "alias": "A_NFER",
+      "location": "industries!B62:D62"
+    },
+    {
+      "name": "P- and other fertiliser",
+      "code": "i24.c",
+      "alias": "A_PFER",
+      "location": "industries!B63:D63"
+    },
+    {
+      "name": "Chemicals nec",
+      "code": "i24.d",
+      "alias": "A_CHEM",
+      "location": "industries!B64:D64"
+    },
+    {
+      "name": "Manufacture of rubber and plastic products (25)",
+      "code": "i25",
+      "alias": "A_RUBP",
+      "location": "industries!B65:D65"
+    },
+    {
+      "name": "Manufacture of glass and glass products",
+      "code": "i26.a",
+      "alias": "A_GLAS",
+      "location": "industries!B66:D66"
+    },
+    {
+      "name": "Re-processing of secondary glass into new glass",
+      "code": "i26.a.w",
+      "alias": "A_GLAW",
+      "location": "industries!B67:D67"
+    },
+    {
+      "name": "Manufacture of ceramic goods",
+      "code": "i26.b",
+      "alias": "A_CRMC",
+      "location": "industries!B68:D68"
+    },
+    {
+      "name": "Manufacture of bricks, tiles and construction products, in baked clay",
+      "code": "i26.c",
+      "alias": "A_BRIK",
+      "location": "industries!B69:D69"
+    },
+    {
+      "name": "Manufacture of cement, lime and plaster",
+      "code": "i26.d",
+      "alias": "A_CMNT",
+      "location": "industries!B70:D70"
+    },
+    {
+      "name": "Re-processing of ash into clinker",
+      "code": "i26.d.w",
+      "alias": "A_ASHW",
+      "location": "industries!B71:D71"
+    },
+    {
+      "name": "Manufacture of other non-metallic mineral products n.e.c.",
+      "code": "i26.e",
+      "alias": "A_ONMM",
+      "location": "industries!B72:D72"
+    },
+    {
+      "name": "Manufacture of basic iron and steel and of ferro-alloys and first products thereof",
+      "code": "i27.a",
+      "alias": "A_STEL",
+      "location": "industries!B73:D73"
+    },
+    {
+      "name": "Re-processing of secondary steel into new steel",
+      "code": "i27.a.w",
+      "alias": "A_STEW",
+      "location": "industries!B74:D74"
+    },
+    {
+      "name": "Precious metals production",
+      "code": "i27.41",
+      "alias": "A_PREM",
+      "location": "industries!B75:D75"
+    },
+    {
+      "name": "Re-processing of secondary preciuos metals into new preciuos metals",
+      "code": "i27.41.w",
+      "alias": "A_PREW",
+      "location": "industries!B76:D76"
+    },
+    {
+      "name": "Aluminium production",
+      "code": "i27.42",
+      "alias": "A_ALUM",
+      "location": "industries!B77:D77"
+    },
+    {
+      "name": "Re-processing of secondary aluminium into new aluminium",
+      "code": "i27.42.w",
+      "alias": "A_ALUW",
+      "location": "industries!B78:D78"
+    },
+    {
+      "name": "Lead, zinc and tin production",
+      "code": "i27.43",
+      "alias": "A_LZTP",
+      "location": "industries!B79:D79"
+    },
+    {
+      "name": "Re-processing of secondary lead into new lead, zinc and tin",
+      "code": "i27.43.w",
+      "alias": "A_LZTW",
+      "location": "industries!B80:D80"
+    },
+    {
+      "name": "Copper production",
+      "code": "i27.44",
+      "alias": "A_COPP",
+      "location": "industries!B81:D81"
+    },
+    {
+      "name": "Re-processing of secondary copper into new copper",
+      "code": "i27.44.w",
+      "alias": "A_COPW",
+      "location": "industries!B82:D82"
+    },
+    {
+      "name": "Other non-ferrous metal production",
+      "code": "i27.45",
+      "alias": "A_ONFM",
+      "location": "industries!B83:D83"
+    },
+    {
+      "name": "Re-processing of secondary other non-ferrous metals into new other non-ferrous metals",
+      "code": "i27.45.w",
+      "alias": "A_ONFW",
+      "location": "industries!B84:D84"
+    },
+    {
+      "name": "Casting of metals",
+      "code": "i27.5",
+      "alias": "A_METC",
+      "location": "industries!B85:D85"
+    },
+    {
+      "name": "Manufacture of fabricated metal products, except machinery and equipment (28)",
+      "code": "i28",
+      "alias": "A_FABM",
+      "location": "industries!B86:D86"
+    },
+    {
+      "name": "Manufacture of machinery and equipment n.e.c. (29)",
+      "code": "i29",
+      "alias": "A_MACH",
+      "location": "industries!B87:D87"
+    },
+    {
+      "name": "Manufacture of office machinery and computers (30)",
+      "code": "i30",
+      "alias": "A_OFMA",
+      "location": "industries!B88:D88"
+    },
+    {
+      "name": "Manufacture of electrical machinery and apparatus n.e.c. (31)",
+      "code": "i31",
+      "alias": "A_ELMA",
+      "location": "industries!B89:D89"
+    },
+    {
+      "name": "Manufacture of radio, television and communication equipment and apparatus (32)",
+      "code": "i32",
+      "alias": "A_RATV",
+      "location": "industries!B90:D90"
+    },
+    {
+      "name": "Manufacture of medical, precision and optical instruments, watches and clocks (33)",
+      "code": "i33",
+      "alias": "A_MEIN",
+      "location": "industries!B91:D91"
+    },
+    {
+      "name": "Manufacture of motor vehicles, trailers and semi-trailers (34)",
+      "code": "i34",
+      "alias": "A_MOTO",
+      "location": "industries!B92:D92"
+    },
+    {
+      "name": "Manufacture of other transport equipment (35)",
+      "code": "i35",
+      "alias": "A_OTRE",
+      "location": "industries!B93:D93"
+    },
+    {
+      "name": "Manufacture of furniture; manufacturing n.e.c. (36)",
+      "code": "i36",
+      "alias": "A_FURN",
+      "location": "industries!B94:D94"
+    },
+    {
+      "name": "Recycling of waste and scrap",
+      "code": "i37",
+      "alias": "A_RYMS",
+      "location": "industries!B95:D95"
+    },
+    {
+      "name": "Recycling of bottles by direct reuse",
+      "code": "i37.w.1",
+      "alias": "A_BOTW",
+      "location": "industries!B96:D96"
+    },
+    {
+      "name": "Production of electricity by coal",
+      "code": "i40.11.a",
+      "alias": "A_POWC",
+      "location": "industries!B97:D97"
+    },
+    {
+      "name": "Production of electricity by gas",
+      "code": "i40.11.b",
+      "alias": "A_POWG",
+      "location": "industries!B98:D98"
+    },
+    {
+      "name": "Production of electricity by nuclear",
+      "code": "i40.11.c",
+      "alias": "A_POWN",
+      "location": "industries!B99:D99"
+    },
+    {
+      "name": "Production of electricity by hydro",
+      "code": "i40.11.d",
+      "alias": "A_POWH",
+      "location": "industries!B100:D100"
+    },
+    {
+      "name": "Production of electricity by wind",
+      "code": "i40.11.e",
+      "alias": "A_POWW",
+      "location": "industries!B101:D101"
+    },
+    {
+      "name": "Production of electricity by petroleum and other oil derivatives",
+      "code": "i40.11.f",
+      "alias": "A_POWP",
+      "location": "industries!B102:D102"
+    },
+    {
+      "name": "Production of electricity by biomass and waste",
+      "code": "i40.11.g",
+      "alias": "A_POWB",
+      "location": "industries!B103:D103"
+    },
+    {
+      "name": "Production of electricity by solar photovoltaic",
+      "code": "i40.11.h",
+      "alias": "A_POWS",
+      "location": "industries!B104:D104"
+    },
+    {
+      "name": "Production of electricity by solar thermal",
+      "code": "i40.11.i",
+      "alias": "A_POWE",
+      "location": "industries!B105:D105"
+    },
+    {
+      "name": "Production of electricity by tide, wave, ocean",
+      "code": "i40.11.j",
+      "alias": "A_POWO",
+      "location": "industries!B106:D106"
+    },
+    {
+      "name": "Production of electricity by Geothermal",
+      "code": "i40.11.k",
+      "alias": "A_POWM",
+      "location": "industries!B107:D107"
+    },
+    {
+      "name": "Production of electricity nec",
+      "code": "i40.11.l",
+      "alias": "A_POWZ",
+      "location": "industries!B108:D108"
+    },
+    {
+      "name": "Transmission of electricity",
+      "code": "i40.12",
+      "alias": "A_POWT",
+      "location": "industries!B109:D109"
+    },
+    {
+      "name": "Distribution and trade of electricity",
+      "code": "i40.13",
+      "alias": "A_POWD",
+      "location": "industries!B110:D110"
+    },
+    {
+      "name": "Manufacture of gas; distribution of gaseous fuels through mains",
+      "code": "i40.2",
+      "alias": "A_GASD",
+      "location": "industries!B111:D111"
+    },
+    {
+      "name": "Steam and hot water supply",
+      "code": "i40.3",
+      "alias": "A_HWAT",
+      "location": "industries!B112:D112"
+    },
+    {
+      "name": "Collection, purification and distribution of water (41)",
+      "code": "i41",
+      "alias": "A_WATR",
+      "location": "industries!B113:D113"
+    },
+    {
+      "name": "Construction (45)",
+      "code": "i45",
+      "alias": "A_CONS",
+      "location": "industries!B114:D114"
+    },
+    {
+      "name": "Re-processing of secondary construction material into aggregates",
+      "code": "i45.w",
+      "alias": "A_CONW",
+      "location": "industries!B115:D115"
+    },
+    {
+      "name": "Sale, maintenance, repair of motor vehicles, motor vehicles parts, motorcycles, motor cycles parts and accessoiries",
+      "code": "i50.a",
+      "alias": "A_TDMO",
+      "location": "industries!B116:D116"
+    },
+    {
+      "name": "Retail sale of automotive fuel",
+      "code": "i50.b",
+      "alias": "A_TDFU",
+      "location": "industries!B117:D117"
+    },
+    {
+      "name": "Wholesale trade and commission trade, except of motor vehicles and motorcycles (51)",
+      "code": "i51",
+      "alias": "A_TDWH",
+      "location": "industries!B118:D118"
+    },
+    {
+      "name": "Retail trade, except of motor vehicles and motorcycles; repair of personal and household goods (52)",
+      "code": "i52",
+      "alias": "A_TDRT",
+      "location": "industries!B119:D119"
+    },
+    {
+      "name": "Hotels and restaurants (55)",
+      "code": "i55",
+      "alias": "A_HORE",
+      "location": "industries!B120:D120"
+    },
+    {
+      "name": "Transport via railways",
+      "code": "i60.1",
+      "alias": "A_TRAI",
+      "location": "industries!B121:D121"
+    },
+    {
+      "name": "Other land transport",
+      "code": "i60.2",
+      "alias": "A_TLND",
+      "location": "industries!B122:D122"
+    },
+    {
+      "name": "Transport via pipelines",
+      "code": "i60.3",
+      "alias": "A_TPIP",
+      "location": "industries!B123:D123"
+    },
+    {
+      "name": "Sea and coastal water transport",
+      "code": "i61.1",
+      "alias": "A_TWAS",
+      "location": "industries!B124:D124"
+    },
+    {
+      "name": "Inland water transport",
+      "code": "i61.2",
+      "alias": "A_TWAI",
+      "location": "industries!B125:D125"
+    },
+    {
+      "name": "Air transport (62)",
+      "code": "i62",
+      "alias": "A_TAIR",
+      "location": "industries!B126:D126"
+    },
+    {
+      "name": "Supporting and auxiliary transport activities; activities of travel agencies (63)",
+      "code": "i63",
+      "alias": "A_TAUX",
+      "location": "industries!B127:D127"
+    },
+    {
+      "name": "Post and telecommunications (64)",
+      "code": "i64",
+      "alias": "A_PTEL",
+      "location": "industries!B128:D128"
+    },
+    {
+      "name": "Financial intermediation, except insurance and pension funding (65)",
+      "code": "i65",
+      "alias": "A_FINT",
+      "location": "industries!B129:D129"
+    },
+    {
+      "name": "Insurance and pension funding, except compulsory social security (66)",
+      "code": "i66",
+      "alias": "A_FINS",
+      "location": "industries!B130:D130"
+    },
+    {
+      "name": "Activities auxiliary to financial intermediation (67)",
+      "code": "i67",
+      "alias": "A_FAUX",
+      "location": "industries!B131:D131"
+    },
+    {
+      "name": "Real estate activities (70)",
+      "code": "i70",
+      "alias": "A_REAL",
+      "location": "industries!B132:D132"
+    },
+    {
+      "name": "Renting of machinery and equipment without operator and of personal and household goods (71)",
+      "code": "i71",
+      "alias": "A_MARE",
+      "location": "industries!B133:D133"
+    },
+    {
+      "name": "Computer and related activities (72)",
+      "code": "i72",
+      "alias": "A_COMP",
+      "location": "industries!B134:D134"
+    },
+    {
+      "name": "Research and development (73)",
+      "code": "i73",
+      "alias": "A_RESD",
+      "location": "industries!B135:D135"
+    },
+    {
+      "name": "Other business activities (74)",
+      "code": "i74",
+      "alias": "A_OBUS",
+      "location": "industries!B136:D136"
+    },
+    {
+      "name": "Public administration and defence; compulsory social security (75)",
+      "code": "i75",
+      "alias": "A_PADF",
+      "location": "industries!B137:D137"
+    },
+    {
+      "name": "Education (80)",
+      "code": "i80",
+      "alias": "A_EDUC",
+      "location": "industries!B138:D138"
+    },
+    {
+      "name": "Health and social work (85)",
+      "code": "i85",
+      "alias": "A_HEAL",
+      "location": "industries!B139:D139"
+    },
+    {
+      "name": "Incineration of waste: Food",
+      "code": "i90.1.a",
+      "alias": "A_INCF",
+      "location": "industries!B140:D140"
+    },
+    {
+      "name": "Incineration of waste: Paper",
+      "code": "i90.1.b",
+      "alias": "A_INCP",
+      "location": "industries!B141:D141"
+    },
+    {
+      "name": "Incineration of waste: Plastic",
+      "code": "i90.1.c",
+      "alias": "A_INCL",
+      "location": "industries!B142:D142"
+    },
+    {
+      "name": "Incineration of waste: Metals and Inert materials",
+      "code": "i90.1.d",
+      "alias": "A_INCM",
+      "location": "industries!B143:D143"
+    },
+    {
+      "name": "Incineration of waste: Textiles",
+      "code": "i90.1.e",
+      "alias": "A_INCT",
+      "location": "industries!B144:D144"
+    },
+    {
+      "name": "Incineration of waste: Wood",
+      "code": "i90.1.f",
+      "alias": "A_INCW",
+      "location": "industries!B145:D145"
+    },
+    {
+      "name": "Incineration of waste: Oil/Hazardous waste",
+      "code": "i90.1.g",
+      "alias": "A_INCO",
+      "location": "industries!B146:D146"
+    },
+    {
+      "name": "Biogasification of food waste, incl. land application",
+      "code": "i90.2.a",
+      "alias": "A_BIOF",
+      "location": "industries!B147:D147"
+    },
+    {
+      "name": "Biogasification of paper, incl. land application",
+      "code": "i90.2.b",
+      "alias": "A_BIOP",
+      "location": "industries!B148:D148"
+    },
+    {
+      "name": "Biogasification of sewage slugde, incl. land application",
+      "code": "i90.2.c",
+      "alias": "A_BIOS",
+      "location": "industries!B149:D149"
+    },
+    {
+      "name": "Composting of food waste, incl. land application",
+      "code": "i90.3.a",
+      "alias": "A_COMF",
+      "location": "industries!B150:D150"
+    },
+    {
+      "name": "Composting of paper and wood, incl. land application",
+      "code": "i90.3.b",
+      "alias": "A_COMW",
+      "location": "industries!B151:D151"
+    },
+    {
+      "name": "Waste water treatment, food",
+      "code": "i90.4.a",
+      "alias": "A_WASF",
+      "location": "industries!B152:D152"
+    },
+    {
+      "name": "Waste water treatment, other",
+      "code": "i90.4.b",
+      "alias": "A_WASO",
+      "location": "industries!B153:D153"
+    },
+    {
+      "name": "Landfill of waste: Food",
+      "code": "i90.5.a",
+      "alias": "A_LANF",
+      "location": "industries!B154:D154"
+    },
+    {
+      "name": "Landfill of waste: Paper",
+      "code": "i90.5.b",
+      "alias": "A_LANP",
+      "location": "industries!B155:D155"
+    },
+    {
+      "name": "Landfill of waste: Plastic",
+      "code": "i90.5.c",
+      "alias": "A_LANL",
+      "location": "industries!B156:D156"
+    },
+    {
+      "name": "Landfill of waste: Inert/metal/hazardous",
+      "code": "i90.5.d",
+      "alias": "A_LANI",
+      "location": "industries!B157:D157"
+    },
+    {
+      "name": "Landfill of waste: Textiles",
+      "code": "i90.5.e",
+      "alias": "A_LANT",
+      "location": "industries!B158:D158"
+    },
+    {
+      "name": "Landfill of waste: Wood",
+      "code": "i90.5.f",
+      "alias": "A_LANW",
+      "location": "industries!B159:D159"
+    },
+    {
+      "name": "Activities of membership organisation n.e.c. (91)",
+      "code": "i91",
+      "alias": "A_ORGA",
+      "location": "industries!B160:D160"
+    },
+    {
+      "name": "Recreational, cultural and sporting activities (92)",
+      "code": "i92",
+      "alias": "A_RECR",
+      "location": "industries!B161:D161"
+    },
+    {
+      "name": "Other service activities (93)",
+      "code": "i93",
+      "alias": "A_OSER",
+      "location": "industries!B162:D162"
+    },
+    {
+      "name": "Private households with employed persons (95)",
+      "code": "i95",
+      "alias": "A_PRHH",
+      "location": "industries!B163:D163"
+    },
+    {
+      "name": "Extra-territorial organizations and bodies",
+      "code": "i99",
+      "alias": "A_EXTO",
+      "location": "industries!B164:D164"
+    }
+  ]
+}

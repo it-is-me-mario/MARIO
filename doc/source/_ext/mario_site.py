@@ -240,12 +240,13 @@ def _page_context(app, pagename, templatename, context, doctree):
             "active": _matches(pagename, section["landing"], section.get("prefixes", ())),
             "children": [
                 {"label": tab["label"], "url": url(tab["doc"]), "summary": tab.get("summary", ""),
+                 "featured": tab.get("featured", False),
                  "active": _matches(pagename, tab["doc"], tab.get("prefixes", ())),
                  "exact": pagename == tab["doc"]}
                 for tab in section.get("tabs", [])
             ],
         }
-        for section in config["sections"]
+        for section in config["sections"] if section.get("navigation", True)
     ]
 
     page = {
@@ -279,6 +280,9 @@ def _page_context(app, pagename, templatename, context, doctree):
                 "url": url(item["doc"]),
                 "active": item is tab,
                 "key": item.get("key", ""),
+                "children": [{"label": child["label"], "url": url(child["doc"]),
+                              "active": _matches(pagename, child["doc"], child.get("prefixes", ()))}
+                             for child in item.get("children", [])],
             }
             for item in section.get("tabs", [])
         ]
@@ -303,6 +307,10 @@ def _page_context(app, pagename, templatename, context, doctree):
         page["local_toc"] = _local_toc(env, pagename)
 
     context["mario_page"] = page
+    if pagename == "resources/data-explorer/browsers":
+        app.add_css_file("economy-browser.css")
+        for script in ("economy-model.js", "economy-charts.js", "country-model.js", "country-focus.js", "economy-browser.js"):
+            app.add_js_file(script, defer="defer")
 
 
 # --------------------------------------------------------------------------
@@ -1200,6 +1208,7 @@ def _build_finished(app, exception):
 
 
 def setup(app):
+    app.add_js_file("mario.js", defer="defer")
     app.add_config_value("mario_site", {}, "html")
     app.add_config_value("mario_notebook_downloads", {}, "env")
     app.add_node(mario_api_index)

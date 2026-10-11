@@ -182,9 +182,9 @@
       "notebook": "source/notebooks/parsers/adb/walkthrough_adb.ipynb",
       "parser": "parse_adb",
       "cell": 17,
-      "fingerprint": "b1fa986f49d18a0208d1b0f768a07775d863cd4c6f3f0ba824371d0f62eaea93",
+      "fingerprint": "0166b24c8aee797891795da85a97e2361a16bb13c6f059ef1f62bc72a8418203",
       "parameters": {
-        "path": "/path/to/ADB-MRIO-2024-August 2025.xlsx",
+        "path": "/path/to/72 economies/ADB-MRIO72-2023_July 2025.xlsx",
         "add_extensions": "/path/to/2023 EE-MRIOT (Air Emissions).xlsx"
       },
       "runnable": true
@@ -195,10 +195,10 @@
       "notebook": "source/notebooks/parsers/adb/walkthrough_adb.ipynb",
       "parser": "parse_adb",
       "cell": 19,
-      "fingerprint": "97f514b0695cafe36dd79c6129c28b645b92183f3cf052b2df3c0d7b74782307",
+      "fingerprint": "87442858942141da93b5c25c6c27ea2af8fac516d13099770e07648646614b97",
       "parameters": {
         "path": "/path/to/ITA IOT 2000, 2007-2024.xlsx",
-        "year": 2024,
+        "year": 2023,
         "add_extensions": "/path/to/2023 EE-MRIOT (Air Emissions).xlsx"
       },
       "runnable": true
@@ -707,12 +707,13 @@
       "notebook": "source/notebooks/parsers/figaro/walkthrough_figaro.ipynb",
       "parser": "parse_figaro",
       "cell": 11,
-      "fingerprint": "cc816979d20ed2497ce349dcfe93d67ee2af7d5cf46feab732d0f12d8facbbba",
+      "fingerprint": "28781413f75d6897c1c747b4e42e65a1095af027452ebd99e93812fb4f09ec4a",
       "parameters": {
         "table": "IOT",
         "year": 2022,
         "iot_mode": "product",
-        "path": "/path/to/figaro/iot_directory"
+        "path": "/path/to/figaro/iot_directory",
+        "calc_all": false
       },
       "runnable": true
     },

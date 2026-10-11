@@ -1,0 +1,2828 @@
+{
+  "schema_version": 1,
+  "id": "open-ceda-2024-2022",
+  "source": "CEDA",
+  "guide": "ceda",
+  "label": "Open CEDA 2024 by Watershed · base year 2022",
+  "release": "2024",
+  "year": 2022,
+  "years": [
+    2022
+  ],
+  "table": "Emission factors",
+  "status": "source_verified",
+  "parser_supported": false,
+  "environmental": true,
+  "counts": {
+    "Region": 149,
+    "Sector": 400
+  },
+  "sets": {
+    "Region": [
+      "AFG",
+      "AGO",
+      "ALB",
+      "ARE",
+      "ARG",
+      "ATG",
+      "AUS",
+      "AUT",
+      "BDI",
+      "BEL",
+      "BEN",
+      "BFA",
+      "BGD",
+      "BGR",
+      "BHR",
+      "BHS",
+      "BLZ",
+      "BOL",
+      "BRA",
+      "BRB",
+      "BTN",
+      "CAF",
+      "CAN",
+      "CHE",
+      "CHL",
+      "CHN",
+      "CIV",
+      "CMR",
+      "COG",
+      "COL",
+      "CRI",
+      "CYP",
+      "CZE",
+      "DEU",
+      "DMA",
+      "DNK",
+      "DOM",
+      "DZA",
+      "ECU",
+      "EGY",
+      "ESP",
+      "EST",
+      "ETH",
+      "FIN",
+      "FJI",
+      "FRA",
+      "GAB",
+      "GBR",
+      "GIN",
+      "GMB",
+      "GNB",
+      "GNQ",
+      "GRC",
+      "GRD",
+      "GTM",
+      "HKG",
+      "HND",
+      "HRV",
+      "HTI",
+      "HUN",
+      "IDN",
+      "IND",
+      "IRL",
+      "IRN",
+      "IRQ",
+      "ISL",
+      "ISR",
+      "ITA",
+      "JAM",
+      "JOR",
+      "JPN",
+      "KAZ",
+      "KEN",
+      "KHM",
+      "KIR",
+      "KNA",
+      "KOR",
+      "KWT",
+      "LAO",
+      "LBN",
+      "LCA",
+      "LKA",
+      "LSO",
+      "LTU",
+      "LUX",
+      "LVA",
+      "MAR",
+      "MDA",
+      "MDV",
+      "MEX",
+      "MKD",
+      "MLI",
+      "MLT",
+      "MMR",
+      "MNG",
+      "MUS",
+      "MWI",
+      "MYS",
+      "NAM",
+      "NER",
+      "NGA",
+      "NIC",
+      "NLD",
+      "NOR",
+      "NPL",
+      "NRU",
+      "NZL",
+      "OMN",
+      "PAK",
+      "PER",
+      "PHL",
+      "PNG",
+      "POL",
+      "PRT",
+      "PRY",
+      "QAT",
+      "ROU",
+      "ROW",
+      "RUS",
+      "RWA",
+      "SAU",
+      "SEN",
+      "SGP",
+      "SLB",
+      "SLE",
+      "SLV",
+      "SVK",
+      "SVN",
+      "SWE",
+      "SWZ",
+      "SYC",
+      "TCD",
+      "TGO",
+      "THA",
+      "TLS",
+      "TTO",
+      "TUN",
+      "TUR",
+      "TWN",
+      "TZA",
+      "UGA",
+      "UKR",
+      "URY",
+      "USA",
+      "VCT",
+      "VNM",
+      "VUT",
+      "WSM",
+      "ZAF"
+    ],
+    "Sector": [
+      "Oilseed farming",
+      "Grain farming",
+      "Vegetable and melon farming",
+      "Fruit and tree nut farming",
+      "Greenhouse, nursery, and floriculture production",
+      "Other crop farming",
+      "Dairy cattle and milk production",
+      "Beef cattle ranching and farming, including feedlots and dual-purpose ranching and farming",
+      "Poultry and egg production",
+      "Animal production, except cattle and poultry and eggs",
+      "Forestry and logging",
+      "Fishing, hunting and trapping",
+      "Support activities for agriculture and forestry",
+      "Oil and gas extraction",
+      "Coal mining",
+      "Copper, nickel, lead, and zinc mining",
+      "Iron, gold, silver, and other metal ore mining",
+      "Stone mining and quarrying",
+      "Other nonmetallic mineral mining and quarrying",
+      "Drilling oil and gas wells",
+      "Other support activities for mining",
+      "Electric power generation, transmission, and distribution",
+      "Natural gas distribution",
+      "Water, sewage and other systems",
+      "Health care structures",
+      "Educational and vocational structures",
+      "Nonresidential maintenance and repair",
+      "Residential maintenance and repair",
+      "Office and commercial structures",
+      "Multifamily residential structures",
+      "Other residential structures",
+      "Manufacturing structures",
+      "Other nonresidential structures",
+      "Power and communication structures",
+      "Single-family residential structures",
+      "Transportation structures and highways and streets",
+      "Sawmills and wood preservation",
+      "Veneer, plywood, and engineered wood product manufacturing",
+      "Millwork",
+      "All other wood product manufacturing",
+      "Clay product and refractory manufacturing",
+      "Glass and glass product manufacturing",
+      "Cement manufacturing",
+      "Ready-mix concrete manufacturing",
+      "Concrete pipe, brick, and block manufacturing",
+      "Other concrete product manufacturing",
+      "Lime and gypsum product manufacturing",
+      "Abrasive product manufacturing",
+      "Cut stone and stone product manufacturing",
+      "Ground or treated mineral and earth manufacturing",
+      "Mineral wool manufacturing",
+      "Miscellaneous nonmetallic mineral products",
+      "Iron and steel mills and ferroalloy manufacturing",
+      "Steel product manufacturing from purchased steel",
+      "Aluminum product manufacturing from purchased aluminum + Alumina refining and primary aluminum production + Secondary smelting and alloying of aluminum",
+      "Nonferrous Metal (except Aluminum) Smelting and Refining",
+      "Copper rolling, drawing, extruding and alloying",
+      "Nonferrous metal (except copper and aluminum) rolling, drawing, extruding and alloying",
+      "Ferrous metal foundries",
+      "Nonferrous metal foundries",
+      "Custom roll forming",
+      "All other forging, stamping, and sintering",
+      "Metal crown, closure, and other metal stamping (except automotive)",
+      "Cutlery and handtool manufacturing",
+      "Plate work and fabricated structural product manufacturing",
+      "Ornamental and architectural metal products manufacturing",
+      "Power boiler and heat exchanger manufacturing",
+      "Metal tank (heavy gauge) manufacturing",
+      "Metal can, box, and other metal container (light gauge) manufacturing",
+      "Hardware manufacturing",
+      "Spring and wire product manufacturing",
+      "Machine shops",
+      "Turned product and screw, nut, and bolt manufacturing",
+      "Coating, engraving, heat treating and allied activities",
+      "Plumbing fixture fitting and trim manufacturing",
+      "Valve and fittings other than plumbing",
+      "Ball and roller bearing manufacturing",
+      "Fabricated pipe and pipe fitting manufacturing",
+      "Ammunition, arms, ordnance, and accessories manufacturing",
+      "Other fabricated metal manufacturing",
+      "Farm machinery and equipment manufacturing",
+      "Lawn and garden equipment manufacturing",
+      "Construction machinery manufacturing",
+      "Mining and oil and gas field machinery manufacturing",
+      "Semiconductor machinery manufacturing",
+      "Other industrial machinery manufacturing",
+      "Optical instrument and lens manufacturing",
+      "Photographic and photocopying equipment manufacturing",
+      "Other commercial and service industry machinery manufacturing",
+      "Heating equipment (except warm air furnaces) manufacturing",
+      "Air conditioning, refrigeration, and warm air heating equipment manufacturing",
+      "Industrial and commercial fan and blower and air purification equipment manufacturing",
+      "Industrial mold manufacturing",
+      "Special tool, die, jig, and fixture manufacturing",
+      "Machine tool manufacturing",
+      "Cutting and machine tool accessory, rolling mill, and other metalworking machinery manufacturing",
+      "Turbine and turbine generator set units manufacturing",
+      "Speed changer, industrial high-speed drive, and gear manufacturing",
+      "Mechanical power transmission equipment manufacturing",
+      "Other engine equipment manufacturing",
+      "Air and gas compressor manufacturing",
+      "Measuring, dispensing, and other pumping equipment manufacturing",
+      "Material handling equipment manufacturing",
+      "Power-driven handtool manufacturing",
+      "Packaging machinery manufacturing",
+      "Industrial process furnace and oven manufacturing",
+      "Other general purpose machinery manufacturing",
+      "Fluid power process machinery",
+      "Electronic computer manufacturing",
+      "Computer storage device manufacturing",
+      "Computer terminals and other computer peripheral equipment manufacturing",
+      "Telephone apparatus manufacturing",
+      "Broadcast and wireless communications equipment",
+      "Other communications equipment manufacturing",
+      "Semiconductor and related device manufacturing",
+      "Printed circuit assembly (electronic assembly) manufacturing",
+      "Other electronic component manufacturing",
+      "Electromedical and electrotherapeutic apparatus manufacturing",
+      "Search, detection, and navigation instruments manufacturing",
+      "Automatic environmental control manufacturing",
+      "Industrial process variable instruments manufacturing",
+      "Totalizing fluid meter and counting device manufacturing",
+      "Electricity and signal testing instruments manufacturing",
+      "Analytical laboratory instrument manufacturing",
+      "Irradiation apparatus manufacturing",
+      "Watch, clock, and other measuring and controlling device manufacturing",
+      "Audio and video equipment manufacturing",
+      "Manufacturing and reproducing magnetic and optical media",
+      "Electric lamp bulb and part manufacturing",
+      "Lighting fixture manufacturing",
+      "Small electrical appliance manufacturing",
+      "Household cooking appliance manufacturing",
+      "Household refrigerator and home freezer manufacturing",
+      "Household laundry equipment manufacturing",
+      "Other major household appliance manufacturing",
+      "Power, distribution, and specialty transformer manufacturing",
+      "Motor and generator manufacturing",
+      "Switchgear and switchboard apparatus manufacturing",
+      "Relay and industrial control manufacturing",
+      "Storage battery manufacturing",
+      "Primary battery manufacturing",
+      "Communication and energy wire and cable manufacturing",
+      "Wiring device manufacturing",
+      "Carbon and graphite product manufacturing",
+      "All other miscellaneous electrical equipment and component manufacturing",
+      "Automobile manufacturing",
+      "Light truck and utility vehicle manufacturing",
+      "Heavy duty truck manufacturing",
+      "Motor vehicle body manufacturing",
+      "Truck trailer manufacturing",
+      "Motor home manufacturing",
+      "Travel trailer and camper manufacturing",
+      "Motor vehicle gasoline engine and engine parts manufacturing",
+      "Motor vehicle electrical and electronic equipment manufacturing",
+      "Motor vehicle transmission and power train parts manufacturing",
+      "Motor vehicle seating and interior trim manufacturing",
+      "Motor vehicle metal stamping",
+      "Other Motor Vehicle Parts Manufacturing",
+      "Motor vehicle steering, suspension component (except spring), and brake systems manufacturing",
+      "Aircraft manufacturing",
+      "Aircraft engine and engine parts manufacturing",
+      "Other aircraft parts and auxiliary equipment manufacturing",
+      "Guided missile and space vehicle manufacturing",
+      "Propulsion units and parts for space vehicles and guided missiles",
+      "Railroad rolling stock manufacturing",
+      "Ship building and repairing",
+      "Boat building",
+      "Motorcycle, bicycle, and parts manufacturing",
+      "Military armored vehicle, tank, and tank component manufacturing",
+      "All other transportation equipment manufacturing",
+      "Wood kitchen cabinet and countertop manufacturing",
+      "Upholstered household furniture manufacturing",
+      "Nonupholstered wood household furniture manufacturing",
+      "Institutional furniture manufacturing",
+      "Other household nonupholstered furniture",
+      "Showcase, partition, shelving, and locker manufacturing",
+      "Office furniture and custom architectural woodwork and millwork manufacturing",
+      "Other furniture related product manufacturing",
+      "Surgical and medical instrument manufacturing",
+      "Surgical appliance and supplies manufacturing",
+      "Dental equipment and supplies manufacturing",
+      "Ophthalmic goods manufacturing",
+      "Dental laboratories",
+      "Jewelry and silverware manufacturing",
+      "Sporting and athletic goods manufacturing",
+      "Doll, toy, and game manufacturing",
+      "Office supplies (except paper) manufacturing",
+      "Sign manufacturing",
+      "All other miscellaneous manufacturing",
+      "Dog and cat food manufacturing",
+      "Other animal food manufacturing",
+      "Flour milling and malt manufacturing",
+      "Wet corn milling",
+      "Fats and oils refining and blending",
+      "Soybean and other oilseed processing",
+      "Breakfast cereal manufacturing",
+      "Sugar and confectionery product manufacturing",
+      "Frozen food manufacturing",
+      "Fruit and vegetable canning, pickling, and drying",
+      "Cheese manufacturing",
+      "Dry, condensed, and evaporated dairy product manufacturing",
+      "Fluid milk and butter manufacturing",
+      "Ice cream and frozen dessert manufacturing",
+      "Poultry processing",
+      "Animal (except poultry) slaughtering, rendering, and processing",
+      "Seafood product preparation and packaging",
+      "Bread and bakery product manufacturing",
+      "Cookie, cracker, pasta, and tortilla manufacturing",
+      "Snack food manufacturing",
+      "Coffee and tea manufacturing",
+      "Flavoring syrup and concentrate manufacturing",
+      "Seasoning and dressing manufacturing",
+      "All other food manufacturing",
+      "Soft drink and ice manufacturing",
+      "Breweries",
+      "Wineries",
+      "Distilleries",
+      "Tobacco product manufacturing",
+      "Fiber, yarn, and thread mills",
+      "Fabric mills",
+      "Textile and fabric finishing and fabric coating mills",
+      "Carpet and rug mills",
+      "Curtain and linen mills",
+      "Other textile product mills",
+      "Apparel manufacturing",
+      "Leather and allied product manufacturing",
+      "Pulp mills",
+      "Paper mills",
+      "Paperboard mills",
+      "Paperboard container manufacturing",
+      "Paper Bag and Coated and Treated Paper Manufacturing",
+      "Stationery product manufacturing",
+      "Sanitary paper product manufacturing",
+      "All other converted paper product manufacturing",
+      "Printing",
+      "Support activities for printing",
+      "Petroleum refineries",
+      "Asphalt paving mixture and block manufacturing",
+      "Asphalt shingle and coating materials manufacturing",
+      "Other petroleum and coal products manufacturing",
+      "Petrochemical manufacturing",
+      "Industrial gas manufacturing",
+      "Synthetic dye and pigment manufacturing",
+      "Other Basic Inorganic Chemical Manufacturing",
+      "Other basic organic chemical manufacturing",
+      "Plastics material and resin manufacturing",
+      "Synthetic rubber and artificial and synthetic fibers and filaments manufacturing",
+      "Medicinal and botanical manufacturing",
+      "Pharmaceutical preparation manufacturing",
+      "In-vitro diagnostic substance manufacturing",
+      "Biological product (except diagnostic) manufacturing",
+      "Fertilizer manufacturing",
+      "Pesticide and other agricultural chemical manufacturing",
+      "Paint and coating manufacturing",
+      "Adhesive manufacturing",
+      "Soap and cleaning compound manufacturing",
+      "Toilet preparation manufacturing",
+      "Printing ink manufacturing",
+      "All other chemical product and preparation manufacturing",
+      "Plastics packaging materials and unlaminated film and sheet manufacturing",
+      "Plastics pipe, pipe fitting, and unlaminated profile shape manufacturing",
+      "Laminated plastics plate, sheet (except packaging), and shape manufacturing",
+      "Polystyrene foam product manufacturing",
+      "Urethane and other foam product (except polystyrene) manufacturing",
+      "Plastics bottle manufacturing",
+      "Other plastics product manufacturing",
+      "Tire manufacturing",
+      "Rubber and plastics hoses and belting manufacturing",
+      "Other rubber product manufacturing",
+      "Motor vehicle and motor vehicle parts and supplies",
+      "Professional and commercial equipment and supplies",
+      "Household appliances and electrical and electronic goods",
+      "Machinery, equipment, and supplies",
+      "Other durable goods merchant wholesalers",
+      "Drugs and druggists’ sundries",
+      "Grocery and related product wholesalers",
+      "Petroleum and petroleum products",
+      "Other nondurable goods merchant wholesalers",
+      "Wholesale electronic markets and agents and brokers",
+      "Customs duties",
+      "Motor vehicle and parts dealers",
+      "Food and beverage stores",
+      "General merchandise stores",
+      "Building material and garden equipment and supplies dealers",
+      "Health and personal care stores",
+      "Gasoline stations",
+      "Clothing and clothing accessories stores",
+      "Nonstore retailers",
+      "All other retail",
+      "Air transportation",
+      "Rail transportation",
+      "Water transportation",
+      "Truck transportation",
+      "Transit and ground passenger transportation + State and local government passenger transit",
+      "Pipeline transportation",
+      "Scenic and sightseeing transportation and support activities for transportation",
+      "Couriers and messengers",
+      "Warehousing and storage",
+      "Newspaper publishers",
+      "Periodical Publishers",
+      "Book publishers",
+      "Directory, mailing list, and other publishers",
+      "Software publishers",
+      "Motion picture and video industries",
+      "Sound recording industries",
+      "Radio and television broadcasting",
+      "Cable and other subscription programming",
+      "Wired telecommunications carriers",
+      "Wireless telecommunications carriers (except satellite)",
+      "Satellite, telecommunications resellers, and all other telecommunications",
+      "Data processing, hosting, and related services",
+      "Internet publishing and broadcasting and Web search portals",
+      "News syndicates, libraries, archives and all other information services",
+      "Nondepository credit intermediation and related activities",
+      "Monetary authorities and depository credit intermediation",
+      "Other financial investment activities",
+      "Securities and commodity contracts intermediation and brokerage",
+      "Direct life insurance carriers",
+      "Insurance carriers, except direct life",
+      "Insurance agencies, brokerages, and related activities",
+      "Funds, trusts, and other financial vehicles",
+      "Owner-occupied housing",
+      "Tenant-occupied housing",
+      "Other real estate",
+      "Automotive equipment rental and leasing",
+      "Commercial and industrial machinery and equipment rental and leasing",
+      "General and consumer goods rental",
+      "Lessors of nonfinancial intangible assets",
+      "Legal services",
+      "Custom computer programming services",
+      "Computer systems design services",
+      "Other computer related services, including facilities management",
+      "Accounting, tax preparation, bookkeeping, and payroll services",
+      "Architectural, engineering, and related services",
+      "Management consulting services",
+      "Environmental and other technical consulting services",
+      "Scientific research and development services",
+      "Advertising, public relations, and related services",
+      "Specialized design services",
+      "Photographic services",
+      "Veterinary services",
+      "All other miscellaneous professional, scientific, and technical services",
+      "Management of companies and enterprises",
+      "Employment services",
+      "Services to buildings and dwellings",
+      "Office administrative services",
+      "Facilities support services",
+      "Business support services",
+      "Travel arrangement and reservation services",
+      "Investigation and security services",
+      "Other support services",
+      "Waste management and remediation services",
+      "Elementary and secondary schools",
+      "Junior colleges, colleges, universities, and professional schools",
+      "Other educational services",
+      "Offices of physicians",
+      "Offices of dentists",
+      "Offices of other health practitioners",
+      "Outpatient care centers",
+      "Medical and diagnostic laboratories",
+      "Home health care services",
+      "Other ambulatory health care services",
+      "Hospitals",
+      "Nursing and community care facilities",
+      "Residential mental health, substance abuse, and other residential care facilities",
+      "Individual and family services",
+      "Child day care services",
+      "Community food, housing, and other relief services, including rehabilitation services",
+      "Performing arts companies",
+      "Spectator sports",
+      "Independent artists, writers, and performers",
+      "Promoters of performing arts and sports and agents for public figures",
+      "Museums, historical sites, zoos, and parks",
+      "Amusement parks and arcades",
+      "Gambling industries (except casino hotels)",
+      "Other amusement and recreation industries",
+      "Accommodation",
+      "Full-service restaurants",
+      "Limited-service restaurants",
+      "All other food and drinking places",
+      "Automotive repair and maintenance",
+      "Electronic and precision equipment repair and maintenance",
+      "Commercial and industrial machinery and equipment repair and maintenance",
+      "Personal and household goods repair and maintenance",
+      "Personal care services",
+      "Death care services",
+      "Dry-cleaning and laundry services",
+      "Other personal services",
+      "Religious organizations",
+      "Grantmaking, giving, and social advocacy organizations",
+      "Civic, social, professional, and similar organizations",
+      "Private households",
+      "Federal general government (defense)",
+      "Federal general government (nondefense)",
+      "Postal service",
+      "Other federal government enterprises",
+      "State and local government educational services",
+      "State and local government hospitals and health services",
+      "State and local government other services",
+      "Other state and local government enterprises"
+    ]
+  },
+  "native_codes": {
+    "Oilseed farming": "1111A0",
+    "Grain farming": "1111B0",
+    "Vegetable and melon farming": "111200",
+    "Fruit and tree nut farming": "111300",
+    "Greenhouse, nursery, and floriculture production": "111400",
+    "Other crop farming": "111900",
+    "Dairy cattle and milk production": "112120",
+    "Beef cattle ranching and farming, including feedlots and dual-purpose ranching and farming": "1121A0",
+    "Poultry and egg production": "112300",
+    "Animal production, except cattle and poultry and eggs": "112A00",
+    "Forestry and logging": "113000",
+    "Fishing, hunting and trapping": "114000",
+    "Support activities for agriculture and forestry": "115000",
+    "Oil and gas extraction": "211000",
+    "Coal mining": "212100",
+    "Copper, nickel, lead, and zinc mining": "212230",
+    "Iron, gold, silver, and other metal ore mining": "2122A0",
+    "Stone mining and quarrying": "212310",
+    "Other nonmetallic mineral mining and quarrying": "2123A0",
+    "Drilling oil and gas wells": "213111",
+    "Other support activities for mining": "21311A",
+    "Electric power generation, transmission, and distribution": "221100",
+    "Natural gas distribution": "221200",
+    "Water, sewage and other systems": "221300",
+    "Health care structures": "233210",
+    "Educational and vocational structures": "233262",
+    "Nonresidential maintenance and repair": "230301",
+    "Residential maintenance and repair": "230302",
+    "Office and commercial structures": "2332A0",
+    "Multifamily residential structures": "233412",
+    "Other residential structures": "2334A0",
+    "Manufacturing structures": "233230",
+    "Other nonresidential structures": "2332D0",
+    "Power and communication structures": "233240",
+    "Single-family residential structures": "233411",
+    "Transportation structures and highways and streets": "2332C0",
+    "Sawmills and wood preservation": "321100",
+    "Veneer, plywood, and engineered wood product manufacturing": "321200",
+    "Millwork": "321910",
+    "All other wood product manufacturing": "3219A0",
+    "Clay product and refractory manufacturing": "327100",
+    "Glass and glass product manufacturing": "327200",
+    "Cement manufacturing": "327310",
+    "Ready-mix concrete manufacturing": "327320",
+    "Concrete pipe, brick, and block manufacturing": "327330",
+    "Other concrete product manufacturing": "327390",
+    "Lime and gypsum product manufacturing": "327400",
+    "Abrasive product manufacturing": "327910",
+    "Cut stone and stone product manufacturing": "327991",
+    "Ground or treated mineral and earth manufacturing": "327992",
+    "Mineral wool manufacturing": "327993",
+    "Miscellaneous nonmetallic mineral products": "327999",
+    "Iron and steel mills and ferroalloy manufacturing": "331110",
+    "Steel product manufacturing from purchased steel": "331200",
+    "Aluminum product manufacturing from purchased aluminum + Alumina refining and primary aluminum production + Secondary smelting and alloying of aluminum": "331313",
+    "Nonferrous Metal (except Aluminum) Smelting and Refining": "331410",
+    "Copper rolling, drawing, extruding and alloying": "331420",
+    "Nonferrous metal (except copper and aluminum) rolling, drawing, extruding and alloying": "331490",
+    "Ferrous metal foundries": "331510",
+    "Nonferrous metal foundries": "331520",
+    "Custom roll forming": "332114",
+    "All other forging, stamping, and sintering": "33211A",
+    "Metal crown, closure, and other metal stamping (except automotive)": "332119",
+    "Cutlery and handtool manufacturing": "332200",
+    "Plate work and fabricated structural product manufacturing": "332310",
+    "Ornamental and architectural metal products manufacturing": "332320",
+    "Power boiler and heat exchanger manufacturing": "332410",
+    "Metal tank (heavy gauge) manufacturing": "332420",
+    "Metal can, box, and other metal container (light gauge) manufacturing": "332430",
+    "Hardware manufacturing": "332500",
+    "Spring and wire product manufacturing": "332600",
+    "Machine shops": "332710",
+    "Turned product and screw, nut, and bolt manufacturing": "332720",
+    "Coating, engraving, heat treating and allied activities": "332800",
+    "Plumbing fixture fitting and trim manufacturing": "332913",
+    "Valve and fittings other than plumbing": "33291A",
+    "Ball and roller bearing manufacturing": "332991",
+    "Fabricated pipe and pipe fitting manufacturing": "332996",
+    "Ammunition, arms, ordnance, and accessories manufacturing": "33299A",
+    "Other fabricated metal manufacturing": "332999",
+    "Farm machinery and equipment manufacturing": "333111",
+    "Lawn and garden equipment manufacturing": "333112",
+    "Construction machinery manufacturing": "333120",
+    "Mining and oil and gas field machinery manufacturing": "333130",
+    "Semiconductor machinery manufacturing": "333242",
+    "Other industrial machinery manufacturing": "33329A",
+    "Optical instrument and lens manufacturing": "333314",
+    "Photographic and photocopying equipment manufacturing": "333316",
+    "Other commercial and service industry machinery manufacturing": "333318",
+    "Heating equipment (except warm air furnaces) manufacturing": "333414",
+    "Air conditioning, refrigeration, and warm air heating equipment manufacturing": "333415",
+    "Industrial and commercial fan and blower and air purification equipment manufacturing": "333413",
+    "Industrial mold manufacturing": "333511",
+    "Special tool, die, jig, and fixture manufacturing": "333514",
+    "Machine tool manufacturing": "333517",
+    "Cutting and machine tool accessory, rolling mill, and other metalworking machinery manufacturing": "33351B",
+    "Turbine and turbine generator set units manufacturing": "333611",
+    "Speed changer, industrial high-speed drive, and gear manufacturing": "333612",
+    "Mechanical power transmission equipment manufacturing": "333613",
+    "Other engine equipment manufacturing": "333618",
+    "Air and gas compressor manufacturing": "333912",
+    "Measuring, dispensing, and other pumping equipment manufacturing": "333914",
+    "Material handling equipment manufacturing": "333920",
+    "Power-driven handtool manufacturing": "333991",
+    "Packaging machinery manufacturing": "333993",
+    "Industrial process furnace and oven manufacturing": "333994",
+    "Other general purpose machinery manufacturing": "33399A",
+    "Fluid power process machinery": "33399B",
+    "Electronic computer manufacturing": "334111",
+    "Computer storage device manufacturing": "334112",
+    "Computer terminals and other computer peripheral equipment manufacturing": "334118",
+    "Telephone apparatus manufacturing": "334210",
+    "Broadcast and wireless communications equipment": "334220",
+    "Other communications equipment manufacturing": "334290",
+    "Semiconductor and related device manufacturing": "334413",
+    "Printed circuit assembly (electronic assembly) manufacturing": "334418",
+    "Other electronic component manufacturing": "33441A",
+    "Electromedical and electrotherapeutic apparatus manufacturing": "334510",
+    "Search, detection, and navigation instruments manufacturing": "334511",
+    "Automatic environmental control manufacturing": "334512",
+    "Industrial process variable instruments manufacturing": "334513",
+    "Totalizing fluid meter and counting device manufacturing": "334514",
+    "Electricity and signal testing instruments manufacturing": "334515",
+    "Analytical laboratory instrument manufacturing": "334516",
+    "Irradiation apparatus manufacturing": "334517",
+    "Watch, clock, and other measuring and controlling device manufacturing": "33451A",
+    "Audio and video equipment manufacturing": "334300",
+    "Manufacturing and reproducing magnetic and optical media": "334610",
+    "Electric lamp bulb and part manufacturing": "335110",
+    "Lighting fixture manufacturing": "335120",
+    "Small electrical appliance manufacturing": "335210",
+    "Household cooking appliance manufacturing": "335221",
+    "Household refrigerator and home freezer manufacturing": "335222",
+    "Household laundry equipment manufacturing": "335224",
+    "Other major household appliance manufacturing": "335228",
+    "Power, distribution, and specialty transformer manufacturing": "335311",
+    "Motor and generator manufacturing": "335312",
+    "Switchgear and switchboard apparatus manufacturing": "335313",
+    "Relay and industrial control manufacturing": "335314",
+    "Storage battery manufacturing": "335911",
+    "Primary battery manufacturing": "335912",
+    "Communication and energy wire and cable manufacturing": "335920",
+    "Wiring device manufacturing": "335930",
+    "Carbon and graphite product manufacturing": "335991",
+    "All other miscellaneous electrical equipment and component manufacturing": "335999",
+    "Automobile manufacturing": "336111",
+    "Light truck and utility vehicle manufacturing": "336112",
+    "Heavy duty truck manufacturing": "336120",
+    "Motor vehicle body manufacturing": "336211",
+    "Truck trailer manufacturing": "336212",
+    "Motor home manufacturing": "336213",
+    "Travel trailer and camper manufacturing": "336214",
+    "Motor vehicle gasoline engine and engine parts manufacturing": "336310",
+    "Motor vehicle electrical and electronic equipment manufacturing": "336320",
+    "Motor vehicle transmission and power train parts manufacturing": "336350",
+    "Motor vehicle seating and interior trim manufacturing": "336360",
+    "Motor vehicle metal stamping": "336370",
+    "Other Motor Vehicle Parts Manufacturing": "336390",
+    "Motor vehicle steering, suspension component (except spring), and brake systems manufacturing": "3363A0",
+    "Aircraft manufacturing": "336411",
+    "Aircraft engine and engine parts manufacturing": "336412",
+    "Other aircraft parts and auxiliary equipment manufacturing": "336413",
+    "Guided missile and space vehicle manufacturing": "336414",
+    "Propulsion units and parts for space vehicles and guided missiles": "33641A",
+    "Railroad rolling stock manufacturing": "336500",
+    "Ship building and repairing": "336611",
+    "Boat building": "336612",
+    "Motorcycle, bicycle, and parts manufacturing": "336991",
+    "Military armored vehicle, tank, and tank component manufacturing": "336992",
+    "All other transportation equipment manufacturing": "336999",
+    "Wood kitchen cabinet and countertop manufacturing": "337110",
+    "Upholstered household furniture manufacturing": "337121",
+    "Nonupholstered wood household furniture manufacturing": "337122",
+    "Institutional furniture manufacturing": "337127",
+    "Other household nonupholstered furniture": "33712N",
+    "Showcase, partition, shelving, and locker manufacturing": "337215",
+    "Office furniture and custom architectural woodwork and millwork manufacturing": "33721A",
+    "Other furniture related product manufacturing": "337900",
+    "Surgical and medical instrument manufacturing": "339112",
+    "Surgical appliance and supplies manufacturing": "339113",
+    "Dental equipment and supplies manufacturing": "339114",
+    "Ophthalmic goods manufacturing": "339115",
+    "Dental laboratories": "339116",
+    "Jewelry and silverware manufacturing": "339910",
+    "Sporting and athletic goods manufacturing": "339920",
+    "Doll, toy, and game manufacturing": "339930",
+    "Office supplies (except paper) manufacturing": "339940",
+    "Sign manufacturing": "339950",
+    "All other miscellaneous manufacturing": "339990",
+    "Dog and cat food manufacturing": "311111",
+    "Other animal food manufacturing": "311119",
+    "Flour milling and malt manufacturing": "311210",
+    "Wet corn milling": "311221",
+    "Fats and oils refining and blending": "311225",
+    "Soybean and other oilseed processing": "311224",
+    "Breakfast cereal manufacturing": "311230",
+    "Sugar and confectionery product manufacturing": "311300",
+    "Frozen food manufacturing": "311410",
+    "Fruit and vegetable canning, pickling, and drying": "311420",
+    "Cheese manufacturing": "311513",
+    "Dry, condensed, and evaporated dairy product manufacturing": "311514",
+    "Fluid milk and butter manufacturing": "31151A",
+    "Ice cream and frozen dessert manufacturing": "311520",
+    "Poultry processing": "311615",
+    "Animal (except poultry) slaughtering, rendering, and processing": "31161A",
+    "Seafood product preparation and packaging": "311700",
+    "Bread and bakery product manufacturing": "311810",
+    "Cookie, cracker, pasta, and tortilla manufacturing": "3118A0",
+    "Snack food manufacturing": "311910",
+    "Coffee and tea manufacturing": "311920",
+    "Flavoring syrup and concentrate manufacturing": "311930",
+    "Seasoning and dressing manufacturing": "311940",
+    "All other food manufacturing": "311990",
+    "Soft drink and ice manufacturing": "312110",
+    "Breweries": "312120",
+    "Wineries": "312130",
+    "Distilleries": "312140",
+    "Tobacco product manufacturing": "312200",
+    "Fiber, yarn, and thread mills": "313100",
+    "Fabric mills": "313200",
+    "Textile and fabric finishing and fabric coating mills": "313300",
+    "Carpet and rug mills": "314110",
+    "Curtain and linen mills": "314120",
+    "Other textile product mills": "314900",
+    "Apparel manufacturing": "315000",
+    "Leather and allied product manufacturing": "316000",
+    "Pulp mills": "322110",
+    "Paper mills": "322120",
+    "Paperboard mills": "322130",
+    "Paperboard container manufacturing": "322210",
+    "Paper Bag and Coated and Treated Paper Manufacturing": "322220",
+    "Stationery product manufacturing": "322230",
+    "Sanitary paper product manufacturing": "322291",
+    "All other converted paper product manufacturing": "322299",
+    "Printing": "323110",
+    "Support activities for printing": "323120",
+    "Petroleum refineries": "324110",
+    "Asphalt paving mixture and block manufacturing": "324121",
+    "Asphalt shingle and coating materials manufacturing": "324122",
+    "Other petroleum and coal products manufacturing": "324190",
+    "Petrochemical manufacturing": "325110",
+    "Industrial gas manufacturing": "325120",
+    "Synthetic dye and pigment manufacturing": "325130",
+    "Other Basic Inorganic Chemical Manufacturing": "325180",
+    "Other basic organic chemical manufacturing": "325190",
+    "Plastics material and resin manufacturing": "325211",
+    "Synthetic rubber and artificial and synthetic fibers and filaments manufacturing": "3252A0",
+    "Medicinal and botanical manufacturing": "325411",
+    "Pharmaceutical preparation manufacturing": "325412",
+    "In-vitro diagnostic substance manufacturing": "325413",
+    "Biological product (except diagnostic) manufacturing": "325414",
+    "Fertilizer manufacturing": "325310",
+    "Pesticide and other agricultural chemical manufacturing": "325320",
+    "Paint and coating manufacturing": "325510",
+    "Adhesive manufacturing": "325520",
+    "Soap and cleaning compound manufacturing": "325610",
+    "Toilet preparation manufacturing": "325620",
+    "Printing ink manufacturing": "325910",
+    "All other chemical product and preparation manufacturing": "3259A0",
+    "Plastics packaging materials and unlaminated film and sheet manufacturing": "326110",
+    "Plastics pipe, pipe fitting, and unlaminated profile shape manufacturing": "326120",
+    "Laminated plastics plate, sheet (except packaging), and shape manufacturing": "326130",
+    "Polystyrene foam product manufacturing": "326140",
+    "Urethane and other foam product (except polystyrene) manufacturing": "326150",
+    "Plastics bottle manufacturing": "326160",
+    "Other plastics product manufacturing": "326190",
+    "Tire manufacturing": "326210",
+    "Rubber and plastics hoses and belting manufacturing": "326220",
+    "Other rubber product manufacturing": "326290",
+    "Motor vehicle and motor vehicle parts and supplies": "423100",
+    "Professional and commercial equipment and supplies": "423400",
+    "Household appliances and electrical and electronic goods": "423600",
+    "Machinery, equipment, and supplies": "423800",
+    "Other durable goods merchant wholesalers": "423A00",
+    "Drugs and druggists’ sundries": "424200",
+    "Grocery and related product wholesalers": "424400",
+    "Petroleum and petroleum products": "424700",
+    "Other nondurable goods merchant wholesalers": "424A00",
+    "Wholesale electronic markets and agents and brokers": "425000",
+    "Customs duties": "4200ID",
+    "Motor vehicle and parts dealers": "441000",
+    "Food and beverage stores": "445000",
+    "General merchandise stores": "452000",
+    "Building material and garden equipment and supplies dealers": "444000",
+    "Health and personal care stores": "446000",
+    "Gasoline stations": "447000",
+    "Clothing and clothing accessories stores": "448000",
+    "Nonstore retailers": "454000",
+    "All other retail": "4B0000",
+    "Air transportation": "481000",
+    "Rail transportation": "482000",
+    "Water transportation": "483000",
+    "Truck transportation": "484000",
+    "Transit and ground passenger transportation + State and local government passenger transit": "485000",
+    "Pipeline transportation": "486000",
+    "Scenic and sightseeing transportation and support activities for transportation": "48A000",
+    "Couriers and messengers": "492000",
+    "Warehousing and storage": "493000",
+    "Newspaper publishers": "511110",
+    "Periodical Publishers": "511120",
+    "Book publishers": "511130",
+    "Directory, mailing list, and other publishers": "5111A0",
+    "Software publishers": "511200",
+    "Motion picture and video industries": "512100",
+    "Sound recording industries": "512200",
+    "Radio and television broadcasting": "515100",
+    "Cable and other subscription programming": "515200",
+    "Wired telecommunications carriers": "517110",
+    "Wireless telecommunications carriers (except satellite)": "517210",
+    "Satellite, telecommunications resellers, and all other telecommunications": "517A00",
+    "Data processing, hosting, and related services": "518200",
+    "Internet publishing and broadcasting and Web search portals": "519130",
+    "News syndicates, libraries, archives and all other information services": "5191A0",
+    "Nondepository credit intermediation and related activities": "522A00",
+    "Monetary authorities and depository credit intermediation": "52A000",
+    "Other financial investment activities": "523900",
+    "Securities and commodity contracts intermediation and brokerage": "523A00",
+    "Direct life insurance carriers": "524113",
+    "Insurance carriers, except direct life": "5241XX",
+    "Insurance agencies, brokerages, and related activities": "524200",
+    "Funds, trusts, and other financial vehicles": "525000",
+    "Owner-occupied housing": "531HSO",
+    "Tenant-occupied housing": "531HST",
+    "Other real estate": "531ORE",
+    "Automotive equipment rental and leasing": "532100",
+    "Commercial and industrial machinery and equipment rental and leasing": "532400",
+    "General and consumer goods rental": "532A00",
+    "Lessors of nonfinancial intangible assets": "533000",
+    "Legal services": "541100",
+    "Custom computer programming services": "541511",
+    "Computer systems design services": "541512",
+    "Other computer related services, including facilities management": "54151A",
+    "Accounting, tax preparation, bookkeeping, and payroll services": "541200",
+    "Architectural, engineering, and related services": "541300",
+    "Management consulting services": "541610",
+    "Environmental and other technical consulting services": "5416A0",
+    "Scientific research and development services": "541700",
+    "Advertising, public relations, and related services": "541800",
+    "Specialized design services": "541400",
+    "Photographic services": "541920",
+    "Veterinary services": "541940",
+    "All other miscellaneous professional, scientific, and technical services": "5419A0",
+    "Management of companies and enterprises": "550000",
+    "Employment services": "561300",
+    "Services to buildings and dwellings": "561700",
+    "Office administrative services": "561100",
+    "Facilities support services": "561200",
+    "Business support services": "561400",
+    "Travel arrangement and reservation services": "561500",
+    "Investigation and security services": "561600",
+    "Other support services": "561900",
+    "Waste management and remediation services": "562000",
+    "Elementary and secondary schools": "611100",
+    "Junior colleges, colleges, universities, and professional schools": "611A00",
+    "Other educational services": "611B00",
+    "Offices of physicians": "621100",
+    "Offices of dentists": "621200",
+    "Offices of other health practitioners": "621300",
+    "Outpatient care centers": "621400",
+    "Medical and diagnostic laboratories": "621500",
+    "Home health care services": "621600",
+    "Other ambulatory health care services": "621900",
+    "Hospitals": "622000",
+    "Nursing and community care facilities": "623A00",
+    "Residential mental health, substance abuse, and other residential care facilities": "623B00",
+    "Individual and family services": "624100",
+    "Child day care services": "624400",
+    "Community food, housing, and other relief services, including rehabilitation services": "624A00",
+    "Performing arts companies": "711100",
+    "Spectator sports": "711200",
+    "Independent artists, writers, and performers": "711500",
+    "Promoters of performing arts and sports and agents for public figures": "711A00",
+    "Museums, historical sites, zoos, and parks": "712000",
+    "Amusement parks and arcades": "713100",
+    "Gambling industries (except casino hotels)": "713200",
+    "Other amusement and recreation industries": "713900",
+    "Accommodation": "721000",
+    "Full-service restaurants": "722110",
+    "Limited-service restaurants": "722211",
+    "All other food and drinking places": "722A00",
+    "Automotive repair and maintenance": "811100",
+    "Electronic and precision equipment repair and maintenance": "811200",
+    "Commercial and industrial machinery and equipment repair and maintenance": "811300",
+    "Personal and household goods repair and maintenance": "811400",
+    "Personal care services": "812100",
+    "Death care services": "812200",
+    "Dry-cleaning and laundry services": "812300",
+    "Other personal services": "812900",
+    "Religious organizations": "813100",
+    "Grantmaking, giving, and social advocacy organizations": "813A00",
+    "Civic, social, professional, and similar organizations": "813B00",
+    "Private households": "814000",
+    "Federal general government (defense)": "S00500",
+    "Federal general government (nondefense)": "S00600",
+    "Postal service": "491000",
+    "Other federal government enterprises": "S00102",
+    "State and local government educational services": "GSLGE",
+    "State and local government hospitals and health services": "GSLGH",
+    "State and local government other services": "GSLGO",
+    "Other state and local government enterprises": "S00203"
+  },
+  "region_counts": [
+    {
+      "region": "AFG",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "AGO",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "ALB",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "ARE",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "ARG",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "ATG",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "AUS",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "AUT",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "BDI",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "BEL",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "BEN",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "BFA",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "BGD",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "BGR",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "BHR",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "BHS",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "BLZ",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "BOL",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "BRA",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "BRB",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "BTN",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "CAF",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "CAN",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "CHE",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "CHL",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "CHN",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "CIV",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "CMR",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "COG",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "COL",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "CRI",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "CYP",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "CZE",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "DEU",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "DMA",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "DNK",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "DOM",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "DZA",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "ECU",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "EGY",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "ESP",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "EST",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "ETH",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "FIN",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "FJI",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "FRA",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "GAB",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "GBR",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "GIN",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "GMB",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "GNB",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "GNQ",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "GRC",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "GRD",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "GTM",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "HKG",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "HND",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "HRV",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "HTI",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "HUN",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "IDN",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "IND",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "IRL",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "IRN",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "IRQ",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "ISL",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "ISR",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "ITA",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "JAM",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "JOR",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "JPN",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "KAZ",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "KEN",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "KHM",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "KIR",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "KNA",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "KOR",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "KWT",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "LAO",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "LBN",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "LCA",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "LKA",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "LSO",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "LTU",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "LUX",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "LVA",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "MAR",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "MDA",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "MDV",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "MEX",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "MKD",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "MLI",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "MLT",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "MMR",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "MNG",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "MUS",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "MWI",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "MYS",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "NAM",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "NER",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "NGA",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "NIC",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "NLD",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "NOR",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "NPL",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "NRU",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "NZL",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "OMN",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "PAK",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "PER",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "PHL",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "PNG",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "POL",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "PRT",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "PRY",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "QAT",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "ROU",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "ROW",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "RUS",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "RWA",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "SAU",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "SEN",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "SGP",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "SLB",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "SLE",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "SLV",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "SVK",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "SVN",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "SWE",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "SWZ",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "SYC",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "TCD",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "TGO",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "THA",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "TLS",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "TTO",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "TUN",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "TUR",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "TWN",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "TZA",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "UGA",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "UKR",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "URY",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "USA",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "VCT",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "VNM",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "VUT",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "WSM",
+      "set": "Sector",
+      "count": 400
+    },
+    {
+      "region": "ZAF",
+      "set": "Sector",
+      "count": 400
+    }
+  ],
+  "region_items": [],
+  "set_flags": {
+    "Satellite account": {
+      "status": "not_provided"
+    },
+    "Factor of production": {
+      "status": "not_provided"
+    },
+    "Consumption category": {
+      "status": "not_provided"
+    }
+  },
+  "geography": {
+    "status": "source_verified_individual_regions",
+    "scope": "global",
+    "regions": [
+      {
+        "label": "AFG",
+        "name": "Afghanistan",
+        "source_name": "Afghanistan",
+        "kind": "country",
+        "iso3": "AFG"
+      },
+      {
+        "label": "AGO",
+        "name": "Angola",
+        "source_name": "Angola",
+        "kind": "country",
+        "iso3": "AGO"
+      },
+      {
+        "label": "ALB",
+        "name": "Albania",
+        "source_name": "Albania",
+        "kind": "country",
+        "iso3": "ALB"
+      },
+      {
+        "label": "ARE",
+        "name": "United Arab Emirates",
+        "source_name": "United Arab Emirates",
+        "kind": "country",
+        "iso3": "ARE"
+      },
+      {
+        "label": "ARG",
+        "name": "Argentina",
+        "source_name": "Argentina",
+        "kind": "country",
+        "iso3": "ARG"
+      },
+      {
+        "label": "ATG",
+        "name": "Antigua and Barbuda",
+        "source_name": "Antigua and Barbuda",
+        "kind": "country",
+        "iso3": "ATG"
+      },
+      {
+        "label": "AUS",
+        "name": "Australia",
+        "source_name": "Australia",
+        "kind": "country",
+        "iso3": "AUS"
+      },
+      {
+        "label": "AUT",
+        "name": "Austria",
+        "source_name": "Austria",
+        "kind": "country",
+        "iso3": "AUT"
+      },
+      {
+        "label": "BDI",
+        "name": "Burundi",
+        "source_name": "Burundi",
+        "kind": "country",
+        "iso3": "BDI"
+      },
+      {
+        "label": "BEL",
+        "name": "Belgium",
+        "source_name": "Belgium",
+        "kind": "country",
+        "iso3": "BEL"
+      },
+      {
+        "label": "BEN",
+        "name": "Benin",
+        "source_name": "Benin",
+        "kind": "country",
+        "iso3": "BEN"
+      },
+      {
+        "label": "BFA",
+        "name": "Burkina Faso",
+        "source_name": "Burkina Faso",
+        "kind": "country",
+        "iso3": "BFA"
+      },
+      {
+        "label": "BGD",
+        "name": "Bangladesh",
+        "source_name": "Bangladesh",
+        "kind": "country",
+        "iso3": "BGD"
+      },
+      {
+        "label": "BGR",
+        "name": "Bulgaria",
+        "source_name": "Bulgaria",
+        "kind": "country",
+        "iso3": "BGR"
+      },
+      {
+        "label": "BHR",
+        "name": "Bahrain",
+        "source_name": "Bahrain",
+        "kind": "country",
+        "iso3": "BHR"
+      },
+      {
+        "label": "BHS",
+        "name": "Bahamas",
+        "source_name": "Bahamas",
+        "kind": "country",
+        "iso3": "BHS"
+      },
+      {
+        "label": "BLZ",
+        "name": "Belize",
+        "source_name": "Belize",
+        "kind": "country",
+        "iso3": "BLZ"
+      },
+      {
+        "label": "BOL",
+        "name": "Bolivia",
+        "source_name": "Bolivia",
+        "kind": "country",
+        "iso3": "BOL"
+      },
+      {
+        "label": "BRA",
+        "name": "Brazil",
+        "source_name": "Brazil",
+        "kind": "country",
+        "iso3": "BRA"
+      },
+      {
+        "label": "BRB",
+        "name": "Barbados",
+        "source_name": "Barbados",
+        "kind": "country",
+        "iso3": "BRB"
+      },
+      {
+        "label": "BTN",
+        "name": "Bhutan",
+        "source_name": "Bhutan",
+        "kind": "country",
+        "iso3": "BTN"
+      },
+      {
+        "label": "CAF",
+        "name": "Central African Republic",
+        "source_name": "Central African Republic",
+        "kind": "country",
+        "iso3": "CAF"
+      },
+      {
+        "label": "CAN",
+        "name": "Canada",
+        "source_name": "Canada",
+        "kind": "country",
+        "iso3": "CAN"
+      },
+      {
+        "label": "CHE",
+        "name": "Switzerland",
+        "source_name": "Switzerland",
+        "kind": "country",
+        "iso3": "CHE"
+      },
+      {
+        "label": "CHL",
+        "name": "Chile",
+        "source_name": "Chile",
+        "kind": "country",
+        "iso3": "CHL"
+      },
+      {
+        "label": "CHN",
+        "name": "China",
+        "source_name": "China",
+        "kind": "country",
+        "iso3": "CHN"
+      },
+      {
+        "label": "CIV",
+        "name": "Côte d'Ivoire",
+        "source_name": "Cote d'Ivoire",
+        "kind": "country",
+        "iso3": "CIV"
+      },
+      {
+        "label": "CMR",
+        "name": "Cameroon",
+        "source_name": "Cameroon",
+        "kind": "country",
+        "iso3": "CMR"
+      },
+      {
+        "label": "COG",
+        "name": "Congo Republic",
+        "source_name": "Congo",
+        "kind": "country",
+        "iso3": "COG"
+      },
+      {
+        "label": "COL",
+        "name": "Colombia",
+        "source_name": "Colombia",
+        "kind": "country",
+        "iso3": "COL"
+      },
+      {
+        "label": "CRI",
+        "name": "Costa Rica",
+        "source_name": "Costa Rica",
+        "kind": "country",
+        "iso3": "CRI"
+      },
+      {
+        "label": "CYP",
+        "name": "Cyprus",
+        "source_name": "Cyprus",
+        "kind": "country",
+        "iso3": "CYP"
+      },
+      {
+        "label": "CZE",
+        "name": "Czechia",
+        "source_name": "Czech Republic",
+        "kind": "country",
+        "iso3": "CZE"
+      },
+      {
+        "label": "DEU",
+        "name": "Germany",
+        "source_name": "Germany",
+        "kind": "country",
+        "iso3": "DEU"
+      },
+      {
+        "label": "DMA",
+        "name": "Dominica",
+        "source_name": "Dominica",
+        "kind": "country",
+        "iso3": "DMA"
+      },
+      {
+        "label": "DNK",
+        "name": "Denmark",
+        "source_name": "Denmark",
+        "kind": "country",
+        "iso3": "DNK"
+      },
+      {
+        "label": "DOM",
+        "name": "Dominican Republic",
+        "source_name": "Dominican Republic",
+        "kind": "country",
+        "iso3": "DOM"
+      },
+      {
+        "label": "DZA",
+        "name": "Algeria",
+        "source_name": "Algeria",
+        "kind": "country",
+        "iso3": "DZA"
+      },
+      {
+        "label": "ECU",
+        "name": "Ecuador",
+        "source_name": "Ecuador",
+        "kind": "country",
+        "iso3": "ECU"
+      },
+      {
+        "label": "EGY",
+        "name": "Egypt",
+        "source_name": "Egypt",
+        "kind": "country",
+        "iso3": "EGY"
+      },
+      {
+        "label": "ESP",
+        "name": "Spain",
+        "source_name": "Spain",
+        "kind": "country",
+        "iso3": "ESP"
+      },
+      {
+        "label": "EST",
+        "name": "Estonia",
+        "source_name": "Estonia",
+        "kind": "country",
+        "iso3": "EST"
+      },
+      {
+        "label": "ETH",
+        "name": "Ethiopia",
+        "source_name": "Ethiopia",
+        "kind": "country",
+        "iso3": "ETH"
+      },
+      {
+        "label": "FIN",
+        "name": "Finland",
+        "source_name": "Finland",
+        "kind": "country",
+        "iso3": "FIN"
+      },
+      {
+        "label": "FJI",
+        "name": "Fiji",
+        "source_name": "Fiji",
+        "kind": "country",
+        "iso3": "FJI"
+      },
+      {
+        "label": "FRA",
+        "name": "France",
+        "source_name": "France",
+        "kind": "country",
+        "iso3": "FRA"
+      },
+      {
+        "label": "GAB",
+        "name": "Gabon",
+        "source_name": "Gabon",
+        "kind": "country",
+        "iso3": "GAB"
+      },
+      {
+        "label": "GBR",
+        "name": "United Kingdom",
+        "source_name": "United Kingdom",
+        "kind": "country",
+        "iso3": "GBR"
+      },
+      {
+        "label": "GIN",
+        "name": "Guinea",
+        "source_name": "Guinea",
+        "kind": "country",
+        "iso3": "GIN"
+      },
+      {
+        "label": "GMB",
+        "name": "Gambia",
+        "source_name": "Gambia",
+        "kind": "country",
+        "iso3": "GMB"
+      },
+      {
+        "label": "GNB",
+        "name": "Guinea-Bissau",
+        "source_name": "Guinea-Bissau",
+        "kind": "country",
+        "iso3": "GNB"
+      },
+      {
+        "label": "GNQ",
+        "name": "Equatorial Guinea",
+        "source_name": "Equatorial Guinea",
+        "kind": "country",
+        "iso3": "GNQ"
+      },
+      {
+        "label": "GRC",
+        "name": "Greece",
+        "source_name": "Greece",
+        "kind": "country",
+        "iso3": "GRC"
+      },
+      {
+        "label": "GRD",
+        "name": "Grenada",
+        "source_name": "Grenada",
+        "kind": "country",
+        "iso3": "GRD"
+      },
+      {
+        "label": "GTM",
+        "name": "Guatemala",
+        "source_name": "Guatemala",
+        "kind": "country",
+        "iso3": "GTM"
+      },
+      {
+        "label": "HKG",
+        "name": "Hong Kong",
+        "source_name": "Hong Kong, China",
+        "kind": "country",
+        "iso3": "HKG"
+      },
+      {
+        "label": "HND",
+        "name": "Honduras",
+        "source_name": "Honduras",
+        "kind": "country",
+        "iso3": "HND"
+      },
+      {
+        "label": "HRV",
+        "name": "Croatia",
+        "source_name": "Croatia",
+        "kind": "country",
+        "iso3": "HRV"
+      },
+      {
+        "label": "HTI",
+        "name": "Haiti",
+        "source_name": "Haiti",
+        "kind": "country",
+        "iso3": "HTI"
+      },
+      {
+        "label": "HUN",
+        "name": "Hungary",
+        "source_name": "Hungary",
+        "kind": "country",
+        "iso3": "HUN"
+      },
+      {
+        "label": "IDN",
+        "name": "Indonesia",
+        "source_name": "Indonesia",
+        "kind": "country",
+        "iso3": "IDN"
+      },
+      {
+        "label": "IND",
+        "name": "India",
+        "source_name": "India",
+        "kind": "country",
+        "iso3": "IND"
+      },
+      {
+        "label": "IRL",
+        "name": "Ireland",
+        "source_name": "Ireland",
+        "kind": "country",
+        "iso3": "IRL"
+      },
+      {
+        "label": "IRN",
+        "name": "Iran",
+        "source_name": "Iran, Islamic Republic of",
+        "kind": "country",
+        "iso3": "IRN"
+      },
+      {
+        "label": "IRQ",
+        "name": "Iraq",
+        "source_name": "Iraq",
+        "kind": "country",
+        "iso3": "IRQ"
+      },
+      {
+        "label": "ISL",
+        "name": "Iceland",
+        "source_name": "Iceland",
+        "kind": "country",
+        "iso3": "ISL"
+      },
+      {
+        "label": "ISR",
+        "name": "Israel",
+        "source_name": "Israel",
+        "kind": "country",
+        "iso3": "ISR"
+      },
+      {
+        "label": "ITA",
+        "name": "Italy",
+        "source_name": "Italy",
+        "kind": "country",
+        "iso3": "ITA"
+      },
+      {
+        "label": "JAM",
+        "name": "Jamaica",
+        "source_name": "Jamaica",
+        "kind": "country",
+        "iso3": "JAM"
+      },
+      {
+        "label": "JOR",
+        "name": "Jordan",
+        "source_name": "Jordan",
+        "kind": "country",
+        "iso3": "JOR"
+      },
+      {
+        "label": "JPN",
+        "name": "Japan",
+        "source_name": "Japan",
+        "kind": "country",
+        "iso3": "JPN"
+      },
+      {
+        "label": "KAZ",
+        "name": "Kazakhstan",
+        "source_name": "Kazakhstan",
+        "kind": "country",
+        "iso3": "KAZ"
+      },
+      {
+        "label": "KEN",
+        "name": "Kenya",
+        "source_name": "Kenya",
+        "kind": "country",
+        "iso3": "KEN"
+      },
+      {
+        "label": "KHM",
+        "name": "Cambodia",
+        "source_name": "Cambodia",
+        "kind": "country",
+        "iso3": "KHM"
+      },
+      {
+        "label": "KIR",
+        "name": "Kiribati",
+        "source_name": "Kiribati",
+        "kind": "country",
+        "iso3": "KIR"
+      },
+      {
+        "label": "KNA",
+        "name": "St. Kitts and Nevis",
+        "source_name": "Saint Kitts and Nevis",
+        "kind": "country",
+        "iso3": "KNA"
+      },
+      {
+        "label": "KOR",
+        "name": "South Korea",
+        "source_name": "South Korea",
+        "kind": "country",
+        "iso3": "KOR"
+      },
+      {
+        "label": "KWT",
+        "name": "Kuwait",
+        "source_name": "Kuwait",
+        "kind": "country",
+        "iso3": "KWT"
+      },
+      {
+        "label": "LAO",
+        "name": "Laos",
+        "source_name": "Lao People’s Democratic Rep.",
+        "kind": "country",
+        "iso3": "LAO"
+      },
+      {
+        "label": "LBN",
+        "name": "Lebanon",
+        "source_name": "Lebanon",
+        "kind": "country",
+        "iso3": "LBN"
+      },
+      {
+        "label": "LCA",
+        "name": "St. Lucia",
+        "source_name": "Saint Lucia",
+        "kind": "country",
+        "iso3": "LCA"
+      },
+      {
+        "label": "LKA",
+        "name": "Sri Lanka",
+        "source_name": "Sri Lanka",
+        "kind": "country",
+        "iso3": "LKA"
+      },
+      {
+        "label": "LSO",
+        "name": "Lesotho",
+        "source_name": "Lesotho",
+        "kind": "country",
+        "iso3": "LSO"
+      },
+      {
+        "label": "LTU",
+        "name": "Lithuania",
+        "source_name": "Lithuania",
+        "kind": "country",
+        "iso3": "LTU"
+      },
+      {
+        "label": "LUX",
+        "name": "Luxembourg",
+        "source_name": "Luxembourg",
+        "kind": "country",
+        "iso3": "LUX"
+      },
+      {
+        "label": "LVA",
+        "name": "Latvia",
+        "source_name": "Latvia",
+        "kind": "country",
+        "iso3": "LVA"
+      },
+      {
+        "label": "MAR",
+        "name": "Morocco",
+        "source_name": "Morocco",
+        "kind": "country",
+        "iso3": "MAR"
+      },
+      {
+        "label": "MDA",
+        "name": "Moldova",
+        "source_name": "Moldova, Republic of",
+        "kind": "country",
+        "iso3": "MDA"
+      },
+      {
+        "label": "MDV",
+        "name": "Maldives",
+        "source_name": "Maldives",
+        "kind": "country",
+        "iso3": "MDV"
+      },
+      {
+        "label": "MEX",
+        "name": "Mexico",
+        "source_name": "Mexico",
+        "kind": "country",
+        "iso3": "MEX"
+      },
+      {
+        "label": "MKD",
+        "name": "North Macedonia",
+        "source_name": "Macedonia, the former Yugoslav Republic of",
+        "kind": "country",
+        "iso3": "MKD"
+      },
+      {
+        "label": "MLI",
+        "name": "Mali",
+        "source_name": "Mali",
+        "kind": "country",
+        "iso3": "MLI"
+      },
+      {
+        "label": "MLT",
+        "name": "Malta",
+        "source_name": "Malta",
+        "kind": "country",
+        "iso3": "MLT"
+      },
+      {
+        "label": "MMR",
+        "name": "Myanmar",
+        "source_name": "Myanmar",
+        "kind": "country",
+        "iso3": "MMR"
+      },
+      {
+        "label": "MNG",
+        "name": "Mongolia",
+        "source_name": "Mongolia",
+        "kind": "country",
+        "iso3": "MNG"
+      },
+      {
+        "label": "MUS",
+        "name": "Mauritius",
+        "source_name": "Mauritius",
+        "kind": "country",
+        "iso3": "MUS"
+      },
+      {
+        "label": "MWI",
+        "name": "Malawi",
+        "source_name": "Malawi",
+        "kind": "country",
+        "iso3": "MWI"
+      },
+      {
+        "label": "MYS",
+        "name": "Malaysia",
+        "source_name": "Malaysia",
+        "kind": "country",
+        "iso3": "MYS"
+      },
+      {
+        "label": "NAM",
+        "name": "Namibia",
+        "source_name": "Namibia",
+        "kind": "country",
+        "iso3": "NAM"
+      },
+      {
+        "label": "NER",
+        "name": "Niger",
+        "source_name": "Niger",
+        "kind": "country",
+        "iso3": "NER"
+      },
+      {
+        "label": "NGA",
+        "name": "Nigeria",
+        "source_name": "Nigeria",
+        "kind": "country",
+        "iso3": "NGA"
+      },
+      {
+        "label": "NIC",
+        "name": "Nicaragua",
+        "source_name": "Nicaragua",
+        "kind": "country",
+        "iso3": "NIC"
+      },
+      {
+        "label": "NLD",
+        "name": "Netherlands",
+        "source_name": "Netherlands",
+        "kind": "country",
+        "iso3": "NLD"
+      },
+      {
+        "label": "NOR",
+        "name": "Norway",
+        "source_name": "Norway",
+        "kind": "country",
+        "iso3": "NOR"
+      },
+      {
+        "label": "NPL",
+        "name": "Nepal",
+        "source_name": "Nepal",
+        "kind": "country",
+        "iso3": "NPL"
+      },
+      {
+        "label": "NRU",
+        "name": "Nauru",
+        "source_name": "Nauru",
+        "kind": "country",
+        "iso3": "NRU"
+      },
+      {
+        "label": "NZL",
+        "name": "New Zealand",
+        "source_name": "New Zealand",
+        "kind": "country",
+        "iso3": "NZL"
+      },
+      {
+        "label": "OMN",
+        "name": "Oman",
+        "source_name": "Oman",
+        "kind": "country",
+        "iso3": "OMN"
+      },
+      {
+        "label": "PAK",
+        "name": "Pakistan",
+        "source_name": "Pakistan",
+        "kind": "country",
+        "iso3": "PAK"
+      },
+      {
+        "label": "PER",
+        "name": "Peru",
+        "source_name": "Peru",
+        "kind": "country",
+        "iso3": "PER"
+      },
+      {
+        "label": "PHL",
+        "name": "Philippines",
+        "source_name": "Philippines",
+        "kind": "country",
+        "iso3": "PHL"
+      },
+      {
+        "label": "PNG",
+        "name": "Papua New Guinea",
+        "source_name": "Papua New Guinea",
+        "kind": "country",
+        "iso3": "PNG"
+      },
+      {
+        "label": "POL",
+        "name": "Poland",
+        "source_name": "Poland",
+        "kind": "country",
+        "iso3": "POL"
+      },
+      {
+        "label": "PRT",
+        "name": "Portugal",
+        "source_name": "Portugal",
+        "kind": "country",
+        "iso3": "PRT"
+      },
+      {
+        "label": "PRY",
+        "name": "Paraguay",
+        "source_name": "Paraguay",
+        "kind": "country",
+        "iso3": "PRY"
+      },
+      {
+        "label": "QAT",
+        "name": "Qatar",
+        "source_name": "Qatar",
+        "kind": "country",
+        "iso3": "QAT"
+      },
+      {
+        "label": "ROU",
+        "name": "Romania",
+        "source_name": "Romania",
+        "kind": "country",
+        "iso3": "ROU"
+      },
+      {
+        "label": "ROW",
+        "name": "Rest of World",
+        "kind": "aggregate",
+        "members": [],
+        "membership_status": "not_mapped"
+      },
+      {
+        "label": "RUS",
+        "name": "Russia",
+        "source_name": "Russian Federation",
+        "kind": "country",
+        "iso3": "RUS"
+      },
+      {
+        "label": "RWA",
+        "name": "Rwanda",
+        "source_name": "Rwanda",
+        "kind": "country",
+        "iso3": "RWA"
+      },
+      {
+        "label": "SAU",
+        "name": "Saudi Arabia",
+        "source_name": "Saudi Arabia",
+        "kind": "country",
+        "iso3": "SAU"
+      },
+      {
+        "label": "SEN",
+        "name": "Senegal",
+        "source_name": "Senegal",
+        "kind": "country",
+        "iso3": "SEN"
+      },
+      {
+        "label": "SGP",
+        "name": "Singapore",
+        "source_name": "Singapore",
+        "kind": "country",
+        "iso3": "SGP"
+      },
+      {
+        "label": "SLB",
+        "name": "Solomon Islands",
+        "source_name": "Solomon Islands",
+        "kind": "country",
+        "iso3": "SLB"
+      },
+      {
+        "label": "SLE",
+        "name": "Sierra Leone",
+        "source_name": "Sierra Leone",
+        "kind": "country",
+        "iso3": "SLE"
+      },
+      {
+        "label": "SLV",
+        "name": "El Salvador",
+        "source_name": "El Salvador",
+        "kind": "country",
+        "iso3": "SLV"
+      },
+      {
+        "label": "SVK",
+        "name": "Slovakia",
+        "source_name": "Slovak Republic",
+        "kind": "country",
+        "iso3": "SVK"
+      },
+      {
+        "label": "SVN",
+        "name": "Slovenia",
+        "source_name": "Slovenia",
+        "kind": "country",
+        "iso3": "SVN"
+      },
+      {
+        "label": "SWE",
+        "name": "Sweden",
+        "source_name": "Sweden",
+        "kind": "country",
+        "iso3": "SWE"
+      },
+      {
+        "label": "SWZ",
+        "name": "Eswatini",
+        "source_name": "Swaziland",
+        "kind": "country",
+        "iso3": "SWZ"
+      },
+      {
+        "label": "SYC",
+        "name": "Seychelles",
+        "source_name": "Seychelles",
+        "kind": "country",
+        "iso3": "SYC"
+      },
+      {
+        "label": "TCD",
+        "name": "Chad",
+        "source_name": "Chad",
+        "kind": "country",
+        "iso3": "TCD"
+      },
+      {
+        "label": "TGO",
+        "name": "Togo",
+        "source_name": "Togo",
+        "kind": "country",
+        "iso3": "TGO"
+      },
+      {
+        "label": "THA",
+        "name": "Thailand",
+        "source_name": "Thailand",
+        "kind": "country",
+        "iso3": "THA"
+      },
+      {
+        "label": "TLS",
+        "name": "Timor-Leste",
+        "source_name": "Timor-Leste",
+        "kind": "country",
+        "iso3": "TLS"
+      },
+      {
+        "label": "TTO",
+        "name": "Trinidad and Tobago",
+        "source_name": "Trinidad and Tobago",
+        "kind": "country",
+        "iso3": "TTO"
+      },
+      {
+        "label": "TUN",
+        "name": "Tunisia",
+        "source_name": "Tunisia",
+        "kind": "country",
+        "iso3": "TUN"
+      },
+      {
+        "label": "TUR",
+        "name": "Türkiye",
+        "source_name": "Turkey",
+        "kind": "country",
+        "iso3": "TUR"
+      },
+      {
+        "label": "TWN",
+        "name": "Taiwan",
+        "source_name": "Chinese Taipei",
+        "kind": "country",
+        "iso3": "TWN"
+      },
+      {
+        "label": "TZA",
+        "name": "Tanzania",
+        "source_name": "Tanzania_United Republic of",
+        "kind": "country",
+        "iso3": "TZA"
+      },
+      {
+        "label": "UGA",
+        "name": "Uganda",
+        "source_name": "Uganda",
+        "kind": "country",
+        "iso3": "UGA"
+      },
+      {
+        "label": "UKR",
+        "name": "Ukraine",
+        "source_name": "Ukraine",
+        "kind": "country",
+        "iso3": "UKR"
+      },
+      {
+        "label": "URY",
+        "name": "Uruguay",
+        "source_name": "Uruguay",
+        "kind": "country",
+        "iso3": "URY"
+      },
+      {
+        "label": "USA",
+        "name": "United States",
+        "source_name": "United States",
+        "kind": "country",
+        "iso3": "USA"
+      },
+      {
+        "label": "VCT",
+        "name": "St. Vincent and the Grenadines",
+        "source_name": "Saint Vincent and the Grenadines",
+        "kind": "country",
+        "iso3": "VCT"
+      },
+      {
+        "label": "VNM",
+        "name": "Vietnam",
+        "source_name": "Viet Nam",
+        "kind": "country",
+        "iso3": "VNM"
+      },
+      {
+        "label": "VUT",
+        "name": "Vanuatu",
+        "source_name": "Vanuatu",
+        "kind": "country",
+        "iso3": "VUT"
+      },
+      {
+        "label": "WSM",
+        "name": "Samoa",
+        "source_name": "Samoa",
+        "kind": "country",
+        "iso3": "WSM"
+      },
+      {
+        "label": "ZAF",
+        "name": "South Africa",
+        "source_name": "South Africa",
+        "kind": "country",
+        "iso3": "ZAF"
+      }
+    ],
+    "individual_countries": 148,
+    "aggregate_count": 1,
+    "unresolved_count": 0,
+    "country_memberships": [],
+    "method": "Native ISO3 identifiers verified against the country registry; ROW retained as a global aggregate."
+  },
+  "coverage_signatures": {
+    "geography": "07b6d41c8da6bbdb885fb500a76c19eb6936694c4ac5c5663956e15c8ec1bff1",
+    "economic": "cc561b0edaad57375fb84df44a3649277fb90da3ea29a78ac2fe1d6da7e2604f"
+  },
+  "classifications": {
+    "status": "native_labels",
+    "native_classification": "CEDA sectors based on BEA. NAICS/NACE correspondences remain unverified.",
+    "mappings": []
+  },
+  "provenance": {
+    "method": "source_metadata",
+    "source_filename": "Open CEDA by Watershed.xlsx",
+    "source_sha256": "ba937a0f134543d921e65bd8aefb871e403355b61a3ee3316743a42c2e30bceb",
+    "source_url": "https://watershed.com/en-GB/solutions/ceda",
+    "methodology_url": "https://cdn.sanity.io/files/3ogo9b9g/production/70c90f1ce6449776c2987aafe205bf6239952776.pdf",
+    "source_release_date": "May 22nd, 2025",
+    "source_ranges": {
+      "Open CEDA": [
+        "B12:D14",
+        "B24:C26",
+        "E27:ON28",
+        "B29:C177"
+      ],
+      "Metadata": [
+        "A1:B401"
+      ]
+    },
+    "options": {
+      "unit": "Monetary"
+    },
+    "reading_scope": "Source metadata only; no MARIO parse or indicator values."
+  },
+  "source_url": "https://watershed.com/en-GB/solutions/ceda",
+  "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "attribution": "CEDA by Watershed. Metadata adapted from Open CEDA under CC BY-SA 4.0.",
+  "scope_note": "Open CEDA publishes characterized GHG emission factors. Raw satellite accounts, factors of production and final-demand categories are not supplied in this workbook. MARIO has no CEDA parser; indicators remain unavailable.",
+  "workbook": "_static/data/external_profiles/open-ceda-2024-2022-sets.xlsx",
+  "detail": "_static/data/external_profiles/open-ceda-2024-2022.json"
+}

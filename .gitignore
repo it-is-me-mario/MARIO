@@ -6,6 +6,8 @@ __pycache__/
 ~$*
 .vscode
 *.zip
+!doc/source/_static/data/supporting_files/iot_export_csv.zip
+!doc/source/_static/data/supporting_files/iot_export_parquet.zip
 amin_test.py
 temp_folder
 doc/build

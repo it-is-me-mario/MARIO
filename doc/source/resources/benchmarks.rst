@@ -1,5 +1,5 @@
-Analyses & benchmarks
-=====================
+Data explorer
+=================
 
 Applied analyses and reproducible comparisons built with MARIO. Explore how
 database choices and modelling assumptions affect the results.
