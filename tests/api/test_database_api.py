@@ -3363,6 +3363,21 @@ def test_plot_returns_flat_dataframe_for_iot_matrix():
     assert len(figure.data) > 0
 
 
+def test_plot_preserves_legacy_positional_title_and_return_data():
+    # Before 1.3, title and return_data followed log_y. New colour controls
+    # must not consume those positions in existing calls.
+    database = load_test("IOT")
+    figure, plotted = database.plot(
+        "Z", None, "baseline", None, "absolute", "heatmap", None,
+        None, "Value", None, None, None, None, None, None, None, None,
+        None, None, None, None, "sum", None, False, False, None,
+        "relative", False, False, "Legacy positional title", True,
+    )
+    assert figure.layout.title.text == "Legacy positional title"
+    assert isinstance(plotted, pd.DataFrame)
+    assert len(figure.data) == 1
+
+
 def test_plot_supports_sut_split_semantics():
     database = load_test("SUT")
 

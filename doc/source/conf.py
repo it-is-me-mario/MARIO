@@ -12,6 +12,8 @@
 #
 import os
 import sys
+from pathlib import Path
+from runpy import run_path
 from copy import deepcopy
 from datetime import datetime
 
@@ -93,7 +95,7 @@ copyright = f'{datetime.now().year}, Lorenzo Rinaldi, Mohammad Amin Tahavori, Ni
 author = 'Lorenzo Rinaldi, Mohammad Amin Tahavori, Nicolo Golinucci'
 
 # The full version, including alpha/beta/rc tags
-release = '1.2.0'
+release = run_path(str(Path(__file__).resolve().parents[2] / "mario" / "version.py"))["__version__"]
 
 
 # -- General configuration ---------------------------------------------------
@@ -169,7 +171,6 @@ exclude_patterns = [
     "user_guide/inspection/custom_labels.ipynb",
     "user_guide/advanced/change_settings.ipynb",
     "user_guide/advanced/large_database_workflows.ipynb",
-    "resources/changelog.rst",
     # The analysis index and its dedicated pages replace the previous single page.
     "resources/benchmarks.rst",
     # Coverage comparison and benchmarking will be redesigned; kept in the repo, out of the site.

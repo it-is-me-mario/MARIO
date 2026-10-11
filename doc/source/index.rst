@@ -73,3 +73,4 @@ MARIO
    resources/projects_publications
    resources/teaching
    resources/material
+   resources/changelog

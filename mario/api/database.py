@@ -4063,10 +4063,11 @@ class Database(CoreModel):
         barmode="relative",
         log_x=False,
         log_y=False,
-        log_color=False,
-        color_clip=None,
         title=None,
         return_data=False,
+        *,
+        log_color=False,
+        color_clip=None,
         **kwargs,
     ):
         """Build one interactive plot from a matrix or a prepared dataframe.
