@@ -26,9 +26,10 @@
    if(f==='OECD'){for(const p of rows)ids.add(p.id);continue;}
    const numeric=rows.filter(p=>/^\d+(\.\d+)*$/.test(revision(p))||f==='ADB');
    const release=revision(numeric.length?[...numeric].sort((a,b)=>f==='ADB'?parseInt(revision(b))-parseInt(revision(a)):revision(b).localeCompare(revision(a),undefined,{numeric:true}))[0]:[...rows].sort((a,b)=>Math.max(...years(b))-Math.max(...years(a)))[0]);
-   // Hybrid is an alternative unit classification, not superseded by monetary 3.x.
-   for(const unit of unique(rows.map(p=>p.units))){
-    const candidates=rows.filter(p=>p.units===unit), pool=candidates.filter(p=>revision(p)===release);
+   // Preserve alternative unit and scope structures alongside newer releases.
+   const scopeKey=p=>JSON.stringify([p.units,p.scope_group||'']);
+   for(const group of unique(rows.map(scopeKey))){
+    const candidates=rows.filter(p=>scopeKey(p)===group), pool=candidates.filter(p=>revision(p)===release);
     const chosen=pool.length?pool:[...candidates].sort((a,b)=>Math.max(...years(b))-Math.max(...years(a))).filter((p,i,all)=>revision(p)===revision(all[0]));
     for(const p of chosen)ids.add(p.id);
    }

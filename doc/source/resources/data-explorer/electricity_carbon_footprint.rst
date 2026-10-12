@@ -21,7 +21,10 @@ By country and data source
 Each marker is an estimate for one country from one source. Colour distinguishes
 natively monetary and natively physical factors; marker shape identifies the
 source. Change the year and scope, select countries, or use the legend to hide
-sources. The table and CSV export follow the active filters.
+sources. The table follows the active filters. Downloaded figures retain their source
+credit. For the published comparison data and their source-specific reuse terms,
+follow the article and repository links below; this page does not export an
+emission-factor dataset.
 
 .. container:: benchmark-wide
 

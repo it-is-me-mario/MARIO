@@ -1,7 +1,26 @@
 /* Pure selection and calculation helpers, shared by the browser and its tests. */
 ((global) => {
   "use strict";
-  const version = r => r.source === "WIOD" ? [r.release,r.price_basis || "Current prices",r.table || r.parser_options?.table || "IOT"].join(" · ") : (r.source === "ADB" || r.source === "EMERGING" || r.source === "OECD" && r.parser_options?.dataset === "ICIO") ? String(r.release) : [r.release, r.parser_options?.unit === "Hybrid" ? `hybrid ${r.parser_options?.table || r.table || "SUT"}` : r.table==="SUT" || r.parser_options?.table==="SUT" ? "SUT" : r.parser_options?.system || (r.parser_options?.iot_mode==="product"?"pxp":r.parser_options?.iot_mode==="industry"?"ixi":null) || (r.source==="EXIOBASE"&&r.parser_options?.table==="SUT"?"SUT":r.dimension)].filter(Boolean).join(" · ");
+  // Build-generated summaries share recipes, geography and correspondences.
+  // They retain whole-economy totals; sector vectors are loaded on demand.
+  function unpackBrowserIndex(index) {
+    if (index.schema_version !== 1) throw new Error("Unsupported browser data format");
+    const snapshots = index.readings.map(reading => ({
+      metadata_only: true, summary_only: true, availability: reading.availability,
+      recipe: Object.fromEntries(Object.entries(reading.recipe).map(([key, i]) => [key, index.recipe_values[key][i]])),
+      regions: index.geographies[reading.geography].map((region, i) => ({...region,
+        gdp: reading.totals[i][0], value_added_total: reading.totals[i][1],
+        ghg_total: reading.totals[i][2], household_ghg: reading.totals[i][3]})),
+      ...(reading.gdp_validation ? {provenance: {gdp_bridge: {validation: reading.gdp_validation}}} : {})
+    }));
+    const mappings = Object.fromEntries(Object.entries(index.mappings).map(([id, i]) => [id, index.mapping_values[i]]));
+    return {snapshots, mappings};
+  }
+  const needsDetailedReading = (snapshot, state) => snapshot.metadata_only === true &&
+    !(Array.isArray(state.section) && !state.section.length) &&
+    !(Array.isArray(state.country) && !state.country.length) &&
+    !(snapshot.summary_only === true && state.section === "all");
+  const version = r => r.source === "WIOD" ? [r.release,r.price_basis || "Current prices",r.table || r.parser_options?.table || "IOT"].join(" · ") : (r.source === "ADB" || r.source === "EMERGING" || r.source === "EORA" || r.source === "OECD" && r.parser_options?.dataset === "ICIO") ? String(r.release) : [r.release, r.parser_options?.unit === "Hybrid" ? `hybrid ${r.parser_options?.table || r.table || "SUT"}` : r.table==="SUT" || r.parser_options?.table==="SUT" ? "SUT" : r.parser_options?.system || (r.parser_options?.iot_mode==="product"?"pxp":r.parser_options?.iot_mode==="industry"?"ixi":null) || (r.source==="EXIOBASE"&&r.parser_options?.table==="SUT"?"SUT":r.dimension)].filter(Boolean).join(" · ");
   const seriesKey = r => JSON.stringify([r.source, ...Object.values(recipeFacets(r))]);
   const key = r => r.iso3 || r.code;
   const unique = xs => [...new Set(xs)];
@@ -136,6 +155,10 @@
     const r = snapshot.recipe;
     let result;
     if (state.metric === "gdp") result = region.gdp ?? null;
+    else if (snapshot.summary_only) {
+      // Never substitute a whole-economy total for a requested sector.
+      result = state.section === "all" ? region[state.metric + "_total"] ?? null : null;
+    }
     else {
       const indices = sectorIndices(snapshot, mapping, state.section, state.metric);
       result = region[state.metric] && indices.length ? indices.reduce((sum,i) => sum + region[state.metric][i], 0) : null;
@@ -206,7 +229,7 @@
       const v=entry?.years[String(year)];
       const report=world||state.perCapita;
       if(v!=null)rows.push({series:"EDGAR",database:"EDGAR",version:"2026 · AR5",year,country,country_name:world?"World":entry.name,
-        indicator:"ghg",sector:"all",classification:"",unit:unit(state),value:v,world_bank:null,difference_percent:null,
+        indicator:"ghg",sector:"all",classification:"",unit:unit(state),value:v,gwp_basis:edgar.gwp||"",world_bank:null,difference_percent:null,
         source_url:report?edgar.report.source_url:edgar.source_url,download_url:report?edgar.report.download_url:edgar.download_url,
         gwp_basis:"IPCC AR5",gwp_horizon:100,basis:"Territorial GHG; excludes LULUCF; AR5 GWP100",note:"Published reference, unchanged; household emissions included. Different boundary from MRIO accounts; some source territories are grouped."});
     }
@@ -215,12 +238,41 @@
   function automaticView(snapshots, state) {
     return selectedYears(snapshots,state).length>1?"series":"comparison";
   }
+  function exportRows(rows,snapshots,state,scale,charts) {
+    // References remain in the chart. Export only selected MRIO observations;
+    // in particular, do not redistribute re-scaled IEA-EDGAR reference cells.
+    const result=rows.filter(r=>!isReference(r)).map(r=>{
+      const recipe=snapshots.find(s=>s.recipe.source===r.database&&version(s.recipe)===r.version&&s.recipe.year===r.year)?.recipe;
+      const fx=state.metric!=="ghg"&&recipe?.currency&&recipe.currency!=="USD";
+      const ecu=fx&&recipe.currency==="EUR"&&r.year<1999;
+      const wbInputs=[...(fx&&!ecu?["official exchange rates (PA.NUS.FCRF)"]:[]),...(state.perCapita?["population (SP.POP.TOTL)"]:[])];
+      const inputSources=[...(wbInputs.length?["World Bank, World Development Indicators: "+wbInputs.join("; ")+". CC BY 4.0."]:[]),...(ecu?["Eurostat annual EUR/ECU exchange rates; Eurostat data reuse policy."]:[])];
+      return {database:r.database,version:r.version,units:r.units||"",table_format:r.format||"",system:r.system||"",price_basis:r.price||"",year:r.year,country:r.country||state.country,
+        indicator:state.metric,sector:Array.isArray(r.sector)?r.sector.join("; "):r.sector||state.section,
+        classification:r.classification||"",value:charts.scaled(r.value,scale),unit:scale.unit,
+        basis:r.basis||"",gwp_basis:r.gwp_basis||"",gwp_horizon:r.gwp_horizon??"",note:r.note||"",
+        source_url:recipe?.source_url||"",source_license_url:recipe?.license_url||"",attribution:recipe?.attribution||recipe?.label||"",
+        additional_inputs:inputSources.join(" "),additional_input_terms:[...(wbInputs.length?["https://datacatalog.worldbank.org/public-licenses"]:[]),...(ecu?["https://ec.europa.eu/eurostat/help/copyright-notice"]:[])].join("; "),
+        changes:"MARIO-derived aggregate; see accounting basis and method. Monetary conversion and per-capita adjustment apply where selected; any additional input providers are credited. Reference observations are not included."};
+    });
+    if(result.length)for(const key of Object.keys(result[0])) {
+      if(result.every(row=>row[key]===""))for(const row of result)delete row[key];
+    }
+    return result;
+  }
   function pythonStart(snapshot, state, mapping) {
     const r = snapshot.recipe;
     const py = x => x === true ? "True" : x === false ? "False" : x == null ? "None" : JSON.stringify(x);
     const options = Object.entries(r.parser_options).map(([k,v]) => `${k}=${py(k.endsWith("path") ? "/path/to/"+k : v)}`).join(", ");
     const country = isWorld(state.country)?"World (sum every native region once, including RoW)":findRegion(snapshot,state.country)?.code || state.country;
-    const lines = ["import mario", "", `# ${r.label}, ${r.year}. Set the path to your local source file/folder.`,
+    const lines = [
+      "# MARIO example · GPL-3.0: https://github.com/it-is-me-mario/MARIO/blob/main/LICENSE",
+      "# This is a native-data starting point, not an exact reproduction of the browser CSV.",
+      `# Source: ${r.source_url || "consult the selected publisher release"}`,
+      `# Source data terms: ${r.license_url || "consult the selected publisher release"}`,
+      `# Attribution: ${r.attribution || r.label}`,
+      "# Obtain your own source files under their licence; no source data are embedded here.",
+      "", "import mario", "", `# ${r.label}, ${r.year}. Set the path to your local source file/folder.`,
       `db = mario.${r.parser}(path="/path/to/database", ${options ? options+", " : ""}calc_all=False)`, ""];
     if (state.metric === "ghg") {
       lines.push("# "+r.ghg_method, "# Factors include the conversion from native units to tonnes CO2eq.", "gwp = {");
@@ -261,7 +313,17 @@
     lines.push("# This is a MARIO starting point; the CSV contains the finished browser selection.", "");
     return lines.join("\n");
   }
-  const api = {isMRIO, countryOptions, metricAvailableForSelection, recipeFacets, focusFacets, isWorld, isGlobal, regionKey, findRegion, regionChoices, metricAvailable, worldValue, isReference, includes, selectedYears, latestVersions, version, seriesKey, key, unique, reference, selected, years, sectorIndices, value, basis, unit, observations, automaticView, pythonStart};
+  // Characterisation convention of one GHG row, from its declared GWP basis.
+  function gwpConvention(row){
+    const text=row.gwp_basis||"",horizon=row.gwp_horizon??(Number(text.match(/GWP\s*(\d+)/i)?.[1])||null),report=text.match(/AR(\d)/)?.[1];
+    if(/CO2 only/i.test(text))return {key:"co2",label:"fossil CO2 only, GWP = 1"};
+    if(/CO2, CH4, N2O only/i.test(text))return {key:"AR5-three-gas",label:"AR5 for CO₂/CH₄/N₂O only"};
+    if(/source HFC\/PFC CO2eq retained/i.test(text))return {key:"AR5-mixed-HFC",label:"AR5 for mass gases; source HFC/PFC basis unverified"};
+    if(/other F-gases unverified/i.test(text))return {key:"AR5-core",label:"native CO₂eq; AR5 GWP100 for principal gases"};
+    if(report&&horizon)return {key:`AR${report}-${horizon}`,label:`GWP${horizon}, IPCC AR${report}`};
+    return {key:"source",label:"source CO2eq; IPCC report and horizon unverified"};
+  }
+  const api = {unpackBrowserIndex, gwpConvention, needsDetailedReading, isMRIO, countryOptions, metricAvailableForSelection, recipeFacets, focusFacets, isWorld, isGlobal, regionKey, findRegion, regionChoices, metricAvailable, worldValue, isReference, includes, selectedYears, latestVersions, version, seriesKey, key, unique, reference, selected, years, sectorIndices, value, basis, unit, observations, automaticView, exportRows, pythonStart};
   if (typeof module !== "undefined") module.exports = api;
   else global.MarioEconomy = api;
 })(globalThis);

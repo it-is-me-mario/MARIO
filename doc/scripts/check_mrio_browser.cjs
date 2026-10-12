@@ -17,7 +17,7 @@ const out=process.env.MARIO_DOCS_QA_DIR||path.join(os.tmpdir(),'mario-mrio-brows
  const root=page.locator('[data-economy-browser]');
  const ready=()=>page.waitForFunction(()=>document.querySelector('[data-economy-browser]')?.getAttribute('aria-busy')==='false',{},{timeout:60000});
  await ready();
- assert.match(await page.locator('body').innerText(),/multi-regional input/);
+ assert.match(await page.locator('.explorer-intro > p').first().innerText(),/MRIO databases/);
  assert.deepEqual(await root.locator('[data-compare-family]').evaluateAll(ns=>ns.map(n=>n.value).sort()),['ADB','EMERGING','EXIOBASE','FIGARO','GLORIA','OECD','WIOD']);
  const env=root.locator('[data-bulk-action="env-extended"]');
  await env.click();await ready();
@@ -26,6 +26,7 @@ const out=process.env.MARIO_DOCS_QA_DIR||path.join(os.tmpdir(),'mario-mrio-brows
  for(const family of ['OECD','FIGARO','WIOD'])assert.equal(await root.locator(`[data-compare-family][value="${family}"]`).evaluate(n=>n.disabled),true);
  await root.locator('[data-metric]').selectOption('ghg');await ready();
  assert.match(await root.locator('[data-heading]').innerText(),/GHG emissions/);
+ assert.match(await root.locator('[data-chart]').evaluate(n=>n.layout.title.subtitle.text),/Mixed GHG methods/);
  await root.locator('[data-expand-family="ADB"]').click();await ready();
  assert.ok(await root.locator('[data-compare-facet="ADB"][data-facet-key="version"]').evaluateAll(ns=>ns.every(n=>n.checked)));
  const adbOptions=await root.locator('[data-compare-facet="ADB"]').allTextContents();
@@ -59,9 +60,10 @@ const out=process.env.MARIO_DOCS_QA_DIR||path.join(os.tmpdir(),'mario-mrio-brows
  assert.equal(await root.locator('[data-metric] option[value="gdp"]').evaluate(n=>n.disabled),false);
  assert.equal(await root.locator('[data-metric] option[value="ghg"]').evaluate(n=>n.disabled),false);
  await root.locator('[data-metric]').selectOption('ghg');await ready();
+ assert.match(await root.locator('[data-chart]').evaluate(n=>n.layout.legend.title.text),/AR5 GWP100 for principal gases/);
  assert.ok((await root.locator('[data-source] a').evaluateAll(ns=>ns.map(n=>n.href))).includes('https://creativecommons.org/licenses/by-nc/3.0/au/'));
  assert.match(await root.locator('[data-context]').textContent(),/CC BY-NC 3.0/);
- assert.match(await root.locator('[data-indicator-note]').innerText(),/unverified/);
+ assert.match(await root.locator('[data-indicator-details]').textContent(),/unverified/);
  await root.screenshot({path:out+'/gloria-focus-dark.png'});
  await root.locator('[data-picker="year"] > summary').click();
  await root.locator('[data-bulk-filter="year"][data-bulk-action="clear"]').click();await ready();

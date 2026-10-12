@@ -40,7 +40,7 @@ test('GLORIA keeps native GHG characterisation, observed EY and global aggregate
  assert.equal(s.regions.filter(r=>r.kind==='aggregate').length,4);
  assert.equal(s.regions.find(r=>r.code==='SDS').iso3,'SSD');
  assert.equal(s.recipe.ghg_factors["Emissions (EDGAR) | 'GHG_total_EDGAR_consistent'"],1000);
- assert.match(s.recipe.gwp_basis,/unverified/);assert.ok(M.isGlobal(s));
+ assert.match(s.recipe.gwp_basis,/AR5 GWP100 verified/);assert.ok(M.isGlobal(s));
  assert.equal(M.value(s,r,{...state(),metric:'gdp'},wb,mapping),r.gdp);
  assert.equal(r.gdp,r.value_added.reduce((a,b)=>a+b,0)+r.net_product_taxes);
  assert.equal(s.recipe.tax_bridge,'gloria_valuations');
@@ -57,16 +57,17 @@ test('GLORIA keeps native GHG characterisation, observed EY and global aggregate
 });
 test('GLORIA annual readings expose all metrics and subsets with one shared native-set profile',()=>{
  const series=snapshots.filter(s=>s.recipe.source==='GLORIA').sort((a,b)=>a.recipe.year-b.recipe.year);
- assert.deepEqual(series.map(s=>s.recipe.year),[2022,2023,2024]);
+ assert.deepEqual(series.map(s=>s.recipe.year),[2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025]);
  const catalogue=JSON.parse(fs.readFileSync(path.join(root,'doc/source/_static/data/database_profiles.json')));
- const profiles=catalogue.profiles.filter(p=>p.source==='GLORIA');assert.equal(profiles.length,1);assert.deepEqual(profiles[0].years,[2022,2023,2024]);
- const scope=json('country-scope').profiles.filter(p=>p.family==='GLORIA');assert.equal(scope.length,1);assert.deepEqual(scope[0].years,[2022,2023,2024]);
+ const profiles=catalogue.profiles.filter(p=>p.source==='GLORIA');assert.equal(profiles.length,1);assert.deepEqual(profiles[0].years,[2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025]);
+ const scope=json('country-scope').profiles.filter(p=>p.family==='GLORIA');assert.equal(scope.length,1);assert.deepEqual(scope[0].years,[2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025]);
  for(const s of series){
   assert.deepEqual(s.recipe.sectors,series[0].recipe.sectors);assert.ok(s.recipe.gdp_bridge_verified);
   const cfg={...state(),families:['GLORIA'],versions:{GLORIA:'all'},year:s.recipe.year,country:'ITA',metric:'gdp'};
   const italy=s.regions.find(r=>r.iso3==='ITA');assert.equal(M.value(s,italy,cfg,wb,mappings[s.recipe.id]),italy.gdp);
-  assert.equal(M.value(s,italy,{...cfg,perCapita:true},wb,mappings[s.recipe.id]),italy.gdp/wb.countries.ITA.years[String(s.recipe.year)].population);
-  const total=M.worldValue(s,{...cfg,country:'world'},wb,mappings[s.recipe.id]);assert.ok(total>1e14&&total<1.2e14);
+  const population=wb.countries.ITA.years[String(s.recipe.year)]?.population;
+  assert.equal(M.value(s,italy,{...cfg,perCapita:true},wb,mappings[s.recipe.id]),population>0?italy.gdp/population:null);
+  const total=M.worldValue(s,{...cfg,country:'world'},wb,mappings[s.recipe.id]);assert.ok(total>3e13&&total<2e14);
   for(const metric of ['gdp','value_added','ghg'])assert.ok(M.metricAvailable([s],metric));
   assert.equal(mappings[s.recipe.id].entries.length,120);
  }
@@ -561,11 +562,21 @@ test('reviewed EXIOBASE source errors are gaps, never totals or replacement read
  const good=snapshots.find(s=>s.recipe.id==='exiobase-3102-2022-ixi');
  assert.ok(M.metricAvailable([good],'ghg'));
  const total=M.worldValue(good,{...config,year:2022},wb,mappings[good.recipe.id]);
- assert.ok(Math.abs(total-47485.97174)<1);
+ assert.ok(Math.abs(total-47384.56217)<1);
  const manifest=json('manifest');
  for(const s of bad){
   const d=manifest.datasets.find(d=>d.id===s.recipe.id);
   const lazy={metadata_only:true,recipe:{...manifest.templates[d.template].recipe,...d},regions:manifest.templates[d.template].regions,availability:d.availability};
   assert.equal(M.metricAvailable([lazy],'ghg'),false);
  }
+});
+
+test('GHG rows are grouped by their declared IPCC report and GWP horizon',()=>{
+ assert.deepEqual(M.gwpConvention({gwp_basis:'AR5 (EDGAR CH4=28); source HFC/PFC CO2eq retained',gwp_horizon:100}),{key:'AR5-mixed-HFC',label:'AR5 for mass gases; source HFC/PFC basis unverified'});
+ assert.deepEqual(M.gwpConvention({gwp_basis:'AR5 (CO2, CH4, N2O only; mixed CH4 origins)',gwp_horizon:100}),{key:'AR5-three-gas',label:'AR5 for CO₂/CH₄/N₂O only'});
+ assert.deepEqual(M.gwpConvention({gwp_basis:'IPCC AR5 (source-characterised)',gwp_horizon:100}),{key:'AR5-100',label:'GWP100, IPCC AR5'});
+ assert.equal(M.gwpConvention({gwp_basis:'IPCC AR5 GWP100'}).key,'AR5-100');
+ assert.equal(M.gwpConvention({gwp_basis:'CO2 only (GWP = 1 under AR5 and AR6)',gwp_horizon:100}).key,'co2');
+ assert.equal(M.gwpConvention({gwp_basis:'Source CO2eq; IPCC report/horizon unverified',gwp_horizon:null}).key,'source');
+ assert.deepEqual(M.gwpConvention({gwp_basis:'Native CO2eq; IPCC AR5 GWP100 verified for CH4; other F-gases unverified',gwp_horizon:100}),{key:'AR5-core',label:'native CO₂eq; AR5 GWP100 for principal gases'});
 });

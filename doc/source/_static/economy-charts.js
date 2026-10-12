@@ -28,7 +28,13 @@
     return Math.max(1,Math.floor(gap*Math.abs(pixelsPerYear)*.45));
   }
   const scatterMarkerSize = count => Math.max(7.5, Math.min(15, 32 / Math.sqrt(Math.max(1, count))));
-  const usesBars=(rows,state,years)=>years.length<=1 || (["focus","country"].includes(state.mode)&&new Set(rows.filter(row=>!isReference(row)).map(row=>row.series || row.version)).size<=1);
+  function usesBars(rows,state,years) {
+    if(years.length<=1)return true;
+    const primary=rows.filter(row=>!isReference(row));
+    const readings=new Set(primary.map(row=>JSON.stringify([row.database,row.series || row.version])));
+    const databases=state.families?.length ?? new Set(primary.map(row=>row.database)).size;
+    return readings.size<=1 && (["focus","country"].includes(state.mode) || (state.mode==="compare"&&databases===1));
+  }
   function figure(rows, options) {
     const {state, years, colors, catalogue = []} = options;
     const scale = scaleFor(rows, state, options.nativeUnit);
@@ -37,14 +43,14 @@
     if (!primary.length) return {data:[], scale};
     const temporal = years.length > 1;
     const markerSize = scatterMarkerSize(new Set(primary.map(row => row.year)).size);
-    // Several sector aggregates stack within each single-year bar; over time they stay separate series.
+    // Sector aggregates stack within bars; years alone do not require a scatter plot.
     const sectors = [...new Set(primary.map(row => row.sector ?? "all"))], stacked = sectors.length > 1;
-    const bars=usesBars(rows,state,years) && !(stacked && temporal);
+    const bars=usesBars(rows,state,years);
     const countries = [...new Set(primary.map(row => row.country))];
     const referenceLines=bars&&!temporal;
     // A single-year reference uses the value axis vertically so its line spans the plot horizontally.
     const horizontal = bars && !temporal && primary.length > 7 && !references.length;
-    const compactLegend=!temporal;
+    const compactLegend=!temporal || (stacked&&bars);
     const barGroups=[...new Set(primary.map(row=>JSON.stringify([row.series,row.country])))];
     const barOffset=row=>(barGroups.indexOf(JSON.stringify([row.series,row.country]))-(barGroups.length-1)/2)*.7/barGroups.length;
     const groups = new Map();
@@ -155,6 +161,7 @@
         trace.marker = {color,line:{color:stacked?colors.background:color,width:stacked?.6:1},...(focus&&first.units==="Hybrid"&&!stacked?{color:"transparent"}:{} )};
         trace.width = bars&&temporal ? .7/barGroups.length : .55;
         if(temporal)trace.offset=countryOffset-trace.width/2;
+        if(stacked)trace.offsetgroup=JSON.stringify([first.series,first.country]);
       } else {
         trace.mode = "markers";
         trace.marker = reference
@@ -201,7 +208,7 @@
       margin:{l:horizontal ? 175 : 76,r:22,t:36,b:bottom},
       hovermode:horizontal ? "y unified" : "x unified", hoverdistance:10,
       hoverlabel:{bgcolor:colors.surface,bordercolor:colors.grid,font:{family:colors.font,color:colors.ink,size:12},namelength:-1},
-      dragmode:"zoom", showlegend:true, barmode:stacked && bars && !temporal ? "stack" : "overlay", shapes:[...shapes,...brackets], annotations,
+      dragmode:"zoom", showlegend:true, barmode:stacked && bars ? "stack" : "overlay", shapes:[...shapes,...brackets], annotations,
       legend:{maxheight:.25,orientation:"h",y:hierarchy.length ? -(depth+14)/(height-36-bottom) : -.2,x:0,xanchor:"left",yanchor:"top",font:{size:11},itemclick:"toggle",itemdoubleclick:"toggleothers",groupclick:compactLegend?"togglegroup":"toggleitem"},
       uirevision:options.revision,
       xaxis:temporal ? {type:"linear",title:{text:"Year",font:{size:12}},tickformat:"d",dtick:Math.max(1,Math.ceil((years.at(-1)-years[0])/7)),showgrid:false,automargin:true,unifiedhovertitle:{text:"<b>%{x:.0f}</b>"}} : horizontal ? numberAxis : categoryAxis,

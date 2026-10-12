@@ -9,7 +9,13 @@ HERE=Path(__file__).resolve().parent
 DOC=HERE.parents[1]
 sys.path[:0]=[str(DOC/'scripts'),str(HERE)]
 from build_economy_browser import publish as publish_indicators
-from build_sectoral_scope import build as build_sectoral, enrich_country_scope
+
+SOURCE_COVERAGE = {
+    'first_year': 1990, 'last_year': 2029, 'forecast_from': 2024,
+    'source_document': 'GLORIA_ReleaseNotes_060.pdf',
+    'source_url': 'https://ielab.info/resources/gloria/supportingdocs',
+}
+SOURCE_COVERAGE_NOTE = 'Publisher series: 1990–2029; 2024–2029 are forecasts in the v060 release notes. Only the listed local years are verified in this explorer.'
 
 
 def read(path):return json.loads(path.read_text())
@@ -52,11 +58,12 @@ def prepare(stage,doc):
     group['readings']=[{'id':s['recipe']['id'],'year':s['recipe']['year'],'source_url':s['recipe']['source_url'],
         'counts':original['counts'],'precision':s['recipe'].get('parser_options',{}).get('dtype','float32'),
         'source_members':{k:s['provenance'].get(k) for k in ['economic_members','satellite_members'] if s['provenance'].get(k)}} for s in ordered]
-    group['scope_note']='GLORIA 060 / '+', '.join(map(str,group['years']))+': identical native sets verified across readings. GDP includes signed product-tax valuations; native GHG characterisation is retained.'
+    group['source_coverage'] = SOURCE_COVERAGE
+    group['scope_note']='GLORIA 060 / '+', '.join(map(str,group['years']))+': identical native sets verified across readings. GDP includes signed product-tax valuations; native GHG characterisation is retained. '+SOURCE_COVERAGE_NOTE
     write(out/'database_profiles'/f"{group['id']}.json",group)
     workbook=stage/'workbook'/group['id'];write(workbook/'profile.json',group)
     catalogue=read(data/'database_profiles.json');summary=next(p for p in catalogue['profiles'] if p['id']==group['id'])
-    for key in ['label','years','scope_note']:summary[key]=group[key]
+    for key in ['label','years','scope_note','source_coverage']:summary[key]=group[key]
     write(out/'database_profiles.json',catalogue)
     mappings=read(data/'economy/sector-sections.json');base=mappings['mappings'][group['id']]
     for snapshot in snapshots:
@@ -70,11 +77,17 @@ def prepare(stage,doc):
     ids=[s['recipe']['id'] for s in ordered]
     target.update(years=group['years'],reading_ids=ids,reading_years={s['recipe']['id']:s['recipe']['year'] for s in ordered},
         availability={id:by_id[id]['availability'] for id in ids},
-        indicator_flags={s['recipe']['id']:{k:bool(s['recipe'].get(k)) for k in ['gdp_proxy','ghg_proxy']} for s in ordered},scope_note=group['scope_note'])
+        indicator_flags={s['recipe']['id']:{k:bool(s['recipe'].get(k)) for k in ['gdp_proxy','ghg_proxy']} for s in ordered},scope_note=group['scope_note'],source_coverage=group['source_coverage'])
     write(economy/'country-scope.json',scope)
-    sectoral=build_sectoral(doc/'classifications/sectoral',scope)
+    # An annual refresh changes availability, not reviewed concordances or
+    # display policies. Rebuilding the graph here would overwrite later
+    # editorial review (e.g. GTAP Power placement and Hybrid defaults).
+    sectoral=read(data/'economy/sectoral-scope.json')
+    for columns in sectoral['columns'].values():
+        for column in columns:
+            if column['family']=='GLORIA':
+                column['years']=group['years']
     write(economy/'sectoral-scope.json',sectoral)
-    write(economy/'country-scope.json',enrich_country_scope(scope,sectoral))
     write(stage/'publication.json',{'new_ids':list(new),'shared_profile':group['id'],'years':group['years'],'native_signature':signature(group)})
     print('Prepared GLORIA',group['years'],'with one native-set profile')
 

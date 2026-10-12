@@ -24,7 +24,7 @@ for(const variant of ['standard','power']){
   ['Reference years',p.years.join(', ')],['Regions',p.counts.Region],['Individual countries',p.geography.individual_countries],['Aggregate regions',p.geography.aggregate_count],['Native sectors',p.counts.Sector],
   ['MARIO parser',p.parser_supported?'Power MRIO supported':'Standard distribution unsupported'],['Numerical indicators','Not published: proprietary GTAP licence'],
   ['Satellite / factor / final-demand sets','Not loaded in this metadata-only inventory'],
-  ['Scope source',p.source_url],['Licence',p.license_url],['Classification routes','Public concordances and qualified nxbase reviews in Data explorer'],
+  ['Scope source',p.source_url],['Licence',p.license_url],['Classification routes','Public concordances and qualified nxbase reviews in Database explorer'],
   ['Reference years source','https://jgea.org/ojs/index.php/jgea/article/view/344']
  ],[40,105]);
  const regions=table('Regions','GTAP 12 reporting regions',['Native code','Native name','Representation'],p.geography.regions.map(r=>[r.label,r.source_name||r.name,r.kind]),[19,51,24]);

@@ -152,6 +152,8 @@ def _metrics_html(group, *, tiles=False):
 
 
 def _workbook_url(app, docname, profile):
+    if profile.get("workbook_allowed") is False or profile.get("guide") == "eora":
+        return None  # No permission to redistribute the complete source inventory.
     if not (Path(app.srcdir) / profile["workbook"]).is_file():
         logger.warning("Database profile %s has no workbook", profile["id"], location=docname)
         return None
@@ -191,29 +193,206 @@ def _download_html(app, docname, group):
             variant = profile.get("provenance", {}).get("options", {}).get("system")
             label += " · " + (variant or profile["label"])
         links.append(f'<a class="database-profile-download" href="{html.escape(url)}" download title="{html.escape(profile["label"])}" data-profile-id="{html.escape(profile["id"])}">{html.escape(label)}</a>')
+    if not links:
+        publisher_links = []
+        for profile in group:
+            url = profile.get('source_structure_url') or profile.get('source_url')
+            if not url:
+                continue
+            label = 'Source structure Excel ↗' if profile.get('source_structure_url') else 'Publisher metadata ↗'
+            note = profile.get('scope_note', '')
+            link = f'<a href="{html.escape(url)}" title="{html.escape(note)}">{label}</a>'
+            if link not in publisher_links:
+                publisher_links.append(link)
+        if publisher_links:
+            return ' · '.join(publisher_links)
+        if any(p.get('guide') == 'eora' for p in group):
+            return '<a href="https://new.worldmrio.com/documentation/">Publisher metadata ↗</a>'
     content = '<span class="database-excel-links">' + ''.join(links) + '</span>'
     if len(links) > 4:
         content = f'<details class="database-excel-years"><summary>Excel · {len(links)} files</summary>{content}</details>'
     return content
 
 
-def _summary_html(app, docname, guide, profiles, *, compact=False):
-    verified = [p for p in profiles if p.get("status") in {"parsed", "source_verified"} and p.get("parser_supported", True) and p["guide"] == guide]
-    if not verified:
+def _profile_years(profiles):
+    return sorted({int(year) for p in profiles
+                   for year in (p.get("years") or [p.get("year")]) if year})
+
+
+def _guide_economic_counts(profile):
+    """Expose economic roles without changing MARIO's native IOT Sector set."""
+    counts = {key: count for key, count in profile["counts"].items()
+              if key in {"Region", "Sector", "Activity", "Commodity"}}
+    options = profile.get("provenance", {}).get("options", {})
+    system = options.get("system") or {"industry": "ixi", "product": "pxp"}.get(options.get("iot_mode"))
+    if "Sector" in counts and system in {"ixi", "pxp"}:
+        counts["Activity" if system == "ixi" else "Commodity"] = counts.pop("Sector")
+    return counts
+
+
+def _count_label(values):
+    values = sorted(set(values))
+    if not values:
+        return "—"
+    if len(values) == 1:
+        return f"{values[0]:,}"
+    return f"{values[0]:,}–{values[-1]:,}"
+
+
+def _sheet_rows(profiles):
+    """Combine years and systems, then merge formats with the same year coverage."""
+    variants = {}
+    for profile in _ordered_profiles(profiles):
+        key = (profile.get("release", ""), profile["table"], profile.get("price_basis", ""))
+        variants.setdefault(key, []).append(profile)
+    rows = {}
+    for (release, table, price), group in variants.items():
+        key = (release, price, tuple(_profile_years(group)))
+        row = rows.setdefault(key, {"release": release, "price": price, "years": key[2], "formats": [], "profiles": []})
+        row["formats"].append(table)
+        row["formats"].sort()
+        row["profiles"].extend(group)
+    return list(rows.values())
+
+
+def _sheet_count_html(profiles):
+    labels = {"Region": "regions", "Activity": "activities", "Commodity": "commodities", "Sector": "IOT sectors"}
+    metrics = []
+    for key, label in labels.items():
+        values = [p[key] for profile in profiles if key in (p := _guide_economic_counts(profile))]
+        if not values:
+            continue
+        hint = ""
+        if key == "Region":
+            geography = {(p.get("geography", {}).get("individual_countries"), p.get("geography", {}).get("aggregate_count")) for p in profiles}
+            if len(geography) == 1:
+                individual, aggregate = next(iter(geography))
+                if individual is not None and aggregate is not None and individual + aggregate == values[0]:
+                    hint = f"{individual} individual · {aggregate} aggregate"
+        metrics.append(f'<div><dt>{html.escape(label)}</dt><dd>{_count_label(values)}</dd>{f"<small>{hint}</small>" if hint else ""}</div>')
+    return '<dl class="database-sheet__metrics">' + ''.join(metrics) + '</dl>'
+
+
+def _other_sets_html(profiles):
+    dimensions = {"Factor of production": "Factors of production", "Satellite account": "Satellite accounts", "Consumption category": "Consumption categories"}
+    dimensions = {key: label for key, label in dimensions.items() if any(key in p["counts"] for p in profiles)}
+    if not dimensions:
         return ""
-    groups = geographic_groups(verified)
+    parts = ['<details class="database-sheet__sets"><summary>Other sets</summary><dl class="database-sheet__facts">']
+    varying = []
+    for key, label in dimensions.items():
+        values = {p["counts"][key] for p in profiles if key in p["counts"]}
+        value = "Not loaded" if values == {0} and key == "Satellite account" else _count_label(values)
+        parts.append(f'<div><dt>{label}</dt><dd>{value}</dd></div>')
+        if len(values) > 1:
+            varying.append(key)
+    parts.append('</dl>')
+    if varying:
+        # One row per release/format, never one per year or ixi/pxp inventory file.
+        groups = {}
+        for profile in _ordered_profiles(profiles):
+            key = (profile.get("release", ""), profile["table"], profile.get("price_basis", ""))
+            groups.setdefault(key, []).append(profile)
+        parts.append('<div class="database-sheet__table" tabindex="0" role="region" aria-label="Set counts by table"><table><thead><tr><th scope="col">Table</th>')
+        parts.extend(f'<th scope="col">{dimensions[key]}</th>' for key in varying)
+        parts.append('</tr></thead><tbody>')
+        for (release, table, price), group in groups.items():
+            label = ' · '.join(filter(None, (release, table, price)))
+            parts.append(f'<tr><th scope="row">{html.escape(label)}</th>')
+            for key in varying:
+                values = [p["counts"][key] for p in group if key in p["counts"]]
+                parts.append(f'<td>{_count_label(values)}</td>')
+            parts.append('</tr>')
+        parts.append('</tbody></table></div>')
+    parts.append('<p class="database-sheet__note">Counts refer to the inventories listed here. Optional extensions and the reference year can change the satellite set; Excel inventories give the exact lists.</p></details>')
+    return ''.join(parts)
+
+
+def _guide_sheet_html(app, docname, guide, profiles, metadata):
+    rights = _licence_html(guide, metadata) if metadata else ""
+    if not profiles and not rights:
+        return ""
+    catalogue_guide = next((g for g in (metadata or {}).get("catalogue_guides", []) if g["id"] == guide), {})
+    label = catalogue_guide.get("label") or (profiles[0].get("source") if profiles else "Source database")
+    label = {"exiobase-monetary": "EXIOBASE · Monetary", "exiobase-hybrid": "EXIOBASE · Hybrid", "oecd": "OECD ICIO" if profiles else "OECD", "adb": "ADB"}.get(guide, label)
+    compare = app.builder.get_relative_uri(docname, COMPARISONS)
+    parts = [f'<aside class="database-sheet" aria-label="Database profile"><div class="database-sheet__header"><div><span>Database profile</span><strong>{html.escape(label)}</strong></div><a href="{html.escape(compare)}">Classifications ↗</a></div><div class="database-sheet__body">']
+    if profiles:
+        rows = _sheet_rows(profiles)
+        releases = list(dict.fromkeys(p.get("release", "") for p in _ordered_profiles(profiles)))
+        formats = sorted({p["table"] for p in profiles})
+        systems = sorted({system for p in profiles if (system := (p.get("provenance", {}).get("options", {}).get("system") or {"industry": "ixi", "product": "pxp"}.get(p.get("provenance", {}).get("options", {}).get("iot_mode"))))})
+        units = sorted({unit for p in profiles if (unit := p.get("provenance", {}).get("options", {}).get("unit"))})
+        format_varies = len({tuple(row["formats"]) for row in rows}) > 1
+        price_varies = len({row["price"] for row in rows}) > 1
+        parts.append(_sheet_count_html(profiles))
+        if systems:
+            roles = []
+            if "ixi" in systems: roles.append("ixi: activities")
+            if "pxp" in systems: roles.append("pxp: commodities")
+            parts.append(f'<p class="database-sheet__note">IOT systems: {" · ".join(roles)}. MARIO stores IOT categories in the Sector set.</p>')
+        facts = []
+        if len(releases) == 1 and releases[0]: facts.append(("Version", releases[0]))
+        if units and not all(unit.casefold() in label.casefold() for unit in units):
+            facts.append(("Units", " / ".join(units)))
+        if not format_varies: facts.append(("Table format" if len(formats) == 1 else "Table formats", " / ".join(formats)))
+        if len(rows) == 1: facts.append(("Available local years" if any(p.get("year_evidence") for p in profiles) else "Verified years", _year_periods(rows[0]["years"])))
+        publisher = next((p.get("source_coverage") for p in profiles if p.get("source_coverage")), None)
+        if publisher:
+            span = f"{publisher['first_year']}–{publisher['last_year']}"
+            forecast = publisher.get("forecast_from")
+            facts.append(("Publisher series", span + (f" · {forecast}–{publisher['last_year']} forecasts" if forecast else "")))
+        if not price_varies and rows[0]["price"]: facts.append(("Price basis", rows[0]["price"]))
+        if facts:
+            parts.append('<dl class="database-sheet__facts">' + ''.join(f'<div><dt>{name}</dt><dd>{html.escape(value)}</dd></div>' for name, value in facts) + '</dl>')
+        if len(rows) > 1:
+            version_varies = len(releases) > 1
+            changing = [key for key in ("Region", "Activity", "Commodity", "Sector")
+                        if len({counts[key] for p in profiles if key in (counts := _guide_economic_counts(p))}) > 1]
+            coverage_labels = {"Region": "regions", "Activity": "activities", "Commodity": "commodities", "Sector": "sectors"}
+            parts.append('<div class="database-sheet__table" tabindex="0" role="region" aria-label="Versions and verified years"><table><thead><tr>')
+            headers = (["Version"] if version_varies else []) + (["Table format"] if format_varies else []) + (["Price basis"] if price_varies else []) + ["Verified years"] + (["Coverage"] if changing else [])
+            parts.extend(f'<th scope="col">{name}</th>' for name in headers)
+            parts.append('</tr></thead><tbody>')
+            for row in rows:
+                cells = ([row["release"]] if version_varies else []) + ([" / ".join(row["formats"])] if format_varies else []) + ([row["price"]] if price_varies else []) + [_year_periods(row["years"])]
+                if changing:
+                    coverage = []
+                    for key in changing:
+                        values = [counts[key] for p in row["profiles"] if key in (counts := _guide_economic_counts(p))]
+                        if values: coverage.append(f'{_count_label(values)} {coverage_labels[key]}')
+                    cells.append(" · ".join(coverage))
+                parts.append('<tr>')
+                for i, value in enumerate(cells):
+                    tag = 'th scope="row"' if i == 0 else 'td'
+                    closing = 'th' if i == 0 else 'td'
+                    parts.append(f'<{tag}>{html.escape(value)}</{closing}>')
+                parts.append('</tr>')
+            parts.append('</tbody></table></div>')
+        evidence_notes = list(dict.fromkeys(p.get("year_evidence", {}).get("note") for p in profiles if p.get("year_evidence", {}).get("note")))
+        parts.append('<p class="database-sheet__note">' + (html.escape(" ".join(evidence_notes)) if evidence_notes else "Years and counts describe the verified inventories in this documentation.") + "</p>")
+        parts.append(_other_sets_html(profiles))
+    parts.append(rights)
+    if profiles:
+        source = profiles[0].get("source", "")
+        family = "ADB" if source == "Asian Development Bank" else source
+        anchor = "database-sets-" + re.sub(r"[^a-z0-9]+", "-", family.lower()).strip("-")
+        material = app.builder.get_relative_uri(docname, "resources/material") + "#" + anchor
+        label = "Excel set lists ↗" if any(p.get("workbook_allowed", True) and p.get("guide") != "eora" for p in profiles) else "Source set information ↗"
+        parts.append(f'<div class="database-sheet__links"><a href="{html.escape(material)}">{label}</a></div>')
+    parts.append('</div></aside>')
+    return ''.join(parts)
+
+
+def _summary_html(app, docname, guide, profiles, *, compact=False, metadata=None):
+    verified = [p for p in profiles if p.get("status") in {"parsed", "source_verified"} and p.get("parser_supported", True) and p["guide"] == guide]
     if compact:
+        if not verified:
+            return ""
         return '<div class="database-profile-summary">' + ''.join(
             f'<div class="database-card-coverage"><p class="database-card-version">{html.escape(_version_title(group))}</p><p class="database-card-metrics">{_metrics_html(group)}</p></div>'
-            for group in groups) + '</div>'
-    compare = app.builder.get_relative_uri(docname, COMPARISONS) + "#geographical-coverage"
-    parts = [f'<div class="database-guide-coverage"><div class="database-guide-coverage__header"><strong>Database coverage</strong><a href="{html.escape(compare)}">Compare databases</a></div>']
-    for group in groups:
-        years = sorted({str(year) for p in group for year in p.get("years", [p.get("year")]) if year}, key=int, reverse=True)
-        year_label = _year_periods(years) if len(years) <= 5 else f"{len(years)} years ({_year_periods(years)})"
-        parts.append(f'<section class="database-guide-version"><div class="database-guide-version__heading"><p>{html.escape(_version_title(group))}</p><span>Set lists: {html.escape(year_label)}</span></div>{_metrics_html(group, tiles=True)}<div class="database-guide-downloads"><span>All sets · Excel</span>{_download_html(app, docname, group)}</div></section>')
-    parts.append('</div>')
-    return ''.join(parts)
+            for group in geographic_groups(verified)) + '</div>'
+    return _guide_sheet_html(app, docname, guide, verified, metadata)
 
 
 def _catalogue_html(app, docname, profiles):
@@ -247,17 +426,18 @@ def _licence_html(guide, metadata):
     entries=metadata['guides'].get(guide,[])
     if not entries:
         return ''
-    parts=['<aside class="database-guide-licence" aria-label="Source data licence"><strong>Source licence</strong>']
+    parts=['<div class="database-sheet__licence"><strong>Source licence</strong>']
     for entry in entries:
         label=html.escape(entry['label'])
         if entry.get('url'):
             label=f'<a href="{html.escape(entry["url"])}">{label} ↗</a>'
-        parts.append(f'<p><span>{html.escape(entry["scope"])}</span> · {label}</p>')
+        scope = f'<span>{html.escape(entry["scope"])}</span> · ' if len(entries) > 1 else ''
+        parts.append(f'<p>{scope}{label}</p>')
     parts.append('<details><summary>Reuse &amp; attribution</summary>')
     for entry in entries:
         sources=' · '.join(f'<a href="{html.escape(url)}">Source {i+1} ↗</a>' for i,url in enumerate(entry.get('sources',[])))
         parts.append(f'<p>{html.escape(entry["note"])}{(" "+sources) if sources else ""}</p>')
-    parts.append('</details></aside>')
+    parts.append('</details></div>')
     return ''.join(parts)
 
 
@@ -275,20 +455,14 @@ def _render(app, doctree, docname):
             raise ValueError(f"Unknown database guide {key}")
         summary.replace_self(nodes.raw("", _summary_html(app, docname, key, data["profiles"], compact=True), format="html"))
     guide = next((g for g in guides.values() if g["doc"] == docname), None)
-    if guide and not any(doctree.findall(lambda node: isinstance(node,nodes.container) and "database-guide-rights" in node.get("classes",[]))):
-        top=next(iter(doctree.findall(nodes.section)),None)
-        metadata=json.loads((Path(app.srcdir)/LICENCES).read_text())
-        if metadata.get('schema_version')!=1:
-            raise ValueError('Unsupported database licence metadata')
-        content=_licence_html(guide['id'],metadata)
-        if content and top is not None:
-            panel=nodes.container(classes=['database-guide-rights'])
-            panel+=nodes.raw('',content,format='html')
-            _insert_guide_summary(top,panel)
     if guide and not any(doctree.findall(lambda node: isinstance(node, nodes.container) and "database-guide-summary" in node.get("classes", []))):
         top = next(iter(doctree.findall(nodes.section)), None)
         if top is not None:
-            content = _summary_html(app, docname, guide["id"], data["profiles"])
+            metadata = json.loads((Path(app.srcdir) / LICENCES).read_text())
+            if metadata.get("schema_version") != 1:
+                raise ValueError("Unsupported database licence metadata")
+            metadata["catalogue_guides"] = data["guides"]
+            content = _summary_html(app, docname, guide["id"], data["profiles"], metadata=metadata)
             if content:
                 panel = nodes.container(classes=["database-guide-summary"])
                 panel += nodes.raw("", content, format="html")
@@ -329,4 +503,4 @@ def setup(app):
     app.add_js_file("database-comparisons.js", defer="defer")
     app.connect("doctree-read", _note_dependency)
     app.connect("doctree-resolved", _render)
-    return {"version": "1.2", "parallel_read_safe": True, "parallel_write_safe": True}
+    return {"version": "1.3", "parallel_read_safe": True, "parallel_write_safe": True}

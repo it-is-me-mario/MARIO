@@ -148,15 +148,18 @@ def read_job(job):
         r=copy.deepcopy(BASE);r.update(id=job['id'],label=f"EXIOBASE {job['release']} · {'industry × industry' if job['system']=='ixi' else 'product × product'}",release=job['release'],year=job['year'],dimension='Industry' if job['system']=='ixi' else 'Product',parser_options=params,source_url=source,license_url=(source+'/files/LICENSE.txt?download=1') if job['release']!='3.8.2' else 'https://creativecommons.org/licenses/by/4.0/',sectors=sets['Sector'],regions=profile['geography']['regions'],consumption_categories=sets['Consumption category'])
         if job['release']=='3.9.4':r['license_url']=source+'/files/License.txt?download=1'
         gases={label:weight for label,weight in BASE['ghg_factors'].items() if label in E.index}
-        if 'NF3 - air' in E.index:gases['NF3 - air']=17.4
+        if 'NF3 - air' in E.index:gases['NF3 - air']=16.1
+        # EDGAR publishes GWP100_AR5_GHG with CH4=28. Recharacterise native
+        # mass rows on this basis; already-characterised HFC/PFC stay native.
+        gases={label:(0.028 if label.startswith('CH4') else 0.265 if label.startswith('N2O') else 23.5 if label=='SF6 - air' else 16.1 if label=='NF3 - air' else weight) for label,weight in gases.items()}
         required=set(BASE['ghg_factors'])-{'CH4_bio - combustion - air','N2O_bio - combustion - air','NF3 - air'}
         if job['release']=='3.11.2':required.add('NF3 - air')
         if required-set(gases):raise ValueError('Required GHG rows missing: '+str(required-set(gases)))
         expected={label:('kg CO2-eq' if label in ['HFC - air','PFC - air'] else 'kg') for label in gases}
         if any(eu.loc[k,'unit']!=u for k,u in expected.items()):raise ValueError('Unexpected GHG source units')
         if any(fu.loc[k,'unit']!='M.EUR' for k in r['value_added_rows']+r['product_tax_rows']):raise ValueError('Unexpected monetary units')
-        r['ghg_factors']=gases;r['ghg_method']='GWP100: IPCC AR6 for CO₂, CH₄, N₂O, SF₆'+(' and NF₃ (17,400)' if 'NF3 - air' in gases else '')+'; HFC/PFC retain source CO₂-equivalents. Biogenic CO₂ excluded. Production accounts; direct household emissions reported separately.'
-        r['ghg_coverage']={'included_native_rows':list(gases),'nf3':'included' if 'NF3 - air' in gases else 'not separately reported by source','gwp':'IPCC AR6 GWP100 plus source-characterised HFC/PFC'}
+        r['ghg_factors']=gases;r['ghg_method']='GWP100: EDGAR-compatible IPCC AR5 for mass-reported CO₂ (1), CH₄ (28), N₂O (265), SF₆ (23,500)'+(' and NF₃ (16,100)' if 'NF3 - air' in gases else '')+'; HFC/PFC retain source CO₂-equivalents with unverified GWP basis. Biogenic CO₂ excluded. Production accounts; direct household emissions reported separately.'
+        r['ghg_coverage']={'included_native_rows':list(gases),'nf3':'included' if 'NF3 - air' in gases else 'not separately reported by source','gwp':'EDGAR-compatible IPCC AR5 GWP100 for native mass rows plus source-characterised HFC/PFC'}
         r['expected_units']={'Factor of production':fu['unit'].to_dict(),'Satellite account':expected}
         r['tax_bridge']='exiobase_factor_inputs' if split else 'exiobase_satellite'
         taxes=VY.loc[r['product_tax_rows']].sum().groupby(level='Region').sum().to_dict()

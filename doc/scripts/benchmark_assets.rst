@@ -1,7 +1,7 @@
 Benchmark documentation assets
 ==============================
 
-The Data explorer section (Browsers, Database scope and Analyses) embed committed snapshots
+The Database explorer pages (Classifications, Browser and Analyses) embed committed snapshots
 and HTML fragments generated from local data.
 The Sphinx build does not run a parser, query nxbase, or depend on a neighbouring
 checkout of the eNextGen site or paper repository.

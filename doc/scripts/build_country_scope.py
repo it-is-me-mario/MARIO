@@ -78,11 +78,11 @@ def build(data, concordances):
                      'indicator_flags':{rid:{k:bool(readings[rid].get(k)) for k in ['gdp_proxy','ghg_proxy']} for rid in ids},
                      'availability':{rid: readings[rid]['availability'] for rid in ids},
                      'status':p['status'],'parser_supported':p.get('parser_supported',True),'native_codes':detail.get('native_codes',{}),
-                     'source_url':p.get('source_url') or p.get('provenance',{}).get('source_url'),'scope_note':p.get('scope_note',''),
+                     'source_url':p.get('source_url') or p.get('provenance',{}).get('source_url'),'scope_note':p.get('scope_note',''),'source_coverage':p.get('source_coverage'),
                      'license_url':p.get('license_url'),'attribution':p.get('attribution',''),
                      'workbook':p['workbook'],'guide':next((g['doc']+'.html' for g in catalogue['guides'] if g['id']==p['guide']),None),
                      'mapping':mid,'mapping_ids':mids,'signature':p.get('coverage_signatures',{})})
-        for key in ['environmental','numeric_publication','version','variant']:
+        for key in ['environmental','numeric_publication','version','variant','scope_group','source_structure_url']:
             if key in p:rows[-1][key]=p[key]
     # NACE Rev. 1.1 taxonomy: official codes/descriptions in the source, without
     # pretending its EXIOBASE 2 native industry edges describe all current sectors.

@@ -7,10 +7,13 @@ import {promisify} from 'node:util';
 import {fileURLToPath} from 'node:url';
 import {Workbook,SpreadsheetFile} from '@oai/artifact-tool';
 
-const doc=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const doc=path.resolve(process.env.CLASSIFICATION_DOC_ROOT||path.join(path.dirname(fileURLToPath(import.meta.url)),'..'));
 const root=path.join(doc,'source/_static/data/economy');
 const data=JSON.parse(await fs.readFile(path.join(root,'sectoral-scope.json'),'utf8'));
 const audit=JSON.parse(await fs.readFile(path.join(root,'classification-audit.json'),'utf8'));
+const notices=JSON.parse(await fs.readFile(path.join(root,'download-metadata.json'),'utf8'));
+const current=Object.entries(data.columns).flatMap(([kind,columns])=>columns.map(c=>({kind,label:c.label,native:c.native.length,linked:c.native.filter(n=>Object.keys(n.links).length).length})));
+audit.inventories=current;
 const output=process.env.CLASSIFICATION_XLSX_OUTPUT||path.join(root,'classification-concordances.xlsx');
 const previews=process.env.CLASSIFICATION_PREVIEWS||'/private/tmp/concordance-review/workbook-previews';
 const wb=Workbook.create(),sheets={};
@@ -29,9 +32,9 @@ function table(name,headers,rows,widths,start=1){
  sh.showGridLines=false;
  // Keep formatting sparse. Expanding identical cell styles across >1m
  // cells makes the exporter exhaust memory; strings remain typed strings.
- const preview=sh.getRangeByIndexes(start-1,0,Math.min(sample.length+1,15),headers.length);
+ const preview=sh.getRangeByIndexes(start-1,0,sample.length+1,headers.length);
  preview.format.font={name:'Arial',size:10,color:'#302820'};
- preview.format.rowHeight=22;preview.format.verticalAlignment='center';
+ preview.format.rowHeight=22;preview.format.verticalAlignment='center';preview.format.wrapText=false;
  preview.setNumberFormat('@');
  sh.getRangeByIndexes(start-1,0,1,headers.length).values=[headers];
  for(let at=0;at<sample.length;at+=4000){
@@ -75,11 +78,12 @@ const steps=[...used].sort().map(id=>{
   data.node_names[s.source_right.join(':')]||'',s.relation,s.source,s.location,
   String(s.left_part??''),String(s.right_part??''),s.part_flags_origin||'',s.note||''];
 });
-const sources=Object.entries(data.sources).sort().map(([id,s])=>[id,s.title||s.filename||id,s.publisher||'',s.url,s.filename||'',s.sha256||'',s.role||s.note||'']);
+const sources=Object.entries(data.sources).sort().map(([id,s])=>[id,s.title||s.filename||id,s.publisher||'',notices.sources[id]?.source_url||s.url,s.filename||'',s.sha256||'',s.role||s.note||'',notices.sources[id]?.license||'',notices.sources[id]?.license_url||'',notices.sources[id]?.usage||'']);
 const overview=table('Overview',['Dimension','Database','Reference','Native categories','With fine links','Unverified / pending'],
  audit.inventories.map(n=>[n.kind,n.label,data.references[n.kind].label,n.native,n.linked,null]),[15,42,22,22,20,23],5);
 overview.tabColor='#F0783C';
-overview.getRange('A2').values=[['Classification concordances']];overview.getRange('A2').format.font={name:'Arial',size:15,bold:true,color:'#302820'};
+overview.getRange('A2:F3').format={font:{name:'Arial',size:10,color:'#302820'},rowHeight:22};
+overview.getRange('A2').values=[['Classification concordances']];overview.getRange('A2').format.font={name:'Arial',size:15,bold:true,color:'#302820'};overview.getRange('A2:F2').format.rowHeight=28;
 overview.getRange('A3').values=[['Review: '+audit.as_of+' · intermediate routes and source locations are retained']];overview.getRange('A3').format.font={name:'Arial',size:10,color:'#6D6052'};
 overview.getRange(`D6:F${5+audit.inventories.length}`).setNumberFormat('#,##0');
 overview.getRange(`F6:F${5+audit.inventories.length}`).formulas=audit.inventories.map((_,i)=>[`=D${i+6}-E${i+6}`]);
@@ -89,7 +93,10 @@ const notes=[
  'Reference matches: find a native category or NACE / CPA code. A partial status is a qualified scope, not an exact equivalence.',
  'Routes: filter Match ID to obtain every primary and alternative route. Follow the ordered step IDs in Intermediate links.',
  'Intermediate links: each edge retains direction, relation, partial flags, source ID and the source row / page / cell.',
- 'Sources: source IDs resolve to URLs and checksums. Native parents are lineage context, not membership evidence.',
+ 'Sources: source IDs resolve to URLs, checksums and reuse terms. Native parents are lineage context, not membership evidence.',
+ 'Rights: this lookup combines sources with different terms. Attribute MARIO / nxbase and the upstream sources listed for each route; no universal data licence is assigned.',
+ 'Only classification facts and reviewed links are included. Economic observations, emission factors and licensed GTAP numerical data are excluded.',
+ 'Activities and commodities are separate native sets. CEDA and GTAP have activity inventories only; intermediate product classifications do not create a native commodity set.',
  ...audit.notes,
 ];
 for(const note of notes){row++;overview.getRange(`A${row}`).values=[[note]];overview.getRange(`A${row}:F${row}`).merge();overview.getRange(`A${row}:F${row}`).format={font:{name:'Arial',size:10,color:'#302820'},wrapText:true,rowHeight:38,verticalAlignment:'center'};}
@@ -98,13 +105,10 @@ table('Reference matches',['Match ID','Dimension','Database','Native code','Nati
 table('Routes',['Route ID','Match ID','Ordered intermediate step IDs'],routeRows,[15,15,125]);
 table('Intermediate links',['Step ID','From','From label','To','To label','Relationship','Source ID','Source location','Left part','Right part','Flag origin','Source note'],steps,[20,32,65,32,65,60,16,65,15,15,60,100]);
 table('Reference hierarchy',['Classification','Code','Label','Level','Parent','Section'],refRows,[24,20,100,12,20,12]);
-table('Sources',['Source ID','Title','Publisher','Source URL','Filename','SHA-256','Role / precision'],sources,[16,65,25,110,65,75,100]);
+table('Sources',['Source ID','Title','Publisher','Source URL','Filename','SHA-256','Role / precision','Source terms','Terms URL','Reuse note'],sources,[16,65,25,110,65,75,100,46,85,90]);
 for(const [name,range] of [['Native categories','F2:F'+Math.min(nativeRows.length+1,51)],['Reference matches','L2:L'+Math.min(matchRows.length+1,51)],['Reference hierarchy','D2:D'+Math.min(refRows.length+1,51)]])sheets[name].getRange(range).setNumberFormat('#,##0');
-for(const [name,range] of [['Native categories','A1:E10'],['Reference matches','A1:E10'],['Routes','A1:C10'],['Intermediate links','A1:E10'],['Reference hierarchy','A1:D10'],['Sources','A1:C10']]){
- // Headers and label previews: table descriptions remain accessible through filters.
- const sh=sheets[name];
- sh.getRange(range).format.wrapText=true;sh.getRange(range).format.autofitRows();
-}
+// All table bodies use the same font and 22-point rows. Avoid preview-only
+// autofit: its first ten rows otherwise leak different heights into the export.
 wb.recalculate();
 await fs.mkdir(previews,{recursive:true});
 for(const name of names){

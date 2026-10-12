@@ -229,8 +229,8 @@ def test_profile_rendering_is_shared_and_links_work_from_deep_guides(tmp_path):
     assert "satellite" not in card.lower()
     assert "ADB 2020 &lt;fixture&gt;" in card
     assert workbook not in card
-    assert f'href="../../../{workbook}"' in guide
-    assert 'href="../../../resources/data-explorer/scope.html#geographical-coverage"' in guide
+    assert 'href="../../../resources/material.html#database-sets-"' in guide
+    assert 'href="../../../resources/data-explorer/scope.html"' in guide
     assert extension._summary_html(app, "user_guide/parsers/index", "adb", [], compact=True) == ""
     empty_guide = extension._summary_html(app, "notebooks/parsers/adb/walkthrough_adb", "adb", [])
     assert empty_guide == ""
@@ -479,9 +479,61 @@ def test_licence_metadata_covers_guides_and_distinguishes_exiobase_releases():
     extension = _import("mario_database_profiles", REPO_ROOT / "doc/source/_ext/mario_database_profiles.py")
     catalogue=json.loads((REPO_ROOT / "doc/source/_static/data/database_profiles.json").read_text())
     licences=json.loads((REPO_ROOT / "doc/source/_static/data/database_licences.json").read_text())
-    assert {g["id"] for g in catalogue["guides"]} == set(licences["guides"])
+    external=json.loads((REPO_ROOT / "doc/source/_static/data/external_profiles.json").read_text())
+    guide_ids={g["id"] for g in catalogue["guides"]}
+    assert guide_ids <= set(licences["guides"])
+    external_ids={p["guide"] for p in external["profiles"]}
+    assert set(licences["guides"]) - guide_ids <= external_ids
     rendered=extension._licence_html("exiobase-monetary",licences)
     assert "CC BY-SA 4.0" in rendered and "3.8.2" in rendered
     assert "Custom non-commercial licence" in rendered and "LICENSE.txt" in rendered
     assert "Source licence" in rendered and "Reuse &amp; attribution" in rendered
     assert "Input database licence" in extension._licence_html("custom-database-from-excel",licences)
+
+
+def test_source_only_inventory_links_publisher_workbook_without_local_download(tmp_path):
+    extension = _import("mario_database_profiles", REPO_ROOT / "doc/source/_ext/mario_database_profiles.py")
+    app = SimpleNamespace(srcdir=str(tmp_path))
+    profile={"id":"eora2", "guide":"eora2", "year":2024, "table":"Common classification",
+             "label":"Eora2 Common", "workbook_allowed":False,
+             "workbook":"_static/must-not-be-redistributed.xlsx",
+             "source_structure_url":"https://www.eora.org/Eora2Structure.xlsx"}
+    rendered=extension._download_html(app,"resources/material",[profile])
+    assert 'https://www.eora.org/Eora2Structure.xlsx' in rendered
+    assert 'Source structure Excel' in rendered
+    assert 'must-not-be-redistributed' not in rendered
+    assert ' download' not in rendered
+
+
+def test_database_sheet_combines_iot_roles_with_sut_sets_and_keeps_year_gaps():
+    from bs4 import BeautifulSoup
+    from sphinx.util.osutil import relative_uri
+    extension = _import("mario_database_profiles", REPO_ROOT / "doc/source/_ext/mario_database_profiles.py")
+    data = json.loads((REPO_ROOT / "doc/source/_static/data/database_profiles.json").read_text())
+    rights = json.loads((REPO_ROOT / "doc/source/_static/data/database_licences.json").read_text())
+    app = SimpleNamespace(builder=SimpleNamespace(get_relative_uri=lambda a,b: relative_uri(a+".html",b+".html")))
+    markup = extension._summary_html(app, "notebooks/parsers/exiobase/monetary", "exiobase-monetary", data["profiles"], metadata=rights)
+    soup = BeautifulSoup(markup, "html.parser")
+    metrics = {item.dt.text: item.dd.text for item in soup.select(".database-sheet__metrics > div")}
+    assert metrics == {"regions":"49", "activities":"163", "commodities":"200"}
+    assert len(soup.select(".database-sheet__licence")) == 1
+    assert "CC BY-SA 4.0" in soup.text and "Custom non-commercial licence" in soup.text
+    rows = soup.select('[aria-label="Versions and verified years"] tbody tr')
+    assert len(rows) == 7  # Each release appears once, despite ixi/pxp and satellite changes.
+    assert [row.th.text for row in rows] == ["3.11.2","3.10.2","3.10.1","3.9.6","3.9.5","3.9.4","3.8.2"]
+    assert "IOT / SUT" in rows[-1].text and "1995–2022" in rows[-1].text
+    adb = BeautifulSoup(extension._summary_html(app,"notebooks/parsers/adb/walkthrough_adb","adb",data["profiles"]),"html.parser")
+    row = next(row for row in adb.select('[aria-label="Versions and verified years"] tbody tr') if row.th.text == "71 economies")
+    assert "2007, 2011, 2017" in row.text and "2007–2017" not in row.text
+
+
+def test_source_rights_do_not_invent_inventory_or_offer_eora_downloads():
+    extension = _import("mario_database_profiles", REPO_ROOT / "doc/source/_ext/mario_database_profiles.py")
+    data = json.loads((REPO_ROOT / "doc/source/_static/data/database_profiles.json").read_text())
+    rights = json.loads((REPO_ROOT / "doc/source/_static/data/database_licences.json").read_text())
+    app = SimpleNamespace(builder=SimpleNamespace(get_relative_uri=lambda a,b: "../../../"+b+".html"))
+    empty = extension._summary_html(app,"notebooks/parsers/istat/walkthrough_istat","istat",[],metadata=rights)
+    assert "CC BY 4.0" in empty and "Verified years" not in empty
+    eora = extension._summary_html(app,"notebooks/parsers/eora/walkthrough_eora","eora",data["profiles"],metadata=rights)
+    assert "Eora1 26" in eora and "2017" in eora and rights["guides"]["eora"][0]["label"] in eora
+    assert "Excel set lists" not in eora and "download=" not in eora

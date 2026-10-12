@@ -47,8 +47,14 @@ s.getRange('A8:G8').format={fill:'#245b6a',font:{name:'Arial',size:10,bold:true,
 s.freezePanes.freezeRows(8);s.freezePanes.freezeColumns(2);
 }
 const years=p.years||[p.year];
-s.getRange('A2').values=[['GLORIA v060 / '+years.join(', ')+' native sets']];
+const yearLabel=years.length>1&&years.every((year,index)=>year===years[0]+index)?`${years[0]}–${years.at(-1)}`:years.join(', ');
+s.getRange('A2').values=[['GLORIA v060 / '+yearLabel+' native sets']];
 s.getRange('A6').values=[['Extracted with MARIO. Native labels and units retained and verified across these years. Source archive vintages accompany each reading.']];
+if(input&&w.worksheets.items.some(sheet=>sheet.name==='Read me')){
+ const readme=w.worksheets.getItem('Read me');
+ readme.getRange('B3').values=[[yearLabel]];
+ readme.getRange('B4').values=[['Use Sets for native labels and units. These years share the same inventory; numerical results vary by year.']];
+}
 if(input&&before!==JSON.stringify(s.getRange(`A8:G${rows.length+7}`).values))throw new Error('Unintended set-table change');
 w.recalculate();
 console.log((await w.inspect({kind:'table',range:'Sets!A8:G12',include:'values',tableMaxRows:5,tableMaxCols:7,maxChars:1200})).ndjson);

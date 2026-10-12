@@ -53,8 +53,8 @@ def prepare(snapshot, profile, stage, gdp_bridge=None):
         license_url=evidence["license_url"], license_basis=evidence,
         value_added_basis="Value added at basic prices; six explicit source factor rows",
         ghg_basis="Native EDGAR-consistent GHG total plus direct final-demand emissions; source CO2eq characterisation retained",
-        gwp_basis="Source CO2eq; IPCC report/horizon unverified",
-        ghg_note="GLORIA retains its native EDGAR-consistent CO2eq total. Its original IPCC report and horizon have not been independently verified; it is not relabelled as AR5 or AR6.",
+        gwp_basis='Native CO2eq; IPCC AR5 GWP100 verified for CO2, CH4, N2O, SF6 and NF3; other F-gases unverified', gwp_horizon=100,
+        ghg_note='GLORIA retains its native EDGAR-consistent CO2eq total. Independent checks of the 2001 and 2024 gas rows recover AR5 GWP100 factors for CO2, CH4, N2O, SF6 and NF3. Individual factors for all fluorinated gases remain unverified; the 2024 cell-level gas-row fit has a relative L2 residual of about 0.15%. The EDGAR 2026 territorial boundary also differs.',
         scope_note=f"GLORIA {recipe['year']}: economic vintage {recipe.get('economic_vintage', '20260122')}; satellite vintage {recipe.get('satellite_vintage', '20240417')}. GDP is unavailable until the full product-tax bridge is verified.",
         attribution="GLORIA v060, University of Sydney / UNEP International Resource Panel. CC BY-NC 3.0 Australia. Non-commercial MARIO research indicators: six native value-added rows summed; native GHG CO2eq converted from kilotonnes to tonnes, with direct final-demand emissions included once. Source economic and satellite vintages are recorded for each reading. No endorsement is implied.",
     )

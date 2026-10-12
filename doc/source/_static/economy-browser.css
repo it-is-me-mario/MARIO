@@ -136,6 +136,7 @@
 .eb-viewbar button svg { width: 19px; height: 19px; display: block; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .eb-other-notes { color: var(--ink-muted); font-size: .72rem; margin: .25rem 0 1rem; }
 .eb-other-notes > summary { cursor: pointer; width: fit-content; }
+.economy-browser p:empty { display: none; }
 .eb-other-notes [data-methods-slot] { margin-top: .8rem; line-height: 1.65; }
 .eb-other-notes .benchmark-methods { border: 0; padding: .4rem 0; margin: 0; font-size: inherit; }
 .eb-other-notes p, .eb-other-notes dd, .eb-other-notes dt { font-size: .75rem; }
@@ -377,20 +378,92 @@
 .cf-selected strong { display:block; font-size:.75rem; line-height:1.5; margin-top:.2rem; }
 .cf-node-name { flex:1; }
 
-/* ---- explorer section tabs ---- */
-.explorer-tabs { display:flex; gap:3px; padding:3px; background:var(--surface-2); border:1px solid var(--line); border-radius:7px; margin:0 0 1.8rem; }
-.explorer-tabs a { flex:1; text-align:center; padding:.6rem .5rem; font-size:.85rem; font-weight:600; color:var(--ink-muted); text-decoration:none; border-radius:5px; transition:background .15s, color .15s; }
-.explorer-tabs a:hover { color:var(--ink); }
-.explorer-tabs a[aria-current="page"] { background:var(--ink); color:var(--surface); }
-@media (max-width:600px) { .explorer-tabs a { font-size:.78rem; padding:.5rem .3rem; } }
-
-/* ---- scope page: sticky section nav ---- */
-.scope-section-nav { position:sticky; top:calc(var(--header-h, 3.75rem) + .6rem); z-index:10; display:flex; gap:.4rem; padding:.35rem .5rem; background:color-mix(in srgb, var(--surface) 88%, transparent); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); border:1px solid var(--line); border-radius:7px; margin:0 0 1.4rem; }
-.scope-section-nav a { padding:.4rem .7rem; font-size:.78rem; font-weight:600; color:var(--ink-muted); text-decoration:none; border-radius:5px; white-space:nowrap; transition:background .15s, color .15s; }
-.scope-section-nav a:hover { color:var(--ink); background:var(--surface-2); }
-.scope-section-nav a.is-active { background:var(--accent); color:var(--mark-ink); }
-@media (max-width:600px) { .scope-section-nav a { font-size:.72rem; padding:.35rem .5rem; } }
-
+/* Database explorer: full-width page tabs and a shared inset mode bar. */
+.mario-article:has(.explorer-tabs) {
+ --explorer-gutter:calc(2 * var(--cell));
+ --explorer-selected-bg:var(--ink);
+ --explorer-selected-ink:var(--surface);
+ padding-top:0;
+}
+.mario-article:has(.explorer-tabs) .mario-body { max-width:none; }
+.explorer-tabs {
+ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); align-items:start;
+ margin:0 calc(-1 * var(--explorer-gutter)); padding:0; gap:0;
+ background:var(--surface-2); border:0; border-radius:var(--radius) var(--radius) 0 0;
+ overflow:hidden;
+}
+.explorer-tabs a {
+ display:flex; align-items:center; justify-content:center; min-width:0;
+ min-height:4.7rem; margin-bottom:.65rem; padding:1rem .75rem;
+ border:0; border-inline-start:1px solid var(--line-strong); border-bottom:1px solid var(--line);
+ background:color-mix(in srgb,var(--ink) 4%,var(--surface));
+ color:var(--ink-muted); text-align:center; text-decoration:none;
+ font-size:1.12rem; font-weight:550; line-height:1.3;
+ transition:background .15s,color .15s;
+}
+.explorer-tabs a:first-child { border-inline-start:0; }
+.explorer-tabs a:hover { background:var(--surface-3); color:var(--ink); }
+.explorer-tabs a[aria-current="page"] {
+ min-height:5.35rem; margin-bottom:0; background:var(--surface-2); color:var(--ink);
+ border-bottom-color:transparent; font-weight:700; box-shadow:inset 0 3px 0 var(--accent);
+}
+.explorer-tabs a:focus-visible { outline:2px solid var(--focus); outline-offset:-5px; }
+.mario-article .explorer-intro {
+ margin:0 calc(-1 * var(--explorer-gutter));
+ padding:1.7rem var(--explorer-gutter) 1rem; background:var(--surface-2); text-align:center;
+}
+.mario-article .explorer-intro > p { max-width:64ch; margin:0 auto .8rem; font-size:1.02rem; line-height:1.6; }
+.mario-article .explorer-intro .explorer-feedback { margin:0; }
+.mario-article .explorer-intro .explorer-feedback p { margin:0; font-size:.76rem; color:var(--ink-muted); }
+/* The selected page tab is the visible title; retain the h1 for assistive navigation. */
+.mario-article:has(.explorer-intro) .mario-body > section > h1,
+.explorer-scope-ready > section[role="tabpanel"] > h2 {
+ position:absolute; width:1px; height:1px; margin:-1px; padding:0; border:0;
+ overflow:hidden; clip-path:inset(50%); white-space:nowrap;
+}
+.mario-article:has(.explorer-intro) .economy-browser { margin-top:0; }
+.mario-article:has(.explorer-intro) .eb-topline,
+.explorer-controls {
+ margin:0 calc(-1 * var(--explorer-gutter)) 1.5rem;
+ padding:0 var(--explorer-gutter) 1.6rem; background:var(--surface-2);
+ scroll-margin-top:calc(var(--header-h) + 1rem);
+}
+.explorer-controls[hidden], .explorer-scope-ready > section[hidden] { display:none !important; }
+.mario-article .eb-modes, .scope-views {
+ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); width:100%;
+ gap:4px; padding:4px; background:var(--surface-2); border:1px solid var(--line-strong); border-radius:9px;
+}
+.scope-views { grid-template-columns:repeat(4,minmax(0,1fr)); }
+.mario-article .eb-modes button, .scope-views a {
+ display:flex; align-items:center; justify-content:center; gap:.55rem; min-width:0; min-height:3.4rem;
+ padding:.65rem .7rem; border:0; border-radius:6px; background:transparent;
+ color:var(--ink-soft); font:inherit; font-size:.94rem; font-weight:550; line-height:1.35;
+ text-align:center; text-decoration:none; cursor:pointer;
+}
+.mario-article .eb-modes button:hover, .scope-views a:hover { color:var(--ink); background:var(--surface-3); }
+.mario-article .eb-modes button[aria-pressed="true"], .scope-views a[aria-selected="true"] {
+ background:var(--explorer-selected-bg); color:var(--explorer-selected-ink);
+}
+.scope-views svg { width:1.2rem; height:1.2rem; flex-shrink:0; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+.scope-views a:focus-visible { outline:2px solid var(--focus); outline-offset:2px; }
+.explorer-scope-ready > section[role="tabpanel"] { scroll-margin-top:calc(var(--header-h) + 1rem); }
+:root[data-theme="dark"] .mario-article:has(.explorer-tabs) { --explorer-selected-bg:var(--accent); --explorer-selected-ink:var(--mark-ink); }
+@media(prefers-color-scheme:dark) { :root:not([data-theme="light"]) .mario-article:has(.explorer-tabs) { --explorer-selected-bg:var(--accent); --explorer-selected-ink:var(--mark-ink); } }
+@media(max-width:48em) {
+ .mario-article:has(.explorer-tabs) { --explorer-gutter:var(--cell); }
+ .explorer-tabs a { min-height:3.9rem; font-size:.88rem; padding:.8rem .35rem; }
+ .explorer-tabs a[aria-current="page"] { min-height:4.55rem; }
+ .mario-article .explorer-intro { padding-top:1.2rem; }
+ .mario-article .explorer-intro > p { font-size:.92rem; }
+ .mario-article .eb-modes button, .scope-views a { font-size:.8rem; padding:.55rem .3rem; }
+}
+@media(max-width:22.5em) {
+ .mario-article:has(.explorer-tabs) { --explorer-gutter:calc(.75 * var(--cell)); }
+}
+@media(max-width:38em) {
+ .mario-article .eb-modes button, .scope-views a { flex-direction:column; gap:.35rem; min-height:4.6rem; font-size:.75rem; }
+ .mario-article:has(.explorer-intro) .eb-topline, .explorer-controls { padding-bottom:1.15rem; }
+}
 
 /* Country focus: native sector detail by data year */
 .cf-chart { --cf-extended:#177f83; --cf-base:#9a718c; margin-top:1rem; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); overflow:hidden; }

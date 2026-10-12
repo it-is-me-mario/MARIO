@@ -3,7 +3,7 @@
 Data browser
 ============
 
-The browser is now part of :doc:`Data explorer <browsers>`.
+The browser is now part of :doc:`Database explorer <browsers>`.
 
 .. raw:: html
 

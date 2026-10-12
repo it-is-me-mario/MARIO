@@ -4961,7 +4961,7 @@ class Database(CoreModel):
         try:
             stage = "loading add-sectors inputs"
             if io != "inventories":
-                self.read_add_sectors_excel(io, read_inventories=True)
+                self.read_add_sectors_excel(io, read_inventories=True, split=split)
             elif not hasattr(self, "inventories"):
                 raise LackOfInput(
                     "Inventory sheets are not loaded. Pass an add-sectors workbook path "

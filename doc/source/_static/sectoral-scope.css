@@ -96,3 +96,5 @@
 .ss-kind{display:inline-flex;gap:.25rem;padding:.25rem;border:1px solid var(--line);border-radius:.5rem;margin-bottom:.5rem;background:var(--surface)}
 .ss-kind button{border:0;padding:.45rem .8rem;border-radius:.3rem;color:var(--ink);background:transparent;font:inherit;cursor:pointer}
 .ss-kind button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+
+.mario-article .ss-resolution-context { margin:.15rem 0 .6rem; font-size:.75rem; line-height:1.6; color:var(--ink-muted); }

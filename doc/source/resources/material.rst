@@ -1,8 +1,9 @@
 Downloadable material
 =====================
 
-Download original database set lists, the nomenclature and formulas workbook,
-and the notebooks behind every guide.
+Download set inventories, classification lookups and runnable guide notebooks.
+Sources and conditions of reuse travel with each file; MARIO does not replace
+the licence of the original database.
 
 
 Nomenclature and formulas
@@ -29,7 +30,11 @@ Database set lists
 Original regions, economic classifications, satellite accounts, factors of
 production, consumption categories and units. Readings with identical native
 sets and units share an Excel; its year list identifies the verified inputs.
-Explore the geography in :doc:`Database scope <data-explorer/scope>`.
+Each Excel includes a **Read me** sheet with its source, scope and reuse terms.
+These inventories contain labels and units, not database observations or
+emission factors. Eora set downloads are withheld pending redistribution
+permission; consult its `public documentation <https://new.worldmrio.com/documentation/>`_.
+Compare regions and sectors in :doc:`Classifications <data-explorer/scope>`.
 
 .. mario-database-profiles::
 
@@ -46,6 +51,9 @@ Explore them in :ref:`Sectoral coverage <sectoral-coverage>`.
 Notebooks
 ---------
 
-Every guide is a Jupyter notebook: click a name to download it and run it locally.
+Download the notebook behind a guide, with code and explanations but without
+cached results, execution history or local paths. Install MARIO and supply
+your own source files under their applicable licence. Links to example files
+are kept in the notebook; download these before running cells that use them.
 
 .. mario-notebook-downloads::

@@ -17,8 +17,8 @@ def prepare():
  for folder in sorted((STAGE/'readings').iterdir()):
   if not (folder/'snapshot.json').exists():continue
   snapshot=jsonread(folder/'snapshot.json');snapshot['recipe'].pop('sector_groups',None);profile=json.loads(gzip.decompress((folder/'profile.json.gz').read_bytes()))
-  if snapshot['recipe']['parser_options']['unit']=='Monetary' and 'CH4_bio - combustion - air' not in snapshot['recipe']['ghg_factors']:
-   snapshot['recipe']['ghg_method']+=' This release does not separately report biogenic combustion CH₄; its native combustion CH₄ row uses 29.8.'
+  if snapshot['recipe']['parser_options']['unit']=='Monetary' and 'CH4_bio - combustion - air' not in snapshot['recipe']['ghg_factors'] and 'does not separately report biogenic combustion' not in snapshot['recipe']['ghg_method']:
+   snapshot['recipe']['ghg_method']+=' This release does not separately report biogenic combustion CH₄; its native combustion CH₄ row uses 28.'
   if snapshot['recipe']['id']!=profile['id']:raise ValueError('Snapshot/profile ID mismatch')
   readings.append(snapshot);profiles.append(profile)
   # Equal counts are insufficient. Require the same native labels, units and

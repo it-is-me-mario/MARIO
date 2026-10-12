@@ -788,7 +788,7 @@
 })();
 
 
-/* Resources hero: a single disclosure for the Data explorer pages. */
+/* Resources hero: a single disclosure for the Database explorer pages. */
 (() => {
   const hoverPointer = window.matchMedia("(hover: hover) and (pointer: fine)");
   for (const menu of document.querySelectorAll("[data-tab-menu]")) {

@@ -54,7 +54,7 @@ test('scope hover preserves gaps in the verified EMERGING years',()=>{
 test('source-verified CEDA participates in scope without pretending to be parsed or counting its factors as satellite accounts',()=>{
  const external=JSON.parse(fs.readFileSync(path.resolve(__dirname,'../../doc/source/_static/data/external_profiles.json'),'utf8')).profiles;
  const points=D.scopePoints([...profiles,...external]);const ceda=points.find(p=>p.family==='CEDA');
- assert.equal(ceda.sectors,400);assert.equal(ceda.regions,149);assert.equal(ceda.environmental,true);assert.deepEqual(ceda.years,[2022]);assert.deepEqual(ceda.releases,['2024']);assert.deepEqual(ceda.statuses,['source_verified']);
+ assert.equal(ceda.sectors,400);assert.equal(ceda.regions,149);assert.equal(ceda.environmental,true);assert.deepEqual(ceda.years,[2023]);assert.deepEqual(ceda.releases,['2025']);assert.deepEqual(ceda.statuses,['source_verified']);
  const f=D.figure([ceda],{background:'#fff',surface:'#fff',ink:'#222',grid:'#ddd',extended:'#178',base:'#978',font:'Arial'});assert.match(f.data.find(t=>!t.showlegend).customdata[0][6],/parser unavailable/);
  assert.equal(D.scopePoints([{...external[0],status:'unverified'}]).length,0);
 });
@@ -69,5 +69,91 @@ test('explicit socioeconomic-only status overrides a nonzero satellite count',()
 test('GLORIA native scope retains the full emissions set and both SUT dimensions',()=>{
  const point=D.scopePoints(profiles).find(p=>p.family==='GLORIA');
  assert.equal(point.regions,164);assert.equal(point.sectors,120);assert.equal(point.environmental,true);
- assert.deepEqual(point.dimensions,['Activity','Commodity']);assert.deepEqual(point.years,[2022,2023,2024]);
+ assert.deepEqual(point.dimensions,['Activity','Commodity']);assert.deepEqual(point.years,[2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025]);
+ assert.deepEqual(point.sourceCoverage,['1990–2029 · 2024–2029 forecasts']);
+});
+
+
+test('source licences distinguish access conditions from licences of the metadata extract',()=>{
+ const external=JSON.parse(fs.readFileSync(path.resolve(__dirname,'../../doc/source/_static/data/external_profiles.json'),'utf8')).profiles;
+ const licences=JSON.parse(fs.readFileSync(path.resolve(__dirname,'../../doc/source/_static/data/database_licences.json'),'utf8'));
+ const points=D.scopePoints([...profiles,...external],licences);
+ assert.ok(points.every(p=>['open','noncommercial','restricted'].includes(p.access)));
+ assert.ok(points.filter(p=>['EORA','GTAP'].includes(p.family)).every(p=>p.access==='restricted'));
+ assert.equal(points.find(p=>p.family==='CEDA').access,'restricted');
+ assert.equal(points.find(p=>p.family==='CEDA').licences[0].metadata.label,'Open CEDA · CC BY-SA 4.0');
+ assert.equal(points.find(p=>p.family==='GLORIA').access,'noncommercial');
+ const exio=points.filter(p=>p.family==='EXIOBASE'&&p.units==='Monetary');assert.equal(exio.length,2);
+ assert.ok(exio.every(p=>p.access==='noncommercial'&&p.licences.some(l=>l.category==='open'&&l.releases.includes('3.8.2'))));
+ assert.ok(points.filter(p=>p.family==='EXIOBASE'&&p.units==='Hybrid').every(p=>p.access==='open'));
+ const colors={background:'#fff',surface:'#fff',ink:'#222',grid:'#ddd',extended:'#178',base:'#978',font:'Arial'};
+ const f=D.figure(points,colors),markers=f.data.filter(t=>!t.showlegend&&t.mode==='markers');
+ assert.ok(markers.every(t=>t.marker.line.color.length===t.x.length));
+ for(const p of points) {
+  const t=markers.find(t=>t.name===p.family),i=points.filter(q=>q.family===p.family).indexOf(p);
+  assert.equal(t.marker.line.width[i],p.access==='open'?0:2);
+  assert.equal(t.marker.line.color[i],colors.ink);
+  assert.equal(t.marker.line.dash[i],p.access==='noncommercial'?'3px,2px':'solid');
+ }
+ assert.match(markers.find(t=>t.name==='CEDA').customdata[0][7],/Proprietary \/ restricted.*Scope metadata:.*Open CEDA/);
+ assert.ok(markers.find(t=>t.name==='EXIOBASE').customdata.filter(r=>r[1]==='Monetary').every(r=>r[7].includes('Licences vary by release')&&r[7].includes('3.8.2')&&r[7].includes('3.11.2')));
+ const future={...profiles.find(p=>p.guide==='exiobase-monetary'),release:'9.0'};
+ assert.equal(D.scopePoints([future],licences)[0].access,'unverified');
+ assert.equal(D.scopePoints([{...future,guide:'new-source',numeric_publication:false}],licences)[0].access,'unverified');
+});
+
+
+test('each family has one cluster label which follows its legend group',()=>{
+ const external=JSON.parse(fs.readFileSync(path.resolve(__dirname,'../../doc/source/_static/data/external_profiles.json'),'utf8')).profiles;
+ const points=D.scopePoints([...profiles,...external]);
+ const figure=D.figure(points,{background:'#fff',surface:'#eee',ink:'#222',grid:'#aaa',font:'Arial',extended:'#0aa',base:'#a0a'});
+ const labels=figure.data.filter(t=>t.mode==='text');
+ const families=[...new Set(points.map(p=>p.family))];
+ assert.equal(labels.length,families.length);
+ for(const family of families){
+  const label=labels.find(t=>t.name===family);
+  assert.deepEqual(label.text,[family]);assert.equal(label.legendgroup,family);assert.equal(label.showlegend,false);
+  assert.ok(Number.isFinite(label.x[0])&&Number.isFinite(label.y[0]));
+ }
+});
+
+test('the Overview year filter keeps covering readings and narrows their years',()=>{
+ const a={id:'a',status:'parsed',source:'A',counts:{Region:10,Sector:20},year:2020,years:[2018,2019,2020]};
+ const b={id:'b',status:'source_verified',source:'B',counts:{Region:5,Sector:9},year:2016};
+ const national={id:'n',status:'parsed',source:'N',counts:{Region:1,Sector:9},year:2030,years:[2030]};
+ assert.deepEqual(D.profileYears([a,b,national]),[2020,2019,2018,2016]);
+ assert.equal(D.profilesForYear([a,b],'all').length,2);
+ const only=D.profilesForYear([a,b],'2019');
+ assert.deepEqual(only.map(p=>p.id),['a']);assert.deepEqual(only[0].years,[2019]);
+ assert.deepEqual(D.profilesForYear([a,b],'2016').map(p=>p.id),['b']);
+});
+
+test('the year timeline has one row per family, marks source base years and the selected year',()=>{
+ const a={id:'a',status:'parsed',source:'A',release:'1',counts:{Region:10,Sector:20},years:[2018,2019]};
+ const a2={id:'a2',status:'parsed',source:'A',release:'2',counts:{Region:10,Sector:30},years:[2019]};
+ const b={id:'b',status:'source_verified',parser_supported:false,environmental:true,source:'B',release:'2025',counts:{Region:5,Sector:9},year:2023};
+ const cells=D.timelinePoints([a,a2,b]);
+ assert.deepEqual(cells.map(c=>[c.family,c.year]),[['A',2018],['A',2019],['B',2023]]);
+ assert.deepEqual(cells.find(c=>c.family==='A'&&c.year===2019).versions,['1','2']);
+ assert.equal(cells.find(c=>c.family==='B').sourceOnly,true);assert.equal(cells.find(c=>c.family==='A').sourceOnly,false);
+ const colors={background:'#fff',surface:'#fff',ink:'#222',grid:'#ddd',extended:'#178',base:'#978',font:'Arial'};
+ const all=D.timelineFigure(cells,colors),picked=D.timelineFigure(cells,colors,{year:'2023'});
+ assert.equal(all.layout.shapes.length,0);assert.equal(picked.layout.shapes[0].x0,2023);
+ assert.deepEqual(picked.data.map(t=>t.opacity),[.28,1]);
+ assert.ok(!String(picked.data[1].marker.symbol).endsWith('-open'));
+ // A family keeps its symbol when a year filter hides other families.
+ const order=['A','B'],scatter=D.figure(D.scopePoints([b]),colors,900,order);
+ assert.equal(scatter.data.find(t=>t.name==='B'&&t.mode==='markers').marker.symbol,picked.data[1].marker.symbol);
+});
+
+test('publisher-documented years appear faded and do not count as parsed coverage',()=>{
+ const g={id:'g',status:'parsed',source:'G',release:'060',counts:{Region:164,Sector:120},years:[2020,2021],source_coverage:{first_year:2018,last_year:2023,forecast_from:2022}};
+ const cells=D.timelinePoints([g]);
+ assert.deepEqual(cells.map(c=>c.year),[2018,2019,2020,2021,2022,2023]);
+ assert.deepEqual(cells.filter(c=>c.publisher).map(c=>c.year),[2018,2019,2022,2023]);
+ assert.deepEqual(cells.filter(c=>c.forecast).map(c=>c.year),[2022,2023]);
+ const colors={background:'#fff',surface:'#fff',ink:'#222',grid:'#ddd',extended:'#178',base:'#978',font:'Arial'};
+ assert.equal(D.timelineFigure(cells,colors,{year:'2019'}).data[0].opacity,.28);
+ assert.equal(D.timelineFigure(cells,colors,{year:'2020'}).data[0].opacity,1);
+ assert.deepEqual(D.timelineFigure(cells,colors).data[0].marker.opacity,[.3,.3,1,1,.3,.3]);
 });

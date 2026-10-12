@@ -2,6 +2,8 @@
 (()=>{
  'use strict';
  const root=document.querySelector('[data-sectoral-scope]');if(!root)return;
+ // Official leaf level of the reference: NACE classes (4 digits), CPA subcategories (6 digits).
+ const leaves=ref=>`${ref.short_label} ${{class:'classes',subcategory:'subcategories'}[ref.leaf_name]||ref.leaf_name+'s'}`;
  // Fragment navigation runs before the asynchronous charts above are sized.
  // Keep the initial deep link until those layouts settle, unless the reader
  // starts navigating or scrolling. A deep link also bypasses lazy mounting.
@@ -9,7 +11,7 @@
  let initialAnchor=null;
  try{initialAnchor=document.getElementById(decodeURIComponent(initialHash.slice(1)));}catch{}
  if(!root.closest('section')?.contains(initialAnchor))initialAnchor=null;
- let anchorPending=Boolean(initialAnchor),anchorObserver=null;
+ let anchorPending=Boolean(initialAnchor)&&!document.querySelector('[data-scope-tabs]'),anchorObserver=null;
  const anchorEvents=['wheel','touchstart','pointerdown','keydown','hashchange'];
  function stopInitialAnchor(){
   anchorPending=false;anchorObserver?.disconnect();
@@ -49,13 +51,11 @@
     <label class="ss-field">Label detail<select data-ss-labels><option value="1">Sections · A, B, C…</option><option value="2">Divisions · 2 digits</option><option value="3">Groups · 3 digits</option><option value="4">Classes · 4 digits</option></select></label>
     <div class="ss-field ss-databases"><span>Databases</span><details data-ss-databases><summary data-ss-db-summary></summary><div class="ss-picker-panel"><div class="ss-picker-actions"><button data-ss-select="all">Select all</button><button data-ss-select="none">Unselect all</button></div><div data-ss-db-list></div></div></details></div></div>
     <div class="ss-chart-toolbar"><nav data-ss-path aria-label="Selected classification area"></nav><div class="ss-zoom" role="group" aria-label="Heatmap row zoom"><button data-ss-zoom="in" aria-label="Zoom in on classification rows" title="Zoom in">+</button><button data-ss-zoom="out" aria-label="Zoom out on classification rows" title="Zoom out">−</button><button data-ss-zoom="reset">Reset zoom</button></div></div>
-    <div class="ss-selection-status" data-ss-selection-status role="status"><span data-ss-selection-label>Click a cell to see its native sectors below the heatmap.</span><button data-ss-show-details hidden>View native sectors ↓</button></div>
+    <div class="ss-selection-status" data-ss-selection-status role="status"><span data-ss-selection-label>Select a cell for native sectors.</span><button data-ss-show-details hidden>View native sectors ↓</button></div>
     <div class="ss-chart-scroll"><div data-ss-chart role="img" aria-label="Sectoral resolution heatmap. Choose a code from Classification area for accessible native-sector details."></div></div>
     <div class="ss-key"><span class="ss-unknown"><i></i>Concordance unverified</span></div>
-    <p class="ss-chart-help">Every row is one NACE class. Below 1: native subdivisions (1/2 = two native sectors linked exclusively to the class). At 1: one linked NACE class. Above 1: several reference classes grouped in a native category. Click a cell for the native-sector details below; drag to zoom. Published links can be partial and do not prove exact containment.</p>
-    <p class="ss-chart-help" data-ss-database-note hidden></p>
-    <div class="ss-detail" data-ss-detail aria-live="polite"><p class="ss-detail-hint">Choose a class or click the heatmap to see where each database places it.</p></div>
-    <div class="ss-footer"><button data-ss-csv>Download visible concordance · CSV</button><details class="ss-notes"><summary>Method &amp; sources</summary><div data-ss-notes></div></details></div>`;
+    <div class="ss-detail" data-ss-detail aria-live="polite"><p class="ss-detail-hint">Choose a row or click the heatmap to see where each database places it.</p></div>
+    <div class="ss-footer"><details class="ss-notes"><summary>Method &amp; sources</summary><p class="ss-chart-help" data-ss-help></p><p class="ss-chart-help" data-ss-database-note hidden></p><div data-ss-notes></div></details></div>`;
    vocabulary();databaseList();picker();notes();await render();bind();root.setAttribute('aria-busy','false');
    new MutationObserver(()=>render().catch(fail)).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
    matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>render().catch(fail));
@@ -67,7 +67,7 @@
   const names=['Sections','Divisions · 2 digits','Groups · 3 digits','Classes · 4 digits','Categories · 5 digits','Subcategories · 6 digits'];
   $('[data-ss-labels]').innerHTML=names.slice(0,model.ref.leaf_level).map((name,i)=>`<option value="${i+1}" ${level===i+1?'selected':''}>${name}</option>`).join('');
   $('[data-ss-search]').setAttribute('aria-label',`Find a ${model.ref.short_label} code or name`);
-  $('.ss-chart-help').textContent=`Every row is one ${model.ref.short_label} ${model.ref.leaf_name}. Below 1: verified native subdivisions (1/2 = two categories linked exclusively to this reference). At 1: one linked reference. Above 1: several linked references per native category. Click a cell for details; drag to zoom. Qualified and joined correspondence footprints do not prove exact containment.`;
+  $('[data-ss-help]').textContent=`Every row is one ${model.ref.short_label} ${model.ref.leaf_name}. Below 1: verified native subdivisions (1/2 = two categories linked exclusively to this reference). At 1: one linked reference per native category within its section. Above 1: several linked references within that section. Qualified and joined correspondence footprints do not prove exact containment or provide allocation weights.`;
   root.querySelectorAll('[data-ss-kind]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.ssKind===kind)));
  }
  function changeKind(next){
@@ -100,11 +100,11 @@
   for(const c of model.columns)for(const n of c.native)for(const l of Object.values(n.links))for(const id of l.steps)used.add(data.route_steps[id].source);
   if(kind==='commodity'&&model.columns.some(c=>c.native.some(n=>n.production_review)))used.add('P19');
   const method=kind==='activity'?'Current NACE activity scopes are checked against native definitions, complete official revision tables and reviewed nxbase concepts. Published producer bridges, mixed categories and editorial decisions remain qualified. Existing nxbase parents are shown separately as lineage; they never enumerate native members.':'CPA paths remain product-only. FIGARO uses CPA 2.1, WIOD retains its qualified product-code interpretation, and EXIOBASE follows CPA 2002 → 2008 → 2.1 → 2.2 with explicit current product reviews where definitions permit. CEDA and GLORIA retain the published EPA commodity bridges, constrained by an explicit, qualified producer-origin review. A broad common category cannot establish a specific product correspondence by itself. Hybrid uses the publisher’s separate 200-product SUT and 164-product IOT definitions and their explicit aggregation. Categories without a verified route remain unverified.';
-  $('[data-ss-notes]').innerHTML=`<p><a href="${esc(sourceURL(referenceSource))}">Eurostat · ${esc(model.ref.label)}</a> · ${model.leaves.length} leaf references. Snapshot ${esc(data.as_of)}. Every row is retained, even when only section letters are labelled.</p><p>Colours measure linked reference classes per native category within the original section. A fraction 1/k is used only for exclusive, verified same-reference links; unknown precision or partial routes cannot become exact subdivisions. Joined classifications can give a wider possible footprint and do not prove exact containment. No allocation weights are provided.</p><p>${method}</p><div class="ss-source-list">${Object.values(data.sources).filter(s=>used.has(s.id)).map(s=>`<a href="${esc(sourceURL(s))}">${esc(s.title)}</a>`).join('')}</div>`;
+  $('[data-ss-notes]').innerHTML=`<p><a href="${esc(sourceURL(referenceSource))}">Eurostat · ${esc(model.ref.label)}</a> · ${model.leaves.length} leaf references. Snapshot ${esc(data.as_of)}. Every row is retained, even when only section letters are labelled.</p><p>Colours measure linked ${leaves(model.ref)} per native category within the original section. A fraction 1/k is used only for exclusive, verified same-reference links; unknown precision or partial routes cannot become exact subdivisions. Joined classifications can give a wider possible footprint and do not prove exact containment. No allocation weights are provided.</p><p>${method}</p><div class="ss-source-list">${Object.values(data.sources).filter(s=>used.has(s.id)).map(s=>`<a href="${esc(sourceURL(s))}">${esc(s.title)}</a>`).join('')}</div>`;
  }
  async function render(){
   const request=++generation;visible=M.rows(model,area);coordinates=M.geometry(visible);columns=model.columns.filter(c=>enabled.has(c.id));const leafOnly=visible.length===1;$('[data-ss-labels]').disabled=leafOnly;$('[data-ss-labels]').value=String(leafOnly?model.ref.leaf_level:level);
-  $('[data-ss-count]').textContent=`${visible.length} / ${model.leaves.length} ${model.ref.leaf_level===6?'subcategories':'classes'} · ${columns.length} native classifications`;
+  $('[data-ss-count]').textContent=`${visible.length} / ${model.leaves.length} ${leaves(model.ref)} · ${columns.length} native classifications`;
   $('[data-ss-db-summary]').textContent=`${enabled.size} classifications selected`;
   const databaseNotes=columns.filter(c=>['GTAP','CEDA'].includes(c.family)&&c.note),databaseNote=$('[data-ss-database-note]');
   databaseNote.hidden=!databaseNotes.length;databaseNote.innerHTML=databaseNotes.map(c=>esc(c.note)).join('<br>');
@@ -115,11 +115,11 @@
   const cells=visible.map(row=>columns.map(c=>M.cell(model,c,row.code)));
   const domain=M.colourDomain(kind),maximum=domain.ceiling,barLength=leafOnly?.72:.8;
   const scale=leafOnly?[0,domain.midpoint,maximum]:domain.ticks,labelTicks=M.labels(model,visible,leafOnly?model.ref.leaf_level:level).map(g=>({...g,position:(coordinates.edges[g.start]+coordinates.edges[g.end+1])/2}));
-  const hover=(c,col,row)=>`<b>${esc(col.label)} · ${esc(row.code)}</b><br>${esc(row.name)}<br>${c.matches.length?`<b>Resolution: ${M.resolutionLabel(c)}</b><br>${c.splitCount?`${c.splitCount} native sectors linked exclusively to this ${model.ref.short_label} ${model.ref.leaf_name}`:`${c.matches.length} linked native categor${c.matches.length===1?'y':'ies'}<br>${c.minimum===c.maximum?c.maximum:c.minimum+'–'+c.maximum} linked ${model.ref.short_label} references per category`}<br>Section footprint: ${c.minimum===c.maximum?c.maximum:c.minimum+'–'+c.maximum} / ${c.denominator} in ${c.section}<br>${c.matches.some(m=>m.link.status==='partial')?'Route includes partial overlaps':c.matches.every(m=>m.link.status==='reviewed')?'Reviewed native correspondence':c.matches.every(m=>m.link.mapping_origin==='governed_nxbase')?'Existing nxbase containment':'Published correspondence · precision retained in details'}${c.pending.length?'<br>'+c.pending.length+' additional categories awaiting review · excluded from the index':''}<br>Click to highlight and view native sectors below`:`Fine concordance unverified<br>No absence is inferred.${c.coarse.length?`<br>${c.coarse.length} native categories have a broad section anchor`:''}<br>Click for classification details.`}`;
+  const hover=(c,col,row)=>`<b>${esc(col.label)} · ${esc(row.code)}</b><br>${esc(row.name)}<br>${c.matches.length?`<b>Resolution: ${M.resolutionLabel(c)}</b><br>${esc(resolutionDescription(c).summary)}${resolutionDescription(c).context?'<br>'+esc(resolutionDescription(c).context):''}<br>Section footprint: ${c.minimum===c.maximum?c.maximum:c.minimum+'–'+c.maximum} / ${c.denominator} in ${c.section}<br>${c.matches.some(m=>m.link.status==='partial')?'Route includes partial overlaps':c.matches.every(m=>m.link.status==='reviewed')?'Reviewed native correspondence':c.matches.every(m=>m.link.mapping_origin==='governed_nxbase')?'Existing nxbase containment':'Published correspondence · precision retained in details'}${c.pending.length?'<br>'+c.pending.length+' additional categories awaiting review · excluded from the index':''}<br>Click to highlight and view native sectors below`:`Fine concordance unverified<br>No absence is inferred.${c.coarse.length?`<br>${c.coarse.length} native categories have a broad section anchor`:''}<br>Click for classification details.`}`;
   const hoverRows=cells.map((cs,i)=>cs.map((c,j)=>hover(c,columns[j],visible[i])));
   const traces=[{type:'heatmap',x:columns.map((_,i)=>i),y:coordinates.edges,z:visible.map(()=>columns.map(()=>0)),colorscale:[[0,unknown],[1,unknown]],showscale:false,text:hoverRows,hovertemplate:'%{text}<extra></extra>',name:'Unverified'},
    {type:'heatmap',x:columns.map((_,i)=>i),y:coordinates.edges,z:M.matrix(model,visible,columns),zmin:0,zmax:1,colorscale:M.colourScale(fine,middle,coarse),xgap:3,showscale:true,
-    colorbar:{orientation:'v',x:1.015,y:.5,xanchor:'left',yanchor:'middle',len:barLength,title:{text:'Linked classes',side:'right'},tickvals:scale.map(n=>M.scaleValue(n,kind)),ticktext:scale.map(n=>n===maximum?n+'+':String(n)),thickness:10,outlinewidth:0,tickfont:{size:11,color:muted}},text:hoverRows,hovertemplate:'%{text}<extra></extra>',name:'Documented'}];
+    colorbar:{orientation:'v',x:1.015,y:.5,xanchor:'left',yanchor:'middle',len:barLength,title:{text:`Linked ${leaves(model.ref)}`,side:'right'},tickvals:scale.map(n=>M.scaleValue(n,kind)),ticktext:scale.map(n=>n===maximum?n+'+':String(n)),thickness:10,outlinewidth:0,tickfont:{size:11,color:muted}},text:hoverRows,hovertemplate:'%{text}<extra></extra>',name:'Documented'}];
   const boundaries=visible.flatMap((n,i)=>i&&n.section!==visible[i-1].section?[coordinates.edges[i]]:[]);
   const layout={height:visible.length===1?280:Math.max(430,Math.min(720,visible.length*9+100)),autosize:true,paper_bgcolor:bg,plot_bgcolor:unknown,font:{family:styles.fontFamily,color:ink,size:12},
    margin:{l:75,r:140,t:95,b:25},xaxis:{side:'top',range:[-.5,columns.length-.5],tickvals:columns.map((_,i)=>i),ticktext:columns.map(c=>esc(c.label).replace(' · ','<br>')+'<br>('+c.native_count+')'),tickangle:0,fixedrange:true,showgrid:false,zeroline:false},
@@ -128,8 +128,9 @@
    shapes:[...boundaries.map(y=>({type:'line',xref:'paper',x0:0,x1:1,y0:y,y1:y,line:{color:bg,width:2}})),...selectionShapes()],
    hoverlabel:{bgcolor:surface,bordercolor:line,font:{color:ink}},hovermode:'closest',dragmode:'zoom',showlegend:false,uirevision:`${kind}:${area}:${[...enabled].join(',')}:${level}`};
   const config={responsive:true,scrollZoom:true,doubleClick:'autosize',displaylogo:false,showTips:false,modeBarButtonsToRemove:['select2d','lasso2d','hoverClosestCartesian','hoverCompareCartesian'],toImageButtonOptions:{filename:`mario-${model.ref.short_label.toLowerCase()}-sectoral-coverage`,format:'png',scale:2}};
+  const credited=window.MarioFigureDownload.withCredit(config,['MARIO / nxbase · '+model.ref.label+' concordance review · '+columns.map(c=>c.label).join(', '),'Classification facts and qualified links; retain upstream source-specific terms. Sources: https://mario-suite.readthedocs.io/en/latest/resources/data-explorer/scope.html#sectoral-coverage']);
   const viewKey=kind+'|'+area+'|'+columns.map(c=>c.id).join(',');
-  operations=operations.then(()=>{if(request!==generation)return;if(chart.dataset.ssView!==viewKey||!chart._fullLayout){chart.dataset.ssView=viewKey;window.Plotly.purge(chart);chart.innerHTML='';return window.Plotly.newPlot(chart,traces,layout,config);}return window.Plotly.react(chart,traces,layout,config);});
+  operations=operations.then(()=>{if(request!==generation)return;if(chart.dataset.ssView!==viewKey||!chart._fullLayout){chart.dataset.ssView=viewKey;window.Plotly.purge(chart);chart.innerHTML='';return window.Plotly.newPlot(chart,traces,layout,credited);}return window.Plotly.react(chart,traces,layout,credited);});
   await operations;if(request!==generation)return;chart.setAttribute('aria-busy','false');
   chart.removeAllListeners?.('plotly_click');chart.on('plotly_click',event=>{if(chart.getAttribute('aria-busy')==='true')return;const point=event.points[0],row=visible[M.rowAt(coordinates,point.y)],col=columns[Math.round(point.x)];if(row&&col){selected=row.code;selectedColumn=col.id;detail();highlight();}});
   detail();
@@ -146,6 +147,16 @@
  function referenceList(codes){return `<div class="ss-reference-list">${codes.map(code=>`<button data-ss-area="${esc(code)}" title="${esc(model.nodes.get(code).name)}">${esc(code)}</button>`).join('')}</div>`;}
  function routeHTML(link){
   return `<ol class="ss-route">${link.nodes.map((n,i)=>`<li><span><b>${esc(n[0])}</b> · ${esc(n[1])}${data.node_names[n.join(':')]?' · '+esc(data.node_names[n.join(':')]):''}</span>${i<link.steps.length?(()=>{const step=data.route_steps[link.steps[i]],source=data.sources[step.source];return `<small>${esc(step.relation)} · ${source?`<a href="${esc(sourceURL(source))}">${esc(source.publisher||source.title)}</a>`:esc(step.source)} · ${esc(step.location)}${step.raw_type?' · '+esc(step.raw_type):''}${step.note?'<br>'+esc(step.note):''}</small>`;})():''}</li>`).join('')}</ol>`;
+ }
+ function resolutionDescription(cell){
+  const reference=`${model.ref.short_label} ${model.ref.leaf_name}`;
+  if(cell.splitCount)return {summary:`${cell.splitCount} native categories linked exclusively to this ${reference}`,context:''};
+  const count=cell.matches.length,range=cell.minimum===cell.maximum?String(cell.maximum):`${cell.minimum}–${cell.maximum}`;
+  const summary=`${count} native categor${count===1?'y':'ies'} linked to this ${reference}`;
+  let context=`Within section ${cell.section}: ${range} linked ${model.ref.short_label} reference${cell.maximum===1?'':'s'} per native category.`;
+  if(cell.matches.some(m=>m.outside.length))context+=' These categories also link outside this section; this is not an exclusive subdivision.';
+  else if(cell.matches.some(m=>m.link.status==='partial'||m.link.exclusive_reference===false))context+=' Qualified links do not establish an exclusive subdivision.';
+  return {summary,context};
  }
  function nativeHTML(match){
   const {native,inside,outside,link}=match;
@@ -170,28 +181,15 @@
   const row=model.nodes.get(selected);
   const column=columns.find(c=>c.id===selectedColumn);
   $('[data-ss-selection-status]').dataset.selected=String(!!row);
-  $('[data-ss-selection-label]').textContent=row?`Selected: ${row.code}${column?' · '+column.label:''} — native-sector details below`:'Click a cell to see its native sectors below the heatmap.';
+  $('[data-ss-selection-label]').textContent=row?`Selected: ${row.code}${column?' · '+column.label:''} — native-sector details below`:'Select a cell for native sectors.';
   $('[data-ss-show-details]').hidden=!row;
-  if(!row){$('[data-ss-detail]').innerHTML='<p class="ss-detail-hint">Choose a class or click the heatmap to see where each database places it.</p>';return;}
+  $('[data-ss-detail]').hidden=!row;
+  if(!row){$('[data-ss-detail]').innerHTML='';return;}
   const chain=M.ancestors(model,selected);
   $('[data-ss-detail]').innerHTML=`<div class="ss-detail-heading"><div><small>Native representation · ${chain.map(n=>esc(n.code)).join(' › ')}</small><h3>${esc(row.code)} · ${esc(row.name)}</h3></div><button data-ss-close aria-label="Close class details">×</button></div><p class="ss-denominator">Section ${row.section} contains ${model.ref.section_counts[row.section]} reference classes. This denominator stays fixed when narrowing the view.</p><div class="ss-native-comparison">${columns.map(column=>{
     const cell=M.cell(model,column,selected),link=column.guide?new URL(column.guide,base):column.source_url;
-    return `<section class="ss-database-detail ${column.id===selectedColumn?'ss-active-database':''}" data-ss-native-database="${esc(column.id)}"><div class="ss-native-heading"><strong>${esc(column.label)}</strong><span>${column.native_count} native categories</span></div>${cell.matches.length?`<p class="ss-resolution"><b>${M.resolutionLabel(cell)}</b> · ${cell.splitCount?`${cell.splitCount} native sectors linked exclusively to this ${model.ref.short_label} ${model.ref.leaf_name}`:`${cell.maximum} linked ${model.ref.short_label} ${cell.maximum===1?'class':'classes'} per native category${cell.minimum!==cell.maximum?' · range '+cell.minimum+'–'+cell.maximum:''}`}</p>`+cell.matches.map(nativeHTML).join(''):'<p class="ss-pending">Fine concordance unverified. No absence is inferred.</p>'}${pendingHTML(cell)}${coarseHTML(cell)}${unresolvedHTML(column)}${column.note?`<p class="ss-column-note">${esc(column.note)}</p>`:''}<details class="ss-profile"><summary>Versions &amp; set list</summary><p>${esc(column.releases.join(' · ')||'No separate release')} · ${esc(column.units)} · ${esc(period(column.years))}</p><a href="${esc(new URL(column.workbook,base))}" download>Native sets · Excel</a>${link?` · <a href="${esc(link)}">${column.guide?'Parsing guide':'Source'}</a>`:''}</details></section>`;
+    return `<section class="ss-database-detail ${column.id===selectedColumn?'ss-active-database':''}" data-ss-native-database="${esc(column.id)}"><div class="ss-native-heading"><strong>${esc(column.label)}</strong><span>${column.native_count} native categories</span></div>${cell.matches.length?`<p class="ss-resolution"><b>${M.resolutionLabel(cell)}</b> · ${esc(resolutionDescription(cell).summary)}</p>${resolutionDescription(cell).context?`<p class="ss-resolution-context">${esc(resolutionDescription(cell).context)}</p>`:''}`+cell.matches.map(nativeHTML).join(''):'<p class="ss-pending">Fine concordance unverified. No absence is inferred.</p>'}${pendingHTML(cell)}${coarseHTML(cell)}${unresolvedHTML(column)}${column.note?`<p class="ss-column-note">${esc(column.note)}</p>`:''}<details class="ss-profile"><summary>Versions &amp; set list</summary><p>${esc(column.releases.join(' · ')||'No separate release')} · ${esc(column.units)} · ${esc(period(column.years))}</p><a href="${esc(new URL(column.workbook,base))}" download>Native sets · Excel</a>${link?` · <a href="${esc(link)}">${column.guide?'Parsing guide':'Source'}</a>`:''}</details></section>`;
    }).join('')}</div>`;
- }
- function exportCSV(){
-  const rows=[['reference','reference_name','section','database','native_classification','native_code','native_name','linked_classes_in_original_section','original_section_classes','section_fraction','outside_section_classes','relation','status','route','sources','resolution_index','native_split_count','resolution_basis','counted_in_resolution','review_note','mapping_origin','route_variant']];
-  const provenance=link=>[...new Set(link.steps.map(id=>data.sources[data.route_steps[id].source]).filter(Boolean).map(sourceURL))].join(' ; ');
-  for(const row of visible)for(const col of columns){
-   const c=M.cell(model,col,row.code),prefix=[row.code,row.name,row.section,col.family,col.label];
-   if(!c.matches.length&&!c.pending.length&&!c.coarse.length)rows.push([...prefix,'','','',c.denominator,'','','','unverified','','','','','unverified',false,'']);
-   for(const m of c.matches)for(const [variant,route] of [m.link,...alternatives(m.link)].entries())rows.push([...prefix,m.native.code,m.native.name,m.count,m.denominator,m.fraction,m.outside.join('; '),m.link.relation,m.link.status,route.nodes.map(n=>n.join(':')).join(' → '),provenance(route),c.resolution,c.splitCount,c.resolutionBasis,true,m.link.review_note||'',m.link.mapping_origin||'published',variant+1]);
-   for(const n of c.pending)rows.push([...prefix,n.code,n.name,'',c.denominator,'','','Pending candidate','pending',n.pending.nodes.map(n=>n.join(':')).join(' → '),provenance(n.pending),'','','pending',false,n.pending.review_note]);
-   for(const n of c.coarse)for(const anchor of n.coarse.anchors)rows.push([...prefix,n.code,n.name,'',c.denominator,'','',n.coarse.direct_nace?'nxbase broad NACE anchor; leaf membership unverified':'Published section anchor; leaf membership unverified',n.coarse.direct_nace?'coarse':'section_only',anchor.nodes.map(n=>n.join(':')).join(' → '),n.coarse.direct_nace?provenance(anchor):[provenance(anchor),sourceURL(data.sources.S06),sourceURL(data.sources.S07)].join(' ; '),'','','unverified',false,n.coarse.note]);
-  }
-  for(const col of columns)for(const n of col.native.filter(n=>n.unresolved))rows.push(['','','',col.family,col.label,n.code,n.name,'','','','',n.unresolved.relation,'unresolved',n.unresolved.nodes.map(n=>n.join(':')).join(' → '),provenance(n.unresolved),'','','unverified',false,n.unresolved.review_note,'governed_nxbase',1]);
-  const csv='\ufeff'+rows.map(r=>Array.from({length:rows[0].length},(_,i)=>'"'+String(r[i]??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
-  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'})),a=document.createElement('a');a.href=url;a.download=`mario-${kind==='activity'?'nace21':'cpa22'}-sectoral-coverage.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
  }
  function bind(){
   root.addEventListener('input',event=>{if(event.target.matches('[data-ss-search]'))picker();});
@@ -206,7 +204,6 @@
    if(b.hasAttribute('data-ss-kind'))changeKind(b.dataset.ssKind);
    if(b.hasAttribute('data-ss-close')){selected='';selectedColumn='';detail();highlight();}
    if(b.hasAttribute('data-ss-show-details'))$('[data-ss-detail]').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
-   if(b.hasAttribute('data-ss-csv'))exportCSV();
    if(b.hasAttribute('data-ss-zoom')){
     const chart=$('[data-ss-chart]');if(!columns.length)return;
     const request=generation,viewKey=kind+'|'+area+'|'+columns.map(c=>c.id).join(','),end=coordinates.end,action=b.dataset.ssZoom;

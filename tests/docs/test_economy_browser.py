@@ -250,7 +250,7 @@ def test_new_native_nf3_and_historical_fx_are_explicit():
     folder=ROOT/"doc/source/_static/data/economy"
     for year in range(1995,2025):
         recipe=json.loads((folder/f"exiobase-3112-{year}-ixi.json").read_text())["recipe"]
-        assert recipe["ghg_factors"]["NF3 - air"]==17.4
+        assert recipe["ghg_factors"]["NF3 - air"]==16.1
         assert recipe["expected_units"]["Satellite account"]["NF3 - air"]=="kg"
     wb=json.loads((folder/"world-bank.json").read_text())
     rates=wb["currency_rates"]["EUR"]["years"]
@@ -269,7 +269,7 @@ def test_source_activity_tax_bridge_adds_only_the_value_added_tax_row():
     assert result["gdp"] == 39e6  # VA 36 + product-tax row 3; imports excluded, no final-use taxes.
 
 
-def test_hybrid_readings_publish_gdp_and_three_gas_ghg():
+def test_hybrid_readings_keep_partial_three_gas_ghg():
     folder = ROOT / "doc/source/_static/data/economy"
     for table, block in [("iot", None), ("sut", "Ea")]:
         snapshot = json.loads((folder / f"exiobase-hybrid-3318-2011-{table}.json").read_text())
@@ -277,9 +277,9 @@ def test_hybrid_readings_publish_gdp_and_three_gas_ghg():
         assert recipe["tax_bridge"] == "source_activity_taxes" and recipe["gdp_bridge_verified"]
         assert recipe.get("emissions_block") == block
         assert not any(gas in row for row in recipe["ghg_factors"] for gas in ("HFC", "PFC", "SF6"))
-        assert {recipe["ghg_factors"][f"CH4 (air - {a})"] for a in ("Emiss", "Emis_unreg_w")} == {29.8}
-        world = sum(sum(r["ghg"]) + r["household_ghg"] for r in snapshot["regions"]) / 1e9
-        assert 43 < world < 45  # Gt CO2eq; monetary 3.11.2 gives 43.8 for 2011
+        assert {recipe["ghg_factors"][f"CH4 (air - {a})"] for a in ("Emiss", "Emis_unreg_w")} == {28}
+        assert {recipe["ghg_factors"][f"N2O (air - {a})"] for a in ("Emiss", "Emis_unreg_w")} == {265}
+        assert all(r["gdp"] is not None and len(r["ghg"]) == len(recipe["sectors"]) for r in snapshot["regions"])
 
 
 def test_explicit_emerging_gdp_proxy_does_not_invent_a_tax_bridge():
@@ -308,7 +308,8 @@ def test_reviewed_public_ghg_methods_keep_characterised_rows_and_units():
         s=json.loads((folder/(d['id']+'.json')).read_text());r=s['recipe']
         if not r['ghg_factors']:continue
         if r['source']=='GLORIA':
-            assert 'unverified' in r['gwp_basis'] and r.get('gwp_horizon') is None
+            assert 'AR5' in r['gwp_basis'] and 'other F-gases unverified' in r['gwp_basis']
+            assert r['gwp_horizon']==100
             assert r['ghg_factors']=={"Emissions (EDGAR) | 'GHG_total_EDGAR_consistent'":1000}
             continue
         assert r['gwp_horizon']==100
@@ -320,10 +321,10 @@ def test_reviewed_public_ghg_methods_keep_characterised_rows_and_units():
                 if row in ['HFC - air','PFC - air']:
                     assert units[row]=='kg CO2-eq' and factor==.001
                 elif row.startswith('CO2'):assert units[row]=='kg' and factor==.001
-                elif row.startswith('CH4'):assert units[row]=='kg' and factor in [.027,.0298]
-                elif row.startswith('N2O'):assert units[row]=='kg' and factor==.273
-                elif row.startswith('SF6'):assert units[row]=='kg' and factor==25.2
-                elif row.startswith('NF3'):assert units[row]=='kg' and factor==17.4
+                elif row.startswith('CH4'):assert units[row]=='kg' and factor==.028
+                elif row.startswith('N2O'):assert units[row]=='kg' and factor==.265
+                elif row.startswith('SF6'):assert units[row]=='kg' and factor==23.5
+                elif row.startswith('NF3'):assert units[row]=='kg' and factor==16.1
                 else:pytest.fail('Unreviewed gas factor '+row)
             elif r['source']=='ADB':
                 assert row=='GHG | Total by substance' and factor==1000

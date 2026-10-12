@@ -64,18 +64,20 @@ def annotate_source_quality(recipe):
 
 
 def annotate_ghg_method(recipe):
-    """Retain reviewed source methods; never label characterised mixtures AR6."""
+    """Retain reviewed source methods; disclose mixed characterisation."""
     annotate_source_quality(recipe)
     if not recipe.get("ghg_factors"): return recipe
     source=recipe.get("source")
     recipe["ghg_method"] = recipe.get("ghg_method", "").replace("direct household emissions reported separately", "direct final-demand emissions calculated separately and included once in Whole economy").replace("Direct final-demand emissions kept separately", "Direct final-demand emissions stored separately and included once in Whole economy")
     if source == "EXIOBASE":
-        recipe["gwp_basis"] = "AR6; source HFC/PFC CO2eq retained" if recipe.get("parser_options", {}).get("unit") != "Hybrid" else "AR6 (CO2, CH4, N2O only; mixed CH4 origins)"
+        recipe["gwp_basis"] = "AR5 (EDGAR CH4=28); source HFC/PFC CO2eq retained" if recipe.get("parser_options", {}).get("unit") != "Hybrid" else "AR5 (CO2, CH4, N2O only; mixed CH4 origins)"
         recipe["gwp_horizon"] = 100
-        recipe["ghg_note"] = "EXIOBASE: mass-reported gases use AR6 GWP100. HFC/PFC already in source CO2eq retain their original characterisation; its IPCC basis is not independently verified."
+        recipe["ghg_note"] = "EXIOBASE: mass-reported gases use EDGAR-compatible AR5 GWP100 (CH4=28). HFC/PFC already in source CO2eq retain their original characterisation; its IPCC basis is not independently verified. Production accounts and EDGAR territorial totals have different boundaries."
         if recipe.get("parser_options", {}).get("unit") == "Hybrid":
-            recipe["ghg_note"] = "EXIOBASE Hybrid: CO2, CH4 and N2O only; F-gases are unavailable. Mixed-origin CH4 uses the fossil AR6 GWP100 of 29.8 for the native combined row."
+            recipe["ghg_note"] = "EXIOBASE Hybrid: this is a three-gas CO2/CH4/N2O subtotal, not a complete GHG inventory. F-gas rows are unavailable; mixed-origin CH4 uses EDGAR-compatible AR5 GWP100 of 28. The source has separate unregistered-waste accounts; their overlap is not independently verified."
         recipe["ghg_basis"] = "Producer accounts plus direct final-demand emissions where supplied; " + recipe["gwp_basis"]
+    elif source == "GLORIA":
+        recipe.update(gwp_basis='Native CO2eq; IPCC AR5 GWP100 verified for CO2, CH4, N2O, SF6 and NF3; other F-gases unverified',gwp_horizon=100,ghg_note='GLORIA retains its native EDGAR-consistent CO2eq total. Independent checks of the 2001 and 2024 gas rows recover AR5 GWP100 factors for CO2, CH4, N2O, SF6 and NF3. Individual factors for all fluorinated gases remain unverified; the 2024 cell-level gas-row fit has a relative L2 residual of about 0.15%. The EDGAR 2026 territorial boundary also differs.')
     elif source == "ADB":
         recipe.update(gwp_basis="IPCC AR5 (source-characterised)",gwp_horizon=100,
           ghg_note="ADB: source AR5 GWP100 totals are converted from Gg to tonnes once. SEEA uses residence-based accounts; EDGAR uses a territorial boundary.",

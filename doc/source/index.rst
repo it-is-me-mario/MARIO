@@ -69,7 +69,7 @@ MARIO
    :hidden:
 
    resources/database_coverage
-   resources/data-explorer/browsers
+   resources/data-explorer/scope
    resources/projects_publications
    resources/teaching
    resources/material

@@ -19,7 +19,7 @@ from pathlib import Path
 DOC = Path(__file__).resolve().parents[1]
 DATA = DOC / "source" / "_static" / "data" / "benchmarks"
 TEMPLATES = Path(__file__).resolve().parent / "templates"
-OUTPUT = DOC / "source" / "resources" / "benchmarks" / "_generated"
+OUTPUT = DOC / "source" / "resources" / "data-explorer" / "_generated"
 
 
 def json_for_html(value):

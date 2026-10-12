@@ -9,16 +9,21 @@ const output=process.env.MARIO_DOCS_QA_DIR||path.join(os.tmpdir(),'mario-gloria-
  const root=page.locator('[data-economy-browser]'),ready=()=>page.waitForFunction(()=>document.querySelector('[data-economy-browser]')?.getAttribute('aria-busy')==='false',{},{timeout:60000});await ready();
  await root.locator('[data-mode="focus"]').click();await ready();await root.locator('[data-family]').selectOption('GLORIA');await ready();
  await root.locator('[data-picker="year"] > summary').click();
- assert.deepEqual(await root.locator('[data-subset="year"]').evaluateAll(ns=>ns.map(n=>Number(n.value)).sort()),[2022,2023,2024]);
+ assert.deepEqual(await root.locator('[data-subset="year"]').evaluateAll(ns=>ns.map(n=>Number(n.value)).sort()),[2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025]);
  await root.locator('[data-bulk-filter="year"][data-bulk-action="select"]').click();await ready();await root.locator('[data-picker="year"] > summary').click();
  await root.locator('[data-metric]').selectOption('gdp');await ready();
  const chart=root.locator('[data-chart]');
  const years=()=>chart.evaluate(n=>[...new Set(n.data.filter(t=>t.type==='bar').flatMap(t=>t.x))].sort());
- assert.deepEqual(await years(),[2022,2023,2024]);
- assert.ok(await chart.evaluate(n=>n.data.some(t=>t.type==='bar'&&t.y.length===3)));
- assert.match(await root.locator('[data-indicator-note]').innerText(),/0\.186% source residual/);
+ const displayedYears=await years();assert.deepEqual(displayedYears,[2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025]);
+ assert.ok(await chart.evaluate((n,count)=>n.data.some(t=>t.type==='bar'&&t.y.length===count),displayedYears.length));
+ assert.match(await root.locator('[data-indicator-note]').innerText(),/source accounting residuals retained/);
  await root.screenshot({path:output+'/world-gdp-light.png'});
- await root.locator('[data-picker="year"] > summary').click();await root.locator('[data-subset="year"][value="2023"]').uncheck();await ready();await root.locator('[data-picker="year"] > summary').click();
+ await root.locator('[data-metric]').selectOption('ghg');await ready();
+ assert.deepEqual(await years(),displayedYears);
+ const earlyGHG=await chart.evaluate(n=>n.data.filter(t=>t.type==='bar').flatMap(t=>t.x.map((x,i)=>[x,t.y[i]])).filter(([year])=>year===2001));
+ assert.equal(earlyGHG.length,1);assert.ok(earlyGHG.every(([,value])=>Number.isFinite(value)&&value>0));
+ await root.locator('[data-metric]').selectOption('gdp');await ready();
+ await root.locator('[data-picker="year"] > summary').click();for(const year of [2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2023,2025])await root.locator(`[data-subset="year"][value="${year}"]`).uncheck();await ready();await root.locator('[data-picker="year"] > summary').click();
  assert.deepEqual(await years(),[2022,2024]);
  await root.locator('[data-picker="country"] > summary').click();await root.locator('[data-country-search]').fill('Italy');await root.locator('[data-subset="country"][value="ITA"]').check();await ready();await root.locator('[data-picker="country"] > summary').click();
  await root.locator('[data-measure]').selectOption('per-capita');await ready();assert.match(await root.locator('[data-heading]').innerText(),/Italy/);
@@ -28,12 +33,12 @@ const output=process.env.MARIO_DOCS_QA_DIR||path.join(os.tmpdir(),'mario-gloria-
  await page.evaluate(()=>document.documentElement.setAttribute('data-theme','dark'));await ready();await root.screenshot({path:output+'/italy-ghg-dark.png'});
  await root.locator('[data-picker="year"] > summary').click();await root.locator('[data-subset="year"][value="2024"]').uncheck();await ready();await root.locator('[data-picker="year"] > summary').click();
  await root.locator('[data-view="map"]').click();await ready();assert.ok(await root.locator('path[data-iso="ITA"]').count());await root.screenshot({path:output+'/ghg-map-2022-dark.png'});
- for(const route of ['notebooks/parsers/gloria/walkthrough_gloria.html','resources/material.html']){
-  await page.goto(new URL(route,base).href,{waitUntil:'networkidle'});
-  const links=page.locator('a[href*="gloria-060-2024-sut.xlsx"]');assert.equal(await links.count(),1);assert.match(await links.first().innerText(),/2022–2024/);
-  const file=await page.request.get(await links.first().evaluate(n=>n.href));assert.equal(file.status(),200);
- }
+ await page.goto(new URL('notebooks/parsers/gloria/walkthrough_gloria.html',base).href,{waitUntil:'networkidle'});
+ assert.match(await page.locator('.database-sheet').innerText(),/2001–2025/);
+ await page.goto(new URL('resources/material.html',base).href,{waitUntil:'networkidle'});
+ const links=page.locator('a[href*="gloria-060-2024-sut.xlsx"]');assert.equal(await links.count(),1);assert.match(await links.first().innerText(),/2001–2025/);
+ const file=await page.request.get(await links.first().evaluate(n=>n.href));assert.equal(file.status(),200);
  await page.goto(new URL('resources/data-explorer/scope.html',base).href,{waitUntil:'networkidle'});
- const data=await(await page.request.get(new URL('_static/data/economy/sectoral-scope.json',base).href)).json();const gloria=data.columns.activity.filter(c=>c.family==='GLORIA');assert.equal(gloria.length,1);assert.deepEqual(gloria[0].years,[2022,2023,2024]);assert.equal(gloria[0].native.length,120);
- assert.deepEqual(errors,[]);console.log(JSON.stringify({years:[2022,2023,2024],world_bar:true,subsets:true,italy_per_capita:true,ghg_map_2022:true,shared_downloads:true,sectoral_native:120,errors}));await browser.close();
+ const data=await(await page.request.get(new URL('_static/data/economy/sectoral-scope.json',base).href)).json();const gloria=data.columns.activity.filter(c=>c.family==='GLORIA');assert.equal(gloria.length,1);assert.deepEqual(gloria[0].years,[2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025]);assert.equal(gloria[0].native.length,120);
+ assert.deepEqual(errors,[]);console.log(JSON.stringify({years:[2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025],world_bar:true,subsets:true,italy_per_capita:true,ghg_map_2022:true,shared_downloads:true,sectoral_native:120,errors}));await browser.close();
 })().catch(e=>{console.error(e);process.exit(1)});

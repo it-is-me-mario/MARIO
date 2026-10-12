@@ -39,6 +39,13 @@ Parser fixes
   archives whose metadata incorrectly reports ``v3.81`` when the dataset
   name is ``exio382_ntnu``.
 
+Add-sector workflow
+~~~~~~~~~~~~~~~~~~~
+
+* ``Database.add_sectors(split=True)`` now loads the workbook's split-support
+  sheets before validating and generating CVXLab inputs. Empty legacy sheets
+  missing newer columns are accepted without discarding data.
+
 Distribution
 ~~~~~~~~~~~~
 
@@ -48,10 +55,15 @@ Distribution
 Documentation
 ~~~~~~~~~~~~~
 
-* Redesigned the documentation and navigation, with an MRIO Data explorer
-  covering indicators, database scope and analyses. Reviewed classification
-  concordances, source licences and reproducible downloads accompany it.
-* Updated parser walkthroughs and completed the public parser API reference.
+* Redesigned the documentation and navigation around an MRIO Data explorer
+  for indicators, database scope and analyses. Its reviewed data now include
+  GLORIA v060 annual readings for 2001--2025; 2024--2025 are publisher forecasts.
+  EXIOBASE GHG indicators use EDGAR-compatible AR5 GWP100 for
+  mass-reported gases; monetary HFC/PFC retain source values, and Hybrid
+  remains a three-gas subtotal.
+* Updated parser walkthroughs, source-licence notes and the public parser API
+  reference. Native-set inventories and reproducible downloads accompany the
+  explorer.
 
 v1.2.0
 ------

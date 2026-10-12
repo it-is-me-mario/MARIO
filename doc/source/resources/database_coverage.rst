@@ -3,7 +3,7 @@
 Geographical coverage
 =====================
 
-Explore :doc:`Database scope <data-explorer/scope>` for indicators, geographical coverage and analyses.
+Explore :doc:`Classifications <data-explorer/scope>` to compare database regions and sectors.
 
 .. raw:: html
 

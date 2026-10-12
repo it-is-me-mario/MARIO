@@ -31,42 +31,43 @@
   --ribbon-lilac-deep: #7a4f8f;
   --ribbon-end: #16100d;
 
-  /* Roles swap yellow and orange only in the dark theme. Logo colours stay fixed. */
+  /* Both themes: MARIO yellow leads, ribbon orange supports. Logo colours stay fixed. */
   --accent: var(--mario-yellow);
   --accent-rgb: 253, 202, 39;
   --accent-alt: var(--ribbon-orange);
 
-  /* Light theme */
-  --paper: #fff7e2;
-  --surface: #fffdf7;
-  --surface-2: #fff3d4;
-  --surface-3: #ffe9b0;
+  /* Light theme (Ribbon): a neutral white page where the four ribbon colours stand out. */
+  --paper: #fbfaf6;
+  --surface: #ffffff;
+  --surface-2: #f3f0e8;
+  --surface-3: #e7e1d3;
   --ink: #16100d;
-  --ink-soft: #46392f;
-  --ink-muted: #6f5f50;
-  --line: #ecd9a6;
-  --line-strong: #d6b866;
-  --dot: rgb(22 16 13 / 0.2);
-  --link: #8a5a00;
+  --ink-soft: #43382f;
+  --ink-muted: #6a5e52;
+  --line: #e2dccd;
+  --line-strong: #c8bca3;
+  --dot: rgb(22 16 13 / 0.16);
+  --link: var(--ribbon-cyan-deep);
   --link-hover: var(--ribbon-orange-deep);
-  --focus: var(--ribbon-orange-deep);
+  --focus: var(--ribbon-cyan-deep);
   --mark: var(--accent);
   --mark-ink: #16100d;
-  --heat-hero: 0.46;
-  --heat-page: 0.17;
+  --heat-hero: 0.38;
+  --heat-page: 0.13;
+  --heat-filter: none;
   --heat-fade-start: calc(18 * var(--cell));
   --heat-fade-length: calc(10 * var(--cell));
-  --shadow: 0 1px 0 rgb(22 16 13 / 0.04), 0 12px 32px -18px rgb(22 16 13 / 0.35);
+  --shadow: 0 1px 0 rgb(22 16 13 / 0.04), 0 12px 32px -18px rgb(22 16 13 / 0.3);
 
-  --code-keyword: #b8460f;
-  --code-string: #2b7a3a;
-  --code-number: #7a4f8f;
-  --code-comment: #7a6a56;
-  --code-name: #1f6f78;
-  --code-operator: #46392f;
+  --code-keyword: var(--ribbon-orange-deep);
+  --code-string: var(--ribbon-green-deep);
+  --code-number: var(--ribbon-lilac-deep);
+  --code-comment: var(--ink-muted);
+  --code-name: var(--ribbon-cyan-deep);
+  --code-operator: var(--ink-soft);
 
   --group-color: var(--accent);
-  --group-deep: #8a5a00;
+  --group-deep: var(--link);
 
   --font-sans: "Avenir Next", Avenir, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-mono: "SFMono-Regular", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
@@ -75,78 +76,81 @@
 }
 
 @media (prefers-color-scheme: dark) {
+  /* Dark theme (Night): deep blue ink with MARIO yellow. */
   :root:not([data-theme="light"]) {
-    --accent: var(--ribbon-orange);
-    --accent-rgb: 252, 107, 60;
-    --accent-alt: var(--mario-yellow);
-    --paper: #141110;
-    --surface: #1c1816;
-    --surface-2: #25201d;
-    --surface-3: #302925;
-    --ink: #f3f1ec;
-    --ink-soft: #d4d1ca;
-    --ink-muted: #9a978f;
-    --line: #332b27;
-    --line-strong: #4d413b;
+    --accent: var(--mario-yellow);
+    --accent-rgb: 253, 202, 39;
+    --accent-alt: var(--ribbon-orange);
+    --paper: #0e1120;
+    --surface: #15192b;
+    --surface-2: #1d2237;
+    --surface-3: #282e48;
+    --ink: #eef0f8;
+    --ink-soft: #c8cce0;
+    --ink-muted: #9399b4;
+    --line: #292f48;
+    --line-strong: #434c6f;
     --dot: rgb(255 255 255 / 0.1);
     --link: var(--accent);
-    --link-hover: var(--accent-alt);
+    --link-hover: var(--ribbon-cyan);
     --focus: var(--accent);
-    --heat-hero: 0.15;
+    --heat-hero: 0.16;
     --heat-page: 0.055;
+    --heat-filter: hue-rotate(185deg) saturate(0.8);
     --shadow: 0 12px 32px -18px rgb(0 0 0 / 0.85);
-    --code-keyword: var(--accent-alt);
-    --code-string: #7fdc9b;
-    --code-number: #e2c2f0;
-    --code-comment: #9d978e;
-    --code-name: #8adbea;
-    --code-operator: #ead9b8;
+    --code-keyword: var(--mario-yellow);
+    --code-string: var(--ribbon-green);
+    --code-number: var(--ribbon-lilac);
+    --code-comment: var(--ink-muted);
+    --code-name: var(--ribbon-cyan);
+    --code-operator: var(--ink-soft);
     --group-deep: var(--accent);
     color-scheme: dark;
   }
 }
 
 :root[data-theme="dark"] {
-  --accent: var(--ribbon-orange);
-  --accent-rgb: 252, 107, 60;
-  --accent-alt: var(--mario-yellow);
-  --paper: #141110;
-  --surface: #1c1816;
-  --surface-2: #25201d;
-  --surface-3: #302925;
-  --ink: #f3f1ec;
-  --ink-soft: #d4d1ca;
-  --ink-muted: #9a978f;
-  --line: #332b27;
-  --line-strong: #4d413b;
+  --accent: var(--mario-yellow);
+  --accent-rgb: 253, 202, 39;
+  --accent-alt: var(--ribbon-orange);
+  --paper: #0e1120;
+  --surface: #15192b;
+  --surface-2: #1d2237;
+  --surface-3: #282e48;
+  --ink: #eef0f8;
+  --ink-soft: #c8cce0;
+  --ink-muted: #9399b4;
+  --line: #292f48;
+  --line-strong: #434c6f;
   --dot: rgb(255 255 255 / 0.1);
   --link: var(--accent);
-  --link-hover: var(--accent-alt);
+  --link-hover: var(--ribbon-cyan);
   --focus: var(--accent);
-  --heat-hero: 0.15;
+  --heat-hero: 0.16;
   --heat-page: 0.055;
+  --heat-filter: hue-rotate(185deg) saturate(0.8);
   --shadow: 0 12px 32px -18px rgb(0 0 0 / 0.85);
-  --code-keyword: var(--accent-alt);
-  --code-string: #7fdc9b;
-  --code-number: #e2c2f0;
-  --code-comment: #9d978e;
-  --code-name: #8adbea;
-  --code-operator: #ead9b8;
+  --code-keyword: var(--mario-yellow);
+  --code-string: var(--ribbon-green);
+  --code-number: var(--ribbon-lilac);
+  --code-comment: var(--ink-muted);
+  --code-name: var(--ribbon-cyan);
+  --code-operator: var(--ink-soft);
   --group-deep: var(--accent);
   color-scheme: dark;
 }
 
 /* Docs groups take the colours of the four logo ribbons; the API takes the dark ribbon ends. */
-[data-group="parsers"] { --group-color: var(--accent-alt); --group-deep: var(--ribbon-orange-deep); }
+[data-group="parsers"] { --group-color: var(--ribbon-orange); --group-deep: var(--ribbon-orange-deep); }
 [data-group="inspection"] { --group-color: var(--ribbon-green); --group-deep: var(--ribbon-green-deep); }
 [data-group="transformations"] { --group-color: var(--ribbon-cyan); --group-deep: var(--ribbon-cyan-deep); }
 [data-group="advanced"] { --group-color: var(--ribbon-lilac); --group-deep: var(--ribbon-lilac-deep); }
 [data-group="api"] { --group-color: var(--ink); --group-deep: var(--ink); }
 
 /* Parser text uses the bright counterpart in both dark-theme entry points. */
-:root[data-theme="dark"] [data-group="parsers"] { --group-deep: var(--accent-alt); }
+:root[data-theme="dark"] [data-group="parsers"] { --group-deep: var(--ribbon-orange); }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) [data-group="parsers"] { --group-deep: var(--accent-alt); }
+  :root:not([data-theme="light"]) [data-group="parsers"] { --group-deep: var(--ribbon-orange); }
 }
 
 /* ------------------------------------------------------------------- base */
@@ -308,6 +312,7 @@ kbd {
  * when the page is longer than its rows.
  */
 .mario-bg__heat {
+  filter: var(--heat-filter);
   background-image: url("images/heatmap-background.png");
   background-repeat: repeat;
   background-size:
@@ -717,7 +722,7 @@ html.mario-header-hidden .mario-header {
   background: var(--accent);
 }
 
-.mario-tabs__list li[data-group="parsers"] { --tab-color: var(--accent-alt); }
+.mario-tabs__list li[data-group="parsers"] { --tab-color: var(--ribbon-orange); }
 .mario-tabs__list li[data-group="inspection"] { --tab-color: var(--ribbon-green); }
 .mario-tabs__list li[data-group="transformations"] { --tab-color: var(--ribbon-cyan); }
 .mario-tabs__list li[data-group="advanced"] { --tab-color: var(--ribbon-lilac); }
@@ -3183,7 +3188,7 @@ html:not(.mario-js) .mario-switch {
     background: var(--tab-color, var(--accent));
   }
 
-  .mario-menu li[data-group="parsers"] { --tab-color: var(--accent-alt); }
+  .mario-menu li[data-group="parsers"] { --tab-color: var(--ribbon-orange); }
   .mario-menu li[data-group="inspection"] { --tab-color: var(--ribbon-green); }
   .mario-menu li[data-group="transformations"] { --tab-color: var(--ribbon-cyan); }
   .mario-menu li[data-group="advanced"] { --tab-color: var(--ribbon-lilac); }
@@ -3621,7 +3626,7 @@ html:not(.mario-js) .mario-switch {
   background: var(--paper);
 }
 
-.mario-downloads__group.is-parsers { --group-color: var(--accent-alt); }
+.mario-downloads__group.is-parsers { --group-color: var(--ribbon-orange); }
 .mario-downloads__group.is-inspection { --group-color: var(--ribbon-green); }
 .mario-downloads__group.is-transformations { --group-color: var(--ribbon-cyan); }
 .mario-downloads__group.is-advanced { --group-color: var(--ribbon-lilac); }
@@ -3963,24 +3968,25 @@ html:not(.mario-js) .mario-nav__item:is(:hover, :focus-within) .mario-nav__panel
 .database-catalogue-reference > summary { padding: .8rem 1rem; border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer; font-size: .9rem; background: var(--surface-2); }
 .mario-article .database-profile-empty { padding: 1rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2); font-size: .92rem; }
 
-/* Country comparisons. The same counts use a contrasting scale in each theme. */
+/* Country comparisons: night blue in the light theme, MARIO yellow in the dark theme.
+   One database: individual regions take the main colour, aggregates a harmonising one (gold / periwinkle). */
 .coverage-explorer {
-  --coverage-low: #93cbd2; --coverage-high: #1b5b64;
-  --coverage-none: #ddd9cc; --coverage-border: #fffdf7;
-  --coverage-individual: #b67d0a; --coverage-aggregate: var(--ribbon-cyan-deep);
+  --coverage-low: #c8d0ec; --coverage-high: #1f2b62;
+  --coverage-none: #ddd9cc; --coverage-border: var(--surface);
+  --coverage-individual: #1f2b62; --coverage-aggregate: #e0a52b;
   min-width: 0;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .coverage-explorer {
-    --coverage-low: color-mix(in srgb, var(--accent) 25%, var(--ink)); --coverage-high: color-mix(in srgb, var(--accent) 68%, var(--paper));
+    --coverage-low: #6a5a1e; --coverage-high: #fdca27;
     --coverage-none: var(--surface-3); --coverage-border: var(--surface);
-    --coverage-individual: var(--accent); --coverage-aggregate: var(--ribbon-cyan);
+    --coverage-individual: #fdca27; --coverage-aggregate: #8e9cf0;
   }
 }
 :root[data-theme="dark"] .coverage-explorer {
-  --coverage-low: color-mix(in srgb, var(--accent) 25%, var(--ink)); --coverage-high: color-mix(in srgb, var(--accent) 68%, var(--paper));
+  --coverage-low: #6a5a1e; --coverage-high: #fdca27;
   --coverage-none: var(--surface-3); --coverage-border: var(--surface);
-  --coverage-individual: var(--accent); --coverage-aggregate: var(--ribbon-cyan);
+  --coverage-individual: #fdca27; --coverage-aggregate: #8e9cf0;
 }
 .coverage-explorer [hidden] { display: none !important; }
 .coverage-toolbar { display: flex; gap: 1rem; align-items: end; flex-wrap: wrap; }
@@ -3999,6 +4005,7 @@ html:not(.mario-js) .mario-nav__item:is(:hover, :focus-within) .mario-nav__panel
   border: 1px solid var(--line); border-radius: var(--radius); padding: .5rem .75rem;
   background: var(--surface); color: var(--ink); font-size: .8rem;
 }
+.coverage-view-buttons svg { display: block; width: 1.1rem; height: 1.1rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .coverage-view-buttons button[aria-pressed="true"] { background: var(--accent); color: var(--mark-ink); border-color: var(--accent); font-weight: 650; }
 .coverage-world-map { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: var(--radius); }
 .coverage-map-ocean { fill: var(--surface-2); }
@@ -4049,27 +4056,43 @@ html:not(.mario-js) .mario-nav__item:is(:hover, :focus-within) .mario-nav__panel
 .mario-article .database-profile-note { margin-top: .4rem; color: var(--ink-soft); font-size: .73rem; }
 
 
-/* Coverage belongs after each guide's introductory prose. */
+/* A single database profile follows each walkthrough introduction. */
 .database-guide-summary { margin: var(--cell) 0; padding: 0; border: 0; background: transparent; }
-.database-guide-licence { margin: 1.2rem 0; padding: .8rem 1rem; border-left: 3px solid var(--accent); background: var(--surface); font-size: .88rem; color: var(--muted); }
-.database-guide-licence > strong { color: var(--ink); font-size: .92rem; }
-.database-guide-licence p { margin: .3rem 0; }
-.database-guide-licence details { margin-top: .4rem; }
-.database-guide-licence summary { cursor: pointer; }
-.database-guide-coverage { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
-.database-guide-coverage__header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; padding: .8rem 1rem; background: var(--surface-2); font-size: .83rem; }
-.database-guide-coverage__header > a { font-size: .77rem; }
-.database-guide-version { padding: 1rem; }
-.database-guide-version + .database-guide-version { border-top: 1px solid var(--line); }
-.database-guide-version__heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: .5rem 1rem; }
-.mario-article .database-guide-version__heading p { margin: 0; font-size: .9rem; font-weight: 650; }
-.database-guide-version__heading > span { color: var(--ink-soft); font-size: .73rem; }
-.mario-article .database-coverage-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)); gap: 1rem; margin: 1rem 0; }
-.database-coverage-metrics > div { display: flex; flex-direction: column-reverse; gap: .3rem; }
-.database-coverage-metrics dt { margin: 0; color: var(--ink-soft); font-size: .77rem; font-weight: 450; }
-.mario-article .database-coverage-metrics dd { margin: 0; font-size: 1.65rem; font-weight: 650; line-height: 1.1; }
-.database-guide-downloads { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem 1rem; font-size: .76rem; }
-.database-guide-downloads > span:first-child { color: var(--ink-soft); }
+.database-sheet { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--paper); }
+.database-sheet__header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .65rem 1rem; padding: 1rem 1.2rem; background: var(--surface-2); }
+.database-sheet__header > div { display: grid; gap: .2rem; }
+.database-sheet__header span { color: var(--ink-soft); font-size: .7rem; letter-spacing: .05em; text-transform: uppercase; }
+.database-sheet__header strong { font-size: 1.05rem; font-weight: 650; }
+.database-sheet__header > a { font-size: .8rem; }
+.database-sheet__body { padding: 1.1rem 1.2rem; }
+.mario-article .database-sheet__metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(115px, 1fr)); gap: .8rem 1rem; margin: 0 0 .9rem; }
+.database-sheet__metrics > div { display: flex; flex-direction: column; gap: .2rem; }
+.database-sheet__metrics dt { order: 1; color: var(--ink-soft); font-size: .8rem; }
+.mario-article .database-sheet__metrics dd { margin: 0; font-size: 1.75rem; font-weight: 650; line-height: 1.2; }
+.database-sheet__metrics small { order: 2; color: var(--ink-soft); font-size: .65rem; }
+.mario-article .database-sheet__facts { display: flex; flex-wrap: wrap; gap: .8rem 2rem; margin: .9rem 0; }
+.database-sheet__facts dt { color: var(--ink-soft); font-size: .73rem; font-weight: 450; }
+.mario-article .database-sheet__facts dd { margin: .15rem 0 0; font-size: .85rem; font-weight: 550; }
+.database-sheet__table { max-width: 100%; overflow-x: auto; margin: .9rem 0; border: 1px solid var(--line); border-radius: var(--radius); }
+.mario-article .database-sheet__table table { width: 100%; border-collapse: collapse; margin: 0; font-size: .8rem; line-height: 1.5; }
+.database-sheet__table th, .database-sheet__table td { padding: .5rem .7rem; vertical-align: top; text-align: left; border-bottom: 1px solid var(--line); }
+.database-sheet__table thead th { background: var(--surface); color: var(--ink-soft); font-size: .72rem; font-weight: 550; }
+.database-sheet__table th[scope="row"] { font-weight: 550; white-space: nowrap; }
+.database-sheet__table tbody tr:last-child > * { border-bottom: 0; }
+.mario-article .database-sheet__note { margin: .4rem 0 .8rem; color: var(--ink-soft); font-size: .73rem; line-height: 1.6; }
+.database-sheet__sets { margin: .9rem 0; padding-top: .7rem; border-top: 1px solid var(--line); }
+.database-sheet summary { cursor: pointer; font-size: .8rem; }
+.database-sheet__licence { margin-top: .8rem; padding-top: .8rem; border-top: 1px solid var(--line); font-size: .8rem; }
+.database-sheet__licence > strong { font-weight: 600; }
+.mario-article .database-sheet__licence p { margin: .25rem 0; font-size: .8rem; line-height: 1.6; }
+.database-sheet__licence details { margin-top: .4rem; color: var(--ink-soft); }
+.database-sheet__links { margin-top: .9rem; font-size: .8rem; }
+@media (max-width: 540px) {
+  .database-sheet__header, .database-sheet__body { padding: .85rem; }
+  .mario-article .database-sheet__metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mario-article .database-sheet__metrics dd { font-size: 1.5rem; }
+  .database-sheet__table th, .database-sheet__table td { padding: .45rem .55rem; }
+}
 .database-excel-links { display: inline-flex; flex-wrap: wrap; gap: .35rem .7rem; }
 .database-excel-links a.database-profile-download { margin: 0; font-size: .76rem; white-space: nowrap; }
 .database-excel-years summary { cursor: pointer; font-size: .76rem; }
@@ -4200,7 +4223,7 @@ html:not(.mario-js) .mario-nav__item:is(:hover, :focus-within) .mario-nav__panel
 .coverage-methods summary { cursor: pointer; }
 .mario-article .coverage-methods p { font-size: .75rem; }
 
-/* Resource tabs retain one hero; Data explorer reveals its peer pages. */
+/* Resource tabs retain one hero; Database explorer reveals its peer pages. */
 .mario-tabs:has([data-tab-menu]) { z-index: 22; }
 .mario-tabs:has([data-tab-menu]) .mario-tabs__track { overflow: visible; }
 [data-tab-menu] { position: relative; }

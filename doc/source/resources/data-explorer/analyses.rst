@@ -1,16 +1,17 @@
 .. raw:: html
 
-   <link rel="stylesheet" href="../../_static/economy-browser.css">
-   <nav class="explorer-tabs">
-     <a href="browsers.html">Browsers</a>
-     <a href="scope.html">Database scopes</a>
+   <nav class="explorer-tabs" aria-label="Database explorer">
+     <a href="scope.html">Classifications</a>
+     <a href="browsers.html">Browser</a>
      <a href="analyses.html" aria-current="page">Analyses</a>
    </nav>
 
 Analyses
 ========
 
-Explore a benchmark in depth: results, modelling choices and assumptions.
+.. container:: explorer-intro
+
+   Explore a benchmark in depth: results, modelling choices and assumptions.
 
 .. mario-cards::
    :columns: 1

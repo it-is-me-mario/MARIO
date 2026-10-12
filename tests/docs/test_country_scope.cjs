@@ -29,7 +29,7 @@ test('all public parsed set profiles resolve native regional counts, including S
   const entry=p.region_counts.find(c=>c.region===r.label&&c.set===set);
   if(entry)assert.equal(S.nativeSet(p,r.iso3,set).length,entry.count,`${p.id} ${r.label} ${set}`);
  }
- const eora=profile('EORA','Eora26');assert.equal(eora.reading_ids.length,0);assert.equal(S.counts(eora,'ITA').Sector,26);
+ const eora=profile('EORA','Eora1 26');assert.equal(eora.reading_ids.length,0);assert.equal(S.counts(eora,'ITA').Sector,26);
  assert.equal(S.counts(profile('BEA','Summary'),'USA').Activity,71);
 });
 test('country and target year constrain scope; coexisting OECD variants and Hybrid stay accessible',()=>{
@@ -65,12 +65,12 @@ test('every detailed link and taxonomy parent resolves, and country-mode indicat
 
 
 test('source-only CEDA uses the supplied vintage and native scope, with no fabricated accounts or numerical reading',()=>{
- const ceda=profile('CEDA','2024');assert.equal(ceda.status,'source_verified');assert.equal(ceda.parser_supported,false);
- assert.deepEqual(ceda.years,[2022]);assert.equal(ceda.regions.filter(r=>r.kind==='country').length,148);
+ const ceda=profile('CEDA','2025');assert.equal(ceda.status,'source_verified');assert.equal(ceda.parser_supported,false);
+ assert.deepEqual(ceda.years,[2023]);assert.equal(ceda.regions.filter(r=>r.kind==='country').length,148);
  assert.equal(ceda.regions.filter(r=>r.kind==='aggregate').length,1);assert.equal(S.counts(ceda,'ITA').Sector,400);assert.equal(S.counts(ceda,'ITA').Region,149);
  assert.equal(ceda.counts['Satellite account'],undefined);assert.equal(ceda.counts['Factor of production'],undefined);assert.equal(ceda.counts['Consumption category'],undefined);
  assert.equal(ceda.native_codes['Oilseed farming'],'1111A0');assert.equal(ceda.mapping,null);assert.equal(ceda.guide,null);assert.equal(ceda.reading_ids.length,0);
- assert.ok(S.visibleProfiles(data.profiles,{country:'ITA',year:2022}).some(p=>p.family==='CEDA'));
+ assert.ok(S.visibleProfiles(data.profiles,{country:'ITA',year:2023}).some(p=>p.family==='CEDA'));
  assert.ok(!S.visibleProfiles(data.profiles,{country:'ITA',year:2024}).some(p=>p.family==='CEDA'));
  const manifest=JSON.parse(fs.readFileSync(path.join(root,'data/economy/manifest.json')));assert.ok(!manifest.datasets.some(d=>d.source==='CEDA'));
 });
@@ -80,7 +80,7 @@ test('a finer NACE code reports broader verified scope without claiming a detail
  const adb=S.query(profile('ADB','74 economies'),'ITA',c,'01.11',data.mappings);
  assert.equal(adb.status,'coarse');assert.equal(adb.ancestor.code,'A');assert.equal(adb.matches.length,1);
  assert.equal(adb.matches[0].official_code,'A+B');assert.equal(adb.complete,false);
- const ceda=S.query(profile('CEDA','2024'),'ITA',c,'01.11',data.mappings);
+ const ceda=S.query(profile('CEDA','2025'),'ITA',c,'01.11',data.mappings);
  assert.equal(ceda.status,'unavailable');assert.deepEqual(ceda.matches,[]);
 });
 
@@ -161,4 +161,21 @@ test('Hybrid country lookup exposes shared activity footprints and its separate 
  assert.deepEqual(beverage.coarse_matches,[]);
  assert.equal(S.query(h,'USA',c,'11.01',data.mappings).status,'mapped');
  assert.equal(S.query(h,'FRA',c,'35.11',data.mappings).matches.length,4);
+});
+
+test('Eora2 Common uses current public metadata without numeric indicators or an invented commodity axis',()=>{
+ const p=profile('EORA','Eora2 · Common');
+ assert.equal(p.parser_supported,false);assert.equal(p.numeric_publication,false);
+ assert.equal(p.counts.Region,190);assert.equal(p.counts.Sector,25);assert.equal(p.counts['Satellite account'],42);
+ assert.equal(p.counts['Factor of production'],6);assert.equal(p.counts['Consumption category'],6);
+ assert.deepEqual(p.years,[2024]);assert.deepEqual(p.reading_ids,[]);assert.deepEqual(p.availability,{});
+ assert.ok(!p.sets.Commodity);assert.equal(S.nativeSet(p,'ITA','Sector').length,25);
+ assert.equal(S.query(p,'ITA',data.classifications['nace-2.1'],'01.11',data.mappings).status,'unavailable');
+ assert.equal(p.source_structure_url,'https://www.eora.org/Eora2Structure.xlsx');
+ const eora=S.visibleProfiles(data.profiles.filter(p=>p.family==='EORA'),{country:'ITA'});
+ assert.deepEqual(eora.map(p=>p.id).sort(),['eora26-2017-bp','eora2-common-2024-scope'].sort());
+ for(const p of eora){assert.equal(p.numeric_publication,false);assert.deepEqual(p.reading_ids,[]);assert.deepEqual(p.availability,{});}
+ const legacy=eora.find(p=>p.id==='eora26-2017-bp');
+ assert.equal(legacy.parser_supported,true);assert.equal(legacy.counts.Sector,26);
+ assert.equal(legacy.guide,'notebooks/parsers/eora/walkthrough_eora.html');
 });

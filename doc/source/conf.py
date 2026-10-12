@@ -28,10 +28,8 @@ import nbsphinx
 
 try:
     import plotly.io as pio
-    from plotly.offline.offline import get_plotlyjs_version
 except ImportError:  # pragma: no cover - docs fallback when Plotly is absent
     pio = None
-    get_plotlyjs_version = None
 
 
 _PLOTLY_MIME = "application/vnd.plotly.v1+json"
@@ -196,11 +194,8 @@ html_copy_source = False
 html_static_path = ["_static"]
 html_css_files = ["heatmap-background.css", "benchmarks.css"]
 html_js_files = [
-    (
-        f"https://cdn.plot.ly/plotly-{get_plotlyjs_version()}.min.js"
-        if get_plotlyjs_version is not None
-        else "https://cdn.plot.ly/plotly-2.32.0.min.js"
-    ),
+    # Reproducible frontend; dashed marker outlines require this Plotly.js version.
+    "https://cdn.plot.ly/plotly-3.6.0.min.js",
     "external-links.js",
     "terminology-tables.js",
 ]
@@ -310,16 +305,16 @@ mario_site = {
             "home_label": "Resources",
             "home_summary": "Explore databases, applications and learning material.",
             "label": "Resources",
-            "landing": "resources/data-explorer/browsers",
+            "landing": "resources/data-explorer/scope",
             "prefixes": ["resources/"],
             "hero": {
                 "title": "Everything <mark>around</mark> MARIO",
-                "text": "Data explorer, projects and publications, teaching and downloadable material.",
+                "text": "Database explorer, projects and publications, teaching and downloadable material.",
             },
             "tabs": [
-                {"label": "Data explorer", "doc": "resources/data-explorer/browsers", "featured": True, "summary": "Explore indicators, geographical coverage and analyses.", "prefixes": ["resources/data-explorer/"], "children": [
-                    {"label": "Browsers", "doc": "resources/data-explorer/browsers"},
-                    {"label": "Database scopes", "doc": "resources/data-explorer/scope"},
+                {"label": "Database explorer", "doc": "resources/data-explorer/scope", "featured": True, "summary": "Compare classifications, explore indicators and read analyses.", "prefixes": ["resources/data-explorer/"], "children": [
+                    {"label": "Classifications", "doc": "resources/data-explorer/scope"},
+                    {"label": "Browser", "doc": "resources/data-explorer/browsers"},
                     {"label": "Analyses", "doc": "resources/data-explorer/analyses", "prefixes": ["resources/data-explorer/electricity_"]},
                 ]},
                 {"label": "Projects & Publications", "doc": "resources/projects_publications", "summary": "Discover the research built with MARIO."},
@@ -347,7 +342,7 @@ mario_site = {
         "contribute/documentation": "index",
         "user_guide/parsers/country_coverage": "user_guide/parsers/index",
         "resources/publications": "resources/projects_publications",
-        "resources/data-explorer": "resources/data-explorer/browsers",
+        "resources/data-explorer": "resources/data-explorer/scope",
     },
 }
 

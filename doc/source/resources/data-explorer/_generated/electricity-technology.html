@@ -20,7 +20,7 @@
       <button data-view="chart" class="on" role="tab" aria-selected="true">Chart</button>
       <button data-view="table" role="tab" aria-selected="false">Table</button>
     </div>
-    <button class="f1-fs" id="f1-csv" type="button">CSV</button>
+
     <button class="f1-fs" id="f1-fs" type="button" aria-label="Toggle full screen">
       <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M2.5 6V2.5H6M14 6V2.5h-3.5M2.5 10v3.5H6M14 10v3.5h-3.5"/></svg>
       <span>Full screen</span>
@@ -266,13 +266,14 @@
       parts.push(`<text x="${px}" y="${y+13}" font-size="${FS}" font-weight="${it.head?'600':'400'}" fill="${it.head&&it.color?it.color:ink}" font-family="system-ui,-apple-system,sans-serif">${esc(it.text)}</text>`);
       lx=px + it.text.length*6.7 + GAP;
     });
-    const legH=rows*ROWH+6, totalH=TITLE_H+H+legH+PAD;
+    const legH=rows*ROWH+6, totalH=TITLE_H+H+legH+PAD+64;
     const pc=_inlinedClone(plot); pc.setAttribute('x',0); pc.setAttribute('y',TITLE_H); pc.setAttribute('width',W); pc.setAttribute('height',H); pc.removeAttribute('style');
     let head='';
     if(logo){ const lw=Math.round(LOGO_H*logo.w/logo.h); head+=`<image xlink:href="${logo.uri}" href="${logo.uri}" x="${W-PAD-lw}" y="${Math.round((TITLE_H-LOGO_H)/2)}" width="${lw}" height="${LOGO_H}"/>`; }
     if(title){ head+=`<text x="${PAD}" y="${Math.round(TITLE_H/2)+6}" font-size="17" font-weight="600" fill="${ink}" font-family="system-ui,-apple-system,sans-serif">${esc(title)}</text>`; }
     const svg=`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${W}" height="${totalH}" viewBox="0 0 ${W} ${totalH}"><rect width="${W}" height="${totalH}" fill="${bg}"/>`
-      + head + pc.outerHTML + `<g transform="translate(0,${TITLE_H+H+4})">${parts.join('')}</g></svg>`;
+      + head + pc.outerHTML + `<g transform="translate(0,${TITLE_H+H+4})">${parts.join('')}</g>`
+      + `<g transform="translate(${PAD},${TITLE_H+H+legH+20})" fill="${ink}" font-family="Arial,sans-serif" font-size="10"><text y="0">Citterio, Golinucci, Rinaldi and Rocco (2026) · adapted for MARIO · g CO2eq/kWh</text><text y="16">Article and author figures: CC BY 4.0 · doi:10.1007/s44498-026-00148-3</text><text y="32">Source observations retain their terms: enextgen.it/en/analyses/electricity-carbon-footprint/</text></g></svg>`;
     _rasterize(svg, W, totalH, filename);
   }
   function _f1LegendItems(){
@@ -293,14 +294,7 @@
       `Carbon intensity of electricity by technology — ${scope}${cleanNote}`);
   });
 
-  root.querySelector('#f1-csv').addEventListener('click',()=>{
-    const cols=["flow", "tech", "source", "value"], records=F1.records.filter(r=>r.flow===state.flow && (state.clean==='all' || r.clean) && !state.srcHidden.has(r.source));
-    const cell=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
-    const csv=[cols.map(cell).join(','),...records.map(r=>cols.map(k=>cell(r[k])).join(','))].join('\r\n');
-    const url=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));
-    const a=document.createElement('a'); a.href=url; a.download='electricity-technology.csv';
-    document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
-  });
+
 
   render();
 })();

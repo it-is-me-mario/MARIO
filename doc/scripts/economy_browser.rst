@@ -4,6 +4,21 @@ Database browser snapshots
 ``resources/data-explorer/browsers`` uses committed snapshots. Sphinx and
 the visitor's browser never parse source databases or call the World Bank API.
 
+The HTML build generates ``browser-index.json`` from those published snapshots.
+It shares repeated recipe values, geography and correspondences, and stores
+whole-economy GDP, value added and GHG totals for each native region/year. The
+browser fetches individual reading files only for a sector selection. This
+index is regenerated on every successful Sphinx HTML build; it adds no source
+data and preserves missing indicators, tax bridges, emissions boundaries and
+source terms. Do not edit the generated index or maintain a second copy.
+
+For a local preview, serve the HTML build with gzip and conditional caching::
+
+   python doc/scripts/serve_preview.py /tmp/mario-docs-build --port 8765
+
+The server binds to loopback only. The existing private remote-preview proxy
+can continue forwarding to the same address.
+
 Refresh World Bank observations explicitly::
 
    python doc/scripts/fetch_world_bank.py --start 1995 --end 2024 \
@@ -89,17 +104,44 @@ material is generally CC BY 4.0. Attribution and conditions accompany downloads.
 AR5 territorial totals include households and exclude LULUCF; the browser does
 not score MRIO accuracy against this different scope.
 
-EORA indicator outputs remain local in the Git-ignored
-Output/database-browser-local directory, excluded from public numerical downloads.
-GLORIA v060 / 2022–2024 is included for non-commercial MARIO documentation under
+Eora1 26 / 2017 basic-price outputs remain local in the Git-ignored
+``Output/database-browser-local`` directory, excluded from public numerical
+downloads. The retained MARIO parse has 189 native regions and 26 sectors;
+``doc/scripts/eora/prepare.py`` validates its aggregate arrays and enriches the
+recipe without rehydrating the OneDrive source. Value added excludes the
+MARIO-added ROW-import row. GHG uses one native PRIMAP-HIST v2.4 Kyoto total,
+AR4 GWP100, excluding LULUCF, plus direct final demand; no inventory totals or
+subcategories are added twice. GDP remains unavailable until its market-price
+product-tax bridge is verified. Eora2 is a separate release, not inferred from
+these Eora1 input files.
+Eora1 and Eora2 follow the same scope-only browser policy as Open CEDA:
+coverage and native sets are available, but numerical indicators are absent
+from every browser and preview. Eora1 retains its supported MARIO parser and
+walkthrough; Eora2 has no parser. Their distinct native scope groups remain
+visible alongside one another without treating Eora1 as a redundant reading.
+The earlier numerical-preview overlay has been removed. Normal Sphinx builds
+also clean its generated assets from older HTML output directories. Retained
+local extracts are for local analysis, not website input or downloads.
+The `Eora1 licensing page <https://worldmrio.com/licensing.jsp>`_ and
+`Eora2 terms <https://www.eora.org/licensing>`_ remain separate.
+
+Eora2 Common has a source-only 2024 metadata profile: 190 individual regions,
+25 native sectors, six primary-input categories, six final-demand categories
+and 42 satellite identifiers. It has no MARIO parser or numerical indicators.
+The original structure workbook is linked from the publisher; its older
+26-sector examples are not used as the current classification. The exact
+public metadata URLs, version and checksums accompany the profile. No NACE/CPA
+allocation or coverage for other years is inferred.
+
+GLORIA v060 / 2001–2025 is included for non-commercial MARIO documentation under
 CC BY-NC 3.0 Australia. Attribution, source vintages and modification notices
 accompany its indicators and native-set workbook. Publisher statement and
 licence link are recorded in ``doc/scripts/gloria/licence.json``.
 USEEIO kingbird uses the EPA model coupled with EXIOBASE 3.8.2; the
 GLORIA-coupled yellowthroat model remains local.
 
-Current browser scope: 625 MRIO readings from EXIOBASE, OECD ICIO, ADB, FIGARO,
-WIOD, EMERGING and GLORIA. WIOD PYP readings are excluded from the UI, leaving 611
+Current browser scope: 647 MRIO readings from EXIOBASE, OECD ICIO, ADB, FIGARO,
+WIOD, EMERGING and GLORIA. WIOD PYP readings are excluded from the UI, leaving 633
 current-price readings. National BEA and USEEIO snapshots and recipes are retained
 for later work but are excluded from every browser mode; scope-page inventories
 are unchanged. EXIOBASE has 434 readings:
@@ -120,20 +162,17 @@ no final-use tax row, and monetary 3.11.2 has a zero final-use tax bridge for
 hybrid VA is about 3% below 3.11.2; hybrid taxes are close to the 3.11.2 totals
 (median ratio 0.95).
 
-Hybrid GHG uses fossil CO2, CH4 and N2O from ``Emiss`` plus ``Emis_unreg_w``.
-The source states that unregistered-waste emissions are not included in the
-activity totals, so adding them does not double count. HFCs, PFCs and SF6 rows
-are empty in every hybrid account: F-gases are not covered, and there is no
-mixture to characterise. The single CH4 row mixes fossil extraction and
-refining (about 40%) with agriculture and waste (about 58%); it uses 29.8, as
-MARIO's ``calc_ghg`` hybrid profile, and 27 for the non-fossil share would
-lower the world total by about 1%. The HIOT extension file reports 2.4% more
-fossil CO2 for activities than the HSUT file; each table is used as published.
-World hybrid GHG is 44.1 Gt (HIOT) and 43.4 Gt (HSUT) CO2eq, against 43.8 Gt
-for monetary 3.11.2 in 2011.
-The 3.11.2 GHG recipe includes the native NF3 row with GWP100 17,400.
+Hybrid publishes a three-gas subtotal from fossil CO2, CH4 and N2O in
+``Emiss`` and ``Emis_unreg_w``. The mass-reported gases now use
+EDGAR-compatible AR5 GWP100 (1, 28 and 265). Its HFC, PFC and SF6 rows are
+empty, and the single CH4 row mixes fossil and non-fossil origins. Overlap
+between the two extensions has not been independently resolved. The browser
+labels this as a partial total rather than a complete GHG inventory; its GDP
+remains available from the verified source tax bridge.
+The 3.11.2 GHG recipe includes the native NF3 row with AR5 GWP100 16,100.
 Older sources without a separate biogenic combustion methane row retain the
-native combustion CH4 row, characterised at 29.8; the scope is stated explicitly.
+native combustion CH4 row, characterised at EDGAR-compatible AR5 GWP100 28;
+the scope is stated explicitly.
 
 The browser index contains metadata and availability flags. Numerical reading
 files are loaded on selection, not all catalogue readings at startup. Refreshing a single
@@ -203,16 +242,18 @@ verification. No OneDrive source needs to be hydrated by the remote monetary
 pipeline. Never delete cloud originals.
 
 
-Data explorer navigation and selection
---------------------------------------
+Database explorer navigation and selection
+------------------------------------------
 
-The original Resources hero contains a Data explorer dropdown linking to
-three peer pages: ``benchmarks/index`` (Browsers), ``benchmarks/scope``
-(Database scope) and ``benchmarks/analyses``. Electricity activates Analyses.
-The Resources landing and legacy ``resources/research`` URL open the browser;
-research anchors retain their destination in ``projects_publications``.
-Existing coverage anchors redirect on both initial page load and hash changes.
-The wide column remains limited to this section.
+The Resources hero contains a Database explorer dropdown linking to three
+peer pages: ``data-explorer/scope`` (Classifications),
+``data-explorer/browsers`` (Browser) and ``data-explorer/analyses`` (Analyses).
+They use that order in both the dropdown and full-width page tabs.
+Electricity activates Analyses. The Resources landing and legacy
+``resources/research`` URL open Classifications; research anchors retain their
+destination in ``projects_publications``. Existing coverage anchors redirect
+on both initial page load and hash changes. The wide column remains limited
+to this section.
 
 Years accept explicit subsets or All. Countries accept explicit subsets or
 World: this sums every native database region, including aggregate regions,
@@ -507,13 +548,15 @@ breakdown exports include a separate direct-final-demand row. Missing EY in
 EMERGING/USEEIO remains missing, rather than an observed zero.
 
 All mass conversions and factor selections are checked against the native
-unit metadata. EXIOBASE monetary uses AR6 GWP100 for mass-reported gases
-(CO2 1; fossil CH4 29.8; nonfossil CH4 27; N2O 273; SF6 25200; NF3 17400),
-but retains already-characterised HFC/PFC, whose original IPCC basis is not
-independently verified. Hybrid covers three gases only and applies fossil
-29.8 to its mixed-origin methane row. ADB and EDGAR retain source AR5 GWP100.
+unit metadata. EXIOBASE monetary mass-reported gases are recharacterised
+with EDGAR-compatible AR5 GWP100 (CO2 1; CH4 28; N2O 265; SF6 23500;
+NF3 16100 where present). This matches EDGAR's methane factor, although
+AR5 also tabulates a fossil-methane value of 30. Already-characterised HFC/PFC
+retain their source CO2-equivalents; the original IPCC basis is not independently
+verified. Hybrid GHG is an AR5-characterised three-gas subtotal; F-gases are missing
+and extension overlap remains unresolved. ADB and EDGAR retain source AR5 GWP100.
 USEEIO retains native workbook C factors, including methane 27.9, and its
-import-related commodity boundary. No uniform AR6 basis or territorial
+import-related commodity boundary. No uniform gas coverage or territorial
 equivalence is claimed. EDGAR references remain unchanged published cells.
 
 For EXIOBASE 3.11.2 ixi in 2023, world E alone is 44.729 Gt; EY is 4.556 Gt;
@@ -590,8 +633,10 @@ Inventory Open CEDA without reading its numerical factor cells::
 Review the extracted profile and curate the registry; the extractor preserves
 other source-only profiles on refresh. Generate the metadata-only set workbook
 with ``build_external_profile_workbook.mjs`` in a temporary workspace containing
-``@oai/artifact-tool``. Open CEDA 2024 has base year 2022, 148 individually
-reported countries plus ROW and 400 native BEA-based sectors. Its
+``@oai/artifact-tool``. Open CEDA 2025 (released 11 November 2025) has base year
+2023, 148 individually reported countries plus ROW and 400 native BEA-based
+sectors, unchanged from 2024; its factors use IPCC AR6 GWP100. The extractor
+reads both the 2024 single-sheet layout and the 2025 Cover/GHG_t_Raw layout. Its
 alphanumeric native codes are not assumed to be NAICS. Source metadata and
 its derived workbook use the source's CC BY-SA 4.0 attribution.
 
@@ -610,7 +655,7 @@ Country scope displays one overview row per family. Ranges preserve differences
 between available years and native inventories; version details retain each
 profile, set list and download. Source-only profiles appear in the same rows.
 The data-year filter uses the source base year, not its release version: Open
-CEDA 2024 appears for Any available year or 2022. Excluded families are named
+CEDA 2025 appears for Any available year or 2023. Excluded families are named
 below the comparison when a particular year's inventory is unavailable.
 
 A selected classification code adds a native-representation column. Detailed
@@ -716,12 +761,12 @@ GLORIA reviewed local extraction
 using float64 for Va/Vc/Ea/Ec/EY and the signed valuation summaries. Full
 transactions and IO inverses are not loaded for these indicators. The source
 archives are restored online-only after each successful validation. This batch
-adds 2022 and 2023 to the previously reviewed 2024 reading; other satellite-only
-years are not treated as complete economic datasets.
+includes all twenty-six locally verified economic readings from 2000 to 2025;
+satellite-only years are not treated as complete economic datasets.
 
 ``gloria/publish_years.py`` publishes validated readings with a single native-set
 profile after comparing labels, units and regional memberships. The existing
-2024 profile identifier stays stable; its year list now includes 2022–2024.
+2024 profile identifier stays stable; its year list includes 2001–2025.
 ``gloria/build_sets.mjs`` updates the shared Excel's title and source note while
 preserving all native records. Publication reuses the common indicator publisher
 and updates GLORIA's country scope and sectoral metadata. No source
@@ -732,8 +777,13 @@ categories and 5,588 loaded emission satellite rows. SDS resolves to South
 Sudan (SSD) using the source README. DYE is retained, with zero 2024 vectors.
 
 Value added sums six signed factor rows. The native EDGAR-consistent GHG total
-is scaled from kt to t, including observed EY once. Its original GWP report
-and horizon are not independently verified. GDP adds source-signed product taxes and subsidies on intermediate and final commodity uses to basic-price value added. The
+is scaled from kt to t, including observed EY once. Independent checks of
+2001 and 2024 native rows recover AR5 GWP100 factors for CO2, CH4, N2O, SF6
+and NF3; the relative L2 residual of the activity-cell fit is below 1e-8
+in 2001 and about 0.15% in 2024. Individual fluorinated-gas factors are not all identifiable,
+and the original CO2eq total is retained. The release notes trace the
+EDGAR-consistent block to EDGAR 7.0 but do not state a GWP convention.
+GDP adds source-signed product taxes and subsidies on intermediate and final commodity uses to basic-price value added. The
 README ISIC Rev. 4 binary concordance combines Other services into S+T rather
 than double-counting it or assigning arbitrary weights.
 
@@ -756,15 +806,15 @@ local runner also reconstructs it from original source valuations. The short
 MARIO download explains the two additional valuations and destination-region
 aggregation. Source matrices are never published.
 
-The 2022 and 2023 checks are retained separately as
-``gloria/gdp-bridge-2022.json`` and ``gloria/gdp-bridge-2023.json``. Archive member
+Annual checks are retained in ``gloria/gdp-bridge-<year>.json`` for each
+additional reading (2001–2023 and 2025). Archive member
 identities and precision accompany each shared-profile reading. Cached valuation
 summaries are reused only when the member name, size and CRC still match.
 
 To collect further locally available years, prepare publication, update the
 workbook and then publish::
 
-   python doc/scripts/gloria/collect.py --root /local/GLORIA --years 2023 2022 \
+   python doc/scripts/gloria/collect.py --root /local/GLORIA --years 2001 2002 2003 2004 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 \
      --stage /local/gloria-stage --evict-command /local/evict_foundation
    python doc/scripts/gloria/publish_years.py --stage /local/gloria-stage
    MARIO_GLORIA_SETS_INPUT=doc/source/_static/data/database_profiles/gloria-060-2024-sut.xlsx \

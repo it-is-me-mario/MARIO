@@ -1,0 +1,25 @@
+Industries	Agriculture
+Industries	Fishing
+Industries	Mining and Quarrying
+Industries	Food & Beverages
+Industries	Textiles and Wearing Apparel
+Industries	Wood and Paper
+Industries	Petroleum, Chemical and Non-Metallic Mineral Products
+Industries	Metal Products
+Industries	Electrical and Machinery
+Industries	Transport Equipment
+Industries	Other Manufacturing
+Industries	Recycling
+Industries	Electricity, Gas and Water
+Industries	Construction
+Industries	Maintenance and Repair
+Industries	Wholesale Trade
+Industries	Retail Trade
+Industries	Hotels and Restraurants
+Industries	Transport
+Industries	Post and Telecommunications
+Industries	Finacial Intermediation and Business Activities
+Industries	Public Administration
+Industries	Education, Health and Other Services
+Industries	Private Households
+Industries	Others

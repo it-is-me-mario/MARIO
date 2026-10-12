@@ -307,8 +307,15 @@ def _page_context(app, pagename, templatename, context, doctree):
         page["local_toc"] = _local_toc(env, pagename)
 
     context["mario_page"] = page
-    if pagename == "resources/data-explorer/browsers":
+    if pagename in {"resources/data-explorer/browsers", "resources/data-explorer/scope", "resources/data-explorer/analyses"}:
         app.add_css_file("economy-browser.css")
+    if pagename == "resources/data-explorer/scope":
+        app.add_css_file("database-scope.css")
+        app.add_js_file("scope-tabs.js", defer="defer")
+        app.add_js_file("database-scope.js", defer="defer")
+        app.add_css_file("extension-scope.css")
+        app.add_js_file("extension-scope.js", defer="defer")
+    if pagename == "resources/data-explorer/browsers":
         for script in ("economy-model.js", "economy-charts.js", "country-model.js", "country-focus.js", "economy-browser.js"):
             app.add_js_file(script, defer="defer")
 
@@ -1200,15 +1207,38 @@ def _write_nav_index(app):
     path.write_text(json.dumps(entries, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
 
 
+def _clean_notebook_downloads(app):
+    from mario_downloads import clean_notebook
+    for source, info in app.env.dlfiles.items():
+        if not str(source).endswith(".ipynb"):
+            continue
+        path = Path(source)
+        if not path.is_absolute():
+            path = Path(app.srcdir) / path
+        target = Path(app.outdir) / "_downloads" / info[1]
+        payload = json.dumps(clean_notebook(path, app.srcdir), ensure_ascii=False, indent=1) + "\n"
+        target.write_text(payload, encoding="utf-8")
+        # Sphinx source copies are downloadable too; avoid a second raw notebook.
+        source_copy = Path(app.outdir) / "_sources" / (str(path.relative_to(app.srcdir)) + ".txt")
+        if source_copy.is_file():
+            source_copy.write_text(payload, encoding="utf-8")
+
+
 def _build_finished(app, exception):
     if exception is not None or app.builder.format != "html":
         return
     _write_redirects(app)
     _write_nav_index(app)
+    _clean_notebook_downloads(app)
+    from mario_browser_assets import write_browser_assets
+    write_browser_assets(app.srcdir, app.outdir)
+    restricted = Path(app.outdir) / "_static/data/database_profiles/eora26-2017-bp.xlsx"
+    restricted.unlink(missing_ok=True)
 
 
 def setup(app):
     app.add_js_file("mario.js", defer="defer")
+    app.add_js_file("download-figure.js", defer="defer")
     app.add_config_value("mario_site", {}, "html")
     app.add_config_value("mario_notebook_downloads", {}, "env")
     app.add_node(mario_api_index)

@@ -1,26 +1,24 @@
 .. raw:: html
 
-   <nav class="explorer-tabs">
-     <a href="browsers.html" aria-current="page">Browsers</a>
-     <a href="scope.html">Database scopes</a>
+   <nav class="explorer-tabs" aria-label="Database explorer">
+     <a href="scope.html">Classifications</a>
+     <a href="browsers.html" aria-current="page">Browser</a>
      <a href="analyses.html">Analyses</a>
    </nav>
 
-Browsers
+.. _browsers:
+
+Browser
 ========
 
-Explore GDP, value added and greenhouse gas emissions across multi-regional
-input–output (MRIO) databases. Compare databases, focus on one database, or
-choose a country to compare available tables and their native detail.
-Select versions, years and sector aggregates, then download results, set lists
-or a short MARIO example. World sums all native regions, including aggregates,
-where the table provides a complete global total. Use the map for a single
-reading or compare selected countries and database-specific aggregate regions.
+.. container:: explorer-intro
 
-.. container:: explorer-feedback
+   Compare GDP, value added and GHG emissions across MRIO databases.
+   Explore a database or country, select years and sectors, and download results.
 
-   Help us improve the explorer: everyone is welcome to report errors in the data,
-   concordances or interface on `GitHub Issues <https://github.com/it-is-me-mario/MARIO/issues>`_.
+   .. container:: explorer-feedback
+
+      Found an error, or know a database we should add? Tell us on `GitHub Issues <https://github.com/it-is-me-mario/MARIO/issues>`_.
 
 .. raw:: html
 
@@ -75,14 +73,13 @@ reading or compare selected countries and database-specific aggregate regions.
    accounts from EY where supplied. EY is not allocated to producer sectors;
    unavailable EY is not estimated or treated as an observed zero. Each
    reading has an explicit gas selection. EXIOBASE monetary includes available
-   combustion, process, agriculture and waste rows: AR6 GWP100 uses CO₂ 1,
-   fossil CH₄ 29.8, biogenic/agriculture/waste CH₄ 27, N₂O 273 and SF₆ 25,200. EXIOBASE 3.11.2 also includes its native NF₃ row
-   with GWP100 17,400 where reported in the native extension.
-   Biogenic CO₂ is excluded; native HFC/PFC CO₂-equivalent rows retain their
-   original characterisation. EXIOBASE Hybrid covers fossil CO₂, CH₄ and
-   N₂O, including its separately reported emissions from unregistered waste;
-   its F-gas rows are empty, so F-gases are not covered. Its single CH₄ row
-   mixes fossil and agricultural sources and uses 29.8. EMERGING uses native <em>va</em> as a GDP proxy,
+   combustion, process, agriculture and waste rows. Mass-reported gases use
+   EDGAR-compatible AR5 GWP100: CO₂ 1, CH₄ 28, N₂O 265, SF₆ 23,500 and,
+   where reported, NF₃ 16,100. Biogenic CO₂ is excluded; HFC/PFC already
+   expressed in CO₂-equivalent retain the source characterisation, whose GWP
+   basis is unverified. EXIOBASE Hybrid shows an AR5-characterised three-gas subtotal (CO₂, CH₄,
+   N₂O), including separate unregistered-waste source accounts; it omits F-gases
+   and their overlap is not independently verified. EMERGING uses native <em>va</em> as a GDP proxy,
    without a verified market-price bridge; its seven fossil CO₂ fuel accounts
    are a CO₂-only proxy under GHG, excluding CH₄, N₂O and F-gases.
    These caveats are visible beneath the graph and retained in CSV exports.
@@ -93,12 +90,14 @@ reading or compare selected countries and database-specific aggregate regions.
    basis is claimed: EXIOBASE retains the source characterisation of
    pre-characterised HFC/PFC mixtures, whose original basis is unverified. Country total GHG units are Gg CO₂eq and World totals use Mt CO₂eq; per-capita MRIO units
    are tonnes CO₂eq per person.</p>
-   <p><strong>GLORIA.</strong> The 2022–2024 v060 readings expose value added from six
+   <p><strong>GLORIA.</strong> The v060 source series covers 1990–2029; 2024–2029
+   are forecast tables. The 2001–2025 readings currently available here expose value added from six
    native factor rows and the source EDGAR-consistent GHG total, including
    directly emitted final-demand accounts. Native kilotonnes CO₂eq are converted
    to tonnes once. Detailed gas rows and the separate OECD-consistent inventory
-   are not added again. The original GWP report and horizon are unverified,
-   so the total retains its source characterisation. Economic tables are dated
+   are not added again. Checks against the native gas rows recover AR5 GWP100
+   factors for CO₂, CH₄, N₂O, SF₆ and NF₃; individual F-gas factors remain
+   unverified, so the source total is retained. Economic tables are dated
    January 2026 and satellites April 2024. GDP adds signed product taxes and
    subsidies on intermediate and final commodity uses; independent world
    income/expenditure checks retain the source residuals. Value-added sectors use the README’s
@@ -135,27 +134,20 @@ reading or compare selected countries and database-specific aggregate regions.
    accounts; years and versions without them are excluded.
    Current <a href="https://www.gtap.agecon.purdue.edu/resources/faqs/faqs_display.asp?F_ID=198">GTAP releases require a licence</a>;
    the licence conditions apply to use and redistribution. Older releases
-   may have different access terms. EORA indicators remain local while
-   permission for this public browser is unresolved.
+   may have different access terms. Eora1, Eora2 and Open CEDA provide scope
+   metadata only; Eora1 retains its MARIO parsing guide.
    GLORIA v060 is included for non-commercial research under
    <a href="https://creativecommons.org/licenses/by-nc/3.0/au/">CC BY-NC 3.0 Australia</a>,
    with attribution retained in downloads. Each published reading links to its
    own source licence.</p>
    <p>Additional sources:
    <a href="https://github.com/EXIOBASE/00-class/blob/main/class/exio3class.xlsx">EXIOBASE classification</a>,
-   <a href="https://www.ipcc.ch/report/ar6/wg1/chapter/chapter-7/">IPCC AR6</a>,
+   <a href="https://ghgprotocol.org/sites/default/files/2024-08/Global-Warming-Potential-Values%20%28August%202024%29.pdf">IPCC AR5 GWP100 factors</a>,
    World Bank <a href="https://data.worldbank.org/indicator/NY.GDP.MKTP.CD">GDP</a>,
    <a href="https://data.worldbank.org/indicator/NY.GDP.PCAP.CD">GDP per capita</a>,
    <a href="https://data.worldbank.org/indicator/SP.POP.TOTL">population</a> and
    <a href="https://data.worldbank.org/indicator/PA.NUS.FCRF">exchange rate</a>.</p>
    </div>
-
-.. toctree::
-   :hidden:
-
-   scope
-   analyses
-   economy_emissions
 
 .. raw:: html
 

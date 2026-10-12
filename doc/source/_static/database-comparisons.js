@@ -80,7 +80,7 @@
         <label>Year<select data-coverage-year></select></label>
       </div>
       <div class="coverage-viewbar"><p data-coverage-headline></p><div class="coverage-view-buttons" role="group" aria-label="Coverage view">
-        <button type="button" data-coverage-view="map" aria-pressed="true">Map</button><button type="button" data-coverage-view="list" aria-pressed="false">Country list</button>
+        <button type="button" data-coverage-view="map" aria-pressed="true" aria-label="Map" title="Map"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3ZM9 3v15M15 6v15"/></svg></button><button type="button" data-coverage-view="list" aria-pressed="false" aria-label="Country list" title="Country list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/></svg></button>
       </div></div>
       <div data-coverage-map-panel>
         <div class="coverage-map-frame">
@@ -108,7 +108,7 @@
       </div>
       <div class="coverage-model-detail" data-coverage-model-detail></div>
       <div class="coverage-country-detail">
-        <label>Which databases include this country as an individual region?<select data-coverage-country>${countries.map(c => `<option value="${escape(c.iso3)}">${escape(c.name)} (${escape(c.iso3)})</option>`).join("")}</select></label>
+        <label><span data-coverage-country-question>Which databases include this country as an individual region?</span><select data-coverage-country>${countries.map(c => `<option value="${escape(c.iso3)}">${escape(c.name)} (${escape(c.iso3)})</option>`).join("")}</select></label>
         <p class="coverage-database-names" data-coverage-country-results aria-live="polite"></p>
       </div>`);
     root.querySelector("[data-comparison-loading]").remove();
@@ -187,11 +187,13 @@
       yearControl.value = selectedYear;
     }
     function badge(kind,source,iso3) {
-      const text = {direct: "Individual region", aggregate: "Aggregate region", unspecified: "—"}[kind];
+      const text = {direct: "Individual", aggregate: "Aggregate", unspecified: "—"}[kind];
       return `<span class="coverage-status coverage-status--${kind}"${kind==="aggregate"?` title="${escape(aggregateLabel(source,iso3)||"Global aggregate coverage; specific group not yet documented")}"`:""}>${text}</span>`;
     }
     function renderCountry() {
       countryControl.value = selectedCountry;
+      root.querySelector("[data-coverage-country-question]").textContent =
+        `Which databases include this country as an individual region ${selectedYear === "all" ? "in at least one available year" : `in ${selectedYear}`}?`;
       // Compare names across databases; respect the year and the selected database's version.
       const pool = profiles.filter(p => withinYear(p) && (p.source !== selectedSource || withinVersion(p)));
       const included = sources.filter(source => status(source, selectedCountry, pool) === "direct");

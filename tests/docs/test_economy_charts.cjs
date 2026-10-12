@@ -171,7 +171,7 @@ test('single-year bars nest country, release and system groups on the x axis',()
  assert.equal(plain.layout.xaxis.ticktext,undefined);assert.deepEqual(plain.layout.annotations,[]);
 });
 
-test('several sector aggregates stack in single-year bars and stay separate over time',()=>{
+test('several sector aggregates stack in single-year bars and remain scatter for multiple readings over time',()=>{
  const rows=['A','D'].flatMap(sector=>[
   {...row('3.11.2 ixi',2024,1e12),sector,sector_name:sector+' · name '+sector},
   {...row('3.10.2 ixi',2024,2e12),sector,sector_name:sector+' · name '+sector}]);
@@ -182,6 +182,34 @@ test('several sector aggregates stack in single-year bars and stay separate over
  assert.equal(new Set(f.data.map(t=>t.marker.color)).size,2);
  const overTime=C.figure([...rows,...rows.map(r=>({...r,year:2022}))],{...options([2022,2024]),state:{...state,mode:'focus'}});
  assert.equal(overTime.layout.barmode,'overlay');assert.ok(overTime.data.every(t=>t.type==='scatter'));
+});
+
+
+test('one reading keeps sector breakdowns as annual stacked bars in focus and single-database compare',()=>{
+ const sectors=[['A',1e9],['C',2e9]],years=[2021,2022,2023,2024,2025];
+ const rows=sectors.flatMap(([sector,value])=>years.map((year,i)=>({...row('060 · SUT',year,value*(i+1)),database:'GLORIA',release:'060',format:'SUT',sector,sector_name:sector+' · name '+sector})));
+ for(const mode of ['focus','compare']) {
+  const opts={...options(years),state:{metric:'value_added',perCapita:false,mode,families:['GLORIA']}};
+  assert.equal(C.usesBars(rows,opts.state,years),true);
+  const f=C.figure(rows,opts);
+  assert.equal(f.layout.barmode,'stack');assert.equal(f.data.length,2);
+  assert.ok(f.data.every(t=>t.type==='bar'));
+  assert.deepEqual(f.data.map(t=>t.x),[years,years]);
+  assert.deepEqual(f.data.map(t=>t.y),[[1,2,3,4,5],[2,4,6,8,10]]);
+  assert.deepEqual(f.data.map(t=>t.name),['A · name A','C · name C']);
+  assert.equal(new Set(f.data.map(t=>t.offsetgroup)).size,1);
+  const countries=C.figure([...rows,...rows.map(r=>({...r,country:'ITA',country_name:'Italy'}))],opts);
+  assert.ok(countries.data.every(t=>t.type==='bar'));
+  assert.equal(new Set(countries.data.map(t=>t.offsetgroup)).size,2);
+ }
+ const extra={...rows[0],database:'EXIOBASE',series:'3.11.2 · ixi',version:'3.11.2 · ixi'};
+ const comparison={...options(years),state:{metric:'value_added',perCapita:false,mode:'compare',families:['GLORIA','EXIOBASE']}};
+ assert.equal(C.usesBars([...rows,extra],comparison.state,years),false);
+ assert.ok(C.figure([...rows,extra],comparison).data.every(t=>t.type==='scatter'));
+ const older=rows.map(r=>({...r,series:'059 · SUT',version:'059 · SUT',release:'059'}));
+ const sameFamily={...comparison,state:{...comparison.state,families:['GLORIA']}};
+ assert.equal(C.usesBars([...rows,...older],sameFamily.state,years),false);
+ assert.ok(C.figure([...rows,...older],sameFamily).data.every(t=>t.type==='scatter'));
 });
 
 

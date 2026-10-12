@@ -6,8 +6,8 @@ inputs, the supported versions, the local layout and the common caveats. Every
 guide also offers its notebook as a download at the bottom of the page.
 
 The cards show regions and economic dimensions for versions with available set
-lists. Explore :ref:`Database scope <database-coverage>`
-for geography, or download all sets from :doc:`Downloadable material
+lists. Explore :ref:`Classifications <database-scopes>`
+for geographical and sectoral coverage, or download all sets from :doc:`Downloadable material
 <../../resources/material>`.
 
 

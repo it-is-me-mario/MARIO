@@ -70,8 +70,8 @@ def stream(template, payload, output):
                 assert inventory[name]['start'] == 1
                 assert len(body) >= 13
                 header_row = ET.tostring(body[0], encoding='unicode')
-                # Retain the authored styles. Rows 12/13 contain plain text
-                # styles and alternating table bands, outside the wrap preview.
+                # Retain the common authored body styles from rows 12/13.
+                # The preview rows must not create a separate formatting regime.
                 styles = {}
                 heights = {}
                 for authored in body:
@@ -92,10 +92,10 @@ def stream(template, payload, output):
                         destination.write((prefix+'<sheetData>'+first).encode('utf-8'))
                         for number, values in enumerate(rows, 2):
                             assert len(values) == width
-                            authored = number if number in styles and number <= 15 else 12+(number % 2)
+                            authored = 12+(number % 2)
                             style = styles[authored]
                             cells = ''.join(cell_xml(f'{column(c)}{number}', v, style.get(column(c))) for c, v in enumerate(values, 1))
-                            height = heights[number] if number <= 15 else '22'
+                            height = heights[authored]
                             destination.write((f'<row r="{number}" ht="{height}" customHeight="1">'+cells+'</row>').encode('utf-8'))
                         destination.write(('</sheetData>'+xml[match.end():]).encode('utf-8'))
                 elif re.fullmatch(r'xl/tables/table\d+\.xml', info.filename):
