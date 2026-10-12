@@ -33,7 +33,7 @@ sets and units share an Excel; its year list identifies the verified inputs.
 Each Excel includes a **Read me** sheet with its source, scope and reuse terms.
 These inventories contain labels and units, not database observations or
 emission factors. Eora set downloads are withheld pending redistribution
-permission; consult its `public documentation <https://new.worldmrio.com/documentation/>`_.
+permission.
 Compare regions and sectors in :doc:`Classifications <data-explorer/scope>`.
 
 .. mario-database-profiles::
