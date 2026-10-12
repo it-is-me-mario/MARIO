@@ -301,9 +301,10 @@
           revision:JSON.stringify([state.mode,state.families,state.versions,state.year,state.metric,state.section,state.perCapita,state.country])});
         displayScale=figure.scale;
         // Title inside the figure so the PNG export carries it; the plot area keeps its height.
-        const gwp=gwpSummary(rows), titleSpace=gwp?80:62, colors=chartColors();
+        const gwp=gwpSummary(rows), modebarClearance=node.clientWidth<480?34:0;
+        const titleSpace=(gwp?80:62)+modebarClearance, colors=chartColors();
         figure.layout.height+=titleSpace;figure.layout.margin={...figure.layout.margin,t:figure.layout.margin.t+titleSpace};
-        figure.layout.title={text:`<b>${esc(heading())}</b>`,font:{size:16,color:colors.ink},subtitle:{text:esc(subheading())+(gwp?"<br>"+esc(gwp.main):""),font:{size:12,color:colors.muted}},xref:"container",x:0,xanchor:"left",yref:"container",y:1,yanchor:"top",pad:{l:18,t:18}};
+        figure.layout.title={text:`<b>${esc(heading())}</b>`,font:{size:16,color:colors.ink},subtitle:{text:esc(subheading())+(gwp?"<br>"+esc(gwp.main):""),font:{size:12,color:colors.muted}},xref:"container",x:0,xanchor:"left",yref:"container",y:1,yanchor:"top",pad:{l:18,t:18+modebarClearance}};
         if(gwp?.footnote){
           // The footnote is the legend title: it always sits right above the legend items and is part of the PNG export.
           const lines=wrapText(gwp.footnote,Math.max(40,Math.floor((node.clientWidth-40)/6.2)));
@@ -472,6 +473,11 @@
       const refreshAppearance=()=>{if(root.getAttribute("aria-busy")!=="true"&&!$("[data-chart]").hidden&&$("[data-chart]").data)drawChart(chartRows).catch(()=>{});};
       new MutationObserver(refreshAppearance).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
       matchMedia("(prefers-color-scheme: dark)").addEventListener("change",refreshAppearance);
+      let lastChartWidth=0;
+      new ResizeObserver(entries=>{
+        const width=Math.round(entries[0].contentRect.width);
+        if(width!==lastChartWidth){lastChartWidth=width;refreshAppearance();}
+      }).observe($("[data-chart]"));
       function filterCountries() {
         const query=$("[data-country-search]").value.toLowerCase();
         root.querySelectorAll('[data-options="country"] [data-choice-search]').forEach(el=>el.hidden=!el.dataset.choiceSearch.includes(query));
