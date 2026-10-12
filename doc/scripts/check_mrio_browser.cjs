@@ -26,7 +26,10 @@ const out=process.env.MARIO_DOCS_QA_DIR||path.join(os.tmpdir(),'mario-mrio-brows
  for(const family of ['OECD','FIGARO','WIOD'])assert.equal(await root.locator(`[data-compare-family][value="${family}"]`).evaluate(n=>n.disabled),true);
  await root.locator('[data-metric]').selectOption('ghg');await ready();
  assert.match(await root.locator('[data-heading]').innerText(),/GHG emissions/);
- assert.match(await root.locator('[data-chart]').evaluate(n=>n.layout.title.subtitle.text),/Mixed GHG methods/);
+ assert.match(await root.locator('[data-chart]').evaluate(n=>n.layout.title.subtitle.text),/AR5 GWP100\*/);
+ assert.match(await root.locator('[data-chart]').evaluate(n=>n.layout.legend.title.text),/EMERGING: fossil CO2 only/);
+ assert.doesNotMatch(await root.locator('[data-indicator-note]').textContent(),/EMERGING: CO₂ only|GHG methods and boundaries differ/);
+ assert.match(await root.locator('[data-indicator-details]').textContent(),/GHG characterisation/);
  await root.locator('[data-expand-family="ADB"]').click();await ready();
  assert.ok(await root.locator('[data-compare-facet="ADB"][data-facet-key="version"]').evaluateAll(ns=>ns.every(n=>n.checked)));
  const adbOptions=await root.locator('[data-compare-facet="ADB"]').allTextContents();

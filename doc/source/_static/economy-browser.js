@@ -67,7 +67,8 @@
         const databases=names.length>1?`${names.length} databases`:detailed.length>35?names[0]:detailed;
         return [databases,period(selected.map(s=>s.recipe.year))].filter(Boolean).join(" · ");
       };
-      // Show a single convention only when every plotted series uses it.
+      // The subtitle names the prevailing IPCC report and horizon; an asterisk flags any variant, explained in Other notes.
+      // The chart footnote identifies every non-standard basis, including CO2-only proxies and source-characterised gases.
       const gwpSummary = rows=>{
         if(state.metric!=="ghg")return null;
         const groups=new Map();
@@ -78,8 +79,15 @@
         }
         if(!groups.size)return null;
         const conventions=[...groups.values()];
-        if(conventions.length===1)return {main:conventions[0].label,footnote:""};
-        return {main:"Mixed GHG methods*",footnote:`* ${conventions.map(g=>`${[...g.databases].join(", ")} (${g.label})`).join("; ")}.`};
+        const family=c=>{const m=c.key.match(/^AR(\d)(?:-(\d+))?/);return m?`AR${m[1]} GWP${m[2]&&!isNaN(m[2])?m[2]:100}`:null;};
+        const counts=new Map();
+        for(const c of conventions){const f=family(c);if(f)counts.set(f,(counts.get(f)||0)+c.databases.size);}
+        if(!counts.size)return {main:conventions.map(c=>c.label).join("; "),footnote:""};
+        const main=[...counts].sort((a,b)=>b[1]-a[1])[0][0];
+        const plain=c=>family(c)===main&&/^AR\d-\d+$/.test(c.key);
+        const qualified=conventions.filter(c=>!plain(c));
+        return {main:main+(qualified.length?"*":""),
+          footnote:qualified.length?`* ${qualified.map(g=>`${[...g.databases].join(", ")}: ${g.label}`).join("; ")}.`:""};
       };
       const wrapText = (text,width)=>{const lines=[];let line="";for(const word of text.split(" ")){if(line&&(line+" "+word).length>width){lines.push(line);line=word;}else line=line?line+" "+word:word;}if(line)lines.push(line);return lines;};
       const option = (value,label,selected)=>`<option value="${esc(value)}"${value===selected?" selected":""}>${esc(label)}</option>`;
@@ -400,7 +408,7 @@
           const methods=M.unique(selected.map(s=>s.recipe.gwp_basis).filter(Boolean));
           if(methods.length) {
             const methodLabel=r=>r.source==="EXIOBASE"?r.parser_options?.unit==="Hybrid"?"AR5; three gases only":"AR5 + native HFC/PFC (basis unverified)":r.source==="ADB"?"AR5":r.source==="EMERGING"?"CO2 only, GWP 1":r.source==="USEEIO"?"source factors":r.gwp_basis;
-            indicatorNotes.push("GHG characterisation · "+M.unique(selected.filter(s=>s.recipe.gwp_basis).map(s=>`${s.recipe.source}: ${methodLabel(s.recipe)}`)).join("; ")+" · EDGAR: AR5 GWP100.");
+            indicatorNotes.push((gwp?.main.endsWith("*")?"* ":"")+"GHG characterisation · "+M.unique(selected.filter(s=>s.recipe.gwp_basis).map(s=>`${s.recipe.source}: ${methodLabel(s.recipe)}`)).join("; ")+" · EDGAR: AR5 GWP100.");
             if(selected.some(s=>s.recipe.source!=="EMERGING"))indicatorNotes.push("Values are not harmonised to one IPCC report.");
           }
           if(state.section!=="all")indicatorNotes.push("Sector totals exclude direct final-demand emissions.");
@@ -409,10 +417,8 @@
         $("[data-indicator-details]").textContent=indicatorNotes.join(" ");
         const cautions=[];
         if(selected.some(s=>state.metric==="gdp"&&s.recipe.gdp_proxy))cautions.push("EMERGING: GDP uses value added as a proxy.");
-        if(selected.some(s=>state.metric==="ghg"&&s.recipe.ghg_proxy))cautions.push("EMERGING: CO₂ only.");
         if(state.metric==="gdp"&&selected.some(s=>s.recipe.gdp_quality_note))cautions.push(M.unique(selected.filter(s=>s.recipe.gdp_quality_note).map(s=>s.recipe.source)).join(" / ")+": source accounting residuals retained.");
         if(state.metric==="ghg"&&selected.some(s=>s.recipe.ghg_usable===false))cautions.push("Some EXIOBASE GHG totals withheld: source errors.");
-        if(state.metric==="ghg")cautions.push("GHG methods and boundaries differ.");
         if(selected.some(s=>s.recipe.price_basis==="Previous year prices"))cautions.push("WIOD PYP: previous-year prices.");
         $("[data-indicator-note]").textContent=cautions.join(" ");
         $("[data-indicator-note]").hidden=!cautions.length;
