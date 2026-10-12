@@ -10,7 +10,7 @@
     </div>
     <nav class="mario-footer__links" aria-label="Footer">
       {%- for item in mario.nav %}<a href="{{ item.url }}">{{ item.label }}</a>{% endfor %}
-      <a href="{{ pathto('resources/changelog') }}">Changelog</a>
+      <a href="{{ pathto('changelog') }}">Changelog</a>
       <a href="{{ mario.github }}">{{ icon("github") }} GitHub</a>
       {%- if mario.pypi %}<a href="{{ mario.pypi }}">PyPI</a>{% endif %}
       <button type="button" class="mario-icon-button" data-theme-toggle aria-label="Switch between light and dark theme">{{ icon("theme") }}</button>

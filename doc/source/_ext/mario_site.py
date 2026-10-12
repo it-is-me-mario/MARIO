@@ -331,6 +331,7 @@ MARIO_ICONS = {
     "transformations": '<path d="M4 7.5h14.5l-3.5-3.5"/><path d="M20 16.5H5.5l3.5 3.5"/>',
     "advanced": '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><path d="M10 6.5h4.5a3 3 0 0 1 3 3V14"/>',
     "api": '<path d="m8 7-5 5 5 5"/><path d="m16 7 5 5-5 5"/><path d="m13.5 4-3 16"/>',
+    "changelog": '<path d="M3 12a9 9 0 1 0 2.6-6.4L3 8"/><path d="M3 3v5h5"/><path d="M12 7.5V12l3 2"/>',
     # Inspection guides
     "table-search": '<rect x="3" y="3" width="13" height="13" rx="1.5"/><path d="M3 8h13M8 3v13"/><circle cx="17.5" cy="17.5" r="3"/><path d="m21.5 21.5-1.9-1.9"/>',
     "compute": '<rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><path d="M14.5 10h6.5M14.5 14h6.5"/>',
@@ -713,7 +714,9 @@ def _render_docs_overview(app, doctree, fromdocname):
             url = app.builder.get_relative_uri(fromdocname, tab["doc"])
             groups = _toc_groups(env, root)
             captioned = [group for group in groups if group["caption"]]
-            if captioned:
+            if not groups:
+                links = [(f"{url}{heading['anchor']}", heading["title"], None) for heading in _local_toc(env, root)]
+            elif captioned:
                 links = [
                     (
                         f"{url}#{group['anchor']}" if group["anchor"] else url,

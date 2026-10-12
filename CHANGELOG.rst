@@ -2,8 +2,13 @@
 Release History
 ****************
 
+All notable changes to MARIO, newest first. Versions match the ``mariopy``
+package on PyPI, and dates are its publication dates.
+
 v1.3.0
 ------
+
+*Released 2026-10-12.*
 
 Plotting API
 ~~~~~~~~~~~~
@@ -68,6 +73,8 @@ Documentation
 v1.2.0
 ------
 
+*Released 2026-10-06.*
+
 EXIOBASE 3.11.2
 ~~~~~~~~~~~~~~~~
 
@@ -80,8 +87,17 @@ EXIOBASE 3.11.2
   source-year versus now-cast coverage, and guidance on the populated 2024
   CO2 combustion rows.
 
+Packaging
+~~~~~~~~~
+
+* Supported Python versions are declared as 3.11 to 3.13
+  (``python_requires=">=3.11,<3.14"``): the pinned ``numpy==2.1.1`` has no
+  Python 3.14 wheels.
+
 v1.1.1
 ------
+
+*Released 2026-07-30.*
 
 GTAP parser rewrite
 ~~~~~~~~~~~~~~~~~~~~
@@ -126,6 +142,9 @@ Optional GTAP structured row layouts
 
 v1.1.0
 ------
+
+*Released 2026-07-26.* It includes the trade-mix changes prepared as 1.0.4,
+which was never published.
 
 Add sectors: value added and inventory handling
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -185,7 +204,7 @@ Shock scenarios
   describe one regional bundle: their ``Sector_from`` entries are the mix members
   and ``Value`` their shares, while ``Region_to``/``Sector_to`` select the buyer
   columns to rewrite (``all`` targets every column). ``shock_calc`` groups the
-  rows and applies :meth:`Database.update_supply_mix_iot` on top of the shocked
+  rows and applies ``Database.update_supply_mix_iot`` on top of the shocked
   scenario, redistributing the bundle while preserving each selected column
   total. Shares are used as given when they sum to 1 (±1%) and otherwise
   rescaled with a warning. IOT only.
@@ -328,6 +347,8 @@ Plotting
 v1.0.3
 ------
 
+*Released 2026-07-02.*
+
 EMERGING-E parser
 ~~~~~~~~~~~~~~~~~
 
@@ -364,13 +385,16 @@ Matrix-specific export
 v1.0.2
 ------
 
+*Released 2026-06-14.*
+
 Packaging and installation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 * Installed Parquet support by default by shipping the package with the
   required dependency out of the box, refreshed the installation guidance,
   refined optional-dependency messaging, and added package-metadata regression
-  coverage. Resolved issue `#142 <https://github.com/it-is-me-mario/MARIO/issues/142>`_.
+  coverage. Resolved issue `#142 <https://github.com/it-is-me-mario/MARIO/issues/142>`__.
+* Declared ``python_requires=">=3.11"`` in the package metadata.
 
 SUT scenarios and native matrix workflows
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -378,11 +402,11 @@ SUT scenarios and native matrix workflows
 * Extended SUT scenario updates so unified ``Z``, ``Y`` and ``E`` inputs are
   accepted directly and normalized through the shared ordering logic, with
   dedicated regression tests for the new update paths. Resolved issue
-  `#144 <https://github.com/it-is-me-mario/MARIO/issues/144>`_.
+  `#144 <https://github.com/it-is-me-mario/MARIO/issues/144>`__.
 * Switched SUT export and parser roundtrips to native SUT blocks instead of
   legacy unified IOT-style matrices, while preserving backward-compatible
   parsing of historical TXT, Parquet and Excel layouts. Resolved issue
-  `#146 <https://github.com/it-is-me-mario/MARIO/issues/146>`_.
+  `#146 <https://github.com/it-is-me-mario/MARIO/issues/146>`__.
 
 Parser and export roundtrip fixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -402,6 +426,8 @@ Parser and export roundtrip fixes
 
 v1.0.1
 ------
+
+*Released 2026-06-13.*
 
 Core calculations and regional subsets
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -445,6 +471,8 @@ Documentation
 v1.0.0
 ------
 
+*Released 2026-06-03.*
+
 Architecture and public API
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -472,7 +500,6 @@ Parsing and export
 * Added ``matrix_layout`` as a backward-compatible alias for
   ``matrix_layouts`` in Excel parsing entry points and reject ambiguous calls
   that pass both names at once.
-
 * Unified Excel, TXT and Parquet parsing through a shared parser-state flow.
 * Added native flat TXT/Parquet export and matching re-import support.
 * Introduced ``matrix_layouts`` support for richer IOT and SUT layouts,
@@ -564,73 +591,337 @@ Testing and documentation
 * Rewrote and expanded developer-facing documentation, tutorials and parser
   development guidance.
 
-
-v 0.3.4
--------
-
-Parsing functions error fixed
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Recent pandas versions have changed the way they interpret "None" in DataFrames indices and values, which are currently interpreted it as NaN. 
-This mario update fixes the issue by replacing NaN with the string "None" when parsing excel files.
-
-Deprecated functions
-~~~~~~~~~~~~~~~~~~~~
-Parser for old-fashioned Eurostat SUTs is deprecated. This function relied on peculiarly structured SUTs formats.
-In case you need to parse such SUTs, please rearrange them into the standard MARIO format.
-You can check the MARIO format from 'test_SUT_standard.xlsx' file in the mario/test/tables directory in this repository.
-
-
-v 0.3.3
--------
-
-Settings
-~~~~~~~~
-to_excel function bug in flow mode fixed.
-
-
-v 0.3.0
--------
-
-Settings
-~~~~~~~~
-
-New functionalities are provided to allow the user to change some naming convensions in mario indexing and input-output nomenclature convensions in mario.
-
-Isard to Chenery-Moses Transformation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The transformation implies moving from trades accounted in the USE matrix to trades accounted in the SUPPLY matrix.
-
-Data Templates
-~~~~~~~~~~~~~~
-
-New functionalities are added to create an enpty IO/SU tables  from tabular data.
-
-Figaro Parser
-~~~~~~~~~~~~~
-
-New download and parsing functionalities are added to parser figaro database.
-
-
-Table Downloader
-~~~~~~~~~~~~~~~~
-
-Donwload functions are added to the software. Some of the download functions are using pymrio database download functionalities, and some other databases are mario exclusive.
-
-Deprecated functions
-~~~~~~~~~~~~~~~~~~~~
-
-is_productive and backup methods are deprecated.
-
-Improvements
+Requirements
 ~~~~~~~~~~~~
 
-* The add_sector function imprvements are implemented to make the code faster.
-* Updating dependencies versioning (specifically pandas, numpy and xlsxwriter) 
+* MARIO now requires pandas 3 (``pandas==3.0.2``) and therefore Python 3.11
+  or later. ``xlsxwriter`` and ``openpyxl`` are pinned to 3.2.9 and 3.1.5;
+  ``numpy`` stays at 2.1.1.
+* New runtime dependencies: ``pint``, ``scipy``, ``h5py``, ``pyxlsb``,
+  ``country_converter`` and ``cvxlab`` (for ``add_sectors(split=True)``).
 
+v0.3.5
+------
+
+*Released 2025-01-31.*
+
+Parsers
+~~~~~~~
+
+* Added ``parse_oecd(path, year)`` for OECD ICIO tables and
+  ``parse_exiobase_3_9_4(path)`` for EXIOBASE 3.9.4. Both read the source
+  with pymrio and convert the result with ``parse_from_pymrio``
+  (`#126 <https://github.com/it-is-me-mario/MARIO/pull/126>`__).
+* ``parse_exiobase`` accepts ``version="3.9.4"`` and now uses it by default.
+  Pass ``version="3.8.2"`` or ``"3.8.1"`` to read older archives.
 
 Documentation
 ~~~~~~~~~~~~~
 
-* The tutorials are updated to improve the readiblity and quality of the juputer notebook functionalities.
-* New templates for the readthedocs.
+* Added a tutorial on the pymrio-based parsers and an API page for
+  ``parse_oecd``.
+
+v0.3.4
+------
+
+*Released 2024-10-30.*
+
+Parsing
+~~~~~~~
+
+* Recent pandas versions read the label ``"None"`` as a missing value. Index
+  labels that pandas reads as NaN, or that are ``"-"``, are now restored to the
+  string ``"None"`` when parsing Excel and TXT files and when reading
+  aggregation workbooks. Duplicated labels are not checked.
+* Parsing raises an error naming the matrices that contain NaN values.
+* ``parse_eora`` checks that the requested ``table`` matches the single-region
+  file, including SUT files requested as IOT.
+* Fixed the extension check of the hybrid EXIOBASE parser and clarified parser
+  error messages.
+
+Export
+~~~~~~
+
+* ``to_txt`` writes the units file to both the flows and the coefficients
+  folders (`#114 <https://github.com/it-is-me-mario/MARIO/issues/114>`__).
+* ``to_excel`` and ``to_txt`` always write units: their ``units`` argument was
+  removed. At least one of ``flows`` and ``coefficients`` must be ``True``.
+* Fixed the metadata path written by ``to_excel(include_meta=True)``.
+
+Removed
+~~~~~~~
+
+* ``parse_eurostat_sut`` now raises an error. It depended on table layouts
+  produced by the Eurostat web interface
+  (`#115 <https://github.com/it-is-me-mario/MARIO/issues/115>`__). Rearrange
+  such tables into the MARIO format, as in ``test_SUT_standard.xlsx`` under
+  ``mario/test``, or install ``mariopy==0.3.3``.
+
+Requirements
+~~~~~~~~~~~~
+
+* Pinned ``pandas==2.2.3``, ``numpy==2.1.1``, ``xlsxwriter==3.2.0`` and
+  ``openpyxl==3.1.0``, and raised IPython to ``>=8.27.0``. ``plotly``,
+  ``tabulate`` and ``pyyaml`` are unpinned.
+
+v0.3.3
+------
+
+*Released 2024-09-26.*
+
+Fixes
+~~~~~
+
+* ``to_excel(flows=True)`` wrote ``Y`` in place of ``EY``, repeating rows in
+  the exported workbook
+  (`#107 <https://github.com/it-is-me-mario/MARIO/issues/107>`__).
+* ``download_figaro`` uses the new Eurostat download links
+  (`#108 <https://github.com/it-is-me-mario/MARIO/issues/108>`__). Files
+  from the new links were not tested with ``parse_FIGARO_SUT`` at release.
+
+v0.3.2
+------
+
+*Released 2024-06-29.*
+
+Fixes
+~~~~~
+
+* Fixed installation from PyPI: the ``mario.settings`` package and its YAML
+  files were missing from the distribution, so ``import mario`` failed
+  (`#103 <https://github.com/it-is-me-mario/MARIO/pull/103>`__).
+
+v0.3.1
+------
+
+*Released 2024-06-29.*
+
+Fixes
+~~~~~
+
+* ``parse_FIGARO_SUT`` swapped the supply and use tables and built ``Z`` with
+  the wrong shape
+  (`#102 <https://github.com/it-is-me-mario/MARIO/pull/102>`__).
+
+v0.3.0
+------
+
+*Released 2024-06-27.*
+
+Settings and nomenclature
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Added ``mario.settings``: a ``settings.yaml`` file maps MARIO's matrix
+  names and index levels to user-defined names. ``download_settings``,
+  ``upload_settings`` and ``reset_settings`` manage the file; ``Nomenclature``
+  and ``Index`` expose the active names
+  (`#76 <https://github.com/it-is-me-mario/MARIO/issues/76>`__,
+  `#80 <https://github.com/it-is-me-mario/MARIO/pull/80>`__).
+* Exported the ``IOT`` and ``SUT`` table-type constants.
+
+Table transformations
+~~~~~~~~~~~~~~~~~~~~~
+
+* Added ``Database.to_chenery_moses`` to convert an Isard SUT into a
+  Chenery-Moses SUT, moving trade from the use table to the supply table.
+  ``is_isard`` and ``is_chenerymoses`` report the current form
+  (`#90 <https://github.com/it-is-me-mario/MARIO/pull/90>`__).
+
+Data templates
+~~~~~~~~~~~~~~
+
+* Added ``DataTemplate`` and ``MatrixBuilder`` to build empty IOT or SUT
+  databases from lists of regions, sectors and other sets
+  (`#71 <https://github.com/it-is-me-mario/MARIO/issues/71>`__).
+
+FIGARO
+~~~~~~
+
+* Added ``download_figaro(table, year, path)`` and ``parse_FIGARO_SUT``.
+  The parser reads the supply-use tables; environmental extensions are not
+  parsed (`#95 <https://github.com/it-is-me-mario/MARIO/pull/95>`__).
+
+Add sectors
+~~~~~~~~~~~
+
+* Rewrote ``add_sectors`` for readability and speed, with unit tests. Empty
+  input sheets are accepted, and a missing unit of measure raises an error
+  naming the item.
+
+Compatibility
+~~~~~~~~~~~~~
+
+* Removed the upper bounds on pandas and xlsxwriter and fixed the pandas
+  deprecations they exposed (``DataFrame.append``, ``groupby(axis=...)``)
+  (`#31 <https://github.com/it-is-me-mario/MARIO/issues/31>`__).
+  ``pyyaml`` is a new dependency. Irrelevant openpyxl warnings are filtered.
+
+Fixes
+~~~~~
+
+* ``parse_exiobase`` failed on the hybrid EXIOBASE folder when a year was
+  passed; the hybrid table has a fixed year (2011)
+  (`#66 <https://github.com/it-is-me-mario/MARIO/issues/66>`__).
+
+Removed
+~~~~~~~
+
+* ``Database.reset_to_backup``, ``Database.set_solver`` and
+  ``CoreModel.is_productive``.
+
+Documentation
+~~~~~~~~~~~~~
+
+* New tutorials on parsers, table transformations and ``add_extensions``, a
+  new documentation theme, and an updated ReadTheDocs configuration.
+
+v0.2.2
+------
+
+*Released 2023-09-16.*
+
+Downloads
+~~~~~~~~~
+
+* Added ``download_hybrid_exiobase(path)`` and exposed the pymrio download
+  functions ``download_eora26``, ``download_exiobase1``,
+  ``download_exiobase2``, ``download_exiobase3``, ``download_oecd`` and
+  ``download_wiod2013`` from ``mario``.
+
+Documentation
+~~~~~~~~~~~~~
+
+* The README lists pymrio as a dependency and describes the test suite.
+  ``CITATION.cff`` was removed.
+
+v0.2.1
+------
+
+*Released 2023-05-30.*
+
+Fixes
+~~~~~
+
+* ``aggregate`` checked only the baseline for missing matrices, failing on
+  databases with several scenarios.
+
+Requirements
+~~~~~~~~~~~~
+
+* Pinned ``pandas<=1.3.5``: newer pandas releases broke MARIO. The
+  installation guide explains how to avoid the conflict.
+
+Documentation
+~~~~~~~~~~~~~
+
+* Added ``CITATION.cff`` and refreshed the documentation.
+
+v0.2.0
+------
+
+*Released 2023-05-04.* The release was tagged ``v2.0.0`` in git by mistake;
+the package version is 0.2.0. The ``v2.0.0-doi`` pre-release archives it on
+Zenodo.
+
+Breaking changes
+~~~~~~~~~~~~~~~~
+
+* ``Database.sut_to_iot`` was renamed ``Database.to_iot``
+  (`#16 <https://github.com/it-is-me-mario/MARIO/issues/16>`__).
+* ``parse_from_txt`` and ``parse_from_excel`` no longer default to
+  ``mode="flows"``: ``mode`` is required
+  (`#40 <https://github.com/it-is-me-mario/MARIO/issues/40>`__).
+* ``parse_eurostat`` was replaced by ``parse_eurostat_sut``, rewritten for the
+  new Eurostat table layout and with checks on the downloaded files
+  (`#8 <https://github.com/it-is-me-mario/MARIO/issues/8>`__).
+* ``parse_eora`` takes a required ``table`` argument and can read
+  single-region SUTs.
+* The licence changed from CC BY-NC-SA 4.0 to GNU GPL v3.0.
+
+pymrio integration
+~~~~~~~~~~~~~~~~~~
+
+* Added ``Database.to_pymrio`` and ``parse_from_pymrio`` to convert databases
+  to and from pymrio ``IOSystem`` objects
+  (`#14 <https://github.com/it-is-me-mario/MARIO/pull/14>`__). pymrio is a new
+  dependency.
+
+Parsers
+~~~~~~~
+
+* Added ``parse_exiobase``, one entry point for the EXIOBASE IOT, SUT and
+  hybrid tables (`#36 <https://github.com/it-is-me-mario/MARIO/issues/36>`__).
+* Added ``hybrid_sut_exiobase`` for the CSV release of hybrid EXIOBASE on
+  Zenodo, much faster to read than the Excel files
+  (`#37 <https://github.com/it-is-me-mario/MARIO/issues/37>`__).
+
+Database API
+~~~~~~~~~~~~
+
+* Added ``Database.query`` to extract matrices without the nested output of
+  ``get_data`` (`#33 <https://github.com/it-is-me-mario/MARIO/issues/33>`__).
+* ``search`` gained ``ignore_case``
+  (`#27 <https://github.com/it-is-me-mario/MARIO/issues/27>`__).
+* ``to_excel`` and ``to_txt`` gained ``include_meta`` to save the metadata as
+  ``metadata.json``.
+* ``get_aggregation_excel`` and aggregation tables reject items that are not
+  in the database; missing items stay unaggregated.
+* ``backup`` moved from ``Database`` to ``CoreModel``.
+
+Fixes
+~~~~~
+
+* Backward linkages summed rows instead of columns. ``plot_linkages`` also got
+  a fixed legend title and clearer hover values
+  (`#43 <https://github.com/it-is-me-mario/MARIO/issues/43>`__).
+* ``parse_from_txt`` failed with ``mode="coefficients"`` because ``to_txt``
+  and the parser used different separators
+  (`#47 <https://github.com/it-is-me-mario/MARIO/issues/47>`__).
+* Index and column level names are kept after transformations such as
+  ``to_iot`` and ``aggregate``
+  (`#11 <https://github.com/it-is-me-mario/MARIO/issues/11>`__).
+* ``calc_all`` raises ``WrongInput`` for an unknown scenario instead of
+  treating it as a matrix name
+  (`#30 <https://github.com/it-is-me-mario/MARIO/issues/30>`__).
+* ``add_extensions`` failed with ``inplace=False``, and checked ``EY`` even
+  when adding ``V`` rows. Fixed the unit check of aggregations.
+* ``f_dis`` is no longer computed as a database matrix; ``calc_f_dis`` remains
+  available.
+
+Testing and documentation
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Added the first unit test suite and a CI workflow.
+* Documented the pymrio integration and the new API functions.
+
+v0.1.0
+------
+
+*Released 2021-11-01.* First public release, by Mohammad Amin Tahavori,
+Lorenzo Rinaldi and Nicolò Golinucci at Politecnico di Milano.
+
+* ``Database`` class for single- and multi-regional, monetary and hybrid
+  input-output and supply-use tables, with scenarios.
+* Parsers for EXIOBASE 3 IOT (``parse_exiobase_3``), EXIOBASE SUT
+  (``parse_exiobase_sut``), EORA (``parse_eora``) and Eurostat
+  (``parse_eurostat``), and for user tables in Excel or TXT
+  (``parse_from_excel``, ``parse_from_txt``).
+* Aggregation, SUT-to-IOT conversion, single-region extraction, new
+  extensions (``add_extensions``) and new sectors (``add_sectors``) through
+  Excel templates.
+* Shock and sensitivity analysis from Excel templates (``shock_calc``),
+  linkages, GDP and balance checks.
+* ``calc_*`` functions for every IO matrix, Plotly plots (``plot_matrix``,
+  ``plot_gdp``, ``plot_linkages``, ``plot_bubble``), and export to Excel and
+  TXT.
+
+The ``v0.1.0`` git tag (2021-12-29) also holds these changes, which reached
+PyPI with 0.2.0:
+
+* Added ``calc_f_dis``, footprints split by origin region and sector.
+* The price index ``p`` can be plotted, also for SUTs, and plots of ``X``
+  for SUTs were fixed.
+* ``plot_gdp`` gained ``drop_reg``, ``title`` and the ``"specific footprint"``
+  and ``"absolute footprint"`` extension values.
+* Databases can be compared with ``==``.
+* ``parse_exiobase_sut`` reads units as ``EUR`` instead of ``M EUR``.

@@ -243,13 +243,13 @@ mario_site = {
             "home_summary": "Find a guide for every step of your workflow.",
             "label": "Docs",
             "landing": "user_guide/index",
-            "prefixes": ["user_guide/", "notebooks/", "reference/", "api_document/"],
+            "prefixes": ["user_guide/", "notebooks/", "reference/", "api_document/", "changelog"],
             "sidebar": True,
             "hero": {
                 "title": "Everything MARIO <mark>can do</mark>",
                 "text": (
                     "Parse a database, inspect and transform it, run advanced workflows, "
-                    "and look up every method in the API reference."
+                    "look up every method in the API reference and see what changed in each release."
                 ),
             },
             "tabs": [
@@ -298,6 +298,13 @@ mario_site = {
                     "toc": {"doc": "reference/api_library", "overview": "API reference", "max_depth": 0},
                     "summary": "Every public method, with its signature and parameters.",
                 },
+                {
+                    "key": "changelog",
+                    "icon": "changelog",
+                    "label": "Changelog",
+                    "doc": "changelog",
+                    "summary": "What changed in each MARIO release, newest first.",
+                },
             ],
         },
         {
@@ -343,6 +350,7 @@ mario_site = {
         "user_guide/parsers/country_coverage": "user_guide/parsers/index",
         "resources/publications": "resources/projects_publications",
         "resources/data-explorer": "resources/data-explorer/scope",
+        "resources/changelog": "changelog",
     },
 }
 
