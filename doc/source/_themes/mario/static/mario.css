@@ -140,12 +140,13 @@
   color-scheme: dark;
 }
 
-/* Docs groups take the colours of the four logo ribbons; the API takes the dark ribbon ends. */
+/* Docs groups take the colours of the four logo ribbons; the API takes the dark ribbon ends and the changelog muted ink. */
 [data-group="parsers"] { --group-color: var(--ribbon-orange); --group-deep: var(--ribbon-orange-deep); }
 [data-group="inspection"] { --group-color: var(--ribbon-green); --group-deep: var(--ribbon-green-deep); }
 [data-group="transformations"] { --group-color: var(--ribbon-cyan); --group-deep: var(--ribbon-cyan-deep); }
 [data-group="advanced"] { --group-color: var(--ribbon-lilac); --group-deep: var(--ribbon-lilac-deep); }
 [data-group="api"] { --group-color: var(--ink); --group-deep: var(--ink); }
+[data-group="changelog"] { --group-color: var(--ink-muted); --group-deep: var(--ink-muted); }
 
 /* Parser text uses the bright counterpart in both dark-theme entry points. */
 :root[data-theme="dark"] [data-group="parsers"] { --group-deep: var(--ribbon-orange); }
@@ -276,9 +277,11 @@ kbd {
   margin-inline: auto;
 }
 
+/* Docs pages without a sidebar (the changelog) keep the docs hero on the narrow grid. */
 .mario-shell--tabs,
 .mario-shell--home,
-.mario-shell--plain {
+.mario-shell--plain,
+.mario-shell--docs.mario-shell--single {
   width: min(calc(var(--narrow-cells) * var(--cell)), 100% - 2 * var(--gutter));
   width: min(calc(var(--narrow-cells) * var(--cell)), round(down, 100% - 2 * var(--gutter), calc(2 * var(--cell))));
 }
@@ -727,6 +730,7 @@ html.mario-header-hidden .mario-header {
 .mario-tabs__list li[data-group="transformations"] { --tab-color: var(--ribbon-cyan); }
 .mario-tabs__list li[data-group="advanced"] { --tab-color: var(--ribbon-lilac); }
 .mario-tabs__list li[data-group="api"] { --tab-color: var(--ink); }
+.mario-tabs__list li[data-group="changelog"] { --tab-color: var(--ink-muted); }
 
 .mario-tabs__list li[data-group] a::before {
   content: "";
@@ -782,6 +786,10 @@ html.mario-header-hidden .mario-header {
   grid-template-columns: calc(var(--sidebar-cells) * var(--cell)) minmax(0, 1fr);
   column-gap: var(--cell);
   align-items: start;
+}
+
+.mario-shell--docs.mario-shell--single {
+  display: block;
 }
 
 .mario-content {
@@ -2320,6 +2328,7 @@ span.highlighted {
 
   .mario-shell,
   .mario-shell--docs,
+  .mario-shell--docs.mario-shell--single,
   .mario-shell--tabs,
   .mario-shell--home,
   .mario-shell--plain {
@@ -3193,6 +3202,7 @@ html:not(.mario-js) .mario-switch {
   .mario-menu li[data-group="transformations"] { --tab-color: var(--ribbon-cyan); }
   .mario-menu li[data-group="advanced"] { --tab-color: var(--ribbon-lilac); }
   .mario-menu li[data-group="api"] { --tab-color: var(--ink); }
+  .mario-menu li[data-group="changelog"] { --tab-color: var(--ink-muted); }
 
   /* The group pages now live in the menu; an empty page bar takes no space. */
   .mario-pagebar__pages {

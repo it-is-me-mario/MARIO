@@ -17,3 +17,4 @@ or download and run.
    transformations/index
    advanced/index
    API reference <../reference/api_library>
+   Changelog <../changelog>
