@@ -1,18 +1,9 @@
 include *.txt
+include CHANGELOG.rst
 include LICENSE
 prune Output
-prune doc/build
+prune doc
 prune mariopy.egg-info
-recursive-include doc *.PNG
-recursive-include doc *.bat
-recursive-include doc *.download
-recursive-include doc *.png
-recursive-include doc *.py
-recursive-include doc *.rst
-recursive-include doc *.svg
-recursive-include doc *.txt
-recursive-include doc *.xlsx
-recursive-include doc Makefile
 recursive-include mario *.json
 recursive-include mario *.py
 recursive-include mario *.stats

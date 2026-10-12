@@ -7,7 +7,7 @@ understands scenarios, table format and already materialized matrices.
 
 For a compact spreadsheet overview of the nomenclature and worked matrix
 calculations on the MARIO test ``IOT``, ``SUT_IT`` and ``SUT_PT`` examples,
-download the :download:`dedicated workbook </_static/data/supporting_files/Terminology.xlsx>`.
+download the :download:`nomenclature and formulas workbook </_static/data/supporting_files/Nomenclature_and_formulas.xlsx>`.
 
 Database Compute API
 --------------------
@@ -102,7 +102,7 @@ Standalone IOT Helpers
 The functions below operate on pandas matrices directly. They do not mutate a
 ``Database`` and they do not infer missing inputs. Matrix names and
 descriptions follow the :doc:`Matrices table in Nomenclature
-</concepts/nomenclature>`.
+</get_started/nomenclature>`.
 
 .. list-table::
    :header-rows: 1

@@ -1,0 +1,22 @@
+{%- macro render_items(items, depth) %}
+<ul class="mario-sidenav__list mario-sidenav__list--{{ depth }}">
+  {%- for item in items %}
+  <li class="{% if item.active %}is-active{% endif %}{% if item.open %} is-open{% endif %}">
+    <a href="{{ item.url }}"{% if item.active %} aria-current="page"{% endif %}>{{ item.title }}</a>
+    {%- for group in item.children %}
+      {%- if group.caption %}<p class="mario-sidenav__caption">{{ group.caption }}</p>{% endif %}
+      {{- render_items(group['items'], depth + 1) }}
+    {%- endfor %}
+  </li>
+  {%- endfor %}
+</ul>
+{%- endmacro %}
+<aside class="mario-sidebar" aria-label="{{ mario.sidebar_label }} pages">
+  <nav class="mario-sidenav" data-sidenav>
+    <p class="mario-sidenav__title">{{ mario.sidebar_label }}</p>
+    {%- for group in mario.sidebar %}
+      {%- if group.caption %}<p class="mario-sidenav__caption">{{ group.caption }}</p>{% endif %}
+      {{- render_items(group['items'], 0) }}
+    {%- endfor %}
+  </nav>
+</aside>

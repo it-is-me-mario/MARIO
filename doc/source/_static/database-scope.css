@@ -1,0 +1,37 @@
+.database-scope-chart { --scope-extended:#177f83; --scope-base:#9a718c; margin:1.5rem 0; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); overflow:hidden; }
+:root[data-theme="dark"] .database-scope-chart { --scope-extended:#69c7c5; --scope-base:#cca0be; }
+@media(prefers-color-scheme:dark) { :root:not([data-theme="light"]) .database-scope-chart { --scope-extended:#69c7c5; --scope-base:#cca0be; } }
+.scope-extension-key { display:flex; flex-direction:column; gap:.6rem; padding:1rem 1.2rem 0; font-size:.75rem; color:var(--ink-muted); }
+.scope-key-group { display:flex; flex-wrap:wrap; align-items:center; gap:.5rem 1.4rem; }
+.scope-key-group b { font-weight:550; min-width:3.4rem; color:var(--ink-soft); }
+.scope-extension-key span { display:inline-flex; align-items:center; gap:.45rem; }
+.scope-extension-key i { width:12px; height:12px; box-sizing:border-box; border-radius:50%; }
+.scope-extended { background:var(--scope-extended); }
+.scope-base { background:var(--scope-base); }
+[data-scope-chart] { width:100%; min-width:0; }
+.database-scope-chart .modebar-btn path { fill:var(--ink-muted) !important; }
+
+/* Open use has no outline; other conditions use neutral ink and stroke style. */
+.scope-extension-key i[class^="scope-access-"] { width:14px; height:14px; background:transparent; border:2px solid var(--scope-terms-outline,var(--ink)); }
+.scope-extension-key i.scope-access-nc { border-style:dashed; }
+.scope-extension-key i.scope-access-unknown { border-style:dotted; }
+@media(max-width:38em) { .scope-key-group { gap:.55rem 1rem; } .scope-key-group b { flex-basis:100%; } }
+
+.mario-article .scope-license-note { margin:.7rem 0 1rem; font-size:.75rem; line-height:1.6; color:var(--ink-muted); }
+
+[data-database-scope] { --scope-terms-outline:var(--ink); }
+
+:root[data-theme="dark"] [data-database-scope] { --scope-terms-outline:#67747a; }
+@media (prefers-color-scheme:dark) {
+  :root:not([data-theme="light"]) [data-database-scope] { --scope-terms-outline:#67747a; }
+}
+
+.scope-controls { display:flex; justify-content:space-between; align-items:flex-end; gap:1rem; flex-wrap:wrap; padding:1rem 1.2rem 0; }
+.mario-article .scope-controls .scope-title { margin:0 0 .35rem; font-size:1rem; }
+.scope-controls label { display:block; max-width:16rem; font-size:.8rem; font-weight:650; color:var(--ink); }
+.scope-controls select { display:block; width:100%; margin-top:.4rem; padding:.65rem .75rem; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); color:var(--ink); font:inherit; font-weight:450; }
+.scope-timeline { margin:.4rem 0 0; padding:1rem 0 .4rem; border-top:1px solid var(--line); }
+[data-scope-timeline] { width:100%; min-width:0; }
+.scope-symbol { flex:none; width:11px; height:11px; fill:var(--ink); }
+.mario-article .scope-timeline-note { margin:.2rem 0 0; padding-left:100px; font-size:.72rem; color:var(--ink-muted); }
+.mario-article .scope-timeline .scope-title { margin:0 0 .3rem; padding:0 1.2rem; font-size:1rem; }

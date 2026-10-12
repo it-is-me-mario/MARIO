@@ -784,6 +784,12 @@ def _parse_split_sheet(
     sheet = sheets[sheet_name].copy()
     expected = list(columns.values())
     missing_columns = [column for column in expected if column not in sheet.columns]
+    if missing_columns and sheet.empty:
+        # Older workbooks can have an empty Exclusions sheet without the newer
+        # region columns. No values need interpreting, so restore the schema.
+        for column in missing_columns:
+            sheet[column] = pd.Series(dtype=object)
+        missing_columns = []
     if missing_columns:
         raise WrongExcelFormat(
             f"Split-support sheet '{sheet_name}' is missing columns: {missing_columns}"

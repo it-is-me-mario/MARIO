@@ -1,0 +1,1110 @@
+{
+  "schema_version": 1,
+  "guides": [
+    {
+      "id": "adb",
+      "source": "Asian Development Bank",
+      "label": "Asian Development Bank",
+      "doc": "notebooks/parsers/adb/walkthrough_adb"
+    },
+    {
+      "id": "bea",
+      "source": "BEA",
+      "label": "BEA",
+      "doc": "notebooks/parsers/bea/walkthrough_bea"
+    },
+    {
+      "id": "ceads",
+      "source": "CEADS",
+      "label": "CEADS",
+      "doc": "notebooks/parsers/ceads/walkthrough_ceads"
+    },
+    {
+      "id": "cepalstat",
+      "source": "CEPALSTAT",
+      "label": "CEPALSTAT",
+      "doc": "notebooks/parsers/cepalstat/walkthrough_cepalstat"
+    },
+    {
+      "id": "custom-database-from-excel",
+      "source": "Custom database",
+      "label": "Excel custom parser",
+      "doc": "notebooks/parsers/custom_database/from_excel"
+    },
+    {
+      "id": "custom-database-from-pymrio",
+      "source": "Custom database",
+      "label": "Pymrio bridge",
+      "doc": "notebooks/parsers/custom_database/from_pymrio"
+    },
+    {
+      "id": "custom-database-from-txt",
+      "source": "Custom database",
+      "label": "TXT, CSV and Parquet custom parser",
+      "doc": "notebooks/parsers/custom_database/from_txt"
+    },
+    {
+      "id": "emerging",
+      "source": "EMERGING",
+      "label": "EMERGING",
+      "doc": "notebooks/parsers/emerging/walkthrough_emerging"
+    },
+    {
+      "id": "eora",
+      "source": "EORA",
+      "label": "EORA",
+      "doc": "notebooks/parsers/eora/walkthrough_eora"
+    },
+    {
+      "id": "eurostat",
+      "source": "EUROSTAT",
+      "label": "EUROSTAT",
+      "doc": "notebooks/parsers/eurostat/walkthrough_eurostat"
+    },
+    {
+      "id": "exiobase-hybrid",
+      "source": "EXIOBASE",
+      "label": "EXIOBASE, hybrid",
+      "doc": "notebooks/parsers/exiobase/hybrid"
+    },
+    {
+      "id": "exiobase-monetary",
+      "source": "EXIOBASE",
+      "label": "EXIOBASE, monetary",
+      "doc": "notebooks/parsers/exiobase/monetary"
+    },
+    {
+      "id": "figaro",
+      "source": "FIGARO",
+      "label": "FIGARO",
+      "doc": "notebooks/parsers/figaro/walkthrough_figaro"
+    },
+    {
+      "id": "gloria",
+      "source": "GLORIA",
+      "label": "GLORIA",
+      "doc": "notebooks/parsers/gloria/walkthrough_gloria"
+    },
+    {
+      "id": "gtap",
+      "source": "GTAP",
+      "label": "GTAP",
+      "doc": "notebooks/parsers/gtap/walkthrough_gtap"
+    },
+    {
+      "id": "istat",
+      "source": "ISTAT",
+      "label": "ISTAT",
+      "doc": "notebooks/parsers/istat/walkthrough_istat"
+    },
+    {
+      "id": "oecd",
+      "source": "OECD",
+      "label": "OECD",
+      "doc": "notebooks/parsers/oecd/walkthrough_oecd"
+    },
+    {
+      "id": "statcan",
+      "source": "StatCan",
+      "label": "StatCan",
+      "doc": "notebooks/parsers/statcan/walkthrough_statcan"
+    },
+    {
+      "id": "useeio",
+      "source": "USEEIO",
+      "label": "USEEIO",
+      "doc": "notebooks/parsers/useeio/walkthrough_useeio"
+    },
+    {
+      "id": "wiod",
+      "source": "WIOD",
+      "label": "WIOD",
+      "doc": "notebooks/parsers/wiod/walkthrough_wiod"
+    }
+  ],
+  "recipes": [
+    {
+      "id": "adb--01",
+      "guide": "adb",
+      "notebook": "source/notebooks/parsers/adb/walkthrough_adb.ipynb",
+      "parser": "parse_adb",
+      "cell": 9,
+      "fingerprint": "7f204a8775ef44e99dbf44180c96e6b8b4dff0f0e5c0d1582f6f01de9ad8f04b",
+      "parameters": {
+        "path": "/path/to/ADB-MRIO-2024-August 2025.xlsx"
+      },
+      "runnable": true
+    },
+    {
+      "id": "adb--02",
+      "guide": "adb",
+      "notebook": "source/notebooks/parsers/adb/walkthrough_adb.ipynb",
+      "parser": "parse_adb",
+      "cell": 11,
+      "fingerprint": "f9f16e95b4dc714c5055da354c0da17052a2dfe31b468d8ad142ba22fc4ad3fb",
+      "parameters": {
+        "path": "/path/to/ADB",
+        "year": 2024,
+        "economies": 74
+      },
+      "runnable": true
+    },
+    {
+      "id": "adb--03",
+      "guide": "adb",
+      "notebook": "source/notebooks/parsers/adb/walkthrough_adb.ipynb",
+      "parser": "parse_adb",
+      "cell": 13,
+      "fingerprint": "b213810dffa81ee23d5f8fe63835fdcc8423f48543da3c09f3d89d7f35b46cfc",
+      "parameters": {
+        "path": "/path/to/ADB",
+        "year": 2023,
+        "economies": 72
+      },
+      "runnable": true
+    },
+    {
+      "id": "adb--04",
+      "guide": "adb",
+      "notebook": "source/notebooks/parsers/adb/walkthrough_adb.ipynb",
+      "parser": "parse_adb",
+      "cell": 15,
+      "fingerprint": "abb7a1d3c23d71f799746d6d3616ca2c0d458c28bbf5e3bbabaf7741a9a2dc00",
+      "parameters": {
+        "path": "/path/to/ITA IOT 2000, 2007-2024.xlsx",
+        "year": 2024
+      },
+      "runnable": true
+    },
+    {
+      "id": "adb--05",
+      "guide": "adb",
+      "notebook": "source/notebooks/parsers/adb/walkthrough_adb.ipynb",
+      "parser": "parse_adb",
+      "cell": 17,
+      "fingerprint": "0166b24c8aee797891795da85a97e2361a16bb13c6f059ef1f62bc72a8418203",
+      "parameters": {
+        "path": "/path/to/72 economies/ADB-MRIO72-2023_July 2025.xlsx",
+        "add_extensions": "/path/to/2023 EE-MRIOT (Air Emissions).xlsx"
+      },
+      "runnable": true
+    },
+    {
+      "id": "adb--06",
+      "guide": "adb",
+      "notebook": "source/notebooks/parsers/adb/walkthrough_adb.ipynb",
+      "parser": "parse_adb",
+      "cell": 19,
+      "fingerprint": "87442858942141da93b5c25c6c27ea2af8fac516d13099770e07648646614b97",
+      "parameters": {
+        "path": "/path/to/ITA IOT 2000, 2007-2024.xlsx",
+        "year": 2023,
+        "add_extensions": "/path/to/2023 EE-MRIOT (Air Emissions).xlsx"
+      },
+      "runnable": true
+    },
+    {
+      "id": "bea--01",
+      "guide": "bea",
+      "notebook": "source/notebooks/parsers/bea/walkthrough_bea.ipynb",
+      "parser": "parse_bea",
+      "cell": 6,
+      "fingerprint": "ed19751892d0aa91aebca78e34bb711a4d1ae8357b77d8a0311d940e4f87c509",
+      "parameters": {
+        "path": "/path/to/SUPPLY-USE",
+        "year": 2024,
+        "level": "summary"
+      },
+      "runnable": true
+    },
+    {
+      "id": "bea--02",
+      "guide": "bea",
+      "notebook": "source/notebooks/parsers/bea/walkthrough_bea.ipynb",
+      "parser": "parse_bea",
+      "cell": 7,
+      "fingerprint": "f06a47e60ac19d8beed5813065081c778a7a2dcd2f9dfa04e936e9025ec67299",
+      "parameters": {
+        "path": "/path/to/SUPPLY-USE",
+        "year": 2024,
+        "level": "sector"
+      },
+      "runnable": true
+    },
+    {
+      "id": "bea--03",
+      "guide": "bea",
+      "notebook": "source/notebooks/parsers/bea/walkthrough_bea.ipynb",
+      "parser": "parse_bea",
+      "cell": 8,
+      "fingerprint": "1ec1d5fcd64028724f6d23059424f08a2c13b7d71f0ca4a19cb80916d6f3d838",
+      "parameters": {
+        "path": "/path/to/SUPPLY-USE",
+        "year": 2017,
+        "level": "detail"
+      },
+      "runnable": true
+    },
+    {
+      "id": "ceads--01",
+      "guide": "ceads",
+      "notebook": "source/notebooks/parsers/ceads/walkthrough_ceads.ipynb",
+      "parser": "parse_ceads",
+      "cell": 9,
+      "fingerprint": "97adec1899ad34118f92d8a7dae11208072e3a596aaa1bfbbcbabc8f0fa9425b",
+      "parameters": {
+        "path": "/path/to/MRIO 2018.xlsx",
+        "format": "auto",
+        "calc_all": false
+      },
+      "runnable": true
+    },
+    {
+      "id": "ceads--02",
+      "guide": "ceads",
+      "notebook": "source/notebooks/parsers/ceads/walkthrough_ceads.ipynb",
+      "parser": "parse_ceads",
+      "cell": 11,
+      "fingerprint": "d85f528c1720e97618115edb8246122733c1bd33b7e9bc18767c35d0b578e957",
+      "parameters": {
+        "path": "/path/to/MRIO 2020.xlsx",
+        "year": 2020,
+        "calc_all": false
+      },
+      "runnable": true
+    },
+    {
+      "id": "cepalstat--01",
+      "guide": "cepalstat",
+      "notebook": "source/notebooks/parsers/cepalstat/walkthrough_cepalstat.ipynb",
+      "parser": "parse_cepalstat",
+      "cell": 9,
+      "fingerprint": "f1d4bf6c22d3d0ccd7096457901259c0eb6f67b883aa04fac59af90585fe1fa1",
+      "parameters": {
+        "path": "/path/to/COL_COU_2023.zip",
+        "table": "SUT",
+        "year": 2019
+      },
+      "runnable": true
+    },
+    {
+      "id": "cepalstat--02",
+      "guide": "cepalstat",
+      "notebook": "source/notebooks/parsers/cepalstat/walkthrough_cepalstat.ipynb",
+      "parser": "parse_cepalstat",
+      "cell": 11,
+      "fingerprint": "8db28634692a1c0c138cb7885c421bc5afe201254ee863658c9ffebbed9b1d15",
+      "parameters": {
+        "path": "/path/to/DOM_MIP_2012.zip",
+        "table": "IOT",
+        "iot_mode": "pxp",
+        "calc_all": false
+      },
+      "runnable": true
+    },
+    {
+      "id": "cepalstat--03",
+      "guide": "cepalstat",
+      "notebook": "source/notebooks/parsers/cepalstat/walkthrough_cepalstat.ipynb",
+      "parser": "parse_cepalstat",
+      "cell": 13,
+      "fingerprint": "086205f3635dcc055ab5ccb0ff550b47a3288f6a7b1bc336b3e16b95a7bd0c36",
+      "parameters": {
+        "path": "/path/to/cepalstat_directory",
+        "table": "IOT",
+        "country": "ARG",
+        "year": 1997,
+        "iot_mode": "auto",
+        "calc_all": false
+      },
+      "runnable": true
+    },
+    {
+      "id": "custom-database-from-excel--01",
+      "guide": "custom-database-from-excel",
+      "notebook": "source/notebooks/parsers/custom_database/from_excel.ipynb",
+      "parser": "parse_from_excel",
+      "cell": 8,
+      "fingerprint": "8471ca1f18f44955dd8e116febf46a369f1a924d6bc5d9d5d52f1e5a1fc47629",
+      "parameters": {
+        "path": "/path/to/test_IOT_standard.xlsx",
+        "table": "IOT",
+        "mode": "flows"
+      },
+      "runnable": true
+    },
+    {
+      "id": "custom-database-from-excel--02",
+      "guide": "custom-database-from-excel",
+      "notebook": "source/notebooks/parsers/custom_database/from_excel.ipynb",
+      "parser": "parse_from_excel",
+      "cell": 14,
+      "fingerprint": "794d114664fe01bc3d168acea737cab7f58595c4a47f011bbe3a2441e62a1310",
+      "parameters": {
+        "path": "/path/to/test_IOT_special.xlsx",
+        "table": "IOT",
+        "mode": "flows",
+        "matrix_layouts": {
+          "V": [
+            "Region",
+            "Sector"
+          ],
+          "E": "Region"
+        }
+      },
+      "runnable": true
+    },
+    {
+      "id": "custom-database-from-excel--03",
+      "guide": "custom-database-from-excel",
+      "notebook": "source/notebooks/parsers/custom_database/from_excel.ipynb",
+      "parser": "parse_from_excel",
+      "cell": 17,
+      "fingerprint": "ad13ca419e3cac92578e415ced2942fce13e0427b7b39bd3b64d19df03461eba",
+      "parameters": {
+        "path": "/path/to/test_SUT_standard.xlsx",
+        "table": "SUT",
+        "mode": "flows",
+        "tech_assumption": "IT"
+      },
+      "runnable": true
+    },
+    {
+      "id": "custom-database-from-excel--04",
+      "guide": "custom-database-from-excel",
+      "notebook": "source/notebooks/parsers/custom_database/from_excel.ipynb",
+      "parser": "parse_from_excel",
+      "cell": 22,
+      "fingerprint": "3a802be572b9201d48f13e00b6641c50dbb263e0a45c926157c48bfdd380269c",
+      "parameters": {
+        "path": "/path/to/test_SUT_special.xlsx",
+        "table": "SUT",
+        "mode": "flows",
+        "tech_assumption": "IT",
+        "matrix_layouts": {
+          "E": [
+            "Region",
+            "Commodity"
+          ]
+        }
+      },
+      "runnable": true
+    },
+    {
+      "id": "custom-database-from-pymrio--01",
+      "guide": "custom-database-from-pymrio",
+      "notebook": "source/notebooks/parsers/custom_database/from_pymrio.ipynb",
+      "parser": "parse_from_pymrio",
+      "cell": 9,
+      "fingerprint": "7a1e81515dc5ca09fd160dd0b9f4d3bad7f83f289787252501b180d22bfd7ce0",
+      "parameters": {},
+      "runnable": false,
+      "reason": "This example needs in-memory Python objects, not only file paths."
+    },
+    {
+      "id": "custom-database-from-txt--01",
+      "guide": "custom-database-from-txt",
+      "notebook": "source/notebooks/parsers/custom_database/from_txt.ipynb",
+      "parser": "parse_from_txt",
+      "cell": 6,
+      "fingerprint": "e6a83852eafcd4dfb363d9f24e144e1ac78d48199c253a69b6de87c6062dcee8",
+      "parameters": {
+        "path": "/path/to/iot_export_csv/flows",
+        "table": "IOT",
+        "mode": "flows",
+        "_format": "csv",
+        "flat": false
+      },
+      "runnable": true
+    },
+    {
+      "id": "custom-database-from-txt--02",
+      "guide": "custom-database-from-txt",
+      "notebook": "source/notebooks/parsers/custom_database/from_txt.ipynb",
+      "parser": "parse_from_txt",
+      "cell": 8,
+      "fingerprint": "5f7f95524871b05da0a4988e533c964de8b0ec7df808e82bfe2ff41bc482e212",
+      "parameters": {
+        "path": "/path/to/iot_export_csv",
+        "table": "IOT",
+        "mode": "coefficients",
+        "_format": "csv",
+        "flat": true
+      },
+      "runnable": true
+    },
+    {
+      "id": "custom-database-from-txt--03",
+      "guide": "custom-database-from-txt",
+      "notebook": "source/notebooks/parsers/custom_database/from_txt.ipynb",
+      "parser": "parse_from_parquet",
+      "cell": 10,
+      "fingerprint": "fa435a60aad1dbc032f727a04b23392d43364e2d8d855b7da12ee9b964103f41",
+      "parameters": {
+        "path": "/path/to/iot_export_parquet",
+        "table": "IOT",
+        "mode": "flows",
+        "flat": true
+      },
+      "runnable": true
+    },
+    {
+      "id": "emerging--01",
+      "guide": "emerging",
+      "notebook": "source/notebooks/parsers/emerging/walkthrough_emerging.ipynb",
+      "parser": "parse_emerging",
+      "cell": 15,
+      "fingerprint": "205713da87aa998c71f260bffd9bbb2caf20ea982a75cabe641d479b8b88c0e1",
+      "parameters": {
+        "path": "/path/to/EMERGING_V2_2023_m.mat",
+        "table": "IOT"
+      },
+      "runnable": true
+    },
+    {
+      "id": "emerging--02",
+      "guide": "emerging",
+      "notebook": "source/notebooks/parsers/emerging/walkthrough_emerging.ipynb",
+      "parser": "parse_emerging",
+      "cell": 17,
+      "fingerprint": "35c345452eb31756493baa0aef74a185d45803f51547c2135f761c94413e3e2a",
+      "parameters": {
+        "path": "/path/to/EMERGING_E_2018.mat",
+        "table": "IOT",
+        "variant": "E"
+      },
+      "runnable": true
+    },
+    {
+      "id": "emerging--03",
+      "guide": "emerging",
+      "notebook": "source/notebooks/parsers/emerging/walkthrough_emerging.ipynb",
+      "parser": "parse_emerging",
+      "cell": 19,
+      "fingerprint": "8e066d63e9b4f608040c812d983f66f0007d9468b90bebf2015904e814a2da55",
+      "parameters": {
+        "path": "/path/to/2.2",
+        "table": "IOT",
+        "year": 2023
+      },
+      "runnable": true
+    },
+    {
+      "id": "emerging--04",
+      "guide": "emerging",
+      "notebook": "source/notebooks/parsers/emerging/walkthrough_emerging.ipynb",
+      "parser": "parse_emerging",
+      "cell": 21,
+      "fingerprint": "0f28b65fbee1d299347f3ed08bfd3d7dee08ebb1d6c003e1fc73e61a0f907b6c",
+      "parameters": {
+        "path": "/path/to/2.2",
+        "table": "IOT",
+        "year": 2023,
+        "regions": [
+          "DEU",
+          "FRA",
+          "ITA"
+        ]
+      },
+      "runnable": true
+    },
+    {
+      "id": "emerging--05",
+      "guide": "emerging",
+      "notebook": "source/notebooks/parsers/emerging/walkthrough_emerging.ipynb",
+      "parser": "parse_emerging",
+      "cell": 23,
+      "fingerprint": "710cc70542a64907f9e1a08e01580d607cfb315dd1677a3c5e135fdcce440e66",
+      "parameters": {
+        "path": "/path/to/2.2",
+        "table": "IOT",
+        "year": 2023,
+        "co2_path": "/path/to/EMERGING_CO2_2023.mat"
+      },
+      "runnable": true
+    },
+    {
+      "id": "eora--01",
+      "guide": "eora",
+      "notebook": "source/notebooks/parsers/eora/walkthrough_eora.ipynb",
+      "parser": "parse_eora",
+      "cell": 12,
+      "fingerprint": "57d1db7e23c6d71eaa974c198721b3bad69b55a256f81137dfa1c94b80ead356",
+      "parameters": {
+        "path": "/path/to/Eora26_2017_bp",
+        "multi_region": true
+      },
+      "runnable": true
+    },
+    {
+      "id": "eora--02",
+      "guide": "eora",
+      "notebook": "source/notebooks/parsers/eora/walkthrough_eora.ipynb",
+      "parser": "parse_eora",
+      "cell": 14,
+      "fingerprint": "abceb9e6ef3aac048814e48643e5482207b188cbcc438ffd34007499582b34d8",
+      "parameters": {
+        "path": "/path/to/IO_ITA_2017_BasicPrice.txt",
+        "multi_region": false
+      },
+      "runnable": true
+    },
+    {
+      "id": "eora--03",
+      "guide": "eora",
+      "notebook": "source/notebooks/parsers/eora/walkthrough_eora.ipynb",
+      "parser": "parse_eora",
+      "cell": 16,
+      "fingerprint": "837e42384263d7a97b9ccb3b826f0f0c4b34fe3f95ae923ce2e480cd74cdf9fc",
+      "parameters": {
+        "path": "/path/to/IO_All_2017",
+        "multi_region": false,
+        "country": "ITA",
+        "price": "BasicPrice"
+      },
+      "runnable": true
+    },
+    {
+      "id": "eora--04",
+      "guide": "eora",
+      "notebook": "source/notebooks/parsers/eora/walkthrough_eora.ipynb",
+      "parser": "parse_eora",
+      "cell": 18,
+      "fingerprint": "e28226eaa43e8a9362a9e2b98614d0f4a7d91df3435e7082cb6b0d92601d0e8e",
+      "parameters": {
+        "path": "/path/to/IO_All_2017",
+        "multi_region": false,
+        "country": "ITA",
+        "price": "BasicPrice",
+        "aggregate_trade": true
+      },
+      "runnable": true
+    },
+    {
+      "id": "eurostat--01",
+      "guide": "eurostat",
+      "notebook": "source/notebooks/parsers/eurostat/walkthrough_eurostat.ipynb",
+      "parser": "parse_eurostat",
+      "cell": 7,
+      "fingerprint": "741678839564b98735ffefc451cba9d665f8a95dd6eb69b3658d7b4eb9dbc129",
+      "parameters": {
+        "country": "IT",
+        "year": 2022,
+        "table": "SUT"
+      },
+      "runnable": true
+    },
+    {
+      "id": "eurostat--02",
+      "guide": "eurostat",
+      "notebook": "source/notebooks/parsers/eurostat/walkthrough_eurostat.ipynb",
+      "parser": "parse_eurostat",
+      "cell": 9,
+      "fingerprint": "5dc5dd9fa1bed2737c58cf4163d5a34bd06f66c3c48e0ce7485b0fff3f80aaa8",
+      "parameters": {
+        "country": "IT",
+        "year": 2022,
+        "table": "IOT",
+        "iot_mode": "product"
+      },
+      "runnable": true
+    },
+    {
+      "id": "exiobase-hybrid--01",
+      "guide": "exiobase-hybrid",
+      "notebook": "source/notebooks/parsers/exiobase/hybrid.ipynb",
+      "parser": "parse_exiobase",
+      "cell": 9,
+      "fingerprint": "b93e85833bc6b32748fb4ec8a931ad4b8b9c011f36d8f4c74515e77f24417fba",
+      "parameters": {
+        "path": "/path/to/3.3.18",
+        "table": "SUT",
+        "unit": "Hybrid",
+        "extensions": "all"
+      },
+      "runnable": true
+    },
+    {
+      "id": "exiobase-hybrid--02",
+      "guide": "exiobase-hybrid",
+      "notebook": "source/notebooks/parsers/exiobase/hybrid.ipynb",
+      "parser": "parse_exiobase",
+      "cell": 11,
+      "fingerprint": "0b8d349f06db9a425412117cb015d33557121221a22e36aeddea2b118d5ec800",
+      "parameters": {
+        "path": "/path/to/3.3.18",
+        "table": "IOT",
+        "unit": "Hybrid",
+        "extensions": [
+          "resource",
+          "Emiss"
+        ]
+      },
+      "runnable": true
+    },
+    {
+      "id": "exiobase-monetary--01",
+      "guide": "exiobase-monetary",
+      "notebook": "source/notebooks/parsers/exiobase/monetary.ipynb",
+      "parser": "parse_exiobase",
+      "cell": 15,
+      "fingerprint": "b9e590ef3889cd6e63d6b81c1f9124c896c5ab29bea261210840735ab02f51aa",
+      "parameters": {
+        "path": "/path/to/IOT_2024_ixi",
+        "table": "IOT",
+        "unit": "Monetary",
+        "version": "3.11.2",
+        "system": "ixi"
+      },
+      "runnable": true
+    },
+    {
+      "id": "exiobase-monetary--02",
+      "guide": "exiobase-monetary",
+      "notebook": "source/notebooks/parsers/exiobase/monetary.ipynb",
+      "parser": "parse_exiobase",
+      "cell": 19,
+      "fingerprint": "a5605070edc3eacf662113f8fcc820b1ee77a573a4a683c40ffbb7272b437c78",
+      "parameters": {
+        "path": "/path/to/MRSUT_2019",
+        "table": "SUT",
+        "unit": "Monetary"
+      },
+      "runnable": true
+    },
+    {
+      "id": "exiobase-monetary--03",
+      "guide": "exiobase-monetary",
+      "notebook": "source/notebooks/parsers/exiobase/monetary.ipynb",
+      "parser": "parse_exiobase",
+      "cell": 21,
+      "fingerprint": "4a9a48bb3f337f6a7c57e0b2eb3a9d8ac3af936b41c9ab5b2bcd2294ab14eeaa",
+      "parameters": {
+        "path": "/path/to/MRSUT_2019",
+        "table": "SUT",
+        "unit": "Monetary",
+        "add_extensions": "/path/to/IOT_2019_ixi"
+      },
+      "runnable": true
+    },
+    {
+      "id": "figaro--01",
+      "guide": "figaro",
+      "notebook": "source/notebooks/parsers/figaro/walkthrough_figaro.ipynb",
+      "parser": "parse_figaro",
+      "cell": 8,
+      "fingerprint": "4c96b51a489532965509e78db916009f5654c6af490bd278b63fa343bdcca350",
+      "parameters": {
+        "table": "SUT",
+        "year": 2022,
+        "path": "/path/to/figaro/sut_directory"
+      },
+      "runnable": true
+    },
+    {
+      "id": "figaro--02",
+      "guide": "figaro",
+      "notebook": "source/notebooks/parsers/figaro/walkthrough_figaro.ipynb",
+      "parser": "parse_figaro",
+      "cell": 11,
+      "fingerprint": "28781413f75d6897c1c747b4e42e65a1095af027452ebd99e93812fb4f09ec4a",
+      "parameters": {
+        "table": "IOT",
+        "year": 2022,
+        "iot_mode": "product",
+        "path": "/path/to/figaro/iot_directory",
+        "calc_all": false
+      },
+      "runnable": true
+    },
+    {
+      "id": "gloria--01",
+      "guide": "gloria",
+      "notebook": "source/notebooks/parsers/gloria/walkthrough_gloria.ipynb",
+      "parser": "parse_gloria",
+      "cell": 8,
+      "fingerprint": "4484428e8e580ca8e7ef4d415136260b3200be13cbf0dabadc755977167c2c01",
+      "parameters": {
+        "path": "/path/to/GLORIA",
+        "year": 2023
+      },
+      "runnable": true
+    },
+    {
+      "id": "gloria--02",
+      "guide": "gloria",
+      "notebook": "source/notebooks/parsers/gloria/walkthrough_gloria.ipynb",
+      "parser": "parse_gloria",
+      "cell": 10,
+      "fingerprint": "bd00c77e3eafa5a39f1c9b553a820049ddb0a8d32831b208de98776ce32ed7c6",
+      "parameters": {
+        "path": "/path/to/GLORIA",
+        "satellites": "Emissions",
+        "year": 2023
+      },
+      "runnable": true
+    },
+    {
+      "id": "gtap--01",
+      "guide": "gtap",
+      "notebook": "source/notebooks/parsers/gtap/walkthrough_gtap.ipynb",
+      "parser": "parse_gtap",
+      "cell": 10,
+      "fingerprint": "332bf654beab554530474e250b686f501b90bb6c77cff0c1ece317b8ffadb5f2",
+      "parameters": {
+        "path": "/path/to/gtap_bundle",
+        "table": "IOT",
+        "variant": "power",
+        "layout": "MRIO",
+        "input_format": "csv",
+        "calc_all": false
+      },
+      "runnable": true
+    },
+    {
+      "id": "gtap--02",
+      "guide": "gtap",
+      "notebook": "source/notebooks/parsers/gtap/walkthrough_gtap.ipynb",
+      "parser": "parse_gtap",
+      "cell": 12,
+      "fingerprint": "fcdc7a6f66eae00d0e240813a6820c838896e93f1b77262443902fc37cfb9ac9",
+      "parameters": {
+        "path": "/path/to/gtap_bundle",
+        "table": "IOT",
+        "input_format": "auto",
+        "calc_all": false
+      },
+      "runnable": true
+    },
+    {
+      "id": "gtap--03",
+      "guide": "gtap",
+      "notebook": "source/notebooks/parsers/gtap/walkthrough_gtap.ipynb",
+      "parser": "parse_gtap",
+      "cell": 14,
+      "fingerprint": "e2d7a7fb2f183cd392c6079fb2c63179039e7959fec2aac43645cd38f69c6057",
+      "parameters": {
+        "path": "/path/to/gtap_bundle",
+        "table": "IOT",
+        "input_format": "gdx",
+        "calc_all": false
+      },
+      "runnable": true
+    },
+    {
+      "id": "gtap--04",
+      "guide": "gtap",
+      "notebook": "source/notebooks/parsers/gtap/walkthrough_gtap.ipynb",
+      "parser": "parse_gtap",
+      "cell": 16,
+      "fingerprint": "38fb8efacf30515a97d14cf942cb43371b7fb4055472aec87a908556af43cc0d",
+      "parameters": {
+        "path": "/path/to/gtap_bundle",
+        "table": "IOT",
+        "input_format": "auto",
+        "matrix_layouts": {
+          "V": [
+            "Region",
+            "Sector"
+          ],
+          "E": [
+            "Region",
+            "Sector"
+          ]
+        },
+        "calc_all": false
+      },
+      "runnable": true
+    },
+    {
+      "id": "istat--01",
+      "guide": "istat",
+      "notebook": "source/notebooks/parsers/istat/walkthrough_istat.ipynb",
+      "parser": "parse_istat",
+      "cell": 11,
+      "fingerprint": "c324365e9bcf8130feefa0973d8e4908a74cd2b0b8a8b0bfde94c92d7f3c4a55",
+      "parameters": {
+        "path": "/path/to/IOT",
+        "year": 2022,
+        "table": "IOT",
+        "iot_mode": "product",
+        "download": true,
+        "edition": "latest"
+      },
+      "runnable": true
+    },
+    {
+      "id": "istat--02",
+      "guide": "istat",
+      "notebook": "source/notebooks/parsers/istat/walkthrough_istat.ipynb",
+      "parser": "parse_istat",
+      "cell": 13,
+      "fingerprint": "a8653418668ebfe504f8dd3faded6d490bcadc0911b1a96fd10aa381923eee0e",
+      "parameters": {
+        "path": "/path/to/SUT",
+        "year": 2022,
+        "table": "SUT",
+        "level": "63",
+        "price": "current",
+        "valuation": "basic",
+        "download": true,
+        "edition": "latest"
+      },
+      "runnable": true
+    },
+    {
+      "id": "oecd--01",
+      "guide": "oecd",
+      "notebook": "source/notebooks/parsers/oecd/walkthrough_oecd.ipynb",
+      "parser": "parse_oecd",
+      "cell": 9,
+      "fingerprint": "ade9c305eede5e25be21d4c1cf022435192cf6f41ae4c2833c1809d6e3609b8e",
+      "parameters": {
+        "path": "/path/to/2022_SML.csv",
+        "dataset": "ICIO"
+      },
+      "runnable": true
+    },
+    {
+      "id": "oecd--02",
+      "guide": "oecd",
+      "notebook": "source/notebooks/parsers/oecd/walkthrough_oecd.ipynb",
+      "parser": "parse_oecd",
+      "cell": 11,
+      "fingerprint": "762708443b4ccf0122e586af94b4718e824f7794b883a395c818e2ef99de7501",
+      "parameters": {
+        "path": "/path/to/ITA2022ttl.csv",
+        "dataset": "IOT"
+      },
+      "runnable": true
+    },
+    {
+      "id": "oecd--03",
+      "guide": "oecd",
+      "notebook": "source/notebooks/parsers/oecd/walkthrough_oecd.ipynb",
+      "parser": "parse_oecd",
+      "cell": 13,
+      "fingerprint": "551137ba59c0fbcd73dc4d3d3051c79419561ac35fb0ad5f1ea2804e24b862a2",
+      "parameters": {
+        "dataset": "SUT",
+        "country": "ITA",
+        "year": 2022
+      },
+      "runnable": true
+    },
+    {
+      "id": "statcan--01",
+      "guide": "statcan",
+      "notebook": "source/notebooks/parsers/statcan/walkthrough_statcan.ipynb",
+      "parser": "parse_statcan",
+      "cell": 10,
+      "fingerprint": "3f27fc37b162d77956208f1a0a966cde623c3582f2bde423445af69fbe58989a",
+      "parameters": {
+        "year": 2022,
+        "table": "SUT",
+        "level": "summary",
+        "geo": "Canada"
+      },
+      "runnable": true
+    },
+    {
+      "id": "statcan--02",
+      "guide": "statcan",
+      "notebook": "source/notebooks/parsers/statcan/walkthrough_statcan.ipynb",
+      "parser": "parse_statcan",
+      "cell": 12,
+      "fingerprint": "a4d140fc04c4c85ee8472843393f9abbe03a51c6fe4fbda054314aa4b7cded2f",
+      "parameters": {
+        "year": 2022,
+        "table": "SUT",
+        "level": "detail",
+        "geo": "Ontario"
+      },
+      "runnable": true
+    },
+    {
+      "id": "statcan--03",
+      "guide": "statcan",
+      "notebook": "source/notebooks/parsers/statcan/walkthrough_statcan.ipynb",
+      "parser": "parse_statcan",
+      "cell": 14,
+      "fingerprint": "d3dca30d51f7a0e95f94ac41e0d7128413f03b9688a54bceccca2c03f1aeab70",
+      "parameters": {
+        "year": 2022,
+        "table": "IOT",
+        "level": "detail",
+        "valuation": "basic"
+      },
+      "runnable": true
+    },
+    {
+      "id": "statcan--04",
+      "guide": "statcan",
+      "notebook": "source/notebooks/parsers/statcan/walkthrough_statcan.ipynb",
+      "parser": "parse_statcan",
+      "cell": 16,
+      "fingerprint": "d8bfa8d26e9668bba16592e11180a6a18feafa87be410b15d61be4d7129b3afd",
+      "parameters": {
+        "year": 2022,
+        "table": "IOT",
+        "level": "summary",
+        "valuation": "purchaser"
+      },
+      "runnable": true
+    },
+    {
+      "id": "statcan--05",
+      "guide": "statcan",
+      "notebook": "source/notebooks/parsers/statcan/walkthrough_statcan.ipynb",
+      "parser": "parse_statcan",
+      "cell": 18,
+      "fingerprint": "5f8219e70c0d75075ff51ce43c1560882b19b0a5a4ac92879faf77d184be9cc4",
+      "parameters": {
+        "year": 2022,
+        "table": "SUT",
+        "level": "detail",
+        "geo": "Quebec",
+        "path": "/path/to/StatCan",
+        "download": true
+      },
+      "runnable": true
+    },
+    {
+      "id": "useeio--01",
+      "guide": "useeio",
+      "notebook": "source/notebooks/parsers/useeio/walkthrough_useeio.ipynb",
+      "parser": "parse_useeio",
+      "cell": 10,
+      "fingerprint": "e9517918c450d62fffa16b3fcff5996cadcafb98b0c07ad39f16697cadb68cdc",
+      "parameters": {
+        "path": "/path/to/USEEIOv2.5-yellowthroat-22.xlsx",
+        "format": "auto"
+      },
+      "runnable": true
+    },
+    {
+      "id": "useeio--02",
+      "guide": "useeio",
+      "notebook": "source/notebooks/parsers/useeio/walkthrough_useeio.ipynb",
+      "parser": "parse_useeio",
+      "cell": 12,
+      "fingerprint": "1ea6ea7bda93cfae78291655448a3bed460c6462c79a8c5587df61c515235282",
+      "parameters": {
+        "path": "/path/to/USEEIOv2.5-waxwing-22.xlsx",
+        "format": "v2.5_workbook"
+      },
+      "runnable": true
+    },
+    {
+      "id": "useeio--03",
+      "guide": "useeio",
+      "notebook": "source/notebooks/parsers/useeio/walkthrough_useeio.ipynb",
+      "parser": "parse_useeio",
+      "cell": 14,
+      "fingerprint": "81ca352d2a6e70a3e1c310a0aa6951af5a018572102f34f834eadd532ddbbac4",
+      "parameters": {
+        "path": "/path/to/USEEIO",
+        "model_alias": "yellowthroat",
+        "release_year": 2022
+      },
+      "runnable": true
+    },
+    {
+      "id": "wiod--01",
+      "guide": "wiod",
+      "notebook": "source/notebooks/parsers/wiod/walkthrough_wiod.ipynb",
+      "parser": "parse_wiod",
+      "cell": 11,
+      "fingerprint": "e429c07eb3813c4306faeba29a96c6d62a253d1862fd7a97f59eb505c0fb6021",
+      "parameters": {
+        "path": "/path/to/WIOT2014_Nov16_ROW.xlsb",
+        "table": "IOT"
+      },
+      "runnable": true
+    },
+    {
+      "id": "wiod--02",
+      "guide": "wiod",
+      "notebook": "source/notebooks/parsers/wiod/walkthrough_wiod.ipynb",
+      "parser": "parse_wiod",
+      "cell": 14,
+      "fingerprint": "ac4a8861e64044174aa2171cef6ae828655fd64544b0909aaf4b325ed511ed8f",
+      "parameters": {
+        "path": "/path/to/WIOT2014_PYP_Nov16_ROW.xlsb",
+        "table": "IOT"
+      },
+      "runnable": true
+    },
+    {
+      "id": "wiod--03",
+      "guide": "wiod",
+      "notebook": "source/notebooks/parsers/wiod/walkthrough_wiod.ipynb",
+      "parser": "parse_wiod",
+      "cell": 16,
+      "fingerprint": "78cf487bb5f9d50b0aaa6688ea8a7d4e7ec393248701e6da6480f8ca92627eaf",
+      "parameters": {
+        "path": "/path/to/intsut14_nov16.xlsb",
+        "table": "SUT",
+        "row_mode": "external_account"
+      },
+      "runnable": true
+    },
+    {
+      "id": "wiod--04",
+      "guide": "wiod",
+      "notebook": "source/notebooks/parsers/wiod/walkthrough_wiod.ipynb",
+      "parser": "parse_wiod",
+      "cell": 18,
+      "fingerprint": "86c26b46aec7f160d4e6ef18b266bcacb38990ad48b1e6c5cb010b86066b19db",
+      "parameters": {
+        "path": "/path/to/ITA_NIOT_nov16.xlsx",
+        "table": "IOT",
+        "year": 2014
+      },
+      "runnable": true
+    },
+    {
+      "id": "wiod--05",
+      "guide": "wiod",
+      "notebook": "source/notebooks/parsers/wiod/walkthrough_wiod.ipynb",
+      "parser": "parse_wiod",
+      "cell": 20,
+      "fingerprint": "8fcff992b42b8dcacd893e4b7d53bdfef20d499eaabd02ef289242e96340ec1b",
+      "parameters": {
+        "path": "/path/to/ITA_SUT_nov16.xlsx",
+        "table": "SUT",
+        "year": 2014
+      },
+      "runnable": true
+    },
+    {
+      "id": "wiod--06",
+      "guide": "wiod",
+      "notebook": "source/notebooks/parsers/wiod/walkthrough_wiod.ipynb",
+      "parser": "parse_wiod",
+      "cell": 22,
+      "fingerprint": "ca43f1a5e1853ff826a9ee4cc9cf3c506ec80a1c46d0f658e90169875d99acc8",
+      "parameters": {
+        "path": "/path/to/wiod_directory",
+        "table": "SUT",
+        "country": "ITA",
+        "year": 2014
+      },
+      "runnable": true
+    },
+    {
+      "id": "wiod--07",
+      "guide": "wiod",
+      "notebook": "source/notebooks/parsers/wiod/walkthrough_wiod.ipynb",
+      "parser": "parse_wiod",
+      "cell": 24,
+      "fingerprint": "ed5348f69550fe4b771ee4d946fca06ba8d441875838ee41556414fbc4456418",
+      "parameters": {
+        "path": "/path/to/WIOT2014_Nov16_ROW.xlsb",
+        "table": "IOT",
+        "add_extensions": "/path/to/Socio_Economic_Accounts.xlsx"
+      },
+      "runnable": true
+    }
+  ]
+}

@@ -38,7 +38,7 @@ from mario.settings.settings import (
     set_linear_strategy,
     upload_settings,
 )
-from mario.parsers.api import build_database_from_state, build_state_from_parser_output
+from mario.parsers.api import build_database_from_state, build_parser_state, build_state_from_parser_output
 from mario.test.mario_test import load_test
 from mario.model.conventions import _ENUM, _MASTER_INDEX
 from mario.ops.workbook_specs import SHOCK_COLUMNS, SHOCK_FLAT_COLUMNS
@@ -3363,6 +3363,21 @@ def test_plot_returns_flat_dataframe_for_iot_matrix():
     assert len(figure.data) > 0
 
 
+def test_plot_preserves_legacy_positional_title_and_return_data():
+    # Before 1.3, title and return_data followed log_y. New colour controls
+    # must not consume those positions in existing calls.
+    database = load_test("IOT")
+    figure, plotted = database.plot(
+        "Z", None, "baseline", None, "absolute", "heatmap", None,
+        None, "Value", None, None, None, None, None, None, None, None,
+        None, None, None, None, "sum", None, False, False, None,
+        "relative", False, False, "Legacy positional title", True,
+    )
+    assert figure.layout.title.text == "Legacy positional title"
+    assert isinstance(plotted, pd.DataFrame)
+    assert len(figure.data) == 1
+
+
 def test_plot_supports_sut_split_semantics():
     database = load_test("SUT")
 
@@ -3403,6 +3418,111 @@ def test_plot_accepts_prepared_dataframe_input():
 
     assert "GDP" in plotted.columns
     assert len(figure.data) > 0
+
+
+def test_plot_heatmap_preset_draws_the_matrix_in_stored_order():
+    database = load_test("IOT")
+    z = database.query(_ENUM.Z)
+
+    figure, plotted = database.plot(
+        matrix=_ENUM.Z,
+        preset="heatmap",
+        path=False,
+        auto_open=False,
+        return_data=True,
+    )
+
+    expected_rows = [f"{region} · {item}" for region, _, item in z.index]
+    expected_columns = [f"{region} · {item}" for region, _, item in z.columns]
+    assert list(figure.data[0].y) == expected_rows
+    assert list(figure.data[0].x) == expected_columns
+    assert {"Row", "Column", "Value", "Color"}.issubset(plotted.columns)
+    assert len(plotted) == z.size
+
+
+def test_plot_heatmap_on_a_regional_block_drops_constant_labels():
+    database = load_test("IOT")
+    regions = database.get_index("Region")
+
+    figure = database.plot(
+        matrix=_ENUM.Z,
+        preset="heatmap",
+        filters={"Region_from": regions[1:], "Region_to": regions[:1]},
+        path=False,
+        auto_open=False,
+    )
+
+    z = database.query(_ENUM.Z)
+    stored_sectors = list(dict.fromkeys(item for _, _, item in z.columns))
+    assert list(figure.data[0].x) == stored_sectors
+    assert list(figure.data[0].y) == stored_sectors
+
+
+def test_plot_heatmap_log_color_blanks_zeros_and_clips_extremes():
+    database = load_test("IOT")
+    data = pd.DataFrame(
+        {
+            "Origin": ["a", "a", "b", "b", "c", "c"],
+            "Destination": ["x", "y", "x", "y", "x", "y"],
+            "Value": [0.0, 1.0, 10.0, 100.0, 1000.0, 1e6],
+        }
+    )
+
+    figure, plotted = database.plot(
+        data=data,
+        kind="heatmap",
+        preset=None,
+        x="Destination",
+        heatmap_y="Origin",
+        log_color=True,
+        color_clip=(0.0, 0.8),
+        path=False,
+        auto_open=False,
+        return_data=True,
+    )
+
+    colors = plotted.set_index(["Origin", "Destination"])["Color"]
+    assert pd.isna(colors[("a", "x")])
+    assert colors[("b", "x")] == pytest.approx(1.0)
+    assert colors.max() < 6.0
+    assert list(figure.data[0].y) == ["a", "b", "c"]
+    assert "log scale" in figure.layout.coloraxis.colorbar.title.text
+
+
+def test_plot_heatmap_log_color_rejects_negative_values():
+    database = load_test("IOT")
+    data = pd.DataFrame({"Origin": ["a", "b"], "Destination": ["x", "x"], "Value": [1.0, -1.0]})
+
+    with pytest.raises(WrongInput, match="non-negative"):
+        database.plot(
+            data=data,
+            kind="heatmap",
+            preset=None,
+            x="Destination",
+            heatmap_y="Origin",
+            log_color=True,
+            path=False,
+            auto_open=False,
+        )
+
+
+def test_plot_color_options_are_reserved_to_unfaceted_heatmaps():
+    database = load_test("IOT")
+
+    with pytest.raises(WrongInput, match="only for heatmap"):
+        database.plot(matrix=_ENUM.Z, preset="overview", log_color=True, path=False, auto_open=False)
+
+    with pytest.raises(WrongInput, match="not supported together"):
+        database.plot(
+            matrix=_ENUM.Z,
+            preset="heatmap",
+            facet_col="Region_to",
+            x="Sector_to",
+            heatmap_y="Sector_from",
+            color_clip=(0.1, 0.9),
+            path=False,
+            auto_open=False,
+        )
 
 
 def test_legacy_plot_wrappers_emit_deprecation_warning():

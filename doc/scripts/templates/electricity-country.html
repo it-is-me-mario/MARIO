@@ -1,0 +1,402 @@
+<div class="fig2">
+  <h3>Carbon footprint and intensity of electricity, by country and data source</h3>
+  <p class="sub">Each marker is one data source's estimate
+    for a country; <b class="mono">colour = natively monetary</b> (converted to a physical basis via electricity prices) vs
+    <b class="phys">natively physical</b>, shape = source. Filter by scope, year and methodology.
+    Differences reflect source data, system boundaries and methodological choices.</p>
+
+  <div class="f2-ctrl">
+    <div class="f2-seg" id="f2-flow" role="group" aria-label="Emissions scope">
+      <span class="lab">Scope</span>
+      <button data-flow="direct" role="button" aria-pressed="false">Direct</button>
+      <button data-flow="lifecycle" role="button" aria-pressed="true">Life-cycle</button>
+    </div>
+    <div class="f2-seg" id="f2-year" role="group" aria-label="Year">
+      <span class="lab">Year</span>
+      <button data-year="2017" role="button" aria-pressed="false">2017</button>
+      <button data-year="2023" role="button" aria-pressed="true">2023</button>
+    </div>
+    <div class="f2-seg" id="f2-method" role="group" aria-label="Methodology">
+      <span class="lab">Method</span>
+      <button data-method="IO" role="button" aria-pressed="true">IO</button>
+      <button data-method="LCA" role="button" aria-pressed="true">LCA</button>
+      <button data-method="other" role="button" aria-pressed="true">Other</button>
+    </div>
+    <div class="f2-spacer"></div>
+    <div class="f2-seg" id="f2-view" role="tablist">
+      <button data-view="chart" class="on" role="tab" aria-selected="true">Chart</button>
+      <button data-view="table" role="tab" aria-selected="false">Table</button>
+    </div>
+
+    <button class="f2-fs" id="f2-fs" type="button" aria-label="Toggle full screen">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M2.5 6V2.5H6M14 6V2.5h-3.5M2.5 10v3.5H6M14 10v3.5h-3.5"/></svg>
+      <span>Full screen</span>
+    </button>
+    <button class="f2-fs" id="f2-dl" type="button" aria-label="Download chart as JPG" title="Download as JPG (current filters)">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M8 2v7.5M5 6.5 8 9.5l3-3M3 13.5h10"/></svg>
+      <span>JPG</span>
+    </button>
+  </div>
+
+  <div class="f2-countries" id="f2-countries"></div>
+  <div class="f2-legend" id="f2-legend"></div>
+  <div class="f2-wrap" id="f2-wrap"></div>
+  <div class="f2-tablewrap" id="f2-tablewrap" hidden></div>
+  <p class="benchmark-chart-hint">Swipe across the chart to see the full range, or switch to Table.</p>
+  <p class="foot"><sup>*</sup>&nbsp;Natively monetary factors are converted to a physical basis (gCO₂eq/kWh) using
+    country-level electricity prices. Snapshot of the eNextGen blogpost, generated from <b>nxbase</b>. No live data query is made by this page. For Eora, GLORIA
+    and Electricity&nbsp;Maps, only the datapoints shown in the article are held in nxbase. Source: Citterio et al. (2026),
+    <a href="https://doi.org/10.1007/s44498-026-00148-3">doi:10.1007/s44498-026-00148-3</a>.</p>
+</div>
+
+<script>
+(function(){
+  const F2 = __DATA__;
+  const root = document.currentScript.previousElementSibling;
+  const wrap = root.querySelector('#f2-wrap');
+  const tblwrap = root.querySelector('#f2-tablewrap');
+  const legendEl = root.querySelector('#f2-legend');
+  const countriesEl = root.querySelector('#f2-countries');
+  const esc = s => String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+  // Show the complete country sample initially; the preset selects five countries.
+  const DEFAULT_C = ["Italy","Spain","France","Germany","United States"];
+  const ALL_C = [...new Set(F2.records.map(r=>r.country))].sort();
+  const ISOOF = {}; F2.records.forEach(r=> ISOOF[r.country]=r.iso);
+  const keyC = () => new Set(DEFAULT_C.filter(c=>ALL_C.includes(c)));
+
+  // Marker shape per source (hollow) — matched to Citterio et al. (JIE 2026) Fig. 2:
+  // GTAP ✕, EXIO ixi ▷, EXIO pxp ◁, EMERGING ✚, EORA ◇, GLORIA ▽, EMBER ✶,
+  // NREL ⬡, IPCC ⬠, JRC ○, Electricity Maps □. nxsut 3.0 (△) and eGRID (⯃) are
+  // extra sources not in the paper, given free shapes.
+  const SHAPE = {
+    "GTAP":"cross", "EXIOBASE ixi":"triR", "EXIOBASE pxp":"triL", "EMERGING":"plus",
+    "EORA":"diamond", "GLORIA":"triD", "EMBER":"star", "NREL":"hex", "IPCC":"pent",
+    "JRC":"circle", "Electricity Maps":"square", "Egrid":"octagon", "nxsut 3.0":"triU"
+  };
+  const TYPECLS = {Monetary:"mono", Physical:"phys"};
+
+  // Methodology layer (orthogonal to the native monetary/physical colour):
+  // IO = input–output / supply–use, LCA = life-cycle inventory, other = measured/agency.
+  const METHOD = {
+    "GTAP":"IO", "EXIOBASE ixi":"IO", "EXIOBASE pxp":"IO", "EMERGING":"IO",
+    "EORA":"IO", "GLORIA":"IO", "nxsut 3.0":"IO",
+    "NREL":"LCA", "IPCC":"LCA", "JRC":"LCA",
+    "EMBER":"other", "Egrid":"other", "Electricity Maps":"other"
+  };
+  const METHODS = ["IO","LCA","other"];
+  const DISPLAY = {"nxsut 3.0":"nxsut 3.0"};      // display label overrides
+  const disp = s => DISPLAY[s] || s;
+  const methodOn = src => state.methods.has(METHOD[src] || "other");
+
+  const state = {flow:"lifecycle", year:2023, view:"chart", hidden:new Set(),
+    countries:new Set(ALL_C), methods:new Set(METHODS)};
+
+  function marker(shape, cx, cy, r, cls){
+    const p = (pts)=>`<polygon class="f2-mk ${cls}" points="${pts.map(a=>a.map(n=>n.toFixed(1)).join(',')).join(' ')}"/>`;
+    const c=cx, y=cy;
+    switch(shape){
+      case "circle": return `<circle class="f2-mk ${cls}" cx="${c}" cy="${y}" r="${r}"/>`;
+      case "square": return `<rect class="f2-mk ${cls}" x="${c-r}" y="${y-r}" width="${2*r}" height="${2*r}"/>`;
+      case "diamond": return p([[c,y-r*1.25],[c+r*1.25,y],[c,y+r*1.25],[c-r*1.25,y]]);
+      case "triU": return p([[c,y-r*1.3],[c+r*1.2,y+r],[c-r*1.2,y+r]]);
+      case "triD": return p([[c,y+r*1.3],[c+r*1.2,y-r],[c-r*1.2,y-r]]);
+      case "triR": return p([[c+r*1.3,y],[c-r,y-r*1.15],[c-r,y+r*1.15]]);
+      case "triL": return p([[c-r*1.3,y],[c+r,y-r*1.15],[c+r,y+r*1.15]]);
+      case "plus": return `<path class="f2-mk ${cls}" d="M${c-r},${y} H${c+r} M${c},${y-r} V${y+r}"/>`;
+      case "cross": return `<path class="f2-mk ${cls}" d="M${c-r*0.8},${y-r*0.8} L${c+r*0.8},${y+r*0.8} M${c-r*0.8},${y+r*0.8} L${c+r*0.8},${y-r*0.8}"/>`;
+      case "hex": { const a=[]; for(let i=0;i<6;i++){const t=Math.PI/6+i*Math.PI/3; a.push([c+r*Math.cos(t),y+r*Math.sin(t)]);} return p(a); }
+      case "octagon": { const a=[]; for(let i=0;i<8;i++){const t=Math.PI/8+i*Math.PI/4; a.push([c+r*1.08*Math.cos(t),y+r*1.08*Math.sin(t)]);} return p(a); }
+      case "pent": { const a=[]; for(let i=0;i<5;i++){const t=-Math.PI/2+i*2*Math.PI/5; a.push([c+r*Math.cos(t),y+r*Math.sin(t)]);} return p(a); }
+      case "star": { const a=[]; for(let i=0;i<10;i++){const rr=i%2?r*0.46:r*1.15; const t=-Math.PI/2+i*Math.PI/5; a.push([c+rr*Math.cos(t),y+rr*Math.sin(t)]);} return p(a); }
+      default: return `<circle class="f2-mk ${cls}" cx="${c}" cy="${y}" r="${r}"/>`;
+    }
+  }
+
+  function median(a){ const s=[...a].sort((x,y)=>x-y); const n=s.length; return n? (n%2? s[(n-1)/2] : (s[n/2-1]+s[n/2])/2) : 0; }
+
+  function viewData(){
+    const recs = F2.records.filter(r=>r.flow===state.flow && r.year===state.year && state.countries.has(r.country) && methodOn(r.source) && !state.hidden.has(r.source));
+    const byC = {};
+    recs.forEach(r=>{ (byC[r.country] ||= {country:r.country, iso:r.iso, pts:[]}).pts.push(r); });
+    const rows = Object.values(byC);
+    rows.forEach(o=> o.med = median(o.pts.map(p=>p.value)));
+    rows.sort((a,b)=> b.med - a.med);
+    return rows;
+  }
+
+  function buildCountryDropdown(){                    // built once; options updated in place
+    let opts = '';
+    ALL_C.forEach(c=>{ opts += `<div class="f2-copt" role="menuitemcheckbox" tabindex="0" data-c="${esc(c)}" aria-checked="false"><span class="box"><svg width="10" height="10" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.4l2.4 2.4 4.6-5.6" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nm">${esc(c)}</span><span class="iso">${esc(ISOOF[c]||'')}</span></div>`; });
+    countriesEl.innerHTML = `<span class="f2-clab">Countries</span>`
+      + `<div class="f2-cdrop" id="f2-cdrop">`
+      + `<button class="f2-cdrop-btn" id="f2-cdrop-btn" type="button" aria-haspopup="true" aria-expanded="false"><span class="cval">5 countries</span><svg class="ccar" width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4.5l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`
+      + `<div class="f2-cdrop-panel" id="f2-cdrop-panel" role="menu" hidden><div class="f2-cdrop-actions"><button type="button" data-cset="all">All countries</button><button type="button" data-cset="key">Five-country preset</button></div><div class="f2-cdrop-list">${opts}</div></div>`
+      + `</div>`;
+  }
+
+  function updateCountryUI(){                         // reflect state.countries + which are in-view
+    const inView = new Set(F2.records.filter(r=>r.flow===state.flow && r.year===state.year && methodOn(r.source)).map(r=>r.country));
+    const allOn = ALL_C.length && ALL_C.every(c=>state.countries.has(c));
+    countriesEl.querySelectorAll('.f2-copt').forEach(o=>{
+      o.setAttribute('aria-checked', state.countries.has(o.dataset.c));
+      o.classList.toggle('dim', !inView.has(o.dataset.c));
+    });
+    const allBtn=countriesEl.querySelector('[data-cset="all"]'); if(allBtn) allBtn.classList.toggle('on', allOn);
+    const val=countriesEl.querySelector('.cval');
+    if(val){ const n=state.countries.size;
+      val.textContent = allOn ? 'All countries' : (n===0 ? 'None selected' : n+(n===1?' country':' countries')); }
+  }
+  function toggleCountry(c){ if(state.countries.has(c)) state.countries.delete(c); else state.countries.add(c); render(); }
+
+  function render(){
+    // buttons state
+    root.querySelectorAll('#f2-flow button').forEach(b=> b.setAttribute('aria-pressed', b.dataset.flow===state.flow));
+    root.querySelectorAll('#f2-year button').forEach(b=> b.setAttribute('aria-pressed', String(b.dataset.year)===String(state.year)));
+    root.querySelectorAll('#f2-method button').forEach(b=> b.setAttribute('aria-pressed', state.methods.has(b.dataset.method)));
+    updateCountryUI();
+
+    const rows = viewData();
+    // legend for sources present in this view (respecting the methodology filter)
+    const present = [...new Set(F2.records.filter(r=>r.flow===state.flow && r.year===state.year && methodOn(r.source) && !state.hidden.has(r.source)).map(r=>r.source))];
+    const meta = Object.fromEntries(F2.sources.map(s=>[s.label, s.type]));
+    const HEAD = {Monetary:'Natively monetary emission factors<sup>*</sup>', Physical:'Natively physical emission factors'};
+    let lg = '';
+    ['Monetary','Physical'].forEach(tp=>{
+      const ss = present.filter(s=>meta[s]===tp);
+      if(!ss.length) return;
+      let row = `<span class="f2-typehead ${TYPECLS[tp]}">${HEAD[tp]}</span>`;
+      ss.forEach(s=>{ const off=state.hidden.has(s);
+        row += `<span class="f2-leg src${off?' off':''}" data-src="${esc(s)}" role="button" tabindex="0" aria-pressed="${!off}" title="Click to show/hide · double-click to isolate"><svg width="16" height="16" viewBox="0 0 16 16">${marker(SHAPE[s]||'circle',8,8,5,TYPECLS[tp])}</svg><span class="lg-nm">${esc(disp(s))}</span></span>`; });
+      lg += `<div class="f2-leg-row">${row}</div>`;
+    });
+    legendEl.innerHTML = lg;
+
+    if(!rows.length){
+      const msg = state.countries.size===0 ? 'Select at least one country to plot.'
+        : state.methods.size===0 ? 'Select at least one methodology.'
+        : 'No snapshot data for this selection — try another year, scope, methodology, or add countries.';
+      wrap.innerHTML = `<p class="f2-note">${msg}</p>`; renderTable(rows); return;
+    }
+
+    const M={t:14,r:18,b:44,l:112}, rowH=Math.max(24, Math.min(38, Math.floor(760/rows.length))), W=820;
+    const H=M.t+rows.length*rowH+M.b;
+    const vis=p=>!state.hidden.has(p.source);
+    const vispts=rows.flatMap(o=>o.pts.filter(vis));
+    const vmax=(vispts.length?vispts:rows.flatMap(o=>o.pts)).reduce((m,p)=>Math.max(m,p.value),0);
+    const xmax=Math.max(200, Math.ceil(vmax/200)*200);
+    const x=v=> M.l+(v/xmax)*(W-M.l-M.r);
+    const yc=i=> M.t+i*rowH+rowH/2;
+    const r=Math.max(3, Math.min(5, rowH*0.19));
+
+    let s=`<svg class="plot" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(state.flow)} electricity emissions by country, ${state.year}">`;
+    s+=`<g class="f2-grid">`;
+    for(let v=0; v<=xmax; v+=200) s+=`<line x1="${x(v)}" y1="${M.t-2}" x2="${x(v)}" y2="${H-M.b+4}"/>`;
+    s+=`</g><g class="f2-axis">`;
+    for(let v=0; v<=xmax; v+=200) s+=`<text x="${x(v)}" y="${H-M.b+18}" text-anchor="middle">${v}</text>`;
+    s+=`<text class="f2-xtitle" x="${(M.l+W-M.r)/2}" y="${H-M.b+34}" text-anchor="middle">${state.flow==='direct'?'Direct':'Life-cycle'} emissions — gCO₂eq/kWh</text>`;
+    s+=`</g>`;
+    rows.forEach((o,i)=>{
+      const y=yc(i);
+      s+=`<g class="f2-row"><rect class="f2-rowbg" x="0" y="${M.t+i*rowH}" width="${W}" height="${rowH}"/>`;
+      s+=`<text class="f2-ylab" x="${M.l-10}" y="${y+4}" text-anchor="end">${esc(o.country)}</text>`;
+      o.pts.filter(vis).forEach(pt=>{
+        const cx=x(pt.value), cls=TYPECLS[pt.type];
+        s+=marker(SHAPE[pt.source]||'circle', cx, y, r, cls);
+        s+=`<circle class="f2-hit" cx="${cx.toFixed(1)}" cy="${y}" r="11" data-c="${esc(pt.country)}" data-s="${esc(pt.source)}" data-t="${pt.type}" data-v="${pt.value}"/>`;
+      });
+      s+=`</g>`;
+    });
+    s+=`</svg>`;
+    wrap.innerHTML=s;
+    renderTable(rows);
+  }
+
+  function renderTable(rows){
+    const present=[...new Set(F2.records.filter(r=>r.flow===state.flow && r.year===state.year && methodOn(r.source) && !state.hidden.has(r.source)).map(r=>r.source))];
+    const order=Object.keys(SHAPE).filter(s=>present.includes(s));
+    let t=`<table class="f2-tab"><thead><tr><th>Country</th>`;
+    order.forEach(s=> t+=`<th>${esc(disp(s))}</th>`);
+    t+=`</tr></thead><tbody>`;
+    rows.forEach(o=>{
+      const by=Object.fromEntries(o.pts.map(p=>[p.source,p.value]));
+      t+=`<tr><td>${esc(o.country)}</td>`;
+      order.forEach(s=> t+=`<td>${by[s]!=null?by[s]:'—'}</td>`);
+      t+=`</tr>`;
+    });
+    t+=`</tbody></table>`;
+    tblwrap.innerHTML=order.length? t : '';
+  }
+
+  // tooltip (appended inside root so CSS variables resolve)
+  const tt=document.createElement('div'); tt.className='f2-tt'; tt.hidden=true; root.appendChild(tt);
+  wrap.addEventListener('pointermove', e=>{
+    const h=e.target.closest('.f2-hit');
+    if(!h){ tt.hidden=true; return; }
+    const tlab=h.dataset.t==='Monetary'?'natively monetary · '+(METHOD[h.dataset.s]||'other')+' (converted via prices)':'natively physical · '+(METHOD[h.dataset.s]||'other');
+    tt.innerHTML=`<b>${esc(disp(h.dataset.s))}</b><br>${esc(h.dataset.c)}<br><span class="v">${h.dataset.v}</span> gCO₂eq/kWh<br><span style="opacity:.72">${tlab}</span>`;
+    tt.hidden=false;
+    const pad=14; let lx=e.clientX+pad, ly=e.clientY+pad, bb=tt.getBoundingClientRect();
+    if(lx+bb.width>innerWidth-8) lx=e.clientX-bb.width-pad;
+    if(ly+bb.height>innerHeight-8) ly=e.clientY-bb.height-pad;
+    tt.style.left=lx+'px'; tt.style.top=ly+'px';
+  });
+  wrap.addEventListener('pointerleave', ()=>{ tt.hidden=true; });
+
+  root.querySelectorAll('#f2-flow button').forEach(b=> b.addEventListener('click', ()=>{ state.flow=b.dataset.flow; render(); }));
+  root.querySelectorAll('#f2-year button').forEach(b=> b.addEventListener('click', ()=>{ state.year=+b.dataset.year; render(); }));
+  root.querySelectorAll('#f2-method button').forEach(b=> b.addEventListener('click', ()=>{
+    const m=b.dataset.method;
+    if(state.methods.has(m)) state.methods.delete(m); else state.methods.add(m);
+    render();
+  }));
+  root.querySelectorAll('#f2-view button').forEach(b=> b.addEventListener('click', ()=>{
+    state.view=b.dataset.view;
+    root.querySelectorAll('#f2-view button').forEach(x=>{ const on=x===b; x.classList.toggle('on',on); x.setAttribute('aria-selected',on); });
+    wrap.hidden=state.view!=='chart'; tblwrap.hidden=state.view!=='table';
+  }));
+
+  const fsBtn=root.querySelector('#f2-fs');
+  fsBtn.addEventListener('click', ()=>{
+    if(document.fullscreenElement===root) document.exitFullscreen();
+    else if(root.requestFullscreen) root.requestFullscreen().catch(()=>{});
+  });
+  document.addEventListener('fullscreenchange', ()=>{
+    fsBtn.querySelector('span').textContent = document.fullscreenElement===root ? 'Exit full screen' : 'Full screen';
+  });
+
+  // ---- Download the current view as a JPG (reflects the active filters) ----
+  function _inlineStyles(src, dst){
+    const cs=getComputedStyle(src);
+    const P=['fill','fill-opacity','stroke','stroke-width','stroke-opacity','stroke-dasharray','stroke-linecap','stroke-linejoin','opacity','color','font-family','font-size','font-weight','text-anchor','dominant-baseline'];
+    let st=''; for(const p of P){ const v=cs.getPropertyValue(p); if(v) st+=p+':'+v+';'; }
+    dst.setAttribute('style', st);
+    const a=src.children, b=dst.children;
+    for(let i=0;i<a.length;i++) _inlineStyles(a[i], b[i]);
+  }
+  function _bgOf(el){
+    for(let n=el; n; n=n.parentElement){ const c=getComputedStyle(n).backgroundColor; if(c && c!=='rgba(0, 0, 0, 0)' && c!=='transparent') return c; }
+    return matchMedia('(prefers-color-scheme: dark)').matches ? '#111417' : '#ffffff';
+  }
+  function _inlinedClone(el){ const c=el.cloneNode(true); _inlineStyles(el, c); return c; }
+  function _glyphW(g){ const ow=+g.getAttribute('width')||16, oh=+g.getAttribute('height')||16; return Math.round(15*ow/oh); }
+  function _rasterize(svgStr, W, H, filename){
+    const url=URL.createObjectURL(new Blob([svgStr],{type:'image/svg+xml;charset=utf-8'}));
+    const img=new Image();
+    img.onload=()=>{
+      const scale=Math.max(2, Math.min(4, 1800/W));
+      const cv=document.createElement('canvas'); cv.width=Math.round(W*scale); cv.height=Math.round(H*scale);
+      const cx=cv.getContext('2d'); cx.drawImage(img,0,0,cv.width,cv.height); URL.revokeObjectURL(url);
+      cv.toBlob(bl=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(bl); a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),5000); }, 'image/jpeg', 0.95);
+    };
+    img.onerror=()=>URL.revokeObjectURL(url);
+    img.src=url;
+  }
+  function _lum(rgb){ const m=(rgb||'').match(/\d+(\.\d+)?/g); return m ? 0.299*+m[0]+0.587*+m[1]+0.114*+m[2] : 255; }
+  async function _loadLogo(dark){
+    const url = document.querySelector('.mario-brand img')?.src;
+    if (!url) return null;
+    try{
+      const r = await fetch(url); if(!r.ok) return null;
+      const blob = await r.blob();
+      const uri = await new Promise(res=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=()=>res(null); fr.readAsDataURL(blob); });
+      if(!uri) return null;
+      const dim = await new Promise(res=>{ const im=new Image(); im.onload=()=>res({w:im.naturalWidth,h:im.naturalHeight}); im.onerror=()=>res(null); im.src=uri; });
+      return dim ? {uri, w:dim.w, h:dim.h} : null;
+    }catch(e){ return null; }
+  }
+  async function _composeAndDownload(items, filename, title){
+    const plot=wrap.querySelector('svg.plot'); if(!plot) return;
+    const vb=plot.viewBox.baseVal, W=Math.round(vb.width||900), H=Math.round(vb.height||600);
+    const bg=_bgOf(root), ink=getComputedStyle(root).color||'#111', dark=_lum(bg)<128;
+    const PAD=16, FS=13, ROWH=22, GAP=16, LOGO_H=30;
+    const logo=await _loadLogo(dark);
+    const TITLE_H = (title||logo) ? Math.max(34, LOGO_H+14) : 0;
+    let lx=PAD, rows=1, parts=[];
+    items.forEach(it=>{
+      const gw=it.glyph?_glyphW(it.glyph):0, sw=it.swatch?16:0, tw=it.text.length*6.7 + (gw?gw+4:0) + sw;
+      if((it.head && lx>PAD) || (lx+tw>W-PAD && lx>PAD)){ rows++; lx=PAD; }
+      const y=(rows-1)*ROWH; let px=lx;
+      if(it.glyph){ const g=it.glyph; g.setAttribute('x',px); g.setAttribute('y',y+3); g.setAttribute('width',gw); g.setAttribute('height',15); parts.push(g.outerHTML); px+=gw+4; }
+      if(it.swatch){ parts.push(`<rect x="${px}" y="${y+3}" width="12" height="12" rx="2" fill="${it.swatch}"/>`); px+=16; }
+      parts.push(`<text x="${px}" y="${y+13}" font-size="${FS}" font-weight="${it.head?'600':'400'}" fill="${it.head&&it.color?it.color:ink}" font-family="system-ui,-apple-system,sans-serif">${esc(it.text)}</text>`);
+      lx=px + it.text.length*6.7 + GAP;
+    });
+    const legH=rows*ROWH+6, totalH=TITLE_H+H+legH+PAD+64;
+    const pc=_inlinedClone(plot); pc.setAttribute('x',0); pc.setAttribute('y',TITLE_H); pc.setAttribute('width',W); pc.setAttribute('height',H); pc.removeAttribute('style');
+    let head='';
+    if(logo){ const lw=Math.round(LOGO_H*logo.w/logo.h); head+=`<image xlink:href="${logo.uri}" href="${logo.uri}" x="${W-PAD-lw}" y="${Math.round((TITLE_H-LOGO_H)/2)}" width="${lw}" height="${LOGO_H}"/>`; }
+    if(title){ head+=`<text x="${PAD}" y="${Math.round(TITLE_H/2)+6}" font-size="17" font-weight="600" fill="${ink}" font-family="system-ui,-apple-system,sans-serif">${esc(title)}</text>`; }
+    const svg=`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${W}" height="${totalH}" viewBox="0 0 ${W} ${totalH}"><rect width="${W}" height="${totalH}" fill="${bg}"/>`
+      + head + pc.outerHTML + `<g transform="translate(0,${TITLE_H+H+4})">${parts.join('')}</g>`
+      + `<g transform="translate(${PAD},${TITLE_H+H+legH+20})" fill="${ink}" font-family="Arial,sans-serif" font-size="10"><text y="0">Citterio, Golinucci, Rinaldi and Rocco (2026) · adapted for MARIO · g CO2eq/kWh</text><text y="16">Article and author figures: CC BY 4.0 · doi:10.1007/s44498-026-00148-3</text><text y="32">Source observations retain their terms: enextgen.it/en/analyses/electricity-carbon-footprint/</text></g></svg>`;
+    _rasterize(svg, W, totalH, filename);
+  }
+  function _f2LegendItems(){
+    const items=[];
+    root.querySelectorAll('#f2-legend .f2-leg-row').forEach(rowEl=>{
+      const head=rowEl.querySelector('.f2-typehead');
+      if(head) items.push({text:head.textContent.replace(/\*/g,'').trim(), color:getComputedStyle(head).color, head:true});
+      rowEl.querySelectorAll('.f2-leg.src:not(.off)').forEach(s=>{
+        const g=s.querySelector('svg'); items.push({text:s.querySelector('.lg-nm').textContent.trim(), glyph:g?_inlinedClone(g):null});
+      });
+    });
+    return items;
+  }
+  root.querySelector('#f2-dl').addEventListener('click', ()=>{
+    const scope = state.flow==='direct' ? 'Direct' : 'Life-cycle';
+    _composeAndDownload(_f2LegendItems(), `electricity-by-country_${state.year}_${state.flow}.jpg`,
+      `Carbon intensity of electricity by country — ${scope}, ${state.year}`);
+  });
+
+  function presentSrcs(){
+    return [...new Set(F2.records.filter(r=>r.flow===state.flow && r.year===state.year).map(r=>r.source))];
+  }
+  function toggleSrc(el){
+    const src=el && el.dataset.src; if(!src) return;
+    if(state.hidden.has(src)) state.hidden.delete(src); else state.hidden.add(src);
+    render();
+  }
+  function isolateSrc(el){                                   // double-click: solo this series
+    const src=el && el.dataset.src; if(!src) return;
+    const others=presentSrcs().filter(s=>s!==src);
+    const alreadySolo = !state.hidden.has(src) && others.every(s=>state.hidden.has(s));
+    state.hidden = alreadySolo ? new Set() : new Set(others);  // toggle: re-click restores all
+    render();
+  }
+  let clickTimer=null;
+  legendEl.addEventListener('click', e=>{
+    const el=e.target.closest('.f2-leg.src'); if(!el) return;
+    if(clickTimer) return;                                   // second click of a dblclick — ignore
+    clickTimer=setTimeout(()=>{ clickTimer=null; toggleSrc(el); }, 200);
+  });
+  legendEl.addEventListener('dblclick', e=>{
+    const el=e.target.closest('.f2-leg.src'); if(!el) return;
+    clearTimeout(clickTimer); clickTimer=null; isolateSrc(el);
+  });
+  legendEl.addEventListener('keydown', e=>{
+    const el=e.target.closest('.f2-leg.src'); if(!el) return;
+    if(e.key==='Enter' || e.key===' '){ e.preventDefault(); toggleSrc(el); }
+    else if(e.key==='i' || e.key==='I'){ e.preventDefault(); isolateSrc(el); }
+  });
+
+  function openDrop(open){ const b=root.querySelector('#f2-cdrop-btn'), p=root.querySelector('#f2-cdrop-panel'); if(!b||!p) return; p.hidden=!open; b.setAttribute('aria-expanded', String(open)); }
+  countriesEl.addEventListener('click', e=>{
+    if(e.target.closest('#f2-cdrop-btn')){ openDrop(root.querySelector('#f2-cdrop-panel').hidden); return; }
+    const setBtn=e.target.closest('.f2-cdrop-actions button');
+    if(setBtn){ state.countries = setBtn.dataset.cset==='all' ? new Set(ALL_C) : keyC(); render(); return; }
+    const opt=e.target.closest('.f2-copt'); if(opt) toggleCountry(opt.dataset.c);
+  });
+  countriesEl.addEventListener('keydown', e=>{
+    const opt=e.target.closest('.f2-copt');
+    if(opt && (e.key==='Enter' || e.key===' ')){ e.preventDefault(); toggleCountry(opt.dataset.c); }
+  });
+  document.addEventListener('click', e=>{ if(!e.target.closest('#f2-cdrop')) openDrop(false); });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape') openDrop(false); });
+
+  buildCountryDropdown();
+
+
+  render();
+})();
+</script>

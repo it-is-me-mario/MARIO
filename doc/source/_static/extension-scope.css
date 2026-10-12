@@ -1,0 +1,66 @@
+.extension-scope { margin:1.5rem 0; }
+.ext-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(17rem,1fr)); gap:.9rem; }
+.mario-article .ext-card > p { margin:0; font-size:.75rem; line-height:1.5; color:var(--ink-muted); }
+.mario-article .ext-card .ext-empty { font-style:italic; }
+.mario-article .ext-chips { display:flex; flex-direction:column; gap:.35rem; margin:.2rem 0 0; padding:0; list-style:none; }
+.mario-article .ext-chips li { margin:0; }
+.ext-chip { display:flex; flex-wrap:wrap; align-items:baseline; gap:.2rem .6rem; width:100%; padding:.5rem .65rem; border:1px solid var(--line); border-radius:6px;
+  background:var(--surface); color:var(--ink); font:inherit; font-size:.8rem; text-align:left; cursor:pointer; }
+.ext-chip:hover { border-color:var(--line-strong); }
+.ext-chip[aria-expanded="true"] { border-color:var(--accent); box-shadow:inset 3px 0 0 var(--accent); }
+.ext-chip:focus-visible { outline:2px solid var(--focus); outline-offset:2px; }
+.ext-count { color:var(--ink-muted); font-size:.75rem; }
+.ext-gases { display:flex; flex-wrap:wrap; gap:.25rem; flex-basis:100%; }
+.ext-gas { padding:.05rem .4rem; border:1px solid var(--line-strong); border-radius:999px; font-size:.68rem; color:var(--ink); }
+.ext-gas[data-absent] { border-style:dashed; color:var(--ink-muted); opacity:.55; }
+.ext-detail { margin-top:.9rem; padding:1rem 1.1rem; border:1px solid var(--line-strong); border-radius:8px; background:var(--surface); }
+.ext-detail[hidden] { display:none; }
+.ext-detail-head { display:flex; flex-wrap:wrap; align-items:baseline; gap:.3rem .8rem; }
+.mario-article .ext-detail-head h4 { margin:0; font-size:.95rem; }
+.ext-detail-head span { color:var(--ink-muted); font-size:.75rem; }
+.ext-close { margin-left:auto; border:0; background:none; color:var(--ink-muted); font-size:1.3rem; line-height:1; cursor:pointer; }
+.ext-detail-tools { display:flex; flex-wrap:wrap; gap:.6rem; align-items:center; margin:.7rem 0; }
+.ext-detail-tools input { flex:1 1 14rem; min-width:0; padding:.55rem .7rem; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface-2); color:var(--ink); font:inherit; font-size:.8rem; }
+.ext-detail-tools button { padding:.5rem .8rem; border:1px solid var(--line-strong); border-radius:var(--radius); background:var(--surface-2); color:var(--ink); font:inherit; font-size:.78rem; cursor:pointer; }
+.mario-article .ext-labels { max-height:22rem; overflow:auto; margin:0; padding:.4rem 0 .4rem 2.2rem; border-top:1px solid var(--line); font-size:.75rem; line-height:1.55; columns:2 22rem; column-gap:2rem; }
+.mario-article .ext-labels li { margin:0; break-inside:avoid; }
+.ext-reading { display:flex; align-items:center; gap:.45rem; flex:1 1 100%; font-size:.78rem; font-weight:650; color:var(--ink); }
+.ext-reading select { flex:1; min-width:0; padding:.5rem .6rem; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface-2); color:var(--ink); font:inherit; font-weight:450; }
+.ext-reading-one { flex:1 1 100%; font-size:.78rem; color:var(--ink-muted); }
+
+/* Each theme takes a MARIO palette colour that evokes it; light uses the deep variants for contrast. */
+.ext-card { --cat:var(--ink-muted); display:flex; flex-direction:column; gap:.55rem; padding:1rem 1.1rem; border:1px solid var(--line); border-top:3px solid var(--cat); border-radius:8px;
+  background:color-mix(in srgb, var(--cat) 7%, var(--surface-2)); }
+.mario-article .ext-card h4 { display:flex; align-items:center; gap:.5rem; margin:0; font-size:.95rem; }
+.ext-icon { flex:none; width:1.35rem; height:1.35rem; fill:none; stroke:var(--cat); stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+.ext-card[data-ext-card="ghg"] { --cat:var(--ribbon-orange-deep); }
+.ext-card[data-ext-card="air"] { --cat:#6f7480; }
+.ext-card[data-ext-card="energy"] { --cat:#a87b00; }
+.ext-card[data-ext-card="materials"] { --cat:#8a5a2b; }
+.ext-card[data-ext-card="land"] { --cat:var(--ribbon-green-deep); }
+.ext-card[data-ext-card="water"] { --cat:var(--ribbon-cyan-deep); }
+.ext-card[data-ext-card="waste"] { --cat:#4f6b3a; }
+.ext-card[data-ext-card="employment"] { --cat:var(--ribbon-lilac-deep); }
+.ext-card[data-ext-card="economic"] { --cat:#2f5d86; }
+.ext-card[data-ext-card="other"] { --cat:var(--ink-muted); }
+:root[data-theme="dark"] .ext-card[data-ext-card="ghg"] { --cat:var(--ribbon-orange); }
+:root[data-theme="dark"] .ext-card[data-ext-card="air"] { --cat:#a9adb8; }
+:root[data-theme="dark"] .ext-card[data-ext-card="energy"] { --cat:var(--mario-yellow); }
+:root[data-theme="dark"] .ext-card[data-ext-card="materials"] { --cat:#d99a5e; }
+:root[data-theme="dark"] .ext-card[data-ext-card="land"] { --cat:var(--ribbon-green); }
+:root[data-theme="dark"] .ext-card[data-ext-card="water"] { --cat:var(--ribbon-cyan); }
+:root[data-theme="dark"] .ext-card[data-ext-card="waste"] { --cat:#9cc58a; }
+:root[data-theme="dark"] .ext-card[data-ext-card="employment"] { --cat:var(--ribbon-lilac); }
+:root[data-theme="dark"] .ext-card[data-ext-card="economic"] { --cat:#8fb6dc; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .ext-card[data-ext-card="ghg"] { --cat:var(--ribbon-orange); }
+  :root:not([data-theme="light"]) .ext-card[data-ext-card="air"] { --cat:#a9adb8; }
+  :root:not([data-theme="light"]) .ext-card[data-ext-card="energy"] { --cat:var(--mario-yellow); }
+  :root:not([data-theme="light"]) .ext-card[data-ext-card="materials"] { --cat:#d99a5e; }
+  :root:not([data-theme="light"]) .ext-card[data-ext-card="land"] { --cat:var(--ribbon-green); }
+  :root:not([data-theme="light"]) .ext-card[data-ext-card="water"] { --cat:var(--ribbon-cyan); }
+  :root:not([data-theme="light"]) .ext-card[data-ext-card="waste"] { --cat:#9cc58a; }
+  :root:not([data-theme="light"]) .ext-card[data-ext-card="employment"] { --cat:var(--ribbon-lilac); }
+  :root:not([data-theme="light"]) .ext-card[data-ext-card="economic"] { --cat:#8fb6dc; }
+}
+@media(max-width:38em) { .mario-article .ext-labels { columns:1; } }

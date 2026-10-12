@@ -1,0 +1,301 @@
+<div class="fig1">
+  <h3>Carbon footprint of electricity, by generation technology</h3>
+  <p class="sub">Physical-unit emission factors (gCO₂eq/kWh), pooled across country × technology estimates and literature references. <b class="foss">Fossil fuel categories</b> and <b class="lowc">other technologies</b>. Each box spans the interquartile
+    range (median = solid line, mean = dashed); whiskers reach 1.5×IQR; dots are outliers. Switch between direct and life-cycle
+    emissions, and zoom on the other technologies.</p>
+
+  <div class="f1-ctrl">
+    <div class="f1-seg" id="f1-flow" role="group" aria-label="Emissions scope">
+      <span class="lab">Scope</span>
+      <button data-flow="direct" role="button" aria-pressed="false">Direct</button>
+      <button data-flow="lifecycle" role="button" aria-pressed="true">Life-cycle</button>
+    </div>
+    <div class="f1-seg" id="f1-clean" role="group" aria-label="Technology set">
+      <span class="lab">Show</span>
+      <button data-clean="all" role="button" aria-pressed="true">All</button>
+      <button data-clean="clean" role="button" aria-pressed="false">Other technologies only</button>
+    </div>
+    <div class="f1-spacer"></div>
+    <div class="f1-seg" id="f1-view" role="tablist">
+      <button data-view="chart" class="on" role="tab" aria-selected="true">Chart</button>
+      <button data-view="table" role="tab" aria-selected="false">Table</button>
+    </div>
+
+    <button class="f1-fs" id="f1-fs" type="button" aria-label="Toggle full screen">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M2.5 6V2.5H6M14 6V2.5h-3.5M2.5 10v3.5H6M14 10v3.5h-3.5"/></svg>
+      <span>Full screen</span>
+    </button>
+    <button class="f1-fs" id="f1-dl" type="button" aria-label="Download chart as JPG" title="Download as JPG (current filters)">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M8 2v7.5M5 6.5 8 9.5l3-3M3 13.5h10"/></svg>
+      <span>JPG</span>
+    </button>
+  </div>
+
+  <div class="f1-legend">
+    <span class="it"><span class="sw f"></span>Fossil</span>
+    <span class="it"><span class="sw"></span>Other technologies</span>
+    <span class="it"><svg width="34" height="16" viewBox="0 0 34 16"><rect x="2" y="3" width="30" height="10" rx="1.5" fill="none" stroke="var(--ink-2)" stroke-width="1.4"/><line x1="19" y1="3" x2="19" y2="13" stroke="var(--ink-2)" stroke-width="2.2"/></svg>IQR + median</span>
+    <span class="it"><svg width="20" height="16" viewBox="0 0 20 16"><line x1="10" y1="2" x2="10" y2="14" stroke="var(--ink-2)" stroke-width="1.4" stroke-dasharray="2 2"/></svg>mean</span>
+    <span class="it"><svg width="20" height="16" viewBox="0 0 20 16"><circle cx="10" cy="8" r="2.5" fill="var(--ink-2)" opacity=".5"/></svg>outlier</span>
+  </div>
+
+  <div class="f1-srcs" id="f1-srcs"></div>
+  <div class="f1-wrap" id="f1-wrap"></div>
+  <div class="f1-tablewrap" id="f1-tablewrap" hidden></div>
+  <p class="benchmark-chart-hint">Swipe across the chart to see the full range, or switch to Table.</p>
+  <p class="foot">Physical-unit emission factors by technology, gCO₂eq/kWh, from the blogpost sample. The input–output sources
+    <b>nxsut&nbsp;3.0</b> and the <b>EXIOBASE Hybrid</b> contribute one point per country × technology.
+    The literature (Electricity&nbsp;Maps, IPCC, NREL, Ecoinvent) is the article's supplementary distribution:
+    Citterio et al. (2026), <a href="https://doi.org/10.1007/s44498-026-00148-3">doi:10.1007/s44498-026-00148-3</a>.
+    Life-cycle axis capped at 2500&nbsp;gCO₂eq/kWh (outliers beyond drawn at the edge).</p>
+</div>
+
+<script>
+(function(){
+  const F1 = __DATA__;
+  const root = document.currentScript.previousElementSibling;
+  const wrap = root.querySelector('#f1-wrap');
+  const tblwrap = root.querySelector('#f1-tablewrap');
+  const esc = s => String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  const srcsEl = root.querySelector('#f1-srcs');
+  const state = {flow:"lifecycle", clean:"all", view:"chart", srcHidden:new Set()};
+  const NXBASE_SRC = new Set(["nxsut 3.0","EXIOBASE Hybrid"]);
+  const CAP = {direct:{all:1600, clean:120}, lifecycle:{all:2500, clean:320}};
+
+  function renderSrcs(){
+    const present=[...new Set(F1.records.filter(r=>r.flow===state.flow).map(r=>r.source))];
+    const chip=(s,cls)=>`<button class="f1-src${cls}" data-src="${esc(s)}" aria-pressed="${!state.srcHidden.has(s)}" title="Click to show/hide · double-click to isolate"><span class="dot"></span><span class="nm">${esc(s)}</span></button>`;
+    const nx=present.filter(s=>NXBASE_SRC.has(s)), lit=present.filter(s=>!NXBASE_SRC.has(s));
+    const h=nx.map(s=>chip(s,'')).join('') + lit.map(s=>chip(s,' lit')).join('');
+    srcsEl.innerHTML=h;
+  }
+
+  function quantile(sorted, p){
+    const n=sorted.length, i=(n-1)*p, lo=Math.floor(i), hi=Math.ceil(i);
+    return sorted[lo] + (sorted[hi]-sorted[lo])*(i-lo);
+  }
+  function boxStats(vals){
+    const s=[...vals].sort((a,b)=>a-b), n=s.length;
+    const q1=quantile(s,.25), med=quantile(s,.5), q3=quantile(s,.75), iqr=q3-q1;
+    const mean=s.reduce((a,b)=>a+b,0)/n;
+    const loFence=q1-1.5*iqr, hiFence=q3+1.5*iqr;
+    const wlo=s.find(v=>v>=loFence), whi=[...s].reverse().find(v=>v<=hiFence);
+    const out=s.filter(v=>v<wlo || v>whi);
+    return {n,q1,med,q3,mean,wlo,whi,out,min:s[0],max:s[n-1]};
+  }
+
+  function viewRows(){
+    const recs=F1.records.filter(r=>r.flow===state.flow && (state.clean==='all' || r.clean) && !state.srcHidden.has(r.source));
+    const byT={};
+    recs.forEach(r=>{ (byT[r.tech] ||= {tech:r.tech, clean:r.clean, vals:[]}).vals.push(r.value); });
+    const rows=Object.values(byT).filter(o=>o.vals.length>=1);
+    rows.forEach(o=>{
+      o.sparse = o.vals.length < 3;   // too few for a distribution -> show as points
+      if(o.sparse){
+        const s=[...o.vals].sort((a,b)=>a-b);
+        const med = s.length===2 ? (s[0]+s[1])/2 : s[0];
+        o.st = {n:s.length, med, mean:med, q1:s[0], q3:s[s.length-1], wlo:s[0], whi:s[s.length-1], out:[], min:s[0], max:s[s.length-1], pts:s};
+      } else {
+        o.st = boxStats(o.vals);
+      }
+    });
+    rows.sort((a,b)=> b.st.med - a.st.med);
+    return rows;
+  }
+
+  function render(){
+    root.querySelectorAll('#f1-flow button').forEach(b=> b.setAttribute('aria-pressed', b.dataset.flow===state.flow));
+    root.querySelectorAll('#f1-clean button').forEach(b=> b.setAttribute('aria-pressed', b.dataset.clean===state.clean));
+    renderSrcs();
+    const rows=viewRows();
+    if(!rows.length){ wrap.innerHTML=`<p class="f1-note">No data — enable a source or change the view.</p>`; renderTable(rows); return; }
+
+    const M={t:14,r:20,b:44,l:150}, rowH=Math.max(30, Math.min(52, Math.floor(560/rows.length))), W=880;
+    const H=M.t+rows.length*rowH+M.b;
+    const dataMax=rows.reduce((m,o)=>Math.max(m,o.st.whi),0);
+    const xmax=Math.min(CAP[state.flow][state.clean], Math.max(60, Math.ceil(dataMax/50)*50)) || 100;
+    const x=v=> M.l + Math.min(v,xmax)/xmax*(W-M.l-M.r);
+    const yc=i=> M.t+i*rowH+rowH/2;
+    const step= xmax<=150?25 : xmax<=400?50 : xmax<=1200?200 : 500;
+
+    let s=`<svg class="plot" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(state.flow)} emission factors by technology">`;
+    s+=`<g class="f1-grid">`;
+    for(let v=0; v<=xmax; v+=step) s+=`<line x1="${x(v)}" y1="${M.t-2}" x2="${x(v)}" y2="${H-M.b+4}"/>`;
+    s+=`</g><g class="f1-axis">`;
+    for(let v=0; v<=xmax; v+=step) s+=`<text x="${x(v)}" y="${H-M.b+18}" text-anchor="middle">${v}</text>`;
+    s+=`<text class="f1-xtitle" x="${(M.l+W-M.r)/2}" y="${H-M.b+34}" text-anchor="middle">${state.flow==='direct'?'Direct':'Life-cycle'} emission factor — gCO₂eq/kWh</text>`;
+    s+=`</g>`;
+    const bh=Math.max(9, Math.min(20, rowH*0.42));
+    rows.forEach((o,i)=>{
+      const y=yc(i), cls=o.clean?'lowc':'foss', st=o.st;
+      s+=`<g class="f1-row"><rect class="f1-rowbg" x="0" y="${M.t+i*rowH}" width="${W}" height="${rowH}"/>`;
+      s+=`<text class="f1-ylab" x="${M.l-10}" y="${y+4}" text-anchor="end">${esc(o.tech)}</text>`;
+      if(o.sparse){
+        st.pts.forEach(v=>{ s+=`<circle class="f1-pt ${cls}" cx="${x(v).toFixed(1)}" cy="${y}" r="3.6"/>`; });
+      } else {
+        s+=`<line class="f1-wk ${cls}" x1="${x(st.wlo)}" y1="${y}" x2="${x(st.whi)}" y2="${y}"/>`;
+        s+=`<line class="f1-wk ${cls}" x1="${x(st.wlo)}" y1="${y-bh*0.32}" x2="${x(st.wlo)}" y2="${y+bh*0.32}"/>`;
+        s+=`<line class="f1-wk ${cls}" x1="${x(st.whi)}" y1="${y-bh*0.32}" x2="${x(st.whi)}" y2="${y+bh*0.32}"/>`;
+        s+=`<rect class="f1-box ${cls}" x="${x(st.q1)}" y="${y-bh/2}" width="${Math.max(0.5,x(st.q3)-x(st.q1))}" height="${bh}" rx="1.5"/>`;
+        s+=`<line class="f1-mean ${cls}" x1="${x(st.mean)}" y1="${y-bh/2}" x2="${x(st.mean)}" y2="${y+bh/2}"/>`;
+        s+=`<line class="f1-med ${cls}" x1="${x(st.med)}" y1="${y-bh/2-1}" x2="${x(st.med)}" y2="${y+bh/2+1}"/>`;
+        st.out.forEach(v=>{ s+=`<circle class="f1-out ${cls}" cx="${x(v).toFixed(1)}" cy="${y}" r="2.6"/>`; });
+      }
+      // hover hit
+      s+=`<rect class="f1-hit" x="0" y="${M.t+i*rowH}" width="${W}" height="${rowH}" data-t="${esc(o.tech)}" data-n="${st.n}" data-sparse="${o.sparse?1:0}" data-vals="${o.sparse? st.pts.map(v=>v.toFixed(1)).join(', ') : ''}" data-med="${st.med.toFixed(1)}" data-q1="${st.q1.toFixed(1)}" data-q3="${st.q3.toFixed(1)}" data-mean="${st.mean.toFixed(1)}" data-lo="${st.min.toFixed(1)}" data-hi="${st.max.toFixed(1)}"/>`;
+      s+=`</g>`;
+    });
+    s+=`</svg>`;
+    wrap.innerHTML=s;
+    renderTable(rows);
+  }
+
+  function renderTable(rows){
+    let t=`<table class="f1-tab"><thead><tr><th>Technology</th><th>n</th><th>Median</th><th>Q1</th><th>Q3</th><th>Mean</th><th>Min</th><th>Max</th></tr></thead><tbody>`;
+    rows.forEach(o=>{ const st=o.st;
+      t+=`<tr><td>${esc(o.tech)}</td><td>${st.n}</td><td>${st.med.toFixed(1)}</td><td>${st.q1.toFixed(1)}</td><td>${st.q3.toFixed(1)}</td><td>${st.mean.toFixed(1)}</td><td>${st.min.toFixed(1)}</td><td>${st.max.toFixed(1)}</td></tr>`;
+    });
+    t+=`</tbody></table>`;
+    tblwrap.innerHTML=t;
+  }
+
+  const tt=document.createElement('div'); tt.className='f1-tt'; tt.hidden=true; root.appendChild(tt);
+  wrap.addEventListener('pointermove', e=>{
+    const h=e.target.closest('.f1-hit'); if(!h){ tt.hidden=true; return; }
+    if(h.dataset.sparse==='1'){
+      tt.innerHTML=`<b>${esc(h.dataset.t)}</b> · ${h.dataset.n} reference value${h.dataset.n>1?'s':''}<br><span class="v">${h.dataset.vals}</span> gCO₂eq/kWh<br><span class="r">too few for a distribution — shown as points</span>`;
+    } else {
+      tt.innerHTML=`<b>${esc(h.dataset.t)}</b> · ${h.dataset.n} datapoints<br><span class="v">median ${h.dataset.med}</span> gCO₂eq/kWh<br><span class="r">IQR ${h.dataset.q1}–${h.dataset.q3} · mean ${h.dataset.mean} · range ${h.dataset.lo}–${h.dataset.hi}</span>`;
+    }
+    tt.hidden=false;
+    const pad=14; let lx=e.clientX+pad, ly=e.clientY+pad, bb=tt.getBoundingClientRect();
+    if(lx+bb.width>innerWidth-8) lx=e.clientX-bb.width-pad;
+    if(ly+bb.height>innerHeight-8) ly=e.clientY-bb.height-pad;
+    tt.style.left=lx+'px'; tt.style.top=ly+'px';
+  });
+  wrap.addEventListener('pointerleave', ()=>{ tt.hidden=true; });
+
+  root.querySelectorAll('#f1-flow button').forEach(b=> b.addEventListener('click', ()=>{ state.flow=b.dataset.flow; render(); }));
+  root.querySelectorAll('#f1-clean button').forEach(b=> b.addEventListener('click', ()=>{ state.clean=b.dataset.clean; render(); }));
+  function presentF1Srcs(){ return [...new Set(F1.records.filter(r=>r.flow===state.flow).map(r=>r.source))]; }
+  function toggleSrc(s){ if(state.srcHidden.has(s)) state.srcHidden.delete(s); else state.srcHidden.add(s); render(); }
+  function isolateSrc(s){                                     // double-click: only this source
+    const others=presentF1Srcs().filter(x=>x!==s);
+    const alreadySolo = !state.srcHidden.has(s) && others.every(x=>state.srcHidden.has(x));
+    state.srcHidden = alreadySolo ? new Set() : new Set(others);   // toggle: re-double-click restores all
+    render();
+  }
+  let srcClickTimer=null;
+  srcsEl.addEventListener('click', e=>{
+    const b=e.target.closest('.f1-src'); if(!b) return;
+    if(srcClickTimer) return;                                 // second click of a dblclick — ignore
+    const s=b.dataset.src;
+    srcClickTimer=setTimeout(()=>{ srcClickTimer=null; toggleSrc(s); }, 200);
+  });
+  srcsEl.addEventListener('dblclick', e=>{
+    const b=e.target.closest('.f1-src'); if(!b) return;
+    clearTimeout(srcClickTimer); srcClickTimer=null; isolateSrc(b.dataset.src);
+  });
+  srcsEl.addEventListener('keydown', e=>{
+    const b=e.target.closest('.f1-src'); if(!b) return;
+    if(e.key==='i' || e.key==='I'){ e.preventDefault(); isolateSrc(b.dataset.src); }
+  });
+  root.querySelectorAll('#f1-view button').forEach(b=> b.addEventListener('click', ()=>{
+    state.view=b.dataset.view;
+    root.querySelectorAll('#f1-view button').forEach(x=>{ const on=x===b; x.classList.toggle('on',on); x.setAttribute('aria-selected',on); });
+    wrap.hidden=state.view!=='chart'; tblwrap.hidden=state.view!=='table';
+  }));
+  const fsBtn=root.querySelector('#f1-fs');
+  fsBtn.addEventListener('click', ()=>{ if(document.fullscreenElement===root) document.exitFullscreen(); else if(root.requestFullscreen) root.requestFullscreen().catch(()=>{}); });
+  document.addEventListener('fullscreenchange', ()=>{ fsBtn.querySelector('span').textContent = document.fullscreenElement===root ? 'Exit full screen' : 'Full screen'; });
+
+  // ---- Download the current view as a JPG (reflects the active filters) ----
+  function _inlineStyles(src, dst){
+    const cs=getComputedStyle(src);
+    const P=['fill','fill-opacity','stroke','stroke-width','stroke-opacity','stroke-dasharray','stroke-linecap','stroke-linejoin','opacity','color','font-family','font-size','font-weight','text-anchor','dominant-baseline'];
+    let st=''; for(const p of P){ const v=cs.getPropertyValue(p); if(v) st+=p+':'+v+';'; }
+    dst.setAttribute('style', st);
+    const a=src.children, b=dst.children;
+    for(let i=0;i<a.length;i++) _inlineStyles(a[i], b[i]);
+  }
+  function _bgOf(el){
+    for(let n=el; n; n=n.parentElement){ const c=getComputedStyle(n).backgroundColor; if(c && c!=='rgba(0, 0, 0, 0)' && c!=='transparent') return c; }
+    return matchMedia('(prefers-color-scheme: dark)').matches ? '#111417' : '#ffffff';
+  }
+  function _inlinedClone(el){ const c=el.cloneNode(true); _inlineStyles(el, c); return c; }
+  function _glyphW(g){ const ow=+g.getAttribute('width')||16, oh=+g.getAttribute('height')||16; return Math.round(15*ow/oh); }
+  function _rasterize(svgStr, W, H, filename){
+    const url=URL.createObjectURL(new Blob([svgStr],{type:'image/svg+xml;charset=utf-8'}));
+    const img=new Image();
+    img.onload=()=>{
+      const scale=Math.max(2, Math.min(4, 1800/W));
+      const cv=document.createElement('canvas'); cv.width=Math.round(W*scale); cv.height=Math.round(H*scale);
+      const cx=cv.getContext('2d'); cx.drawImage(img,0,0,cv.width,cv.height); URL.revokeObjectURL(url);
+      cv.toBlob(bl=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(bl); a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),5000); }, 'image/jpeg', 0.95);
+    };
+    img.onerror=()=>URL.revokeObjectURL(url);
+    img.src=url;
+  }
+  function _lum(rgb){ const m=(rgb||'').match(/\d+(\.\d+)?/g); return m ? 0.299*+m[0]+0.587*+m[1]+0.114*+m[2] : 255; }
+  async function _loadLogo(dark){
+    const url = document.querySelector('.mario-brand img')?.src;
+    if (!url) return null;
+    try{
+      const r = await fetch(url); if(!r.ok) return null;
+      const blob = await r.blob();
+      const uri = await new Promise(res=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=()=>res(null); fr.readAsDataURL(blob); });
+      if(!uri) return null;
+      const dim = await new Promise(res=>{ const im=new Image(); im.onload=()=>res({w:im.naturalWidth,h:im.naturalHeight}); im.onerror=()=>res(null); im.src=uri; });
+      return dim ? {uri, w:dim.w, h:dim.h} : null;
+    }catch(e){ return null; }
+  }
+  async function _composeAndDownload(items, filename, title){
+    const plot=wrap.querySelector('svg.plot'); if(!plot) return;
+    const vb=plot.viewBox.baseVal, W=Math.round(vb.width||900), H=Math.round(vb.height||600);
+    const bg=_bgOf(root), ink=getComputedStyle(root).color||'#111', dark=_lum(bg)<128;
+    const PAD=16, FS=13, ROWH=22, GAP=16, LOGO_H=30;
+    const logo=await _loadLogo(dark);
+    const TITLE_H = (title||logo) ? Math.max(34, LOGO_H+14) : 0;
+    let lx=PAD, rows=1, parts=[];
+    items.forEach(it=>{
+      const gw=it.glyph?_glyphW(it.glyph):0, sw=it.swatch?16:0, tw=it.text.length*6.7 + (gw?gw+4:0) + sw;
+      if((it.head && lx>PAD) || (lx+tw>W-PAD && lx>PAD)){ rows++; lx=PAD; }
+      const y=(rows-1)*ROWH; let px=lx;
+      if(it.glyph){ const g=it.glyph; g.setAttribute('x',px); g.setAttribute('y',y+3); g.setAttribute('width',gw); g.setAttribute('height',15); parts.push(g.outerHTML); px+=gw+4; }
+      if(it.swatch){ parts.push(`<rect x="${px}" y="${y+3}" width="12" height="12" rx="2" fill="${it.swatch}"/>`); px+=16; }
+      parts.push(`<text x="${px}" y="${y+13}" font-size="${FS}" font-weight="${it.head?'600':'400'}" fill="${it.head&&it.color?it.color:ink}" font-family="system-ui,-apple-system,sans-serif">${esc(it.text)}</text>`);
+      lx=px + it.text.length*6.7 + GAP;
+    });
+    const legH=rows*ROWH+6, totalH=TITLE_H+H+legH+PAD+64;
+    const pc=_inlinedClone(plot); pc.setAttribute('x',0); pc.setAttribute('y',TITLE_H); pc.setAttribute('width',W); pc.setAttribute('height',H); pc.removeAttribute('style');
+    let head='';
+    if(logo){ const lw=Math.round(LOGO_H*logo.w/logo.h); head+=`<image xlink:href="${logo.uri}" href="${logo.uri}" x="${W-PAD-lw}" y="${Math.round((TITLE_H-LOGO_H)/2)}" width="${lw}" height="${LOGO_H}"/>`; }
+    if(title){ head+=`<text x="${PAD}" y="${Math.round(TITLE_H/2)+6}" font-size="17" font-weight="600" fill="${ink}" font-family="system-ui,-apple-system,sans-serif">${esc(title)}</text>`; }
+    const svg=`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${W}" height="${totalH}" viewBox="0 0 ${W} ${totalH}"><rect width="${W}" height="${totalH}" fill="${bg}"/>`
+      + head + pc.outerHTML + `<g transform="translate(0,${TITLE_H+H+4})">${parts.join('')}</g>`
+      + `<g transform="translate(${PAD},${TITLE_H+H+legH+20})" fill="${ink}" font-family="Arial,sans-serif" font-size="10"><text y="0">Citterio, Golinucci, Rinaldi and Rocco (2026) · adapted for MARIO · g CO2eq/kWh</text><text y="16">Article and author figures: CC BY 4.0 · doi:10.1007/s44498-026-00148-3</text><text y="32">Source observations retain their terms: enextgen.it/en/analyses/electricity-carbon-footprint/</text></g></svg>`;
+    _rasterize(svg, W, totalH, filename);
+  }
+  function _f1LegendItems(){
+    const items=[];
+    root.querySelectorAll('.f1-legend .it').forEach(it=>{
+      const sw=it.querySelector('.sw'), g=it.querySelector('svg'), label=it.textContent.trim();
+      if(sw) items.push({text:label, swatch:getComputedStyle(sw).backgroundColor});
+      else items.push({text:label, glyph:g?_inlinedClone(g):null});
+    });
+    const srcs=[...root.querySelectorAll('#f1-srcs .f1-src')].filter(b=>b.getAttribute('aria-pressed')!=='false').map(b=>b.dataset.src);
+    if(srcs.length) items.push({text:'Sources: '+srcs.join(', '), head:true});
+    return items;
+  }
+  root.querySelector('#f1-dl').addEventListener('click', ()=>{
+    const scope = state.flow==='direct' ? 'Direct' : 'Life-cycle';
+    const cleanNote = state.clean==='clean' ? ', other technologies only' : '';
+    _composeAndDownload(_f1LegendItems(), `electricity-by-technology_${state.flow}${state.clean==='clean'?'_other-technologies':''}.jpg`,
+      `Carbon intensity of electricity by technology — ${scope}${cleanNote}`);
+  });
+
+
+
+  render();
+})();
+</script>

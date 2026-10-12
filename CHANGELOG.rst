@@ -2,6 +2,69 @@
 Release History
 ****************
 
+v1.3.0
+------
+
+Plotting API
+~~~~~~~~~~~~
+
+* ``Database.plot`` adds ``log_color`` and ``color_clip`` for matrix
+  heatmaps. ``log_color=True`` uses log10 colours, leaves zeros blank and
+  rejects negative values; ``color_clip=(low, high)`` clips colour values
+  to the requested quantiles without changing the data. These options
+  require a heatmap without facets or animation and are keyword-only;
+  existing positional arguments retain their original positions.
+* ``preset="heatmap"`` now preserves the complete matrix row and column
+  axes and their original order by default. Supply ``x`` and ``heatmap_y``
+  explicitly to retain a custom pivot. This fixes heatmaps that previously
+  collapsed rows onto column labels.
+
+Parser fixes
+~~~~~~~~~~~~
+
+* ``parse_adb`` preserves global ``E`` and ``EY`` totals when the emissions
+  extension contains additional economies: where both global tables have
+  ``RoW`` and all economic regions are covered, those extra economies are
+  aggregated into the economic table's ``RoW`` and recorded in metadata.
+* ``parse_emerging`` corrects MATLAB v7.3 transaction-matrix orientation
+  during sparse loading and reads HDF5 chunks without repeatedly
+  decompressing the same columns.
+* ``parse_wiod`` retains published signed factor and tax rows on domestic
+  final uses in ``VY`` for international SUTs using
+  ``row_mode="external_account"``.
+* ``parse_figaro`` supports Eurostat supply dataflows with a single
+  ``geo`` dimension, assigning domestic supply to the same region on
+  both matrix axes.
+* ``parse_exiobase`` and ``parse_exiobase_3`` recognize official 3.8.2
+  archives whose metadata incorrectly reports ``v3.81`` when the dataset
+  name is ``exio382_ntnu``.
+
+Add-sector workflow
+~~~~~~~~~~~~~~~~~~~
+
+* ``Database.add_sectors(split=True)`` now loads the workbook's split-support
+  sheets before validating and generating CVXLab inputs. Empty legacy sheets
+  missing newer columns are accepted without discarding data.
+
+Distribution
+~~~~~~~~~~~~
+
+* Source archives now include the changelog and omit documentation website
+  assets. The complete documentation source remains in the Git repository.
+
+Documentation
+~~~~~~~~~~~~~
+
+* Redesigned the documentation and navigation around an MRIO Data explorer
+  for indicators, database scope and analyses. Its reviewed data now include
+  GLORIA v060 annual readings for 2001--2025; 2024--2025 are publisher forecasts.
+  EXIOBASE GHG indicators use EDGAR-compatible AR5 GWP100 for
+  mass-reported gases; monetary HFC/PFC retain source values, and Hybrid
+  remains a three-gas subtotal.
+* Updated parser walkthroughs, source-licence notes and the public parser API
+  reference. Native-set inventories and reproducible downloads accompany the
+  explorer.
+
 v1.2.0
 ------
 
@@ -506,12 +569,12 @@ v 0.3.4
 -------
 
 Parsing functions error fixed
-~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Recent pandas versions have changed the way they interpret "None" in DataFrames indices and values, which are currently interpreted it as NaN. 
 This mario update fixes the issue by replacing NaN with the string "None" when parsing excel files.
 
 Deprecated functions
-~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
 Parser for old-fashioned Eurostat SUTs is deprecated. This function relied on peculiarly structured SUTs formats.
 In case you need to parse such SUTs, please rearrange them into the standard MARIO format.
 You can check the MARIO format from 'test_SUT_standard.xlsx' file in the mario/test/tables directory in this repository.

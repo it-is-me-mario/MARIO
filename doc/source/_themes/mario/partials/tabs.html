@@ -1,0 +1,16 @@
+<nav class="mario-tabs" aria-label="{{ mario.section_label or 'Section' }} pages" data-tabs data-snap>
+  <div class="mario-tabs__track" data-tabs-track>
+    <ul class="mario-tabs__list">
+      {%- for tab in mario.tabs %}
+      <li{% if tab.children %} data-tab-menu{% endif %}{% if tab.key %} data-group="{{ tab.key }}"{% endif %}>
+        {% if tab.children %}
+        <button type="button" class="mario-tab-toggle{% if tab.active %} is-active{% endif %}" data-tab-toggle aria-expanded="false" aria-controls="explorer-pages">{{ tab.label }} <span aria-hidden="true">⌄</span></button>
+        <div class="mario-tab-panel" id="explorer-pages" hidden>
+          {% for child in tab.children %}<a href="{{ child.url }}"{% if child.active %} aria-current="page"{% endif %}>{{ child.label }}</a>{% endfor %}
+        </div>
+        {% else %}<a href="{{ tab.url }}"{% if tab.active %} aria-current="page"{% endif %}>{{ tab.label }}</a>{% endif %}
+      </li>
+      {%- endfor %}
+    </ul>
+  </div>
+</nav>

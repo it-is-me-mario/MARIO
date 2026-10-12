@@ -12,6 +12,6 @@ This workbook supports parser coverage checks and region aggregation workflows:
 
 Download the :download:`Country_coverage workbook </_static/data/supporting_files/Country_coverage.xlsx>`.
 
-For the runtime aggregation details, see :doc:`../../concepts/clusters`.
+For the runtime aggregation details, see :ref:`clusters <concept-clusters>`.
 
 The parser coverage query remains available from :doc:`index`.

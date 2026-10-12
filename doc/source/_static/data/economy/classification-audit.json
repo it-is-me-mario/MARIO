@@ -1,0 +1,3085 @@
+{
+  "as_of": "2026-10-11",
+  "checks": {
+    "reference_nodes": 6871,
+    "reference_leaves": 4005,
+    "edge_visits": 384667,
+    "routes": 74887,
+    "native_reference_links": 32264,
+    "native_categories": 2334,
+    "unique_used_steps": 35995,
+    "sources": 56,
+    "country_unique_routes": 33751,
+    "country_entries": 33751
+  },
+  "inventories": [
+    {
+      "id": "exiobase-monetary-activity-af7dca1c56ff",
+      "label": "EXIOBASE · Monetary",
+      "kind": "activity",
+      "native": 163,
+      "linked": 161,
+      "statuses": {
+        "reviewed": 70,
+        "partial": 989
+      },
+      "unverified": [
+        {
+          "code": "i40.11.g",
+          "name": "Production of electricity by biomass and waste",
+          "reason": "pending"
+        },
+        {
+          "code": "i40.11.l",
+          "name": "Production of electricity nec",
+          "reason": "pending"
+        }
+      ]
+    },
+    {
+      "id": "exiobase-hybrid-activity-a6e4fa014712",
+      "label": "EXIOBASE · Hybrid",
+      "kind": "activity",
+      "native": 164,
+      "linked": 162,
+      "statuses": {
+        "reviewed": 69,
+        "partial": 987,
+        "governed": 3
+      },
+      "unverified": [
+        {
+          "code": "i40.11.g",
+          "name": "Production of electricity by biomass and waste",
+          "reason": "pending"
+        },
+        {
+          "code": "i40.11.l",
+          "name": "Production of electricity nec",
+          "reason": "pending"
+        }
+      ]
+    },
+    {
+      "id": "adb-monetary-activity-4edffc01c985",
+      "label": "ADB",
+      "kind": "activity",
+      "native": 35,
+      "linked": 35,
+      "statuses": {
+        "documented": 378,
+        "partial": 625
+      },
+      "unverified": []
+    },
+    {
+      "id": "ceda-monetary-activity-b1c07784e6e5",
+      "label": "CEDA",
+      "kind": "activity",
+      "native": 400,
+      "linked": 391,
+      "statuses": {
+        "partial": 2732
+      },
+      "unverified": [
+        {
+          "code": "4200ID",
+          "name": "Customs duties",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "531HSO",
+          "name": "Owner-occupied housing",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "S00500",
+          "name": "Federal general government (defense)",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "S00600",
+          "name": "Federal general government (nondefense)",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "S00102",
+          "name": "Other federal government enterprises",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "GSLGE",
+          "name": "State and local government educational services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "GSLGH",
+          "name": "State and local government hospitals and health services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "GSLGO",
+          "name": "State and local government other services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "S00203",
+          "name": "Other state and local government enterprises",
+          "reason": "No verified fine correspondence"
+        }
+      ]
+    },
+    {
+      "id": "figaro-monetary-activity-67fa08b5c053",
+      "label": "FIGARO",
+      "kind": "activity",
+      "native": 64,
+      "linked": 64,
+      "statuses": {
+        "documented": 526,
+        "partial": 181
+      },
+      "unverified": []
+    },
+    {
+      "id": "gloria-monetary-activity-7635ea2a072b",
+      "label": "GLORIA",
+      "kind": "activity",
+      "native": 120,
+      "linked": 120,
+      "statuses": {
+        "reviewed": 479,
+        "partial": 278
+      },
+      "unverified": []
+    },
+    {
+      "id": "gtap-monetary-activity-8a368bc42f09",
+      "label": "GTAP",
+      "kind": "activity",
+      "native": 65,
+      "linked": 64,
+      "statuses": {
+        "partial": 304,
+        "documented": 466
+      },
+      "unverified": [
+        {
+          "code": "dwe",
+          "name": "Dwellings",
+          "reason": "No verified fine correspondence"
+        }
+      ]
+    },
+    {
+      "id": "oecd-monetary-activity-65d5ce7dd20f",
+      "label": "OECD",
+      "kind": "activity",
+      "native": 50,
+      "linked": 50,
+      "statuses": {
+        "documented": 524,
+        "partial": 176
+      },
+      "unverified": []
+    },
+    {
+      "id": "wiod-monetary-activity-5af2abb46cca",
+      "label": "WIOD",
+      "kind": "activity",
+      "native": 56,
+      "linked": 56,
+      "statuses": {
+        "documented": 526,
+        "partial": 179
+      },
+      "unverified": []
+    },
+    {
+      "id": "exiobase-monetary-commodity-d5f42f0ba59a",
+      "label": "EXIOBASE · Monetary",
+      "kind": "commodity",
+      "native": 200,
+      "linked": 193,
+      "statuses": {
+        "partial": 4104,
+        "reviewed": 14
+      },
+      "unverified": [
+        {
+          "code": "p90.5.a",
+          "name": "Food waste for treatment: landfill",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "p90.5.d",
+          "name": "Inert/metal/hazardous waste for treatment: landfill",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "p24.b",
+          "name": "N-fertiliser",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "p90.5.b",
+          "name": "Paper for treatment: landfill",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "p90.5.c",
+          "name": "Plastic waste for treatment: landfill",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "p90.5.e",
+          "name": "Textiles waste for treatment: landfill",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "p90.5.f",
+          "name": "Wood waste for treatment: landfill",
+          "reason": "No verified fine correspondence"
+        }
+      ]
+    },
+    {
+      "id": "exiobase-hybrid-commodity-3b42704b8c25",
+      "label": "EXIOBASE · Hybrid · IOT",
+      "kind": "commodity",
+      "native": 164,
+      "linked": 157,
+      "statuses": {
+        "partial": 4074
+      },
+      "unverified": [
+        {
+          "code": "p24.b",
+          "name": "N-fertiliser",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "p90.5.a",
+          "name": "Food waste for treatment: landfill",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "p90.5.b",
+          "name": "Paper for treatment: landfill",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "p90.5.c",
+          "name": "Plastic waste for treatment: landfill",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "p90.5.d",
+          "name": "Inert/metal/hazardous waste for treatment: landfill",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "p90.5.e",
+          "name": "Textiles waste for treatment: landfill",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "p90.5.f",
+          "name": "Wood waste for treatment: landfill",
+          "reason": "No verified fine correspondence"
+        }
+      ]
+    },
+    {
+      "id": "exiobase-hybrid-commodity-aca8f620cb9a",
+      "label": "EXIOBASE · Hybrid · SUT",
+      "kind": "commodity",
+      "native": 200,
+      "linked": 193,
+      "statuses": {
+        "partial": 4150
+      },
+      "unverified": [
+        {
+          "code": "p24.b",
+          "name": "N-fertiliser",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "p90.5.a",
+          "name": "Food waste for treatment: landfill",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "p90.5.b",
+          "name": "Paper for treatment: landfill",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "p90.5.c",
+          "name": "Plastic waste for treatment: landfill",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "p90.5.d",
+          "name": "Inert/metal/hazardous waste for treatment: landfill",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "p90.5.e",
+          "name": "Textiles waste for treatment: landfill",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "p90.5.f",
+          "name": "Wood waste for treatment: landfill",
+          "reason": "No verified fine correspondence"
+        }
+      ]
+    },
+    {
+      "id": "emerging-monetary-commodity-30d4b437fd34",
+      "label": "EMERGING · Monetary · IOT · 2.0/2.2",
+      "kind": "commodity",
+      "native": 133,
+      "linked": 0,
+      "statuses": {},
+      "unverified": [
+        {
+          "code": "C.4EAAF41CC34B",
+          "name": "live animals",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.0B8599BC36DA",
+          "name": "meat and edible meat offal",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.910A8500E761",
+          "name": "fish, crustaceans, molluscs, aquatic invertebrates ne",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.DE89A5E96927",
+          "name": "dairy products, eggs, honey, edible animal product ne",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.9B70B21A29AC",
+          "name": "products of animal origin, nes",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.A09DEC9ABE4F",
+          "name": "live trees, plants, bulbs, roots, cut flowers etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.EB41CFC2EADF",
+          "name": "edible vegetables and certain roots and tubers",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.CEBF64C31D70",
+          "name": "edible fruit, nuts, peel of citrus fruit, melons",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.F838C4E5F9AD",
+          "name": "coffee, tea, mate and spices",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.1BE7E29FBC18",
+          "name": "cereals",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.F0E2809ADDA6",
+          "name": "milling products, malt, starches, inulin, wheat glute",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.6E44D0496F81",
+          "name": "oil seed, oleagic fruits, grain, seed, fruit, etc, ne",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.1CD13F82EB81",
+          "name": "lac, gums, resins, vegetable saps and extracts nes",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.0433F1ED33D8",
+          "name": "vegetable plaiting materials, vegetable products nes",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.4075ED65E8EC",
+          "name": "animal,vegetable fats and oils, cleavage products, et",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.9A57276D53D7",
+          "name": "meat, fish and seafood food preparations nes",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.89F46513E1A1",
+          "name": "sugars and sugar confectionery",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.E086745EDF2B",
+          "name": "cocoa and cocoa preparations",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.08CFC1CB1409",
+          "name": "cereal, flour, starch, milk preparations and products",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.560A42904794",
+          "name": "vegetable, fruit, nut, etc food preparations",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.571945CDC779",
+          "name": "miscellaneous edible preparations",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.1CD8A830EF6F",
+          "name": "beverages, spirits and vinegar",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.4E47F84BA199",
+          "name": "residues, wastes of food industry, animal fodder",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.C0B086908B51",
+          "name": "tobacco and manufactured tobacco substitutes",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.EC1E42FDE50C",
+          "name": "salt, sulphur, earth, stone, plaster, lime and cement",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.607C2664925C",
+          "name": "ores, slag and ash",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.1AD46172ED82",
+          "name": "inorganic chemicals, precious metal compound, isotope",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.CFD746BAF638",
+          "name": "organic chemicals",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.5C9536518D2A",
+          "name": "pharmaceutical products",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.10EC9DC90CF7",
+          "name": "fertilizers",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.B828E8B3595A",
+          "name": "tanning, dyeing extracts, tannins, derivs,pigments et",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.8866EF4B541B",
+          "name": "essential oils, perfumes, cosmetics, toileteries",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.444F6A9BDA16",
+          "name": "soaps, lubricants, waxes, candles, modelling pastes",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.93F47FF85CFF",
+          "name": "albuminoids, modified starches, glues, enzymes",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.EFC065B9E8E8",
+          "name": "explosives, pyrotechnics, matches, pyrophorics, etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.A0E5C7716251",
+          "name": "photographic or cinematographic goods",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.56C07CF41124",
+          "name": "miscellaneous chemical products",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.C979615BAA71",
+          "name": "plastics and articles thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.CE7A7C60F7A0",
+          "name": "rubber and articles thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.B1E6E7F70263",
+          "name": "raw hides and skins (other than furskins) and leather",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.515F2AE8E0E6",
+          "name": "articles of leather, animal gut, harness, travel good",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.DA1F44BEA08A",
+          "name": "furskins and artificial fur, manufactures thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.7D3224D24C78",
+          "name": "wood and articles of wood, wood charcoal",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.E02E97EA8FA6",
+          "name": "cork and articles of cork",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.99DF0004C958",
+          "name": "manufactures of plaiting material, basketwork, etc.",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.32EF6ABF831B",
+          "name": "pulp of wood, fibrous cellulosic material, waste etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.8E63A195D00D",
+          "name": "paper & paperboard, articles of pulp, paper and board",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.B3640858FC79",
+          "name": "printed books, newspapers, pictures etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.5D951A4CDF49",
+          "name": "silk",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.9A41696B0FEA",
+          "name": "wool, animal hair, horsehair yarn and fabric thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.6524D6D4E3C1",
+          "name": "cotton",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.B2583E4DD916",
+          "name": "vegetable textile fibres nes, paper yarn, woven fabri",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.926B968E6675",
+          "name": "manmade filaments",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.F866D91E551D",
+          "name": "manmade staple fibres",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.C0A8D577E461",
+          "name": "wadding, felt, nonwovens, yarns, twine, cordage, etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.73BCADF77497",
+          "name": "carpets and other textile floor coverings",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.69B4E48AEF32",
+          "name": "special woven or tufted fabric, lace, tapestry etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.9CA89DAFD251",
+          "name": "impregnated, coated or laminated textile fabric",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.A51EB3231A58",
+          "name": "knitted or crocheted fabric",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.2B8AC52F2A7B",
+          "name": "articles of apparel, accessories, knit or crochet",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.309BBEC7CBF8",
+          "name": "articles of apparel, accessories, not knit or crochet",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.88C7F53B5B8E",
+          "name": "other made textile articles, sets, worn clothing etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.CABEFD385FE3",
+          "name": "footwear, gaiters and the like, parts thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.375AA4ECC5D3",
+          "name": "headgear and parts thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.5D396BA921E9",
+          "name": "umbrellas, walking-sticks, seat-sticks, whips, etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.343C5EA051EC",
+          "name": "bird skin, feathers, artificial flowers, human hair",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.3621A0078094",
+          "name": "stone, plaster, cement, asbestos, mica, etc articles",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.4FE928CC4D3B",
+          "name": "ceramic products undata",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.9CF17185D6D4",
+          "name": "glass and glassware",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.329D600EEC05",
+          "name": "pearls, precious stones, metals, coins, etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.BA30125D0CFE",
+          "name": "iron and steel",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.70BB87F5C963",
+          "name": "articles of iron or steel",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.811ED7A38C95",
+          "name": "copper and articles thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.227AC9D26736",
+          "name": "nickel and articles thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.1A337B304A25",
+          "name": "aluminium and articles thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.9DA93EB91526",
+          "name": "lead and articles thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.B208E7640C77",
+          "name": "zinc and articles thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.BE311F6812B1",
+          "name": "tin and articles thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.C3529964DA16",
+          "name": "other base metals, cermets, articles thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.C7B28BDE61A2",
+          "name": "tools, implements, cutlery, etc of base metal",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.4DCFF9BD1C56",
+          "name": "miscellaneous articles of base metal",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.750434A6BAEF",
+          "name": "nuclear reactors, boilers, machinery, etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.8811528E242A",
+          "name": "electrical, electronic equipment",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.4475ED745105",
+          "name": "railway, tramway locomotives, rolling stock, equipmen",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.7BBF283F7C41",
+          "name": "vehicles other than railway, tramway",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.AD09A45C4E8C",
+          "name": "aircraft, spacecraft, and parts thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.53ED75801DD6",
+          "name": "ships, boats and other floating structures",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.255DD480FD55",
+          "name": "optical, photo, technical, medical, etc apparatus",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.451D6764A048",
+          "name": "clocks and watches and parts thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.84CF53C3397B",
+          "name": "musical instruments, parts and accessories",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.60BD50AC1ABF",
+          "name": "arms and ammunition, parts and accessories thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.2C1F762E3AE5",
+          "name": "furniture, lighting, signs, prefabricated buildings",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.732F01839B9F",
+          "name": "toys, games, sports requisites",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.ED263E434516",
+          "name": "miscellaneous manufactured articles",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.D1177BE34D5C",
+          "name": "works of art, collectors pieces and antiques",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.F9E74190B225",
+          "name": "commodities not specified according to kind",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.8A4310B45A10",
+          "name": "electricity",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.72D561062B05",
+          "name": "gas manufacture, distribution",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.4351EA1F1824",
+          "name": "water collection, puriﬁcation, and distribution",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.DBAAADDF0404",
+          "name": "coal",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.2280AED5E509",
+          "name": "oil",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.D23113684F0E",
+          "name": "gas",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.2B6AC848B288",
+          "name": "petroleum, coal products",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.74E4F42E485B",
+          "name": "manufacturing services on physical inputs owned by others",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.776923AC6BA8",
+          "name": "maintenance and repair services n.i.e.",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.46D939BCBF55",
+          "name": "sea transport",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.35807290AA5C",
+          "name": "air transport",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.A31657155972",
+          "name": "other modes of transport",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.2B4706496E2A",
+          "name": "postal and courier services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.CEBE9F862F7E",
+          "name": "goods (travel)",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.0EE247DF19E8",
+          "name": "local transport services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.3E77E0AA6E16",
+          "name": "accommodation services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.FCA724636CE6",
+          "name": "food-serving services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.031841DD844E",
+          "name": "construction",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.E1A3AEB9C612",
+          "name": "direct insurance",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.A76DCA3431B0",
+          "name": "pension and standardized guaranteed services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.9631B946BE77",
+          "name": "financial services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.F7F0557581F6",
+          "name": "real estate",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.821CAA1FFF2B",
+          "name": "charges for the use of intellectual property n.i.e.",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.02210B60FE74",
+          "name": "telecommunications services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.BF2329B0A26F",
+          "name": "computer services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.9A5690ACEA78",
+          "name": "information services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.EA9D75F85CFA",
+          "name": "research and development services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.2B1857DC3C72",
+          "name": "professional and management consulting services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.AE8ECF648D89",
+          "name": "engineering",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.4E013A6D0F0D",
+          "name": "waste treatment and de-pollution agricultural and mining services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.087DB8382625",
+          "name": "operating leasing services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.113CDB2C5A2F",
+          "name": "other business services n.i.e.",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.0433335988FE",
+          "name": "audiovisual and related services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.B66FB71F8CC6",
+          "name": "health services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.6A347FFD266A",
+          "name": "education services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.2AE1F8C60287",
+          "name": "recreation & other services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.19198FCB2C5F",
+          "name": "government goods and services n.i.e.",
+          "reason": "No verified fine correspondence"
+        }
+      ]
+    },
+    {
+      "id": "emerging-monetary-commodity-4f89949afe85",
+      "label": "EMERGING · Monetary · IOT · 1.0",
+      "kind": "commodity",
+      "native": 134,
+      "linked": 0,
+      "statuses": {},
+      "unverified": [
+        {
+          "code": "C.4EAAF41CC34B",
+          "name": "live animals",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.0B8599BC36DA",
+          "name": "meat and edible meat offal",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.910A8500E761",
+          "name": "fish, crustaceans, molluscs, aquatic invertebrates ne",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.DE89A5E96927",
+          "name": "dairy products, eggs, honey, edible animal product ne",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.9B70B21A29AC",
+          "name": "products of animal origin, nes",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.A09DEC9ABE4F",
+          "name": "live trees, plants, bulbs, roots, cut flowers etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.EB41CFC2EADF",
+          "name": "edible vegetables and certain roots and tubers",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.CEBF64C31D70",
+          "name": "edible fruit, nuts, peel of citrus fruit, melons",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.F838C4E5F9AD",
+          "name": "coffee, tea, mate and spices",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.1BE7E29FBC18",
+          "name": "cereals",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.F0E2809ADDA6",
+          "name": "milling products, malt, starches, inulin, wheat glute",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.6E44D0496F81",
+          "name": "oil seed, oleagic fruits, grain, seed, fruit, etc, ne",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.1CD13F82EB81",
+          "name": "lac, gums, resins, vegetable saps and extracts nes",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.0433F1ED33D8",
+          "name": "vegetable plaiting materials, vegetable products nes",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.4075ED65E8EC",
+          "name": "animal,vegetable fats and oils, cleavage products, et",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.9A57276D53D7",
+          "name": "meat, fish and seafood food preparations nes",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.89F46513E1A1",
+          "name": "sugars and sugar confectionery",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.E086745EDF2B",
+          "name": "cocoa and cocoa preparations",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.08CFC1CB1409",
+          "name": "cereal, flour, starch, milk preparations and products",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.560A42904794",
+          "name": "vegetable, fruit, nut, etc food preparations",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.571945CDC779",
+          "name": "miscellaneous edible preparations",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.1CD8A830EF6F",
+          "name": "beverages, spirits and vinegar",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.4E47F84BA199",
+          "name": "residues, wastes of food industry, animal fodder",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.C0B086908B51",
+          "name": "tobacco and manufactured tobacco substitutes",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.EC1E42FDE50C",
+          "name": "salt, sulphur, earth, stone, plaster, lime and cement",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.607C2664925C",
+          "name": "ores, slag and ash",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.77C4A2990CC2",
+          "name": "mineral fuels, oils, distillation products, etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.1AD46172ED82",
+          "name": "inorganic chemicals, precious metal compound, isotope",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.CFD746BAF638",
+          "name": "organic chemicals",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.5C9536518D2A",
+          "name": "pharmaceutical products",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.10EC9DC90CF7",
+          "name": "fertilizers",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.B828E8B3595A",
+          "name": "tanning, dyeing extracts, tannins, derivs,pigments et",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.8866EF4B541B",
+          "name": "essential oils, perfumes, cosmetics, toileteries",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.444F6A9BDA16",
+          "name": "soaps, lubricants, waxes, candles, modelling pastes",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.93F47FF85CFF",
+          "name": "albuminoids, modified starches, glues, enzymes",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.EFC065B9E8E8",
+          "name": "explosives, pyrotechnics, matches, pyrophorics, etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.A0E5C7716251",
+          "name": "photographic or cinematographic goods",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.56C07CF41124",
+          "name": "miscellaneous chemical products",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.C979615BAA71",
+          "name": "plastics and articles thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.CE7A7C60F7A0",
+          "name": "rubber and articles thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.B1E6E7F70263",
+          "name": "raw hides and skins (other than furskins) and leather",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.515F2AE8E0E6",
+          "name": "articles of leather, animal gut, harness, travel good",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.DA1F44BEA08A",
+          "name": "furskins and artificial fur, manufactures thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.7D3224D24C78",
+          "name": "wood and articles of wood, wood charcoal",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.E02E97EA8FA6",
+          "name": "cork and articles of cork",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.99DF0004C958",
+          "name": "manufactures of plaiting material, basketwork, etc.",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.32EF6ABF831B",
+          "name": "pulp of wood, fibrous cellulosic material, waste etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.8E63A195D00D",
+          "name": "paper & paperboard, articles of pulp, paper and board",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.B3640858FC79",
+          "name": "printed books, newspapers, pictures etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.5D951A4CDF49",
+          "name": "silk",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.9A41696B0FEA",
+          "name": "wool, animal hair, horsehair yarn and fabric thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.6524D6D4E3C1",
+          "name": "cotton",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.B2583E4DD916",
+          "name": "vegetable textile fibres nes, paper yarn, woven fabri",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.926B968E6675",
+          "name": "manmade filaments",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.F866D91E551D",
+          "name": "manmade staple fibres",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.C0A8D577E461",
+          "name": "wadding, felt, nonwovens, yarns, twine, cordage, etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.73BCADF77497",
+          "name": "carpets and other textile floor coverings",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.69B4E48AEF32",
+          "name": "special woven or tufted fabric, lace, tapestry etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.9CA89DAFD251",
+          "name": "impregnated, coated or laminated textile fabric",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.A51EB3231A58",
+          "name": "knitted or crocheted fabric",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.2B8AC52F2A7B",
+          "name": "articles of apparel, accessories, knit or crochet",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.309BBEC7CBF8",
+          "name": "articles of apparel, accessories, not knit or crochet",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.88C7F53B5B8E",
+          "name": "other made textile articles, sets, worn clothing etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.CABEFD385FE3",
+          "name": "footwear, gaiters and the like, parts thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.375AA4ECC5D3",
+          "name": "headgear and parts thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.5D396BA921E9",
+          "name": "umbrellas, walking-sticks, seat-sticks, whips, etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.343C5EA051EC",
+          "name": "bird skin, feathers, artificial flowers, human hair",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.3621A0078094",
+          "name": "stone, plaster, cement, asbestos, mica, etc articles",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.4FE928CC4D3B",
+          "name": "ceramic products undata",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.9CF17185D6D4",
+          "name": "glass and glassware",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.329D600EEC05",
+          "name": "pearls, precious stones, metals, coins, etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.BA30125D0CFE",
+          "name": "iron and steel",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.70BB87F5C963",
+          "name": "articles of iron or steel",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.811ED7A38C95",
+          "name": "copper and articles thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.227AC9D26736",
+          "name": "nickel and articles thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.1A337B304A25",
+          "name": "aluminium and articles thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.9DA93EB91526",
+          "name": "lead and articles thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.B208E7640C77",
+          "name": "zinc and articles thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.BE311F6812B1",
+          "name": "tin and articles thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.C3529964DA16",
+          "name": "other base metals, cermets, articles thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.C7B28BDE61A2",
+          "name": "tools, implements, cutlery, etc of base metal",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.4DCFF9BD1C56",
+          "name": "miscellaneous articles of base metal",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.750434A6BAEF",
+          "name": "nuclear reactors, boilers, machinery, etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.8811528E242A",
+          "name": "electrical, electronic equipment",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.4475ED745105",
+          "name": "railway, tramway locomotives, rolling stock, equipmen",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.7BBF283F7C41",
+          "name": "vehicles other than railway, tramway",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.AD09A45C4E8C",
+          "name": "aircraft, spacecraft, and parts thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.53ED75801DD6",
+          "name": "ships, boats and other floating structures",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.255DD480FD55",
+          "name": "optical, photo, technical, medical, etc apparatus",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.451D6764A048",
+          "name": "clocks and watches and parts thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.84CF53C3397B",
+          "name": "musical instruments, parts and accessories",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.60BD50AC1ABF",
+          "name": "arms and ammunition, parts and accessories thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.2C1F762E3AE5",
+          "name": "furniture, lighting, signs, prefabricated buildings",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.732F01839B9F",
+          "name": "toys, games, sports requisites",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.ED263E434516",
+          "name": "miscellaneous manufactured articles",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.D1177BE34D5C",
+          "name": "works of art, collectors pieces and antiques",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.F9E74190B225",
+          "name": "commodities not specified according to kind",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.8A4310B45A10",
+          "name": "electricity",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.72D561062B05",
+          "name": "gas manufacture, distribution",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.4351EA1F1824",
+          "name": "water collection, puriﬁcation, and distribution",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.DBAAADDF0404",
+          "name": "coal",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.2280AED5E509",
+          "name": "oil",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.D23113684F0E",
+          "name": "gas",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.2B6AC848B288",
+          "name": "petroleum, coal products",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.74E4F42E485B",
+          "name": "manufacturing services on physical inputs owned by others",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.776923AC6BA8",
+          "name": "maintenance and repair services n.i.e.",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.46D939BCBF55",
+          "name": "sea transport",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.35807290AA5C",
+          "name": "air transport",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.A31657155972",
+          "name": "other modes of transport",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.2B4706496E2A",
+          "name": "postal and courier services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.CEBE9F862F7E",
+          "name": "goods (travel)",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.0EE247DF19E8",
+          "name": "local transport services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.3E77E0AA6E16",
+          "name": "accommodation services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.FCA724636CE6",
+          "name": "food-serving services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.031841DD844E",
+          "name": "construction",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.E96A918E6E0C",
+          "name": "direct insurance, reinsurance, auxiliary insurance services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.A76DCA3431B0",
+          "name": "pension and standardized guaranteed services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.9631B946BE77",
+          "name": "financial services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.F7F0557581F6",
+          "name": "real estate",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.821CAA1FFF2B",
+          "name": "charges for the use of intellectual property n.i.e.",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.02210B60FE74",
+          "name": "telecommunications services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.BF2329B0A26F",
+          "name": "computer services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.9A5690ACEA78",
+          "name": "information services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.EA9D75F85CFA",
+          "name": "research and development services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.2B1857DC3C72",
+          "name": "professional and management consulting services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.AE8ECF648D89",
+          "name": "engineering",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.4E013A6D0F0D",
+          "name": "waste treatment and de-pollution agricultural and mining services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.087DB8382625",
+          "name": "operating leasing services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.AD229BEE8ECC",
+          "name": "trade-related services, other business services n.i.e.",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.0433335988FE",
+          "name": "audiovisual and related services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.DA42EDFD22FA",
+          "name": "health services, education services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.6A347FFD266A",
+          "name": "education services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.86539587C012",
+          "name": "heritage and recreational services, other personal services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "C.19198FCB2C5F",
+          "name": "government goods and services n.i.e.",
+          "reason": "No verified fine correspondence"
+        }
+      ]
+    },
+    {
+      "id": "emerging-monetary-commodity-79255683927b",
+      "label": "EMERGING · Monetary · IOT · E",
+      "kind": "commodity",
+      "native": 146,
+      "linked": 0,
+      "statuses": {},
+      "unverified": [
+        {
+          "code": "",
+          "name": "Live animals",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Meat and edible meat offal",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Fish, crustaceans, molluscs, aquatic invertebrates ne",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Dairy products, eggs, honey, edible animal product ne",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Products of animal origin, nes",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Live trees, plants, bulbs, roots, cut flowers etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Edible vegetables and certain roots and tubers",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Edible fruit, nuts, peel of citrus fruit, melons",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Coffee, tea, mate and spices",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Cereals",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Milling products, malt, starches, inulin, wheat glute",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Oil seed, oleagic fruits, grain, seed, fruit, etc, ne",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Lac, gums, resins, vegetable saps and extracts nes",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Vegetable plaiting materials, vegetable products nes",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Animal,vegetable fats and oils, cleavage products, et",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Meat, fish and seafood food preparations nes",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Sugars and sugar confectionery",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Cocoa and cocoa preparations",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Cereal, flour, starch, milk preparations and products",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Vegetable, fruit, nut, etc food preparations",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Miscellaneous edible preparations",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Beverages, spirits and vinegar",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Residues, wastes of food industry, animal fodder",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Tobacco and manufactured tobacco substitutes",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Salt, sulphur, earth, stone, plaster, lime and cement",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Ores, slag and ash",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Inorganic chemicals, precious metal compound, isotope",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Organic chemicals",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Pharmaceutical products",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Fertilizers",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Tanning, dyeing extracts, tannins, derivs,pigments et",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Essential oils, perfumes, cosmetics, toileteries",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Soaps, lubricants, waxes, candles, modelling pastes",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Albuminoids, modified starches, glues, enzymes",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Explosives, pyrotechnics, matches, pyrophorics, etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Photographic or cinematographic goods",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Miscellaneous chemical products",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Plastics and articles thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Rubber and articles thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Raw hides and skins (other than furskins) and leather",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Articles of leather, animal gut, harness, travel good",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Furskins and artificial fur, manufactures thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Wood and articles of wood, wood charcoal",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Cork and articles of cork",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Manufactures of plaiting material, basketwork, etc.",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Pulp of wood, fibrous cellulosic material, waste etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Paper & paperboard, articles of pulp, paper and board",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Printed books, newspapers, pictures etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Silk",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Wool, animal hair, horsehair yarn and fabric thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Cotton",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Vegetable textile fibres nes, paper yarn, woven fabri",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "manmade filaments",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "manmade staple fibres",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Wadding, felt, nonwovens, yarns, twine, cordage, etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Carpets and other textile floor coverings",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Special woven or tufted fabric, lace, tapestry etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Impregnated, coated or laminated textile fabric",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Knitted or crocheted fabric",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Articles of apparel, accessories, knit or crochet",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Articles of apparel, accessories, not knit or crochet",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Other made textile articles, sets, worn clothing etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Footwear, gaiters and the like, parts thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Headgear and parts thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Umbrellas, walking-sticks, seat-sticks, whips, etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Bird skin, feathers, artificial flowers, human hair",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Stone, plaster, cement, asbestos, mica, etc articles",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Ceramic products Undata",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Glass and glassware",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Pearls, precious stones, metals, coins, etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Iron and steel",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Articles of iron or steel",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Copper and articles thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Nickel and articles thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Aluminium and articles thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Lead and articles thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Zinc and articles thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Tin and articles thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Other base metals, cermets, articles thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Tools, implements, cutlery, etc of base metal",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Miscellaneous articles of base metal",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Nuclear reactors, boilers, machinery, etc",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Electrical, electronic equipment",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Railway, tramway locomotives, rolling stock, equipmen",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Vehicles other than railway, tramway",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Aircraft, spacecraft, and parts thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Ships, boats and other floating structures",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Optical, photo, technical, medical, etc apparatus",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Clocks and watches and parts thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Musical instruments, parts and accessories",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Arms and ammunition, parts and accessories thereof",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Furniture, lighting, signs, prefabricated buildings",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Toys, games, sports requisites",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Miscellaneous manufactured articles",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Works of art, collectors pieces and antiques",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Commodities not specified according to kind",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Production of electricity by coal",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Production of electricity by gas",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Production of electricity by nuclear",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Production of electricity by hydro",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Production of electricity by wind",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Production of electricity by petroleum and other oil derivatives",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Production of electricity by biomass and waste",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Production of electricity by solar photovoltaic",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Production of electricity by solar thermal",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Production of electricity by tide, wave, ocean",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Production of electricity by Geothermal",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Production of electricity nec",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Transmission of electricity",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Distribution and trade of electricity",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Gas manufacture, distribution",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Water collection, puriﬁcation, and distribution",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "coal",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "oil",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "gas",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Petroleum, coal products",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Manufacturing services on physical inputs owned by others",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Maintenance and repair services n.i.e.",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Sea transport",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Air transport",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Other modes of transport",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Postal and courier services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Goods (travel)",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Local transport services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Accommodation services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Food-serving services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Construction",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Direct insurance",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Pension and standardized guaranteed services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Financial services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "real estate",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Charges for the use of intellectual property n.i.e.",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Telecommunications services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Computer services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Information services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Research and development services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Professional and management consulting services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "engineering",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Waste treatment and de-pollution agricultural and mining services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Operating leasing services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Other business services n.i.e.",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Audiovisual and related services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Health services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Education services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "recreation & other services",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "",
+          "name": "Government goods and services n.i.e.",
+          "reason": "No verified fine correspondence"
+        }
+      ]
+    },
+    {
+      "id": "figaro-monetary-commodity-4f9af4a5b7e1",
+      "label": "FIGARO",
+      "kind": "commodity",
+      "native": 64,
+      "linked": 64,
+      "statuses": {
+        "documented": 3131,
+        "partial": 334
+      },
+      "unverified": []
+    },
+    {
+      "id": "gloria-monetary-commodity-7635ea2a072b",
+      "label": "GLORIA",
+      "kind": "commodity",
+      "native": 120,
+      "linked": 112,
+      "statuses": {
+        "partial": 3495
+      },
+      "unverified": [
+        {
+          "code": "25",
+          "name": "Lignite and peat",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "29",
+          "name": "Uranium ores",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "52",
+          "name": "Animal oils and fats",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "62",
+          "name": "Coke oven products",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "78",
+          "name": "Basic aluminium",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "89",
+          "name": "Repair and installation of machinery and equipment (service)",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "94",
+          "name": "Distribution of gaseous fuels through mains",
+          "reason": "No verified fine correspondence"
+        },
+        {
+          "code": "96",
+          "name": "Waste collection, treatment, and disposal",
+          "reason": "No verified fine correspondence"
+        }
+      ]
+    },
+    {
+      "id": "wiod-monetary-commodity-3e3132c0b3ab",
+      "label": "WIOD",
+      "kind": "commodity",
+      "native": 56,
+      "linked": 56,
+      "statuses": {
+        "partial": 3470
+      },
+      "unverified": []
+    }
+  ],
+  "notes": [
+    "A connected correspondence path is not proof of exact containment. Published binary links, revision joins and producer bridges retain qualified precision.",
+    "Activity and commodity graphs are separate. Commodity routes never traverse an activity namespace. Explicit product-to-producer activity bridges remain typed and qualified.",
+    "Workbook parents are retained as lineage context. Current reviewed membership overrides do not rewrite nxbase_sets.xlsx or materialise SQL.",
+    "Raw milk includes cattle, sheep and goat farming; wastewater treatment is sewerage. EXIOBASE crops, metals, waste technologies and legacy source anomalies have explicit editorial reviews.",
+    "Hybrid product coverage uses the published 200 SUT to 164 IOT product correspondence, including all seven monetary products without CPA 2002 links.",
+    "CEDA and GLORIA product routes through EPA/BEA aggregates are qualified. Explicit producer-scope exclusion reviews remove incompatible candidates; this cannot prove every remaining fine product link.",
+    "GTAP thermal electricity/heat co-production remains qualified. The historical technical note assigns no heat to wind, solar, hydro or nuclear; no licensed numerical data are exported.",
+    "EMERGING has native product inventories but no verified fine CPA bridge. EORA has no verified current fine concordance. OECD and ADB IOT industry sets are activities, not inferred product sets.",
+    "NACE 46.89 has no predecessor in the supplied NACE 2 revision table; an unverified cell is not absence. CPA 2002 codes 33.30.90, 34.10.25 and 34.10.43 are absent from the historical revision table.",
+    "EXIOBASE fertiliser and six landfill products lack CPA 2002 publisher links. GTAP product definitions without CPC codes remain unverified. No fuzzy matching or economic allocation weights are used.",
+    "Country lookups, including GTAP Power and the separate WIOD SUT activity vocabulary, are checked against the same current references and actual native profile labels.",
+    "GTAP and Open CEDA are displayed only in Activities: their catalogued sector/industry vocabularies do not supply a separate native Commodity set. CPC and EPA product concordances remain documented intermediate sources; Open CEDA provides emission factors rather than a raw IOT."
+  ],
+  "sources": {
+    "S01": {
+      "id": "S01",
+      "title": "EXIOBASE products and NACE Rev. 2",
+      "publisher": "EXIOBASE",
+      "filename": "nace2_exiobase3p.csv",
+      "url": "https://github.com/EXIOBASE/00-concordances-public/blob/355e4da3f065ae145c601e784faa24e3f1746b5e/concordances/international/nace2_exiobase3p.csv",
+      "sha256": "ca73ffbd6903ef0b551e8f96b61759c5d77ee5657aad852a91ea5192ce5bbd81",
+      "retrieved": "2026-10-10",
+      "role": "Published correspondence. Binary links do not specify equivalence.",
+      "version": "355e4da3f065ae145c601e784faa24e3f1746b5e"
+    },
+    "S02": {
+      "id": "S02",
+      "title": "EXIOBASE product and industry correspondence",
+      "publisher": "EXIOBASE",
+      "filename": "exiobase3p_exiobase3i.csv",
+      "url": "https://github.com/EXIOBASE/00-concordances-public/blob/355e4da3f065ae145c601e784faa24e3f1746b5e/concordances/exiobase/exiobase3p_exiobase3i.csv",
+      "sha256": "abed9987d12b3aa907323761d9610e607e370df609dfbedd7162c2054fd0989a",
+      "retrieved": "2026-10-10",
+      "role": "Product-to-producing-industry relation, not identity between item types.",
+      "version": "355e4da3f065ae145c601e784faa24e3f1746b5e"
+    },
+    "S04": {
+      "id": "S04",
+      "title": "ADB 35-sector definitions",
+      "publisher": "Asian Development Bank",
+      "filename": "adb-sectors.pdf",
+      "url": "https://www.adb.org/sites/default/files/publication/720461/part3-gvcs.pdf",
+      "sha256": "64ea77edb581aa3026793d372b17a43a3f431516cb902fa6592a2dd4910e8f3f",
+      "retrieved": "2026-10-10",
+      "role": "Table A3.3, printed page 250. Each sector is an explicit ISIC Rev. 3.1 aggregate.",
+      "version": "Key Indicators 2021"
+    },
+    "S05": {
+      "id": "S05",
+      "title": "ISIC Rev. 3.1 to ISIC Rev. 4",
+      "publisher": "UN Statistics Division",
+      "filename": "isic31-isic4.txt",
+      "url": "https://unstats.un.org/unsd/classifications/Econ/tables/ISIC/ISIC31_ISIC4/ISIC31_ISIC4.txt",
+      "sha256": "5edbf40aa5e75dd778782896dc2054a76bcd252c2fbad9f704d00a883a3f66a5",
+      "retrieved": "2026-10-10",
+      "role": "Official correspondence with partial-link flags on both sides.",
+      "version": ""
+    },
+    "S06": {
+      "id": "S06",
+      "title": "NACE Rev. 2 to ISIC Rev. 4",
+      "publisher": "UN Statistics Division / Eurostat",
+      "filename": "nace2-isic4.txt",
+      "url": "https://unstats.un.org/unsd/classifications/Econ/tables/ISIC/NACE2_ISIC4/NACE2_ISIC4.txt",
+      "sha256": "1220d7f920783418b82d0da6d35cf90a31d69efae47e41835417f5a3bdd5ebfe",
+      "retrieved": "2026-10-10",
+      "role": "Official correspondence with partial-link flags on both sides.",
+      "version": ""
+    },
+    "S07": {
+      "id": "S07",
+      "title": "NACE Rev. 2.1 and NACE Rev. 2",
+      "publisher": "Eurostat",
+      "filename": "NACE_Rev.2.1_NACE_Rev.2_ CorrespondenceTable.tsv",
+      "url": "https://showvoc.op.europa.eu/semanticturkey/it.uniroma2.art.semanticturkey/st-core-services/Download/getFile?ctx_project=ESTAT_Statistical_Classification_of_Economic_Activities_in_the_European_Community_Rev._2.1._%28NACE_2.1%29&fileName=NACE_Rev.2.1_NACE_Rev.2_+CorrespondenceTable.tsv",
+      "sha256": "54f4377a40b97e84e29ac94e49d6c5be61457aa4e1ecf75b9beba23480da5348",
+      "retrieved": "2026-10-10",
+      "role": "Official correspondence. Class-level split/merge relations are retained.",
+      "version": "ShowVoc snapshot 2026-09-29"
+    },
+    "S08": {
+      "id": "S08",
+      "title": "CEDA 2024 to USEEIO BEA schemas",
+      "publisher": "US Environmental Protection Agency",
+      "filename": "ceda-bea-epa.csv",
+      "url": "https://pasteur.epa.gov/uploads/10.23719/1531906/documents/ceda_to_useeio_commodity_concordance.csv",
+      "sha256": "1cde160b36dfa2080db62e9b3a791807426e590758e89336dc9a2199ea8aff47",
+      "retrieved": "2026-10-10",
+      "role": "Published CEDA, BEA 2012 and BEA 2017 triples. A link is not assumed to be an equivalence.",
+      "version": "EPA dataset 10.23719/1531906"
+    },
+    "S09": {
+      "id": "S09",
+      "title": "BEA industry/commodity codes and NAICS 2017",
+      "publisher": "US Bureau of Economic Analysis",
+      "filename": "bea-naics.xlsx",
+      "url": "https://www.bea.gov/sites/default/files/2023-10/BEA-Industry-and-Commodity-Codes-and-NAICS-Concordance.xlsx",
+      "sha256": "6e25267ff60ccedc0808c14153b0cdeb566a7f5e9097536c70c2b9694ef5ff47",
+      "retrieved": "2026-10-10",
+      "role": "NAICS Codes sheet. Asterisks and construction/commodity notes are retained.",
+      "version": "2023-10 publication, NAICS 2017 basis"
+    },
+    "S10": {
+      "id": "S10",
+      "title": "NAICS US 2017 to ISIC Rev. 4",
+      "publisher": "US Census Bureau, distributed by UNSD",
+      "filename": "2017_NAICS_to_ISIC_4.xlsx",
+      "url": "https://unstats.un.org/unsd/classifications/Econ/tables/ISIC/NAICS2017US-ISIC4.zip",
+      "sha256": "c8d4ba0537fbba4a30f93a056ee32a1571234d1312e6b2eae6bd58a2d973138b",
+      "retrieved": "2026-10-10",
+      "role": "Official correspondence. Includes US-specific definitions and partial-link flags.",
+      "version": "UNSD release 2017-08-14"
+    },
+    "S14": {
+      "id": "S14",
+      "title": "NACE Rev. 2.1 structure",
+      "publisher": "Eurostat",
+      "filename": "NACE_Rev2.1_Heading_All_Languages.tsv",
+      "url": "https://showvoc.op.europa.eu/semanticturkey/it.uniroma2.art.semanticturkey/st-core-services/Download/getFile?ctx_project=ESTAT_Statistical_Classification_of_Economic_Activities_in_the_European_Community_Rev._2.1._%28NACE_2.1%29&fileName=NACE_Rev2.1_Heading_All_Languages.tsv",
+      "sha256": "89becf36186d7d3f07954e9f7b5a8fc4b12528eb24e51a0ae76eecd55ddb54fc",
+      "retrieved": "2026-10-10",
+      "role": "Official English headings. NACE Rev. 2.1 is the activity reference.",
+      "version": ""
+    },
+    "S15": {
+      "id": "S15",
+      "title": "ISIC Rev. 3.1 structure",
+      "publisher": "UN Statistics Division",
+      "filename": "isic31-structure.txt",
+      "url": "https://unstats.un.org/unsd/classifications/Econ/Download/In%20Text/ISIC_Rev_3_1_english_structure.txt",
+      "sha256": "ac3e59375eca1756b85530078397a69a98bf3c5ffd642abd96e45e37de098c92",
+      "retrieved": "2026-10-10",
+      "role": "Official hierarchy used to enumerate the ADB aggregates.",
+      "version": ""
+    },
+    "S39": {
+      "id": "S39",
+      "title": "nxbase · reviewed native activity identities",
+      "filename": "nxbase_sets.xlsx",
+      "sha256": "0af4b1509e8589ed11d682dad453c4f4d25ada6a523f21d4c7a1b816920153e2",
+      "url": "reviewed-activity-correspondences.json",
+      "role": "Actual identities and parents retained; reviewed correspondence does not assert the parent is correct.",
+      "publisher": "nxbase",
+      "retrieved": "2026-10-10"
+    },
+    "S40": {
+      "id": "S40",
+      "title": "EXIOBASE · native industry definitions and NACE Rev. 1.1",
+      "filename": "exio-nace11-original.xlsx",
+      "sha256": "d23c6b0e899ff6c3d40092d7a085eebdbaac5f3db73df511c23ab2290a4222ef",
+      "url": "https://zenodo.org/records/23039074",
+      "role": "Supplied publisher concordance archive, NACE1.1 - EXIOBASE2.0_FINAL.xlsx; source sheet/cells retained.",
+      "publisher": "EXIOBASE",
+      "retrieved": "2026-10-10"
+    },
+    "S41": {
+      "id": "S41",
+      "title": "NACE Rev. 1.1 → NACE Rev. 2 correspondence",
+      "filename": "nace11-nace2.pdf",
+      "sha256": "129d46f8f9e4e1f2a9deea0b84a45d051659f44f68dc37d8a5c2979c310f7902",
+      "url": "https://www.ine.es/daco/daco42/clasificaciones/cnae09/nace11_nace2.pdf",
+      "role": "Complete published 514-to-615-class correspondence; PDF column coordinates retained. No partial-content flags published.",
+      "publisher": "INE / Eurostat",
+      "retrieved": "2026-10-10"
+    },
+    "S42": {
+      "id": "S42",
+      "title": "nxbase · reviewed current activity correspondence",
+      "publisher": "nxbase",
+      "url": "reviewed-activity-correspondences.json",
+      "retrieved": "2026-10-10",
+      "role": "Explicit editorial decisions, separate from the actual workbook parent. Definition evidence S17 and S40."
+    },
+    "S17": {
+      "id": "S17",
+      "title": "Eurostat · NACE Rev. 2.1 explanatory notes",
+      "publisher": "Eurostat",
+      "url": "https://ec.europa.eu/eurostat/documents/3859598/21633320/KS-GQ-24-007-EN-N.pdf",
+      "sha256": "40c69a62305dff21442368fabd0af32b17ef03278b6828ab7bec4eb1497a7235",
+      "retrieved": "2026-10-10",
+      "role": "Definitions and exclusions used to qualify editorial native-activity anchors."
+    },
+    "P07": {
+      "id": "P07",
+      "title": "EXIOBASE products ↔ CPA 2002",
+      "filename": "cpa2002_exiobase3p.csv",
+      "sha256": "00bbc03ac813e4c5ca33a978569877123fff4dbd6499f688fd8bb3f052d69a23",
+      "url": "https://github.com/EXIOBASE/00-concordances-public/blob/355e4da3f065ae145c601e784faa24e3f1746b5e/concordances/international/cpa2002_exiobase3p.csv",
+      "publisher": "EXIOBASE",
+      "retrieved": "2026-10-10",
+      "role": "Published binary links; weights indicate linkage, not allocation. Product-only path."
+    },
+    "S11": {
+      "id": "S11",
+      "title": "nxbase · reviewed EXIOBASE electricity activity paths",
+      "publisher": "nxbase",
+      "filename": "nxbase_sets.xlsx",
+      "url": "nxbase-activity-refinements.json",
+      "sha256": "0af4b1509e8589ed11d682dad453c4f4d25ada6a523f21d4c7a1b816920153e2",
+      "retrieved": "2026-10-10",
+      "role": "Actual activity parent paths. Reviewed technology containment takes precedence over broad product/producer correspondences."
+    },
+    "S18": {
+      "id": "S18",
+      "title": "GLORIA v060 · published ISIC section concordance",
+      "publisher": "University of Sydney / UNEP International Resource Panel",
+      "filename": "GLORIA_ReadMe_060.xlsx",
+      "url": "https://ielab.info/resources/gloria/supportingdocs",
+      "sha256": "2be13d43339e37c7f417a49d73daca8374de24110838e97f14f7300731c16206",
+      "retrieved": "2026-10-10",
+      "role": "ReadMe, GLORIA to ISIC concordance and GLORIA 97-to-120 concordance. Section anchors only; no detailed class equivalence."
+    },
+    "S19": {
+      "id": "S19",
+      "title": "UN Statistics Division · ISIC Rev. 4 structure",
+      "publisher": "UN Statistics Division",
+      "filename": "isic4-structure.txt",
+      "url": "https://unstats.un.org/unsd/classifications/Econ/Download/In%20Text/ISIC_Rev_4_english_structure.txt",
+      "sha256": "18b645efc5a0b001fda5852cfd0690eb579011651e405631e50cb2d271ee2cc6",
+      "retrieved": "2026-10-10",
+      "role": "Official hierarchy used to locate the broad section of intermediate ISIC classes, never to assert native leaf membership."
+    },
+    "S20": {
+      "id": "S20",
+      "title": "nxbase · GLORIA v060 activity review",
+      "publisher": "nxbase / MARIO documentation",
+      "url": "activity_correspondences.json",
+      "retrieved": "2026-10-10",
+      "role": "Editorial containment and correspondence decisions using GLORIA labels and historical descriptors, checked against official ISIC/NACE definitions. Not a publisher-supplied detailed concordance."
+    },
+    "S21": {
+      "id": "S21",
+      "title": "OECD ICIO 2025 · published industry definitions",
+      "publisher": "OECD",
+      "url": "https://webfs-sti.oecd.org/files/STI-PIE/ICIO/2025/ICIO2025annex.pdf",
+      "sha256": "16809b1684d44cf7f1ac4e410a8bd08d8638dce80678ef1bb0b26e17242c9cb5",
+      "retrieved": "2026-10-10",
+      "role": "Table 2, printed page 3. All 50 native activities and their explicit ISIC Rev. 4 codes."
+    },
+    "S22": {
+      "id": "S22",
+      "publisher": "nxbase",
+      "title": "nxbase · governed activity parents",
+      "url": "nxbase-gloria-icio.json",
+      "filename": "nxbase_sets.xlsx",
+      "sha256": "0af4b1509e8589ed11d682dad453c4f4d25ada6a523f21d4c7a1b816920153e2",
+      "retrieved": "2026-10-10",
+      "role": "Actual native activity parent and optional canonical concept; workbook cells retained. Contains no product links."
+    },
+    "S26": {
+      "id": "S26",
+      "publisher": "Eurostat",
+      "title": "FIGARO · published 64-industry NACE Rev. 2 classification",
+      "url": "https://ec.europa.eu/eurostat/cache/metadata/en/naio_10_fg_esms.htm",
+      "retrieved": "2026-10-10",
+      "role": "Native industry codes/labels retained by the MARIO parser; activity classification confirmed in metadata section 3.2.",
+      "native_input_filename": "naio_10_fcp_ii4_2024_MIO_EUR_bf22a621ef74.csv",
+      "native_input_sha256": "e98909c2f3f4760f56427cf6481c204cd9eca32d2fc9e153babce994a8af771e"
+    },
+    "S27": {
+      "id": "S27",
+      "publisher": "WIOD / University of Groningen",
+      "title": "WIOD 2016 · published industry classification",
+      "url": "https://www.rug.nl/ggdc/html_publications/memorandum/gd162.pdf#page=44",
+      "filename": "gd162.pdf",
+      "sha256": "d2137e66fd260cb08f8ce9d3e411f0f0772e8feffc93bdcc78f7c1798415266c",
+      "retrieved": "2026-10-10",
+      "role": "Appendix Table A1, 56 industries; native code/label correspondence independently retained from parsed IOT/SUT headers. National accounts NACE Rev. 2/ISIC Rev. 4 classification; code variants refer to identical division ranges."
+    },
+    "S29": {
+      "id": "S29",
+      "title": "Eurostat · complete NACE Rev. 2 → Rev. 2.1 correspondence",
+      "publisher": "Eurostat",
+      "filename": "NACE_Rev.2.1_NACE_Rev.2_ CorrespondenceTable.tsv",
+      "url": "https://showvoc.op.europa.eu/semanticturkey/it.uniroma2.art.semanticturkey/st-core-services/Download/getFile?ctx_project=ESTAT_Statistical_Classification_of_Economic_Activities_in_the_European_Community_Rev._2.1._%28NACE_2.1%29&fileName=NACE_Rev.2.1_NACE_Rev.2_+CorrespondenceTable.tsv",
+      "sha256": "54f4377a40b97e84e29ac94e49d6c5be61457aa4e1ecf75b9beba23480da5348",
+      "retrieved": "2026-10-10",
+      "role": "Full 974 class-level links for all 615 old classes, plus original hierarchy headings. Original row positions and overlap flags retained.",
+      "version": "ShowVoc snapshot 2026-09-29"
+    },
+    "S30": {
+      "id": "S30",
+      "publisher": "nxbase",
+      "title": "nxbase · FIGARO and WIOD activity identities and parents",
+      "url": "nxbase-figaro-wiod.json",
+      "filename": "nxbase_sets.xlsx",
+      "sha256": "0af4b1509e8589ed11d682dad453c4f4d25ada6a523f21d4c7a1b816920153e2",
+      "retrieved": "2026-10-10",
+      "role": "Actual native activity identities and containment chains. Explicit published members are separate from parent lineage."
+    },
+    "S31": {
+      "id": "S31",
+      "title": "GTAP GSC3 · CPC 2.1 and ISIC Rev. 4 concordances",
+      "url": "https://www.gtap.agecon.purdue.edu/databases/contribute/concordinfo.asp",
+      "publisher": "GTAP / Purdue University",
+      "retrieved": "2026-10-10",
+      "filename": "concordance.html",
+      "sha256": "a64b8054f8b581145d47e3d2877b5fe4dffad755f2d0e42306c5996374c34f3c"
+    },
+    "S32": {
+      "id": "S32",
+      "title": "GTAP 12 · Power sector definitions",
+      "url": "https://www.gtap.agecon.purdue.edu/databases/Utilities/v12.aspx",
+      "publisher": "GTAP / Purdue University",
+      "retrieved": "2026-10-10"
+    },
+    "S33": {
+      "id": "S33",
+      "title": "CPC 2.1 → ISIC Rev. 4 · producing-activity correspondence",
+      "url": "https://unstats.un.org/unsd/classifications/Econ/tables/CPC/CPCv21_ISIC4/cpc21-isic4.txt",
+      "publisher": "UNSD",
+      "retrieved": "2026-10-10",
+      "filename": "cpc-isic.txt",
+      "sha256": "0272188c086fb5d8efa3923749cc7b5a1bd5a12e7719843d26c2f2b38ea2f392"
+    },
+    "S34": {
+      "id": "S34",
+      "title": "NACE Rev. 2 ↔ ISIC Rev. 4 · full official correspondence",
+      "url": "https://unstats.un.org/unsd/classifications/Econ/tables/ISIC/NACE2_ISIC4/NACE2_ISIC4.txt",
+      "publisher": "UNSD",
+      "retrieved": "2026-10-10",
+      "filename": "nace-isic.txt",
+      "sha256": "1220d7f920783418b82d0da6d35cf90a31d69efae47e41835417f5a3bdd5ebfe"
+    },
+    "S35": {
+      "id": "S35",
+      "title": "nxbase · existing power activity containment paths",
+      "url": "nxbase-gtap.json",
+      "publisher": "nxbase",
+      "retrieved": "2026-10-10",
+      "filename": "nxbase_sets.xlsx",
+      "sha256": "0af4b1509e8589ed11d682dad453c4f4d25ada6a523f21d4c7a1b816920153e2"
+    },
+    "S36": {
+      "id": "S36",
+      "title": "GTAP-Power · heat and co-generation scope, technical note",
+      "url": "https://www.gtap.agecon.purdue.edu/resources/res_display.asp?RecordID=5938",
+      "publisher": "GTAP / Purdue University",
+      "retrieved": "2026-10-10",
+      "role": "Sections 1–2, printed pages 4–5; retained as a conservative qualification of the Power categories. No heat component is treated as a pure electricity subdivision.",
+      "filename": "power-note.pdf",
+      "sha256": "648749e0d0e2596dceead0df7978f9cccff4cad975a0675ede0b42a3be4d742f"
+    },
+    "S37": {
+      "id": "S37",
+      "title": "GTAP 12 · public regional definitions",
+      "url": "https://www.gtap.agecon.purdue.edu/databases/regions.aspx?Version=12.211",
+      "publisher": "GTAP / Purdue University",
+      "retrieved": "2026-10-10",
+      "filename": "regions.html",
+      "sha256": "ad6c34f1c95a7136b5940e255fa9a51dc707e50278c7ba1b7ca16d34dda07060"
+    },
+    "S38": {
+      "id": "S38",
+      "title": "GTAP 12 Power 2023 · local MARIO native index verification",
+      "url": "gtap-scope-metadata.json",
+      "publisher": "GTAP / Purdue University",
+      "retrieved": "2026-10-10",
+      "native_input_filename": "X.parquet",
+      "native_input_sha256": "36402e2cccd00cf5b8c260e78e1828e39ce1125d50158db9359fc7e9077008e7",
+      "role": "Region/Sector index only. No numerical observations included."
+    },
+    "P01": {
+      "id": "P01",
+      "title": "CPA 2.2 · official structure and explanatory notes",
+      "filename": "cpa2.2-CPA Ver. 2.2 - Structure and explanatory notes_EN.tsv",
+      "sha256": "a97027da3a158ed842e53e5f85c25b1e64b7d53696c7a8161ae31a495de27a02",
+      "url": "https://showvoc.op.europa.eu/semanticturkey/it.uniroma2.art.semanticturkey/st-core-services/Download/getFile?ctx_project=ESTAT_Statistical_classification_of_products_by_activity%2C_2.2_%28CPA_2.2%29&fileName=CPA+Ver.+2.2+-+Structure+and+explanatory+notes_EN.tsv",
+      "publisher": "Eurostat",
+      "retrieved": "2026-10-10",
+      "role": "All six levels and explicit parent codes, including corrected appended records."
+    },
+    "P02": {
+      "id": "P02",
+      "title": "CPA 2.2 · latest multilingual headings",
+      "filename": "cpa22-names.tsv",
+      "sha256": "41da641c531dd87b9b5d79f4a84a1e6f99705905a0deada1206da43f5f659840",
+      "url": "https://showvoc.op.europa.eu/semanticturkey/it.uniroma2.art.semanticturkey/st-core-services/Download/getFile?ctx_project=ESTAT_Statistical_classification_of_products_by_activity%2C_2.2_%28CPA_2.2%29&fileName=CPA2.2_Names_Multilingual.tsv",
+      "publisher": "Eurostat",
+      "retrieved": "2026-10-10",
+      "role": "Latest headings independently checked against the complete explanatory-notes structure."
+    },
+    "P03": {
+      "id": "P03",
+      "title": "CPA 2.1 · official RDF classification",
+      "filename": "cpa2.1-RDF_DATASET.zip",
+      "sha256": "594aac581a540392701b0076c62c4e59e5b4aa41d1ccef42446a0df43bd90846",
+      "url": "https://showvoc.op.europa.eu/semanticturkey/it.uniroma2.art.semanticturkey/st-core-services/Download/getFile?ctx_project=ESTAT_Statistical_classification_of_products_by_activity%2C_2.1_%28CPA_2.1%29&fileName=RDF_DATASET.zip",
+      "publisher": "Eurostat",
+      "retrieved": "2026-10-10",
+      "role": "Official headings, hierarchy and correspondence associations; exact association URIs retained."
+    },
+    "P04": {
+      "id": "P04",
+      "title": "CPA 2008 · official RDF classification and CPA 2.1 correspondence",
+      "filename": "cpa2008-CPA_2008.zip",
+      "sha256": "991eb81afb3b257ed9e51f5cac89820860280da48162fe7b7a9a572f0cdae1a8",
+      "url": "https://showvoc.op.europa.eu/semanticturkey/it.uniroma2.art.semanticturkey/st-core-services/Download/getFile?ctx_project=ESTAT_Statistical_classification_of_products_by_activity%2C_2008_%28CPA_2008%29&fileName=CPA_2008.zip",
+      "publisher": "Eurostat",
+      "retrieved": "2026-10-10",
+      "role": "Published RDF product/revision links, not numerical allocation weights."
+    },
+    "P05": {
+      "id": "P05",
+      "title": "CPA 2.1 → CPA 2.2 · official correspondence",
+      "filename": "cpa2.1-CPA Ver. 2.1 - CPA Ver. 2.2.tsv",
+      "sha256": "33be65f28782f221ce0fb77fa7281441bc4e3fd2ecc356ec1ff24c5cbfdee798",
+      "url": "https://showvoc.op.europa.eu/semanticturkey/it.uniroma2.art.semanticturkey/st-core-services/Download/getFile?ctx_project=ESTAT_Statistical_classification_of_products_by_activity%2C_2.1_%28CPA_2.1%29&fileName=CPA+Ver.+2.1+-+CPA+Ver.+2.2.tsv",
+      "publisher": "Eurostat",
+      "retrieved": "2026-10-10",
+      "role": "Forward and inverse tables agree on all 3,984 distinct leaf pairs. Derived degree flags are not publisher partial flags."
+    },
+    "P06": {
+      "id": "P06",
+      "title": "CPA 2002 → CPA 2008 · official historical correspondence",
+      "filename": "cpa02-cpa08.pdf",
+      "sha256": "0f397593954e402d4c7e069686d5eabd9daf4a44b8635c2a681d24b5576e6801",
+      "url": "https://www.insee.fr/fr/statistiques/fichier/2579545/table_CPA02-CPA08.pdf",
+      "publisher": "Eurostat / INSEE",
+      "retrieved": "2026-10-10",
+      "role": "Eurostat table dated 19 June 2008, archived by INSEE. Parsed by column coordinates; page and y position retained. Broad targets explicitly qualified."
+    },
+    "P16": {
+      "id": "P16",
+      "title": "EXIOBASE · complete public product identities",
+      "filename": "exiobase3p_exiobase3i.csv",
+      "sha256": "abed9987d12b3aa907323761d9610e607e370df609dfbedd7162c2054fd0989a",
+      "url": "https://github.com/EXIOBASE/00-concordances-public/blob/355e4da3f065ae145c601e784faa24e3f1746b5e/concordances/exiobase/exiobase3p_exiobase3i.csv",
+      "publisher": "EXIOBASE",
+      "retrieved": "2026-10-10",
+      "role": "All 200 product identities. The producer columns are not traversed in CPA product paths."
+    },
+    "P08": {
+      "id": "P08",
+      "title": "nxbase · actual native commodity identities",
+      "filename": "nxbase_sets.xlsx",
+      "sha256": "0af4b1509e8589ed11d682dad453c4f4d25ada6a523f21d4c7a1b816920153e2",
+      "url": "nxbase-products.json",
+      "publisher": "nxbase",
+      "retrieved": "2026-10-10",
+      "role": "Actual source-owned commodity rows and parents; parents are not expanded into members."
+    },
+    "P17": {
+      "id": "P17",
+      "title": "EXIOBASE Hybrid · product identities and 200 → 164 aggregation",
+      "filename": "hybrid-classifications.xlsx",
+      "sha256": "0b2571697a308877f5b6cff881e85598141bb4c324c61cac6e93192d0e046167",
+      "url": "https://zenodo.org/records/7244919/files/Classifications_v_3_3_18.xlsx?download=1",
+      "publisher": "EXIOBASE",
+      "retrieved": "2026-10-10",
+      "role": "Products_HSUTs (200), Products_HIOT (164), Correspondence_products: exact codes/aliases and explicit aggregation, not fuzzy label matching."
+    },
+    "P18": {
+      "id": "P18",
+      "title": "EXIOBASE · monetary product codes and aliases",
+      "filename": "exio3class.xlsx",
+      "sha256": "6a789314d8e984eee1352a0b87cdd5a5b2c618e6211e5a5582f7922afd99dbe2",
+      "url": "https://github.com/EXIOBASE/00-class/blob/main/class/exio3class.xlsx",
+      "publisher": "EXIOBASE",
+      "retrieved": "2026-10-10",
+      "role": "Publisher products sheet: all 200 product codes and aliases checked against Hybrid HSUT."
+    },
+    "P09": {
+      "id": "P09",
+      "title": "EPA · EXIOBASE to USEEIO commodity concordance",
+      "filename": "exio_to_useeio2_commodity_concordance.csv",
+      "sha256": "5090ee137d1044e7e88c0ef2c958ffb59992faf614c165c22290f0d089ec041f",
+      "url": "https://github.com/USEPA/USEEIO/blob/20bec26a49a0eaffe6cc4c1aca327b6e309f2bd7/import_emission_factors/concordances/exio_to_useeio2_commodity_concordance.csv",
+      "publisher": "US EPA",
+      "retrieved": "2026-10-10",
+      "role": "Published product-to-product binary correspondence, with both BEA schemas; not equivalence or allocation."
+    },
+    "P10": {
+      "id": "P10",
+      "title": "EPA · CEDA to USEEIO commodity concordance",
+      "filename": "ceda_to_useeio_commodity_concordance.csv",
+      "sha256": "5a33c370505a475eebb98aaed4ebdc85bd028943d67794de363a3c0e3b8a3a92",
+      "url": "https://github.com/USEPA/USEEIO/blob/20bec26a49a0eaffe6cc4c1aca327b6e309f2bd7/import_emission_factors/concordances/ceda_to_useeio_commodity_concordance.csv",
+      "publisher": "US EPA",
+      "retrieved": "2026-10-10",
+      "role": "Explicit CEDA/USEEIO product bridge. No producing-industry inversion."
+    },
+    "P11": {
+      "id": "P11",
+      "title": "EPA · GLORIA to USEEIO commodity concordance",
+      "filename": "GLORIA_to_useeio2_commodity_concordance.csv",
+      "sha256": "3ee5ed24b8b6995bde1fff1e89e69948d33eb2f62c6d2e1dd87e7b6680c4c071",
+      "url": "https://github.com/USEPA/USEEIO/blob/20bec26a49a0eaffe6cc4c1aca327b6e309f2bd7/import_emission_factors/concordances/GLORIA_to_useeio2_commodity_concordance.csv",
+      "publisher": "US EPA",
+      "retrieved": "2026-10-10",
+      "role": "Explicit GLORIA product-to-product bridge; this is separate from the activity editorial review."
+    },
+    "P12": {
+      "id": "P12",
+      "title": "FIGARO · CPA 2.1 product definitions",
+      "filename": "figaro-metadata.html",
+      "sha256": "6b87a3a90732f48e17b0bcd36d4a1805d2addbac44897fa04b047489116dea0c",
+      "url": "https://ec.europa.eu/eurostat/cache/metadata/en/naio_10_fg_esms.htm",
+      "publisher": "Eurostat",
+      "retrieved": "2026-10-10",
+      "role": "Published 64-product breakdown in CPA 2.1; native codes and exact labels retained."
+    },
+    "P13": {
+      "id": "P13",
+      "title": "WIOD 2016 · supply-use product classification",
+      "filename": "wiod-gd162.pdf",
+      "sha256": "d2137e66fd260cb08f8ce9d3e411f0f0772e8feffc93bdcc78f7c1798415266c",
+      "url": "https://www.rug.nl/ggdc/html_publications/memorandum/gd162.pdf",
+      "publisher": "WIOD / University of Groningen",
+      "retrieved": "2026-10-10",
+      "role": "International SUT native product-code aggregates; CPA nomenclature separate from industry NACE membership."
+    },
+    "P14": {
+      "id": "P14",
+      "title": "CPA 2.1 ↔ CPC 2.1 · official product correspondence",
+      "filename": "cpa21-cpc21.xlsx",
+      "sha256": "d6c19358750c1ffb16b6836086305b556b920bbbb0ff68aacb06540d55bbf95e",
+      "url": "https://unstats.un.org/unsd/classifications/Econ/tables/CPC/CPCv21_CPA21/CPA_2_1-CPC_2_1_final_26_April_2021.xlsx",
+      "publisher": "Eurostat / UNSD",
+      "retrieved": "2026-10-10",
+      "role": "Product-to-product correspondence issued by Eurostat; native subcategories and comments retained."
+    },
+    "P15": {
+      "id": "P15",
+      "title": "GTAP GSC3 · CPC 2.1 and ISIC Rev. 4 concordances",
+      "url": "https://www.gtap.agecon.purdue.edu/databases/contribute/concordinfo.asp",
+      "publisher": "GTAP / Purdue University",
+      "retrieved": "2026-10-10",
+      "filename": "concordance.html",
+      "sha256": "a64b8054f8b581145d47e3d2877b5fe4dffad755f2d0e42306c5996374c34f3c"
+    },
+    "P19": {
+      "id": "P19",
+      "title": "nxbase · qualified product-origin and crop reviews",
+      "filename": "product_production_reviews.json",
+      "sha256": "18e69666296524aa02567dbb2002b286b7fb8fe4518742bd110e11f9a7e8a1bf",
+      "url": "product-production-reviews.json",
+      "publisher": "nxbase",
+      "retrieved": "2026-10-10",
+      "role": "Explicit product-to-producer constraints and current product refinements, separate from product-only paths. Editorial review, not publisher-issued equivalence."
+    },
+    "S23": {
+      "id": "S23",
+      "publisher": "EXIOBASE",
+      "title": "EXIOBASE Hybrid 3.3.18 activity classifications",
+      "url": "https://zenodo.org/records/7244919/files/Classifications_v_3_3_18.xlsx?download=1",
+      "filename": "Classifications_v_3_3_18.xlsx",
+      "sha256": "0b2571697a308877f5b6cff881e85598141bb4c324c61cac6e93192d0e046167",
+      "retrieved": "2026-10-10",
+      "role": "Published native activity codes and labels; no activity/product identity implied."
+    },
+    "S24": {
+      "id": "S24",
+      "publisher": "nxbase",
+      "title": "nxbase · EXIOBASE Hybrid activity parent chains",
+      "url": "nxbase-exiobase-hybrid.json",
+      "filename": "nxbase_sets.xlsx",
+      "sha256": "0af4b1509e8589ed11d682dad453c4f4d25ada6a523f21d4c7a1b816920153e2",
+      "retrieved": "2026-10-10",
+      "role": "Read-only snapshot of the existing EX3h activity parent chains. No parent expansion or commodity traversal."
+    },
+    "S25": {
+      "id": "S25",
+      "publisher": "EXIOBASE",
+      "title": "EXIOBASE 3 monetary industry classifications",
+      "url": "https://github.com/EXIOBASE/00-class/blob/main/class/exio3class.xlsx",
+      "filename": "exio3class.xlsx",
+      "sha256": "6a789314d8e984eee1352a0b87cdd5a5b2c618e6211e5a5582f7922afd99dbe2",
+      "retrieved": "2026-10-10",
+      "role": "Published industry codes, labels and aliases. Shared Hybrid identities require matching code, label and alias in both publisher classifications."
+    }
+  },
+  "compiled_sha256": "5e019e13fe06ad51894b9196a9c240760a5c335d8dd690147804ee53ed015bd3"
+}

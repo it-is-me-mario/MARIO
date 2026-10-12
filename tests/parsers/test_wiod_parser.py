@@ -693,3 +693,20 @@ def test_public_parse_wiod_sut_supports_legacy_row_region_mode(monkeypatch, tmp_
     assert database.U.shape == (6, 4)
     assert database.Y.shape == (10, 12)
     assert database.V.shape == (6, 10)
+
+
+def test_wiod_international_sut_preserves_signed_factor_rows_on_final_uses():
+    supply, use = _wiod_sut_frames()
+    columns = ["CONS_h", "CONS_np", "CONS_g", "GFCF", "INVEN", "EXP"]
+    taxes = [2.0, -0.5, 3.0, 4.0, 5.0, 6.0]
+    mask = (use["REP"] == "ITA") & (use["PAR"] == "ZZZ")
+    use.loc[mask & (use["CPA"] == "TXSP"), columns] = taxes
+    use.loc[mask & (use["CPA"] == "PURR"), columns] = [0, 0, 0, 0, 0, 7]
+    matrices, _, _, _ = build_wiod_sut_from_frames(
+        supply, use, year=2014, source_path="intsut14_nov16.xlsb"
+    )
+    vy = matrices["baseline"]["VY"]
+    italy = vy.xs("ITA", level="Region", axis=1)
+    assert italy.loc["taxes less subsidies on products"].tolist() == taxes
+    assert float(italy.loc["Direct purchases abroad by residents"].sum()) == 7.0
+    assert float(vy.xs("AUS", level="Region", axis=1).loc["taxes less subsidies on products"].sum()) == 0.0

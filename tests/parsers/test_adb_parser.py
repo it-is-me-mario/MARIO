@@ -427,3 +427,32 @@ def test_public_parse_adb_supports_srio_workbooks_when_year_is_given(tmp_path):
     assert database.Z.shape == (4, 4)
     assert database.Y.shape == (4, 6)
     assert database.V.shape == (7, 4)
+
+
+def test_adb_emissions_aggregate_additional_economies_into_target_row(tmp_path):
+    from mario.parsers.adb import _load_adb_emissions_extensions
+    source = _write_adb_emissions_workbook(tmp_path / "2024 emissions.xlsx", year=2024, regions=["AAA", "BBB", "RoW"])
+    sectors = ["Agriculture, hunting, forestry, and fishing", "Manufacturing"]
+    axis = pd.MultiIndex.from_product([["AAA", "RoW"], ["Sector"], sectors])
+    fd = pd.MultiIndex.from_product([["AAA", "RoW"], ["Consumption category"], list(ADB_FINAL_DEMAND_LABELS.values())[:5]])
+    E, EY, units, labels, notes = _load_adb_emissions_extensions(source, sector_axis=axis, final_demand_axis=fd, expected_year=2024)
+    assert E.loc["CO2 | Energy production", ("AAA", "Sector", sectors[0])] == 1
+    assert E.loc["CO2 | Energy production", ("RoW", "Sector", sectors[0])] == 3 + 5
+    assert E.loc["CO2 | Energy production", ("RoW", "Sector", sectors[1])] == 4 + 6
+    assert E.loc["CO2 | Energy production"].sum() == sum(range(1, 7))
+    assert EY.loc["CO2 | Energy production", ("RoW", "Consumption category", "Households")] == 106 + 111
+    assert EY.loc["CO2 | Energy production"].sum() == sum(range(101, 116))
+    assert any("aggregated into RoW" in note for note in notes)
+
+
+def test_adb_emissions_do_not_fold_row_when_an_individual_economy_is_missing(tmp_path):
+    from mario.parsers.adb import _load_adb_emissions_extensions
+    source = _write_adb_emissions_workbook(tmp_path / "2024 emissions.xlsx", year=2024, regions=["AAA", "BBB", "RoW"])
+    sectors = ["Agriculture, hunting, forestry, and fishing", "Manufacturing"]
+    axis = pd.MultiIndex.from_product([["AAA", "CCC", "RoW"], ["Sector"], sectors])
+    fd = pd.MultiIndex.from_product([["AAA", "CCC", "RoW"], ["Consumption category"], ["Households"]])
+    E, EY, units, labels, notes = _load_adb_emissions_extensions(source, sector_axis=axis, final_demand_axis=fd, expected_year=2024)
+    assert E.loc["CO2 | Energy production", ("RoW", "Sector", sectors[0])] == 5
+    assert E.loc["CO2 | Energy production", ("CCC", "Sector", sectors[0])] == 0
+    assert any("does not cover database regions" in note for note in notes)
+    assert not any("aggregated into RoW" in note for note in notes)

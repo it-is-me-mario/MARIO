@@ -1,0 +1,290 @@
+/* Chart drawing styles adapted from the eNextGen electricity benchmark (CC BY 4.0). */
+  .fig1 *{box-sizing:border-box}
+  .fig1 h3{font-size:1.16rem; font-weight:650; margin:0 0 3px; letter-spacing:-.01em; text-wrap:balance}
+  .fig1 .sub{font-size:.85rem; color:var(--ink-2); margin:0 0 13px; line-height:1.45; max-width:74ch}
+  .fig1 .sub b.foss{color:var(--foss)} .fig1 .sub b.lowc{color:var(--lowc)}
+  .f1-ctrl{display:flex; flex-wrap:wrap; gap:10px 14px; align-items:center; margin-bottom:10px}
+  .f1-seg{display:inline-flex; border:1px solid var(--ring); border-radius:8px; overflow:hidden}
+  .f1-seg button{font:inherit; font-size:.78rem; color:var(--ink-2); background:transparent; border:0; padding:5px 12px; cursor:pointer; white-space:nowrap}
+  .f1-seg button[aria-pressed="true"], .f1-seg button.on{background:var(--ink); color:var(--surface-1)}
+  .f1-seg .lab{font-size:.66rem; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); padding:0 8px 0 2px; align-self:center}
+  .f1-spacer{flex:1 1 20px}
+  .f1-fs{font:inherit; font-size:.78rem; color:var(--ink-2); background:transparent; border:1px solid var(--ring); border-radius:8px; padding:5px 11px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap}
+  .f1-fs:hover{background:var(--btn)}
+  .f1-legend{display:flex; flex-wrap:wrap; gap:6px 16px; align-items:center; margin:2px 0 10px; font-size:.74rem; color:var(--ink-2)}
+  .f1-legend .it{display:inline-flex; align-items:center; gap:6px}
+  .f1-legend .sw{width:22px; height:12px; border-radius:3px; border:1.5px solid var(--lowc); background:color-mix(in srgb, var(--lowc) 22%, transparent); flex:0 0 auto}
+  .f1-legend .sw.f{border-color:var(--foss); background:color-mix(in srgb, var(--foss) 22%, transparent)}
+  .f1-legend svg{overflow:visible; flex:0 0 auto}
+  .f1-srcs{display:flex; flex-wrap:wrap; gap:5px 7px; align-items:center; margin:0 0 12px}
+  .f1-srclab{font-size:.64rem; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); margin-right:1px}
+  .f1-srcdiv{width:1px; align-self:stretch; background:var(--ring); margin:1px 4px}
+  .f1-src{font:inherit; font-size:.72rem; color:var(--ink-2); background:transparent; border:1px solid var(--ring); border-radius:6px; padding:2px 8px; cursor:pointer; user-select:none; display:inline-flex; align-items:center; gap:5px}
+  .f1-src:hover{background:var(--btn)} .f1-src:focus-visible{outline:2px solid var(--lowc); outline-offset:1px}
+  .f1-src[aria-pressed="false"]{opacity:.42} .f1-src[aria-pressed="false"] .nm{text-decoration:line-through}
+  .f1-src .dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto;background:var(--lowc)}
+  .f1-src.lit .dot{background:var(--muted)}
+  .f1-wrap{overflow-x:auto}
+  .f1-wrap svg.plot{display:block; width:100%; height:auto; min-width:520px}
+  .fig1 svg text{font-family:inherit}
+  .f1-grid line{stroke:var(--grid); stroke-width:1}
+  .f1-axis text{fill:var(--muted); font-size:11px}
+  .f1-ylab{fill:var(--ink-2); font-size:11.5px}
+  .f1-xtitle{fill:var(--muted); font-size:11px}
+  .f1-row:hover .f1-rowbg{fill:var(--ink); opacity:.045}
+  .f1-rowbg{fill:transparent}
+  .f1-box{stroke-width:1.6}
+  .f1-box.foss{stroke:var(--foss); fill:color-mix(in srgb, var(--foss) 17%, transparent)}
+  .f1-box.lowc{stroke:var(--lowc); fill:color-mix(in srgb, var(--lowc) 17%, transparent)}
+  .f1-wk{stroke-width:1.4} .f1-wk.foss{stroke:var(--foss)} .f1-wk.lowc{stroke:var(--lowc)}
+  .f1-med{stroke-width:2.4} .f1-med.foss{stroke:var(--foss)} .f1-med.lowc{stroke:var(--lowc)}
+  .f1-mean{stroke-width:1.4; stroke-dasharray:2 2; opacity:.85} .f1-mean.foss{stroke:var(--foss)} .f1-mean.lowc{stroke:var(--lowc)}
+  .f1-out{opacity:.5} .f1-out.foss{fill:var(--foss)} .f1-out.lowc{fill:var(--lowc)}
+  .f1-pt{opacity:.92} .f1-pt.foss{fill:var(--foss)} .f1-pt.lowc{fill:var(--lowc)}
+  .f1-hit{fill:transparent; cursor:pointer}
+  .f1-note{font-size:.76rem; color:var(--muted); padding:10px 2px}
+  .f1-tt{position:fixed; z-index:30; pointer-events:none; background:var(--ink); color:var(--surface-1);
+    font-size:.76rem; line-height:1.4; padding:7px 10px; border-radius:6px; box-shadow:0 3px 12px rgba(0,0,0,.32); max-width:250px}
+  .f1-tt b{font-weight:650} .f1-tt .v{font-variant-numeric:tabular-nums} .f1-tt .r{color:var(--surface-1); opacity:.72}
+  .f1-tablewrap{overflow-x:auto; margin-top:2px}
+  table.f1-tab{border-collapse:collapse; width:100%; font-size:.77rem}
+  table.f1-tab th, table.f1-tab td{padding:5px 9px; text-align:right; border-bottom:1px solid var(--grid); font-variant-numeric:tabular-nums; white-space:nowrap}
+  table.f1-tab th:first-child, table.f1-tab td:first-child{text-align:left; font-variant-numeric:normal; position:sticky; left:0; background:var(--surface-1)}
+  table.f1-tab thead th{color:var(--ink-2); font-weight:600; border-bottom:1.5px solid var(--axis)}
+  .fig1 .foot{font-size:.72rem; color:var(--muted); margin:12px 0 0; line-height:1.45}
+  .fig1 .foot a{color:inherit; text-decoration:underline; text-underline-offset:2px}
+  .fig1:fullscreen{max-width:none; width:100vw; height:100vh; overflow-y:auto; border:0; border-radius:0; padding:26px clamp(20px,5vw,80px)}
+  .fig1:fullscreen .f1-wrap svg.plot{min-width:0}
+  .fig1 [hidden]{display:none !important}
+
+  .fig2 *{box-sizing:border-box}
+  .fig2 h3{font-size:1.16rem; font-weight:650; margin:0 0 3px; letter-spacing:-.01em; text-wrap:balance}
+  .fig2 .sub{font-size:.85rem; color:var(--ink-2); margin:0 0 13px; line-height:1.45; max-width:70ch}
+  .fig2 .sub b.mono{color:var(--mono)} .fig2 .sub b.phys{color:var(--phys)}
+  .f2-ctrl{display:flex; flex-wrap:wrap; gap:10px 14px; align-items:center; margin-bottom:10px}
+  .f2-seg{display:inline-flex; border:1px solid var(--ring); border-radius:8px; overflow:hidden}
+  .f2-seg button{font:inherit; font-size:.78rem; color:var(--ink-2); background:transparent; border:0; padding:5px 12px; cursor:pointer; white-space:nowrap}
+  .f2-seg button[aria-pressed="true"], .f2-seg button.on{background:var(--ink); color:var(--surface-1)}
+  .f2-seg .lab{font-size:.66rem; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); padding:0 8px 0 2px; align-self:center}
+  .f2-spacer{flex:1 1 20px}
+  .f2-fs{font:inherit; font-size:.78rem; color:var(--ink-2); background:transparent; border:1px solid var(--ring); border-radius:8px; padding:5px 11px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap}
+  .f2-fs:hover{background:var(--btn)}
+  .f2-countries{display:none}
+  .f2-clab{font-size:.66rem; letter-spacing:.04em; text-transform:uppercase; color:var(--muted)}
+  .f2-cdrop{position:relative; display:inline-block}
+  .f2-cdrop-btn{font:inherit; font-size:.78rem; color:var(--ink); background:transparent; border:1px solid var(--ring); border-radius:8px; padding:5px 10px; cursor:pointer; display:inline-flex; align-items:center; gap:8px; white-space:nowrap; min-width:148px}
+  .f2-cdrop-btn:hover{background:var(--btn)}
+  .f2-cdrop-btn .cval{color:var(--ink-2); flex:1; text-align:left}
+  .f2-cdrop-btn .ccar{transition:transform .15s} .f2-cdrop-btn[aria-expanded="true"] .ccar{transform:rotate(180deg)}
+  .f2-cdrop-panel{position:absolute; top:calc(100% + 6px); left:0; z-index:25; width:252px; max-height:332px; display:flex; flex-direction:column;
+    background:var(--surface-1); border:1px solid var(--ring); border-radius:10px; box-shadow:0 8px 26px rgba(0,0,0,.22); padding:8px}
+  .f2-cdrop-actions{display:flex; gap:6px; margin-bottom:7px}
+  .f2-cdrop-actions button{flex:1; font:inherit; font-size:.72rem; color:var(--ink-2); background:transparent; border:1px solid var(--ring); border-radius:7px; padding:4px 8px; cursor:pointer}
+  .f2-cdrop-actions button:hover{background:var(--btn)}
+  .f2-cdrop-actions button.on{background:var(--ink); color:var(--surface-1); border-color:var(--ink)}
+  .f2-cdrop-list{overflow-y:auto; display:flex; flex-direction:column; gap:1px}
+  .f2-copt{display:flex; align-items:center; gap:9px; padding:5px 7px; border-radius:6px; cursor:pointer; font-size:.8rem; color:var(--ink)}
+  .f2-copt:hover{background:var(--btn)}
+  .f2-copt .box{flex:0 0 auto; width:15px; height:15px; border:1.5px solid var(--axis); border-radius:4px; display:inline-flex; align-items:center; justify-content:center}
+  .f2-copt[aria-checked="true"] .box{background:var(--phys); border-color:var(--phys)}
+  .f2-copt .box svg{opacity:0} .f2-copt[aria-checked="true"] .box svg{opacity:1}
+  .f2-copt .iso{color:var(--muted); font-variant-numeric:tabular-nums; font-size:.72rem; margin-left:auto; letter-spacing:.03em}
+  .f2-copt.dim{opacity:.5}
+  .f2-cdrop-btn:focus-visible, .f2-copt:focus-visible, .f2-cdrop-actions button:focus-visible{outline:2px solid var(--phys); outline-offset:1px}
+  .f2-legend{display:flex; flex-direction:column; gap:4px; align-items:flex-start; margin:2px 0 10px}
+  .f2-leg-row{display:flex; flex-wrap:wrap; gap:5px 13px; align-items:center}
+  .f2-leg{display:inline-flex; align-items:center; gap:6px; font-size:.76rem; color:var(--ink-2)}
+  .f2-leg.src{cursor:pointer; user-select:none; border-radius:5px; padding:1px 4px; margin:-1px -4px}
+  .f2-leg.src:hover{background:color-mix(in srgb, var(--ink) 7%, transparent)}
+  .f2-leg.src:focus-visible{outline:2px solid var(--phys); outline-offset:1px}
+  .f2-leg.off{opacity:.4} .f2-leg.off .lg-nm{text-decoration:line-through}
+  .f2-leg svg{overflow:visible; flex:0 0 auto}
+  .f2-typehead{font-size:.7rem; letter-spacing:.03em; text-transform:uppercase; font-weight:600; margin-right:1px}
+  .f2-typehead.mono{color:var(--mono)} .f2-typehead.phys{color:var(--phys)}
+  .f2-wrap{overflow-x:auto}
+  .f2-wrap svg.plot{display:block; width:100%; height:auto; min-width:520px}
+  .fig2 svg text{font-family:inherit}
+  .f2-grid line{stroke:var(--grid); stroke-width:1}
+  .f2-axis text{fill:var(--muted); font-size:11px}
+  .f2-ylab{fill:var(--ink-2); font-size:11.5px}
+  .f2-xtitle{fill:var(--muted); font-size:11px}
+  .f2-mk{fill:none; stroke-width:1.8}
+  .f2-mk.mono{stroke:var(--mono)} .f2-mk.phys{stroke:var(--phys)}
+  .f2-hit{fill:transparent; cursor:pointer}
+  .f2-row:hover .f2-rowbg{fill:var(--ink); opacity:.045}
+  .f2-rowbg{fill:transparent}
+  .f2-note{font-size:.76rem; color:var(--muted); padding:10px 2px}
+  .f2-tt{position:fixed; z-index:30; pointer-events:none; background:var(--ink); color:var(--surface-1);
+    font-size:.76rem; line-height:1.4; padding:6px 9px; border-radius:6px; box-shadow:0 3px 12px rgba(0,0,0,.32); max-width:230px}
+  .f2-tt b{font-weight:650} .f2-tt .v{font-variant-numeric:tabular-nums}
+  .f2-tablewrap{overflow-x:auto; margin-top:2px}
+  table.f2-tab{border-collapse:collapse; width:100%; font-size:.77rem}
+  table.f2-tab th, table.f2-tab td{padding:5px 8px; text-align:right; border-bottom:1px solid var(--grid); font-variant-numeric:tabular-nums; white-space:nowrap}
+  table.f2-tab th:first-child, table.f2-tab td:first-child{text-align:left; font-variant-numeric:normal; position:sticky; left:0; background:var(--surface-1)}
+  table.f2-tab thead th{color:var(--ink-2); font-weight:600; border-bottom:1.5px solid var(--axis)}
+  .fig2 .foot{font-size:.72rem; color:var(--muted); margin:12px 0 0; line-height:1.45}
+  .fig2 .foot a{color:inherit; text-decoration:underline; text-underline-offset:2px}
+  .fig2:fullscreen{max-width:none; width:100vw; height:100vh; overflow-y:auto; border:0; border-radius:0; padding:26px clamp(20px,5vw,80px)}
+  .fig2:fullscreen .sub{max-width:80ch}
+  .fig2:fullscreen .f2-wrap svg.plot{min-width:0}
+  .fig2 [hidden]{display:none !important}
+
+/* Match the documentation's grid, logo palette and explicit theme switch. */
+.mario-article .fig1,
+.mario-article .fig2 {
+  --surface-1: var(--surface);
+  --ink-2: var(--ink-soft);
+  --muted: var(--ink-muted);
+  --grid: var(--line);
+  --axis: var(--line-strong);
+  --ring: var(--line);
+  --btn: var(--surface-2);
+  --mono: var(--ribbon-orange-deep);
+  --phys: var(--ribbon-cyan-deep);
+  --foss: var(--ribbon-orange-deep);
+  --lowc: var(--ribbon-green-deep);
+  color-scheme: inherit;
+  color: var(--ink);
+  background: var(--surface);
+  font-family: inherit;
+  min-width: 0;
+  margin: var(--cell) 0;
+  padding: var(--cell);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--accent);
+  border-radius: var(--radius);
+}
+:root[data-theme="dark"] .fig1,
+:root[data-theme="dark"] .fig2 {
+  --mono: var(--accent-alt);
+  --phys: var(--ribbon-cyan);
+  --foss: var(--accent-alt);
+  --lowc: var(--ribbon-green);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .fig1,
+  :root:not([data-theme="light"]) .fig2 {
+    --mono: var(--accent-alt);
+    --phys: var(--ribbon-cyan);
+    --foss: var(--accent-alt);
+    --lowc: var(--ribbon-green);
+  }
+}
+.mario-article .fig1 h3,
+.mario-article .fig2 h3 { margin-top: 0; font-size: 1.15rem; }
+.mario-article .fig1 .sub,
+.mario-article .fig2 .sub { font-size: .9rem; line-height: 1.5; }
+.mario-article .fig1 .foot,
+.mario-article .fig2 .foot { font-size: .82rem; line-height: 1.5; }
+.f1-seg, .f2-seg { max-width: 100%; overflow-x: auto; border-radius: var(--radius); }
+.f1-seg button, .f2-seg button, .f1-fs, .f2-fs, .f1-src { font-size: .82rem; min-height: 2rem; }
+.f1-fs, .f2-fs { border-radius: var(--radius); }
+.f1-seg .lab, .f2-seg .lab { font-size: .72rem; }
+.fig1 button:focus-visible, .fig2 button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.f1-src { padding: .2rem .6rem; }
+.f2-countries { display: block; margin-bottom: .75rem; }
+.f2-cdrop-btn { font-size: .85rem; }
+.f2-cdrop-panel { width: min(252px, 70vw); }
+.f2-cdrop-actions button { font-size: .78rem; }
+.f2-copt { font-size: .85rem; }
+.f2-legend { margin-bottom: .75rem; }
+.f2-leg, .f1-legend { font-size: .82rem; }
+.f2-leg-row { gap: .4rem .9rem; }
+.f2-typehead { font-size: .74rem; }
+.f1-tablewrap, .f2-tablewrap, .f1-wrap, .f2-wrap { max-width: 100%; overscroll-behavior-x: contain; }
+.mario-article table.f1-tab, .mario-article table.f2-tab { width: 100%; margin: 0; font-size: .85rem; }
+.mario-article table.f1-tab th, .mario-article table.f1-tab td,
+.mario-article table.f2-tab th, .mario-article table.f2-tab td { padding: .4rem .6rem; }
+.mario-article .fig1:fullscreen, .mario-article .fig2:fullscreen { margin: 0; padding: calc(2 * var(--cell)); }
+
+.benchmark-jump, .benchmark-links { display: flex; flex-wrap: wrap; gap: .75rem; margin: var(--cell) 0; }
+.benchmark-jump a, .benchmark-links a {
+  display: inline-flex; align-items: center; gap: 1rem;
+  padding: .7rem 1rem; border: 1px solid var(--line-strong);
+  border-radius: var(--radius); color: var(--ink); background: var(--surface-2);
+  text-decoration: none; font-size: .95rem;
+}
+.benchmark-jump a:hover, .benchmark-links a:hover { border-color: var(--ink); }
+.benchmark-jump a span { margin-left: auto; }
+.benchmark-coverage { margin: var(--cell) 0; padding: var(--cell); border: 1px solid var(--line); border-radius: var(--radius); }
+.benchmark-controls { display: flex; flex-wrap: wrap; gap: .75rem; }
+.benchmark-controls label { flex: 1 1 9rem; min-width: 0; font-size: .82rem; color: var(--ink-soft); }
+.benchmark-controls select {
+  display: block; width: 100%; margin-top: .35rem; padding: .6rem;
+  min-width: 0; font: inherit; font-size: .9rem;
+  color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius);
+}
+.benchmark-controls select:focus-visible, .benchmark-bar:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.mario-article p.benchmark-catalogue-note { font-size: .84rem; color: var(--ink-muted); margin: .9rem 0 var(--cell); }
+.benchmark-coverage-layout { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: var(--cell); }
+.mario-article p.benchmark-chart-label { margin: 0 0 .6rem; font-size: .82rem; font-weight: 600; color: var(--ink-soft); }
+.benchmark-coverage-bars { display: flex; flex-direction: column; gap: .35rem; max-height: 26rem; overflow-y: auto; padding: 3px; overscroll-behavior-y: contain; }
+.benchmark-bar {
+  display: grid; grid-template-columns: minmax(7rem, .85fr) minmax(2rem, 1fr) 2rem;
+  align-items: center; gap: .6rem; padding: .6rem;
+  font: inherit; text-align: left; color: var(--ink); background: transparent;
+  border: 1px solid transparent; border-radius: var(--radius); cursor: pointer;
+}
+.benchmark-bar:hover { background: var(--surface-2); }
+.benchmark-bar[aria-pressed="true"] { background: var(--surface-2); border-color: var(--line-strong); }
+.benchmark-bar-label { display: flex; flex-direction: column; font-size: .85rem; min-width: 0; }
+.benchmark-bar-label strong { font-weight: 600; }
+.benchmark-bar-label > span { font-size: .74rem; color: var(--ink-muted); overflow-wrap: anywhere; }
+.benchmark-bar-track { height: .55rem; background: var(--surface-2); border-radius: 2px; }
+.benchmark-bar-track > span { display: block; height: 100%; min-width: 2px; background: var(--accent); border-radius: 2px; }
+.benchmark-bar[aria-pressed="true"] .benchmark-bar-track > span { background: var(--accent-alt); }
+.benchmark-bar-value { font-size: .85rem; text-align: right; font-variant-numeric: tabular-nums; }
+.benchmark-profile { min-width: 0; padding: 1rem; background: var(--surface-2); border-radius: var(--radius); align-self: start; }
+.mario-article .benchmark-profile h3 { margin: 0; font-size: 1.1rem; }
+.mario-article p.benchmark-profile-version { font-size: .85rem; color: var(--ink-muted); margin: .3rem 0 1rem; }
+.benchmark-profile-metrics { margin: 0 0 1rem; }
+.benchmark-profile-metrics > div { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; padding: .65rem 0; border-bottom: 1px solid var(--line); }
+.benchmark-profile-metrics dt { font-size: .8rem; color: var(--ink-muted); font-weight: 400; }
+.benchmark-profile-metrics dd { margin: 0; font-size: .85rem; overflow-wrap: anywhere; }
+.benchmark-parser-link { font-size: .85rem; }
+.benchmark-geographies { margin-top: 1rem; font-size: .85rem; }
+.benchmark-geographies summary { cursor: pointer; }
+.mario-article .benchmark-geographies ul { max-height: 16rem; overflow-y: auto; padding: 0; margin: .7rem 0 0; list-style: none; }
+.benchmark-geographies li { display: flex; justify-content: space-between; gap: 1rem; padding: .3rem 0; font-size: .8rem; }
+.benchmark-geographies code { font-size: .72rem; }
+.mario-article p.benchmark-empty { font-size: .9rem; color: var(--ink-muted); }
+.benchmark-pending { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--cell); margin: var(--cell) 0; padding-top: var(--cell); border-top: 1px solid var(--line); }
+.benchmark-pending strong { font-size: .95rem; }
+.mario-article .benchmark-pending p { font-size: .9rem; color: var(--ink-soft); margin: .5rem 0 0; }
+.benchmark-methods { margin: var(--cell) 0 calc(2 * var(--cell)); border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2); }
+.benchmark-methods summary { padding: 1rem; cursor: pointer; font-size: .95rem; font-weight: 600; }
+.benchmark-methods summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.benchmark-methods dl { padding: 0 1rem 1rem; margin: 0; }
+.benchmark-methods dt { font-size: .9rem; font-weight: 600; margin: .8rem 0 .4rem; }
+.benchmark-methods dd { font-size: .9rem; color: var(--ink-soft); margin: 0; }
+.benchmark-equation { display: block; margin: .5rem 0; font-variant-numeric: tabular-nums; color: var(--ink); }
+@media (max-width: 900px) {
+  .benchmark-coverage-layout { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 540px) {
+  .mario-article .fig1, .mario-article .fig2, .benchmark-coverage { padding: calc(.5 * var(--cell)); }
+  .benchmark-jump { flex-direction: column; }
+  .benchmark-pending { grid-template-columns: minmax(0, 1fr); }
+  .f1-spacer, .f2-spacer { display: none; }
+  .f1-seg button, .f2-seg button { padding: .4rem .6rem; }
+  .benchmark-bar { grid-template-columns: minmax(6rem, 1fr) minmax(2rem, 1fr) 2rem; gap: .4rem; padding: .5rem .3rem; }
+}
+
+/* Preserve legible SVG labels; narrow screens scroll inside the plot. */
+.f1-wrap svg.plot { min-width: 760px; }
+.f2-wrap svg.plot { min-width: 720px; }
+.f1-axis text, .f1-xtitle, .f2-axis text, .f2-xtitle { font-size: 14px; }
+.f1-ylab { font-size: 15px; }
+.f2-ylab { font-size: 14px; }
+.benchmark-chart-hint { display: none; }
+@media (max-width: 540px) {
+  .mario-article p.benchmark-chart-hint { display: block; font-size: .82rem; color: var(--ink-muted); margin: .75rem 0; }
+}
+
+/* Chart boxes follow the benchmark article's wider text column. */
+.mario-article .benchmark-wide {
+  width: 100%;
+  margin-block: var(--cell);
+}
+.mario-article .benchmark-wide .fig1,
+.mario-article .benchmark-wide .fig2 { margin: 0; }

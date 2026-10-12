@@ -6,6 +6,8 @@ __pycache__/
 ~$*
 .vscode
 *.zip
+!doc/source/_static/data/supporting_files/iot_export_csv.zip
+!doc/source/_static/data/supporting_files/iot_export_parquet.zip
 amin_test.py
 temp_folder
 doc/build
@@ -154,3 +156,6 @@ dmypy.json
 
 # MARIO live-fetch API keys (never commit real keys)
 mario/settings/api_keys.yaml
+
+# Private inputs for documentation database set profiles
+doc/database_catalogue.local.json

@@ -380,9 +380,15 @@ def _dense_or_sparse_frame_from_hdf5(
     index,
     columns,
     block_size: int = 64,
+    transpose: bool = False,
 ) -> pd.DataFrame:
     """Read one large HDF5 matrix into a pandas sparse dataframe block by block."""
     row_all = np.array_equal(row_positions, np.arange(dataset.shape[0], dtype=np.int64))
+    # V1 bundles compress 257-column chunks. Reading only 64 columns at a time
+    # decompresses the same chunks repeatedly. Keep each read bounded to 128 MiB.
+    if dataset.chunks:
+        max_columns = max(1, (128 * 1024**2) // (dataset.shape[0] * dataset.dtype.itemsize))
+        block_size = max(block_size, min(dataset.chunks[1], max_columns))
     data_chunks: list[np.ndarray] = []
     row_chunks: list[np.ndarray] = []
     col_chunks: list[np.ndarray] = []
@@ -390,7 +396,10 @@ def _dense_or_sparse_frame_from_hdf5(
     for local_start in range(0, len(column_positions), block_size):
         local_stop = min(local_start + block_size, len(column_positions))
         column_block = column_positions[local_start:local_stop]
-        block = dataset[:, column_block]
+        if np.all(np.diff(column_block) == 1):
+            block = dataset[:, int(column_block[0]):int(column_block[-1]) + 1]
+        else:
+            block = dataset[:, column_block]
         if not row_all:
             block = block[row_positions, :]
         nz_rows, nz_cols = np.nonzero(block)
@@ -409,7 +418,11 @@ def _dense_or_sparse_frame_from_hdf5(
         rows = np.array([], dtype=np.int64)
         cols = np.array([], dtype=np.int64)
 
-    matrix = coo_matrix((data, (rows, cols)), shape=(len(index), len(columns))).tocsr()
+    matrix = coo_matrix((data, (rows, cols)), shape=(len(row_positions), len(column_positions))).tocsr()
+    if transpose:
+        # MATLAB v7.3 reverses the stored axes. Transpose while sparse: a dataframe
+        # transpose can otherwise densify a full 32,000-by-32,000 matrix.
+        matrix = matrix.T
     return pd.DataFrame.sparse.from_spmatrix(matrix, index=index, columns=columns).fillna(0.0)
 
 
@@ -792,6 +805,7 @@ def parse_emerging_iot(
                 column_positions=sector_positions,
                 index=sector_axis,
                 columns=sector_axis,
+                transpose=True,
             )
 
             Y_raw = _dense_or_sparse_frame_from_hdf5(
@@ -947,6 +961,7 @@ def parse_emerging_iot(
             column_positions=sector_positions,
             index=sector_axis,
             columns=sector_axis,
+            transpose=True,
         )
 
         Y_raw = _dense_or_sparse_frame_from_hdf5(

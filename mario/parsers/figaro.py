@@ -381,11 +381,32 @@ def _download_figaro_api_frame(
         return pd.read_csv(cache_file)
 
     dimensions = _load_figaro_dimensions(dataflow, unit=unit, session=session, timeout=timeout)
-    origins, destinations = _resolve_api_countries(dimensions, countries=countries)
-    if include_dom and "DOM" in dimensions.get("c_orig", []):
-        origins = [*origins, "DOM"]
+    # Eurostat supply dataflows encode domestic output by geo, while use
+    # and IOT dataflows distinguish origin and destination. A domestic supply
+    # observation belongs to the same region on both axes of S.
+    domestic_supply = "geo" in dimensions and "c_orig" not in dimensions
+    if domestic_supply:
+        if row_dim != "cpa2_1" or col_dim != "nace_r2":
+            raise WrongInput("Unexpected FIGARO single-geography dataflow layout.")
+        available = dimensions["geo"]
+        requested = available if countries is None else [_to_api_region_code(str(c).upper()) for c in ([countries] if isinstance(countries, str) else countries)]
+        missing = sorted(set(requested).difference(available))
+        if missing:
+            raise WrongInput(f"Requested FIGARO countries are not available: {missing}.")
+        payload = _request_figaro_json(dataflow, params={"time": year, "unit": unit}, timeout=timeout, session=session)
+        frame = _jsonstat_to_frame(payload)
+        if not frame.empty:
+            frame = frame.loc[frame["geo"].isin(requested)].copy()
+            frame["c_orig"] = frame["geo"]
+            frame["c_dest"] = frame["geo"]
+        frames = [frame] if not frame.empty else []
+        origins, destinations = [], requested
+    else:
+        origins, destinations = _resolve_api_countries(dimensions, countries=countries)
+        if include_dom and "DOM" in dimensions.get("c_orig", []):
+            origins = [*origins, "DOM"]
+        frames = []
 
-    frames: list[pd.DataFrame] = []
     for origin in origins:
         log_time(
             logger,

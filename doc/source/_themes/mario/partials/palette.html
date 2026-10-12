@@ -1,0 +1,12 @@
+{%- from "partials/icons.html" import icon %}
+<dialog class="mario-palette" data-palette aria-label="Search the documentation" data-search-url="{{ pathto('search') }}">
+  <div class="mario-palette__box">
+    <div class="mario-palette__field">
+      {{ icon("search") }}
+      <input type="search" placeholder="Search pages, sections and API methods" autocomplete="off" spellcheck="false" aria-label="Search the documentation" aria-controls="mario-palette-results" data-palette-input>
+      <kbd>Esc</kbd>
+    </div>
+    <ul class="mario-palette__results" id="mario-palette-results" role="listbox" aria-label="Results" data-palette-results></ul>
+    <p class="mario-palette__hint">Use the arrow keys to move and Enter to open.</p>
+  </div>
+</dialog>

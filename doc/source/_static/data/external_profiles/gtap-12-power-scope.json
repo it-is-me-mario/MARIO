@@ -1,0 +1,2806 @@
+{
+  "schema_version": 1,
+  "id": "gtap-12-power-scope",
+  "source": "GTAP",
+  "guide": "gtap",
+  "version": "12",
+  "variant": "Power",
+  "label": "GTAP 12 · Power",
+  "release": "12 · Power",
+  "year": 2023,
+  "years": [
+    2023
+  ],
+  "table": "IOT",
+  "status": "source_verified",
+  "parser_supported": true,
+  "environmental": true,
+  "numeric_publication": false,
+  "counts": {
+    "Region": 163,
+    "Sector": 76
+  },
+  "sets": {
+    "Region": [
+      "AUS",
+      "NZL",
+      "XOC",
+      "CHN",
+      "HKG",
+      "JPN",
+      "KOR",
+      "MNG",
+      "TWN",
+      "XEA",
+      "BRN",
+      "KHM",
+      "IDN",
+      "LAO",
+      "MYS",
+      "PHL",
+      "SGP",
+      "THA",
+      "VNM",
+      "XSE",
+      "AFG",
+      "BGD",
+      "IND",
+      "NPL",
+      "PAK",
+      "LKA",
+      "XSA",
+      "CAN",
+      "USA",
+      "MEX",
+      "XNA",
+      "ARG",
+      "BOL",
+      "BRA",
+      "CHL",
+      "COL",
+      "ECU",
+      "PRY",
+      "PER",
+      "URY",
+      "VEN",
+      "XSM",
+      "CRI",
+      "GTM",
+      "HND",
+      "NIC",
+      "PAN",
+      "SLV",
+      "XCA",
+      "DOM",
+      "HTI",
+      "JAM",
+      "PRI",
+      "TTO",
+      "XCB",
+      "AUT",
+      "BEL",
+      "BGR",
+      "HRV",
+      "CYP",
+      "CZE",
+      "DNK",
+      "EST",
+      "FIN",
+      "FRA",
+      "DEU",
+      "GRC",
+      "HUN",
+      "IRL",
+      "ITA",
+      "LVA",
+      "LTU",
+      "LUX",
+      "MLT",
+      "NLD",
+      "POL",
+      "PRT",
+      "ROU",
+      "SVK",
+      "SVN",
+      "ESP",
+      "SWE",
+      "GBR",
+      "CHE",
+      "NOR",
+      "XEF",
+      "ALB",
+      "SRB",
+      "BLR",
+      "RUS",
+      "UKR",
+      "XEE",
+      "XER",
+      "KAZ",
+      "KGZ",
+      "TJK",
+      "UZB",
+      "XSU",
+      "ARM",
+      "AZE",
+      "GEO",
+      "BHR",
+      "IRN",
+      "IRQ",
+      "ISR",
+      "JOR",
+      "KWT",
+      "LBN",
+      "OMN",
+      "PSE",
+      "QAT",
+      "SAU",
+      "SYR",
+      "TUR",
+      "ARE",
+      "XWS",
+      "DZA",
+      "EGY",
+      "MAR",
+      "TUN",
+      "XNF",
+      "BEN",
+      "BFA",
+      "CMR",
+      "CIV",
+      "GHA",
+      "GIN",
+      "MLI",
+      "MRT",
+      "NER",
+      "NGA",
+      "SEN",
+      "TGO",
+      "XWF",
+      "AGO",
+      "CAF",
+      "TCD",
+      "COG",
+      "COD",
+      "GNQ",
+      "GAB",
+      "STP",
+      "BDI",
+      "COM",
+      "ETH",
+      "KEN",
+      "MDG",
+      "MWI",
+      "MUS",
+      "MOZ",
+      "RWA",
+      "SDN",
+      "TZA",
+      "UGA",
+      "ZMB",
+      "ZWE",
+      "XEC",
+      "BWA",
+      "SWZ",
+      "NAM",
+      "ZAF",
+      "XSC",
+      "XTW"
+    ],
+    "Sector": [
+      "Accommodation, Food and service activities",
+      "Air transport",
+      "Basic pharmaceutical products",
+      "Beverages and tobacco products",
+      "Chemical products",
+      "Communication",
+      "Bovine meat products",
+      "Construction",
+      "Coal",
+      "Bovine cattle, sheep and goats, horses",
+      "Sugar cane, sugar beet",
+      "Coal generation, base load",
+      "Dwellings",
+      "Education",
+      "Electrical equipment",
+      "Computer, electronic and optical products",
+      "Metal products",
+      "Forestry",
+      "Fishing",
+      "Gas",
+      "Gas manufacture, distribution",
+      "Cereal grains nec",
+      "Gas generation, base load",
+      "Gas generation, peak load",
+      "Human health and social work activities",
+      "Hydro generation, base load",
+      "Hydro generation, peak load",
+      "Insurance (formerly isr)",
+      "Ferrous metals",
+      "Leather products",
+      "Wood products",
+      "Dairy products",
+      "Motor vehicles and parts",
+      "Metals nec",
+      "Mineral products nec",
+      "Nuclear generation, base load",
+      "Animal products nec",
+      "Business services nec",
+      "Crops nec",
+      "Food products nec",
+      "Financial services nec",
+      "Oil",
+      "Machinery and equipment nec",
+      "Manufactures nec",
+      "Meat products nec",
+      "Oil seeds",
+      "Public Administration and defense",
+      "Transport equipment nec",
+      "Transport nec",
+      "Other Extraction (formerly omn Minerals nec)",
+      "Oil generation, base load",
+      "Oil generation, peak load",
+      "Other generation, base load",
+      "Processed rice",
+      "Paddy rice",
+      "Plant-based fibers",
+      "Paper products, publishing",
+      "Petroleum, coal products",
+      "Raw milk",
+      "Recreational and other services",
+      "Rubber and plastic products",
+      "Real estate activities",
+      "Sugar",
+      "Solar generation, peak load",
+      "Textiles",
+      "Trade",
+      "Electricity transmission and distribution",
+      "Vegetable oils and fats",
+      "Vegetables, fruit, nuts",
+      "Wearing apparel",
+      "Warehousing and support activities",
+      "Wheat",
+      "Wool, silk-worm cocoons",
+      "Water transport",
+      "Water",
+      "Wind generation, base load"
+    ]
+  },
+  "native_codes": {
+    "Sector": {
+      "Accommodation, Food and service activities": "AFS",
+      "Air transport": "ATP",
+      "Basic pharmaceutical products": "BPH",
+      "Beverages and tobacco products": "B_T",
+      "Chemical products": "CHM",
+      "Communication": "CMN",
+      "Bovine meat products": "CMT",
+      "Construction": "CNS",
+      "Coal": "COA",
+      "Bovine cattle, sheep and goats, horses": "CTL",
+      "Sugar cane, sugar beet": "C_B",
+      "Coal generation, base load": "CoalBL",
+      "Dwellings": "DWE",
+      "Education": "EDU",
+      "Electrical equipment": "EEQ",
+      "Computer, electronic and optical products": "ELE",
+      "Metal products": "FMP",
+      "Forestry": "FRS",
+      "Fishing": "FSH",
+      "Gas": "GAS",
+      "Gas manufacture, distribution": "GDT",
+      "Cereal grains nec": "GRO",
+      "Gas generation, base load": "GasBL",
+      "Gas generation, peak load": "GasP",
+      "Human health and social work activities": "HHT",
+      "Hydro generation, base load": "HydroBL",
+      "Hydro generation, peak load": "HydroP",
+      "Insurance (formerly isr)": "INS",
+      "Ferrous metals": "I_S",
+      "Leather products": "LEA",
+      "Wood products": "LUM",
+      "Dairy products": "MIL",
+      "Motor vehicles and parts": "MVH",
+      "Metals nec": "NFM",
+      "Mineral products nec": "NMM",
+      "Nuclear generation, base load": "NuclearBL",
+      "Animal products nec": "OAP",
+      "Business services nec": "OBS",
+      "Crops nec": "OCR",
+      "Food products nec": "OFD",
+      "Financial services nec": "OFI",
+      "Oil": "OIL",
+      "Machinery and equipment nec": "OME",
+      "Manufactures nec": "OMF",
+      "Meat products nec": "OMT",
+      "Oil seeds": "OSD",
+      "Public Administration and defense": "OSG",
+      "Transport equipment nec": "OTN",
+      "Transport nec": "OTP",
+      "Other Extraction (formerly omn Minerals nec)": "OXT",
+      "Oil generation, base load": "OilBL",
+      "Oil generation, peak load": "OilP",
+      "Other generation, base load": "OtherBL",
+      "Processed rice": "PCR",
+      "Paddy rice": "PDR",
+      "Plant-based fibers": "PFB",
+      "Paper products, publishing": "PPP",
+      "Petroleum, coal products": "P_C",
+      "Raw milk": "RMK",
+      "Recreational and other services": "ROS",
+      "Rubber and plastic products": "RPP",
+      "Real estate activities": "RSA",
+      "Sugar": "SGR",
+      "Solar generation, peak load": "SolarP",
+      "Textiles": "TEX",
+      "Trade": "TRD",
+      "Electricity transmission and distribution": "TnD",
+      "Vegetable oils and fats": "VOL",
+      "Vegetables, fruit, nuts": "V_F",
+      "Wearing apparel": "WAP",
+      "Warehousing and support activities": "WHS",
+      "Wheat": "WHT",
+      "Wool, silk-worm cocoons": "WOL",
+      "Water transport": "WTP",
+      "Water": "WTR",
+      "Wind generation, base load": "WindBL"
+    }
+  },
+  "region_counts": [
+    {
+      "region": "AUS",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "NZL",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "XOC",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "CHN",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "HKG",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "JPN",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "KOR",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "MNG",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "TWN",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "XEA",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "BRN",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "KHM",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "IDN",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "LAO",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "MYS",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "PHL",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "SGP",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "THA",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "VNM",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "XSE",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "AFG",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "BGD",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "IND",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "NPL",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "PAK",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "LKA",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "XSA",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "CAN",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "USA",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "MEX",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "XNA",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "ARG",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "BOL",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "BRA",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "CHL",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "COL",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "ECU",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "PRY",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "PER",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "URY",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "VEN",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "XSM",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "CRI",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "GTM",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "HND",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "NIC",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "PAN",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "SLV",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "XCA",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "DOM",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "HTI",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "JAM",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "PRI",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "TTO",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "XCB",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "AUT",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "BEL",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "BGR",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "HRV",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "CYP",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "CZE",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "DNK",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "EST",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "FIN",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "FRA",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "DEU",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "GRC",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "HUN",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "IRL",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "ITA",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "LVA",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "LTU",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "LUX",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "MLT",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "NLD",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "POL",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "PRT",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "ROU",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "SVK",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "SVN",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "ESP",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "SWE",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "GBR",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "CHE",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "NOR",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "XEF",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "ALB",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "SRB",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "BLR",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "RUS",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "UKR",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "XEE",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "XER",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "KAZ",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "KGZ",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "TJK",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "UZB",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "XSU",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "ARM",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "AZE",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "GEO",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "BHR",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "IRN",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "IRQ",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "ISR",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "JOR",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "KWT",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "LBN",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "OMN",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "PSE",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "QAT",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "SAU",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "SYR",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "TUR",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "ARE",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "XWS",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "DZA",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "EGY",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "MAR",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "TUN",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "XNF",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "BEN",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "BFA",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "CMR",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "CIV",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "GHA",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "GIN",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "MLI",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "MRT",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "NER",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "NGA",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "SEN",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "TGO",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "XWF",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "AGO",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "CAF",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "TCD",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "COG",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "COD",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "GNQ",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "GAB",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "STP",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "BDI",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "COM",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "ETH",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "KEN",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "MDG",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "MWI",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "MUS",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "MOZ",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "RWA",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "SDN",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "TZA",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "UGA",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "ZMB",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "ZWE",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "XEC",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "BWA",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "SWZ",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "NAM",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "ZAF",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "XSC",
+      "set": "Sector",
+      "count": 76
+    },
+    {
+      "region": "XTW",
+      "set": "Sector",
+      "count": 76
+    }
+  ],
+  "region_items": [],
+  "set_flags": {
+    "Satellite account": {
+      "status": "not_loaded"
+    },
+    "Factor of production": {
+      "status": "not_loaded"
+    },
+    "Consumption category": {
+      "status": "not_loaded"
+    }
+  },
+  "geography": {
+    "status": "source_verified_individual_regions",
+    "scope": "global",
+    "regions": [
+      {
+        "label": "AUS",
+        "name": "Australia",
+        "source_name": "Australia",
+        "source_members": [
+          "-",
+          "Australia",
+          "Christmas Island",
+          "Cocos (Keeling) Islands",
+          "Heard Island and McDonald Islands",
+          "Norfolk Island"
+        ],
+        "kind": "country",
+        "iso3": "AUS"
+      },
+      {
+        "label": "NZL",
+        "name": "New Zealand",
+        "source_name": "New Zealand",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "NZL"
+      },
+      {
+        "label": "XOC",
+        "name": "Rest of Oceania",
+        "source_name": "Rest of Oceania",
+        "source_members": [
+          "American Samoa",
+          "Cook Islands",
+          "Fiji",
+          "French Polynesia",
+          "Guam",
+          "Kiribati",
+          "Marshall Islands",
+          "Micronesia (Federated States of)",
+          "Nauru",
+          "New Caledonia",
+          "Niue",
+          "Northern Mariana Islands",
+          "Palau",
+          "Papua New Guinea",
+          "Pitcairn",
+          "Samoa",
+          "Solomon Islands",
+          "Tokelau",
+          "Tonga",
+          "Tuvalu",
+          "United States Minor Outlying Islands",
+          "Vanuatu",
+          "Wallis and Futuna Islands"
+        ],
+        "kind": "aggregate",
+        "members": [
+          "ASM",
+          "COK",
+          "FJI",
+          "FSM",
+          "GUM",
+          "KIR",
+          "MHL",
+          "MNP",
+          "NCL",
+          "NIU",
+          "NRU",
+          "PCN",
+          "PLW",
+          "PNG",
+          "PYF",
+          "SLB",
+          "TKL",
+          "TON",
+          "TUV",
+          "UMI",
+          "VUT",
+          "WLF",
+          "WSM"
+        ],
+        "membership_status": "source_mapped",
+        "unresolved_members": []
+      },
+      {
+        "label": "CHN",
+        "name": "China",
+        "source_name": "China",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "CHN"
+      },
+      {
+        "label": "HKG",
+        "name": "Hong Kong",
+        "source_name": "Hong Kong, Special Administrative Region of China",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "HKG"
+      },
+      {
+        "label": "JPN",
+        "name": "Japan",
+        "source_name": "Japan",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "JPN"
+      },
+      {
+        "label": "KOR",
+        "name": "South Korea",
+        "source_name": "Korea, Republic of",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "KOR"
+      },
+      {
+        "label": "MNG",
+        "name": "Mongolia",
+        "source_name": "Mongolia",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "MNG"
+      },
+      {
+        "label": "TWN",
+        "name": "Taiwan",
+        "source_name": "Chinese Taipei",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "TWN"
+      },
+      {
+        "label": "XEA",
+        "name": "Rest of East Asia",
+        "source_name": "Rest of East Asia",
+        "source_members": [
+          "China, Macao Special Administrative Region",
+          "Democratic People's Republic of Korea"
+        ],
+        "kind": "aggregate",
+        "members": [
+          "MAC",
+          "PRK"
+        ],
+        "membership_status": "source_mapped",
+        "unresolved_members": []
+      },
+      {
+        "label": "BRN",
+        "name": "Brunei Darussalam",
+        "source_name": "Brunei Darussalam",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "BRN"
+      },
+      {
+        "label": "KHM",
+        "name": "Cambodia",
+        "source_name": "Cambodia",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "KHM"
+      },
+      {
+        "label": "IDN",
+        "name": "Indonesia",
+        "source_name": "Indonesia",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "IDN"
+      },
+      {
+        "label": "LAO",
+        "name": "Laos",
+        "source_name": "Lao PDR",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "LAO"
+      },
+      {
+        "label": "MYS",
+        "name": "Malaysia",
+        "source_name": "Malaysia",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "MYS"
+      },
+      {
+        "label": "PHL",
+        "name": "Philippines",
+        "source_name": "Philippines",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "PHL"
+      },
+      {
+        "label": "SGP",
+        "name": "Singapore",
+        "source_name": "Singapore",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "SGP"
+      },
+      {
+        "label": "THA",
+        "name": "Thailand",
+        "source_name": "Thailand",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "THA"
+      },
+      {
+        "label": "VNM",
+        "name": "Vietnam",
+        "source_name": "Viet Nam",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "VNM"
+      },
+      {
+        "label": "XSE",
+        "name": "Rest of Southeast Asia",
+        "source_name": "Rest of Southeast Asia",
+        "source_members": [
+          "Myanmar",
+          "Timor-Leste"
+        ],
+        "kind": "aggregate",
+        "members": [
+          "MMR",
+          "TLS"
+        ],
+        "membership_status": "source_mapped",
+        "unresolved_members": []
+      },
+      {
+        "label": "AFG",
+        "name": "Afghanistan",
+        "source_name": "Afghanistan",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "AFG"
+      },
+      {
+        "label": "BGD",
+        "name": "Bangladesh",
+        "source_name": "Bangladesh",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "BGD"
+      },
+      {
+        "label": "IND",
+        "name": "India",
+        "source_name": "India",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "IND"
+      },
+      {
+        "label": "NPL",
+        "name": "Nepal",
+        "source_name": "Nepal",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "NPL"
+      },
+      {
+        "label": "PAK",
+        "name": "Pakistan",
+        "source_name": "Pakistan",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "PAK"
+      },
+      {
+        "label": "LKA",
+        "name": "Sri Lanka",
+        "source_name": "Sri Lanka",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "LKA"
+      },
+      {
+        "label": "XSA",
+        "name": "Rest of South Asia",
+        "source_name": "Rest of South Asia",
+        "source_members": [
+          "Bhutan",
+          "Maldives"
+        ],
+        "kind": "aggregate",
+        "members": [
+          "BTN",
+          "MDV"
+        ],
+        "membership_status": "source_mapped",
+        "unresolved_members": []
+      },
+      {
+        "label": "CAN",
+        "name": "Canada",
+        "source_name": "Canada",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "CAN"
+      },
+      {
+        "label": "USA",
+        "name": "United States",
+        "source_name": "United States of America",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "USA"
+      },
+      {
+        "label": "MEX",
+        "name": "Mexico",
+        "source_name": "Mexico",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "MEX"
+      },
+      {
+        "label": "XNA",
+        "name": "Rest of North America",
+        "source_name": "Rest of North America",
+        "source_members": [
+          "Bermuda",
+          "Greenland",
+          "Saint Pierre and Miquelon"
+        ],
+        "kind": "aggregate",
+        "members": [
+          "BMU",
+          "GRL",
+          "SPM"
+        ],
+        "membership_status": "source_mapped",
+        "unresolved_members": []
+      },
+      {
+        "label": "ARG",
+        "name": "Argentina",
+        "source_name": "Argentina",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "ARG"
+      },
+      {
+        "label": "BOL",
+        "name": "Bolivia",
+        "source_name": "Bolivia",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "BOL"
+      },
+      {
+        "label": "BRA",
+        "name": "Brazil",
+        "source_name": "Brazil",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "BRA"
+      },
+      {
+        "label": "CHL",
+        "name": "Chile",
+        "source_name": "Chile",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "CHL"
+      },
+      {
+        "label": "COL",
+        "name": "Colombia",
+        "source_name": "Colombia",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "COL"
+      },
+      {
+        "label": "ECU",
+        "name": "Ecuador",
+        "source_name": "Ecuador",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "ECU"
+      },
+      {
+        "label": "PRY",
+        "name": "Paraguay",
+        "source_name": "Paraguay",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "PRY"
+      },
+      {
+        "label": "PER",
+        "name": "Peru",
+        "source_name": "Peru",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "PER"
+      },
+      {
+        "label": "URY",
+        "name": "Uruguay",
+        "source_name": "Uruguay",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "URY"
+      },
+      {
+        "label": "VEN",
+        "name": "Venezuela",
+        "source_name": "Venezuela (Bolivarian Republic of)",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "VEN"
+      },
+      {
+        "label": "XSM",
+        "name": "Rest of South America",
+        "source_name": "Rest of South America",
+        "source_members": [
+          "Falkland Islands (Malvinas)",
+          "French Guiana",
+          "Guyana",
+          "South Georgia and the South Sandwich Islands",
+          "Suriname"
+        ],
+        "kind": "aggregate",
+        "members": [
+          "FLK",
+          "GUF",
+          "GUY",
+          "SGS",
+          "SUR"
+        ],
+        "membership_status": "source_mapped",
+        "unresolved_members": []
+      },
+      {
+        "label": "CRI",
+        "name": "Costa Rica",
+        "source_name": "Costa Rica",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "CRI"
+      },
+      {
+        "label": "GTM",
+        "name": "Guatemala",
+        "source_name": "Guatemala",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "GTM"
+      },
+      {
+        "label": "HND",
+        "name": "Honduras",
+        "source_name": "Honduras",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "HND"
+      },
+      {
+        "label": "NIC",
+        "name": "Nicaragua",
+        "source_name": "Nicaragua",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "NIC"
+      },
+      {
+        "label": "PAN",
+        "name": "Panama",
+        "source_name": "Panama",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "PAN"
+      },
+      {
+        "label": "SLV",
+        "name": "El Salvador",
+        "source_name": "El Salvador",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "SLV"
+      },
+      {
+        "label": "XCA",
+        "name": "Rest of Central America",
+        "source_name": "Rest of Central America",
+        "source_members": [
+          "Belize"
+        ],
+        "kind": "aggregate",
+        "members": [
+          "BLZ"
+        ],
+        "membership_status": "source_mapped",
+        "unresolved_members": []
+      },
+      {
+        "label": "DOM",
+        "name": "Dominican Republic",
+        "source_name": "Dominican Republic",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "DOM"
+      },
+      {
+        "label": "HTI",
+        "name": "Haiti",
+        "source_name": "Haiti",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "HTI"
+      },
+      {
+        "label": "JAM",
+        "name": "Jamaica",
+        "source_name": "Jamaica",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "JAM"
+      },
+      {
+        "label": "PRI",
+        "name": "Puerto Rico",
+        "source_name": "Puerto Rico",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "PRI"
+      },
+      {
+        "label": "TTO",
+        "name": "Trinidad and Tobago",
+        "source_name": "Trinidad and Tobago",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "TTO"
+      },
+      {
+        "label": "XCB",
+        "name": "Rest of Caribbean",
+        "source_name": "Rest of Caribbean",
+        "source_members": [
+          "Anguilla",
+          "Antigua and Barbuda",
+          "Aruba",
+          "Bahamas",
+          "Barbados",
+          "Bonaire, Sint Eustatius and Saba",
+          "British Virgin Islands",
+          "Cayman Islands",
+          "Cuba",
+          "Curaçao",
+          "Dominica",
+          "Grenada",
+          "Montserrat",
+          "Saint Barthélemy",
+          "Saint Kitts and Nevis",
+          "Saint Lucia",
+          "Saint Martin (French Part)",
+          "Saint Vincent and the Grenadines",
+          "Sint Maarten (Dutch part)",
+          "Turks and Caicos Islands",
+          "United States Virgin Islands"
+        ],
+        "kind": "aggregate",
+        "members": [
+          "ABW",
+          "AIA",
+          "ATG",
+          "BES",
+          "BHS",
+          "BLM",
+          "BRB",
+          "CUB",
+          "CUW",
+          "CYM",
+          "DMA",
+          "GRD",
+          "KNA",
+          "LCA",
+          "MAF",
+          "MSR",
+          "SXM",
+          "TCA",
+          "VCT",
+          "VGB",
+          "VIR"
+        ],
+        "membership_status": "source_mapped",
+        "unresolved_members": []
+      },
+      {
+        "label": "AUT",
+        "name": "Austria",
+        "source_name": "Austria",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "AUT"
+      },
+      {
+        "label": "BEL",
+        "name": "Belgium",
+        "source_name": "Belgium",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "BEL"
+      },
+      {
+        "label": "BGR",
+        "name": "Bulgaria",
+        "source_name": "Bulgaria",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "BGR"
+      },
+      {
+        "label": "HRV",
+        "name": "Croatia",
+        "source_name": "Croatia",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "HRV"
+      },
+      {
+        "label": "CYP",
+        "name": "Cyprus",
+        "source_name": "Cyprus",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "CYP"
+      },
+      {
+        "label": "CZE",
+        "name": "Czechia",
+        "source_name": "Czech Republic",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "CZE"
+      },
+      {
+        "label": "DNK",
+        "name": "Denmark",
+        "source_name": "Denmark",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "DNK"
+      },
+      {
+        "label": "EST",
+        "name": "Estonia",
+        "source_name": "Estonia",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "EST"
+      },
+      {
+        "label": "FIN",
+        "name": "Finland",
+        "source_name": "Finland",
+        "source_members": [
+          "Åland Islands",
+          "-",
+          "Finland"
+        ],
+        "kind": "country",
+        "iso3": "FIN"
+      },
+      {
+        "label": "FRA",
+        "name": "France",
+        "source_name": "France",
+        "source_members": [
+          "-",
+          "France",
+          "Guadeloupe",
+          "Martinique",
+          "Réunion"
+        ],
+        "kind": "country",
+        "iso3": "FRA"
+      },
+      {
+        "label": "DEU",
+        "name": "Germany",
+        "source_name": "Germany",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "DEU"
+      },
+      {
+        "label": "GRC",
+        "name": "Greece",
+        "source_name": "Greece",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "GRC"
+      },
+      {
+        "label": "HUN",
+        "name": "Hungary",
+        "source_name": "Hungary",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "HUN"
+      },
+      {
+        "label": "IRL",
+        "name": "Ireland",
+        "source_name": "Ireland",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "IRL"
+      },
+      {
+        "label": "ITA",
+        "name": "Italy",
+        "source_name": "Italy",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "ITA"
+      },
+      {
+        "label": "LVA",
+        "name": "Latvia",
+        "source_name": "Latvia",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "LVA"
+      },
+      {
+        "label": "LTU",
+        "name": "Lithuania",
+        "source_name": "Lithuania",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "LTU"
+      },
+      {
+        "label": "LUX",
+        "name": "Luxembourg",
+        "source_name": "Luxembourg",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "LUX"
+      },
+      {
+        "label": "MLT",
+        "name": "Malta",
+        "source_name": "Malta",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "MLT"
+      },
+      {
+        "label": "NLD",
+        "name": "Netherlands",
+        "source_name": "Netherlands",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "NLD"
+      },
+      {
+        "label": "POL",
+        "name": "Poland",
+        "source_name": "Poland",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "POL"
+      },
+      {
+        "label": "PRT",
+        "name": "Portugal",
+        "source_name": "Portugal",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "PRT"
+      },
+      {
+        "label": "ROU",
+        "name": "Romania",
+        "source_name": "Romania",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "ROU"
+      },
+      {
+        "label": "SVK",
+        "name": "Slovakia",
+        "source_name": "Slovakia",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "SVK"
+      },
+      {
+        "label": "SVN",
+        "name": "Slovenia",
+        "source_name": "Slovenia",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "SVN"
+      },
+      {
+        "label": "ESP",
+        "name": "Spain",
+        "source_name": "Spain",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "ESP"
+      },
+      {
+        "label": "SWE",
+        "name": "Sweden",
+        "source_name": "Sweden",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "SWE"
+      },
+      {
+        "label": "GBR",
+        "name": "United Kingdom",
+        "source_name": "United Kingdom",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "GBR"
+      },
+      {
+        "label": "CHE",
+        "name": "Switzerland",
+        "source_name": "Switzerland",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "CHE"
+      },
+      {
+        "label": "NOR",
+        "name": "Norway",
+        "source_name": "Norway",
+        "source_members": [
+          "-",
+          "Norway",
+          "Svalbard and Jan Mayen Islands"
+        ],
+        "kind": "country",
+        "iso3": "NOR"
+      },
+      {
+        "label": "XEF",
+        "name": "Rest of European Free Trade Association",
+        "source_name": "Rest of European Free Trade Association",
+        "source_members": [
+          "Iceland",
+          "Liechtenstein"
+        ],
+        "kind": "aggregate",
+        "members": [
+          "ISL",
+          "LIE"
+        ],
+        "membership_status": "source_mapped",
+        "unresolved_members": []
+      },
+      {
+        "label": "ALB",
+        "name": "Albania",
+        "source_name": "Albania",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "ALB"
+      },
+      {
+        "label": "SRB",
+        "name": "Serbia",
+        "source_name": "Serbia",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "SRB"
+      },
+      {
+        "label": "BLR",
+        "name": "Belarus",
+        "source_name": "Belarus",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "BLR"
+      },
+      {
+        "label": "RUS",
+        "name": "Russia",
+        "source_name": "Russian Federation",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "RUS"
+      },
+      {
+        "label": "UKR",
+        "name": "Ukraine",
+        "source_name": "Ukraine",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "UKR"
+      },
+      {
+        "label": "XEE",
+        "name": "Rest of Eastern Europe",
+        "source_name": "Rest of Eastern Europe",
+        "source_members": [
+          "Republic of Moldova"
+        ],
+        "kind": "aggregate",
+        "members": [
+          "MDA"
+        ],
+        "membership_status": "source_mapped",
+        "unresolved_members": []
+      },
+      {
+        "label": "XER",
+        "name": "Rest of Europe",
+        "source_name": "Rest of Europe",
+        "source_members": [
+          "Andorra",
+          "Bosnia and Herzegovina",
+          "Faroe Islands",
+          "Gibraltar",
+          "Guernsey",
+          "Holy See",
+          "Isle of Man",
+          "Jersey",
+          "Kosovo",
+          "Monaco",
+          "Montenegro",
+          "North Macedonia",
+          "San Marino",
+          "Sark"
+        ],
+        "kind": "aggregate",
+        "members": [
+          "AND",
+          "BIH",
+          "FRO",
+          "GGY",
+          "GIB",
+          "IMN",
+          "JEY",
+          "MCO",
+          "MKD",
+          "MNE",
+          "SMR",
+          "VAT",
+          "XKX"
+        ],
+        "membership_status": "partial_source_mapping",
+        "unresolved_members": [
+          "Sark"
+        ]
+      },
+      {
+        "label": "KAZ",
+        "name": "Kazakhstan",
+        "source_name": "Kazakhstan",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "KAZ"
+      },
+      {
+        "label": "KGZ",
+        "name": "Kyrgyzstan",
+        "source_name": "Kyrgyzstan",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "KGZ"
+      },
+      {
+        "label": "TJK",
+        "name": "Tajikistan",
+        "source_name": "Tajikistan",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "TJK"
+      },
+      {
+        "label": "UZB",
+        "name": "Uzbekistan",
+        "source_name": "Uzbekistan",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "UZB"
+      },
+      {
+        "label": "XSU",
+        "name": "Rest of Former Soviet Union",
+        "source_name": "Rest of Former Soviet Union",
+        "source_members": [
+          "Turkmenistan"
+        ],
+        "kind": "aggregate",
+        "members": [
+          "TKM"
+        ],
+        "membership_status": "source_mapped",
+        "unresolved_members": []
+      },
+      {
+        "label": "ARM",
+        "name": "Armenia",
+        "source_name": "Armenia",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "ARM"
+      },
+      {
+        "label": "AZE",
+        "name": "Azerbaijan",
+        "source_name": "Azerbaijan",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "AZE"
+      },
+      {
+        "label": "GEO",
+        "name": "Georgia",
+        "source_name": "Georgia",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "GEO"
+      },
+      {
+        "label": "BHR",
+        "name": "Bahrain",
+        "source_name": "Bahrain",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "BHR"
+      },
+      {
+        "label": "IRN",
+        "name": "Iran",
+        "source_name": "Iran, Islamic Republic of",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "IRN"
+      },
+      {
+        "label": "IRQ",
+        "name": "Iraq",
+        "source_name": "Iraq",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "IRQ"
+      },
+      {
+        "label": "ISR",
+        "name": "Israel",
+        "source_name": "Israel",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "ISR"
+      },
+      {
+        "label": "JOR",
+        "name": "Jordan",
+        "source_name": "Jordan",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "JOR"
+      },
+      {
+        "label": "KWT",
+        "name": "Kuwait",
+        "source_name": "Kuwait",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "KWT"
+      },
+      {
+        "label": "LBN",
+        "name": "Lebanon",
+        "source_name": "Lebanon",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "LBN"
+      },
+      {
+        "label": "OMN",
+        "name": "Oman",
+        "source_name": "Oman",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "OMN"
+      },
+      {
+        "label": "PSE",
+        "name": "Palestine",
+        "source_name": "Palestinian Territory, Occupied",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "PSE"
+      },
+      {
+        "label": "QAT",
+        "name": "Qatar",
+        "source_name": "Qatar",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "QAT"
+      },
+      {
+        "label": "SAU",
+        "name": "Saudi Arabia",
+        "source_name": "Saudi Arabia",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "SAU"
+      },
+      {
+        "label": "SYR",
+        "name": "Syria",
+        "source_name": "Syrian Arab Republic",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "SYR"
+      },
+      {
+        "label": "TUR",
+        "name": "Türkiye",
+        "source_name": "Turkey",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "TUR"
+      },
+      {
+        "label": "ARE",
+        "name": "United Arab Emirates",
+        "source_name": "United Arab Emirates",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "ARE"
+      },
+      {
+        "label": "XWS",
+        "name": "Rest of Western Asia",
+        "source_name": "Rest of Western Asia",
+        "source_members": [
+          "Yemen"
+        ],
+        "kind": "aggregate",
+        "members": [
+          "YEM"
+        ],
+        "membership_status": "source_mapped",
+        "unresolved_members": []
+      },
+      {
+        "label": "DZA",
+        "name": "Algeria",
+        "source_name": "Algeria",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "DZA"
+      },
+      {
+        "label": "EGY",
+        "name": "Egypt",
+        "source_name": "Egypt",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "EGY"
+      },
+      {
+        "label": "MAR",
+        "name": "Morocco",
+        "source_name": "Morocco",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "MAR"
+      },
+      {
+        "label": "TUN",
+        "name": "Tunisia",
+        "source_name": "Tunisia",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "TUN"
+      },
+      {
+        "label": "XNF",
+        "name": "Rest of North Africa",
+        "source_name": "Rest of North Africa",
+        "source_members": [
+          "Libya",
+          "Western Sahara"
+        ],
+        "kind": "aggregate",
+        "members": [
+          "ESH",
+          "LBY"
+        ],
+        "membership_status": "source_mapped",
+        "unresolved_members": []
+      },
+      {
+        "label": "BEN",
+        "name": "Benin",
+        "source_name": "Benin",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "BEN"
+      },
+      {
+        "label": "BFA",
+        "name": "Burkina Faso",
+        "source_name": "Burkina Faso",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "BFA"
+      },
+      {
+        "label": "CMR",
+        "name": "Cameroon",
+        "source_name": "Cameroon",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "CMR"
+      },
+      {
+        "label": "CIV",
+        "name": "Côte d'Ivoire",
+        "source_name": "Côte d'Ivoire",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "CIV"
+      },
+      {
+        "label": "GHA",
+        "name": "Ghana",
+        "source_name": "Ghana",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "GHA"
+      },
+      {
+        "label": "GIN",
+        "name": "Guinea",
+        "source_name": "Guinea",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "GIN"
+      },
+      {
+        "label": "MLI",
+        "name": "Mali",
+        "source_name": "Mali",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "MLI"
+      },
+      {
+        "label": "MRT",
+        "name": "Mauritania",
+        "source_name": "Mauritania",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "MRT"
+      },
+      {
+        "label": "NER",
+        "name": "Niger",
+        "source_name": "Niger",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "NER"
+      },
+      {
+        "label": "NGA",
+        "name": "Nigeria",
+        "source_name": "Nigeria",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "NGA"
+      },
+      {
+        "label": "SEN",
+        "name": "Senegal",
+        "source_name": "Senegal",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "SEN"
+      },
+      {
+        "label": "TGO",
+        "name": "Togo",
+        "source_name": "Togo",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "TGO"
+      },
+      {
+        "label": "XWF",
+        "name": "Rest of Western Africa",
+        "source_name": "Rest of Western Africa",
+        "source_members": [
+          "Cabo Verde",
+          "Gambia",
+          "Guinea-Bissau",
+          "Liberia",
+          "Saint Helena",
+          "Sierra Leone"
+        ],
+        "kind": "aggregate",
+        "members": [
+          "CPV",
+          "GMB",
+          "GNB",
+          "LBR",
+          "SHN",
+          "SLE"
+        ],
+        "membership_status": "source_mapped",
+        "unresolved_members": []
+      },
+      {
+        "label": "AGO",
+        "name": "Angola",
+        "source_name": "Angola",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "AGO"
+      },
+      {
+        "label": "CAF",
+        "name": "Central African Republic",
+        "source_name": "Central African Republic",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "CAF"
+      },
+      {
+        "label": "TCD",
+        "name": "Chad",
+        "source_name": "Chad",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "TCD"
+      },
+      {
+        "label": "COG",
+        "name": "Congo Republic",
+        "source_name": "Congo",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "COG"
+      },
+      {
+        "label": "COD",
+        "name": "DR Congo",
+        "source_name": "Democratic Republic of the Congo",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "COD"
+      },
+      {
+        "label": "GNQ",
+        "name": "Equatorial Guinea",
+        "source_name": "Equatorial Guinea",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "GNQ"
+      },
+      {
+        "label": "GAB",
+        "name": "Gabon",
+        "source_name": "Gabon",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "GAB"
+      },
+      {
+        "label": "STP",
+        "name": "Sao Tome and Principe",
+        "source_name": "Sao Tome and Principe",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "STP"
+      },
+      {
+        "label": "BDI",
+        "name": "Burundi",
+        "source_name": "Burundi",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "BDI"
+      },
+      {
+        "label": "COM",
+        "name": "Comoros",
+        "source_name": "Comoros",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "COM"
+      },
+      {
+        "label": "ETH",
+        "name": "Ethiopia",
+        "source_name": "Ethiopia",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "ETH"
+      },
+      {
+        "label": "KEN",
+        "name": "Kenya",
+        "source_name": "Kenya",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "KEN"
+      },
+      {
+        "label": "MDG",
+        "name": "Madagascar",
+        "source_name": "Madagascar",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "MDG"
+      },
+      {
+        "label": "MWI",
+        "name": "Malawi",
+        "source_name": "Malawi",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "MWI"
+      },
+      {
+        "label": "MUS",
+        "name": "Mauritius",
+        "source_name": "Mauritius",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "MUS"
+      },
+      {
+        "label": "MOZ",
+        "name": "Mozambique",
+        "source_name": "Mozambique",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "MOZ"
+      },
+      {
+        "label": "RWA",
+        "name": "Rwanda",
+        "source_name": "Rwanda",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "RWA"
+      },
+      {
+        "label": "SDN",
+        "name": "Sudan",
+        "source_name": "Sudan",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "SDN"
+      },
+      {
+        "label": "TZA",
+        "name": "Tanzania",
+        "source_name": "Tanzania, United Republic of",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "TZA"
+      },
+      {
+        "label": "UGA",
+        "name": "Uganda",
+        "source_name": "Uganda",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "UGA"
+      },
+      {
+        "label": "ZMB",
+        "name": "Zambia",
+        "source_name": "Zambia",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "ZMB"
+      },
+      {
+        "label": "ZWE",
+        "name": "Zimbabwe",
+        "source_name": "Zimbabwe",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "ZWE"
+      },
+      {
+        "label": "XEC",
+        "name": "Rest of Eastern Africa",
+        "source_name": "Rest of Eastern Africa",
+        "source_members": [
+          "Djibouti",
+          "Eritrea",
+          "Mayotte",
+          "Seychelles",
+          "Somalia",
+          "South Sudan"
+        ],
+        "kind": "aggregate",
+        "members": [
+          "DJI",
+          "ERI",
+          "MYT",
+          "SOM",
+          "SSD",
+          "SYC"
+        ],
+        "membership_status": "source_mapped",
+        "unresolved_members": []
+      },
+      {
+        "label": "BWA",
+        "name": "Botswana",
+        "source_name": "Botswana",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "BWA"
+      },
+      {
+        "label": "SWZ",
+        "name": "Eswatini",
+        "source_name": "Eswatini",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "SWZ"
+      },
+      {
+        "label": "NAM",
+        "name": "Namibia",
+        "source_name": "Namibia",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "NAM"
+      },
+      {
+        "label": "ZAF",
+        "name": "South Africa",
+        "source_name": "South Africa",
+        "source_members": [],
+        "kind": "country",
+        "iso3": "ZAF"
+      },
+      {
+        "label": "XSC",
+        "name": "Rest of South African Customs Union",
+        "source_name": "Rest of South African Customs Union",
+        "source_members": [
+          "Lesotho"
+        ],
+        "kind": "aggregate",
+        "members": [
+          "LSO"
+        ],
+        "membership_status": "source_mapped",
+        "unresolved_members": []
+      },
+      {
+        "label": "XTW",
+        "name": "Rest of the World",
+        "source_name": "Rest of the World",
+        "source_members": [
+          "Antarctica",
+          "Bouvet Island",
+          "British Indian Ocean Territory",
+          "French Southern Territories"
+        ],
+        "kind": "aggregate",
+        "members": [
+          "ATA",
+          "ATF",
+          "BVT",
+          "IOT"
+        ],
+        "membership_status": "source_mapped",
+        "unresolved_members": []
+      }
+    ],
+    "individual_countries": 145,
+    "aggregate_count": 18,
+    "unresolved_count": 0,
+    "country_memberships": [],
+    "method": "Public GTAP 12 region codes and definitions. Power 2023 native index matches the complete published regional vocabulary."
+  },
+  "coverage_signatures": {
+    "geography": "9ad8296461f049265862bf21f0258255bbdb7aa4f9742421f0fe23beb1a88238",
+    "economic": "35e43157615d044eb55d5ddf6498a02ef713bf1878a135a897fb7c69e73e8200"
+  },
+  "classifications": {
+    "status": "documented",
+    "native_classification": "GTAP GSC3 with Power electricity/heat split",
+    "mappings": []
+  },
+  "provenance": {
+    "method": "source_metadata",
+    "source_filename": "X.parquet",
+    "source_sha256": "36402e2cccd00cf5b8c260e78e1828e39ce1125d50158db9359fc7e9077008e7",
+    "source_url": "https://www.gtap.agecon.purdue.edu/databases/Utilities/v12.aspx",
+    "options": {
+      "unit": "Monetary",
+      "system": "Industry"
+    },
+    "reading_scope": "Metadata only. No GDP, value added, GHG or economic matrices published."
+  },
+  "source_url": "https://www.gtap.agecon.purdue.edu/databases/Utilities/v12.aspx",
+  "license_url": "https://www.gtap.agecon.purdue.edu/resources/faqs/faqs_display.asp?F_ID=198",
+  "attribution": "GTAP / Center for Global Trade Analysis, Purdue University. Public classification metadata.",
+  "scope_note": "GTAP is supplied under a proprietary licence. Only public scope and classification metadata are shown; numerical indicators are not published. Power MRIO is supported by MARIO; this inventory verifies the 2023 native region/sector index, without rerunning the full parse. Satellite, factor and final-demand inventories were not loaded.",
+  "workbook": "_static/data/external_profiles/gtap-12-power-scope-sets.xlsx",
+  "detail": "_static/data/external_profiles/gtap-12-power-scope.json"
+}

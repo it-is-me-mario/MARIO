@@ -1,0 +1,1050 @@
+{
+  "schema_version": 1,
+  "as_of": "2026-10-10",
+  "items": [
+    {
+      "native": [
+        "EXIO3I",
+        "i40.11.a"
+      ],
+      "name": "Production of electricity by coal",
+      "nodes": [
+        [
+          "EXIO3I",
+          "i40.11.a"
+        ],
+        [
+          "NXB",
+          "powerCO"
+        ],
+        [
+          "NXB",
+          "powerFF"
+        ],
+        [
+          "NACE2.1",
+          "35.11"
+        ]
+      ],
+      "names": [
+        "Production of electricity by coal",
+        "Power production - Coal",
+        "Power production - Fossil",
+        "D.35.11 Production of electricity from non-renewable sources"
+      ],
+      "steps": [
+        {
+          "source": "S11",
+          "location": "activity!A1230:H1230",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "EXIO3I",
+            "i40.11.a"
+          ],
+          "source_right": [
+            "NXB",
+            "powerCO"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        },
+        {
+          "source": "S11",
+          "location": "activity!A1305:H1305",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "NXB",
+            "powerCO"
+          ],
+          "source_right": [
+            "NXB",
+            "powerFF"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        },
+        {
+          "source": "S11",
+          "location": "activity!A1324:H1324",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "NXB",
+            "powerFF"
+          ],
+          "source_right": [
+            "NACE2.1",
+            "35.11"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        }
+      ],
+      "reference": "35.11",
+      "status": "reviewed",
+      "candidate_references": [],
+      "review_note": "Technology containment checked against NACE Rev. 2.1 explanatory notes, classes 35.11 and 35.12."
+    },
+    {
+      "native": [
+        "EXIO3I",
+        "i40.11.b"
+      ],
+      "name": "Production of electricity by gas",
+      "nodes": [
+        [
+          "EXIO3I",
+          "i40.11.b"
+        ],
+        [
+          "NXB",
+          "powerNG"
+        ],
+        [
+          "NXB",
+          "powerFF"
+        ],
+        [
+          "NACE2.1",
+          "35.11"
+        ]
+      ],
+      "names": [
+        "Production of electricity by gas",
+        "Power production - Natural gas",
+        "Power production - Fossil",
+        "D.35.11 Production of electricity from non-renewable sources"
+      ],
+      "steps": [
+        {
+          "source": "S11",
+          "location": "activity!A1231:H1231",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "EXIO3I",
+            "i40.11.b"
+          ],
+          "source_right": [
+            "NXB",
+            "powerNG"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        },
+        {
+          "source": "S11",
+          "location": "activity!A1310:H1310",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "NXB",
+            "powerNG"
+          ],
+          "source_right": [
+            "NXB",
+            "powerFF"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        },
+        {
+          "source": "S11",
+          "location": "activity!A1324:H1324",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "NXB",
+            "powerFF"
+          ],
+          "source_right": [
+            "NACE2.1",
+            "35.11"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        }
+      ],
+      "reference": "35.11",
+      "status": "reviewed",
+      "candidate_references": [],
+      "review_note": "Technology containment checked against NACE Rev. 2.1 explanatory notes, classes 35.11 and 35.12."
+    },
+    {
+      "native": [
+        "EXIO3I",
+        "i40.11.c"
+      ],
+      "name": "Production of electricity by nuclear",
+      "nodes": [
+        [
+          "EXIO3I",
+          "i40.11.c"
+        ],
+        [
+          "NXB",
+          "powerNU"
+        ],
+        [
+          "NACE2.1",
+          "35.11"
+        ]
+      ],
+      "names": [
+        "Production of electricity by nuclear",
+        "Power production - Nuclear",
+        "D.35.11 Production of electricity from non-renewable sources"
+      ],
+      "steps": [
+        {
+          "source": "S11",
+          "location": "activity!A1232:H1232",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "EXIO3I",
+            "i40.11.c"
+          ],
+          "source_right": [
+            "NXB",
+            "powerNU"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        },
+        {
+          "source": "S11",
+          "location": "activity!A1311:H1311",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "NXB",
+            "powerNU"
+          ],
+          "source_right": [
+            "NACE2.1",
+            "35.11"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        }
+      ],
+      "reference": "35.11",
+      "status": "reviewed",
+      "candidate_references": [],
+      "review_note": "Technology containment checked against NACE Rev. 2.1 explanatory notes, classes 35.11 and 35.12."
+    },
+    {
+      "native": [
+        "EXIO3I",
+        "i40.11.d"
+      ],
+      "name": "Production of electricity by hydro",
+      "nodes": [
+        [
+          "EXIO3I",
+          "i40.11.d"
+        ],
+        [
+          "NXB",
+          "powerHY"
+        ],
+        [
+          "NXB",
+          "powerRN"
+        ],
+        [
+          "NACE2.1",
+          "35.12"
+        ]
+      ],
+      "names": [
+        "Production of electricity by hydro",
+        "Power production - Hydro",
+        "Power production - Renewables",
+        "D.35.12 Production of electricity from renewable sources"
+      ],
+      "steps": [
+        {
+          "source": "S11",
+          "location": "activity!A1233:H1233",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "EXIO3I",
+            "i40.11.d"
+          ],
+          "source_right": [
+            "NXB",
+            "powerHY"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        },
+        {
+          "source": "S11",
+          "location": "activity!A1307:H1307",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "NXB",
+            "powerHY"
+          ],
+          "source_right": [
+            "NXB",
+            "powerRN"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        },
+        {
+          "source": "S11",
+          "location": "activity!A1325:H1325",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "NXB",
+            "powerRN"
+          ],
+          "source_right": [
+            "NACE2.1",
+            "35.12"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        }
+      ],
+      "reference": "35.12",
+      "status": "reviewed",
+      "candidate_references": [],
+      "review_note": "Technology containment checked against NACE Rev. 2.1 explanatory notes, classes 35.11 and 35.12."
+    },
+    {
+      "native": [
+        "EXIO3I",
+        "i40.11.e"
+      ],
+      "name": "Production of electricity by wind",
+      "nodes": [
+        [
+          "EXIO3I",
+          "i40.11.e"
+        ],
+        [
+          "NXB",
+          "powerWI"
+        ],
+        [
+          "NXB",
+          "powerRN"
+        ],
+        [
+          "NACE2.1",
+          "35.12"
+        ]
+      ],
+      "names": [
+        "Production of electricity by wind",
+        "Power production - Wind",
+        "Power production - Renewables",
+        "D.35.12 Production of electricity from renewable sources"
+      ],
+      "steps": [
+        {
+          "source": "S11",
+          "location": "activity!A1234:H1234",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "EXIO3I",
+            "i40.11.e"
+          ],
+          "source_right": [
+            "NXB",
+            "powerWI"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        },
+        {
+          "source": "S11",
+          "location": "activity!A1317:H1317",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "NXB",
+            "powerWI"
+          ],
+          "source_right": [
+            "NXB",
+            "powerRN"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        },
+        {
+          "source": "S11",
+          "location": "activity!A1325:H1325",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "NXB",
+            "powerRN"
+          ],
+          "source_right": [
+            "NACE2.1",
+            "35.12"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        }
+      ],
+      "reference": "35.12",
+      "status": "reviewed",
+      "candidate_references": [],
+      "review_note": "Technology containment checked against NACE Rev. 2.1 explanatory notes, classes 35.11 and 35.12."
+    },
+    {
+      "native": [
+        "EXIO3I",
+        "i40.11.f"
+      ],
+      "name": "Production of electricity by petroleum and other oil derivatives",
+      "nodes": [
+        [
+          "EXIO3I",
+          "i40.11.f"
+        ],
+        [
+          "NXB",
+          "powerFF"
+        ],
+        [
+          "NACE2.1",
+          "35.11"
+        ]
+      ],
+      "names": [
+        "Production of electricity by petroleum and other oil derivatives",
+        "Power production - Fossil",
+        "D.35.11 Production of electricity from non-renewable sources"
+      ],
+      "steps": [
+        {
+          "source": "S11",
+          "location": "activity!A1235:H1235",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "EXIO3I",
+            "i40.11.f"
+          ],
+          "source_right": [
+            "NXB",
+            "powerFF"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        },
+        {
+          "source": "S11",
+          "location": "activity!A1324:H1324",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "NXB",
+            "powerFF"
+          ],
+          "source_right": [
+            "NACE2.1",
+            "35.11"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        }
+      ],
+      "reference": "35.11",
+      "status": "reviewed",
+      "candidate_references": [],
+      "review_note": "Technology containment checked against NACE Rev. 2.1 explanatory notes, classes 35.11 and 35.12."
+    },
+    {
+      "native": [
+        "EXIO3I",
+        "i40.11.g"
+      ],
+      "name": "Production of electricity by biomass and waste",
+      "nodes": [
+        [
+          "EXIO3I",
+          "i40.11.g"
+        ],
+        [
+          "NXB",
+          "powerBW"
+        ],
+        [
+          "NXB",
+          "powerRN"
+        ],
+        [
+          "NACE2.1",
+          "35.12"
+        ]
+      ],
+      "names": [
+        "Production of electricity by biomass and waste",
+        "Power production - Biomass and waste",
+        "Power production - Renewables",
+        "D.35.12 Production of electricity from renewable sources"
+      ],
+      "steps": [
+        {
+          "source": "S11",
+          "location": "activity!A1236:H1236",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "EXIO3I",
+            "i40.11.g"
+          ],
+          "source_right": [
+            "NXB",
+            "powerBW"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        },
+        {
+          "source": "S11",
+          "location": "activity!A1301:H1301",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "NXB",
+            "powerBW"
+          ],
+          "source_right": [
+            "NXB",
+            "powerRN"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        },
+        {
+          "source": "S11",
+          "location": "activity!A1325:H1325",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "NXB",
+            "powerRN"
+          ],
+          "source_right": [
+            "NACE2.1",
+            "35.12"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        }
+      ],
+      "reference": "35.12",
+      "status": "pending",
+      "candidate_references": [
+        "35.11",
+        "35.12"
+      ],
+      "review_note": "Biomass and waste combines feedstocks. The current nxbase renewables anchor does not establish that all waste is renewable."
+    },
+    {
+      "native": [
+        "EXIO3I",
+        "i40.11.h"
+      ],
+      "name": "Production of electricity by solar photovoltaic",
+      "nodes": [
+        [
+          "EXIO3I",
+          "i40.11.h"
+        ],
+        [
+          "NXB",
+          "powerPV"
+        ],
+        [
+          "NXB",
+          "powerSO"
+        ],
+        [
+          "NXB",
+          "powerRN"
+        ],
+        [
+          "NACE2.1",
+          "35.12"
+        ]
+      ],
+      "names": [
+        "Production of electricity by solar photovoltaic",
+        "Power production - Solar photovoltaic",
+        "Power production - Solar",
+        "Power production - Renewables",
+        "D.35.12 Production of electricity from renewable sources"
+      ],
+      "steps": [
+        {
+          "source": "S11",
+          "location": "activity!A1237:H1237",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "EXIO3I",
+            "i40.11.h"
+          ],
+          "source_right": [
+            "NXB",
+            "powerPV"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        },
+        {
+          "source": "S11",
+          "location": "activity!A1313:H1313",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "NXB",
+            "powerPV"
+          ],
+          "source_right": [
+            "NXB",
+            "powerSO"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        },
+        {
+          "source": "S11",
+          "location": "activity!A1314:H1314",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "NXB",
+            "powerSO"
+          ],
+          "source_right": [
+            "NXB",
+            "powerRN"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        },
+        {
+          "source": "S11",
+          "location": "activity!A1325:H1325",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "NXB",
+            "powerRN"
+          ],
+          "source_right": [
+            "NACE2.1",
+            "35.12"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        }
+      ],
+      "reference": "35.12",
+      "status": "reviewed",
+      "candidate_references": [],
+      "review_note": "Technology containment checked against NACE Rev. 2.1 explanatory notes, classes 35.11 and 35.12."
+    },
+    {
+      "native": [
+        "EXIO3I",
+        "i40.11.i"
+      ],
+      "name": "Production of electricity by solar thermal",
+      "nodes": [
+        [
+          "EXIO3I",
+          "i40.11.i"
+        ],
+        [
+          "NXB",
+          "powerST"
+        ],
+        [
+          "NXB",
+          "powerSO"
+        ],
+        [
+          "NXB",
+          "powerRN"
+        ],
+        [
+          "NACE2.1",
+          "35.12"
+        ]
+      ],
+      "names": [
+        "Production of electricity by solar thermal",
+        "Power production - Solar thermal",
+        "Power production - Solar",
+        "Power production - Renewables",
+        "D.35.12 Production of electricity from renewable sources"
+      ],
+      "steps": [
+        {
+          "source": "S11",
+          "location": "activity!A1238:H1238",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "EXIO3I",
+            "i40.11.i"
+          ],
+          "source_right": [
+            "NXB",
+            "powerST"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        },
+        {
+          "source": "S11",
+          "location": "activity!A1315:H1315",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "NXB",
+            "powerST"
+          ],
+          "source_right": [
+            "NXB",
+            "powerSO"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        },
+        {
+          "source": "S11",
+          "location": "activity!A1314:H1314",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "NXB",
+            "powerSO"
+          ],
+          "source_right": [
+            "NXB",
+            "powerRN"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        },
+        {
+          "source": "S11",
+          "location": "activity!A1325:H1325",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "NXB",
+            "powerRN"
+          ],
+          "source_right": [
+            "NACE2.1",
+            "35.12"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        }
+      ],
+      "reference": "35.12",
+      "status": "reviewed",
+      "candidate_references": [],
+      "review_note": "Technology containment checked against NACE Rev. 2.1 explanatory notes, classes 35.11 and 35.12."
+    },
+    {
+      "native": [
+        "EXIO3I",
+        "i40.11.j"
+      ],
+      "name": "Production of electricity by tide, wave, ocean",
+      "nodes": [
+        [
+          "EXIO3I",
+          "i40.11.j"
+        ],
+        [
+          "NXB",
+          "powerOR"
+        ],
+        [
+          "NXB",
+          "powerRN"
+        ],
+        [
+          "NACE2.1",
+          "35.12"
+        ]
+      ],
+      "names": [
+        "Production of electricity by tide, wave, ocean",
+        "Power production - Other renewables",
+        "Power production - Renewables",
+        "D.35.12 Production of electricity from renewable sources"
+      ],
+      "steps": [
+        {
+          "source": "S11",
+          "location": "activity!A1239:H1239",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "EXIO3I",
+            "i40.11.j"
+          ],
+          "source_right": [
+            "NXB",
+            "powerOR"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        },
+        {
+          "source": "S11",
+          "location": "activity!A1323:H1323",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "NXB",
+            "powerOR"
+          ],
+          "source_right": [
+            "NXB",
+            "powerRN"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        },
+        {
+          "source": "S11",
+          "location": "activity!A1325:H1325",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "NXB",
+            "powerRN"
+          ],
+          "source_right": [
+            "NACE2.1",
+            "35.12"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        }
+      ],
+      "reference": "35.12",
+      "status": "reviewed",
+      "candidate_references": [],
+      "review_note": "Technology containment checked against NACE Rev. 2.1 explanatory notes, classes 35.11 and 35.12."
+    },
+    {
+      "native": [
+        "EXIO3I",
+        "i40.11.k"
+      ],
+      "name": "Production of electricity by Geothermal",
+      "nodes": [
+        [
+          "EXIO3I",
+          "i40.11.k"
+        ],
+        [
+          "NXB",
+          "powerOR"
+        ],
+        [
+          "NXB",
+          "powerRN"
+        ],
+        [
+          "NACE2.1",
+          "35.12"
+        ]
+      ],
+      "names": [
+        "Production of electricity by Geothermal",
+        "Power production - Other renewables",
+        "Power production - Renewables",
+        "D.35.12 Production of electricity from renewable sources"
+      ],
+      "steps": [
+        {
+          "source": "S11",
+          "location": "activity!A1240:H1240",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "EXIO3I",
+            "i40.11.k"
+          ],
+          "source_right": [
+            "NXB",
+            "powerOR"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        },
+        {
+          "source": "S11",
+          "location": "activity!A1323:H1323",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "NXB",
+            "powerOR"
+          ],
+          "source_right": [
+            "NXB",
+            "powerRN"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        },
+        {
+          "source": "S11",
+          "location": "activity!A1325:H1325",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "NXB",
+            "powerRN"
+          ],
+          "source_right": [
+            "NACE2.1",
+            "35.12"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        }
+      ],
+      "reference": "35.12",
+      "status": "reviewed",
+      "candidate_references": [],
+      "review_note": "Technology containment checked against NACE Rev. 2.1 explanatory notes, classes 35.11 and 35.12."
+    },
+    {
+      "native": [
+        "EXIO3I",
+        "i40.11.l"
+      ],
+      "name": "Production of electricity nec",
+      "nodes": [
+        [
+          "EXIO3I",
+          "i40.11.l"
+        ],
+        [
+          "NXB",
+          "powerNC"
+        ],
+        [
+          "NXB",
+          "powerFF"
+        ],
+        [
+          "NACE2.1",
+          "35.11"
+        ]
+      ],
+      "names": [
+        "Production of electricity nec",
+        "Power production - Not classified",
+        "Power production - Fossil",
+        "D.35.11 Production of electricity from non-renewable sources"
+      ],
+      "steps": [
+        {
+          "source": "S11",
+          "location": "activity!A1241:H1241",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "EXIO3I",
+            "i40.11.l"
+          ],
+          "source_right": [
+            "NXB",
+            "powerNC"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        },
+        {
+          "source": "S11",
+          "location": "activity!A1309:H1309",
+          "note": "Not-classified generation assumed fossil (editorial hypothesis).",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "NXB",
+            "powerNC"
+          ],
+          "source_right": [
+            "NXB",
+            "powerFF"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        },
+        {
+          "source": "S11",
+          "location": "activity!A1324:H1324",
+          "note": "Existing nxbase activity containment parent.",
+          "relation": "Left within right",
+          "source_relation": "Left within right",
+          "source_left": [
+            "NXB",
+            "powerFF"
+          ],
+          "source_right": [
+            "NACE2.1",
+            "35.11"
+          ],
+          "raw_type": "Governed nxbase containment parent"
+        }
+      ],
+      "reference": "35.11",
+      "status": "pending",
+      "candidate_references": [
+        "35.11",
+        "35.12"
+      ],
+      "review_note": "The nxbase fossil anchor is explicitly an editorial hypothesis. Unclassified generation is not counted as a confirmed subdivision."
+    }
+  ],
+  "source": {
+    "id": "S11",
+    "title": "nxbase · reviewed EXIOBASE electricity activity paths",
+    "publisher": "nxbase",
+    "filename": "nxbase_sets.xlsx",
+    "url": "nxbase-activity-refinements.json",
+    "sha256": "0af4b1509e8589ed11d682dad453c4f4d25ada6a523f21d4c7a1b816920153e2",
+    "retrieved": "2026-10-10",
+    "role": "Actual activity parent paths. Reviewed technology containment takes precedence over broad product/producer correspondences."
+  },
+  "evidence": {
+    "id": "S17",
+    "title": "Eurostat · NACE Rev. 2.1 explanatory notes",
+    "publisher": "Eurostat",
+    "url": "https://ec.europa.eu/eurostat/documents/3859598/21633320/KS-GQ-24-007-EN-N.pdf",
+    "retrieved": "2026-10-10",
+    "role": "Classes 35.11 and 35.12, printed pages 211–212. Non-renewable generation includes nuclear."
+  }
+}

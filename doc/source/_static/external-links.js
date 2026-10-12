@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   document
-    .querySelectorAll("main.bd-main article img[src]")
+    .querySelectorAll("article.mario-article img[src]")
     .forEach(function (image) {
       var src = image.getAttribute("src");
 

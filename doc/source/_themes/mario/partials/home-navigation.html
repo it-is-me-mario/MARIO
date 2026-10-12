@@ -1,0 +1,16 @@
+{%- from "partials/icons.html" import icon %}
+<nav class="mario-home-map" aria-label="Explore the MARIO website">
+  {%- for area in mario.nav %}
+  <section class="mario-home-area mario-home-area--{{ area.key }}" aria-labelledby="home-{{ area.key }}">
+    <div class="mario-home-area__intro">
+      <h2 id="home-{{ area.key }}"><a href="{{ area.url }}">{{ area.home_label }} <span aria-hidden="true">↗</span></a></h2>
+      <p>{{ area.summary }}</p>
+    </div>
+    <ul>
+      {%- for link in area.children %}
+      <li{% if link.featured %} class="mario-home-featured"{% endif %}><a href="{{ link.url }}"><span class="mario-home-area__label">{% if link.featured %}<span class="mario-home-area__name">{{ icon("flame") }} {{ link.label }}</span>{% else %}{{ link.label }}{% endif %} {{ icon("next") }}</span><span class="mario-home-area__description">{{ link.summary }}</span></a></li>
+      {%- endfor %}
+    </ul>
+  </section>
+  {%- endfor %}
+</nav>

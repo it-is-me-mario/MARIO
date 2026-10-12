@@ -2,7 +2,6 @@ import warnings
 warnings.filterwarnings("ignore",category=DeprecationWarning)
 
 import inspect
-import hashlib
 from pathlib import Path
 
 from openpyxl import load_workbook
@@ -1897,7 +1896,7 @@ def test_read_add_sectors_excel_attaches_split_metadata(tmp_path, CoreDataIOT):
     )
     split_setup = _configure_split_workbook(CoreDataIOT, path)
 
-    CoreDataIOT.read_add_sectors_excel(path)
+    CoreDataIOT.read_add_sectors_excel(path, split=True)
 
     assert CoreDataIOT.to_split_sectors == [split_setup["new_sector"]]
     assert ADD_SECTOR_SPLIT_OUTPUT_SHEET in CoreDataIOT.split_info
@@ -2050,6 +2049,7 @@ def test_add_sectors_split_zeroes_sub_threshold_input_values(tmp_path, CoreDataI
         split=True,
         cvxlab_path=tmp_path,
         only_input_data_gen=True,
+        residue=1e-6,
     )
 
     input_file = tmp_path / CVXLAB_SPLIT_MODEL_NAME / "input_data" / "input_data.xlsx"
@@ -2195,20 +2195,29 @@ def test_split_bridge_uses_historical_coordinate_loading_flow(tmp_path):
     ]
 
 
-def test_split_bridge_copies_model_settings_verbatim(tmp_path):
+def test_split_bridge_copies_or_adapts_model_settings(tmp_path):
     source = Path("mario/ops/cvxlab_models/Split_sectors/model_settings.xlsx")
+    original = source.read_bytes()
     dest = bridge_module._prepare_split_model_directory(
         main_dir_path=tmp_path,
         model_dir_name=CVXLAB_SPLIT_MODEL_NAME,
     )
     copied = dest / "model_settings.xlsx"
-    if getattr(bridge_module.cl.Defaults.Labels, "NONNEG_KEY", None) is not None:
-        assert hashlib.md5(source.read_bytes()).hexdigest() == hashlib.md5(copied.read_bytes()).hexdigest()
+    assert source.read_bytes() == original
+    drop_nonneg = getattr(bridge_module.cl.Defaults.Labels, "NONNEG_KEY", None) is None
+    fill_problem_blanks = hasattr(bridge_module.cl.Model, "refresh_database_and_initialize_problem")
+    if not drop_nonneg and not fill_problem_blanks:
+        assert copied.read_bytes() == original
     else:
+        assert pd.ExcelFile(copied).sheet_names == pd.ExcelFile(source).sheet_names
         source_df = pd.read_excel(source, sheet_name="structure_variables")
         copied_df = pd.read_excel(copied, sheet_name="structure_variables")
+        assert ("nonneg" in copied_df.columns) != drop_nonneg
         assert "nonneg" in source_df.columns
-        assert "nonneg" not in copied_df.columns
+        if fill_problem_blanks:
+            problem = pd.read_excel(copied, sheet_name="problem", keep_default_na=False)
+            assert all(isinstance(value, str) for value in problem["objective"])
+            assert all(isinstance(value, str) for value in problem["expressions"])
 
 
 def test_split_bridge_fills_blank_problem_cells_for_newer_cvxlab_builds(tmp_path, monkeypatch):

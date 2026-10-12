@@ -1,0 +1,253 @@
+{
+  "schema_version": 1,
+  "note": "Reviewed, deterministic rules assigning every native satellite label to one extension category. Rules are case-insensitive regular expressions tried in order; the first match wins. A label without a match stops the build.",
+  "categories": [
+    {
+      "id": "ghg",
+      "label": "GHG emissions",
+      "description": "Greenhouse gases by gas, process or source; includes CO2-equivalent totals."
+    },
+    {
+      "id": "air",
+      "label": "Air pollutants",
+      "description": "Non-GHG emissions to air: acidifying gases, particulates, ozone precursors, heavy metals, persistent organic pollutants and ozone-depleting halocarbons."
+    },
+    {
+      "id": "energy",
+      "label": "Energy",
+      "description": "Energy use, supply and carriers."
+    },
+    {
+      "id": "materials",
+      "label": "Materials",
+      "description": "Extraction and use of biomass, fossil fuels, ores and minerals; crop and fish production."
+    },
+    {
+      "id": "land",
+      "label": "Land",
+      "description": "Land use and occupation, cropland and pasture areas, forest and deforestation attribution."
+    },
+    {
+      "id": "water",
+      "label": "Water",
+      "description": "Water withdrawal, consumption and water footprints."
+    },
+    {
+      "id": "waste",
+      "label": "Waste",
+      "description": "Waste supply and use, waste treatment and material stock additions."
+    },
+    {
+      "id": "employment",
+      "label": "Employment & labour",
+      "description": "Persons employed, hours worked, skill and gender splits, labour compensation."
+    },
+    {
+      "id": "economic",
+      "label": "Economic accounts",
+      "description": "Value added components, gross output, intermediate inputs, capital, prices and volumes supplied as satellite rows."
+    },
+    {
+      "id": "other",
+      "label": "Other",
+      "description": "Emissions to water and soil, nutrients, crop yields, health-weighted emissions and placeholders."
+    }
+  ],
+  "gases": [
+    {
+      "id": "fgas",
+      "label": "F-gases",
+      "pattern": "hfc(?!.*hcfc)|\\bpfcs?\\b|sf6|nf3|\\bcf4\\b|c2f6|c3f8|c4f10|c5f12|c6f14|c7f16|c4f8|perfluoro|hexafluoro|tetrafluoro|trifluoride|f-gases"
+    },
+    {
+      "id": "n2o",
+      "label": "N₂O",
+      "pattern": "n2o|nitrous oxide"
+    },
+    {
+      "id": "ch4",
+      "label": "CH₄",
+      "pattern": "ch4|methane"
+    },
+    {
+      "id": "co2",
+      "label": "CO₂",
+      "pattern": "co2(?!-?e|eq)|carbon dioxide|deforestation emissions|peatland drainage"
+    },
+    {
+      "id": "total",
+      "label": "CO₂e total",
+      "pattern": "co2-?e|co2eq|kyoto|\\bghg\\b|gwp|total by substance"
+    }
+  ],
+  "families": {
+    "Asian Development Bank": [
+      [
+        "ghg",
+        "^(co2|ch4|n2o|gwp_100_ar5_f-gases|ghg) \\|"
+      ]
+    ],
+    "EMERGING": [
+      [
+        "ghg",
+        ".",
+        {
+          "gas": "co2",
+          "note": "Fossil CO2 by fuel."
+        }
+      ]
+    ],
+    "USEEIO": [
+      [
+        "ghg",
+        "/emission/air/"
+      ]
+    ],
+    "WIOD": [
+      [
+        "employment",
+        "^(emp|empe|h_empe|comp|lab) \\|"
+      ],
+      [
+        "economic",
+        "^(go|ii|va|cap|k)(_pi|_qi)? \\|"
+      ]
+    ],
+    "GLORIA": [
+      [
+        "other",
+        "^emissions disease burden"
+      ],
+      [
+        "ghg",
+        "^emissions \\((edgar|oecd)\\) \\| '(c_)?(ghg|co2|ch4|n2o|hfc|cf4|c2f6|c3f8|c4f10|c5f12|c6f14|c7f16|c4f8|sf6|nf3)_"
+      ],
+      [
+        "air",
+        "^emissions \\((edgar|oecd)\\) \\| '(c_)?(bc|oc|co|nox|so2|nh3|nmvoc|pm10|pm25|hcfc)_"
+      ]
+    ],
+    "EORA": [
+      [
+        "other",
+        "^dummy stressor"
+      ],
+      [
+        "employment",
+        "^employment"
+      ],
+      [
+        "ghg",
+        "^(co2-(fossil|biomass)|ch4|n2o|hfc-[0-9a-z-]+|cf4|c2f6|c3f8|c4f10|c5f12|c6f14|c-c4f8|nf3|sf6|ghg)$"
+      ],
+      [
+        "air",
+        "^(hcfc-[0-9a-z]+|so2|nox|co|nmvoc|nh3|pm10|pm25|bc|oc)$"
+      ],
+      [
+        "economic",
+        "^value added"
+      ],
+      [
+        "ghg",
+        "^i-ghg-|ghg emissions \\(gg\\) from primap|total emissions of (co2|kyoto)|co2 emissions|co2 emissions \\(gg\\) cdiac|total co2 emissions|itemized co2 emissions|^iea ghg emissions .* - iea - .*(co2|emissions)"
+      ],
+      [
+        "air",
+        "^i-air-"
+      ],
+      [
+        "economic",
+        "^iea ghg emissions .* - (gdp using|population)"
+      ],
+      [
+        "energy",
+        "energy usage|total energy use|^iea ghg emissions .*energy"
+      ],
+      [
+        "water",
+        "wfn:|water use|scarcity-weighted water|^wf emissions"
+      ],
+      [
+        "land",
+        "^i-hanpp|crop and pasture land|total cropland area|total pasture area|crop production, area per crop|^ef(built|cropland|fish|forest|grazing) emissions"
+      ],
+      [
+        "materials",
+        "^raw material inputs|crop production, production by crop"
+      ],
+      [
+        "other",
+        "crop production, average yield|^(n|p)(fertilizer|manure)? ?emissions|^(n|p) emissions from fertilizer|nitrogen emissions"
+      ]
+    ],
+    "EXIOBASE": [
+      [
+        "employment",
+        "^employment"
+      ],
+      [
+        "energy",
+        "^(energy carrier|energy use|energy inputs from nature|emission relevant energy carrier)"
+      ],
+      [
+        "water",
+        "^water (consumption|withdrawal)"
+      ],
+      [
+        "waste",
+        "\\((unreg_w|mach_sup_waste|mach_use_waste|pack_sup_waste|pack_use_waste|stock_addition|waste_sup|waste_use)\\)"
+      ],
+      [
+        "other",
+        "carbon dioxide, in air \\(resource\\)"
+      ],
+      [
+        "materials",
+        "^(domestic extraction used|unused domestic extraction)|\\(resource\\)|\\(crop_res\\)"
+      ],
+      [
+        "land",
+        "^(cropland|forest|planted forest|naturally generating forest|perm\\. meadows|permanent pastures|artificial surfaces|infrastructure land|other land use|land use,)|^deforestation (attribution|risk)"
+      ],
+      [
+        "other",
+        "\\((soil|water)\\b|^(n|p)( - |$)|^(n|p) \\(|emissions nec|other emissions|^pxx"
+      ],
+      [
+        "ghg",
+        "^(co2|ch4|n2o|sf6|nf3|hfc|pfc)(_bio)?( |$|-|\\()|^(co2_bio|ch4_bio|n2o_bio)|^carbon dioxide, (fossil|biogenic)|^(hfcs|pfcs|sf6) \\(air|^deforestation emissions|^peatland drainage"
+      ],
+      [
+        "air",
+        "\\(air|^(nox|sox|so2|nh3|nmvoc|co|pm10|pm2[._]5|tsp|bc|oc|pb|cd|hg|as|cr|cu|ni|se|zn|pah|pcb|pcbs|pcdd[/_]f|hcb|b\\(a\\)p|b\\(b\\)f|b\\(k\\)f|indeno.*|benzo.*)( |$|-)"
+      ]
+    ]
+  },
+  "without": {
+    "FIGARO": {
+      "status": "restricted",
+      "note": "Eurostat publishes FIGARO-based emission footprints, not direct emissions by industry under open terms; non-European emissions derive from EDGAR/IEA (CC BY-NC-ND 4.0)."
+    },
+    "OECD": {
+      "status": "restricted",
+      "note": "OECD publishes ICIO-based CO2/GHG footprint indicators built on IEA emission statistics, not openly licensed direct emissions by industry."
+    },
+    "GTAP": {
+      "status": "parser_only",
+      "note": "The MARIO parser reads GTAP emission blocks, but GTAP data are licensed and not parsed for this documentation."
+    },
+    "CEDA": {
+      "status": "not_published",
+      "note": "CEDA publishes characterised emission factors only; there are no satellite accounts by sector."
+    },
+    "WIOD": {
+      "status": "not_published",
+      "note": "No environmental accounts are published with the 2016 release; socio-economic accounts are loaded."
+    },
+    "Asian Development Bank": {
+      "status": "partial",
+      "note": "GHG accounts are published, and loaded, only for some ADB releases."
+    }
+  }
+}

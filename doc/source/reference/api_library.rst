@@ -1,13 +1,14 @@
 API reference
 =============
 
-This section exposes the method-by-method API reference by workflow purpose.
+Every public method, with its signature, parameters and docstring. Filter
+the table by name or category, or open a category from the sidebar.
 
-Use it when you already know what you want to do and need the exact signature,
-parameters, and docstring-driven behaviour.
+.. mario-api-index::
 
 .. toctree::
    :maxdepth: 1
+   :hidden:
 
    api_parsing_methods
    api_download_methods

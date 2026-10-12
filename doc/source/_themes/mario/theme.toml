@@ -1,0 +1,7 @@
+[theme]
+inherit = "basic"
+stylesheets = ["basic.css", "mario.css"]
+sidebars = []
+pygments_style = { default = "none" }
+
+[options]

@@ -538,6 +538,9 @@ def parse_exiobase_sut(
     name : str, Optional
         optional but suggested. is useful for visualization and metadata.
 
+    model : str, optional
+        Public MARIO model class to instantiate; defaults to ``Database``.
+
     Returns
     -------
     mario.Database
@@ -583,7 +586,8 @@ def parse_exiobase_3(
 
         The parser auto-detects the EXIOBASE layout from the folder contents and
         ``metadata.json``. The ``version`` argument is kept only as an optional
-        compatibility check.
+        compatibility check. Official 3.8.2 metadata carrying ``v3.81`` is
+        recognized as 3.8.2 when its dataset name is ``exio382_ntnu``.
 
         Monetary IOT releases currently supported through MARIO include
         EXIOBASE ``3.8.2``, ``3.9.4``, ``3.9.5``, ``3.9.6``, ``3.10.1``,
@@ -611,6 +615,9 @@ def parse_exiobase_3(
     system : str, Optional
         optional compatibility check against the system detected from the
         dataset metadata and folder layout, typically ``"ixi"`` or ``"pxp"``.
+
+    model : str, optional
+        Public MARIO model class to instantiate; defaults to ``Database``.
 
     Returns
     -------
@@ -846,6 +853,9 @@ def parse_exiobase(
           ``Emiss``, ``Emis_unreg_w``, ``waste_sup``, ``waste_use``,
           ``pack_sup_waste``, ``pack_use_waste``, ``mach_sup_waste``,
           ``mach_use_waste``, ``stock_addition``, and ``crop_res``.
+
+    model : str, optional
+        Public MARIO model class to instantiate; defaults to ``Database``.
 
     Returns
     -------
@@ -1952,6 +1962,11 @@ def parse_adb(
     - the emissions workbook does not cover all regions present in the
       economic table.
 
+    When both global tables include ``RoW`` and the extension covers every
+    economic region, additional extension economies are summed into the
+    economic table's ``RoW`` in both ``E`` and ``EY``, preserving world totals.
+    The metadata records which economies were folded into ``RoW``.
+
     Those warnings do not stop the parse. They can be inspected after parsing
     through ``db.meta_history``.
     """
@@ -2037,6 +2052,9 @@ def parse_emerging(
     bundle dimensions match, and only otherwise to generic sector labels. The
     EMERGING-E Zenodo record itself ships no sector-name file, so this built-in
     classification is what provides explicit sector names by default.
+
+    MATLAB v7.3 stored axes are normalized to MARIO's row/column convention
+    during sparse loading, avoiding a dense transpose of the full matrix.
 
     Parameters
     ----------
@@ -2163,7 +2181,9 @@ def parse_wiod(
         only relevant for the international WIOD SUT workbook. Use
         ``"external_account"`` (default) to remove ``ROW`` from the
         endogenous region set and reclassify its intermediate/final-demand
-        uses into ``Va`` and ``VY``. Use ``"legacy_region"`` to keep the
+        uses into ``Va`` and ``VY``. Published factor rows on domestic
+        final uses are also retained in ``VY``, including signed taxes and
+        adjustments. Use ``"legacy_region"`` to keep the
         previous parser behavior where ``ROW`` stays on the commodity side
         of the SUT region axis. This part of the WIOD international SUT
         treatment should still be considered investigative because the source
@@ -2325,6 +2345,21 @@ def parse_figaro(
     countries : str or list-like, optional
         Optional country subset using Eurostat FIGARO country codes. Use it to
         parse smaller slices without downloading the full multiregional table.
+    timeout : int, optional
+        HTTP timeout in seconds for each Eurostat request; defaults to ``60``.
+    model : str, optional
+        Public MARIO model class to instantiate; defaults to ``Database``.
+    name : str, optional
+        Dataset name stored in metadata; defaults to the detected source name.
+    calc_all : bool, optional
+        Materialize derived matrices immediately after parsing; defaults to
+        ``False``.
+
+    Notes
+    -----
+    Supply dataflows encode domestic production with one ``geo`` dimension.
+    MARIO assigns that region to both axes of ``S``. Use and IOT dataflows
+    retain their separate origin and destination dimensions.
     """
     if model not in models:
         raise WrongInput("Available models are {}".format([*models]))
@@ -2410,6 +2445,16 @@ def parse_gtap(
         ETAX, DTAX, domestic satellite accounts) carry the sentinel label
         ``"TOTAL"`` on the levels that do not apply. Only the full
         ``("Region", "Sector")`` layout is currently supported.
+
+    model : str, optional
+        Public MARIO model class to instantiate; defaults to ``Database``.
+    name : str, optional
+        Dataset name stored in metadata.
+    year : int, optional
+        Reference year stored in metadata.
+    calc_all : bool, optional
+        Materialize derived matrices immediately after parsing; defaults to
+        ``False``.
 
     Notes
     -----

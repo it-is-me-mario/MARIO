@@ -181,7 +181,13 @@ def _detect_exiobase_iot_layout(root: Path) -> ExiobaseIOTLayout:
     metadata = _read_json(root / "metadata.json")
 
     folder_version = _normalize_version(re.search(r"(\d+\.\d+\.\d+)", root.name).group(1)) if re.search(r"(\d+\.\d+\.\d+)", root.name) else None
-    detected_version = folder_version or _normalize_version(metadata.get("version"))
+    metadata_version = _normalize_version(metadata.get("version"))
+    # Official 3.8.2 ZIPs retain "v3.81" in this field, while the dataset name
+    # correctly identifies exio382_ntnu. A plain IOT_YYYY_system archive root
+    # has no version in its folder name to resolve that publishing error.
+    if metadata_version == "3.8.1" and metadata.get("name") == "exio382_ntnu":
+        metadata_version = "3.8.2"
+    detected_version = folder_version or metadata_version
     factor_directory = None
     if (root / "factor_inputs" / "F.txt").exists():
         factor_directory = "factor_inputs"

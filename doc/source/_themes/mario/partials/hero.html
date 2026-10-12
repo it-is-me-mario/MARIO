@@ -1,0 +1,27 @@
+{%- from "partials/icons.html" import icon %}
+{%- set hero = mario.hero %}
+<section class="mario-hero mario-hero--{{ mario.layout }}" data-hero data-snap>
+  <div class="mario-hero__inner mario-wide">
+    {%- if mario.layout == "tabs" %}
+    <p class="mario-hero__title">{{ hero.title }}</p>
+    {%- else %}
+    <h1 class="mario-hero__title">{{ hero.title }}</h1>
+    {%- endif %}
+    {%- if hero.text %}<p class="mario-hero__text">{{ hero.text }}</p>{% endif %}
+    {%- if mario.layout == "home" %}<div class="mario-home-actions">{% endif %}
+    {%- if hero.install and mario.install %}
+    <div class="mario-install">
+      <code data-copy-source>{{ mario.install }}</code>
+      <button type="button" class="mario-install__copy" data-copy aria-label="Copy the install command">{{ icon("copy") }}<span data-copy-label>Copy</span></button>
+    </div>
+    {%- endif %}
+    {%- if hero.actions %}
+    <div class="mario-hero__actions">
+      {%- for action in hero.actions %}
+      <a class="mario-button{% if loop.first %} mario-button--primary{% endif %}" href="{{ pathto(action.doc) }}">{{ action.label }}</a>
+      {%- endfor %}
+    </div>
+    {%- endif %}
+    {%- if mario.layout == "home" %}</div>{% endif %}
+  </div>
+</section>

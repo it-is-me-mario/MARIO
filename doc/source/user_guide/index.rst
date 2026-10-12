@@ -1,51 +1,19 @@
-User guide
-==========
+.. _docs:
 
-This section shows how to get data into MARIO and how to operate on parsed
-*databases*. It includes parser-specific pages and operational workflows.
+Documentation
+=============
 
-The workflows are grouped into four families:
+Guides for every step of a MARIO workflow, grouped as in the tabs above, plus
+the method-by-method API reference. Each guide is a notebook you can read here
+or download and run.
 
-* data parsing
-* data inspection, calculations and exporting
-* data transformations
-* advanced workflows
+.. mario-docs-overview::
 
-   
 .. toctree::
-   :maxdepth: 1
-   :caption: Database parsers
+   :hidden:
 
    parsers/index
-   parsers/provide_your_database
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Inspection and calculations
-
-   inspection/basic_inspections
-   inspection/compute_matrices
-   inspection/visualization
-   inspection/custom_labels_and_aliases
-   inspection/export_and_roundtrip
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Transformations
-
-   transformations/aggregate
-   transformations/add_extensions
-   transformations/apply_shocks
-   transformations/add_sectors
-   transformations/sut_to_iot
-   transformations/mrio_to_srio
-   transformations/to_chenery_moses
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Advanced workflows
-
-   advanced/electricity_mix
-   advanced/greenhouse_gas_calculations
-   advanced/supply_chain_analyses
-   advanced/structural_path_analysis
+   inspection/index
+   transformations/index
+   advanced/index
+   API reference <../reference/api_library>

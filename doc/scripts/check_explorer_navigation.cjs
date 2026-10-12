@@ -1,0 +1,57 @@
+const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os');
+const base=process.env.MARIO_DOCS_PREVIEW_URL||'http://127.0.0.1:8765/';
+const out=process.env.MARIO_DOCS_QA_DIR||path.join(os.tmpdir(),'mario-explorer-navigation');fs.mkdirSync(out,{recursive:true});
+(async()=>{
+ const browser=await chromium.launch({channel:'chrome',headless:true});
+ const page=await browser.newPage({viewport:{width:1440,height:1050}}),errors=[];page.on('pageerror',e=>errors.push(e.message));page.setDefaultTimeout(25000);
+ const scope='resources/data-explorer/scope.html';
+ const ready=selector=>page.waitForFunction(selector=>{const n=document.querySelector(selector);return n&&n.getAttribute('aria-busy')==='false';},selector,{timeout:60000});
+ const selected=()=>page.locator('[data-scope-tabs] [aria-selected="true"]');
+ const sizing=async()=>{
+  const metrics=await page.locator('.explorer-tabs').evaluate(n=>{const a=n.closest('.mario-article').getBoundingClientRect(),b=n.getBoundingClientRect();return {article:a.width,tabs:b.width,left:Math.abs(a.left-b.left),top:Math.abs(a.top-b.top)};});
+  assert.ok(Math.abs(metrics.article-metrics.tabs)<=3&&metrics.left<=2&&metrics.top<=2,JSON.stringify(metrics));
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));return metrics;
+ };
+ await page.goto(new URL(scope,base).href,{waitUntil:'networkidle',timeout:60000});await ready('[data-database-scope]');
+ assert.equal(await selected().getAttribute('aria-controls'),'overview');
+ assert.ok(await page.locator('#geographical-coverage').isHidden());assert.ok(await page.locator('#sectoral-coverage').isHidden());assert.ok(await page.locator('#environmental-extensions').isHidden());
+ const desktop=await sizing();await page.locator('.mario-article').screenshot({path:path.join(out,'scope-overview-light.png')});
+ await page.locator('#scope-tab-geography').click();await ready('[data-database-comparisons]');
+ assert.equal(new URL(page.url()).hash,'#geographical-coverage');assert.ok(await page.locator('#overview').isHidden());
+ await page.locator('[data-coverage-database]').selectOption('EXIOBASE');await page.locator('#scope-tab-sectors').click();await ready('[data-sectoral-scope]');
+ await page.waitForFunction(()=>document.querySelector('[data-ss-chart]')?.data?.[1]?.z.length===651);
+ assert.equal(new URL(page.url()).hash,'#sectoral-coverage');
+ assert.ok(await page.locator('#geographical-coverage').isHidden());await page.locator('.mario-article').screenshot({path:path.join(out,'scope-sectors-light.png')});
+ await page.locator('[data-ss-kind="commodity"]').click();await ready('[data-ss-chart]');
+ await page.locator('#scope-tab-geography').click();assert.equal(await page.locator('[data-coverage-database]').inputValue(),'EXIOBASE');
+ await page.locator('#scope-tab-sectors').click();assert.equal(await page.locator('[data-ss-kind="commodity"]').getAttribute('aria-pressed'),'true');
+ await page.goBack();assert.equal(await selected().getAttribute('aria-controls'),'geographical-coverage');
+ await page.goForward();assert.equal(await selected().getAttribute('aria-controls'),'sectoral-coverage');
+ await selected().focus();await page.keyboard.press('Home');assert.equal(await selected().getAttribute('aria-controls'),'overview');
+ await page.waitForFunction(()=>{const n=document.querySelector('[data-scope-chart]');return n&&Math.abs(n._fullLayout?.width-n.clientWidth)<3;});
+ await page.keyboard.press('ArrowRight');assert.equal(await selected().getAttribute('aria-controls'),'geographical-coverage');
+ await page.keyboard.press('End');assert.equal(await selected().getAttribute('aria-controls'),'environmental-extensions');
+ await page.reload({waitUntil:'networkidle'});await ready('[data-extension-scope]');assert.equal(await selected().getAttribute('aria-controls'),'environmental-extensions');
+ assert.ok(await page.locator('[data-scope-controls]').isVisible());
+ await page.goto(new URL(scope+'#database-coverage',base).href,{waitUntil:'networkidle'});await ready('[data-database-comparisons]');assert.equal(await selected().getAttribute('aria-controls'),'geographical-coverage');
+ const toc=page.locator('[data-pagebar-menu]').filter({has:page.locator('.mario-localtoc')});
+ if(await toc.count()){await toc.locator('> summary').click();await toc.locator('a[href="#sectoral-coverage"]').click();await ready('[data-sectoral-scope]');assert.equal(await selected().getAttribute('aria-controls'),'sectoral-coverage');}
+ await page.evaluate(()=>document.documentElement.dataset.theme='dark');await ready('[data-ss-chart]');await page.locator('.mario-article').screenshot({path:path.join(out,'scope-sectors-dark.png')});
+ await page.setViewportSize({width:390,height:844});await page.locator('#scope-tab-overview').click();await ready('[data-database-scope]');await sizing();await page.locator('.mario-article').screenshot({path:path.join(out,'scope-mobile-dark.png')});
+ await page.evaluate(()=>document.documentElement.dataset.theme='light');await page.locator('.mario-article').screenshot({path:path.join(out,'scope-mobile-light.png')});
+ await page.setViewportSize({width:320,height:720});await sizing();
+ await page.setViewportSize({width:1440,height:1050});
+ await page.locator('.explorer-tabs a[href="browsers.html"]').click();await ready('[data-economy-browser]');assert.match(page.url(),/browsers.html$/);await sizing();
+ const modes=await page.locator('.eb-modes').evaluate(n=>({width:n.getBoundingClientRect().width,buttons:[...n.querySelectorAll('button')].map(b=>b.getBoundingClientRect().width)}));
+ assert.ok(modes.buttons.every(w=>Math.abs(w-modes.buttons[0])<=1));await page.locator('.mario-article').screenshot({path:path.join(out,'browsers-light.png')});
+ await page.locator('button[data-mode="focus"]').click();await ready('[data-economy-browser]');assert.equal(await page.locator('button[data-mode="focus"]').getAttribute('aria-pressed'),'true');
+ await page.evaluate(()=>document.documentElement.dataset.theme='dark');await ready('[data-economy-browser]');await page.locator('.mario-article').screenshot({path:path.join(out,'browsers-dark.png')});
+ await page.setViewportSize({width:390,height:844});await sizing();await page.waitForFunction(()=>{const n=document.querySelector('[data-economy-browser] [data-chart]');return n?.data?.some(t=>t.type==='bar')&&Math.abs(n._fullLayout.width-n.clientWidth)<3;});await page.locator('.mario-article').screenshot({path:path.join(out,'browsers-mobile-dark.png')});
+ await page.setViewportSize({width:320,height:720});await sizing();await page.setViewportSize({width:390,height:844});
+ await page.locator('.explorer-tabs a[href="analyses.html"]').click();assert.match(page.url(),/analyses.html$/);await sizing();assert.ok(await page.locator('a[href="electricity_carbon_footprint.html"]').count());
+ await page.locator('.mario-article').screenshot({path:path.join(out,'analyses-mobile-dark.png')});
+ // Without JavaScript the original section links and all three views remain readable.
+ const plain=await browser.newContext({javaScriptEnabled:false});const fallback=await plain.newPage();await fallback.goto(new URL(scope,base).href,{waitUntil:'networkidle'});
+ for(const id of ['overview','geographical-coverage','sectoral-coverage','environmental-extensions'])assert.ok(await fallback.locator('#'+id).isVisible());await plain.close();
+ assert.deepEqual(errors,[]);console.log(JSON.stringify({full_width_tabs:desktop,scope_views:4,default:'overview',deep_links:true,history:true,keyboard:true,preserved_filters:true,mobile_overflow:false,no_js_fallback:true,errors}));await browser.close();
+})().catch(e=>{console.error(e);process.exit(1)});

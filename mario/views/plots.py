@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Iterable, Sequence
 
+import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.offline as pltly
@@ -15,6 +16,15 @@ from mario.utils import run_from_jupyter
 from mario.views.plot_specs import _PALETTES, _PLOTS_LAYOUT
 
 logger = logging.getLogger(__name__)
+
+_ROW_LABELS_ATTR = "mario_row_labels"
+_COLUMN_LABELS_ATTR = "mario_column_labels"
+_HEATMAP_ROW = "Row"
+_HEATMAP_COLUMN = "Column"
+_HEATMAP_COLOR = "Color"
+_HEATMAP_LARGE_CELLS = 1_000_000
+# Sequential scale drawn from the MARIO logo: cream, yellow, orange, dark ribbon end.
+_HEATMAP_SEQUENTIAL_SCALE = ["#fff6dc", "#fdca27", "#db5617", "#16100d"]
 
 
 def set_palette(mario_palettes=None, user_palette=None):
@@ -134,6 +144,8 @@ def _flatten_frame(frame: pd.DataFrame, *, scenario: str | None = None) -> pd.Da
     data = _attach_level_aliases(data)
     if scenario is not None:
         data["Scenario"] = scenario
+    data.attrs[_ROW_LABELS_ATTR] = list(row_labels)
+    data.attrs[_COLUMN_LABELS_ATTR] = list(col_labels)
     return data
 
 
@@ -258,13 +270,7 @@ def _apply_preset(
         )
 
     if active_preset == "heatmap":
-        return (
-            kind or "heatmap",
-            x or inferred["col_item"] or inferred["scenario"] or inferred["categorical"],
-            color,
-            facet_col,
-            top_n,
-        )
+        return kind or "heatmap", x, color, facet_col, top_n
 
     if active_preset in {"treemap", "sunburst"}:
         return active_preset, x, color, facet_col, top_n
@@ -274,6 +280,167 @@ def _apply_preset(
             active_preset
         )
     )
+
+
+def _matrix_side_columns(data: pd.DataFrame, side: str) -> list[str]:
+    """Return the flattened label columns that describe one side of a matrix."""
+    attr = _ROW_LABELS_ATTR if side == "from" else _COLUMN_LABELS_ATTR
+    columns = [column for column in data.attrs.get(attr, []) if column in data.columns]
+    if not columns:
+        columns = [
+            column
+            for column in [f"{_MASTER_INDEX['r']}_{side}", f"Level_{side}", f"Item_{side}"]
+            if column in data.columns
+        ]
+    varying = [column for column in columns if data[column].nunique(dropna=False) > 1]
+    return varying or columns[-1:]
+
+
+def _composite_label(data: pd.DataFrame, columns: list[str]) -> pd.Series:
+    """Join several label columns into one readable axis label."""
+    label = data[columns[0]].astype(str)
+    for column in columns[1:]:
+        label = label + " · " + data[column].astype(str)
+    return label
+
+
+def _resolve_heatmap_axes(
+    data: pd.DataFrame,
+    *,
+    x: str | None,
+    heatmap_y: str | None,
+) -> tuple[pd.DataFrame, str | None, str | None]:
+    """Choose heatmap axes, defaulting to the full matrix layout."""
+    if x is not None and heatmap_y is not None:
+        return data, x, heatmap_y
+
+    inferred = _infer_plot_dimensions(data)
+    row_columns = _matrix_side_columns(data, "from")
+    column_columns = _matrix_side_columns(data, "to")
+    multi_scenario = "Scenario" in data.columns and data["Scenario"].nunique() > 1
+
+    if heatmap_y is None:
+        if row_columns:
+            data = data.assign(**{_HEATMAP_ROW: _composite_label(data, row_columns)})
+            heatmap_y = _HEATMAP_ROW
+        else:
+            heatmap_y = inferred["row_item"] or inferred["account"] or inferred["categorical"]
+
+    if x is None:
+        if multi_scenario:
+            x = "Scenario"
+        elif column_columns:
+            data = data.assign(**{_HEATMAP_COLUMN: _composite_label(data, column_columns)})
+            x = _HEATMAP_COLUMN
+        else:
+            x = inferred["col_item"] or inferred["scenario"] or inferred["categorical"]
+
+    return data, x, heatmap_y
+
+
+def _heatmap_color_values(
+    values: np.ndarray,
+    *,
+    log_color: bool,
+    color_clip,
+) -> np.ndarray:
+    """Transform heatmap values for coloring: optional log10 scale and quantile clipping."""
+    colors = values.astype(float).copy()
+    if log_color:
+        finite = colors[np.isfinite(colors)]
+        if (finite < 0).any():
+            raise WrongInput(
+                "log_color requires non-negative values. Plot a non-negative matrix or "
+                "use a linear color scale."
+            )
+        with np.errstate(divide="ignore"):
+            colors = np.where(colors > 0, np.log10(colors), np.nan)
+
+    if color_clip is not None:
+        try:
+            low, high = (float(bound) for bound in color_clip)
+        except (TypeError, ValueError) as exc:
+            raise WrongInput("color_clip should be a pair of quantiles, e.g. (0.05, 0.995).") from exc
+        if not 0 <= low < high <= 1:
+            raise WrongInput("color_clip quantiles should satisfy 0 <= low < high <= 1.")
+        finite = colors[np.isfinite(colors)]
+        if finite.size:
+            lower, upper = np.quantile(finite, [low, high])
+            colors = np.where(np.isfinite(colors), np.clip(colors, lower, upper), colors)
+
+    return colors
+
+
+def _plot_matrix_heatmap(
+    plot_data: pd.DataFrame,
+    *,
+    source: pd.DataFrame,
+    x: str,
+    heatmap_y: str,
+    value: str,
+    log_color: bool,
+    color_clip,
+    title: str | None,
+    color_continuous_scale,
+    category_orders: dict | None,
+    **kwargs,
+):
+    """Render one matrix-shaped heatmap that keeps the original row and column order."""
+    orders = category_orders or {}
+    row_order = orders.get(heatmap_y) or list(pd.unique(source[heatmap_y]))
+    column_order = orders.get(x) or list(pd.unique(source[x]))
+
+    matrix = plot_data.pivot_table(index=heatmap_y, columns=x, values=value, aggfunc="sum", sort=False)
+    matrix = matrix.reindex(index=[item for item in row_order if item in matrix.index])
+    matrix = matrix.reindex(columns=[item for item in column_order if item in matrix.columns])
+
+    cells = matrix.shape[0] * matrix.shape[1]
+    if cells > _HEATMAP_LARGE_CELLS:
+        logger.warning(
+            "Heatmap with %s cells: the figure may be slow to render. Consider filters or aggregation.",
+            f"{cells:,}",
+        )
+
+    values = matrix.to_numpy(dtype=float)
+    colors = _heatmap_color_values(values, log_color=log_color, color_clip=color_clip)
+
+    if color_continuous_scale is None:
+        finite = values[np.isfinite(values)]
+        has_negative = finite.size and (finite < 0).any()
+        color_continuous_scale = px.colors.diverging.RdBu[::-1] if has_negative and not log_color else _HEATMAP_SEQUENTIAL_SCALE
+        if has_negative and not log_color:
+            kwargs.setdefault("color_continuous_midpoint", 0)
+
+    fig = px.imshow(
+        colors,
+        x=[str(item) for item in matrix.columns],
+        y=[str(item) for item in matrix.index],
+        aspect="auto",
+        color_continuous_scale=color_continuous_scale,
+        labels={"x": x, "y": heatmap_y, "color": value},
+        title=title,
+        **kwargs,
+    )
+    fig.update_traces(
+        customdata=values,
+        hovertemplate=f"{heatmap_y}: %{{y}}<br>{x}: %{{x}}<br>{value}: %{{customdata:.4g}}<extra></extra>",
+    )
+
+    if log_color:
+        finite = colors[np.isfinite(colors)]
+        if finite.size:
+            exponents = list(range(int(np.ceil(finite.min())), int(np.floor(finite.max())) + 1))
+            fig.update_coloraxes(
+                colorbar_tickvals=exponents,
+                colorbar_ticktext=[f"{10.0 ** exponent:g}" for exponent in exponents],
+                colorbar_title_text=f"{value} (log scale)",
+            )
+
+    color_frame = pd.DataFrame(colors, index=matrix.index, columns=matrix.columns)
+    color_long = color_frame.stack(future_stack=True).rename(_HEATMAP_COLOR).reset_index()
+    color_long.columns = [heatmap_y, x, _HEATMAP_COLOR]
+    plotted = plot_data.merge(color_long, on=[heatmap_y, x], how="left")
+    return fig, plotted
 
 
 def build_matrix_plot_frame(
@@ -313,6 +480,8 @@ def build_matrix_plot_frame(
         frames.append(flat)
 
     data = pd.concat(frames, ignore_index=True)
+    data.attrs[_ROW_LABELS_ATTR] = frames[0].attrs.get(_ROW_LABELS_ATTR, [])
+    data.attrs[_COLUMN_LABELS_ATTR] = frames[0].attrs.get(_COLUMN_LABELS_ATTR, [])
 
     if item is not None:
         for level_column in ["Level_from", "Level_to"]:
@@ -376,6 +545,8 @@ def plot_frame(
     barmode: str = "relative",
     log_x: bool = False,
     log_y: bool = False,
+    log_color: bool = False,
+    color_clip=None,
     title: str | None = None,
     color_continuous_scale=None,
     color_discrete_sequence=None,
@@ -396,6 +567,16 @@ def plot_frame(
         top_n=top_n,
     )
 
+    heatmap_y = kwargs.pop("heatmap_y", None)
+    if kind == "heatmap":
+        data, x, heatmap_y = _resolve_heatmap_axes(data, x=x, heatmap_y=heatmap_y)
+        if heatmap_y is None or heatmap_y not in data.columns:
+            raise WrongInput(
+                f"'{heatmap_y}' is not a valid heatmap axis. Available columns are: {list(data.columns)}"
+            )
+    elif log_color or color_clip is not None:
+        raise WrongInput("log_color and color_clip are available only for heatmap plots.")
+
     for column in [x, y, color, size, facet_row, facet_col, animation_frame, hover_name, line_group, text]:
         if column is not None and column not in data.columns:
             raise WrongInput(
@@ -409,6 +590,8 @@ def plot_frame(
     ]
     if kind in {"treemap", "sunburst"} and path_columns is not None:
         dimensions.extend(path_columns)
+    if kind == "heatmap":
+        dimensions.append(heatmap_y)
 
     plot_data = _aggregate_plot_data(data, dimensions=dimensions, value=y, agg=agg)
     plot_data = _select_top_n(plot_data, x=x, value=y, top_n=top_n)
@@ -515,14 +698,25 @@ def plot_frame(
             **hierarchical_common,
             **kwargs,
         )
+    elif kind == "heatmap" and facet_row is None and facet_col is None and animation_frame is None:
+        fig, plot_data = _plot_matrix_heatmap(
+            plot_data,
+            source=data,
+            x=x,
+            heatmap_y=heatmap_y,
+            value=y,
+            log_color=log_color,
+            color_clip=color_clip,
+            title=title,
+            color_continuous_scale=color_continuous_scale,
+            category_orders=category_orders,
+            **kwargs,
+        )
     elif kind == "heatmap":
-        heatmap_y = kwargs.pop("heatmap_y", None)
-        if heatmap_y is None:
-            inferred = _infer_plot_dimensions(plot_data)
-            heatmap_y = inferred["row_item"] or inferred["account"] or inferred["categorical"]
-        if heatmap_y not in plot_data.columns:
+        if log_color or color_clip is not None:
             raise WrongInput(
-                f"'{heatmap_y}' is not a valid heatmap axis. Available columns are: {list(plot_data.columns)}"
+                "log_color and color_clip are not supported together with facet_row, facet_col "
+                "or animation_frame."
             )
         fig = px.density_heatmap(
             x=x,
