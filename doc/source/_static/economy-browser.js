@@ -325,7 +325,7 @@
           node.style.height=figure.layout.height+"px";
           node.setAttribute("aria-label",label);
           node._marioYears=years;
-          await window.Plotly.react(node,figure.data,figure.layout,window.MarioFigureDownload.withCredit(figure.config,[heading()+' · MARIO-derived results; reference accounting boundaries can differ.',...M.unique(active().map(s=>s.recipe.attribution||s.recipe.label)),...(rows.some(r=>r.database==='World Bank')||state.perCapita||state.metric!=='ghg'&&active().some(s=>s.recipe.currency&&s.recipe.currency!=='USD')?['World Bank WDI: CC BY 4.0. Historical EUR/ECU rates: Eurostat, where used.']:[]),...(rows.some(r=>r.database==='EDGAR')?['EDGAR references: European Union / JRC; IEA component terms apply.']:[]), 'Sources and terms: https://mario-suite.readthedocs.io/en/latest/resources/data-explorer/browsers.html']));
+          await window.Plotly.react(node,figure.data,figure.layout,window.MarioFigureDownload.withCredit(figure.config,[heading()+' · MARIO-derived results; reference accounting boundaries can differ.',...M.unique(active().map(s=>s.recipe.attribution||s.recipe.label)),...(rows.some(r=>r.database==='World Bank')||state.perCapita||state.metric!=='ghg'&&active().some(s=>s.recipe.currency&&s.recipe.currency!=='USD')?['World Bank WDI: CC BY 4.0. Historical EUR/ECU rates: Eurostat, where used.']:[]),...(rows.some(r=>r.database==='EDGAR')?['EDGAR references: European Union / JRC; IEA component terms apply.']:[]), 'Sources and terms: https://www.marioproject.com/en/latest/resources/data-explorer/browsers.html']));
           await updateHoverDistance();
           if(!node._marioHoverBound) {
             node._marioHoverBound=true;

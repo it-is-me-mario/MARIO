@@ -5,7 +5,7 @@ from pathlib import Path
 import re
 from urllib.parse import urljoin
 
-DOCS = 'https://mario-suite.readthedocs.io/en/latest/'
+DOCS = 'https://www.marioproject.com/en/latest/'
 
 
 def clean_notebook(path, srcdir):
