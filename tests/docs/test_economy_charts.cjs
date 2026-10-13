@@ -61,7 +61,7 @@ test('no zero observations or reference-only chart is invented for unavailable r
 
 test('focus keeps one reading as annual bars and switches multiple readings to scatter',()=>{
  const rows=[row('3.11.2 ixi',2022,10e12),row('3.11.2 ixi',2024,12e12),row('World Bank',2024,12.1e12)];
- const opts={...options(),state:{...state,mode:'focus'}};
+ const opts={...options(),state:state};
  const one=C.figure(rows,opts);assert.equal(one.data[0].type,'bar');assert.equal(one.data[1].marker.symbol,'diamond');
  assert.deepEqual(one.data[0].x,[2022,2024]);assert.equal(one.layout.hovermode,'x unified');
  const two=C.figure([...rows,row('3.10.2 ixi',2022,11e12)],opts);
@@ -75,7 +75,7 @@ test('focus keeps one colour across releases, system shape and unit fill with sa
   {...row('3.11.2 ixi',2024,1e9),release:'3.11.2',system:'ixi',units:'Monetary'},
   {...row('3.11.2 pxp',2024,1e9),release:'3.11.2',system:'pxp',units:'Monetary'},
   {...row('3.3.18 hybrid IOT',2011,1e9),release:'3.3.18',format:'IOT',system:'pxp',units:'Hybrid'}];
- const opts={...options([2011,2024]),state:{...state,mode:'focus'}};
+ const opts={...options([2011,2024]),state:state};
  const f=C.figure(rows,opts);
  assert.equal(f.data[0].marker.color,f.data[1].marker.color);
  assert.equal(f.data[0].marker.symbol,'circle');assert.equal(f.data[1].marker.symbol,'square');assert.equal(f.data[2].marker.symbol,'square-open');
@@ -90,16 +90,16 @@ test('one release with two IOT systems uses scatter and one reference point per 
   {...row('ixi',2024,1.1e12),release:'3.11.2',system:'ixi'},
   {...row('pxp',2023,2e12),release:'3.11.2',system:'pxp'},
   {...row('pxp',2024,2.1e12),release:'3.11.2',system:'pxp'},row('World Bank',2024,1.5e12)];
- const f=C.figure(rows,{...options([2023,2024]),state:{...state,mode:'focus'}});
+ const f=C.figure(rows,{...options([2023,2024]),state:state});
  assert.ok(f.data.every(t=>t.type==='scatter'));
  assert.equal(f.data[0].marker.symbol,'circle');assert.equal(f.data[1].marker.symbol,'square');
  const ref=f.data[2];assert.equal(ref.marker.symbol,'line-ew');assert.deepEqual(ref.x,[2024]);
- assert.equal(C.figure(rows.filter(r=>r.year===2024),{...options([2024]),state:{...state,mode:'focus'}}).data.filter(t=>t.type==='bar').length,2);
+ assert.equal(C.figure(rows.filter(r=>r.year===2024),{...options([2024]),state:state}).data.filter(t=>t.type==='bar').length,2);
 });
 
 test('formats and units count as distinct readings but multiple countries do not',()=>{
  const base={...row('monetary IOT',2022,1e12),release:'same',units:'Monetary',format:'IOT',system:'pxp'};
- const opts={...options([2021,2022]),state:{...state,mode:'focus'}};
+ const opts={...options([2021,2022]),state:state};
  const earlier={...base,year:2021};
  assert.equal(C.figure([base,earlier,{...base,country:'ITA'}],opts).data[0].type,'bar');
  const sut={...base,series:'monetary SUT',version:'same SUT',format:'SUT',system:null};
@@ -123,7 +123,7 @@ test('annual hover tolerance adapts to mobile and zoom without borrowing an adja
 test('comparison colours identify database families rather than releases',()=>{
  const rows=[row('3.11.2 ixi',2024,1e9),row('3.10.2 ixi',2024,2e9),{...row('OECD extended',2024,3e9),database:'OECD'}];
  for(const years of [[2024],[2022,2024]]){
-  const f=C.figure(rows,{...options(years),state:{...state,mode:'compare'},databaseFamilies:['EXIOBASE','OECD']});
+  const f=C.figure(rows,{...options(years),state,databaseFamilies:['EXIOBASE','OECD']});
   assert.equal(f.data[0].marker.color,f.data[1].marker.color);
   assert.notEqual(f.data[0].marker.color,f.data[2].marker.color);
  }
@@ -132,13 +132,13 @@ test('comparison colours identify database families rather than releases',()=>{
 
 test('single-year references retain distinct country totals and legend entries stay at family level',()=>{
  const rows=[row('3.11.2 ixi',2024,1e12,'ITA'),row('3.10.2 ixi',2024,1.1e12,'ITA'),row('3.11.2 ixi',2024,2e12,'FRA'),row('World Bank',2024,1.2e12,'ITA'),row('World Bank',2024,2.1e12,'FRA')];
- const f=C.figure(rows,{...options([2024]),state:{...state,mode:'focus'}});
+ const f=C.figure(rows,{...options([2024]),state:state});
  assert.deepEqual(f.layout.shapes.map(s=>s.y0),[1.2,2.1]);
  assert.equal(f.layout.shapes.filter(s=>s.showlegend).length,1);
  assert.equal(f.data.filter(t=>t.showlegend).length,1);
  assert.ok(f.layout.shapes.every(s=>s.legendgroup==='database:World Bank'));
  const many=Array.from({length:12},(_,i)=>row('release-'+i,2024,1e12+i*1e10));
- const large=C.figure([...many,row('World Bank',2024,1.2e12)],{...options([2024]),state:{...state,mode:'focus'}});
+ const large=C.figure([...many,row('World Bank',2024,1.2e12)],{...options([2024]),state:state});
  assert.ok(large.data.filter(t=>t.type==='bar').every(t=>t.orientation==='v'));
  assert.equal(large.layout.shapes.length,1);
 });
@@ -148,7 +148,7 @@ test('with several countries each single-year reference spans only its own bars'
  const rows=[named('3.11.2 ixi',1e12,'BEL','Belgium'),named('3.10.2 ixi',1.1e12,'BEL','Belgium'),
   named('3.11.2 ixi',2e12,'AUT','Austria'),named('3.10.2 ixi',2.2e12,'AUT','Austria'),
   named('World Bank',1.2e12,'BEL','Belgium'),named('World Bank',2.1e12,'AUT','Austria')];
- const f=C.figure(rows,{...options([2024]),state:{...state,mode:'focus'}});
+ const f=C.figure(rows,{...options([2024]),state:state});
  const order=f.layout.xaxis.categoryarray.map(c=>c.split('<br>')[0]);
  const span=name=>{const i=order.flatMap((c,k)=>c===name?[k]:[]);return [Math.min(...i)-.42,Math.max(...i)+.42];};
  const references=f.layout.shapes.filter(s=>s.legendgroup);
@@ -162,12 +162,12 @@ test('single-year bars nest country, release and system groups on the x axis',()
  const rows=[];
  for(const [country,name] of [['AUS','Australia'],['AUT','Austria']])for(const release of ['3.10.1','3.11.2'])for(const system of ['ixi','pxp'])rows.push(bar(release,system,1e12,country,name));
  rows.push({...row('World Bank',2024,1.1e12,'AUS'),country_name:'Australia'});
- const f=C.figure(rows,{...options([2024]),state:{...state,mode:'focus'}});
+ const f=C.figure(rows,{...options([2024]),state:state});
  assert.deepEqual(f.layout.xaxis.ticktext,Array(4).fill(['ixi','pxp']).flat());
  assert.deepEqual(f.layout.annotations.map(a=>[a.text,a.x]),[['3.10.1',.5],['3.11.2',2.5],['3.10.1',4.5],['3.11.2',6.5],['Australia',1.5],['Austria',5.5]]);
  assert.equal(f.layout.shapes.filter(s=>s.ysizemode==='pixel').length,6);
  assert.deepEqual(f.layout.shapes.filter(s=>s.legendgroup).map(s=>[s.x0,s.x1]),[[-.42,3.42]]);
- const plain=C.figure([bar('3.11.2','ixi',1e12,'AUS','Australia'),bar('3.11.2','pxp',1e12,'AUS','Australia')],{...options([2024]),state:{...state,mode:'focus'}});
+ const plain=C.figure([bar('3.11.2','ixi',1e12,'AUS','Australia'),bar('3.11.2','pxp',1e12,'AUS','Australia')],{...options([2024]),state:state});
  assert.equal(plain.layout.xaxis.ticktext,undefined);assert.deepEqual(plain.layout.annotations,[]);
 });
 
@@ -175,12 +175,12 @@ test('several sector aggregates stack in single-year bars and remain scatter for
  const rows=['A','D'].flatMap(sector=>[
   {...row('3.11.2 ixi',2024,1e12),sector,sector_name:sector+' · name '+sector},
   {...row('3.10.2 ixi',2024,2e12),sector,sector_name:sector+' · name '+sector}]);
- const f=C.figure(rows,{...options([2024]),state:{...state,mode:'focus'}});
+ const f=C.figure(rows,{...options([2024]),state:state});
  assert.equal(f.layout.barmode,'stack');
  assert.equal(f.data.length,4);assert.ok(f.data.every(t=>t.type==='bar'));
  assert.deepEqual(f.data.filter(t=>t.showlegend).map(t=>t.name),['A · name A','D · name D']);
  assert.equal(new Set(f.data.map(t=>t.marker.color)).size,2);
- const overTime=C.figure([...rows,...rows.map(r=>({...r,year:2022}))],{...options([2022,2024]),state:{...state,mode:'focus'}});
+ const overTime=C.figure([...rows,...rows.map(r=>({...r,year:2022}))],{...options([2022,2024]),state:state});
  assert.equal(overTime.layout.barmode,'overlay');assert.ok(overTime.data.every(t=>t.type==='scatter'));
 });
 
@@ -188,8 +188,8 @@ test('several sector aggregates stack in single-year bars and remain scatter for
 test('one reading keeps sector breakdowns as annual stacked bars in focus and single-database compare',()=>{
  const sectors=[['A',1e9],['C',2e9]],years=[2021,2022,2023,2024,2025];
  const rows=sectors.flatMap(([sector,value])=>years.map((year,i)=>({...row('060 · SUT',year,value*(i+1)),database:'GLORIA',release:'060',format:'SUT',sector,sector_name:sector+' · name '+sector})));
- for(const mode of ['focus','compare']) {
-  const opts={...options(years),state:{metric:'value_added',perCapita:false,mode,families:['GLORIA']}};
+ {
+  const opts={...options(years),state:{metric:'value_added',perCapita:false,families:['GLORIA']}};
   assert.equal(C.usesBars(rows,opts.state,years),true);
   const f=C.figure(rows,opts);
   assert.equal(f.layout.barmode,'stack');assert.equal(f.data.length,2);
@@ -203,7 +203,7 @@ test('one reading keeps sector breakdowns as annual stacked bars in focus and si
   assert.equal(new Set(countries.data.map(t=>t.offsetgroup)).size,2);
  }
  const extra={...rows[0],database:'EXIOBASE',series:'3.11.2 · ixi',version:'3.11.2 · ixi'};
- const comparison={...options(years),state:{metric:'value_added',perCapita:false,mode:'compare',families:['GLORIA','EXIOBASE']}};
+ const comparison={...options(years),state:{metric:'value_added',perCapita:false,families:['GLORIA','EXIOBASE']}};
  assert.equal(C.usesBars([...rows,extra],comparison.state,years),false);
  assert.ok(C.figure([...rows,extra],comparison).data.every(t=>t.type==='scatter'));
  const older=rows.map(r=>({...r,series:'059 · SUT',version:'059 · SUT',release:'059'}));
@@ -226,7 +226,7 @@ const mixedBars=()=>[
 
 test('axis branches stop at each family’s useful depth without duplicate versions',()=>{
  const rows=mixedBars(), before=structuredClone(rows);
- const f=C.figure(rows,{...options([2024]),state:{...state,mode:'compare'}});
+ const f=C.figure(rows,{...options([2024]),state});
  assert.deepEqual(f.layout.xaxis.ticktext,['','','ixi','pxp','ixi','pxp','ixi','pxp','','']);
  assert.deepEqual(f.layout.annotations.map(a=>[a.text,a.x]),[
   ['62 economies',0],['72 economies',1],['3.10.1',2.5],['3.10.2',4.5],['3.11.2',6.5],
@@ -239,7 +239,7 @@ test('axis branches stop at each family’s useful depth without duplicate versi
 
 test('a single system merges with its release even alongside families without systems',()=>{
  const rows=mixedBars().filter(r=>!r.version.endsWith(' · pxp'));
- const f=C.figure(rows,{...options([2024]),state:{...state,mode:'compare'}});
+ const f=C.figure(rows,{...options([2024]),state});
  assert.deepEqual(f.layout.xaxis.ticktext,['62 economies','72 economies','3.10.1 ixi','3.10.2 ixi','3.11.2 ixi','Extended','Regular']);
  assert.deepEqual(f.layout.annotations.map(a=>[a.text,a.x]),[['ADB',.5],['EXIOBASE',3],['OECD',5.5]]);
  assert.equal(f.layout.shapes.filter(s=>s.ysizemode==='pixel').length,3);
@@ -255,7 +255,7 @@ test('local branch depth also handles partial releases and table/unit variants a
   comparisonBar('EXIOBASE','3.8.2','hybrid SUT',country,country)
  ]);
  rows.push({...row('World Bank',2024,1.2e12,'CHN'),country_name:'CHN'});
- const f=C.figure(rows,{...options([2024]),state:{...state,mode:'compare'},width:390});
+ const f=C.figure(rows,{...options([2024]),state,width:390});
  assert.deepEqual(f.layout.xaxis.ticktext,Array(2).fill(['','ixi','pxp','','hybrid IOT','hybrid SUT']).flat());
  assert.deepEqual(f.layout.annotations.filter(a=>a.text==='3.10.1 ixi').map(a=>a.x),[3,9]);
  assert.deepEqual(f.layout.annotations.filter(a=>a.text==='72 economies').map(a=>a.x),[0,6]);
@@ -277,4 +277,15 @@ test('scatter markers adapt to distinct observed years, leaving references subtl
  assert.equal(dense.data[0].marker.size,7.5);
  assert.ok(C.figure(rows,options(denseYears)).data[0].marker.size>13);
  assert.equal(C.scatterMarkerSize(0),15);
+});
+
+test('one database family encodes systems and hybrid units; several families keep family colours',()=>{
+ const rows=[{...row('3.11.2 ixi',2022,1e9),release:'3.11.2',system:'ixi',units:'Monetary'},{...row('3.11.2 ixi',2024,1.1e9),release:'3.11.2',system:'ixi',units:'Monetary'},
+  {...row('3.3.18 hybrid IOT',2022,1e9),release:'3.3.18',format:'IOT',system:'pxp',units:'Hybrid'},{...row('3.3.18 hybrid IOT',2024,1.2e9),release:'3.3.18',format:'IOT',system:'pxp',units:'Hybrid'}];
+ const one=C.figure(rows,options([2022,2024]));
+ assert.deepEqual(one.data.map(t=>t.marker.symbol),['circle','square-open']);
+ const oecd=[{...row('OECD extended',2022,3e9),database:'OECD'},{...row('OECD extended',2024,3e9),database:'OECD'}];
+ const two=C.figure([...rows,...oecd],{...options([2022,2024]),databaseFamilies:['EXIOBASE','OECD']});
+ assert.ok(two.data.every(t=>!t.marker.symbol.endsWith('-open')));
+ assert.notEqual(two.data.find(t=>t.name.startsWith('EXIOBASE')).marker.color,two.data.find(t=>t.name.startsWith('OECD')).marker.color);
 });

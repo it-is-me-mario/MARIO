@@ -5,9 +5,9 @@ const output=process.env.MARIO_DOCS_QA_DIR||path.join(os.tmpdir(),'mario-gloria-
 (async()=>{
  const browser=await chromium.launch({channel:'chrome',headless:true}),page=await browser.newPage({viewport:{width:1440,height:1050}}),errors=[];
  page.setDefaultTimeout(20000);page.on('pageerror',e=>errors.push(e.message));
- await page.goto(new URL('resources/data-explorer/browsers.html',base).href,{waitUntil:'networkidle',timeout:60000});
+ await page.goto(new URL('resources/data-explorer/compare.html',base).href,{waitUntil:'networkidle',timeout:60000});
  const root=page.locator('[data-economy-browser]'),ready=()=>page.waitForFunction(()=>document.querySelector('[data-economy-browser]')?.getAttribute('aria-busy')==='false',{},{timeout:60000});await ready();
- await root.locator('[data-mode="focus"]').click();await ready();await root.locator('[data-family]').selectOption('GLORIA');await ready();
+ await root.locator('[data-bulk-filter="databases"][data-bulk-action="clear"]').click();await ready();await root.locator('[data-compare-family][value="GLORIA"]').check();await ready();
  await root.locator('[data-picker="year"] > summary').click();
  assert.deepEqual(await root.locator('[data-subset="year"]').evaluateAll(ns=>ns.map(n=>Number(n.value)).sort()),Array.from({length:40},(_,i)=>1990+i));
  await root.locator('[data-bulk-filter="year"][data-bulk-action="select"]').click();await ready();await root.locator('[data-picker="year"] > summary').click();

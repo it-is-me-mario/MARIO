@@ -2,7 +2,7 @@
 
    <nav class="explorer-tabs" aria-label="Database explorer">
      <a href="scope.html" aria-current="page">Classifications</a>
-     <a href="browsers.html">Browser</a>
+     <a href="compare.html">Compare databases</a>
      <a href="analyses.html">Analyses</a>
    </nav>
 
@@ -144,6 +144,6 @@ for its native accounts. Employment and economic rows supplied as satellite acco
 .. toctree::
    :hidden:
 
-   browsers
+   compare
    analyses
    economy_emissions

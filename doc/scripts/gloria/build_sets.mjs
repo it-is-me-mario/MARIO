@@ -53,7 +53,8 @@ s.getRange('A6').values=[['Extracted with MARIO. Native labels and units retaine
 if(input&&w.worksheets.items.some(sheet=>sheet.name==='Read me')){
  const readme=w.worksheets.getItem('Read me');
  readme.getRange('B3').values=[[yearLabel]];
- readme.getRange('B4').values=[['Use Sets for native labels and units. These years share the same inventory; numerical results vary by year.']];
+ readme.getRange('B4').values=[['Use Sets for native labels and units. These years share the same inventory; numerical results vary by year.'+(p.source_coverage?.forecast_from?` ${p.source_coverage.forecast_from}–${p.source_coverage.last_year} are forecast tables.`:'')]];
+ readme.getRange('B4').format.autofitRows();
 }
 if(input&&before!==JSON.stringify(s.getRange(`A8:G${rows.length+7}`).values))throw new Error('Unintended set-table change');
 w.recalculate();
@@ -61,5 +62,9 @@ console.log((await w.inspect({kind:'table',range:'Sets!A8:G12',include:'values',
 console.log((await w.inspect({kind:'match',searchTerm:'#REF!|#DIV/0!|#VALUE!|#NAME\\?|#NUM!|#NULL!',options:{useRegex:true,maxResults:10},maxChars:500})).ndjson);
 const image=await w.render({sheetName:'Sets',range:'A1:G17',scale:1,format:'png'});
 await fs.writeFile(path.join(dir,'preview.png'),new Uint8Array(await image.arrayBuffer()));
+if(input&&w.worksheets.items.some(sheet=>sheet.name==='Read me')){
+ const readmeImage=await w.render({sheetName:'Read me',range:'A1:B8',scale:1,format:'png'});
+ await fs.writeFile(path.join(dir,'readme-preview.png'),new Uint8Array(await readmeImage.arrayBuffer()));
+}
 await(await SpreadsheetFile.exportXlsx(w)).save(path.join(dir,'sets.xlsx'));
 console.log(JSON.stringify({rows:rows.length-1,counts:p.counts}));

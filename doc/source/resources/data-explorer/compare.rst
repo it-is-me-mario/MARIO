@@ -2,19 +2,19 @@
 
    <nav class="explorer-tabs" aria-label="Database explorer">
      <a href="scope.html">Classifications</a>
-     <a href="browsers.html" aria-current="page">Browser</a>
+     <a href="compare.html" aria-current="page">Compare databases</a>
      <a href="analyses.html">Analyses</a>
    </nav>
 
-.. _browsers:
+.. _compare-databases:
 
-Browser
-========
+Compare databases
+=================
 
 .. container:: explorer-intro
 
    Compare GDP, value added and GHG emissions across MRIO databases.
-   Explore a database or country, select years and sectors, and download results.
+   Choose databases, versions, countries, years and sectors, and download results.
 
    .. container:: explorer-feedback
 
@@ -39,7 +39,8 @@ Browser
    the map is available for one version and year. Sector aggregates follow the
    source classification and its revision. Combined native categories remain
    combined. The Excel correspondence lists the native labels, section and
-   weight; every mapped category enters once. Comparisons without a verified
+   weight; every mapped category enters once. Sector aggregates apply to value
+   added and GHG emissions; GDP is whole-economy only. Comparisons without a verified
    common classification use whole-economy totals.</p>
    <p><strong>Value added and GDP.</strong> Value added sums the explicitly
    selected factor rows, preserving signed subsidies and excluding imports,
@@ -70,8 +71,10 @@ Browser
    components are in EUR. Each reading retains its own scale.</p>
    <p><strong>GHG scope.</strong> Industry or activity emissions use E
    or Ea. Whole-economy totals also include directly emitted final-demand
-   accounts from EY where supplied. EY is not allocated to producer sectors;
-   unavailable EY is not estimated or treated as an observed zero. Each
+   accounts from EY where supplied. EY is not allocated to producer sectors:
+   with sector aggregates it appears separately as Households, so all sectors
+   plus Households equal the whole-economy total. Unavailable EY is not
+   estimated or treated as an observed zero. Each
    reading has an explicit gas selection. EXIOBASE monetary includes available
    combustion, process, agriculture and waste rows. Mass-reported gases use
    EDGAR-compatible AR5 GWP100: CO₂ 1, CH₄ 28, N₂O 265, SF₆ 23,500 and,
@@ -100,7 +103,7 @@ Browser
    unverified, so the source total is retained. Economic tables are dated
    January 2026 and satellites April 2024. GDP adds signed product taxes and
    subsidies on intermediate and final commodity uses; independent world
-   income/expenditure checks retain the source residuals. Value-added sectors use the README’s
+   income/expenditure checks retain the source residuals. Value-added and GHG sectors use the README’s
    ISIC Rev. 4 concordance; Other services remains combined S+T.</p>
    <p><strong>EDGAR.</strong> References appear automatically where available,
    as separate dash markers. The country reference uses unchanged

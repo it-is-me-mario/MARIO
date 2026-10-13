@@ -47,7 +47,7 @@ jobs:
           HTML
           test -s _site/en/latest/index.html
           test -s _site/en/latest/_static/mario-nav.json
-          test -s _site/en/latest/resources/data-explorer/browsers.html
+          test -s _site/en/latest/resources/data-explorer/compare.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
