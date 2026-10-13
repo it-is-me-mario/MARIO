@@ -33,7 +33,7 @@
     const primary=rows.filter(row=>!isReference(row));
     const readings=new Set(primary.map(row=>JSON.stringify([row.database,row.series || row.version])));
     const databases=state.families?.length ?? new Set(primary.map(row=>row.database)).size;
-    return readings.size<=1 && (["focus","country"].includes(state.mode) || (state.mode==="compare"&&databases===1));
+    return readings.size<=1 && databases===1;
   }
   function figure(rows, options) {
     const {state, years, colors, catalogue = []} = options;
@@ -61,6 +61,8 @@
     }
     const palette = colors.palette;
     const databaseFamilies=options.databaseFamilies || [...new Set(primary.map(row=>row.database))];
+    // One database family: markers encode the table system (circle ixi, square pxp, diamond SUT) and hollow hybrid units.
+    const singleFamily=new Set(primary.map(row=>row.database)).size===1;
     const category = row => `${countries.length > 1 ? escape(row.country_name) + "<br>" : ""}${escape(row.database)}<br>${escape(row.version)}`;
     // Each release branches only when it has several selected variants. Shorter branches
     // stop at the release row; a single system is written alongside its release instead.
@@ -131,8 +133,8 @@
       const sectorLabel = first.sector_name || first.sector;
       const name = `${first.database}${reference || !first.version ? "" : " · " + first.version}${countries.length > 1 ? " · " + first.country_name : ""}${stacked && !reference ? " · " + sectorLabel : ""}`;
       const styleIndex=countries.length>1?index*countries.length+countries.indexOf(first.country):index;
-      const focus=state.mode==="focus" && !reference;
-      const colorIndex=state.mode==="focus"?0:Math.max(0,databaseFamilies.indexOf(first.database));
+      const focus=singleFamily && !reference;
+      const colorIndex=Math.max(0,databaseFamilies.indexOf(first.database));
       const color = reference ? colors.muted : palette[(stacked ? sectors.indexOf(first.sector ?? "all") : colorIndex) % palette.length];
       const systemSymbol=first.format === "SUT" ? "diamond" : ({ixi:"circle",pxp:"square",Industry:"circle",Product:"square",Activity:"diamond"})[first.system] || "circle";
       const symbol=focus?systemSymbol+(first.units==="Hybrid"?"-open":""):["circle","square","diamond"][styleIndex % 3];

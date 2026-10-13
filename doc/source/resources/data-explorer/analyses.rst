@@ -2,7 +2,7 @@
 
    <nav class="explorer-tabs" aria-label="Database explorer">
      <a href="scope.html">Classifications</a>
-     <a href="browsers.html">Browser</a>
+     <a href="compare.html">Compare databases</a>
      <a href="analyses.html" aria-current="page">Analyses</a>
    </nav>
 

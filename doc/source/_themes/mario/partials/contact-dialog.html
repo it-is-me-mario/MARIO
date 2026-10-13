@@ -1,0 +1,26 @@
+{#- Contact dialog: drafts an email in the visitor's mail app. Addresses are assembled by mario.js. -#}
+{%- set d = mario.closing.dialog %}
+<dialog class="mario-contact" aria-labelledby="mario-contact-title" data-contact data-recipients="{% for user, domain in d.recipients %}{{ user }}|{{ domain }}{% if not loop.last %};{% endif %}{% endfor %}" data-subject="{{ d.subject }}">
+  <form class="mario-contact__box" data-contact-form>
+    <div class="mario-contact__head">
+      <h2 id="mario-contact-title">{{ d.title }}</h2>
+      <button type="button" class="mario-contact__close" aria-label="Close" data-contact-close>×</button>
+    </div>
+    <p class="mario-contact__intro">{{ d.intro }}</p>
+    <div class="mario-contact__fields">
+      <label><span>Organisation</span><input name="organisation" autocomplete="organization" required></label>
+      <label><span>Number of participants</span><input name="participants" type="number" min="1" step="1" inputmode="numeric" required></label>
+      <fieldset class="mario-contact__wide">
+        <legend><span>Preferred format <small>optional</small></span></legend>
+        <label><input type="radio" name="format" value="Online"> Online</label>
+        <label><input type="radio" name="format" value="In person"> In person</label>
+        <label><input type="radio" name="format" value="Either"> Either</label>
+      </fieldset>
+      <label class="mario-contact__wide"><span>Message</span><textarea name="message" rows="4" placeholder="Topics, level, timing…" required></textarea></label>
+    </div>
+    <div class="mario-contact__actions">
+      <button type="submit" class="mario-button mario-button--primary">Send an email</button>
+    </div>
+    <p class="mario-contact__note">Opens your email app with the message ready to send. This website does not send or store anything.</p>
+  </form>
+</dialog>

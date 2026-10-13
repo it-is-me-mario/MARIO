@@ -41,12 +41,10 @@ const out=process.env.MARIO_DOCS_QA_DIR||path.join(os.tmpdir(),'mario-explorer-n
  await page.evaluate(()=>document.documentElement.dataset.theme='light');await page.locator('.mario-article').screenshot({path:path.join(out,'scope-mobile-light.png')});
  await page.setViewportSize({width:320,height:720});await sizing();
  await page.setViewportSize({width:1440,height:1050});
- await page.locator('.explorer-tabs a[href="browsers.html"]').click();await ready('[data-economy-browser]');assert.match(page.url(),/browsers.html$/);await sizing();
- const modes=await page.locator('.eb-modes').evaluate(n=>({width:n.getBoundingClientRect().width,buttons:[...n.querySelectorAll('button')].map(b=>b.getBoundingClientRect().width)}));
- assert.ok(modes.buttons.every(w=>Math.abs(w-modes.buttons[0])<=1));await page.locator('.mario-article').screenshot({path:path.join(out,'browsers-light.png')});
- await page.locator('button[data-mode="focus"]').click();await ready('[data-economy-browser]');assert.equal(await page.locator('button[data-mode="focus"]').getAttribute('aria-pressed'),'true');
- await page.evaluate(()=>document.documentElement.dataset.theme='dark');await ready('[data-economy-browser]');await page.locator('.mario-article').screenshot({path:path.join(out,'browsers-dark.png')});
- await page.setViewportSize({width:390,height:844});await sizing();await page.waitForFunction(()=>{const n=document.querySelector('[data-economy-browser] [data-chart]');return n?.data?.some(t=>t.type==='bar')&&Math.abs(n._fullLayout.width-n.clientWidth)<3;});await page.locator('.mario-article').screenshot({path:path.join(out,'browsers-mobile-dark.png')});
+ await page.locator('.explorer-tabs a[href="compare.html"]').click();await ready('[data-economy-browser]');assert.match(page.url(),/compare.html$/);await sizing();
+ assert.equal(await page.locator('[data-mode]').count(),0);await page.locator('.mario-article').screenshot({path:path.join(out,'compare-light.png')});
+ await page.evaluate(()=>document.documentElement.dataset.theme='dark');await ready('[data-economy-browser]');await page.locator('.mario-article').screenshot({path:path.join(out,'compare-dark.png')});
+ await page.setViewportSize({width:390,height:844});await sizing();await page.waitForFunction(()=>{const n=document.querySelector('[data-economy-browser] [data-chart]');return n?.data?.some(t=>t.type==='bar')&&Math.abs(n._fullLayout.width-n.clientWidth)<3;});await page.locator('.mario-article').screenshot({path:path.join(out,'compare-mobile-dark.png')});
  await page.setViewportSize({width:320,height:720});await sizing();await page.setViewportSize({width:390,height:844});
  await page.locator('.explorer-tabs a[href="analyses.html"]').click();assert.match(page.url(),/analyses.html$/);await sizing();assert.ok(await page.locator('a[href="electricity_carbon_footprint.html"]').count());
  await page.locator('.mario-article').screenshot({path:path.join(out,'analyses-mobile-dark.png')});

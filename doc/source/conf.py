@@ -207,6 +207,12 @@ mario_site = {
     "github": "https://github.com/it-is-me-mario/MARIO",
     "pypi": "https://pypi.org/project/mariopy/",
     "install": "pip install mariopy",
+    # Transparency notice on AI-assisted content (EU AI Act, Regulation (EU) 2024/1689), shown in every footer.
+    "ai_notice": (
+        "<strong>AI disclosure.</strong> This documentation and its database explorer were written and built "
+        "with AI agents, then reviewed by the MARIO team, who remain responsible for their content. "
+        'Spotted an error? <a href="https://github.com/it-is-me-mario/MARIO/issues">Tell us on GitHub Issues</a>.'
+    ),
     "home_hero": {
         "title": "Input-output analysis in <mark>Python</mark>",
         "text": (
@@ -321,7 +327,7 @@ mario_site = {
             "tabs": [
                 {"label": "Database explorer", "doc": "resources/data-explorer/scope", "featured": True, "summary": "Compare classifications, explore indicators and read analyses.", "prefixes": ["resources/data-explorer/"], "children": [
                     {"label": "Classifications", "doc": "resources/data-explorer/scope"},
-                    {"label": "Browser", "doc": "resources/data-explorer/browsers"},
+                    {"label": "Compare databases", "doc": "resources/data-explorer/compare"},
                     {"label": "Analyses", "doc": "resources/data-explorer/analyses", "prefixes": ["resources/data-explorer/electricity_"]},
                 ]},
                 {"label": "Projects & Publications", "doc": "resources/projects_publications", "summary": "Discover the research built with MARIO."},
@@ -330,6 +336,25 @@ mario_site = {
             ],
         },
     ],
+    # Large closing line at the end of a page, outside its tab panels.
+    "closings": {
+        **{page: {"text": "Learn how to <mark>use</mark> these databases", "doc": "user_guide/parsers/index"}
+           for page in ("resources/data-explorer/scope", "resources/data-explorer/compare")},
+        # Opens a contact dialog that drafts an email in the visitor's own mail app; nothing is sent by the site.
+        "resources/teaching": {
+            "text": "Would you be interested in a <mark>MARIO course</mark>? Let us know!",
+            "dialog": {
+                "title": "A MARIO course for you or your team",
+                "intro": (
+                    "We don't run scheduled courses yet, but if you or your team are interested "
+                    "in a course, we can work out the format together."
+                ),
+                "subject": "MARIO course enquiry",
+                # Split so no address appears whole in the page source.
+                "recipients": [("lorenzo.rinaldi", "polimi.it"), ("nicolo.golinucci", "enextgen.it")],
+            },
+        },
+    },
     # Pages moved or removed in the 2026 redesign keep working through redirect pages.
     "redirects": {
         "setup/index": "get_started/index",
@@ -350,6 +375,7 @@ mario_site = {
         "user_guide/parsers/country_coverage": "user_guide/parsers/index",
         "resources/publications": "resources/projects_publications",
         "resources/data-explorer": "resources/data-explorer/scope",
+        "resources/data-explorer/browsers": "resources/data-explorer/compare",
         "resources/changelog": "changelog",
     },
 }

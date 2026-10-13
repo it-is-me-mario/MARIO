@@ -51,6 +51,14 @@
             {% if mario.layout == "home" %}{% include "partials/home-navigation.html" %}{% endif %}
             {% block body %}{% endblock %}
           </div>
+          {%- if mario.closing %}
+          {%- if mario.closing.dialog %}
+          <p class="mario-closing"><button type="button" aria-haspopup="dialog" data-contact-open>{{ mario.closing.text }}<span class="mario-closing__arrow" aria-hidden="true"> →</span></button></p>
+          {%- include "partials/contact-dialog.html" %}
+          {%- else %}
+          <p class="mario-closing"><a href="{{ mario.closing.url }}">{{ mario.closing.text }}<span class="mario-closing__arrow" aria-hidden="true"> →</span></a></p>
+          {%- endif %}
+          {%- endif %}
         </article>
       </div>
     </div>

@@ -547,6 +547,47 @@
     });
   }
 
+  /* -------------------------------------------------- contact dialog */
+
+  // Drafts an email in the visitor's own mail app; the site sends and stores nothing.
+  function initContact() {
+    const dialog = document.querySelector("[data-contact]");
+    if (!dialog || typeof dialog.showModal !== "function") {
+      return;
+    }
+    const recipients = dialog.dataset.recipients.split(";").map((pair) => pair.split("|").join("@")).join(",");
+    const form = dialog.querySelector("[data-contact-form]");
+    document.querySelectorAll("[data-contact-open]").forEach((button) =>
+      button.addEventListener("click", () => {
+        dialog.showModal();
+        form.querySelector("input").focus();
+      })
+    );
+    dialog.querySelector("[data-contact-close]").addEventListener("click", () => dialog.close());
+    // A click on the backdrop lands on the dialog itself, outside the form box.
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog) {
+        dialog.close();
+      }
+    });
+    // Required fields are checked by the browser before this runs.
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const data = new FormData(form);
+      const value = (name) => String(data.get(name) || "").trim();
+      const details = [
+        ["Organisation", value("organisation")],
+        ["Number of participants", value("participants")],
+        ["Preferred format", value("format")],
+      ].filter(([, text]) => text).map(([label, text]) => `${label}: ${text}`);
+      const body = ["Hello,", "", "I would be interested in a MARIO course.", "", ...details, "", value("message"), "", ""].join("\n");
+      const link = document.createElement("a");
+      link.href = `mailto:${recipients}?subject=${encodeURIComponent(dialog.dataset.subject)}&body=${encodeURIComponent(body)}`;
+      link.click();
+      dialog.close();
+    });
+  }
+
   /* --------------------------------------------------- search palette */
 
   function normalise(text) {
@@ -776,6 +817,7 @@
     initMenu();
     initPagebar();
     initCopy();
+    initContact();
     initPalette();
     initApiIndex();
   }

@@ -53,14 +53,12 @@ test('classification revisions, partial mappings and cross-section aggregates ne
  assert.equal(a.cross,1);assert.equal(a.within,0);assert.equal(a.matches.length,1);
  const tree=data.classifications['cpa-2002'];assert.ok(data.classifications['nace-1.1'].levels.at(-1)===4&&tree.levels.at(-1)===6);
 });
-test('every detailed link and taxonomy parent resolves, and country-mode indicators exclude other geographies',()=>{
+test('every detailed link and taxonomy parent resolves',()=>{
  for(const c of Object.values(data.classifications)){
   const codes=new Set(c.nodes.map(n=>n.code));assert.equal(codes.size,c.nodes.length);
   for(const n of c.nodes)if(n.parent)assert.ok(codes.has(n.parent),`${c.id} ${n.code}`);
  }
  for(const p of data.profiles){const m=data.mappings[p.mapping];if(!m||m.depth===1)continue;const labels=new Set(Object.values(p.sets).flat());for(const e of m.entries)assert.ok(labels.has(e.native_label));}
- const s=(id,iso)=>({recipe:{id,source:'TEST',release:'1',table:'IOT',year:2024},regions:[{kind:'country',iso3:iso,code:iso}]});
- const state={mode:'country',country:'ITA',families:['TEST'],versions:{},year:'all'};assert.equal(M.selected([s('IT','ITA'),s('US','USA')],state).length,1);
 });
 
 

@@ -122,41 +122,6 @@ const output=process.env.MARIO_DOCS_QA_DIR||path.join(os.tmpdir(),'mario-sectora
  await page.evaluate(()=>document.documentElement.setAttribute('data-theme','light'));await page.waitForFunction(()=>document.querySelector('[data-ss-chart]')?.getAttribute('aria-busy')==='false');await root.screenshot({path:path.join(output,'electricity-nxbase-light.png')});
  await root.locator('[data-ss-picker] > summary').click();await root.locator('[data-ss-search]').fill('35.12');await root.locator('[data-ss-options] [data-ss-area="35.12"]').click();
  await page.waitForFunction(()=>document.querySelector('[data-ss-chart]')?.getAttribute('aria-busy')==='false');assert.match(await exio.locator('.ss-resolution').innerText(),/1\/6.*6 native sectors/);assert.equal(await exio.locator(':scope > .ss-native').count(),6);
- // Hybrid and monetary may share sector labels, but their typed routes stay separate.
- {
-await page.goto(new URL('resources/data-explorer/browsers.html',base).href,{waitUntil:'networkidle'});
-await page.locator('[data-mode="country"]').click();await page.waitForFunction(()=>document.querySelector('[data-cf-country-summary]')?.textContent==='Italy');
-await page.locator('[data-cf-classification]').selectOption('nace-2.1');
-await page.locator('[data-cf-search]').fill('35.11');await page.locator('[data-cf-code="35.11"]').click();
-const exio=page.locator('[data-cf-family="EXIOBASE"]'),hybrid=exio.locator('.cf-representation').filter({has:page.locator('.cf-mapping-variant',{hasText:/Hybrid.*SUT/})});
-assert.equal(await hybrid.count(),1);assert.match(await hybrid.locator('.cf-mapping-count').innerText(),/^4 linked native categories/);
-await hybrid.locator('.cf-native-matches .cf-route > summary').first().click();assert.match(await hybrid.innerText(),/EXIO3H.*EX3h/s);assert.match(await hybrid.innerText(),/NACE2\.1:35\.11/);
-await exio.screenshot({path:path.join(output,'hybrid-country-power-light.png')});
-await page.locator('[data-cf-search]').fill('11.01');await page.locator('[data-cf-code="11.01"]').click();
-const coarse=exio.locator('.cf-representation').filter({has:page.locator('.cf-mapping-variant',{hasText:/Hybrid.*SUT/})});
-assert.match(await coarse.locator('.cf-mapping-count').innerText(),/^2 linked native categories/);assert.match(await coarse.innerText(),/Manufacture of beverages/);assert.match(await coarse.innerText(),/qualified overlap/i);assert.ok(!/Detailed mapping unavailable|broader anchors/.test(await coarse.innerText()));
-const beverages=coarse.locator('.cf-native-matches > li').filter({hasText:'Manufacture of beverages'});await beverages.locator('.cf-route > summary').click();assert.match(await coarse.innerText(),/EXIO3H.*EX3h.*EXIO3I:i15\.j.*NACE2\.1:11\.01/s);
-await exio.screenshot({path:path.join(output,'hybrid-country-beverages-light.png')});
-await page.evaluate(()=>document.documentElement.setAttribute('data-theme','dark'));await exio.screenshot({path:path.join(output,'hybrid-country-beverages-dark.png')});
-const downloadP=page.waitForEvent('download');await page.locator('[data-cf-export]').click();const countryCSV=fs.readFileSync(await(await downloadP).path(),'utf8');assert.match(countryCSV,/Hybrid/);assert.match(countryCSV,/Manufacture of beverages/);assert.match(countryCSV,/mapped/);
- }
- // Country queries retain published SUT codes and readable labels alongside IOT names.
- await page.evaluate(()=>document.documentElement.setAttribute('data-theme','light'));
- await page.locator('[data-cf-search]').fill('01.11');await page.locator('[data-cf-code="01.11"]').click();
- const cfFigaro=page.locator('[data-cf-family="FIGARO"]'),cfWiod=page.locator('[data-cf-family="WIOD"]');
- for(const family of [cfFigaro,cfWiod]){assert.match(await family.innerText(),/A01/);assert.match(await family.innerText(),/Crop and animal production/);assert.ok(!/Detailed mapping unavailable/.test(await family.innerText()));}
- const sut=cfWiod.locator('.cf-representation').filter({has:page.locator('.cf-mapping-variant',{hasText:/SUT/})});assert.equal(await sut.count(),1);
- await sut.locator('.cf-route > summary').first().click();assert.match(await sut.innerText(),/WIOD2016A:A01.*WIOD16.*NACE2.*NACE2\.1/s);
- await cfFigaro.screenshot({path:path.join(output,'figaro-country-light.png')});await cfWiod.screenshot({path:path.join(output,'wiod-country-light.png')});
- const publishedExport=page.waitForEvent('download');await page.locator('[data-cf-export]').click();const publishedCSV=fs.readFileSync(await(await publishedExport).path(),'utf8');assert.match(publishedCSV,/FIGARO/);assert.match(publishedCSV,/WIOD/);assert.match(publishedCSV,/A01/);
- // Licensed GTAP has public classifications and downloads, but no numerical indicators.
- await page.locator('[data-cf-search]').fill('01.12');await page.locator('[data-cf-code="01.12"]').click();
- const gtap=page.locator('[data-cf-family="GTAP"]');assert.match(await gtap.innerText(),/65–76|65.76/);assert.match(await gtap.innerText(),/163/);assert.match(await gtap.innerText(),/Licensed source.*numerical indicators not published/s);
- assert.equal(await gtap.locator('.cf-representation').count(),2);await gtap.locator('.cf-route > summary').first().click();assert.match(await gtap.innerText(),/GTAP12P.*CPC2\.1.*ISIC4.*NACE2.*NACE2\.1/s);
- await gtap.locator('.cf-family-details > summary').click();assert.equal(await gtap.locator('[data-cf-indicators]:disabled').count(),2);assert.equal(await gtap.locator('.cf-row-links a[download]').count(),2);
- assert.equal(await gtap.locator('.cf-row-links a', {hasText:'Parsing guide'}).count(),1);
- await gtap.screenshot({path:path.join(output,'gtap-country-light.png')});await page.evaluate(()=>document.documentElement.setAttribute('data-theme','dark'));await gtap.screenshot({path:path.join(output,'gtap-country-dark.png')});
- const gtapDownload=page.waitForEvent('download');await gtap.locator('.cf-row-links a[download]').first().click();assert.match((await gtapDownload).suggestedFilename(),/gtap-12-.*-scope-sets\.xlsx/);
  assert.deepEqual(errors,[]);console.log(JSON.stringify({classes:651,default_columns:8,available_columns:9,section_A:aCount,csv_bytes:csv.length,errors}));
  await browser.close();
 })().catch(e=>{console.error(e);process.exit(1);});

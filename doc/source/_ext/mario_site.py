@@ -264,6 +264,8 @@ def _page_context(app, pagename, templatename, context, doctree):
         "github": config.get("github", ""),
         "pypi": config.get("pypi", ""),
         "install": config.get("install", ""),
+        "ai_notice": config.get("ai_notice", ""),
+        "closing": None,
     }
 
     section = _find_section(config, pagename)
@@ -306,8 +308,13 @@ def _page_context(app, pagename, templatename, context, doctree):
     if doctree is not None and page["layout"] != "home":
         page["local_toc"] = _local_toc(env, pagename)
 
+    closing = config.get("closings", {}).get(pagename)
+    if closing:
+        page["closing"] = {"text": closing["text"], "url": url(closing["doc"]) if closing.get("doc") else "",
+                           "dialog": closing.get("dialog")}
+
     context["mario_page"] = page
-    if pagename in {"resources/data-explorer/browsers", "resources/data-explorer/scope", "resources/data-explorer/analyses"}:
+    if pagename in {"resources/data-explorer/compare", "resources/data-explorer/scope", "resources/data-explorer/analyses"}:
         app.add_css_file("economy-browser.css")
     if pagename == "resources/data-explorer/scope":
         app.add_css_file("database-scope.css")
@@ -315,8 +322,8 @@ def _page_context(app, pagename, templatename, context, doctree):
         app.add_js_file("database-scope.js", defer="defer")
         app.add_css_file("extension-scope.css")
         app.add_js_file("extension-scope.js", defer="defer")
-    if pagename == "resources/data-explorer/browsers":
-        for script in ("economy-model.js", "economy-charts.js", "country-model.js", "country-focus.js", "economy-browser.js"):
+    if pagename == "resources/data-explorer/compare":
+        for script in ("economy-model.js", "economy-charts.js", "economy-browser.js"):
             app.add_js_file(script, defer="defer")
 
 

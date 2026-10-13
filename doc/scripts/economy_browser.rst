@@ -1,7 +1,7 @@
 Database browser snapshots
 ==========================
 
-``resources/data-explorer/browsers`` uses committed snapshots. Sphinx and
+``resources/data-explorer/compare`` uses committed snapshots. Sphinx and
 the visitor's browser never parse source databases or call the World Bank API.
 
 The HTML build generates ``browser-index.json`` from those published snapshots.
@@ -247,7 +247,7 @@ Database explorer navigation and selection
 
 The Resources hero contains a Database explorer dropdown linking to three
 peer pages: ``data-explorer/scope`` (Classifications),
-``data-explorer/browsers`` (Browser) and ``data-explorer/analyses`` (Analyses).
+``data-explorer/compare`` (Compare databases) and ``data-explorer/analyses`` (Analyses).
 They use that order in both the dropdown and full-width page tabs.
 Electricity activates Analyses. The Resources landing and legacy
 ``resources/research`` URL open Classifications; research anchors retain their
@@ -302,8 +302,8 @@ Interactive figures and scope overview
 The documentation's existing Plotly runtime powers charts, including legend
 click/double-click visibility, drag zoom, pan, PNG export and double-click
 axis autoscaling. ``economy-charts.js`` holds display scaling and figure logic;
-``economy-model.js`` retains selection and numerical calculations. Focus uses
-bars for one reading combination across several years, and for any selection
+``economy-model.js`` retains selection and numerical calculations. One
+database family uses bars for one reading combination across several years, and for any selection
 in one year. Scatter is used when both reading combinations and years are
 multiple. A combination is Units + Version + Table format + System, so ixi
 and pxp of the same release are two readings, not one. Annual single-reading
@@ -312,21 +312,17 @@ Single-year charts with references retain vertical bars so the reference is a
 horizontal line across the plot. Comparisons keep their annual scatter /
 single-year bar views.
 
-Focus facets are derived from recipes. EXIOBASE separates Units (Monetary /
+Version facets, opened with the arrow beside a database, are derived from recipes. EXIOBASE separates Units (Monetary /
 Hybrid), Version (release), Table format (IOT / SUT) and System (ixi / pxp).
 The Hybrid HIOT parser uses a product axis, so its system is pxp. System is inapplicable
-to SUTs and its disabled control says Not applicable; System choices only
-filter IOTs when both formats are selected. Facets accept
+to SUTs; System choices only filter IOTs when both formats are selected. Facets accept
 subsets; dependent choices are trimmed to valid combinations, and one-option
-controls fade. Units, releases, table formats and applicable systems must cover
-every explicitly selected year. All available years leaves Units selectable
-and adapts the period to the chosen reading: Hybrid, for example, shows 2011. Choosing a historical year
-also exposes compatible Hybrid options; an explicit selection containing 2024
-offers only Monetary. Family changes reconcile
-years against the new family before resolving its facets. Other families show
-their applicable fields. Focus uses one colour across releases; comparison
-colours identify database families. System determines scatter shape, and Hybrid
-uses open markers. GDP and
+controls fade. Other families show their applicable fields. Colours identify
+database families. With one family in the chart, System determines marker shape
+(circle ixi, square pxp, diamond SUT) and Hybrid uses open markers; with several
+families, shapes distinguish readings. The map and the MARIO Python example need
+one reading (one version and one year); otherwise the map is disabled and a hint
+beside the example explains how to enable it. GDP and
 GHG choices require verified availability in every selected reading, except explicitly reviewed source errors, which remain gaps alongside valid years.
 
 Shared display scales cover database and reference observations; monetary
@@ -577,19 +573,30 @@ otherwise latest-release defaults remain unchanged. World continues to mean
 the sum of each native MRIO region once, including aggregates; Country / region
 Select all chooses that World total where available.
 
+Sector aggregates apply to value added and GHG. For GHG the sector picker also
+offers Households (direct EY emissions) in a separate Final demand group; it
+needs no sector mapping, so it stays available when families lack a common
+classification. All sections plus Households equal the whole-economy total.
+EDGAR references remain whole-economy only.
+
+Years default to the 20 most recent available years before the current calendar
+year, so publisher forecasts for the current and later years are opt-in. The
+picker label shows the period; Last 5 / Last 10 / Last 20 and Select all
+consider every available year.
+
 Unselect all preserves an explicit empty selection for years, country/region,
 sectors and reading facets. It never silently selects a default. Empty source
 filters preserve country preferences until valid readings return; invalid
 nonempty country subsets still use the established fallback. Bulk commands
 follow the currently eligible options and retain single-option disabled states.
-The country-first browser is recorded as a design proposal in the redesign
-plan; it has not been added as a third live mode yet. GWP harmonisation remains
-pending; this UI update does not change indicator values.
+GWP harmonisation remains pending; this UI update does not change indicator values.
 
-Country-first scope and classifications
---------------------------------------
+Country scope and classifications
+---------------------------------
 
-``Focus on a country`` uses ``country-scope.json`` for native set metadata.
+``country-scope.json`` holds native set metadata by country and feeds
+``build_sectoral_scope.py``. The Focus on a country view that displayed it was
+removed; Compare databases and the Classifications page cover its uses.
 The generator reads existing parsed set JSON and the supplied EXIOBASE
 concordance workbooks; it never hydrates or parses economic matrices::
 
@@ -597,8 +604,7 @@ concordance workbooks; it never hydrates or parses economic matrices::
 
 ``country-model.js`` keeps global region counts separate from the selected
 country's native economic memberships. SUT activities and commodities remain
-separate. The numerical browser excludes readings without an individually
-represented country observation; EORA's numerical results remain local.
+separate. EORA's numerical results remain local.
 
 Official classification revisions are separate. The NACE Rev. 1.1 hierarchy
 is available through four digits, but current activity mappings are verified
@@ -639,32 +645,6 @@ sectors, unchanged from 2024; its factors use IPCC AR6 GWP100. The extractor
 reads both the 2024 single-sheet layout and the 2025 Cover/GHG_t_Raw layout. Its
 alphanumeric native codes are not assumed to be NAICS. Source metadata and
 its derived workbook use the source's CC BY-SA 4.0 attribution.
-
-The classification browser uses one click to select a code and enter its
-subcategories. A visible selected-code label and Clear sector filter action
-show what constrains the comparison. Code level controls the displayed code
-list only. Detailed mapping remains independent of browsing the official tree.
-
-
-Compact country comparison
---------------------------
-
-The browser mode buttons are ordered Compare databases, Focus on a database,
-Focus on a country and use decorative chart, database and globe icons.
-Country scope displays one overview row per family. Ranges preserve differences
-between available years and native inventories; version details retain each
-profile, set list and download. Source-only profiles appear in the same rows.
-The data-year filter uses the source base year, not its release version: Open
-CEDA 2025 appears for Any available year or 2023. Excluded families are named
-below the comparison when a particular year's inventory is unavailable.
-
-A selected classification code adds a native-representation column. Detailed
-verified matches are shown directly. If only section-level correspondence is
-available, the result explicitly says Detailed mapping unavailable and shows
-the known broader section. Multiple section categories remain collapsed; they
-are context rather than a claimed allocation of the finer code. Databases
-without a verified correspondence to that revision retain an unavailable
-status. No NACE/CPA cross-revision or fine allocation is inferred.
 
 WIOD 2016 multiregional inventory
 --------------------------------

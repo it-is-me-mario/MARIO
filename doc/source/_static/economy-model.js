@@ -118,8 +118,7 @@
     return snapshots.filter(s => state.families.includes(s.recipe.source) &&
       (!state.environmentallyExtended || metricAvailable([s], 'ghg')) &&
       (!state.versions[s.recipe.source] || includes(state.versions[s.recipe.source], version(s.recipe))) &&
-      (!includeYear || includes(state.year, s.recipe.year)) &&
-      (state.mode!=="country" || s.regions.some(r=>r.kind==="country"&&r.iso3===state.country)));
+      (!includeYear || includes(state.year, s.recipe.year)));
   }
   function countryOptions(snapshots, state) {
     const readings=selected(snapshots,state), regions=regionChoices(readings);
@@ -145,6 +144,8 @@
     return [...combinations.values()].every(Boolean);
   }
   const years = (snapshots, state) => unique(selected(snapshots, state, false).map(s => s.recipe.year)).sort((a,b) => a-b);
+  const HOUSEHOLDS = "households", HOUSEHOLDS_LABEL = "Households · direct emissions";
+  const householdEmissions = (snapshot, region) => snapshot.recipe.final_demand_emissions_loaded === false ? null : region.household_ghg ?? null;
   function sectorIndices(snapshot, mapping, section, metric = "value_added") {
     if (section === "all") return (metric === "ghg" ? snapshot.recipe.ghg_sectors || snapshot.recipe.sectors : snapshot.recipe.sectors).map((_,i) => i);
     if (metric === "ghg" && snapshot.recipe.ghg_sectors) return [];
@@ -154,7 +155,8 @@
     if (!snapshot || !region || state.metric==="ghg"&&snapshot.recipe.ghg_usable===false) return null;
     const r = snapshot.recipe;
     let result;
-    if (state.metric === "gdp") result = region.gdp ?? null;
+    if (state.section === HOUSEHOLDS) result = state.metric === "ghg" ? householdEmissions(snapshot, region) : null;
+    else if (state.metric === "gdp") result = region.gdp ?? null;
     else if (snapshot.summary_only) {
       // Never substitute a whole-economy total for a requested sector.
       result = state.section === "all" ? region[state.metric + "_total"] ?? null : null;
@@ -193,7 +195,7 @@
     return state.section==="all"&&population>0?total*(state.metric==="ghg"?1e6:1)/population:null;
   }
   const isReference = row => ["World Bank","EDGAR"].includes(row.database);
-  const sectionName = (mapping, section) => section === "all" ? "Whole economy" : mapping?.sections?.[section] ? `${section} · ${mapping.sections[section]}` : String(section);
+  const sectionName = (mapping, section) => section === "all" ? "Whole economy" : section === HOUSEHOLDS ? HOUSEHOLDS_LABEL : mapping?.sections?.[section] ? `${section} · ${mapping.sections[section]}` : String(section);
   function observations(snapshots, state, wb, mappings, edgar = {countries:{}}) {
     if(Array.isArray(state.country))return state.country.flatMap(country=>observations(snapshots,{...state,country},wb,mappings,edgar));
     // Several sector aggregates: one row per aggregate (charts stack them; whole-economy references are not repeated).
@@ -210,10 +212,11 @@
         world&&!isGlobal(s)?s.recipe.scope_note || "National model; a World total is not available":
         !world&&!region?"Region is not represented with this definition in this reading":
         state.metric==="ghg"&&!metricAvailable([s],"ghg")?s.recipe.ghg_unavailable_reason||"No verified GHG aggregate":
+        state.section===HOUSEHOLDS&&val==null?"Direct household emissions are not available in this reading":
         state.metric==="gdp"&&val==null?"GDP tax bridge not verified; value added is available":val==null?"No matching population or exchange rate":"";
       if(val!=null&&state.metric==="gdp"&&s.recipe.gdp_bridge_verified===false)note=s.recipe.gdp_proxy?s.recipe.gdp_note:"GDP estimate; market-price bridge unverified";
       if(val!=null&&state.metric==="gdp"&&s.recipe.gdp_quality_note)note=[note,s.recipe.gdp_quality_note].filter(Boolean).join(" ");
-      if(val!=null&&state.metric==="ghg") note=[s.recipe.ghg_note, state.section==="all" ? s.recipe.final_demand_emissions_loaded===false ? "Direct final-demand emissions unavailable; industry/commodity accounts only." : "Includes direct final-demand emissions where supplied." : "Producer accounts only; direct final-demand emissions are not allocated to sectors."].filter(Boolean).join(" ");
+      if(val!=null&&state.metric==="ghg") note=[s.recipe.ghg_note, state.section==="all" ? s.recipe.final_demand_emissions_loaded===false ? "Direct final-demand emissions unavailable; industry/commodity accounts only." : "Includes direct final-demand emissions where supplied." : state.section===HOUSEHOLDS ? "Direct final-demand emissions of households, not allocated to producer sectors." : "Producer accounts only; direct final-demand emissions are not allocated to sectors."].filter(Boolean).join(" ");
       const wbVal=state.metric==="gdp"&&template.recipe.price_basis!=="Previous year prices"?reference(wb,referenceCode,year)[state.perCapita?"gdp_per_capita":"gdp"]??null:null;
       rows.push({series:seriesKey(template.recipe),database:template.recipe.source,...recipeFacets(template.recipe),release:String(template.recipe.release ?? ""),version:version(template.recipe),year,country,country_name:name,
         label:`${name} · ${template.recipe.source} · ${version(template.recipe)}`+(state.section==="all"?"":` · ${sectionName(mapping,state.section)}`),indicator:state.metric,sector:state.section,sector_name:sectionName(mapping,state.section),classification:mapping?.classification||"",
@@ -260,6 +263,12 @@
     }
     return result;
   }
+  function sectionSummary(mapping, section) {
+    const list = Array.isArray(section) ? section : [section], codes = list.filter(code => code !== HOUSEHOLDS);
+    const parts = [...(codes.length ? [`${mapping?.classification || "sector"} ${codes.length > 1 ? "sections " + codes.join(", ") : "section " + codes[0]}`] : []),
+      ...(list.includes(HOUSEHOLDS) ? ["Households (EY)"] : [])];
+    return parts.join(" and ") + (list.length > 1 ? ", stacked" : "");
+  }
   function pythonStart(snapshot, state, mapping) {
     const r = snapshot.recipe;
     const py = x => x === true ? "True" : x === false ? "False" : x == null ? "None" : JSON.stringify(x);
@@ -279,11 +288,16 @@
       Object.entries(r.ghg_factors).forEach(([name,factor]) => lines.push(`    ${py(name)}: ${factor},`));
       lines.push("}", "# Characterise the native MARIO rows with the reviewed unit conversions.",
         `values = db.get_block(${py(r.emissions_block || "E")}).loc[list(gwp)].T.mul(gwp).sum(axis=1)`, r.emissions_block === "Ec" ? "# Ec includes import-related commodity flows; it is not a territorial inventory." : "# values retains the producer/sector axis.");
+      const chosenSections = state.section === "all" ? [] : Array.isArray(state.section) ? state.section : [state.section];
       if (state.section === "all" && r.final_demand_emissions_loaded !== false) lines.push(
         '# Whole economy: add the directly emitted final-demand accounts ONCE per region.',
         'direct_final_demand = db.get_block("EY").loc[list(gwp)].T.mul(gwp).sum(axis=1)',
         'totals = values.groupby(level="Region").sum() + direct_final_demand.groupby(level="Region").sum()');
       else if(r.final_demand_emissions_loaded === false) lines.push('# Direct final-demand emissions are unavailable; zero-filled EY is not an observation.');
+      else if(chosenSections.includes(HOUSEHOLDS)) lines.push(
+        '# Households: the directly emitted final-demand accounts (EY), not allocated to producer sectors.',
+        'households = db.get_block("EY").loc[list(gwp)].T.mul(gwp).sum(axis=1).groupby(level="Region").sum()',
+        ...(chosenSections.length > 1 ? ['# Sector totals exclude EY; keep households as their own aggregate.'] : []));
       else lines.push('# Sector totals exclude EY; do not allocate direct household emissions to producers.');
     } else {
       const excluded = Object.keys(r.expected_units?.["Factor of production"] || {}).filter(row => !r.value_added_rows.includes(row));
@@ -305,7 +319,7 @@
       else if (state.metric === "gdp") lines.push("# For GDP at market prices, add net product taxes on intermediate AND final uses.",
         "# MARIO's GDP() alone does not restore the final-demand tax bridge from the source.");
     }
-    lines.push("", `# Selection on the website: ${country}; ${state.section === "all" ? "all industries" : mapping.classification + (Array.isArray(state.section) ? " sections " + state.section.join(", ") + ", stacked" : " section " + state.section)}.`,
+    lines.push("", `# Selection on the website: ${country}; ${state.section === "all" ? "all industries" : sectionSummary(mapping, state.section)}.`,
       mapping?.entries?.length ? "# Next: aggregate industries using the downloadable sector correspondence," : "# Next: use your own verified sector mapping if you need industry aggregates,",
       "# then filter the region and the relevant rows/columns of values.");
     if (state.metric !== "ghg") lines.push(r.currency === "USD" ? `# Multiply native values by ${r.currency_scale} to obtain current USD; no currency conversion is needed.` : "# Scale to currency units and convert to current USD with the same-year exchange rate.");
@@ -323,7 +337,7 @@
     if(report&&horizon)return {key:`AR${report}-${horizon}`,label:`GWP${horizon}, IPCC AR${report}`};
     return {key:"source",label:"source CO2eq; IPCC report and horizon unverified"};
   }
-  const api = {unpackBrowserIndex, gwpConvention, needsDetailedReading, isMRIO, countryOptions, metricAvailableForSelection, recipeFacets, focusFacets, isWorld, isGlobal, regionKey, findRegion, regionChoices, metricAvailable, worldValue, isReference, includes, selectedYears, latestVersions, version, seriesKey, key, unique, reference, selected, years, sectorIndices, value, basis, unit, observations, automaticView, exportRows, pythonStart};
+  const api = {HOUSEHOLDS, HOUSEHOLDS_LABEL, unpackBrowserIndex, gwpConvention, needsDetailedReading, isMRIO, countryOptions, metricAvailableForSelection, recipeFacets, focusFacets, isWorld, isGlobal, regionKey, findRegion, regionChoices, metricAvailable, worldValue, isReference, includes, selectedYears, latestVersions, version, seriesKey, key, unique, reference, selected, years, sectorIndices, value, basis, unit, observations, automaticView, exportRows, pythonStart};
   if (typeof module !== "undefined") module.exports = api;
   else global.MarioEconomy = api;
 })(globalThis);

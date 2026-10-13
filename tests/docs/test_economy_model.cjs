@@ -8,7 +8,7 @@ const folder = path.join(root,'doc/source/_static/data/economy');
 const json = name => JSON.parse(fs.readFileSync(path.join(folder,name+'.json'),'utf8'));
 const snapshots = json('manifest').datasets.map(d=>json(d.id));
 const wb=json('world-bank'), mappings=json('sector-sections').mappings;
-const state = () => ({mode:'focus',families:['EXIOBASE'],versions:{EXIOBASE:'3.11.2 · ixi'},year:2024,metric:'value_added',section:'all',perCapita:false,country:'ITA',reference:true});
+const state = () => ({families:['EXIOBASE'],versions:{EXIOBASE:'3.11.2 · ixi'},year:2024,metric:'value_added',section:'all',perCapita:false,country:'ITA',reference:true});
 test('MRIO browser excludes national BEA and USEEIO but retains international SUTs',()=>{
  const eligible=snapshots.filter(M.isMRIO);
  assert.ok(!eligible.some(s=>['BEA','USEEIO'].includes(s.recipe.source)));
@@ -17,7 +17,7 @@ test('MRIO browser excludes national BEA and USEEIO but retains international SU
  assert.ok(M.isMRIO({regions:[{kind:'country',iso3:'ITA'},{kind:'country',iso3:'FRA'}]}));
 });
 test('environmental selection keeps only readings with GHG, including ADB year gaps',()=>{
- const pool=snapshots.filter(M.isMRIO),config={...state(),mode:'compare',families:M.unique(pool.map(s=>s.recipe.source)),versions:{},year:'all',environmentallyExtended:true};
+ const pool=snapshots.filter(M.isMRIO),config={...state(),families:M.unique(pool.map(s=>s.recipe.source)),versions:{},year:'all',environmentallyExtended:true};
  const selected=M.selected(pool,config);
  assert.deepEqual(M.unique(selected.map(s=>s.recipe.source)).sort(),['ADB','EMERGING','EXIOBASE','GLORIA']);
  assert.ok(selected.length);assert.ok(selected.every(s=>M.metricAvailable([s],'ghg')));
@@ -30,7 +30,7 @@ test('environmental selection keeps only readings with GHG, including ADB year g
 });
 test('environmental eligibility is consistent before and after lazy snapshot loading',()=>{
  const manifest=json('manifest'),metadata=manifest.datasets.map(d=>({metadata_only:true,recipe:{...manifest.templates[d.template].recipe,...d},regions:manifest.templates[d.template].regions,availability:d.availability})).filter(M.isMRIO);
- const config={...state(),mode:'compare',families:M.unique(metadata.map(s=>s.recipe.source)),versions:{},year:'all',environmentallyExtended:true};
+ const config={...state(),families:M.unique(metadata.map(s=>s.recipe.source)),versions:{},year:'all',environmentallyExtended:true};
  assert.deepEqual(M.selected(metadata,config).map(s=>s.recipe.id),M.selected(snapshots.filter(M.isMRIO),config).map(s=>s.recipe.id));
  assert.ok(M.metricAvailableForSelection(metadata,config,'ghg'));
 });
@@ -98,7 +98,7 @@ test('per capita is not calculated for one sector or a regional aggregate',()=>{
   assert.equal(M.value(s,s.regions.find(r=>r.kind!=='country'),{...state(),perCapita:true},wb,m),null);
 });
 test('comparison never substitutes a different year or treats absent emissions as zero',()=>{
-  const config={...state(),mode:'compare',families:['EXIOBASE','OECD'],metric:'gdp'};
+  const config={...state(),families:['EXIOBASE','OECD'],metric:'gdp'};
   const rows=M.observations(snapshots,config,wb,mappings);
   assert.equal(rows.find(r=>r.database==='OECD').value,null);
   assert.match(rows.find(r=>r.database==='OECD').note,/2022/);
@@ -169,7 +169,7 @@ test('aggregate identities distinguish database boundaries while sharing identic
  assert.equal(M.regionKey(exio,wa(exio)),M.regionKey(pxp,wa(pxp)));
  assert.notEqual(M.regionKey(exio,wa(exio)),M.regionKey(hybrid,wa(hybrid)));
  const choice=M.regionKey(exio,wa(exio));
- const rows=M.observations(snapshots,{...state(),mode:'compare',families:['EXIOBASE','OECD'],country:choice},wb,mappings,json('edgar'));
+ const rows=M.observations(snapshots,{...state(),families:['EXIOBASE','OECD'],country:choice},wb,mappings,json('edgar'));
  assert.ok(rows.find(r=>r.database==='EXIOBASE').value>0);
  assert.equal(rows.find(r=>r.database==='OECD').value,null);
  assert.ok(!rows.some(M.isReference));
@@ -431,7 +431,7 @@ test('country options follow selected families, versions and years without addin
  const reading=(source,release,year,codes)=>({recipe:{source,release,year,dimension:'Industry',parser_options:{dataset:'ICIO'}},regions:codes.map(country)});
  const pool=[reading('OECD','Regular',2020,['ITA','CHN']),reading('OECD','Regular',2021,['ITA','JPN']),
              reading('OECD','Extended',2021,['ITA','IND']),reading('EMERGING','2.2',2021,['ITA','NPL'])];
- const config={mode:'compare',families:['OECD'],versions:{OECD:['Regular']},year:2021,country:'JPN'};
+ const config={families:['OECD'],versions:{OECD:['Regular']},year:2021,country:'JPN'};
  const codes=()=>M.countryOptions(pool,config).regions.map(r=>r.iso3).sort();
  assert.deepEqual(codes(),['ITA','JPN']);
  config.year=2020;assert.deepEqual(codes(),['CHN','ITA']);assert.equal(M.countryOptions(pool,config).selection,'world');
@@ -579,4 +579,22 @@ test('GHG rows are grouped by their declared IPCC report and GWP horizon',()=>{
  assert.equal(M.gwpConvention({gwp_basis:'CO2 only (GWP = 1 under AR5 and AR6)',gwp_horizon:100}).key,'co2');
  assert.equal(M.gwpConvention({gwp_basis:'Source CO2eq; IPCC report/horizon unverified',gwp_horizon:null}).key,'source');
  assert.deepEqual(M.gwpConvention({gwp_basis:'Native CO2eq; IPCC AR5 GWP100 verified for CH4; other F-gases unverified',gwp_horizon:100}),{key:'AR5-core',label:'native CO₂eq; AR5 GWP100 for principal gases'});
+});
+
+test('GHG sector aggregates add up with direct household emissions to the whole economy',()=>{
+ const s=snapshots.find(x=>x.recipe.source==='EXIOBASE'&&M.version(x.recipe)==='3.11.2 · ixi'&&x.recipe.year===2024);
+ const mapping=mappings[s.recipe.id],r=s.regions.find(x=>x.iso3==='ITA'),cfg={...state(),metric:'ghg'};
+ const sections=[...new Set(mapping.entries.map(e=>e.section))];
+ const bySection=sections.reduce((sum,section)=>sum+M.value(s,r,{...cfg,section},wb,mapping),0);
+ const households=M.value(s,r,{...cfg,section:M.HOUSEHOLDS},wb,mapping);
+ assert.equal(households,r.household_ghg/1000);
+ assert.ok(Math.abs(bySection+households-M.value(s,r,cfg,wb,mapping))<=1e-9*Math.abs(M.value(s,r,cfg,wb,mapping)));
+ assert.equal(M.value(s,r,{...state(),section:M.HOUSEHOLDS},wb,mapping),null);
+ assert.equal(M.value({...s,recipe:{...s.recipe,final_demand_emissions_loaded:false}},r,{...cfg,section:M.HOUSEHOLDS},wb,mapping),null);
+ const rows=M.observations(snapshots,{...cfg,section:['C',M.HOUSEHOLDS]},wb,mappings,json('edgar'));
+ const household=rows.find(row=>row.sector===M.HOUSEHOLDS);
+ assert.equal(household.sector_name,M.HOUSEHOLDS_LABEL);assert.match(household.note,/not allocated to producer sectors/);
+ assert.ok(!rows.some(row=>row.database==='EDGAR'));
+ const script=M.pythonStart(s,{...cfg,section:['C',M.HOUSEHOLDS]},mapping);
+ assert.match(script,/households = db\.get_block\("EY"\)/);assert.match(script,/section C and Households \(EY\), stacked/);
 });

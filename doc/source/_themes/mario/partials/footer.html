@@ -17,6 +17,9 @@
     </nav>
     <p class="mario-footer__meta">
       <span>&copy; {{ copyright }}</span>
+      {%- if mario.ai_notice %}
+      <span class="mario-footer__ai">{{ mario.ai_notice }}</span>
+      {%- endif %}
     </p>
   </div>
 </footer>

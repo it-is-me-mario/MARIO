@@ -71,17 +71,6 @@ const out=process.env.MARIO_DOCS_QA_DIR||'/private/tmp/concordance-review/browse
  assert.match(csv,/01\.11\.11/);assert.match(csv,/GLORIA/);assert.match(csv,/qualified|partial/);assert.match(download.suggestedFilename(),/cpa22/);
  await page.setViewportSize({width:390,height:844});await ready();await root.screenshot({path:path.join(out,'cpa-mobile.png')});
  assert.ok(await root.evaluate(n=>n.scrollWidth<=n.clientWidth+2));
- await page.setViewportSize({width:1440,height:1100});
- await page.goto(new URL('resources/data-explorer/browsers.html',base).href,{waitUntil:'networkidle',timeout:90000});
- await page.locator('[data-mode="country"]').click();
- await page.waitForSelector('[data-cf-classification] option[value="cpa-2.2"]',{state:'attached'});
- assert.match(await page.locator('[data-cf-country-summary]').innerText(),/Italy/);
- await page.locator('[data-cf-classification]').selectOption('cpa-2.2');
- await page.locator('[data-cf-search]').fill('01.11.11');
- await page.locator('[data-cf-code="01.11.11"]').click();
- assert.match(await page.locator('[data-cf-results]').innerText(),/Wheat|p01.b/);
- assert.match(await page.locator('[data-cf-excel]').getAttribute('href'),/classification-concordances\.xlsx/);
- await page.locator('[data-cf-content]').screenshot({path:path.join(out,'country-cpa.png')});
  assert.deepEqual(errors,[]);await browser.close();
- console.log('Reviewed NACE / CPA browser QA passed: overview, switching, leaf selection, borders, CSV, light/dark/mobile and Italy CPA lookup.');
+ console.log('Reviewed NACE / CPA browser QA passed: overview, switching, leaf selection, borders, CSV and light/dark/mobile.');
 })().catch(e=>{console.error(e);process.exit(1)});

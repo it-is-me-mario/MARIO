@@ -809,6 +809,35 @@ html.mario-header-hidden .mario-header {
   padding-bottom: calc(1.5 * var(--cell));
 }
 
+/* Closing line: hero-sized type on a full-width band at the foot of the article.
+   The body row absorbs the grid-snapped extra height, so the band stays flush. */
+.mario-article:has(> .mario-closing) {
+  display: grid;
+  grid-template-rows: 1fr auto;
+}
+.mario-article .mario-closing {
+  --closing-gutter: var(--explorer-gutter, calc(2 * var(--cell)));
+  margin: calc(2 * var(--cell)) calc(-1 * var(--closing-gutter)) calc(-1.5 * var(--cell));
+  padding: calc(1.5 * var(--cell)) var(--closing-gutter);
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 var(--radius) var(--radius);
+  background: var(--surface-2);
+  font-size: clamp(1.45rem, 1rem + 1.7vw, 2.25rem);
+  font-weight: 650;
+  letter-spacing: -0.04em;
+  line-height: 1.12;
+  text-align: center;
+  text-wrap: balance;
+}
+.mario-article .mario-closing a,
+.mario-article .mario-closing button { color: var(--ink); text-decoration: none; }
+.mario-article .mario-closing button { padding: 0; border: 0; background: none; font: inherit; letter-spacing: inherit; line-height: inherit; text-align: inherit; cursor: pointer; }
+.mario-article .mario-closing :is(a, button):hover .mario-closing__arrow { margin-left: 0.15em; }
+.mario-article .mario-closing :is(a, button):hover { text-decoration: underline; text-decoration-thickness: 0.06em; text-underline-offset: 0.14em; }
+.mario-article .mario-closing button:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; border-radius: 4px; }
+.mario-article .mario-closing mark { padding: 0 0.12em 0.04em; border-radius: 3px; background: var(--mark); color: var(--mark-ink); }
+.mario-closing__arrow { color: var(--accent-alt); transition: margin 0.15s ease; }
+
 .mario-layout-docs .mario-article {
   border-top: 4px solid var(--group-color);
 }
@@ -1090,6 +1119,20 @@ html.mario-header-hidden .mario-pagebar {
   font-size: 0.82rem;
 }
 
+.mario-footer__ai {
+  flex: 0 1 34rem;
+  line-height: 1.5;
+  text-align: right;
+}
+
+.mario-footer__ai strong { color: var(--ink-soft); font-weight: 600; }
+.mario-footer__ai a { color: inherit; text-decoration: underline; text-underline-offset: 0.15em; }
+.mario-footer__ai a:hover { color: var(--ink); }
+
+@media (max-width: 48em) {
+  .mario-footer__ai { flex-basis: 100%; text-align: inherit; }
+}
+
 /* ---------------------------------------------------------- search palette */
 
 .mario-palette {
@@ -1103,6 +1146,49 @@ html.mario-header-hidden .mario-pagebar {
   background: var(--surface);
   box-shadow: 0 30px 80px -20px rgb(22 16 13 / 0.45);
   color: var(--ink);
+}
+
+/* Contact dialog: a short optional form that drafts an email. */
+.mario-contact {
+  width: min(38rem, 100% - 2 * var(--gutter));
+  max-width: none;
+  max-height: calc(100dvh - 2rem);
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--surface);
+  box-shadow: 0 30px 80px -20px rgb(22 16 13 / 0.45);
+  color: var(--ink);
+}
+.mario-contact::backdrop { background: rgb(22 16 13 / 0.35); backdrop-filter: blur(2px); }
+.mario-contact__box { display: grid; gap: 1rem; padding: 1.4rem 1.5rem 1.2rem; }
+.mario-contact__head { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
+/* The dialog sits inside the article: reset the article heading rule and separator. */
+.mario-contact .mario-contact__head h2 { margin: 0; padding: 0; border: 0; font-size: 1.35rem; font-weight: 650; letter-spacing: -0.02em; line-height: 1.2; }
+.mario-contact .mario-contact__head h2::before, .mario-contact .mario-contact__head h2::after { content: none; display: none; }
+.mario-contact__close { flex: none; margin: -0.35rem -0.4rem 0 0; padding: 0.1rem 0.45rem; border: 0; border-radius: var(--radius); background: none; color: var(--ink-muted); font-size: 1.5rem; line-height: 1; cursor: pointer; }
+.mario-contact__close:hover { background: var(--surface-2); color: var(--ink); }
+.mario-contact__intro { margin: 0; color: var(--ink-soft); font-size: 0.98rem; line-height: 1.55; }
+.mario-contact__fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.8rem 1rem; }
+.mario-contact__fields > label, .mario-contact__fields legend { display: grid; gap: 0.3rem; color: var(--ink-soft); font-size: 0.8rem; font-weight: 600; }
+.mario-contact__fields small { margin-left: 0.3rem; color: var(--ink-muted); font-size: 0.75rem; font-weight: 400; }
+.mario-contact__wide { grid-column: 1 / -1; }
+.mario-contact__fields fieldset { display: flex; flex-wrap: wrap; gap: 0.4rem 1.2rem; margin: 0; padding: 0; border: 0; }
+.mario-contact__fields legend { margin-bottom: 0.35rem; padding: 0; }
+.mario-contact__fields fieldset label { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--ink); font-size: 0.9rem; }
+.mario-contact input:not([type="radio"]), .mario-contact textarea {
+  width: 100%; min-width: 0; padding: 0.6rem 0.7rem; border: 1px solid var(--line-strong); border-radius: var(--radius);
+  background: var(--surface-2); color: var(--ink); font: inherit; font-size: 0.92rem; font-weight: 400;
+}
+.mario-contact textarea { resize: vertical; }
+.mario-contact :is(input, textarea, button):focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.mario-contact input[type="radio"] { accent-color: var(--accent-alt); }
+.mario-contact__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1rem; }
+.mario-contact__actions .mario-button { border: 0; font: inherit; font-weight: 600; cursor: pointer; }
+.mario-contact__note { margin: 0; color: var(--ink-muted); font-size: 0.78rem; }
+@media (max-width: 38em) {
+  .mario-contact__box { padding: 1.1rem 1rem 1rem; }
+  .mario-contact__fields { grid-template-columns: 1fr; }
 }
 
 .mario-palette::backdrop {
