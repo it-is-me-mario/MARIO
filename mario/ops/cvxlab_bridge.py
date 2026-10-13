@@ -448,7 +448,21 @@ def _model_workdir(model_dir: Path):
         os.chdir(previous)
 
 
-def _prepare_split_model_directory(*, main_dir_path, model_dir_name: str) -> Path:
+CVXLAB_TEMPLATE_FILES = (
+    "mapping.xlsx",
+    "model_settings.xlsx",
+    "user_defined_constants.py",
+    "user_defined_operators.py",
+)
+
+
+def _prepare_split_model_directory(
+    *,
+    main_dir_path,
+    model_dir_name: str,
+    template_name: str = CVXLAB_TEMPLATE_NAME,
+    template_files: tuple[str, ...] = CVXLAB_TEMPLATE_FILES,
+) -> Path:
     """Create a clean split-model directory and copy MARIO-owned template assets."""
 
     root = _normalize_main_dir_path(main_dir_path)
@@ -464,13 +478,8 @@ def _prepare_split_model_directory(*, main_dir_path, model_dir_name: str) -> Pat
         shutil.rmtree(dest_dir, onerror=_handle_remove_readonly)
     dest_dir.mkdir(parents=True, exist_ok=True)
 
-    template_dir = resources.files(CVXLAB_TEMPLATE_PACKAGE) / CVXLAB_TEMPLATE_NAME
-    for filename in [
-        "mapping.xlsx",
-        "model_settings.xlsx",
-        "user_defined_constants.py",
-        "user_defined_operators.py",
-    ]:
+    template_dir = resources.files(CVXLAB_TEMPLATE_PACKAGE) / template_name
+    for filename in template_files:
         source = template_dir / filename
         target = dest_dir / filename
         shutil.copy2(source, target)

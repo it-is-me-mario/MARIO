@@ -48,6 +48,20 @@ from mario.ops.add_sector_split import (
     prepare_split_support,
     validate_split_parameters,
 )
+from mario.ops.add_sector_split_sut import (
+    apply_sut_split_parent_renames,
+    assemble_sut_split_flows,
+    build_sut_split_scenario,
+    log_sut_split_scenario,
+    normalize_sut_split_parent_renames,
+    prepare_sut_split_support,
+    register_sut_split_items,
+    validate_sut_split_parameters,
+)
+from mario.ops.cvxlab_bridge_sut import (
+    create_sut_split_input_data,
+    optimize_sut_split_in_cvxlab,
+)
 from mario.ops.cvxlab_bridge import (
     create_split_input_data,
     optimize_split_in_cvxlab,
@@ -4711,7 +4725,7 @@ class Database(CoreModel):
             )
         else:
             self.commodities_clusters = workbook.item_clusters
-            self.split_info = {}
+            self.split_info = workbook.split_info or {}
             derived = derive_add_sector_sets(
                 workbook,
                 existing_activities=self.get_index(_MASTER_INDEX["a"]),
@@ -4859,7 +4873,11 @@ class Database(CoreModel):
             historical workflow intentionally muted warnings.
         split:
             When ``True`` and the table is an IOT, run the split workflow after
-            the standard coefficient-side insertion.
+            the standard coefficient-side insertion. For a SUT, ``True`` is
+            required when the workbook marks its items as ``Split`` (a SUT
+            workbook is either all ``Add`` or all ``Split``): the split priors
+            are built directly from the original table, without a prior
+            insertion step.
         VA_fix:
             When ``True``, warn about any database factor-of-production rows
             that are missing from the workbook inventories before slice filling
@@ -4909,6 +4927,16 @@ class Database(CoreModel):
         ``split_<scenario>`` flow scenario and optionally hands it to CVXLab.
         By default, the final available split scenario is then promoted back to
         ``baseline``.
+
+        For a SUT workbook whose items are marked ``Split``, no insertion step
+        runs: MARIO builds the a-priori Use, Make, Final demand and Value added
+        matrices from the original table and the split-support sheets
+        (``Total outputs``, ``Supply coef``, ``Final dem share`` and the optional
+        ``Exclusions use``, ``Exclusions supply`` and ``Tolerances``), stores
+        them in ``split_<scenario>``, and hands them to CVXLab. For SUT,
+        ``parent_name`` / ``parent_names`` can rename split activities and
+        commodities (nested ``{"Activity": {...}, "Commodity": {...}}`` mappings
+        are accepted to disambiguate equal labels).
         """
         if not inplace:
             new = self.copy()
@@ -4944,12 +4972,43 @@ class Database(CoreModel):
         try:
             stage = "loading add-sectors inputs"
             if io != "inventories":
-                self.read_add_sectors_excel(io, read_inventories=True)
+                self.read_add_sectors_excel(io, read_inventories=True, split=split)
             elif not hasattr(self, "inventories"):
                 raise LackOfInput(
                     "Inventory sheets are not loaded. Pass an add-sectors workbook path "
                     "or call read_inventory_sheets(...) first."
                 )
+
+            if self.meta.table == "SUT":
+                sut_split_items = bool(
+                    getattr(self, "to_split_activities", []) or getattr(self, "to_split_commodities", [])
+                )
+                if sut_split_items and not split:
+                    raise WrongInput(
+                        "The add-sectors workbook marks its items as 'Split': call add_sectors with split=True "
+                        "(or set 'Add or Split' to 'Add' for every row to add the items without splitting)."
+                    )
+                if split and not sut_split_items:
+                    raise WrongInput(
+                        "No sectors are marked as 'Split' in the add-sectors workbook. "
+                        "Set 'Add or Split' to 'Split' for the new activities/commodities before using split=True."
+                    )
+                if sut_split_items:
+                    stage = "running the SUT split"
+                    self._add_sectors_sut_split(
+                        scenario=scenario,
+                        keep_all_split_steps=keep_all_split_steps,
+                        notes=notes,
+                        cvxlab_path=cvxlab_path,
+                        input_data_files_type=input_data_files_type,
+                        only_input_data_gen=only_input_data_gen,
+                        solver=solver,
+                        solver_parameters=solver_parameters,
+                        parent_name=parent_name,
+                        parent_names=parent_names,
+                        residue=residue,
+                    )
+                    return None
 
             stage = "checking factor-of-production inventory rows"
             if VA_fix:
@@ -5197,6 +5256,121 @@ class Database(CoreModel):
                 )
 
         return None
+
+    def _add_sectors_sut_split(
+        self,
+        *,
+        scenario,
+        keep_all_split_steps,
+        notes,
+        cvxlab_path,
+        input_data_files_type,
+        only_input_data_gen,
+        solver,
+        solver_parameters,
+        parent_name,
+        parent_names,
+        residue,
+    ):
+        """Run the SUT flavour of the split workflow of ``add_sectors``.
+
+        Unlike IOT, no insertion step runs first: the new activities and
+        commodities are carved out of their parents through a-priori matrices
+        built from the original table and the split-support sheets.
+        """
+
+        validate_sut_split_parameters(
+            self,
+            cvxlab_path=cvxlab_path,
+            input_data_files_type=input_data_files_type,
+            only_input_data_gen=only_input_data_gen,
+        )
+        structure = prepare_sut_split_support(self)
+        parent_renames = normalize_sut_split_parent_renames(
+            structure, parent_name=parent_name, parent_names=parent_names
+        )
+
+        log_time(
+            logger,
+            "Database: All scenarios will be deleted from the database after add_sectors.",
+            "warning",
+        )
+        original_reference = {
+            key: copy.deepcopy(collect_add_sector_matrices(self, scenario=scenario)[key])
+            for key in (_ENUM["Z"], _ENUM["E"], _ENUM["V"], _ENUM["Y"], _ENUM["EY"], _ENUM["VY"])
+        }
+
+        split_scenario, priors = build_sut_split_scenario(
+            self, base_scenario=scenario, scenario_label=scenario, residue=residue
+        )
+        log_sut_split_scenario(logger, split_scenario, structure)
+        split_flows = self.matrices[split_scenario]
+        register_sut_split_items(self, structure)
+        self.matrices = {"original": original_reference, split_scenario: split_flows}
+        self.uncertainty_matrix = None
+        self.meta._add_history("Scenarios: all scenarios deleted from the database.")
+        self.meta._add_history(
+            f"Database: new {_MASTER_INDEX['a']}: {structure.new_activities} and "
+            f"{_MASTER_INDEX['c']}: {structure.new_commodities} defined by splitting their parents"
+        )
+        self.meta._add_history(
+            f"Database: split flow scenario '{split_scenario}' generated for activities "
+            f"{structure.new_activities} and commodities {structure.new_commodities}"
+        )
+
+        final_scenario = split_scenario
+        if only_input_data_gen:
+            dest_dir = create_sut_split_input_data(
+                self,
+                main_dir_path=cvxlab_path,
+                input_data_files_type=input_data_files_type,
+                residue=residue,
+            )
+            self.meta._add_history(f"Database: CVXLab split input data generated in '{dest_dir}'.")
+        else:
+            blocks = optimize_sut_split_in_cvxlab(
+                self,
+                main_dir_path=cvxlab_path,
+                input_data_files_type=input_data_files_type,
+                solver=solver,
+                solver_parameters=solver_parameters,
+                residue=residue,
+            )
+            self.matrices["split_cvxlab"] = assemble_sut_split_flows(
+                structure,
+                priors.original,
+                priors,
+                U=blocks["U"],
+                M=blocks["M"],
+                Y=blocks["Y"],
+                V=blocks["V"],
+                Xa=blocks["M"].sum(axis=1),
+                Xc=blocks["M"].sum(axis=0),
+            )
+            final_scenario = "split_cvxlab"
+            self.meta._add_history(
+                "Database: new scenario 'split_cvxlab' defined with optimized split-sector flows."
+            )
+
+        if any(parent_renames.values()):
+            apply_sut_split_parent_renames(
+                self,
+                parent_renames,
+                scenarios=[name for name in self.matrices if name != "original"],
+            )
+            self.meta._add_history(f"Database: renamed split parents {parent_renames}.")
+
+        if keep_all_split_steps:
+            self.matrices["baseline"] = copy.deepcopy(self.matrices[final_scenario])
+        else:
+            self.matrices = {"baseline": self.matrices[final_scenario]}
+            self.meta._add_history(
+                f"Database: scenario '{final_scenario}' promoted to 'baseline' and intermediate split scenarios removed."
+            )
+
+        if notes:
+            for note in notes if isinstance(notes, list) else [notes]:
+                self.meta._add_history(f"User note: {note}")
 
     def query(
         self,

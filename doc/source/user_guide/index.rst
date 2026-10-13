@@ -37,6 +37,7 @@ The workflows are grouped into four families:
    transformations/add_extensions
    transformations/apply_shocks
    transformations/add_sectors
+   transformations/add_sectors_sut_split
    transformations/sut_to_iot
    transformations/mrio_to_srio
    transformations/to_chenery_moses

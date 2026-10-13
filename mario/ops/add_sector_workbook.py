@@ -15,6 +15,18 @@ from openpyxl.utils.cell import range_boundaries
 from mario.log_exc.exceptions import WrongExcelFormat, WrongInput
 from mario.model.conventions import IOT, SUT, _MASTER_INDEX
 from mario.ops.add_sector_specs import (
+    ADD_SECTOR_SPLIT_ADD_MODE,
+    ADD_SECTOR_SPLIT_SPLIT_MODE,
+    ADD_SECTOR_SPLIT_FINAL_DEMAND_SHARE_COLUMNS,
+    ADD_SECTOR_SPLIT_FINAL_DEMAND_SHARE_SHEET,
+    ADD_SECTOR_SPLIT_SUPPLY_COEF_COLUMNS,
+    ADD_SECTOR_SPLIT_SUPPLY_COEF_SHEET,
+    ADD_SECTOR_SPLIT_SUPPLY_EXCLUSION_COLUMNS,
+    ADD_SECTOR_SPLIT_SUPPLY_EXCLUSION_SHEET,
+    ADD_SECTOR_SPLIT_SUT_OUTPUT_COLUMNS,
+    ADD_SECTOR_SPLIT_USE_EXCLUSION_COLUMNS,
+    ADD_SECTOR_SPLIT_USE_EXCLUSION_SHEET,
+    ADVANCED_ADD_SECTOR_SUT_OPTIONAL_MASTER_COLUMNS,
     ADD_SECTOR_SPLIT_EXCLUSION_COLUMNS,
     ADD_SECTOR_SPLIT_EXCLUSION_SHEET,
     ADD_SECTOR_SPLIT_OUTPUT_COLUMNS,
@@ -122,6 +134,7 @@ def build_add_sector_master_sheet(
                         f"{_MASTER_INDEX['a']}, {_MASTER_INDEX['c']} or None."
                     )
                 row["Inventory sheet"] = f"INV_{counter:03d}"
+                row[ADVANCED_ADD_SECTOR_MASTER_SHEET_COLUMNS[SUT]["add_mode"]] = "Add"
                 rows.append(row)
                 counter += 1
 
@@ -191,6 +204,36 @@ def build_split_tolerances_template() -> pd.DataFrame:
         ADD_SECTOR_SPLIT_TOLERANCE_DEFAULTS,
         columns=list(ADD_SECTOR_SPLIT_TOLERANCE_COLUMNS.values()),
     )
+
+
+def build_split_sut_total_outputs_template() -> pd.DataFrame:
+    """Build the SUT split total-output sheet (one row per new activity or commodity and region)."""
+
+    return pd.DataFrame(columns=list(ADD_SECTOR_SPLIT_SUT_OUTPUT_COLUMNS.values()))
+
+
+def build_split_supply_coef_template() -> pd.DataFrame:
+    """Build the SUT split supply-coefficient sheet."""
+
+    return pd.DataFrame(columns=list(ADD_SECTOR_SPLIT_SUPPLY_COEF_COLUMNS.values()))
+
+
+def build_split_final_demand_share_template() -> pd.DataFrame:
+    """Build the SUT split final-demand-share sheet."""
+
+    return pd.DataFrame(columns=list(ADD_SECTOR_SPLIT_FINAL_DEMAND_SHARE_COLUMNS.values()))
+
+
+def build_split_use_exclusions_template() -> pd.DataFrame:
+    """Build the SUT split use-exclusions sheet."""
+
+    return pd.DataFrame(columns=list(ADD_SECTOR_SPLIT_USE_EXCLUSION_COLUMNS.values()))
+
+
+def build_split_supply_exclusions_template() -> pd.DataFrame:
+    """Build the SUT split supply-exclusions sheet."""
+
+    return pd.DataFrame(columns=list(ADD_SECTOR_SPLIT_SUPPLY_EXCLUSION_COLUMNS.values()))
 
 
 def build_db_units_sheet(instance) -> pd.DataFrame:
@@ -328,7 +371,18 @@ def write_inventory_templates_to_workbook(
 
         _write_sheet(writer, ADVANCED_ADD_SECTOR_DB_UNITS_SHEET, db_units)
 
-        if split_sheets_needed:
+        if split_sheets_needed and workbook.table == SUT:
+            _write_sheet(writer, ADD_SECTOR_SPLIT_OUTPUT_SHEET, build_split_sut_total_outputs_template())
+            _write_sheet(writer, ADD_SECTOR_SPLIT_SUPPLY_COEF_SHEET, build_split_supply_coef_template())
+            _write_sheet(
+                writer, ADD_SECTOR_SPLIT_FINAL_DEMAND_SHARE_SHEET, build_split_final_demand_share_template()
+            )
+            _write_sheet(writer, ADD_SECTOR_SPLIT_USE_EXCLUSION_SHEET, build_split_use_exclusions_template())
+            _write_sheet(
+                writer, ADD_SECTOR_SPLIT_SUPPLY_EXCLUSION_SHEET, build_split_supply_exclusions_template()
+            )
+            _write_sheet(writer, ADD_SECTOR_SPLIT_TOLERANCE_SHEET, build_split_tolerances_template())
+        elif split_sheets_needed:
             _write_sheet(writer, ADD_SECTOR_SPLIT_OUTPUT_SHEET, build_split_total_outputs_template())
             _write_sheet(writer, ADD_SECTOR_SPLIT_TRADE_SHEET, build_split_trades_template())
             _write_sheet(writer, ADD_SECTOR_SPLIT_EXCLUSION_SHEET, build_split_exclusions_template())
@@ -375,12 +429,30 @@ def read_add_sector_workbook(
 
     master_sheet = sheets[ADVANCED_ADD_SECTOR_MASTER_SHEET]
     expected_columns = list(ADVANCED_ADD_SECTOR_MASTER_SHEET_COLUMNS[table].values())
-    missing_columns = [column for column in expected_columns if column not in master_sheet.columns]
+    optional_columns = (
+        [
+            ADVANCED_ADD_SECTOR_MASTER_SHEET_COLUMNS[SUT][key]
+            for key in ADVANCED_ADD_SECTOR_SUT_OPTIONAL_MASTER_COLUMNS
+        ]
+        if table == SUT
+        else []
+    )
+    missing_columns = [
+        column
+        for column in expected_columns
+        if column not in master_sheet.columns and column not in optional_columns
+    ]
     if missing_columns:
         raise WrongExcelFormat(
             f"Add-sectors master sheet is missing columns: {missing_columns}"
         )
+    master_sheet = master_sheet.copy()
+    for column in optional_columns:
+        if column not in master_sheet.columns:
+            master_sheet[column] = None
     master_sheet = master_sheet.loc[:, expected_columns]
+    if table == SUT:
+        validate_sut_add_mode(master_sheet)
 
     regions_clusters = _parse_cluster_sheet(
         sheets[ADVANCED_ADD_SECTOR_REGIONS_CLUSTERS_SHEET]
@@ -408,7 +480,7 @@ def read_add_sector_workbook(
         if sheet_name in sheets
     }
     split_info = (
-        _parse_split_sheets(sheets)
+        _parse_split_sheets(sheets, table=table)
         if parse_split and _has_split_rows(table, master_sheet)
         else None
     )
@@ -742,11 +814,23 @@ def derive_add_sector_sets(
         if isinstance(parent, str) and parent.strip():
             parented.append(activity)
     non_parented = [activity for activity in activities if activity not in parented]
+
+    parent_commodity_column = ADVANCED_ADD_SECTOR_MASTER_SHEET_COLUMNS[SUT]["parent_commodity"]
+    parented_commodities = []
+    for commodity in commodities:
+        parent = master.loc[master[_MASTER_INDEX["c"]] == commodity, parent_commodity_column].iloc[0]
+        if isinstance(parent, str) and parent.strip():
+            parented_commodities.append(commodity)
+
+    is_split = validate_sut_add_mode(master) == ADD_SECTOR_SPLIT_SPLIT_MODE
     return {
         "new_activities": activities,
         "new_commodities": commodities,
         "parented_activities": parented,
         "non_parented_activities": non_parented,
+        "parented_commodities": parented_commodities,
+        "to_split_activities": list(activities) if is_split else [],
+        "to_split_commodities": list(commodities) if is_split else [],
     }
 
 
@@ -791,8 +875,65 @@ def _parse_split_sheet(
     return sheet.loc[:, expected]
 
 
-def _parse_split_sheets(sheets: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
-    """Return the normalized split-support payload for IOT workbooks."""
+def _parse_optional_split_sheet(
+    sheets: dict[str, pd.DataFrame],
+    *,
+    sheet_name: str,
+    columns: dict[str, str],
+) -> pd.DataFrame:
+    """Return one optional split-support sheet, empty when it is absent."""
+
+    if sheet_name not in sheets:
+        return pd.DataFrame(columns=list(columns.values()))
+    return _parse_split_sheet(sheets, sheet_name=sheet_name, columns=columns)
+
+
+def _parse_sut_split_sheets(sheets: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
+    """Return the normalized split-support payload for SUT workbooks.
+
+    ``Total outputs``, ``Supply coef`` and ``Final dem share`` are required.
+    The two exclusion sheets and ``Tolerances`` are optional.
+    """
+
+    return {
+        ADD_SECTOR_SPLIT_OUTPUT_SHEET: _parse_split_sheet(
+            sheets,
+            sheet_name=ADD_SECTOR_SPLIT_OUTPUT_SHEET,
+            columns=ADD_SECTOR_SPLIT_SUT_OUTPUT_COLUMNS,
+        ),
+        ADD_SECTOR_SPLIT_SUPPLY_COEF_SHEET: _parse_split_sheet(
+            sheets,
+            sheet_name=ADD_SECTOR_SPLIT_SUPPLY_COEF_SHEET,
+            columns=ADD_SECTOR_SPLIT_SUPPLY_COEF_COLUMNS,
+        ),
+        ADD_SECTOR_SPLIT_FINAL_DEMAND_SHARE_SHEET: _parse_split_sheet(
+            sheets,
+            sheet_name=ADD_SECTOR_SPLIT_FINAL_DEMAND_SHARE_SHEET,
+            columns=ADD_SECTOR_SPLIT_FINAL_DEMAND_SHARE_COLUMNS,
+        ),
+        ADD_SECTOR_SPLIT_USE_EXCLUSION_SHEET: _parse_optional_split_sheet(
+            sheets,
+            sheet_name=ADD_SECTOR_SPLIT_USE_EXCLUSION_SHEET,
+            columns=ADD_SECTOR_SPLIT_USE_EXCLUSION_COLUMNS,
+        ),
+        ADD_SECTOR_SPLIT_SUPPLY_EXCLUSION_SHEET: _parse_optional_split_sheet(
+            sheets,
+            sheet_name=ADD_SECTOR_SPLIT_SUPPLY_EXCLUSION_SHEET,
+            columns=ADD_SECTOR_SPLIT_SUPPLY_EXCLUSION_COLUMNS,
+        ),
+        ADD_SECTOR_SPLIT_TOLERANCE_SHEET: _parse_optional_split_sheet(
+            sheets,
+            sheet_name=ADD_SECTOR_SPLIT_TOLERANCE_SHEET,
+            columns=ADD_SECTOR_SPLIT_TOLERANCE_COLUMNS,
+        ),
+    }
+
+
+def _parse_split_sheets(sheets: dict[str, pd.DataFrame], *, table: str = IOT) -> dict[str, pd.DataFrame]:
+    """Return the normalized split-support payload for the given table type."""
+
+    if table == SUT:
+        return _parse_sut_split_sheets(sheets)
 
     return {
         ADD_SECTOR_SPLIT_OUTPUT_SHEET: _parse_split_sheet(
@@ -818,8 +959,46 @@ def _parse_split_sheets(sheets: dict[str, pd.DataFrame]) -> dict[str, pd.DataFra
     }
 
 
+def validate_sut_add_mode(master_sheet: pd.DataFrame) -> str:
+    """Validate that a SUT master sheet is all ``Add`` or all ``Split``.
+
+    Unlike IOT, SUT workbooks cannot mix both modes: a split does not run the
+    non-split insertion step first. An empty ``Add or Split`` cell means ``Add``.
+
+    Returns
+    -------
+    str
+        ``"add"`` or ``"split"``.
+    """
+
+    add_mode_column = ADVANCED_ADD_SECTOR_MASTER_SHEET_COLUMNS[SUT]["add_mode"]
+    if add_mode_column not in master_sheet.columns or master_sheet.empty:
+        return ADD_SECTOR_SPLIT_ADD_MODE
+
+    modes = master_sheet[add_mode_column].fillna("").astype(str).str.strip().str.lower()
+    modes = modes.where(modes != "", ADD_SECTOR_SPLIT_ADD_MODE)
+    invalid = sorted(set(modes) - {ADD_SECTOR_SPLIT_ADD_MODE, ADD_SECTOR_SPLIT_SPLIT_MODE})
+    if invalid:
+        raise WrongInput(
+            f"Column '{add_mode_column}' of the add-sectors master sheet accepts only 'Add' or 'Split'. "
+            f"Found: {invalid}."
+        )
+
+    if modes.nunique() > 1:
+        split_rows = [int(i) + 2 for i in modes[modes == ADD_SECTOR_SPLIT_SPLIT_MODE].index]
+        add_rows = [int(i) + 2 for i in modes[modes == ADD_SECTOR_SPLIT_ADD_MODE].index]
+        raise WrongInput(
+            "SUT add-sectors workbooks cannot mix 'Add' and 'Split' rows: use either only 'Add' or only "
+            f"'Split' in the '{add_mode_column}' column of the Master sheet. "
+            f"'Split' rows (sheet rows): {split_rows}; 'Add' rows (sheet rows): {add_rows}."
+        )
+    return str(modes.iloc[0])
+
+
 def _has_split_rows(table: str, master_sheet: pd.DataFrame) -> bool:
-    """Return whether an IOT add-sectors workbook contains split rows."""
+    """Return whether an add-sectors workbook contains split rows."""
+    if table == SUT:
+        return validate_sut_add_mode(master_sheet) == ADD_SECTOR_SPLIT_SPLIT_MODE
     if table != IOT:
         return False
     add_mode_column = ADVANCED_ADD_SECTOR_MASTER_SHEET_COLUMNS[IOT]["add_mode"]
@@ -1246,6 +1425,11 @@ def merge_add_sector_workbooks(
     table = copied[0].table
     if any(workbook.table != table for workbook in copied):
         raise WrongInput("All add-sectors workbooks must target the same table type.")
+
+    if table == SUT and any(workbook.split_info for workbook in copied):
+        raise WrongInput(
+            "Splitting sectors in SUT databases supports a single add-sectors workbook, not a directory."
+        )
 
     _validate_distinct_master_targets(copied)
     _rename_conflicting_inventory_sheets(copied)

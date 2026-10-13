@@ -17,9 +17,11 @@ ADVANCED_ADD_SECTOR_MASTER_SHEET_COLUMNS = {
         "final_consumption": "Final consumption",
         "consumption_category": _MASTER_INDEX["n"],
         "parent_activity": f"Parent {_MASTER_INDEX['a']}",
+        "parent_commodity": f"Parent {_MASTER_INDEX['c']}",
         "leave_empty": "Leave empty",
         "source": "Source",
         "notes": "Notes",
+        "add_mode": "Add or Split",
     },
     IOT: {
         "region": _MASTER_INDEX["r"],
@@ -36,6 +38,11 @@ ADVANCED_ADD_SECTOR_MASTER_SHEET_COLUMNS = {
         "add_mode": "Add or Split",
     },
 }
+
+
+# Master-sheet columns that SUT workbooks written before the SUT split workflow may lack.
+# They are created empty on read, so legacy workbooks keep working as pure "Add" workbooks.
+ADVANCED_ADD_SECTOR_SUT_OPTIONAL_MASTER_COLUMNS = ("parent_commodity", "add_mode")
 
 
 ADVANCED_ADD_SECTOR_INVENTORY_SHEET_COLUMNS = {
@@ -133,3 +140,66 @@ ADD_SECTOR_SPLIT_TOLERANCE_DEFAULTS = (
     ("delta", 1e-5),
     ("eps", 1e-5),
 )
+
+
+# --- SUT split-support sheets -------------------------------------------------
+# "Total outputs", "Supply coef" and "Final dem share" are required for SUT splits;
+# the exclusion and tolerance sheets are optional.
+ADD_SECTOR_SPLIT_SUT_OUTPUT_SHEET = ADD_SECTOR_SPLIT_OUTPUT_SHEET
+ADD_SECTOR_SPLIT_SUT_OUTPUT_COLUMNS = {
+    "activity": _MASTER_INDEX["a"],
+    "commodity": _MASTER_INDEX["c"],
+    "region": _MASTER_INDEX["r"],
+    "quantity": "Quantity",
+    "unit": "Unit",
+    "source": "Source",
+    "notes": "Notes",
+}
+
+
+ADD_SECTOR_SPLIT_SUPPLY_COEF_SHEET = "Supply coef"
+ADD_SECTOR_SPLIT_SUPPLY_COEF_COLUMNS = {
+    "region_from": f"{_MASTER_INDEX['r']}_from",
+    "region_to": f"{_MASTER_INDEX['r']}_to",
+    "activity_from": f"{_MASTER_INDEX['a']}_from",
+    "commodity_to": f"{_MASTER_INDEX['c']}_to",
+    "coefficient": "Coefficient",
+    "source": "Source",
+    "notes": "Notes",
+}
+
+
+ADD_SECTOR_SPLIT_FINAL_DEMAND_SHARE_SHEET = "Final dem share"
+ADD_SECTOR_SPLIT_FINAL_DEMAND_SHARE_COLUMNS = {
+    "region_from": f"{_MASTER_INDEX['r']}_from",
+    "region_to": f"{_MASTER_INDEX['r']}_to",
+    "commodity": _MASTER_INDEX["c"],
+    "consumption_category": _MASTER_INDEX["n"],
+    "share": "Share",
+    "source": "Source",
+    "notes": "Notes",
+}
+
+
+ADD_SECTOR_SPLIT_USE_EXCLUSION_SHEET = "Exclusions use"
+ADD_SECTOR_SPLIT_USE_EXCLUSION_COLUMNS = {
+    "region_from": f"{_MASTER_INDEX['r']}_from",
+    "region_to": f"{_MASTER_INDEX['r']}_to",
+    "commodity_from": f"{_MASTER_INDEX['c']}_from",
+    "activity_to": f"{_MASTER_INDEX['a']}_to",
+    "notes": "Notes",
+}
+
+
+ADD_SECTOR_SPLIT_SUPPLY_EXCLUSION_SHEET = "Exclusions supply"
+ADD_SECTOR_SPLIT_SUPPLY_EXCLUSION_COLUMNS = {
+    "region_from": f"{_MASTER_INDEX['r']}_from",
+    "region_to": f"{_MASTER_INDEX['r']}_to",
+    "activity_from": f"{_MASTER_INDEX['a']}_from",
+    "commodity_to": f"{_MASTER_INDEX['c']}_to",
+    "notes": "Notes",
+}
+
+
+ADD_SECTOR_SPLIT_ADD_MODE = "add"
+ADD_SECTOR_SPLIT_SPLIT_MODE = "split"

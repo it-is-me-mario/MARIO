@@ -58,6 +58,8 @@ setup(
         "mario.ops.cvxlab_models": [
             "Split_sectors/*.xlsx",
             "Split_sectors/*.py",
+            "Split_sut/*.xlsx",
+            "Split_sut/*.py",
         ],
         },
     install_requires=[

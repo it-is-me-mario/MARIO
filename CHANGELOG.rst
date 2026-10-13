@@ -28,6 +28,18 @@ Add sectors: value added and inventory handling
 Sector split workflow
 ~~~~~~~~~~~~~~~~~~~~~~~
 
+* ``Database.add_sectors(split=True)`` now works on SUT databases: activities
+  and/or commodities can be split into new ones. A SUT workbook is either all
+  ``Split`` or all ``Add`` (the ``Add or Split`` and ``Parent Commodity`` Master
+  columns are new and optional, so existing workbooks keep working). The a-priori
+  Use, Make, Final demand and Value added matrices are built from the original
+  table and the new ``Total outputs``, ``Supply coef``, ``Final dem share`` and
+  optional ``Exclusions use`` / ``Exclusions supply`` / ``Tolerances`` sheets, and
+  solved with a packaged CVXLab SUT model (``Split_sut``). See the user guide
+  page "Splitting activities and commodities in a SUT".
+* ``add_sectors(io=<path>, split=True)`` now parses the split-support sheets of
+  the workbook (previously they were only read when the workbook had been loaded
+  with ``read_add_sectors_excel(..., split=True)`` beforehand).
 * Reworked the sector-split routine used by ``add_sectors(split=True)``:
   zeroes stay zeroes, small digits are cleaned, incompatible exogenous data and
   exclusions are validated, factor-of-production clusters are allowed, and the
