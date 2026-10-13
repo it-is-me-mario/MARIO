@@ -2802,5 +2802,6 @@
   "attribution": "GTAP / Center for Global Trade Analysis, Purdue University. Public classification metadata.",
   "scope_note": "GTAP is supplied under a proprietary licence. Only public scope and classification metadata are shown; numerical indicators are not published. Power MRIO is supported by MARIO; this inventory verifies the 2023 native region/sector index, without rerunning the full parse. Satellite, factor and final-demand inventories were not loaded.",
   "workbook": "_static/data/external_profiles/gtap-12-power-scope-sets.xlsx",
-  "detail": "_static/data/external_profiles/gtap-12-power-scope.json"
+  "detail": "_static/data/external_profiles/gtap-12-power-scope.json",
+  "website_years": []
 }

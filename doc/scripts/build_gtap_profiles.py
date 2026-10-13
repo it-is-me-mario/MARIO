@@ -24,7 +24,7 @@ def build(metadata, data):
         counts = {'Region': len(regions), 'Sector': len(sectors)}
         profile = {
             'schema_version': 1, 'id': pid, 'source': 'GTAP', 'guide': 'gtap' if parser else 'gtap-standard',
-            'version': '12', 'variant': variant, 'label': 'GTAP 12 · ' + variant, 'release': '12 · ' + variant, 'year': max(years), 'years': years,
+            'version': '12', 'variant': variant, 'label': 'GTAP 12 · ' + variant, 'release': '12 · ' + variant, 'year': max(years), 'years': years, 'website_years': [],
             'table': 'IOT' if parser else 'Model sectors', 'status': 'source_verified', 'parser_supported': parser,
             'environmental': True, 'numeric_publication': False, 'counts': counts,
             'sets': {'Region': [r['label'] for r in regions], 'Sector': labels},

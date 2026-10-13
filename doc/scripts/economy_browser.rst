@@ -137,15 +137,22 @@ The original structure workbook is linked from the publisher; its older
 public metadata URLs, version and checksums accompany the profile. No NACE/CPA
 allocation or coverage for other years is inferred.
 
-GLORIA v060 / 1990–2025 is included for non-commercial MARIO documentation under
+The Classifications timeline distinguishes documented source years from years
+available here. ``source_coverage`` records a publisher's continuous series;
+``website_years`` can explicitly limit availability without changing the
+native classification counts. Eora1 adds grey source years through 2023;
+Eora2 and GTAP retain their reference years and classification metadata, with
+all reference-year markers grey. These flags do not publish numerical data.
+
+GLORIA v060 / 1990–2029 is included for non-commercial MARIO documentation under
 CC BY-NC 3.0 Australia. Attribution, source vintages and modification notices
 accompany its indicators and native-set workbook. Publisher statement and
 licence link are recorded in ``doc/scripts/gloria/licence.json``.
 USEEIO kingbird uses the EPA model coupled with EXIOBASE 3.8.2; the
 GLORIA-coupled yellowthroat model remains local.
 
-Current browser scope: 658 MRIO readings from EXIOBASE, OECD ICIO, ADB, FIGARO,
-WIOD, EMERGING and GLORIA. WIOD PYP readings are excluded from the UI, leaving 644
+Current browser scope: 662 MRIO readings from EXIOBASE, OECD ICIO, ADB, FIGARO,
+WIOD, EMERGING and GLORIA. WIOD PYP readings are excluded from the UI, leaving 648
 current-price readings. National BEA and USEEIO snapshots and recipes are retained
 for later work but are excluded from every browser mode; scope-page inventories
 are unchanged. EXIOBASE has 434 readings:

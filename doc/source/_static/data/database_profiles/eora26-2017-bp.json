@@ -222978,7 +222978,7 @@
   "attribution": "Eora MRIO, KGM & Associates; Lenzen et al. (2012, 2013).",
   "numeric_publication": false,
   "environmental": true,
-  "scope_note": "Eora1 26 · basic prices. Locally verified native sets for 1990–2003, 2005–2017: 189 retained regions and 26 sectors. The 2017 inventory was parsed with MARIO; other locally held years were checked for source files and matching labels, not fully parsed. The publisher also has 2004, but that year was not downloaded locally and its sets were not checked. The 2016 local copy lacks labels_VA.txt; its VA matrix has the 2017 shape, so parsing that year requires indeces= pointing to a complete common label folder. Scope metadata only; numerical indicators are not published.",
+  "scope_note": "Eora1 26 · basic prices. Locally verified native sets for 1990–2003, 2005–2017: 189 retained regions and 26 sectors. The 2017 inventory was parsed with MARIO; other locally held years were checked for source files and matching labels, not fully parsed. The publisher covers 1990–2023; 2004 and 2018–2023 are not available on this website. The 2016 local copy lacks labels_VA.txt; its VA matrix has the 2017 shape, so parsing that year requires indeces= pointing to a complete common label folder. Scope metadata only; numerical indicators are not published.",
   "workbook_allowed": false,
   "parser_supported": true,
   "version": "1",
@@ -223020,5 +223020,39 @@
     ],
     "note": "2017 parsed with MARIO; other locally held years checked for complete source files and matching labels. The source offers 2004, which has not been downloaded or checked here. The 2016 local copy needs the shared 2017 label folder (indeces=).",
     "hover_status": "2017 MARIO parse · other local years: source structure checked · 2004 not locally reviewed"
+  },
+  "website_years": [
+    1990,
+    1991,
+    1992,
+    1993,
+    1994,
+    1995,
+    1996,
+    1997,
+    1998,
+    1999,
+    2000,
+    2001,
+    2002,
+    2003,
+    2005,
+    2006,
+    2007,
+    2008,
+    2009,
+    2010,
+    2011,
+    2012,
+    2013,
+    2014,
+    2015,
+    2016,
+    2017
+  ],
+  "source_coverage": {
+    "first_year": 1990,
+    "last_year": 2023,
+    "source_url": "https://worldmrio.com/eora26/"
   }
 }

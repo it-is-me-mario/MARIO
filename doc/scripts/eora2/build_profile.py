@@ -29,7 +29,7 @@ def build(folder, data):
     pid='eora2-common-2024-scope'
     return {'schema_version':1,'id':pid,'source':'EORA','guide':'eora2','version':'2','variant':'Common',
         'label':'Eora2 · Common classification · 2024 metadata','release':'Eora2 · Common',
-        'year':2024,'years':[2024],'table':'Common classification','status':'source_verified',
+        'year':2024,'years':[2024],'website_years':[],'table':'Common classification','status':'source_verified',
         'parser_supported':False,'numeric_publication':False,'workbook_allowed':False,'environmental':True,'scope_group':'Eora2 Common',
         'counts':{key:len(value) for key,value in sets.items()},'sets':sets,
         'native_codes':{'Sector':{name:str(i+1) for i,name in enumerate(sectors)}},

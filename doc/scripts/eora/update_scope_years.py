@@ -16,6 +16,10 @@ import re
 DATA_KINDS = ("T", "FD", "VA", "Q", "QY")
 LABEL_KINDS = ("T", "FD", "VA", "Q")
 PROFILE_ID = "eora26-2017-bp"
+SOURCE_COVERAGE = {
+    "first_year": 1990, "last_year": 2023,
+    "source_url": "https://worldmrio.com/eora26/",
+}
 
 
 def digest(path: Path) -> str:
@@ -78,7 +82,8 @@ def year_periods(years: list[int]) -> str:
 
 
 def write_json(path: Path, data: dict) -> None:
-    compact = path.name == "country-scope.json"
+    # Keep the catalogue's existing compact / indented publication format.
+    compact = "\n" not in path.read_text(encoding="utf-8").rstrip("\n")
     text = json.dumps(data, ensure_ascii=False, **({"separators": (",", ":")} if compact else {"indent": 2})) + "\n"
     path.write_text(text, encoding="utf-8")
 
@@ -90,7 +95,7 @@ def update(data: Path, years: list[int], shared_index: list[int]) -> None:
     note = (f"Eora1 26 · basic prices. Locally verified native sets for {year_text}: "
             "189 retained regions and 26 sectors. The 2017 inventory was parsed with MARIO; "
             "other locally held years were checked for source files and matching labels, not fully parsed. "
-            "The publisher also has 2004, but that year was not downloaded locally and its sets were not checked. "
+            "The publisher covers 1990–2023; 2004 and 2018–2023 are not available on this website. "
             "The 2016 local copy lacks labels_VA.txt; its VA matrix has the 2017 shape, "
             "so parsing that year requires indeces= pointing to a complete common label folder. "
             "Scope metadata only; numerical indicators are not published.")
@@ -107,6 +112,8 @@ def update(data: Path, years: list[int], shared_index: list[int]) -> None:
             raise ValueError("EORA must remain scope-only")
         profile["label"] = "Eora1 26 · basic prices"
         profile["years"] = years
+        profile["website_years"] = years
+        profile["source_coverage"] = SOURCE_COVERAGE
         profile["scope_note"] = note
         profile["local_index_overrides"] = {str(year): 2017 for year in shared_index}
         profile["year_evidence"] = {

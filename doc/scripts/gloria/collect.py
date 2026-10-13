@@ -110,7 +110,12 @@ def collect(root,year,stage,evict_command=None):
     if evict_command:
         for file in [economic,satellite]:
             subprocess.run([str(evict_command),str(file)],check=True)
-            if file.stat().st_blocks:raise ValueError('Cloud file did not become online-only: '+file.name)
+            # macOS File Provider can retain small cache extents after eviction.
+            # SF_DATALESS (sys/stat.h) is the placeholder flag; block count alone
+            # incorrectly rejects a successful online-only transition.
+            state=file.stat()
+            if state.st_blocks and not (sys.platform=='darwin' and state.st_flags & 0x40000000):
+                raise ValueError('Cloud file did not become online-only: '+file.name)
         print('YEAR',year,'ONLINE_ONLY',flush=True)
     return snapshot,profile
 

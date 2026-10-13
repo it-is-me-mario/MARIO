@@ -138,12 +138,17 @@
       const system=p.provenance?.options?.system || (p.provenance?.options?.iot_mode==="product"?"pxp":p.provenance?.options?.iot_mode==="industry"?"ixi":p.table);
       for(const year of unique((p.years || [p.year]).map(Number).filter(Number.isFinite))) {
         const key=familyName(p.source)+"|"+year;
-        if(!cells.has(key))cells.set(key,{family:familyName(p.source),year,versions:[],systems:[],environmental:false,sourceOnly:true,publisher:false});
+        if(!cells.has(key))cells.set(key,{family:familyName(p.source),year,versions:[],systems:[],environmental:false,sourceOnly:true,publisher:false,available:false,evidence:[]});
         const cell=cells.get(key);
         cell.versions=unique([...cell.versions,p.release].filter(Boolean)).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
         cell.systems=unique([...cell.systems,system].filter(Boolean));
         cell.environmental ||= environmental;
         cell.sourceOnly &&= p.status==="source_verified" && p.parser_supported===false;
+        // Documented reference years may exist without being available here.
+        // A second reading of the same family can still make that year available.
+        cell.available ||= (p.website_years || p.years || [p.year]).map(Number).includes(year);
+        const method=p.year_evidence?.source_structure_checked?.includes(year)?"Source structure checked":p.status==="parsed"?"Verified MARIO parse":p.parser_supported===false?"Source base year · no MARIO parser":"Source metadata · MARIO parser available";
+        cell.evidence=unique([...cell.evidence,method]);
       }
     }
     // Years the publisher documents but MARIO has not parsed yet; forecasts are flagged.
@@ -152,7 +157,7 @@
       for(let year=coverage.first_year;year<=coverage.last_year;year+=1) {
         const key=familyName(p.source)+"|"+year,forecast=!!coverage.forecast_from&&year>=coverage.forecast_from;
         if(cells.has(key)){cells.get(key).forecast ||= forecast;continue;}
-        cells.set(key,{family:familyName(p.source),year,versions:[p.release].filter(Boolean),systems:[],environmental:false,sourceOnly:false,publisher:true,forecast});
+        cells.set(key,{family:familyName(p.source),year,versions:[p.release].filter(Boolean),systems:[],environmental:false,sourceOnly:false,publisher:true,available:false,forecast});
       }
     }
     return [...cells.values()].sort((a,b)=>a.family.localeCompare(b.family)||a.year-b.year);
@@ -160,13 +165,13 @@
   function timelineFigure(cells, colors, {year="all",order=unique(cells.map(c=>c.family)),width=900}={}) {
     const families=order.filter(f=>cells.some(c=>c.family===f)),selected=year==="all"?null:Number(year);
     const years=cells.map(c=>c.year),lo=Math.min(...years),hi=Math.max(...years);
-    const covers=family=>selected===null || cells.some(c=>c.family===family&&c.year===selected&&!c.publisher);
+    const covers=family=>selected===null || cells.some(c=>c.family===family&&c.year===selected&&c.available);
     const data=families.map(family=>{
       const group=cells.filter(c=>c.family===family),symbol=symbolFor(family,order),fill=c=>c.environmental?colors.extended:colors.base;
       return {type:"scatter",mode:"markers",name:family,showlegend:false,x:group.map(c=>c.year),y:group.map(()=>family),
         opacity:covers(family)?1:.28,
-        marker:{size:width<540?8:10,symbol,color:group.map(c=>c.publisher?colors.ink:fill(c)),opacity:group.map(c=>c.publisher?.3:1),line:{color:colors.background,width:.5}},
-        customdata:group.map(c=>[c.versions.length?"Versions: "+c.versions.join(" · "):"",c.systems.join(" / "),c.publisher?"Environmental data not yet checked":c.environmental?"Environmental data included":"No environmental accounts",(c.publisher?"Published by source · not yet explorable in this website":c.sourceOnly?"Source base year · no MARIO parser":"Verified MARIO parse")+(c.forecast?" · publisher forecast":"")]),
+        marker:{size:width<540?8:10,symbol,color:group.map(c=>!c.available?colors.ink:fill(c)),opacity:group.map(c=>!c.available?.3:1),line:{color:colors.background,width:.5}},
+        customdata:group.map(c=>[c.versions.length?"Versions: "+c.versions.join(" · "):"",c.systems.join(" / "),c.publisher?"Environmental data not yet checked":c.environmental?"Environmental data included":"No environmental accounts",(!c.available?"Not available on this website":c.evidence.join(" / "))+(c.forecast?" · publisher forecast":"")]),
         hovertemplate:"<b>%{y}</b> · %{x}<br>%{customdata[0]}<br>%{customdata[1]}<br>%{customdata[2]}<br>%{customdata[3]}<extra></extra>"};
     });
     const shapes=selected===null?[]:[{type:"line",xref:"x",yref:"paper",x0:selected,x1:selected,y0:0,y1:1,line:{color:colors.ink,width:1.5,dash:"dash"}}];
@@ -199,7 +204,7 @@
     const key=()=>'<div class="scope-key-group" role="group" aria-label="Marker symbol"><b>Database</b>'+order.map(f=>`<span>${M.symbolGlyph(M.symbolFor(f,order))}${f}</span>`).join('')+'</div>'
       +'<div class="scope-key-group" role="group" aria-label="Marker fill"><b>Fill</b><span><i class="scope-extended"></i>Environmental data included</span><span><i class="scope-base"></i>No environmental accounts</span></div><div class="scope-key-group" role="group" aria-label="Marker outline"><b>Outline</b><span>No border: open use</span><span><i class="scope-access-nc"></i>Non-commercial</span><span><i class="scope-access-restricted"></i>Proprietary / restricted</span>'+(points.some(p=>p.access==="unverified")?'<span><i class="scope-access-unknown"></i>Not classified</span>':'')+'</div>';
     root.innerHTML='<div class="scope-controls"><h4 class="scope-title">Regions and sectors by database</h4><label>Year<select data-scope-year><option value="all">All available years</option>'+years.map(y=>`<option value="${y}">${y}</option>`).join('')+'</select></label></div><div class="scope-extension-key" data-scope-key></div><div data-scope-chart></div>'
-      +'<div class="scope-timeline"><h4 class="scope-title">Available years by database</h4><div data-scope-timeline></div>'+(cells.some(c=>c.publisher)?'<p class="scope-timeline-note">Faded markers: years published by the source but not yet explorable in this website.</p>':'')+'</div>';
+      +'<div class="scope-timeline"><h4 class="scope-title">Available years by database</h4><div data-scope-timeline></div>'+(cells.some(c=>!c.available)?'<p class="scope-timeline-note">Grey markers: not available on this website.</p>':'')+'</div>';
     const timeline=root.querySelector("[data-scope-timeline]");
     timeline.setAttribute("aria-label","Available data or base years for each database family. The selected year is marked by a vertical line.");
     const node=root.querySelector("[data-scope-chart]");
@@ -214,7 +219,7 @@
       timeline.style.height=t.layout.height+"px";
       node.style.height=f.layout.height+"px";
       operations=operations.then(()=>window.Plotly.react(node,f.data,f.layout,window.MarioFigureDownload.withCredit(f.config,['MARIO · native database scope'+(year==="all"?"":" · "+year)+' · '+[...new Set(catalogue.profiles.map(p=>p.source))].join(', '),'Fill: turquoise = environmental data; lilac = no environmental accounts. Outline: none = open use; dashed = non-commercial; solid = proprietary/restricted. Mixed releases show the most restrictive terms.','Counts from parsed inputs or cited public metadata; no licensed economic observations. Sources and terms: https://www.marioproject.com/en/latest/resources/data-explorer/scope.html'])));
-      operations=operations.then(()=>window.Plotly.react(timeline,t.data,t.layout,window.MarioFigureDownload.withCredit(t.config,['MARIO · available data / base years by database family'+(year==="all"?"":" · selected "+year),'Fill: turquoise = environmental data; lilac = no environmental accounts. Faded markers: years published by the source but not yet explorable in this website.'])));
+      operations=operations.then(()=>window.Plotly.react(timeline,t.data,t.layout,window.MarioFigureDownload.withCredit(t.config,['MARIO · available data / base years by database family'+(year==="all"?"":" · selected "+year),'Fill: turquoise = environmental data; lilac = no environmental accounts. Grey markers: not available on this website.'])));
       return operations;
     };
     await render();root.setAttribute("aria-busy","false");

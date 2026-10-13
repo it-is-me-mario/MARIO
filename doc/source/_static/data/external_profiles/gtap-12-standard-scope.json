@@ -2786,5 +2786,6 @@
   "attribution": "GTAP / Center for Global Trade Analysis, Purdue University. Public classification metadata.",
   "scope_note": "GTAP is supplied under a proprietary licence. Only public scope and classification metadata are shown; numerical indicators are not published. This standard GTAP inventory is source-only; MARIO does not currently support this distribution. Years refer to the publisher’s documented reference years.",
   "workbook": "_static/data/external_profiles/gtap-12-standard-scope-sets.xlsx",
-  "detail": "_static/data/external_profiles/gtap-12-standard-scope.json"
+  "detail": "_static/data/external_profiles/gtap-12-standard-scope.json",
+  "website_years": []
 }

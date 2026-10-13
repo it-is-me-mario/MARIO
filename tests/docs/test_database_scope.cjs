@@ -69,7 +69,7 @@ test('explicit socioeconomic-only status overrides a nonzero satellite count',()
 test('GLORIA native scope retains the full emissions set and both SUT dimensions',()=>{
  const point=D.scopePoints(profiles).find(p=>p.family==='GLORIA');
  assert.equal(point.regions,164);assert.equal(point.sectors,120);assert.equal(point.environmental,true);
- assert.deepEqual(point.dimensions,['Activity','Commodity']);assert.deepEqual(point.years,Array.from({length:36},(_,i)=>1990+i));
+ assert.deepEqual(point.dimensions,['Activity','Commodity']);assert.deepEqual(point.years,Array.from({length:40},(_,i)=>1990+i));
  assert.deepEqual(point.sourceCoverage,['1990–2029 · 2024–2029 forecasts']);
 });
 
@@ -156,4 +156,32 @@ test('publisher-documented years appear faded and do not count as parsed coverag
  assert.equal(D.timelineFigure(cells,colors,{year:'2019'}).data[0].opacity,.28);
  assert.equal(D.timelineFigure(cells,colors,{year:'2020'}).data[0].opacity,1);
  assert.deepEqual(D.timelineFigure(cells,colors).data[0].marker.opacity,[.3,.3,1,1,.3,.3]);
+});
+
+test('source-only reference years can be explicitly unavailable without losing classifications',()=>{
+ const profile={id:'closed',status:'source_verified',parser_supported:true,source:'Closed',release:'1',counts:{Region:10,Sector:20},years:[2020,2021],website_years:[]};
+ const cells=D.timelinePoints([profile]);
+ assert.ok(cells.every(c=>!c.available));
+ assert.equal(D.scopePoints([profile]).length,1);
+ const colors={background:'#fff',surface:'#fff',ink:'#222',grid:'#ddd',extended:'#178',base:'#978',font:'Arial'};
+ const figure=D.timelineFigure(cells,colors);
+ assert.deepEqual(figure.data[0].marker.color,['#222','#222']);
+ assert.deepEqual(figure.data[0].marker.opacity,[.3,.3]);
+ assert.ok(figure.data[0].customdata.every(d=>d[3]==='Not available on this website'));
+ // Availability is combined per family and year, rather than per database name.
+ const shared=D.timelinePoints([profile,{...profile,id:'open',website_years:[2021]}]);
+ assert.deepEqual(shared.map(c=>c.available),[false,true]);
+});
+
+test('Eora1 adds publisher years through 2023 while Eora2 and GTAP years remain grey',()=>{
+ const parsed=JSON.parse(fs.readFileSync(path.join(__dirname,'../../doc/source/_static/data/database_profiles.json'))).profiles;
+ const external=JSON.parse(fs.readFileSync(path.join(__dirname,'../../doc/source/_static/data/external_profiles.json'))).profiles;
+ const cells=D.timelinePoints([...parsed,...external]);
+ const eora=cells.filter(c=>c.family==='EORA');
+ assert.deepEqual(eora.map(c=>c.year),Array.from({length:35},(_,i)=>1990+i));
+ assert.ok(eora.filter(c=>c.year>=2018||c.year===2004).every(c=>!c.available));
+ assert.ok(eora.filter(c=>c.year<2018&&c.year!==2004).every(c=>c.available));
+ assert.deepEqual(eora.find(c=>c.year===1990).evidence,['Source structure checked']);
+ assert.deepEqual(eora.find(c=>c.year===2017).evidence,['Verified MARIO parse']);
+ assert.ok(cells.filter(c=>c.family==='GTAP').every(c=>!c.available));
 });

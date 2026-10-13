@@ -35,7 +35,8 @@ test('environmental eligibility is consistent before and after lazy snapshot loa
  assert.ok(M.metricAvailableForSelection(metadata,config,'ghg'));
 });
 test('GLORIA keeps native GHG characterisation, observed EY and global aggregates with the verified signed GDP bridge',()=>{
- const s=snapshots.find(s=>s.recipe.source==='GLORIA'),r=s.regions.find(r=>r.iso3==='ITA'),mapping=mappings[s.recipe.id];
+ // Use a fixed within-tolerance reading, rather than manifest ordering.
+ const s=snapshots.find(s=>s.recipe.source==='GLORIA'&&s.recipe.year===2026),r=s.regions.find(r=>r.iso3==='ITA'),mapping=mappings[s.recipe.id];
  assert.equal(s.regions.length,164);assert.equal(s.recipe.sectors.length,120);
  assert.equal(s.regions.filter(r=>r.kind==='aggregate').length,4);
  assert.equal(s.regions.find(r=>r.code==='SDS').iso3,'SSD');
@@ -57,10 +58,10 @@ test('GLORIA keeps native GHG characterisation, observed EY and global aggregate
 });
 test('GLORIA annual readings expose all metrics and subsets with one shared native-set profile',()=>{
  const series=snapshots.filter(s=>s.recipe.source==='GLORIA').sort((a,b)=>a.recipe.year-b.recipe.year);
- assert.deepEqual(series.map(s=>s.recipe.year),Array.from({length:36},(_,i)=>1990+i));
+ assert.deepEqual(series.map(s=>s.recipe.year),Array.from({length:40},(_,i)=>1990+i));
  const catalogue=JSON.parse(fs.readFileSync(path.join(root,'doc/source/_static/data/database_profiles.json')));
- const profiles=catalogue.profiles.filter(p=>p.source==='GLORIA');assert.equal(profiles.length,1);assert.deepEqual(profiles[0].years,Array.from({length:36},(_,i)=>1990+i));
- const scope=json('country-scope').profiles.filter(p=>p.family==='GLORIA');assert.equal(scope.length,1);assert.deepEqual(scope[0].years,Array.from({length:36},(_,i)=>1990+i));
+ const profiles=catalogue.profiles.filter(p=>p.source==='GLORIA');assert.equal(profiles.length,1);assert.deepEqual(profiles[0].years,Array.from({length:40},(_,i)=>1990+i));
+ const scope=json('country-scope').profiles.filter(p=>p.family==='GLORIA');assert.equal(scope.length,1);assert.deepEqual(scope[0].years,Array.from({length:40},(_,i)=>1990+i));
  for(const s of series){
   assert.deepEqual(s.recipe.sectors,series[0].recipe.sectors);assert.ok(s.recipe.gdp_bridge_verified);
   const cfg={...state(),families:['GLORIA'],versions:{GLORIA:'all'},year:s.recipe.year,country:'ITA',metric:'gdp'};
@@ -75,6 +76,12 @@ test('GLORIA annual readings expose all metrics and subsets with one shared nati
  assert.deepEqual(observed.map(r=>r.year).sort(),[2022,2024]);
  const audited=series.find(s=>s.recipe.year===2023);assert.equal(audited.recipe.gdp_identity_status,'independently_reproduced_source_residual');
  assert.match(audited.recipe.gdp_note,/0\.186% source residual/);assert.ok(audited.provenance.gdp_bridge.source_accounting_audit.V1);
+ for(const year of [2027,2028,2029]){
+  const s=series.find(s=>s.recipe.year===year),bridge=s.provenance.gdp_bridge;
+  assert.equal(bridge.validation.identity_status,'independently_reproduced_source_residual');
+  assert.ok(bridge.source_accounting_audit.V1&&bridge.source_accounting_audit.Y1);
+  assert.match(s.recipe.gdp_note,/source residual/);
+ }
 });
 test('native sections partition every industry and conserve value added and GHG',()=>{
   for(const s of snapshots){
