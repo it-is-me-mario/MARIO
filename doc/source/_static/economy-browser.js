@@ -167,7 +167,7 @@
         // Default: the 20 most recent years before the current calendar year; later years are publisher forecasts.
         if(defaultYears&&years.length){
           defaultYears=false;
-          const recent=years.filter(y=>y<new Date().getFullYear()).slice(-DEFAULT_YEARS);
+          const recent=M.recentYears(years,DEFAULT_YEARS);
           if(state.year==="all"&&recent.length&&recent.length<years.length)state.year=recent;
         }
         if(state.year!=="all"&&years.length) {
@@ -511,7 +511,7 @@
           }else if(/^last\d+$/.test(action)){
             const n=Number(action.slice(4));
             const values=[...root.querySelectorAll(`[data-subset="${kind}"]`)].filter(el=>!el.disabled&&!["all","world"].includes(el.value)).map(el=>Number(el.value)).sort((a,b)=>a-b);
-            const recent=values.slice(-n).map(String);
+            const recent=M.recentYears(values,n).map(String);
             state[kind]=recent;
           }else{
             const world=kind==="country"&&!!$('[data-options="country"] input[value="world"]');

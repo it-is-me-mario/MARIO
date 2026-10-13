@@ -24,6 +24,8 @@
   const seriesKey = r => JSON.stringify([r.source, ...Object.values(recipeFacets(r))]);
   const key = r => r.iso3 || r.code;
   const unique = xs => [...new Set(xs)];
+  const recentYears = (available, count, currentYear = new Date().getFullYear()) =>
+    unique(available.map(Number)).filter(year => year < currentYear).sort((a,b)=>a-b).slice(-count);
   // Browser scope is international: at least two individually represented
   // countries, independently of whether a complete World total is available.
   const isMRIO = snapshot => unique(snapshot.regions.filter(r=>r.kind==='country').map(r=>r.iso3||r.code||r.label)).length>1;
@@ -337,7 +339,7 @@
     if(report&&horizon)return {key:`AR${report}-${horizon}`,label:`GWP${horizon}, IPCC AR${report}`};
     return {key:"source",label:"source CO2eq; IPCC report and horizon unverified"};
   }
-  const api = {HOUSEHOLDS, HOUSEHOLDS_LABEL, unpackBrowserIndex, gwpConvention, needsDetailedReading, isMRIO, countryOptions, metricAvailableForSelection, recipeFacets, focusFacets, isWorld, isGlobal, regionKey, findRegion, regionChoices, metricAvailable, worldValue, isReference, includes, selectedYears, latestVersions, version, seriesKey, key, unique, reference, selected, years, sectorIndices, value, basis, unit, observations, automaticView, exportRows, pythonStart};
+  const api = {HOUSEHOLDS, HOUSEHOLDS_LABEL, unpackBrowserIndex, gwpConvention, needsDetailedReading, isMRIO, countryOptions, metricAvailableForSelection, recipeFacets, focusFacets, isWorld, isGlobal, regionKey, findRegion, regionChoices, metricAvailable, worldValue, isReference, includes, selectedYears, latestVersions, version, seriesKey, key, unique, recentYears, reference, selected, years, sectorIndices, value, basis, unit, observations, automaticView, exportRows, pythonStart};
   if (typeof module !== "undefined") module.exports = api;
   else global.MarioEconomy = api;
 })(globalThis);

@@ -9,6 +9,15 @@ const json = name => JSON.parse(fs.readFileSync(path.join(folder,name+'.json'),'
 const snapshots = json('manifest').datasets.map(d=>json(d.id));
 const wb=json('world-bank'), mappings=json('sector-sections').mappings;
 const state = () => ({families:['EXIOBASE'],versions:{EXIOBASE:'3.11.2 · ixi'},year:2024,metric:'value_added',section:'all',perCapita:false,country:'ITA',reference:true});
+test('recent-year presets exclude the current year and forecasts before counting available years',()=>{
+ const available=Array.from({length:40},(_,i)=>1990+i);
+ for(const count of [5,10,20]){
+  assert.deepEqual(M.recentYears(available,count,2026),Array.from({length:count},(_,i)=>2026-count+i));
+ }
+ assert.deepEqual(M.recentYears(available,5,2027),[2022,2023,2024,2025,2026]);
+ assert.deepEqual(M.recentYears([2029,2026,2025,2023,2023,2020],5,2026),[2020,2023,2025]);
+ assert.deepEqual(M.recentYears([2026,2027,2028],20,2026),[]);
+});
 test('MRIO browser excludes national BEA and USEEIO but retains international SUTs',()=>{
  const eligible=snapshots.filter(M.isMRIO);
  assert.ok(!eligible.some(s=>['BEA','USEEIO'].includes(s.recipe.source)));
