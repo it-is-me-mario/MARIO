@@ -873,6 +873,7 @@ class MarioPublications(Directive):
         "exclude": directives.unchanged,
         "code": directives.unchanged,
         "cite": directives.unchanged,
+        "count": directives.flag,
     }
 
     def run(self):
@@ -886,6 +887,11 @@ class MarioPublications(Directive):
             item.split("=", 1) for item in self.options.get("code", "").split() if "=" in item
         )
         entries = [(key, entry) for key, entry in bib.entries.items() if key not in exclude]
+        if "count" in self.options:
+            title = next((node for node in self.state.parent.children if isinstance(node, nodes.title)), None)
+            if title is None:
+                raise self.error("The count option requires a containing section title")
+            title += nodes.Text(f" ({len(entries)})")
 
         def sort_key(item):
             fields = item[1].fields

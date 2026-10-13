@@ -85,5 +85,6 @@ Publications
 
 .. mario-publications::
    :bib: ../publications/mario.bib
+   :count:
    :code: Rinaldi2026=https://github.com/it-is-me-mario/pv-hlca-model
    :cite: Tahavori2023
