@@ -21,8 +21,12 @@ can continue forwarding to the same address.
 
 Refresh World Bank observations explicitly::
 
-   python doc/scripts/fetch_world_bank.py --start 1995 --end 2024 \
+   python doc/scripts/fetch_world_bank.py --start 1990 --end 2025 \
      --output doc/source/_static/data/economy/world-bank.json
+
+The current reference spans 1990–2025. Its 1990–1994 supplement preserves all
+previously saved 1995–2025 observations and annual exchange rates;
+``retrieval_batches`` records the retrieval date of each period.
 
 Compute each database separately with the same parser/options as its walkthrough::
 
@@ -133,15 +137,15 @@ The original structure workbook is linked from the publisher; its older
 public metadata URLs, version and checksums accompany the profile. No NACE/CPA
 allocation or coverage for other years is inferred.
 
-GLORIA v060 / 2001–2025 is included for non-commercial MARIO documentation under
+GLORIA v060 / 1990–2025 is included for non-commercial MARIO documentation under
 CC BY-NC 3.0 Australia. Attribution, source vintages and modification notices
 accompany its indicators and native-set workbook. Publisher statement and
 licence link are recorded in ``doc/scripts/gloria/licence.json``.
 USEEIO kingbird uses the EPA model coupled with EXIOBASE 3.8.2; the
 GLORIA-coupled yellowthroat model remains local.
 
-Current browser scope: 647 MRIO readings from EXIOBASE, OECD ICIO, ADB, FIGARO,
-WIOD, EMERGING and GLORIA. WIOD PYP readings are excluded from the UI, leaving 633
+Current browser scope: 658 MRIO readings from EXIOBASE, OECD ICIO, ADB, FIGARO,
+WIOD, EMERGING and GLORIA. WIOD PYP readings are excluded from the UI, leaving 644
 current-price readings. National BEA and USEEIO snapshots and recipes are retained
 for later work but are excluded from every browser mode; scope-page inventories
 are unchanged. EXIOBASE has 434 readings:
@@ -761,15 +765,15 @@ GLORIA reviewed local extraction
 using float64 for Va/Vc/Ea/Ec/EY and the signed valuation summaries. Full
 transactions and IO inverses are not loaded for these indicators. The source
 archives are restored online-only after each successful validation. This batch
-includes all twenty-six locally verified economic readings from 2000 to 2025;
+includes all thirty-six locally verified economic readings from 1990 to 2025;
 satellite-only years are not treated as complete economic datasets.
 
 ``gloria/publish_years.py`` publishes validated readings with a single native-set
 profile after comparing labels, units and regional memberships. The existing
-2024 profile identifier stays stable; its year list includes 2001–2025.
+2024 profile identifier stays stable; its year list includes 1990–2025.
 ``gloria/build_sets.mjs`` updates the shared Excel's title and source note while
 preserving all native records. Publication reuses the common indicator publisher
-and updates GLORIA's country scope and sectoral metadata. No source
+and updates GLORIA's country, sectoral and extension scope year metadata. No source
 matrices are embedded and EORA remains local. GLORIA has 164 source regions
 (159 individual countries, four rest-of-world aggregates and the historical
 DYE source region), 120 activities, 120 commodities, six factors, six final-demand
@@ -807,7 +811,7 @@ MARIO download explains the two additional valuations and destination-region
 aggregation. Source matrices are never published.
 
 Annual checks are retained in ``gloria/gdp-bridge-<year>.json`` for each
-additional reading (2001–2023 and 2025). Archive member
+additional reading (1990–2023 and 2025). Archive member
 identities and precision accompany each shared-profile reading. Cached valuation
 summaries are reused only when the member name, size and CRC still match.
 

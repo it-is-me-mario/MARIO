@@ -91,7 +91,7 @@ test('FIGARO and WIOD use their complete published activity partitions and keep 
 });
 test('GLORIA has reviewed native footprints with source qualifications and shared annual sets',()=>{
  const db=col('GLORIA');assert.equal(db.native.length,120);assert.equal(db.native_count,120);
- assert.deepEqual(db.years,[2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025]);assert.deepEqual(db.releases,['060']);
+ assert.deepEqual(db.years,Array.from({length:36},(_,i)=>1990+i));assert.deepEqual(db.releases,['060']);
  assert.ok(db.native.every(n=>n.classes.length&&n.mapping_origin==='reviewed_editorial'));
  const grain=M.cell(model,db,'01.11');assert.equal(grain.resolution,.25);
  assert.deepEqual(grain.matches.map(m=>m.native.code),['1','2','3','4']);

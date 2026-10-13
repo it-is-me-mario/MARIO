@@ -9,6 +9,7 @@ HERE=Path(__file__).resolve().parent
 DOC=HERE.parents[1]
 sys.path[:0]=[str(DOC/'scripts'),str(HERE)]
 from build_economy_browser import publish as publish_indicators
+from build_extension_scope import period
 
 SOURCE_COVERAGE = {
     'first_year': 1990, 'last_year': 2029, 'forecast_from': 2024,
@@ -88,6 +89,12 @@ def prepare(stage,doc):
             if column['family']=='GLORIA':
                 column['years']=group['years']
     write(economy/'sectoral-scope.json',sectoral)
+    extensions=read(data/'economy/extension-scope.json')
+    readings=[r for f in extensions['families'] if f['family']=='GLORIA'
+        for v in f['variants'] for r in v['readings'] if r['id']==group['id']]
+    if len(readings)!=1:raise ValueError('Expected one shared GLORIA extension profile')
+    readings[0]['years']=period(group['years'])
+    write(economy/'extension-scope.json',extensions)
     write(stage/'publication.json',{'new_ids':list(new),'shared_profile':group['id'],'years':group['years'],'native_signature':signature(group)})
     print('Prepared GLORIA',group['years'],'with one native-set profile')
 

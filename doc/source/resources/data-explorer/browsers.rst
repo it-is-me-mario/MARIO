@@ -91,7 +91,7 @@ Browser
    pre-characterised HFC/PFC mixtures, whose original basis is unverified. Country total GHG units are Gg CO₂eq and World totals use Mt CO₂eq; per-capita MRIO units
    are tonnes CO₂eq per person.</p>
    <p><strong>GLORIA.</strong> The v060 source series covers 1990–2029; 2024–2029
-   are forecast tables. The 2001–2025 readings currently available here expose value added from six
+   are forecast tables. The 1990–2025 readings currently available here expose value added from six
    native factor rows and the source EDGAR-consistent GHG total, including
    directly emitted final-demand accounts. Native kilotonnes CO₂eq are converted
    to tonnes once. Detailed gas rows and the separate OECD-consistent inventory

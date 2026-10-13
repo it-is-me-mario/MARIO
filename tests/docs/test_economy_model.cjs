@@ -57,17 +57,17 @@ test('GLORIA keeps native GHG characterisation, observed EY and global aggregate
 });
 test('GLORIA annual readings expose all metrics and subsets with one shared native-set profile',()=>{
  const series=snapshots.filter(s=>s.recipe.source==='GLORIA').sort((a,b)=>a.recipe.year-b.recipe.year);
- assert.deepEqual(series.map(s=>s.recipe.year),[2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025]);
+ assert.deepEqual(series.map(s=>s.recipe.year),Array.from({length:36},(_,i)=>1990+i));
  const catalogue=JSON.parse(fs.readFileSync(path.join(root,'doc/source/_static/data/database_profiles.json')));
- const profiles=catalogue.profiles.filter(p=>p.source==='GLORIA');assert.equal(profiles.length,1);assert.deepEqual(profiles[0].years,[2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025]);
- const scope=json('country-scope').profiles.filter(p=>p.family==='GLORIA');assert.equal(scope.length,1);assert.deepEqual(scope[0].years,[2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025]);
+ const profiles=catalogue.profiles.filter(p=>p.source==='GLORIA');assert.equal(profiles.length,1);assert.deepEqual(profiles[0].years,Array.from({length:36},(_,i)=>1990+i));
+ const scope=json('country-scope').profiles.filter(p=>p.family==='GLORIA');assert.equal(scope.length,1);assert.deepEqual(scope[0].years,Array.from({length:36},(_,i)=>1990+i));
  for(const s of series){
   assert.deepEqual(s.recipe.sectors,series[0].recipe.sectors);assert.ok(s.recipe.gdp_bridge_verified);
   const cfg={...state(),families:['GLORIA'],versions:{GLORIA:'all'},year:s.recipe.year,country:'ITA',metric:'gdp'};
   const italy=s.regions.find(r=>r.iso3==='ITA');assert.equal(M.value(s,italy,cfg,wb,mappings[s.recipe.id]),italy.gdp);
   const population=wb.countries.ITA.years[String(s.recipe.year)]?.population;
   assert.equal(M.value(s,italy,{...cfg,perCapita:true},wb,mappings[s.recipe.id]),population>0?italy.gdp/population:null);
-  const total=M.worldValue(s,{...cfg,country:'world'},wb,mappings[s.recipe.id]);assert.ok(total>3e13&&total<2e14);
+  const total=M.worldValue(s,{...cfg,country:'world'},wb,mappings[s.recipe.id]);assert.ok(Number.isFinite(total)&&total>0);assert.ok(Math.abs(total-s.provenance.gdp_bridge.validation.world_gdp_income)<=total*1e-12);
   for(const metric of ['gdp','value_added','ghg'])assert.ok(M.metricAvailable([s],metric));
   assert.equal(mappings[s.recipe.id].entries.length,120);
  }

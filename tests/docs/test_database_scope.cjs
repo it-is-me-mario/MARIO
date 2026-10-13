@@ -69,7 +69,7 @@ test('explicit socioeconomic-only status overrides a nonzero satellite count',()
 test('GLORIA native scope retains the full emissions set and both SUT dimensions',()=>{
  const point=D.scopePoints(profiles).find(p=>p.family==='GLORIA');
  assert.equal(point.regions,164);assert.equal(point.sectors,120);assert.equal(point.environmental,true);
- assert.deepEqual(point.dimensions,['Activity','Commodity']);assert.deepEqual(point.years,[2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025]);
+ assert.deepEqual(point.dimensions,['Activity','Commodity']);assert.deepEqual(point.years,Array.from({length:36},(_,i)=>1990+i));
  assert.deepEqual(point.sourceCoverage,['1990–2029 · 2024–2029 forecasts']);
 });
 
