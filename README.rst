@@ -2,7 +2,7 @@
     :target: https://github.com/psf/black
 
 .. image:: https://readthedocs.org/projects/mario-suite/badge/?version=latest
-    :target: https://mario-suite.readthedocs.io/en/latest/index.html
+    :target: https://www.marioproject.com/en/latest/index.html
     :alt: Documentation Status
 
 .. image:: https://badge.fury.io/py/mariopy.svg
@@ -20,7 +20,7 @@ It is a Python package for working with Input-Output Tables (IOT) and Supply and
 Use Tables (SUT). Once parsed, a table becomes a MARIO *database* that can be
 inspected, computed, transformed, aggregated, shocked, and exported.
 
-Documentation is available on `Read the Docs <https://mario-suite.readthedocs.io/en/latest/index.html>`_.
+Documentation is available at `marioproject.com <https://www.marioproject.com/en/latest/index.html>`_.
 
 
 What MARIO Supports
@@ -109,17 +109,17 @@ Documentation Map
 
 The published documentation is organized into three sections:
 
-* `Get started <https://mario-suite.readthedocs.io/en/latest/get_started/index.html>`_ for installation, nomenclature, table formats and scenarios;
-* `Docs <https://mario-suite.readthedocs.io/en/latest/user_guide/index.html>`_ for parsers, inspection, transformations, advanced workflows and the
-  `API reference <https://mario-suite.readthedocs.io/en/latest/reference/api_library.html>`_;
-* `Resources <https://mario-suite.readthedocs.io/en/latest/resources/research.html>`_ for the software paper and related research.
+* `Get started <https://www.marioproject.com/en/latest/get_started/index.html>`_ for installation, nomenclature, table formats and scenarios;
+* `Docs <https://www.marioproject.com/en/latest/user_guide/index.html>`_ for parsers, inspection, transformations, advanced workflows and the
+  `API reference <https://www.marioproject.com/en/latest/reference/api_library.html>`_;
+* `Resources <https://www.marioproject.com/en/latest/resources/research.html>`_ for the software paper and related research.
 
 
 Citation
 --------
 
 Citation guidance and the up-to-date list of publications using MARIO are maintained in the
-`Resources section of the documentation <https://mario-suite.readthedocs.io/en/latest/resources/research.html>`_.
+`Resources section of the documentation <https://www.marioproject.com/en/latest/resources/research.html>`_.
 
 
 Contributing

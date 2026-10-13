@@ -1612,7 +1612,7 @@
       "attribution": "UN Statistics Division"
     },
     "S39": {
-      "source_url": "https://mario-suite.readthedocs.io/en/latest/_static/data/economy/reviewed-activity-correspondences.json",
+      "source_url": "https://www.marioproject.com/en/latest/_static/data/economy/reviewed-activity-correspondences.json",
       "license": "MARIO / nxbase editorial correspondence review",
       "license_url": "https://github.com/it-is-me-mario/MARIO",
       "usage": "Attribute the review and its cited upstream sources. Editorial links do not change upstream rights or establish numerical allocation weights.",
@@ -1633,7 +1633,7 @@
       "attribution": "INE / Eurostat"
     },
     "S42": {
-      "source_url": "https://mario-suite.readthedocs.io/en/latest/_static/data/economy/reviewed-activity-correspondences.json",
+      "source_url": "https://www.marioproject.com/en/latest/_static/data/economy/reviewed-activity-correspondences.json",
       "license": "MARIO / nxbase editorial correspondence review",
       "license_url": "https://github.com/it-is-me-mario/MARIO",
       "usage": "Attribute the review and its cited upstream sources. Editorial links do not change upstream rights or establish numerical allocation weights.",
@@ -1654,7 +1654,7 @@
       "attribution": "EXIOBASE"
     },
     "S11": {
-      "source_url": "https://mario-suite.readthedocs.io/en/latest/_static/data/economy/nxbase-activity-refinements.json",
+      "source_url": "https://www.marioproject.com/en/latest/_static/data/economy/nxbase-activity-refinements.json",
       "license": "MARIO / nxbase editorial correspondence review",
       "license_url": "https://github.com/it-is-me-mario/MARIO",
       "usage": "Attribute the review and its cited upstream sources. Editorial links do not change upstream rights or establish numerical allocation weights.",
@@ -1675,7 +1675,7 @@
       "attribution": "UN Statistics Division"
     },
     "S20": {
-      "source_url": "https://mario-suite.readthedocs.io/en/latest/_static/data/economy/activity_correspondences.json",
+      "source_url": "https://www.marioproject.com/en/latest/_static/data/economy/activity_correspondences.json",
       "license": "MARIO / nxbase editorial correspondence review",
       "license_url": "https://github.com/it-is-me-mario/MARIO",
       "usage": "Attribute the review and its cited upstream sources. Editorial links do not change upstream rights or establish numerical allocation weights.",
@@ -1689,7 +1689,7 @@
       "attribution": "OECD"
     },
     "S22": {
-      "source_url": "https://mario-suite.readthedocs.io/en/latest/_static/data/economy/nxbase-gloria-icio.json",
+      "source_url": "https://www.marioproject.com/en/latest/_static/data/economy/nxbase-gloria-icio.json",
       "license": "MARIO / nxbase editorial correspondence review",
       "license_url": "https://github.com/it-is-me-mario/MARIO",
       "usage": "Attribute the review and its cited upstream sources. Editorial links do not change upstream rights or establish numerical allocation weights.",
@@ -1717,7 +1717,7 @@
       "attribution": "Eurostat"
     },
     "S30": {
-      "source_url": "https://mario-suite.readthedocs.io/en/latest/_static/data/economy/nxbase-figaro-wiod.json",
+      "source_url": "https://www.marioproject.com/en/latest/_static/data/economy/nxbase-figaro-wiod.json",
       "license": "MARIO / nxbase editorial correspondence review",
       "license_url": "https://github.com/it-is-me-mario/MARIO",
       "usage": "Attribute the review and its cited upstream sources. Editorial links do not change upstream rights or establish numerical allocation weights.",
@@ -1752,7 +1752,7 @@
       "attribution": "UNSD"
     },
     "S35": {
-      "source_url": "https://mario-suite.readthedocs.io/en/latest/_static/data/economy/nxbase-gtap.json",
+      "source_url": "https://www.marioproject.com/en/latest/_static/data/economy/nxbase-gtap.json",
       "license": "MARIO / nxbase editorial correspondence review",
       "license_url": "https://github.com/it-is-me-mario/MARIO",
       "usage": "Attribute the review and its cited upstream sources. Editorial links do not change upstream rights or establish numerical allocation weights.",
@@ -1773,7 +1773,7 @@
       "attribution": "GTAP / Purdue University"
     },
     "S38": {
-      "source_url": "https://mario-suite.readthedocs.io/en/latest/_static/data/economy/gtap-scope-metadata.json",
+      "source_url": "https://www.marioproject.com/en/latest/_static/data/economy/gtap-scope-metadata.json",
       "license": "Public GTAP classification metadata; proprietary numerical database",
       "license_url": "https://www.gtap.agecon.purdue.edu/resources/faqs/faqs_display.asp?F_ID=198",
       "usage": "Classification lookup only. No licensed MRIO observations, coefficients or multipliers are included.",
@@ -1829,7 +1829,7 @@
       "attribution": "EXIOBASE"
     },
     "P08": {
-      "source_url": "https://mario-suite.readthedocs.io/en/latest/_static/data/economy/nxbase-products.json",
+      "source_url": "https://www.marioproject.com/en/latest/_static/data/economy/nxbase-products.json",
       "license": "MARIO / nxbase editorial correspondence review",
       "license_url": "https://github.com/it-is-me-mario/MARIO",
       "usage": "Attribute the review and its cited upstream sources. Editorial links do not change upstream rights or establish numerical allocation weights.",
@@ -1899,7 +1899,7 @@
       "attribution": "GTAP / Purdue University"
     },
     "P19": {
-      "source_url": "https://mario-suite.readthedocs.io/en/latest/_static/data/economy/product-production-reviews.json",
+      "source_url": "https://www.marioproject.com/en/latest/_static/data/economy/product-production-reviews.json",
       "license": "MARIO / nxbase editorial correspondence review",
       "license_url": "https://github.com/it-is-me-mario/MARIO",
       "usage": "Attribute the review and its cited upstream sources. Editorial links do not change upstream rights or establish numerical allocation weights.",
@@ -1913,7 +1913,7 @@
       "attribution": "EXIOBASE"
     },
     "S24": {
-      "source_url": "https://mario-suite.readthedocs.io/en/latest/_static/data/economy/nxbase-exiobase-hybrid.json",
+      "source_url": "https://www.marioproject.com/en/latest/_static/data/economy/nxbase-exiobase-hybrid.json",
       "license": "MARIO / nxbase editorial correspondence review",
       "license_url": "https://github.com/it-is-me-mario/MARIO",
       "usage": "Attribute the review and its cited upstream sources. Editorial links do not change upstream rights or establish numerical allocation weights.",

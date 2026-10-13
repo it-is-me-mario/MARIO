@@ -61,7 +61,7 @@ def build(data=DATA):
             label, url, usage = policies[key]
         else:
             label, url, usage = 'Source-specific terms; open licence not verified', s['url'], 'Consult the publisher terms. No blanket licence or exact equivalence is inferred from a published link.'
-        source_url = s['url'] if s['url'].startswith('https://') else 'https://mario-suite.readthedocs.io/en/latest/_static/data/economy/' + s['url']
+        source_url = s['url'] if s['url'].startswith('https://') else 'https://www.marioproject.com/en/latest/_static/data/economy/' + s['url']
         metadata['sources'][sid] = {'source_url': source_url, 'license': label, 'license_url': url, 'usage': usage, 'attribution': s.get('publisher', '')}
     return metadata
 
