@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 import copy
-import statistics
 import warnings
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pint
 
@@ -270,46 +270,21 @@ def build_split_flow_scenario(
     E = calc_E(e, X)
     V = calc_V(v, X)
 
+    all_regions = list(instance.get_index(MI["r"]))
+    production_col = X.columns.get_loc("production")
+
     for sector in getattr(instance, "to_split_sectors", []):
         parent_sector = sector_to_parent_map[sector]
-        all_regions = list(instance.get_index(MI["r"]))
 
         # For each matrix, cap overflow regions per row using the per-row median share
         # computed from valid regions (where child <= parent for that row).
         for mat in (Z, E, V):
-            row_labels = mat.index
-            row_shares: dict = {row: [] for row in row_labels}
-            overflow_regions = []
+            _cap_split_child_columns(mat, all_regions, sector, parent_sector)
 
-            for region in all_regions:
-                child_col = mat.loc[:, (region, MI["s"], sector)]
-                parent_col = mat.loc[:, (region, MI["s"], parent_sector)]
-                if (child_col > parent_col).any():
-                    overflow_regions.append(region)
-                else:
-                    for row in row_labels:
-                        p = float(parent_col.loc[row])
-                        c = float(child_col.loc[row])
-                        if p > 0:
-                            row_shares[row].append(c / p)
-
-            row_median: dict = {
-                row: statistics.median(shares) if shares else 0.0
-                for row, shares in row_shares.items()
-            }
-
-            for region in overflow_regions:
-                parent_col = mat.loc[:, (region, MI["s"], parent_sector)]
-                for row in row_labels:
-                    mat.loc[row, (region, MI["s"], sector)] = float(parent_col.loc[row]) * row_median[row]
-
-            for region in all_regions:
-                mat.loc[:, (region, MI["s"], parent_sector)] -= mat.loc[:, (region, MI["s"], sector)]
-
-        for region in all_regions:
-            child_output = float(X.loc[(region, MI["s"], sector), "production"])
-            parent_output = float(X.loc[(region, MI["s"], parent_sector), "production"])
-            X.loc[(region, MI["s"], parent_sector), "production"] = parent_output - child_output
+        child_rows = _row_positions(X.index, all_regions, sector)
+        parent_rows = _row_positions(X.index, all_regions, parent_sector)
+        production = X.iloc[:, production_col].to_numpy(dtype=float, copy=True)
+        X.iloc[parent_rows, production_col] = production[parent_rows] - production[child_rows]
 
     negatives = X["production"] < 0
     if negatives.any():
@@ -590,48 +565,114 @@ def _convert_split_units(
     return converted
 
 
+def _row_positions(index: pd.MultiIndex, regions: list, sector: str) -> np.ndarray:
+    """Return the integer positions of ``(region, Sector, sector)`` for every region."""
+
+    keys = pd.MultiIndex.from_tuples([(region, MI["s"], sector) for region in regions])
+    positions = index.get_indexer(keys)
+    if (positions < 0).any():
+        missing = [key for key, pos in zip(keys, positions) if pos < 0]
+        raise WrongInput(f"Split sector rows not found in the matrix index: {missing[:5]}")
+    return positions
+
+
+def _cap_split_child_columns(mat: pd.DataFrame, regions: list, sector: str, parent_sector: str) -> None:
+    """Cap overflow regions of ``sector`` and subtract the child columns from the parent ones.
+
+    For every region where the child column exceeds the parent column in any row, the child
+    column is replaced by the parent column times the per-row median child/parent share of the
+    non-overflow regions. The child column is then removed from the parent column in all regions.
+    """
+
+    child_keys = pd.MultiIndex.from_tuples([(r, MI["s"], sector) for r in regions])
+    parent_keys = pd.MultiIndex.from_tuples([(r, MI["s"], parent_sector) for r in regions])
+    child_pos = mat.columns.get_indexer(child_keys)
+    parent_pos = mat.columns.get_indexer(parent_keys)
+    if (child_pos < 0).any() or (parent_pos < 0).any():
+        raise WrongInput(f"Split sector '{sector}' or parent '{parent_sector}' columns missing in the matrix.")
+
+    child = mat.iloc[:, child_pos].to_numpy(dtype=float, copy=True)
+    parent = mat.iloc[:, parent_pos].to_numpy(dtype=float, copy=True)
+
+    overflow = (child > parent).any(axis=0)
+    valid_share = ~overflow[None, :] & (parent > 0)
+    shares = np.where(valid_share, child / np.where(parent > 0, parent, 1.0), np.nan)
+    row_median = np.zeros(shares.shape[0])
+    has_share = valid_share.any(axis=1)
+    row_median[has_share] = np.nanmedian(shares[has_share], axis=1)
+
+    child[:, overflow] = parent[:, overflow] * row_median[:, None]
+
+    mat.iloc[:, child_pos] = child
+    mat.iloc[:, parent_pos] = parent - child
+
+
 def _apply_split_row_hypothesis(instance, *, scenario: str, base_scenario: str, old_X: pd.DataFrame) -> None:
     """Populate split-sector rows in ``Z`` and ``Y`` after the column hypothesis."""
 
     sector_to_parent_map = _sector_to_parent_map(instance)
-    all_sectors = list(instance.matrices[scenario][_ENUM["X"]].index.get_level_values(2).unique())
+    matrices = instance.matrices[scenario]
+    Z_df, X_df, Y_df = matrices[_ENUM["Z"]], matrices[_ENUM["X"]], matrices[_ENUM["Y"]]
+    all_sectors = list(X_df.index.get_level_values(2).unique())
     split_sectors = list(getattr(instance, "to_split_sectors", []))
     old_sectors = sorted(set(all_sectors).difference(split_sectors))
+    regions = list(instance.get_index(MI["r"]))
     z = instance.get_block_as_pandas(_ENUM["z"], scenario=base_scenario)
+
+    # Loop-invariant pieces. ``X_cut`` is paired positionally with the selected ``z`` columns,
+    # as the label-based version did when it relabelled ``X_cut.index`` with ``z_row.index``.
+    production_col = X_df.columns.get_loc("production")
+    z_col_pos = z.columns.get_locs([sn, MI["s"], old_sectors])
+    X_cut_pos = X_df.index.get_locs([sn, MI["s"], old_sectors])
+    X_cut = X_df.iloc[X_cut_pos, production_col].to_numpy(dtype=float)
+    Z_col_pos = Z_df.columns.get_indexer(z.columns[z_col_pos])
+    if (Z_col_pos < 0).any():
+        raise WrongInput("Columns of the base z matrix are missing in the split Z matrix.")
+
+    X_prod = X_df.iloc[:, production_col].to_numpy(dtype=float)
+    old_X_prod = old_X["production"].to_numpy(dtype=float)
+    Y_vals = Y_df.to_numpy(dtype=float, copy=True)
+    touched_Y_rows: set[int] = set()
+    Z_child_rows: list[int] = []
+    z_parent_rows: list[int] = []
 
     for sector in split_sectors:
         parent_sector = sector_to_parent_map[sector]
         if not parent_sector:
             continue
-        for region in instance.get_index(MI["r"]):
-            parent_old_output = float(old_X.loc[(region, MI["s"], parent_sector), "production"])
+        old_X_parent = old_X_prod[_row_positions(old_X.index, regions, parent_sector)]
+        X_child = X_prod[_row_positions(X_df.index, regions, sector)]
+        X_parent = X_prod[_row_positions(X_df.index, regions, parent_sector)]
+        Z_child = _row_positions(Z_df.index, regions, sector)
+        z_parent = _row_positions(z.index, regions, parent_sector)
+        Y_child = _row_positions(Y_df.index, regions, sector)
+        Y_parent = _row_positions(Y_df.index, regions, parent_sector)
+
+        for i in range(len(regions)):
+            parent_old_output = old_X_parent[i]
             if parent_old_output == 0:
                 continue
+            Z_child_rows.append(Z_child[i])
+            z_parent_rows.append(z_parent[i])
 
-            X_cut = instance.matrices[scenario][_ENUM["X"]].loc[(sn, MI["s"], old_sectors)].squeeze()
-            z_row = z.loc[(region, MI["s"], parent_sector), (sn, MI["s"], old_sectors)]
-            X_cut.index = z_row.index
-            new_Z_row = z_row * X_cut
-            new_Z_row.name = (region, MI["s"], sector)
-            instance.matrices[scenario][_ENUM["Z"]].loc[
-                (region, MI["s"], sector),
-                (sn, MI["s"], old_sectors),
-            ] = new_Z_row
+            # The child row comes from the parent row before it is rescaled.
+            parent_row = Y_vals[Y_parent[i], :].copy()
+            Y_vals[Y_child[i], :] = parent_row * X_child[i] / parent_old_output
+            Y_vals[Y_parent[i], :] = parent_row * X_parent[i] / parent_old_output
+            touched_Y_rows.update((Y_child[i], Y_parent[i]))
 
-            child_output = float(instance.matrices[scenario][_ENUM["X"]].loc[(region, MI["s"], sector), "production"])
-            parent_new_output = float(instance.matrices[scenario][_ENUM["X"]].loc[(region, MI["s"], parent_sector), "production"])
+    if not Z_child_rows:
+        return
 
-            new_Y_row = (
-                instance.matrices[scenario][_ENUM["Y"]].loc[(region, MI["s"], parent_sector), :]
-                * child_output
-                / parent_old_output
-            )
-            instance.matrices[scenario][_ENUM["Y"]].loc[(region, MI["s"], sector), :] = new_Y_row
-            instance.matrices[scenario][_ENUM["Y"]].loc[(region, MI["s"], parent_sector), :] = (
-                instance.matrices[scenario][_ENUM["Y"]].loc[(region, MI["s"], parent_sector), :]
-                * parent_new_output
-                / parent_old_output
-            )
+    # One block write for all (sector, region) pairs instead of one pandas write per pair.
+    new_Z_rows = z.iloc[z_parent_rows, z_col_pos].to_numpy(dtype=float) * X_cut[None, :]
+    # Rebuilding from a numpy copy avoids pandas' column-by-column setitem on wide frames.
+    Z_vals = Z_df.to_numpy(dtype=float, copy=True)
+    Z_vals[np.ix_(Z_child_rows, Z_col_pos)] = new_Z_rows
+    matrices[_ENUM["Z"]] = pd.DataFrame(Z_vals, index=Z_df.index, columns=Z_df.columns)
+
+    touched = sorted(touched_Y_rows)
+    Y_df.iloc[touched, :] = Y_vals[touched, :]
 
 
 def log_split_scenario(logger, split_scenario: str, sectors: list[str]) -> None:
