@@ -37,6 +37,18 @@ Sector split workflow
   optional ``Exclusions use`` / ``Exclusions supply`` / ``Tolerances`` sheets, and
   solved with a packaged CVXLab SUT model (``Split_sut``). See the user guide
   page "Splitting activities and commodities in a SUT".
+* The SUT split has three variants, chosen from the ``Master`` sheet:
+  activities only (``Split_sut_act``), commodities only (``Split_sut_com``) and
+  both (``Split_sut``). ``Supply coef`` is required only when activities are
+  split and ``Final dem share`` only when commodities are split. In a
+  commodity-only split ``Total outputs`` of a new commodity is a constraint
+  (total use) and value added and satellite accounts are left untouched.
+* The three SUT split models use tolerance bands instead of equalities (zero
+  masks stay exact). The ``Tolerances`` sheet (``delta`` for the balances,
+  ``eps`` for the consistency with the original table and the known totals) now
+  reaches the models, is checked (non-negative, warning above ``1e-2``), and the
+  largest relative residuals are logged after the solve. The SUT bridge tries
+  CLARABEL, then ECOS, then SCS when no solver is given.
 * ``add_sectors(io=<path>, split=True)`` now parses the split-support sheets of
   the workbook (previously they were only read when the workbook had been loaded
   with ``read_add_sectors_excel(..., split=True)`` beforehand).

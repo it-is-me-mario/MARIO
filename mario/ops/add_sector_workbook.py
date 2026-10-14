@@ -50,6 +50,10 @@ from mario.ops.add_sector_specs import (
     ADVANCED_ADD_SECTOR_UNCERTAINTY_PARAMETERS,
 )
 
+SUT_SPLIT_ACTIVITIES = "activities"
+SUT_SPLIT_COMMODITIES = "commodities"
+SUT_SPLIT_BOTH = "both"
+
 
 @dataclass(frozen=True)
 class AddSectorWorkbook:
@@ -480,7 +484,7 @@ def read_add_sector_workbook(
         if sheet_name in sheets
     }
     split_info = (
-        _parse_split_sheets(sheets, table=table)
+        _parse_split_sheets(sheets, table=table, master_sheet=master_sheet)
         if parse_split and _has_split_rows(table, master_sheet)
         else None
     )
@@ -888,25 +892,34 @@ def _parse_optional_split_sheet(
     return _parse_split_sheet(sheets, sheet_name=sheet_name, columns=columns)
 
 
-def _parse_sut_split_sheets(sheets: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
+def _parse_sut_split_sheets(
+    sheets: dict[str, pd.DataFrame], *, variant: str = SUT_SPLIT_BOTH
+) -> dict[str, pd.DataFrame]:
     """Return the normalized split-support payload for SUT workbooks.
 
-    ``Total outputs``, ``Supply coef`` and ``Final dem share`` are required.
-    The two exclusion sheets and ``Tolerances`` are optional.
+    ``Total outputs`` is always required. ``Supply coef`` is required when activities are
+    split and ``Final dem share`` when commodities are split; the other one is optional
+    (a missing sheet is read as empty). The two exclusion sheets and ``Tolerances`` are optional.
     """
 
+    supply_parser = (
+        _parse_split_sheet if variant in {SUT_SPLIT_ACTIVITIES, SUT_SPLIT_BOTH} else _parse_optional_split_sheet
+    )
+    share_parser = (
+        _parse_split_sheet if variant in {SUT_SPLIT_COMMODITIES, SUT_SPLIT_BOTH} else _parse_optional_split_sheet
+    )
     return {
         ADD_SECTOR_SPLIT_OUTPUT_SHEET: _parse_split_sheet(
             sheets,
             sheet_name=ADD_SECTOR_SPLIT_OUTPUT_SHEET,
             columns=ADD_SECTOR_SPLIT_SUT_OUTPUT_COLUMNS,
         ),
-        ADD_SECTOR_SPLIT_SUPPLY_COEF_SHEET: _parse_split_sheet(
+        ADD_SECTOR_SPLIT_SUPPLY_COEF_SHEET: supply_parser(
             sheets,
             sheet_name=ADD_SECTOR_SPLIT_SUPPLY_COEF_SHEET,
             columns=ADD_SECTOR_SPLIT_SUPPLY_COEF_COLUMNS,
         ),
-        ADD_SECTOR_SPLIT_FINAL_DEMAND_SHARE_SHEET: _parse_split_sheet(
+        ADD_SECTOR_SPLIT_FINAL_DEMAND_SHARE_SHEET: share_parser(
             sheets,
             sheet_name=ADD_SECTOR_SPLIT_FINAL_DEMAND_SHARE_SHEET,
             columns=ADD_SECTOR_SPLIT_FINAL_DEMAND_SHARE_COLUMNS,
@@ -929,11 +942,17 @@ def _parse_sut_split_sheets(sheets: dict[str, pd.DataFrame]) -> dict[str, pd.Dat
     }
 
 
-def _parse_split_sheets(sheets: dict[str, pd.DataFrame], *, table: str = IOT) -> dict[str, pd.DataFrame]:
+def _parse_split_sheets(
+    sheets: dict[str, pd.DataFrame],
+    *,
+    table: str = IOT,
+    master_sheet: pd.DataFrame | None = None,
+) -> dict[str, pd.DataFrame]:
     """Return the normalized split-support payload for the given table type."""
 
     if table == SUT:
-        return _parse_sut_split_sheets(sheets)
+        variant = sut_split_variant(master_sheet) if master_sheet is not None else SUT_SPLIT_BOTH
+        return _parse_sut_split_sheets(sheets, variant=variant)
 
     return {
         ADD_SECTOR_SPLIT_OUTPUT_SHEET: _parse_split_sheet(
@@ -993,6 +1012,26 @@ def validate_sut_add_mode(master_sheet: pd.DataFrame) -> str:
             f"'Split' rows (sheet rows): {split_rows}; 'Add' rows (sheet rows): {add_rows}."
         )
     return str(modes.iloc[0])
+
+
+def sut_split_variant(master_sheet: pd.DataFrame) -> str:
+    """Return which items a SUT split workbook splits: activities, commodities or both.
+
+    The variant is read from the Master sheet: a row defines a split activity when its
+    Activity cell is filled and a split commodity when its Commodity cell is filled.
+    """
+
+    activity_column, commodity_column = _MASTER_INDEX["a"], _MASTER_INDEX["c"]
+
+    def filled(column: str) -> bool:
+        if column not in master_sheet.columns:
+            return False
+        return bool(master_sheet[column].fillna("").astype(str).str.strip().ne("").any())
+
+    has_activities, has_commodities = filled(activity_column), filled(commodity_column)
+    if has_activities and has_commodities:
+        return SUT_SPLIT_BOTH
+    return SUT_SPLIT_COMMODITIES if has_commodities else SUT_SPLIT_ACTIVITIES
 
 
 def _has_split_rows(table: str, master_sheet: pd.DataFrame) -> bool:

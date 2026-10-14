@@ -60,6 +60,10 @@ setup(
             "Split_sectors/*.py",
             "Split_sut/*.xlsx",
             "Split_sut/*.py",
+            "Split_sut_com/*.xlsx",
+            "Split_sut_com/*.py",
+            "Split_sut_act/*.xlsx",
+            "Split_sut_act/*.py",
         ],
         },
     install_requires=[

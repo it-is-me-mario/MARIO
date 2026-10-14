@@ -22,7 +22,13 @@ from mario.ops.add_sector_specs import (
     ADD_SECTOR_SPLIT_TOLERANCE_COLUMNS,
     ADD_SECTOR_SPLIT_TOLERANCE_SHEET,
 )
-from mario.ops.add_sector_split_sut import SutSplitPriors, SutSplitStructure
+from mario.ops.add_sector_split_sut import (
+    MODE_ACTIVITIES,
+    MODE_BOTH,
+    MODE_COMMODITIES,
+    SutSplitPriors,
+    SutSplitStructure,
+)
 from mario.ops.cvxlab_bridge import (
     CVXLAB_INPUT_TYPES,
     _build_cvxlab_model,
@@ -42,13 +48,25 @@ from mario.ops.cvxlab_bridge import (
 
 
 CVXLAB_SUT_SPLIT_MODEL_NAME = "mario_add_sector_split_sut"
-CVXLAB_SUT_TEMPLATE_NAME = "Split_sut"
+# CVXLab model template (package data in ``mario/ops/cvxlab_models``) of each split variant
+CVXLAB_SUT_TEMPLATE_NAMES = {
+    MODE_BOTH: "Split_sut",
+    MODE_COMMODITIES: "Split_sut_com",
+    MODE_ACTIVITIES: "Split_sut_act",
+}
 CVXLAB_SUT_TEMPLATE_FILES = (
     "model_settings.xlsx",
     "user_defined_constants.py",
     "user_defined_operators.py",
 )
-CVXLAB_SUT_RESULT_TABLES = ("U", "M", "Y", "V")
+# result tables of each model: the commodity-only model has no V, the activity-only model no Y
+CVXLAB_SUT_RESULT_TABLES_BY_MODE = {
+    MODE_BOTH: ("U", "M", "Y", "V"),
+    MODE_COMMODITIES: ("U", "M", "Y"),
+    MODE_ACTIVITIES: ("U", "M", "V"),
+}
+# solvers tried in this order when the user does not choose one (explicit solver always wins)
+CVXLAB_SUT_PREFERRED_SOLVERS = ("CLARABEL", "ECOS", "SCS")
 
 
 # ---------------------------------------------------------------------------
@@ -150,32 +168,55 @@ def build_sut_split_input_tables(
     blank: dict[str, pd.DataFrame],
     *,
     residue=None,
+    tolerances: pd.DataFrame | None = None,
 ) -> dict[str, pd.DataFrame]:
-    """Fill the blank CVXLab input tables with the priors of the SUT split."""
+    """Fill the blank CVXLab input tables with the priors of the SUT split.
+
+    A prior that is ``None`` (not consumed by the model of the split variant) is skipped.
+    ``tolerances`` is the normalised ``Tolerances`` sheet; its values reach the ``tol`` table by name.
+    """
 
     structure = priors.structure
     original = priors.original
     tables = {name: frame.copy() for name, frame in blank.items()}
 
+    def long(frame, kind):
+        return None if frame is None else _long_values(_zero_below(frame, residue), kind)
+
     sources = {
-        "Uold": _long_values(_zero_below(original.U, residue), "U"),
-        "Mold": _long_values(_zero_below(original.M, residue), "M"),
-        "Yold": _long_values(_zero_below(original.Y, residue), "Y"),
-        "Vold": _long_values(_zero_below(original.V, residue), "V"),
-        "U0": _long_values(_zero_below(priors.U0, residue), "U"),
-        "M0": _long_values(_zero_below(priors.M0, residue), "M"),
-        "Y0": _long_values(_zero_below(priors.Y0, residue), "Y"),
-        "V0": _long_values(_zero_below(priors.V0, residue), "V"),
+        "Uold": long(original.U, "U"),
+        "Mold": long(original.M, "M"),
+        "Yold": long(original.Y, "Y"),
+        "Vold": long(original.V, "V"),
+        "U0": long(priors.U0, "U"),
+        "M0": long(priors.M0, "M"),
+        "Y0": long(priors.Y0, "Y"),
+        "V0": long(priors.V0, "V"),
         "Zero_U": _long_values(priors.zero_U.astype(float), "U"),
         "Zero_M": _long_values(priors.zero_M.astype(float), "M"),
     }
     xnew = priors.Xnew.rename("values").reset_index()
-    xnew.columns = ["region_to_Name", "activity_to_Name", "values"]
+    if priors.mode == MODE_COMMODITIES:
+        xnew.columns = ["region_from_Name", "commodity_from_Name", "values"]
+    else:
+        xnew.columns = ["region_to_Name", "activity_to_Name", "values"]
     sources["Xnew"] = xnew
+    if tolerances is not None:
+        name_col = ADD_SECTOR_SPLIT_TOLERANCE_COLUMNS["name"]
+        value_col = ADD_SECTOR_SPLIT_TOLERANCE_COLUMNS["value"]
+        sources["tol"] = pd.DataFrame(
+            {
+                "scalar_Name": tolerances[name_col].astype(str).str.strip().to_numpy(),
+                "values": pd.to_numeric(tolerances[value_col]).to_numpy(),
+            }
+        )
 
     for name, source in sources.items():
-        if name in tables:
-            tables[name] = _fill_table(tables[name], source)
+        if name not in tables:
+            continue
+        if source is None:
+            raise WrongInput(f"The CVXLab model has an input table '{name}' but the split variant builds no prior for it.")
+        tables[name] = _fill_table(tables[name], source)
 
     if "I_act_p_pn" in tables:
         tables["I_act_p_pn"] = _identity_table(
@@ -204,7 +245,7 @@ def _prepare_sut_split_model_inputs(
     dest_dir = _prepare_split_model_directory(
         main_dir_path=main_dir_path,
         model_dir_name=model_dir_name,
-        template_name=CVXLAB_SUT_TEMPLATE_NAME,
+        template_name=CVXLAB_SUT_TEMPLATE_NAMES[instance.sut_split_structure.mode],
         template_files=CVXLAB_SUT_TEMPLATE_FILES,
     )
     model = _build_cvxlab_model(
@@ -225,7 +266,12 @@ def _write_sut_input_data(instance, *, model, dest_dir: Path, residue=None) -> N
         file_extension=file_extension,
         multiple_input_files=multiple_input_files,
     )
-    tables = build_sut_split_input_tables(instance.sut_split_priors, blank, residue=residue)
+    tables = build_sut_split_input_tables(
+        instance.sut_split_priors,
+        blank,
+        residue=residue,
+        tolerances=instance.split_info.get(ADD_SECTOR_SPLIT_TOLERANCE_SHEET),
+    )
     _write_input_data_files(
         dest_dir=dest_dir,
         input_data=tables,
@@ -286,7 +332,7 @@ def optimize_sut_split_in_cvxlab(
         input_data_files_type=input_data_files_type,
     )
     _write_sut_input_data(instance, model=model, dest_dir=dest_dir, residue=residue)
-    solver = _resolve_split_solver(solver)
+    solver = _resolve_split_solver(solver, preferred=CVXLAB_SUT_PREFERRED_SOLVERS)
 
     with _model_workdir(dest_dir):
         if hasattr(model, "refresh_database_and_initialize_problem"):
@@ -318,12 +364,12 @@ def optimize_sut_split_in_cvxlab(
     return parse_sut_split_results(instance.sut_split_priors, dest_dir, residue=residue)
 
 
-def _read_result_tables(dest_dir: Path) -> dict[str, pd.DataFrame]:
+def _read_result_tables(dest_dir: Path, mode: str) -> dict[str, pd.DataFrame]:
     connection = sqlite3.connect(Path(dest_dir) / cl.Defaults.ConfigFiles.SQLITE_DATABASE_FILE)
     try:
         return {
             name: pd.read_sql_query(f"SELECT * FROM {name}", connection).drop(columns=["id"], errors="ignore")
-            for name in CVXLAB_SUT_RESULT_TABLES
+            for name in CVXLAB_SUT_RESULT_TABLES_BY_MODE[mode]
         }
     finally:
         connection.close()
@@ -342,7 +388,7 @@ def parse_sut_split_results(priors: SutSplitPriors, dest_dir: Path, *, residue=N
     """
 
     structure, original = priors.structure, priors.original
-    tables = _read_result_tables(dest_dir)
+    tables = _read_result_tables(dest_dir, priors.mode)
     if residue is not None:
         threshold = float(residue)
         for name, table in tables.items():
@@ -374,8 +420,12 @@ def parse_sut_split_results(priors: SutSplitPriors, dest_dir: Path, *, residue=N
 
     U = solved("U", "U", com, act, original.U)
     M = solved("M", "M", act, com, original.M)
-    Y = solved("Y", "Y", com, original.Y.columns, original.Y)
-    V_table = tables["V"].dropna(subset=["values"])
+    # the model of a variant has no table for the block of the side that is not split: it stays as in the original
+    if "Y" in tables:
+        Y = solved("Y", "Y", com, original.Y.columns, original.Y)
+    else:
+        Y = original.Y.reindex(index=com).fillna(0.0)
+    V_table = tables["V"].dropna(subset=["values"]) if "V" in tables else pd.DataFrame()
     V = original.V.reindex(columns=act).fillna(0.0)
     if not V_table.empty:
         wide = V_table.set_index(["factor_Name", "region_to_Name", "activity_to_Name"])["values"].unstack(

@@ -22,6 +22,30 @@ How it differs from the IOT split
   ``Region_to`` columns of ``Supply coef`` and ``Final dem share`` and from the
   ``DB Region`` column of the inventory sheets.
 
+Variants: activities only, commodities only, or both
+-----------------------------------------------------
+
+The CVXLab model is chosen from the ``Master`` sheet:
+
+===========================  ===================  ===============================
+Items split                  CVXLab model         Priors that are built
+===========================  ===================  ===============================
+only activities              ``Split_sut_act``    ``U0``, ``M0``, ``V0``
+only commodities             ``Split_sut_com``    ``M0``, ``Y0``
+activities and commodities   ``Split_sut``        ``U0``, ``M0``, ``Y0``, ``V0``
+===========================  ===================  ===============================
+
+* In the activity-only model the output of a new activity is its total cost
+  (Use plus Value added). In the commodity-only model ``Total outputs`` of a new
+  commodity is a **constraint**: it fixes the total use (Use plus Final demand,
+  and therefore the supply) of the new commodity in each region.
+* Final demand is not touched by an activity-only split and value added,
+  emissions and the final-demand satellite accounts are not touched by a
+  commodity-only split.
+* The commodity-only model has no a-priori for the Use matrix, so the Use of the
+  split commodity by each activity is one of the feasible splits and may change
+  with the solver.
+
 Workbook
 --------
 
@@ -49,20 +73,24 @@ Inventory sheets
 ``Total outputs`` (required)
    ``Activity`` or ``Commodity``, ``Region``, ``Quantity``, ``Unit``. The output of
    each new activity is a constraint of the optimization. The output of a new
-   commodity is only a first guess used in the prior.
+   commodity is a constraint in a commodity-only split and only a first guess
+   used in the prior when activities are split too.
 
-``Supply coef`` (required)
+``Supply coef`` (required when activities are split)
    ``Region_from``, ``Region_to``, ``Activity_from``, ``Commodity_to``,
    ``Coefficient``: the share of the output of the commodity in ``Region_to``
    supplied by the new activity in ``Region_from``. Only existing commodities
    (stable or parent, with their original names) are listed: the supply of a new
    commodity is given by its commodity inventory.
 
-``Final dem share`` (required)
+``Final dem share`` (required when commodities are split)
    ``Region_from``, ``Region_to``, ``Commodity``, ``Consumption category``,
    ``Share``: the share of the final demand for the parent commodity that goes
    to the new commodity. Missing combinations take a share of 0 (with a
    warning); shares must lie in [0, 1].
+
+A split of only one kind does not need the sheet of the other kind. If it is
+present and filled, MARIO warns that it is ignored.
 
 ``Exclusions use`` and ``Exclusions supply`` (optional)
    Cells of the Use (``Region_from``, ``Commodity_from``, ``Region_to``,
@@ -72,7 +100,20 @@ Inventory sheets
    when its aggregated original cell is zero) are imposed.
 
 ``Tolerances`` (optional)
-   ``delta`` and ``eps``. Defaults to ``1e-5`` each.
+   ``delta`` and ``eps``, relative and non-negative; they default to ``1e-5``
+   each, and a value above ``1e-2`` triggers a warning. The constraints of the
+   CVXLab models are tolerance bands (``x <= y * (1 + tol)`` and
+   ``x >= y * (1 - tol)``), except the zero masks, which are exact:
+
+   * ``delta``: the commodity balance (use equals supply) and the activity
+     balance (cost equals revenue);
+   * ``eps``: consistency of the disaggregated Use, Make, Final demand and
+     Value added with the original table once parents and children are added
+     up, and the known totals (``Total outputs``) of the new items.
+
+   After the optimization MARIO logs the largest relative residual of each of
+   these constraints and warns about those above their tolerance; the table is
+   not rebalanced afterwards. ``eps = delta = 0`` gives exact equalities.
 
 All sheets refer to parents by their **original** name (e.g. ``c2``).
 
@@ -90,7 +131,8 @@ Running the split
 
 The same parameters as the IOT split are available (``only_input_data_gen``,
 ``keep_all_split_steps``, ``residue``, ``solver``, ``solver_parameters``,
-``input_data_files_type``). ``parent_name`` accepts a string only when exactly
+``input_data_files_type``). Unless ``solver`` is given, MARIO tries CLARABEL,
+then ECOS, then SCS. ``parent_name`` accepts a string only when exactly
 one parent is split. Unless ``keep_all_split_steps=True``, the result of the
 optimization replaces the ``baseline`` scenario; otherwise ``original``,
 ``split_<scenario>`` (the priors) and ``split_cvxlab`` are kept as well.

@@ -162,7 +162,7 @@ def optimize_split_in_cvxlab(
     return _parse_split_results(dest_dir, flat_matrices, residue=residue)
 
 
-def _resolve_split_solver(solver):
+def _resolve_split_solver(solver, preferred=("ECOS", "SCS", "CLARABEL")):
     """Choose a conic-capable default solver for entropy-based split models."""
 
     if solver is not None:
@@ -174,7 +174,7 @@ def _resolve_split_solver(solver):
         return None
 
     installed = set(cp.installed_solvers())
-    for candidate in ("ECOS", "SCS", "CLARABEL"):
+    for candidate in preferred:
         if candidate in installed:
             return candidate
     return None

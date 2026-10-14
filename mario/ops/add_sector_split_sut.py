@@ -54,6 +54,14 @@ REGION, ITEM = "Region", "Item"
 _TINY_NEGATIVE = 1e-9
 sn = slice(None)
 
+# Variants of the SUT split: which kind of item the workbook splits.
+MODE_ACTIVITIES = "activities"
+MODE_COMMODITIES = "commodities"
+MODE_BOTH = "both"
+
+# tolerances (delta, eps) above this value trigger a warning
+SUT_SPLIT_TOLERANCE_WARNING = 1e-2
+
 
 # ---------------------------------------------------------------------------
 # Structure of the split (who is parent / child / stable)
@@ -70,6 +78,13 @@ class SutSplitStructure:
     activity_parent: dict[str, str]
     commodity_parent: dict[str, str]
     master_rows: pd.DataFrame = field(repr=False)
+
+    @property
+    def mode(self) -> str:
+        """Variant of the split: only activities, only commodities, or both."""
+        if self.new_activities and self.new_commodities:
+            return MODE_BOTH
+        return MODE_COMMODITIES if self.new_commodities else MODE_ACTIVITIES
 
     @property
     def all_activities(self) -> list[str]:
@@ -291,6 +306,19 @@ def prepare_sut_split_support(instance) -> SutSplitStructure:
     categories = set(instance.get_index(MI["n"]))
     normalized = {name: frame.copy() for name, frame in split_info.items()}
 
+    # --- sheets the variant does not use ----------------------------------
+    # Supply coef describes new activities and Final dem share new commodities: a split of
+    # only one kind never reads the other sheet, so it is ignored (with a warning) if filled.
+    unused_sheet = {
+        MODE_COMMODITIES: ADD_SECTOR_SPLIT_SUPPLY_COEF_SHEET,
+        MODE_ACTIVITIES: ADD_SECTOR_SPLIT_FINAL_DEMAND_SHARE_SHEET,
+    }.get(structure.mode)
+    if unused_sheet is not None and not normalized[unused_sheet].dropna(how="all").empty:
+        warnings.warn(
+            f"Split sheet '{unused_sheet}' is not used by a {structure.mode}-only split and is ignored."
+        )
+        normalized[unused_sheet] = normalized[unused_sheet].iloc[0:0]
+
     # --- Total outputs --------------------------------------------------
     cols = ADD_SECTOR_SPLIT_SUT_OUTPUT_COLUMNS
     outputs = normalized[ADD_SECTOR_SPLIT_OUTPUT_SHEET]
@@ -476,7 +504,26 @@ def prepare_sut_split_support(instance) -> SutSplitStructure:
     required_tol = {name for name, _ in ADD_SECTOR_SPLIT_TOLERANCE_DEFAULTS}
     if not required_tol.issubset(present):
         raise WrongInput(f"Split sheet '{ADD_SECTOR_SPLIT_TOLERANCE_SHEET}' should define at least {sorted(required_tol)}.")
-    normalized[ADD_SECTOR_SPLIT_TOLERANCE_SHEET] = tolerances.loc[:, [name_col, value_col]].reset_index(drop=True)
+    tolerances = tolerances.loc[:, [name_col, value_col]].copy()
+    tolerances[name_col] = tolerances[name_col].astype(str).str.strip()
+    tolerances[value_col] = _numeric(tolerances, value_col, ADD_SECTOR_SPLIT_TOLERANCE_SHEET)
+    extra = sorted(set(tolerances[name_col]) - required_tol)
+    if extra:
+        warnings.warn(
+            f"Split sheet '{ADD_SECTOR_SPLIT_TOLERANCE_SHEET}': the tolerances {extra} are not used by the "
+            f"SUT split models and are ignored."
+        )
+        tolerances = tolerances[tolerances[name_col].isin(required_tol)]
+    if (tolerances[value_col] < 0).any():
+        raise WrongInput(f"Split sheet '{ADD_SECTOR_SPLIT_TOLERANCE_SHEET}' cannot contain negative tolerances.")
+    large = tolerances[tolerances[value_col] > SUT_SPLIT_TOLERANCE_WARNING]
+    if not large.empty:
+        warnings.warn(
+            f"Split sheet '{ADD_SECTOR_SPLIT_TOLERANCE_SHEET}': {dict(zip(large[name_col], large[value_col]))} "
+            f"exceed {SUT_SPLIT_TOLERANCE_WARNING:g}; the split flows may deviate noticeably from the original table "
+            f"and from the known totals."
+        )
+    normalized[ADD_SECTOR_SPLIT_TOLERANCE_SHEET] = tolerances.reset_index(drop=True)
 
     instance.split_info = normalized
     instance.sut_split_structure = structure
@@ -682,20 +729,25 @@ class SutSplitPriors:
 
     All matrices are expressed at the disaggregated granularity (parent, new and
     stable items). Cells that the optimization does not use as a prior are zero.
+    A prior that the model of the split variant does not consume is ``None``:
+    ``U0`` and ``V0`` for a commodity-only split, ``Y0`` for an activity-only split.
     """
 
     structure: SutSplitStructure
     original: SutOriginalFlows
     Xa: pd.Series  # prior output of every (Region, activity)
     Xc: pd.Series  # prior output of every (Region, commodity)
-    Xnew: pd.Series  # known output of new activities (Region, activity)
-    U0: pd.DataFrame
+    # known total of the new items, indexed by (Region, item): the total cost of the new
+    # activities, or the total use of the new commodities for a commodity-only split
+    Xnew: pd.Series
+    U0: pd.DataFrame | None
     M0: pd.DataFrame
-    Y0: pd.DataFrame
-    V0: pd.DataFrame
+    Y0: pd.DataFrame | None
+    V0: pd.DataFrame | None
     zero_U: pd.DataFrame  # 1 where the cell is known to be zero
     zero_M: pd.DataFrame
     inventories: dict = field(default_factory=dict, repr=False)
+    mode: str = MODE_BOTH
 
 
 def _warn_and_clip(frame: pd.DataFrame, label: str) -> pd.DataFrame:
@@ -740,7 +792,8 @@ def build_sut_split_priors(
     # --- outputs ---------------------------------------------------------
     Xa = _output_series(act_index, original.Xa)
     Xc = _output_series(com_index, original.Xc)
-    Xnew = pd.Series(0.0, index=act_index, name="production")
+    mode = structure.mode
+    Xnew = pd.Series(0.0, index=com_index if mode == MODE_COMMODITIES else act_index, name="production")
     out_cols = ADD_SECTOR_SPLIT_SUT_OUTPUT_COLUMNS
     outputs = split_info[ADD_SECTOR_SPLIT_OUTPUT_SHEET]
     for _, row in outputs.iterrows():
@@ -754,6 +807,8 @@ def build_sut_split_priors(
             item = row[out_cols["commodity"]]
             parent = structure.commodity_parent[item]
             series, label = Xc, "commodity"
+            if mode == MODE_COMMODITIES:
+                Xnew[(region, item)] = quantity
         parent_output = float(series[(region, parent)])
         if quantity > parent_output + _TINY_NEGATIVE:
             raise WrongInput(
@@ -783,42 +838,44 @@ def build_sut_split_priors(
         _warn_if_not_unitary(row, inventories[key])
 
     # --- U0 and V0 ---------------------------------------------------------
-    old_U = Uold.reindex(index=com_index, columns=act_index).fillna(0.0)
-    old_V = Vold.reindex(columns=act_index).fillna(0.0)
-    stable_rows = pd.MultiIndex.from_product([regions, structure.stable_commodities], names=[REGION, ITEM])
-    all_rows = com_index
-    U0 = old_U.copy()
-    V0 = old_V.copy()
-    changed_columns = [
-        col for col in act_index if col[1] in structure.activity_parent or col[1] in structure.parent_activities
-    ]
-    # unknown cells (parent and new columns) start at zero and are filled below
-    U0[changed_columns] = 0.0
-    V0[changed_columns] = 0.0
+    U0 = V0 = None
+    if mode != MODE_COMMODITIES:
+        old_U = Uold.reindex(index=com_index, columns=act_index).fillna(0.0)
+        old_V = Vold.reindex(columns=act_index).fillna(0.0)
+        stable_rows = pd.MultiIndex.from_product([regions, structure.stable_commodities], names=[REGION, ITEM])
+        all_rows = com_index
+        U0 = old_U.copy()
+        V0 = old_V.copy()
+        changed_columns = [
+            col for col in act_index if col[1] in structure.activity_parent or col[1] in structure.parent_activities
+        ]
+        # unknown cells (parent and new columns) start at zero and are filled below
+        U0[changed_columns] = 0.0
+        V0[changed_columns] = 0.0
 
-    for row in structure.master_rows[structure.master_rows.kind == "activity"].itertuples():
-        inv: _ActivityInventory = inventories[("activity", row.item, row.region)]
-        column = (row.region, row.item)
-        output = float(Xa[column])
-        U0[column] = inv.use.reindex(all_rows).fillna(0.0).to_numpy() * output
-        if inv.factors.empty:
-            # no value-added rows in the inventory: value added closes the activity balance
-            # (output minus inputs), distributed like the value added of the parent
-            parent_va = old_V[(row.region, structure.activity_parent[row.item])]
-            composition = parent_va / parent_va.sum() if parent_va.sum() > 0 else parent_va * 0 + 1 / len(parent_va)
-            V0[column] = composition.to_numpy() * max(1.0 - float(inv.use.sum()), 0.0) * output
-        else:
-            V0[column] = inv.factors.reindex(V0.index).fillna(0.0).to_numpy() * output
+        for row in structure.master_rows[structure.master_rows.kind == "activity"].itertuples():
+            inv: _ActivityInventory = inventories[("activity", row.item, row.region)]
+            column = (row.region, row.item)
+            output = float(Xa[column])
+            U0[column] = inv.use.reindex(all_rows).fillna(0.0).to_numpy() * output
+            if inv.factors.empty:
+                # no value-added rows in the inventory: value added closes the activity balance
+                # (output minus inputs), distributed like the value added of the parent
+                parent_va = old_V[(row.region, structure.activity_parent[row.item])]
+                composition = parent_va / parent_va.sum() if parent_va.sum() > 0 else parent_va * 0 + 1 / len(parent_va)
+                V0[column] = composition.to_numpy() * max(1.0 - float(inv.use.sum()), 0.0) * output
+            else:
+                V0[column] = inv.factors.reindex(V0.index).fillna(0.0).to_numpy() * output
 
-    for parent in structure.parent_activities:
-        children = structure.activity_children[parent]
-        for region in regions:
-            column = (region, parent)
-            child_columns = [(region, child) for child in children]
-            U0.loc[stable_rows, column] = old_U.loc[stable_rows, column] - U0.loc[stable_rows, child_columns].sum(axis=1)
-            V0[column] = old_V[column] - V0[child_columns].sum(axis=1)
-    U0 = _warn_and_clip(U0, "U0")
-    V0 = _warn_and_clip(V0, "V0")
+        for parent in structure.parent_activities:
+            children = structure.activity_children[parent]
+            for region in regions:
+                column = (region, parent)
+                child_columns = [(region, child) for child in children]
+                U0.loc[stable_rows, column] = old_U.loc[stable_rows, column] - U0.loc[stable_rows, child_columns].sum(axis=1)
+                V0[column] = old_V[column] - V0[child_columns].sum(axis=1)
+        U0 = _warn_and_clip(U0, "U0")
+        V0 = _warn_and_clip(V0, "V0")
 
     # --- M0 -----------------------------------------------------------------
     M0 = Mold.reindex(index=act_index, columns=com_index).fillna(0.0)
@@ -861,39 +918,41 @@ def build_sut_split_priors(
     M0 = _warn_and_clip(M0, "M0")
 
     # --- Y0 ------------------------------------------------------------------
-    Y0 = Yold.reindex(index=com_index).fillna(0.0)
-    fd = ADD_SECTOR_SPLIT_FINAL_DEMAND_SHARE_COLUMNS
-    shares_sheet = split_info[ADD_SECTOR_SPLIT_FINAL_DEMAND_SHARE_SHEET]
-    share_lookup = {
-        (r_from, r_to, commodity, category): float(share)
-        for r_from, r_to, commodity, category, share in zip(
-            shares_sheet[fd["region_from"]],
-            shares_sheet[fd["region_to"]],
-            shares_sheet[fd["commodity"]],
-            shares_sheet[fd["consumption_category"]],
-            shares_sheet[fd["share"]],
-        )
-    }
-    missing_shares = set()
-    for child, parent in structure.commodity_parent.items():
-        for region in regions:
-            parent_row = Yold.loc[(region, parent)]
-            new_row = pd.Series(0.0, index=Y0.columns)
-            for column in Y0.columns:
-                share = share_lookup.get((region, column[0], child, column[1]))
-                if share is None:
-                    missing_shares.add((region, column[0], child, column[1]))
-                    share = 0.0
-                new_row[column] = float(parent_row[column]) * share
-            Y0.loc[(region, child)] = new_row.to_numpy()
-            Y0.loc[(region, parent)] = Y0.loc[(region, parent)].to_numpy() - new_row.to_numpy()
-    if missing_shares:
-        warnings.warn(
-            f"Split sheet '{ADD_SECTOR_SPLIT_FINAL_DEMAND_SHARE_SHEET}' has no share for "
-            f"(Region_from, Region_to, Commodity, Consumption category) = {sorted(missing_shares)[:5]}"
-            f"{' ...' if len(missing_shares) > 5 else ''}; a share of 0 is assumed."
-        )
-    Y0 = _warn_and_clip(Y0, "Y0")
+    Y0 = None
+    if mode != MODE_ACTIVITIES:
+        Y0 = Yold.reindex(index=com_index).fillna(0.0)
+        fd = ADD_SECTOR_SPLIT_FINAL_DEMAND_SHARE_COLUMNS
+        shares_sheet = split_info[ADD_SECTOR_SPLIT_FINAL_DEMAND_SHARE_SHEET]
+        share_lookup = {
+            (r_from, r_to, commodity, category): float(share)
+            for r_from, r_to, commodity, category, share in zip(
+                shares_sheet[fd["region_from"]],
+                shares_sheet[fd["region_to"]],
+                shares_sheet[fd["commodity"]],
+                shares_sheet[fd["consumption_category"]],
+                shares_sheet[fd["share"]],
+            )
+        }
+        missing_shares = set()
+        for child, parent in structure.commodity_parent.items():
+            for region in regions:
+                parent_row = Yold.loc[(region, parent)]
+                new_row = pd.Series(0.0, index=Y0.columns)
+                for column in Y0.columns:
+                    share = share_lookup.get((region, column[0], child, column[1]))
+                    if share is None:
+                        missing_shares.add((region, column[0], child, column[1]))
+                        share = 0.0
+                    new_row[column] = float(parent_row[column]) * share
+                Y0.loc[(region, child)] = new_row.to_numpy()
+                Y0.loc[(region, parent)] = Y0.loc[(region, parent)].to_numpy() - new_row.to_numpy()
+        if missing_shares:
+            warnings.warn(
+                f"Split sheet '{ADD_SECTOR_SPLIT_FINAL_DEMAND_SHARE_SHEET}' has no share for "
+                f"(Region_from, Region_to, Commodity, Consumption category) = {sorted(missing_shares)[:5]}"
+                f"{' ...' if len(missing_shares) > 5 else ''}; a share of 0 is assumed."
+            )
+        Y0 = _warn_and_clip(Y0, "Y0")
 
     # --- zero masks -----------------------------------------------------------
     zero_U = _structural_zero_mask(
@@ -938,6 +997,7 @@ def build_sut_split_priors(
         zero_U=zero_U,
         zero_M=zero_M,
         inventories=inventories,
+        mode=mode,
     )
 
 
@@ -1045,10 +1105,10 @@ def assemble_sut_split_flows(
     original: SutOriginalFlows,
     priors: SutSplitPriors,
     *,
-    U: pd.DataFrame,
+    U: pd.DataFrame | None,
     M: pd.DataFrame,
-    Y: pd.DataFrame,
-    V: pd.DataFrame,
+    Y: pd.DataFrame | None,
+    V: pd.DataFrame | None,
     Xa: pd.Series,
     Xc: pd.Series,
 ) -> dict[str, pd.DataFrame]:
@@ -1057,6 +1117,11 @@ def assemble_sut_split_flows(
     ``Xa``/``Xc`` are the final outputs used to scale the satellite accounts and
     commodity-side columns of the new items.
     """
+
+    # a block without a prior (None) keeps the original values; new items start at zero
+    U = original.U if U is None else U
+    Y = original.Y if Y is None else Y
+    V = original.V if V is None else V
 
     names = original.axis_names
     productive = _productive_index(structure, names)
@@ -1177,12 +1242,114 @@ def build_sut_split_scenario(
     return split_scenario, priors
 
 
+MODE_LABELS = {MODE_ACTIVITIES: "activity-only", MODE_COMMODITIES: "commodity-only", MODE_BOTH: "combined"}
+
+
 def log_sut_split_scenario(logger, split_scenario: str, structure: SutSplitStructure) -> None:
     log_time(
         logger,
         f"Split scenario '{split_scenario}' generated for activities {structure.new_activities} "
-        f"and commodities {structure.new_commodities}.",
+        f"and commodities {structure.new_commodities} ({MODE_LABELS[structure.mode]} split).",
     )
+
+
+# ---------------------------------------------------------------------------
+# Residuals of the solved split
+# ---------------------------------------------------------------------------
+_RESIDUAL_REFERENCE_MIN = 1e-9
+
+
+def _aggregate(frame: pd.DataFrame, *, row_fn=None, col_fn=None) -> pd.DataFrame:
+    """Sum the cells of ``frame`` that map to the same original (parent) item."""
+
+    def mapped(axis_index, fn):
+        return pd.MultiIndex.from_tuples([(region, fn(item)) for region, item in axis_index], names=[REGION, ITEM])
+
+    out = frame
+    if row_fn is not None:
+        out = out.set_axis(mapped(out.index, row_fn), axis=0).groupby(level=[0, 1], sort=False).sum()
+    if col_fn is not None:
+        out = out.T.set_axis(mapped(out.columns, col_fn), axis=0).groupby(level=[0, 1], sort=False).sum().T
+    return out
+
+
+def _max_relative_gap(value, reference) -> float:
+    """Largest ``|value - reference| / |reference|`` over the cells with a non-zero reference."""
+
+    value, reference = value.align(reference, join="right", fill_value=0.0)
+    reference = reference.astype(float)
+    keep = reference.abs() > _RESIDUAL_REFERENCE_MIN
+    gap = ((value - reference).abs() / reference.abs()).where(keep)
+    values = np.asarray(gap, dtype=float)
+    return float(np.nanmax(values)) if np.isfinite(values).any() else 0.0
+
+
+def compute_sut_split_residuals(priors: SutSplitPriors, blocks: Mapping[str, pd.DataFrame]) -> dict[str, tuple[str, float]]:
+    """Largest relative residual of each constraint family of the solved split.
+
+    Returns ``{label: (tolerance name, residual)}`` for the constraints that the model of the
+    split variant has: the balances (``delta``) and the consistency with the original table and
+    the known totals of the new items (``eps``).
+    """
+
+    structure, original, mode = priors.structure, priors.original, priors.mode
+    U, M, Y, V = blocks["U"], blocks["M"], blocks["Y"], blocks["V"]
+    residuals: dict[str, tuple[str, float]] = {}
+
+    def involved(items, category):
+        return [item for item in items if category(item) != "stable"]
+
+    parent_new_commodities = involved(structure.all_commodities, structure.commodity_category)
+    parent_new_activities = involved(structure.all_activities, structure.activity_category)
+
+    if mode in {MODE_COMMODITIES, MODE_BOTH}:
+        rows = pd.MultiIndex.from_product([structure.regions, parent_new_commodities], names=[REGION, ITEM])
+        use = U.reindex(rows).sum(axis=1) + Y.reindex(rows).sum(axis=1)
+        residuals["commodity balance"] = ("delta", _max_relative_gap(use, M[rows].sum(axis=0)))
+    if mode in {MODE_ACTIVITIES, MODE_BOTH}:
+        cols = pd.MultiIndex.from_product([structure.regions, parent_new_activities], names=[REGION, ITEM])
+        cost = U[cols].sum(axis=0) + V[cols].sum(axis=0)
+        residuals["activity balance"] = ("delta", _max_relative_gap(cost, M.reindex(cols).sum(axis=1)))
+
+    aggregate_c, aggregate_a = structure.aggregate_commodity, structure.aggregate_activity
+    residuals["Use vs original"] = (
+        "eps", _max_relative_gap(_aggregate(U, row_fn=aggregate_c, col_fn=aggregate_a), original.U)
+    )
+    residuals["Make vs original"] = (
+        "eps", _max_relative_gap(_aggregate(M, row_fn=aggregate_a, col_fn=aggregate_c), original.M)
+    )
+    if mode in {MODE_COMMODITIES, MODE_BOTH}:
+        residuals["Final demand vs original"] = ("eps", _max_relative_gap(_aggregate(Y, row_fn=aggregate_c), original.Y))
+    if mode in {MODE_ACTIVITIES, MODE_BOTH}:
+        residuals["Value added vs original"] = ("eps", _max_relative_gap(_aggregate(V, col_fn=aggregate_a), original.V))
+
+    known = priors.Xnew[priors.Xnew > _RESIDUAL_REFERENCE_MIN]
+    if not known.empty:
+        if mode == MODE_COMMODITIES:
+            total = U.reindex(known.index).sum(axis=1) + Y.reindex(known.index).sum(axis=1)
+        else:
+            total = U[known.index].sum(axis=0) + V[known.index].sum(axis=0)
+        residuals["known total of the new items"] = ("eps", _max_relative_gap(total, known))
+    return residuals
+
+
+def log_sut_split_residuals(logger, priors: SutSplitPriors, blocks: Mapping[str, pd.DataFrame], tolerances: pd.DataFrame) -> None:
+    """Log the largest relative residuals and warn about those above their tolerance."""
+
+    name_col, value_col = ADD_SECTOR_SPLIT_TOLERANCE_COLUMNS["name"], ADD_SECTOR_SPLIT_TOLERANCE_COLUMNS["value"]
+    limits = dict(zip(tolerances[name_col].astype(str), tolerances[value_col].astype(float)))
+    residuals = compute_sut_split_residuals(priors, blocks)
+    summary = "; ".join(f"{label} {value:.2e} ({tol})" for label, (tol, value) in residuals.items())
+    log_time(logger, f"Largest relative residuals of the {MODE_LABELS[priors.mode]} split: {summary}.")
+    for label, (tol, value) in residuals.items():
+        limit = limits.get(tol)
+        if limit is not None and value > limit * 1.01 + 1e-9:
+            log_time(
+                logger,
+                f"The {label} of the split deviates by {value:.2e} (relative), above the tolerance "
+                f"{tol} = {limit:.2e}.",
+                "warning",
+            )
 
 
 # ---------------------------------------------------------------------------

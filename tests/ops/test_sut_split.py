@@ -369,7 +369,7 @@ def test_split_stays_close_to_the_reference_disaggregation(solved_split):
     va = new.V.loc[VALUE_ADDED]
     for region, expected in (("DE", 1.1), ("IT", 1.3)):
         assert va[(region, "Activity", "a2b")] == pytest.approx(expected, abs=1.0)
-    assert va[("DE", "Activity", "a2")] + va[("DE", "Activity", "a2b")] == pytest.approx(12.7)
+    assert va[("DE", "Activity", "a2")] + va[("DE", "Activity", "a2b")] == pytest.approx(12.7, rel=1e-4)
 
 
 @needs_cvxlab

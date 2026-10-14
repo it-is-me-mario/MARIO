@@ -48,10 +48,13 @@ from mario.ops.add_sector_split import (
     prepare_split_support,
     validate_split_parameters,
 )
+from mario.ops.add_sector_specs import ADD_SECTOR_SPLIT_TOLERANCE_SHEET
 from mario.ops.add_sector_split_sut import (
+    MODE_LABELS,
     apply_sut_split_parent_renames,
     assemble_sut_split_flows,
     build_sut_split_scenario,
+    log_sut_split_residuals,
     log_sut_split_scenario,
     normalize_sut_split_parent_renames,
     prepare_sut_split_support,
@@ -5319,7 +5322,8 @@ class Database(CoreModel):
         )
         self.meta._add_history(
             f"Database: split flow scenario '{split_scenario}' generated for activities "
-            f"{structure.new_activities} and commodities {structure.new_commodities}"
+            f"{structure.new_activities} and commodities {structure.new_commodities} "
+            f"({MODE_LABELS[structure.mode]} split)"
         )
 
         final_scenario = split_scenario
@@ -5350,6 +5354,9 @@ class Database(CoreModel):
                 V=blocks["V"],
                 Xa=blocks["M"].sum(axis=1),
                 Xc=blocks["M"].sum(axis=0),
+            )
+            log_sut_split_residuals(
+                logger, priors, blocks, self.split_info[ADD_SECTOR_SPLIT_TOLERANCE_SHEET]
             )
             final_scenario = "split_cvxlab"
             self.meta._add_history(
