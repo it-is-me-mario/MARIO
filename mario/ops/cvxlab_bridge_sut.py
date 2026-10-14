@@ -41,6 +41,7 @@ from mario.ops.cvxlab_bridge import (
     _prepare_split_model_directory,
     _read_blank_input_data,
     _resolve_split_solver,
+    _solver_verbosity_kwargs,
     _write_input_data_files,
     _call_model_method,
     cl,
@@ -344,7 +345,7 @@ def optimize_sut_split_in_cvxlab(
             )
             _call_model_method(model, "initialize_problems", "_initialize_problems", force_overwrite=True)
 
-        run_kwargs = {"verbose": True, "integrated_problems": False}
+        run_kwargs = {**_solver_verbosity_kwargs(model), "integrated_problems": False}
         if solver is not None:
             run_kwargs["solver"] = solver
         if solver_parameters is not None:

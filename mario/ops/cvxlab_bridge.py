@@ -138,7 +138,7 @@ def optimize_split_in_cvxlab(
             )
 
         run_kwargs = {
-            "verbose": True,
+            **_solver_verbosity_kwargs(model),
             "integrated_problems": False,
         }
         if solver is not None:
@@ -160,6 +160,19 @@ def optimize_split_in_cvxlab(
 
         model.load_results_to_database(force_overwrite=True)
     return _parse_split_results(dest_dir, flat_matrices, residue=residue)
+
+
+def _solver_verbosity_kwargs(model) -> dict:
+    """Return the run_model kwarg that enables solver logs for this CVXLab build.
+
+    Recent CVXLab builds use ``solver_verbose``; a bare ``verbose`` kwarg is
+    silently overridden by ``solver_verbose=False`` inside ``run_model``.
+    """
+
+    parameters = inspect.signature(model.run_model).parameters
+    if "solver_verbose" in parameters:
+        return {"solver_verbose": True}
+    return {"verbose": True}
 
 
 def _resolve_split_solver(solver, preferred=("ECOS", "SCS", "CLARABEL")):
