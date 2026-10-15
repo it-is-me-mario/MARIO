@@ -78,7 +78,7 @@ setup(
         "pyxlsb",
         "h5py",
         "scipy",
-        "cvxlab>=1.0.0b1",
+        "cvxlab>=1.1.0",
         "IPython >= 8.27.0",
         "pymrio",
         "pyyaml",
@@ -94,7 +94,7 @@ setup(
             "scipy",
             "h5py",
             "pyxlsb",
-            "cvxlab>=1.0.0b1",
+            "cvxlab>=1.1.0",
         ],
         "parquet": [
             "pyarrow>=17",
@@ -108,7 +108,7 @@ setup(
             "h5py",
             "pyarrow>=17",
             "pyxlsb",
-            "cvxlab>=1.0.0b1",
+            "cvxlab>=1.1.0",
         ],
         "all": [
             "pytest",
@@ -116,7 +116,7 @@ setup(
             "h5py",
             "pyarrow>=17",
             "pyxlsb",
-            "cvxlab>=1.0.0b1",
+            "cvxlab>=1.1.0",
         ],
     },
     # classifiers=[

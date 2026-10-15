@@ -15,4 +15,4 @@ h5py
 pyarrow>=17
 pyxlsb
 pymrio
-cvxlab>=1.0.0b1
+cvxlab>=1.1.0

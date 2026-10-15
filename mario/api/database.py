@@ -4848,7 +4848,7 @@ class Database(CoreModel):
         notes=None,
         ignore_warnings=True,
         cvxlab_path=None,
-        input_data_files_type="xlsx",
+        input_data_files_type="csv",
         only_input_data_gen=False,
         solver=None,
         solver_parameters=None,
@@ -4902,8 +4902,9 @@ class Database(CoreModel):
         cvxlab_path:
             Directory where MARIO should generate the CVXLab model directory.
         input_data_files_type:
-            Format for the generated CVXLab input files. ``"xlsx"`` is fully
-            supported. ``"csv"`` is available only for input-data generation.
+            Format for the generated CVXLab input files. ``"csv"`` (default)
+            is recommended since it handles tables larger than Excel's
+            1,048,576-row limit. ``"xlsx"`` is suitable only for small models.
         only_input_data_gen:
             When ``True``, stop after generating the CVXLab model directory and
             input data. No optimization run is executed.

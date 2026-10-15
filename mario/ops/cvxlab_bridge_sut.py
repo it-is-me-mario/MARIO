@@ -10,7 +10,6 @@ coordinates are the set names declared in the packaged ``Split_sut`` model.
 
 from __future__ import annotations
 
-import inspect
 import sqlite3
 from pathlib import Path
 
@@ -33,17 +32,14 @@ from mario.ops.cvxlab_bridge import (
     CVXLAB_INPUT_TYPES,
     _build_cvxlab_model,
     _cvxlab_input_storage,
-    _cvxlab_problem_solved_optimally,
     _ensure_sets_file,
     _install_cvxlab_runtime_compat,
     _load_model_coordinates_and_initialize_database,
-    _model_workdir,
     _prepare_split_model_directory,
     _read_blank_input_data,
     _resolve_split_solver,
-    _solver_verbosity_kwargs,
+    _run_split_model,
     _write_input_data_files,
-    _call_model_method,
     cl,
 )
 
@@ -285,7 +281,7 @@ def create_sut_split_input_data(
     instance,
     *,
     main_dir_path,
-    input_data_files_type: str = "xlsx",
+    input_data_files_type: str = "csv",
     model_dir_name: str = CVXLAB_SUT_SPLIT_MODEL_NAME,
     residue=None,
 ) -> Path:
@@ -314,7 +310,7 @@ def optimize_sut_split_in_cvxlab(
     instance,
     *,
     main_dir_path,
-    input_data_files_type: str = "xlsx",
+    input_data_files_type: str = "csv",
     solver=None,
     solver_parameters=None,
     model_dir_name: str = CVXLAB_SUT_SPLIT_MODEL_NAME,
@@ -335,32 +331,7 @@ def optimize_sut_split_in_cvxlab(
     _write_sut_input_data(instance, model=model, dest_dir=dest_dir, residue=residue)
     solver = _resolve_split_solver(solver, preferred=CVXLAB_SUT_PREFERRED_SOLVERS)
 
-    with _model_workdir(dest_dir):
-        if hasattr(model, "refresh_database_and_initialize_problem"):
-            model.refresh_database_and_initialize_problem(force_overwrite=True)
-        else:
-            _call_model_method(
-                model, "load_exogenous_data_to_sqlite_database", "_load_exogenous_data_to_sqlite_database",
-                force_overwrite=True,
-            )
-            _call_model_method(model, "initialize_problems", "_initialize_problems", force_overwrite=True)
-
-        run_kwargs = {**_solver_verbosity_kwargs(model), "integrated_problems": False}
-        if solver is not None:
-            run_kwargs["solver"] = solver
-        if solver_parameters is not None:
-            if "solver_settings" in inspect.signature(model.run_model).parameters:
-                if solver == "MOSEK":
-                    run_kwargs["mosek_params"] = solver_parameters
-                else:
-                    run_kwargs["solver_settings"] = solver_parameters
-
-        model.run_model(**run_kwargs)
-        if not _cvxlab_problem_solved_optimally(model.core.problem.problem_status):
-            raise WrongInput(
-                "CVXLab split optimization did not solve optimally. Check the generated model directory for details."
-            )
-        model.load_results_to_database(force_overwrite=True)
+    _run_split_model(model, dest_dir=dest_dir, solver=solver, solver_parameters=solver_parameters)
 
     return parse_sut_split_results(instance.sut_split_priors, dest_dir, residue=residue)
 

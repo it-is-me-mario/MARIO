@@ -45,7 +45,7 @@ def create_split_input_data(
     *,
     main_dir_path,
     scenario_label: str,
-    input_data_files_type: str = "xlsx",
+    input_data_files_type: str = "csv",
     model_dir_name: str = CVXLAB_SPLIT_MODEL_NAME,
     residue=None,
 ) -> Path:
@@ -85,7 +85,7 @@ def optimize_split_in_cvxlab(
     *,
     main_dir_path,
     scenario_label: str,
-    input_data_files_type: str = "xlsx",
+    input_data_files_type: str = "csv",
     solver=None,
     solver_parameters=None,
     model_dir_name: str = CVXLAB_SPLIT_MODEL_NAME,
@@ -97,6 +97,8 @@ def optimize_split_in_cvxlab(
         raise ModuleNotFoundError(
             "CVXLab is not installed. Install the 'cvxlab' package to use split=True."
         )
+    if input_data_files_type not in CVXLAB_INPUT_TYPES:
+        raise WrongInput("input_data_files_type should be either 'xlsx' or 'csv'.")
 
     _install_cvxlab_runtime_compat()
 
@@ -119,6 +121,15 @@ def optimize_split_in_cvxlab(
     )
 
     solver = _resolve_split_solver(solver)
+    _run_split_model(model, dest_dir=dest_dir, solver=solver, solver_parameters=solver_parameters)
+    return _parse_split_results(dest_dir, flat_matrices, residue=residue)
+
+
+def _run_split_model(model, *, dest_dir: Path, solver, solver_parameters) -> None:
+    """Load the input data, solve the CVXLab split model and store its results.
+
+    Shared by the IOT and SUT split bridges.
+    """
 
     with _model_workdir(dest_dir):
         if hasattr(model, "refresh_database_and_initialize_problem"):
@@ -137,20 +148,23 @@ def optimize_split_in_cvxlab(
                 force_overwrite=True,
             )
 
-        run_kwargs = {
-            **_solver_verbosity_kwargs(model),
-            "integrated_problems": False,
-        }
+        run_model_signature = inspect.signature(model.run_model).parameters
+        run_kwargs = _solver_verbosity_kwargs(model)
+        if "solution_mode" in run_model_signature:
+            run_kwargs["solution_mode"] = "parallel"
+        else:
+            run_kwargs["integrated_problems"] = False
         if solver is not None:
             run_kwargs["solver"] = solver
-        if solver_parameters is not None:
-            run_model_signature = inspect.signature(model.run_model).parameters
-            if "solver_settings" in run_model_signature:
-                if solver == "MOSEK":
-                    run_kwargs["mosek_params"] = solver_parameters
-                else:
-                    run_kwargs["solver_settings"] = solver_parameters
-            
+        if solver_parameters is not None and "solver_settings" in run_model_signature:
+            # CVXLab forwards solver_settings to cvxpy's solve(); MOSEK options
+            # must be nested under ``mosek_params``. A bare ``mosek_params``
+            # kwarg of run_model would be swallowed by **kwargs and ignored.
+            if str(solver).upper() == "MOSEK" and "mosek_params" not in solver_parameters:
+                run_kwargs["solver_settings"] = {"mosek_params": solver_parameters}
+            else:
+                run_kwargs["solver_settings"] = solver_parameters
+
         model.run_model(**run_kwargs)
 
         if not _cvxlab_problem_solved_optimally(model.core.problem.problem_status):
@@ -159,7 +173,6 @@ def optimize_split_in_cvxlab(
             )
 
         model.load_results_to_database(force_overwrite=True)
-    return _parse_split_results(dest_dir, flat_matrices, residue=residue)
 
 
 def _solver_verbosity_kwargs(model) -> dict:
@@ -1125,9 +1138,16 @@ def _write_input_data(
 def _cvxlab_input_storage(model) -> tuple[str, bool]:
     """Read input-file storage settings from the CVXLab model instance."""
 
-    settings = getattr(model, "settings", {})
-    file_extension = settings.get("input_data_files_type", "xlsx")
-    multiple_input_files = bool(settings.get("multiple_input_files", False))
+    settings = getattr(model, "settings", None)
+
+    def _setting(name, default):
+        # Older CVXLab builds expose a dict, recent ones a ModelSettings object.
+        if isinstance(settings, dict):
+            return settings.get(name, default)
+        return getattr(settings, name, default)
+
+    file_extension = _setting("input_data_files_type", "xlsx")
+    multiple_input_files = bool(_setting("multiple_input_files", False))
     return file_extension, multiple_input_files
 
 
