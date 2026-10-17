@@ -1,0 +1,70 @@
+CHECKPOINT — 17 ottobre 2026
+
+LAVORO SOSPESO SU RICHIESTA DELL'UTENTE. NON PUBBLICARE LA RELEASE.
+Nessun push, tag, GitHub Release o upload su PyPI e' stato eseguito.
+
+Ramo: fix/teaching-plotting
+Worktree: /private/tmp/MARIO-teaching-plotting
+Base: origin/main c64444f, MARIO 1.3.0.
+Versione candidata: 1.3.1, non pubblicata.
+Il primo commit dei tre interventi e' 79f539e.
+Questo checkpoint accompagna il commit aggiuntivo sugli alias.
+
+INTERVENTI SALVATI
+1. calc_ghg conserva i nomi degli indici di E/EY e delle unita'.
+2. Dopo aggregate le liste dei set conservano l'ordine della prima occorrenza.
+3. plot(show_totals=True, totals_format='.3s') mostra solo i totali delle
+   colonne impilate. Supporta filtri, top_n, facet e totali netti con segni;
+   non supporta animazioni o barre raggruppate/sovrapposte.
+4. get_block_spec risolve gli alias prima di cercare il catalogo canonico;
+   aggregate conserva i nomi attivi anche dopo upload_settings nello stesso
+   processo. L'estrazione delle SUT normalizza i nomi dei blocchi sorgente.
+   Caso utente: E -> R, EY -> Ry, F -> Re; errore originale:
+   No block specification is known for 'R'.
+
+VERIFICHE COMPLETATE
+- 203 test mirati superati, 1 saltato, per i primi tre interventi.
+- 515 test superati, 1 saltato, dopo i primi fix degli alias, inclusi i
+  roundtrip dei workbook reali.
+- Dopo l'ultima correzione SUT: 40 test superati (settings, ops, operatori
+  custom e GHG), incluso il caso alias IOT e SUT nello stesso processo.
+- La suite generale prima dei fix alias: 1142 passati, 4 saltati;
+  4 test Hybrid EXIOBASE non eseguiti con successo per dataset remoti assenti
+  e DNS vietato nel sandbox; 2 test server locale bloccati dal sandbox.
+  I 2 test del server sono poi passati fuori sandbox.
+- Rendering Kaleido verificato: un totale per colonna, nessuna etichetta sui
+  segmenti; PNG/SVG in /private/tmp/mario-teaching-preview/.
+- I pacchetti dei primi tre interventi hanno superato twine check --strict
+  e uno smoke test da wheel installato in una cartella temporanea.
+- Le impostazioni del worktree sono state ripristinate byte per byte.
+
+PACCHETTI DA RIGENERARE
+dist-before-alias-fixes/ contiene wheel e sorgenti 1.3.1 precedenti alle
+correzioni degli alias. NON SONO LA CANDIDATA FINALE E NON VANNO PUBBLICATI.
+
+DA RIPRENDERE
+1. Ripetere lo smoke test in un processo avviato con gli alias gia' attivi,
+   soprattutto SUT: il controllo precedente e' stato fatto prima dell'ultimo
+   fix di _extract_sut_split_from_unified. I test della versione finale nello
+   stesso processo passano gia'.
+2. Rigenerare wheel e sdist con impostazioni predefinite, poi twine check
+   --strict e smoke test del wheel finale (GHG, ordine, totali, alias).
+3. Coordinare la versione con l'altro worktree locale
+   /private/tmp/MARIO-release-1.3.1, ramo release/1.3.1-exiobase-3.11.2,
+   che contiene una preparazione separata dei fix ai download. Non e' stato
+   modificato da questo lavoro.
+4. Togliere questo file di checkpoint dai deliverable pubblici prima del
+   rilascio, conservandone localmente le informazioni utili.
+5. Pubblicare solo dopo nuova istruzione esplicita dell'utente.
+
+VINCOLI E CONTESTO
+- Non modificare i notebook della lezione: l'utente ci lavora personalmente.
+- La copia principale del repository, su feature/rex3-parser, contiene molte
+  modifiche utente non committate; non copiarle o ripristinarle in blocco.
+  La sua configurazione attiva E/R, EY/Ry, F/Re e' rimasta intatta.
+- La candidata parte da main e non include le modifiche sperimentali
+  Eurostat/Excel nella copia principale; verificarne l'integrazione prima di
+  sostituire l'ambiente usato per la lezione.
+- Il cambio del default IOT a DOM e' rimandato: non incluso.
+- Nessun ambiente MARIO attivo dell'utente e' stato aggiornato/installato.
+  Strumenti build/twine/kaleido solo in /private/tmp/mario-release-tools.

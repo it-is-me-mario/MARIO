@@ -5,6 +5,7 @@ import pytest
 import os
 import sys
 import yaml
+import pandas as pd
 from copy import deepcopy
 from mario.log_exc.exceptions import WrongFormat
 from tests._paths import MOCKS_ROOT
@@ -169,3 +170,42 @@ def test_upload_settings_rejects_blocked_nomenclature_names():
         assert "reserved built-in matrix name" in str(msg.value)
     finally:
         reset_settings()
+
+
+@pytest.mark.parametrize("table", ["IOT", "SUT"])
+def test_aggregation_preserves_renamed_environmental_blocks_after_settings_upload(table):
+    from mario import load_test
+
+    original = download_settings(None)
+    renamed = deepcopy(original)
+    renamed["nomenclature"].update({"E": "R", "EY": "Ry", "F": "Re"})
+    try:
+        upload_settings(renamed)
+        database = load_test(table)
+        extension_total = database.R.to_numpy().sum()
+        final_total = database.Ry.to_numpy().sum()
+        levels = ["Sector"] if table == "IOT" else ["Activity", "Commodity"]
+        mapping = {
+            level: pd.DataFrame({"Aggregation": "All " + level}, index=database.get_index(level))
+            for level in levels
+        }
+        if table == "SUT":
+            from mario.ops.aggregation_engine import _extract_sut_split_from_unified
+
+            extracted = _extract_sut_split_from_unified("Ea", "R", database.R)
+            assert extracted.to_numpy().sum() == pytest.approx(database.Ea.to_numpy().sum())
+
+        aggregated = database.aggregate(mapping, levels=levels, inplace=False)
+
+        for level in levels:
+            assert aggregated.get_index(level) == ["All " + level]
+        assert aggregated.R.to_numpy().sum() == pytest.approx(extension_total)
+        assert aggregated.Ry.to_numpy().sum() == pytest.approx(final_total)
+        assert aggregated.get_block_spec("R").row_axes == aggregated.get_block_spec("E").row_axes
+        assert "Ry" in aggregated["baseline"]
+        assert "EY" not in aggregated["baseline"]
+        if table == "IOT":
+            assert "R" in aggregated["baseline"] and "E" not in aggregated["baseline"]
+            assert aggregated.Re.to_numpy().sum() == pytest.approx(database.Re.to_numpy().sum())
+    finally:
+        upload_settings(original)

@@ -20,6 +20,16 @@ GHG accounts and aggregation
 * Aggregated set lists retain the first occurrence order in their aggregation
   mappings instead of passing through an unordered set. Reusing
   ``database.sectors`` in plot ``category_orders`` now gives a stable order.
+* Matrix block specifications resolve configured aliases back to their
+  canonical catalog entries. Aggregation no longer fails with
+  ``No block specification is known for 'R'`` when ``E`` is renamed to ``R``.
+* Aggregation stores its output using the active matrix nomenclature,
+  including when settings are changed in an existing Python session. Renamed
+  ``E``/``EY`` blocks remain accessible after aggregation instead of being
+  written back under stale names.
+* Split SUT aggregation resolves renamed unified source blocks before
+  building their ordering, avoiding invalid keyword arguments such as ``R``
+  when extracting native satellite blocks from the renamed ``E`` view.
 
 Stacked-bar totals
 ~~~~~~~~~~~~~~~~~

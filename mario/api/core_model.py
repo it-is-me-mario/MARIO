@@ -838,7 +838,8 @@ class CoreModel:
         Parameters
         ----------
         name:
-            Built-in or custom block name.
+            Built-in or custom block name. Configured aliases for built-in
+            matrices are resolved to their canonical catalog entries.
 
         Returns
         -------
@@ -851,11 +852,14 @@ class CoreModel:
         from mario.compute.semantics import axis_ref, block_spec
 
         spec = get_registered_block_spec(self, name)
+        canonical_name = _resolve_canonical_matrix_name(name)
+        if spec is None and canonical_name != name:
+            spec = get_registered_block_spec(self, canonical_name)
         if spec is not None:
             return spec
 
         try:
-            matrix_spec = get_matrix_spec(self.table_type, name)
+            matrix_spec = get_matrix_spec(self.table_type, canonical_name)
         except KeyError as exc:
             raise WrongInput(f"No block specification is known for {name!r}.") from exc
 
