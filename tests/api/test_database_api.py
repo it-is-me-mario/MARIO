@@ -3378,6 +3378,21 @@ def test_plot_preserves_legacy_positional_title_and_return_data():
     assert len(figure.data) == 1
 
 
+def test_plot_total_labels_sum_filtered_regions_with_only_mario_arguments():
+    database = load_test("IOT")
+    region = database.regions[0]
+    figure, plotted = database.plot(
+        matrix="E", x="Item_to", color="Region",
+        filters={"Region": [region]}, show_totals=True, totals_format=",.0f",
+        path=False, return_data=True,
+    )
+    bars = [trace for trace in figure.data if trace.type == "bar"]
+    labels = [trace for trace in figure.data if trace.type == "scatter"]
+    assert len(bars) == 1
+    assert len(labels) == 1
+    assert sum(labels[0].customdata) == pytest.approx(plotted.Value.sum())
+
+
 def test_plot_supports_sut_split_semantics():
     database = load_test("SUT")
 

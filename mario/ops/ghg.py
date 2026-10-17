@@ -542,9 +542,10 @@ def calc_ghg(
     extension_row = _ghg_row(target.E, gwp, label, match_mode=match_mode)
     final_demand_row = _ghg_row(target.EY, gwp, label, match_mode=match_mode)
 
-    extension = extension_row.to_frame().T
-    extension_fd = final_demand_row.to_frame().T
+    extension = extension_row.to_frame().T.rename_axis(target.E.index.name)
+    extension_fd = final_demand_row.to_frame().T.rename_axis(target.EY.index.name)
     unit_frame = pd.DataFrame({"unit": [resolved_unit]}, index=extension.index.copy())
+    unit_frame.index.name = target.units["Satellite account"].index.name
 
     target.add_extensions(
         io=extension,

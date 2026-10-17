@@ -520,6 +520,52 @@ def build_linkages_plot_frame(data, *, plot: str) -> pd.DataFrame:
     return pd.concat(frames, ignore_index=True)
 
 
+def _add_bar_totals(fig, *, barmode: str, totals_format: str):
+    """Label each visible stack once, keeping facet axes and category order."""
+    stacks = {}
+    for trace in fig.data:
+        if trace.type != "bar":
+            continue
+        orientation = trace.orientation or "v"
+        axes = (trace.xaxis or "x", trace.yaxis or "y", orientation)
+        columns = stacks.setdefault(axes, {})
+        categories, values = (trace.y, trace.x) if orientation == "h" else (trace.x, trace.y)
+        for category, value in zip(categories, values):
+            if not np.isfinite(value):
+                continue
+            column = columns.setdefault(
+                category, {"total": 0.0, "positive": 0.0, "negative": 0.0, "max": 0.0, "min": 0.0}
+            )
+            value = float(value)
+            column["total"] += value
+            column["positive"] += max(value, 0.0)
+            column["negative"] += min(value, 0.0)
+            column["max"] = max(column["max"], column["total"])
+            column["min"] = min(column["min"], column["total"])
+
+    fig.update_traces(text=None, texttemplate=None, selector={"type": "bar"})
+    for (xaxis, yaxis, orientation), columns in stacks.items():
+        positions, text_positions = [], []
+        for column in columns.values():
+            upper = column["positive"] if barmode == "relative" else column["max"]
+            lower = column["negative"] if barmode == "relative" else column["min"]
+            positive = upper > 0 or lower == 0
+            positions.append(upper if positive else lower)
+            if orientation == "h":
+                text_positions.append("middle right" if positive else "middle left")
+            else:
+                text_positions.append("top center" if positive else "bottom center")
+        fig.add_scatter(
+            x=positions if orientation == "h" else list(columns),
+            y=list(columns) if orientation == "h" else positions,
+            xaxis=xaxis, yaxis=yaxis, mode="text",
+            customdata=[column["total"] for column in columns.values()],
+            texttemplate="%{customdata:" + totals_format + "}",
+            textposition=text_positions, showlegend=False, hoverinfo="skip",
+            cliponaxis=False, name="Total",
+        )
+
+
 def plot_frame(
     data: pd.DataFrame,
     *,
@@ -552,6 +598,8 @@ def plot_frame(
     color_discrete_sequence=None,
     category_orders=None,
     return_data: bool = False,
+    show_totals: bool = False,
+    totals_format: str = ".3s",
     **kwargs,
 ):
     if data.empty:
@@ -566,6 +614,16 @@ def plot_frame(
         facet_col=facet_col,
         top_n=top_n,
     )
+
+    if show_totals:
+        if kind != "bar" or barmode not in {"relative", "stack"}:
+            raise WrongInput("show_totals requires a bar plot with barmode='relative' or 'stack'.")
+        if animation_frame is not None:
+            raise WrongInput("show_totals does not support animated bar plots.")
+        if not isinstance(totals_format, str) or not totals_format:
+            raise WrongInput("totals_format must be a non-empty Plotly/D3 number format string.")
+        text = None
+        kwargs.pop("text_auto", None)
 
     heatmap_y = kwargs.pop("heatmap_y", None)
     if kind == "heatmap":
@@ -738,6 +796,8 @@ def plot_frame(
         )
 
     fig.update_layout(**_normalize_layout(layout))
+    if show_totals:
+        _add_bar_totals(fig, barmode=barmode, totals_format=totals_format)
     if path is not None:
         _plotter(fig=fig, directory=path, auto_open=auto_open)
 

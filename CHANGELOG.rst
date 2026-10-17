@@ -5,6 +5,32 @@ Release History
 All notable changes to MARIO, newest first. Versions match the ``mariopy``
 package on PyPI, and dates are its publication dates.
 
+v1.3.1
+------
+
+*Unreleased.*
+
+GHG accounts and aggregation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* ``Database.calc_ghg`` preserves the existing row and column axis names of
+  ``E`` and ``EY``, as well as satellite-account unit index names. Plot filters
+  such as ``Item_from`` and sector mappings such as ``Item_to`` remain valid
+  after adding the GHG indicator.
+* Aggregated set lists retain the first occurrence order in their aggregation
+  mappings instead of passing through an unordered set. Reusing
+  ``database.sectors`` in plot ``category_orders`` now gives a stable order.
+
+Stacked-bar totals
+~~~~~~~~~~~~~~~~~
+
+* ``Database.plot`` adds the keyword-only ``show_totals=True`` option to show
+  one total label per stacked bar and suppress segment labels. Totals respect
+  filters, aggregation, ``top_n`` selection and facet panels. ``totals_format``
+  controls their Plotly/D3 number format (default ``".3s"``); signed stacks
+  display net totals. Animated, grouped and overlaid bars are not supported.
+  The default plotting behaviour is unchanged.
+
 v1.3.0
 ------
 

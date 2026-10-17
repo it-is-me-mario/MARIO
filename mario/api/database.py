@@ -4068,6 +4068,8 @@ class Database(CoreModel):
         *,
         log_color=False,
         color_clip=None,
+        show_totals=False,
+        totals_format=".3s",
         **kwargs,
     ):
         """Build one interactive plot from a matrix or a prepared dataframe.
@@ -4122,6 +4124,15 @@ class Database(CoreModel):
             Optional Plotly layout overrides.
         barmode:
             Bar stacking mode used for bar plots.
+        show_totals:
+            Show only one total label per stacked bar, summing the displayed
+            segments after filtering and aggregation. Supported for bar plots
+            with ``barmode='relative'`` or ``'stack'``, without animation.
+            Signed segments produce a net total label at the stack's outer
+            edge. Segment labels from ``text`` or ``text_auto`` are suppressed.
+        totals_format:
+            Plotly/D3 number format for total labels, for example ``'.3s'``
+            (compact, the default) or ``',.0f'`` (whole numbers).
         log_x, log_y:
             Whether to use logarithmic scaling.
         log_color:
@@ -4203,6 +4214,8 @@ class Database(CoreModel):
             log_y=log_y,
             log_color=log_color,
             color_clip=color_clip,
+            show_totals=show_totals,
+            totals_format=totals_format,
             title=resolved_title,
             return_data=return_data,
             **kwargs,

@@ -110,6 +110,38 @@ def test_calc_ghg_default_label_encodes_report_and_horizon():
     assert "GHG AR5 GWP-100" in database.get_index("Satellite account")
 
 
+@pytest.mark.parametrize("inplace", [True, False])
+@pytest.mark.parametrize("index_name", ["Item", "Satellite account"])
+def test_calc_ghg_preserves_axes_and_plot_filters(inplace, index_name):
+    database = _build_ghg_database()
+    database.E.index.name = index_name
+    database.EY.index.name = index_name
+    unit_name = database.units["Satellite account"].index.name
+    sector_names = database.E.columns.names
+    final_names = database.EY.columns.names
+
+    result = database.calc_ghg(profile="exiobase_monetary", inplace=inplace)
+    result = database if inplace else result
+
+    assert result.E.index.name == index_name
+    assert result.EY.index.name == index_name
+    assert result.units["Satellite account"].index.name == unit_name
+    assert result.E.columns.names == sector_names
+    assert result.EY.columns.names == final_names
+    if not inplace:
+        assert "GHG AR6 GWP-100" not in database.E.index
+
+    account_column = "Item_from" if index_name == "Item" else index_name
+    sector_column = "Item_to" if index_name == "Item" else "Item"
+    _, plotted = result.plot(
+        matrix="E", x=sector_column, color="Region",
+        filters={"Region": ["R1"], account_column: ["GHG AR6 GWP-100"]},
+        path=False, return_data=True,
+    )
+    assert plotted[sector_column].tolist() == ["s1", "s2"]
+    assert plotted.Value.tolist() == pytest.approx([226.9, 530.7])
+
+
 def test_calc_ghg_custom_gwp_default_label_is_plain_ghg():
     database = _build_ghg_database()
 

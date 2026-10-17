@@ -113,12 +113,12 @@ def _manage_indeces(instance, case, **kwargs):
     if case == "aggregation":
         for index in instance._indeces.keys():
             if "aggregated" in instance._indeces[index]:
-                main = {
+                main = delete_duplicates(
                     instance._indeces[index]["aggregated"].values[i][0]
                     for i in range(instance._indeces[index]["aggregated"].shape[0])
                     if instance._indeces[index]["aggregated"].values[i][0] != "unused"
-                }
-                instance._indeces[index] = {"main": list(main)}
+                )
+                instance._indeces[index] = {"main": main}
 
     elif case == "single_region":
         for key, value in kwargs.items():

@@ -102,6 +102,27 @@ def test_delete_duplicates():
     assert ut.delete_duplicates(pd.Index(['a','c','b','c','a'])) == ['a','c','b']
 
 
+@pytest.mark.parametrize("table", ["IOT", "SUT"])
+def test_aggregate_preserves_first_occurrence_order_of_sets(table):
+    database = load_test(table)
+    mappings = {}
+    expected = {}
+    for level in database.sets:
+        labels = database.get_index(level)
+        # Non-alphabetical targets, with duplicates when there are >2 items.
+        targets = ["Second group" if i % 2 == 0 else "First group" for i in range(len(labels))]
+        if level == "Satellite account":
+            continue  # These accounts can have incompatible units.
+        mappings[level] = pd.DataFrame({"Aggregation": targets}, index=labels)
+        expected[level] = ["Second group", "First group"][:min(2, len(labels))]
+
+    aggregated = database.aggregate(mappings, levels=list(mappings), inplace=False)
+
+    for level, order in expected.items():
+        assert aggregated.get_index(level) == order
+    assert aggregated.Z.to_numpy().sum() == pytest.approx(database.Z.to_numpy().sum())
+
+
 def test_return_index():
 
     index   = pd.Index(['row1','row2'])
