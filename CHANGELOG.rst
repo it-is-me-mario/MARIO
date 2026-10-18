@@ -53,6 +53,10 @@ GHG accounts and aggregation
   the current matrix names after ``upload_settings`` in the same session.
   Renamed ``E`` and ``EY`` remain available for subsequent aggregation,
   avoiding a false missing-data cycle between ``E`` and ``e``.
+* Eurostat IOT and SUT parsers label their three-level axes as
+  ``Region``, ``Level`` and ``Item``. Sector aggregation now reduces the
+  numeric matrices as requested, and plots expose ``Sector_from`` and
+  ``Sector_to`` instead of anonymous ``row_1``/``column_1`` fields.
 
 Stacked-bar totals
 ~~~~~~~~~~~~~~~~~

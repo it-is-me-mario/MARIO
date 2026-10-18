@@ -273,7 +273,8 @@ def _three_level_index(country: str, level_label: str, items: list[str]) -> pd.M
             [country] * len(items),
             [level_label] * len(items),
             items,
-        ]
+        ],
+        names=[_MASTER_INDEX["r"], "Level", "Item"],
     )
 
 

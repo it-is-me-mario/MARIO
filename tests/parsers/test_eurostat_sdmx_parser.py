@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from mario import parse_eurostat
+from mario import Database, parse_eurostat
 from mario.log_exc.exceptions import WrongInput
 from mario.model.conventions import _MASTER_INDEX
 from mario.parsers.eurostat_sdmx import (
@@ -509,3 +509,66 @@ def test_parse_eurostat_uses_local_raw_files_when_path_is_provided(tmp_path, mon
     assert database.table_type == "SUT"
     assert database.meta.year == 2017
     assert database.get_index(_MASTER_INDEX["r"]) == ["IT"]
+
+
+@pytest.mark.parametrize("mode", ["product", "industry"])
+@pytest.mark.parametrize("aggregate", [False, True])
+def test_eurostat_iot_named_sector_heatmap_and_aggregation(mode, aggregate):
+    raw = _iot_product_frame()
+    if mode == "industry":
+        raw = raw.rename(columns={"prd_ava": "ind_ava", "prd_use": "ind_use"})
+        for column in ("ind_ava", "ind_use"):
+            raw[column] = raw[column].str.removeprefix("CPA_")
+    matrices, indexes, units, _ = build_eurostat_iot_from_frame(
+        raw, country="IT", year=2015, unit="MIO_EUR", mode=mode,
+    )
+    database = Database(table="IOT", init_by_parsers={
+        "matrices": matrices, "_indeces": indexes, "units": units,
+    }, calc_all=False)
+    total = database.Z.to_numpy().sum()
+    if aggregate:
+        sectors = database.sectors
+        labels = ["Primary" if i < 2 else "Other" for i in range(len(sectors))]
+        mapping = pd.DataFrame({"Aggregation": labels}, index=sectors)
+        expected = [[
+            database.Z.loc[
+                database.Z.index.get_level_values(2).map(mapping.Aggregation) == row,
+                database.Z.columns.get_level_values(2).map(mapping.Aggregation) == column,
+            ].to_numpy().sum()
+            for column in ("Primary", "Other")
+        ] for row in ("Primary", "Other")]
+        database.aggregate({"Sector": mapping}, levels="Sector")
+        assert database.Z.shape == (2, 2)
+        pd.testing.assert_frame_equal(
+            database.Z, pd.DataFrame(expected, index=database.Z.index, columns=database.Z.columns),
+        )
+    assert database.Z.to_numpy().sum() == pytest.approx(total)
+    figure = database.plot(
+        matrix="Z", preset="heatmap", x="Sector_to", color="Sector_from",
+        heatmap_y="Sector_from",
+        category_orders={"Sector_from": database.sectors, "Sector_to": database.sectors},
+        path=False,
+    )
+    assert list(figure.data[0].x) == database.sectors
+    assert list(figure.data[0].y) == database.sectors
+    assert figure.data[0].z.shape == database.Z.shape
+
+
+def test_eurostat_sut_aggregation_reduces_both_productive_axes():
+    matrices, indexes, units, _ = build_eurostat_sut_from_frames(
+        _supply_frame(), _use_frame(), country="IT", year=2017, unit="MIO_EUR",
+    )
+    database = Database(table="SUT", init_by_parsers={
+        "matrices": matrices, "_indeces": indexes, "units": units,
+    }, calc_all=False)
+    totals = {name: database.query(name).to_numpy().sum() for name in ("S", "U", "Yc", "Va")}
+    levels = ["Activity", "Commodity"]
+    mapping = {
+        level: pd.DataFrame({"Aggregation": "All " + level}, index=database.get_index(level))
+        for level in levels
+    }
+    database.aggregate(mapping, levels=levels)
+    assert database.S.shape == (1, 1)
+    assert database.U.shape == (1, 1)
+    for name, total in totals.items():
+        assert database.query(name).to_numpy().sum() == pytest.approx(total)
