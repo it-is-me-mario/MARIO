@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 
 from mario.model.enums import TableKind
-from mario.settings.settings import Index, Nomenclature
+from mario.settings.settings import Index, CanonicalNomenclature
 
 ITEM_LABEL = "Item"
 PRODUCTION_LABEL = "production"
@@ -22,8 +22,8 @@ def _index_labels() -> dict[str, str]:
 
 @lru_cache(maxsize=1)
 def _matrix_labels() -> dict[str, str]:
-    """Load configured matrix labels once and cache them for reuse."""
-    return dict(Nomenclature().items())
+    """Return stable matrix IDs used by schemas and internal state."""
+    return dict(CanonicalNomenclature().items())
 
 
 INDEX_LABELS = _index_labels()
@@ -65,7 +65,7 @@ def level_name(code: str) -> str:
 
 
 def matrix_name(code: str) -> str:
-    """Translate a matrix code into its configured display label."""
+    """Return the canonical matrix ID used by internal schemas."""
     return MATRIX_LABELS[code]
 
 

@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from mario.settings.settings import Index, Nomenclature
+from mario.settings.settings import Index, CanonicalNomenclature
 
 
 _MASTER_INDEX = Index()
-_ENUM = Nomenclature()
+_ENUM = CanonicalNomenclature()
 
 SUT = "SUT"
 IOT = "IOT"

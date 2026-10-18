@@ -2,21 +2,19 @@
 
 import copy
 import yaml
-from mario.log_exc.logger import log_time
-import logging
+import math
 import os
-import shutil
+from numbers import Real
+from types import MappingProxyType
 from mario.log_exc.exceptions import WrongFormat
-import importlib
 
-logger = logging.getLogger(__name__)
 path = os.path.abspath(
     os.path.join(
         os.path.dirname(__file__),
     )
 )
 
-_SETTINGS_FILE_CACHE = {}
+_ACTIVE_SETTINGS = None
 
 CANONICAL_INDEX = {
     "r": "Region",
@@ -97,12 +95,16 @@ DEFAULT_NOMENCLATURE = {
 }
 
 DEFAULT_COMPUTE = {
-    "compute_method": "auto",
+    "compute_method": "inverse",
     "linear_solver": "scipy",
     "linear_strategy": "auto",
     "auto_w_memory_fraction": 0.25,
     "auto_w_overhead_factor": 3.0,
 }
+
+COMPUTE_METHODS = {"auto", "inverse", "solve"}
+LINEAR_SOLVERS = {"scipy"}
+LINEAR_STRATEGIES = {"auto", "direct", "iterative"}
 
 
 def _as_alias_list(value):
@@ -173,7 +175,9 @@ def _validate_nomenclature_payload(nomenclature):
     seen = {}
 
     for canonical, configured in nomenclature.items():
-        token = str(configured).strip()
+        if not isinstance(configured, str):
+            raise WrongFormat(f"The nomenclature label for {canonical!r} must be a string.")
+        token = configured.strip()
 
         if not token:
             raise WrongFormat(
@@ -193,20 +197,57 @@ def _validate_nomenclature_payload(nomenclature):
             )
 
         seen[token] = canonical
+        nomenclature[canonical] = token
+
+
+def _validate_compute_payload(compute):
+    """Validate session defaults before replacing any active settings."""
+    for key, choices in (
+        ("compute_method", COMPUTE_METHODS),
+        ("linear_solver", LINEAR_SOLVERS),
+        ("linear_strategy", LINEAR_STRATEGIES),
+    ):
+        value = compute[key]
+        if not isinstance(value, str) or value.strip().lower() not in choices:
+            raise WrongFormat(f"Invalid {key}: {value!r}. Expected one of {sorted(choices)}.")
+        compute[key] = value.strip().lower()
+    for key in ("auto_w_memory_fraction", "auto_w_overhead_factor"):
+        value = compute[key]
+        if isinstance(value, bool) or not isinstance(value, Real) or not math.isfinite(value) or value <= 0:
+            raise WrongFormat(f"{key} must be a finite positive number.")
+        if key == "auto_w_memory_fraction" and value > 1:
+            raise WrongFormat("auto_w_memory_fraction must be at most 1.")
+        compute[key] = float(value)
 
 
 def _normalize_settings_payload(raw_settings):
     """Return a settings payload with canonical index labels and explicit aliases."""
-    settings = copy.deepcopy(raw_settings or {})
+    settings = copy.deepcopy(raw_settings)
     if not isinstance(settings, dict):
-        settings = {}
+        raise WrongFormat("Settings must be a dictionary of configuration sections.")
 
     normalized = _default_settings_payload()
-    if isinstance(settings.get("nomenclature"), dict):
+    for section, values in settings.items():
+        if section not in normalized:
+            raise WrongFormat(f"Unknown settings section: {section!r}.")
+        if not isinstance(values, dict):
+            raise WrongFormat(f"Settings section {section!r} must be a dictionary.")
+        unknown = set(values).difference(normalized[section])
+        if unknown:
+            raise WrongFormat(f"Unknown keys in {section!r}: {sorted(unknown, key=str)}.")
+    for section in ("index", "index_aliases"):
+        for code, values in settings.get(section, {}).items():
+            aliases = [values] if isinstance(values, str) else values
+            if not isinstance(aliases, (list, tuple)) or any(
+                not isinstance(value, str) or not value.strip() for value in aliases
+            ):
+                raise WrongFormat(f"{section}.{code} must contain nonempty string aliases.")
+    if "nomenclature" in settings:
         normalized["nomenclature"].update(settings["nomenclature"])
     _validate_nomenclature_payload(normalized["nomenclature"])
-    if isinstance(settings.get("compute"), dict):
+    if "compute" in settings:
         normalized["compute"].update(settings["compute"])
+    _validate_compute_payload(normalized["compute"])
     normalized["index_aliases"] = _normalize_index_aliases(
         raw_aliases=settings.get("index_aliases"),
         legacy_index=settings.get("index"),
@@ -214,33 +255,28 @@ def _normalize_settings_payload(raw_settings):
     return normalized
 
 
-def _load_settings_file(path_to_yaml, *, key=None):
-    """Read and normalize one settings YAML file, optionally returning one section."""
-    absolute_path = os.path.abspath(path_to_yaml)
-    stat = os.stat(absolute_path)
-    signature = (stat.st_mtime_ns, stat.st_size)
-    cached = _SETTINGS_FILE_CACHE.get(absolute_path)
-    if cached is not None and cached[0] == signature:
-        payload = cached[1]
-        if key is None:
-            return copy.deepcopy(payload)
-        return copy.deepcopy(payload[key])
-
-    with open(absolute_path, "r") as yml_file:
-        file = yaml.safe_load(yml_file)
-    normalized = _normalize_settings_payload(file)
-    _SETTINGS_FILE_CACHE[absolute_path] = (signature, copy.deepcopy(normalized))
-    if key is None:
-        return copy.deepcopy(normalized)
-    return copy.deepcopy(normalized[key])
+def _active_settings():
+    """Return process-local settings, starting from built-in defaults."""
+    global _ACTIVE_SETTINGS
+    if _ACTIVE_SETTINGS is None:
+        _ACTIVE_SETTINGS = _default_settings_payload()
+    return _ACTIVE_SETTINGS
 
 
-def _clear_settings_file_cache(path_to_yaml=None):
-    """Drop cached normalized settings for one path or for every path."""
-    if path_to_yaml is None:
-        _SETTINGS_FILE_CACHE.clear()
-        return
-    _SETTINGS_FILE_CACHE.pop(os.path.abspath(path_to_yaml), None)
+def canonical_matrix_name(name):
+    """Translate a public alias at the API boundary; canonical IDs stay valid."""
+    if name in DEFAULT_NOMENCLATURE:
+        return name
+    for canonical, alias in _active_settings()["nomenclature"].items():
+        if name == alias:
+            return canonical
+    return name
+
+
+def public_matrix_name(name):
+    """Return the current display alias without changing stored matrix keys."""
+    canonical = canonical_matrix_name(name)
+    return _active_settings()["nomenclature"].get(canonical, canonical)
 
 
 class Setting:
@@ -251,32 +287,9 @@ class Setting:
         self.setting = self._validate_dict(self.key, self.vars)
         self._check_duplicates()
 
-    def _read_yaml(self, path, *, key=None):
-        """Read a YAML file from disk and return its parsed object."""
-        return _load_settings_file(path, key=key)
-
     def _validate_dict(self, key, vars):
-        """Load the requested settings section, falling back to packaged defaults."""
-        try:
-            setting = self._read_yaml(f"{path}/settings.yaml", key=key)
-        except Exception:
-            log_time(
-                logger=logger,
-                level="warning",
-                comment=f"The user settings could not be read for {key}, so the packaged MARIO defaults are used.",
-            )
-            return _default_settings_payload()[key]
-
-        if set(setting) == set(vars):
-            return setting
-
-        log_time(
-            logger=logger,
-            level="warning",
-            comment=f"The user settings is not correctly built for {key}, so the packaged MARIO defaults are used.",
-        )
-
-        return _default_settings_payload()[key]
+        """Return a snapshot of an already validated session settings section."""
+        return copy.deepcopy(_active_settings()[key])
 
     def __getitem__(self, var):
         """Return one configured value by key."""
@@ -385,6 +398,14 @@ class Nomenclature(Setting):
         super().__init__()
 
 
+class CanonicalNomenclature(Nomenclature):
+    """Immutable internal matrix IDs, independent of public session aliases."""
+
+    def __init__(self):
+        self.key = "nomenclature"
+        self.setting = MappingProxyType(DEFAULT_NOMENCLATURE.copy())
+
+
 class Compute(Setting):
     """Expose runtime compute defaults used by MARIO numerical backends."""
 
@@ -406,7 +427,7 @@ class Compute(Setting):
 
 
 def download_settings(destination_path=None):
-    """Return the current MARIO settings dictionary.
+    """Return a copy of the current session settings, optionally exporting YAML.
 
     Parameters
     -----------
@@ -419,19 +440,21 @@ def download_settings(destination_path=None):
         config dict
     """
 
+    settings = copy.deepcopy(_active_settings())
     if destination_path is not None:
-        shutil.copyfile(
-            src=f"{path}/settings.yaml", dst=f"{destination_path}/settings.yaml"
-        )
-        normalized = _load_settings_file(f"{path}/settings.yaml")
-        with open(f"{destination_path}/settings.yaml", "w") as yaml_file:
-            yaml.dump(normalized, yaml_file, default_flow_style=False, sort_keys=False)
-
-    return _load_settings_file(f"{path}/settings.yaml")
+        with open(os.path.join(destination_path, "settings.yaml"), "w") as yaml_file:
+            yaml.safe_dump(settings, yaml_file, default_flow_style=False, sort_keys=False)
+    return settings
 
 
 def upload_settings(source):
-    """Replace the active MARIO settings with a custom configuration.
+    """Replace settings for this Python process without modifying the package.
+
+    Settings are shared by databases in the current process. New processes
+    start with built-in defaults. Export with :func:`download_settings` and
+    explicitly upload that YAML file to reuse settings in another session.
+    Matrix aliases can change after loading a database: stored matrix IDs
+    remain canonical and their data is not renamed or rewritten.
 
     Parameteres
     -----------
@@ -439,6 +462,9 @@ def upload_settings(source):
         the path to the custom yaml file or the config dict should be passed
     """
 
+    global _ACTIVE_SETTINGS
+    if isinstance(source, os.PathLike):
+        source = os.fspath(source)
     if isinstance(source, str):
         if not source.endswith(".yaml"):
             raise WrongFormat("only yaml file is acceptable.")
@@ -451,28 +477,11 @@ def upload_settings(source):
     else:
         raise WrongFormat("Only dict or a yaml file directory can be passed")
 
-    payload = _normalize_settings_payload(payload)
-
-    settings_path = os.path.abspath(f"{path}/settings.yaml")
-
-    with open(settings_path, "w") as yaml_file:
-        yaml.dump(payload, yaml_file, default_flow_style=False, sort_keys=False)
-    _clear_settings_file_cache(settings_path)
-    stat = os.stat(settings_path)
-    _SETTINGS_FILE_CACHE[settings_path] = (
-        (stat.st_mtime_ns, stat.st_size),
-        copy.deepcopy(payload),
-    )
-
-    import mario.model.conventions as conventions
-    import mario.model.labels as labels
-
-    importlib.reload(conventions)
-    importlib.reload(labels)
+    _ACTIVE_SETTINGS = _normalize_settings_payload(payload)
 
 
 def reset_settings():
-    """Restore the packaged default settings."""
+    """Restore built-in defaults in this session, leaving stored matrices intact."""
     upload_settings(_default_settings_payload())
 
 

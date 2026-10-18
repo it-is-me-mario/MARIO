@@ -4090,6 +4090,7 @@ class Database(CoreModel):
         ----------
         matrix:
             Matrix name to resolve, flatten and plot.
+            Canonical names and their configured aliases are both accepted.
         data:
             Optional already-flat dataframe. Use this for custom derived views.
         scenarios:

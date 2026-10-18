@@ -12,7 +12,8 @@ from mario.compute.helpers import _is_sparse_backed_dataframe, sum_columns
 from mario.internal.access import block_to_matrix, block_to_pandas, block_to_table
 from mario.model.assumptions import resolve_tech_assumption
 from mario.parsers.tabular import dataframe_parser
-from mario.settings.settings import IndexAliases, Nomenclature
+from mario.settings.settings import IndexAliases, canonical_matrix_name, public_matrix_name
+from mario.model.matrix_store import ScenarioMatrices
 from mario.model.conventions import TABLE_LEVELS
 from tabulate import tabulate
 from collections import namedtuple
@@ -134,39 +135,19 @@ def _normalize_requested_matrices(matrices) -> list[str]:
     return list(matrices)
 
 
-def _matrix_nomenclature() -> Nomenclature:
-    """Return the current matrix nomenclature from live settings."""
-    return Nomenclature()
-
-
 def _resolve_canonical_matrix_name(name: str) -> str:
     """Resolve one public or canonical matrix token to its canonical name."""
-    token = str(name)
-    nomenclature = _matrix_nomenclature()
-    if token in nomenclature.setting:
-        return token
-
-    try:
-        return nomenclature.reverse(token)
-    except KeyError:
-        return token
+    return canonical_matrix_name(str(name))
 
 
 def _resolve_storage_matrix_name(name: str) -> str:
-    """Resolve one matrix token to the stored public name used by datasets."""
-    canonical = _resolve_canonical_matrix_name(name)
-    nomenclature = _matrix_nomenclature()
-    if canonical in nomenclature.setting:
-        return nomenclature[canonical]
-    return str(name)
+    """Resolve one public matrix token to its stable canonical storage ID."""
+    return _resolve_canonical_matrix_name(name)
 
 
 def _normalize_parsed_matrix_name(name: str) -> str:
-    """Map parser block names through MARIO nomenclature when available."""
-    try:
-        return _matrix_nomenclature()[name]
-    except Exception:
-        return name
+    """Normalize parser block names to canonical storage IDs."""
+    return _resolve_canonical_matrix_name(name)
 
 
 _SUT_ORDERING_BLOCK_NAMES = (
@@ -347,6 +328,15 @@ class _ResolvedSetDict(MutableMapping):
 
 class CoreModel:
     """Base class for MARIO database objects."""
+
+    @property
+    def matrices(self):
+        """Scenario mappings with canonical keys and current-alias lookup."""
+        return self._matrices
+
+    @matrices.setter
+    def matrices(self, value):
+        self._matrices = ScenarioMatrices(value)
 
     def __init__(
         self,
@@ -620,7 +610,7 @@ class CoreModel:
         )
 
         available = {
-            _resolve_storage_matrix_name(name)
+            public_matrix_name(name)
             for name in available_matrices(self.table_type)
         }
         available.update(list_registered_operator_names(self))
@@ -3973,7 +3963,10 @@ class CoreModel:
 
     def __setstate__(self, value):
         """Restore the instance state after pickle deserialization."""
-        self.__dict__ = value
+        state = value.copy()
+        matrices = state.pop("matrices", state.pop("_matrices", {}))
+        self.__dict__ = state
+        self.matrices = matrices
 
     def __eq__(self, other):
         """Return ``True`` when two databases expose the same sets and indexes."""

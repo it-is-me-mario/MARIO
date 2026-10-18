@@ -8,11 +8,7 @@ from enum import Enum
 import os
 
 from mario.log_exc.exceptions import WrongInput
-from mario.settings.settings import Compute
-
-COMPUTE_METHODS = {"auto", "inverse", "solve"}
-LINEAR_SOLVERS = {"scipy"}
-LINEAR_STRATEGIES = {"auto", "direct", "iterative"}
+from mario.settings.settings import Compute, COMPUTE_METHODS, LINEAR_SOLVERS, LINEAR_STRATEGIES
 SOLVE_PREFERRED_IOT_TARGETS = frozenset({"w", "X", "m", "M", "f", "F", "p"})
 SOLVE_PREFERRED_SUT_TARGETS = frozenset({"wcc", "wca", "wac", "waa", "Xc", "ma", "mc", "fa", "fc", "pa", "pc"})
 AUTO_ITERATIVE_RHS_THRESHOLD = 8

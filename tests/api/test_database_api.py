@@ -3,6 +3,7 @@ from copy import deepcopy
 
 import mario
 import mario.parsers as public_parsers
+import numpy as np
 import pandas as pd
 import pandas.testing as pdt
 import pytest
@@ -1958,6 +1959,15 @@ def test_custom_matrix_nomenclature_aliases_work_in_runtime_api():
         pdt.assert_frame_equal(database.L, database.w)
         assert "A" in database.available_matrices()
         assert "L" in database.available_matrices()
+        for canonical, alias in (("z", "A"), ("w", "L")):
+            canonical_figure, canonical_data = database.plot(
+                matrix=canonical, preset="heatmap", path=False, return_data=True,
+            )
+            alias_figure, alias_data = database.plot(
+                matrix=alias, preset="heatmap", path=False, return_data=True,
+            )
+            pdt.assert_frame_equal(canonical_data, alias_data)
+            np.testing.assert_allclose(canonical_figure.data[0].z, alias_figure.data[0].z)
     finally:
         upload_settings(original)
 

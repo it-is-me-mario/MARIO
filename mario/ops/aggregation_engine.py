@@ -43,7 +43,7 @@ from mario.compute.views import (
 from mario.log_exc.exceptions import WrongInput
 from mario.log_exc.logger import log_time
 from mario.model.conventions import _ENUM, _MASTER_INDEX
-from mario.settings.settings import Nomenclature
+from mario.settings.settings import canonical_matrix_name
 from mario.utils import delete_duplicates
 
 logger = logging.getLogger(__name__)
@@ -260,9 +260,7 @@ def _scenario_block(
 def _extract_sut_split_from_unified(matrix_name: str, source_name: str, source_block: pd.DataFrame):
     """Extract one split SUT block from a materialized unified source block."""
     _, extractor = _SUT_SPLIT_FROM_UNIFIED[matrix_name]
-    nomenclature = Nomenclature()
-    if source_name not in nomenclature.setting:
-        source_name = nomenclature.reverse(source_name)
+    source_name = canonical_matrix_name(source_name)
     ordering = SUTUnifiedOrderingPolicy.from_blocks(**{source_name: source_block})
     return extractor(source_block, ordering)
 

@@ -112,7 +112,8 @@ def test_calc_ghg_default_label_encodes_report_and_horizon():
 
 
 @pytest.mark.parametrize("inplace", [True, False])
-def test_calc_ghg_and_plot_accept_renamed_flow_and_coefficient_matrices(inplace):
+@pytest.mark.parametrize("canonical,alias", [("E", "R"), ("EY", "Ry"), ("F", "Re")])
+def test_calc_ghg_and_plot_accept_renamed_flow_and_coefficient_matrices(inplace, canonical, alias):
     original = download_settings(None)
     custom = download_settings(None)
     custom["nomenclature"].update({
@@ -130,17 +131,22 @@ def test_calc_ghg_and_plot_accept_renamed_flow_and_coefficient_matrices(inplace)
         assert target.Ry.index.name == name
         assert target.R.loc["GHG AR6 GWP-100"].tolist() == pytest.approx([226.9, 530.7])
         assert "GHG AR6 GWP-100" in target.rho.index
-        assert {"R", "Ry"} <= set(target["baseline"])
+        assert {"E", "EY"} <= set(target["baseline"])
         if not inplace:
             assert "GHG AR6 GWP-100" not in database.R.index
 
-        figure, values = target.plot(
-            matrix="R", x="Item_to", color="Region",
-            filters={"Item_from": ["GHG AR6 GWP-100"]},
-            show_totals=True, path=False, return_data=True,
-        )
-        totals = [trace for trace in figure.data if trace.type == "scatter"]
-        assert sum(totals[0].customdata) == pytest.approx(values.Value.sum())
+        plotted = []
+        for matrix in (canonical, alias):
+            figure, values = target.plot(
+                matrix=matrix, x="Item_to", color="Region",
+                filters={"Item_from": ["GHG AR6 GWP-100"]},
+                show_totals=True, path=False, return_data=True,
+            )
+            totals = [trace for trace in figure.data if trace.type == "scatter"]
+            assert sum(totals[0].customdata) == pytest.approx(values.Value.sum())
+            assert values.Value.sum() == pytest.approx(target.query(canonical).loc["GHG AR6 GWP-100"].sum())
+            plotted.append(values)
+        pdt.assert_frame_equal(plotted[0], plotted[1])
     finally:
         upload_settings(original)
 

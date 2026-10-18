@@ -454,15 +454,13 @@ def build_matrix_plot_frame(
     item: str | None = None,
 ) -> pd.DataFrame:
     scenarios = _normalize_scenarios(scenarios)
-    if matrix not in database.available_matrices():
-        raise WrongInput(f"'{matrix}' is not a valid matrix. Available matrices are: {database.available_matrices()}")
-
     missing = set(scenarios).difference(database.scenarios)
     if missing:
         raise WrongInput(
             f"Scenarios {sorted(missing)} do not exist in the database. Existing scenarios are: {database.scenarios}"
         )
 
+    # Use query's matrix validation, which accepts canonical names and aliases.
     queried = database.query(
         matrices=[matrix],
         scenarios=scenarios,

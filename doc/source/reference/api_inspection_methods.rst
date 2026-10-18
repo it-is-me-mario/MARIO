@@ -20,6 +20,7 @@ Query and Block Access
    ../api_document/mario.CoreModel.has_block
    ../api_document/mario.CoreModel.has_matrix
    ../api_document/mario.CoreModel.list_matrices
+   ../api_document/mario.CoreModel.matrices
    ../api_document/mario.CoreModel.available_matrices
    ../api_document/mario.CoreModel.available_blocks
    ../api_document/mario.Database.DataFrame

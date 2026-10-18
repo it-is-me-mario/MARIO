@@ -10,6 +10,25 @@ v1.3.1
 
 *Unreleased.*
 
+Session settings and matrix aliases
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Settings now apply only to the current Python process. ``upload_settings``,
+  ``reset_settings`` and the compute-setting helpers no longer rewrite the
+  installed package. New kernels start with built-in defaults; reuse a
+  configuration by exporting it with ``download_settings(directory)`` and
+  explicitly loading the resulting YAML file in the next session.
+* Internal matrix identifiers remain canonical (``E``, ``EY``, ``F``, etc.).
+  Configured names such as ``R``, ``Ry`` and ``Re`` are resolved at the API
+  boundary. Changing or resetting settings after loading a database therefore
+  preserves its matrices, including through aggregation, scenario resets,
+  region extraction, copying and SUT-to-IOT conversion.
+* Invalid settings are rejected before changing the active configuration,
+  including unknown keys, non-string matrix labels, duplicate or reserved
+  names and invalid compute options. Surrounding whitespace is normalized.
+* Resetting settings restores the same ``inverse`` compute default used by a
+  fresh installation, instead of unexpectedly switching it to ``auto``.
+
 EXIOBASE downloads
 ~~~~~~~~~~~~~~~~~~
 
@@ -38,10 +57,8 @@ GHG accounts and aggregation
 * Matrix block specifications resolve configured aliases back to their
   canonical catalog entries. Aggregation no longer fails with
   ``No block specification is known for 'R'`` when ``E`` is renamed to ``R``.
-* Aggregation stores its output using the active matrix nomenclature,
-  including when settings are changed in an existing Python session. Renamed
-  ``E``/``EY`` blocks remain accessible after aggregation instead of being
-  written back under stale names.
+* Aggregation preserves canonical matrix keys and access through active
+  aliases, including when settings change in an existing Python session.
 * Split SUT aggregation resolves renamed unified source blocks before
   building their ordering, avoiding invalid keyword arguments such as ``R``
   when extracting native satellite blocks from the renamed ``E`` view.
@@ -49,14 +66,17 @@ GHG accounts and aggregation
   names consistently, including renamed ``E``, ``EY``, ``e``, ``V`` and ``v``.
   Adding the GHG indicator no longer rejects ``E`` when the active name is
   ``R`` or loses the renamed final-demand block.
-* ``to_single_region`` and ``to_region_subset`` store their results using
-  the current matrix names after ``upload_settings`` in the same session.
-  Renamed ``E`` and ``EY`` remain available for subsequent aggregation,
+* ``to_single_region`` and ``to_region_subset`` preserve access through
+  the current matrix aliases after ``upload_settings`` in the same session.
+  ``E`` and ``EY`` remain available for subsequent aggregation,
   avoiding a false missing-data cycle between ``E`` and ``e``.
 * Eurostat IOT and SUT parsers label their three-level axes as
   ``Region``, ``Level`` and ``Item``. Sector aggregation now reduces the
   numeric matrices as requested, and plots expose ``Sector_from`` and
   ``Sector_to`` instead of anonymous ``row_1``/``column_1`` fields.
+* ``Database.plot`` uses the same matrix-name validation as ``query``.
+  Both canonical names and configured aliases are accepted, such as
+  ``E``/``R``, ``F``/``Re`` and ``z``/``A``.
 
 Stacked-bar totals
 ~~~~~~~~~~~~~~~~~
