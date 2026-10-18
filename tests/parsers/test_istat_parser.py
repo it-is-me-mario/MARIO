@@ -292,6 +292,7 @@ def test_public_parse_istat_can_download_release(monkeypatch, tmp_path):
             self.text = text or ""
             self._content = content or b""
             self.status_code = 200
+            self.headers = {}
 
         def raise_for_status(self):
             return None

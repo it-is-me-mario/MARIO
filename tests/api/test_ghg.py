@@ -4,6 +4,7 @@ import pytest
 
 from mario.api import Database
 from mario.model.conventions import _MASTER_INDEX
+from mario.settings.settings import download_settings, upload_settings
 
 
 def _build_ghg_database():
@@ -108,6 +109,40 @@ def test_calc_ghg_default_label_encodes_report_and_horizon():
     database.calc_ghg(profile="exiobase_monetary", ipcc_report="ar5", time_horizon=100)
 
     assert "GHG AR5 GWP-100" in database.get_index("Satellite account")
+
+
+@pytest.mark.parametrize("inplace", [True, False])
+def test_calc_ghg_and_plot_accept_renamed_flow_and_coefficient_matrices(inplace):
+    original = download_settings(None)
+    custom = download_settings(None)
+    custom["nomenclature"].update({
+        "E": "R", "EY": "Ry", "e": "rho", "F": "Re",
+        "V": "Primary inputs", "v": "Primary coefficients",
+    })
+    try:
+        upload_settings(custom)
+        database = _build_ghg_database()
+        name = database.R.index.name
+        result = database.calc_ghg(profile="exiobase_monetary", inplace=inplace)
+        target = database if inplace else result
+
+        assert target.R.index.name == name
+        assert target.Ry.index.name == name
+        assert target.R.loc["GHG AR6 GWP-100"].tolist() == pytest.approx([226.9, 530.7])
+        assert "GHG AR6 GWP-100" in target.rho.index
+        assert {"R", "Ry"} <= set(target["baseline"])
+        if not inplace:
+            assert "GHG AR6 GWP-100" not in database.R.index
+
+        figure, values = target.plot(
+            matrix="R", x="Item_to", color="Region",
+            filters={"Item_from": ["GHG AR6 GWP-100"]},
+            show_totals=True, path=False, return_data=True,
+        )
+        totals = [trace for trace in figure.data if trace.type == "scatter"]
+        assert sum(totals[0].customdata) == pytest.approx(values.Value.sum())
+    finally:
+        upload_settings(original)
 
 
 @pytest.mark.parametrize("inplace", [True, False])

@@ -10,6 +10,21 @@ v1.3.1
 
 *Unreleased.*
 
+EXIOBASE downloads
+~~~~~~~~~~~~~~~~~~
+
+* Fixed interrupted monetary EXIOBASE downloads, including the 3.11.2
+  ``ixi`` and ``pxp`` archives: partial files are retained under ``.part``
+  and resumed with HTTP range requests, with up to six attempts per call.
+* Zenodo downloads now verify the published file size and checksum before
+  reusing an archive or extracting it. Truncated or corrupted cached archives
+  are recovered instead of being silently reused as complete downloads.
+* Failed ZIP extraction removes the incomplete destination directory so a
+  subsequent call can retry extraction.
+* Documented the explicit 3.11.2 download call and expanded regression coverage
+  for both systems, interrupted transfers and cached archives. Support for the
+  3.11.2 release itself was introduced in MARIO 1.2.0.
+
 GHG accounts and aggregation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -30,6 +45,10 @@ GHG accounts and aggregation
 * Split SUT aggregation resolves renamed unified source blocks before
   building their ordering, avoiding invalid keyword arguments such as ``R``
   when extracting native satellite blocks from the renamed ``E`` view.
+* ``add_extensions`` and ``calc_ghg`` accept canonical and configured matrix
+  names consistently, including renamed ``E``, ``EY``, ``e``, ``V`` and ``v``.
+  Adding the GHG indicator no longer rejects ``E`` when the active name is
+  ``R`` or loses the renamed final-demand block.
 
 Stacked-bar totals
 ~~~~~~~~~~~~~~~~~

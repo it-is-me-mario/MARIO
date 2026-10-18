@@ -8,6 +8,7 @@ supporting directly.
 from __future__ import annotations
 
 from email.message import Message
+import hashlib
 from html.parser import HTMLParser
 import io
 from pathlib import Path
@@ -83,6 +84,7 @@ __all__ = [
 
 _ZENODO_API = "https://zenodo.org/api/records/{record_id}"
 _REQUEST_TIMEOUT = 120
+_DOWNLOAD_ATTEMPTS = 6
 _WIOD_URLS = {"IOT": WIOD_IOT_FILE_URL, "SUT": WIOD_SUT_FILE_URL}
 _HYBRID_REQUIRED_FILES = {
     "SUT": (
@@ -184,19 +186,190 @@ def _iter_content(response: requests.Response, *, chunk_size: int = 1024 * 1024)
             yield chunk
 
 
-def _download_to_path(url: str, destination: Path, *, overwrite: bool) -> Path:
-    """Download one remote file to ``destination``."""
-    if destination.exists() and not overwrite:
-        return destination
-    _reset_target(destination, overwrite=overwrite)
-    destination.parent.mkdir(parents=True, exist_ok=True)
+def _checksum_matches(path: Path, checksum: str | None) -> bool:
+    """Return whether one file matches an ``algorithm:hex`` checksum."""
+    if checksum is None:
+        return True
+    try:
+        algorithm, expected = checksum.split(":", maxsplit=1)
+        digest = hashlib.new(algorithm, usedforsecurity=False)
+    except (ValueError, TypeError) as exc:
+        raise WrongInput(f"Unsupported download checksum: {checksum!r}.") from exc
 
-    response = requests.get(url, stream=True, timeout=_REQUEST_TIMEOUT)
-    response.raise_for_status()
-    with destination.open("wb") as stream:
-        for chunk in _iter_content(response):
-            stream.write(chunk)
-    response.close()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(8 * 1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest().casefold() == expected.casefold()
+
+
+def _download_matches(
+    path: Path,
+    *,
+    expected_size: int | None,
+    checksum: str | None,
+) -> bool:
+    """Return whether one downloaded file matches its remote metadata."""
+    if not path.is_file():
+        return False
+    if expected_size is not None and path.stat().st_size != expected_size:
+        return False
+    return _checksum_matches(path, checksum)
+
+
+def _promote_partial_download(
+    destination: Path,
+    partial: Path,
+    *,
+    expected_size: int | None,
+) -> None:
+    """Keep the largest usable partial file under the atomic ``.part`` name."""
+    if not destination.exists():
+        return
+
+    destination_size = destination.stat().st_size
+    destination_usable = expected_size is None or destination_size < expected_size
+    partial_usable = partial.is_file() and (
+        expected_size is None or partial.stat().st_size < expected_size
+    )
+    if not destination_usable:
+        destination.unlink()
+        return
+    if partial_usable and partial.stat().st_size >= destination_size:
+        destination.unlink()
+        return
+    if partial.exists():
+        partial.unlink()
+    destination.replace(partial)
+
+
+def _download_to_path(
+    url: str,
+    destination: Path,
+    *,
+    overwrite: bool,
+    expected_size: int | None = None,
+    checksum: str | None = None,
+) -> Path:
+    """Download, resume, and atomically validate one remote file."""
+    expected_size = int(expected_size) if expected_size is not None else None
+    if destination.exists() and not overwrite:
+        if expected_size is None and checksum is None:
+            return destination
+        if _download_matches(
+            destination,
+            expected_size=expected_size,
+            checksum=checksum,
+        ):
+            return destination
+
+    partial = destination.with_name(f"{destination.name}.part")
+    if overwrite:
+        _reset_target(destination, overwrite=True)
+        _reset_target(partial, overwrite=True)
+    else:
+        _promote_partial_download(
+            destination,
+            partial,
+            expected_size=expected_size,
+        )
+
+    if (
+        partial.is_file()
+        and (expected_size is not None or checksum is not None)
+        and _download_matches(
+            partial,
+            expected_size=expected_size,
+            checksum=checksum,
+        )
+    ):
+        partial.replace(destination)
+        return destination
+    if (
+        partial.is_file()
+        and expected_size is not None
+        and partial.stat().st_size >= expected_size
+    ):
+        partial.unlink()
+
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    last_error: Exception | None = None
+    for _ in range(_DOWNLOAD_ATTEMPTS):
+        offset = partial.stat().st_size if partial.is_file() else 0
+        headers = {"Range": f"bytes={offset}-"} if offset else None
+        response = None
+        try:
+            response = requests.get(
+                url,
+                headers=headers,
+                stream=True,
+                timeout=_REQUEST_TIMEOUT,
+            )
+            response.raise_for_status()
+
+            if offset and response.status_code == 206:
+                content_range = response.headers.get("Content-Range", "")
+                if not content_range.startswith(f"bytes {offset}-"):
+                    raise WrongInput(
+                        f"Unexpected HTTP range while resuming {destination.name}: "
+                        f"{content_range!r}."
+                    )
+                mode = "ab"
+                response_start = offset
+            else:
+                if offset:
+                    partial.unlink()
+                mode = "wb"
+                response_start = 0
+
+            with partial.open(mode) as stream:
+                for chunk in _iter_content(response):
+                    stream.write(chunk)
+
+            downloaded_size = partial.stat().st_size
+            content_length = response.headers.get("Content-Length")
+            response_complete = (
+                content_length is None
+                or downloaded_size == response_start + int(content_length)
+            )
+            if expected_size is None:
+                if response_complete:
+                    break
+            elif downloaded_size == expected_size:
+                break
+            elif downloaded_size > expected_size:
+                partial.unlink()
+                raise WrongInput(
+                    f"Downloaded {destination.name} is larger than the "
+                    f"{expected_size}-byte file declared by the source."
+                )
+            last_error = IOError(
+                f"Incomplete download of {destination.name}: "
+                f"{downloaded_size} of {expected_size or 'unknown'} bytes."
+            )
+        except (OSError, requests.RequestException) as exc:
+            last_error = exc
+        finally:
+            if response is not None:
+                response.close()
+    else:
+        raise WrongInput(
+            f"Could not complete {destination.name} after {_DOWNLOAD_ATTEMPTS} "
+            f"attempts. The resumable partial file is {partial}."
+        ) from last_error
+
+    if not _download_matches(
+        partial,
+        expected_size=expected_size,
+        checksum=checksum,
+    ):
+        if partial.exists():
+            partial.unlink()
+        raise WrongInput(
+            f"Integrity verification failed for {destination.name}; rerun the "
+            "download to fetch a clean copy."
+        )
+
+    partial.replace(destination)
     return destination
 
 
@@ -247,8 +420,12 @@ def _extract_zip(archive_path: Path, extract_dir: Path, *, overwrite: bool, keep
     _reset_target(extract_dir, overwrite=overwrite)
     extract_dir.mkdir(parents=True, exist_ok=True)
 
-    with zipfile.ZipFile(archive_path, "r") as archive:
-        archive.extractall(extract_dir)
+    try:
+        with zipfile.ZipFile(archive_path, "r") as archive:
+            archive.extractall(extract_dir)
+    except Exception:
+        shutil.rmtree(extract_dir)
+        raise
 
     _flatten_single_subdirectory(extract_dir)
     if not keep_archive:
@@ -291,7 +468,13 @@ def _download_zenodo_selection(
         item = files[file_name]
         destination = root / file_name
         downloaded.append(
-            _download_to_path(item["links"]["self"], destination, overwrite=overwrite)
+            _download_to_path(
+                item["links"]["self"],
+                destination,
+                overwrite=overwrite,
+                expected_size=item.get("size"),
+                checksum=item.get("checksum"),
+            )
         )
     return downloaded
 
@@ -1005,6 +1188,10 @@ def download_exiobase3(
     overwrite: bool = False,
 ) -> dict[str, object]:
     """Download a selected monetary EXIOBASE 3 release from Zenodo.
+
+    Interrupted downloads are resumed from a ``.part`` file and checked against
+    Zenodo's published size and checksum before extraction. Existing archives
+    are reused only when they pass the same checks.
 
     Parameters
     ----------
