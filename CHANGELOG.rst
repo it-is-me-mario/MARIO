@@ -49,6 +49,10 @@ GHG accounts and aggregation
   names consistently, including renamed ``E``, ``EY``, ``e``, ``V`` and ``v``.
   Adding the GHG indicator no longer rejects ``E`` when the active name is
   ``R`` or loses the renamed final-demand block.
+* ``to_single_region`` and ``to_region_subset`` store their results using
+  the current matrix names after ``upload_settings`` in the same session.
+  Renamed ``E`` and ``EY`` remain available for subsequent aggregation,
+  avoiding a false missing-data cycle between ``E`` and ``e``.
 
 Stacked-bar totals
 ~~~~~~~~~~~~~~~~~

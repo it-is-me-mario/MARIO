@@ -1634,9 +1634,15 @@ class Database(CoreModel):
         for scenario in self.scenarios:
             log_time(logger, f"Transformation: {scenario} deleted from the database.")
 
-        self.matrices = {"baseline": {}}
-        for matrix in ["Y", "Z", "E", "EY", "VY", "V", "X"]:
-            self.matrices["baseline"][_ENUM[matrix]] = eval(matrix)
+        self.matrices = {
+            "baseline": {
+                _resolve_storage_matrix_name(name): frame
+                for name, frame in {
+                    "Y": Y, "Z": Z, "E": E, "EY": EY,
+                    "VY": VY, "V": V, "X": X,
+                }.items()
+            }
+        }
         for matrix_name in ("V", "v", "VY", "m", "M"):
             self._custom_block_specs.pop(matrix_name, None)
         if v_layout:

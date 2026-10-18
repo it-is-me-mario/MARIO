@@ -209,3 +209,49 @@ def test_aggregation_preserves_renamed_environmental_blocks_after_settings_uploa
             assert aggregated.Re.to_numpy().sum() == pytest.approx(database.Re.to_numpy().sum())
     finally:
         upload_settings(original)
+
+
+@pytest.mark.parametrize("table", ["IOT", "SUT"])
+@pytest.mark.parametrize("single_region", [True, False])
+@pytest.mark.parametrize("inplace", [True, False])
+def test_region_extraction_then_aggregation_preserves_live_matrix_names(table, single_region, inplace):
+    from mario import load_test
+
+    original = download_settings(None)
+    custom = deepcopy(original)
+    custom["nomenclature"].update({"E": "R", "EY": "Ry", "F": "Re"})
+    try:
+        upload_settings(custom)
+        database = load_test(table)
+        region = database.regions[0]
+        emissions = database.R.loc[:, database.R.columns.get_level_values(0) == region]
+        final_emissions = database.Ry.loc[:, database.Ry.columns.get_level_values(0) == region]
+        original_total = database.R.to_numpy().sum()
+
+        if single_region:
+            result = database.to_single_region(region, inplace=inplace)
+        else:
+            result = database.to_region_subset([region], inplace=inplace)
+        subset = database if inplace else result
+
+        assert subset.regions == [region]
+        assert {"R", "Ry"} <= set(subset["baseline"])
+        assert "E" not in subset["baseline"] and "EY" not in subset["baseline"]
+        pd.testing.assert_frame_equal(subset.R, emissions)
+        assert subset.Ry.to_numpy().sum() == pytest.approx(final_emissions.to_numpy().sum())
+        levels = ["Sector"] if table == "IOT" else ["Activity", "Commodity"]
+        mapping = {
+            level: pd.DataFrame({"Aggregation": "All " + level}, index=subset.get_index(level))
+            for level in levels
+        }
+        subset.aggregate(mapping, levels=levels)
+
+        assert subset.R.to_numpy().sum() == pytest.approx(emissions.to_numpy().sum())
+        assert subset.Ry.to_numpy().sum() == pytest.approx(final_emissions.to_numpy().sum())
+        if table == "IOT":
+            assert subset.Re.index.equals(subset.R.index)
+        if not inplace:
+            assert len(database.regions) > 1
+            assert database.R.to_numpy().sum() == pytest.approx(original_total)
+    finally:
+        upload_settings(original)
