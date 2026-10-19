@@ -119,6 +119,13 @@ def _manage_indeces(instance, case, **kwargs):
                     for i in range(instance._indeces[index]["aggregated"].shape[0])
                     if instance._indeces[index]["aggregated"].values[i][0] != "unused"
                 )
+                mapping = instance._indeces[index]["aggregated"]
+                if not isinstance(mapping.index, pd.MultiIndex):
+                    main.extend(
+                        item
+                        for item in instance._indeces[index]["main"]
+                        if item not in mapping.index and item not in main
+                    )
                 instance._indeces[index] = {"main": main}
 
     elif case == "single_region":

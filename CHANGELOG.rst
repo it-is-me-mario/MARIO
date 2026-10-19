@@ -8,6 +8,13 @@ package on PyPI, and dates are its publication dates.
 Unreleased
 ----------
 
+* Aggregation workbooks group regions by each complete regional classification.
+  Nonuniform sets use ``Regions``, ``Item`` and ``Aggregation`` columns, including
+  single-region groups. The Region sheet lists only regions with compatible
+  classifications across all regional sets; omitted regions remain unchanged.
+  Geographic mergers across incompatible string sets are rejected. Readers,
+  sparse aggregation and unit checks support regional mappings, while common
+  classifications retain the legacy workbook format.
 * Regional sets retain region-to-list mappings in automatic ``all`` and user
   clusters. Definitions are validated per region-code pair; list shorthand is
   intersected with each region's domain. Common sets keep their existing list

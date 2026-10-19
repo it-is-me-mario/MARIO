@@ -60,6 +60,11 @@ from mario.utils import (
 )
 
 from mario.ops.excel import _sh_excel
+from mario.ops.aggregation_inputs import (
+    aggregation_template,
+    normalize_aggregation_sheet,
+    validate_region_aggregation,
+)
 
 from mario.views import plots as plt
 
@@ -546,7 +551,9 @@ class Database(CoreModel):
             for level in resolved_levels:
                 if level == _MASTER_INDEX["r"] and level not in workbook.sheet_names:
                     continue
-                merged[level] = workbook.parse(sheet_name=level, index_col=0)
+                merged[level] = workbook.parse(
+                    sheet_name=level, index_col=0, keep_default_na=False
+                )
 
         merged.setdefault(_MASTER_INDEX["r"], region_index)
         return merged, resolved_levels
@@ -779,6 +786,11 @@ class Database(CoreModel):
     ):
         """Write an aggregation template workbook for the selected levels.
 
+        Nonuniform sets use Regions/Item/Aggregation columns, grouping regions
+        by identical complete label sets and including single-region groups.
+        Their Region sheet lists only groups compatible across all regional
+        sets. Common classifications retain the historical workbook format.
+
         Parameters
         ----------
         path:
@@ -808,6 +820,10 @@ class Database(CoreModel):
         )
         region_index = build_region_aggregation_index(self, region_aggregation)
 
+        indexes = self.get_index("all")
+        if region_index is not None:
+            validate_region_aggregation(indexes, {_MASTER_INDEX["r"]: region_index})
+
         output_path = self._getdir(path, "Excels", "Aggregation.xlsx")
         if os.path.exists(output_path) and not overwrite:
             raise WrongInput(
@@ -826,13 +842,8 @@ class Database(CoreModel):
         try:
             with pd.ExcelWriter(temp_path, engine="openpyxl") as writer:
                 for level in levels:
-                    if level == _MASTER_INDEX["r"] and region_index is not None:
-                        data = region_index.copy()
-                    else:
-                        data = pd.DataFrame(
-                            index=self.get_index(level), columns=["Aggregation"]
-                        )
-                    data.to_excel(writer, sheet_name=level)
+                    data, write_index = aggregation_template(level, indexes, region_index)
+                    data.to_excel(writer, sheet_name=level, index=write_index)
             os.replace(temp_path, output_path)
         except Exception:
             if os.path.exists(temp_path):
@@ -846,6 +857,11 @@ class Database(CoreModel):
         ignore_nan=False,
     ):
         """Load aggregation mappings without applying them yet.
+
+        Grouped regional sheets are expanded to existing (Region, Item) pairs.
+        Omitted sources retain their labels. Geographic mergers require equal
+        original and mapped label sets across every regional classification.
+        All sheets are validated before stored mappings are changed.
 
         Parameters
         ----------
@@ -883,57 +899,24 @@ class Database(CoreModel):
         if levels == "all":
             levels = [*TABLE_LEVELS[self.meta.table]]
 
+        indexes = self.get_index("all")
         indeces = {}
         for level in levels:
             if isinstance(io, dict):
-                # Reading the aggregation data from a dict of pd.DataFrames similar to the Excel file
-                index = io[level]
+                frame = io[level]
             else:
-                # Reading the aggregation data from a single Excel file with differetn sheets '''
-
-                index = pd.read_excel(io, sheet_name=level, index_col=0)
-                index.index = index.index.fillna("None")
-
-            if index.shape[1] > 1:
-                index = index.iloc[:, 0].to_frame()
-
-            difference = set(index.index).difference(set(self.get_index(level)))
-
-            if difference:
-                raise WrongInput(
-                    f"Following item are not acceptable for level {level} \n {difference}"
+                frame = pd.read_excel(
+                    io, sheet_name=level, index_col=0, keep_default_na=False
                 )
+            indeces[level] = normalize_aggregation_sheet(
+                frame, level, indexes, ignore_nan=ignore_nan
+            )
 
-            index.columns = ["Aggregation"]
-
-            if index.isnull().values.any():
-                index = index.astype({"Aggregation": object})
-                isna = index.isna()
-                nans = isna.loc[isna["Aggregation"] == True].index
-                if ignore_nan:
-                    log_time(
-                        logger,
-                        "nan values for the aggregation of {} for following items ignored\n{}".format(
-                            level, list(nans)
-                        ),
-                        "warning",
-                    )
-
-                    index.loc[nans, "Aggregation"] = list(nans)
-                else:
-                    raise DataMissing(
-                        "nan values found for the aggregation of {} for following items."
-                        " if ignore_nan = True, nan items will be ignored and no aggregation on the items will be considered\n {}".format(
-                            level, list(nans)
-                        )
-                    )
-
-            indeces[level] = index
-
-        for level in levels:
-            self._indeces[TABLE_LEVELS[self.meta.table][level]]["aggregated"] = indeces[
-                level
-            ]
+        candidates = self.get_index("all", "aggregated")
+        candidates.update(indeces)
+        validate_region_aggregation(indexes, candidates)
+        for level, index in indeces.items():
+            self._indeces[TABLE_LEVELS[self.meta.table][level]]["aggregated"] = index
 
     def aggregate(
         self,

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from mario.ops.aggregation_engine import _aggregator
+from mario.ops.aggregation_inputs import validate_region_aggregation
 from mario.model.conventions import TABLE_LEVELS, _ENUM, _MASTER_INDEX
 from mario.utils import _manage_indeces
 
@@ -55,6 +56,11 @@ def aggregate_database(
 ):
     """Aggregate a database while keeping the public Database API stable."""
 
+    if io is None:
+        validate_region_aggregation(
+            database.get_index("all"), database.get_index("all", "aggregated")
+        )
+
     if database.table_type == "IOT":
         for scenario in database.scenarios:
             database.calc_all([_ENUM.E, _ENUM.V, _ENUM.Z], scenario=scenario)
@@ -90,12 +96,13 @@ def aggregate_database(
             io=io,
             ignore_nan=ignore_nan,
         )
-        _store_region_aggregation_map(database)
         new_matrices, units = _aggregator(
             database,
             drop,
             zero_output_epsilon=zero_output_epsilon,
         )
+
+    _store_region_aggregation_map(database)
 
     for scenario in database._storage_scenarios():
         database.matrices[scenario] = new_matrices[scenario]

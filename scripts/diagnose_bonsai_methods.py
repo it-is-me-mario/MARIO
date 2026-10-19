@@ -125,7 +125,8 @@ def _summary(value):
 def _template(database, root):
     target = root / "aggregation.xlsx"
     database.get_aggregation_excel(path=str(target))
-    labels = pd.read_excel(target, sheet_name=MI["a"], index_col=0).index
+    sheet = pd.read_excel(target, sheet_name=MI["a"], index_col=0)
+    labels = sheet["Item"].tolist() if sheet.index.name == "Regions" else sheet.index
     if _first(database, "a") not in labels:
         raise IncorrectResult(
             "Activity sheet contains region keys instead of activity codes."
@@ -164,6 +165,22 @@ def _identity_aggregation(database, root):
 
 
 def _world_aggregation(database, root):
+    if any(isinstance(value, dict) for value in database.get_index("all").values()):
+        from mario.log_exc.exceptions import WrongInput
+
+        try:
+            database.aggregate(
+                io=None,
+                region_aggregation={r: "WORLD" for r in database._indeces["r"]["main"]},
+                levels=MI["r"],
+                inplace=False,
+                calc_all=False,
+            )
+        except WrongInput as error:
+            if "different labels" in str(error):
+                return {"incompatible_region_merger_rejected": True}
+            raise
+        raise IncorrectResult("Incompatible regional classifications were merged.")
     result = database.aggregate(
         io=None,
         region_aggregation={r: "WORLD" for r in database._indeces["r"]["main"]},

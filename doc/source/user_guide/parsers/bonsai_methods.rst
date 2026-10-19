@@ -22,6 +22,26 @@ unions without discarding the stored regional definitions. See
 :doc:`../../api_document/mario.Database.set_clusters` for this contract. The
 initial snapshot below predates these adaptations as well.
 
+Aggregation has since been adapted too. Regional template sheets group regions
+by their entire label sets and include groups of one. Readers expand those rows
+to real region-item pairs, retaining omitted nodes. Geographic mergers now
+require matching string sets across all regional classifications, including
+consumption categories. Region presets obey the same check; the unrestricted
+``WORLD`` probe below is now expected to be rejected for a nonuniform database.
+Aggregation also caches axis mappings and handles sparse zero-output column
+replacement. See :doc:`../../api_document/mario.Database.get_aggregation_excel`
+and :doc:`../../api_document/mario.Database.aggregate`. Historical outcomes below
+remain unchanged as a record of the initial diagnosis.
+
+On Balanced 20260615, exact label comparison produces 50 separate Activity
+classifications and 50 separate Commodity classifications. Consequently the
+current Region template has headers only: no original regions meet the merge
+criterion. The item sheets still contain all 51,356 activity pairs and 53,400
+commodity pairs, while shared final-demand classifications reduce to 13 rows
+covering 267 regional category pairs. Regional item aggregation can be applied
+first; a new template then reflects any classifications made identical by
+those explicit mappings.
+
 Index contract
 --------------
 
