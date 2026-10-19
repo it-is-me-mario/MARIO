@@ -6,7 +6,7 @@ mario.download\_exiobase3
 .. autofunction:: download_exiobase3
 
 EXIOBASE 3.11.2 and interrupted downloads
-----------------------------------------
+-----------------------------------------
 
 Select the release and system explicitly, for example::
 

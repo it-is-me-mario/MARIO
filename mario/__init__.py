@@ -139,6 +139,7 @@ from mario.test.mario_test import load_test
 from mario.utils import slicer
 from mario.download import *
 from mario.settings.settings import (
+    get_settings_path,
     upload_settings,
     download_settings,
     reset_settings,

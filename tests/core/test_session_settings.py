@@ -155,7 +155,8 @@ print(json.dumps(mario.download_settings()))
     child = subprocess.run(
         [sys.executable, "-P", "-c", script, str(tmp_path / "settings.yaml")],
         cwd=Path(mario.__file__).parents[1], text=True, capture_output=True, check=True,
-        env={**os.environ, "PYTHONPATH": str(Path(mario.__file__).parents[1])},
+        env={**os.environ, "PYTHONPATH": str(Path(mario.__file__).parents[1]),
+             "MARIO_CONFIG_DIR": str(tmp_path / "empty-profile")},
     )
     fresh, imported = map(json.loads, child.stdout.splitlines())
     assert fresh == default
@@ -170,7 +171,7 @@ print(json.dumps(mario.download_settings()))
 
 def test_settings_do_not_read_or_write_the_package_configuration(monkeypatch):
     # This also covers read-only installations and package files left modified
-    # by older MARIO versions. Only an explicit upload reads a YAML file.
+    # by older MARIO versions. Once initialized, session changes need no I/O.
     def forbidden(*args, **kwargs):
         raise AssertionError("Settings must not access the filesystem")
 

@@ -13,11 +13,19 @@ v1.3.1
 Session settings and matrix aliases
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* Settings now apply only to the current Python process. ``upload_settings``,
-  ``reset_settings`` and the compute-setting helpers no longer rewrite the
-  installed package. New kernels start with built-in defaults; reuse a
-  configuration by exporting it with ``download_settings(directory)`` and
-  explicitly loading the resulting YAML file in the next session.
+* Settings changes apply to the current Python process by default.
+  ``upload_settings``, ``reset_settings`` and the compute-setting helpers no
+  longer rewrite the installed package.
+* ``upload_settings(..., persist=True)`` explicitly saves validated user
+  defaults that new sessions load automatically. ``get_settings_path()``
+  exposes the profile location; ``MARIO_CONFIG_DIR`` selects a separate
+  profile for a project or environment. Writes are atomic, and invalid
+  saved profiles produce a warning and fall back to built-in defaults.
+* ``reset_settings()`` temporarily restores built-in defaults in the current
+  session. ``reset_settings(persist=True)`` also removes the saved profile.
+  Neither operation changes the settings of already initialized kernels.
+  The settings guide, API reference and custom-labels notebook now explain
+  temporary aliases, optional persistence and both reset modes.
 * Internal matrix identifiers remain canonical (``E``, ``EY``, ``F``, etc.).
   Configured names such as ``R``, ``Ry`` and ``Re`` are resolved at the API
   boundary. Changing or resetting settings after loading a database therefore
@@ -45,7 +53,7 @@ EXIOBASE downloads
   3.11.2 release itself was introduced in MARIO 1.2.0.
 
 GHG accounts and aggregation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 * ``Database.calc_ghg`` preserves the existing row and column axis names of
   ``E`` and ``EY``, as well as satellite-account unit index names. Plot filters
@@ -79,7 +87,7 @@ GHG accounts and aggregation
   ``E``/``R``, ``F``/``Re`` and ``z``/``A``.
 
 Stacked-bar totals
-~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
 * ``Database.plot`` adds the keyword-only ``show_totals=True`` option to show
   one total label per stacked bar and suppress segment labels. Totals respect

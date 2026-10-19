@@ -4,7 +4,11 @@ import copy
 import yaml
 import math
 import os
+import sys
+import tempfile
+import warnings
 from numbers import Real
+from pathlib import Path
 from types import MappingProxyType
 from mario.log_exc.exceptions import WrongFormat
 
@@ -256,10 +260,25 @@ def _normalize_settings_payload(raw_settings):
 
 
 def _active_settings():
-    """Return process-local settings, starting from built-in defaults."""
+    """Load the user defaults once, then keep an independent session snapshot."""
     global _ACTIVE_SETTINGS
     if _ACTIVE_SETTINGS is None:
-        _ACTIVE_SETTINGS = _default_settings_payload()
+        settings = _default_settings_payload()
+        config_path = get_settings_path()
+        try:
+            with config_path.open(encoding="utf-8") as stream:
+                settings = _normalize_settings_payload(yaml.safe_load(stream))
+        except FileNotFoundError:
+            pass
+        except (OSError, UnicodeError, yaml.YAMLError, WrongFormat) as exc:
+            warnings.warn(
+                f"Cannot load MARIO user settings from {config_path}: {exc}. "
+                "Using built-in defaults for this session. Fix the file or use "
+                "mario.reset_settings(persist=True) to remove it.",
+                UserWarning,
+                stacklevel=2,
+            )
+        _ACTIVE_SETTINGS = settings
     return _ACTIVE_SETTINGS
 
 
@@ -335,13 +354,13 @@ class Setting:
 
 
 class Index(Setting):
-    """Expose the configured short codes for MARIO index levels."""
+    """Expose canonical index labels, independent of user aliases."""
 
     def __init__(self):
-        """Load the configured index-level short codes."""
+        """Keep import-time model conventions independent of user settings."""
         self.vars = list("racskfn")
         self.key = "index"
-        super().__init__()
+        self.setting = CANONICAL_INDEX.copy()
 
 
 class IndexAliases(Setting):
@@ -426,13 +445,71 @@ class Compute(Setting):
         return None
 
 
+def get_settings_path():
+    """Return the user configuration file path without creating or loading it.
+
+    Returns
+    -------
+    pathlib.Path
+        ``settings.yaml`` under ``MARIO_CONFIG_DIR`` when set, otherwise under
+        ``~/Library/Application Support/MARIO`` on macOS, ``%APPDATA%/MARIO``
+        on Windows, or ``$XDG_CONFIG_HOME/mario`` (default ``~/.config/mario``)
+        on other platforms. Windows falls back to ``~/AppData/Roaming`` when
+        ``APPDATA`` is unset.
+
+    Notes
+    -----
+    Set ``MARIO_CONFIG_DIR`` before importing MARIO to use a separate profile
+    for a project or environment. Prefer an absolute directory path. The
+    default profile is shared by environments belonging to the same user.
+    """
+    configured = os.environ.get("MARIO_CONFIG_DIR")
+    if configured:
+        directory = Path(configured).expanduser()
+    elif sys.platform == "darwin":
+        directory = Path.home() / "Library" / "Application Support" / "MARIO"
+    elif sys.platform == "win32":
+        directory = Path(os.environ.get("APPDATA") or Path.home() / "AppData" / "Roaming") / "MARIO"
+    else:
+        directory = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "mario"
+    return directory.absolute() / "settings.yaml"
+
+
+def _write_user_settings(settings):
+    """Atomically replace the profile only after validation and serialization."""
+    config_path = get_settings_path()
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=config_path.parent,
+            prefix=".settings-", suffix=".yaml", delete=False,
+        ) as stream:
+            temporary_path = Path(stream.name)
+            yaml.safe_dump(settings, stream, default_flow_style=False, sort_keys=False)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary_path, config_path)
+    finally:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
+
+
+def _validate_persist(persist):
+    if not isinstance(persist, bool):
+        raise WrongFormat("persist must be True or False.")
+
+
 def download_settings(destination_path=None):
     """Return a copy of the current session settings, optionally exporting YAML.
 
     Parameters
     -----------
-    destination_path : str,None
-        if a directory path given, will download the config yaml file, if None, will only return a dict
+    destination_path : str or path-like or None, optional
+        Existing directory in which to export ``settings.yaml``. If ``None``,
+        only return a dictionary. Exporting does not enable automatic loading
+        in future sessions; use :func:`upload_settings` with ``persist=True``
+        to save user defaults.
 
     Returns
     -------
@@ -442,33 +519,56 @@ def download_settings(destination_path=None):
 
     settings = copy.deepcopy(_active_settings())
     if destination_path is not None:
-        with open(os.path.join(destination_path, "settings.yaml"), "w") as yaml_file:
+        with open(os.path.join(destination_path, "settings.yaml"), "w", encoding="utf-8") as yaml_file:
             yaml.safe_dump(settings, yaml_file, default_flow_style=False, sort_keys=False)
     return settings
 
 
-def upload_settings(source):
+def upload_settings(source, *, persist=False):
     """Replace settings for this Python process without modifying the package.
 
-    Settings are shared by databases in the current process. New processes
-    start with built-in defaults. Export with :func:`download_settings` and
-    explicitly upload that YAML file to reuse settings in another session.
+    Settings are shared by databases in the current process. By default this
+    call only changes the current session. With ``persist=True``, also save
+    them as user defaults that new sessions load automatically. Kernels that
+    have already loaded their settings keep their current configuration.
     Matrix aliases can change after loading a database: stored matrix IDs
     remain canonical and their data is not renamed or rewritten.
 
-    Parameteres
-    -----------
-    source : str,dict
-        the path to the custom yaml file or the config dict should be passed
+    Parameters
+    ----------
+    source : str or path-like or dict
+        Path to a custom ``.yaml`` file or a settings dictionary. Missing
+        sections and keys are filled with built-in defaults.
+    persist : bool, keyword-only, default False
+        Also save validated settings to :func:`get_settings_path`. The profile
+        is shared by the user's environments unless ``MARIO_CONFIG_DIR`` is
+        set. The installed package is never modified.
+
+    Raises
+    ------
+    WrongFormat
+        Settings or ``persist`` are invalid. Active and saved settings remain
+        unchanged.
+    OSError
+        The source cannot be read or the profile cannot be written. Failed
+        writes leave the previous active settings and profile intact.
+
+    Examples
+    --------
+    >>> settings = mario.download_settings()
+    >>> settings["nomenclature"].update({"E": "R", "F": "Re"})
+    >>> mario.upload_settings(settings)  # this kernel only
+    >>> mario.upload_settings(settings, persist=True)  # opt in for future sessions
     """
 
     global _ACTIVE_SETTINGS
+    _validate_persist(persist)
     if isinstance(source, os.PathLike):
         source = os.fspath(source)
     if isinstance(source, str):
         if not source.endswith(".yaml"):
             raise WrongFormat("only yaml file is acceptable.")
-        with open(source, "r") as yaml_file:
+        with open(source, "r", encoding="utf-8") as yaml_file:
             payload = yaml.safe_load(yaml_file)
 
     elif isinstance(source, dict):
@@ -477,12 +577,36 @@ def upload_settings(source):
     else:
         raise WrongFormat("Only dict or a yaml file directory can be passed")
 
-    _ACTIVE_SETTINGS = _normalize_settings_payload(payload)
+    normalized = _normalize_settings_payload(payload)
+    if persist:
+        _write_user_settings(normalized)
+    _ACTIVE_SETTINGS = normalized
 
 
-def reset_settings():
-    """Restore built-in defaults in this session, leaving stored matrices intact."""
-    upload_settings(_default_settings_payload())
+def reset_settings(*, persist=False):
+    """Restore built-in defaults, leaving stored matrices intact.
+
+    Parameters
+    ----------
+    persist : bool, keyword-only, default False
+        If ``False``, reset only this session; saved user defaults remain
+        available to future sessions. If ``True``, also delete the user
+        configuration file, so future sessions start with built-in defaults.
+        An absent file is harmless. If deletion fails, active settings remain
+        unchanged and the filesystem error is raised.
+
+    Notes
+    -----
+    Call ``reset_settings()`` at the start of a notebook to use built-in names
+    regardless of any saved profile. Other kernels are unaffected. Use
+    :func:`get_settings_path` to inspect the profile that ``persist=True``
+    removes.
+    """
+    global _ACTIVE_SETTINGS
+    _validate_persist(persist)
+    if persist:
+        get_settings_path().unlink(missing_ok=True)
+    _ACTIVE_SETTINGS = _default_settings_payload()
 
 
 def set_compute_method(method: str):
