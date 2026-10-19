@@ -35,8 +35,9 @@ class IncorrectResult(AssertionError):
     """A method ran but lost the regional membership semantics."""
 
 
-def _legacy_get_index(self, index, level="main"):
+def _legacy_get_index(self, index, level="main", *, flat=False):
     """Replay the getter before regional views, without changing source files."""
+    # flat=True is a no-op: this historical view always exposes global lists.
     if isinstance(index, str) and index.lower() == "all":
         return {
             key: self._indeces[code].get(level)
@@ -143,11 +144,13 @@ def _search(database, root):
 
 def _clusters(database, root):
     members = database.default_clusters[MI["a"]]["all"]
-    if _first(database, "a") not in members:
+    if members != database.get_index(MI["a"]):
         raise IncorrectResult(
-            "The Activity 'all' cluster contains region keys instead of activity codes."
+            "The Activity 'all' cluster does not preserve its regional membership."
         )
-    return len(members)
+    return (
+        sum(map(len, members.values())) if isinstance(members, dict) else len(members)
+    )
 
 
 def _identity_aggregation(database, root):
@@ -229,9 +232,12 @@ def _roundtrip(database, root, kind):
 
 
 def _shock(database, root):
-    c, a = _first(database, "c"), _first(database, "a")
-    c_region = database.matrices["baseline"]["U"].index[0][0]
-    a_region = database.matrices["baseline"]["U"].columns[0][0]
+    use = database.matrices["baseline"]["U"]
+    nonzero = use.sparse.to_coo()
+    row, column = int(nonzero.row[0]), int(nonzero.col[0])
+    c_region, _, c = use.index[row]
+    a_region, _, a = use.columns[column]
+    before = database.query("u").to_numpy()
     payload = pd.DataFrame(
         {
             "Region_from": [c_region],
@@ -243,7 +249,11 @@ def _shock(database, root):
         }
     )
     database.shock_calc({"u": payload}, u=True, scenario="probe")
-    return database.matrices["probe"]["U"]
+    result = database.query("u", scenarios="probe")
+    expected = before.copy()
+    expected[row, column] *= 1.1
+    np.testing.assert_allclose(result.to_numpy(), expected)
+    return result
 
 
 def _supply_mix(database, root):

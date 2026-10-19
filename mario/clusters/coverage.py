@@ -301,13 +301,10 @@ def build_region_clusters(database):
 
 
 def build_default_clusters(database):
-    """Build flat default clusters from the observed members of each set."""
-    clusters = {}
-    for set_name in database.sets:
-        members = database.get_index(set_name)
-        if isinstance(members, dict):
-            members = database.get_index(set_name, flat=True)
-        clusters[set_name] = {"all": list(members)}
+    """Build default clusters retaining each set's regional representation."""
+    clusters = {
+        set_name: {"all": database.get_index(set_name)} for set_name in database.sets
+    }
 
     if "Region" in clusters:
         clusters["Region"].update(build_region_clusters(database))

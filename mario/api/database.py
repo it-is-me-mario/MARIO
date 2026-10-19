@@ -79,6 +79,7 @@ from mario.compute.views import (
     concat_sut_z,
 )
 from mario.clusters import build_default_clusters, build_region_aggregation_index
+from mario.clusters.definitions import normalize_cluster_members
 
 import numpy as np
 import pandas as pd
@@ -448,12 +449,11 @@ class Database(CoreModel):
                 )
 
             target = normalized.setdefault(resolved_level, {})
+            domain = self.get_index(resolved_level)
             for cluster_name, members in level_clusters.items():
-                if isinstance(members, str):
-                    members = [members]
-                else:
-                    members = list(members)
-                target[str(cluster_name)] = members
+                target[str(cluster_name)] = normalize_cluster_members(
+                    members, domain, level=resolved_level, name=cluster_name
+                )
 
         return normalized
 
@@ -474,7 +474,10 @@ class Database(CoreModel):
         Parameters
         ----------
         clusters:
-            Preferred cluster payload using any supported set aliases.
+            Mapping of set -> cluster name -> members, using supported set
+            aliases. Members remain lists for common sets. Regional sets
+            accept region -> list mappings; omitted regions select nothing.
+            A list on a regional set is intersected with each region's domain.
         **legacy_clusters:
             Backward-compatible cluster payload passed as keyword arguments.
         """
@@ -483,7 +486,9 @@ class Database(CoreModel):
             normalized = self._normalize_cluster_mapping(payload)
             for level, level_clusters in normalized.items():
                 resolved.setdefault(level, {}).update(level_clusters)
-        check_clusters(index_dict=self.get_index("all"), table=self.table_type, clusters=resolved)
+        check_clusters(
+            index_dict=self.get_index("all"), table=self.table_type, clusters=resolved
+        )
         self._clusters = resolved
         self.meta._add_history("Database: shock clusters updated.")
 
@@ -491,9 +496,7 @@ class Database(CoreModel):
         """Add or replace one stored shock cluster."""
         updated = self.clusters
         resolved_level = self._resolve_set_name(level, allow_codes=True)
-        updated.setdefault(resolved_level, {})[str(name)] = (
-            [members] if isinstance(members, str) else list(members)
-        )
+        updated.setdefault(resolved_level, {})[str(name)] = copy.deepcopy(members)
         self.set_clusters(clusters=updated)
 
     def clear_clusters(self):
@@ -5495,14 +5498,14 @@ class Database(CoreModel):
                 f"base_scenario {base_scenario!r} does not exist. Available scenarios are "
                 f"{list(self.matrices)}."
             )
-        # Shared with the module-level shock readers (mario.ops.shocks) so every
-        # base block is read from the chosen scenario, not just baseline.
-        self._shock_base_scenario = base_scenario
-
         clusters = self._resolved_clusters(clusters=clusters, legacy_clusters=legacy_clusters)
         check_clusters(
             index_dict=self.get_index("all"), table=self.table_type, clusters=clusters
         )
+
+        # Set this only after validating clusters, so rejected definitions do
+        # not leave an active shock base scenario on the database.
+        self._shock_base_scenario = base_scenario
 
         def _baseline_block(matrix_name):
             if self.has_matrix(matrix_name, scenario=base_scenario):

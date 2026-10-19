@@ -271,23 +271,25 @@ def test_search_does_not_mutate_storage_or_materialize_blocks(regional, monkeypa
     assert tuple(regional.matrices["baseline"]) == blocks
 
 
-def test_default_clusters_use_distinct_codes_for_each_regional_set(regional):
+def test_default_clusters_preserve_each_sets_regional_shape(regional):
     defaults = regional.default_clusters
     assert set(defaults) == set(regional.sets)
     assert {name: clusters["all"] for name, clusters in defaults.items()} == {
-        "Activity": ["A1", "A2", "A3"],
-        "Commodity": ["C1", "C2"],
-        "Consumption category": ["HH", "GOV"],
+        "Activity": {"IT": ["A1"], "DE": ["A2", "A3"]},
+        "Commodity": {"IT": ["C1", "C2"], "DE": ["C1"]},
+        "Consumption category": {"IT": ["HH"], "DE": ["HH", "GOV"]},
         "Region": ["IT", "DE"],
         "Factor of production": ["VA"],
         "Satellite account": ["CO2"],
     }
-    assert all(isinstance(groups["all"], list) for groups in defaults.values())
 
 
-def test_default_clusters_preserve_logical_union_order(regional):
+def test_default_clusters_preserve_regional_axis_order(regional):
     regional._indeces["c"]["main"] = ["C2", "C1"]
-    assert regional.default_clusters["Commodity"]["all"] == ["C2", "C1"]
+    assert regional.default_clusters["Commodity"]["all"] == {
+        "IT": ["C1", "C2"],
+        "DE": ["C1"],
+    }
 
 
 def test_default_clusters_do_not_create_members_in_empty_regions():
@@ -295,8 +297,8 @@ def test_default_clusters_do_not_create_members_in_empty_regions():
         {"IT": ["A"]}, {"IT": ["C"]}, {"IT": ["HH"]}, regions=["IT", "Global"]
     )
     defaults = database.default_clusters
-    assert defaults["Activity"]["all"] == ["A"]
-    assert defaults["Consumption category"]["all"] == ["HH"]
+    assert defaults["Activity"]["all"] == {"IT": ["A"], "Global": []}
+    assert defaults["Consumption category"]["all"] == {"IT": ["HH"], "Global": []}
     assert defaults["Region"]["all"] == ["IT", "Global"]
     assert database.get_index("Activity", region="Global") == []
 
@@ -310,8 +312,11 @@ def test_default_clusters_are_independent_and_do_not_compute(regional, monkeypat
         lambda *a, **k: pytest.fail("default_clusters must not compute matrices"),
     )
     defaults = regional.default_clusters
-    defaults["Activity"]["all"].append("unexpected")
-    assert regional.default_clusters["Activity"]["all"] == ["A1", "A2", "A3"]
+    defaults["Activity"]["all"]["IT"].append("unexpected")
+    assert regional.default_clusters["Activity"]["all"] == {
+        "IT": ["A1"],
+        "DE": ["A2", "A3"],
+    }
     assert regional._indeces == before
     assert tuple(regional.matrices["baseline"]) == blocks
 

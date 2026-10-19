@@ -5,19 +5,18 @@ mario.Database.default\_clusters
 
 .. autoproperty:: Database.default_clusters
 
-Each set's ``"all"`` cluster is an ordered list of distinct observed codes,
-including when :meth:`~mario.CoreModel.get_index` returns regional lists in a
-dictionary. The order follows ``get_index(set_name, flat=True)``. Common
-classifications retain their previous lists, and geographic Region clusters
-remain available.
+Each set's ``"all"`` cluster retains the representation and membership given
+by :meth:`~mario.CoreModel.get_index`. Common classifications keep their
+existing ordered lists; regional classifications use dictionaries of regional
+lists. Geographic Region clusters remain available.
 
 For example, if the commodity domains are ``{"IT": ["C1", "C2"], "DE": ["C1"]}``,
 the automatic cluster is::
 
     db.default_clusters["Commodity"]["all"]
-    # ["C1", "C2"]
+    # {"IT": ["C1", "C2"], "DE": ["C1"]}
 
-This union does not imply that ``C2`` exists in Germany. Regional membership
-is still given by ``db.get_index("Commodity", region="DE")``. Default cluster
-generation does not create region-item pairs or compute matrices. Mutating
-the returned clusters does not change the database.
+Empty regions appear with empty lists. Cluster expansion selects existing
+region-item pairs, so ``C2`` is not selected in Germany. Default cluster
+generation does not compute matrices. Mutating returned nested lists does not
+change the database.

@@ -8,9 +8,12 @@ package on PyPI, and dates are its publication dates.
 Unreleased
 ----------
 
-* Automatic ``all`` clusters contain ordered unions of distinct member codes
-  for regional classifications, retaining list results without introducing
-  absent region-item pairs.
+* Regional sets retain region-to-list mappings in automatic ``all`` and user
+  clusters. Definitions are validated per region-code pair; list shorthand is
+  intersected with each region's domain. Common sets keep their existing list
+  clusters. Shock expansion selects actual nodes, including in split SUT and
+  legacy workbooks, and preserves sparse coefficient updates. Excel templates
+  use union picklists and inspect sparse blocks without densifying them.
 * ``search`` searches regional member lists and returns matches grouped by
   region for nonuniform sets, omitting regions with no matches. ``region=...``
   and ``flat=True`` select one region or a distinct global union. Common
