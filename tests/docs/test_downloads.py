@@ -2,13 +2,120 @@
 import importlib.util
 import json
 import re
+from io import BytesIO
 from pathlib import Path
+from xml.dom import minidom
 from xml.etree import ElementTree as ET
 import zipfile
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / 'doc/source'
 NS = {'m': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
+MC = 'http://schemas.openxmlformats.org/markup-compatibility/2006'
+
+
+def compatibility_bindings(xml):
+    """Validate prefix-valued OOXML metadata, which XML parsers do not check."""
+    pending, scopes, bindings = [], [{}], []
+    prefix_lists = {f'{{{MC}}}Ignorable', f'{{{MC}}}MustUnderstand'}
+    qname_lists = {f'{{{MC}}}ProcessContent', f'{{{MC}}}PreserveAttributes',
+                   f'{{{MC}}}PreserveElements'}
+    for event, item in ET.iterparse(BytesIO(xml), events=('start-ns', 'start', 'end')):
+        if event == 'start-ns':
+            pending.append(item)
+        elif event == 'start':
+            scopes.append({**scopes[-1], **dict(pending)})
+            pending.clear()
+            for attr, value in item.attrib.items():
+                if attr in prefix_lists or (item.tag == f'{{{MC}}}Choice' and attr == 'Requires'):
+                    prefixes = value.split()
+                elif attr in qname_lists:
+                    prefixes = [q.split(':')[0] for q in value.split() if ':' in q]
+                else:
+                    continue
+                for prefix in prefixes:
+                    assert prefix in scopes[-1], f'Undeclared prefix {prefix!r} in {attr}={value!r}'
+                    bindings.append((item.tag, attr, prefix, scopes[-1][prefix]))
+        else:
+            scopes.pop()
+    return bindings
+
+
+def test_excel_compatibility_prefixes_are_declared():
+    for book in (SOURCE / '_static/data').rglob('*.xlsx'):
+        with zipfile.ZipFile(book) as archive:
+            for part in ('xl/workbook.xml', 'xl/styles.xml'):
+                try:
+                    compatibility_bindings(archive.read(part))
+                except AssertionError as exc:
+                    raise AssertionError(f'{book.name}: {part}: {exc}') from exc
+
+
+@pytest.mark.parametrize('has_notice', [False, True])
+def test_appending_notice_preserves_excel_metadata_and_calculations(tmp_path, has_notice):
+    script = ROOT / 'doc/scripts/append_workbook_notice.py'
+    spec = importlib.util.spec_from_file_location('append_workbook_notice', script)
+    appender = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(appender)
+    original = SOURCE / '_static/data/supporting_files/Nomenclature_and_formulas.xlsx'
+    if not has_notice:
+        without_notice = tmp_path / 'original.xlsx'
+        with zipfile.ZipFile(original) as src, zipfile.ZipFile(without_notice, 'w') as out:
+            book = minidom.parseString(src.read('xl/workbook.xml'))
+            sheet = next(s for s in book.getElementsByTagNameNS(NS['m'], 'sheet')
+                         if s.getAttribute('name') == 'Read me')
+            rid = sheet.getAttributeNS(appender.R, 'id')
+            sheet.parentNode.removeChild(sheet)
+            rels = minidom.parseString(src.read('xl/_rels/workbook.xml.rels'))
+            rel = next(r for r in rels.getElementsByTagNameNS(appender.P, 'Relationship')
+                       if r.getAttribute('Id') == rid)
+            target = rel.getAttribute('Target')
+            notice_part = target.lstrip('/') if target.startswith('/') else 'xl/' + target
+            rel.parentNode.removeChild(rel)
+            types = minidom.parseString(src.read('[Content_Types].xml'))
+            override = next(t for t in types.getElementsByTagNameNS(appender.C, 'Override')
+                            if t.getAttribute('PartName') == '/' + notice_part)
+            override.parentNode.removeChild(override)
+            changed = {'xl/workbook.xml': book, 'xl/_rels/workbook.xml.rels': rels,
+                       '[Content_Types].xml': types}
+            for name in src.namelist():
+                if name != notice_part:
+                    payload = changed[name].toxml(encoding='utf-8') if name in changed else src.read(name)
+                    out.writestr(name, payload)
+        original = without_notice
+    notice, output = tmp_path / 'notice.xlsx', tmp_path / 'output.xlsx'
+    with zipfile.ZipFile(notice, 'w') as out:
+        out.writestr('xl/styles.xml', f'''<styleSheet xmlns="{NS['m']}">
+            <numFmts count="1"><numFmt numFmtId="164" formatCode="0.00"/></numFmts>
+            <fonts count="1"><font><b/></font></fonts>
+            <fills count="1"><fill><patternFill patternType="none"/></fill></fills>
+            <borders count="1"><border/></borders>
+            <cellStyleXfs count="1"><xf numFmtId="164" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+            <cellXfs count="1"><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0"/></cellXfs>
+            </styleSheet>''')
+        out.writestr('xl/sharedStrings.xml', f'<sst xmlns="{NS["m"]}"><si><t>Updated notice</t></si></sst>')
+        out.writestr('xl/worksheets/sheet1.xml', f'''<worksheet xmlns="{NS['m']}">
+            <sheetData><row r="1"><c r="A1" s="0" t="s"><v>0</v></c></row></sheetData></worksheet>''')
+    appender.append(original, notice, output)
+    assert list(texts(output, 'Read me')) == ['Updated notice']
+    with zipfile.ZipFile(original) as before, zipfile.ZipFile(output) as after:
+        for name in ('xl/workbook.xml', 'xl/styles.xml'):
+            assert compatibility_bindings(before.read(name)) == compatibility_bindings(after.read(name))
+        for name in before.namelist():
+            if name.startswith(('xl/worksheets/sheet', 'xl/calcChain', 'xl/metadata', 'xl/sharedStrings')):
+                assert before.read(name) == after.read(name), name
+        old_styles = ET.fromstring(before.read('xl/styles.xml'))
+        new_styles = ET.fromstring(after.read('xl/styles.xml'))
+        for group in old_styles:
+            updated = new_styles.find(group.tag)
+            assert [ET.tostring(e) for e in group] == [ET.tostring(e) for e in list(updated)[:len(group)]]
+        book = ET.fromstring(after.read('xl/workbook.xml'))
+        assert sum(s.get('name') == 'Read me' for s in book.findall('m:sheets/m:sheet', NS)) == 1
+        rels = ET.fromstring(after.read('xl/_rels/workbook.xml.rels'))
+        ids = [r.get('Id') for r in rels]
+        assert len(ids) == len(set(ids))
 
 
 def test_excel_package_roots_can_be_read_by_strict_opc_readers():

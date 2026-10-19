@@ -24,6 +24,9 @@ The native-workbook serializer appends or replaces only the authored Read me
 sheet; original worksheets, tables, strings and formula caches are copied
 verbatim. This also preserves the legacy inventories the import engine cannot
 handle efficiently.
+The edited XML parts retain namespace declarations, including prefixes referenced
+only by Excel compatibility attributes. Removing these declarations can trigger
+Excel's repair prompt even when the ZIP and XML are otherwise readable.
 
 Sphinx publishes code-only notebook copies, with source terms and portable
 example links. It strips saved results, execution metadata and literal local
