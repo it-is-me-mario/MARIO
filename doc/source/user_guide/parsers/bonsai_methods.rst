@@ -5,6 +5,12 @@ This is a development snapshot from 2026-10-19, after the first regional
 ``get_index`` change. It identifies the next adaptations; it does not claim
 that all MARIO methods support BONSAI yet.
 
+The summary regression has since been fixed: regional sets display
+``from X to Y per region``, counting the members of each regional list and
+including empty regions. Common classifications retain scalar counts. The
+tables and downloadable snapshot below record the initial diagnosis before
+this fix; rerun the ``repr`` probe to check the updated behavior.
+
 Index contract
 --------------
 

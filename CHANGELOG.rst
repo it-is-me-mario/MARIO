@@ -8,6 +8,9 @@ package on PyPI, and dates are its publication dates.
 Unreleased
 ----------
 
+* Database summaries show the minimum and maximum member count per region for
+  regional index dictionaries, including regions with no members. Common
+  classifications retain their existing scalar counts.
 * ``get_index`` keeps ordered lists for common regional classifications and
   returns dictionaries of regional lists for nonuniform sets. ``region=...``
   selects one region and ``flat=True`` explicitly requests the union of labels.

@@ -3510,7 +3510,7 @@ class CoreModel:
         self.meta._save(path, format)
 
     def __str__(self):
-        """Render a compact structural summary of the database."""
+        """Render set counts, using per-region ranges for regional indexes."""
         to_print = (
             "name = {}\n"
             "table = {}\n".format(self.meta.name, self.meta.table)
@@ -3520,7 +3520,15 @@ class CoreModel:
             to_print += f"tech_assumption = {tech_assumption}\n"
         to_print += "scenarios = {}\n".format(self.scenarios)
         for item in TABLE_LEVELS[self.meta.table]:
-            to_print += "{} = {}\n".format(item, len(self.get_index(item)))
+            members = self.get_index(item)
+            if isinstance(members, dict):
+                counts = [len(values) for values in members.values()]
+                count = (
+                    f"from {min(counts, default=0)} to {max(counts, default=0)} per region"
+                )
+            else:
+                count = len(members)
+            to_print += "{} = {}\n".format(item, count)
 
         return to_print
 

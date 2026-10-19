@@ -296,11 +296,18 @@ def _equal_changed_domain(database, root):
 
 def _representation(database, root):
     text = str(database)
-    if (
-        isinstance(database.get_index(MI["a"]), dict)
-        and f"{MI['a']} = {len(database._indeces['r']['main'])}\n" in text
-    ):
-        raise IncorrectResult("The database summary counts regions as activities.")
+    for name, members in database.get_index("all").items():
+        if isinstance(members, dict):
+            counts = [len(values) for values in members.values()]
+            expected = (
+                f"from {min(counts, default=0)} to {max(counts, default=0)} per region"
+            )
+        else:
+            expected = str(len(members))
+        if f"{name} = {expected}\n" not in text:
+            raise IncorrectResult(
+                f"The database summary has an incorrect count for {name}."
+            )
     return text
 
 

@@ -90,6 +90,35 @@ def test_uniform_database_keeps_exact_legacy_lists(table):
     for name, items in expected.items():
         assert type(database.get_index(name)) is list
         assert database.get_index(name) == items
+        assert f"{name} = {len(items)}\n" in str(database)
+
+
+def test_summary_reports_per_region_count_ranges(regional):
+    summary = str(regional)
+    assert "Activity = from 1 to 2 per region\n" in summary
+    assert "Commodity = from 1 to 2 per region\n" in summary
+    assert "Consumption category = from 1 to 2 per region\n" in summary
+    assert "Region = 2\n" in summary
+    assert "Factor of production = 1\n" in summary
+    assert "Satellite account = 1\n" in summary
+    assert repr(regional) == summary
+
+
+def test_summary_includes_regions_without_members():
+    database = regional_database(
+        {"IT": ["A"]}, {"IT": ["C"]}, {"IT": ["HH"]}, regions=["IT", "Global"]
+    )
+    summary = str(database)
+    for name in ("Activity", "Commodity", "Consumption category"):
+        assert f"{name} = from 0 to 1 per region\n" in summary
+
+
+def test_summary_of_different_regional_members_with_equal_counts():
+    database = regional_database(
+        {"IT": ["A1"], "DE": ["A2"]}, {"IT": ["C"], "DE": ["C"]}
+    )
+    assert "Activity = from 1 to 1 per region\n" in str(database)
+    assert "Commodity = 1\n" in str(database)
 
 
 def test_each_set_has_its_own_regional_shape(regional):
@@ -252,6 +281,7 @@ def test_irregular_iot_sector_axes_are_regional(regional):
     )
     assert database.get_index("Sector") == {"IT": ["A1"], "DE": ["A2", "A3"]}
     assert database.get_index("Sector", flat=True) == ["A1", "A2", "A3"]
+    assert "Sector = from 1 to 2 per region\n" in str(database)
 
 
 def test_explicit_regional_extension_axes_are_detected(regional):
