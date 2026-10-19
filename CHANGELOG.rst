@@ -8,6 +8,11 @@ package on PyPI, and dates are its publication dates.
 Unreleased
 ----------
 
+* Direct trade-content breakdowns weight actual flow entries without building a
+  dense contributor diagonal. Sparse inputs produce zero-fill sparse results,
+  retaining the contributor index and zero rows. Region clusters are applied
+  before expanding the output; contributors retain their original regional
+  labels. Dense inputs keep the existing dense output format.
 * ``calc_trades_content`` resolves only the indicator rows required by its
   method: direct coefficients for ``direct``, total multipliers for ``total``,
   and both for ``upstream``. Total contributor breakdowns no longer load or

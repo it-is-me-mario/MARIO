@@ -27,9 +27,13 @@ decomposing the content across the contributing production nodes. Summing the
 breakdown over contributor levels reconstructs the corresponding collapsed
 ``db.calc_trades_content(...)`` result for the same ``method``.
 Total breakdowns resolve exploded totals directly, without constructing an
-unused direct diagonal. Direct and upstream breakdowns still construct the
-direct contributor matrix; this change does not make large contributor
-breakdowns sparse.
+unused direct diagonal. Direct breakdowns weight actual flow entries using the
+coefficient vector, without constructing a contributor-by-contributor matrix.
+Sparse flow inputs return a zero-fill sparse DataFrame, while dense inputs keep
+their existing dense output. Both retain the MultiIndex, contributor order and
+zero rows: each trade origin has the actual production nodes as contributors,
+without padding the database with nonexistent region-item pairs. Total and
+upstream breakdowns still require a separate sparse adaptation.
 
 For IOT tables, MARIO uses ``e`` and ``v`` for direct content, and ``f`` and
 ``m`` for total content. With ``breakdown=True``, MARIO uses the direct row
@@ -53,7 +57,9 @@ the aggregate case with ``intermediate=True``, ``final=True`` and
 ``db.calc_trades(...)``.
 
 When ``breakdown=True``, Region clustering still applies to the trade axes, but
-plotting and ``total=True`` are not currently supported.
+plotting and ``total=True`` are not currently supported. Direct breakdowns apply
+the clusters before expanding the output and preserve the original region and
+item labels of each contributor.
 
 Use ``show_plot=True`` to also build and display a region-by-region heatmap
 while still returning the trade-content matrix.

@@ -63,13 +63,21 @@ commodity have zero origin rows, and no unified ``Z`` or ``z`` is materialized.
 Trade-content indicator loading now follows the selected method: ``direct``
 requests only direct coefficients, ``total`` resolves total multipliers, and
 ``upstream`` requires both. Total contributor breakdowns no longer construct an
-unused direct diagonal. Direct/upstream contributor breakdowns still need their
-separate sparse adaptation. Existing coefficient and multiplier formulas are
-unchanged; in particular Isard SUT direct content remains based on ``ec``/``vc``.
+unused direct diagonal. Direct contributor breakdowns have also been adapted:
+actual flow entries are weighted without a square diagonal,
+and sparse inputs retain sparse output with the existing contributor index and
+zero rows. Region clusters are applied before output expansion, retaining each
+contributor's original labels. Total/upstream breakdowns remain to be adapted.
+Existing coefficient and multiplier formulas are unchanged; in particular Isard
+SUT direct content remains based on ``ec``/``vc``.
 On the complete Balanced bundle, direct content was checked against independent
 weighted COO sums of ``U`` and ``Yc`` with queries limited to ``ec``, ``U`` and
 ``Yc``. No total multiplier or inverse was materialized. The imported ``Ec`` is
 zero, so nonzero numerical checks for all three methods use small models.
+The direct contributor breakdown has also been checked on the complete bundle:
+its sparse 2,670,000-by-50 result preserves the 53,400 actual contributor nodes
+and sums to the collapsed result. A one-region trade cluster preserves those
+contributor labels. Neither check constructs a direct diagonal or an inverse.
 
 Index contract
 --------------

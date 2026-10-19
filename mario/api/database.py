@@ -60,7 +60,7 @@ from mario.utils import (
 )
 
 from mario.ops.excel import _sh_excel
-from mario.ops.trades import sum_trade_regions
+from mario.ops.trades import direct_trade_breakdown, sum_trade_regions
 from mario.ops.aggregation_inputs import (
     aggregation_template,
     normalize_aggregation_sheet,
@@ -2271,11 +2271,19 @@ class Database(CoreModel):
         scenario,
         method: str,
         use_activity_side: bool,
-    ) -> tuple[pd.DataFrame, str]:
+    ) -> tuple[pd.DataFrame | pd.Series, str]:
         """Resolve contributor-level content weights for breakdown outputs."""
         if method == "total":
             return self._resolve_trade_content_total_exploded(
                 indicator, scenario=scenario, use_activity_side=use_activity_side
+            )
+
+        if method == "direct":
+            return self._resolve_trade_content_row(
+                indicator,
+                scenario=scenario,
+                method="direct",
+                use_activity_side=use_activity_side,
             )
 
         direct_row, unit = self._resolve_trade_content_row(
@@ -2285,9 +2293,6 @@ class Database(CoreModel):
             use_activity_side=use_activity_side,
         )
         direct_exploded = self._explode_trade_content_direct_row(direct_row)
-
-        if method == "direct":
-            return direct_exploded, unit
 
         total_exploded, unit = self._resolve_trade_content_total_exploded(
             indicator,
@@ -2334,20 +2339,35 @@ class Database(CoreModel):
     @staticmethod
     def _aggregate_trade_content_breakdown_matrix_by_region(
         matrix: pd.DataFrame,
-        exploded_weights: pd.DataFrame,
+        exploded_weights: pd.DataFrame | pd.Series,
         item=None,
+        *,
+        regions=None,
+        region_aggregation=None,
+        clusters_direction="both",
     ) -> pd.DataFrame:
         """Break down row-oriented trade content by contributor and trade region pair."""
+        if isinstance(exploded_weights, pd.Series):
+            return direct_trade_breakdown(
+                matrix,
+                exploded_weights,
+                item,
+                regions=regions,
+                region_aggregation=region_aggregation,
+                clusters_direction=clusters_direction,
+            )
         selected = Database._select_trade_rows(matrix, item)
         origin_regions = list(dict.fromkeys(selected.index.get_level_values(0).tolist()))
-        destination_regions = list(dict.fromkeys(matrix.columns.get_level_values(0).tolist()))
+        destination_regions = list(
+            dict.fromkeys(matrix.columns.get_level_values(0).tolist())
+        )
 
         frames = []
         for origin_region in origin_regions:
             origin_block = selected.loc[(origin_region, slice(None), slice(None)), :]
-            contribution = exploded_weights.reindex(columns=origin_block.index, fill_value=0.0).dot(
-                origin_block
-            )
+            contribution = exploded_weights.reindex(
+                columns=origin_block.index, fill_value=0.0
+            ).dot(origin_block)
             contribution = contribution.T.groupby(level=0, sort=False).sum().T
             contribution = contribution.reindex(columns=destination_regions, fill_value=0.0)
 
@@ -2357,25 +2377,45 @@ class Database(CoreModel):
             )
             frames.append(contribution)
 
-        return pd.concat(frames, axis=0)
+        return Database._aggregate_trade_content_breakdown_regions(
+            pd.concat(frames, axis=0),
+            region_aggregation,
+            clusters_direction=clusters_direction,
+        )
 
     @staticmethod
     def _aggregate_trade_content_breakdown_supply_by_region(
         matrix: pd.DataFrame,
-        exploded_weights: pd.DataFrame,
+        exploded_weights: pd.DataFrame | pd.Series,
         item=None,
+        *,
+        regions=None,
+        region_aggregation=None,
+        clusters_direction="both",
     ) -> pd.DataFrame:
         """Break down supply-oriented trade content by contributor and trade region pair."""
+        if isinstance(exploded_weights, pd.Series):
+            return direct_trade_breakdown(
+                matrix,
+                exploded_weights,
+                item,
+                supply=True,
+                regions=regions,
+                region_aggregation=region_aggregation,
+                clusters_direction=clusters_direction,
+            )
         selected = Database._select_trade_supply_columns(matrix, item)
         origin_regions = list(dict.fromkeys(selected.index.get_level_values(0).tolist()))
-        destination_regions = list(dict.fromkeys(selected.columns.get_level_values(0).tolist()))
+        destination_regions = list(
+            dict.fromkeys(selected.columns.get_level_values(0).tolist())
+        )
 
         frames = []
         for origin_region in origin_regions:
             origin_block = selected.loc[(origin_region, slice(None), slice(None)), :]
-            contribution = exploded_weights.reindex(columns=origin_block.index, fill_value=0.0).dot(
-                origin_block
-            )
+            contribution = exploded_weights.reindex(
+                columns=origin_block.index, fill_value=0.0
+            ).dot(origin_block)
             contribution = contribution.T.groupby(level=0, sort=False).sum().T
             contribution = contribution.reindex(columns=destination_regions, fill_value=0.0)
 
@@ -2385,7 +2425,11 @@ class Database(CoreModel):
             )
             frames.append(contribution)
 
-        return pd.concat(frames, axis=0)
+        return Database._aggregate_trade_content_breakdown_regions(
+            pd.concat(frames, axis=0),
+            region_aggregation,
+            clusters_direction=clusters_direction,
+        )
 
     @staticmethod
     def _aggregate_trade_content_breakdown_regions(
@@ -2785,6 +2829,7 @@ class Database(CoreModel):
             When ``True``, return a contributor-level decomposition instead of
             collapsing all contributors into one region-by-region total. The
             rows then carry a MultiIndex ``(origin region, contributor...)``.
+            Direct breakdowns preserve sparse storage when flow inputs are sparse.
         clusters:
             Optional Region aggregation preset or mapping applied before totals.
         clusters_direction:
@@ -2835,9 +2880,12 @@ class Database(CoreModel):
         region_aggregation = self._resolve_trade_region_aggregation(clusters)
         clusters_direction = self._normalize_trade_cluster_direction(clusters_direction)
         content_unit = None
+        regions = self.get_index(_MASTER_INDEX["r"])
 
         if breakdown and total:
-            raise NotImplementable("calc_trades_content does not support total=True with breakdown=True.")
+            raise NotImplementable(
+                "calc_trades_content does not support total=True with breakdown=True."
+            )
 
         matrix_names = []
         if self.meta.table == "SUT":
@@ -2891,10 +2939,8 @@ class Database(CoreModel):
                         supply_block,
                         content_weights,
                         item_selection,
-                    )
-                    frame = self._aggregate_trade_content_breakdown_regions(
-                        frame,
-                        region_aggregation,
+                        regions=regions,
+                        region_aggregation=region_aggregation,
                         clusters_direction=clusters_direction,
                     )
                 else:
@@ -2902,6 +2948,7 @@ class Database(CoreModel):
                         supply_block,
                         item_selection,
                         row_weights=content_weights,
+                        regions=regions,
                     )
                     frame = self._aggregate_trade_regions(
                         frame,
@@ -2925,10 +2972,8 @@ class Database(CoreModel):
                         blocks[matrix_name],
                         content_weights,
                         item_selection,
-                    )
-                    frame = self._aggregate_trade_content_breakdown_regions(
-                        frame,
-                        region_aggregation,
+                        regions=regions,
+                        region_aggregation=region_aggregation,
                         clusters_direction=clusters_direction,
                     )
                 else:
@@ -2936,6 +2981,7 @@ class Database(CoreModel):
                         blocks[matrix_name],
                         item_selection,
                         row_weights=content_weights,
+                        regions=regions,
                     )
                     frame = self._aggregate_trade_regions(
                         frame,
@@ -2953,10 +2999,8 @@ class Database(CoreModel):
                         blocks[matrix_name],
                         content_weights,
                         item_selection,
-                    )
-                    frame = self._aggregate_trade_content_breakdown_regions(
-                        frame,
-                        region_aggregation,
+                        regions=regions,
+                        region_aggregation=region_aggregation,
                         clusters_direction=clusters_direction,
                     )
                 else:
@@ -2964,6 +3008,7 @@ class Database(CoreModel):
                         blocks[matrix_name],
                         item_selection,
                         row_weights=content_weights,
+                        regions=regions,
                     )
                     frame = self._aggregate_trade_regions(
                         frame,
@@ -3009,7 +3054,8 @@ class Database(CoreModel):
         return self._render_trade_plot(
             trades,
             trades_by_scenario,
-            title=title or f"{method.title()} {indicator} content in trades for {item_label}",
+            title=title
+            or f"{method.title()} {indicator} content in trades for {item_label}",
             unit_label=content_unit or "Value",
             auto_open=auto_open,
             output_path=output_path,
