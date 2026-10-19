@@ -15,34 +15,49 @@ Accepted ``indicator`` values are:
 Use ``method='direct'`` for direct coefficients only, ``'total'`` for direct
 plus upstream effects, or ``'upstream'`` for the indirect share only.
 
-Only the indicator rows needed by the selected method are requested.
+Only the coefficients needed by the selected method are requested.
 ``direct`` does not request total multipliers, so it does not trigger an
-upstream/inverse calculation merely to discard that result. ``total`` resolves
-the total row, and ``upstream`` resolves both rows and subtracts the direct
-part. The resolver may compute prerequisites needed to build a requested row.
+upstream/inverse calculation merely to discard that result. For collapsed
+totals on dense inputs, ``total`` resolves the total row and ``upstream``
+resolves both rows and subtracts the direct part. The resolver may compute
+prerequisites needed to build a requested row.
 
 Use ``breakdown=True`` to return contributor-level content tables instead of a
 collapsed Region-by-Region total. In that case MARIO keeps the trade pair while
 decomposing the content across the contributing production nodes. Summing the
 breakdown over contributor levels reconstructs the corresponding collapsed
 ``db.calc_trades_content(...)`` result for the same ``method``.
-Total breakdowns resolve exploded totals directly, without constructing an
-unused direct diagonal. Direct breakdowns weight actual flow entries using the
+Direct breakdowns weight actual flow entries using the
 coefficient vector, without constructing a contributor-by-contributor matrix.
 Sparse flow inputs return a zero-fill sparse DataFrame, while dense inputs keep
 their existing dense output. Both retain the MultiIndex, contributor order and
 zero rows: each trade origin has the actual production nodes as contributors,
-without padding the database with nonexistent region-item pairs. Total and
-upstream breakdowns still require a separate sparse adaptation.
+without padding the database with nonexistent region-item pairs.
+
+Total and upstream breakdowns instead project regional trade vectors through
+the native coefficient system. They do not request a full inverse or exploded
+multiplier. Upstream subtracts the direct contribution from the solved vectors,
+without a diagonal. SUT totals include both actual Activity and Commodity
+contributors, in the same order as ``fa_ex``/``fc_ex``; upstream retains its
+legacy outer-join ordering. For sparse flow inputs, collapsed total/upstream
+results use the same projection and return the usual dense regional totals.
+
+The projected solver follows ``linear_strategy``: large automatic iterative
+solves apply the split coefficient product as an operator, and sparse direct
+solves reuse a factorization within a call. An already materialized inverse can
+be reused. Exact proportional trade vectors share one solve; no approximate
+profile matching or truncation of small contributions is used. Results that
+fail the residual accuracy check raise an error. Sparse storage preserves zero
+rows, although network effects can produce many nonzero contributions.
 
 For IOT tables, MARIO uses ``e`` and ``v`` for direct content, and ``f`` and
 ``m`` for total content. With ``breakdown=True``, MARIO uses the direct row
-itself for ``method='direct'`` and the exploded matrices ``f_ex`` or ``m_ex``
-for ``'total'`` and ``'upstream'``.
+itself for ``method='direct'`` and projects the formulas underlying ``f_ex`` or
+``m_ex`` for ``'total'`` and ``'upstream'``.
 
 For Isard SUT tables, MARIO uses commodity-side coefficients and multipliers:
 ``ec`` and ``vc`` for direct content, and ``fc`` and ``mc`` for total content.
-With ``breakdown=True``, MARIO uses commodity-side exploded totals built from
+With ``breakdown=True``, MARIO projects the commodity-side formulas underlying
 ``fc_ex`` and ``mc_ex``.
 
 For Chenery-Moses SUT tables, commodity trade is aggregated from ``S`` and the
@@ -57,7 +72,7 @@ the aggregate case with ``intermediate=True``, ``final=True`` and
 ``db.calc_trades(...)``.
 
 When ``breakdown=True``, Region clustering still applies to the trade axes, but
-plotting and ``total=True`` are not currently supported. Direct breakdowns apply
+plotting and ``total=True`` are not currently supported. All breakdowns apply
 the clusters before expanding the output and preserve the original region and
 item labels of each contributor.
 

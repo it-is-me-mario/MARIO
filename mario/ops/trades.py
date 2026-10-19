@@ -99,35 +99,12 @@ def direct_trade_breakdown(
     if pd.isna(weights[relevant]).any():
         raise WrongInput("Trade content weights could not be aligned to trade rows.")
 
-    row_regions = matrix.index.get_level_values(0)
-    column_regions = matrix.columns.get_level_values(0)
-    if regions is None:
-        regions = list(dict.fromkeys([*row_regions, *column_regions]))
-    targets = (
-        {}
-        if region_aggregation is None
-        else region_aggregation["Aggregation"].to_dict()
+    origins, destinations, origin_codes, destination_codes = trade_axes(
+        matrix,
+        regions=regions,
+        region_aggregation=region_aggregation,
+        clusters_direction=clusters_direction,
     )
-    origin_targets = {
-        r: targets.get(r, r) if clusters_direction in {"origin", "both"} else r
-        for r in regions
-    }
-    destination_targets = {
-        r: targets.get(r, r) if clusters_direction in {"destination", "both"} else r
-        for r in regions
-    }
-    origins = pd.Index(list(dict.fromkeys(origin_targets.values())), name=MI["r"])
-    destinations = pd.Index(
-        list(dict.fromkeys(destination_targets.values())), name=MI["r"]
-    )
-    origin_codes = origins.get_indexer([origin_targets.get(r, r) for r in row_regions])
-    destination_codes = destinations.get_indexer(
-        [destination_targets.get(r, r) for r in column_regions]
-    )
-    if (origin_codes < 0).any() or (destination_codes < 0).any():
-        raise WrongInput(
-            "Trade regions could not be aligned to the database Region index."
-        )
 
     sparse_input = (
         len(matrix.columns) > 0 or isinstance(direct_row.dtype, pd.SparseDtype)
@@ -159,6 +136,51 @@ def direct_trade_breakdown(
         shape=(len(origins) * len(contributors), len(destinations)),
     ).tocsc()
 
+    index = trade_breakdown_index(origins, contributors)
+    if sparse_input:
+        return sparse_frame_from_spmatrix(result, index=index, columns=destinations)
+    return pd.DataFrame(result.toarray(), index=index, columns=destinations)
+
+
+def trade_axes(
+    matrix, *, regions=None, region_aggregation=None, clusters_direction="both"
+):
+    """Map actual flow nodes to the requested trade-region axes."""
+    row_regions = matrix.index.get_level_values(0)
+    column_regions = matrix.columns.get_level_values(0)
+    if regions is None:
+        regions = list(dict.fromkeys([*row_regions, *column_regions]))
+    targets = (
+        {}
+        if region_aggregation is None
+        else region_aggregation["Aggregation"].to_dict()
+    )
+    origin_targets = {
+        r: targets.get(r, r) if clusters_direction in {"origin", "both"} else r
+        for r in regions
+    }
+    destination_targets = {
+        r: targets.get(r, r) if clusters_direction in {"destination", "both"} else r
+        for r in regions
+    }
+    origins = pd.Index(list(dict.fromkeys(origin_targets.values())), name=MI["r"])
+    destinations = pd.Index(
+        list(dict.fromkeys(destination_targets.values())), name=MI["r"]
+    )
+    origin_codes = origins.get_indexer([origin_targets.get(r, r) for r in row_regions])
+    destination_codes = destinations.get_indexer(
+        [destination_targets.get(r, r) for r in column_regions]
+    )
+    if (origin_codes < 0).any() or (destination_codes < 0).any():
+        raise WrongInput(
+            "Trade regions could not be aligned to the database Region index."
+        )
+
+    return origins, destinations, origin_codes, destination_codes
+
+
+def trade_breakdown_index(origins, contributors):
+    """Build the legacy output index from codes, without millions of tuples."""
     if isinstance(contributors, pd.MultiIndex):
         levels, codes, names = (
             contributors.levels,
@@ -180,6 +202,4 @@ def direct_trade_breakdown(
         names=[MI["r"], *names],
         verify_integrity=False,
     )
-    if sparse_input:
-        return sparse_frame_from_spmatrix(result, index=index, columns=destinations)
-    return pd.DataFrame(result.toarray(), index=index, columns=destinations)
+    return index

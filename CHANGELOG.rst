@@ -8,6 +8,14 @@ package on PyPI, and dates are its publication dates.
 Unreleased
 ----------
 
+* Total and upstream trade-content breakdowns project regional trade vectors
+  through the IOT/SUT coefficient system without constructing an inverse or an
+  exploded multiplier. SUT results retain both Activity and Commodity
+  contributors and their legacy ordering; upstream subtracts the direct vector
+  contribution. Sparse flow inputs retain sparse output and use the same
+  projection for collapsed totals. Large iterative solves apply split
+  coefficients as an operator, and exact proportional trade vectors share a
+  solve. Nonconverged results raise an error.
 * Direct trade-content breakdowns weight actual flow entries without building a
   dense contributor diagonal. Sparse inputs produce zero-fill sparse results,
   retaining the contributor index and zero rows. Region clusters are applied

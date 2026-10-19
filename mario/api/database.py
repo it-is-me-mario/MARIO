@@ -61,6 +61,7 @@ from mario.utils import (
 
 from mario.ops.excel import _sh_excel
 from mario.ops.trades import direct_trade_breakdown, sum_trade_regions
+from mario.ops.trade_content import TradeContentProjection, sparse_flow
 from mario.ops.aggregation_inputs import (
     aggregation_template,
     normalize_aggregation_sheet,
@@ -2157,15 +2158,8 @@ class Database(CoreModel):
         normalized = "".join(ch for ch in str(indicator).strip().lower() if ch.isalnum())
         return normalized == "totalvalueadded"
 
-    def _resolve_trade_content_row(
-        self,
-        indicator,
-        *,
-        scenario,
-        method: str,
-        use_activity_side: bool,
-    ) -> tuple[pd.Series, str]:
-        """Resolve only the indicator rows required by the selected method."""
+    def _trade_content_indicator_spec(self, indicator, *, use_activity_side):
+        """Share indicator selection and units across row and projected calculations."""
         if self.meta.table == "IOT":
             factor_direct, factor_total = _ENUM.v, _ENUM.m
             satellite_direct, satellite_total = _ENUM.e, _ENUM.f
@@ -2196,6 +2190,21 @@ class Database(CoreModel):
             raise WrongInput(
                 "indicator should be a Satellite account row, a Factor of production row, or 'total value added'."
             )
+
+        return direct_name, total_name, sum_factors, unit
+
+    def _resolve_trade_content_row(
+        self,
+        indicator,
+        *,
+        scenario,
+        method: str,
+        use_activity_side: bool,
+    ) -> tuple[pd.Series, str]:
+        """Resolve only the indicator rows required by the selected method."""
+        direct_name, total_name, sum_factors, unit = self._trade_content_indicator_spec(
+            indicator, use_activity_side=use_activity_side
+        )
 
         def resolve_row(name):
             block = self.query(matrices=[name], scenarios=[scenario])
@@ -2264,6 +2273,47 @@ class Database(CoreModel):
             columns=direct_row.index.copy(),
         )
 
+    def _prepare_trade_content_projection(self, indicator, *, scenario, use_activity_side):
+        """Resolve direct coefficients and a reusable projected linear system."""
+        direct_name, _, sum_factors, unit = self._trade_content_indicator_spec(
+            indicator, use_activity_side=use_activity_side
+        )
+
+        def row(name):
+            frame = self.query(matrices=[name], scenarios=[scenario])
+            return frame.sum(axis=0) if sum_factors else frame.loc[indicator]
+
+        cached = self.matrices[self._validate_scenario(scenario)]
+        if self.meta.table == "IOT":
+            z = self.query(matrices=[_ENUM.z], scenarios=[scenario])
+            z = z.reindex(columns=z.index)
+            projection = TradeContentProjection(
+                [row(direct_name).reindex(z.index)],
+                z,
+                transfer=cached["w"] if "w" in cached else None,
+            )
+        else:
+            other_name, _, _, _ = self._trade_content_indicator_spec(
+                indicator, use_activity_side=not use_activity_side
+            )
+            a_name, c_name = (
+                (direct_name, other_name)
+                if use_activity_side
+                else (other_name, direct_name)
+            )
+            blocks = self.query(matrices=["u", "s"], scenarios=[scenario])
+            u, supply = blocks["u"], blocks["s"]
+            supply = supply.reindex(index=u.columns, columns=u.index)
+            transfer_name = "waa" if use_activity_side else "wcc"
+            projection = TradeContentProjection(
+                [row(a_name).reindex(supply.index), row(c_name).reindex(u.index)],
+                supply if use_activity_side else u,
+                secondary=u if use_activity_side else supply,
+                activity_side=use_activity_side,
+                transfer=cached[transfer_name] if transfer_name in cached else None,
+            )
+        return projection, unit
+
     def _resolve_trade_content_exploded(
         self,
         indicator,
@@ -2271,13 +2321,8 @@ class Database(CoreModel):
         scenario,
         method: str,
         use_activity_side: bool,
-    ) -> tuple[pd.DataFrame | pd.Series, str]:
-        """Resolve contributor-level content weights for breakdown outputs."""
-        if method == "total":
-            return self._resolve_trade_content_total_exploded(
-                indicator, scenario=scenario, use_activity_side=use_activity_side
-            )
-
+    ) -> tuple[pd.Series | TradeContentProjection, str]:
+        """Resolve a direct vector or a lazy total/upstream projection."""
         if method == "direct":
             return self._resolve_trade_content_row(
                 indicator,
@@ -2285,22 +2330,11 @@ class Database(CoreModel):
                 method="direct",
                 use_activity_side=use_activity_side,
             )
-
-        direct_row, unit = self._resolve_trade_content_row(
-            indicator,
-            scenario=scenario,
-            method="direct",
-            use_activity_side=use_activity_side,
-        )
-        direct_exploded = self._explode_trade_content_direct_row(direct_row)
-
-        total_exploded, unit = self._resolve_trade_content_total_exploded(
+        return self._prepare_trade_content_projection(
             indicator,
             scenario=scenario,
             use_activity_side=use_activity_side,
         )
-
-        return total_exploded.subtract(direct_exploded, fill_value=0.0), unit
 
     @staticmethod
     def _select_trade_rows(matrix: pd.DataFrame, item=None) -> pd.DataFrame:
@@ -2339,14 +2373,26 @@ class Database(CoreModel):
     @staticmethod
     def _aggregate_trade_content_breakdown_matrix_by_region(
         matrix: pd.DataFrame,
-        exploded_weights: pd.DataFrame | pd.Series,
+        exploded_weights: pd.DataFrame | pd.Series | TradeContentProjection,
         item=None,
         *,
         regions=None,
         region_aggregation=None,
         clusters_direction="both",
+        method="total",
     ) -> pd.DataFrame:
         """Break down row-oriented trade content by contributor and trade region pair."""
+        if isinstance(exploded_weights, TradeContentProjection):
+            return exploded_weights.aggregate(
+                matrix,
+                item,
+                method=method,
+                breakdown=True,
+                supply=False,
+                regions=regions,
+                region_aggregation=region_aggregation,
+                clusters_direction=clusters_direction,
+            )
         if isinstance(exploded_weights, pd.Series):
             return direct_trade_breakdown(
                 matrix,
@@ -2386,14 +2432,26 @@ class Database(CoreModel):
     @staticmethod
     def _aggregate_trade_content_breakdown_supply_by_region(
         matrix: pd.DataFrame,
-        exploded_weights: pd.DataFrame | pd.Series,
+        exploded_weights: pd.DataFrame | pd.Series | TradeContentProjection,
         item=None,
         *,
         regions=None,
         region_aggregation=None,
         clusters_direction="both",
+        method="total",
     ) -> pd.DataFrame:
         """Break down supply-oriented trade content by contributor and trade region pair."""
+        if isinstance(exploded_weights, TradeContentProjection):
+            return exploded_weights.aggregate(
+                matrix,
+                item,
+                method=method,
+                breakdown=True,
+                supply=True,
+                regions=regions,
+                region_aggregation=region_aggregation,
+                clusters_direction=clusters_direction,
+            )
         if isinstance(exploded_weights, pd.Series):
             return direct_trade_breakdown(
                 matrix,
@@ -2829,7 +2887,8 @@ class Database(CoreModel):
             When ``True``, return a contributor-level decomposition instead of
             collapsing all contributors into one region-by-region total. The
             rows then carry a MultiIndex ``(origin region, contributor...)``.
-            Direct breakdowns preserve sparse storage when flow inputs are sparse.
+            Breakdowns preserve sparse storage when flow inputs are sparse;
+            total/upstream project trade vectors without a full inverse.
         clusters:
             Optional Region aggregation preset or mapping applied before totals.
         clusters_direction:
@@ -2906,7 +2965,22 @@ class Database(CoreModel):
                 and len(self.get_index(_MASTER_INDEX["r"])) > 1
                 and self.is_chenerymoses(scenario=scenario_name)
             )
-            if breakdown:
+            native_name = (
+                "S" if use_chenery_supply else "U" if self.meta.table == "SUT" else _ENUM.Z
+            )
+            projected = method != "direct" and (
+                breakdown
+                or sparse_flow(
+                    self.matrices[self._validate_scenario(scenario_name)].get(native_name)
+                )
+            )
+            if projected:
+                content_weights, resolved_unit = self._prepare_trade_content_projection(
+                    indicator,
+                    scenario=scenario_name,
+                    use_activity_side=use_chenery_supply,
+                )
+            elif breakdown:
                 content_weights, resolved_unit = self._resolve_trade_content_exploded(
                     indicator,
                     scenario=scenario_name,
@@ -2942,7 +3016,21 @@ class Database(CoreModel):
                         regions=regions,
                         region_aggregation=region_aggregation,
                         clusters_direction=clusters_direction,
+                        method=method,
                     )
+                elif projected:
+                    frame = content_weights.aggregate(
+                        supply_block,
+                        item_selection,
+                        method=method,
+                        breakdown=False,
+                        supply=True,
+                        regions=regions,
+                        region_aggregation=region_aggregation,
+                        clusters_direction=clusters_direction,
+                    )
+                    if total:
+                        frame = self._add_trade_totals(frame)
                 else:
                     frame = self._aggregate_trade_supply_by_region(
                         supply_block,
@@ -2975,7 +3063,21 @@ class Database(CoreModel):
                         regions=regions,
                         region_aggregation=region_aggregation,
                         clusters_direction=clusters_direction,
+                        method=method,
                     )
+                elif projected:
+                    frame = content_weights.aggregate(
+                        blocks[matrix_name],
+                        item_selection,
+                        method=method,
+                        breakdown=False,
+                        supply=False,
+                        regions=regions,
+                        region_aggregation=region_aggregation,
+                        clusters_direction=clusters_direction,
+                    )
+                    if total:
+                        frame = self._add_trade_totals(frame)
                 else:
                     frame = self._aggregate_trade_matrix_by_region(
                         blocks[matrix_name],
@@ -3002,7 +3104,21 @@ class Database(CoreModel):
                         regions=regions,
                         region_aggregation=region_aggregation,
                         clusters_direction=clusters_direction,
+                        method=method,
                     )
+                elif projected:
+                    frame = content_weights.aggregate(
+                        blocks[matrix_name],
+                        item_selection,
+                        method=method,
+                        breakdown=False,
+                        supply=False,
+                        regions=regions,
+                        region_aggregation=region_aggregation,
+                        clusters_direction=clusters_direction,
+                    )
+                    if total:
+                        frame = self._add_trade_totals(frame)
                 else:
                     frame = self._aggregate_trade_matrix_by_region(
                         blocks[matrix_name],

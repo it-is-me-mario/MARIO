@@ -67,7 +67,13 @@ unused direct diagonal. Direct contributor breakdowns have also been adapted:
 actual flow entries are weighted without a square diagonal,
 and sparse inputs retain sparse output with the existing contributor index and
 zero rows. Region clusters are applied before output expansion, retaining each
-contributor's original labels. Total/upstream breakdowns remain to be adapted.
+contributor's original labels. Total/upstream breakdowns now project the trade
+vectors through the native coefficient system too, retaining Activity and
+Commodity contributors without constructing an inverse or exploded multiplier.
+Upstream subtracts direct contributions at vector level. Sparse collapsed
+totals use the same projected calculation, while dense collapsed totals retain
+their existing multiplier path. Large iterative solves apply the split system
+as an operator rather than forming its coefficient product.
 Existing coefficient and multiplier formulas are unchanged; in particular Isard
 SUT direct content remains based on ``ec``/``vc``.
 On the complete Balanced bundle, direct content was checked against independent
@@ -78,6 +84,12 @@ The direct contributor breakdown has also been checked on the complete bundle:
 its sparse 2,670,000-by-50 result preserves the 53,400 actual contributor nodes
 and sums to the collapsed result. A one-region trade cluster preserves those
 contributor labels. Neither check constructs a direct diagonal or an inverse.
+Total and upstream breakdowns were also checked on the complete bundle for
+``M_Artis`` and the first satellite account (standing wood). Their sparse
+5,237,800-by-50 outputs contain all 104,756 actual Activity/Commodity nodes per
+trade origin and nonzero contributions from ``Ea``. They agree with collapsed
+totals and satisfy ``total - direct = upstream`` after label alignment. This
+does not change the meaning of Isard direct content: it still uses ``ec``/``vc``.
 
 Index contract
 --------------
