@@ -8,6 +8,10 @@ package on PyPI, and dates are its publication dates.
 Unreleased
 ----------
 
+* ``search`` searches regional member lists and returns matches grouped by
+  region for nonuniform sets, omitting regions with no matches. ``region=...``
+  and ``flat=True`` select one region or a distinct global union. Common
+  classifications retain list results; global searches remain grouped by set.
 * Database summaries show the minimum and maximum member count per region for
   regional index dictionaries, including regions with no members. Common
   classifications retain their existing scalar counts.

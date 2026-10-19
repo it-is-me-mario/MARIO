@@ -7,9 +7,12 @@ that all MARIO methods support BONSAI yet.
 
 The summary regression has since been fixed: regional sets display
 ``from X to Y per region``, counting the members of each regional list and
-including empty regions. Common classifications retain scalar counts. The
-tables and downloadable snapshot below record the initial diagnosis before
-this fix; rerun the ``repr`` probe to check the updated behavior.
+including empty regions. Common classifications retain scalar counts.
+``search`` has also been adapted: it searches inside the regional lists and
+groups matches by region, with explicit union and region selectors. See
+:doc:`../../api_document/mario.CoreModel.search` for examples. The tables and
+downloadable snapshot below record the initial diagnosis before these fixes;
+rerun the ``repr`` and ``search`` probes to check the updated behavior.
 
 Index contract
 --------------

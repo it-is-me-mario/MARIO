@@ -148,6 +148,8 @@ def test_same_members_in_different_orders_keep_legacy_order():
     )
     assert database.get_index("Activity") == ["B", "A"]
     assert database.get_index("Activity", region="DE") == ["A", "B"]
+    assert database.search("Activity", "") == ["B", "A"]
+    assert database.search("Activity", "", region="DE") == ["A", "B"]
 
 
 def test_empty_regions_are_preserved():
@@ -163,6 +165,110 @@ def test_region_selection_and_explicit_union(regional):
     assert regional.get_index("Activity", flat=True) == ["A1", "A2", "A3"]
     assert regional.get_index("all", region="IT")["Region"] == ["IT"]
     assert regional.get_index("all", flat=True)["Commodity"] == ["C1", "C2"]
+
+
+def test_search_groups_regional_matches_and_omits_regions_without_matches(regional):
+    assert regional.search("Activity", "^A") == {
+        "IT": ["A1"],
+        "DE": ["A2", "A3"],
+    }
+    assert regional.search("Activity", "^A2$") == {"DE": ["A2"]}
+    assert regional.search("Activity", "missing") == {}
+    assert regional.search("Activity", "^IT$") == {}
+
+
+def test_search_keeps_regional_shape_when_matching_lists_are_equal(regional):
+    assert regional.search("Commodity", "^C1$") == {"IT": ["C1"], "DE": ["C1"]}
+
+
+def test_search_explicit_union_is_ordered_and_deduplicated(regional):
+    assert regional.search("Commodity", "^C", flat=True) == ["C1", "C2"]
+    assert regional.search("Commodity", "^C1$", flat=True) == ["C1"]
+    assert regional.search("Activity", "missing", flat=True) == []
+
+
+def test_search_can_select_a_region(regional):
+    assert regional.search("Activity", "^A", region="DE") == ["A2", "A3"]
+    assert regional.search("Commodity", "^C2$", region="DE") == []
+    assert regional.search("Factor of production", "^VA$", region="IT") == ["VA"]
+    assert regional.search("Region", "^IT$", region="DE") == []
+
+
+def test_search_empty_regions_and_global_sets_keep_their_result_types():
+    database = regional_database(
+        {"IT": ["A"]}, {"IT": ["C"]}, {"IT": ["HH"]}, regions=["IT", "Global"]
+    )
+    assert database.search("Activity", "A") == {"IT": ["A"]}
+    assert database.search("Activity", "A", region="Global") == []
+    assert database.search("Factor of production", "VA") == ["VA"]
+    assert database.search("Factor of production", "missing") == []
+
+
+def test_search_preserves_aliases_regex_and_positional_case_flag(regional):
+    expected = {"IT": ["A1"], "DE": ["A3"]}
+    assert regional.search("a", "^a[13]$", True) == expected
+    assert regional.search("activities", "^a[13]$", False) == {}
+    assert regional.search("activities", "^a[13]$", region="DE") == ["A3"]
+    assert regional.search("commodities", "^C1$", flat=True) == ["C1"]
+
+
+def test_global_search_groups_by_set_then_region(regional):
+    assert regional.search("^A") == {"Activity": {"IT": ["A1"], "DE": ["A2", "A3"]}}
+    assert regional.search(search="^C1$") == {"Commodity": {"IT": ["C1"], "DE": ["C1"]}}
+    assert regional.search("^CO2$") == {"Satellite account": ["CO2"]}
+    assert regional.search("^IT$") == {"Region": ["IT"]}
+    assert regional.search("missing") == {}
+
+
+def test_global_search_supports_region_and_union_options(regional):
+    assert regional.search("^C1$", flat=True) == {"Commodity": ["C1"]}
+    assert regional.search("^A", region="DE") == {"Activity": ["A2", "A3"]}
+    assert regional.search("^IT$", region="DE") == {}
+
+
+@pytest.mark.parametrize("item", [None, "Activity"])
+@pytest.mark.parametrize(
+    "options",
+    [
+        {"region": "missing"},
+        {"flat": "yes"},
+        {"flat": 0},
+        {"region": "IT", "flat": True},
+    ],
+)
+def test_search_rejects_invalid_selection_options(regional, item, options):
+    with pytest.raises(WrongInput):
+        regional.search(item=item, search="missing", **options)
+
+
+@pytest.mark.parametrize("table", ["IOT", "SUT"])
+def test_uniform_search_preserves_list_outputs_and_order(table):
+    database = load_test(table)
+    name = "Sector" if table == "IOT" else "Activity"
+    members = database.get_index(name)
+    assert database.search(name, "") == members
+    assert database.search(name, "", flat=True) == members
+    region = database.get_index("Region")[0]
+    assert database.search(name, "", region=region) == database.get_index(
+        name, region=region
+    )
+    assert database.search("") == database.get_index("all")
+
+
+def test_search_does_not_mutate_storage_or_materialize_blocks(regional, monkeypatch):
+    before = deepcopy(regional._indeces)
+    blocks = tuple(regional.matrices["baseline"])
+    monkeypatch.setattr(
+        regional,
+        "calc_all",
+        lambda *a, **k: pytest.fail("search must not compute matrices"),
+    )
+    found = regional.search("Activity", "^A")
+    found["DE"].append("unexpected")
+    assert regional.search("Activity", "^A3$") == {"DE": ["A3"]}
+    assert regional.search("Activity", "unexpected") == {}
+    assert regional._indeces == before
+    assert tuple(regional.matrices["baseline"]) == blocks
 
 
 def test_getter_does_not_resolve_values_or_change_storage(regional, monkeypatch):

@@ -135,7 +135,8 @@ def _template(database, root):
 def _search(database, root):
     code = _first(database, "a")
     result = database.search(MI["a"], code)
-    if code not in result:
+    lists = result.values() if isinstance(result, dict) else [result]
+    if not any(code in labels for labels in lists):
         raise IncorrectResult(f"search does not find an existing activity: {code}.")
     return result
 

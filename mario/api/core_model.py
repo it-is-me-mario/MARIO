@@ -3603,7 +3603,7 @@ class CoreModel:
 
         return GDP
 
-    def search(self, item=None, search=None, ignore_case=True):
+    def search(self, item=None, search=None, ignore_case=True, *, region=None, flat=False):
         """Search index values matching a pattern within one set or across all sets.
 
         Parameters
@@ -3615,12 +3615,21 @@ class CoreModel:
             Regular-expression fragment matched against the labels.
         ignore_case:
             When ``True``, perform a case-insensitive search.
+        region:
+            Optional region to search. Each matching set then returns a list.
+            Mutually exclusive with ``flat=True``.
+        flat:
+            When ``True``, search the union of distinct labels and return a
+            list for each matching set, including regional classifications.
 
         Returns
         -------
         list | dict
-            Matching labels in their stored order, or a dictionary grouped by
-            set when searching globally.
+            Matching labels in their stored order for a common classification,
+            or ``{region: matching_labels}`` for a regional classification.
+            Regions without matches are omitted. With ``region`` or
+            ``flat=True``, return a list. Global searches always return a
+            dictionary keyed by matching set, using these same value types.
         """
 
         if search is None:
@@ -3632,21 +3641,30 @@ class CoreModel:
         flags = re.IGNORECASE if ignore_case else 0
         pattern = re.compile(f"{search}", flags)
 
+        options = {}
+        if region is not None:
+            options["region"] = region
+        if flat is not False:
+            options["flat"] = flat
+
+        def matching_labels(labels):
+            return [label for label in labels if pattern.search(str(label))]
+
+        def matching_index(view):
+            if isinstance(view, dict):
+                matches = {r: matching_labels(labels) for r, labels in view.items()}
+                return {r: labels for r, labels in matches.items() if labels}
+            return matching_labels(view)
+
         if item is None:
-            found = {}
-            for set_name in self.sets:
-                matches = [
-                    label for label in self.get_index(set_name) if pattern.search(str(label))
-                ]
-                if matches:
-                    found[set_name] = matches
-            return found
+            matches = {
+                name: matching_index(view)
+                for name, view in self.get_index("all", **options).items()
+            }
+            return {name: labels for name, labels in matches.items() if labels}
 
         item = self._resolve_set_name(item)
-        items = self.get_index(item)
-        found = [label for label in items if pattern.search(str(label))]
-
-        return found
+        return matching_index(self.get_index(item, **options))
 
     @property
     def scenarios(self):
