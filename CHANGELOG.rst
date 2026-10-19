@@ -5,6 +5,13 @@ Release History
 All notable changes to MARIO, newest first. Versions match the ``mariopy``
 package on PyPI, and dates are its publication dates.
 
+Unreleased
+----------
+
+* Add ``mario.parse_bonsai`` for Balanced hybrid supply-use ZIPs and extracted
+  directories. Imports preserve native units, regional trade and direct final
+  demand extensions in sparse blocks, with explicit unmatched-flow diagnostics.
+
 v1.3.1
 ------
 

@@ -108,6 +108,7 @@ from mario.model.builders import (
 from mario.parsers.entrypoints import (
     parse_adb,
     parse_bea,
+    parse_bonsai,
     parse_cepalstat,
     parse_ceads,
     parse_emerging,

@@ -31,6 +31,7 @@ from mario.parsers.api import (
 )
 from mario.parsers.adb import parse_adb_iot
 from mario.parsers.bea import parse_bea_sut
+from mario.parsers.bonsai import parse_bonsai_hsut
 from mario.parsers.cepalstat import parse_cepalstat_iot, parse_cepalstat_sut
 from mario.parsers.ceads import parse_ceads_iot
 from mario.parsers.emerging import parse_emerging_iot
@@ -139,6 +140,83 @@ def _legacy_model_state_builder(
 models = {"Database": Database, "ModelState": _legacy_model_state_builder}
 logger = logging.getLogger(__name__)
 _GLORIA_CACHE_VERSION = "2026-03-25"
+
+
+def parse_bonsai(
+    path: str | Path,
+    *,
+    table: str = "SUT",
+    extensions: bool = True,
+    unmatched_extensions: str = "warn",
+    chunksize: int = 100_000,
+    model: str = "Database",
+    name: str | None = None,
+    calc_all: bool = False,
+    **kwargs,
+) -> object:
+    """Parse BONSAI Balanced hybrid supply-use tables from local CSV exports.
+
+    Parameters
+    ----------
+    path : str or pathlib.Path
+        Complete Balanced ZIP archive or extracted directory. A single nested
+        release directory, such as ``20260615/``, is detected automatically.
+    table : str, optional
+        Only ``SUT`` (HSUT) is supported.
+    extensions : bool, optional
+        Load recalculated elementary flows from
+        ``all_elementary_flows_AB_and_BB.csv``. Defaults to True; False loads
+        only the economic tables with zero satellite placeholders.
+    unmatched_extensions : {"warn", "raise"}, optional
+        Report and omit elementary-flow rows without a classified process, or
+        reject the import. Full omitted rows are retained in the import report.
+    chunksize : int, optional
+        Number of economic graph rows per read; all output blocks stay sparse.
+    model : {"Database", "ModelState"}, optional
+        Type of the returned MARIO object.
+    name : str, optional
+        Dataset name stored in metadata.
+    calc_all : bool, optional
+        Calculate derived matrices after import. Defaults to False. Large
+        Balanced tables should be inspected or aggregated before computing
+        full inverse matrices.
+
+    Notes
+    -----
+    Requires ``classification.csv``, ``hybrid_supply_w_characteristic_unit.csv``
+    and ``hybrid_use_w_characteristic_unit.csv``. The reference year comes from
+    the classification, not the release directory. Native commodity codes,
+    regional flows and hybrid units are preserved. No value-added accounts are
+    inferred from mixed physical units: Va and Vc contain a zero placeholder.
+
+    Import diagnostics and satellite identities are stored in
+    ``Database.info["bonsai"]`` or ``ModelState.metadata.extra["bonsai"]``.
+    No archive extraction, pickle loading or automatic download is performed.
+    """
+    validate_parse_request(table=table, model=model)
+    if table != "SUT":
+        raise NotImplementable("BONSAI parsing currently supports only Balanced HSUT (SUT) tables.")
+    matrices, indexes, units, layout = parse_bonsai_hsut(
+        path,
+        extensions=extensions,
+        unmatched_extensions=unmatched_extensions,
+        chunksize=chunksize,
+    )
+    result = models[model](
+        name=name or "BONSAI Balanced HSUT",
+        table="SUT",
+        source=layout.source,
+        year=layout.year,
+        init_by_parsers={"matrices": matrices, "_indeces": indexes, "units": units},
+        calc_all=calc_all,
+        notes=list(layout.notes),
+        **kwargs,
+    )
+    if model == "ModelState":
+        result.metadata.extra["bonsai"] = layout.report
+    else:
+        result.info["bonsai"] = layout.report
+    return result
 
 
 def _normalize_gloria_regions(regions):

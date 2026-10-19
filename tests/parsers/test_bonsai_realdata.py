@@ -1,0 +1,119 @@
+"""Opt-in integration check against the BONSAI Balanced 20260615 release.
+
+Set MARIO_BONSAI_BALANCED_ZIP to the local, complete ZIP. No data are downloaded.
+The independent product validator in the release checks the full imported
+economic matrices, rather than just a few sampled graph edges.
+"""
+
+import ast
+import os
+from zipfile import ZipFile
+
+import numpy as np
+import pandas as pd
+import pytest
+
+import mario
+from mario.model.conventions import _MASTER_INDEX
+
+
+@pytest.mark.skipif(
+    not os.environ.get("MARIO_BONSAI_BALANCED_ZIP"),
+    reason="Set MARIO_BONSAI_BALANCED_ZIP to the local Balanced 20260615 ZIP.",
+)
+def test_balanced_20260615_matches_published_product_totals():
+    path = os.environ["MARIO_BONSAI_BALANCED_ZIP"]
+    with pytest.warns(UserWarning, match="362 elementary-flow rows"):
+        database = mario.parse_bonsai(path)
+    blocks = database.matrices["baseline"]
+    assert database.meta.year == 2016
+    assert database.is_hybrid
+    assert blocks["S"].shape == (51_356, 53_400)
+    assert blocks["Yc"].shape == (53_400, 267)
+    for frame in blocks.values():
+        assert all(
+            isinstance(t, pd.SparseDtype) and t.fill_value == 0 for t in frame.dtypes
+        )
+        assert np.isfinite(frame.sparse.to_coo().data).all()
+    report = database.info["bonsai"]
+    assert len(report["unmatched_extensions"]) == 362
+    assert blocks["EY"].sparse.to_coo().nnz == 147
+
+    with ZipFile(path) as archive:
+        member = next(
+            n
+            for n in archive.namelist()
+            if n.endswith("/classification.csv") or n == "classification.csv"
+        )
+        prefix = member.removesuffix("classification.csv")
+        with archive.open(member) as handle:
+            classification = pd.read_csv(handle, keep_default_na=False)
+        with archive.open(prefix + "product_validate_after_balance.csv") as handle:
+            validation = pd.read_csv(handle, keep_default_na=False)
+
+    products = classification.loc[
+        classification["property"]
+        .map(ast.literal_eval)
+        .map(lambda p: p.get("object_type") == "product")
+    ]
+    layer_for_unit = {
+        "tonnes": "MASS",
+        "tonnes (service)": "WASTE_SERVICE",
+        "Meuro": "CURRENCY",
+        "TJ": "ENERGY",
+        "items": "ITEM_COUNT",
+    }
+    code_layers = database.units[_MASTER_INDEX["c"]].unit.map(layer_for_unit)
+    assert code_layers.notna().all()
+    validation = (
+        validation.loc[
+            validation.id.isin(products.id)
+            & validation.property_layer.eq(validation["name"].map(code_layers))
+        ]
+        .set_index("id")
+        .reindex(products.id)
+    )
+    assert validation.index.is_unique
+    assert validation.total_inflow.notna().all()
+
+    axis = pd.MultiIndex.from_arrays(
+        [products.location, [_MASTER_INDEX["c"]] * len(products), products["name"]],
+        names=blocks["U"].index.names,
+    )
+    supply = (
+        pd.Series(
+            np.asarray(blocks["S"].sparse.to_coo().tocsr().sum(axis=0)).ravel(),
+            index=blocks["S"].columns,
+        )
+        .reindex(axis)
+        .to_numpy()
+    )
+    demand = (
+        pd.Series(
+            np.asarray(blocks["U"].sparse.to_coo().tocsr().sum(axis=1)).ravel()
+            + np.asarray(blocks["Yc"].sparse.to_coo().tocsr().sum(axis=1)).ravel(),
+            index=blocks["U"].index,
+        )
+        .reindex(axis)
+        .to_numpy()
+    )
+    np.testing.assert_allclose(supply, validation.total_inflow, rtol=1e-12, atol=1e-7)
+    np.testing.assert_allclose(demand, validation.total_outflow, rtol=1e-12, atol=1e-7)
+
+    balance_properties = (
+        products.isbalance.str.replace("np.True_", "True", regex=False)
+        .str.replace("np.False_", "False", regex=False)
+        .map(ast.literal_eval)
+    )
+    enforced = np.array(
+        [
+            p.get(layer, False)
+            for p, layer in zip(balance_properties, products["name"].map(code_layers))
+        ]
+    )
+    assert enforced.sum() == 45_123
+    # Solver tolerances include an absolute floor for very small accounts.
+    scaled_error = np.abs(supply - demand) / np.maximum(
+        np.maximum(np.abs(supply), np.abs(demand)), 1.0
+    )
+    assert scaled_error[enforced].max() <= 1e-5
