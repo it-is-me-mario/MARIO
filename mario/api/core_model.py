@@ -18,7 +18,7 @@ from mario.model.matrix_store import ScenarioMatrices
 from mario.model.conventions import TABLE_LEVELS
 from tabulate import tabulate
 from collections import namedtuple
-from collections.abc import MutableMapping
+from collections.abc import Mapping, MutableMapping
 
 import numpy as np
 import pandas as pd
@@ -4032,7 +4032,11 @@ class CoreModel:
         self.matrices = matrices
 
     def __eq__(self, other):
-        """Return ``True`` when two databases expose the same sets and indexes."""
+        """Compare logical sets and regional membership, independently of order.
+
+        As in the historical comparison, matrix values and units do not
+        participate. Regional indexes additionally compare each region's members.
+        """
         main_sets = sorted(self.sets)
         other_sets = sorted(other.sets)
 
@@ -4040,8 +4044,21 @@ class CoreModel:
             return False
 
         for item in self.sets:
-            main_index = set(self.get_index(item))
-            other_index = set(other.get_index(item))
+            main_index = self.get_index(item)
+            other_index = other.get_index(item)
+
+            if isinstance(main_index, Mapping) and isinstance(other_index, Mapping):
+                main_index = {
+                    region: frozenset(members) for region, members in main_index.items()
+                }
+                other_index = {
+                    region: frozenset(members) for region, members in other_index.items()
+                }
+            elif isinstance(main_index, Mapping) or isinstance(other_index, Mapping):
+                return False
+            else:
+                main_index = set(main_index)
+                other_index = set(other_index)
 
             if main_index != other_index:
                 return False

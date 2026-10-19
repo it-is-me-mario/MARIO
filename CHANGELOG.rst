@@ -8,6 +8,10 @@ package on PyPI, and dates are its publication dates.
 Unreleased
 ----------
 
+* Database equality compares the members of every region for nonuniform sets,
+  detecting different regional classifications even when region names and the
+  global label union match. Index order remains irrelevant, common lists keep
+  their previous behavior, and equality retains its historical index-only scope.
 * Aggregation workbooks group regions by each complete regional classification.
   Nonuniform sets use ``Regions``, ``Item`` and ``Aggregation`` columns, including
   single-region groups. The Region sheet lists only regions with compatible

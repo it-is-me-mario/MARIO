@@ -42,6 +42,13 @@ covering 267 regional category pairs. Regional item aggregation can be applied
 first; a new template then reflects any classifications made identical by
 those explicit mappings.
 
+Database equality now compares the members of each region for regional sets.
+The same region keys and global code union are insufficient for equality.
+Ordering of regions and labels remains irrelevant, and common lists retain
+their previous comparison behavior. Equality continues to compare logical
+indexes rather than matrix values or units. The equality failure in the initial
+snapshot below therefore predates this correction.
+
 Index contract
 --------------
 
