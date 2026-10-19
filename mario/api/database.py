@@ -2165,7 +2165,7 @@ class Database(CoreModel):
         method: str,
         use_activity_side: bool,
     ) -> tuple[pd.Series, str]:
-        """Resolve row weights for one trade-content indicator and method."""
+        """Resolve only the indicator rows required by the selected method."""
         if self.meta.table == "IOT":
             factor_direct, factor_total = _ENUM.v, _ENUM.m
             satellite_direct, satellite_total = _ENUM.e, _ENUM.f
@@ -2179,19 +2179,17 @@ class Database(CoreModel):
         factor_units = self.units[_MASTER_INDEX["f"]]
         satellite_units = self.units[_MASTER_INDEX["k"]]
 
-        if self._is_total_value_added_indicator(indicator):
-            direct_row = self.query(matrices=[factor_direct], scenarios=[scenario]).sum(axis=0)
-            total_row = self.query(matrices=[factor_total], scenarios=[scenario]).sum(axis=0)
+        sum_factors = self._is_total_value_added_indicator(indicator)
+        if sum_factors:
+            direct_name, total_name = factor_direct, factor_total
             unit_values = factor_units["unit"].dropna().astype(str).unique().tolist()
             unit = unit_values[0] if len(unit_values) == 1 else "Value"
         elif indicator in factor_units.index:
-            direct_row = self.query(matrices=[factor_direct], scenarios=[scenario]).loc[indicator]
-            total_row = self.query(matrices=[factor_total], scenarios=[scenario]).loc[indicator]
+            direct_name, total_name = factor_direct, factor_total
             unit_value = factor_units.loc[indicator, "unit"]
             unit = str(unit_value) if pd.notna(unit_value) else "Value"
         elif indicator in satellite_units.index:
-            direct_row = self.query(matrices=[satellite_direct], scenarios=[scenario]).loc[indicator]
-            total_row = self.query(matrices=[satellite_total], scenarios=[scenario]).loc[indicator]
+            direct_name, total_name = satellite_direct, satellite_total
             unit_value = satellite_units.loc[indicator, "unit"]
             unit = str(unit_value) if pd.notna(unit_value) else "Value"
         else:
@@ -2199,10 +2197,16 @@ class Database(CoreModel):
                 "indicator should be a Satellite account row, a Factor of production row, or 'total value added'."
             )
 
+        def resolve_row(name):
+            block = self.query(matrices=[name], scenarios=[scenario])
+            return block.sum(axis=0) if sum_factors else block.loc[indicator]
+
         if method == "direct":
-            return direct_row, unit
+            return resolve_row(direct_name), unit
         if method == "total":
-            return total_row, unit
+            return resolve_row(total_name), unit
+        total_row = resolve_row(total_name)
+        direct_row = resolve_row(direct_name)
         return total_row.subtract(direct_row, fill_value=0.0), unit
 
     def _resolve_trade_content_total_exploded(
@@ -2269,6 +2273,11 @@ class Database(CoreModel):
         use_activity_side: bool,
     ) -> tuple[pd.DataFrame, str]:
         """Resolve contributor-level content weights for breakdown outputs."""
+        if method == "total":
+            return self._resolve_trade_content_total_exploded(
+                indicator, scenario=scenario, use_activity_side=use_activity_side
+            )
+
         direct_row, unit = self._resolve_trade_content_row(
             indicator,
             scenario=scenario,
@@ -2285,9 +2294,6 @@ class Database(CoreModel):
             scenario=scenario,
             use_activity_side=use_activity_side,
         )
-
-        if method == "total":
-            return total_exploded, unit
 
         return total_exploded.subtract(direct_exploded, fill_value=0.0), unit
 

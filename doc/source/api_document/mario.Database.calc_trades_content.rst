@@ -15,11 +15,21 @@ Accepted ``indicator`` values are:
 Use ``method='direct'`` for direct coefficients only, ``'total'`` for direct
 plus upstream effects, or ``'upstream'`` for the indirect share only.
 
+Only the indicator rows needed by the selected method are requested.
+``direct`` does not request total multipliers, so it does not trigger an
+upstream/inverse calculation merely to discard that result. ``total`` resolves
+the total row, and ``upstream`` resolves both rows and subtracts the direct
+part. The resolver may compute prerequisites needed to build a requested row.
+
 Use ``breakdown=True`` to return contributor-level content tables instead of a
 collapsed Region-by-Region total. In that case MARIO keeps the trade pair while
 decomposing the content across the contributing production nodes. Summing the
 breakdown over contributor levels reconstructs the corresponding collapsed
 ``db.calc_trades_content(...)`` result for the same ``method``.
+Total breakdowns resolve exploded totals directly, without constructing an
+unused direct diagonal. Direct and upstream breakdowns still construct the
+direct contributor matrix; this change does not make large contributor
+breakdowns sparse.
 
 For IOT tables, MARIO uses ``e`` and ``v`` for direct content, and ``f`` and
 ``m`` for total content. With ``breakdown=True``, MARIO uses the direct row

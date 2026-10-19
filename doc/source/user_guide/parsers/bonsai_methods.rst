@@ -60,6 +60,17 @@ On the complete Balanced bundle, the 50-by-50 trade result for ``C_TLAND_ALL``
 matches independent COO sums of both ``U`` and ``Yc``. Four regions without that
 commodity have zero origin rows, and no unified ``Z`` or ``z`` is materialized.
 
+Trade-content indicator loading now follows the selected method: ``direct``
+requests only direct coefficients, ``total`` resolves total multipliers, and
+``upstream`` requires both. Total contributor breakdowns no longer construct an
+unused direct diagonal. Direct/upstream contributor breakdowns still need their
+separate sparse adaptation. Existing coefficient and multiplier formulas are
+unchanged; in particular Isard SUT direct content remains based on ``ec``/``vc``.
+On the complete Balanced bundle, direct content was checked against independent
+weighted COO sums of ``U`` and ``Yc`` with queries limited to ``ec``, ``U`` and
+``Yc``. No total multiplier or inverse was materialized. The imported ``Ec`` is
+zero, so nonzero numerical checks for all three methods use small models.
+
 Index contract
 --------------
 

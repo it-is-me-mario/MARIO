@@ -8,6 +8,11 @@ package on PyPI, and dates are its publication dates.
 Unreleased
 ----------
 
+* ``calc_trades_content`` resolves only the indicator rows required by its
+  method: direct coefficients for ``direct``, total multipliers for ``total``,
+  and both for ``upstream``. Total contributor breakdowns no longer load or
+  construct an unused direct diagonal. Results, indicator units and accounting
+  formulas remain unchanged.
 * ``calc_trades`` accepts sector/commodity codes from regional classifications
   and sums actual region-item pairs. All database regions remain in its output,
   including zero rows and destinations without a local commodity node. Sparse
