@@ -271,6 +271,59 @@ def test_search_does_not_mutate_storage_or_materialize_blocks(regional, monkeypa
     assert tuple(regional.matrices["baseline"]) == blocks
 
 
+def test_default_clusters_use_distinct_codes_for_each_regional_set(regional):
+    defaults = regional.default_clusters
+    assert set(defaults) == set(regional.sets)
+    assert {name: clusters["all"] for name, clusters in defaults.items()} == {
+        "Activity": ["A1", "A2", "A3"],
+        "Commodity": ["C1", "C2"],
+        "Consumption category": ["HH", "GOV"],
+        "Region": ["IT", "DE"],
+        "Factor of production": ["VA"],
+        "Satellite account": ["CO2"],
+    }
+    assert all(isinstance(groups["all"], list) for groups in defaults.values())
+
+
+def test_default_clusters_preserve_logical_union_order(regional):
+    regional._indeces["c"]["main"] = ["C2", "C1"]
+    assert regional.default_clusters["Commodity"]["all"] == ["C2", "C1"]
+
+
+def test_default_clusters_do_not_create_members_in_empty_regions():
+    database = regional_database(
+        {"IT": ["A"]}, {"IT": ["C"]}, {"IT": ["HH"]}, regions=["IT", "Global"]
+    )
+    defaults = database.default_clusters
+    assert defaults["Activity"]["all"] == ["A"]
+    assert defaults["Consumption category"]["all"] == ["HH"]
+    assert defaults["Region"]["all"] == ["IT", "Global"]
+    assert database.get_index("Activity", region="Global") == []
+
+
+def test_default_clusters_are_independent_and_do_not_compute(regional, monkeypatch):
+    before = deepcopy(regional._indeces)
+    blocks = tuple(regional.matrices["baseline"])
+    monkeypatch.setattr(
+        regional,
+        "calc_all",
+        lambda *a, **k: pytest.fail("default_clusters must not compute matrices"),
+    )
+    defaults = regional.default_clusters
+    defaults["Activity"]["all"].append("unexpected")
+    assert regional.default_clusters["Activity"]["all"] == ["A1", "A2", "A3"]
+    assert regional._indeces == before
+    assert tuple(regional.matrices["baseline"]) == blocks
+
+
+@pytest.mark.parametrize("table", ["IOT", "SUT"])
+def test_default_clusters_preserve_uniform_set_lists(table):
+    database = load_test(table)
+    defaults = database.default_clusters
+    for name in database.sets:
+        assert defaults[name]["all"] == database.get_index(name)
+
+
 def test_getter_does_not_resolve_values_or_change_storage(regional, monkeypatch):
     before = deepcopy(regional._indeces)
     blocks = tuple(regional.matrices["baseline"])

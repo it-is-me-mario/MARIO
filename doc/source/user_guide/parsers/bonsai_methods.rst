@@ -13,6 +13,10 @@ groups matches by region, with explicit union and region selectors. See
 :doc:`../../api_document/mario.CoreModel.search` for examples. The tables and
 downloadable snapshot below record the initial diagnosis before these fixes;
 rerun the ``repr`` and ``search`` probes to check the updated behavior.
+The automatic ``default_clusters`` ``all`` groups have also been fixed to
+contain ordered unions of distinct codes, while retaining the existing list
+representation. Regional membership is not expanded by these global unions.
+User-cluster validation and shock application require their own adaptations.
 
 Index contract
 --------------

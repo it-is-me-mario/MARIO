@@ -8,6 +8,9 @@ package on PyPI, and dates are its publication dates.
 Unreleased
 ----------
 
+* Automatic ``all`` clusters contain ordered unions of distinct member codes
+  for regional classifications, retaining list results without introducing
+  absent region-item pairs.
 * ``search`` searches regional member lists and returns matches grouped by
   region for nonuniform sets, omitting regions with no matches. ``region=...``
   and ``flat=True`` select one region or a distinct global union. Common
