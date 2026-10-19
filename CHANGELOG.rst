@@ -8,7 +8,7 @@ package on PyPI, and dates are its publication dates.
 v1.3.1
 ------
 
-*Unreleased.*
+*Released 2026-10-19.*
 
 Session settings and matrix aliases
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
