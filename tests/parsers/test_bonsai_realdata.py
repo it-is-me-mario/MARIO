@@ -30,6 +30,15 @@ def test_balanced_20260615_matches_published_product_totals():
     assert database.is_hybrid
     assert blocks["S"].shape == (51_356, 53_400)
     assert blocks["Yc"].shape == (53_400, 267)
+    activities = database.get_index("Activity")
+    commodities = database.get_index("Commodity")
+    assert isinstance(activities, dict) and isinstance(commodities, dict)
+    assert sum(map(len, activities.values())) == 51_356
+    assert sum(map(len, commodities.values())) == 53_400
+    assert len(activities["IT"]) == 1_177
+    assert len(commodities["IT"]) == 1_237
+    assert database.get_index("Consumption category", region="Global") == []
+    assert len(database.get_index("Activity", flat=True)) == 1_585
     for frame in blocks.values():
         assert all(
             isinstance(t, pd.SparseDtype) and t.fill_value == 0 for t in frame.dtypes

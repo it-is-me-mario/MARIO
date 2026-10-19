@@ -8,6 +8,9 @@ package on PyPI, and dates are its publication dates.
 Unreleased
 ----------
 
+* ``get_index`` keeps ordered lists for common regional classifications and
+  returns dictionaries of regional lists for nonuniform sets. ``region=...``
+  selects one region and ``flat=True`` explicitly requests the union of labels.
 * Add ``mario.parse_bonsai`` for Balanced hybrid supply-use ZIPs and extracted
   directories. Imports preserve native units, regional trade and direct final
   demand extensions in sparse blocks, with explicit unmatched-flow diagnostics.

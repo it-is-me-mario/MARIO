@@ -11,6 +11,7 @@ from mario.api.metadata import MARIOMetaData
 from mario.compute.helpers import _is_sparse_backed_dataframe, sum_columns
 from mario.internal.access import block_to_matrix, block_to_pandas, block_to_table
 from mario.model.assumptions import resolve_tech_assumption
+from mario.model.indexes import main_index_view
 from mario.parsers.tabular import dataframe_parser
 from mario.settings.settings import IndexAliases, canonical_matrix_name, public_matrix_name
 from mario.model.matrix_store import ScenarioMatrices
@@ -3160,7 +3161,7 @@ class CoreModel:
             log_time(logger, f"Database: {tech_note}", "warning")
             self.meta._add_history(tech_note)
 
-    def get_index(self, index, level="main"):
+    def get_index(self, index, level="main", *, region=None, flat=False):
         """Return one index level or the full index mapping for the database.
 
         Parameters
@@ -3170,17 +3171,42 @@ class CoreModel:
             retrieve every available set for the table type.
         level:
             Index variant to return, typically ``"main"`` or ``"aggregated"``.
+        region:
+            Optional region whose members should be returned as a list.
+            Available only for ``level="main"``.
+        flat:
+            When True, explicitly return the union of distinct labels as a
+            list even for a regional classification. Available only for
+            ``level="main"`` and mutually exclusive with ``region``.
 
         Returns
         -------
         list | dict
-            Requested index labels, or a dictionary of all labels when
-            ``index="all"``.
+            For ``level="main"``, a list when every region has the same
+            members, otherwise ``{region: list_of_members}``. Regions without
+            members have an empty list. Global sets remain lists. With
+            ``index="all"``, a dictionary of these results keyed by set name.
+            Other index levels retain their existing representation.
         """
+
+        if not isinstance(flat, bool):
+            raise WrongInput("flat must be True or False.")
+        if region is not None and flat:
+            raise WrongInput("region and flat=True cannot be combined.")
+        if level != "main" and (region is not None or flat):
+            raise WrongInput("region and flat apply only to level='main'.")
+        regions = self._indeces.get("r", {}).get("main", [])
+        if region is not None and region not in regions:
+            raise WrongInput(
+                f"Unknown region {region!r}. Available regions are {list(regions)}."
+            )
 
         if isinstance(index, str) and index.lower() == "all":
             return {
-                key: self._indeces[value].get(level)
+                key: (
+                    self.get_index(key, level=level, region=region, flat=flat)
+                    if level in self._indeces[value] else None
+                )
                 for key, value in TABLE_LEVELS[self.table_type].items()
             }
 
@@ -3200,7 +3226,18 @@ class CoreModel:
                 )
             )
 
-        return copy.deepcopy(self._indeces[TABLE_LEVELS[self.table_type][index]][level])
+        code = TABLE_LEVELS[self.table_type][index]
+        values = self._indeces[code][level]
+        if level != "main":
+            return copy.deepcopy(values)
+        return main_index_view(
+            values,
+            code=code,
+            regions=regions,
+            blocks=self.matrices.get("baseline", {}),
+            region=region,
+            flat=flat,
+        )
 
     @staticmethod
     def _normalize_set_token(value):
