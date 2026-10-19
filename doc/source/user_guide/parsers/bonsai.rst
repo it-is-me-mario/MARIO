@@ -1,5 +1,5 @@
 BONSAI Balanced HSUT
-===================
+====================
 
 ``mario.parse_bonsai`` reads the Balanced hybrid supply-use graph exports from
 the `BONSAI project <https://gitlab.com/bonsamurais/bonsai>`_. It accepts the
@@ -111,7 +111,7 @@ an existing database, use
 See :doc:`../../api_document/mario.parse_bonsai` for the complete signature.
 
 Reproduce the release check
---------------------------
+---------------------------
 
 From a MARIO source checkout, the optional integration test imports the complete
 release and compares supply and use totals for all 53,400 products against
@@ -125,3 +125,16 @@ tolerance, while leaving the data unchanged.
      python -m pytest tests/parsers/test_bonsai_realdata.py -q
 
 The integration test is skipped when the environment variable is absent.
+
+Regional method compatibility
+-----------------------------
+
+BONSAI uses different activity, commodity and final-demand memberships across
+regions. ``get_index`` exposes these as regional dictionaries while retaining
+lists for common classifications. See :doc:`bonsai_methods` for the first
+implementation's method diagnosis, known regressions and reproduction steps.
+
+.. toctree::
+   :hidden:
+
+   bonsai_methods
