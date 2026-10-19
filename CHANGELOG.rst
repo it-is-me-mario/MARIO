@@ -8,6 +8,12 @@ package on PyPI, and dates are its publication dates.
 Unreleased
 ----------
 
+* ``calc_linkages`` supports sparse flow blocks and nonuniform regional
+  classifications without constructing full inverse views. Regional reductions
+  use actual production nodes; exact self effects are subtracted without
+  modifying sparse arrays. Detected singular Ghosh/Leontief components raise
+  an error naming their nodes, without exclusions or data corrections. Common
+  dense tables retain their existing result layout and normalization.
 * Total and upstream trade-content breakdowns project regional trade vectors
   through the IOT/SUT coefficient system without constructing an inverse or an
   exploded multiplier. SUT results retain both Activity and Commodity

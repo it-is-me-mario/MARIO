@@ -693,6 +693,7 @@ def X_inverse(X):
 
 def linkages_calculation(cut_diag, matrices, multi_mode, normalized):
     """Return backward and forward linkage indicators."""
+
     def _safe_ratio(numerator, denominator):
         ratio = numerator.astype(float).div(denominator.astype(float))
         return ratio.where(denominator.astype(float) != 0)
@@ -702,9 +703,24 @@ def linkages_calculation(cut_diag, matrices, multi_mode, normalized):
         return share.where(whole.astype(float) != 0)
 
     if cut_diag:
-        for value in matrices.values():
-            for position in range(min(value.shape)):
-                value.iat[position, position] = 0.0
+        cleared = {}
+        for name, value in matrices.items():
+            if all(isinstance(dtype, pd.SparseDtype) for dtype in value.dtypes):
+                from mario.compute.helpers import sparse_frame_from_spmatrix
+
+                values = value.fillna(0.0).sparse.to_coo().tocsc()
+                values.setdiag(0.0)
+                values.eliminate_zeros()
+                cleared[name] = sparse_frame_from_spmatrix(
+                    values, index=value.index, columns=value.columns
+                )
+            else:
+                values = value.to_numpy(dtype=float, copy=True)
+                np.fill_diagonal(values, 0.0)
+                cleared[name] = pd.DataFrame(
+                    values, index=value.index, columns=value.columns
+                )
+        matrices = cleared
 
     if multi_mode:
         link_types = [
@@ -754,15 +770,21 @@ def linkages_calculation(cut_diag, matrices, multi_mode, normalized):
             )
 
         base_totals = {
-            "Total Forward": links[("Total Forward", "Local")] + links[("Total Forward", "Foreign")],
-            "Total Backward": links[("Total Backward", "Local")] + links[("Total Backward", "Foreign")],
-            "Direct Forward": links[("Direct Forward", "Local")] + links[("Direct Forward", "Foreign")],
-            "Direct Backward": links[("Direct Backward", "Local")] + links[("Direct Backward", "Foreign")],
+            "Total Forward": links[("Total Forward", "Local")]
+            + links[("Total Forward", "Foreign")],
+            "Total Backward": links[("Total Backward", "Local")]
+            + links[("Total Backward", "Foreign")],
+            "Direct Forward": links[("Direct Forward", "Local")]
+            + links[("Direct Forward", "Foreign")],
+            "Direct Backward": links[("Direct Backward", "Local")]
+            + links[("Direct Backward", "Foreign")],
         }
 
         share_columns = {}
         for measure, total in base_totals.items():
-            share_columns[(measure, "Local Share")] = _safe_share(links[(measure, "Local")], total)
+            share_columns[(measure, "Local Share")] = _safe_share(
+                links[(measure, "Local")], total
+            )
             share_columns[(measure, "Foreign Share")] = _safe_share(
                 links[(measure, "Foreign")], total
             )
@@ -787,9 +809,9 @@ def linkages_calculation(cut_diag, matrices, multi_mode, normalized):
         backward_total.columns = ["Total Backward"]
         forward_direct.columns = ["Direct Forward"]
         backward_direct.columns = ["Direct Backward"]
-        forward_amplification = _safe_ratio(forward_total.iloc[:, 0], forward_direct.iloc[:, 0]).to_frame(
-            "Forward Amplification"
-        )
+        forward_amplification = _safe_ratio(
+            forward_total.iloc[:, 0], forward_direct.iloc[:, 0]
+        ).to_frame("Forward Amplification")
         backward_amplification = _safe_ratio(
             backward_total.iloc[:, 0], backward_direct.iloc[:, 0]
         ).to_frame("Backward Amplification")

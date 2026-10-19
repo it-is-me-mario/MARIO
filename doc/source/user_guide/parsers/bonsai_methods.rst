@@ -91,6 +91,17 @@ trade origin and nonzero contributions from ``Ea``. They agree with collapsed
 totals and satisfy ``total - direct = upstream`` after label alignment. This
 does not change the meaning of Isard direct content: it still uses ``ec``/``vc``.
 
+``calc_linkages`` has since been adapted to sparse coefficient systems and real
+regional nodes, including exact diagonal exclusion. Its historical SparseArray
+assignment failure below is fixed. Small invertible models retain the legacy
+values and output layout. On the complete Balanced bundle, a generic
+strong-component singularity check instead identifies two four-node Ghosh
+components in Taiwan (``Beany`` and ``Eggs_ggs``). The method reports their actual
+nodes and raises an error before requesting inverse views. No source values or
+regional memberships are changed and no nodes are excluded. Turning off
+diagonal exclusion does not resolve this singularity. See
+:doc:`../../api_document/mario.Database.calc_linkages`.
+
 Index contract
 --------------
 

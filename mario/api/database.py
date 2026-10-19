@@ -62,6 +62,7 @@ from mario.utils import (
 from mario.ops.excel import _sh_excel
 from mario.ops.trades import direct_trade_breakdown, sum_trade_regions
 from mario.ops.trade_content import TradeContentProjection, sparse_flow
+from mario.ops.linkages import as_sparse, check_linkage_system, sparse_linkages
 from mario.ops.aggregation_inputs import (
     aggregation_template,
     normalize_aggregation_sheet,
@@ -1737,7 +1738,8 @@ class Database(CoreModel):
             When ``True``, normalize linkage indicators using the standard
             linkages convention.
         cut_diag:
-            When ``True``, exclude diagonal terms from the calculation.
+            When ``True``, exclude diagonal terms exactly, without changing
+            source matrices. Sparse inputs do not require a full inverse view.
         multi_mode:
             When ``True``, preserve the multi-regional interpretation of the
             linkages. This is valid only for multi-regional databases.
@@ -1756,11 +1758,54 @@ class Database(CoreModel):
             ``Local`` and ``Foreign`` components for each linkage measure and
             adds ``Local Share`` and ``Foreign Share`` columns for the same
             measures.
+
+        Raises
+        ------
+        WrongInput
+            When a singular production component is detected, identifying its
+            nodes, or a linear solve fails its residual accuracy check.
         """
 
         if not self.is_multi_region and multi_mode:
-            raise NotImplementable(
-                "multi_mode option is valid only for mult-regional data"
+            raise NotImplementable("multi_mode option is valid only for mult-regional data")
+
+        canonical_scenario = self._validate_scenario(scenario)
+        cached = self.matrices[canonical_scenario]
+        native_name = "U" if self.meta.table == "SUT" else _ENUM.Z
+        if self.meta.table == "SUT":
+            # Diagnose Ghosh before requesting any inverse or unified dense view.
+            blocks = self.query(matrices=["bu", "bs"], scenarios=scenario)
+            ordering = SUTUnifiedOrderingPolicy.from_blocks(
+                bu=blocks["bu"], bs=blocks["bs"]
+            )
+            index = ordering.unified_index
+            activities, commodities = ordering.activity_index, ordering.commodity_index
+            bs = as_sparse(blocks["bs"].reindex(index=activities, columns=commodities))
+            bu = as_sparse(blocks["bu"].reindex(index=commodities, columns=activities))
+            from scipy import sparse
+
+            forward = sparse.bmat([[None, bs], [bu, None]], format="csr")
+            check_linkage_system(forward, index, name="Ghosh")
+            blocks = self.query(matrices=["u", "s"], scenarios=scenario)
+            supply = as_sparse(blocks["s"].reindex(index=activities, columns=commodities))
+            use = as_sparse(blocks["u"].reindex(index=commodities, columns=activities))
+            backward = sparse.bmat([[None, supply], [use, None]], format="csr")
+        else:
+            b = self.query(matrices=[_ENUM.b], scenarios=scenario)
+            index = b.index
+            forward = as_sparse(b.reindex(index=index, columns=index))
+            check_linkage_system(forward, index, name="Ghosh")
+            z = self.query(matrices=[_ENUM.z], scenarios=scenario)
+            backward = as_sparse(z.reindex(index=index, columns=index))
+        check_linkage_system(backward, index, name="Leontief")
+        if sparse_flow(cached.get(native_name)):
+            return sparse_linkages(
+                backward,
+                forward,
+                index,
+                normalized=normalized,
+                cut_diag=cut_diag,
+                multi_mode=multi_mode,
             )
 
         if self.meta.table == "SUT":
