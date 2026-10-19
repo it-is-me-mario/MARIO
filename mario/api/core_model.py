@@ -3443,9 +3443,7 @@ class CoreModel:
         if self.meta.table != "SUT":
             raise NotImplementable("This test is implementable only on SUT tables")
         elif len(self.get_index(_MASTER_INDEX["r"])) == 1:
-            raise NotImplementable(
-                "This test is not implementable on single-region tables"
-            )
+            raise NotImplementable("This test is not implementable on single-region tables")
 
         requested_scenario = str(scenario)
         try:
@@ -3457,31 +3455,35 @@ class CoreModel:
                 )
             ) from exc
 
-        if self.has_matrix(
-            _ENUM.z, scenario=scenario
-        ):  # this avoid to calculate z or Z in case one of them is missing, to avoid losing time
-            matrix = self.get_block_as_pandas(_ENUM.z, scenario=scenario)
+        # Reuse a unified source if it is already materialized; otherwise read
+        # native supply directly instead of constructing the full Z/z view.
+        source = next(
+            (
+                name
+                for name in (_ENUM.z, _ENUM.Z)
+                if self.has_matrix(name, scenario=scenario)
+            ),
+            None,
+        )
+        if source is not None:
+            matrix = self.get_block_as_pandas(source, scenario=scenario)
+            matrix = matrix.loc[
+                (slice(None), _MASTER_INDEX["a"], slice(None)),
+                (slice(None), _MASTER_INDEX["c"], slice(None)),
+            ]
         else:
-            matrix = self._get_matrix(_ENUM.Z, scenario=scenario, auto_calc=True)
+            matrix = self._get_matrix(_ENUM.S, scenario=scenario, auto_calc=True)
 
-        sN = slice(None)
-        matrix = matrix.loc[
-            (sN, _MASTER_INDEX["a"], sN), (sN, _MASTER_INDEX["c"], sN)
-        ]  # extract the supply side from z or Z
-        matrix = matrix.groupby(level=[_MASTER_INDEX["r"]]).sum()
-        matrix = matrix.T.groupby(level=[_MASTER_INDEX["r"]]).sum().T
+        from mario.ops.trades import sum_trade_regions
 
-        is_diagonal = np.all(matrix.values == np.diag(np.diagonal(matrix)))
-
-        if is_diagonal:
-            log_time(logger, "Test: table is not in Chenery-Moses format")
-
-            return False
-
-        else:
-            log_time(logger, "Test: table is in Chenery-Moses format")
-
-            return True
+        regional = sum_trade_regions(matrix)
+        off_diagonal = (
+            regional.index.to_numpy()[:, None] != regional.columns.to_numpy()[None, :]
+        )
+        chenery = bool(np.any(regional.to_numpy()[off_diagonal] != 0))
+        message = "in" if chenery else "not in"
+        log_time(logger, f"Test: table is {message} Chenery-Moses format")
+        return chenery
 
     def copy(self):
         """Return a deep copy of the database object.

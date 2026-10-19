@@ -8,6 +8,12 @@ package on PyPI, and dates are its publication dates.
 Unreleased
 ----------
 
+* ``calc_trades`` accepts sector/commodity codes from regional classifications
+  and sums actual region-item pairs. All database regions remain in its output,
+  including zero rows and destinations without a local commodity node. Sparse
+  flow blocks remain sparse until reduced to regional totals, including weighted
+  sums. SUT supply-format checks read native ``S`` when no unified view is
+  materialized, avoiding construction of ``Z`` just to choose the trade path.
 * Database equality compares the members of every region for nonuniform sets,
   detecting different regional classifications even when region names and the
   global label union match. Index order remains irrelevant, common lists keep

@@ -49,6 +49,17 @@ their previous comparison behavior. Equality continues to compare logical
 indexes rather than matrix values or units. The equality failure in the initial
 snapshot below therefore predates this correction.
 
+``calc_trades`` has also been adapted to regional classifications. Code
+validation uses the observed union, while flow selection uses actual matrix
+pairs. Sparse blocks reduce directly to regional totals and all database regions
+remain in the output, including regions without a selected origin node or final
+demand. Native supply-format detection avoids constructing a unified ``Z`` view.
+Historical trade failures below predate this change; trade-content calculations
+still require separate validation of their coefficients and multipliers.
+On the complete Balanced bundle, the 50-by-50 trade result for ``C_TLAND_ALL``
+matches independent COO sums of both ``U`` and ``Yc``. Four regions without that
+commodity have zero origin rows, and no unified ``Z`` or ``z`` is materialized.
+
 Index contract
 --------------
 

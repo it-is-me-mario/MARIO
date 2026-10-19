@@ -60,6 +60,7 @@ from mario.utils import (
 )
 
 from mario.ops.excel import _sh_excel
+from mario.ops.trades import sum_trade_regions
 from mario.ops.aggregation_inputs import (
     aggregation_template,
     normalize_aggregation_sheet,
@@ -1811,7 +1812,7 @@ class Database(CoreModel):
     def _normalize_trade_item_selection(self, item):
         """Normalize optional trade item selectors and guard heterogeneous units."""
         level = self._trade_item_level()
-        available = self.get_index(level)
+        available = self.get_index(level, flat=True)
         available_set = set(available)
 
         if item is None:
@@ -1846,32 +1847,30 @@ class Database(CoreModel):
         item=None,
         *,
         row_weights: pd.Series | None = None,
+        regions=None,
     ) -> pd.DataFrame:
         """Aggregate one transaction block into an origin-by-destination matrix."""
         if not isinstance(matrix.index, pd.MultiIndex) or matrix.index.nlevels < 3:
             raise WrongInput("Trade calculation requires a 3-level row MultiIndex.")
 
-        if item is None:
-            selected = matrix
-        else:
+        row_mask = None
+        if item is not None:
             items = item if isinstance(item, list) else [item]
             missing = sorted(set(items).difference(set(matrix.index.get_level_values(-1))))
             if missing:
-                raise WrongInput(f"Items {missing!r} do not exist in the matrix item index.")
+                raise WrongInput(
+                    f"Items {missing!r} do not exist in the matrix item index."
+                )
 
-            selector = items if len(items) > 1 else items[0]
-            selected = matrix.loc[(slice(None), slice(None), selector), :]
+            row_mask = matrix.index.get_level_values(-1).isin(items)
 
-        if row_weights is not None:
-            aligned_weights = row_weights.reindex(selected.index)
-            if aligned_weights.isna().any():
-                raise WrongInput("Trade content weights could not be aligned to trade rows.")
-            selected = selected.mul(aligned_weights, axis=0)
-
-        trade_matrix = (
-            selected.T.groupby(level=0, sort=False).sum().T.groupby(level=0, sort=False).sum()
-        )
-        regions = list(dict.fromkeys(matrix.index.get_level_values(0)))
+        trade_matrix = sum_trade_regions(matrix, row_mask=row_mask, row_weights=row_weights)
+        if regions is None:
+            regions = list(
+                dict.fromkeys(
+                    [*matrix.index.get_level_values(0), *matrix.columns.get_level_values(0)]
+                )
+            )
         trade_matrix = trade_matrix.reindex(index=regions, columns=regions, fill_value=0.0)
         trade_matrix.index.name = _MASTER_INDEX["r"]
         trade_matrix.columns.name = _MASTER_INDEX["r"]
@@ -1883,36 +1882,37 @@ class Database(CoreModel):
         item=None,
         *,
         row_weights: pd.Series | None = None,
+        regions=None,
     ) -> pd.DataFrame:
         """Aggregate one Chenery-Moses supply block into an origin-by-destination matrix."""
         if not isinstance(matrix.columns, pd.MultiIndex) or matrix.columns.nlevels < 3:
             raise WrongInput("Trade calculation requires a 3-level column MultiIndex.")
 
-        if item is None:
-            selected = matrix
-        else:
+        column_mask = None
+        if item is not None:
             items = item if isinstance(item, list) else [item]
-            missing = sorted(set(items).difference(set(matrix.columns.get_level_values(-1))))
+            missing = sorted(
+                set(items).difference(set(matrix.columns.get_level_values(-1)))
+            )
             if missing:
-                raise WrongInput(f"Items {missing!r} do not exist in the matrix item index.")
+                raise WrongInput(
+                    f"Items {missing!r} do not exist in the matrix item index."
+                )
 
-            selector = items if len(items) > 1 else items[0]
-            selected = matrix.loc[:, (slice(None), slice(None), selector)]
+            column_mask = matrix.columns.get_level_values(-1).isin(items)
 
-        if row_weights is not None:
-            aligned_weights = row_weights.reindex(selected.index)
-            if aligned_weights.isna().any():
-                raise WrongInput("Trade content weights could not be aligned to supply rows.")
-            selected = selected.mul(aligned_weights, axis=0)
-
-        trade_matrix = (
-            selected.groupby(level=0, sort=False).sum().T.groupby(level=0, sort=False).sum().T
+        trade_matrix = sum_trade_regions(
+            matrix, column_mask=column_mask, row_weights=row_weights
         )
-        row_regions = list(dict.fromkeys(matrix.index.get_level_values(0)))
-        column_regions = list(dict.fromkeys(matrix.columns.get_level_values(0)))
+        if regions is None:
+            regions = list(
+                dict.fromkeys(
+                    [*matrix.index.get_level_values(0), *matrix.columns.get_level_values(0)]
+                )
+            )
         trade_matrix = trade_matrix.reindex(
-            index=row_regions,
-            columns=column_regions,
+            index=regions,
+            columns=regions,
             fill_value=0.0,
         )
         trade_matrix.index.name = _MASTER_INDEX["r"]
@@ -2547,6 +2547,8 @@ class Database(CoreModel):
             Sector or commodity label to aggregate by region. When omitted,
             MARIO aggregates all sectors or commodities only if they share one
             common unit of measure.
+            On regional classifications, the code need only exist in one
+            region; only actual region-item pairs contribute to the result.
         scenario:
             Scenario to analyse.
         clusters:
@@ -2611,6 +2613,8 @@ class Database(CoreModel):
         region_aggregation = self._resolve_trade_region_aggregation(clusters)
         clusters_direction = self._normalize_trade_cluster_direction(clusters_direction)
 
+        regions = self.get_index(_MASTER_INDEX["r"])
+
         matrix_names = []
         if self.meta.table == "SUT":
             if intermediate:
@@ -2641,7 +2645,9 @@ class Database(CoreModel):
                 if isinstance(supply_block, dict):
                     supply_block = supply_block[_ENUM.S]
 
-                frame = self._aggregate_trade_supply_by_region(supply_block, item_selection)
+                frame = self._aggregate_trade_supply_by_region(
+                    supply_block, item_selection, regions=regions
+                )
                 frame = self._aggregate_trade_regions(
                     frame,
                     region_aggregation,
@@ -2662,6 +2668,7 @@ class Database(CoreModel):
                 frame = self._aggregate_trade_matrix_by_region(
                     blocks[matrix_name],
                     item_selection,
+                    regions=regions,
                 )
                 frame = self._aggregate_trade_regions(
                     frame,
@@ -2681,6 +2688,7 @@ class Database(CoreModel):
                 frame = self._aggregate_trade_matrix_by_region(
                     blocks[matrix_name],
                     item_selection,
+                    regions=regions,
                 )
                 frame = self._aggregate_trade_regions(
                     frame,
