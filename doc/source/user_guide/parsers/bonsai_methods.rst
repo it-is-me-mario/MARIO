@@ -102,6 +102,23 @@ regional memberships are changed and no nodes are excluded. Turning off
 diagonal exclusion does not resolve this singularity. See
 :doc:`../../api_document/mario.Database.calc_linkages`.
 
+``update_supply_mix`` and ``update_trade_mix`` have also been adapted. Supply
+labels are validated in their specified region, while every trade item must
+exist in every explicitly listed origin, including zero-weight origins. Missing
+pairs raise an error rather than being created or silently removed from the
+weights. A destination may import an item without a local node for that item.
+Column filters apply to actual buyer, market and final-demand columns. Sparse
+updates preserve storage, bundle column totals, unselected rows and other
+scenarios. Level inference can distinguish labels by their regional memberships;
+ambiguity within the requested regions still requires an explicit level.
+Explicit commodity aggregation maps the observed region-code pairs only. The
+historical mix failures below predate these changes.
+On the complete Balanced bundle, Activity and Commodity supply mixes and a
+Commodity trade mix were checked against independent sparse sums. The checks
+preserve unselected entries and actual axes and reject absent regional pairs.
+``M_Artis`` is present on both classifications in the selected origins, so that
+trade example specifies ``level="Commodity"`` explicitly.
+
 Index contract
 --------------
 

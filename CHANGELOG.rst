@@ -8,6 +8,13 @@ package on PyPI, and dates are its publication dates.
 Unreleased
 ----------
 
+* ``update_supply_mix`` and ``update_trade_mix`` accept nonuniform regional
+  classifications, validate actual region-item pairs and retain sparse storage.
+  Missing explicitly requested origins raise an error even at zero weight;
+  destinations may import an item without a local node. Column filters select
+  existing columns only, and explicit commodity aggregation maps existing
+  regional occurrences without adding production nodes. Common classifications
+  retain their API, bundle totals and scenario behavior.
 * ``calc_linkages`` supports sparse flow blocks and nonuniform regional
   classifications without constructing full inverse views. Regional reductions
   use actual production nodes; exact self effects are subtracted without
