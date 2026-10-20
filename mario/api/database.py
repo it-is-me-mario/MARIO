@@ -4585,6 +4585,7 @@ class Database(CoreModel):
         item=None,
         redefine_uncertainties=False,
         overwrite=False,
+        intermediate_steps=False,
     ):
         """Write the add-sectors workbook template.
 
@@ -4606,6 +4607,9 @@ class Database(CoreModel):
         redefine_uncertainties:
             When ``True``, include the editable uncertainties sheet in the
             workbook.
+        intermediate_steps:
+            Include an ``Intermediate steps`` sheet. Each named column lists
+            the sectors introduced together, in left-to-right execution order.
 
         Notes
         -----
@@ -4665,6 +4669,7 @@ class Database(CoreModel):
             regions=regions,
             item=item,
             redefine_uncertainties=redefine_uncertainties,
+            intermediate_steps=intermediate_steps,
         )
 
     def read_add_sectors_excel(
@@ -4857,6 +4862,9 @@ class Database(CoreModel):
         residue=None,
         VA_fix=False,
         accept_non_unitary_sum=False,
+        intermediate_steps=False,
+        save_intermediates=None,
+        stop_after_step=None,
     ):
         """Apply the add-sectors workbook to the selected scenario.
 
@@ -4927,6 +4935,18 @@ class Database(CoreModel):
             input data. Values strictly below this threshold are set to zero
             before writing the input files. When ``None`` (default), no
             correction is applied.
+        intermediate_steps:
+            Execute the named columns in ``Intermediate steps`` sequentially
+            (IOT, split=True). Each accepted result must aggregate back to the
+            preceding database within 1e-6 + 1e-8 * abs(reference).
+        save_intermediates:
+            Required checkpoint directory when intermediate_steps=True. Each
+            successful step contains reloadable flows, a remaining workbook
+            and a committed state manifest. Existing checkpoints are preserved.
+        stop_after_step:
+            Optional pending group name at which to return after saving its
+            checkpoint. Later groups remain in the remaining workbook. Requires
+            intermediate_steps=True; None executes every pending group.
 
         Notes
         -----
@@ -4946,6 +4966,24 @@ class Database(CoreModel):
         commodities (nested ``{"Activity": {...}, "Commodity": {...}}`` mappings
         are accepted to disambiguate equal labels).
         """
+        if intermediate_steps:
+            from mario.ops.add_sector_steps import run_intermediate_steps
+            return run_intermediate_steps(
+                self, io=io, scenario=scenario, inplace=inplace, split=split,
+                save_intermediates=save_intermediates,
+                stop_after_step=stop_after_step,
+                options=dict(keep_all_split_steps=keep_all_split_steps, notes=notes,
+                             ignore_warnings=ignore_warnings, cvxlab_path=cvxlab_path,
+                             input_data_files_type=input_data_files_type,
+                             only_input_data_gen=only_input_data_gen, solver=solver,
+                             solver_parameters=solver_parameters, parent_name=parent_name,
+                             parent_names=parent_names, residue=residue, VA_fix=VA_fix,
+                             accept_non_unitary_sum=accept_non_unitary_sum),
+            )
+        if save_intermediates is not None:
+            raise WrongInput("save_intermediates requires intermediate_steps=True.")
+        if stop_after_step is not None:
+            raise WrongInput("stop_after_step requires intermediate_steps=True.")
         if not inplace:
             new = self.copy()
             new.add_sectors(

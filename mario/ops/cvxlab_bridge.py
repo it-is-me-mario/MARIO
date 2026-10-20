@@ -124,6 +124,7 @@ def optimize_split_in_cvxlab(
 
     solver = _resolve_split_solver(solver)
     _run_split_model(model, dest_dir=dest_dir, solver=solver, solver_parameters=solver_parameters)
+    instance._last_split_status = _cvxlab_problem_status_values(model.core.problem.problem_status)
     return _parse_split_results(dest_dir, flat_matrices, residue=residue)
 
 
@@ -234,6 +235,11 @@ def _prepare_split_model_inputs(
     input_data_files_type: str,
 ):
     dest_dir = _prepare_split_model_directory(main_dir_path=main_dir_path, model_dir_name=model_dir_name)
+    refinement = getattr(instance, "_intermediate_refinement", None)
+    if refinement is not None:
+        _configure_sequential_domains(dest_dir / "model_settings.xlsx")
+    if refinement is not None and not refinement.empty:
+        _configure_refinement_objective(dest_dir / "model_settings.xlsx")
     mapping = pd.read_excel(dest_dir / "mapping.xlsx", sheet_name=None, index_col=0)
 
     model = _build_cvxlab_model(
@@ -251,6 +257,72 @@ def _prepare_split_model_inputs(
         scenarios=[f"split_{scenario_label}", "original"],
     )
     return model, dest_dir, mapping, flat_matrices
+
+
+def _configure_sequential_domains(path):
+    """Keep split final-demand components in their preceding cell's sign domain.
+
+    Final demand may contain negative inventories, so a global nonnegative
+    variable would be incorrect. Signed masks apply only to generated staged
+    models and permit zero shares of either positive or negative source cells.
+    """
+    from openpyxl import load_workbook
+    book = load_workbook(path)
+    try:
+        ws = book["structure_variables"]
+        headers = [cell.value for cell in ws[1]]
+        layout = next([cell.value for cell in row] for row in ws.iter_rows(min_row=2)
+                      if row[0].value == "Zero_Y_mask")
+        for name in ("Positive_Y_mask", "Negative_Y_mask"):
+            row = list(layout)
+            row[headers.index("table_key")] = name
+            row[headers.index("variables_info")] = name
+            row[headers.index("description")] = "Preceding final-demand cell sign"
+            row[headers.index("blank_fill")] = 0
+            ws.append(row)
+        problem = book["problem"]
+        columns = [cell.value for cell in problem[1]]
+        for expression in ("mult(Positive_Y_mask,Y_pn_to) >= 0", "mult(Negative_Y_mask,Y_pn_to) <= 0"):
+            row = [None] * len(columns)
+            row[columns.index("expressions")] = expression
+            row[columns.index("description")] = "Preserve preceding final-demand cell sign"
+            problem.append(row)
+        book.save(path)
+    finally:
+        book.close()
+
+
+def _configure_refinement_objective(path):
+    """Add conditional supply priors only to the generated step model."""
+    from openpyxl import load_workbook
+    book = load_workbook(path)
+    try:
+        ws = book["structure_variables"]
+        headers = [cell.value for cell in ws[1]]
+        layout = next([cell.value for cell in row] for row in ws.iter_rows(min_row=2)
+                      if row[0].value == "Zero_supply_mask")
+        layout[headers.index("region_to")] = "dim: cols"
+        for name in ("Z_refine", "Refine_selector"):
+            row = list(layout)
+            row[headers.index("table_key")] = name
+            row[headers.index("variables_info")] = name
+            row[headers.index("description")] = "Deferred supplier refinement for completed sectors"
+            row[headers.index("blank_fill")] = 0
+            ws.append(row)
+        supply = next([cell.value for cell in row] for row in ws.iter_rows(min_row=2)
+                      if row[headers.index("variables_info")].value == "Z_supply_to")
+        supply[headers.index("variables_info")] = "Z_supply_refined"
+        supply[headers.index("region_to")] = "dim: cols"
+        ws.append(supply)
+        problem = book["problem"]
+        objective_column = [c.value for c in problem[1]].index("objective") + 1
+        for cells in problem.iter_rows(min_row=2):
+            cell = cells[objective_column - 1]
+            if cell.value:
+                cell.value = cell.value.rstrip()[:-1] + "+sum(entropy(mult(Refine_selector,Z_supply_refined),Z_refine)))"
+        book.save(path)
+    finally:
+        book.close()
 
 
 def _build_cvxlab_model(*, main_dir_path, model_dir_name: str, input_data_files_type: str):
@@ -868,6 +940,15 @@ def _write_input_data(
     matrix_map = dict(zip(mapping["matrices"].index.to_list(), mapping["matrices"]["cvxlab"]))
     set_map = dict(zip(mapping["sets"].index.to_list(), mapping["sets"]["cvxlab"]))
 
+    refinement = getattr(instance, "_intermediate_refinement", None)
+    if refinement is not None and not refinement.empty:
+        for name in ("Z_refine", "Refine_selector"):
+            updates = refinement.copy()
+            if name == "Refine_selector":
+                updates["values"] = 1.0
+            input_data[name] = _merge_cvxlab_input_table(input_data[name], updates, table_name=name)
+            input_data[name]["values"] = input_data[name]["values"].fillna(0.0)
+
     for mario_matrix_name, mario_df in flat_matrices.items():
         if mario_matrix_name not in matrix_map or pd.isna(matrix_map[mario_matrix_name]):
             continue
@@ -1101,6 +1182,15 @@ def _write_input_data(
     input_data["Zero_Y_mask"] = _set_mask_from_coordinates(
         input_data["Zero_Y_mask"], parent_yrow_zeros, join_cols=y_join_cols
     )
+
+    if refinement is not None:
+        for name, sign in (("Positive_Y_mask", 1), ("Negative_Y_mask", -1)):
+            coordinates = yold.loc[yold["sector_from_Name"].isin(parent_sectors_set)
+                                   & (sign * yold["values"] > 0), y_join_cols]
+            coordinates = _expand_parent_to_children(
+                coordinates, sector_col="sector_from_Name", parent_to_children=parent_to_children)
+            input_data[name]["values"] = 0
+            input_data[name] = _set_mask_from_coordinates(input_data[name], coordinates, join_cols=y_join_cols)
 
     #Imposing zeroes according to original V
     input_data["Zero_V_mask"]["values"] = 0

@@ -67,7 +67,7 @@ setup(
         ],
         },
     install_requires=[
-        "pandas == 3.0.2",
+        "pandas >= 2.3.3, < 3.1",
         "numpy == 2.1.1",
         "xlsxwriter == 3.2.9",
         "plotly",
