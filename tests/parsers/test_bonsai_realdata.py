@@ -35,11 +35,19 @@ def test_balanced_20260615_ghg_characterizes_native_blocks_without_resolving_eco
     with pytest.warns(UserWarning, match="362 elementary-flow rows"):
         database = mario.parse_bonsai(os.environ["MARIO_BONSAI_BALANCED_ZIP"])
     accounts = database.get_index("Satellite account")
-    co2 = next(label for label in accounts if label.startswith("Carbon dioxide, fossil | Air | tonnes |"))
-    ch4 = next(label for label in accounts if label.startswith("Methane, fossil | Air | tonnes |"))
+    factors = {
+        "Carbon dioxide, fossil | Air": 1.,
+        "Methane, fossil | Air": 29.8,
+        "Methane, non-fossil | Air": 27.,
+        "Dinitrogen monoxide | Air": 273.,
+    }
+    assert set(factors) <= set(accounts)
+    assert "Carbon dioxide, non-fossil | Air" in accounts
+    assert "Nitrogen oxides | Air" in accounts
+    assert len([label for label in accounts if label.startswith("Sodium chloride | unspecified | ")]) == 2
     before = dict(database.matrices["baseline"])
     expected = {
-        name: dense_values(before[name].loc[co2]) + 29.8 * dense_values(before[name].loc[ch4])
+        name: sum(dense_values(before[name].loc[gas]) * factor for gas, factor in factors.items())
         for name in ("Ea", "Ec", "EY")
     }
 
@@ -50,14 +58,15 @@ def test_balanced_20260615_ghg_characterizes_native_blocks_without_resolving_eco
     monkeypatch.setattr(database, "calc_all", forbidden)
     monkeypatch.setattr(database, "add_extensions", forbidden)
     started = time.perf_counter()
-    database.calc_ghg(gwp={co2: 1., ch4: 29.8})
+    database.calc_ghg()
+    label = "GHG AR6 GWP-100"
     elapsed = time.perf_counter() - started
     assert set(database.matrices["baseline"]) == set(before)
-    assert database.get_index("Satellite account") == accounts + ["GHG"]
+    assert database.get_index("Satellite account") == accounts + [label]
     for name, old in before.items():
         actual = database.get_block(name)
         if name in expected:
-            np.testing.assert_allclose(dense_values(actual.loc["GHG"]), expected[name])
+            np.testing.assert_allclose(dense_values(actual.loc[label]), expected[name])
             assert actual.shape == (128, old.shape[1])
             assert all(isinstance(t, pd.SparseDtype) and t.fill_value == 0 for t in actual.dtypes)
         else:
@@ -78,7 +87,7 @@ def test_balanced_20260615_partial_co2_fc_certifies_independent_equations():
     pytest.importorskip("scikits.umfpack")
     with pytest.warns(UserWarning, match="362 elementary-flow rows"):
         database = mario.parse_bonsai(os.environ["MARIO_BONSAI_BALANCED_ZIP"])
-    extension = "Carbon dioxide, fossil | Air | tonnes | 147f8e0a-3638-4a77-a029-45d8acba0184"
+    extension = "Carbon dioxide, fossil | Air"
     database.keep_extensions(extension)
     with pytest.warns(PartialResultWarning, match="4 of 53400") as recorded:
         fc = database.fc
@@ -119,7 +128,7 @@ def test_balanced_20260615_demand_based_fc_reports_singular_components(monkeypat
     with pytest.warns(UserWarning, match="362 elementary-flow rows"):
         database = mario.parse_bonsai(os.environ["MARIO_BONSAI_BALANCED_ZIP"])
     database.keep_extensions(
-        "Carbon dioxide, fossil | Air | tonnes | 147f8e0a-3638-4a77-a029-45d8acba0184"
+        "Carbon dioxide, fossil | Air"
     )
 
     def forbidden(*args, **kwargs):

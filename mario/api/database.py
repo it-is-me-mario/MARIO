@@ -5677,6 +5677,11 @@ class Database(CoreModel):
         ----------
         profile:
             Registered profile name (see ``mario.ops.GHG_PROFILES``).
+            BONSAI is auto-detected and characterizes fossil CO2, fossil and
+            non-fossil CH4, and N2O (``Dinitrogen monoxide``). Biogenic CO2 stays
+            separate from the aggregate; NOx and resource CO2 uptake are not
+            characterized. This profile covers the gases available in the
+            Balanced bundle, which has no fluorinated GHG accounts.
         gwp:
             Optional ``{satellite-account: factor}`` mapping that overrides
             the profile defaults.

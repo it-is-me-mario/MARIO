@@ -194,6 +194,10 @@ def parse_bonsai(
     Import diagnostics and satellite identities are stored in
     ``Database.info["bonsai"]`` or ``ModelState.metadata.extra["bonsai"]``.
     No archive extraction, pickle loading or automatic download is performed.
+    Satellite labels use ``name | compartment``. Native UUIDs are appended only
+    to disambiguate homonyms, and units only if the same identity has multiple
+    units. Original identities remain in the import report and units in
+    ``Database.units["Satellite account"]``.
 
     A successful import sets session compute defaults to ``compute_method='solve'``,
     ``linear_solver='umfpack'``, ``linear_strategy='direct'`` and

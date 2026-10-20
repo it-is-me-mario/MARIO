@@ -377,7 +377,7 @@ def _elementary_flows(bundle, nodes, *, enabled, unmatched):
         if unmatched == "raise":
             raise WrongInput(message)
         warnings.warn(message, UserWarning, stacklevel=3)
-    # Retain the substance identity, compartment and unit, including unnamed flows.
+    # Keep readable labels; native IDs and units remain in the import report.
     named = (
         raw.loc[raw.substance_name.ne("")]
         .drop_duplicates("Exio substance")
@@ -386,20 +386,19 @@ def _elementary_flows(bundle, nodes, *, enabled, unmatched):
     )
     names = raw["Exio substance"].map(named).fillna(raw["Exio substance"])
     raw["substance_name"] = names
-    raw["label"] = (
-        names
-        + " | "
-        + raw["Exio compartment"].replace("", "unspecified")
-        + " | "
-        + raw.unit
-        + " | "
-        + raw["Exio substance"]
-    )
-    identities = raw.drop_duplicates(["Exio substance", "Exio compartment", "unit"])
+    raw["label"] = names + " | " + raw["Exio compartment"].replace("", "unspecified")
+    identity_columns = ["Exio substance", "Exio compartment", "unit"]
+    identities = raw.drop_duplicates(identity_columns).copy()
+    ambiguous = identities.label.duplicated(keep=False)
+    identities.loc[ambiguous, "label"] += " | " + identities.loc[ambiguous, "Exio substance"]
+    mixed_units = identities.label.duplicated(keep=False)
+    identities.loc[mixed_units, "label"] += " | " + identities.loc[mixed_units, "unit"]
     if identities.label.duplicated().any():
         raise WrongInput("Ambiguous BONSAI elementary-flow labels.")
     axis = pd.Index(identities.label)
-    rows = axis.get_indexer(raw.label)
+    rows = pd.MultiIndex.from_frame(identities[identity_columns]).get_indexer(
+        pd.MultiIndex.from_frame(raw[identity_columns])
+    )
     ea, ey = _SparseEntries((len(axis), len(nodes["a"]))), _SparseEntries(
         (len(axis), len(nodes["n"]))
     )

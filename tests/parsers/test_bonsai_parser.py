@@ -131,19 +131,45 @@ def test_sparse_economic_blocks_and_native_units(balanced):
 
 def test_extensions_keep_final_demand_signs_and_distinct_identities(balanced):
     b = parse_bonsai_hsut(balanced)[0]["baseline"]
-    dust = "Dust | Air | tonnes | dust-id"
+    dust = "Dust | Air | dust-id"
     assert b["Ea"].at[dust, _key("AT", "a", "A_FARM")] == 4
     assert b["EY"].at[dust, _key("DE", "n", "consumer")] == 7
     assert b["EY"].at[dust, _key("AT", "n", "I_CHIN")] == -2
     assert len(b["Ea"].index) == 4
-    assert b["Ea"].at["Dust | Air | tonnes | other-id", _key("AT", "a", "F_REAL")] == 1
+    assert b["Ea"].at["Dust | Air | other-id", _key("AT", "a", "F_REAL")] == 1
+    assert b["Ea"].at["Dust | Water", _key("AT", "a", "A_FARM")] == 4
     assert (
         b["Ea"].at[
-            "unnamed-id | unspecified | cubic meter | unnamed-id",
+            "unnamed-id | unspecified",
             _key("DE", "a", "A_MILL"),
         ]
         == 8
     )
+
+
+def test_short_satellite_labels_preserve_units_and_native_identities(balanced):
+    matrices, _, units, layout = parse_bonsai_hsut(balanced)
+    labels = matrices["baseline"]["Ea"].index
+    assert units["Satellite account"].index.equals(labels)
+    report = {row["label"]: row for row in layout.report["satellites"]}
+    assert report["Dust | Water"]["Exio substance"] == "dust-id"
+    assert report["Dust | Water"]["unit"] == "tonnes"
+    assert report["Dust | Air | other-id"]["Exio substance"] == "other-id"
+    assert units["Satellite account"].loc["unnamed-id | unspecified", "unit"] == "cubic meter"
+
+
+def test_identical_substances_in_different_units_remain_separate(balanced):
+    filename = balanced / "all_elementary_flows_AB_and_BB.csv"
+    frame = pd.read_csv(filename, keep_default_na=False)
+    extra = frame.iloc[[0]].assign(unit="kg", Value=500)
+    pd.concat([frame, extra]).to_csv(filename, index=False)
+    matrices, _, units, _ = parse_bonsai_hsut(balanced)
+    ea = matrices["baseline"]["Ea"]
+    a = _key("AT", "a", "A_FARM")
+    assert ea.loc["Dust | Air | dust-id | tonnes", a] == 4
+    assert ea.loc["Dust | Air | dust-id | kg", a] == 500
+    assert units["Satellite account"].loc["Dust | Air | dust-id | kg", "unit"] == "kg"
+    assert ea.index.is_unique
 
 
 def test_zip_nested_directory_and_public_models(balanced, tmp_path):

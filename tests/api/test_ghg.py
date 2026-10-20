@@ -454,3 +454,82 @@ def test_calc_ghg_prefix_profile_weights_all_matching_subsources_and_allows_zero
         GHG_PROFILES.pop("test_prefix")
     assert db.E.loc["GHG AR6 GWP-100"].tolist() == pytest.approx([31., 42.])
     assert db.EY.shape == (5, 0)
+
+
+@pytest.mark.parametrize("profile", [None, "bonsai"])
+@pytest.mark.parametrize("report,methane_fossil,methane_biogenic,nitrous_oxide", [
+    ("AR6", 29.8, 27.0, 273),
+    ("AR5", 30, 28, 265),
+    ("AR4", 25, 25, 298),
+])
+def test_bonsai_profile_uses_n2o_and_distinct_methane_factors_without_biogenic_co2(
+    tmp_path, monkeypatch, bonsai_without_umfpack,
+    profile, report, methane_fossil, methane_biogenic, nitrous_oxide,
+):
+    import mario
+    from mario.compute.helpers import dense_values
+    from tests.parsers.test_bonsai_parser import _bundle
+
+    path = _bundle(tmp_path / "Balanced")
+    gases = [
+        ("fossil-co2", "Carbon dioxide, fossil", "Air", 2., 1.),
+        ("biogenic-co2", "Carbon dioxide, non-fossil", "Air", 1000., 500.),
+        ("fossil-ch4", "Methane, fossil", "Air", 3., 2.),
+        ("biogenic-ch4", "Methane, non-fossil", "Air", 5., 3.),
+        ("n2o", "Dinitrogen monoxide", "Air", 7., 4.),
+        ("nox", "Nitrogen oxides", "Air", 10000., 20000.),
+        ("co2-uptake", "Carbon dioxide, in air", "", 1000000., 2000000.),
+        ("fossil-co2", "Carbon dioxide, fossil", "Water", 999999., 888888.),
+    ]
+    rows = [
+        (substance, region, activity, compartment, "tonnes", value, name)
+        for substance, name, compartment, emission, direct in gases
+        for region, activity, value in [("AT", "A_FARM", emission), ("DE", "consumer", direct)]
+    ]
+    pd.DataFrame(rows, columns=[
+        "Exio substance", "Exio country code", "Exio act code", "Exio compartment",
+        "unit", "Value", "substance_name",
+    ]).to_csv(path / "all_elementary_flows_AB_and_BB.csv", index=False)
+    db = mario.parse_bonsai(path, name="User-selected name")
+    before = dict(db.matrices["baseline"])
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("The built-in BONSAI profile must not calculate missing economic blocks")
+
+    monkeypatch.setattr("mario.compute.resolver.Resolver.resolve", forbidden)
+    db.calc_ghg(profile=profile, ipcc_report=report)
+
+    label = f"GHG {report} GWP-100"
+    ea = dense_values(db.get_block("Ea").loc[label])
+    ey = dense_values(db.get_block("EY").loc[label])
+    assert ea.sum() == pytest.approx(2 + 3 * methane_fossil + 5 * methane_biogenic + 7 * nitrous_oxide)
+    assert ey.sum() == pytest.approx(1 + 2 * methane_fossil + 3 * methane_biogenic + 4 * nitrous_oxide)
+    assert not dense_values(db.get_block("Ec").loc[label]).any()
+    assert db.units["Satellite account"].loc[label, "unit"] == "tonnes"
+    assert "Carbon dioxide, non-fossil | Air" in db.get_index("Satellite account")
+    for name, frame in before.items():
+        if name not in ("Ea", "Ec", "EY"):
+            assert db.get_block(name) is frame
+    assert set(db.matrices["baseline"]) == set(before)
+
+
+@pytest.mark.parametrize("legacy", [False, True])
+def test_bonsai_profile_accepts_identity_suffixes_and_older_full_labels(legacy):
+    db = _build_ghg_database()
+    labels = {
+        "CO2 - combustion - air": "Carbon dioxide, fossil | Air",
+        "CH4 - combustion - air": "Methane, non-fossil | Air",
+        "N2O - combustion - air": "Dinitrogen monoxide | Air",
+    }
+    labels = {key: value + (" | kg | native-id" if legacy else " | native-id") for key, value in labels.items()}
+    for name, matrix in list(db.matrices["baseline"].items()):
+        if isinstance(matrix, pd.DataFrame):
+            db.matrices["baseline"][name] = matrix.rename(index=labels)
+    db.units["Satellite account"] = db.units["Satellite account"].rename(index=labels)
+    db._indeces["k"]["main"] = [labels.get(label, label) for label in db.get_index("Satellite account")]
+    db.meta.source = "BONSAI"
+
+    db.calc_ghg()
+
+    expected = db.E.loc[labels["CO2 - combustion - air"]] + 27 * db.E.loc[labels["CH4 - combustion - air"]] + 273 * db.E.loc[labels["N2O - combustion - air"]]
+    pdt.assert_series_equal(db.E.loc["GHG AR6 GWP-100"], expected, check_names=False)

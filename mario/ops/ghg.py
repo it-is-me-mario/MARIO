@@ -33,8 +33,8 @@ GWPs = {
     },
     'Methane - non fossil': {
         100: {
-            'AR6': 29.8,
-            'AR5': 30,
+            'AR6': 27.0,
+            'AR5': 28,
             'AR4': 25,
         },
     },
@@ -59,6 +59,26 @@ GWPs = {
 # Profiles are evaluated in declaration order; the first matching profile
 # wins. Put the more specific profile (more substrings) first.
 GHG_PROFILES: Dict[str, dict] = {
+    # ---------------- BONSAI Balanced HSUT -----------------------------
+    # Names and compartments are the parser's readable satellite labels.
+    # Biogenic CO2 is retained separately, consistently with the existing
+    # EXIOBASE/GLORIA profiles; this is not a net biogenic carbon balance.
+    # N2O is "Dinitrogen monoxide", distinct from NOx ("Nitrogen oxides").
+    # GWP100: IPCC AR6 Table 7.15; AR5/AR4 variants follow the shared factors.
+    # https://ghgprotocol.org/sites/default/files/2024-08/Global-Warming-Potential-Values%20(August%202024).pdf
+    "bonsai": {
+        "match": "bonsai",
+        # Also accept disambiguating suffixes and the older unit/UUID labels.
+        "match_mode": "prefix",
+        "unit": "tonnes CO2eq",
+        "gwp": {
+            "Carbon dioxide, fossil | Air": GWPs['Carbon dioxide'],
+            "Carbon dioxide, non-fossil | Air": 0,
+            "Methane, fossil | Air": GWPs['Methane - fossil'],
+            "Methane, non-fossil | Air": GWPs['Methane - non fossil'],
+            "Dinitrogen monoxide | Air": GWPs['Nitrous oxide'],
+        },
+    },
     # ---------------- EXIOBASE 3.x monetary (IOT and SUT) ----------------
     # Satellite labels look like "CO2 - combustion - air".  GWP-100 from
     # IPCC AR6 (with feedbacks).  Only combustion CO2/CH4/N2O are listed
