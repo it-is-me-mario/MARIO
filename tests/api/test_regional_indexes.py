@@ -460,3 +460,39 @@ def test_explicit_regional_extension_axes_are_detected(regional):
         "IT": ["tax"],
         "DE": ["labour"],
     }
+
+
+@pytest.mark.parametrize("code,block", [("f", "Va"), ("k", "Ea")])
+@pytest.mark.parametrize("global_scope", ["TOTAL", "WORLD"])
+def test_mixed_global_and_regional_extension_scopes_keep_complete_lists(
+    regional, code, block, global_scope, monkeypatch
+):
+    label = MI[code]
+    catalog = ["regional", "global_only", "shared"]
+    rows = pd.MultiIndex.from_tuples(
+        [
+            ("IT", "regional"),
+            ("DE", "shared"),
+            (global_scope, "global_only"),
+            (global_scope, "shared"),
+        ],
+        names=[MI["r"], label],
+    )
+    regional._indeces[code]["main"] = catalog.copy()
+    regional.matrices["baseline"][block] = pd.DataFrame(
+        0.0, index=rows, columns=regional.matrices["baseline"][block].columns
+    )
+    before = deepcopy(regional._indeces)
+    block_names = tuple(regional.matrices["baseline"])
+    monkeypatch.setattr(
+        regional, "calc_all", lambda *a, **k: pytest.fail("Getter must not compute")
+    )
+    assert regional.get_index(label) == catalog
+    assert regional.get_index(label, flat=True) == catalog
+    assert regional.get_index(label, region="IT") == catalog
+    assert regional.get_index("all")[label] == catalog
+    assert regional.search(label, "global_only") == ["global_only"]
+    assert regional.default_clusters[label]["all"] == catalog
+    regional.get_index(label).append("unexpected")
+    assert regional._indeces == before
+    assert tuple(regional.matrices["baseline"]) == block_names

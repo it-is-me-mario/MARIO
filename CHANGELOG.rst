@@ -8,6 +8,10 @@ package on PyPI, and dates are its publication dates.
 Unreleased
 ----------
 
+* ``get_index`` preserves complete Factor of production and Satellite account
+  lists when custom extension layouts contain global scopes outside the Region
+  set. GTAP global accounts are no longer discarded by regional-view inference;
+  extension axes composed entirely of database regions retain regional views.
 * ``to_iot`` converts native SUT blocks on their observed regional nodes, using
   sparse products for B/D and batched supply solves for A/C instead of dense
   diagonals, unified SUT views or inverses. B/D retain activity final demand and

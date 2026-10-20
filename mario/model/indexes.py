@@ -103,6 +103,11 @@ def regional_membership(code, blocks, regions):
             ), axis.get_level_values(label)
         else:
             continue
+        if code in ("f", "k") and not region_values.isin(regions).all():
+            # Extension layouts may mix regional rows with global scopes
+            # outside the Region set. Keep their complete legacy catalog:
+            # filtering to real regions would silently discard global accounts.
+            return None
         pairs = pd.DataFrame({"region": region_values, "item": items}).drop_duplicates()
         result = {region: [] for region in regions}
         for region, item in pairs.itertuples(index=False, name=None):
