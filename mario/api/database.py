@@ -704,6 +704,30 @@ class Database(CoreModel):
         -------
         Database | None
             Transformed database when ``inplace=False``, otherwise ``None``.
+
+        Notes
+        -----
+        Uses native SUT flow blocks without constructing a unified ``Z`` or
+        dense diagonal matrices. Sparse inputs retain sparse storage; common
+        dense tables retain dense output blocks and their existing API.
+
+        Activities keep their original regional memberships. Commodity labels
+        are matched by their exact strings. A destination market is added only
+        where an observed nonzero use or final-demand flow requires a commodity
+        absent from that destination's original classification. Existing
+        commodity nodes, including unused nodes, are retained. Commodity axes
+        consequently describe destination markets after the transformation.
+
+        ``Ya``, activity-side accounts and direct final-demand accounts are
+        preserved. ``S``, ``Ec`` and ``Vc`` are allocated with each origin
+        commodity's observed destination shares. Their row totals are
+        preserved. An unused commodity retains its original supply and accounts;
+        zero net use with nonzero regional trade flows raises ``WrongInput``
+        because the sourcing shares are undefined. No balancing is performed.
+
+        New commodity markets are shared by all scenarios. Unselected scenarios
+        are extended with zeros on those axes while their existing flows are
+        preserved. Derived caches on affected scenarios are discarded.
         """
         return transform_to_chenery_moses(
             self,

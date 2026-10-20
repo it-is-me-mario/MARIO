@@ -288,64 +288,39 @@ def SUT_to_IOT(instance, method):
 
 
 def ISARD_TO_CHENERY_MOSES(instance, scenario):
-    """This function transforms a SUT in Isard format to a SUT in Chenery-Moses format.
-    The transformation implies moving from trades accounted in the USE matrix to trades accounted in the SUPPLY matrix.
-    For further notes on the transformation check:
-    - John M. Hartwick, 1970. "Notes on the Isard and Chenery-Moses Interregional Input-Output Models," Working Paper 16, Economics Department, Queen's University.
+    """Return compatibility Z/Y views of the sparse-native transformation.
+
+    The public wrapper stores split flow blocks directly, including transported
+    commodity accounts. This adapter retains the historical two-frame return
+    for callers of the old engine helper.
     """
+    from mario.ops.chenery_moses import as_csr, as_frame, convert_flows, read_flows
+    from mario.compute.helpers import _is_sparse_backed_dataframe
+    from mario.compute.views import concat_sut_Z, concat_sut_Y
+    from mario.compute.ordering import SUTUnifiedOrderingPolicy
+    from scipy import sparse
 
-    regions = instance.get_index(_MASTER_INDEX["r"])
-    commodities = instance.get_index(_MASTER_INDEX["c"])
-    sN = slice(None)
-
-    U_isard = instance.query(_ENUM.U, scenarios=scenario)
-    Y_isard = instance.query(_ENUM.Y, scenarios=scenario)
-    s_isard = instance.query(_ENUM.s, scenarios=scenario)
-
-    domestic_use = pd.DataFrame(0.0, index=U_isard.index, columns=regions)
-    for region in regions:
-        df = pd.DataFrame(
-            (
-                U_isard.loc[:, (region, sN, sN)].sum(axis=1)
-                + Y_isard.loc[(sN, _MASTER_INDEX["c"], sN), (region, sN, sN)].sum(
-                    axis=1
-                )
-            ).values,
-            index=U_isard.index,
-            columns=[region],
+    blocks = convert_flows(
+        read_flows(instance, scenario),
+        instance.get_index(_MASTER_INDEX["r"]),
+        scenario=scenario,
+    )
+    ordering = SUTUnifiedOrderingPolicy.from_blocks(
+        **{key: blocks[key] for key in ("U", "S", "Ya", "Yc")}
+    )
+    if _is_sparse_backed_dataframe(blocks["U"]) or _is_sparse_backed_dataframe(
+        blocks["S"]
+    ):
+        like = blocks["U"] if _is_sparse_backed_dataframe(blocks["U"]) else blocks["S"]
+        z = as_frame(
+            sparse.bmat(
+                [[None, as_csr(blocks["S"])], [as_csr(blocks["U"]), None]], format="csr"
+            ),
+            index=ordering.unified_index,
+            columns=ordering.unified_index,
+            like=like,
         )
-        domestic_use.update(df)
-
-    U_chenery = pd.DataFrame(0.0, index=U_isard.index, columns=U_isard.columns)
-    Y_chenery = pd.DataFrame(0.0, index=Y_isard.index, columns=Y_isard.columns)
-    S_chenery = pd.DataFrame(0.0, index=s_isard.index, columns=s_isard.columns)
-    for region in regions:
-        domestic_U = U_isard.loc[:, (region, sN, sN)].groupby(level=2).sum()
-        domestic_U.index = U_isard.loc[(region, sN, sN), :].index
-        U_chenery.loc[(region, sN, sN), (region, sN, sN)] = domestic_U.values
-
-        domestic_Y = (
-            Y_isard.loc[(sN, _MASTER_INDEX["c"], sN), (region, sN, sN)]
-            .groupby(level=2)
-            .sum()
-        )
-        domestic_Y.index = Y_isard.loc[(region, _MASTER_INDEX["c"], sN), :].index
-        Y_chenery.loc[
-            (region, _MASTER_INDEX["c"], sN), (region, sN, sN)
-        ] = domestic_Y.values
-
-        for region_2 in regions:
-            dom_use = np.diag(domestic_use.loc[(region_2, sN, sN), region].values)
-            market_share = s_isard.loc[(region_2, sN, sN), (region_2, sN, sN)].values
-
-            S_chenery.loc[(region_2, sN, sN), (region, sN, sN)] = market_share @ dom_use
-
-    Z_chenery = instance.query(_ENUM.Z, scenarios=scenario) * 0.0
-    Z_chenery.loc[
-        (sN, _MASTER_INDEX["a"], sN), (sN, _MASTER_INDEX["c"], sN)
-    ] = S_chenery
-    Z_chenery.loc[
-        (sN, _MASTER_INDEX["c"], sN), (sN, _MASTER_INDEX["a"], sN)
-    ] = U_chenery
-
-    return Z_chenery, Y_chenery
+        return z, concat_sut_Y(blocks["Ya"], blocks["Yc"], ordering)
+    return concat_sut_Z(blocks["U"], blocks["S"], ordering), concat_sut_Y(
+        blocks["Ya"], blocks["Yc"], ordering
+    )

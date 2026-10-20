@@ -8,6 +8,14 @@ package on PyPI, and dates are its publication dates.
 Unreleased
 ----------
 
+* ``to_chenery_moses`` transforms native SUT blocks using sparse allocation
+  matrices instead of dense diagonals and unified ``Z`` views. Regional
+  Activity memberships are preserved and only observed destination Commodity
+  markets are added. ``Ya`` and activity/direct final-demand accounts are
+  retained; Commodity accounts follow destination shares with conserved totals.
+  Unselected scenarios are zero-extended when new market axes are needed.
+  Undefined zero-net sourcing raises an error without data adjustments.
+  Common dense tables retain their output storage and API.
 * ``pool_trade`` explicitly rejects region-specific Activity, Commodity or
   Consumption category classifications before copying or querying the model.
   The transformation for common regional classifications is unchanged.

@@ -138,6 +138,24 @@ check; pooling for common classifications retains its existing behavior.
 The historical unknown-label or missing-node errors below are replaced by
 this capability error. Regional pooling is deferred until it is needed.
 
+``to_chenery_moses`` has since been rewritten around native flow blocks and
+sparse origin-to-destination allocation matrices. It preserves Activity nodes
+and matches Commodity codes by exact strings. Existing Commodity nodes remain;
+additional destination markets are created only for observed nonzero use or
+final-demand flows. ``Ya``, activity accounts and direct final-demand accounts
+are preserved. Supply and Commodity accounts are distributed to destination
+markets while retaining their row totals. Unselected scenarios are zero-extended
+on new shared market axes, preserving existing flows. Undefined zero-net trade
+shares raise an error, and unused source commodities retain their original
+supply/accounts without balancing adjustments.
+On the complete Balanced 20260615 bundle, ``Ya`` is entirely zero, the 51,356
+Activity nodes remain unchanged, and 8,125 observed import markets expand the
+Commodity axis from 53,400 to 61,525 nodes. Independent sparse checks preserve
+use/final-demand totals by Commodity code and buyer, Activity supply totals and
+account totals. The transformation requests no unified ``Z``/``Y`` views,
+diagonal matrices or inverse systems. Common dense cases retain dense output
+blocks. The historical transformation failure below predates these changes.
+
 Index contract
 --------------
 

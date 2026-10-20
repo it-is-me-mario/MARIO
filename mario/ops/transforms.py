@@ -7,8 +7,7 @@ import logging
 from mario.log_exc.exceptions import NotImplementable, WrongInput
 from mario.log_exc.logger import log_time
 from mario.model.conventions import _ENUM
-from mario.ops.transform_engine import ISARD_TO_CHENERY_MOSES, SUT_to_IOT
-from mario.utils import sort_frames
+from mario.ops.transform_engine import SUT_to_IOT
 
 logger = logging.getLogger(__name__)
 
@@ -129,36 +128,10 @@ def transform_to_chenery_moses(
         transform_to_chenery_moses(new, inplace=True, scenarios=scenarios)
         return new
 
-    if scenarios is None:
-        scenarios = database.scenarios
+    from mario.ops.chenery_moses import transform
 
-    for scenario in scenarios:
-        if database.is_chenerymoses(scenario=scenario):
-            raise NotImplementable(
-                f"scenario {scenario} is already in Chenery-Moses format"
-            )
-
-    log_time(
-        logger,
-        "Database: Transforming the database into Chenery-Moses",
-    )
-
-    for scenario in scenarios:
-        Z_chenery, Y_chenery = ISARD_TO_CHENERY_MOSES(database, scenario)
-        to_update = {_ENUM.Z: Z_chenery, _ENUM.Y: Y_chenery}
-        sort_frames(to_update)
-        database.update_scenarios(scenario, **to_update)
-        database.calc_all(
-            matrices=[_ENUM.U, _ENUM.S, "Ya", "Yc"],
-            scenario=scenario,
-            force_rewrite=True,
-        )
-        database.reset_to_flows(scenario=scenario)
-
-        database.meta._add_history(
-            f"Transformation of the database from into Chenery-Moses for scenario {scenario}"
-        )
-
+    log_time(logger, "Database: Transforming the database into Chenery-Moses")
+    transform(database, scenarios)
     log_time(logger, "Transformation of the database from into Chenery-Moses")
     return None
 
