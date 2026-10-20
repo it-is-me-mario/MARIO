@@ -1,6 +1,8 @@
 db.gac
 ======
 
+For the standalone function, see :func:`mario.calc_gac`.
+
 Calculate the activity-to-commodity quadrant of the SUT Ghosh inverse.
 
 .. math::

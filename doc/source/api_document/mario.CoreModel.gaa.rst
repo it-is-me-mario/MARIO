@@ -1,6 +1,8 @@
 db.gaa
 ======
 
+For the standalone function, see :func:`mario.calc_gaa`.
+
 Calculate the activity-to-activity quadrant of the SUT Ghosh inverse.
 
 .. math::

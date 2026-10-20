@@ -1,6 +1,8 @@
 db.Xa
 =====
 
+For the standalone function, see :func:`mario.calc_Xa`.
+
 Calculate total activity production from available supply-side blocks.
 
 .. math::

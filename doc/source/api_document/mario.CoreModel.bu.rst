@@ -1,6 +1,8 @@
 db.bu
 =====
 
+For the standalone function, see :func:`mario.calc_bu`.
+
 Calculate commodity-by-activity direct-output coefficients from use flows.
 
 .. math::

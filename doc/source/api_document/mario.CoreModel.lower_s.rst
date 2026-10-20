@@ -1,6 +1,8 @@
 db.s
 ====
 
+For the standalone function, see :func:`mario.calc_s`.
+
 Calculate activity-by-commodity supply coefficients using the database technology assumption.
 
 .. math::

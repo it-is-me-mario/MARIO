@@ -1,6 +1,8 @@
 db.bs
 =====
 
+For the standalone function, see :func:`mario.calc_bs`.
+
 Calculate activity-by-commodity direct-output coefficients from supply flows.
 
 .. math::

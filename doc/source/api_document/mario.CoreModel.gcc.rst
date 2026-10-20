@@ -1,6 +1,8 @@
 db.gcc
 ======
 
+For the standalone function, see :func:`mario.calc_gcc`.
+
 Calculate the commodity-to-commodity quadrant of the SUT Ghosh inverse.
 
 .. math::

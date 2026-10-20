@@ -1144,7 +1144,7 @@ def _render_api_index(app, doctree, fromdocname):
     <label class="mario-field">
       <span class="mario-visually-hidden">Filter API entries</span>
       <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <input type="search" placeholder="Filter entries, for example aggregate, calc or db.u" autocomplete="off" spellcheck="false" data-api-filter>
+      <input type="search" placeholder="Filter entries, for example aggregate, calc or calc_u" autocomplete="off" spellcheck="false" data-api-filter>
     </label>
     <div class="mario-chips" role="group" aria-label="Filter by category">{"".join(chips)}</div>
   </div>

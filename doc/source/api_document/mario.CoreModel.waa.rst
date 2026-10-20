@@ -1,6 +1,8 @@
 db.waa
 ======
 
+For the standalone function, see :func:`mario.calc_waa`.
+
 Calculate the activity-to-activity quadrant of the SUT Leontief inverse.
 
 .. math::

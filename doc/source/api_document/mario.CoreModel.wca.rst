@@ -1,6 +1,8 @@
 db.wca
 ======
 
+For the standalone function, see :func:`mario.calc_wca`.
+
 Calculate the commodity-to-activity quadrant of the SUT Leontief inverse.
 
 .. math::

@@ -31,6 +31,25 @@ from mario.compute.iot_formulas import (
     build_iot_z_from_Z_X,
 )
 from mario.compute.sut_formulas import (
+    build_sut_U_from_u_Xa,
+    build_sut_u_from_U_Xa,
+    build_sut_S_from_s_Xc,
+    build_sut_s_from_S_Xc,
+    build_sut_c_from_S_Xa,
+    build_sut_Xa_from_S_Ya,
+    build_sut_Xc_from_U_Yc,
+    build_sut_wcc_from_u_s,
+    build_sut_wca_from_u_s,
+    build_sut_wac_from_s_u,
+    build_sut_waa_from_s_u,
+    build_sut_bu_from_Xc_U,
+    build_sut_bs_from_Xa_S,
+    build_sut_gcc_from_bu_bs,
+    build_sut_gca_from_gcc_bu,
+    build_sut_gac_from_gaa_bs,
+    build_sut_gaa_from_bs_bu,
+    build_sut_pa_from_va,
+    build_sut_pc_from_vc,
     build_sut_Ea_from_ea_Xa,
     build_sut_Ec_from_ec_Xc,
     build_sut_Fa_from_fa_s_Yc,
@@ -1214,6 +1233,589 @@ def calc_y(Y):
     is not replaced: pandas division can produce NaN or infinite values.
     """
     return Y / Y.sum().sum()
+
+
+def calc_u(U, Xa):
+    r"""Calculate the SUT use coefficients matrix ``u``.
+
+    .. math::
+
+        u = U\operatorname{diag}(X_a)^{-1}
+
+    Parameters
+    ----------
+    U : pandas.DataFrame
+        Use flows, with commodity rows and activity columns.
+    Xa : pandas.DataFrame or pandas.Series
+        Activity production, indexed exactly like the columns of ``U``.
+        A DataFrame must have one column.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Use coefficients, with the commodity rows and activity columns of ``U``.
+
+    Notes
+    -----
+    Each column is divided by activity production. A zero production value
+    sets the corresponding coefficient column to zero. The same equation
+    applies under IT and PT.
+
+    Examples
+    --------
+    .. code-block:: python
+
+        import mario
+
+        u = mario.calc_u(U, Xa)
+    """
+    return build_sut_u_from_U_Xa(U, Xa)
+
+
+def calc_U(u, Xa):
+    r"""Calculate the SUT use flows matrix ``U``.
+
+    .. math::
+
+        U = u\operatorname{diag}(X_a)
+
+    Parameters
+    ----------
+    u : pandas.DataFrame
+        Use coefficients, with commodity rows and activity columns.
+    Xa : pandas.DataFrame or pandas.Series
+        Activity production, indexed exactly like the columns of ``u``.
+        A DataFrame must have one column.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Use flows, with the commodity rows and activity columns of ``u``.
+    """
+    return build_sut_U_from_u_Xa(u, Xa)
+
+
+def calc_s(S, Xc=None, *, Xa=None, tech_assumption=None):
+    r"""Calculate the SUT supply coefficients matrix ``s`` under IT or PT.
+
+    .. math::
+
+        s = \begin{cases}
+            S\operatorname{diag}(X_c)^{-1} & \text{IT},\\
+            \left(S^{\mathsf{T}}\operatorname{diag}(X_a)^{-1}\right)^{-1}
+            & \text{PT}.
+        \end{cases}
+
+    Parameters
+    ----------
+    S : pandas.DataFrame
+        Supply flows, with activity rows and commodity columns.
+    Xc : pandas.DataFrame or pandas.Series, optional
+        Commodity production, required under IT and unused under PT. Its
+        index must match the columns of ``S``. A DataFrame must have one column.
+    Xa : pandas.DataFrame or pandas.Series, optional
+        Activity production, required under PT and unused under IT. Its
+        index must match the rows of ``S``. A DataFrame must have one column.
+    tech_assumption : {"industry-based", "product-based", "IT", "PT"}, optional
+        Technology assumption; defaults to industry-based (IT).
+
+    Returns
+    -------
+    pandas.DataFrame
+        Supply coefficients, with the activity rows and commodity columns of ``S``.
+
+    Notes
+    -----
+    IT supports rectangular supply tables and treats inverse zero production
+    as zero. PT requires a square supply table and ``Xa``; a missing ``Xa``
+    raises ``ValueError``. The PT matrix inverse falls back to the
+    Moore-Penrose pseudo-inverse for a singular product-mix matrix.
+
+    Examples
+    --------
+    .. code-block:: python
+
+        import mario
+
+        s_it = mario.calc_s(S, Xc)
+        s_pt = mario.calc_s(S, Xa=Xa, tech_assumption="PT")
+    """
+    return build_sut_s_from_S_Xc(S, Xc, Xa=Xa, tech_assumption=tech_assumption)
+
+
+def calc_S(s, Xc=None, *, Xa=None, tech_assumption=None):
+    r"""Calculate the SUT supply flows matrix ``S`` under IT or PT.
+
+    .. math::
+
+        S = \begin{cases}
+            s\operatorname{diag}(X_c) & \text{IT},\\
+            \left(c\operatorname{diag}(X_a)\right)^{\mathsf{T}},
+            \quad c=s^{-1} & \text{PT}.
+        \end{cases}
+
+    Parameters
+    ----------
+    s : pandas.DataFrame
+        Supply coefficients, with activity rows and commodity columns.
+    Xc : pandas.DataFrame or pandas.Series, optional
+        Commodity production, required under IT and unused under PT. Its
+        index must match the columns of ``s``. A DataFrame must have one column.
+    Xa : pandas.DataFrame or pandas.Series, optional
+        Activity production, required under PT and unused under IT. Its
+        index must match the rows of ``s``. A DataFrame must have one column.
+    tech_assumption : {"industry-based", "product-based", "IT", "PT"}, optional
+        Technology assumption; defaults to industry-based (IT).
+
+    Returns
+    -------
+    pandas.DataFrame
+        Supply flows, with the activity rows and commodity columns of ``s``.
+
+    Notes
+    -----
+    IT supports rectangular supply tables. PT requires square ``s`` and
+    ``Xa``; a missing ``Xa`` raises ``ValueError``. The PT matrix inverse
+    falls back to the Moore-Penrose pseudo-inverse for singular ``s``.
+
+    Examples
+    --------
+    .. code-block:: python
+
+        import mario
+
+        S_it = mario.calc_S(s_it, Xc)
+        S_pt = mario.calc_S(s_pt, Xa=Xa, tech_assumption="PT")
+    """
+    return build_sut_S_from_s_Xc(s, Xc, Xa=Xa, tech_assumption=tech_assumption)
+
+
+def calc_c(S, Xa):
+    r"""Calculate the SUT product-mix matrix ``c`` for product-based technology.
+
+    .. math::
+
+        c = S^{\mathsf{T}}\operatorname{diag}(X_a)^{-1}
+
+    Parameters
+    ----------
+    S : pandas.DataFrame
+        Supply flows, with activity rows and commodity columns.
+    Xa : pandas.DataFrame or pandas.Series
+        Activity production, indexed exactly like the rows of ``S``.
+        A DataFrame must have one column.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Product-mix coefficients, with the commodity columns of ``S`` as rows
+        and its activity rows as columns.
+
+    Notes
+    -----
+    This helper explicitly uses the product-based definition. Inverse zero
+    activity production is treated as zero. For a nonsingular square product
+    mix, the PT supply coefficients satisfy ``s = c^-1``.
+    """
+    return build_sut_c_from_S_Xa(S, Xa, tech_assumption="PT")
+
+
+def calc_Xa(S, Ya):
+    r"""Calculate SUT activity production ``Xa`` from supply flows and final demand.
+
+    .. math::
+
+        X_a = S\mathbf{1} + Y_a\mathbf{1}
+
+    Parameters
+    ----------
+    S : pandas.DataFrame
+        Supply flows, with activity rows and commodity columns.
+    Ya : pandas.DataFrame
+        Activity final demand, with the same row index as ``S``.
+        Pass an explicitly zero block when activity final demand is absent.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Activity production, indexed like the rows of ``S``, with one column
+        named ``production``.
+    """
+    return build_sut_Xa_from_S_Ya(S, Ya)
+
+
+def calc_Xc(U, Yc):
+    r"""Calculate SUT commodity production ``Xc`` from use flows and final demand.
+
+    .. math::
+
+        X_c = U\mathbf{1} + Y_c\mathbf{1}
+
+    Parameters
+    ----------
+    U : pandas.DataFrame
+        Use flows, with commodity rows and activity columns.
+    Yc : pandas.DataFrame
+        Commodity final demand, with the same row index as ``U``.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Commodity production, indexed like the rows of ``U``, with one column
+        named ``production``.
+    """
+    return build_sut_Xc_from_U_Yc(U, Yc)
+
+
+def calc_wcc(u, s):
+    r"""Calculate the SUT commodity-to-commodity Leontief block ``wcc``.
+
+    .. math::
+
+        w_{cc} = (I-us)^{-1}
+
+    Parameters
+    ----------
+    u : pandas.DataFrame
+        Use coefficients, with commodity rows and activity columns.
+    s : pandas.DataFrame
+        Supply coefficients, with activity rows and commodity columns.
+        Its row index must match the columns of ``u`` and its columns must
+        match the row index of ``u``, including order.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Leontief block, with the commodity rows and commodity columns of ``u @ s``.
+
+    Notes
+    -----
+    Rectangular use/supply tables are supported. The inverse falls back to
+    the Moore-Penrose pseudo-inverse if the system matrix is singular.
+    """
+    return build_sut_wcc_from_u_s(u, s)
+
+
+def calc_wca(u, s):
+    r"""Calculate the SUT commodity-to-activity Leontief block ``wca``.
+
+    .. math::
+
+        w_{ca} = (I-us)^{-1}u = w_{cc}u
+
+    Parameters
+    ----------
+    u : pandas.DataFrame
+        Use coefficients, with commodity rows and activity columns.
+    s : pandas.DataFrame
+        Supply coefficients, with activity rows and commodity columns.
+        Its row index must match the columns of ``u`` and its columns must
+        match the row index of ``u``, including order.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Leontief block, with the commodity rows and activity columns of ``u``.
+
+    Notes
+    -----
+    Rectangular use/supply tables are supported. The inverse falls back to
+    the Moore-Penrose pseudo-inverse if the system matrix is singular.
+    """
+    return build_sut_wca_from_u_s(u, s)
+
+
+def calc_wac(s, u):
+    r"""Calculate the SUT activity-to-commodity Leontief block ``wac``.
+
+    .. math::
+
+        w_{ac} = (I-su)^{-1}s = w_{aa}s
+
+    Parameters
+    ----------
+    s : pandas.DataFrame
+        Supply coefficients, with activity rows and commodity columns.
+        Its row index must match the columns of ``u`` and its columns must
+        match the row index of ``u``, including order.
+    u : pandas.DataFrame
+        Use coefficients, with commodity rows and activity columns.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Leontief block, with the activity rows and commodity columns of ``s``.
+
+    Notes
+    -----
+    Rectangular use/supply tables are supported. The inverse falls back to
+    the Moore-Penrose pseudo-inverse if the system matrix is singular.
+    """
+    return build_sut_wac_from_s_u(s, u)
+
+
+def calc_waa(s, u):
+    r"""Calculate the SUT activity-to-activity Leontief block ``waa``.
+
+    .. math::
+
+        w_{aa} = (I-su)^{-1}
+
+    Parameters
+    ----------
+    s : pandas.DataFrame
+        Supply coefficients, with activity rows and commodity columns.
+        Its row index must match the columns of ``u`` and its columns must
+        match the row index of ``u``, including order.
+    u : pandas.DataFrame
+        Use coefficients, with commodity rows and activity columns.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Leontief block, with the activity rows and activity columns of ``s @ u``.
+
+    Notes
+    -----
+    Rectangular use/supply tables are supported. The inverse falls back to
+    the Moore-Penrose pseudo-inverse if the system matrix is singular.
+    """
+    return build_sut_waa_from_s_u(s, u)
+
+
+def calc_bu(Xc, U):
+    r"""Calculate the SUT use direct-output coefficients ``bu``.
+
+    .. math::
+
+        b_u = \operatorname{diag}(X_c)^{-1}U
+
+    Parameters
+    ----------
+    Xc : pandas.DataFrame or pandas.Series
+        Commodity production, indexed exactly like the rows of ``U``.
+        A DataFrame must have one column.
+    U : pandas.DataFrame
+        Use flows, with commodity rows and activity columns.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Direct-output coefficients, with the commodity rows and activity
+        columns of ``U``.
+
+    Notes
+    -----
+    Each row is divided by commodity production. A zero production value
+    sets the corresponding coefficient row to zero.
+    """
+    return build_sut_bu_from_Xc_U(Xc, U)
+
+
+def calc_bs(Xa, S):
+    r"""Calculate the SUT supply direct-output coefficients ``bs``.
+
+    .. math::
+
+        b_s = \operatorname{diag}(X_a)^{-1}S
+
+    Parameters
+    ----------
+    Xa : pandas.DataFrame or pandas.Series
+        Activity production, indexed exactly like the rows of ``S``.
+        A DataFrame must have one column.
+    S : pandas.DataFrame
+        Supply flows, with activity rows and commodity columns.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Direct-output coefficients, with the activity rows and commodity
+        columns of ``S``.
+
+    Notes
+    -----
+    Each row is divided by activity production. A zero production value
+    sets the corresponding coefficient row to zero.
+    """
+    return build_sut_bs_from_Xa_S(Xa, S)
+
+
+def calc_gcc(bu, bs):
+    r"""Calculate the SUT Ghosh block ``gcc``.
+
+    .. math::
+
+        g_{cc} = (I-b_u b_s)^{-1}
+
+    Parameters
+    ----------
+    bu : pandas.DataFrame
+        Use direct-output coefficients, with commodity rows and activity columns.
+    bs : pandas.DataFrame
+        Supply direct-output coefficients, with activity rows and commodity
+        columns. Its rows and columns must match the columns and rows of
+        ``bu``, respectively, including order.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Ghosh block, with commodity nodes on both axes.
+
+    Notes
+    -----
+    The inverse falls back to the Moore-Penrose pseudo-inverse if the
+    system matrix is singular.
+    """
+    return build_sut_gcc_from_bu_bs(bu, bs)
+
+
+def calc_gca(gcc, bu):
+    r"""Calculate the SUT Ghosh block ``gca``.
+
+    .. math::
+
+        g_{ca} = g_{cc}b_u
+
+    Parameters
+    ----------
+    gcc : pandas.DataFrame
+        Commodity-to-commodity Ghosh block, with columns matching the
+        commodity rows of ``bu``.
+    bu : pandas.DataFrame
+        Use direct-output coefficients, with commodity rows and activity columns.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Ghosh block, with the commodity rows of ``gcc`` and activity columns of ``bu``.
+    """
+    return build_sut_gca_from_gcc_bu(gcc, bu)
+
+
+def calc_gac(gaa, bs):
+    r"""Calculate the SUT Ghosh block ``gac``.
+
+    .. math::
+
+        g_{ac} = g_{aa}b_s
+
+    Parameters
+    ----------
+    gaa : pandas.DataFrame
+        Activity-to-activity Ghosh block, with columns matching the activity
+        rows of ``bs``.
+    bs : pandas.DataFrame
+        Supply direct-output coefficients, with activity rows and commodity columns.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Ghosh block, with the activity rows of ``gaa`` and commodity columns of ``bs``.
+    """
+    return build_sut_gac_from_gaa_bs(gaa, bs)
+
+
+def calc_gaa(bs, bu):
+    r"""Calculate the SUT Ghosh block ``gaa``.
+
+    .. math::
+
+        g_{aa} = (I-b_s b_u)^{-1}
+
+    Parameters
+    ----------
+    bs : pandas.DataFrame
+        Supply direct-output coefficients, with activity rows and commodity
+        columns. Its rows and columns must match the columns and rows of
+        ``bu``, respectively, including order.
+    bu : pandas.DataFrame
+        Use direct-output coefficients, with commodity rows and activity columns.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Ghosh block, with activity nodes on both axes.
+
+    Notes
+    -----
+    The inverse falls back to the Moore-Penrose pseudo-inverse if the
+    system matrix is singular.
+    """
+    return build_sut_gaa_from_bs_bu(bs, bu)
+
+
+def calc_pa(va, vc, waa, wca):
+    r"""Calculate the SUT activity price index ``pa``.
+
+    .. math::
+
+        p_a = w_{aa}^{\mathsf{T}}v_a^{\mathsf{T}}\mathbf{1} + w_{ca}^{\mathsf{T}}v_c^{\mathsf{T}}\mathbf{1}
+
+    Parameters
+    ----------
+    va : pandas.DataFrame
+        Direct value-added coefficients, with factor rows and activity columns.
+        The columns must match the row index of ``waa``.
+    vc : pandas.DataFrame
+        Direct value-added coefficients, with factor rows and commodity columns.
+        The columns must match the row index of ``wca``.
+    waa : pandas.DataFrame
+        Leontief block with activity rows and activity columns.
+    wca : pandas.DataFrame
+        Leontief block with commodity rows and activity columns, matching
+        the columns of ``waa``.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Price index, indexed by activity nodes, with one column named
+        ``price index``.
+
+    Notes
+    -----
+    All value-added factor rows are summed before applying the transposed
+    Leontief blocks. Both activity and commodity direct contributions
+    are included.
+    """
+    return build_sut_pa_from_va(va, vc, waa, wca)
+
+
+def calc_pc(va, vc, wac, wcc):
+    r"""Calculate the SUT commodity price index ``pc``.
+
+    .. math::
+
+        p_c = w_{ac}^{\mathsf{T}}v_a^{\mathsf{T}}\mathbf{1} + w_{cc}^{\mathsf{T}}v_c^{\mathsf{T}}\mathbf{1}
+
+    Parameters
+    ----------
+    va : pandas.DataFrame
+        Direct value-added coefficients, with factor rows and activity columns.
+        The columns must match the row index of ``wac``.
+    vc : pandas.DataFrame
+        Direct value-added coefficients, with factor rows and commodity columns.
+        The columns must match the row index of ``wcc``.
+    wac : pandas.DataFrame
+        Leontief block with activity rows and commodity columns.
+    wcc : pandas.DataFrame
+        Leontief block with commodity rows and commodity columns, matching
+        the columns of ``wac``.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Price index, indexed by commodity nodes, with one column named
+        ``price index``.
+
+    Notes
+    -----
+    All value-added factor rows are summed before applying the transposed
+    Leontief blocks. Both activity and commodity direct contributions
+    are included.
+    """
+    return build_sut_pc_from_vc(va, vc, wac, wcc)
+
 
 
 def X_inverse(X):

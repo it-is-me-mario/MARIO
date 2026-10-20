@@ -1,8 +1,9 @@
 Resolvable Matrices and Blocks
 ==============================
 
-Not every computed result in MARIO has a dedicated Python method. Many are
-exposed as named blocks that you access through the generic compute API:
+The database compute API resolves named blocks and their dependencies for a
+scenario. Standalone ``calc_*`` functions are listed in
+:doc:`api_calculation_methods`. To request blocks from a database:
 
 .. code-block:: python
 
@@ -102,3 +103,34 @@ mode and default axes.
 
 .. raw:: html
    :file: ../get_started/_generated/matrices_table.html
+
+
+Detailed block reference
+------------------------
+
+These pages describe database access to the native SUT blocks and link to
+the corresponding standalone ``calc_*`` functions.
+
+.. toctree::
+   :hidden:
+   :maxdepth: 1
+
+   ../api_document/mario.CoreModel.lower_u
+   ../api_document/mario.CoreModel.U
+   ../api_document/mario.CoreModel.lower_s
+   ../api_document/mario.CoreModel.S
+   ../api_document/mario.CoreModel.c
+   ../api_document/mario.CoreModel.Xa
+   ../api_document/mario.CoreModel.Xc
+   ../api_document/mario.CoreModel.wcc
+   ../api_document/mario.CoreModel.wca
+   ../api_document/mario.CoreModel.wac
+   ../api_document/mario.CoreModel.waa
+   ../api_document/mario.CoreModel.bu
+   ../api_document/mario.CoreModel.bs
+   ../api_document/mario.CoreModel.gcc
+   ../api_document/mario.CoreModel.gca
+   ../api_document/mario.CoreModel.gac
+   ../api_document/mario.CoreModel.gaa
+   ../api_document/mario.CoreModel.pa
+   ../api_document/mario.CoreModel.pc
