@@ -1,8 +1,9 @@
 API reference
 =============
 
-Every public method, with its signature, parameters and docstring. Filter
-the table by name or category, or open a category from the sidebar.
+Public methods and standalone functions include their signatures and parameters.
+Named calculation blocks include their inputs, formulas and returned axes.
+Filter the table by name or category, or open a category from the sidebar.
 
 .. mario-api-index::
 

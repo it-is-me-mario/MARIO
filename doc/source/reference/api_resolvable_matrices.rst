@@ -23,6 +23,32 @@ For SUT databases, the built-in split and quadrant blocks include ``U``, ``u``,
 ``pc``. The canonical commodity production vector name is ``Xc``; ``Cx`` is
 not a built-in MARIO matrix name.
 
+Use and supply coefficients
+---------------------------
+
+The native use and supply calculations have dedicated block pages:
+
+* :doc:`db.u — use coefficients <../api_document/mario.CoreModel.lower_u>`
+* :doc:`db.U — use flows <../api_document/mario.CoreModel.U>`
+* :doc:`db.s — supply coefficients <../api_document/mario.CoreModel.lower_s>`
+* :doc:`db.S — supply flows <../api_document/mario.CoreModel.S>`
+* :doc:`db.c — product mix <../api_document/mario.CoreModel.c>`
+
+In particular, ``u`` divides each use-flow column by activity production.
+``s`` follows the database technology assumption:
+
+.. math::
+
+   u=U\operatorname{diag}(X_a)^{-1},\qquad
+   s=\begin{cases}
+   S\operatorname{diag}(X_c)^{-1} & \text{IT},\\
+   \left(S^{\mathsf{T}}\operatorname{diag}(X_a)^{-1}\right)^{-1} & \text{PT}.
+   \end{cases}
+
+The :doc:`native SUT calculation reference <api_calculation_methods>` also
+links production vectors, Leontief/Ghosh quadrants, direct-output coefficients
+and price vectors.
+
 Core equations
 --------------
 
