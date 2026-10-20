@@ -3,6 +3,7 @@ BONSAI Balanced HSUT
 
 .. image:: /_static/images/logos/bonsai.webp
    :alt: BONSAI project logo
+   :class: mario-source-logo
    :width: 180px
    :target: https://bonsai.uno/
 
