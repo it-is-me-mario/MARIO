@@ -113,6 +113,24 @@ def _solve_sut_system(
     if isinstance(rhs, pd.DataFrame) and rhs.shape[1] == 0:
         return pd.DataFrame(index=product.index, columns=rhs.columns, dtype=float)
     options = effective_compute_options(context)
+    if options.linear_solver == "umfpack":
+        from mario.compute.linear_solvers import solve_umfpack_system
+
+        choose_linear_strategy(
+            size=product.shape[0],
+            rhs_count=1 if isinstance(rhs, pd.Series) else rhs.shape[1],
+            context=context,
+        )
+        solver_cache_key = (
+            ("sut", id(product)) if cache_key is None else tuple(cache_key)
+        ) + (bool(transpose), "umfpack")
+        return solve_umfpack_system(
+            product,
+            rhs,
+            transpose=transpose,
+            cache=_resolver_linear_cache(resolver),
+            cache_key=solver_cache_key,
+        )
     if options.linear_solver == "scipy":
         from scipy import sparse
         from scipy.sparse.linalg import LinearOperator, factorized, lgmres, lsmr

@@ -247,6 +247,13 @@ def choose_linear_strategy(
       iterative solves are likely cheaper than one sparse direct factorization.
     """
     options = effective_compute_options(context)
+    if options.linear_solver == "umfpack":
+        if options.linear_strategy == "iterative":
+            raise WrongInput(
+                "UMFPACK is a direct solver and does not support linear_strategy='iterative'. "
+                "Use mario.set_linear_strategy('direct') or 'auto', or select linear_solver='scipy'."
+            )
+        return "direct"
     if options.linear_strategy == "direct":
         return "direct"
     if options.linear_strategy == "iterative":

@@ -84,6 +84,21 @@ See :doc:`mario.set_compute_method <../api_document/mario.set_compute_method>`,
 :doc:`mario.set_linear_solver <../api_document/mario.set_linear_solver>` and
 :doc:`mario.set_linear_strategy <../api_document/mario.set_linear_strategy>`.
 
+The optional UMFPACK backend uses sparse direct LU for solve-based IOT and SUT
+targets. Install ``scikit-umfpack`` and its SuiteSparse libraries, then select:
+
+.. code-block:: python
+
+   mario.set_compute_method("solve")
+   mario.set_linear_solver("umfpack")
+   mario.set_linear_strategy("direct")
+
+``auto`` is also supported as the linear strategy and selects direct solves
+for UMFPACK. The ``iterative`` strategy requires the SciPy backend. Selecting
+UMFPACK does not change matrices that are already materialized. It preserves
+float64 precision and raises an error for failed solves instead of applying a
+pseudo-inverse or least-squares fallback.
+
 
 Resolvable Database Blocks
 --------------------------

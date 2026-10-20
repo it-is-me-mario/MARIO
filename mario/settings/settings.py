@@ -107,7 +107,7 @@ DEFAULT_COMPUTE = {
 }
 
 COMPUTE_METHODS = {"auto", "inverse", "solve"}
-LINEAR_SOLVERS = {"scipy"}
+LINEAR_SOLVERS = {"scipy", "umfpack"}
 LINEAR_STRATEGIES = {"auto", "direct", "iterative"}
 
 
@@ -654,20 +654,39 @@ def set_linear_solver(solver: str):
     Parameters
     ----------
     solver:
-        Linear solver backend name. The currently supported value is
-        ``"scipy"``.
+        Linear solver backend name: ``"scipy"`` (the default) or
+        ``"umfpack"``. UMFPACK requires the optional ``scikit-umfpack``
+        package and its native SuiteSparse libraries.
 
     Notes
     -----
     This setting only affects solve-based IOT/SUT formulas. It has no effect
     on the explicit-inverse path used to build the ``w``/``wcc``/``waa``
     Leontief inverse matrices directly.
+
+    UMFPACK performs sparse direct LU solves with float64 precision and reuses
+    factors within a resolution request. Set the linear strategy to ``"direct"``
+    or ``"auto"``; ``"iterative"`` is incompatible with this backend. Numerical
+    failures raise an error without a pseudo-inverse or least-squares fallback.
+    Install with ``conda install -c conda-forge scikit-umfpack``. With SuiteSparse
+    already installed, ``pip install mariopy[umfpack]`` is also supported.
+
+    Examples
+    --------
+    >>> mario.set_compute_method("solve")
+    >>> mario.set_linear_solver("umfpack")
+    >>> mario.set_linear_strategy("direct")
     """
     from mario.compute.runtime import normalize_linear_solver
 
+    normalized = normalize_linear_solver(solver)
+    if normalized == "umfpack":
+        from mario.compute.linear_solvers import load_umfpack
+
+        load_umfpack()
     settings = download_settings(None)
     settings.setdefault("compute", {})
-    settings["compute"]["linear_solver"] = normalize_linear_solver(solver)
+    settings["compute"]["linear_solver"] = normalized
     upload_settings(settings)
 
 

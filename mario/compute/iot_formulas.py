@@ -62,6 +62,21 @@ def _solve_iot_system(
     if isinstance(rhs, pd.DataFrame) and rhs.shape[1] == 0:
         return pd.DataFrame(index=z.index, columns=rhs.columns, dtype=float)
     options = effective_compute_options(context)
+    if options.linear_solver == "umfpack":
+        from mario.compute.linear_solvers import solve_umfpack_system
+
+        choose_linear_strategy(
+            size=z.shape[0],
+            rhs_count=1 if isinstance(rhs, pd.Series) else rhs.shape[1],
+            context=context,
+        )
+        return solve_umfpack_system(
+            z,
+            rhs,
+            transpose=transpose,
+            cache=_resolver_linear_cache(resolver),
+            cache_key=("iot", id(z), bool(transpose), "umfpack"),
+        )
     if options.linear_solver == "scipy":
         from scipy import sparse
         from scipy.sparse.linalg import LinearOperator, factorized, lgmres, lsmr

@@ -84,6 +84,9 @@ setup(
         "entsoe-py == 0.8.0",
     ],
     extras_require={
+        "umfpack": [
+            "scikit-umfpack>=0.4.2",
+        ],
         "dataset": [
             "scipy",
             "h5py",
