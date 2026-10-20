@@ -4952,7 +4952,9 @@ class Database(CoreModel):
             Optional experimental IOT model settings. ``accounting='inherit'``
             preserves supplied accounting discrepancies by fixed output shares;
             optional convex losses, prior coverage, LP feasibility and numerical
-            scaling are configured independently. None retains the packaged model.
+            scaling are configured independently. ``defer_satellite_recalculation``
+            skips E conservation in sequential acceptance and marks E pending.
+            None retains the packaged model.
 
         Notes
         -----

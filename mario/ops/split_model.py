@@ -19,7 +19,8 @@ from mario.log_exc.exceptions import WrongInput
 
 DEFAULTS = dict(accounting='strict', value_added_loss='legacy', flow_loss='kl', final_demand_weight=0.,
                 supply_weight=0., complete_intermediate_priors=False,
-                check_feasibility=False, feasibility_solver='HIGHS', scale=1.,compact_constraints=False)
+                check_feasibility=False, feasibility_solver='HIGHS', scale=1.,compact_constraints=False,
+                defer_satellite_recalculation=False)
 FLOW_TABLES = {'Z0','V0','X','Trade','Zold','Yold','Vold','Z_refine',
                'RowResidual','ColumnResidual','Y0','Z_use0','Z_supply0'}
 
@@ -42,7 +43,8 @@ def normalize_options(options):
         value = result[key]
         if isinstance(value, bool) or not isinstance(value, (int,float)) or not np.isfinite(value) or value < 0 or (key=='scale' and value==0):
             raise WrongInput(f'{key} must be finite and {"positive" if key=="scale" else "nonnegative"}.')
-    for key in ('complete_intermediate_priors','check_feasibility','compact_constraints'):
+    for key in ('complete_intermediate_priors','check_feasibility','compact_constraints',
+                'defer_satellite_recalculation'):
         if not isinstance(result[key], bool):
             raise WrongInput(f'{key} must be boolean.')
     if not isinstance(result['feasibility_solver'],str) or not result['feasibility_solver']:

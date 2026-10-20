@@ -204,7 +204,12 @@ def _collapse(frame, parents):
 
 def verify_preservation(before, after, parents, *, scenario="baseline", split_model_options=None):
     report = {}
+    defer_e = bool((split_model_options or {}).get('defer_satellite_recalculation'))
     for name in ("Z", "Y", "V", "E", "X", "EY", "VY"):
+        if name == 'E' and defer_e:
+            report[name] = {'passed':None,'enforced':False,'status':'deferred',
+                            'requires_recalculation':True}
+            continue
         expected = before.resolve(name, scenario=scenario)
         actual = _collapse(after.resolve(name, scenario="baseline"), parents)
         if set(actual.index) != set(expected.index) or set(actual.columns) != set(expected.columns):
@@ -438,7 +443,8 @@ def run_intermediate_steps(instance, *, io, scenario, inplace, split, save_inter
     state = getattr(instance, "_intermediate_steps_state", {})
     completed = state.get("completed_sectors", [])
     model_options = options.get('split_model_options')
-    if completed and state.get('split_model_options') != model_options:
+    from mario.ops.split_model import normalize_options
+    if completed and normalize_options(state.get('split_model_options')) != model_options:
         raise WrongInput('Split model options changed; restart before the completed steps.')
     plan, parents = validate_plan(workbook, target.get_index("Sector"), completed=completed)
     if stop_after_step is not None and stop_after_step not in [name for name, _ in plan]:
@@ -494,6 +500,7 @@ def run_intermediate_steps(instance, *, io, scenario, inplace, split, save_inter
                      "runtime": {p: version(p) for p in ("mariopy", "cvxlab", "pandas", "cvxpy")},
                      "solver_status": getattr(candidate, "_last_split_status", []),
                      "split_model_options": model_options,
+                     "pending_recalculations": ['E'] if preservation['E'].get('requires_recalculation') else [],
                      "tolerances": {"absolute": ATOL, "relative": RTOL},
                      "files": {str(p.relative_to(staging)): _digest(p)
                                for p in (staging / "database").rglob("*") if p.is_file()}}

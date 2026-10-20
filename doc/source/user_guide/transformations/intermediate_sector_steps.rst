@@ -63,7 +63,7 @@ Resolved nonnegative sector coefficients and the standard three-level IOT axes
 are required for these deferred refinements. An aggregate inventory observation
 does not identify shares within the group it denotes.
 
-Each solved result is reaggregated to the preceding classification and checked
+By default, each solved result is reaggregated to the preceding classification and checked
 for Z, Y, V, E, X, EY and VY, with elementwise allowance
 ``1e-6 + 1e-8 * abs(reference)`` in each matrix's units. Supplied baseline
 accounting residuals are preserved; they are not repaired. Order can affect the
@@ -162,6 +162,14 @@ this warning must be considered when assessing optimality.
 
 Checkpoint state retains the normalized options. Changing them after completed
 groups requires an earlier starting point and a fresh checkpoint directory.
+
+If satellite accounts will be rebuilt after the monetary split, set
+``defer_satellite_recalculation=True``. Sequential acceptance then omits E
+conservation; Z, Y, V, X, EY, VY and the accounting/sign checks remain enforced.
+E is kept as provisional data in the checkpoint. Its preservation record has
+``status="deferred"``, ``passed=None`` and ``requires_recalculation=True``;
+``state.json`` lists ``pending_recalculations=["E"]``. This does not reconcile
+or certify E. The default is False, retaining the strict E check.
 
 Checkpoint and resume
 ---------------------

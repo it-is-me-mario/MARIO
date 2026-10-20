@@ -169,6 +169,26 @@ def test_preservation_rejects_an_altered_previous_result():
         verify_preservation(db, changed, {})
 
 
+def test_deferred_E_is_explicit_and_does_not_disable_monetary_preservation():
+    from mario.ops.split_model import normalize_options
+    db = balanced_database()
+    changed = db.copy()
+    e = changed.E.copy()
+    e.iloc[0,0] += 100.
+    changed.update_scenarios('baseline',E=e)
+    with pytest.raises(WrongInput,match='preserve preceding E'):
+        verify_preservation(db,changed,{})
+    options = normalize_options({'defer_satellite_recalculation':True})
+    report = verify_preservation(db,changed,{},split_model_options=options)
+    assert report['E'] == {'passed':None,'enforced':False,'status':'deferred','requires_recalculation':True}
+    assert all(record['passed'] for name,record in report.items() if name!='E')
+    v = changed.V.copy()
+    v.iloc[0,0] += 1.
+    changed.update_scenarios('baseline',V=v)
+    with pytest.raises(WrongInput,match='preserve preceding V'):
+        verify_preservation(db,changed,{},split_model_options=options)
+
+
 @pytest.mark.parametrize('negative_inventory', [False, True])
 def test_grouped_split_inplace_false_preserves_the_original(tmp_path, negative_inventory):
     db = balanced_database()
@@ -193,7 +213,8 @@ def test_grouped_split_inplace_false_preserves_the_original(tmp_path, negative_i
 
 @pytest.mark.parametrize('compact',[False,True])
 @pytest.mark.parametrize('loss',['kl','quadratic'])
-def test_inherited_accounting_signed_priors_and_scaling_across_two_steps(tmp_path,compact,loss):
+@pytest.mark.parametrize('defer_e',[False,True])
+def test_inherited_accounting_signed_priors_and_scaling_across_two_steps(tmp_path,compact,loss,defer_e):
     """Preserve a nonclosed baseline, signed taxes and stocks without new error."""
     db = balanced_database()
     supplied_output = db.X.copy()
@@ -218,11 +239,16 @@ def test_inherited_accounting_signed_priors_and_scaling_across_two_steps(tmp_pat
             # remains in the baseline and is allocated explicitly by the model.
             frame.loc[frame['Item type'].eq('Factor of production'),'Quantity'] -= .25/84.
             frame.loc[len(frame)] = [coefficient,'M USD','Tax','Factor of production','Tax',None,'Update']
+            if defer_e:
+                # Deliberately inconsistent satellites must not block the
+                # monetary split when they will be rebuilt afterwards.
+                frame.loc[len(frame)] = [1.,'tonne','CO2','Satellite account','CO2',None,'Update']
     with pd.ExcelWriter(source,engine='openpyxl') as writer:
         for name,frame in frames.items():
             frame.to_excel(writer,sheet_name=name,index=False)
     options = dict(accounting='inherit',value_added_loss='signed_kl',final_demand_weight=.1,
-                   complete_intermediate_priors=True,check_feasibility=True,scale=10.,compact_constraints=compact)
+                   complete_intermediate_priors=True,check_feasibility=True,scale=10.,compact_constraints=compact,
+                   defer_satellite_recalculation=defer_e)
     if loss=='quadratic':
         options.update(value_added_loss='quadratic',flow_loss='quadratic')
     with pytest.raises(WrongInput,match='feasibility check returned infeasible'):
@@ -235,12 +261,21 @@ def test_inherited_accounting_signed_priors_and_scaling_across_two_steps(tmp_pat
                                     'static_regularization_constant':1e-11,
                                     'dynamic_regularization_delta':2e-9,'max_iter':600})
     partial = db.add_sectors(source,stop_after_step='Mine first',**solve)
+    if not defer_e and loss=='quadratic' and compact:
+        # A strict checkpoint written before the new option has the same
+        # meaning as its current default False and remains resumable.
+        path = tmp_path/'checkpoints/001_Mine_first/state.json'
+        old_state = json.loads(path.read_text())
+        old_state['split_model_options'].pop('defer_satellite_recalculation')
+        old_state.pop('pending_recalculations')
+        path.write_text(json.dumps(old_state))
     reloaded = load_checkpoint(tmp_path/'checkpoints/001_Mine_first')
     pd.testing.assert_frame_equal(reloaded.X,partial.X)
     result = reloaded.add_sectors(source,**solve)
     normalized = result._intermediate_steps_state['split_model_options']
     report = verify_preservation(db,result,{'Mining':'Parent','Refining':'Parent'},split_model_options=normalized)
-    assert all(record['passed'] for record in report.values())
+    assert all(record['passed'] for name,record in report.items() if name!='E' or not defer_e)
+    assert report['E']['passed'] is (None if defer_e else True)
     assert report['new_sector_column_accounting']['max_absolute_inherited_residual']>0
     assert report['inherited_row_accounting']['max_absolute_inherited_residual']>0
     assert float(db.V.loc['Tax',('R1','Sector','Parent')])==-2.
@@ -249,5 +284,6 @@ def test_inherited_accounting_signed_priors_and_scaling_across_two_steps(tmp_pat
         assert float(result.Y.loc[('R1','Sector',sector)].iloc[0])<=1e-6
     restored = load_checkpoint(tmp_path/'checkpoints/002_Refine_second')
     pd.testing.assert_frame_equal(restored.X,result.X)
+    assert restored._intermediate_steps_state['pending_recalculations'] == (['E'] if defer_e else [])
     with pytest.raises(WrongInput,match='options changed'):
         restored.add_sectors(source,split=True,intermediate_steps=True,save_intermediates=tmp_path/'forbidden')
