@@ -599,6 +599,11 @@
       .trim();
   }
 
+  function requestedMatrixBlock(text) {
+    const match = String(text || "").trim().match(/^(?:db\.)?resolve\(\s*(["'])([A-Za-z]\w*)\1\s*\)$/);
+    return match ? `db.${match[2]}` : null;
+  }
+
   function initPalette() {
     const dialog = document.querySelector("[data-palette]");
     if (!dialog || typeof dialog.showModal !== "function") {
@@ -620,20 +625,31 @@
       if (entries) {
         return Promise.resolve(entries);
       }
-      return fetch(`${contentRoot}_static/mario-nav.json`)
+      return fetch(`${contentRoot}_static/mario-nav.json`, { cache: "no-cache" })
         .then((response) => (response.ok ? response.json() : []))
         .catch(() => [])
         .then((data) => {
-          entries = data.map((entry) => ({ ...entry, n: normalise(entry.t), ns: normalise(entry.s) }));
+          entries = data.map((entry) => ({
+            ...entry,
+            n: normalise(entry.t),
+            ns: normalise(entry.s),
+            na: normalise((entry.a || []).join(" ")),
+          }));
           return entries;
         });
     };
 
-    const score = (entry, terms, phrase) => {
+    const score = (entry, terms, phrase, query) => {
+      if ((entry.a || []).includes(query)) {
+        return 120;
+      }
+      if ((entry.a || []).some((alias) => normalise(alias) === phrase)) {
+        return 100;
+      }
       let total = 0;
       for (const term of terms) {
         // Tolerate word endings: "aggregate" also finds "aggregation".
-        const stem = term.length > 5 ? term.slice(0, -2) : term;
+        const stem = term.length > 5 && !/[._]/.test(term) ? term.slice(0, -2) : term;
         let inTitle = entry.n.indexOf(term);
         let weight = 1;
         if (inTitle < 0 && stem !== term) {
@@ -645,6 +661,8 @@
         } else if (inTitle > 0) {
           const before = entry.n[inTitle - 1];
           total += (before === " " || before === "." || before === "_" ? 8 : 4) * weight;
+        } else if (entry.na.includes(term)) {
+          total += 6;
         } else if (entry.ns.includes(term) || entry.ns.includes(stem)) {
           total += 1;
         } else {
@@ -698,6 +716,7 @@
     const update = () => {
       const phrase = normalise(input.value);
       const terms = phrase.split(" ").filter(Boolean);
+      const block = requestedMatrixBlock(input.value);
       selected = 0;
       if (!terms.length || !entries) {
         results = [];
@@ -705,7 +724,7 @@
         return;
       }
       results = entries
-        .map((entry) => ({ entry, value: score(entry, terms, phrase) }))
+        .map((entry) => ({ entry, value: block ? (entry.b === block ? 100 : 0) : score(entry, terms, phrase, input.value.trim()) }))
         .filter((item) => item.value > 0)
         .sort((a, b) => b.value - a.value)
         .slice(0, 12)
@@ -780,11 +799,13 @@
 
       const apply = () => {
         const terms = normalise(input.value).split(" ").filter(Boolean);
+        const block = requestedMatrixBlock(input.value);
         let visible = 0;
         rows.forEach((row) => {
           const haystack = row.dataset.search || "";
           const match =
-            (!category || row.dataset.category === category) && terms.every((term) => haystack.includes(term));
+            (!category || row.dataset.category === category) &&
+            (block ? row.dataset.apiName === block : terms.every((term) => haystack.includes(term)));
           row.hidden = !match;
           visible += match ? 1 : 0;
         });
@@ -800,6 +821,11 @@
         })
       );
       input.addEventListener("input", apply);
+      const query = new URLSearchParams(window.location.search).get("q");
+      if (query !== null) {
+        input.value = query;
+      }
+      apply();
     });
   }
 
