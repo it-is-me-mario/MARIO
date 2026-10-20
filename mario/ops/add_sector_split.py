@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Mapping
 import copy
 import warnings
@@ -285,6 +286,19 @@ def build_split_flow_scenario(
         parent_rows = _row_positions(X.index, all_regions, parent_sector)
         production = X.iloc[:, production_col].to_numpy(dtype=float, copy=True)
         X.iloc[parent_rows, production_col] = production[parent_rows] - production[child_rows]
+
+    # A fully allocated family can leave a negative residual of a few ulps
+    # after sibling subtraction / workbook serialization. Only remove errors
+    # within the floating-point subtraction bound; real budget excesses still
+    # fail below, and the child output observations remain untouched.
+    sibling_counts = Counter(sector_to_parent_map[s] for s in getattr(instance, "to_split_sectors", []))
+    for parent_sector, count in sibling_counts.items():
+        rows = _row_positions(X.index, all_regions, parent_sector)
+        residual = X.iloc[rows, production_col].to_numpy(dtype=float)
+        original = old_X.iloc[rows, production_col].to_numpy(dtype=float)
+        roundoff = (count + 1) * np.finfo(float).eps * (abs(original) + abs(original - residual))
+        tiny_negative = (residual < 0) & (residual >= -roundoff)
+        X.iloc[rows[tiny_negative], production_col] = 0.0
 
     negatives = X["production"] < 0
     if negatives.any():

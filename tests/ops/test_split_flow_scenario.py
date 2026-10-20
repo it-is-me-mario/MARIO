@@ -13,6 +13,7 @@ import pandas as pd
 import pytest
 
 from mario.compute.primitives import calc_E, calc_V, calc_Z
+from mario.log_exc.exceptions import WrongInput
 from mario.model.conventions import _ENUM, _MASTER_INDEX as MI
 from mario.ops.add_sector_specs import ADD_SECTOR_SPLIT_OUTPUT_COLUMNS, ADD_SECTOR_SPLIT_OUTPUT_SHEET
 from mario.ops.add_sector_split import build_split_flow_scenario
@@ -175,3 +176,25 @@ def test_cap_branch_is_exercised():
             parent = z.loc[:, (region, MI["s"], "a")] * X.loc[(region, MI["s"], "a"), "production"]
             overflow_hits += int((child > parent).any())
     assert overflow_hits > 0
+
+
+@pytest.mark.parametrize("scale", [1e-6, 1.0, 1e6])
+@pytest.mark.parametrize("excess", [0.0, 1e-9])
+def test_fully_allocated_parent_only_accepts_floating_point_roundoff(scale, excess):
+    instance = _build_instance(0, {"n1": "a", "n2": "a"})
+    for region in REGIONS:
+        instance.X.loc[(region, MI["s"], "a"), "production"] = 0.3 * scale
+    targets = instance.split_info[ADD_SECTOR_SPLIT_OUTPUT_SHEET]
+    targets.loc[targets.Sector.eq("n1"), "Quantity"] = 0.1 * scale
+    targets.loc[targets.Sector.eq("n2"), "Quantity"] = (0.2 + excess) * scale
+    if excess:
+        with pytest.raises(WrongInput, match="negative parent-sector outputs"):
+            build_split_flow_scenario(instance)
+        return
+    scenario = build_split_flow_scenario(instance)
+    output = instance.matrices[scenario][_ENUM["X"]]
+    for region in REGIONS:
+        assert output.at[(region, MI["s"], "a"), "production"] >= 0
+        assert output.at[(region, MI["s"], "n1"), "production"] == 0.1 * scale
+        assert output.at[(region, MI["s"], "n2"), "production"] == 0.2 * scale
+        assert output.loc[(region, MI["s"], ["a", "n1", "n2"]), "production"].sum() == pytest.approx(0.3 * scale, rel=4e-16, abs=0)
