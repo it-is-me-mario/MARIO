@@ -59,6 +59,8 @@ def _solve_iot_system(
     instead, which is the form needed by multipliers and prices.
     """
     validate_square(z)
+    if isinstance(rhs, pd.DataFrame) and rhs.shape[1] == 0:
+        return pd.DataFrame(index=z.index, columns=rhs.columns, dtype=float)
     options = effective_compute_options(context)
     if options.linear_solver == "scipy":
         from scipy import sparse

@@ -68,6 +68,7 @@ from mario.ops.aggregation_inputs import (
     normalize_aggregation_sheet,
     validate_region_aggregation,
 )
+from mario.ops.extensions import keep_extensions
 
 from mario.views import plots as plt
 
@@ -1065,6 +1066,46 @@ class Database(CoreModel):
 
         with pd.ExcelWriter(self._getdir(path, "Excels", "Extensions.xlsx")) as writer:
             extensions.to_excel(writer)
+
+    def keep_extensions(self, extensions, *, inplace=True):
+        """Keep only the selected satellite accounts in every scenario.
+
+        Parameters
+        ----------
+        extensions:
+            One Satellite account label or an iterable of labels to retain.
+            Labels must exist and must not be repeated. Their original database
+            order is preserved. An empty list removes all satellite accounts.
+        inplace:
+            When True, modify this database. When False, return an independent
+            copy with the selected accounts.
+
+        Returns
+        -------
+        Database | None
+            Filtered database when ``inplace=False``, otherwise None.
+
+        Notes
+        -----
+        Filters stored satellite flows, coefficients, multipliers and footprints,
+        including final-demand accounts, in all scenarios. Units, index mappings
+        and satellite clusters are updated. Sparse storage is preserved, and no
+        missing matrices are calculated. Cached custom operator results depending
+        on the affected blocks are discarded for on-demand recalculation.
+
+        This selects Satellite accounts, not Factors of production. Economic
+        nodes and the size of the linear system remain unchanged; selecting one
+        account reduces the number of right-hand sides needed for multipliers.
+        Import reports remain records of the original input data.
+
+        Examples
+        --------
+        Keep one account before computing multipliers::
+
+            db.keep_extensions(["CO2"])
+            co2_multipliers = db.f  # Use db.fc on a SUT.
+        """
+        return keep_extensions(self, extensions, inplace=inplace)
 
     def add_extensions(
         self,

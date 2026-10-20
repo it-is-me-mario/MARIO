@@ -110,6 +110,8 @@ def _solve_sut_system(
 ) -> pd.DataFrame | pd.Series:
     """Solve one SUT linear system without materializing the full inverse block."""
     validate_square(product)
+    if isinstance(rhs, pd.DataFrame) and rhs.shape[1] == 0:
+        return pd.DataFrame(index=product.index, columns=rhs.columns, dtype=float)
     options = effective_compute_options(context)
     if options.linear_solver == "scipy":
         from scipy import sparse
