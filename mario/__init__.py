@@ -48,6 +48,7 @@ import pandas as pd
 
 from mario.version import __version__
 from mario.api import Database, CoreModel
+from mario.ops.add_sector_steps import load_checkpoint as load_add_sectors_checkpoint
 from mario.compute.primitives import (
     calc_X,
     calc_Z,

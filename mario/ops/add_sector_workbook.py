@@ -79,6 +79,7 @@ class AddSectorWorkbook:
     uncertainty_values: dict[str, float]
     inventories_by_sheet: dict[str, pd.DataFrame]
     split_info: dict[str, pd.DataFrame] | None = None
+    intermediate_steps: dict[str, list[str]] | None = None
 
 
 def build_add_sector_master_sheet(
@@ -276,6 +277,7 @@ def write_add_sector_workbook(
     regions: list[str],
     item: str | None = None,
     redefine_uncertainties: bool = False,
+    intermediate_steps: bool = False,
 ) -> None:
     """Write an add-sectors workbook to disk.
 
@@ -287,6 +289,8 @@ def write_add_sector_workbook(
     """
 
     table = instance.table_type
+    if intermediate_steps and table != IOT:
+        raise WrongInput("Intermediate sector steps currently support IOT databases.")
     master = build_add_sector_master_sheet(table, new_items, regions, item=item)
     regions_clusters = build_regions_clusters_sheet(instance)
     items_clusters = build_items_clusters_sheet()
@@ -296,6 +300,10 @@ def write_add_sector_workbook(
     item_clusters_sheet = ADVANCED_ADD_SECTOR_ITEMS_CLUSTERS_SHEET[table]
 
     with pd.ExcelWriter(path, engine="openpyxl") as writer:
+        if intermediate_steps:
+            pd.DataFrame({"Step 1": pd.Series(new_items, dtype=object)}).to_excel(
+                writer, sheet_name="Intermediate steps", index=False
+            )
         master.to_excel(
             writer, sheet_name=ADVANCED_ADD_SECTOR_MASTER_SHEET, index=False
         )
@@ -498,7 +506,19 @@ def read_add_sector_workbook(
         uncertainty_values=uncertainty_values,
         inventories_by_sheet=inventories_by_sheet,
         split_info=split_info,
+        intermediate_steps=_parse_intermediate_steps(sheets.get("Intermediate steps")),
     )
+
+
+def _parse_intermediate_steps(frame):
+    if frame is None:
+        return None
+    result = {}
+    for name in frame.columns:
+        if not isinstance(name, str) or not name.strip() or name.strip() in result:
+            raise WrongExcelFormat("Intermediate step names must be non-empty and unique.")
+        result[name.strip()] = [str(v).strip() for v in frame[name].dropna() if str(v).strip()]
+    return result
 
 
 def _read_excel_workbook(path: str | Path) -> dict[str, pd.DataFrame]:
@@ -1106,6 +1126,8 @@ def _copy_add_sector_workbook(workbook: AddSectorWorkbook) -> AddSectorWorkbook:
             if workbook.split_info
             else None
         ),
+        intermediate_steps=({k: list(v) for k, v in workbook.intermediate_steps.items()}
+                            if workbook.intermediate_steps is not None else None),
     )
 
 
@@ -1471,6 +1493,9 @@ def merge_add_sector_workbooks(
         )
 
     _validate_distinct_master_targets(copied)
+    plans = [w.intermediate_steps for w in copied if w.intermediate_steps is not None]
+    if any(plan != plans[0] for plan in plans[1:]):
+        raise WrongInput("Directory inputs must supply one consistent global intermediate-steps plan.")
     _rename_conflicting_inventory_sheets(copied)
     _rename_conflicting_cluster_names(
         copied,
@@ -1501,6 +1526,7 @@ def merge_add_sector_workbooks(
             for sheet_name, frame in workbook.inventories_by_sheet.items()
         },
         split_info=_merge_split_info(copied),
+        intermediate_steps=plans[0] if plans else None,
     )
 
 
