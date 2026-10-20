@@ -1339,7 +1339,14 @@ class CoreModel:
         satellite_accounts=None,
         scenario: str = "baseline",
     ):
-        """Return exploded satellite footprints for IOT: ``diag(e) @ w``.
+        r"""Return exploded environmental multiplier contributions for IOT.
+
+        .. math::
+
+            f_{\mathrm{ex}} = \operatorname{diag}(e_k)\,w
+
+        The equation is for one selected satellite account ``k``.
+        Summing contributor rows for each account recovers that row of ``f``.
 
         Parameters
         ----------
@@ -1382,7 +1389,20 @@ class CoreModel:
         satellite_accounts=None,
         scenario: str = "baseline",
     ):
-        """Return activity-side exploded satellite footprints for SUT.
+        r"""Return activity-side exploded environmental multipliers for SUT.
+
+        .. math::
+
+            f_{a,\mathrm{ex}} =
+            \begin{bmatrix}
+              \operatorname{diag}(e_{a,k})w_{aa} \\
+              \operatorname{diag}(e_{c,k})w_{ca}
+            \end{bmatrix}
+
+        The equation is for one selected satellite account ``k``.
+        The two blocks are stacked on rows: activity contributors first,
+        then commodity contributors. Summing contributor rows for each
+        account recovers that row of ``fa``. Here :math:`w_{ca}=u\,w_{aa}`.
 
         Parameters
         ----------
@@ -1432,7 +1452,20 @@ class CoreModel:
         satellite_accounts=None,
         scenario: str = "baseline",
     ):
-        """Return commodity-side exploded satellite footprints for SUT.
+        r"""Return commodity-side exploded environmental multipliers for SUT.
+
+        .. math::
+
+            f_{c,\mathrm{ex}} =
+            \begin{bmatrix}
+              \operatorname{diag}(e_{a,k})s\,w_{cc} \\
+              \operatorname{diag}(e_{c,k})w_{cc}
+            \end{bmatrix}
+
+        The equation is for one selected satellite account ``k``.
+        The two blocks are stacked on rows: activity contributors first,
+        then commodity contributors. Summing contributor rows for each
+        account recovers that row of ``fc``.
 
         Parameters
         ----------
@@ -1483,7 +1516,14 @@ class CoreModel:
         factors=None,
         scenario: str = "baseline",
     ):
-        """Return exploded value-added multipliers for IOT: ``diag(v) @ w``.
+        r"""Return exploded value-added multipliers for IOT: ``diag(v) @ w``.
+
+        .. math::
+
+            m_{\mathrm{ex}} = \operatorname{diag}(v_h)\,w
+
+        The equation is for one selected factor of production ``h``.
+        Summing contributor rows for each factor recovers that row of ``m``.
 
         Parameters
         ----------
@@ -1526,7 +1566,20 @@ class CoreModel:
         factors=None,
         scenario: str = "baseline",
     ):
-        """Return activity-side exploded value-added multipliers for SUT.
+        r"""Return activity-side exploded value-added multipliers for SUT.
+
+        .. math::
+
+            m_{a,\mathrm{ex}} =
+            \begin{bmatrix}
+              \operatorname{diag}(v_{a,h})w_{aa} \\
+              \operatorname{diag}(v_{c,h})w_{ca}
+            \end{bmatrix}
+
+        The equation is for one selected factor of production ``h``.
+        The two blocks are stacked on rows: activity contributors first,
+        then commodity contributors. Summing contributor rows for each
+        factor recovers that row of ``ma``. Here :math:`w_{ca}=u\,w_{aa}`.
 
         Parameters
         ----------
@@ -1576,7 +1629,20 @@ class CoreModel:
         factors=None,
         scenario: str = "baseline",
     ):
-        """Return commodity-side exploded value-added multipliers for SUT.
+        r"""Return commodity-side exploded value-added multipliers for SUT.
+
+        .. math::
+
+            m_{c,\mathrm{ex}} =
+            \begin{bmatrix}
+              \operatorname{diag}(v_{a,h})s\,w_{cc} \\
+              \operatorname{diag}(v_{c,h})w_{cc}
+            \end{bmatrix}
+
+        The equation is for one selected factor of production ``h``.
+        The two blocks are stacked on rows: activity contributors first,
+        then commodity contributors. Summing contributor rows for each
+        factor recovers that row of ``mc``.
 
         Parameters
         ----------
@@ -1626,7 +1692,15 @@ class CoreModel:
         *,
         scenario: str = "baseline",
     ):
-        """Return exploded price-index contributions for IOT.
+        r"""Return exploded price-index contributions for IOT.
+
+        .. math::
+
+            p_{\mathrm{ex}} = \operatorname{diag}(v^{\mathsf{T}}\mathbf{1})\,w
+
+        Here each value-added coefficient vector is summed over factor
+        rows before diagonalization.
+        Column sums recover ``p``.
 
         This is the aggregated analogue of :meth:`m_ex`: it sums value-added
         rows first and then returns ``diag(v.sum(0)) @ w``.
@@ -1659,7 +1733,21 @@ class CoreModel:
         *,
         scenario: str = "baseline",
     ):
-        """Return activity-side exploded price-index contributions for SUT.
+        r"""Return activity-side exploded price-index contributions for SUT.
+
+        .. math::
+
+            p_{a,\mathrm{ex}} =
+            \begin{bmatrix}
+              \operatorname{diag}(v_a^{\mathsf{T}}\mathbf{1})w_{aa} \\
+              \operatorname{diag}(v_c^{\mathsf{T}}\mathbf{1})w_{ca}
+            \end{bmatrix}
+
+        Here each value-added coefficient vector is summed over factor
+        rows before diagonalization.
+        The two blocks are stacked on rows: activity contributors first,
+        then commodity contributors. Column sums recover ``pa``.
+        Here :math:`w_{ca}=u\,w_{aa}`.
 
         This is the aggregated analogue of :meth:`ma_ex`: it sums factor rows
         first and returns activity and commodity contributors stacked on the
@@ -1697,7 +1785,20 @@ class CoreModel:
         *,
         scenario: str = "baseline",
     ):
-        """Return commodity-side exploded price-index contributions for SUT.
+        r"""Return commodity-side exploded price-index contributions for SUT.
+
+        .. math::
+
+            p_{c,\mathrm{ex}} =
+            \begin{bmatrix}
+              \operatorname{diag}(v_a^{\mathsf{T}}\mathbf{1})s\,w_{cc} \\
+              \operatorname{diag}(v_c^{\mathsf{T}}\mathbf{1})w_{cc}
+            \end{bmatrix}
+
+        Here each value-added coefficient vector is summed over factor
+        rows before diagonalization.
+        The two blocks are stacked on rows: activity contributors first,
+        then commodity contributors. Column sums recover ``pc``.
 
         This is the aggregated analogue of :meth:`mc_ex`: it sums factor rows
         first and returns activity and commodity contributors stacked on the

@@ -3,8 +3,7 @@ mario.CoreModel.fc\_ex
 
 .. currentmodule:: mario
 
-.. math::
-
-	fc_{\mathrm{ex},k} = \operatorname{diag}(ea_k) (s w_{cc})
-
 .. automethod:: CoreModel.fc_ex
+
+The full baseline result is also available as the property
+:doc:`db.fc_ex_all <mario.CoreModel.fc_ex_all>`.

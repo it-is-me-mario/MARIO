@@ -96,7 +96,11 @@ def calc_all_shock(
 
 
 def calc_X(Z, Y):
-    """Calculate the ``X`` total production vector from ``Z`` and ``Y``.
+    r"""Calculate the ``X`` total production vector from ``Z`` and ``Y``.
+
+    .. math::
+
+        X = Z\mathbf{1} + Y\mathbf{1}
 
     Parameters
     ----------
@@ -110,12 +114,21 @@ def calc_X(Z, Y):
     pandas.DataFrame
         ``X`` total production vector, computed as row totals of ``Z`` plus
         row totals of ``Y``.
+
+    Notes
+    -----
+    ``Z.sum(axis=1) + Y.sum(axis=1)`` gives one value per production
+    node. The returned single column is named ``production``.
     """
     return build_iot_X_from_Z_Y(Z, Y)
 
 
 def calc_Z(z, X):
-    """Calculate the ``Z`` intersectoral transaction flows matrix.
+    r"""Calculate the ``Z`` intersectoral transaction flows matrix.
+
+    .. math::
+
+        Z = z\,\operatorname{diag}(X)
 
     Parameters
     ----------
@@ -135,7 +148,11 @@ def calc_Z(z, X):
 
 
 def calc_w(z):
-    """Calculate the ``w`` Leontief inverse matrix.
+    r"""Calculate the ``w`` Leontief inverse matrix.
+
+    .. math::
+
+        w = (I-z)^{-1}
 
     Parameters
     ----------
@@ -151,7 +168,11 @@ def calc_w(z):
 
 
 def calc_g(b):
-    """Calculate the ``g`` Ghosh coefficients matrix.
+    r"""Calculate the ``g`` Ghosh coefficients matrix.
+
+    .. math::
+
+        g = (I-b)^{-1}
 
     Parameters
     ----------
@@ -168,7 +189,11 @@ def calc_g(b):
 
 
 def calc_X_from_w(w, Y):
-    """Calculate the ``X`` total production vector from ``w`` and ``Y``.
+    r"""Calculate the ``X`` total production vector from ``w`` and ``Y``.
+
+    .. math::
+
+        X = w\,(Y\mathbf{1})
 
     Parameters
     ----------
@@ -182,6 +207,11 @@ def calc_X_from_w(w, Y):
     pandas.DataFrame
         ``X`` total production vector computed from ``w`` and total final
         demand from ``Y``.
+
+    Notes
+    -----
+    Final demand is summed across its columns before multiplication.
+    The returned single column is named ``production``.
     """
     return build_iot_X_from_w_Y(w, Y)
 
@@ -194,7 +224,11 @@ def calc_X_from_z(
     solver: str | None = None,
     strategy: str | None = None,
 ):
-    """Calculate the ``X`` total production vector directly from ``z`` and ``Y``.
+    r"""Calculate the ``X`` total production vector directly from ``z`` and ``Y``.
+
+    .. math::
+
+        (I-z)X = Y\mathbf{1}
 
     This is the direct path for ``X``. Under ``method="solve"``, MARIO solves
     the linear system ``(I - z) X = Y_total`` without materializing the
@@ -218,6 +252,11 @@ def calc_X_from_z(
     -------
     pandas.DataFrame
         ``X`` total production vector.
+
+    Notes
+    -----
+    The equivalent inverse expression is :math:`X=(I-z)^{-1}(Y\mathbf{1})`.
+    The returned single column is named ``production``.
     """
     return build_iot_X_from_z_Y(
         z,
@@ -231,7 +270,11 @@ def calc_X_from_z(
 
 
 def calc_E(e, X):
-    """Calculate the ``E`` environmental transaction flows matrix.
+    r"""Calculate the ``E`` environmental transaction flows matrix.
+
+    .. math::
+
+        E = e\,\operatorname{diag}(X)
 
     Parameters
     ----------
@@ -249,7 +292,11 @@ def calc_E(e, X):
 
 
 def calc_V(v, X):
-    """Calculate the ``V`` value added transaction flows matrix.
+    r"""Calculate the ``V`` value added transaction flows matrix.
+
+    .. math::
+
+        V = v\,\operatorname{diag}(X)
 
     Parameters
     ----------
@@ -267,17 +314,55 @@ def calc_V(v, X):
 
 
 def calc_Va(va, Xa):
-    """Calculate the ``Va`` activity-side value added transaction flows matrix."""
+    r"""Calculate the ``Va`` activity-side value added flows matrix.
+
+    .. math::
+
+        V_a = v_a\,\operatorname{diag}(X_a)
+
+    Parameters
+    ----------
+    va : pandas.DataFrame
+        Direct value added coefficients, with factors on rows and activity nodes on columns.
+    Xa : pandas.DataFrame
+        Activity production vector. Its index must match ``va.columns``.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Activity-side flows, with the same index and columns as ``va``.
+    """
     return build_sut_Va_from_va_Xa(va, Xa)
 
 
 def calc_Vc(vc, Xc):
-    """Calculate the ``Vc`` commodity-side value added transaction flows matrix."""
+    r"""Calculate the ``Vc`` commodity-side value added flows matrix.
+
+    .. math::
+
+        V_c = v_c\,\operatorname{diag}(X_c)
+
+    Parameters
+    ----------
+    vc : pandas.DataFrame
+        Direct value added coefficients, with factors on rows and commodity nodes on columns.
+    Xc : pandas.DataFrame
+        Commodity production vector. Its index must match ``vc.columns``.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Commodity-side flows, with the same index and columns as ``vc``.
+    """
     return build_sut_Vc_from_vc_Xc(vc, Xc)
 
 
 def calc_e(E, X):
-    """Calculate the ``e`` environmental transaction coefficients matrix.
+    r"""Calculate the ``e`` environmental transaction coefficients matrix.
+
+    .. math::
+
+        e = E\,\operatorname{diag}(X)^{-1}
 
     Parameters
     ----------
@@ -290,22 +375,65 @@ def calc_e(E, X):
     -------
     pandas.DataFrame
         ``e`` environmental transaction coefficients matrix.
+
+    Notes
+    -----
+    Inverse production is computed elementwise. A zero production
+    entry has inverse zero, so the corresponding column is set to zero.
     """
     return build_iot_e_from_E_X(E, X)
 
 
 def calc_Ea(ea, Xa):
-    """Calculate the ``Ea`` activity-side environmental transaction flows matrix."""
+    r"""Calculate the ``Ea`` activity-side environmental flows matrix.
+
+    .. math::
+
+        E_a = e_a\,\operatorname{diag}(X_a)
+
+    Parameters
+    ----------
+    ea : pandas.DataFrame
+        Direct environmental coefficients, with accounts on rows and activity nodes on columns.
+    Xa : pandas.DataFrame
+        Activity production vector. Its index must match ``ea.columns``.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Activity-side flows, with the same index and columns as ``ea``.
+    """
     return build_sut_Ea_from_ea_Xa(ea, Xa)
 
 
 def calc_Ec(ec, Xc):
-    """Calculate the ``Ec`` commodity-side environmental transaction flows matrix."""
+    r"""Calculate the ``Ec`` commodity-side environmental flows matrix.
+
+    .. math::
+
+        E_c = e_c\,\operatorname{diag}(X_c)
+
+    Parameters
+    ----------
+    ec : pandas.DataFrame
+        Direct environmental coefficients, with accounts on rows and commodity nodes on columns.
+    Xc : pandas.DataFrame
+        Commodity production vector. Its index must match ``ec.columns``.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Commodity-side flows, with the same index and columns as ``ec``.
+    """
     return build_sut_Ec_from_ec_Xc(ec, Xc)
 
 
 def calc_p(v, w):
-    """Calculate the ``p`` price index vector from ``v`` and ``w``.
+    r"""Calculate the ``p`` price index vector from ``v`` and ``w``.
+
+    .. math::
+
+        p = w^{\mathsf{T}}v^{\mathsf{T}}\mathbf{1}
 
     Parameters
     ----------
@@ -318,12 +446,22 @@ def calc_p(v, w):
     -------
     pandas.DataFrame
         ``p`` price index vector.
+
+    Notes
+    -----
+    Value added is summed over all factor rows before multiplying by
+    ``w.T``. The result has the production nodes on its index and one
+    column named ``price index``.
     """
     return build_iot_p_from_v_w(v, w)
 
 
 def calc_v(V, X):
-    """Calculate the ``v`` value added coefficients matrix.
+    r"""Calculate the ``v`` value added coefficients matrix.
+
+    .. math::
+
+        v = V\,\operatorname{diag}(X)^{-1}
 
     Parameters
     ----------
@@ -336,22 +474,71 @@ def calc_v(V, X):
     -------
     pandas.DataFrame
         ``v`` value added coefficients matrix.
+
+    Notes
+    -----
+    Inverse production is computed elementwise. A zero production
+    entry has inverse zero, so the corresponding column is set to zero.
     """
     return build_iot_v_from_V_X(V, X)
 
 
 def calc_va(Va, Xa):
-    """Calculate the ``va`` activity-side value added coefficients matrix."""
+    r"""Calculate the ``va`` activity-side value added coefficients matrix.
+
+    .. math::
+
+        v_a = V_a\,\operatorname{diag}(X_a)^{-1}
+
+    Inverse production is computed elementwise; zero production entries
+    have inverse zero and set the corresponding coefficient columns to zero.
+
+    Parameters
+    ----------
+    Va : pandas.DataFrame
+        Direct value added flows, with factors on rows and activity nodes on columns.
+    Xa : pandas.DataFrame
+        Activity production vector. Its index must match ``Va.columns``.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Activity-side coefficients, with the same index and columns as ``Va``.
+    """
     return build_sut_va_from_Va_Xa(Va, Xa)
 
 
 def calc_vc(Vc, Xc):
-    """Calculate the ``vc`` commodity-side value added coefficients matrix."""
+    r"""Calculate the ``vc`` commodity-side value added coefficients matrix.
+
+    .. math::
+
+        v_c = V_c\,\operatorname{diag}(X_c)^{-1}
+
+    Inverse production is computed elementwise; zero production entries
+    have inverse zero and set the corresponding coefficient columns to zero.
+
+    Parameters
+    ----------
+    Vc : pandas.DataFrame
+        Direct value added flows, with factors on rows and commodity nodes on columns.
+    Xc : pandas.DataFrame
+        Commodity production vector. Its index must match ``Vc.columns``.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Commodity-side coefficients, with the same index and columns as ``Vc``.
+    """
     return build_sut_vc_from_Vc_Xc(Vc, Xc)
 
 
 def calc_m(v, w):
-    """Calculate the ``m`` total (direct+indirect) value added coefficients matrix.
+    r"""Calculate the ``m`` total (direct+indirect) value added coefficients matrix.
+
+    .. math::
+
+        m = v\,w
 
     Parameters
     ----------
@@ -370,17 +557,77 @@ def calc_m(v, w):
 
 
 def calc_ma(va, waa, vc=None, u=None):
-    """Calculate the ``ma`` activity-side total value added coefficients matrix."""
+    r"""Calculate the ``ma`` activity-side total value added coefficients matrix.
+
+    .. math::
+
+        m_a = (v_a + v_c\,u)\,w_{aa}
+
+    When ``vc=None``, the commodity term is omitted and ``u`` is
+    not needed. Supplying ``vc`` without ``u`` raises ``ValueError``.
+
+    Parameters
+    ----------
+    va : pandas.DataFrame
+        Activity-side direct value added coefficients: factors by activity nodes.
+    waa : pandas.DataFrame
+        Activity-to-activity Leontief inverse. Its row axis must match
+        the columns of ``va``.
+    vc : pandas.DataFrame, optional
+        Commodity-side direct value added coefficients. Defaults to zero.
+        Its row axis must match ``va.index``.
+    u : pandas.DataFrame, optional
+        Use coefficients: commodity nodes by activity nodes. Required
+        when ``vc`` is supplied.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Total direct and indirect coefficients, with factors on rows
+        and activity nodes on columns.
+    """
     return build_sut_ma_from_va_waa(va, waa, vc=vc, u=u)
 
 
 def calc_mc(va, s, wcc, vc=None):
-    """Calculate the ``mc`` commodity-side total value added coefficients matrix."""
+    r"""Calculate the ``mc`` commodity-side total value added coefficients matrix.
+
+    .. math::
+
+        m_c = (v_a\,s + v_c)\,w_{cc}
+
+    When ``vc=None``, the commodity-side direct term is omitted.
+
+    Parameters
+    ----------
+    va : pandas.DataFrame
+        Activity-side direct value added coefficients: factors by activity nodes.
+    s : pandas.DataFrame
+        Supply coefficients: activity nodes by commodity nodes. Its
+        row axis must match the columns of ``va``.
+    wcc : pandas.DataFrame
+        Commodity-to-commodity Leontief inverse. Its row axis must
+        match ``s.columns``.
+    vc : pandas.DataFrame, optional
+        Commodity-side direct value added coefficients. Defaults to zero.
+        Its row axis must match ``va.index`` and its columns
+        must match ``s.columns``.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Total direct and indirect coefficients, with factors on rows
+        and commodity nodes on columns.
+    """
     return build_sut_mc_from_va_s_wcc(va, s, wcc, vc=vc)
 
 
 def calc_M(m, Y):
-    """Calculate the ``M`` total (direct+indirect) value added transaction matrix.
+    r"""Calculate the ``M`` total (direct+indirect) value added transaction matrix.
+
+    .. math::
+
+        M = m\,\operatorname{diag}(Y\mathbf{1})
 
     Parameters
     ----------
@@ -393,23 +640,84 @@ def calc_M(m, Y):
     -------
     pandas.DataFrame
         ``M`` total (direct+indirect) value added transaction matrix. Each
-        column is scaled by total final demand for that destination/use column.
+        column is scaled by final demand summed over categories for its
+        production node.
+
+    Notes
+    -----
+    Final demand is summed across its columns, then each column of
+    ``m`` is scaled by the corresponding total. The output keeps the
+    factors and production-node axes of ``m``; it does not keep the
+    final-demand category columns of ``Y``.
     """
     return build_iot_M_from_m_Y(m, Y)
 
 
 def calc_Ma(ma, s, Yc):
-    """Calculate the ``Ma`` activity-side total value added transaction matrix."""
+    r"""Calculate the ``Ma`` activity-side total value added flows matrix.
+
+    .. math::
+
+        M_a = m_a\,\operatorname{diag}\!\left(s\,(Y_c\mathbf{1})\right)
+
+    Final demand is summed across its columns and mapped to activities
+    through ``s`` before scaling the multiplier columns.
+    The output columns represent production nodes, rather than final-demand
+    categories.
+
+    Parameters
+    ----------
+    ma : pandas.DataFrame
+        Total value added coefficients: factors by activity nodes.
+    s : pandas.DataFrame
+        Supply coefficients: activity nodes by commodity nodes. Its
+        row axis must match the columns of ``ma``.
+    Yc : pandas.DataFrame
+        Commodity final demand: commodity nodes by final-demand
+        categories and regions.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Footprint flows with the same index and columns as ``ma``.
+    """
     return build_sut_Ma_from_ma_s_Yc(ma, s, Yc)
 
 
 def calc_Mc(mc, Yc):
-    """Calculate the ``Mc`` commodity-side total value added transaction matrix."""
+    r"""Calculate the ``Mc`` commodity-side total value added flows matrix.
+
+    .. math::
+
+        M_c = m_c\,\operatorname{diag}\!\left(Y_c\mathbf{1}\right)
+
+    Final demand is summed across its columns
+    before scaling the multiplier columns.
+    The output columns represent production nodes, rather than final-demand
+    categories.
+
+    Parameters
+    ----------
+    mc : pandas.DataFrame
+        Total value added coefficients: factors by commodity nodes.
+    Yc : pandas.DataFrame
+        Commodity final demand: commodity nodes by final-demand
+        categories and regions.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Footprint flows with the same index and columns as ``mc``.
+    """
     return build_sut_Mc_from_mc_Yc(mc, Yc)
 
 
 def calc_z(Z, X):
-    """Calculate the ``z`` intersectoral transaction coefficients matrix.
+    r"""Calculate the ``z`` intersectoral transaction coefficients matrix.
+
+    .. math::
+
+        z = Z\,\operatorname{diag}(X)^{-1}
 
     Parameters
     ----------
@@ -422,12 +730,21 @@ def calc_z(Z, X):
     -------
     pandas.DataFrame
         ``z`` intersectoral transaction coefficients matrix.
+
+    Notes
+    -----
+    Inverse production is computed elementwise. A zero production
+    entry has inverse zero, so the corresponding column is set to zero.
     """
     return build_iot_z_from_Z_X(Z, X)
 
 
 def calc_b(X, Z):
-    """Calculate the ``b`` intersectoral transaction direct-output coefficients matrix.
+    r"""Calculate the ``b`` intersectoral transaction direct-output coefficients matrix.
+
+    .. math::
+
+        b = \operatorname{diag}(X)^{-1}Z
 
     Parameters
     ----------
@@ -441,12 +758,21 @@ def calc_b(X, Z):
     pandas.DataFrame
         ``b`` intersectoral transaction direct-output coefficients matrix.
         Rows of ``Z`` are scaled by inverse production.
+
+    Notes
+    -----
+    Inverse production is computed elementwise. A zero production
+    entry has inverse zero, so the corresponding row is set to zero.
     """
     return build_iot_b_from_X_Z(X, Z)
 
 
 def calc_F(f, Y):
-    """Calculate the ``F`` total (direct+indirect) environmental transaction flows matrix.
+    r"""Calculate the ``F`` total (direct+indirect) environmental transaction flows matrix.
+
+    .. math::
+
+        F = f\,\operatorname{diag}(Y\mathbf{1})
 
     Parameters
     ----------
@@ -460,22 +786,82 @@ def calc_F(f, Y):
     -------
     pandas.DataFrame
         ``F`` total (direct+indirect) environmental transaction flows matrix.
+
+    Notes
+    -----
+    Final demand is summed across its columns, then each column of
+    ``f`` is scaled by the corresponding total. The output keeps the
+    accounts and production-node axes of ``f``; it does not keep the
+    final-demand category columns of ``Y``.
     """
     return build_iot_F_from_f_Y(f, Y)
 
 
 def calc_Fa(fa, s, Yc):
-    """Calculate the ``Fa`` activity-side total environmental transaction flows matrix."""
+    r"""Calculate the ``Fa`` activity-side total environmental flows matrix.
+
+    .. math::
+
+        F_a = f_a\,\operatorname{diag}\!\left(s\,(Y_c\mathbf{1})\right)
+
+    Final demand is summed across its columns and mapped to activities
+    through ``s`` before scaling the multiplier columns.
+    The output columns represent production nodes, rather than final-demand
+    categories.
+
+    Parameters
+    ----------
+    fa : pandas.DataFrame
+        Total environmental coefficients: accounts by activity nodes.
+    s : pandas.DataFrame
+        Supply coefficients: activity nodes by commodity nodes. Its
+        row axis must match the columns of ``fa``.
+    Yc : pandas.DataFrame
+        Commodity final demand: commodity nodes by final-demand
+        categories and regions.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Footprint flows with the same index and columns as ``fa``.
+    """
     return build_sut_Fa_from_fa_s_Yc(fa, s, Yc)
 
 
 def calc_Fc(fc, Yc):
-    """Calculate the ``Fc`` commodity-side total environmental transaction flows matrix."""
+    r"""Calculate the ``Fc`` commodity-side total environmental flows matrix.
+
+    .. math::
+
+        F_c = f_c\,\operatorname{diag}\!\left(Y_c\mathbf{1}\right)
+
+    Final demand is summed across its columns
+    before scaling the multiplier columns.
+    The output columns represent production nodes, rather than final-demand
+    categories.
+
+    Parameters
+    ----------
+    fc : pandas.DataFrame
+        Total environmental coefficients: accounts by commodity nodes.
+    Yc : pandas.DataFrame
+        Commodity final demand: commodity nodes by final-demand
+        categories and regions.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Footprint flows with the same index and columns as ``fc``.
+    """
     return build_sut_Fc_from_fc_Yc(fc, Yc)
 
 
 def calc_f(e, w):
-    """Calculate the ``f`` total (direct+indirect) environmental transaction coefficients matrix.
+    r"""Calculate the ``f`` total (direct+indirect) environmental transaction coefficients matrix.
+
+    .. math::
+
+        f = e\,w
 
     Parameters
     ----------
@@ -494,22 +880,118 @@ def calc_f(e, w):
 
 
 def calc_fa(ea, waa, ec=None, u=None):
-    """Calculate the ``fa`` activity-side total environmental coefficients matrix."""
+    r"""Calculate the ``fa`` activity-side total environmental coefficients matrix.
+
+    .. math::
+
+        f_a = (e_a + e_c\,u)\,w_{aa}
+
+    When ``ec=None``, the commodity term is omitted and ``u`` is
+    not needed. Supplying ``ec`` without ``u`` raises ``ValueError``.
+
+    Parameters
+    ----------
+    ea : pandas.DataFrame
+        Activity-side direct environmental coefficients: accounts by activity nodes.
+    waa : pandas.DataFrame
+        Activity-to-activity Leontief inverse. Its row axis must match
+        the columns of ``ea``.
+    ec : pandas.DataFrame, optional
+        Commodity-side direct environmental coefficients. Defaults to zero.
+        Its row axis must match ``ea.index``.
+    u : pandas.DataFrame, optional
+        Use coefficients: commodity nodes by activity nodes. Required
+        when ``ec`` is supplied.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Total direct and indirect coefficients, with accounts on rows
+        and activity nodes on columns.
+    """
     return build_sut_fa_from_ea_waa(ea, waa, ec=ec, u=u)
 
 
 def calc_fc(ea, s, wcc, ec=None):
-    """Calculate the ``fc`` commodity-side total environmental coefficients matrix."""
+    r"""Calculate the ``fc`` commodity-side total environmental coefficients matrix.
+
+    .. math::
+
+        f_c = (e_a\,s + e_c)\,w_{cc}
+
+    When ``ec=None``, the commodity-side direct term is omitted.
+
+    Parameters
+    ----------
+    ea : pandas.DataFrame
+        Activity-side direct environmental coefficients: accounts by activity nodes.
+    s : pandas.DataFrame
+        Supply coefficients: activity nodes by commodity nodes. Its
+        row axis must match the columns of ``ea``.
+    wcc : pandas.DataFrame
+        Commodity-to-commodity Leontief inverse. Its row axis must
+        match ``s.columns``.
+    ec : pandas.DataFrame, optional
+        Commodity-side direct environmental coefficients. Defaults to zero.
+        Its row axis must match ``ea.index`` and its columns
+        must match ``s.columns``.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Total direct and indirect coefficients, with accounts on rows
+        and commodity nodes on columns.
+    """
     return build_sut_fc_from_ea_s_wcc(ea, s, wcc, ec=ec)
 
 
 def calc_ea(Ea, Xa):
-    """Calculate the ``ea`` activity-side environmental coefficients matrix."""
+    r"""Calculate the ``ea`` activity-side environmental coefficients matrix.
+
+    .. math::
+
+        e_a = E_a\,\operatorname{diag}(X_a)^{-1}
+
+    Inverse production is computed elementwise; zero production entries
+    have inverse zero and set the corresponding coefficient columns to zero.
+
+    Parameters
+    ----------
+    Ea : pandas.DataFrame
+        Direct environmental flows, with accounts on rows and activity nodes on columns.
+    Xa : pandas.DataFrame
+        Activity production vector. Its index must match ``Ea.columns``.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Activity-side coefficients, with the same index and columns as ``Ea``.
+    """
     return build_sut_ea_from_Ea_Xa(Ea, Xa)
 
 
 def calc_ec(Ec, Xc):
-    """Calculate the ``ec`` commodity-side environmental coefficients matrix."""
+    r"""Calculate the ``ec`` commodity-side environmental coefficients matrix.
+
+    .. math::
+
+        e_c = E_c\,\operatorname{diag}(X_c)^{-1}
+
+    Inverse production is computed elementwise; zero production entries
+    have inverse zero and set the corresponding coefficient columns to zero.
+
+    Parameters
+    ----------
+    Ec : pandas.DataFrame
+        Direct environmental flows, with accounts on rows and commodity nodes on columns.
+    Xc : pandas.DataFrame
+        Commodity production vector. Its index must match ``Ec.columns``.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Commodity-side coefficients, with the same index and columns as ``Ec``.
+    """
     return build_sut_ec_from_Ec_Xc(Ec, Xc)
 
 
@@ -521,7 +1003,11 @@ def calc_f_from_z(
     solver: str | None = None,
     strategy: str | None = None,
 ):
-    """Calculate the ``f`` total (direct+indirect) environmental transaction coefficients matrix.
+    r"""Calculate the ``f`` total (direct+indirect) environmental transaction coefficients matrix.
+
+    .. math::
+
+        (I-z)^{\mathsf{T}}f^{\mathsf{T}} = e^{\mathsf{T}}
 
     This is the direct path for ``f``. Under ``method="solve"``, MARIO solves
     the transposed system without materializing the ``w`` Leontief inverse
@@ -546,6 +1032,11 @@ def calc_f_from_z(
     pandas.DataFrame
         ``f`` total (direct+indirect) environmental transaction coefficients
         matrix.
+
+    Notes
+    -----
+    The returned matrix is :math:`f=e(I-z)^{-1}`. The solve operates
+    on its transpose and returns the original account-by-node orientation.
     """
     return build_iot_f_from_e_z(
         e,
@@ -566,7 +1057,11 @@ def calc_m_from_z(
     solver: str | None = None,
     strategy: str | None = None,
 ):
-    """Calculate the ``m`` total (direct+indirect) value added coefficients matrix.
+    r"""Calculate the ``m`` total (direct+indirect) value added coefficients matrix.
+
+    .. math::
+
+        (I-z)^{\mathsf{T}}m^{\mathsf{T}} = v^{\mathsf{T}}
 
     This is the direct path for ``m``. Under ``method="solve"``, MARIO solves
     the transposed system without materializing the ``w`` Leontief inverse
@@ -590,6 +1085,11 @@ def calc_m_from_z(
     -------
     pandas.DataFrame
         ``m`` total (direct+indirect) value added coefficients matrix.
+
+    Notes
+    -----
+    The returned matrix is :math:`m=v(I-z)^{-1}`. The solve operates
+    on its transpose and returns the original factor-by-node orientation.
     """
     return build_iot_m_from_v_z(
         v,
@@ -610,7 +1110,11 @@ def calc_p_from_z(
     solver: str | None = None,
     strategy: str | None = None,
 ):
-    """Calculate the ``p`` price index vector directly from ``v`` and ``z``.
+    r"""Calculate the ``p`` price index vector directly from ``v`` and ``z``.
+
+    .. math::
+
+        (I-z)^{\mathsf{T}}p = v^{\mathsf{T}}\mathbf{1}
 
     This is the direct path for ``p``. Under ``method="solve"``, MARIO solves
     the transposed system without materializing the ``w`` Leontief inverse
@@ -634,6 +1138,11 @@ def calc_p_from_z(
     -------
     pandas.DataFrame
         ``p`` price index vector.
+
+    Notes
+    -----
+    Value added is summed over all factor rows. The result has the
+    production nodes on its index and one column named ``price index``.
     """
     return build_iot_p_from_v_z(
         v,
@@ -647,7 +1156,11 @@ def calc_p_from_z(
 
 
 def calc_f_dis(e, w):
-    """Calculate a diagonalized representation of ``f``.
+    r"""Calculate a diagonalized representation of ``f``.
+
+    .. math::
+
+        f_{\mathrm{dis}} = \operatorname{diag}(e_k)\,w
 
     Parameters
     ----------
@@ -662,6 +1175,13 @@ def calc_f_dis(e, w):
         Diagonalized representation of the ``f`` total (direct+indirect)
         environmental transaction coefficients matrix, built as
         ``diag(e) @ w``.
+
+    Notes
+    -----
+    ``e`` must contain one account with one coefficient per production
+    node. Rows identify contributing nodes and columns identify the
+    receiving nodes. Summing the rows recovers that account in ``calc_f``.
+    For multiple accounts, use ``db.f_ex(...)``.
     """
     values = np.diagflat(dense_values(e).reshape(-1)) @ dense_values(w)
     result = pd.DataFrame(values, index=w.index, columns=w.columns)
@@ -670,7 +1190,11 @@ def calc_f_dis(e, w):
 
 
 def calc_y(Y):
-    """Normalize the ``Y`` final demand matrix by its grand total.
+    r"""Normalize the ``Y`` final demand matrix by its grand total.
+
+    .. math::
+
+        y = \frac{Y}{\sum_{i,j}Y_{ij}}
 
     Parameters
     ----------
@@ -682,6 +1206,12 @@ def calc_y(Y):
     pandas.DataFrame
         Shares of the ``Y`` final demand matrix, computed as
         ``Y / Y.sum().sum()``.
+
+    Notes
+    -----
+    Normalization uses one grand total for the whole matrix, rather
+    than normalizing each row or column separately. A zero grand total
+    is not replaced: pandas division can produce NaN or infinite values.
     """
     return Y / Y.sum().sum()
 

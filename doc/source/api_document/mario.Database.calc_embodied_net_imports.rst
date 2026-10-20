@@ -3,6 +3,15 @@ mario.Database.calc\_embodied\_net\_imports
 
 .. currentmodule:: mario
 
+For each Region ``r``:
+
+.. math::
+
+   \mathrm{NetImports}_r = \mathrm{Imports}_r - \mathrm{Exports}_r.
+
+Imports and exports use the same selectors and content method. Positive
+values indicate net embodied imports.
+
 ``db.calc_embodied_net_imports(...)`` returns embodied imports minus embodied
 exports for the selected indicator.
 

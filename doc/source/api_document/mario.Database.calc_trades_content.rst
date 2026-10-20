@@ -3,6 +3,46 @@ mario.Database.calc\_trades\_content
 
 .. currentmodule:: mario
 
+Let :math:`t_{od}` be the vector of selected traded flows from origin
+``o`` to destination ``d``, grouped by production node. With direct indicator
+row :math:`d` and total multiplier row :math:`q`, the three methods compute:
+
+.. math::
+
+   C_{od}^{\mathrm{direct}} = d\,t_{od}, \qquad
+   C_{od}^{\mathrm{total}} = q\,t_{od}, \qquad
+   C_{od}^{\mathrm{upstream}} = (q-d)\,t_{od}.
+
+For IOT, :math:`d=e_k` or :math:`v_h` and :math:`q=d\,w`.
+For Isard SUT, :math:`d=e_{c,k}` or :math:`v_{c,h}` and :math:`q` is the
+corresponding row of ``fc`` or ``mc``. Chenery-Moses SUT uses activity-side
+direct rows and ``fa`` / ``ma`` instead. Upstream removes the direct content
+of the traded production nodes while retaining their suppliers' contributions.
+
+For IOT, the contributor vector returned by ``breakdown=True`` is:
+
+.. math::
+
+   c_{od}^{\mathrm{total}} = \operatorname{diag}(d)\,w\,t_{od}, \qquad
+   c_{od}^{\mathrm{direct}} = \operatorname{diag}(d)\,t_{od}.
+
+For Isard SUT it is:
+
+.. math::
+
+   c_{od}^{\mathrm{total}} = \begin{bmatrix}
+     \operatorname{diag}(d_a)\,s\,w_{cc}\,t_{od} \\
+     \operatorname{diag}(d_c)\,w_{cc}\,t_{od}
+   \end{bmatrix}, \qquad
+   c_{od}^{\mathrm{direct}} = \begin{bmatrix}0\\
+     \operatorname{diag}(d_c)\,t_{od}\end{bmatrix}.
+
+For Chenery-Moses SUT, the total blocks are
+:math:`\operatorname{diag}(d_a)w_{aa}t_{od}` and
+:math:`\operatorname{diag}(d_c)w_{ca}t_{od}`; only the activity block contributes
+to the direct vector. In all cases, upstream is total minus direct, and
+summing contributor entries gives :math:`C_{od}`.
+
 ``db.calc_trades_content(...)`` calculates the indicator content embodied in
 region-by-region trade.
 
