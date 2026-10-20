@@ -130,6 +130,14 @@ capability error. The small ``to_iot("B")`` conversion itself completes, but
 the transformation engine still constructs dense matrices and has not been
 adapted for the complete Balanced bundle.
 
+``pool_trade`` is also explicitly unsupported when Activity, Commodity or
+Consumption category classifications differ between regions. It raises
+``NotImplementable`` before copying or querying the model, including with
+``inplace=False``. This is a format restriction rather than a BONSAI-specific
+check; pooling for common classifications retains its existing behavior.
+The historical unknown-label or missing-node errors below are replaced by
+this capability error. Regional pooling is deferred until it is needed.
+
 Index contract
 --------------
 

@@ -194,6 +194,21 @@ def transform_pool_trade(
     from mario.model.conventions import _MASTER_INDEX
     from mario.utils import _manage_indeces
 
+    if database.table_type != "SUT":
+        raise NotImplementable("pool_trade is implemented only for SUT databases.")
+
+    regional_sets = [
+        level
+        for level in (_MASTER_INDEX["a"], _MASTER_INDEX["c"], _MASTER_INDEX["n"])
+        if isinstance(database.get_index(level), dict)
+    ]
+    if regional_sets:
+        raise NotImplementable(
+            "pool_trade does not support region-specific classifications for "
+            f"{', '.join(regional_sets)}. This transformation requires the same "
+            "labels in every region."
+        )
+
     if not inplace:
         new = database.copy()
         transform_pool_trade(
@@ -204,9 +219,6 @@ def transform_pool_trade(
             inplace=True,
         )
         return new
-
-    if database.table_type != "SUT":
-        raise NotImplementable("pool_trade is implemented only for SUT databases.")
 
     A, C, N, R = (
         _MASTER_INDEX["a"],

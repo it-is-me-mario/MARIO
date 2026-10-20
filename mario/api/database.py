@@ -757,6 +757,11 @@ class Database(CoreModel):
 
         Notes
         -----
+        Activity, Commodity and Consumption category labels must be the same
+        in every region. Nonuniform regional classifications raise
+        ``NotImplementable`` before copying the database or querying matrices,
+        including when ``inplace=False``.
+
         The pooling is a **representation change, not a data change** at the
         destination level: bilateral trade totals per destination region are
         preserved exactly, and the initial market shares written in ``s``

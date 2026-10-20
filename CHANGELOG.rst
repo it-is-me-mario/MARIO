@@ -8,6 +8,9 @@ package on PyPI, and dates are its publication dates.
 Unreleased
 ----------
 
+* ``pool_trade`` explicitly rejects region-specific Activity, Commodity or
+  Consumption category classifications before copying or querying the model.
+  The transformation for common regional classifications is unchanged.
 * ``to_pymrio`` explicitly rejects region-specific Sector or Consumption
   category classifications before querying matrices, instead of failing later
   while expanding units. Common regional classifications retain their existing
