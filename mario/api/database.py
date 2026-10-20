@@ -830,11 +830,6 @@ class Database(CoreModel):
     ):
         """Write an aggregation template workbook for the selected levels.
 
-        Nonuniform sets use Regions/Item/Aggregation columns, grouping regions
-        by identical complete label sets and including single-region groups.
-        Their Region sheet lists only groups compatible across all regional
-        sets. Common classifications retain the historical workbook format.
-
         Parameters
         ----------
         path:
@@ -855,6 +850,14 @@ class Database(CoreModel):
         -------
         None
             The workbook is written to disk.
+
+        Notes
+        -----
+        Common classifications use a label index and an Aggregation column.
+        In the special case of nonuniform regional sets, the item sheets use
+        Regions/Item/Aggregation columns. Regions with identical complete label
+        sets share rows, including single-region groups. The Region sheet lists
+        only groups compatible across all regional sets.
         """
 
         _, levels = self._prepare_aggregation_inputs(

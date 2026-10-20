@@ -22,11 +22,12 @@ as ``Sector``.
 The resulting workbook contains a prefilled ``Region`` sheet and leaves the
 other requested sheets empty for manual editing.
 
-Regional classifications
-------------------------
+Special case: regional classifications
+--------------------------------------
 
-Common classifications retain the historical label index and one
-``Aggregation`` column. When ``get_index(set_name)`` returns a regional
+Common classifications use the label index and one ``Aggregation`` column.
+For :ref:`regional classifications <regional-classifications>`, when
+``get_index(set_name)`` returns a regional
 dictionary, its sheet instead has three columns:
 
 .. list-table:: Example Activity sheet

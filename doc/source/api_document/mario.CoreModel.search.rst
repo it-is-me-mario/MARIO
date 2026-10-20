@@ -5,9 +5,9 @@
 
 .. automethod:: CoreModel.search
 
-Result shape follows the searched set. Common classifications retain the
-existing ordered list. Regional classifications return a dictionary whose
-keys are only the regions containing matches::
+Searching one set normally returns an ordered list. In the
+:ref:`special case of regional classifications <regional-classifications>`,
+the result is a dictionary whose keys are only the regions containing matches::
 
     db.search("Activity", "^A_ADVERT$")
     # {"IT": ["A_ADVERT"], "DE": ["A_ADVERT"], ...}

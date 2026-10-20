@@ -5,6 +5,13 @@ mario.Database.set\_clusters
 
 .. automethod:: Database.set_clusters
 
+For a common classification, define each cluster as a list of labels::
+
+    db.set_clusters({"Activity": {"selected": ["A1", "A2"]}})
+
+Special case: regional classifications
+--------------------------------------
+
 Cluster definitions follow the shape of the corresponding set. For regional
 activity domains ``{"IT": ["A1", "A2"], "DE": ["A1", "A3"]}``, use::
 

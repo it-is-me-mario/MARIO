@@ -34,7 +34,7 @@ Environmentally-extended databases
       The hybrid EXIOBASE bundle, as supply-use and input-output tables, with a
       choice of extensions.
 
-   .. mario-card:: :doc:`BONSAI, hybrid <bonsai>`
+   .. mario-card:: :doc:`BONSAI <../../notebooks/parsers/bonsai/walkthrough_bonsai>`
       :kicker: mario.parse_bonsai
       :logo: /_static/images/logos/bonsai.webp
 
@@ -102,7 +102,7 @@ Environmentally-extended databases
 
    EXIOBASE, monetary <../../notebooks/parsers/exiobase/monetary>
    EXIOBASE, hybrid <../../notebooks/parsers/exiobase/hybrid>
-   BONSAI, hybrid <bonsai>
+   BONSAI <../../notebooks/parsers/bonsai/walkthrough_bonsai>
    EORA <../../notebooks/parsers/eora/walkthrough_eora>
    GLORIA <../../notebooks/parsers/gloria/walkthrough_gloria>
    GTAP <../../notebooks/parsers/gtap/walkthrough_gtap>

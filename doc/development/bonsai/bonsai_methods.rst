@@ -1,3 +1,5 @@
+.. Internal development archive; not part of the published user documentation.
+
 BONSAI regional-index method diagnosis
 ======================================
 
@@ -10,7 +12,7 @@ The summary regression has since been fixed: regional sets display
 including empty regions. Common classifications retain scalar counts.
 ``search`` has also been adapted: it searches inside the regional lists and
 groups matches by region, with explicit union and region selectors. See
-:doc:`../../api_document/mario.CoreModel.search` for examples. The tables and
+:doc:`/api_document/mario.CoreModel.search` for examples. The tables and
 downloadable snapshot below record the initial diagnosis before these fixes;
 rerun the ``repr`` and ``search`` probes to check the updated behavior.
 Cluster handling has also been adapted. Regional sets now retain dictionaries
@@ -19,7 +21,7 @@ each region-code pair, and list shorthand is intersected with each regional
 domain. Common sets keep their previous list clusters. Shock expansion uses
 actual nodes and supports sparse updates; Excel picklists use observed code
 unions without discarding the stored regional definitions. See
-:doc:`../../api_document/mario.Database.set_clusters` for this contract. The
+:doc:`/api_document/mario.Database.set_clusters` for this contract. The
 initial snapshot below predates these adaptations as well.
 
 Aggregation has since been adapted too. Regional template sheets group regions
@@ -29,8 +31,8 @@ require matching string sets across all regional classifications, including
 consumption categories. Region presets obey the same check; the unrestricted
 ``WORLD`` probe below is now expected to be rejected for a nonuniform database.
 Aggregation also caches axis mappings and handles sparse zero-output column
-replacement. See :doc:`../../api_document/mario.Database.get_aggregation_excel`
-and :doc:`../../api_document/mario.Database.aggregate`. Historical outcomes below
+replacement. See :doc:`/api_document/mario.Database.get_aggregation_excel`
+and :doc:`/api_document/mario.Database.aggregate`. Historical outcomes below
 remain unchanged as a record of the initial diagnosis.
 
 On Balanced 20260615, exact label comparison produces 50 separate Activity
@@ -100,7 +102,7 @@ components in Taiwan (``Beany`` and ``Eggs_ggs``). The method reports their actu
 nodes and raises an error before requesting inverse views. No source values or
 regional memberships are changed and no nodes are excluded. Turning off
 diagonal exclusion does not resolve this singularity. See
-:doc:`../../api_document/mario.Database.calc_linkages`.
+:doc:`/api_document/mario.Database.calc_linkages`.
 
 ``update_supply_mix`` and ``update_trade_mix`` have also been adapted. Supply
 labels are validated in their specified region, while every trade item must
@@ -210,7 +212,7 @@ counts are insufficient. Each set is evaluated independently::
 Regional membership comes from materialized matrix axes. The implementation
 does not create missing region-item combinations. Stored logical indexes and
 the internal ``ModelState.get_index`` remain in their previous representation
-at this stage. See :doc:`../../api_document/mario.CoreModel.get_index`.
+at this stage. See :doc:`/api_document/mario.CoreModel.get_index`.
 
 Scope and comparison
 --------------------

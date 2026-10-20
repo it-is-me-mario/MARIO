@@ -373,6 +373,8 @@ mario_site = {
         "contribute/realdata_fixtures": "index",
         "contribute/documentation": "index",
         "user_guide/parsers/country_coverage": "user_guide/parsers/index",
+        "user_guide/parsers/bonsai": "notebooks/parsers/bonsai/walkthrough_bonsai",
+        "user_guide/parsers/bonsai_methods": "get_started/nomenclature#regional-classifications",
         "resources/publications": "resources/projects_publications",
         "resources/data-explorer": "resources/data-explorer/scope",
         "resources/data-explorer/browsers": "resources/data-explorer/compare",

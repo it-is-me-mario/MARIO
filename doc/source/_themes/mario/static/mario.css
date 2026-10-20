@@ -3403,13 +3403,6 @@ html:not(.mario-js) .mario-switch {
   background: #fff;
 }
 
-.mario-article img.mario-source-logo {
-  padding: 0.4rem 0.55rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: #fff;
-}
-
 .mario-article .mario-card__logo img {
   max-width: 100%;
   max-height: 100%;

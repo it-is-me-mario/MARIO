@@ -34,9 +34,4 @@ does not remove those nodes, change source values or replace the diagnosed
 singular system with a pseudoinverse. This also applies when ``cut_diag=False``:
 including self effects does not restore invertibility.
 
-For BONSAI Balanced 20260615, the Ghosh preflight reports two singular
-four-node components in Taiwan (``Beany`` and ``Eggs_ggs`` codes). Consequently
-the complete database is expected to raise this error; successful linkage
-calculation is verified separately on invertible samples and uniform models.
-
 .. automethod:: Database.calc_linkages
