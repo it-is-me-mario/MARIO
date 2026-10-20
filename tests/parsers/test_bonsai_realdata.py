@@ -25,6 +25,48 @@ from mario.model.conventions import _MASTER_INDEX
     not os.environ.get("MARIO_BONSAI_BALANCED_ZIP"),
     reason="Set MARIO_BONSAI_BALANCED_ZIP to the local Balanced 20260615 ZIP.",
 )
+def test_balanced_20260615_ghg_characterizes_native_blocks_without_resolving_economics(monkeypatch):
+    """Characterize the complete native HSUT without unified economic views."""
+    import time
+
+    with pytest.warns(UserWarning, match="362 elementary-flow rows"):
+        database = mario.parse_bonsai(os.environ["MARIO_BONSAI_BALANCED_ZIP"])
+    accounts = database.get_index("Satellite account")
+    co2 = next(label for label in accounts if label.startswith("Carbon dioxide, fossil | Air | tonnes |"))
+    ch4 = next(label for label in accounts if label.startswith("Methane, fossil | Air | tonnes |"))
+    before = dict(database.matrices["baseline"])
+    expected = {
+        name: dense_values(before[name].loc[co2]) + 29.8 * dense_values(before[name].loc[ch4])
+        for name in ("Ea", "Ec", "EY")
+    }
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("GHG characterization must not request any missing matrices")
+
+    monkeypatch.setattr("mario.compute.resolver.Resolver.resolve", forbidden)
+    monkeypatch.setattr(database, "calc_all", forbidden)
+    monkeypatch.setattr(database, "add_extensions", forbidden)
+    started = time.perf_counter()
+    database.calc_ghg(gwp={co2: 1., ch4: 29.8})
+    elapsed = time.perf_counter() - started
+    assert set(database.matrices["baseline"]) == set(before)
+    assert database.get_index("Satellite account") == accounts + ["GHG"]
+    for name, old in before.items():
+        actual = database.get_block(name)
+        if name in expected:
+            np.testing.assert_allclose(dense_values(actual.loc["GHG"]), expected[name])
+            assert actual.shape == (128, old.shape[1])
+            assert all(isinstance(t, pd.SparseDtype) and t.fill_value == 0 for t in actual.dtypes)
+        else:
+            assert actual is old
+    assert not {"E", "e", "Z", "z", "V", "v", "Y", "f", "fc"}.intersection(database["baseline"])
+    print(f"BONSAI GHG characterization: {elapsed:.3f}s, native Ea/Ec/EY only; economic blocks unchanged")
+
+
+@pytest.mark.skipif(
+    not os.environ.get("MARIO_BONSAI_BALANCED_ZIP"),
+    reason="Set MARIO_BONSAI_BALANCED_ZIP to the local Balanced 20260615 ZIP.",
+)
 def test_balanced_20260615_partial_co2_fc_certifies_independent_equations():
     """Solve the original HSUT with NaN only at the four affected commodities."""
     from scipy import sparse

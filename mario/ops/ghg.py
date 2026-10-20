@@ -8,8 +8,14 @@ The registry can be extended at runtime via :func:`register_ghg_profile`.
 """
 from __future__ import annotations
 
+import copy
+from numbers import Real
 from typing import Dict, Optional, Union
+import numpy as np
 import pandas as pd
+
+from mario.compute.catalog import available_matrix_names, get_matrix_spec
+from mario.ops.extensions import SATELLITE, _invalidate_dependent_operators
 
 GWPScalar = Union[int, float]
 GWPValue = Union[GWPScalar, Dict[int, Dict[str, GWPScalar]]]
@@ -367,28 +373,109 @@ def _ghg_row(matrix: pd.DataFrame, gwp: Dict[str, GWPScalar],
     With ``match_mode='prefix'`` every row whose index label starts with a
     gwp key is weighted by that key's factor (multiple rows per key allowed).
     """
+    _matched_ghg_labels(matrix.index, gwp, match_mode=match_mode)
+    if matrix.shape[1] == 0:
+        return pd.Series(index=matrix.columns, dtype=float, name=label)
+    weights = pd.Series(0.0, index=matrix.index)
     if match_mode == "prefix":
-        rows, weights = [], []
         for prefix, factor in gwp.items():
-            mask = matrix.index.astype(str).str.startswith(prefix)
-            if mask.any():
-                rows.append(matrix.loc[mask])
-                weights.append(pd.Series(factor, index=matrix.index[mask]))
-        if not rows:
-            raise KeyError(
-                "None of the requested GHG accounts were found in the database."
-            )
-        sub = pd.concat(rows, axis=0)
-        w = pd.concat(weights, axis=0)
-        return sub.mul(w, axis=0).sum(axis=0).rename(label)
+            weights.loc[matrix.index.astype(str).str.startswith(prefix)] += factor
+    else:
+        for account, factor in gwp.items():
+            if account in weights.index:
+                weights.loc[account] = factor
 
-    available = [g for g in gwp if g in matrix.index]
-    if not available:
-        raise KeyError(
-            "None of the requested GHG accounts were found in the database."
+    # An account with GWP=0 contributes zero even when its multiplier is NaN.
+    selected = weights != 0
+    if not selected.any():
+        return pd.Series(0.0, index=matrix.columns, name=label)
+    sub = matrix.loc[selected]
+    values = weights.loc[selected].to_numpy(dtype=float)
+    if all(isinstance(t, pd.SparseDtype) and t.fill_value == 0 for t in sub.dtypes):
+        from scipy import sparse
+
+        weighted = sparse.diags(values) @ sub.sparse.to_coo().tocsr()
+        result = np.asarray(weighted.sum(axis=0)).ravel()
+    else:
+        # Only selected gas rows are materialized, never the economic system.
+        result = values @ sub.to_numpy(dtype=float)
+    return pd.Series(result, index=matrix.columns, name=label)
+
+
+def _append_ghg_row(matrix, gwp, label, matched_labels, *, match_mode, block_name):
+    """Extend one stored linear satellite block while preserving its storage."""
+    if not isinstance(matrix, pd.DataFrame):
+        raise ValueError(f"Satellite block {block_name!r} must be a pandas DataFrame.")
+    if isinstance(matrix.index, pd.MultiIndex) or not matrix.index.is_unique:
+        raise ValueError(
+            f"Satellite block {block_name!r} must have one unique row per account."
         )
-    weights = pd.Series({g: gwp[g] for g in available})
-    return matrix.loc[available].mul(weights, axis=0).sum(axis=0).rename(label)
+    missing = pd.Index(matched_labels).difference(matrix.index)
+    if len(missing):
+        raise ValueError(f"Satellite block {block_name!r} is missing GHG accounts: {missing.tolist()!r}.")
+    if label in matrix.index:
+        raise ValueError(f"Satellite account {label!r} already exists in block {block_name!r}.")
+    row = _ghg_row(matrix, gwp, label, match_mode=match_mode)
+    row_index = pd.Index([label], name=matrix.index.name)
+    if matrix.shape[1] and all(
+        isinstance(t, pd.SparseDtype) and t.fill_value == 0 for t in matrix.dtypes
+    ):
+        from scipy import sparse
+
+        # Pandas concatenation otherwise appends separately to every column's
+        # SparseArray. Native SUTs have tens of thousands of these columns.
+        result = pd.DataFrame.sparse.from_spmatrix(
+            sparse.vstack([
+                matrix.sparse.to_coo().tocsr(),
+                sparse.csr_matrix(row.to_numpy().reshape(1, -1)),
+            ], format="csc"),
+            index=matrix.index.append(row_index), columns=matrix.columns,
+        )
+    else:
+        extension = pd.DataFrame([row.to_numpy()], index=row_index, columns=matrix.columns)
+        result = pd.concat([matrix, extension], axis=0)
+    # In particular, retain diagnostics attached to partial multiplier results.
+    result.attrs = copy.deepcopy(matrix.attrs)
+    return result
+
+
+def _append_ghg_account(target, gwp, label, resolved_unit, matched_labels, *, match_mode):
+    """Stage a characterization across scenarios without resolving any matrices."""
+    satellite_blocks = {
+        name for name in available_matrix_names(target.table_type)
+        if get_matrix_spec(target.table_type, name).axes.rows == (SATELLITE,)
+    }
+    matrices = {}
+    for scenario, blocks in target.matrices.items():
+        updated = dict(blocks)
+        affected = set(blocks).intersection(satellite_blocks)
+        if not affected:
+            raise ValueError(f"Scenario {scenario!r} has no stored satellite blocks to characterize.")
+        for name in affected:
+            updated[name] = _append_ghg_row(
+                blocks[name], gwp, label, matched_labels,
+                match_mode=match_mode, block_name=f"{scenario}/{name}",
+            )
+        _invalidate_dependent_operators(target, updated, affected)
+        matrices[scenario] = updated
+
+    indexes = copy.deepcopy(target._indeces["k"])
+    indexes["main"] = list(indexes["main"]) + [label]
+    units = target.units[SATELLITE]
+    if label in units.index:
+        raise ValueError(f"Satellite account {label!r} already exists in the units table.")
+    unit_column = "unit" if "unit" in units.columns else units.columns[0]
+    new_units = pd.concat([
+        units,
+        pd.DataFrame({unit_column: [resolved_unit]}, index=pd.Index([label], name=units.index.name)),
+    ])
+    # Commit only after every scenario and its metadata have been validated.
+    target.matrices = matrices
+    target._indeces["k"] = indexes
+    target.units[SATELLITE] = new_units
+    target.meta._add_history(
+        f"GHG satellite account {label!r} added using {gwp!r} across {len(matrices)} scenario(s)."
+    )
 
 
 def _matched_ghg_labels(index: pd.Index, gwp: Dict[str, GWPScalar],
@@ -498,7 +585,18 @@ def calc_ghg(
     -------
     Database | None
         Modified database when ``inplace=False``, otherwise ``None``.
+
+    Notes
+    -----
+    Characterizes stored environmental blocks in every scenario, including
+    native SUT ``Ea``, ``Ec`` and ``EY``. Existing coefficients, multipliers
+    and footprints receive the same weighted row without new linear solves.
+    Missing matrices are left for on-demand resolution. Economic matrices,
+    scenarios and sparse storage are preserved. Cached custom operators
+    depending on changed environmental blocks are invalidated.
     """
+    if not isinstance(inplace, bool):
+        raise ValueError("inplace must be True or False.")
     target = db if inplace else db.copy()
     explicit_gwp = gwp is not None
 
@@ -528,6 +626,11 @@ def calc_ghg(
     else:
         match_mode = "exact"
 
+    if not isinstance(gwp, dict) or any(
+        not isinstance(factor, Real) or not np.isfinite(factor) for factor in gwp.values()
+    ):
+        raise ValueError("gwp must map satellite account labels to finite numeric factors.")
+
     if label is None:
         label = _default_ghg_label(ipcc_report, time_horizon, explicit_gwp)
 
@@ -536,24 +639,12 @@ def calc_ghg(
             f"Satellite account '{label}' already exists in the database."
         )
 
-    matched_labels = _matched_ghg_labels(target.E.index, gwp, match_mode=match_mode)
+    matched_labels = _matched_ghg_labels(
+        pd.Index(target.get_index(SATELLITE)), gwp, match_mode=match_mode
+    )
     resolved_unit = _resolve_ghg_unit(target, matched_labels, unit)
-
-    extension_row = _ghg_row(target.E, gwp, label, match_mode=match_mode)
-    final_demand_row = _ghg_row(target.EY, gwp, label, match_mode=match_mode)
-
-    extension = extension_row.to_frame().T.rename_axis(target.E.index.name)
-    extension_fd = final_demand_row.to_frame().T.rename_axis(target.EY.index.name)
-    unit_frame = pd.DataFrame({"unit": [resolved_unit]}, index=extension.index.copy())
-    unit_frame.index.name = target.units["Satellite account"].index.name
-
-    target.add_extensions(
-        io=extension,
-        matrix="E",
-        units=unit_frame,
-        inplace=True,
-        calc_all=True,
-        EY=extension_fd,
+    _append_ghg_account(
+        target, gwp, label, resolved_unit, matched_labels, match_mode=match_mode,
     )
 
     if not inplace:

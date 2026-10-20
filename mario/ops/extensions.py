@@ -44,6 +44,28 @@ def _filter_members(members, selected):
     return [label for label in members if label in selected]
 
 
+def _invalidate_dependent_operators(instance, blocks, affected):
+    """Discard cached custom results depending on changed satellite blocks."""
+    affected = set(affected)
+    pending = set(instance.list_custom_operators())
+    while pending:
+        invalid = {
+            name
+            for name in pending
+            if name in affected
+            or any(
+                canonical_matrix_name(source) in affected
+                for source in get_registered_operator(instance, name).inputs
+            )
+        }
+        if not invalid:
+            break
+        for name in invalid:
+            blocks.pop(name, None)
+            affected.add(canonical_matrix_name(name))
+        pending -= invalid
+
+
 def keep_extensions(instance, extensions, *, inplace):
     """Apply a satellite whitelist atomically across all stored scenarios."""
     if not isinstance(inplace, bool):
@@ -96,23 +118,7 @@ def keep_extensions(instance, extensions, *, inplace):
 
         # A custom result may have summed over the satellite axis. Slicing it
         # would retain a stale total, so invalidate dependent operators instead.
-        pending = set(target.list_custom_operators())
-        while pending:
-            invalid = {
-                name
-                for name in pending
-                if name in affected
-                or any(
-                    canonical_matrix_name(source) in affected
-                    for source in get_registered_operator(target, name).inputs
-                )
-            }
-            if not invalid:
-                break
-            for name in invalid:
-                updated.pop(name, None)
-                affected.add(canonical_matrix_name(name))
-            pending -= invalid
+        _invalidate_dependent_operators(target, updated, affected)
         matrices[scenario] = updated
 
     # Prepare metadata before replacing any part of an in-place database.

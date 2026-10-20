@@ -255,3 +255,202 @@ def test_calc_ghg_custom_gwp_ignores_profile_resolution_arguments():
 
     pdt.assert_series_equal(database.E.loc["GHG"], expected_e, check_names=False)
     pdt.assert_series_equal(database.EY.loc["GHG"], expected_ey, check_names=False)
+
+
+@pytest.mark.parametrize("table", ["IOT", "SUT"])
+@pytest.mark.parametrize("sparse_backed", [False, True])
+@pytest.mark.parametrize("coefficients_only", [False, True])
+def test_calc_ghg_updates_cached_blocks_without_computing_or_deleting_scenarios(
+    table, sparse_backed, coefficients_only, monkeypatch,
+):
+    import numpy as np
+    import mario
+    from mario.compute.catalog import get_matrix_spec, available_matrix_names
+    from mario.compute.helpers import dense_values
+    from mario.compute.types import ComputeOptions
+
+    db = mario.load_test(table)
+    if sparse_backed:
+        for name, frame in list(db.matrices["baseline"].items()):
+            db.set_block(name, frame.astype(pd.SparseDtype(float, 0)))
+    db.calc_all(
+        ["e", "f", "F"] if table == "IOT" else ["ea", "ec", "fa", "fc", "Fa", "Fc", "E", "e", "f", "F"],
+        compute_options=ComputeOptions(backend_override="sparse_direct"),
+    )
+    if coefficients_only:
+        db.reset_to_coefficients("baseline")
+    environmental = {
+        name for name in available_matrix_names(table)
+        if get_matrix_spec(table, name).axes.rows == ("Satellite account",)
+    }
+    db.clone_scenario("baseline", "policy")
+    for name in set(db.matrices["policy"]) & environmental:
+        db.matrices["policy"][name] = db.matrices["policy"][name] * 2
+    before = {s: dict(blocks) for s, blocks in db.matrices.items()}
+    units_before = db.units["Satellite account"].copy()
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("calc_ghg must not resolve matrices or reconstruct the database")
+
+    monkeypatch.setattr(db, "calc_all", forbidden)
+    monkeypatch.setattr(db, "query", forbidden)
+    monkeypatch.setattr(db, "add_extensions", forbidden)
+    monkeypatch.setattr("mario.compute.resolver.Resolver.resolve", forbidden)
+    db.calc_ghg(gwp={"CO2": 2.0})
+
+    assert db.scenarios == ["baseline", "policy"]
+    assert db.get_index("Satellite account") == ["Employment", "CO2", "GHG"]
+    pdt.assert_frame_equal(db.units["Satellite account"].loc[units_before.index], units_before)
+    assert db.units["Satellite account"].loc["GHG", "unit"] == units_before.loc["CO2", "unit"]
+    for scenario, blocks in before.items():
+        assert blocks.keys() == db.matrices[scenario].keys()
+        for name, old in blocks.items():
+            actual = db.get_block(name, scenario=scenario)
+            if name in environmental:
+                pdt.assert_frame_equal(actual.loc[old.index], old)
+                assert actual.columns.equals(old.columns)
+                assert actual.index.name == old.index.name
+                np.testing.assert_allclose(dense_values(actual.loc["GHG"]), dense_values(old.loc["CO2"]) * 2)
+                if all(isinstance(t, pd.SparseDtype) and t.fill_value == 0 for t in old.dtypes):
+                    assert all(isinstance(t, pd.SparseDtype) and t.fill_value == 0 for t in actual.dtypes)
+            else:
+                assert actual is old
+
+
+@pytest.mark.parametrize("inplace", [False, True])
+def test_calc_ghg_native_regional_sut_uses_only_stored_satellites(inplace, monkeypatch):
+    import numpy as np
+    from tests.api.test_trade_content_loading import regional_model
+    from mario.compute.helpers import dense_values
+
+    db = regional_model(True)
+    for name in ["Ea", "Ec", "EY"]:
+        frame = db.get_block(name)
+        ch4 = frame * .2
+        ch4.index = pd.Index(["CH4"], name=frame.index.name)
+        db.set_block(name, pd.concat([frame, ch4]))
+    db._indeces["k"]["main"].append("CH4")
+    db.units["Satellite account"] = pd.DataFrame({"unit": ["kg", "kg"]}, index=["CO2", "CH4"])
+    before = dict(db.matrices["baseline"])
+    before_indices = db.get_index("all")
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Characterization must not ask the resolver for missing matrices")
+
+    monkeypatch.setattr("mario.compute.resolver.Resolver.resolve", forbidden)
+    result = db.calc_ghg(gwp={"CO2": 1., "CH4": 10.}, inplace=inplace)
+    target = db if inplace else result
+    assert set(target.matrices["baseline"]) == set(before)
+    for name in ["Ea", "Ec", "EY"]:
+        actual = target.get_block(name)
+        expected = dense_values(before[name].loc["CO2"]) * 3
+        np.testing.assert_allclose(dense_values(actual.loc["GHG"]), expected)
+        assert all(isinstance(t, pd.SparseDtype) and t.fill_value == 0 for t in actual.dtypes)
+    for name in ["Activity", "Commodity", "Consumption category", "Region"]:
+        assert target.get_index(name) == before_indices[name]
+    assert not {"E", "e", "Z", "z", "V", "v", "Y", "f", "fc"}.intersection(target["baseline"])
+    if not inplace:
+        assert "GHG" not in db.get_index("Satellite account")
+        assert all(db.get_block(name) is frame for name, frame in before.items())
+        modified = target.Ea.sparse.to_dense()
+        modified.iloc[0, 0] = -999
+        target.set_block("Ea", modified)
+        pdt.assert_frame_equal(db.Ea, before["Ea"])
+
+
+def test_calc_ghg_cached_multiplier_matches_later_resolution_from_characterized_flows():
+    import mario
+    from mario.compute.types import ComputeOptions
+
+    db = mario.load_test("SUT")
+    options = ComputeOptions(backend_override="sparse_direct")
+    reference = db.resolve("fc", compute_options=options).loc["CO2"] * 2
+    db.calc_ghg(gwp={"CO2": 2.})
+    pdt.assert_series_equal(db.fc.loc["GHG"], reference, check_names=False)
+    cached = db.fc.copy()
+    db.matrices["baseline"].pop("fc")
+    rebuilt = db.resolve("fc", compute_options=options)
+    pdt.assert_frame_equal(rebuilt, cached)
+
+
+@pytest.mark.parametrize("sparse_backed", [False, True])
+@pytest.mark.parametrize("co2_gwp", [0., 1.])
+def test_calc_ghg_preserves_partial_nan_and_zero_gwp_semantics(sparse_backed, co2_gwp):
+    import numpy as np
+
+    db = _build_ghg_database()
+    fc = db.E.copy()
+    fc.loc["CO2 - combustion - air", fc.columns[0]] = np.nan
+    fc.attrs["mario_partial"] = {"undefined_nodes": [fc.columns[0]]}
+    if sparse_backed:
+        fc = fc.astype(pd.SparseDtype(float, 0))
+    db.set_block("f", fc)
+    before = fc.copy()
+    db.calc_ghg(gwp={"CO2 - combustion - air": co2_gwp, "CH4 - combustion - air": 10.})
+    assert db.f.attrs == before.attrs
+    if co2_gwp:
+        assert pd.isna(db.f.loc["GHG", fc.columns[0]])
+    else:
+        assert db.f.loc["GHG", fc.columns[0]] == 30.
+    pdt.assert_frame_equal(db.f.loc[before.index], before)
+
+
+def test_calc_ghg_invalidates_custom_totals_transitively_but_preserves_economic_results():
+    from mario.compute import sum_operator
+
+    db = _build_ghg_database()
+    db.register_operator(sum_operator(name="satellite_total", source="E", over="rows"))
+    db.register_operator(sum_operator(name="grand_total", source="satellite_total"))
+    db.register_operator(sum_operator(name="economic_total", source="Y"))
+    db.resolve_many(["satellite_total", "grand_total", "economic_total"])
+    independent = db.get_block("economic_total")
+    db.calc_ghg(gwp={"CO2 - combustion - air": 1.})
+    assert not db.has_matrix("satellite_total") and not db.has_matrix("grand_total")
+    assert db.get_block("economic_total") is independent
+    result = db.resolve("satellite_total")
+    pdt.assert_series_equal(result.iloc[0], db.E.sum(axis=0), check_names=False)
+
+
+@pytest.mark.parametrize("failure", ["missing_account", "bad_block", "duplicate_label", "bad_factor", "mixed_units"])
+def test_calc_ghg_validation_is_atomic_across_scenarios(failure):
+    import numpy as np
+    from copy import deepcopy
+
+    db = _build_ghg_database()
+    db.clone_scenario("baseline", "policy")
+    gwp = {"CO2 - combustion - air": 1., "CH4 - combustion - air": 10.}
+    if failure == "missing_account":
+        db.matrices["policy"]["EY"] = db.get_block("EY", scenario="policy").drop("CH4 - combustion - air")
+    elif failure == "bad_block":
+        db.matrices["policy"]["EY"] = np.zeros_like(db.EY)
+    elif failure == "duplicate_label":
+        db.matrices["policy"]["EY"] = pd.concat([db.EY, db.EY.iloc[[0]].rename(index={db.EY.index[0]: "GHG"})])
+    elif failure == "bad_factor":
+        gwp["CH4 - combustion - air"] = float("nan")
+    else:
+        db.units["Satellite account"].loc["CH4 - combustion - air", "unit"] = "tonnes"
+    before = {s: dict(blocks) for s, blocks in db.matrices.items()}
+    indexes, units, history = deepcopy(db._indeces), deepcopy(db.units), list(db.meta._history)
+    with pytest.raises(ValueError):
+        db.calc_ghg(gwp=gwp)
+    assert db._indeces == indexes
+    assert db.meta._history == history
+    for name in units:
+        pdt.assert_frame_equal(db.units[name], units[name])
+    for scenario, blocks in before.items():
+        assert blocks.keys() == db.matrices[scenario].keys()
+        assert all(db.get_block(name, scenario=scenario) is frame for name, frame in blocks.items())
+
+
+def test_calc_ghg_prefix_profile_weights_all_matching_subsources_and_allows_zero_columns():
+    from mario.ops.ghg import GHG_PROFILES, register_ghg_profile
+
+    db = _build_ghg_database()
+    db.set_block("EY", db.EY.iloc[:, :0])
+    register_ghg_profile("test_prefix", match="fixture", gwp={"CO2": 1., "CH4": 10.}, match_mode="prefix")
+    try:
+        db.calc_ghg(profile="test_prefix")
+    finally:
+        GHG_PROFILES.pop("test_prefix")
+    assert db.E.loc["GHG AR6 GWP-100"].tolist() == pytest.approx([31., 42.])
+    assert db.EY.shape == (5, 0)

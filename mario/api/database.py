@@ -5661,9 +5661,17 @@ class Database(CoreModel):
 
         Profile (and its default GWP factors) is auto-detected from the
         parser metadata when ``profile=None``. Pass ``gwp={...}`` to use
-        custom factors. The aggregation is appended to the baseline ``E`` and
-        ``EY`` matrices, registered as a new satellite account and followed by
-        a recalculation of dependent matrices.
+        custom factors. The aggregation is registered as a new satellite account
+        in every scenario. Only stored environmental blocks are updated: on a
+        native SUT these include ``Ea``, ``Ec`` and ``EY``. No economic matrices
+        or unified SUT views are requested, and no scenarios are deleted.
+
+        Existing environmental coefficients, multipliers and footprints receive
+        the same weighted row without further linear solves. Missing results
+        remain available for on-demand calculation. Cached custom operators
+        depending on updated environmental blocks are invalidated. Sparse
+        storage, row labels and column axes are preserved; undefined values
+        propagate for accounts with nonzero GWP factors.
 
         Parameters
         ----------
