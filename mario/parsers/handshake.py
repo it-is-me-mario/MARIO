@@ -1,3 +1,7 @@
+from mario.settings.parser_profiles import with_parser_compute_profile
+
+
+@with_parser_compute_profile
 def parse_exiobase_3_9_4(
     path,
     calc_all: bool = False,

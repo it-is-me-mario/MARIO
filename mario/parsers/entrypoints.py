@@ -7,7 +7,6 @@ import hashlib
 import inspect
 import json
 import logging
-from contextlib import contextmanager
 from pathlib import Path
 
 from mario.api import Database
@@ -72,7 +71,7 @@ from mario.parsers.tabular import parse_pymrio
 from mario.parsers.handshake import parse_exiobase_3_9_4
 from mario.parsers.useeio import parse_useeio_sut
 from mario.parsers.wiod import parse_wiod_iot, parse_wiod_sut
-from mario.settings.settings import download_settings, upload_settings
+from mario.settings.parser_profiles import with_parser_compute_profile
 
 from mario.parsers.specs import (
     HMRSUT_EXTENSIONS,
@@ -144,26 +143,7 @@ logger = logging.getLogger(__name__)
 _GLORIA_CACHE_VERSION = "2026-03-25"
 
 
-@contextmanager
-def _parser_compute_settings(parser_name, **overrides):
-    """Keep a parser's session defaults only if its import completes."""
-    previous = download_settings()
-    configured = {**previous, "compute": {**previous["compute"], **overrides}}
-    if configured["compute"]["linear_solver"] == "umfpack":
-        from mario.compute.linear_solvers import load_umfpack
-
-        load_umfpack()
-    upload_settings(configured)
-    try:
-        yield
-    except BaseException:
-        upload_settings(previous)
-        raise
-    else:
-        selected = ", ".join(f"{key}={value}" for key, value in overrides.items())
-        log_time(logger, f"{parser_name} compute settings: {selected} (current Python session).", "info")
-
-
+@with_parser_compute_profile
 def parse_bonsai(
     path: str | Path,
     *,
@@ -224,35 +204,32 @@ def parse_bonsai(
     (``conda install -c conda-forge scikit-umfpack``); missing dependencies raise an
     ImportError before reading the bundle. Failed imports restore prior settings.
     Partial solves warn and return NaN at coefficients affected by singular
-    components, without changing source data.
+    components, without changing source data. Defaults are defined in
+    ``mario.settings.parser_profiles.PARSER_COMPUTE_PROFILES["bonsai"]``.
     """
     validate_parse_request(table=table, model=model)
     if table != "SUT":
         raise NotImplementable("BONSAI parsing currently supports only Balanced HSUT (SUT) tables.")
-    with _parser_compute_settings(
-        "BONSAI", compute_method="solve", linear_solver="umfpack",
-        linear_strategy="direct", singular_policy="partial",
-    ):
-        matrices, indexes, units, layout = parse_bonsai_hsut(
-            path,
-            extensions=extensions,
-            unmatched_extensions=unmatched_extensions,
-            chunksize=chunksize,
-        )
-        result = models[model](
-            name=name or "BONSAI Balanced HSUT",
-            table="SUT",
-            source=layout.source,
-            year=layout.year,
-            init_by_parsers={"matrices": matrices, "_indeces": indexes, "units": units},
-            calc_all=calc_all,
-            notes=list(layout.notes),
-            **kwargs,
-        )
-        if model == "ModelState":
-            result.metadata.extra["bonsai"] = layout.report
-        else:
-            result.info["bonsai"] = layout.report
+    matrices, indexes, units, layout = parse_bonsai_hsut(
+        path,
+        extensions=extensions,
+        unmatched_extensions=unmatched_extensions,
+        chunksize=chunksize,
+    )
+    result = models[model](
+        name=name or "BONSAI Balanced HSUT",
+        table="SUT",
+        source=layout.source,
+        year=layout.year,
+        init_by_parsers={"matrices": matrices, "_indeces": indexes, "units": units},
+        calc_all=calc_all,
+        notes=list(layout.notes),
+        **kwargs,
+    )
+    if model == "ModelState":
+        result.metadata.extra["bonsai"] = layout.report
+    else:
+        result.info["bonsai"] = layout.report
     return result
 
 
@@ -353,6 +330,7 @@ def _build_gloria_database(
         **kwargs,
     )
 
+@with_parser_compute_profile
 def parse_from_txt(
     path: str,
     table: str,
@@ -454,6 +432,7 @@ def parse_from_txt(
     )
 
 
+@with_parser_compute_profile
 def parse_from_parquet(
     path: str,
     table: str,
@@ -512,6 +491,7 @@ def parse_from_parquet(
     )
 
 
+@with_parser_compute_profile
 def parse_from_excel(
     path: str,
     table: str,
@@ -613,6 +593,7 @@ def parse_from_excel(
     )
 
 
+@with_parser_compute_profile
 def parse_exiobase_sut(
     path: str,
     calc_all: bool =False,
@@ -685,6 +666,7 @@ def parse_exiobase_sut(
     )
 
 
+@with_parser_compute_profile
 def parse_exiobase_3(
     path: str,
     calc_all: bool =False,
@@ -764,6 +746,7 @@ def parse_exiobase_3(
 
 
 
+@with_parser_compute_profile
 def parse_eora(
     path: str,
     multi_region: bool,
@@ -921,6 +904,7 @@ def _resolve_exiobase_parse_path(
     return path
 
 
+@with_parser_compute_profile
 def parse_exiobase(
     table:str,
     unit:str,
@@ -1022,6 +1006,7 @@ def parse_exiobase(
     return parser(**kwargs)
 
 
+@with_parser_compute_profile
 def hybrid_sut_exiobase(
     path:str,
     extensions: list | str | None = None,
@@ -1099,6 +1084,7 @@ def hybrid_sut_exiobase(
     )
 
 
+@with_parser_compute_profile
 def hybrid_iot_exiobase(
     path: str,
     extensions: list | str | None = None,
@@ -1154,6 +1140,7 @@ def hybrid_iot_exiobase(
     )
 
 
+@with_parser_compute_profile
 def parse_eurostat(
     country: str,
     year: int,
@@ -1323,6 +1310,7 @@ def parse_eurostat(
     )
 
 
+@with_parser_compute_profile
 def parse_statcan(
     year: int,
     table: str = "SUT",
@@ -1521,6 +1509,7 @@ def parse_statcan(
     )
 
 
+@with_parser_compute_profile
 def parse_oecd(
     path: str | None = None,
     *,
@@ -1629,6 +1618,7 @@ def parse_oecd(
     )
 
 
+@with_parser_compute_profile
 def parse_cepalstat(
     path: str,
     *,
@@ -1731,6 +1721,7 @@ def parse_cepalstat(
     )
 
 
+@with_parser_compute_profile
 def parse_istat(
     path: str,
     *,
@@ -1842,6 +1833,7 @@ def parse_istat(
     )
 
 
+@with_parser_compute_profile
 def parse_ceads(
     path: str,
     *,
@@ -1917,6 +1909,7 @@ def parse_ceads(
     )
 
 
+@with_parser_compute_profile
 def parse_bea(
     path: str,
     *,
@@ -1994,6 +1987,7 @@ def parse_bea(
     )
 
 
+@with_parser_compute_profile
 def parse_adb(
     path: str,
     table: str = "IOT",
@@ -2111,6 +2105,7 @@ def parse_adb(
     )
 
 
+@with_parser_compute_profile
 def parse_emerging(
     path: str,
     table: str = "IOT",
@@ -2240,6 +2235,7 @@ def parse_emerging(
     )
 
 
+@with_parser_compute_profile
 def parse_wiod(
     path: str,
     table: str = "IOT",
@@ -2345,6 +2341,7 @@ def parse_wiod(
     )
 
 
+@with_parser_compute_profile
 def parse_eurostat_sut(
     country: str,
     year: int,
@@ -2369,6 +2366,7 @@ def parse_eurostat_sut(
     )
 
 
+@with_parser_compute_profile
 def parse_from_pymrio(
         io,
         value_added,
@@ -2422,6 +2420,7 @@ def parse_from_pymrio(
     )
 
 
+@with_parser_compute_profile
 def parse_figaro(
     path: str | None = None,
     table: str = "SUT",
@@ -2515,6 +2514,7 @@ def parse_figaro(
     )
 
 
+@with_parser_compute_profile
 def parse_gtap(
     path: str,
     table: str = "IOT",
@@ -2636,6 +2636,7 @@ def parse_gtap(
     return database
 
 
+@with_parser_compute_profile
 def parse_useeio(
     path: str,
     *,
@@ -2736,6 +2737,7 @@ def parse_useeio(
     )
 
 
+@with_parser_compute_profile
 def parse_gloria(
     path: str,
     table: str = "SUT",
