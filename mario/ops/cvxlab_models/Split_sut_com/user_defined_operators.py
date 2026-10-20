@@ -158,3 +158,36 @@ def block_diag(
     result = sp.block_diag([raw] * n, format="csr").toarray()
     
     return cp.Constant(result)
+
+
+def _constant_value(A):
+    """Dense float array with the value of a parameter or constant (known at build time)."""
+    value = A.value
+    if value is None:
+        raise ValueError("The parameter must have a value assigned before it is used as a prior.")
+    if sp.issparse(value):
+        value = value.toarray()
+    return np.asarray(value, dtype=float)
+
+
+def entropy_signed(A, A0):
+    """Kullback-Leibler distance that allows a prior A0 < 0: the cells keep the sign of the prior.
+
+    Args:
+        A: The variable (matrix with the same shape as A0).
+        A0: The exogenous prior. Its sign is read at build time.
+    Returns:
+        cp.Expression: rel_entr(s * A, |A0| + eps) with s = -1 where A0 < 0 and s = +1 elsewhere.
+        The cone forces s * A >= 0, so a cell can shrink to zero or grow, but not cross zero.
+    """
+    eps = 1e-8
+    a0 = _constant_value(A0)
+    if tuple(A.shape) != a0.shape:
+        raise ValueError(f"A and A0 must have the same shape. Shapes -> A: {A.shape}, A0: {a0.shape}.")
+    s = np.where(a0 < 0, -1.0, 1.0)
+    return cp.rel_entr(cp.multiply(cp.Constant(s), A), np.abs(a0) + eps)
+
+
+def absval(A):
+    """Element-wise absolute value of a parameter (used to build tolerance bands that are valid for either sign)."""
+    return cp.Constant(np.abs(_constant_value(A)))

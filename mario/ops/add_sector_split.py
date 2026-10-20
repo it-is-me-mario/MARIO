@@ -594,9 +594,12 @@ def _cap_split_child_columns(mat: pd.DataFrame, regions: list, sector: str, pare
     child = mat.iloc[:, child_pos].to_numpy(dtype=float, copy=True)
     parent = mat.iloc[:, parent_pos].to_numpy(dtype=float, copy=True)
 
-    overflow = (child > parent).any(axis=0)
-    valid_share = ~overflow[None, :] & (parent > 0)
-    shares = np.where(valid_share, child / np.where(parent > 0, parent, 1.0), np.nan)
+    # a child cell overflows when it is larger than its parent in magnitude or has the opposite sign;
+    # negative cells (e.g. production subsidies in V) are compared by magnitude
+    same_sign = child * parent >= 0
+    overflow = ((np.abs(child) > np.abs(parent)) | ~same_sign).any(axis=0)
+    valid_share = ~overflow[None, :] & (parent != 0)
+    shares = np.where(valid_share, child / np.where(parent != 0, parent, 1.0), np.nan)
     row_median = np.zeros(shares.shape[0])
     has_share = valid_share.any(axis=1)
     row_median[has_share] = np.nanmedian(shares[has_share], axis=1)

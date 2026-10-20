@@ -750,7 +750,11 @@ class SutSplitPriors:
     mode: str = MODE_BOTH
 
 
-def _warn_and_clip(frame: pd.DataFrame, label: str) -> pd.DataFrame:
+def _warn_and_clip(frame: pd.DataFrame, label: str, *, signed: bool = False) -> pd.DataFrame:
+    """Clip negative cells to zero with a warning; ``signed`` frames (V, Y) may be negative and are kept."""
+
+    if signed:
+        return frame
     values = frame.to_numpy(dtype=float)
     negative = values < 0
     if negative.any():
@@ -875,7 +879,7 @@ def build_sut_split_priors(
                 U0.loc[stable_rows, column] = old_U.loc[stable_rows, column] - U0.loc[stable_rows, child_columns].sum(axis=1)
                 V0[column] = old_V[column] - V0[child_columns].sum(axis=1)
         U0 = _warn_and_clip(U0, "U0")
-        V0 = _warn_and_clip(V0, "V0")
+        V0 = _warn_and_clip(V0, "V0", signed=True)
 
     # --- M0 -----------------------------------------------------------------
     M0 = Mold.reindex(index=act_index, columns=com_index).fillna(0.0)
@@ -1072,6 +1076,7 @@ def _split_columns_proportionally(
     regions: list[str],
     overrides: pd.DataFrame | None = None,
     label: str,
+    signed: bool = False,
 ) -> pd.DataFrame:
     """Create columns for new items with the parent's intensity; reduce the parent accordingly.
 
@@ -1096,7 +1101,7 @@ def _split_columns_proportionally(
         for region in regions:
             child_cols = [(region, child) for child, p in children.items() if p == parent]
             out[(region, parent)] = out[(region, parent)] - out[child_cols].sum(axis=1)
-    return _warn_and_clip(out, label)
+    return _warn_and_clip(out, label, signed=signed)
 
 
 def assemble_sut_split_flows(
@@ -1148,7 +1153,7 @@ def assemble_sut_split_flows(
     old_Xa, old_Xc = original.Xa, original.Xc
     act_children, com_children = structure.activity_parent, structure.commodity_parent
 
-    def _side(activity_columns, commodity_source, *, label):
+    def _side(activity_columns, commodity_source, *, label, signed=False):
         commodity_columns = _split_columns_proportionally(
             commodity_source,
             children=com_children,
@@ -1157,12 +1162,13 @@ def assemble_sut_split_flows(
             columns=com_index,
             regions=structure.regions,
             label=f"{label} (commodity columns)",
+            signed=signed,
         )
         out = pd.concat([activity_columns, commodity_columns], axis=1)
         out.columns = productive
         return out
 
-    V_full = _side(V.reindex(columns=act_index).fillna(0.0), original.Vc, label="V")
+    V_full = _side(V.reindex(columns=act_index).fillna(0.0), original.Vc, label="V", signed=True)
 
     overrides = _satellite_overrides(structure, priors, original.E.index, act_index)
     E_act = _split_columns_proportionally(

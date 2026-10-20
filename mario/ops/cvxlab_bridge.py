@@ -38,6 +38,8 @@ CVXLAB_TEMPLATE_PACKAGE = "mario.ops.cvxlab_models"
 CVXLAB_TEMPLATE_NAME = "Split_sectors"
 CVXLAB_RAW_TEXT_COLUMNS = {"description"}
 CVXLAB_OPTIMAL_STATUSES = {"optimal", "optimal_inaccurate"}
+# value added and final demand can be negative (e.g. production subsidies): thresholds use their magnitude
+_SIGNED_TABLES = {"V0", "Vold", "Yold"}
 
 
 def create_split_input_data(
@@ -1125,7 +1127,9 @@ def _write_input_data(
         for table_name, df in input_data.items():
             if table_name in {"Trade_selector", "tol", "Zero_use_mask", "Zero_supply_mask", "Zero_V_mask","Zero_Y_mask"} or "values" not in df.columns:
                 continue
-            input_data[table_name] = df.assign(values=df["values"].where(df["values"] >= threshold, 0))
+            # V and Y can be negative: compare their magnitude with the threshold
+            magnitude = df["values"].abs() if table_name in _SIGNED_TABLES else df["values"]
+            input_data[table_name] = df.assign(values=df["values"].where(magnitude >= threshold, 0))
 
     _write_input_data_files(
         dest_dir=dest_dir,
@@ -1299,8 +1303,9 @@ def _parse_split_results(dest_dir: Path, flat_matrices: dict[str, pd.DataFrame],
         threshold = float(residue)
         db_Z_supply["values"] = db_Z_supply["values"].where(db_Z_supply["values"] >= threshold, 0)
         db_Z_use["values"] = db_Z_use["values"].where(db_Z_use["values"] >= threshold, 0)
-        db_Y["values"] = db_Y["values"].where(db_Y["values"] >= threshold, 0)
-        db_V["values"] = db_V["values"].where(db_V["values"] >= threshold, 0)
+        # V and Y can be negative: compare their magnitude with the threshold
+        db_Y["values"] = db_Y["values"].where(db_Y["values"].abs() >= threshold, 0)
+        db_V["values"] = db_V["values"].where(db_V["values"].abs() >= threshold, 0)
 
     mapping = pd.read_excel(Path(dest_dir) / "mapping.xlsx", sheet_name=None, index_col=0)
     set_map = dict(zip(mapping["sets"].index.to_list(), mapping["sets"]["cvxlab"]))
