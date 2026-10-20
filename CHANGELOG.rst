@@ -8,6 +8,16 @@ package on PyPI, and dates are its publication dates.
 Unreleased
 ----------
 
+* ``to_iot`` converts native SUT blocks on their observed regional nodes, using
+  sparse products for B/D and batched supply solves for A/C instead of dense
+  diagonals, unified SUT views or inverses. B/D retain activity final demand and
+  both Activity/Commodity accounts, including allocation to direct final uses.
+  A/C require square, nonsingular supply and zero ``Ya``. Undefined zero-output
+  allocation raises an error naming the nodes; no pseudoinverse or data repair
+  is applied. Common dense cases retain their formulas, API and storage.
+* ``is_isard`` reads native ``U`` when no unified source is already cached and
+  sums sparse flows directly by regional labels, including unequal regional
+  domains and different row/column region orderings. No unified view is built.
 * ``to_chenery_moses`` transforms native SUT blocks using sparse allocation
   matrices instead of dense diagonals and unified ``Z`` views. Regional
   Activity memberships are preserved and only observed destination Commodity

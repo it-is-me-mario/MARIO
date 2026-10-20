@@ -671,8 +671,11 @@ class Database(CoreModel):
         Parameters
         ----------
         method:
-            SUT-to-IOT transformation method understood by the transformation
-            engine.
+            Eurostat method: ``A``/``B`` for product-by-product or ``C``/``D``
+            for industry-by-industry. Regional classifications need not be
+            uniform. ``A``/``C`` require square, invertible supply and zero
+            activity final demand. ``B``/``D`` preserve nonzero ``Ya`` and
+            accounts attached to either side of the SUT.
         inplace:
             When ``True``, mutate the current database. When ``False``, return
             a transformed copy.
@@ -681,6 +684,15 @@ class Database(CoreModel):
         -------
         Database | None
             Transformed database when ``inplace=False``, otherwise ``None``.
+
+        Notes
+        -----
+        Converts the baseline and drops other scenarios, retaining its public
+        name. Only observed regional nodes are used. Sparse input stays sparse;
+        no unified SUT transaction view or dense inverse is constructed.
+        Undefined allocation at a zero-output node with nonzero flows/accounts
+        raises ``WrongInput`` naming the nodes. Singular supply also raises an
+        error; no pseudoinverse, balancing or data correction is applied.
         """
         return transform_sut_to_iot(self, method, inplace=inplace)
 

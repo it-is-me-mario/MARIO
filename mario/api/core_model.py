@@ -3550,31 +3550,35 @@ class CoreModel:
         except WrongInput as exc:
             raise WrongInput("Acceptable data_sets are:\n{}".format(self.scenarios)) from exc
 
-        if self.has_matrix(
-            _ENUM.z, scenario=scenario
-        ):  # this avoid to calculate z or Z in case one of them is missing, to avoid losing time
-            matrix = self.get_block_as_pandas(_ENUM.z, scenario=scenario)
+        # Reuse an existing unified view, but never build one just for this
+        # test: native use already contains the required regional flows.
+        source = next(
+            (
+                name
+                for name in (_ENUM.z, _ENUM.Z)
+                if self.has_matrix(name, scenario=scenario)
+            ),
+            None,
+        )
+        if source is not None:
+            matrix = self.get_block_as_pandas(source, scenario=scenario)
+            matrix = matrix.loc[
+                (slice(None), _MASTER_INDEX["c"], slice(None)),
+                (slice(None), _MASTER_INDEX["a"], slice(None)),
+            ]
         else:
-            matrix = self._get_matrix(_ENUM.Z, scenario=scenario, auto_calc=True)
+            matrix = self._get_matrix(_ENUM.U, scenario=scenario, auto_calc=True)
 
-        sN = slice(None)
-        matrix = matrix.loc[
-            (sN, _MASTER_INDEX["c"], sN), (sN, _MASTER_INDEX["a"], sN)
-        ]  # extract the use side from z or Z
-        matrix = matrix.groupby(level=[_MASTER_INDEX["r"]]).sum()
-        matrix = matrix.T.groupby(level=[_MASTER_INDEX["r"]]).sum().T
+        from mario.ops.trades import sum_trade_regions
 
-        is_diagonal = np.all(matrix.values == np.diag(np.diagonal(matrix)))
-
-        if is_diagonal:
-            log_time(logger, "Test: table is not in Isard format")
-
-            return False
-
-        else:
-            log_time(logger, "Test: table is in Isard format")
-
-            return True
+        regional = sum_trade_regions(matrix)
+        off_diagonal = (
+            regional.index.to_numpy()[:, None] != regional.columns.to_numpy()[None, :]
+        )
+        isard = bool(np.any(regional.to_numpy()[off_diagonal] != 0))
+        message = "in" if isard else "not in"
+        log_time(logger, f"Test: table is {message} Isard format")
+        return isard
 
     def is_chenerymoses(self, scenario: str = "baseline") -> bool:
         """Test whether a multi-regional SUT follows the Chenery-Moses format.

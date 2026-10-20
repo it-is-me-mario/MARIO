@@ -126,9 +126,8 @@ path. Flattening original region-item identities into a single-region model
 would be a separate representation change; the exporter does not perform it.
 Direct SUT export still requires a SUT-to-IOT conversion first. The historical
 ``to_iot("B").to_pymrio()`` shape error below is replaced by this explicit
-capability error. The small ``to_iot("B")`` conversion itself completes, but
-the transformation engine still constructs dense matrices and has not been
-adapted for the complete Balanced bundle.
+capability error. SUT-to-IOT conversion is handled independently, as described
+in the follow-up below.
 
 ``pool_trade`` is also explicitly unsupported when Activity, Commodity or
 Consumption category classifications differ between regions. It raises
@@ -155,6 +154,47 @@ use/final-demand totals by Commodity code and buyer, Activity supply totals and
 account totals. The transformation requests no unified ``Z``/``Y`` views,
 diagonal matrices or inverse systems. Common dense cases retain dense output
 blocks. The historical transformation failure below predates these changes.
+
+``is_isard`` now mirrors the native supply-format check: it reuses an already
+cached unified source, otherwise reads native ``U``. Sparse regional sums use
+actual origin/destination names rather than assuming the same regional order
+or rectangular memberships. The complete Balanced table is detected as Isard
+without building ``Z`` or ``z``. The historical resource limit below predates
+this correction.
+
+``to_iot`` now operates on native blocks too. B/D use sparse products and retain
+the actual Commodity/Activity nodes as IOT Sectors, respectively. They preserve
+nonzero ``Ya`` by allocating eliminated flows and accounts to both intermediate
+and final uses. Activity and Commodity accounts are both retained; ``EY`` and
+``VY`` include accounts allocated to direct final uses. A/C use bounded batches
+of supply solves and require square, nonsingular supply and zero ``Ya``. No
+dense diagonal or inverse is constructed, and singular or undefined allocations
+raise explicit errors without pseudoinverses, balancing or source-data repairs.
+Dense common tables retain their storage and classical zero-``Ya`` formulas.
+Conversion still uses the baseline and drops other scenarios, as before.
+
+On the complete Balanced 20260615 bundle:
+
+* D completes with 51,356 observed Activity/Sector nodes, 267 final-demand
+  columns and 2,679,945 nonzero transactions in sparse ``Z``. Independent checks
+  retain original Activity output, account totals, units and regional membership,
+  and verify sampled output rows against commodity-by-commodity allocations.
+  The source blocks remain unchanged. The 21 original zero-output activities
+  remain zero-output sectors, including their original inputs/accounts; this
+  conversion does not assert or repair source balance.
+* B raises ``WrongInput`` for nine Activity nodes with zero output and nonzero
+  inputs/accounts. Six are ``A_MA_INCI_no_recov`` in DE, GB, HU, IT, NL and RO;
+  the others are ``A_CHEM`` in TW, ``A_BKBP`` in WF and ``A_Hempd`` in WM.
+  Allocating their inputs/emissions over products would require undefined
+  shares. They are neither silently discarded nor moved to an invented sink.
+* A/C raise ``NotImplementable`` because the original supply has 51,356 Activity
+  rows and 53,400 Commodity columns. Regional nonuniformity alone is not a
+  restriction: square, invertible nonuniform examples are covered separately.
+
+Small tests also verify B/D final-demand impacts against the original split
+linear system with nonzero ``Ya`` and both sides' accounts, and all four methods
+against their dense classical formulas. These are conversion checks, not a
+claim that all downstream IOT operations scale to a complete BONSAI IOT.
 
 Index contract
 --------------
