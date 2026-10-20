@@ -119,6 +119,17 @@ preserve unselected entries and actual axes and reject absent regional pairs.
 ``M_Artis`` is present on both classifications in the selected origins, so that
 trade example specifies ``level="Commodity"`` explicitly.
 
+``to_pymrio`` now reports nonuniform Sector or Consumption category
+classifications as unsupported before requesting matrices or creating an
+``IOSystem``. Common regional classifications retain their existing export
+path. Flattening original region-item identities into a single-region model
+would be a separate representation change; the exporter does not perform it.
+Direct SUT export still requires a SUT-to-IOT conversion first. The historical
+``to_iot("B").to_pymrio()`` shape error below is replaced by this explicit
+capability error. The small ``to_iot("B")`` conversion itself completes, but
+the transformation engine still constructs dense matrices and has not been
+adapted for the complete Balanced bundle.
+
 Index contract
 --------------
 

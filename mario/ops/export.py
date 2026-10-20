@@ -1055,10 +1055,22 @@ def export_database_to_pymrio(
     scenario: str = "baseline",
     **kwargs,
 ):
-    """Convert an IOT database into a pymrio.IOSystem."""
+    """Convert an IOT with common regional classifications into a pymrio.IOSystem."""
 
     if database.table_type != "IOT":
         raise NotImplementable("pymrio supports only IO tables.")
+
+    regional_sets = [
+        level
+        for level in (_MASTER_INDEX["s"], _MASTER_INDEX["n"])
+        if isinstance(database.get_index(level), dict)
+    ]
+    if regional_sets:
+        raise NotImplementable(
+            "to_pymrio does not support region-specific classifications for "
+            f"{', '.join(regional_sets)}. This exporter requires the same labels "
+            "in every region."
+        )
 
     if any([" " in item for item in [satellite_account, factor_of_production]]):
         raise WrongInput(

@@ -8,6 +8,10 @@ package on PyPI, and dates are its publication dates.
 Unreleased
 ----------
 
+* ``to_pymrio`` explicitly rejects region-specific Sector or Consumption
+  category classifications before querying matrices, instead of failing later
+  while expanding units. Common regional classifications retain their existing
+  export behavior. SUT-to-IOT conversion remains a separate operation.
 * ``update_supply_mix`` and ``update_trade_mix`` accept nonuniform regional
   classifications, validate actual region-item pairs and retain sparse storage.
   Missing explicitly requested origins raise an error even at zero weight;

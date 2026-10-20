@@ -4799,6 +4799,16 @@ class Database(CoreModel):
         -------
         object
             ``pymrio.IOSystem`` instance created from the selected scenario.
+
+        Notes
+        -----
+        This exporter supports IOT databases with the same Sector and
+        Consumption category labels in every region. Regional classifications
+        raise ``NotImplementable`` before matrix queries or object creation.
+
+        A single-region representation with original regions encoded in item
+        labels is a separate representation change and is not performed by
+        this exporter. SUT databases require a SUT-to-IOT conversion first.
         """
 
         return export_database_to_pymrio(
