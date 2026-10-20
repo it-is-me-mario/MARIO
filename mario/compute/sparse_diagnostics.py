@@ -4,6 +4,47 @@ import numpy as np
 from scipy.sparse.csgraph import connected_components
 
 
+class PartialResultWarning(RuntimeWarning):
+    """Some coefficients cannot be certified because the system is singular."""
+
+
+def component_details(index, components):
+    """Describe singular blocks without printing arbitrarily large node lists."""
+    return [
+        {"nodes": list(index.take(group[:20])), "count": len(group)}
+        for group in components
+    ]
+
+
+def raise_singular_system(index, components):
+    """Reject a singular system without changing its data or choosing a solution."""
+    raise np.linalg.LinAlgError(
+        "The linear system is singular at float64 precision. "
+        f"Singular production components: {component_details(index, components)!r}. "
+        "The source matrices have not been modified. A full inverse does not exist."
+    )
+
+
+def dependent_positions(lhs, seeds):
+    """Find variables depending on seeds in the actual system ``lhs @ x = b``.
+
+    A nonzero entry at (i, j) means x_i depends on x_j. Traverse columns to
+    rows, including descendants outside the singular strong components.
+    """
+    graph = lhs.tocsc(copy=True)
+    graph.eliminate_zeros()
+    affected = np.zeros(lhs.shape[0], dtype=bool)
+    pending = list(np.asarray(seeds, dtype=int))
+    affected[pending] = True
+    while pending:
+        column = pending.pop()
+        rows = graph.indices[graph.indptr[column]:graph.indptr[column + 1]]
+        new = rows[~affected[rows]]
+        affected[new] = True
+        pending.extend(new)
+    return np.flatnonzero(affected)
+
+
 def singular_components(lhs, *, components=None):
     """Find singular diagonal SCC blocks without a full dense rank calculation.
 

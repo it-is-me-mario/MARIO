@@ -136,6 +136,7 @@ from mario.parsers.entrypoints import (
 from mario.views.plots import set_palette
 
 from mario.log_exc import exceptions
+from mario.compute.sparse_diagnostics import PartialResultWarning
 from mario.test.mario_test import load_test
 from mario.utils import slicer
 from mario.download import *
@@ -147,6 +148,7 @@ from mario.settings.settings import (
     set_compute_method,
     set_linear_solver,
     set_linear_strategy,
+    set_singular_policy,
     Nomenclature,
     Index,
     IndexAliases,

@@ -102,6 +102,7 @@ DEFAULT_COMPUTE = {
     "compute_method": "inverse",
     "linear_solver": "scipy",
     "linear_strategy": "auto",
+    "singular_policy": "raise",
     "auto_w_memory_fraction": 0.25,
     "auto_w_overhead_factor": 3.0,
 }
@@ -109,6 +110,7 @@ DEFAULT_COMPUTE = {
 COMPUTE_METHODS = {"auto", "inverse", "solve"}
 LINEAR_SOLVERS = {"scipy", "umfpack"}
 LINEAR_STRATEGIES = {"auto", "direct", "iterative"}
+SINGULAR_POLICIES = {"raise", "partial"}
 
 
 def _as_alias_list(value):
@@ -210,6 +212,7 @@ def _validate_compute_payload(compute):
         ("compute_method", COMPUTE_METHODS),
         ("linear_solver", LINEAR_SOLVERS),
         ("linear_strategy", LINEAR_STRATEGIES),
+        ("singular_policy", SINGULAR_POLICIES),
     ):
         value = compute[key]
         if not isinstance(value, str) or value.strip().lower() not in choices:
@@ -434,6 +437,7 @@ class Compute(Setting):
             "compute_method",
             "linear_solver",
             "linear_strategy",
+            "singular_policy",
             "auto_w_memory_fraction",
             "auto_w_overhead_factor",
         ]
@@ -671,8 +675,11 @@ def set_linear_solver(solver: str):
     Sparse indices use 64 bits to avoid the native int32 factor allocation
     limit. The solver compares fill-reducing orderings before factorization.
     Singular components are checked before factorization and reported with
-    their node labels. Every result must still satisfy the original system's
-    relative residual threshold of ``1e-8``.
+    their node labels. By default they raise an error. An explicit
+    :func:`mario.set_singular_policy` of ``"partial"`` can instead return
+    independent coefficients with a warning and NaN at affected nodes.
+    Results satisfy a relative residual threshold of ``1e-8``, applied only
+    to retained equations when a partial result is requested.
     Install with ``conda install -c conda-forge scikit-umfpack``. With SuiteSparse
     already installed, ``pip install mariopy[umfpack]`` is also supported.
 
@@ -720,4 +727,47 @@ def set_linear_strategy(strategy: str):
     settings = download_settings(None)
     settings.setdefault("compute", {})
     settings["compute"]["linear_strategy"] = normalize_linear_strategy(strategy)
+    upload_settings(settings)
+
+
+def set_singular_policy(policy: str):
+    """Choose how solve-based calculations handle singular production systems.
+
+    Parameters
+    ----------
+    policy:
+        ``"raise"`` (default) reports singular components as an error.
+        ``"partial"`` solves only equations independent of those components,
+        retaining all axes and placing ``NaN`` at affected coefficients.
+        Partial results emit :class:`mario.PartialResultWarning` with the
+        singular node labels and the number of affected coefficients.
+
+    Notes
+    -----
+    Partial calculations require ``compute_method='solve'`` and a ``direct``
+    or ``auto`` linear strategy, with SciPy or UMFPACK. No data are changed,
+    and no pseudo-inverse, regularization or arbitrary zero values are used.
+    Only the retained equations satisfy the residual check; the full system
+    can be inconsistent or have nonunique solutions. Explicit inverse requests
+    still raise an error when the system is singular.
+
+    MARIO's compute reductions propagate undefined values. For reductions
+    performed directly on returned pandas objects, use ``skipna=False``;
+    pandas otherwise skips NaN by default. Matrices already materialized are
+    not recalculated by changing this setting.
+
+    Use ``ComputeOptions(singular_policy='partial')`` for a per-call override
+    instead of changing the session default.
+
+    Examples
+    --------
+    >>> mario.set_compute_method("solve")
+    >>> mario.set_singular_policy("partial")
+    >>> fc = db.fc  # warns if any coefficients cannot be determined
+    """
+    from mario.compute.runtime import normalize_singular_policy
+
+    normalized = normalize_singular_policy(policy)
+    settings = download_settings(None)
+    settings["compute"]["singular_policy"] = normalized
     upload_settings(settings)

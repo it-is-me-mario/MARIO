@@ -15,8 +15,52 @@ import pytest
 
 import mario
 from mario.compute.resolver import resolve
+from mario.compute.helpers import dense_values, matmul
+from mario.compute.resolver import resolve_many
 from mario.compute.types import ResolutionContext
 from mario.model.conventions import _MASTER_INDEX
+
+
+@pytest.mark.skipif(
+    not os.environ.get("MARIO_BONSAI_BALANCED_ZIP"),
+    reason="Set MARIO_BONSAI_BALANCED_ZIP to the local Balanced 20260615 ZIP.",
+)
+def test_balanced_20260615_partial_co2_fc_certifies_independent_equations():
+    """Solve the original HSUT with NaN only at the four affected commodities."""
+    from scipy import sparse
+    from mario.compute.sparse_diagnostics import PartialResultWarning
+
+    pytest.importorskip("scikits.umfpack")
+    with pytest.warns(UserWarning, match="362 elementary-flow rows"):
+        database = mario.parse_bonsai(os.environ["MARIO_BONSAI_BALANCED_ZIP"])
+    extension = "Carbon dioxide, fossil | Air | tonnes | 147f8e0a-3638-4a77-a029-45d8acba0184"
+    database.keep_extensions(extension)
+    context = ResolutionContext(
+        compute_method="solve", linear_solver="umfpack", linear_strategy="direct",
+        singular_policy="partial",
+    )
+    with pytest.warns(PartialResultWarning, match="4 of 53400") as recorded:
+        blocks = resolve_many(["fc", "u", "s", "ea", "ec"], database, context=context)
+    assert len(recorded) == 1
+    fc = blocks["fc"]
+    assert fc.shape == (1, 53_400)
+    affected = fc.isna().any(axis=0).to_numpy()
+    assert set(fc.columns[affected]) == {
+        ("TW", "Commodity", name)
+        for name in ("C_Beany", "M_Beany", "C_Eggs_ggs", "M_Eggs_ggs")
+    }
+    assert np.isfinite(fc.iloc[:, ~affected].to_numpy()).all()
+    u = blocks["u"].sparse.to_coo().tocsr()
+    s = blocks["s"].sparse.to_coo().tocsr()
+    lhs = (sparse.eye(u.shape[0], format="csc") - u @ s).T.tocsr()
+    rhs = dense_values(matmul(blocks["ea"], blocks["s"]) + blocks["ec"]).T
+    retained = np.flatnonzero(~affected)
+    lhs = lhs[retained, :][:, retained]
+    residual = lhs @ fc.iloc[:, retained].to_numpy().T - rhs[retained]
+    relative_residual = np.linalg.norm(residual) / np.linalg.norm(rhs[retained])
+    assert relative_residual <= 1e-8
+    assert not {"w", "wcc", "waa"}.intersection(database["baseline"])
+    print(f"BONSAI HSUT partial fc: 53396 finite, 4 NaN; relative residual={relative_residual:.3e}")
 
 
 @pytest.mark.skipif(

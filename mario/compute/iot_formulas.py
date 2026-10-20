@@ -15,7 +15,7 @@ from mario.compute.helpers import (
     matvec,
     require_same_columns,
     require_same_index,
-    safe_inverse,
+    leontief_inverse,
     safe_solve,
     scale_columns,
     scale_rows,
@@ -62,6 +62,15 @@ def _solve_iot_system(
     if isinstance(rhs, pd.DataFrame) and rhs.shape[1] == 0:
         return pd.DataFrame(index=z.index, columns=rhs.columns, dtype=float)
     options = effective_compute_options(context)
+    if options.singular_policy == "partial":
+        from mario.compute.linear_solvers import solve_sparse_system
+
+        choose_linear_strategy(size=z.shape[0], rhs_count=1, context=context)
+        return solve_sparse_system(
+            z, rhs, solver=options.linear_solver, transpose=transpose,
+            singular_policy="partial", cache=_resolver_linear_cache(resolver),
+            cache_key=("partial", id(z), bool(transpose), options.linear_solver),
+        )
     if options.linear_solver == "umfpack":
         from mario.compute.linear_solvers import solve_umfpack_system
 
@@ -78,6 +87,9 @@ def _solve_iot_system(
             cache_key=("iot", id(z), bool(transpose), "umfpack"),
         )
     if options.linear_solver == "scipy":
+        from mario.compute.linear_solvers import require_nonsingular_coefficients
+
+        require_nonsingular_coefficients(z)
         from scipy import sparse
         from scipy.sparse.linalg import LinearOperator, factorized, lgmres, lsmr
 
@@ -295,13 +307,13 @@ def build_iot_b_from_X_Z(X: pd.DataFrame, Z: pd.DataFrame) -> pd.DataFrame:
 def build_iot_g_from_b(b: pd.DataFrame) -> pd.DataFrame:
     """Build the Ghosh coefficients matrix ``g`` from ``b``."""
     validate_square(b)
-    return safe_inverse(identity_like(b) - b)
+    return leontief_inverse(b)
 
 
 def build_iot_w_from_z(z: pd.DataFrame) -> pd.DataFrame:
     """Build the Leontief inverse ``w = (I - z)^-1``."""
     validate_square(z)
-    return safe_inverse(identity_like(z) - z)
+    return leontief_inverse(z)
 
 
 def build_iot_w_from_z_solve(
@@ -312,6 +324,9 @@ def build_iot_w_from_z_solve(
 ) -> pd.DataFrame:
     """Build the Leontief inverse by solving ``(I - z) W = I``."""
     validate_square(z)
+    from mario.compute.linear_solvers import require_nonsingular_coefficients
+
+    require_nonsingular_coefficients(z)
     return _solve_iot_system(
         z,
         identity_like(z),

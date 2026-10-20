@@ -116,6 +116,16 @@ for the source quantities and independent two-by-two determinant checks. A
 change to the HSUT output convention requires an explicit mathematical policy;
 the solver neither changes source flows nor silently substitutes a solution.
 
+An explicit ``singular_policy='partial'`` is now available for solve-based
+IOT/SUT targets. It diagnoses singular components, follows their dependencies
+in the actual (possibly transposed) system, and solves only independent
+equations. All axes remain present, with NaN at affected coefficients and a
+``PartialResultWarning`` listing the singular nodes and affected count. The
+default remains ``'raise'``; complete inverse requests remain errors. This is
+a partial result, not a chosen solution of a potentially inconsistent full
+system. Compute reductions, products and sparse aggregation retain undefined
+values; direct pandas reductions require ``skipna=False``.
+
 ``update_supply_mix`` and ``update_trade_mix`` have also been adapted. Supply
 labels are validated in their specified region, while every trade item must
 exist in every explicitly listed origin, including zero-weight origins. Missing

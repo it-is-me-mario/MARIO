@@ -136,6 +136,8 @@ API reference
    ../api_document/mario.set_compute_method
    ../api_document/mario.set_linear_solver
    ../api_document/mario.set_linear_strategy
+   ../api_document/mario.set_singular_policy
+   ../api_document/mario.PartialResultWarning
    ../api_document/mario.set_log_verbosity
    ../api_document/mario.set_palette
    ../api_document/mario.slicer
