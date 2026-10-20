@@ -7,6 +7,7 @@ import hashlib
 import inspect
 import json
 import logging
+from contextlib import contextmanager
 from pathlib import Path
 
 from mario.api import Database
@@ -71,6 +72,7 @@ from mario.parsers.tabular import parse_pymrio
 from mario.parsers.handshake import parse_exiobase_3_9_4
 from mario.parsers.useeio import parse_useeio_sut
 from mario.parsers.wiod import parse_wiod_iot, parse_wiod_sut
+from mario.settings.settings import download_settings, upload_settings
 
 from mario.parsers.specs import (
     HMRSUT_EXTENSIONS,
@@ -142,6 +144,26 @@ logger = logging.getLogger(__name__)
 _GLORIA_CACHE_VERSION = "2026-03-25"
 
 
+@contextmanager
+def _parser_compute_settings(parser_name, **overrides):
+    """Keep a parser's session defaults only if its import completes."""
+    previous = download_settings()
+    configured = {**previous, "compute": {**previous["compute"], **overrides}}
+    if configured["compute"]["linear_solver"] == "umfpack":
+        from mario.compute.linear_solvers import load_umfpack
+
+        load_umfpack()
+    upload_settings(configured)
+    try:
+        yield
+    except BaseException:
+        upload_settings(previous)
+        raise
+    else:
+        selected = ", ".join(f"{key}={value}" for key, value in overrides.items())
+        log_time(logger, f"{parser_name} compute settings: {selected} (current Python session).", "info")
+
+
 def parse_bonsai(
     path: str | Path,
     *,
@@ -192,30 +214,45 @@ def parse_bonsai(
     Import diagnostics and satellite identities are stored in
     ``Database.info["bonsai"]`` or ``ModelState.metadata.extra["bonsai"]``.
     No archive extraction, pickle loading or automatic download is performed.
+
+    A successful import sets session compute defaults to ``compute_method='solve'``,
+    ``linear_solver='umfpack'``, ``linear_strategy='direct'`` and
+    ``singular_policy='partial'``, including when ``calc_all=True``. These defaults
+    also affect other databases in the same Python process; they can be changed
+    afterwards with the compute settings functions. Other settings and the saved
+    user profile are unchanged. UMFPACK requires ``scikit-umfpack`` and SuiteSparse
+    (``conda install -c conda-forge scikit-umfpack``); missing dependencies raise an
+    ImportError before reading the bundle. Failed imports restore prior settings.
+    Partial solves warn and return NaN at coefficients affected by singular
+    components, without changing source data.
     """
     validate_parse_request(table=table, model=model)
     if table != "SUT":
         raise NotImplementable("BONSAI parsing currently supports only Balanced HSUT (SUT) tables.")
-    matrices, indexes, units, layout = parse_bonsai_hsut(
-        path,
-        extensions=extensions,
-        unmatched_extensions=unmatched_extensions,
-        chunksize=chunksize,
-    )
-    result = models[model](
-        name=name or "BONSAI Balanced HSUT",
-        table="SUT",
-        source=layout.source,
-        year=layout.year,
-        init_by_parsers={"matrices": matrices, "_indeces": indexes, "units": units},
-        calc_all=calc_all,
-        notes=list(layout.notes),
-        **kwargs,
-    )
-    if model == "ModelState":
-        result.metadata.extra["bonsai"] = layout.report
-    else:
-        result.info["bonsai"] = layout.report
+    with _parser_compute_settings(
+        "BONSAI", compute_method="solve", linear_solver="umfpack",
+        linear_strategy="direct", singular_policy="partial",
+    ):
+        matrices, indexes, units, layout = parse_bonsai_hsut(
+            path,
+            extensions=extensions,
+            unmatched_extensions=unmatched_extensions,
+            chunksize=chunksize,
+        )
+        result = models[model](
+            name=name or "BONSAI Balanced HSUT",
+            table="SUT",
+            source=layout.source,
+            year=layout.year,
+            init_by_parsers={"matrices": matrices, "_indeces": indexes, "units": units},
+            calc_all=calc_all,
+            notes=list(layout.notes),
+            **kwargs,
+        )
+        if model == "ModelState":
+            result.metadata.extra["bonsai"] = layout.report
+        else:
+            result.info["bonsai"] = layout.report
     return result
 
 

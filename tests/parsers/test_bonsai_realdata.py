@@ -21,6 +21,9 @@ from mario.compute.types import ResolutionContext
 from mario.model.conventions import _MASTER_INDEX
 
 
+pytestmark = pytest.mark.usefixtures("isolated_session_settings")
+
+
 @pytest.mark.skipif(
     not os.environ.get("MARIO_BONSAI_BALANCED_ZIP"),
     reason="Set MARIO_BONSAI_BALANCED_ZIP to the local Balanced 20260615 ZIP.",
@@ -77,14 +80,10 @@ def test_balanced_20260615_partial_co2_fc_certifies_independent_equations():
         database = mario.parse_bonsai(os.environ["MARIO_BONSAI_BALANCED_ZIP"])
     extension = "Carbon dioxide, fossil | Air | tonnes | 147f8e0a-3638-4a77-a029-45d8acba0184"
     database.keep_extensions(extension)
-    context = ResolutionContext(
-        compute_method="solve", linear_solver="umfpack", linear_strategy="direct",
-        singular_policy="partial",
-    )
     with pytest.warns(PartialResultWarning, match="4 of 53400") as recorded:
-        blocks = resolve_many(["fc", "u", "s", "ea", "ec"], database, context=context)
+        fc = database.fc
+    blocks = resolve_many(["u", "s", "ea", "ec"], database)
     assert len(recorded) == 1
-    fc = blocks["fc"]
     assert fc.shape == (1, 53_400)
     affected = fc.isna().any(axis=0).to_numpy()
     assert set(fc.columns[affected]) == {
@@ -130,6 +129,7 @@ def test_balanced_20260615_demand_based_fc_reports_singular_components(monkeypat
     with pytest.raises(np.linalg.LinAlgError, match="singular") as error:
         resolve("fc", database, context=ResolutionContext(
             compute_method="solve", linear_solver="umfpack", linear_strategy="direct",
+            singular_policy="raise",
         ))
     assert all(label in str(error.value) for label in ["TW", "C_Beany", "M_Beany", "C_Eggs_ggs", "M_Eggs_ggs"])
     assert not {"fc", "wcc", "waa", "w"}.intersection(database.matrices["baseline"])

@@ -136,9 +136,10 @@ def test_single_region_and_common_sets_keep_exporting():
 
 
 def test_bonsai_small_to_iot_is_separate_from_unsupported_pymrio_export(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, bonsai_without_umfpack,
 ):
     sut = mario.parse_bonsai(_small_bundle(tmp_path / "balanced"))
+    mario.set_linear_solver("scipy")
     converted = sut.to_iot("B", inplace=False)
     assert sut.table_type == "SUT"
     assert converted.table_type == "IOT"

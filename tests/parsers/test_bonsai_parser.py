@@ -13,6 +13,9 @@ from mario.model.conventions import _MASTER_INDEX
 from mario.parsers.bonsai import parse_bonsai_hsut
 
 
+pytestmark = pytest.mark.usefixtures("bonsai_without_umfpack")
+
+
 def _bundle(root, *, unmatched=False):
     root.mkdir(parents=True)
     rows = [
@@ -163,8 +166,11 @@ def test_zip_nested_directory_and_public_models(balanced, tmp_path):
     )
     for name, frame in database.matrices["baseline"].items():
         pd.testing.assert_frame_equal(frame, state.get_block(name))
+    mario.reset_settings()
     database.parse_scenario("bonsai", path=balanced, new_scenario="second")
     assert "second" in database.scenarios
+    current = mario.download_settings()["compute"]
+    assert {key: current[key] for key in BONSAI_COMPUTE} == BONSAI_COMPUTE
     from mario.parsers import parse_bonsai
 
     assert parse_bonsai is mario.parse_bonsai
@@ -309,3 +315,95 @@ def test_invalid_bundle_and_table(balanced, tmp_path):
     _bundle(tmp_path / "another")
     with pytest.raises(WrongInput, match="exactly one BONSAI"):
         mario.parse_bonsai(tmp_path)
+
+
+BONSAI_COMPUTE = {
+    "compute_method": "solve", "linear_solver": "umfpack",
+    "linear_strategy": "direct", "singular_policy": "partial",
+}
+
+
+@pytest.mark.parametrize("model", ["Database", "ModelState"])
+@pytest.mark.parametrize("extensions", [True, False])
+def test_bonsai_sets_session_defaults_without_changing_other_or_saved_settings(
+    balanced, tmp_path, monkeypatch, model, extensions,
+):
+    monkeypatch.setenv("MARIO_CONFIG_DIR", str(tmp_path / "profile"))
+    before = mario.download_settings()
+    before["nomenclature"]["E"] = "Emissions"
+    before["compute"].update(linear_strategy="iterative", auto_w_memory_fraction=0.1)
+    mario.upload_settings(before, persist=True)
+    saved = mario.get_settings_path().read_bytes()
+
+    mario.parse_bonsai(balanced, model=model, extensions=extensions)
+
+    expected = {**before, "compute": {**before["compute"], **BONSAI_COMPUTE}}
+    assert mario.download_settings() == expected
+    assert mario.get_settings_path().read_bytes() == saved
+    mario.set_compute_method("inverse")
+    assert mario.download_settings()["compute"]["compute_method"] == "inverse"
+
+
+def test_bonsai_defaults_are_active_during_eager_calculations(balanced, monkeypatch):
+    observed = []
+
+    def calculate(self, *args, **kwargs):
+        observed.append(mario.download_settings()["compute"])
+
+    monkeypatch.setattr(mario.Database, "calc_all", calculate)
+    mario.parse_bonsai(balanced, calc_all=True)
+    assert observed
+    for settings in observed:
+        assert {key: settings[key] for key in BONSAI_COMPUTE} == BONSAI_COMPUTE
+
+
+@pytest.mark.parametrize("failure", ["read", "construct", "interrupt"])
+def test_failed_bonsai_import_restores_session_defaults(balanced, monkeypatch, failure):
+    from mario.parsers import entrypoints
+
+    before = mario.download_settings()
+    error = KeyboardInterrupt if failure == "interrupt" else RuntimeError
+
+    def fail(*args, **kwargs):
+        current = mario.download_settings()["compute"]
+        assert {key: current[key] for key in BONSAI_COMPUTE} == BONSAI_COMPUTE
+        raise error("Import interrupted")
+
+    if failure == "read":
+        monkeypatch.setattr(entrypoints, "parse_bonsai_hsut", fail)
+    else:
+        monkeypatch.setitem(entrypoints.models, "Database", fail)
+    with pytest.raises(error, match="Import interrupted"):
+        mario.parse_bonsai(balanced)
+    assert mario.download_settings() == before
+
+
+def test_missing_bonsai_solver_fails_before_reading_and_preserves_settings(balanced, monkeypatch):
+    from mario.compute import linear_solvers
+    from mario.parsers import entrypoints
+
+    before = mario.download_settings()
+
+    def missing():
+        raise ImportError("Install scikit-umfpack and SuiteSparse")
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("A missing solver must be detected before reading a large bundle")
+
+    monkeypatch.setattr(linear_solvers, "load_umfpack", missing)
+    monkeypatch.setattr(entrypoints, "parse_bonsai_hsut", forbidden)
+    with pytest.raises(ImportError, match="scikit-umfpack and SuiteSparse"):
+        mario.parse_bonsai(balanced)
+    assert mario.download_settings() == before
+
+
+def test_raw_bonsai_reader_does_not_change_session_defaults(balanced):
+    before = mario.download_settings()
+    parse_bonsai_hsut(balanced)
+    assert mario.download_settings() == before
+
+
+def test_other_parser_does_not_select_bonsai_defaults():
+    before = mario.download_settings()
+    mario.load_test("IOT")
+    assert mario.download_settings() == before

@@ -188,7 +188,9 @@ def test_aggregation_does_not_turn_undefined_values_into_zero(sparse_backed):
 
 
 @pytest.mark.parametrize("per_call", [False, True])
-def test_public_bonsai_fc_warns_and_footprints_and_custom_totals_preserve_nan(tmp_path, per_call):
+def test_public_bonsai_fc_warns_and_footprints_and_custom_totals_preserve_nan(
+    tmp_path, per_call, bonsai_without_umfpack,
+):
     from mario.compute import sum_operator
     from tests.parsers.test_bonsai_parser import _bundle
 
@@ -197,6 +199,8 @@ def test_public_bonsai_fc_warns_and_footprints_and_custom_totals_preserve_nan(tm
         mario.reset_settings()
         mario.set_compute_method("solve")
         database = mario.parse_bonsai(_bundle(tmp_path / "Balanced"))
+        mario.set_linear_solver("scipy")
+        mario.set_singular_policy("raise")
         database.keep_extensions(database.get_index("Satellite account")[:1])
         u, s = database.resolve_many(["u", "s"]).values()
         u = pd.DataFrame(0., index=u.index, columns=u.columns)

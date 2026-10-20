@@ -16,6 +16,9 @@ from mario.settings.settings import Compute, set_linear_solver
 from mario.test.mario_test import load_test
 
 
+pytestmark = pytest.mark.usefixtures("isolated_session_settings")
+
+
 @pytest.fixture
 def umfpack():
     return pytest.importorskip("scikits.umfpack")
@@ -226,9 +229,8 @@ def test_umfpack_bonsai_parser_with_different_regional_classifications(umfpack, 
     extension = database.get_index("Satellite account")[0]
     database.keep_extensions(extension)
 
-    result = resolve("fc", database, context=ResolutionContext(
-        compute_method="solve", linear_solver="umfpack", linear_strategy="direct",
-    ))
+    # Dotted access must use the parser's defaults without any user setters.
+    result = database.fc
 
     pdt.assert_frame_equal(result, expected.loc[[extension]], rtol=1e-8, atol=1e-10)
     assert not {"w", "wcc", "waa"}.intersection(database["baseline"])
