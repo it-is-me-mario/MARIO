@@ -76,6 +76,86 @@ below -1e-6 are rejected. Solver
 statuses, including ``optimal_inaccurate``, are retained in the checkpoint;
 acceptance also requires these independent numerical checks.
 
+Experimental convex split options
+---------------------------------
+
+``split_model_options=None`` retains the packaged IOT model. Experimental
+settings are applied only to the generated CVXLab directory; the template and
+supplied database are not rewritten. The same options work in a single IOT
+split and in sequential groups. SUT experiments are not supported.
+
+.. code-block:: python
+
+   options = {
+       "accounting": "inherit",
+       "value_added_loss": "signed_kl",
+       "final_demand_weight": 0.1,
+       "complete_intermediate_priors": True,
+       "check_feasibility": True,
+       "scale": 1000.0,
+   }
+   db.add_sectors(
+       "add_sectors.xlsx", split=True, intermediate_steps=True,
+       save_intermediates="new_run/checkpoints", solver="CLARABEL",
+       split_model_options=options,
+   )
+
+``accounting="inherit"`` replaces zero-discrepancy row/column equations with
+explicit inherited targets. For each preceding sector, its row discrepancy
+``sum(Z_row)+sum(Y_row)-X`` and column discrepancy ``sum(Z_col)+sum(V_col)-X``
+are allocated to the child/residual-parent family by fixed output shares. A
+zero-output family retains its discrepancy in the preceding parent. Their
+aggregate is unchanged and no discrepancy is optimized. This is an explicit
+allocation assumption, not a correction of the baseline. New discrepancies
+are checked separately against ``1e-6 + 1e-8 * abs(X)``. Inherited accounting
+requires ``eps=0`` and disables positive ``residue`` clipping.
+
+``value_added_loss`` accepts ``legacy`` (default), ``signed_kl`` or
+``quadratic``. Signed KL retains each prior's sign and includes the complete
+``x*log(x/q)-x+q`` divergence on magnitudes. Quadratic loss uses an explicit
+prior-sign constraint to retain the same admissible signs. Negative Capital or
+Labor priors still require source/economic review. Structural zero masks are
+preserved independently of the objective.
+
+``final_demand_weight`` (default 0) adds signed KL to a final-demand prior
+constructed by the existing deterministic split. Its signs therefore follow
+that split assumption; it is not a new empirical observation.
+``supply_weight`` (default 0) regularizes split-sector deliveries to stable
+buyers. ``complete_intermediate_priors=True`` additionally covers every free
+intermediate-input cell once and uses supply weight 1 when none is specified.
+Deferred supplier observations replace the corresponding supply priors instead
+of adding a second loss on the same cells. Weights are modelling preferences,
+not estimated sampling variances. Structural zeros are omitted from these KL
+terms to avoid unnecessary exponential cones.
+
+``flow_loss="quadratic"`` replaces KL on Z and Y with weighted squared
+deviations and requires complete intermediate priors. Combined with quadratic
+V it produces a QP, avoiding exponential cones. This is a different modelling
+criterion, not an equivalent entropy reformulation. Each squared deviation is
+divided by ``max(abs(prior), 1e-6*max(abs(prior)), 1e-8)`` within its free block,
+with the numerical floor adjusted for ``scale``. Structural zeros and the
+admissible signs are retained. The default ``flow_loss="kl"`` uses KL.
+
+``check_feasibility=True`` first solves an LP with the same affine constraints
+and all objective-implied domains. Its default solver is HiGHS, selected by
+``feasibility_solver``. An infeasible LP stops before entropy minimization and
+writes ``feasibility.json``. This establishes constraint feasibility only.
+
+``compact_constraints=True`` indexes structural/sign masks at their active
+coordinates and replaces exact two-sided bands with single equalities. These
+changes preserve the feasible set; nonzero empirical target bands remain bands.
+
+``scale`` (default 1) divides monetary solver inputs and restores solved flows
+before returning them. Numerical prior offsets scale with the flows. Baseline,
+inventory and checkpoint units remain unchanged. ``model_solution.json`` reports
+every explicit/domain constraint in original units. Nonfinite objective
+evaluation at a numerical domain boundary is reported explicitly; independent
+constraint and conservation checks still control acceptance. Solver status and
+this warning must be considered when assessing optimality.
+
+Checkpoint state retains the normalized options. Changing them after completed
+groups requires an earlier starting point and a fresh checkpoint directory.
+
 Checkpoint and resume
 ---------------------
 

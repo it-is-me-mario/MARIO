@@ -202,7 +202,7 @@ def _collapse(frame, parents):
     return frame
 
 
-def verify_preservation(before, after, parents, *, scenario="baseline"):
+def verify_preservation(before, after, parents, *, scenario="baseline", split_model_options=None):
     report = {}
     for name in ("Z", "Y", "V", "E", "X", "EY", "VY"):
         expected = before.resolve(name, scenario=scenario)
@@ -219,12 +219,30 @@ def verify_preservation(before, after, parents, *, scenario="baseline"):
             raise WrongInput(f"Step does not preserve preceding {name}: {report[name]}")
     z, v, x = (after.resolve(name) for name in ("Z", "V", "X"))
     sector_level = "Sector" if "Sector" in z.columns.names else "Item"
-    selected = z.columns.get_level_values(sector_level).isin(parents)
+    inherit = split_model_options and split_model_options['accounting'] == 'inherit'
+    selected = z.columns.get_level_values(sector_level).isin(
+        set(parents) | set(parents.values()) if inherit else parents)
     production = x.iloc[:, 0].reindex(z.columns[selected]).to_numpy(dtype=float)
     residual = (z.loc[:, selected].sum(axis=0) + v.loc[:, selected].sum(axis=0)).to_numpy(dtype=float) - production
-    passed = np.isfinite(residual).all() and (np.abs(residual) <= ATOL + RTOL * np.abs(production)).all()
+    expected = np.zeros(len(production))
+    if inherit:
+        from mario.ops.split_model import inherited_accounting
+        targets = inherited_accounting(before,x,parents,scenario=scenario)
+        expected = targets['column'].reindex(z.columns[selected]).to_numpy(dtype=float)
+        row_residual = after.resolve('Z').sum(axis=1)+after.resolve('Y').sum(axis=1)-x.iloc[:,0]
+        row_difference = row_residual-targets['row']
+        row_passed = np.isfinite(row_difference).all() and (
+            row_difference.abs() <= ATOL+RTOL*x.iloc[:,0].abs()).all()
+        report['inherited_row_accounting'] = {
+            'passed':bool(row_passed),'max_absolute_difference':float(row_difference.abs().max()),
+            'max_absolute_inherited_residual':float(targets['row'].abs().max())}
+        if not row_passed:
+            raise WrongInput(f"Step introduced row-accounting discrepancies: {report['inherited_row_accounting']}")
+    difference = residual-expected
+    passed = np.isfinite(difference).all() and (np.abs(difference) <= ATOL + RTOL * np.abs(production)).all()
     report["new_sector_column_accounting"] = {"passed": bool(passed),
-        "max_absolute_difference": float(np.abs(residual).max(initial=0))}
+        "max_absolute_difference": float(np.abs(difference).max(initial=0)),
+        "max_absolute_inherited_residual": float(np.abs(expected).max(initial=0))}
     if not passed:
         raise WrongInput(f"New-sector columns are not balanced: {report['new_sector_column_accounting']}")
     for name in ("Z", "Y"):
@@ -384,6 +402,15 @@ def load_checkpoint(path):
         if source.resolve().is_relative_to(path.resolve()) is False or _digest(source) != digest:
             raise WrongInput(f"Checkpoint file changed or is incomplete: {relative}")
     database = mario.parse_from_parquet(str(path / "database" / "flows"), table="IOT", mode="flows")
+    if (state.get('split_model_options') or {}).get('accounting') == 'inherit':
+        # The generic flow parser treats X as derived. Here it is an audited
+        # independent target, which must survive serialization and resume.
+        output = pd.read_parquet(path/'database'/'flows'/'X.parquet')
+        if (not output.index.equals(database.Z.index) or output.shape[1]!=1
+                or not np.isfinite(output.to_numpy()).all() or (output.to_numpy()<0).any()):
+            raise WrongInput('Invalid independent output in inherited-accounting checkpoint.')
+        database.reset_to_flows('baseline')
+        database.matrices['baseline']['X'] = output
     database._intermediate_steps_state = state
     return database
 
@@ -410,6 +437,9 @@ def run_intermediate_steps(instance, *, io, scenario, inplace, split, save_inter
         workbook, _ = load_add_sector_workbook_input(io, table="IOT", read_inventories=True, split=True)
     state = getattr(instance, "_intermediate_steps_state", {})
     completed = state.get("completed_sectors", [])
+    model_options = options.get('split_model_options')
+    if completed and state.get('split_model_options') != model_options:
+        raise WrongInput('Split model options changed; restart before the completed steps.')
     plan, parents = validate_plan(workbook, target.get_index("Sector"), completed=completed)
     if stop_after_step is not None and stop_after_step not in [name for name, _ in plan]:
         raise WrongInput("stop_after_step must name a pending group in Intermediate steps.")
@@ -447,7 +477,8 @@ def run_intermediate_steps(instance, *, io, scenario, inplace, split, save_inter
                 candidate.add_sectors(io="inventories", scenario=scenario, split=True, **solve_options)
             finally:
                 candidate.__dict__.pop("_intermediate_refinement", None)
-            preservation = verify_preservation(target, candidate, {s: parents[s] for s in sectors}, scenario=scenario)
+            preservation = verify_preservation(target, candidate, {s: parents[s] for s in sectors}, scenario=scenario,
+                                               split_model_options=model_options)
             candidate.to_parquet(path=staging / "database", flows=True, coefficients=False, include_meta=True)
             write_workbook_payload(_remaining(workbook, candidate.get_index("Sector")),
                                    staging / "remaining_add_sectors.xlsx", instance=candidate)
@@ -462,6 +493,7 @@ def run_intermediate_steps(instance, *, io, scenario, inplace, split, save_inter
                      "refinement_prior_cells": refinement_count,
                      "runtime": {p: version(p) for p in ("mariopy", "cvxlab", "pandas", "cvxpy")},
                      "solver_status": getattr(candidate, "_last_split_status", []),
+                     "split_model_options": model_options,
                      "tolerances": {"absolute": ATOL, "relative": RTOL},
                      "files": {str(p.relative_to(staging)): _digest(p)
                                for p in (staging / "database").rglob("*") if p.is_file()}}

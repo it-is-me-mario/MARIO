@@ -189,3 +189,63 @@ def test_grouped_split_inplace_false_preserves_the_original(tmp_path, negative_i
     if negative_inventory:
         for sector in ('Parent', 'Mining', 'Refining'):
             assert result.Y.loc[('R1', 'Sector', sector)].iloc[0] <= 1e-6
+
+
+@pytest.mark.parametrize('compact',[False,True])
+@pytest.mark.parametrize('loss',['kl','quadratic'])
+def test_inherited_accounting_signed_priors_and_scaling_across_two_steps(tmp_path,compact,loss):
+    """Preserve a nonclosed baseline, signed taxes and stocks without new error."""
+    db = balanced_database()
+    supplied_output = db.X.copy()
+    v = db.V.copy()
+    v.loc['Value added'] += 2.
+    v.loc['Value added',('R1','Sector','Parent')] += .25
+    v.loc['Tax'] = -2.
+    import copy
+    units = copy.deepcopy(db.units)
+    units['Factor of production'].loc['Tax','unit'] = 'M USD'
+    y = db.Y.copy()
+    y.iloc[0] = [-2.,42.125]
+    db = mario.Database(name='Inherited signed fixture',table='IOT',Z=db.Z,Y=y,V=v,E=db.E,EY=db.EY,units=units)
+    db.reset_to_flows('baseline')
+    db.matrices['baseline']['X'] = supplied_output
+    source = workbook(db,tmp_path/'input.xlsx')
+    frames = pd.read_excel(source,sheet_name=None)
+    coefficient = float(db.v.loc['Tax',('R1','Sector','Parent')])
+    for name,frame in frames.items():
+        if name.startswith('INV_'):
+            # Child source priors are balanced; the supplied parent discrepancy
+            # remains in the baseline and is allocated explicitly by the model.
+            frame.loc[frame['Item type'].eq('Factor of production'),'Quantity'] -= .25/84.
+            frame.loc[len(frame)] = [coefficient,'M USD','Tax','Factor of production','Tax',None,'Update']
+    with pd.ExcelWriter(source,engine='openpyxl') as writer:
+        for name,frame in frames.items():
+            frame.to_excel(writer,sheet_name=name,index=False)
+    options = dict(accounting='inherit',value_added_loss='signed_kl',final_demand_weight=.1,
+                   complete_intermediate_priors=True,check_feasibility=True,scale=10.,compact_constraints=compact)
+    if loss=='quadratic':
+        options.update(value_added_loss='quadratic',flow_loss='quadratic')
+    with pytest.raises(WrongInput,match='feasibility check returned infeasible'):
+        db.add_sectors(source,split=True,intermediate_steps=True,inplace=False,
+                       save_intermediates=tmp_path/'strict',solver='CLARABEL',
+                       split_model_options=dict(check_feasibility=True,scale=10.))
+    solve = dict(split=True,intermediate_steps=True,inplace=False,
+                 save_intermediates=tmp_path/'checkpoints',solver='CLARABEL',split_model_options=options,
+                 solver_parameters={'tol_gap_abs':1e-10,'tol_feas':1e-10,'tol_gap_rel':1e-10})
+    partial = db.add_sectors(source,stop_after_step='Mine first',**solve)
+    reloaded = load_checkpoint(tmp_path/'checkpoints/001_Mine_first')
+    pd.testing.assert_frame_equal(reloaded.X,partial.X)
+    result = reloaded.add_sectors(source,**solve)
+    normalized = result._intermediate_steps_state['split_model_options']
+    report = verify_preservation(db,result,{'Mining':'Parent','Refining':'Parent'},split_model_options=normalized)
+    assert all(record['passed'] for record in report.values())
+    assert report['new_sector_column_accounting']['max_absolute_inherited_residual']>0
+    assert report['inherited_row_accounting']['max_absolute_inherited_residual']>0
+    assert float(db.V.loc['Tax',('R1','Sector','Parent')])==-2.
+    for sector in ('Parent','Mining','Refining'):
+        assert float(result.V.loc['Tax',('R1','Sector',sector)])<0
+        assert float(result.Y.loc[('R1','Sector',sector)].iloc[0])<=1e-6
+    restored = load_checkpoint(tmp_path/'checkpoints/002_Refine_second')
+    pd.testing.assert_frame_equal(restored.X,result.X)
+    with pytest.raises(WrongInput,match='options changed'):
+        restored.add_sectors(source,split=True,intermediate_steps=True,save_intermediates=tmp_path/'forbidden')

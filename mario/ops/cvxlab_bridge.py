@@ -39,7 +39,7 @@ CVXLAB_TEMPLATE_NAME = "Split_sectors"
 CVXLAB_RAW_TEXT_COLUMNS = {"description"}
 CVXLAB_OPTIMAL_STATUSES = {"optimal", "optimal_inaccurate"}
 # value added and final demand can be negative (e.g. production subsidies): thresholds use their magnitude
-_SIGNED_TABLES = {"V0", "Vold", "Yold"}
+_SIGNED_TABLES = {"V0", "Vold", "Yold", "Y0", "RowResidual", "ColumnResidual"}
 
 
 def create_split_input_data(
@@ -50,6 +50,7 @@ def create_split_input_data(
     input_data_files_type: str = "csv",
     model_dir_name: str = CVXLAB_SPLIT_MODEL_NAME,
     residue=None,
+    split_model_options=None,
 ) -> Path:
     """Generate the CVXLab model directory and input data for split sectors."""
 
@@ -68,6 +69,7 @@ def create_split_input_data(
         scenario_label=scenario_label,
         model_dir_name=model_dir_name,
         input_data_files_type=input_data_files_type,
+        split_model_options=split_model_options,
     )
     _write_input_data(
         instance,
@@ -78,6 +80,7 @@ def create_split_input_data(
         scenario_label=scenario_label,
         input_data_files_type=input_data_files_type,
         residue=residue,
+        split_model_options=split_model_options,
     )
     return dest_dir
 
@@ -92,6 +95,7 @@ def optimize_split_in_cvxlab(
     solver_parameters=None,
     model_dir_name: str = CVXLAB_SPLIT_MODEL_NAME,
     residue=None,
+    split_model_options=None,
 ) -> dict[str, pd.DataFrame]:
     """Run the split optimization in CVXLab and return optimized MARIO matrices."""
 
@@ -110,6 +114,7 @@ def optimize_split_in_cvxlab(
         scenario_label=scenario_label,
         model_dir_name=model_dir_name,
         input_data_files_type=input_data_files_type,
+        split_model_options=split_model_options,
     )
     _write_input_data(
         instance,
@@ -120,15 +125,17 @@ def optimize_split_in_cvxlab(
         scenario_label=scenario_label,
         input_data_files_type=input_data_files_type,
         residue=residue,
+        split_model_options=split_model_options,
     )
 
     solver = _resolve_split_solver(solver)
-    _run_split_model(model, dest_dir=dest_dir, solver=solver, solver_parameters=solver_parameters)
+    _run_split_model(model, dest_dir=dest_dir, solver=solver, solver_parameters=solver_parameters,
+                     split_model_options=split_model_options)
     instance._last_split_status = _cvxlab_problem_status_values(model.core.problem.problem_status)
     return _parse_split_results(dest_dir, flat_matrices, residue=residue)
 
 
-def _run_split_model(model, *, dest_dir: Path, solver, solver_parameters) -> None:
+def _run_split_model(model, *, dest_dir: Path, solver, solver_parameters, split_model_options=None) -> None:
     """Load the input data, solve the CVXLab split model and store its results.
 
     Shared by the IOT and SUT split bridges.
@@ -151,6 +158,8 @@ def _run_split_model(model, *, dest_dir: Path, solver, solver_parameters) -> Non
                 force_overwrite=True,
             )
 
+        from mario.ops.split_model import check_feasibility
+        check_feasibility(model, dest_dir, split_model_options)
         run_model_signature = inspect.signature(model.run_model).parameters
         run_kwargs = _solver_verbosity_kwargs(model)
         if "solution_mode" in run_model_signature:
@@ -174,6 +183,9 @@ def _run_split_model(model, *, dest_dir: Path, solver, solver_parameters) -> Non
             raise WrongInput(
                 "CVXLab split optimization did not solve optimally. Check the generated model directory for details."
             )
+
+        from mario.ops.split_model import verify_model_solution
+        verify_model_solution(model, dest_dir, split_model_options)
 
         model.load_results_to_database(force_overwrite=True)
 
@@ -233,13 +245,24 @@ def _prepare_split_model_inputs(
     scenario_label: str,
     model_dir_name: str,
     input_data_files_type: str,
+    split_model_options=None,
 ):
     dest_dir = _prepare_split_model_directory(main_dir_path=main_dir_path, model_dir_name=model_dir_name)
+    from mario.ops.split_model import configure_model
+    configure_model(dest_dir / "model_settings.xlsx", split_model_options)
     refinement = getattr(instance, "_intermediate_refinement", None)
     if refinement is not None:
         _configure_sequential_domains(dest_dir / "model_settings.xlsx")
-    if refinement is not None and not refinement.empty:
+    has_supply_prior = split_model_options and (split_model_options['supply_weight'] or split_model_options['complete_intermediate_priors'])
+    if refinement is not None and not refinement.empty and not has_supply_prior:
         _configure_refinement_objective(dest_dir / "model_settings.xlsx")
+    from mario.ops.split_model import compact_model
+    if split_model_options and split_model_options['compact_constraints']:
+        tolerance = instance.split_info[ADD_SECTOR_SPLIT_TOLERANCE_SHEET]
+        delta = tolerance.loc[tolerance[ADD_SECTOR_SPLIT_TOLERANCE_COLUMNS['name']].eq('delta'),
+                              ADD_SECTOR_SPLIT_TOLERANCE_COLUMNS['value']]
+        compact_model(dest_dir / 'model_settings.xlsx', split_model_options,
+                      exact_trade=bool(len(delta) and delta.eq(0).all()))
     mapping = pd.read_excel(dest_dir / "mapping.xlsx", sheet_name=None, index_col=0)
 
     model = _build_cvxlab_model(
@@ -927,6 +950,7 @@ def _write_input_data(
     scenario_label: str,
     input_data_files_type: str,
     residue=None,
+    split_model_options=None,
 ) -> None:
     """Fill the blank CVXLab input data with MARIO split data."""
     split_scenario = f"split_{scenario_label}"
@@ -941,7 +965,7 @@ def _write_input_data(
     set_map = dict(zip(mapping["sets"].index.to_list(), mapping["sets"]["cvxlab"]))
 
     refinement = getattr(instance, "_intermediate_refinement", None)
-    if refinement is not None and not refinement.empty:
+    if refinement is not None and not refinement.empty and "Z_refine" in input_data:
         for name in ("Z_refine", "Refine_selector"):
             updates = refinement.copy()
             if name == "Refine_selector":
@@ -1211,6 +1235,9 @@ def _write_input_data(
         input_data["Zero_V_mask"], parent_vrow_zeros, join_cols=v_join_cols
     )
 
+    from mario.ops.split_model import fill_model_inputs, FLOW_TABLES
+    fill_model_inputs(instance, input_data, flat_matrices, set_map, scenario_label, split_model_options)
+
     #Remove values below the residue threshold, if specified.
     if residue is not None:
         threshold = float(residue)
@@ -1220,6 +1247,10 @@ def _write_input_data(
             # V and Y can be negative: compare their magnitude with the threshold
             magnitude = df["values"].abs() if table_name in _SIGNED_TABLES else df["values"]
             input_data[table_name] = df.assign(values=df["values"].where(magnitude >= threshold, 0))
+
+    if split_model_options is not None:
+        for table_name in FLOW_TABLES & input_data.keys():
+            input_data[table_name]["values"] /= split_model_options['scale']
 
     _write_input_data_files(
         dest_dir=dest_dir,
@@ -1386,6 +1417,13 @@ def _parse_split_results(dest_dir: Path, flat_matrices: dict[str, pd.DataFrame],
     db_Y = pd.read_sql_query("SELECT * FROM Y", conn).drop(columns=["id"])
     db_V = pd.read_sql_query("SELECT * FROM V", conn).drop(columns=["id"])
     conn.close()
+
+    options_path = Path(dest_dir) / 'split_model_options.json'
+    if options_path.exists():
+        import json
+        scale = json.loads(options_path.read_text())['scale']
+        for frame in (db_Z_supply, db_Z_use, db_Y, db_V):
+            frame['values'] *= scale
 
     #Remove values below the residue threshold, if specified.
     if residue is not None:

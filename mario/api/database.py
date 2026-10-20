@@ -4865,6 +4865,7 @@ class Database(CoreModel):
         intermediate_steps=False,
         save_intermediates=None,
         stop_after_step=None,
+        split_model_options=None,
     ):
         """Apply the add-sectors workbook to the selected scenario.
 
@@ -4947,6 +4948,11 @@ class Database(CoreModel):
             Optional pending group name at which to return after saving its
             checkpoint. Later groups remain in the remaining workbook. Requires
             intermediate_steps=True; None executes every pending group.
+        split_model_options:
+            Optional experimental IOT model settings. ``accounting='inherit'``
+            preserves supplied accounting discrepancies by fixed output shares;
+            optional convex losses, prior coverage, LP feasibility and numerical
+            scaling are configured independently. None retains the packaged model.
 
         Notes
         -----
@@ -4966,6 +4972,12 @@ class Database(CoreModel):
         commodities (nested ``{"Activity": {...}, "Commodity": {...}}`` mappings
         are accepted to disambiguate equal labels).
         """
+        from mario.ops.split_model import normalize_options
+        split_model_options = normalize_options(split_model_options)
+        if split_model_options is not None and (not split or self.table_type != "IOT"):
+            raise WrongInput("split_model_options currently requires an IOT and split=True.")
+        if split_model_options and split_model_options['accounting']=='inherit' and residue is not None and residue>0:
+            raise WrongInput("Inherited accounting preserves supplied flows: use residue=None rather than clipping them.")
         if intermediate_steps:
             from mario.ops.add_sector_steps import run_intermediate_steps
             return run_intermediate_steps(
@@ -4978,7 +4990,8 @@ class Database(CoreModel):
                              only_input_data_gen=only_input_data_gen, solver=solver,
                              solver_parameters=solver_parameters, parent_name=parent_name,
                              parent_names=parent_names, residue=residue, VA_fix=VA_fix,
-                             accept_non_unitary_sum=accept_non_unitary_sum),
+                             accept_non_unitary_sum=accept_non_unitary_sum,
+                             split_model_options=split_model_options),
             )
         if save_intermediates is not None:
             raise WrongInput("save_intermediates requires intermediate_steps=True.")
@@ -5004,6 +5017,7 @@ class Database(CoreModel):
                 residue=residue,
                 VA_fix=VA_fix,
                 accept_non_unitary_sum=accept_non_unitary_sum,
+                split_model_options=split_model_options,
             )
             return new
 
@@ -5109,6 +5123,10 @@ class Database(CoreModel):
 
             stage = "collecting add-sectors reference matrices"
             original_reference = collect_add_sector_matrices(self, scenario=scenario) if split else None
+            reference_output = (
+                self.resolve(_ENUM['X'],scenario=scenario).copy()
+                if split_model_options and split_model_options['accounting']=='inherit' else None
+            )
 
             # add_sectors' positional groupbys drop the MultiIndex level names;
             # snapshot the original per-matrix axis names now so we can restore them
@@ -5196,6 +5214,12 @@ class Database(CoreModel):
                 m.columns = m.columns.set_names(col_names)
 
         if split and self.meta.table == "IOT":
+            if reference_output is not None:
+                # Supplied output is an independent accounting target. Inferring
+                # it again from coefficients/Y would close inherited row errors
+                # and can turn numerical zero-output sectors negative on resume.
+                baseline[_ENUM['X']] = reference_output.reindex(
+                    new_matrices[_ENUM['z']].columns,fill_value=0.)
             self.matrices = {
                 "baseline": baseline,
                 "original": {
@@ -5207,6 +5231,8 @@ class Database(CoreModel):
                     _ENUM["VY"]: original_reference[_ENUM["VY"]],
                 },
             }
+            if reference_output is not None:
+                self.matrices['original'][_ENUM['X']] = reference_output
         else:
             self.matrices = {"baseline": baseline}
         self.units = new_units
@@ -5250,6 +5276,7 @@ class Database(CoreModel):
                     scenario_label=scenario,
                     input_data_files_type=input_data_files_type,
                     residue=residue,
+                    split_model_options=split_model_options,
                 )
                 self.meta._add_history(
                     f"Database: CVXLab split input data generated in '{dest_dir}'."
@@ -5263,6 +5290,7 @@ class Database(CoreModel):
                     solver=solver,
                     solver_parameters=solver_parameters,
                     residue=residue,
+                    split_model_options=split_model_options,
                 )
                 split_cvxlab = {
                     _ENUM["Z"]: optimized.get(_ENUM["Z"], self.matrices[split_scenario][_ENUM["Z"]]),
@@ -5272,10 +5300,13 @@ class Database(CoreModel):
                     _ENUM["EY"]: self.matrices[split_scenario][_ENUM["EY"]],
                     _ENUM["VY"]: self.matrices[split_scenario][_ENUM["VY"]],
                 }
-                split_cvxlab[_ENUM["X"]] = calc_X(
-                    split_cvxlab[_ENUM["Z"]],
-                    split_cvxlab[_ENUM["Y"]],
-                )
+                if split_model_options and split_model_options['accounting'] == 'inherit':
+                    split_cvxlab[_ENUM["X"]] = self.matrices[split_scenario][_ENUM["X"]].copy()
+                else:
+                    split_cvxlab[_ENUM["X"]] = calc_X(
+                        split_cvxlab[_ENUM["Z"]],
+                        split_cvxlab[_ENUM["Y"]],
+                    )
                 self.matrices["split_cvxlab"] = split_cvxlab
                 self.meta._add_history(
                     "Database: new scenario 'split_cvxlab' defined with optimized split-sector flows."
