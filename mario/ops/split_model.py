@@ -147,6 +147,35 @@ def model_masked_values(a, mask):
     return cp.reshape(a,(a.size,),order='C')[positions] if positions.size else cp.Constant(0.)
 
 
+def proportional_row_reference(table, original, outputs, previous_outputs, parents):
+    """Joint output-share prior for Y or deliveries to unchanged buyers.
+
+    Always read the preceding parent row, never a row already reduced by an
+    earlier child. This makes the reference independent of child ordering and
+    conserves each preceding cell across the child/residual-parent family.
+    """
+    keys = [column for column in table.columns if column not in ('id','values')]
+    source = table[keys].copy()
+    source['sector_from_Name'] = source['sector_from_Name'].map(lambda name:parents.get(name,name))
+    values = original.set_index(keys)['values'].reindex(pd.MultiIndex.from_frame(source)).to_numpy()
+
+    def output_series(frame):
+        return pd.Series(frame.iloc[:,0].to_numpy(),index=pd.MultiIndex.from_tuples(
+            [(label[0],label[-1]) for label in frame.index]))
+
+    target_index = pd.MultiIndex.from_frame(table[['region_from_Name','sector_from_Name']])
+    source_index = pd.MultiIndex.from_frame(source[['region_from_Name','sector_from_Name']])
+    numerator = output_series(outputs).reindex(target_index).to_numpy(dtype=float)
+    denominator = output_series(previous_outputs).reindex(source_index).to_numpy(dtype=float)
+    share = np.divide(numerator,denominator,
+                      out=table['sector_from_Name'].eq(source['sector_from_Name']).to_numpy(dtype=float),
+                      where=denominator>0)
+    if (not np.isfinite(values).all() or not np.isfinite(numerator).all()
+            or not np.isfinite(denominator).all() or (numerator<0).any() or (denominator<0).any()):
+        raise WrongInput('Incomplete or invalid preceding row/output reference for split priors.')
+    return table.assign(values=values*share)
+
+
 def configure_model(path, options):
     """Extend only the generated CVXLab configuration, never its template."""
     if options is None:
@@ -285,8 +314,14 @@ def fill_model_inputs(instance, input_data, flat_matrices, set_map, scenario_lab
     split = f'split_{scenario_label}'
     for name,matrix in [('Y0','Y'),('Z_use0','Z'),('Z_supply0','Z')]:
         if name in input_data:
-            values = flat_matrices[matrix].query('Scenario == @split').drop(columns=['Scenario'])
-            input_data[name] = _merge_cvxlab_input_table(input_data[name],_rename_flat_columns(values,set_map),table_name=name)
+            if name=='Z_use0':
+                values = flat_matrices[matrix].query('Scenario == @split').drop(columns=['Scenario'])
+                input_data[name] = _merge_cvxlab_input_table(input_data[name],_rename_flat_columns(values,set_map),table_name=name)
+            else:
+                original = flat_matrices[matrix].query("Scenario == 'original'").drop(columns=['Scenario'])
+                input_data[name] = proportional_row_reference(
+                    input_data[name],_rename_flat_columns(original,set_map),instance.matrices[split]['X'],
+                    instance.resolve('X',scenario='original'),_split_parent_lookup(instance))
     refinement = getattr(instance,'_intermediate_refinement',None)
     if 'Z_supply0' in input_data and refinement is not None and not refinement.empty:
         keys = ['region_from_Name','sector_from_Name','region_to_Name','sector_to_Name']

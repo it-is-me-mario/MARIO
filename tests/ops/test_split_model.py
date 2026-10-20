@@ -9,7 +9,8 @@ import pytest
 
 from mario.log_exc.exceptions import WrongInput
 from mario.ops.split_model import (check_feasibility, inherited_accounting, model_signed_kl,
-                                   model_quadratic, model_prior_signed_values, normalize_options)
+                                   model_quadratic, model_prior_signed_values, normalize_options,
+                                   proportional_row_reference)
 
 
 def test_signed_kl_keeps_an_already_consistent_mixed_sign_prior():
@@ -84,3 +85,21 @@ def test_feasibility_reports_sparse_parameter_domains(tmp_path):
     check_feasibility(model,tmp_path,normalize_options({'check_feasibility':True}))
     report = json.loads((tmp_path/'feasibility.json').read_text())[0]
     assert report['status']=='optimal' and report['max_constraint_violation_scaled']<1e-8
+
+
+@pytest.mark.parametrize('total,split',[(10.,[4.,2.,4.]),(0.,[0.,0.,0.])])
+def test_joint_row_priors_preserve_signed_totals_and_ignore_child_order(total,split):
+    old_x = pd.DataFrame({'production':[total]},index=pd.MultiIndex.from_tuples([('R','Sector','P')]))
+    new_x = pd.DataFrame({'production':split},index=pd.MultiIndex.from_tuples(
+        [('R','Sector',s) for s in ['P','A','B']]))
+    original = pd.DataFrame([['R','P','C1',-2.],['R','P','C2',12.]],
+                            columns=['region_from_Name','sector_from_Name','category','values'])
+    table = pd.DataFrame([['R',s,c,0.] for s in ['B','P','A'] for c in ['C2','C1']],columns=original.columns)
+    actual = proportional_row_reference(table,original,new_x,old_x,{'A':'P','B':'P'})
+    shares = [1.,0.,0.] if total==0 else np.array(split)/total
+    for s,share in zip(['P','A','B'],shares):
+        np.testing.assert_allclose(actual.loc[actual.sector_from_Name.eq(s),'values'],[12.*share,-2.*share])
+    np.testing.assert_allclose(actual.groupby('category')['values'].sum(),[-2.,12.])
+    reverse = proportional_row_reference(table.iloc[::-1].reset_index(drop=True),original,new_x,old_x,{'A':'P','B':'P'})
+    pd.testing.assert_frame_equal(actual.sort_values(['sector_from_Name','category']).reset_index(drop=True),
+                                  reverse.sort_values(['sector_from_Name','category']).reset_index(drop=True))

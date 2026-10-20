@@ -231,7 +231,9 @@ def test_inherited_accounting_signed_priors_and_scaling_across_two_steps(tmp_pat
                        split_model_options=dict(check_feasibility=True,scale=10.))
     solve = dict(split=True,intermediate_steps=True,inplace=False,
                  save_intermediates=tmp_path/'checkpoints',solver='CLARABEL',split_model_options=options,
-                 solver_parameters={'tol_gap_abs':1e-10,'tol_feas':1e-10,'tol_gap_rel':1e-10})
+                 solver_parameters={'tol_gap_abs':1e-10,'tol_feas':1e-11,'tol_gap_rel':1e-10,
+                                    'static_regularization_constant':1e-11,
+                                    'dynamic_regularization_delta':2e-9,'max_iter':600})
     partial = db.add_sectors(source,stop_after_step='Mine first',**solve)
     reloaded = load_checkpoint(tmp_path/'checkpoints/001_Mine_first')
     pd.testing.assert_frame_equal(reloaded.X,partial.X)

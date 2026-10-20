@@ -115,13 +115,20 @@ requires ``eps=0`` and disables positive ``residue`` clipping.
 ``x*log(x/q)-x+q`` divergence on magnitudes. Quadratic loss uses an explicit
 prior-sign constraint to retain the same admissible signs. Negative Capital or
 Labor priors still require source/economic review. Structural zero masks are
-preserved independently of the objective.
+preserved independently of the objective. An allowed zero prior uses the
+nonnegative domain of its numerical support floor; it supplies no evidence of
+a negative flow. Missing signed observations therefore need explicit review.
 
 ``final_demand_weight`` (default 0) adds signed KL to a final-demand prior
-constructed by the existing deterministic split. Its signs therefore follow
-that split assumption; it is not a new empirical observation.
+constructed jointly from the preceding Y row and fixed output shares of the
+child/residual-parent family. Each preceding Y cell is conserved in the prior,
+independently of child order. A zero-output family retains its row in the parent.
+This proportional allocation is not a new empirical observation.
 ``supply_weight`` (default 0) regularizes split-sector deliveries to stable
-buyers. ``complete_intermediate_priors=True`` additionally covers every free
+buyers using the same joint allocation of preceding Z rows. Reading these priors
+from the legacy deterministic split would repeatedly reduce Y and duplicate
+supplier rows when several children share a parent.
+``complete_intermediate_priors=True`` additionally covers every free
 intermediate-input cell once and uses supply weight 1 when none is specified.
 Deferred supplier observations replace the corresponding supply priors instead
 of adding a second loss on the same cells. Weights are modelling preferences,
