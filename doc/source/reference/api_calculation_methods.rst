@@ -98,6 +98,10 @@ for UMFPACK. The ``iterative`` strategy requires the SciPy backend. Selecting
 UMFPACK does not change matrices that are already materialized. It preserves
 float64 precision and raises an error for failed solves instead of applying a
 pseudo-inverse or least-squares fallback.
+Sparse factorization uses 64-bit indices and compares fill-reducing orderings.
+Singular diagonal blocks are diagnosed before native factorization, with the
+affected node labels in the error message. Selecting a faster solver cannot
+make a singular system invertible.
 
 
 Resolvable Database Blocks

@@ -14,7 +14,39 @@ import pandas as pd
 import pytest
 
 import mario
+from mario.compute.resolver import resolve
+from mario.compute.types import ResolutionContext
 from mario.model.conventions import _MASTER_INDEX
+
+
+@pytest.mark.skipif(
+    not os.environ.get("MARIO_BONSAI_BALANCED_ZIP"),
+    reason="Set MARIO_BONSAI_BALANCED_ZIP to the local Balanced 20260615 ZIP.",
+)
+def test_balanced_20260615_demand_based_fc_reports_singular_components(monkeypatch):
+    """Guard the current demand-based output convention, not the HIOT model.
+
+    These market Commodity nodes are explicitly not mass-balanced. BONSAI's
+    reference-output HIOT has nonsingular corresponding blocks. Update this
+    reproducer when the HSUT output convention is changed explicitly.
+    """
+    pytest.importorskip("scikits.umfpack")
+    with pytest.warns(UserWarning, match="362 elementary-flow rows"):
+        database = mario.parse_bonsai(os.environ["MARIO_BONSAI_BALANCED_ZIP"])
+    database.keep_extensions(
+        "Carbon dioxide, fossil | Air | tonnes | 147f8e0a-3638-4a77-a029-45d8acba0184"
+    )
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("The full singular BONSAI system must be rejected before native LU")
+
+    monkeypatch.setattr("mario.compute.linear_solvers.factorize_umfpack", forbidden)
+    with pytest.raises(np.linalg.LinAlgError, match="singular") as error:
+        resolve("fc", database, context=ResolutionContext(
+            compute_method="solve", linear_solver="umfpack", linear_strategy="direct",
+        ))
+    assert all(label in str(error.value) for label in ["TW", "C_Beany", "M_Beany", "C_Eggs_ggs", "M_Eggs_ggs"])
+    assert not {"fc", "wcc", "waa", "w"}.intersection(database.matrices["baseline"])
 
 
 @pytest.mark.skipif(

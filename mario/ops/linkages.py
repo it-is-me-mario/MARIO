@@ -8,6 +8,7 @@ from scipy.sparse.csgraph import connected_components
 from scipy.sparse.linalg import LinearOperator, lgmres, lsmr, splu
 
 from mario.compute.runtime import choose_linear_strategy
+from mario.compute.sparse_diagnostics import singular_components
 from mario.log_exc.exceptions import WrongInput
 from mario.log_exc.logger import log_time
 
@@ -113,34 +114,7 @@ class SparseLinkageSystem:
         diagonal block makes the complete system singular. Small blocks can be
         checked directly; large blocks remain subject to residual validation.
         """
-        labels, sizes = self.components()
-        singular = []
-        for group in np.flatnonzero(sizes > 1):
-            positions = np.flatnonzero(labels == group)
-            block = self.lhs[positions, :][:, positions]
-            if len(positions) <= 128:
-                values = np.linalg.svd(block.toarray(), compute_uv=False)
-                tolerance = np.finfo(float).eps * len(positions) * values[0]
-                deficient = values[-1] <= tolerance
-            else:
-                # A constant left/right null vector also proves singularity for
-                # large closed components, without a dense rank calculation.
-                scale = max(1.0, float(abs(block).sum(axis=1).max()))
-                tolerance = np.finfo(float).eps * len(positions) * scale
-                deficient = (
-                    np.max(np.abs(np.asarray(block.sum(axis=1)).ravel())) <= tolerance
-                    or np.max(np.abs(np.asarray(block.sum(axis=0)).ravel()))
-                    <= tolerance
-                )
-            if deficient:
-                singular.append(positions)
-        singular.extend(
-            np.array([position])
-            for position in np.flatnonzero(
-                (sizes[labels] == 1) & (self.lhs.diagonal() == 0)
-            )
-        )
-        return singular
+        return singular_components(self.lhs, components=self.components())
 
     def solve(self, rhs, *, transpose=False):
         if not np.any(rhs):

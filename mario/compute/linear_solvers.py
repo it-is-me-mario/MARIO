@@ -11,9 +11,49 @@ import pandas as pd
 from scipy import sparse
 
 from mario.compute.helpers import dense_values, require_same_index, validate_square
+from mario.compute.sparse_diagnostics import singular_components
 from mario.log_exc.logger import log_time
 
 logger = logging.getLogger(__name__)
+
+
+class _UmfpackFactorization:
+    """Keep the native context and its matrix together for repeated solves."""
+
+    def __init__(self, matrix, umfpack):
+        self.matrix = matrix
+        self.umfpack = umfpack
+        self.context = umfpack.UmfpackContext("dl")
+        # The int32 variant limits individual factor allocations to about 2 GB,
+        # even on a 64-bit machine with enough RAM. Sparse input nnz does not
+        # predict the size of its LU factors, so always use 64-bit indices.
+        self.context.control[umfpack.UMFPACK_PRL] = 0
+        self.context.control[umfpack.UMFPACK_ORDERING] = umfpack.UMFPACK_ORDERING_BEST
+        self.context.symbolic(matrix)
+        estimated_bytes = (
+            self.context.info[umfpack.UMFPACK_PEAK_MEMORY_ESTIMATE]
+            * self.context.info[umfpack.UMFPACK_SIZE_OF_UNIT]
+        )
+        log_time(
+            logger,
+            "Compute: UMFPACK symbolic analysis "
+            f"(index_bits=64, ordering=best, estimated_peak_gib={estimated_bytes / 1024**3:.3f}).",
+            "debug",
+        )
+        self.context.numeric(matrix)
+
+    def solve(self, values):
+        def solve_column(vector):
+            return self.context.solve(self.umfpack.UMFPACK_A, self.matrix, vector)
+
+        if values.ndim == 1:
+            return solve_column(values)
+        return np.column_stack([solve_column(values[:, i]) for i in range(values.shape[1])])
+
+
+def factorize_umfpack(matrix):
+    """Factor a CSC float64 matrix with 64-bit sparse indices."""
+    return _UmfpackFactorization(matrix, load_umfpack())
 
 
 def load_umfpack():
@@ -61,12 +101,14 @@ def solve_umfpack_system(
     system.sum_duplicates()
     system.eliminate_zeros()
     system.sort_indices()
+    system.indices = system.indices.astype(np.int64, copy=False)
+    system.indptr = system.indptr.astype(np.int64, copy=False)
     rhs_values = np.asarray(dense_values(rhs), dtype=np.float64)
     rhs_count = 1 if rhs_values.ndim == 1 else rhs_values.shape[1]
     log_time(
         logger,
         "Compute: solving sparse linear system "
-        f"(linear_solver=umfpack, linear_strategy=direct, size={system.shape[0]}, rhs={rhs_count}).",
+        f"(linear_solver=umfpack, linear_strategy=direct, index_bits=64, size={system.shape[0]}, rhs={rhs_count}).",
         "debug",
     )
 
@@ -77,7 +119,18 @@ def solve_umfpack_system(
             warnings.simplefilter("error", umfpack.UmfpackWarning)
             factor = cache.get(cache_key) if cache is not None and cache_key is not None else None
             if factor is None:
-                factor = umfpack.splu(system)
+                singular = singular_components(system)
+                if singular:
+                    involved = [
+                        {"nodes": list(coefficients.index.take(group[:20])), "count": len(group)}
+                        for group in singular
+                    ]
+                    raise np.linalg.LinAlgError(
+                        "The linear system is singular at float64 precision. "
+                        f"Singular production components: {involved!r}. "
+                        "The source matrices have not been modified."
+                    )
+                factor = factorize_umfpack(system)
                 if cache is not None and cache_key is not None:
                     cache[cache_key] = factor
             solved = np.asarray(factor.solve(rhs_values), dtype=np.float64)

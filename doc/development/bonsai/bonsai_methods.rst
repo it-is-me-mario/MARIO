@@ -104,6 +104,18 @@ regional memberships are changed and no nodes are excluded. Turning off
 diagonal exclusion does not resolve this singularity. See
 :doc:`/api_document/mario.Database.calc_linkages`.
 
+Inspection on 2026-10-20 identified an important qualification: the two Taiwan
+market Commodity nodes explicitly have mass balance disabled in the source
+classification. Their supplied quantities differ from ``U + Yc``. MARIO's
+current demand-based ``Xc`` creates singular Leontief blocks too, whereas the
+corresponding reference-supply-minus-use blocks used by the BONSAI HIOT
+construction are nonsingular. Thus this is a limitation of applying the current
+output convention to these unbalanced HSUT nodes, not proof that BONSAI's
+published HIOT is singular. See ``taiwan_output_normalization_20261020.json``
+for the source quantities and independent two-by-two determinant checks. A
+change to the HSUT output convention requires an explicit mathematical policy;
+the solver neither changes source flows nor silently substitutes a solution.
+
 ``update_supply_mix`` and ``update_trade_mix`` have also been adapted. Supply
 labels are validated in their specified region, while every trade item must
 exist in every explicitly listed origin, including zero-weight origins. Missing

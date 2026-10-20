@@ -56,19 +56,22 @@ def test_umfpack_matches_dense_solve_and_preserves_axes(umfpack, sparse_backed, 
 def test_umfpack_reuses_factorization_for_new_rhs(umfpack, monkeypatch):
     coefficients = _system(True)
     rhs = pd.Series([1.0, 2.0, 3.0], index=coefficients.index)
-    original = umfpack.splu
+    original = linear_solvers.factorize_umfpack
     systems = []
 
     def factorize(system):
         systems.append(system)
         return original(system)
 
-    monkeypatch.setattr(umfpack, "splu", factorize)
+    monkeypatch.setattr(linear_solvers, "factorize_umfpack", factorize)
     cache = {}
     first = solve_umfpack_system(coefficients, rhs, cache=cache, cache_key=("system",))
     second = solve_umfpack_system(coefficients, rhs * 2, cache=cache, cache_key=("system",))
 
     assert len(systems) == 1
+    assert systems[0].indices.dtype == np.int64
+    assert systems[0].indptr.dtype == np.int64
+    assert cache[("system",)].context.family == "dl"
     pdt.assert_series_equal(second, first * 2)
 
 
@@ -100,12 +103,32 @@ def test_umfpack_singular_system_raises_without_pseudoinverse(umfpack, monkeypat
         solve_umfpack_system(coefficients, rhs)
 
 
+@pytest.mark.parametrize("zero_rhs", [False, True])
+def test_umfpack_closed_cycle_reports_nodes_before_factorization(umfpack, monkeypatch, zero_rhs):
+    axis = pd.MultiIndex.from_tuples([
+        ("TW", "Commodity", "C_Beany"), ("TW", "Commodity", "M_Beany"),
+    ])
+    coefficients = pd.DataFrame([[0.0, 22.5], [1 / 22.5, 0.0]], index=axis, columns=axis)
+    coefficients = coefficients.astype(pd.SparseDtype(float, 0))
+    before = coefficients.copy()
+    rhs = pd.Series(0.0 if zero_rhs else 1.0, index=axis)
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("A singular component must be rejected before native LU")
+
+    monkeypatch.setattr(linear_solvers, "factorize_umfpack", forbidden)
+    with pytest.raises(np.linalg.LinAlgError, match="singular") as error:
+        solve_umfpack_system(coefficients, rhs)
+    assert all(name in str(error.value) for name in ["TW", "C_Beany", "M_Beany"])
+    pdt.assert_frame_equal(coefficients, before)
+
+
 def test_umfpack_bad_solution_fails_residual_check(umfpack, monkeypatch):
     class IncorrectFactor:
         def solve(self, values):
             return np.zeros_like(values)
 
-    monkeypatch.setattr(umfpack, "splu", lambda system: IncorrectFactor())
+    monkeypatch.setattr(linear_solvers, "factorize_umfpack", lambda system: IncorrectFactor())
     coefficients = _system()
     with pytest.raises(np.linalg.LinAlgError, match="relative residual"):
         solve_umfpack_system(coefficients, pd.Series(1.0, index=coefficients.index))

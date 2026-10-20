@@ -668,6 +668,11 @@ def set_linear_solver(solver: str):
     factors within a resolution request. Set the linear strategy to ``"direct"``
     or ``"auto"``; ``"iterative"`` is incompatible with this backend. Numerical
     failures raise an error without a pseudo-inverse or least-squares fallback.
+    Sparse indices use 64 bits to avoid the native int32 factor allocation
+    limit. The solver compares fill-reducing orderings before factorization.
+    Singular components are checked before factorization and reported with
+    their node labels. Every result must still satisfy the original system's
+    relative residual threshold of ``1e-8``.
     Install with ``conda install -c conda-forge scikit-umfpack``. With SuiteSparse
     already installed, ``pip install mariopy[umfpack]`` is also supported.
 
