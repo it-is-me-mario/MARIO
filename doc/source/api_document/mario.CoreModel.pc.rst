@@ -1,6 +1,8 @@
 db.pc
 =====
 
+For the standalone function, see :func:`mario.calc_pc`.
+
 Calculate the commodity-side price index from activity and commodity value-added coefficients.
 
 .. math::

@@ -2179,17 +2179,6 @@ a.mario-zoomable {
   color: var(--link-hover);
 }
 
-.mario-api-table__access {
-  display: block;
-  margin-top: 0.3rem;
-  color: var(--ink-muted);
-  font-size: 0.8rem;
-}
-
-.mario-api-table__access code {
-  font-weight: 400;
-}
-
 .mario-api-table__summary {
   color: var(--ink-soft);
 }

@@ -1075,19 +1075,6 @@ def _summary(dotted):
     return first.replace("``", "")
 
 
-def _matrix_block_api(name):
-    """Describe access and search shortcuts for a named database matrix."""
-    match = re.fullmatch(r"db\.([A-Za-z]\w*)", name)
-    if match is None:
-        return None
-    block = match.group(1)
-    access = f'db.resolve("{block}")'
-    return {
-        "access": access,
-        "aliases": [access, f"calc_{block}", f"mario.calc_{block}"],
-    }
-
-
 def _api_rows(app):
     env = app.env
     root = app.config.mario_site.get("api_root", "reference/api_library")
@@ -1103,7 +1090,6 @@ def _api_rows(app):
                         continue
                     seen.add(method_doc)
                     name = _doc_title(env, method_doc, method_title)
-                    block_api = _matrix_block_api(name)
                     summary = _summary(name)
                     if not summary:
                         # Named matrix blocks are resolved dynamically on a
@@ -1121,7 +1107,6 @@ def _api_rows(app):
                             "category": category,
                             "group": sub["caption"] or "",
                             "summary": summary,
-                            "block_api": block_api,
                         }
                     )
                     count += 1
@@ -1146,18 +1131,10 @@ def _render_api_index(app, doctree, fromdocname):
     for row in rows:
         href = app.builder.get_relative_uri(fromdocname, row["doc"])
         short = row["name"].removeprefix("mario.")
-        block_api = row["block_api"]
-        aliases = block_api["aliases"] if block_api else []
-        search = " ".join([row["name"], row["category"], row["group"], row["summary"], *aliases]).lower()
-        label = f'<code>{esc(short)}</code>'
-        if block_api:
-            label = (
-                f'<code>{esc(block_api["access"])}</code>'
-                f'<span class="mario-api-table__access"><code>{esc(short)}</code> · matrix block</span>'
-            )
+        search = " ".join([row["name"], row["category"], row["group"], row["summary"]]).lower()
         body.append(
-            f'<tr data-category="{esc(row["category"])}" data-api-name="{esc(row["name"])}" data-search="{esc(search)}">'
-            f'<td class="mario-api-table__name"><a href="{esc(href)}">{label}</a></td>'
+            f'<tr data-category="{esc(row["category"])}" data-search="{esc(search)}">'
+            f'<td class="mario-api-table__name"><a href="{esc(href)}"><code>{esc(short)}</code></a></td>'
             f'<td class="mario-api-table__category"><span class="mario-pill">{esc(row["category"])}</span></td>'
             f'<td class="mario-api-table__summary">{esc(row["summary"])}</td></tr>'
         )
@@ -1167,7 +1144,7 @@ def _render_api_index(app, doctree, fromdocname):
     <label class="mario-field">
       <span class="mario-visually-hidden">Filter API entries</span>
       <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <input type="search" placeholder="Filter entries, for example aggregate, calc_u or db.u" autocomplete="off" spellcheck="false" data-api-filter>
+      <input type="search" placeholder="Filter entries, for example aggregate, calc or calc_u" autocomplete="off" spellcheck="false" data-api-filter>
     </label>
     <div class="mario-chips" role="group" aria-label="Filter by category">{"".join(chips)}</div>
   </div>
@@ -1246,11 +1223,7 @@ def _write_nav_index(app):
         uri = app.builder.get_target_uri(docname)
         title = _doc_title(env, docname)
         is_api = docname.startswith("api_document/")
-        entry = {"t": title.removeprefix("mario.") if is_api else title, "u": uri, "s": label, "k": "api" if is_api else "page"}
-        block_api = _matrix_block_api(title) if is_api else None
-        if block_api:
-            entry.update(t=f'{block_api["access"]} / {title}', a=block_api["aliases"], b=title)
-        entries.append(entry)
+        entries.append({"t": title.removeprefix("mario.") if is_api else title, "u": uri, "s": label, "k": "api" if is_api else "page"})
         if is_api:
             continue
         for heading in _local_toc(env, docname, max_depth=1):

@@ -2,15 +2,12 @@ API reference
 =============
 
 Public methods and standalone functions include their signatures and parameters.
-Named calculation blocks include their inputs, formulas and returned axes.
 Filter the table by name or category, or open a category from the sidebar.
 
-Native SUT calculations appear as ``db.resolve("u")`` / ``db.u`` and
-``db.resolve("s")`` / ``db.s``. Search shortcuts such as ``calc_u`` and
-``calc_s`` lead to these matrix blocks. For their equations, open
-:doc:`use coefficients <../api_document/mario.CoreModel.lower_u>`,
-:doc:`supply coefficients <../api_document/mario.CoreModel.lower_s>` or
-:doc:`all native SUT calculations <api_calculation_methods>`.
+Calculation helpers include native SUT functions such as :func:`~mario.calc_u`,
+:func:`~mario.calc_s`, :func:`~mario.calc_U` and :func:`~mario.calc_S`,
+with equations, inputs and returned axes. See :doc:`api_calculation_methods`
+for the full formula overview.
 
 .. mario-api-index::
 

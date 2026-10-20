@@ -1,6 +1,8 @@
 db.c
 ====
 
+For the standalone function, see :func:`mario.calc_c`.
+
 Calculate the commodity-by-activity product-mix coefficients for product-based technology.
 
 .. math::

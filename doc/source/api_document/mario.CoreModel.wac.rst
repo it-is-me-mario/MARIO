@@ -1,6 +1,8 @@
 db.wac
 ======
 
+For the standalone function, see :func:`mario.calc_wac`.
+
 Calculate the activity-to-commodity quadrant of the SUT Leontief inverse.
 
 .. math::

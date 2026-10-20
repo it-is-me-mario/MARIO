@@ -116,91 +116,146 @@ See :doc:`mario.set_compute_method <../api_document/mario.set_compute_method>`,
 Resolvable Database Blocks
 --------------------------
 
-Many SUT and IOT results do not have dedicated Python methods. They are still
-part of the public compute API through ``db.resolve(...)``, ``db.resolve_many(...)``,
+SUT and IOT results can also be requested as named blocks through
+``db.resolve(...)``, ``db.resolve_many(...)``,
 ``db.calc_all(...)`` and dotted access such as ``db.Xa`` or ``db.wcc``.
 
 See :doc:`api_resolvable_matrices` for the authoritative list of built-in block
 names currently supported by MARIO.
 
 
-Native SUT block calculations
------------------------------
+Standalone SUT Use, Supply and Quadrant Helpers
+-----------------------------------------------
 
-These calculations are database blocks. There are no standalone
-``mario.calc_u(...)`` or ``mario.calc_s(...)`` functions in the current API.
-Use ``db.resolve("u")`` / ``db.u`` and ``db.resolve("s")`` / ``db.s``;
-``db.resolve_many(...)`` and ``db.calc_all(...)`` accept the same names.
-The pages below document their inputs, formulas, axes and examples.
+These functions operate directly on pandas matrices, like ``calc_X`` and
+``calc_z``. They return a result without changing a database. Open a function
+for its signature, inputs, formula and returned axes.
+
+.. code-block:: python
+
+   u = mario.calc_u(U, Xa)
+   s = mario.calc_s(S, Xc)  # Industry-based technology (IT).
+   s_pt = mario.calc_s(S, Xa=Xa, tech_assumption="PT")
+   wcc = mario.calc_wcc(u, s)
+
+For scenario-aware calculation and automatic input resolution, the same
+blocks remain available through the :doc:`database compute API
+<api_resolvable_matrices>`.
 
 .. list-table::
    :header-rows: 1
    :widths: 40 60
 
-   * - Block
+   * - Function
      - Formula
-   * - :doc:`db.u — use coefficients <../api_document/mario.CoreModel.lower_u>`
-     - :math:`u=U\operatorname{diag}(X_a)^{-1}`
-   * - :doc:`db.U — use flows <../api_document/mario.CoreModel.U>`
-     - :math:`U=u\operatorname{diag}(X_a)`
-   * - :doc:`db.s — supply coefficients <../api_document/mario.CoreModel.lower_s>`
-     - :math:`s=\begin{cases} S\operatorname{diag}(X_c)^{-1} & \text{IT},\\ \left(S^{\mathsf{T}}\operatorname{diag}(X_a)^{-1}\right)^{-1} & \text{PT}. \end{cases}`
-   * - :doc:`db.S — supply flows <../api_document/mario.CoreModel.S>`
-     - :math:`S=\begin{cases} s\operatorname{diag}(X_c) & \text{IT},\\ \left(c\operatorname{diag}(X_a)\right)^{\mathsf{T}},\quad c=s^{-1} & \text{PT}. \end{cases}`
-   * - :doc:`db.c — product mix <../api_document/mario.CoreModel.c>`
-     - :math:`c=S^{\mathsf{T}}\operatorname{diag}(X_a)^{-1},\qquad c=s^{-1}`
-   * - :doc:`db.Xa — activity production <../api_document/mario.CoreModel.Xa>`
-     - :math:`X_a=S\mathbf{1}+Y_a\mathbf{1} \qquad\text{or}\qquad X_a=sX_c`
-   * - :doc:`db.Xc — commodity production <../api_document/mario.CoreModel.Xc>`
-     - :math:`X_c=U\mathbf{1}+Y_c\mathbf{1},\qquad (I-us)X_c=Y_c\mathbf{1},\qquad X_c=w_{cc}(Y_c\mathbf{1})`
-   * - :doc:`db.wcc — Leontief cc <../api_document/mario.CoreModel.wcc>`
-     - :math:`w_{cc}=(I-us)^{-1}`
-   * - :doc:`db.wca — Leontief ca <../api_document/mario.CoreModel.wca>`
-     - :math:`w_{ca}=(I-us)^{-1}u=w_{cc}u`
-   * - :doc:`db.wac — Leontief ac <../api_document/mario.CoreModel.wac>`
-     - :math:`w_{ac}=(I-su)^{-1}s=w_{aa}s`
-   * - :doc:`db.waa — Leontief aa <../api_document/mario.CoreModel.waa>`
-     - :math:`w_{aa}=(I-su)^{-1}`
-   * - :doc:`db.bu — use direct-output coefficients <../api_document/mario.CoreModel.bu>`
-     - :math:`b_u=\operatorname{diag}(X_c)^{-1}U`
-   * - :doc:`db.bs — supply direct-output coefficients <../api_document/mario.CoreModel.bs>`
-     - :math:`b_s=\operatorname{diag}(X_a)^{-1}S`
-   * - :doc:`db.gcc — Ghosh cc <../api_document/mario.CoreModel.gcc>`
-     - :math:`g_{cc}=(I-b_u b_s)^{-1}`
-   * - :doc:`db.gca — Ghosh ca <../api_document/mario.CoreModel.gca>`
-     - :math:`g_{ca}=g_{cc}b_u`
-   * - :doc:`db.gac — Ghosh ac <../api_document/mario.CoreModel.gac>`
-     - :math:`g_{ac}=g_{aa}b_s`
-   * - :doc:`db.gaa — Ghosh aa <../api_document/mario.CoreModel.gaa>`
-     - :math:`g_{aa}=(I-b_s b_u)^{-1}`
-   * - :doc:`db.pa — activity prices <../api_document/mario.CoreModel.pa>`
-     - :math:`p_a=w_{aa}^{\mathsf{T}}v_a^{\mathsf{T}}\mathbf{1} +w_{ca}^{\mathsf{T}}v_c^{\mathsf{T}}\mathbf{1}`
-   * - :doc:`db.pc — commodity prices <../api_document/mario.CoreModel.pc>`
-     - :math:`p_c=w_{ac}^{\mathsf{T}}v_a^{\mathsf{T}}\mathbf{1} +w_{cc}^{\mathsf{T}}v_c^{\mathsf{T}}\mathbf{1}`
+   * - :func:`~mario.calc_u`
+     - .. math::
+
+          u = U\operatorname{diag}(X_a)^{-1}
+   * - :func:`~mario.calc_U`
+     - .. math::
+
+          U = u\operatorname{diag}(X_a)
+   * - :func:`~mario.calc_s`
+     - .. math::
+
+          s = \begin{cases}
+              S\operatorname{diag}(X_c)^{-1} & \text{IT},\\
+              \left(S^{\mathsf{T}}\operatorname{diag}(X_a)^{-1}\right)^{-1}
+              & \text{PT}.
+          \end{cases}
+   * - :func:`~mario.calc_S`
+     - .. math::
+
+          S = \begin{cases}
+              s\operatorname{diag}(X_c) & \text{IT},\\
+              \left(c\operatorname{diag}(X_a)\right)^{\mathsf{T}},
+              \quad c=s^{-1} & \text{PT}.
+          \end{cases}
+   * - :func:`~mario.calc_c`
+     - .. math::
+
+          c = S^{\mathsf{T}}\operatorname{diag}(X_a)^{-1}
+   * - :func:`~mario.calc_Xa`
+     - .. math::
+
+          X_a = S\mathbf{1} + Y_a\mathbf{1}
+   * - :func:`~mario.calc_Xc`
+     - .. math::
+
+          X_c = U\mathbf{1} + Y_c\mathbf{1}
+   * - :func:`~mario.calc_wcc`
+     - .. math::
+
+          w_{cc} = (I-us)^{-1}
+   * - :func:`~mario.calc_wca`
+     - .. math::
+
+          w_{ca} = (I-us)^{-1}u = w_{cc}u
+   * - :func:`~mario.calc_wac`
+     - .. math::
+
+          w_{ac} = (I-su)^{-1}s = w_{aa}s
+   * - :func:`~mario.calc_waa`
+     - .. math::
+
+          w_{aa} = (I-su)^{-1}
+   * - :func:`~mario.calc_bu`
+     - .. math::
+
+          b_u = \operatorname{diag}(X_c)^{-1}U
+   * - :func:`~mario.calc_bs`
+     - .. math::
+
+          b_s = \operatorname{diag}(X_a)^{-1}S
+   * - :func:`~mario.calc_gcc`
+     - .. math::
+
+          g_{cc} = (I-b_u b_s)^{-1}
+   * - :func:`~mario.calc_gca`
+     - .. math::
+
+          g_{ca} = g_{cc}b_u
+   * - :func:`~mario.calc_gac`
+     - .. math::
+
+          g_{ac} = g_{aa}b_s
+   * - :func:`~mario.calc_gaa`
+     - .. math::
+
+          g_{aa} = (I-b_s b_u)^{-1}
+   * - :func:`~mario.calc_pa`
+     - .. math::
+
+          p_a = w_{aa}^{\mathsf{T}}v_a^{\mathsf{T}}\mathbf{1} + w_{ca}^{\mathsf{T}}v_c^{\mathsf{T}}\mathbf{1}
+   * - :func:`~mario.calc_pc`
+     - .. math::
+
+          p_c = w_{ac}^{\mathsf{T}}v_a^{\mathsf{T}}\mathbf{1} + w_{cc}^{\mathsf{T}}v_c^{\mathsf{T}}\mathbf{1}
 
 .. toctree::
    :hidden:
    :maxdepth: 1
 
-   ../api_document/mario.CoreModel.lower_u
-   ../api_document/mario.CoreModel.U
-   ../api_document/mario.CoreModel.lower_s
-   ../api_document/mario.CoreModel.S
-   ../api_document/mario.CoreModel.c
-   ../api_document/mario.CoreModel.Xa
-   ../api_document/mario.CoreModel.Xc
-   ../api_document/mario.CoreModel.wcc
-   ../api_document/mario.CoreModel.wca
-   ../api_document/mario.CoreModel.wac
-   ../api_document/mario.CoreModel.waa
-   ../api_document/mario.CoreModel.bu
-   ../api_document/mario.CoreModel.bs
-   ../api_document/mario.CoreModel.gcc
-   ../api_document/mario.CoreModel.gca
-   ../api_document/mario.CoreModel.gac
-   ../api_document/mario.CoreModel.gaa
-   ../api_document/mario.CoreModel.pa
-   ../api_document/mario.CoreModel.pc
+   ../api_document/mario.calc_lower_u
+   ../api_document/mario.calc_U
+   ../api_document/mario.calc_lower_s
+   ../api_document/mario.calc_S
+   ../api_document/mario.calc_c
+   ../api_document/mario.calc_Xa
+   ../api_document/mario.calc_Xc
+   ../api_document/mario.calc_wcc
+   ../api_document/mario.calc_wca
+   ../api_document/mario.calc_wac
+   ../api_document/mario.calc_waa
+   ../api_document/mario.calc_bu
+   ../api_document/mario.calc_bs
+   ../api_document/mario.calc_gcc
+   ../api_document/mario.calc_gca
+   ../api_document/mario.calc_gac
+   ../api_document/mario.calc_gaa
+   ../api_document/mario.calc_pa
+   ../api_document/mario.calc_pc
 
 
 Standalone IOT Helpers

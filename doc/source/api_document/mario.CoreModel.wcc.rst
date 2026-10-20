@@ -1,6 +1,8 @@
 db.wcc
 ======
 
+For the standalone function, see :func:`mario.calc_wcc`.
+
 Calculate the commodity-to-commodity quadrant of the SUT Leontief inverse.
 
 .. math::

@@ -1,6 +1,8 @@
 db.u
 ====
 
+For the standalone function, see :func:`mario.calc_u`.
+
 Calculate commodity-by-activity use coefficients from use flows and activity production.
 
 .. math::

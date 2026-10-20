@@ -1,6 +1,8 @@
 db.Xc
 =====
 
+For the standalone function, see :func:`mario.calc_Xc`.
+
 Calculate total commodity production from use flows or the commodity-side coefficient system.
 
 .. math::

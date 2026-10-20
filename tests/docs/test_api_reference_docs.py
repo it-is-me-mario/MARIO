@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 import mario
 
@@ -68,3 +69,19 @@ def test_public_parser_entrypoints_have_reachable_api_pages():
         assert f"mario.{name}" in documented, name
         assert f"../api_document/mario.{name}" in reference, name
         assert f'"api_document/mario.{name}.rst"' not in config, name
+
+
+def test_all_public_calculation_helpers_have_reachable_function_pages():
+    reference = (DOC_ROOT / "reference" / "api_calculation_methods.rst").read_text()
+    documented = {}
+    for page in API_DOC_ROOT.glob("mario.calc*.rst"):
+        for name in re.findall(r"^\.\. autofunction::\s+(?:mario\.)?(calc_\w+)\s*$",
+                               page.read_text(), re.MULTILINE):
+            documented[name] = page.stem
+
+    for name, function in vars(mario).items():
+        if not name.startswith("calc_") or not callable(function):
+            continue
+        assert name in documented, f"Missing function page for mario.{name}"
+        assert f"../api_document/{documented[name]}" in reference, name
+        assert ".. math::" in function.__doc__, f"Missing formula for mario.{name}"

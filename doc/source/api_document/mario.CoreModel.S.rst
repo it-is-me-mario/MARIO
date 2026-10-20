@@ -1,6 +1,8 @@
 db.S
 ====
 
+For the standalone function, see :func:`mario.calc_S`.
+
 Calculate activity-by-commodity supply flows from supply coefficients and production.
 
 .. math::

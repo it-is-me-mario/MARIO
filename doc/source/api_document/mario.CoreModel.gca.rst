@@ -1,6 +1,8 @@
 db.gca
 ======
 
+For the standalone function, see :func:`mario.calc_gca`.
+
 Calculate the commodity-to-activity quadrant of the SUT Ghosh inverse.
 
 .. math::

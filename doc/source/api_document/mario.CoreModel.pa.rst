@@ -1,6 +1,8 @@
 db.pa
 =====
 
+For the standalone function, see :func:`mario.calc_pa`.
+
 Calculate the activity-side price index from activity and commodity value-added coefficients.
 
 .. math::
