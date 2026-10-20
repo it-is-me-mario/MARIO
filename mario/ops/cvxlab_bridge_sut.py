@@ -364,7 +364,9 @@ def parse_sut_split_results(priors: SutSplitPriors, dest_dir: Path, *, residue=N
     if residue is not None:
         threshold = float(residue)
         for name, table in tables.items():
-            table["values"] = table["values"].where(table["values"] >= threshold, 0.0)
+            # V and Y can be negative: compare their magnitude with the threshold
+            magnitude = table["values"].abs() if name in {"V", "Y"} else table["values"]
+            table["values"] = table["values"].where(magnitude >= threshold, 0.0)
 
     # solvers return tiny negative values (about -1e-11) for cells that are zero
     for table in tables.values():

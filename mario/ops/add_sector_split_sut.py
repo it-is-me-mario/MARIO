@@ -435,8 +435,8 @@ def prepare_sut_split_support(instance) -> SutSplitStructure:
         label="consumption categories",
     )
     shares[cols["share"]] = _numeric(shares, cols["share"], ADD_SECTOR_SPLIT_FINAL_DEMAND_SHARE_SHEET)
-    if ((shares[cols["share"]] < 0) | (shares[cols["share"]] > 1)).any():
-        raise WrongInput("Split final demand shares should be between 0 and 1.")
+    if ((shares[cols["share"]] < -1) | (shares[cols["share"]] > 1)).any():
+        raise WrongInput("Split final demand shares should be between -1 and 1.")
     key = [cols["region_from"], cols["region_to"], cols["commodity"], cols["consumption_category"]]
     if shares.duplicated(subset=key).any():
         raise WrongInput(f"Split sheet '{ADD_SECTOR_SPLIT_FINAL_DEMAND_SHARE_SHEET}' contains duplicated rows.")
@@ -952,7 +952,6 @@ def build_sut_split_priors(
                 f"(Region_from, Region_to, Commodity, Consumption category) = {sorted(missing_shares)[:5]}"
                 f"{' ...' if len(missing_shares) > 5 else ''}; a share of 0 is assumed."
             )
-        Y0 = _warn_and_clip(Y0, "Y0")
 
     # --- zero masks -----------------------------------------------------------
     zero_U = _structural_zero_mask(
