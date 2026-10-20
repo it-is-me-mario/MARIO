@@ -36,6 +36,7 @@ Environmentally-extended databases
 
    .. mario-card:: :doc:`BONSAI, hybrid <bonsai>`
       :kicker: mario.parse_bonsai
+      :logo: /_static/images/logos/bonsai.webp
 
       Balanced hybrid supply-use graph exports, read directly from a local ZIP
       or extracted directory with recalculated elementary flows.

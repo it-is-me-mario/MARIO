@@ -1,6 +1,11 @@
 BONSAI Balanced HSUT
 ====================
 
+.. image:: /_static/images/logos/bonsai.webp
+   :alt: BONSAI project logo
+   :width: 180px
+   :target: https://bonsai.uno/
+
 ``mario.parse_bonsai`` reads the Balanced hybrid supply-use graph exports from
 the `BONSAI project <https://gitlab.com/bonsamurais/bonsai>`_. It accepts the
 original ZIP or an extracted directory and detects a single nested release
