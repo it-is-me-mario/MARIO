@@ -37,6 +37,14 @@ be preserved, rather than relaxed as an observed target. ``delta`` retains the
 ordinary split-model meaning. ``only_input_data_gen``, parent renaming and
 ``keep_all_split_steps=True`` cannot be combined with this workflow.
 
+To execute only an initial part of the plan, pass ``stop_after_step="Mining"``
+with the exact name of a pending group. MARIO saves that accepted checkpoint
+and returns without starting subsequent groups. The complete original plan and
+canonical inventories remain available, and ``remaining_add_sectors.xlsx``
+retains the later groups for resumption. An unknown or already completed stop
+name is rejected before starting a solve. Omitting the option executes every
+pending group.
+
 Inventory projection and preservation
 -------------------------------------
 

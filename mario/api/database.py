@@ -4864,6 +4864,7 @@ class Database(CoreModel):
         accept_non_unitary_sum=False,
         intermediate_steps=False,
         save_intermediates=None,
+        stop_after_step=None,
     ):
         """Apply the add-sectors workbook to the selected scenario.
 
@@ -4942,6 +4943,10 @@ class Database(CoreModel):
             Required checkpoint directory when intermediate_steps=True. Each
             successful step contains reloadable flows, a remaining workbook
             and a committed state manifest. Existing checkpoints are preserved.
+        stop_after_step:
+            Optional pending group name at which to return after saving its
+            checkpoint. Later groups remain in the remaining workbook. Requires
+            intermediate_steps=True; None executes every pending group.
 
         Notes
         -----
@@ -4966,6 +4971,7 @@ class Database(CoreModel):
             return run_intermediate_steps(
                 self, io=io, scenario=scenario, inplace=inplace, split=split,
                 save_intermediates=save_intermediates,
+                stop_after_step=stop_after_step,
                 options=dict(keep_all_split_steps=keep_all_split_steps, notes=notes,
                              ignore_warnings=ignore_warnings, cvxlab_path=cvxlab_path,
                              input_data_files_type=input_data_files_type,
@@ -4976,6 +4982,8 @@ class Database(CoreModel):
             )
         if save_intermediates is not None:
             raise WrongInput("save_intermediates requires intermediate_steps=True.")
+        if stop_after_step is not None:
+            raise WrongInput("stop_after_step requires intermediate_steps=True.")
         if not inplace:
             new = self.copy()
             new.add_sectors(

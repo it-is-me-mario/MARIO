@@ -87,6 +87,29 @@ def test_future_inputs_are_projected_and_summed_without_mutating_source(tmp_path
     assert "Refining" in set(payload.inventories_by_sheet[name]["DB Item"])
 
 
+def test_stop_after_named_step_saves_checkpoint_and_resumable_pending_plan(tmp_path):
+    db=balanced_database()
+    source=workbook(db,tmp_path/'input.xlsx',second_quantity=1e6)
+    checkpoints=tmp_path/'checkpoints'
+    for bad in ['Unknown',1]:
+        with pytest.raises(WrongInput,match='pending group'):
+            db.add_sectors(source,split=True,intermediate_steps=True,save_intermediates=checkpoints,
+                           stop_after_step=bad)
+    assert not checkpoints.exists()
+    with pytest.raises(WrongInput,match='requires intermediate_steps'):
+        db.add_sectors(source,stop_after_step='Mine first')
+    db.add_sectors(source,split=True,intermediate_steps=True,save_intermediates=checkpoints,
+                   stop_after_step='Mine first',solver='CLARABEL',
+                   solver_parameters={'tol_gap_abs':1e-9,'tol_feas':1e-9,'tol_gap_rel':1e-9})
+    first=checkpoints/'001_Mine_first'
+    restored=load_checkpoint(first)
+    assert 'Mining' in restored.get_index('Sector') and 'Refining' not in restored.get_index('Sector')
+    pending=read_add_sector_workbook(first/'remaining_add_sectors.xlsx',table='IOT')
+    assert pending.intermediate_steps=={'Refine second':['Refining']}
+    assert set(pending.master_sheet.Sector)=={'Refining'}
+    assert len(list(checkpoints.iterdir()))==1
+
+
 def test_failed_second_solve_keeps_first_checkpoint_and_can_resume(tmp_path):
     db = balanced_database()
     original = db.copy()

@@ -388,7 +388,8 @@ def load_checkpoint(path):
     return database
 
 
-def run_intermediate_steps(instance, *, io, scenario, inplace, split, save_intermediates, options):
+def run_intermediate_steps(instance, *, io, scenario, inplace, split, save_intermediates, options,
+                           stop_after_step=None):
     if not save_intermediates:
         raise WrongInput("save_intermediates is mandatory when intermediate_steps=True.")
     if instance.table_type != "IOT" or not split:
@@ -410,6 +411,8 @@ def run_intermediate_steps(instance, *, io, scenario, inplace, split, save_inter
     state = getattr(instance, "_intermediate_steps_state", {})
     completed = state.get("completed_sectors", [])
     plan, parents = validate_plan(workbook, target.get_index("Sector"), completed=completed)
+    if stop_after_step is not None and stop_after_step not in [name for name, _ in plan]:
+        raise WrongInput("stop_after_step must name a pending group in Intermediate steps.")
     previous_parents = state.get("sector_parents", {})
     if any(parents[s] != previous_parents[s] for s in parents.keys() & previous_parents.keys()):
         raise WrongInput("Parent correspondences changed; restart before the affected completed steps.")
@@ -473,4 +476,6 @@ def run_intermediate_steps(instance, *, io, scenario, inplace, split, save_inter
         target.__dict__.clear()
         target.__dict__.update(candidate.__dict__)
         scenario = "baseline"
+        if name == stop_after_step:
+            break
     return None if inplace else target
