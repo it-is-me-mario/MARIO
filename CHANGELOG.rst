@@ -8,6 +8,11 @@ package on PyPI, and dates are its publication dates.
 Unreleased
 ----------
 
+* ``get_mix`` supports region-specific IOT Sector classifications, normalizing
+  only observed regional nodes and preserving native production vectors. Regions
+  without selected sectors return empty mappings; zero-output bundles retain
+  zero shares.
+
 * Advanced workflows includes a concise computation-settings guide covering
   inverse versus solve, solver choice, automatic memory estimates, singularity
   handling and session/per-call configuration.

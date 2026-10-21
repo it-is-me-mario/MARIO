@@ -7,6 +7,23 @@ This is a development snapshot from 2026-10-19, after the first regional
 ``get_index`` change. It identifies the next adaptations; it does not claim
 that all MARIO methods support BONSAI yet.
 
+The original probes did not cover the IOT-only ``get_mix`` method. A follow-up
+on 2026-10-21 found its uniform-Sector assumption and corrected it: explicit
+sector lists now select actual regional pairs, preserve the supplied ``X``,
+and return empty mappings for regions without selected nodes. Regression
+checks cover native HIOT output, missing regional sectors and zero output.
+The ten native electricity-generation products were also checked on the frozen
+21 October HIOT: their ``get_mix`` shares match the ``A_Nat_Elec`` input mix
+within 5e-14 percentage points. This is a transformed reference-product mix,
+not a complete physical generation mix: Balanced HSUT also has electricity
+from CHP as ``C_elec_CHP``, absent as an independent b2 HIOT product. For the
+2016 Ember comparison, physical generation was checked on HSUT supply with
+CHP included; all combustible sources were grouped to avoid inventing a fuel
+allocation of the aggregated CHP electricity. The ``"electricity"`` keyword still requires
+one of the supported label profiles; native BONSAI codes are selected explicitly.
+This historical diagnosis is a record of named probes, not an exhaustive
+certification of every public method.
+
 The summary regression has since been fixed: regional sets display
 ``from X to Y per region``, counting the members of each regional list and
 including empty regions. Common classifications retain scalar counts.

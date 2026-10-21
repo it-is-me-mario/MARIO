@@ -87,6 +87,21 @@ def _edit(root, filename, mutate):
     frame.to_csv(path, index=False)
 
 
+def test_get_mix_uses_native_output_and_only_observed_regional_sectors(hiot):
+    db = mario.parse_bonsai(hiot, table="IOT")
+    before = dict(db.matrices["baseline"])
+    assert db.get_mix(["P_WHEAT"]) == {"AT": {"P_WHEAT": 1.0}, "DE": {"P_WHEAT": 1.0}}
+    assert db.get_mix(["P_SERVICE"]) == {"AT": {"P_SERVICE": 1.0}, "DE": {}}
+    assert db.mix == {"AT": {"P_SERVICE": 1.0}, "DE": {}}
+    assert all(db.get_block(name) is frame for name, frame in before.items())
+    with pytest.raises(WrongInput, match="unknown sectors"):
+        db.get_mix(["missing"])
+    output = db.X.copy()
+    output.loc[("AT", "Sector", "P_SERVICE"), :] = 0
+    db.set_block("X", output)
+    assert db.get_mix(["P_SERVICE"]) == {"AT": {"P_SERVICE": 0.0}, "DE": {}}
+
+
 def test_native_units_regions_credits_and_source_output(hiot):
     db = mario.parse_bonsai(hiot, table="IOT", chunksize=2)
     b = db.matrices["baseline"]

@@ -1928,6 +1928,11 @@ class CoreModel:
         region, the selected sector values are normalized by the total
         production of the same selected sector bundle in ``X``. Regions with
         zero total production over the selected sectors return zero shares.
+        With region-specific classifications, only sectors present in each
+        region are included; a region without selected sectors returns ``{}``.
+        The selected productions must have comparable units. On transformed
+        hybrid IOTs, this reference-product mix need not equal historical
+        physical generation when by-product outputs have no independent nodes.
         The resulting mapping is also stored on ``self.mix``.
         """
 
@@ -1945,7 +1950,8 @@ class CoreModel:
         if not sectors:
             raise WrongInput("sectors must be one non-empty iterable of sector labels.")
 
-        valid_sectors = set(self.get_index(_MASTER_INDEX["s"]))
+        regional_members = _mix_regional_members(self, _MASTER_INDEX["s"])
+        valid_sectors = set().union(*regional_members.values())
         missing_sectors = [sector for sector in sectors if sector not in valid_sectors]
         if missing_sectors:
             raise WrongInput(f"get_mix references unknown sectors: {missing_sectors}")
@@ -1956,7 +1962,11 @@ class CoreModel:
 
         mix: dict[str, dict[str, float]] = {}
         for region in self.get_index(_MASTER_INDEX["r"]):
-            region_block = production.loc[(region, _MASTER_INDEX["s"], sectors), :]
+            local_sectors = [sector for sector in sectors if sector in regional_members[region]]
+            if not local_sectors:
+                mix[str(region)] = {}
+                continue
+            region_block = production.loc[(region, _MASTER_INDEX["s"], local_sectors), :]
             values = region_block.iloc[:, 0].astype(float)
             total = float(values.sum())
             if total > 0:
