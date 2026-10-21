@@ -13,6 +13,46 @@ from mario.ops.split_model import (check_feasibility, inherited_accounting, mode
                                    proportional_row_reference)
 
 
+@pytest.mark.parametrize('sparse', [False, True])
+@pytest.mark.parametrize('value,accepted', [(0., True), (-1e-4, False)])
+def test_solution_validation_checks_sparse_domains_without_changing_tolerance(tmp_path, sparse, value, accepted):
+    from scipy.sparse import csc_matrix
+    from mario.ops.split_model import verify_model_solution
+    values = np.array([[1., 0.], [0., value]])
+    operand = cp.Constant(csc_matrix(values) if sparse else values)
+    problem = SimpleNamespace(constraints=[operand >= 0.], objective=cp.Minimize(cp.Constant(0.)),
+                              value=0., status='optimal', solver_stats=SimpleNamespace(solve_time=0.))
+    frame = pd.DataFrame([{'problem': problem}])
+    model = SimpleNamespace(core=SimpleNamespace(problem=SimpleNamespace(numerical_problems={None: frame})))
+    if accepted:
+        verify_model_solution(model, tmp_path, normalize_options({}))
+    else:
+        with pytest.raises(WrongInput, match='constraint cells'):
+            verify_model_solution(model, tmp_path, normalize_options({}))
+    report = json.loads((tmp_path/'model_solution.json').read_text())[0]
+    assert report['failed_constraint_cells'] == (0 if accepted else 1)
+
+
+@pytest.mark.skipif('GUROBI' not in cp.installed_solvers(), reason='Gurobi is optional')
+@pytest.mark.parametrize('negative_musd,accepted', [(2e-8, True), (1e-4, False)])
+def test_gurobi_probe_uses_existing_envelope_without_changing_original_problem(tmp_path, negative_musd, accepted):
+    x = cp.Variable()
+    original = cp.Problem(cp.Minimize(cp.square(x)), [x >= 0, x == -negative_musd/1000.])
+    constraints = tuple(original.constraints)
+    frame = pd.DataFrame([{'problem': original}])
+    model = SimpleNamespace(core=SimpleNamespace(problem=SimpleNamespace(numerical_problems={None: frame})))
+    options = normalize_options({'check_feasibility': True, 'feasibility_solver': 'GUROBI', 'scale': 1000.})
+    if accepted:
+        check_feasibility(model, tmp_path, options)
+    else:
+        with pytest.raises(WrongInput, match='infeasible'):
+            check_feasibility(model, tmp_path, options)
+    report = json.loads((tmp_path/'feasibility.json').read_text())[0]
+    assert report['status'] == ('optimal' if accepted else 'infeasible')
+    assert report['absolute_feasibility_band_scaled']*1000. == pytest.approx(1e-6)
+    assert tuple(original.constraints) == constraints and x.value is None
+
+
 def test_signed_kl_keeps_an_already_consistent_mixed_sign_prior():
     x = cp.Variable(2)
     prior = cp.Constant([5.,-15.])

@@ -332,6 +332,73 @@ def _highs_feasibility(problem, absolute_tolerance):
     return record
 
 
+def _gurobi_feasibility(problem, absolute_tolerance):
+    """Use the same affine numerical envelope as the HiGHS probe."""
+    import cvxpy as cp
+    import cvxpy.settings as settings
+    import gurobipy as gp
+
+    data, _, _ = problem.get_problem_data(
+        cp.GUROBI, solver_opts={'use_quad_obj': False}, ignore_dpp=True)
+    matrix, rhs = data[settings.A].tocsc(), data[settings.B]
+    equalities = data[settings.DIMS].zero
+    lower, upper = data[settings.LOWER_BOUNDS], data[settings.UPPER_BOUNDS]
+    with gp.Env(empty=True) as environment:
+        environment.setParam('OutputFlag', 0)
+        environment.start()
+        with gp.Model(env=environment) as probe:
+            probe.Params.Threads = 2
+            probe.Params.TimeLimit = 1800.
+            probe.Params.Method = 1
+            probe.Params.FeasibilityTol = 1e-9
+            probe.Params.OptimalityTol = 1e-9
+            probe.Params.NumericFocus = 1
+            probe.Params.DualReductions = 0
+            variables = probe.addMVar(matrix.shape[1],
+                lb=-gp.GRB.INFINITY if lower is None else lower,
+                ub=gp.GRB.INFINITY if upper is None else upper)
+            if equalities:
+                probe.addMConstr(matrix[:equalities], variables, gp.GRB.LESS_EQUAL,
+                                 rhs[:equalities] + absolute_tolerance)
+                probe.addMConstr(matrix[:equalities], variables, gp.GRB.GREATER_EQUAL,
+                                 rhs[:equalities] - absolute_tolerance)
+            if equalities < len(rhs):
+                probe.addMConstr(matrix[equalities:], variables, gp.GRB.LESS_EQUAL,
+                                 rhs[equalities:] + absolute_tolerance)
+            probe.optimize()
+            status = {gp.GRB.OPTIMAL: 'optimal', gp.GRB.INFEASIBLE: 'infeasible'}.get(
+                probe.Status, f'gurobi_status_{probe.Status}')
+            record = dict(status=status, native_status=int(probe.Status),
+                variables=matrix.shape[1], constraints=matrix.shape[0], native_rows=probe.NumConstrs,
+                absolute_feasibility_band_scaled=absolute_tolerance,
+                native_feasibility_tolerance_scaled=probe.Params.FeasibilityTol,
+                solver_seconds=probe.Runtime, dual_certificate_requested=False)
+            if status == 'optimal':
+                residual = matrix @ variables.X - rhs
+                record['max_constraint_violation_scaled'] = float(max(
+                    np.abs(residual[:equalities]).max(initial=0.), residual[equalities:].max(initial=0.)))
+    return record
+
+
+def _affine_constraint_violation(constraint):
+    """Evaluate cell residuals after converting sparse values, before NumPy ops.
+
+    CVXPY's residual properties can apply np.maximum directly to a SciPy sparse
+    matrix. That raises instead of checking otherwise valid constant domains.
+    """
+    from cvxpy.constraints.zero import Equality, Zero
+    from cvxpy.constraints.nonpos import Inequality, NonPos, NonNeg
+
+    value = _array(constraint.expr.value)
+    if isinstance(constraint, (Equality, Zero)):
+        return np.abs(value)
+    if isinstance(constraint, (Inequality, NonPos)):
+        return np.maximum(value, 0.)
+    if isinstance(constraint, NonNeg):
+        return np.maximum(-value, 0.)
+    raise WrongInput(f'Unsupported split constraint for affine verification: {type(constraint).__name__}')
+
+
 def check_feasibility(model, destination, options):
     if not options or not options['check_feasibility']:
         return
@@ -353,14 +420,16 @@ def check_feasibility(model, destination, options):
                 started = time.monotonic()
                 if solver == 'HIGHS':
                     record = _highs_feasibility(feasible, 1e-6 / options['scale'])
+                elif solver == 'GUROBI':
+                    record = _gurobi_feasibility(feasible, 1e-6 / options['scale'])
                 else:
                     feasible.solve(solver=solver, ignore_dpp=True)
                     record = dict(status=feasible.status, variables=sum(v.size for v in feasible.variables()),
                                   constraints=sum(c.size for c in constraints))
                     if feasible.status in ('optimal','optimal_inaccurate'):
                         record['max_constraint_violation_scaled'] = max(
-                            (float(_array(c.violation()).max(initial=0.)) for c in constraints),default=0.)
-                record.update(problem=str(key), scenario=str(scenario), seconds=time.monotonic()-started)
+                            (float(_affine_constraint_violation(c).max(initial=0.)) for c in constraints),default=0.)
+                record.update(problem=str(key), scenario=str(scenario), solver=solver, seconds=time.monotonic()-started)
                 records.append(record)
                 if record['status'] not in ('optimal','optimal_inaccurate'):
                     raise WrongInput(f"Linear split feasibility check returned {record['status']}; see feasibility.json.")
@@ -379,10 +448,12 @@ def verify_model_solution(model, destination, options):
             problem = row['problem']
             bad, worst = 0, 0.
             for constraint in problem.constraints+problem.objective.expr.domain:
-                violation = _array(constraint.violation())
+                violation = _affine_constraint_violation(constraint)
                 if not np.isfinite(violation).all():
                     raise WrongInput('Nonfinite model solution constraint residual.')
-                reference = np.maximum(np.abs(_array(constraint.args[0].value)),np.abs(_array(constraint.args[1].value)))
+                reference = np.abs(_array(constraint.args[0].value))
+                if len(constraint.args) == 2:
+                    reference = np.maximum(reference, np.abs(_array(constraint.args[1].value)))
                 bad += int(np.count_nonzero(violation > 1e-6/options['scale']+1e-8*reference))
                 worst = max(worst,float(violation.max(initial=0.))*options['scale'])
             stats = problem.solver_stats
