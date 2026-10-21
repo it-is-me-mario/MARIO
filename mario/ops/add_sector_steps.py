@@ -13,6 +13,7 @@ import traceback
 
 import numpy as np
 import pandas as pd
+from pandas.io.excel._openpyxl import OpenpyxlWriter
 
 from mario.log_exc.exceptions import WrongInput
 from mario.ops.add_sector_workbook import (
@@ -23,12 +24,20 @@ from mario.ops.add_sector_workbook import (
 ATOL, RTOL = 1e-6, 1e-8
 
 
+class _SectorWorkbookWriter(OpenpyxlWriter):
+    @property
+    def sheets(self):
+        # Pandas looks up every worksheet by name here; openpyxl scans all
+        # worksheets per lookup. Iterating directly keeps this mapping linear.
+        return {sheet.title: sheet for sheet in self.book.worksheets}
+
+
 def write_workbook_payload(workbook, path, *, instance=None):
     """Write a normalized payload, including the editable global step plan."""
     def cluster_frame(mapping):
         return pd.DataFrame({name: pd.Series(values, dtype=object) for name, values in mapping.items()})
 
-    with pd.ExcelWriter(path, engine="openpyxl") as writer:
+    with _SectorWorkbookWriter(path) as writer:
         workbook.master_sheet.to_excel(writer, sheet_name="Master", index=False)
         for name, mapping in (("Regions Clusters", workbook.regions_clusters),
                               ("Sectors Clusters", workbook.item_clusters),

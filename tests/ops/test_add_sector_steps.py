@@ -69,6 +69,25 @@ def test_template_and_plan_validation(tmp_path):
     assert set(db.get_index("Sector")) == {"Parent", "Stable"}
 
 
+def test_payload_writer_preserves_standard_pandas_workbook_contents(tmp_path, monkeypatch):
+    from zipfile import ZipFile
+    from mario.ops import add_sector_steps as steps
+    source = workbook(balanced_database(), tmp_path / 'source.xlsx')
+    payload = read_add_sector_workbook(source, table='IOT', require_inventory_sheets=True)
+    reference, optimized = tmp_path / 'reference.xlsx', tmp_path / 'optimized.xlsx'
+    with monkeypatch.context() as patch:
+        patch.setattr(steps, '_SectorWorkbookWriter',
+                      lambda path: pd.ExcelWriter(path, engine='openpyxl'))
+        steps.write_workbook_payload(payload, reference)
+    steps.write_workbook_payload(payload, optimized)
+    with ZipFile(reference) as before, ZipFile(optimized) as after:
+        assert before.namelist() == after.namelist()
+        # Creation timestamps may differ; cell XML, types, styles, relationships
+        # and the intermediate plan must remain identical to the prior writer.
+        assert all(before.read(n) == after.read(n) for n in before.namelist()
+                   if n != 'docProps/core.xml')
+
+
 @pytest.mark.parametrize('layout',['database','.'])
 def test_checkpoint_database_layout_preserves_independent_outputs(tmp_path,layout):
     db=balanced_database()
