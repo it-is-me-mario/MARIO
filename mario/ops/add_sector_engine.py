@@ -388,9 +388,14 @@ class AddSectorEngine:
         self.add_new_units(MI["s"])
         empty_slices = self.get_empty_table_slices()
 
-        self.filled_slices = deepcopy(empty_slices)
-        self.filled_uncertainty_slices = empty_slices["z"] * 0 + 1
-        self.uncertainty_matrix = deepcopy(self.matrices[_ENUM["z"]]) * 0 + 1
+        # Own the freshly allocated slices instead of cloning them. Uncertainty
+        # defaults do not depend on coefficient values; avoid full-size arithmetic
+        # temporaries (including the historical deepcopy(z) * 0 + 1).
+        self.filled_slices = empty_slices
+        self.filled_uncertainty_slices = pd.DataFrame(
+            1., index=empty_slices['z'].index, columns=empty_slices['z'].columns)
+        z = self.matrices[_ENUM['z']]
+        self.uncertainty_matrix = pd.DataFrame(1., index=z.index, columns=z.columns)
 
         for sector in self.new_sectors:
             log_time(logger, f"Add-sectors engine: filling IOT slices for sector {sector!r}.", "info")
@@ -1797,13 +1802,18 @@ def run_add_sector_engine(
     ignore_warnings: bool = True,
     VA_fix: bool = False,
     accept_non_unitary_sum: bool = False,
+    reference_matrices: dict[str, pd.DataFrame] | None = None,
 ) -> dict[str, pd.DataFrame]:
     """Run the add-sectors engine and return updated coefficient matrices."""
 
     if not hasattr(instance, "inventories"):
         raise LackOfInput("Inventory sheets are not loaded. Use read_inventory_sheets(...) first.")
 
-    matrices = collect_add_sector_matrices(instance, scenario=scenario)
+    # Reuse numerical buffers, but isolate axes: the working-layout adapter
+    # assigns axis metadata before extending slices into new frames.
+    matrices = ({name: frame.copy(deep=False) for name, frame in reference_matrices.items()}
+                if reference_matrices is not None
+                else collect_add_sector_matrices(instance, scenario=scenario))
     engine = AddSectorEngine(instance, matrices, ignore_warnings=ignore_warnings)
     engine.missing_factors_of_production = getattr(instance, "missing_factors_of_production", {})
     if instance.table_type == IOT:

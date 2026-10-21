@@ -12,6 +12,7 @@ from importlib import resources
 from pathlib import Path
 
 import pandas as pd
+import numpy as np
 
 from mario.log_exc.exceptions import NotImplementable, WrongInput
 from mario.model.conventions import _ENUM, _MASTER_INDEX as MI
@@ -131,6 +132,10 @@ def optimize_split_in_cvxlab(
     preferred = ('GUROBI', 'MOSEK', 'CLARABEL', 'OSQP') if split_model_options and (
         split_model_options['flow_loss'], split_model_options['value_added_loss']) == ('quadratic', 'quadratic') else ('MOSEK', 'CLARABEL', 'SCS')
     solver = _resolve_split_solver(solver, preferred=preferred)
+    if isinstance(flat_matrices, _BlockFlatMatrices):
+        # Reconstruction needs only the immutable source blocks. Do not keep
+        # labelled bridge tables alive alongside CVXLab/CVXPY solver data.
+        flat_matrices.clear()
     _run_split_model(model, dest_dir=dest_dir, solver=solver, solver_parameters=solver_parameters,
                      split_model_options=split_model_options)
     instance._last_split_status = _cvxlab_problem_status_values(model.core.problem.problem_status)
@@ -273,6 +278,7 @@ def _prepare_split_model_inputs(
     flat_matrices = _collect_flat_matrices(
         instance,
         scenarios=[f"split_{scenario_label}", "original"],
+        affected_sectors=set(_split_parent_lookup(instance)) | set(_split_parent_lookup(instance).values()),
     )
     return model, dest_dir, mapping, flat_matrices
 
@@ -718,9 +724,39 @@ def _populate_sets_file(instance, *, dest_dir: Path, scenario_label: str) -> Non
             frame.to_excel(writer, sheet_name=sheet_name, index=False)
 
 
-def _collect_flat_matrices(instance, *, scenarios: list[str]) -> dict[str, pd.DataFrame]:
+class _BlockFlatMatrices(dict):
+    """Filtered bridge tables with read-only references for final reconstruction."""
+
+    def __init__(self):
+        super().__init__()
+        self.source_blocks = {}
+
+
+def _collect_flat_matrices(instance, *, scenarios: list[str], affected_sectors=None) -> dict[str, pd.DataFrame]:
     """Collect the semantically named flat matrices expected by the split mapping."""
 
+    if affected_sectors is not None:
+        result = _BlockFlatMatrices()
+        parts = {name: [] for name in ('Z', 'Y', 'V', 'X')}
+        for scenario in scenarios:
+            # These blocks are not modified. Public conversion APIs return
+            # defensive copies; copying an entire Z here defeats block filtering.
+            blocks = {n: instance.get_block(n, scenario=scenario)
+                      for n in ('Z', 'Y', 'V', 'X') if instance.has_matrix(n, scenario=scenario)}
+            result.source_blocks[scenario] = blocks
+            z = blocks['Z']
+            rows = z.index.get_level_values(-1).isin(affected_sectors)
+            cols = z.columns.get_level_values(-1).isin(affected_sectors)
+            for block in (z.loc[rows, :], z.loc[~rows, cols]):
+                if not block.empty:
+                    parts['Z'].append(_flatten_Z(block, scenario))
+            y, v = blocks['Y'], blocks['V']
+            parts['Y'].append(_flatten_Y(y.loc[y.index.get_level_values(-1).isin(affected_sectors)], scenario))
+            parts['V'].append(_flatten_V(v.loc[:, v.columns.get_level_values(-1).isin(affected_sectors)], scenario))
+            if 'X' in blocks:
+                parts['X'].append(_flatten_X(blocks['X'], scenario))
+        result.update({n: pd.concat(v, ignore_index=True) for n, v in parts.items() if v})
+        return result
     result = {name: [] for name in ("Z", "Y", "V", "X")}
     for scenario in scenarios:
         if scenario.startswith("split_"):
@@ -1347,6 +1383,30 @@ def _split_parent_lookup(instance) -> dict[str, str]:
     return mapping
 
 
+def _patch_split_blocks(source, index, columns, updates):
+    """Copy unchanged blocks once, then assign solved cells without a full melt/pivot."""
+    values = np.zeros((len(index), len(columns)), dtype=float)
+    old_rows, old_cols = index.get_indexer(source.index), columns.get_indexer(source.columns)
+    if (old_rows < 0).any() or (old_cols < 0).any():
+        raise WrongInput('Split reconstruction lost original coordinates.')
+    for start in range(0, len(source), 256):
+        stop = min(start + 256, len(source))
+        values[np.ix_(old_rows[start:stop], old_cols)] = source.iloc[start:stop].to_numpy(dtype=float, copy=False)
+    for frame, row_keys, col_keys in updates:
+        row_axis = pd.MultiIndex.from_frame(frame[row_keys]) if len(row_keys) > 1 else pd.Index(frame[row_keys[0]])
+        col_axis = pd.MultiIndex.from_frame(frame[col_keys]) if len(col_keys) > 1 else pd.Index(frame[col_keys[0]])
+        # Public productive axes contain a fixed Level coordinate; SQL does not.
+        def positions(axis, target):
+            if isinstance(target, pd.MultiIndex) and target.nlevels == 3:
+                target = target.droplevel(1)
+            return target.get_indexer(axis)
+        rows, cols = positions(row_axis, index), positions(col_axis, columns)
+        if (rows < 0).any() or (cols < 0).any():
+            raise WrongInput('Unknown solved split coordinate during reconstruction.')
+        values[rows, cols] = frame['values'].to_numpy(dtype=float)
+    return pd.DataFrame(values, index=index, columns=columns, copy=False)
+
+
 def _parse_split_results(dest_dir: Path, flat_matrices: dict[str, pd.DataFrame], residue=None) -> dict[str, pd.DataFrame]:
     """Parse optimized split results back into MARIO matrices."""
 
@@ -1380,6 +1440,28 @@ def _parse_split_results(dest_dir: Path, flat_matrices: dict[str, pd.DataFrame],
     sectors_df = sets["_set_SECTOR_FROM"]
     sectors_stable = sectors_df[sectors_df["sector_from_category"] == "stable"]["sector_from_Name"].tolist()
     sector_order = sectors_df["sector_from_Name"].tolist()
+
+    if isinstance(flat_matrices, _BlockFlatMatrices):
+        source = flat_matrices.source_blocks.get('original', flat_matrices.source_blocks.get('baseline'))
+        if source is None:
+            raise WrongInput('Original split blocks are missing for reconstruction.')
+        regions = sorted(source['Z'].index.get_level_values(0).unique())
+        row_axis = pd.MultiIndex.from_product([regions, [MI['s']], sorted(sector_order)],
+                                             names=['Region', 'Level', 'Item'])
+        col_axis = pd.MultiIndex.from_product([regions, [MI['s']], sector_order], names=row_axis.names)
+        z_keys = (['region_from_Name', 'sector_from_Name'], ['region_to_Name', 'sector_to_Name'])
+        z = _patch_split_blocks(source['Z'], row_axis, col_axis,
+                               [(f, *z_keys) for f in (db_Z_supply, db_Z_use)])
+        # Legacy unstack retains the first-seen consumption-coordinate order.
+        y_pairs = pd.MultiIndex.from_frame(db_Y[['region_to_Name', 'cons_categ_Name']]).unique()
+        y_pairs = y_pairs.append(source['Y'].columns.droplevel(1)).drop_duplicates()
+        y_columns = pd.MultiIndex.from_tuples([(r, MI['n'], c) for r, c in y_pairs], names=row_axis.names)
+        y = _patch_split_blocks(source['Y'], row_axis, y_columns,
+                               [(db_Y, ['region_from_Name', 'sector_from_Name'], ['region_to_Name', 'cons_categ_Name'])])
+        v = _patch_split_blocks(source['V'], source['V'].index.sort_values(), col_axis,
+                               [(db_V, ['factor_Name'], ['region_to_Name', 'sector_to_Name'])])
+        v.index.name = 'Item'
+        return {_ENUM['Z']: z, _ENUM['Y']: y, _ENUM['V']: v}
 
     available_scenarios = set(flat_matrices["Z"]["Scenario"].unique())
     scenario_to_extract = "original" if "original" in available_scenarios else "baseline"

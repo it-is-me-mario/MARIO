@@ -154,7 +154,7 @@ def block_diag(
     if not sp.issparse(raw):
         raw = sp.csr_matrix(raw)
 
-    result = sp.block_diag([raw] * n, format="csr").toarray()
+    result = sp.block_diag([raw] * n, format="csr")
     
     return cp.Constant(result)
 

@@ -5161,6 +5161,7 @@ class Database(CoreModel):
                 ignore_warnings=ignore_warnings,
                 VA_fix=VA_fix,
                 accept_non_unitary_sum=accept_non_unitary_sum,
+                reference_matrices=original_reference,
             )
 
             stage = "collecting baseline VY"
