@@ -42,24 +42,25 @@ class BonsaiLayout:
 
 
 class _Bundle:
-    """Open only selected CSVs, without extracting or deserializing pickle files."""
+    """Open selected bundle members without extracting the archive."""
 
-    def __init__(self, path, stack):
+    def __init__(self, path, stack, *, required=_CORE_FILES, label="Balanced"):
         self.path = Path(path).expanduser()
+        self.label = label
         self.archive = None
         if not self.path.exists():
             raise FileNotFoundError(self.path)
         if self.path.is_dir():
-            candidates = list(self.path.rglob(_CLASSIFICATION))
+            candidates = list(self.path.rglob(required[0]))
             roots = [
                 p.parent
                 for p in candidates
-                if all((p.parent / n).is_file() for n in _CORE_FILES)
+                if all((p.parent / n).is_file() for n in required)
             ]
             if len(roots) != 1:
                 raise WrongInput(
-                    "Expected exactly one BONSAI Balanced directory containing "
-                    + ", ".join(_CORE_FILES)
+                    f"Expected exactly one BONSAI {label} directory containing "
+                    + ", ".join(required)
                 )
             self.files = {p.name: p for p in roots[0].iterdir() if p.is_file()}
         else:
@@ -73,16 +74,16 @@ class _Bundle:
             roots = {
                 str(PurePosixPath(n).parent)
                 for n in members
-                if PurePosixPath(n).name == _CLASSIFICATION
+                if PurePosixPath(n).name == required[0]
                 and "__MACOSX" not in PurePosixPath(n).parts
                 and all(
-                    str(PurePosixPath(n).parent / f) in members for f in _CORE_FILES
+                    str(PurePosixPath(n).parent / f) in members for f in required
                 )
             }
             if len(roots) != 1:
                 raise WrongInput(
-                    "Expected exactly one BONSAI Balanced bundle containing "
-                    + ", ".join(_CORE_FILES)
+                    f"Expected exactly one BONSAI {label} bundle containing "
+                    + ", ".join(required)
                 )
             root = roots.pop()
             self.files = {
@@ -90,12 +91,12 @@ class _Bundle:
                 for n in members
                 if str(PurePosixPath(n).parent) == root
             }
-            if any(members.count(self.files[n]) != 1 for n in _CORE_FILES):
+            if any(members.count(self.files[n]) != 1 for n in required):
                 raise WrongInput("Duplicate BONSAI CSV members in ZIP archive.")
 
     def open(self, name):
         if name not in self.files:
-            raise WrongInput(f"Missing BONSAI Balanced file: {name}")
+            raise WrongInput(f"Missing BONSAI {self.label} file: {name}")
         if self.archive is not None:
             if self.archive.namelist().count(self.files[name]) != 1:
                 raise WrongInput(f"Duplicate BONSAI CSV member: {name}")
@@ -306,7 +307,7 @@ def _economic_flows(bundle, classification, nodes, *, chunksize):
     return entries, commodity_units, counts
 
 
-def _elementary_flows(bundle, nodes, *, enabled, unmatched):
+def _elementary_flows(bundle, nodes, *, enabled, unmatched, filename=_EXTENSIONS):
     """Read the recalculated aggregate once, keeping direct final-demand flows."""
     if not enabled:
         return (
@@ -326,11 +327,11 @@ def _elementary_flows(bundle, nodes, *, enabled, unmatched):
         "substance_name",
     ]
     # Keep all original columns for complete diagnostics on unmatched rows.
-    raw = next(_read_csv(bundle, _EXTENSIONS, None))
+    raw = next(_read_csv(bundle, filename, None))
     missing_columns = set(columns) - set(raw.columns)
     if missing_columns:
         raise WrongInput(
-            f"Invalid BONSAI CSV {_EXTENSIONS}: missing columns {sorted(missing_columns)}"
+            f"Invalid BONSAI CSV {filename}: missing columns {sorted(missing_columns)}"
         )
     if raw.empty:
         return (
@@ -345,7 +346,7 @@ def _elementary_flows(bundle, nodes, *, enabled, unmatched):
                 "satellites": [],
             },
         )
-    values = _values(raw, "Value", _EXTENSIONS)
+    values = _values(raw, "Value", filename)
     if (
         raw[["Exio substance", "Exio country code", "Exio act code", "unit"]]
         .eq("")

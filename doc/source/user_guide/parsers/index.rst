@@ -38,8 +38,8 @@ Environmentally-extended databases
       :kicker: mario.parse_bonsai
       :logo: /_static/images/logos/bonsai.webp
 
-      Balanced hybrid supply-use graph exports, read directly from a local ZIP
-      or extracted directory with recalculated elementary flows.
+      Balanced hybrid supply-use exports and native b2 hybrid input-output
+      tables, read from a local ZIP or directory with direct elementary flows.
 
    .. mario-card:: :doc:`EORA <../../notebooks/parsers/eora/walkthrough_eora>`
       :kicker: mario.parse_eora

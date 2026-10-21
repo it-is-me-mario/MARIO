@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 import mario
-from mario.log_exc.exceptions import NotImplementable, WrongInput
+from mario.log_exc.exceptions import WrongInput
 from mario.model.conventions import _MASTER_INDEX
 from mario.parsers.bonsai import parse_bonsai_hsut
 
@@ -336,7 +336,7 @@ def test_invalid_bundle_and_table(balanced, tmp_path):
     broken.write_bytes(b"PK incomplete")
     with pytest.raises(WrongInput, match="complete, valid ZIP"):
         mario.parse_bonsai(broken)
-    with pytest.raises(NotImplementable, match="only Balanced HSUT"):
+    with pytest.raises(WrongInput, match="HIOT b2"):
         mario.parse_bonsai(balanced, table="IOT")
     _bundle(tmp_path / "another")
     with pytest.raises(WrongInput, match="exactly one BONSAI"):

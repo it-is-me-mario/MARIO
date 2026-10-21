@@ -1,0 +1,122 @@
+{
+  "native_shape": [
+    53789,
+    53789
+  ],
+  "f_shape": [
+    129,
+    53789
+  ],
+  "current_f_relative_residual_max": 1.5941526533703838e-14,
+  "electricity_standard": {
+    "n": 48,
+    "median_absolute_percent": 3.1134099274761518,
+    "mean_absolute_percent": 5.159562464506986,
+    "min_percent": -31.592318064617963,
+    "max_percent": 29.830472840681676,
+    "within_1_percent": 9,
+    "within_5_percent": 34,
+    "within_10_percent": 43
+  },
+  "electricity_with_bonsai_cf": {
+    "n": 48,
+    "median_absolute_percent": 3.132849537432758,
+    "mean_absolute_percent": 5.164130736603311,
+    "min_percent": -31.5885023934401,
+    "max_percent": 29.857871956940162,
+    "within_1_percent": 9,
+    "within_5_percent": 34,
+    "within_10_percent": 43
+  },
+  "all_products_standard": {
+    "n": 50846,
+    "median_absolute_percent": 5.851148208747913,
+    "mean_absolute_percent": 14.869490074910379,
+    "min_percent": -7158.535028947519,
+    "max_percent": 15595.1160053,
+    "within_1_percent": 4572,
+    "within_5_percent": 21897,
+    "within_10_percent": 37141
+  },
+  "all_products_with_bonsai_cf": {
+    "n": 50846,
+    "median_absolute_percent": 5.914817869940958,
+    "mean_absolute_percent": 14.756609964891165,
+    "min_percent": -7117.943542872131,
+    "max_percent": 15601.50000724153,
+    "within_1_percent": 4523,
+    "within_5_percent": 21567,
+    "within_10_percent": 37142
+  },
+  "electricity_CF_effect": {
+    "n": 48,
+    "median_absolute_percent": 0.00934151915580328,
+    "mean_absolute_percent": 0.016008494979010784,
+    "min_percent": 0.0020299918450428223,
+    "max_percent": 0.06907382817067376,
+    "within_1_percent": 48,
+    "within_5_percent": 48,
+    "within_10_percent": 48
+  },
+  "electricity_current_vs_oct19": {
+    "n": 48,
+    "median_absolute_percent": 0.645158598764195,
+    "mean_absolute_percent": 1.9130792825684264,
+    "min_percent": -14.036669431003379,
+    "max_percent": 30.81112130071666,
+    "within_1_percent": 29,
+    "within_5_percent": 45,
+    "within_10_percent": 46
+  },
+  "CF_difference": {
+    "Accelerated CO2, Air | Air": 0.00772
+  },
+  "native_nodes_without_published_footprint": 1472,
+  "published_nodes_without_native_node": 78,
+  "files": {
+    "extended_size_hiot.b2.pkl": {
+      "mtime": "2026-10-20T15:39:22+00:00",
+      "bytes": 45726485
+    },
+    "total_elementary_flow_w_iLUC.csv": {
+      "mtime": "2026-10-19T12:20:45+00:00",
+      "bytes": 10314789
+    },
+    "ghg_for_all.b2.GWP100.csv": {
+      "mtime": "2026-10-15T17:36:16+00:00",
+      "bytes": 1025016
+    },
+    "terminated_act_emissions.b2.csv.pkl": {
+      "mtime": "2026-10-19T12:50:21+00:00",
+      "bytes": 53926691
+    }
+  },
+  "units_electricity": "g CO2eq/kWh",
+  "units_all_products": "tonnes CO2eq per native product unit",
+  "note": "Compared local files have different modification times and different node coverage. Modification dates are not snapshot/release identifiers. No matched-input equivalence benchmark or separate Oct15 HIOT snapshot was available in the inspected local directories.",
+  "reference_year": 2016,
+  "residual_definition": "Maximum over nonzero environmental rows of norm(f_row @ T - E_row, 2) / norm(E_row, 2). All 129 computed rows are finite.",
+  "native_matrix_exactly_preserved": true,
+  "percentage_definition": "100 * (MARIO / BONSAI_saved - 1); statistics exclude missing/zero saved references and nonfinite percentages. Signed and near-zero references can yield extreme percentages.",
+  "compute_settings": {
+    "compute_method": "solve",
+    "linear_solver": "umfpack",
+    "linear_strategy": "direct",
+    "singular_policy": "partial"
+  },
+  "environment": {
+    "pandas": "2.3.3",
+    "numpy": "2.1.1",
+    "scipy": "1.18.0",
+    "scikit-umfpack": "0.4.2"
+  },
+  "sha256": {
+    "extended_size_hiot.b2.pkl": "b9ae1a94ccb9fca69b132c61f956b0c9d953c9a4bccca45c15916be7787f4d42",
+    "total_elementary_flow_w_iLUC.csv": "7858745458c6ab44699b2dcb18942cba624dc2757c1c925fec27b88240492095",
+    "ghg_for_all.b2.GWP100.csv": "7bfbdcc751883fc7b52aa12d350b8a4cf9a19e8c9bb80e971419b9623dc7eaf4",
+    "terminated_act_emissions.b2.csv.pkl": "67b1d617d3dc3ebcf7db8d39eb1eca1c7dca019c67d7fe382bb55555b412a4c6",
+    "final_demand.b2.csv": "6b2d944a2b214c8da1397757790ab71b4972b19b4d559b15c4afda193735a1ca",
+    "collect/Emissions_coeffs/GWPs/lcia.xlsx": "3af12059945431a395930079e3d5dace35f8880c4f3d58401d0ef697f0a3adfd"
+  },
+  "cached_mario_f_sha256": "9bd4b147d45f75630fcaa067d9a8c68203b08ed4b0e754282e35ccd920f33e86"
+}

@@ -32,6 +32,7 @@ from mario.parsers.api import (
 from mario.parsers.adb import parse_adb_iot
 from mario.parsers.bea import parse_bea_sut
 from mario.parsers.bonsai import parse_bonsai_hsut
+from mario.parsers.bonsai_hiot import parse_bonsai_hiot
 from mario.parsers.cepalstat import parse_cepalstat_iot, parse_cepalstat_sut
 from mario.parsers.ceads import parse_ceads_iot
 from mario.parsers.emerging import parse_emerging_iot
@@ -148,32 +149,41 @@ def parse_bonsai(
     path: str | Path,
     *,
     table: str = "SUT",
+    year: int | None = None,
     extensions: bool = True,
     unmatched_extensions: str = "warn",
+    unmatched_final_demand: str = "warn",
     chunksize: int = 100_000,
     model: str = "Database",
     name: str | None = None,
     calc_all: bool = False,
     **kwargs,
 ) -> object:
-    """Parse BONSAI Balanced hybrid supply-use tables from local CSV exports.
+    """Parse BONSAI Balanced HSUT or the native, already modelled b2 HIOT.
 
     Parameters
     ----------
     path : str or pathlib.Path
-        Complete Balanced ZIP archive or extracted directory. A single nested
-        release directory, such as ``20260615/``, is detected automatically.
+        Complete ZIP archive or directory containing one Balanced HSUT or b2
+        HIOT release. A single nested release directory is detected automatically.
     table : str, optional
-        Only ``SUT`` (HSUT) is supported.
+        ``SUT`` for Balanced HSUT (default), or ``IOT`` for the b2 HIOT.
+    year : int, optional
+        Reference year. For HSUT, an explicit value must match classification.csv.
+        For HIOT, it is read from nonempty elementary-flow ``time`` values when
+        available; otherwise provide it explicitly. Release dates are not years.
     extensions : bool, optional
-        Load recalculated elementary flows from
-        ``all_elementary_flows_AB_and_BB.csv``. Defaults to True; False loads
-        only the economic tables with zero satellite placeholders.
+        Load recalculated elementary flows: ``all_elementary_flows_AB_and_BB.csv``
+        for HSUT, ``total_elementary_flow_w_iLUC.csv`` for HIOT. Defaults to True;
+        False loads only economics with zero satellite placeholders.
     unmatched_extensions : {"warn", "raise"}, optional
         Report and omit elementary-flow rows without a classified process, or
         reject the import. Full omitted rows are retained in the import report.
+    unmatched_final_demand : {"warn", "raise"}, optional
+        For HIOT, report and omit demand for products absent from the native
+        matrix, or reject the import. Full omitted rows remain in the report.
     chunksize : int, optional
-        Number of economic graph rows per read; all output blocks stay sparse.
+        Number of CSV rows per read; economic matrices stay sparse.
     model : {"Database", "ModelState"}, optional
         Type of the returned MARIO object.
     name : str, optional
@@ -185,15 +195,34 @@ def parse_bonsai(
 
     Notes
     -----
-    Requires ``classification.csv``, ``hybrid_supply_w_characteristic_unit.csv``
+    HSUT requires ``classification.csv``, ``hybrid_supply_w_characteristic_unit.csv``
     and ``hybrid_use_w_characteristic_unit.csv``. The reference year comes from
     the classification, not the release directory. Native commodity codes,
     regional flows and hybrid units are preserved. No value-added accounts are
     inferred from mixed physical units: Va and Vc contain a zero placeholder.
 
+    HIOT requires ``extended_size_hiot.b2.pkl`` and ``final_demand.b2.csv``
+    from the same source snapshot. A release directory can be updated in place;
+    its name and file modification dates do not establish input consistency.
+    The native matrix already includes Stone, iLUC and
+    capital. Only load trusted BONSAI pickle exports.
+    Native product codes identify IOT Sectors; original activity/reference-product
+    pairs are retained in the import report. For the native net-supply matrix T,
+    X is its diagonal and Z = diag(X)-T. This retains the exact BONSAI system and
+    substitution credits even when source production and demand do not balance.
+    Gross reference production and self consumption cannot be recovered
+    separately. V/VY are zero placeholders. The parser does not convert Balanced
+    HSUTs or read precomputed Leontief inverses or footprints.
+
+    IOT multipliers satisfy f = e (I-z)^-1 = E T^-1. ``calc_ghg()`` applies the
+    MARIO GHG profile, not the export's LCIA workbook. Comparing saved BONSAI
+    footprints requires matching source snapshots, LCIA factors, regional
+    product identities and native units. Characterize the required accounts
+    before ``keep_extensions`` to limit the number of environmental solve rows.
+
     Import diagnostics and satellite identities are stored in
     ``Database.info["bonsai"]`` or ``ModelState.metadata.extra["bonsai"]``.
-    No archive extraction, pickle loading or automatic download is performed.
+    No archive extraction or automatic download is performed; HSUT uses only CSVs.
     Satellite labels use ``name | compartment``. Native UUIDs are appended only
     to disambiguate homonyms, and units only if the same identity has multiple
     units. Original identities remain in the import report and units in
@@ -212,21 +241,31 @@ def parse_bonsai(
     ``mario.settings.parser_profiles.PARSER_COMPUTE_PROFILES["bonsai"]``.
     """
     validate_parse_request(table=table, model=model)
-    if table != "SUT":
-        raise NotImplementable("BONSAI parsing currently supports only Balanced HSUT (SUT) tables.")
-    matrices, indexes, units, layout = parse_bonsai_hsut(
+    reader = parse_bonsai_hsut if table == "SUT" else parse_bonsai_hiot
+    reader_options = {} if table == "SUT" else {
+        "year": year, "unmatched_final_demand": unmatched_final_demand,
+    }
+    matrices, indexes, units, layout = reader(
         path,
         extensions=extensions,
         unmatched_extensions=unmatched_extensions,
         chunksize=chunksize,
+        **reader_options,
     )
+    if table == "SUT" and year is not None and (
+        isinstance(year, bool) or not isinstance(year, int) or year != layout.year
+    ):
+        raise WrongInput("BONSAI year must match the reference year in classification.csv.")
+    # Constructors normally discard derived X. In the HIOT export this is
+    # authoritative source production, needed even when Z/Y are not balanced.
+    source_output = matrices["baseline"].get("X")
     result = models[model](
-        name=name or "BONSAI Balanced HSUT",
-        table="SUT",
+        name=name or ("BONSAI Balanced HSUT" if table == "SUT" else "BONSAI HIOT b2"),
+        table=table,
         source=layout.source,
         year=layout.year,
         init_by_parsers={"matrices": matrices, "_indeces": indexes, "units": units},
-        calc_all=calc_all,
+        calc_all=calc_all if table == "SUT" else False,
         notes=list(layout.notes),
         **kwargs,
     )
@@ -234,6 +273,10 @@ def parse_bonsai(
         result.metadata.extra["bonsai"] = layout.report
     else:
         result.info["bonsai"] = layout.report
+    if source_output is not None:
+        result.set_block("X", source_output)
+        if calc_all and model == "Database":
+            result.calc_all()
     return result
 
 

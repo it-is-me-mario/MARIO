@@ -8,6 +8,19 @@ package on PyPI, and dates are its publication dates.
 Unreleased
 ----------
 
+* ``parse_bonsai(table="IOT")`` reads native b2 HIOT directories or ZIP bundles,
+  preserving sparse net-supply matrices, hybrid product units, nonuniform
+  regional sectors and source diagonal normalization. It imports final demand
+  and direct elementary flows, reports unmatched source rows and leaves the
+  existing Balanced HSUT parser as the default. No Stone reconstruction or
+  precomputed inverse is required.
+* BONSAI documentation explains the equivalence between native ``E T^-1`` and
+  MARIO's ``e (I-z)^-1`` multipliers, electricity unit conversion, explicit
+  BONSAI LCIA characterization and comparison of matching source exports.
+  The executed walkthrough limits the HIOT solve to the required GHG rows. A dated local
+  verification records source checksums, numerical residuals and discrepancies
+  against older saved footprints; file modification dates are distinguished
+  from release identifiers.
 * ``get_index`` preserves complete Factor of production and Satellite account
   lists when custom extension layouts contain global scopes outside the Region
   set. GTAP global accounts are no longer discarded by regional-view inference;
