@@ -145,8 +145,19 @@ admissible signs are retained. The default ``flow_loss="kl"`` uses KL.
 
 ``check_feasibility=True`` first solves an LP with the same affine constraints
 and all objective-implied domains. Its default solver is HiGHS, selected by
-``feasibility_solver``. An infeasible LP stops before entropy minimization and
-writes ``feasibility.json``. This establishes constraint feasibility only.
+``feasibility_solver``. The HiGHS preflight applies an absolute band of
+``1e-6`` in original monetary units to each canonical constraint row, matching
+the absolute component of the final constraint audit. This avoids rejecting
+accepted, serialized checkpoints because of sub-tolerance residuals. The final
+optimization constraints and acceptance checks are unchanged. Other preflight
+solvers retain their solver-specific numerical tolerances.
+
+HiGHS is called directly without constructing a dual infeasibility certificate;
+that certificate can be much more expensive than the feasibility decision.
+An infeasible LP stops before optimization and writes ``feasibility.json``,
+including native status, numerical band and measured residuals. A feasible
+preflight establishes only feasibility within that band; the final solution
+must independently pass all constraint and conservation checks.
 
 ``compact_constraints=True`` indexes structural/sign masks at their active
 coordinates and replaces exact two-sided bands with single equalities. These

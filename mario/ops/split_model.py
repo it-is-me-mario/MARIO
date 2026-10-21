@@ -345,6 +345,52 @@ def fill_model_inputs(instance, input_data, flat_matrices, set_map, scenario_lab
             raise WrongInput(f'Incomplete or nonfinite {name} model inputs.')
 
 
+def _highs_feasibility(problem, absolute_tolerance):
+    """Check the audited numerical envelope without requesting a dual ray.
+
+    Equalities in a serialized accepted checkpoint need not be algebraically
+    exact. Explicit bands use only the absolute tolerance already enforced by
+    verify_model_solution; the final optimization problem is not modified.
+    """
+    import cvxpy as cp
+    import cvxpy.settings as settings
+    import highspy
+
+    data, _, _ = problem.get_problem_data(cp.HIGHS, ignore_dpp=True)
+    matrix = data[settings.A].tocsc()
+    rhs = data[settings.B]
+    equalities = data[settings.DIMS].zero
+    lp = highspy.HighsLp()
+    lp.num_col_, lp.num_row_ = matrix.shape[1], matrix.shape[0]
+    lp.col_cost_ = data[settings.C]
+    lower, upper = data[settings.LOWER_BOUNDS], data[settings.UPPER_BOUNDS]
+    lp.col_lower_ = np.full(lp.num_col_, -highspy.kHighsInf) if lower is None else lower
+    lp.col_upper_ = np.full(lp.num_col_, highspy.kHighsInf) if upper is None else upper
+    lp.row_lower_ = np.r_[rhs[:equalities] - absolute_tolerance,
+                         np.full(len(rhs) - equalities, -highspy.kHighsInf)]
+    lp.row_upper_ = rhs + absolute_tolerance
+    lp.a_matrix_.format_ = highspy.MatrixFormat.kColwise
+    lp.a_matrix_.start_, lp.a_matrix_.index_, lp.a_matrix_.value_ = matrix.indptr, matrix.indices, matrix.data
+    solver = highspy.Highs()
+    for key, value in dict(threads=1, primal_feasibility_tolerance=1e-10,
+                           dual_feasibility_tolerance=1e-9, output_flag=False).items():
+        solver.setOptionValue(key, value)
+    solver.passModel(lp)
+    solver.run()
+    native_status = solver.getModelStatus()
+    status = {highspy.HighsModelStatus.kOptimal: 'optimal',
+              highspy.HighsModelStatus.kInfeasible: 'infeasible'}.get(native_status, native_status.name)
+    record = dict(status=status, native_status=native_status.name,
+                  variables=lp.num_col_, constraints=lp.num_row_,
+                  absolute_feasibility_band_scaled=absolute_tolerance,
+                  solver_seconds=solver.getRunTime(), dual_certificate_requested=False)
+    if status == 'optimal':
+        residual = matrix @ np.asarray(solver.getSolution().col_value) - rhs
+        record['max_constraint_violation_scaled'] = float(max(
+            np.abs(residual[:equalities]).max(initial=0.), residual[equalities:].max(initial=0.)))
+    return record
+
+
 def check_feasibility(model, destination, options):
     if not options or not options['check_feasibility']:
         return
@@ -364,18 +410,19 @@ def check_feasibility(model, destination, options):
                     raise WrongInput('The feasibility stage requires affine split constraints/domains.')
                 feasible = cp.Problem(cp.Minimize(0),constraints)
                 started = time.monotonic()
-                kwargs = {'highs_options':{'threads':1,'primal_feasibility_tolerance':1e-9,
-                                          'dual_feasibility_tolerance':1e-9}} if solver=='HIGHS' else {}
-                feasible.solve(solver=solver,ignore_dpp=True,**kwargs)
-                record = dict(problem=str(key),scenario=str(scenario),status=feasible.status,
-                              seconds=time.monotonic()-started,variables=sum(v.size for v in feasible.variables()),
-                              constraints=sum(c.size for c in constraints))
-                if feasible.status in ('optimal','optimal_inaccurate'):
-                    record['max_constraint_violation_scaled'] = max(
-                        (float(_array(c.violation()).max(initial=0.)) for c in constraints),default=0.)
+                if solver == 'HIGHS':
+                    record = _highs_feasibility(feasible, 1e-6 / options['scale'])
+                else:
+                    feasible.solve(solver=solver, ignore_dpp=True)
+                    record = dict(status=feasible.status, variables=sum(v.size for v in feasible.variables()),
+                                  constraints=sum(c.size for c in constraints))
+                    if feasible.status in ('optimal','optimal_inaccurate'):
+                        record['max_constraint_violation_scaled'] = max(
+                            (float(_array(c.violation()).max(initial=0.)) for c in constraints),default=0.)
+                record.update(problem=str(key), scenario=str(scenario), seconds=time.monotonic()-started)
                 records.append(record)
-                if feasible.status not in ('optimal','optimal_inaccurate'):
-                    raise WrongInput(f'Linear split feasibility check returned {feasible.status}; see feasibility.json.')
+                if record['status'] not in ('optimal','optimal_inaccurate'):
+                    raise WrongInput(f"Linear split feasibility check returned {record['status']}; see feasibility.json.")
     finally:
         (Path(destination)/'feasibility.json').write_text(json.dumps(records,indent=2,allow_nan=False))
 

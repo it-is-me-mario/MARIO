@@ -84,7 +84,30 @@ def test_feasibility_reports_sparse_parameter_domains(tmp_path):
     model = SimpleNamespace(core=SimpleNamespace(problem=SimpleNamespace(numerical_problems={None:frame})))
     check_feasibility(model,tmp_path,normalize_options({'check_feasibility':True}))
     report = json.loads((tmp_path/'feasibility.json').read_text())[0]
-    assert report['status']=='optimal' and report['max_constraint_violation_scaled']<1e-8
+    assert report['status']=='optimal'
+    assert report['max_constraint_violation_scaled'] <= report['absolute_feasibility_band_scaled'] + 1e-10
+
+
+@pytest.mark.parametrize('scale', [1., 1000.])
+@pytest.mark.parametrize('negative_musd,accepted', [(2e-8, True), (1e-4, False)])
+def test_feasibility_uses_existing_absolute_tolerance_without_changing_the_qp(tmp_path, scale, negative_musd, accepted):
+    x = cp.Variable()
+    original = cp.Problem(cp.Minimize(cp.square(x)), [x >= 0, x == -negative_musd / scale])
+    original_constraints = tuple(original.constraints)
+    frame = pd.DataFrame([{'problem': original}])
+    model = SimpleNamespace(core=SimpleNamespace(problem=SimpleNamespace(numerical_problems={None: frame})))
+    options = normalize_options({'check_feasibility': True, 'scale': scale})
+    if accepted:
+        check_feasibility(model, tmp_path, options)
+    else:
+        with pytest.raises(WrongInput, match='infeasible'):
+            check_feasibility(model, tmp_path, options)
+    report = json.loads((tmp_path / 'feasibility.json').read_text())[0]
+    assert report['status'] == ('optimal' if accepted else 'infeasible')
+    assert report['absolute_feasibility_band_scaled'] * scale == pytest.approx(1e-6)
+    assert report['dual_certificate_requested'] is False
+    assert tuple(original.constraints) == original_constraints
+    assert x.value is None
 
 
 @pytest.mark.parametrize('total,split',[(10.,[4.,2.,4.]),(0.,[0.,0.,0.])])
