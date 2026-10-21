@@ -167,9 +167,12 @@ coordinates. No prior, adaptive-support coefficient, weight or physical constrai
 is altered. Negative entropy operands remain outside the domain and are not
 clipped during verification. Relative-entropy/legacy operators are unchanged.
 
-This representation addresses a reproducible MOSEK `UNKNOWN` failure with
-references as small as `1e-25` in scaled units; it does not guarantee convergence
-on every dataset. Failed attempts must remain visible. The model revision is
+This representation resolves a small regression example where direct KL returns
+MOSEK `UNKNOWN` with references as small as `1e-25` in scaled units. The real
+49-region MCU trial still returned `UNKNOWN` after 66.30 native optimiser
+seconds (versus 71.58 for direct KL); no KL database was accepted. This numerical
+change is therefore not a demonstrated solution to the full MRIO convergence
+problem. Failed attempts must remain visible. The model revision is
 `constant-reference-kl-v3`; earlier checkpoints retain their original model
 fingerprints and cannot silently resume under changed operator sources.
 
