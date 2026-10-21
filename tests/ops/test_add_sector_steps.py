@@ -288,6 +288,15 @@ def test_inherited_accounting_signed_priors_and_scaling_across_two_steps(tmp_pat
                                     'static_regularization_constant':1e-11,
                                     'dynamic_regularization_delta':2e-9,'max_iter':600})
     partial = db.add_sectors(source,stop_after_step='Mine first',**solve)
+    if loss == 'quadratic' and not compact and not defer_e:
+        historical = partial.copy()
+        historical._intermediate_steps_state.pop('split_model_revision')
+        with pytest.raises(WrongInput, match='factor domains changed'):
+            historical.add_sectors(source, **solve)
+        changed_definition = partial.copy()
+        changed_definition._intermediate_steps_state['model_definition']['source_sha256'] = {}
+        with pytest.raises(WrongInput, match='model definition changed'):
+            changed_definition.add_sectors(source, **solve)
     if not defer_e and loss=='quadratic' and compact:
         # A strict checkpoint written before the new option has the same
         # meaning as its current default False and remains resumable.

@@ -18,6 +18,7 @@ recursive-include mario *.py
 recursive-include mario *.stats
 recursive-include mario *.csv
 recursive-include mario *.xlsx
+recursive-include mario *.json *.md
 recursive-include mario *.yaml
 include mario/settings/*.yaml
 include mario/settings/*.py

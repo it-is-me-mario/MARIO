@@ -8,6 +8,8 @@ retains its discrepancy in the parent. No discrepancy is a decision variable.
 from __future__ import annotations
 
 import json
+import hashlib
+from importlib import resources
 from pathlib import Path
 import time
 
@@ -17,7 +19,8 @@ import pandas as pd
 from mario.log_exc.exceptions import WrongInput
 
 
-DEFAULTS = dict(accounting='strict', value_added_loss='legacy', flow_loss='kl', final_demand_weight=0.,
+MODEL_REVISION = 'explicit-factor-domains-v1'
+DEFAULTS = dict(model=None, accounting='strict', value_added_loss='legacy', flow_loss='kl', final_demand_weight=0.,
                 supply_weight=0., complete_intermediate_priors=False,
                 check_feasibility=False, feasibility_solver='HIGHS', scale=1.,compact_constraints=False,
                 defer_satellite_recalculation=False)
@@ -31,6 +34,15 @@ def normalize_options(options):
     if not isinstance(options, dict) or set(options)-DEFAULTS.keys():
         raise WrongInput(f'split_model_options must be a dict with keys {sorted(DEFAULTS)}.')
     result = {**DEFAULTS, **options}
+    catalogue = model_catalogue()
+    requested = options.get('model')
+    if requested is not None:
+        if not isinstance(requested, str) or requested not in catalogue:
+            raise WrongInput(f'Unknown explicit split model {requested!r}; choose {sorted(catalogue)}.')
+        for key, value in catalogue[requested].items():
+            if key in options and options[key] != value:
+                raise WrongInput(f'{requested} requires {key}={value!r}.')
+            result[key] = value
     if result['accounting'] not in ('strict','inherit'):
         raise WrongInput("accounting must be 'strict' or 'inherit'.")
     if result['value_added_loss'] not in ('legacy','signed_kl','quadratic'):
@@ -49,7 +61,51 @@ def normalize_options(options):
             raise WrongInput(f'{key} must be boolean.')
     if not isinstance(result['feasibility_solver'],str) or not result['feasibility_solver']:
         raise WrongInput('feasibility_solver must name an installed LP solver.')
+    matches = [name for name, specification in catalogue.items()
+               if all(result[key] == value for key, value in specification.items())]
+    if len(matches) != 1:
+        raise WrongInput('No packaged model matches these objective options.')
+    result['model'] = matches[0]
     return result
+
+
+def model_catalogue():
+    resource = resources.files('mario.ops.cvxlab_models') / 'split_models.json'
+    return json.loads(resource.read_text())
+
+
+def select_model_template(options, *, staged=False):
+    if options is None:
+        return ('Split_sectors_staged' if staged else 'Split_sectors'), 'model_settings.xlsx'
+    options = normalize_options(options)
+    suffix = '_strict' if options['accounting'] == 'strict' else ''
+    if options['compact_constraints']:
+        suffix += '_compact'
+    return options['model'], f'model_settings{suffix}.xlsx'
+
+
+def describe_model(options, *, staged=False):
+    template, filename = select_model_template(options, staged=staged)
+    source = resources.files('mario.ops.cvxlab_models') / template
+    return dict(template=template, workbook=filename,
+                revision=MODEL_REVISION if options is not None else 'historical-prior-sign',
+                source_sha256={n: hashlib.sha256((source / n).read_bytes()).hexdigest()
+                               for n in (filename, 'mapping.xlsx', 'user_defined_operators.py', 'user_defined_constants.py')},
+                shared_operators_sha256={
+                    'split_operators.py': hashlib.sha256((resources.files('mario.ops.cvxlab_models') / 'split_operators.py').read_bytes()).hexdigest(),
+                    'split_model.py': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+                })
+
+
+def record_model_configuration(directory, options, template, filename):
+    directory = Path(directory)
+    definition = describe_model(options, staged=template == 'Split_sectors_staged')
+    if (template, filename) != (definition['template'], definition['workbook']):
+        raise WrongInput('Selected workbook differs from the recorded model options.')
+    (directory / 'model_definition.json').write_text(json.dumps(definition, indent=2))
+    if options is not None:
+        (directory / 'split_model_options.json').write_text(json.dumps(options, indent=2, allow_nan=False))
+    return definition
 
 
 def inherited_accounting(before, after_x, parents, scenario='baseline'):
@@ -178,138 +234,23 @@ def proportional_row_reference(table, original, outputs, previous_outputs, paren
     return table.assign(values=values*share)
 
 
-def configure_model(path, options):
-    """Extend only the generated CVXLab configuration, never its template."""
-    if options is None:
-        return
-    from openpyxl import load_workbook
-    path = Path(path)
-    book = load_workbook(path)
-    ws = book['structure_variables']
-    headers = [c.value for c in ws[1]]
-    layouts = {row[headers.index('variables_info')].value: [c.value for c in row]
-               for row in ws.iter_rows(min_row=2)}
-
-    def add(source, name, *, table=None, kind=None, **coordinates):
-        row = list(layouts[source])
-        changes = dict(variables_info=name,table_key=table or name,
-                       description='Explicit experimental IOT split reference')
-        if kind:
-            changes.update(type=kind,nonneg=None)
-        changes.update(coordinates)
-        for key,value in changes.items():
-            if key in headers:
-                row[headers.index(key)] = value
-        ws.append(row)
-
-    if options['accounting']=='inherit':
-        add('X_intra','RowResidual',kind='exogenous')
-        add('XT_intra','ColumnResidual',kind='exogenous')
-    if options['final_demand_weight']:
-        add('Y_pn_to','Y_all',table='Y',region_to='dim: cols')
-        add('Y_pn_to','Y0',kind='exogenous',region_to='dim: cols')
-        add('Zero_Y_mask','Zero_Y_all',table='Zero_Y_mask',region_to='dim: cols')
-    if options['complete_intermediate_priors']:
-        add('Z_use_to','Z_use_all',table='Z_use',region_to='dim: cols')
-        add('Z_use_to','Z_use0',kind='exogenous',region_to='dim: cols')
-        add('Zero_use_mask','Zero_use_all',table='Zero_use_mask',region_to='dim: cols')
-    if options['supply_weight'] or options['complete_intermediate_priors']:
-        add('Z_supply_to','Z_supply_all',table='Z_supply',region_to='dim: cols')
-        add('Z_supply_to','Z_supply0',kind='exogenous',region_to='dim: cols')
-        add('Zero_supply_mask','Zero_supply_all',table='Zero_supply_mask',region_to='dim: cols')
-
-    problem = book['problem']
-    cols = {c.value:c.column for c in problem[1]}
-    flow_loss = 'model_quadratic' if options['flow_loss']=='quadratic' else 'model_active_kl'
-    y_loss = 'model_quadratic' if options['flow_loss']=='quadratic' else 'model_signed_kl'
-    for row in problem.iter_rows(min_row=2):
-        objective = row[cols['objective']-1]
-        if objective.value:
-            if options['complete_intermediate_priors']:
-                terms = [f'{flow_loss}(Z_use_all,Z_use0,Zero_use_all)']
-            else:
-                terms = ['sum(entropy(Z_use_n,Z0_all_n))','sum(entropy(Z_use_st_p,Z0_st_p))']
-            loss = options['value_added_loss']
-            terms.append({'legacy':'sum(entropy_signed(V,V0))',
-                          'signed_kl':'model_signed_kl(V,V0,Zero_V_mask)',
-                          'quadratic':'model_quadratic(V,V0,Zero_V_mask)'}[loss])
-            if options['final_demand_weight']:
-                terms.append(f"{options['final_demand_weight']}*{y_loss}(Y_all,Y0,Zero_Y_all)")
-            if options['supply_weight'] or options['complete_intermediate_priors']:
-                weight = options['supply_weight'] or 1.
-                terms.append(f'{weight}*{flow_loss}(Z_supply_all,Z_supply0,Zero_supply_all)')
-            objective.value = 'Minimize('+'+'.join(terms)+')'
-        expression = row[cols['expressions']-1]
-        value = expression.value or ''
-        if options['accounting']=='inherit':
-            if value.startswith('X_intra'):
-                expression.value = ('Z_supply_from@I_r_st+Z_use_pn_pn_from@I_r_pn+Y_pn_from@I_r_c'
-                                    ' == X_intra+RowResidual') if '<=' in value else None
-            elif value.startswith('XT_intra'):
-                expression.value = ('I_row_rs@Z_use_to+I_row_v@V_intra == XT_intra+ColumnResidual') if '<=' in value else None
-    explicit_domains = []
-    if options['value_added_loss']=='quadratic':
-        explicit_domains.append('model_prior_signed_values(V,V0,Zero_V_mask) >= 0')
-    if options['flow_loss']=='quadratic' and options['final_demand_weight']:
-        explicit_domains.append('model_prior_signed_values(Y_all,Y0,Zero_Y_all) >= 0')
-    for expression in explicit_domains:
-        row = [None]*problem.max_column
-        row[cols['expressions']-1] = expression
-        problem.append(row)
-    book.save(path)
-    book.close()
-    with (path.parent/'user_defined_operators.py').open('a') as stream:
-        for name in ('model_active_kl','model_signed_kl','model_quadratic'):
-            stream.write(f'\n\ndef {name}(*args):\n    from mario.ops.split_model import {name} as operation\n    return operation(*args, reference_floor={1e-8/options["scale"]!r})\n')
-        if options['scale']!=1:
-            for name,signed in [('entropy',False),('entropy_signed',True)]:
-                stream.write(f'\n\ndef {name}(a,prior):\n    from mario.ops.split_model import model_legacy_entropy\n    return model_legacy_entropy(a,prior,signed={signed!r},reference_floor={1e-8/options["scale"]!r})\n')
-        stream.write('\n\ndef model_masked_values(*args):\n    from mario.ops.split_model import model_masked_values as operation\n    return operation(*args)\n')
-        stream.write('\n\ndef model_prior_signed_values(*args):\n    from mario.ops.split_model import model_prior_signed_values as operation\n    return operation(*args)\n')
-    (path.parent/'split_model_options.json').write_text(json.dumps(options,indent=2,allow_nan=False))
-
-
-def compact_model(path, options, *, exact_trade=False):
-    if not options or not options['compact_constraints']:
-        return
-    import re
-    from openpyxl import load_workbook
-    book = load_workbook(path)
-    sheet = book['problem']
-    column = [c.value for c in sheet[1]].index('expressions')+1
-    for row in sheet.iter_rows(min_row=2):
-        cell = row[column-1]
-        value = cell.value or ''
-        zero = re.fullmatch(r'\s*0\s*==\s*mult\((Zero_\w+),\s*(\w+)\)\s*',value)
-        sign = re.fullmatch(r'mult\(((?:Positive|Negative)_Y_mask),\s*(\w+)\)\s*([<>]=)\s*0',value)
-        if zero:
-            cell.value = f'model_masked_values({zero[2]},{zero[1]}) == 0'
-        elif sign:
-            cell.value = f'model_masked_values({sign[2]},{sign[1]}) {sign[3]} 0'
-        elif options['accounting']=='inherit':
-            if value.startswith('Zold_') and '<=' in value and value.endswith('*(1+eps)'):
-                left,right = value.split('<=',1)
-                cell.value = left+' == '+right[:-len('*(1+eps)')]
-            elif value.startswith('Zold_') and '>=' in value and value.endswith('*(1-eps)'):
-                cell.value = None
-            for name in ('Yold','Vold'):
-                if value.startswith(f'{name}-absval({name})*eps<='):
-                    cell.value = name+' == '+value.split('<=',1)[1]
-                elif value.startswith(f'{name}+absval({name})*eps>='):
-                    cell.value = None
-        if exact_trade and value.startswith('Trade'):
-            if '<=' in value and value.endswith('*(1+delta)'):
-                left,right = value.split('<=',1)
-                cell.value = left+' == '+right[:-len('*(1+delta)')]
-            elif '>=' in value and value.endswith('*(1-delta)'):
-                cell.value = None
-    book.save(path)
-    book.close()
-
-
 def fill_model_inputs(instance, input_data, flat_matrices, set_map, scenario_label, options):
     if options is None:
         return
+    if 'Model_controls' in input_data:
+        controls = {'y_weight': options['final_demand_weight'],
+                    'supply_weight': options['supply_weight'] or (1. if options['complete_intermediate_priors'] else 0.),
+                    'reference_floor': 1e-8 / options['scale']}
+        table = input_data['Model_controls']
+        table['values'] = table['model_control_Name'].map(controls)
+        if not np.isfinite(table['values']).all():
+            raise WrongInput('Unknown or nonfinite model control.')
+    for name, signed in [('V_nonnegative_mask', False), ('V_signed_mask', True)]:
+        if name in input_data:
+            table = input_data[name]
+            factor = 'fact_prod_Name' if 'fact_prod_Name' in table else 'factor_Name'
+            free = table[factor].astype(str).str.strip().str.casefold().isin(['tax', 'ttm'])
+            table['values'] = (free if signed else ~free).astype(float)
     if options['accounting']=='inherit' and (input_data['tol'].loc[input_data['tol']['scalar_Name'].eq('eps'),'values']!=0).any():
         raise WrongInput('Inherited accounting requires exact preceding aggregates (eps=0).')
     from mario.ops.cvxlab_bridge import _rename_flat_columns, _split_parent_lookup, _merge_cvxlab_input_table

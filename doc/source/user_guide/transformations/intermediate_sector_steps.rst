@@ -80,8 +80,9 @@ Experimental convex split options
 ---------------------------------
 
 ``split_model_options=None`` retains the packaged IOT model. Experimental
-settings are applied only to the generated CVXLab directory; the template and
-supplied database are not rewritten. The same options work in a single IOT
+settings select explicit checked-in workbooks under ``mario/ops/cvxlab_models``;
+objective and constraint formulas are not generated at runtime. Numerical weights
+are input data. The supplied database and packaged workbooks are not rewritten. The same options work in a single IOT
 split and in sequential groups. SUT experiments are not supported.
 
 .. code-block:: python
@@ -110,14 +111,25 @@ allocation assumption, not a correction of the baseline. New discrepancies
 are checked separately against ``1e-6 + 1e-8 * abs(X)``. Inherited accounting
 requires ``eps=0`` and disables positive ``residue`` clipping.
 
-``value_added_loss`` accepts ``legacy`` (default), ``signed_kl`` or
-``quadratic``. Signed KL retains each prior's sign and includes the complete
-``x*log(x/q)-x+q`` divergence on magnitudes. Quadratic loss uses an explicit
-prior-sign constraint to retain the same admissible signs. Negative Capital or
-Labor priors still require source/economic review. Structural zero masks are
-preserved independently of the objective. An allowed zero prior uses the
-nonnegative domain of its numerical support floor; it supplies no evidence of
-a negative flow. Missing signed observations therefore need explicit review.
+``model="Split_sectors_MRIO_quadratic"`` or
+``model="Split_sectors_MRIO_KL"`` selects a named packaged formulation.
+The existing ``flow_loss``, ``value_added_loss`` and
+``complete_intermediate_priors`` settings also resolve to explicit templates.
+See ``mario/ops/cvxlab_models/README.md`` for the complete catalogue and workbook
+selection. ``model_definition.json`` records the selected workbook and hashes.
+
+In the MRIO templates, Capital and Labor (and other non-TTM/non-Tax factors)
+are constrained nonnegative. TTM and Tax may take either sign, including
+crossing a prior's sign, subject to aggregates and structural zeros. Quadratic
+V penalises net deviations. Entropy V uses nonnegative positive/negative
+components for TTM/Tax, while positive factors use ordinary nonnegative entropy.
+The older prior-sign formulation remains in the historical reference template
+selected by ``split_model_options=None``. Negative positive-factor priors are
+rejected explicitly by entropy models; they are not silently converted.
+
+These factor domains change the mathematical model. Historical checkpoints
+remain readable, but cannot be resumed silently with the new experimental
+formulation. Start a fresh controlled trial to use it.
 
 ``final_demand_weight`` (default 0) adds signed KL to a final-demand prior
 constructed jointly from the preceding Y row and fixed output shares of the
@@ -141,7 +153,7 @@ V it produces a QP, avoiding exponential cones. This is a different modelling
 criterion, not an equivalent entropy reformulation. Each squared deviation is
 divided by ``max(abs(prior), 1e-6*max(abs(prior)), 1e-8)`` within its free block,
 with the numerical floor adjusted for ``scale``. Structural zeros and the
-admissible signs are retained. The default ``flow_loss="kl"`` uses KL.
+Y prior-sign domains and V factor-type domains are retained. The default ``flow_loss="kl"`` uses KL.
 
 ``check_feasibility=True`` first solves an LP with the same affine constraints
 and all objective-implied domains. Its default solver is HiGHS, selected by

@@ -56,14 +56,8 @@ setup(
         "mario.parsers": ["*.csv", "*.yaml"],
         "mario.test":["*.xlsx"],
         "mario.ops.cvxlab_models": [
-            "Split_sectors/*.xlsx",
-            "Split_sectors/*.py",
-            "Split_sut/*.xlsx",
-            "Split_sut/*.py",
-            "Split_sut_com/*.xlsx",
-            "Split_sut_com/*.py",
-            "Split_sut_act/*.xlsx",
-            "Split_sut_act/*.py",
+            "*.json", "*.md",
+            "Split_*/*.xlsx", "Split_*/*.py", "Split_*/*.md",
         ],
         },
     install_requires=[

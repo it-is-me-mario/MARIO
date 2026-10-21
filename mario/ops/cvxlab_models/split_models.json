@@ -1,0 +1,47 @@
+{
+  "Split_sectors_MRIO_partial_entropy_V_legacy": {
+    "complete_intermediate_priors": false,
+    "flow_loss": "kl",
+    "value_added_loss": "legacy"
+  },
+  "Split_sectors_MRIO_partial_entropy_V_signed_kl": {
+    "complete_intermediate_priors": false,
+    "flow_loss": "kl",
+    "value_added_loss": "signed_kl"
+  },
+  "Split_sectors_MRIO_partial_entropy_V_quadratic": {
+    "complete_intermediate_priors": false,
+    "flow_loss": "kl",
+    "value_added_loss": "quadratic"
+  },
+  "Split_sectors_MRIO_kl_V_legacy": {
+    "complete_intermediate_priors": true,
+    "flow_loss": "kl",
+    "value_added_loss": "legacy"
+  },
+  "Split_sectors_MRIO_KL": {
+    "complete_intermediate_priors": true,
+    "flow_loss": "kl",
+    "value_added_loss": "signed_kl"
+  },
+  "Split_sectors_MRIO_kl_V_quadratic": {
+    "complete_intermediate_priors": true,
+    "flow_loss": "kl",
+    "value_added_loss": "quadratic"
+  },
+  "Split_sectors_MRIO_quadratic_V_legacy": {
+    "complete_intermediate_priors": true,
+    "flow_loss": "quadratic",
+    "value_added_loss": "legacy"
+  },
+  "Split_sectors_MRIO_quadratic_V_signed_kl": {
+    "complete_intermediate_priors": true,
+    "flow_loss": "quadratic",
+    "value_added_loss": "signed_kl"
+  },
+  "Split_sectors_MRIO_quadratic": {
+    "complete_intermediate_priors": true,
+    "flow_loss": "quadratic",
+    "value_added_loss": "quadratic"
+  }
+}

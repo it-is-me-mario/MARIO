@@ -247,22 +247,14 @@ def _prepare_split_model_inputs(
     input_data_files_type: str,
     split_model_options=None,
 ):
-    dest_dir = _prepare_split_model_directory(main_dir_path=main_dir_path, model_dir_name=model_dir_name)
-    from mario.ops.split_model import configure_model
-    configure_model(dest_dir / "model_settings.xlsx", split_model_options)
+    from mario.ops.split_model import normalize_options, select_model_template, record_model_configuration
+    split_model_options = normalize_options(split_model_options)
     refinement = getattr(instance, "_intermediate_refinement", None)
-    if refinement is not None:
-        _configure_sequential_domains(dest_dir / "model_settings.xlsx")
-    has_supply_prior = split_model_options and (split_model_options['supply_weight'] or split_model_options['complete_intermediate_priors'])
-    if refinement is not None and not refinement.empty and not has_supply_prior:
-        _configure_refinement_objective(dest_dir / "model_settings.xlsx")
-    from mario.ops.split_model import compact_model
-    if split_model_options and split_model_options['compact_constraints']:
-        tolerance = instance.split_info[ADD_SECTOR_SPLIT_TOLERANCE_SHEET]
-        delta = tolerance.loc[tolerance[ADD_SECTOR_SPLIT_TOLERANCE_COLUMNS['name']].eq('delta'),
-                              ADD_SECTOR_SPLIT_TOLERANCE_COLUMNS['value']]
-        compact_model(dest_dir / 'model_settings.xlsx', split_model_options,
-                      exact_trade=bool(len(delta) and delta.eq(0).all()))
+    template, filename = select_model_template(split_model_options, staged=refinement is not None)
+    dest_dir = _prepare_split_model_directory(main_dir_path=main_dir_path, model_dir_name=model_dir_name,
+                                             template_name=template, settings_filename=filename)
+    instance._last_split_model_definition = record_model_configuration(
+        dest_dir, split_model_options, template, filename)
     mapping = pd.read_excel(dest_dir / "mapping.xlsx", sheet_name=None, index_col=0)
 
     model = _build_cvxlab_model(
@@ -280,72 +272,6 @@ def _prepare_split_model_inputs(
         scenarios=[f"split_{scenario_label}", "original"],
     )
     return model, dest_dir, mapping, flat_matrices
-
-
-def _configure_sequential_domains(path):
-    """Keep split final-demand components in their preceding cell's sign domain.
-
-    Final demand may contain negative inventories, so a global nonnegative
-    variable would be incorrect. Signed masks apply only to generated staged
-    models and permit zero shares of either positive or negative source cells.
-    """
-    from openpyxl import load_workbook
-    book = load_workbook(path)
-    try:
-        ws = book["structure_variables"]
-        headers = [cell.value for cell in ws[1]]
-        layout = next([cell.value for cell in row] for row in ws.iter_rows(min_row=2)
-                      if row[0].value == "Zero_Y_mask")
-        for name in ("Positive_Y_mask", "Negative_Y_mask"):
-            row = list(layout)
-            row[headers.index("table_key")] = name
-            row[headers.index("variables_info")] = name
-            row[headers.index("description")] = "Preceding final-demand cell sign"
-            row[headers.index("blank_fill")] = 0
-            ws.append(row)
-        problem = book["problem"]
-        columns = [cell.value for cell in problem[1]]
-        for expression in ("mult(Positive_Y_mask,Y_pn_to) >= 0", "mult(Negative_Y_mask,Y_pn_to) <= 0"):
-            row = [None] * len(columns)
-            row[columns.index("expressions")] = expression
-            row[columns.index("description")] = "Preserve preceding final-demand cell sign"
-            problem.append(row)
-        book.save(path)
-    finally:
-        book.close()
-
-
-def _configure_refinement_objective(path):
-    """Add conditional supply priors only to the generated step model."""
-    from openpyxl import load_workbook
-    book = load_workbook(path)
-    try:
-        ws = book["structure_variables"]
-        headers = [cell.value for cell in ws[1]]
-        layout = next([cell.value for cell in row] for row in ws.iter_rows(min_row=2)
-                      if row[0].value == "Zero_supply_mask")
-        layout[headers.index("region_to")] = "dim: cols"
-        for name in ("Z_refine", "Refine_selector"):
-            row = list(layout)
-            row[headers.index("table_key")] = name
-            row[headers.index("variables_info")] = name
-            row[headers.index("description")] = "Deferred supplier refinement for completed sectors"
-            row[headers.index("blank_fill")] = 0
-            ws.append(row)
-        supply = next([cell.value for cell in row] for row in ws.iter_rows(min_row=2)
-                      if row[headers.index("variables_info")].value == "Z_supply_to")
-        supply[headers.index("variables_info")] = "Z_supply_refined"
-        supply[headers.index("region_to")] = "dim: cols"
-        ws.append(supply)
-        problem = book["problem"]
-        objective_column = [c.value for c in problem[1]].index("objective") + 1
-        for cells in problem.iter_rows(min_row=2):
-            cell = cells[objective_column - 1]
-            if cell.value:
-                cell.value = cell.value.rstrip()[:-1] + "+sum(entropy(mult(Refine_selector,Z_supply_refined),Z_refine)))"
-        book.save(path)
-    finally:
-        book.close()
 
 
 def _build_cvxlab_model(*, main_dir_path, model_dir_name: str, input_data_files_type: str):
@@ -585,6 +511,7 @@ def _prepare_split_model_directory(
     model_dir_name: str,
     template_name: str = CVXLAB_TEMPLATE_NAME,
     template_files: tuple[str, ...] = CVXLAB_TEMPLATE_FILES,
+    settings_filename: str = "model_settings.xlsx",
 ) -> Path:
     """Create a clean split-model directory and copy MARIO-owned template assets."""
 
@@ -603,7 +530,7 @@ def _prepare_split_model_directory(
 
     template_dir = resources.files(CVXLAB_TEMPLATE_PACKAGE) / template_name
     for filename in template_files:
-        source = template_dir / filename
+        source = template_dir / (settings_filename if filename == "model_settings.xlsx" else filename)
         target = dest_dir / filename
         shutil.copy2(source, target)
         if filename == "model_settings.xlsx":
@@ -766,6 +693,13 @@ def _populate_sets_file(instance, *, dest_dir: Path, scenario_label: str) -> Non
             sets[sheet_name] = pd.DataFrame({first_column: regions})
         elif sheet_name == "_set_CONS_CATEG":
             sets[sheet_name] = pd.DataFrame({first_column: cons_categories})
+        elif sheet_name == "_set_MODEL_CONTROL":
+            controls = ['y_weight', 'supply_weight', 'reference_floor']
+            frame = pd.DataFrame({first_column: controls})
+            for column in sets[sheet_name].columns:
+                if column != first_column:
+                    frame[column] = controls
+            sets[sheet_name] = frame
         elif sheet_name == "_set_FACTOR":
             sets[sheet_name] = pd.DataFrame({first_column: factors})
         elif sheet_name == "_set_SCALAR":
@@ -965,7 +899,8 @@ def _write_input_data(
     set_map = dict(zip(mapping["sets"].index.to_list(), mapping["sets"]["cvxlab"]))
 
     refinement = getattr(instance, "_intermediate_refinement", None)
-    if refinement is not None and not refinement.empty and "Z_refine" in input_data:
+    has_supply_prior = split_model_options and (split_model_options['supply_weight'] or split_model_options['complete_intermediate_priors'])
+    if refinement is not None and not refinement.empty and "Z_refine" in input_data and not has_supply_prior:
         for name in ("Z_refine", "Refine_selector"):
             updates = refinement.copy()
             if name == "Refine_selector":
@@ -1242,7 +1177,7 @@ def _write_input_data(
     if residue is not None:
         threshold = float(residue)
         for table_name, df in input_data.items():
-            if table_name in {"Trade_selector", "tol", "Zero_use_mask", "Zero_supply_mask", "Zero_V_mask","Zero_Y_mask"} or "values" not in df.columns:
+            if table_name in {"Trade_selector", "tol", "Zero_use_mask", "Zero_supply_mask", "Zero_V_mask","Zero_Y_mask","V_nonnegative_mask","V_signed_mask","Model_controls"} or "values" not in df.columns:
                 continue
             # V and Y can be negative: compare their magnitude with the threshold
             magnitude = df["values"].abs() if table_name in _SIGNED_TABLES else df["values"]

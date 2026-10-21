@@ -449,9 +449,14 @@ def run_intermediate_steps(instance, *, io, scenario, inplace, split, save_inter
     state = getattr(instance, "_intermediate_steps_state", {})
     completed = state.get("completed_sectors", [])
     model_options = options.get('split_model_options')
-    from mario.ops.split_model import normalize_options
+    from mario.ops.split_model import normalize_options, describe_model, MODEL_REVISION
+    if completed and model_options is not None and state.get('split_model_revision') != MODEL_REVISION:
+        raise WrongInput('Split model factor domains changed; restart before the completed steps. '
+                         'Historical checkpoints remain readable but cannot silently use the new V domains.')
     if completed and normalize_options(state.get('split_model_options')) != model_options:
         raise WrongInput('Split model options changed; restart before the completed steps.')
+    if completed and model_options is not None and state.get('model_definition') != describe_model(model_options, staged=True):
+        raise WrongInput('Packaged split model definition changed; restart before the completed steps.')
     plan, parents = validate_plan(workbook, target.get_index("Sector"), completed=completed)
     if stop_after_step is not None and stop_after_step not in [name for name, _ in plan]:
         raise WrongInput("stop_after_step must name a pending group in Intermediate steps.")
@@ -506,6 +511,8 @@ def run_intermediate_steps(instance, *, io, scenario, inplace, split, save_inter
                      "runtime": {p: version(p) for p in ("mariopy", "cvxlab", "pandas", "cvxpy")},
                      "solver_status": getattr(candidate, "_last_split_status", []),
                      "split_model_options": model_options,
+                     "split_model_revision": MODEL_REVISION if model_options is not None else None,
+                     "model_definition": getattr(candidate, '_last_split_model_definition', None),
                      "pending_recalculations": ['E'] if preservation['E'].get('requires_recalculation') else [],
                      "tolerances": {"absolute": ATOL, "relative": RTOL},
                      "files": {str(p.relative_to(staging)): _digest(p)
