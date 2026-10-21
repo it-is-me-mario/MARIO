@@ -110,14 +110,17 @@ def build():
             registry[name] = dict(complete_intermediate_priors=complete, flow_loss=flow, value_added_loss=va)
             for filename in ('mapping.xlsx', 'user_defined_constants.py'):
                 shutil.copy2(BASE / filename, folder / filename)
-            (folder / 'user_defined_operators.py').write_text(OPERATORS + IMPORTS)
+            (folder / 'user_defined_operators.py').write_text(
+                '# Numerical operators only; the workbook declares the formulation.\n'
+                'from mario.ops.cvxlab_models.Split_sectors.user_defined_operators import absval, block_diag\n'
+                + IMPORTS)
             for accounting in ('strict', 'inherit'):
                 book = base_workbook()
                 sheet = book['structure_variables']
                 sheet.cell(1, 17, 'model_control')
                 book['structure_sets'].append(['model_control', 'Numerical weights and support floor', None, None,
-                                               'parameter: [y_weight,supply_weight,reference_floor]'])
-                for control, parameter in [('Weight_Y', 'y_weight'), ('Weight_supply', 'supply_weight'), ('Reference_floor', 'reference_floor')]:
+                                               'parameter: [y_weight,supply_weight,reference_floor,entropy_floor]'])
+                for control, parameter in [('Weight_Y', 'y_weight'), ('Weight_supply', 'supply_weight'), ('Reference_floor', 'reference_floor'), ('Entropy_floor', 'entropy_floor')]:
                     row = [None] * 17
                     row[:6] = ['Model_controls', 'Numerical model control', 'exogenous', None, 'model_control', control]
                     row[16] = f'dim: rows, filters: {{parameter: {parameter}}}'
@@ -148,7 +151,8 @@ def build():
                         elif value.startswith('XT_intra'):
                             row[2].value = 'I_row_rs@Z_use_to+I_row_v@V_intra == XT_intra+ColumnResidual' if '<=' in value else None
                 add_constraint(book, 'model_masked_values(V,V_nonnegative_mask) >= 0', 'Capital/Labor and other nonnegative factors')
-                terms = [f'{"quadratic" if flow == "quadratic" else "active_kl"}(Z_use_all,Z_use0,Zero_use_all,Reference_floor)'] if complete else ['sum(legacy_entropy(Z_use_n,Z0_all_n,Reference_floor))', 'sum(legacy_entropy(Z_use_st_p,Z0_st_p,Reference_floor))']
+                support = 'Reference_floor' if flow == 'quadratic' else 'Entropy_floor'
+                terms = [f'{"quadratic" if flow == "quadratic" else "active_kl"}(Z_use_all,Z_use0,Zero_use_all,{support})'] if complete else ['sum(legacy_entropy(Z_use_n,Z0_all_n,Entropy_floor))', 'sum(legacy_entropy(Z_use_st_p,Z0_st_p,Entropy_floor))']
                 if va == 'quadratic':
                     terms.append('quadratic(V,V0,Zero_V_mask,Reference_floor)')
                 else:
@@ -159,14 +163,14 @@ def build():
                         add_constraint(book, f'model_masked_values({auxiliary},Zero_V_mask) == 0', 'Preserve structural zero factors')
                     add_constraint(book, 'model_masked_values(V-V_signed_positive+V_signed_negative,V_signed_mask) == 0', 'TTM/Tax = positive component minus negative component')
                     loss = 'entropy' if va == 'legacy' else 'kl'
-                    terms += [f'positive_va_{loss}(V,V0,Zero_V_mask,V_nonnegative_mask,Reference_floor)',
-                              f'free_va_{loss}(V_signed_positive,V_signed_negative,V0,Zero_V_mask,V_signed_mask,Reference_floor)']
+                    terms += [f'positive_va_{loss}(V,V0,Zero_V_mask,V_nonnegative_mask,Entropy_floor)',
+                              f'free_va_{loss}(V_signed_positive,V_signed_negative,V0,Zero_V_mask,V_signed_mask,Entropy_floor)']
                 yloss = 'quadratic' if flow == 'quadratic' else 'signed_kl'
                 zloss = 'quadratic' if flow == 'quadratic' else 'active_kl'
-                terms += [f'weighted_{yloss}(Y_all,Y0,Zero_Y_all,Weight_Y,Reference_floor)',
-                          f'weighted_{zloss}(Z_supply_all,Z_supply0,Zero_supply_all,Weight_supply,Reference_floor)']
+                terms += [f'weighted_{yloss}(Y_all,Y0,Zero_Y_all,Weight_Y,{support})',
+                          f'weighted_{zloss}(Z_supply_all,Z_supply0,Zero_supply_all,Weight_supply,{support})']
                 if not complete:
-                    terms.append('refinement_entropy(Z_supply_refined,Z_refine,Refine_selector,Reference_floor)')
+                    terms.append('refinement_entropy(Z_supply_refined,Z_refine,Refine_selector,Entropy_floor)')
                 if flow == 'quadratic':
                     add_constraint(book, 'weighted_signed_values(Y_all,Y0,Zero_Y_all,Weight_Y) >= 0', 'Y prior sign only when its loss is enabled')
                 objective(book, 'Minimize(' + '+'.join(terms) + ')')

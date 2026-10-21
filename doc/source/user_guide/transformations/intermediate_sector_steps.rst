@@ -97,7 +97,7 @@ split and in sequential groups. SUT experiments are not supported.
    }
    db.add_sectors(
        "add_sectors.xlsx", split=True, intermediate_steps=True,
-       save_intermediates="new_run/checkpoints", solver="CLARABEL",
+       save_intermediates="new_run/checkpoints", solver="MOSEK",
        split_model_options=options,
    )
 
@@ -127,7 +127,28 @@ The older prior-sign formulation remains in the historical reference template
 selected by ``split_model_options=None``. Negative positive-factor priors are
 rejected explicitly by entropy models; they are not silently converted.
 
-These factor domains change the mathematical model. Historical checkpoints
+Entropy support is recomputed per step from the references in enabled losses:
+``10 ** (floor(log10(min(abs(nonzero prior)))) - 4)`` in original monetary units,
+then divided by ``scale``. A smallest magnitude of ``0.03`` gives ``1e-6``.
+Zeros, masks, numerical controls, targets and disabled losses are excluded;
+signed observations contribute their absolute magnitude. The coefficient and
+its source tables are recorded in ``entropy_support.json``. Quadratic weighting
+retains its separate numerical floor. No support can be inferred from all-zero
+references; invalid/nonfinite or unrepresentable coefficients raise an error.
+
+For a sequence, prefer ``Split_sectors_MRIO_KL`` initially and
+``Split_sectors_MRIO_partial_entropy_V_signed_kl`` for subsequent groups, with
+quadratic as an explicit alternative if entropy fails. MOSEK is preferred for
+entropy and Gurobi for pure quadratic; open solvers remain supported.
+``allow_model_change=True`` permits an explicit named-objective transition only
+for pending intermediate groups, with all accounting/weights/numerical controls
+and completed inventory fingerprints preserved. ``model_history`` records the
+actual models and solvers. The default remains False. The pipeline orchestrates
+this policy; a direct MARIO call selects one explicit formulation/solver.
+``require_finite_objective=True`` rejects a nonfinite objective without clipping
+the solver result; the entropy-first pipeline enables this additional check.
+
+These factor domains and the adaptive entropy support change the model. Historical checkpoints
 remain readable, but cannot be resumed silently with the new experimental
 formulation. Start a fresh controlled trial to use it.
 

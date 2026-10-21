@@ -4866,6 +4866,7 @@ class Database(CoreModel):
         save_intermediates=None,
         stop_after_step=None,
         split_model_options=None,
+        allow_model_change=False,
     ):
         """Apply the add-sectors workbook to the selected scenario.
 
@@ -4920,9 +4921,8 @@ class Database(CoreModel):
         solver:
             Optional solver passed through to CVXLab.
         solver_parameters:
-            Optional solver keyword arguments passed to CVXLab. When provided,
-            they are forwarded as ``mosek_params`` to preserve the historical
-            MARIO split workflow.
+            Optional solver-specific keyword arguments passed to CVXLab.
+            MOSEK parameters are nested under ``mosek_params`` automatically.
         parent_name:
             Optional new label for the residual parent sector when exactly one
             parent sector is being split.
@@ -4955,6 +4955,10 @@ class Database(CoreModel):
             scaling are configured independently. ``defer_satellite_recalculation``
             skips E conservation in sequential acceptance and marks E pending.
             None retains the packaged model.
+        allow_model_change:
+            Explicitly permit a different named objective for pending intermediate
+            steps. Accounting, weights, numerical controls and completed inputs
+            must remain identical. Each checkpoint records the model history.
 
         Notes
         -----
@@ -4975,6 +4979,8 @@ class Database(CoreModel):
         are accepted to disambiguate equal labels).
         """
         from mario.ops.split_model import normalize_options
+        if not isinstance(allow_model_change, bool) or (allow_model_change and not intermediate_steps):
+            raise WrongInput('allow_model_change must be boolean and requires intermediate_steps=True.')
         split_model_options = normalize_options(split_model_options)
         if split_model_options is not None and (not split or self.table_type != "IOT"):
             raise WrongInput("split_model_options currently requires an IOT and split=True.")
@@ -4986,6 +4992,7 @@ class Database(CoreModel):
                 self, io=io, scenario=scenario, inplace=inplace, split=split,
                 save_intermediates=save_intermediates,
                 stop_after_step=stop_after_step,
+                allow_model_change=allow_model_change,
                 options=dict(keep_all_split_steps=keep_all_split_steps, notes=notes,
                              ignore_warnings=ignore_warnings, cvxlab_path=cvxlab_path,
                              input_data_files_type=input_data_files_type,

@@ -56,6 +56,42 @@ def workbook(db, path, *, second_quantity=8.4):
     return path
 
 
+@pytest.mark.parametrize('solver', ['MOSEK', 'CLARABEL'])
+def test_explicit_kl_to_partial_entropy_transition_preserves_checkpoint_contract(tmp_path, solver):
+    import cvxpy as cp
+    if solver not in cp.installed_solvers():
+        pytest.skip(f'{solver} is optional')
+    db = balanced_database()
+    source = workbook(db, tmp_path/'input.xlsx')
+    common = dict(accounting='inherit', final_demand_weight=.1, supply_weight=1.,
+                  check_feasibility=True, feasibility_solver=['GUROBI', 'HIGHS'],
+                  compact_constraints=True, defer_satellite_recalculation=True, scale=10.)
+    kl = dict(common, model='Split_sectors_MRIO_KL')
+    partial = dict(common, model='Split_sectors_MRIO_partial_entropy_V_signed_kl')
+    settings = ({'MSK_IPAR_NUM_THREADS': 2, 'MSK_IPAR_INTPNT_SOLVE_FORM': 'MSK_SOLVE_DUAL', 'MSK_DPAR_INTPNT_CO_TOL_PFEAS': 1e-11,
+                 'MSK_DPAR_INTPNT_CO_TOL_DFEAS': 1e-11, 'MSK_DPAR_INTPNT_CO_TOL_REL_GAP': 1e-11}
+                if solver == 'MOSEK' else {'tol_feas': 1e-11, 'tol_gap_abs': 1e-10, 'tol_gap_rel': 1e-10})
+    kwargs = dict(split=True, intermediate_steps=True, inplace=False,
+                  save_intermediates=tmp_path/'checkpoints', solver=solver, solver_parameters=settings)
+    first = db.add_sectors(source, stop_after_step='Mine first', split_model_options=kl, **kwargs)
+    reloaded = load_checkpoint(tmp_path/'checkpoints/001_Mine_first')
+    with pytest.raises(WrongInput, match='options changed'):
+        reloaded.add_sectors(source, split_model_options=partial, **kwargs)
+    with pytest.raises(WrongInput, match='options changed'):
+        reloaded.add_sectors(source, split_model_options=dict(partial, final_demand_weight=.2), allow_model_change=True, **kwargs)
+    result = reloaded.add_sectors(source, split_model_options=partial, allow_model_change=True, **kwargs)
+    history = result._intermediate_steps_state['model_history']
+    assert [h['split_model_options']['model'] for h in history] == [kl['model'], partial['model']]
+    assert [h['explicit_model_change'] for h in history] == [False, True]
+    assert all(h['solver'] == solver for h in history)
+    assert set(first.get_index('Sector')) == {'Parent', 'Stable', 'Mining'}
+    report = verify_preservation(db, result, {'Mining': 'Parent', 'Refining': 'Parent'},
+                                 split_model_options=result._intermediate_steps_state['split_model_options'])
+    assert all(v['passed'] for k, v in report.items() if k != 'E')
+    support = json.loads(next((tmp_path/'checkpoints/002_Refine_second').rglob('entropy_support.json')).read_text())
+    assert support['coefficient'] > 0 and support['orders_below'] == 4
+
+
 def test_template_and_plan_validation(tmp_path):
     db = balanced_database()
     source = workbook(db, tmp_path / "input.xlsx")

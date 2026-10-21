@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import hashlib
+from decimal import Decimal
 from importlib import resources
 from pathlib import Path
 import time
@@ -19,11 +20,11 @@ import pandas as pd
 from mario.log_exc.exceptions import WrongInput
 
 
-MODEL_REVISION = 'explicit-factor-domains-v1'
+MODEL_REVISION = 'adaptive-entropy-support-v2'
 DEFAULTS = dict(model=None, accounting='strict', value_added_loss='legacy', flow_loss='kl', final_demand_weight=0.,
                 supply_weight=0., complete_intermediate_priors=False,
                 check_feasibility=False, feasibility_solver='HIGHS', scale=1.,compact_constraints=False,
-                defer_satellite_recalculation=False)
+                defer_satellite_recalculation=False, require_finite_objective=False)
 FLOW_TABLES = {'Z0','V0','X','Trade','Zold','Yold','Vold','Z_refine',
                'RowResidual','ColumnResidual','Y0','Z_use0','Z_supply0'}
 
@@ -56,11 +57,15 @@ def normalize_options(options):
         if isinstance(value, bool) or not isinstance(value, (int,float)) or not np.isfinite(value) or value < 0 or (key=='scale' and value==0):
             raise WrongInput(f'{key} must be finite and {"positive" if key=="scale" else "nonnegative"}.')
     for key in ('complete_intermediate_priors','check_feasibility','compact_constraints',
-                'defer_satellite_recalculation'):
+                'defer_satellite_recalculation', 'require_finite_objective'):
         if not isinstance(result[key], bool):
             raise WrongInput(f'{key} must be boolean.')
-    if not isinstance(result['feasibility_solver'],str) or not result['feasibility_solver']:
-        raise WrongInput('feasibility_solver must name an installed LP solver.')
+    solvers = result['feasibility_solver']
+    if isinstance(solvers, str):
+        solvers = [solvers]
+    if (not isinstance(solvers, list) or not solvers or
+            any(not isinstance(s, str) or not s for s in solvers) or len(set(solvers)) != len(solvers)):
+        raise WrongInput('feasibility_solver must name an LP solver or an ordered list of distinct LP solvers.')
     matches = [name for name, specification in catalogue.items()
                if all(result[key] == value for key, value in specification.items())]
     if len(matches) != 1:
@@ -93,6 +98,7 @@ def describe_model(options, *, staged=False):
                                for n in (filename, 'mapping.xlsx', 'user_defined_operators.py', 'user_defined_constants.py')},
                 shared_operators_sha256={
                     'split_operators.py': hashlib.sha256((resources.files('mario.ops.cvxlab_models') / 'split_operators.py').read_bytes()).hexdigest(),
+                    'Split_sectors/user_defined_operators.py': hashlib.sha256((resources.files('mario.ops.cvxlab_models') / 'Split_sectors/user_defined_operators.py').read_bytes()).hexdigest(),
                     'split_model.py': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                 })
 
@@ -145,7 +151,41 @@ def _array(value):
     return np.asarray(value.toarray() if hasattr(value,'toarray') else value,dtype=float)
 
 
-def model_active_kl(a, prior, zero_mask=None, signed=False, reference_floor=1e-8):
+def entropy_support(arrays):
+    """Four decades below the smallest nonzero absolute monetary prior.
+
+    Zeros have no decimal order. Signs are domains of the model, not a reason
+    to ignore small signed observations. No arbitrary constant is substituted
+    when every supplied reference is zero.
+    """
+    minima = []
+    for values in arrays:
+        values = _array(values)
+        if not np.isfinite(values).all():
+            raise WrongInput('Entropy support requires finite monetary priors.')
+        nonzero = np.abs(values[values != 0])
+        if nonzero.size:
+            minima.append(float(nonzero.min()))
+    if not minima:
+        raise WrongInput('Cannot infer entropy support from all-zero priors; supply a nonzero monetary reference.')
+    minimum = min(minima)
+    # Decimal's adjusted exponent avoids rounding log10 at decade boundaries.
+    exponent = Decimal(str(minimum)).adjusted()
+    coefficient = 10. ** (exponent - 4)
+    if not np.isfinite(coefficient) or coefficient <= 0:
+        raise WrongInput('The data-derived entropy support is outside floating-point range.')
+    return dict(minimum_nonzero_absolute=minimum, magnitude_exponent=exponent,
+                orders_below=4, coefficient=coefficient)
+
+
+def _entropy_floor(prior, reference_floor):
+    floor = entropy_support([prior])['coefficient'] if reference_floor is None else float(reference_floor)
+    if not np.isfinite(floor) or floor <= 0:
+        raise WrongInput('Entropy support must be finite and strictly positive.')
+    return floor
+
+
+def model_active_kl(a, prior, zero_mask=None, signed=False, reference_floor=None):
     """KL on allowed cells; structural zeros create no exponential cones."""
     import cvxpy as cp
     q = _values(prior)
@@ -160,10 +200,10 @@ def model_active_kl(a, prior, zero_mask=None, signed=False, reference_floor=1e-8
         vector = cp.multiply(np.where(q<0,-1.,1.),vector)
     # The floor is numerical support, not a source observation. Structural
     # exclusions remain fixed independently of the objective.
-    return cp.sum(cp.kl_div(vector,np.abs(q)+reference_floor))
+    return cp.sum(cp.kl_div(vector,np.abs(q)+_entropy_floor(q, reference_floor)))
 
 
-def model_signed_kl(a, prior, zero_mask=None, reference_floor=1e-8):
+def model_signed_kl(a, prior, zero_mask=None, reference_floor=None):
     return model_active_kl(a,prior,zero_mask,signed=True,reference_floor=reference_floor)
 
 
@@ -190,10 +230,11 @@ def model_prior_signed_values(a, prior, zero_mask=None):
     return cp.multiply(np.where(q[allowed]<0,-1.,1.),vector)
 
 
-def model_legacy_entropy(a, prior, *, signed=False, reference_floor=1e-8):
+def model_legacy_entropy(a, prior, *, signed=False, reference_floor=None):
     """Original matrix-valued loss, with a scale-covariant numerical offset."""
     import cvxpy as cp
     q = _values(prior)
+    reference_floor = _entropy_floor(q, reference_floor)
     return cp.rel_entr(cp.multiply(np.where(q<0,-1.,1.),a) if signed else a,
                        np.abs(q)+reference_floor if signed else prior+reference_floor)
 
@@ -237,14 +278,6 @@ def proportional_row_reference(table, original, outputs, previous_outputs, paren
 def fill_model_inputs(instance, input_data, flat_matrices, set_map, scenario_label, options):
     if options is None:
         return
-    if 'Model_controls' in input_data:
-        controls = {'y_weight': options['final_demand_weight'],
-                    'supply_weight': options['supply_weight'] or (1. if options['complete_intermediate_priors'] else 0.),
-                    'reference_floor': 1e-8 / options['scale']}
-        table = input_data['Model_controls']
-        table['values'] = table['model_control_Name'].map(controls)
-        if not np.isfinite(table['values']).all():
-            raise WrongInput('Unknown or nonfinite model control.')
     for name, signed in [('V_nonnegative_mask', False), ('V_signed_mask', True)]:
         if name in input_data:
             table = input_data[name]
@@ -284,6 +317,46 @@ def fill_model_inputs(instance, input_data, flat_matrices, set_map, scenario_lab
     for name in ('RowResidual','ColumnResidual','Y0','Z_use0','Z_supply0'):
         if name in input_data and not np.isfinite(input_data[name]['values'].to_numpy(dtype=float)).all():
             raise WrongInput(f'Incomplete or nonfinite {name} model inputs.')
+
+
+def fill_numerical_controls(input_data, options, destination):
+    """Compute support after input preparation/clipping and before unit scaling.
+
+    Use one common coefficient for the monetary references in enabled entropy
+    terms. Masks, targets, tolerances, residuals and disabled losses are excluded.
+    Quadratic normalisation deliberately retains its separate historical floor.
+    """
+    if options is None or 'Model_controls' not in input_data:
+        return
+    supply = options['supply_weight'] or (1. if options['complete_intermediate_priors'] else 0.)
+    names = []
+    if options['flow_loss'] == 'kl':
+        names += ['Z_use0'] if options['complete_intermediate_priors'] else ['Z0']
+        if not options['complete_intermediate_priors'] and not supply and 'Refine_selector' in input_data:
+            if input_data['Refine_selector']['values'].fillna(0).gt(0).any():
+                names.append('Z_refine')
+        if options['final_demand_weight']:
+            names.append('Y0')
+        if supply:
+            names.append('Z_supply0')
+    if options['value_added_loss'] != 'quadratic':
+        names.append('V0')
+    names = [name for name in names if name in input_data]
+    record = dict(enabled=bool(names), monetary_prior_tables=names,
+                  rule='10 ** (floor(log10(min(abs(nonzero prior)))) - 4)',
+                  scale=options['scale'], revision=MODEL_REVISION)
+    if names:
+        record.update(entropy_support(input_data[name]['values'].to_numpy(dtype=float) for name in names))
+        record['coefficient_scaled'] = record['coefficient'] / options['scale']
+        _entropy_floor([], record['coefficient_scaled'])
+    controls = dict(y_weight=options['final_demand_weight'], supply_weight=supply,
+                    reference_floor=1e-8 / options['scale'],
+                    entropy_floor=record.get('coefficient_scaled', 0.))
+    table = input_data['Model_controls']
+    table['values'] = table['model_control_Name'].map(controls)
+    if not np.isfinite(table['values']).all():
+        raise WrongInput('Unknown or nonfinite model control.')
+    (Path(destination) / 'entropy_support.json').write_text(json.dumps(record, indent=2, allow_nan=False))
 
 
 def _highs_feasibility(problem, absolute_tolerance):
@@ -403,9 +476,9 @@ def check_feasibility(model, destination, options):
     if not options or not options['check_feasibility']:
         return
     import cvxpy as cp
-    solver = options['feasibility_solver']
-    if solver not in cp.installed_solvers():
-        raise WrongInput(f'Feasibility solver {solver} is not installed.')
+    solvers = options['feasibility_solver']
+    if isinstance(solvers, str):
+        solvers = [solvers]
     records = []
     try:
         for key,frame in model.core.problem.numerical_problems.items():
@@ -417,24 +490,46 @@ def check_feasibility(model, destination, options):
                 if not all(c.expr.is_affine() for c in constraints):
                     raise WrongInput('The feasibility stage requires affine split constraints/domains.')
                 feasible = cp.Problem(cp.Minimize(0),constraints)
-                started = time.monotonic()
-                if solver == 'HIGHS':
-                    record = _highs_feasibility(feasible, 1e-6 / options['scale'])
-                elif solver == 'GUROBI':
-                    record = _gurobi_feasibility(feasible, 1e-6 / options['scale'])
-                else:
-                    feasible.solve(solver=solver, ignore_dpp=True)
-                    record = dict(status=feasible.status, variables=sum(v.size for v in feasible.variables()),
-                                  constraints=sum(c.size for c in constraints))
-                    if feasible.status in ('optimal','optimal_inaccurate'):
-                        record['max_constraint_violation_scaled'] = max(
-                            (float(_affine_constraint_violation(c).max(initial=0.)) for c in constraints),default=0.)
-                record.update(problem=str(key), scenario=str(scenario), solver=solver, seconds=time.monotonic()-started)
-                records.append(record)
-                if record['status'] not in ('optimal','optimal_inaccurate'):
+                solved = False
+                for solver in solvers:
+                    started = time.monotonic()
+                    if solver not in cp.installed_solvers():
+                        record = dict(status='not_installed')
+                    else:
+                        try:
+                            if solver == 'HIGHS':
+                                record = _highs_feasibility(feasible, 1e-6 / options['scale'])
+                            elif solver == 'GUROBI':
+                                record = _gurobi_feasibility(feasible, 1e-6 / options['scale'])
+                            else:
+                                feasible.solve(solver=solver, ignore_dpp=True)
+                                record = dict(status=feasible.status, variables=sum(v.size for v in feasible.variables()),
+                                              constraints=sum(c.size for c in constraints))
+                                if feasible.status in ('optimal','optimal_inaccurate'):
+                                    record['max_constraint_violation_scaled'] = max(
+                                        (float(_affine_constraint_violation(c).max(initial=0.)) for c in constraints),default=0.)
+                        except Exception as exc:
+                            if not solver_failure(exc):
+                                raise
+                            record = dict(status='solver_error', error=str(exc), error_type=type(exc).__name__)
+                    record.update(problem=str(key), scenario=str(scenario), solver=solver, seconds=time.monotonic()-started)
+                    records.append(record)
+                    if record['status'] in ('optimal','optimal_inaccurate'):
+                        solved = True
+                        break
+                    if record['status'] in ('infeasible', 'infeasible_inaccurate'):
+                        # A mathematical infeasibility is not a missing licence.
+                        break
+                if not solved:
                     raise WrongInput(f"Linear split feasibility check returned {record['status']}; see feasibility.json.")
     finally:
         (Path(destination)/'feasibility.json').write_text(json.dumps(records,indent=2,allow_nan=False))
+
+
+def solver_failure(exc):
+    """Recognise solver/installation failures without swallowing programming errors."""
+    import cvxpy as cp
+    return isinstance(exc, (cp.error.SolverError, ImportError)) or type(exc).__module__.startswith(('mosek', 'gurobipy'))
 
 
 def verify_model_solution(model, destination, options):
@@ -443,6 +538,7 @@ def verify_model_solution(model, destination, options):
         return
     records = []
     failures = 0
+    nonfinite_objectives = 0
     for key,frame in model.core.problem.numerical_problems.items():
         for scenario,row in frame.iterrows():
             problem = row['problem']
@@ -461,11 +557,15 @@ def verify_model_solution(model, destination, options):
             records.append(dict(problem=str(key),scenario=str(scenario),status=problem.status,
                                 objective=objective if np.isfinite(objective) else None,
                                 objective_finite=bool(np.isfinite(objective)),failed_constraint_cells=bad,
+                                objective_required_finite=options['require_finite_objective'],
                                 max_constraint_violation=worst,solver_seconds=stats.solve_time))
             if not np.isfinite(objective):
                 records[-1]['warning'] = ('Objective evaluation is nonfinite at the returned point; '
                                           'all explicit and implicit domain residuals are checked independently.')
+                nonfinite_objectives += 1
             failures += bad
     (Path(destination)/'model_solution.json').write_text(json.dumps(records,indent=2,allow_nan=False))
+    if nonfinite_objectives and options['require_finite_objective']:
+        raise WrongInput('Nonfinite model solution objective; see model_solution.json. Try another solver without clipping the solution.')
     if failures:
         raise WrongInput(f'{failures} split constraint cells exceed numerical precision; see model_solution.json.')

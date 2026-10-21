@@ -12,8 +12,8 @@ CVXLab versions; it does not select a different mathematical formulation.
 |---|---|---|---|
 | `Split_sectors` | Historical partial relative entropy | Historical prior-sign relative entropy | Unchanged reference when `split_model_options=None` |
 | `Split_sectors_staged` | Historical model + explicit staged Y/refinement rules | Historical prior-sign relative entropy | Staged historical reference |
-| `Split_sectors_MRIO_KL` | Complete KL on Z; prior-sign KL on Y | KL on nonnegative factors; positive/negative components for TTM/Tax | Regularised entropy model |
-| `Split_sectors_MRIO_quadratic` | Complete weighted squared differences on Z/Y | Weighted squared differences, with factor-type domains | QP used for the next monetary experiments |
+| `Split_sectors_MRIO_KL` | Complete KL on Z; prior-sign KL on Y | KL on nonnegative factors; positive/negative components for TTM/Tax | Preferred first insertion model |
+| `Split_sectors_MRIO_quadratic` | Complete weighted squared differences on Z/Y | Weighted squared differences, with factor-type domains | Alternative after entropy attempts fail |
 
 The `Split_sut*` folders retain their existing SUT formulations. The new factor
 domains below apply to the **MRIO templates**, not to those SUT models or the
@@ -55,6 +55,21 @@ Staged Y masks are explicit in the workbooks and filled only for staged runs.
 The public `accounting` option still defaults to `strict`, and selects the
 explicit `_strict` workbook. No default accounting policy has been changed.
 
+## Recommended execution order
+
+Prefer `Split_sectors_MRIO_KL` for the first insertion group, and
+`Split_sectors_MRIO_partial_entropy_V_signed_kl` for subsequent insertions that
+refine inventories from completed groups. Try `Split_sectors_MRIO_quadratic`
+only after the preferred entropy formulation fails. These are distinct objectives.
+
+MOSEK is the preferred entropy solver, with Clarabel and SCS available as open
+alternatives. Gurobi is preferred for a pure quadratic objective; MOSEK, Clarabel
+and OSQP remain alternatives. Gurobi cannot solve the exponential cones produced
+by these entropy atoms through the current CVXPY interface. When `solver=None`,
+MARIO selects the first installed compatible solver in these orders. Direct calls
+use one formulation/solver; the Database disaggregation pipeline orchestrates
+recorded retries and model fallback through its entropy-first policy.
+
 ## Factor-type domains
 
 - **Capital and Labor:** V ≥ 0. Other non-Tax/non-TTM factors also default to a
@@ -79,9 +94,9 @@ and its audit remain responsible for explaining a conflicting reference.
 
 ```python
 db.add_sectors(
-    "add_sectors.xlsx", split=True,
+    "add_sectors.xlsx", split=True, solver="MOSEK",
     split_model_options={
-        "model": "Split_sectors_MRIO_quadratic",
+        "model": "Split_sectors_MRIO_KL",
         "accounting": "inherit",
         "final_demand_weight": 0.1,
         "compact_constraints": True,
@@ -89,6 +104,27 @@ db.add_sectors(
     },
 )
 ```
+
+For all MRIO entropy/relative-entropy terms, `Entropy_floor` is derived from
+the actual references in enabled losses. Let `m` be the smallest nonzero absolute
+monetary prior before numerical scaling. The support is
+`10 ** (floor(log10(m)) - 4)`: `m=0.03` yields `1e-6`. Signed priors contribute
+their magnitude; zeros, masks, controls, targets and disabled losses are excluded.
+One common coefficient is recomputed per step, then divided by `scale`.
+`entropy_support.json` records the rule, participating tables, minimum, exponent
+and both coefficients. All-zero references and unrepresentable/nonfinite support
+raise explicit errors. The support is additive in references, not a weight or
+lower bound on fitted values, and does not release structural zeros.
+
+The quadratic normalisation retains its separate `Reference_floor` of
+`1e-8/scale`; this change does not reweight the quadratic objective. The original
+historical `Split_sectors` and SUT formulations retain their own numerical rules.
+
+`require_finite_objective=True` rejects an infinite/NaN objective even when affine
+residuals pass. The entropy-first pipeline enables it, so numerical negative
+entropy operands trigger a solver retry without clipping values. The default
+False retains the earlier residual-only compatibility behaviour for direct calls,
+with the nonfinite objective still reported explicitly.
 
 The old `flow_loss`, `value_added_loss`, `complete_intermediate_priors` options
 still select the corresponding explicit folder. A named model plus conflicting
@@ -99,9 +135,15 @@ implicit entropy domain; it does not impose a zero target.
 
 `model_definition.json` in the generated run directory records the selected
 folder/workbook, formulation revision and hashes. Checkpoint state carries this
-definition and revision. Historical checkpoints remain readable; resuming an
-old experimental checkpoint with the new V domains is rejected rather than
-silently changing the problem midway through a staged split.
+definition and revision. Historical checkpoints remain readable; the new entropy-support revision
+requires a fresh experiment or the exact recorded old code for replay.
+
+For pending steps of a new experiment, `allow_model_change=True` on
+`add_sectors(..., intermediate_steps=True)` explicitly permits changing only the
+named objective. Accounting, weights, scale, feasibility policy, satellite policy
+and completed inventory fingerprints must remain identical. The previous model
+definition is verified, and `model_history` records the actual model and solver
+per step. The flag defaults to False; ordinary model changes remain rejected.
 
 ## Maintaining these models
 

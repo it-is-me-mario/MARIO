@@ -436,7 +436,7 @@ def load_checkpoint(path):
 
 
 def run_intermediate_steps(instance, *, io, scenario, inplace, split, save_intermediates, options,
-                           stop_after_step=None):
+                           stop_after_step=None, allow_model_change=False):
     if not save_intermediates:
         raise WrongInput("save_intermediates is mandatory when intermediate_steps=True.")
     if instance.table_type != "IOT" or not split:
@@ -460,11 +460,16 @@ def run_intermediate_steps(instance, *, io, scenario, inplace, split, save_inter
     model_options = options.get('split_model_options')
     from mario.ops.split_model import normalize_options, describe_model, MODEL_REVISION
     if completed and model_options is not None and state.get('split_model_revision') != MODEL_REVISION:
-        raise WrongInput('Split model factor domains changed; restart before the completed steps. '
-                         'Historical checkpoints remain readable but cannot silently use the new V domains.')
-    if completed and normalize_options(state.get('split_model_options')) != model_options:
-        raise WrongInput('Split model options changed; restart before the completed steps.')
-    if completed and model_options is not None and state.get('model_definition') != describe_model(model_options, staged=True):
+        raise WrongInput('Split model factor domains changed or entropy support changed; restart before the completed steps. '
+                         'Historical checkpoints remain readable but cannot silently use the new formulation.')
+    preceding_options = normalize_options(state.get('split_model_options'))
+    if completed and preceding_options != model_options:
+        objective_keys = {'model', 'flow_loss', 'value_added_loss', 'complete_intermediate_priors'}
+        if (not allow_model_change or preceding_options is None or model_options is None
+                or any(preceding_options[k] != model_options[k] for k in model_options.keys() - objective_keys)):
+            raise WrongInput('Split model options changed; only an explicit named-objective transition with '
+                             'unchanged accounting, weights and numerical controls is allowed.')
+    if completed and preceding_options is not None and state.get('model_definition') != describe_model(preceding_options, staged=True):
         raise WrongInput('Packaged split model definition changed; restart before the completed steps.')
     plan, parents = validate_plan(workbook, target.get_index("Sector"), completed=completed)
     if stop_after_step is not None and stop_after_step not in [name for name, _ in plan]:
@@ -522,6 +527,13 @@ def run_intermediate_steps(instance, *, io, scenario, inplace, split, save_inter
                      "split_model_options": model_options,
                      "split_model_revision": MODEL_REVISION if model_options is not None else None,
                      "model_definition": getattr(candidate, '_last_split_model_definition', None),
+                     "model_history": [*state.get('model_history', []), dict(
+                         step_index=counter, step_name=name, sectors=sectors,
+                         split_model_options=model_options,
+                         model_definition=getattr(candidate, '_last_split_model_definition', None),
+                         solver=getattr(candidate, '_last_split_solver', solve_options.get('solver')),
+                         explicit_model_change=bool(state.get('completed_sectors') and
+                             normalize_options(state.get('split_model_options')) != model_options))],
                      "pending_recalculations": ['E'] if preservation['E'].get('requires_recalculation') else [],
                      "tolerances": {"absolute": ATOL, "relative": RTOL},
                      "files": {str(p.relative_to(staging)): _digest(p)

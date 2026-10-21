@@ -2328,6 +2328,11 @@ def test_split_bridge_picks_conic_solver_by_default(monkeypatch):
     assert bridge_module._resolve_split_solver(None) == "SCS"
     assert bridge_module._resolve_split_solver("GUROBI") == "GUROBI"
 
+    monkeypatch.setattr(cp, "installed_solvers", lambda: ["CLARABEL", "MOSEK", "SCS"])
+    assert bridge_module._resolve_split_solver(None) == "MOSEK"
+    monkeypatch.setattr(cp, "installed_solvers", lambda: ["SCS", "CLARABEL"])
+    assert bridge_module._resolve_split_solver(None) == "CLARABEL"
+
 
 def test_split_bridge_accepts_multi_subproblem_status_dict():
     status = {

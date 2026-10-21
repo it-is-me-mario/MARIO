@@ -11,6 +11,60 @@ from mario.log_exc.exceptions import WrongInput
 from mario.ops.split_model import (check_feasibility, inherited_accounting, model_signed_kl,
                                    model_quadratic, model_prior_signed_values, normalize_options,
                                    proportional_row_reference)
+from mario.ops.split_model import entropy_support, fill_numerical_controls
+
+
+@pytest.mark.parametrize('minimum,exponent,coefficient', [
+    (.03, -2, 1e-6), (1e-6, -6, 1e-10), (10., 1, 1e-3),
+    (np.nextafter(.01, 0.), -3, 1e-7), (-.0004, -4, 1e-8),
+])
+def test_entropy_support_uses_the_smallest_nonzero_absolute_decade(minimum, exponent, coefficient):
+    record = entropy_support([[0., 100.], [minimum, -20.]])
+    assert record['magnitude_exponent'] == exponent
+    assert record['coefficient'] == coefficient
+    assert record['coefficient'] < abs(minimum)
+
+
+def test_entropy_support_rejects_undefined_or_nonfinite_references():
+    for values in [[0., 0.], [float('nan'), 1.], [float('inf')], [1e-323]]:
+        with pytest.raises(WrongInput):
+            entropy_support([values])
+
+
+@pytest.mark.parametrize('scale', [1., 1000., 37.])
+def test_entropy_control_uses_enabled_priors_in_original_units(tmp_path, scale):
+    tables = {name: pd.DataFrame({'values': values}) for name, values in
+              {'Z_use0': [0., 5., .03], 'V0': [-.4, 2.], 'Y0': [1e-12],
+               'Z_supply0': [3.], 'tol': [1e-20], 'X': [1e-30]}.items()}
+    tables['Model_controls'] = pd.DataFrame({'model_control_Name':
+        ['y_weight', 'supply_weight', 'reference_floor', 'entropy_floor']})
+    options = normalize_options(dict(model='Split_sectors_MRIO_KL', scale=scale))
+    fill_numerical_controls(tables, options, tmp_path)
+    controls = tables['Model_controls'].set_index('model_control_Name')['values']
+    assert controls.entropy_floor == pytest.approx(1e-6/scale)
+    assert controls.reference_floor == pytest.approx(1e-8/scale)
+    record = json.loads((tmp_path/'entropy_support.json').read_text())
+    assert record['minimum_nonzero_absolute'] == .03
+    assert 'Y0' not in record['monetary_prior_tables']
+    options['final_demand_weight'] = .1
+    fill_numerical_controls(tables, options, tmp_path)
+    assert tables['Model_controls'].set_index('model_control_Name').loc['entropy_floor', 'values'] == pytest.approx(1e-16/scale)
+
+
+def test_unused_partial_refinement_does_not_set_entropy_support(tmp_path):
+    tables = {name: pd.DataFrame({'values': values}) for name, values in
+              {'Z0': [.03], 'V0': [-.4], 'Z_supply0': [2.],
+               'Z_refine': [float('nan')], 'Refine_selector': [0.]}.items()}
+    tables['Model_controls'] = pd.DataFrame({'model_control_Name': ['entropy_floor']})
+    options = normalize_options(dict(model='Split_sectors_MRIO_partial_entropy_V_signed_kl', supply_weight=1.))
+    fill_numerical_controls(tables, options, tmp_path)
+    record = json.loads((tmp_path/'entropy_support.json').read_text())
+    assert record['coefficient'] == 1e-6
+    assert 'Z_refine' not in record['monetary_prior_tables']
+    options['supply_weight'] = 0.
+    tables['Refine_selector']['values'] = 1.
+    with pytest.raises(WrongInput, match='finite monetary priors'):
+        fill_numerical_controls(tables, options, tmp_path)
 
 
 @pytest.mark.parametrize('sparse', [False, True])
@@ -31,6 +85,17 @@ def test_solution_validation_checks_sparse_domains_without_changing_tolerance(tm
             verify_model_solution(model, tmp_path, normalize_options({}))
     report = json.loads((tmp_path/'model_solution.json').read_text())[0]
     assert report['failed_constraint_cells'] == (0 if accepted else 1)
+
+
+def test_finite_objective_can_be_required_without_clipping_a_solver_result(tmp_path):
+    from mario.ops.split_model import verify_model_solution
+    problem = SimpleNamespace(constraints=[], objective=cp.Minimize(cp.Constant(0.)),
+                              value=float('inf'), status='optimal_inaccurate', solver_stats=SimpleNamespace(solve_time=0.))
+    model = SimpleNamespace(core=SimpleNamespace(problem=SimpleNamespace(numerical_problems={None: pd.DataFrame([{'problem': problem}])})))
+    with pytest.raises(WrongInput, match='Nonfinite model solution objective'):
+        verify_model_solution(model, tmp_path, normalize_options({'require_finite_objective': True}))
+    report = json.loads((tmp_path/'model_solution.json').read_text())[0]
+    assert not report['objective_finite'] and report['failed_constraint_cells'] == 0
 
 
 @pytest.mark.skipif('GUROBI' not in cp.installed_solvers(), reason='Gurobi is optional')
@@ -72,6 +137,18 @@ def test_linear_feasibility_retains_implicit_entropy_domains(tmp_path):
     assert json.loads((tmp_path/'feasibility.json').read_text())[0]['status']=='infeasible'
 
 
+def test_feasibility_solver_fallback_is_logged_without_modifying_constraints(tmp_path):
+    x = cp.Variable()
+    original = cp.Problem(cp.Minimize(cp.square(x)), [x == 1.])
+    frame = pd.DataFrame([{'problem': original}])
+    model = SimpleNamespace(core=SimpleNamespace(problem=SimpleNamespace(numerical_problems={None: frame})))
+    options = normalize_options({'check_feasibility': True, 'feasibility_solver': ['NOT_INSTALLED', 'HIGHS']})
+    check_feasibility(model, tmp_path, options)
+    report = json.loads((tmp_path/'feasibility.json').read_text())
+    assert [r['status'] for r in report] == ['not_installed', 'optimal']
+    assert x.value is None and len(original.constraints) == 1
+
+
 def test_structural_zero_is_excluded_from_the_signed_loss():
     x = cp.Variable(2)
     loss = model_signed_kl(x,cp.Constant([-2.,0.]),cp.Constant([0.,1.]))
@@ -98,8 +175,9 @@ def test_inherited_discrepancy_survives_exhausted_and_zero_output_parent(output,
 def test_signed_kl_is_invariant_to_numerical_flow_scaling():
     a = cp.Constant([-3.,.2])
     prior = cp.Constant([-2.,.1])
-    original = model_signed_kl(a,prior).value
-    scaled = model_signed_kl(a/1000.,prior/1000.,reference_floor=1e-11).value*1000.
+    coefficient = entropy_support([prior.value])['coefficient']
+    original = model_signed_kl(a,prior,reference_floor=coefficient).value
+    scaled = model_signed_kl(a/1000.,prior/1000.,reference_floor=coefficient/1000.).value*1000.
     np.testing.assert_allclose(scaled,original,rtol=1e-12)
 
 

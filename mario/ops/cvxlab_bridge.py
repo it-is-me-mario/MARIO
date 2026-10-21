@@ -128,10 +128,13 @@ def optimize_split_in_cvxlab(
         split_model_options=split_model_options,
     )
 
-    solver = _resolve_split_solver(solver)
+    preferred = ('GUROBI', 'MOSEK', 'CLARABEL', 'OSQP') if split_model_options and (
+        split_model_options['flow_loss'], split_model_options['value_added_loss']) == ('quadratic', 'quadratic') else ('MOSEK', 'CLARABEL', 'SCS')
+    solver = _resolve_split_solver(solver, preferred=preferred)
     _run_split_model(model, dest_dir=dest_dir, solver=solver, solver_parameters=solver_parameters,
                      split_model_options=split_model_options)
     instance._last_split_status = _cvxlab_problem_status_values(model.core.problem.problem_status)
+    instance._last_split_solver = solver
     return _parse_split_results(dest_dir, flat_matrices, residue=residue)
 
 
@@ -203,7 +206,7 @@ def _solver_verbosity_kwargs(model) -> dict:
     return {"verbose": True}
 
 
-def _resolve_split_solver(solver, preferred=("ECOS", "SCS", "CLARABEL")):
+def _resolve_split_solver(solver, preferred=("MOSEK", "CLARABEL", "SCS")):
     """Choose a conic-capable default solver for entropy-based split models."""
 
     if solver is not None:
@@ -694,7 +697,7 @@ def _populate_sets_file(instance, *, dest_dir: Path, scenario_label: str) -> Non
         elif sheet_name == "_set_CONS_CATEG":
             sets[sheet_name] = pd.DataFrame({first_column: cons_categories})
         elif sheet_name == "_set_MODEL_CONTROL":
-            controls = ['y_weight', 'supply_weight', 'reference_floor']
+            controls = ['y_weight', 'supply_weight', 'reference_floor', 'entropy_floor']
             frame = pd.DataFrame({first_column: controls})
             for column in sets[sheet_name].columns:
                 if column != first_column:
@@ -1170,7 +1173,7 @@ def _write_input_data(
         input_data["Zero_V_mask"], parent_vrow_zeros, join_cols=v_join_cols
     )
 
-    from mario.ops.split_model import fill_model_inputs, FLOW_TABLES
+    from mario.ops.split_model import fill_model_inputs, fill_numerical_controls, FLOW_TABLES
     fill_model_inputs(instance, input_data, flat_matrices, set_map, scenario_label, split_model_options)
 
     #Remove values below the residue threshold, if specified.
@@ -1183,6 +1186,7 @@ def _write_input_data(
             magnitude = df["values"].abs() if table_name in _SIGNED_TABLES else df["values"]
             input_data[table_name] = df.assign(values=df["values"].where(magnitude >= threshold, 0))
 
+    fill_numerical_controls(input_data, split_model_options, dest_dir)
     if split_model_options is not None:
         for table_name in FLOW_TABLES & input_data.keys():
             input_data[table_name]["values"] /= split_model_options['scale']

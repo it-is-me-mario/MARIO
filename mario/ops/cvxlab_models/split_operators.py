@@ -11,6 +11,7 @@ from mario.log_exc.exceptions import WrongInput
 from mario.ops.split_model import (
     _values, model_active_kl, model_signed_kl, model_quadratic,
     model_masked_values, model_prior_signed_values, model_legacy_entropy,
+    _entropy_floor,
 )
 
 
@@ -71,7 +72,7 @@ def _positive_loss(a, prior, zero, selector, floor, *, legacy=False):
         raise WrongInput('Negative Capital/Labor or other nonnegative-factor prior in an entropy model. '
                          'Correct the source explicitly or use the constrained quadratic model; '
                          'priors are never silently made positive.')
-    reference = q + scalar(floor)
+    reference = q + _entropy_floor(q, scalar(floor))
     return cp.sum(cp.rel_entr(vector, reference) if legacy else cp.kl_div(vector, reference))
 
 
@@ -88,7 +89,7 @@ def _free_loss(positive, negative, prior, zero, selector, floor, *, legacy=False
     n, _ = _selected(negative, prior, zero, selector)
     if p is None:
         return cp.Constant(0.)
-    epsilon = scalar(floor)
+    epsilon = _entropy_floor(q, scalar(floor))
     loss = cp.rel_entr if legacy else cp.kl_div
     # Both components have positive numerical support. Neither prior sign is a
     # hard domain for the net value V = positive - negative.
@@ -105,5 +106,9 @@ def free_va_entropy(positive, negative, prior, zero, selector, floor):
 
 def refinement_entropy(a, prior, selector, floor=None):
     vector, q = _selected(a, prior, cp.Constant(np.zeros(prior.shape)), selector)
-    epsilon = 1e-8 if floor is None else scalar(floor)
-    return cp.Constant(0.) if vector is None else cp.sum(cp.rel_entr(vector, q + epsilon))
+    if vector is None:
+        return cp.Constant(0.)
+    # The three-argument form belongs to the historical staged workbook.
+    # Every explicit MRIO workbook passes its data-derived Entropy_floor.
+    epsilon = 1e-8 if floor is None else _entropy_floor(q, scalar(floor))
+    return cp.sum(cp.rel_entr(vector, q + epsilon))

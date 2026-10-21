@@ -10,7 +10,7 @@ import pytest
 from mario.log_exc.exceptions import WrongInput
 from mario.ops.split_model import model_catalogue, normalize_options, select_model_template
 from mario.ops.cvxlab_bridge import _prepare_split_model_directory
-from mario.ops.cvxlab_models.split_operators import positive_va_kl, free_va_kl, quadratic, model_masked_values
+from mario.ops.cvxlab_models.split_operators import positive_va_kl, free_va_kl, quadratic, model_masked_values, refinement_entropy
 
 ROOT = Path(__file__).resolve().parents[2] / 'mario/ops/cvxlab_models'
 
@@ -88,3 +88,11 @@ def test_entropy_rejects_negative_nonnegative_factor_priors_without_changing_the
     with pytest.raises(WrongInput, match='never silently'):
         positive_va_kl(cp.Variable(2), q, cp.Constant([0., 0.]), cp.Constant([1., 1.]), cp.Constant(1e-8))
     np.testing.assert_array_equal(q.value, [-1., 2.])
+
+
+def test_mrio_refinement_uses_explicit_support_and_historical_form_is_unchanged():
+    a, q, selected = cp.Constant([.04]), cp.Constant([.03]), cp.Constant([1.])
+    np.testing.assert_allclose(refinement_entropy(a, q, selected, cp.Constant(1e-6)).value,
+                               cp.sum(cp.rel_entr(a, q+1e-6)).value)
+    np.testing.assert_allclose(refinement_entropy(a, q, selected).value,
+                               cp.sum(cp.rel_entr(a, q+1e-8)).value)
