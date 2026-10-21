@@ -68,7 +68,7 @@
 
   function renderSrcs(){
     const present=[...new Set(F1.records.filter(r=>r.flow===state.flow).map(r=>r.source))];
-    const chip=(s,cls)=>`<button class="f1-src${cls}" data-src="${esc(s)}" aria-pressed="${!state.srcHidden.has(s)}" title="Click to show/hide · double-click to isolate${s==='BONSAI'?' · reference year '+bonsai.reference_year+' · inputs updated '+updatedDate:''}"><span class="dot"></span><span class="nm">${esc(s==='BONSAI'?s+' ('+bonsai.reference_year+')':s)}</span></button>`;
+    const chip=(s,cls)=>`<button class="f1-src${cls}" data-src="${esc(s)}" aria-pressed="${!state.srcHidden.has(s)}" title="Click to show/hide · double-click to isolate${s==='BONSAI'?' · reference year '+bonsai.reference_year+' · inputs updated '+updatedDate:''}"><span class="dot"></span><span class="nm">${esc(s)}</span></button>`;
     const nx=present.filter(s=>MODEL_SRC.has(s)), lit=present.filter(s=>!MODEL_SRC.has(s));
     const h=nx.map(s=>chip(s,'')).join('') + lit.map(s=>chip(s,' lit')).join('');
     srcsEl.innerHTML=h;
