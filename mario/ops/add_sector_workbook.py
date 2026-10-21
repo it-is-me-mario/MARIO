@@ -522,6 +522,42 @@ def _parse_intermediate_steps(frame):
 
 
 def _read_excel_workbook(path: str | Path) -> dict[str, pd.DataFrame]:
+    """Stream formula-free workbooks; retain the formula-aware reader otherwise.
+
+    Generated inventories contain values, often across thousands of sheets.
+    Avoid holding two complete openpyxl cell trees for these files. Formula
+    workbooks keep the existing cached-value/cross-sheet evaluation semantics.
+    """
+    book = load_workbook(path, data_only=False, read_only=True)
+    sheets = {}
+    has_formula = False
+    try:
+        for sheet in book:
+            # Do not trust producer-supplied dimensions to describe all cells.
+            sheet.reset_dimensions()
+            rows = []
+            for values in sheet.iter_rows(values_only=True):
+                if any(isinstance(value, str) and value.startswith('=') for value in values):
+                    has_formula = True
+                    break
+                rows.append(list(values))
+            if has_formula:
+                break
+            rows = _trim_empty_excel_rows(rows)
+            if rows:
+                width = max(map(len, rows))
+                rows = [row + [None] * (width - len(row)) for row in rows]
+            sheets[sheet.title] = pd.DataFrame(rows[1:], columns=rows[0]) if rows else pd.DataFrame()
+    finally:
+        book.close()
+    if not has_formula:
+        return sheets
+    # Release streamed tables before loading the two formula views.
+    del sheets, rows
+    return _read_excel_workbook_with_formulas(path)
+
+
+def _read_excel_workbook_with_formulas(path: str | Path) -> dict[str, pd.DataFrame]:
     """Read one workbook while preserving cached Excel formulas when available.
 
     ``pandas.read_excel(...)`` reads formula cells through openpyxl's

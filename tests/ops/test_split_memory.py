@@ -2,6 +2,7 @@
 from types import SimpleNamespace
 import sqlite3
 import shutil
+from zipfile import ZipFile
 
 import cvxpy as cp
 import numpy as np
@@ -116,3 +117,53 @@ def test_engine_reuses_numeric_buffers_without_changing_reference_axes(monkeypat
         assert_frame_equal(f, snapshots[n])
         assert np.shares_memory(result[n].to_numpy(), f.to_numpy())
     assert result['Y'].index.nlevels == 3
+
+
+def test_streamed_workbook_matches_formula_reader_with_bad_dimensions_and_empty_cells(tmp_path):
+    from openpyxl import Workbook
+    from mario.ops.add_sector_workbook import _read_excel_workbook, _read_excel_workbook_with_formulas
+    path = tmp_path / 'values.xlsx'
+    book = Workbook()
+    sheet = book.active
+    sheet.append(['Name', 'Value', 'Optional'])
+    sheet.append(['Negative', -3.25])
+    sheet.append([None, None, 'Tail'])
+    sheet.append([True, 0, None])
+    optional = book.create_sheet('Blank optional')
+    optional.append(['Name', 'Value', 'Optional'])
+    optional.append(['Example', 2])
+    book.create_sheet('Empty')
+    book.save(path)
+    damaged = tmp_path / 'producer_dimensions.xlsx'
+    with ZipFile(path) as source, ZipFile(damaged, 'w') as output:
+        for member in source.infolist():
+            data = source.read(member.filename)
+            if member.filename == 'xl/worksheets/sheet1.xml':
+                data = data.replace(b'ref="A1:C4"', b'ref="A1:A1"')
+            output.writestr(member, data)
+    expected = _read_excel_workbook_with_formulas(path)
+    for file in (path, damaged):
+        actual = _read_excel_workbook(file)
+        assert actual.keys() == expected.keys()
+        for name in expected:
+            assert_frame_equal(actual[name], expected[name])
+
+
+def test_streamed_reader_retains_cross_sheet_formula_evaluation(tmp_path):
+    from openpyxl import Workbook
+    from mario.ops.add_sector_workbook import _read_excel_workbook, _read_excel_workbook_with_formulas
+    path = tmp_path / 'formulas.xlsx'
+    book = Workbook()
+    sheet = book.active
+    sheet.title = 'Source'
+    sheet.append(['Value'])
+    sheet.append([4.])
+    result = book.create_sheet('Result')
+    result.append(['Value'])
+    result.append(["='Source'!A2*3"])
+    result.append(['=SUM(A2,2)'])
+    book.save(path)
+    actual, expected = _read_excel_workbook(path), _read_excel_workbook_with_formulas(path)
+    for name in expected:
+        assert_frame_equal(actual[name], expected[name])
+    assert actual['Result']['Value'].tolist() == [12., 14.]
