@@ -269,6 +269,12 @@ def _sheet_count_html(profiles):
                 individual, aggregate = next(iter(geography))
                 if individual is not None and aggregate is not None and individual + aggregate == values[0]:
                     hint = f"{individual} individual · {aggregate} aggregate"
+        elif key == "Sector":
+            regional = [row["count"] for profile in profiles
+                        for row in profile.get("region_counts", []) if row["set"] == key]
+            if len(set(regional)) > 1:
+                hint = f"Varies by region; {_count_label(values)} distinct sector labels overall."
+                values = regional
         metrics.append(f'<div><dt>{html.escape(label)}</dt><dd>{_count_label(values)}</dd>{f"<small>{hint}</small>" if hint else ""}</div>')
     return '<dl class="database-sheet__metrics">' + ''.join(metrics) + '</dl>'
 
