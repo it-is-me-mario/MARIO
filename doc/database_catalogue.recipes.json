@@ -14,6 +14,12 @@
       "doc": "notebooks/parsers/bea/walkthrough_bea"
     },
     {
+      "id": "bonsai",
+      "source": "BONSAI",
+      "label": "BONSAI",
+      "doc": "notebooks/parsers/bonsai/walkthrough_bonsai"
+    },
+    {
       "id": "ceads",
       "source": "CEADS",
       "label": "CEADS",
@@ -244,6 +250,29 @@
         "level": "detail"
       },
       "runnable": true
+    },
+    {
+      "id": "bonsai--01",
+      "guide": "bonsai",
+      "notebook": "source/notebooks/parsers/bonsai/walkthrough_bonsai.ipynb",
+      "parser": "parse_bonsai",
+      "cell": 7,
+      "fingerprint": "bab36446dcbca62e01ce26eb41c00548d5ac1fc911fcb03e3a9d8d4ac7ed3248",
+      "parameters": {
+        "path": "/path/to/Balanced/20260615.zip"
+      },
+      "runnable": true
+    },
+    {
+      "id": "bonsai--02",
+      "guide": "bonsai",
+      "notebook": "source/notebooks/parsers/bonsai/walkthrough_bonsai.ipynb",
+      "parser": "parse_bonsai",
+      "cell": 19,
+      "fingerprint": "a9b37ddab8490dc31eecdf599e6aeac6c1952639363ac87adf6c101852e4e0b0",
+      "parameters": {},
+      "runnable": false,
+      "reason": "This example needs in-memory Python objects, not only file paths."
     },
     {
       "id": "ceads--01",
@@ -1014,7 +1043,7 @@
       "guide": "wiod",
       "notebook": "source/notebooks/parsers/wiod/walkthrough_wiod.ipynb",
       "parser": "parse_wiod",
-      "cell": 11,
+      "cell": 12,
       "fingerprint": "e429c07eb3813c4306faeba29a96c6d62a253d1862fd7a97f59eb505c0fb6021",
       "parameters": {
         "path": "/path/to/WIOT2014_Nov16_ROW.xlsb",
@@ -1027,7 +1056,7 @@
       "guide": "wiod",
       "notebook": "source/notebooks/parsers/wiod/walkthrough_wiod.ipynb",
       "parser": "parse_wiod",
-      "cell": 14,
+      "cell": 15,
       "fingerprint": "ac4a8861e64044174aa2171cef6ae828655fd64544b0909aaf4b325ed511ed8f",
       "parameters": {
         "path": "/path/to/WIOT2014_PYP_Nov16_ROW.xlsb",
@@ -1040,7 +1069,7 @@
       "guide": "wiod",
       "notebook": "source/notebooks/parsers/wiod/walkthrough_wiod.ipynb",
       "parser": "parse_wiod",
-      "cell": 16,
+      "cell": 17,
       "fingerprint": "78cf487bb5f9d50b0aaa6688ea8a7d4e7ec393248701e6da6480f8ca92627eaf",
       "parameters": {
         "path": "/path/to/intsut14_nov16.xlsb",
@@ -1054,7 +1083,7 @@
       "guide": "wiod",
       "notebook": "source/notebooks/parsers/wiod/walkthrough_wiod.ipynb",
       "parser": "parse_wiod",
-      "cell": 18,
+      "cell": 19,
       "fingerprint": "86c26b46aec7f160d4e6ef18b266bcacb38990ad48b1e6c5cb010b86066b19db",
       "parameters": {
         "path": "/path/to/ITA_NIOT_nov16.xlsx",
@@ -1068,7 +1097,7 @@
       "guide": "wiod",
       "notebook": "source/notebooks/parsers/wiod/walkthrough_wiod.ipynb",
       "parser": "parse_wiod",
-      "cell": 20,
+      "cell": 21,
       "fingerprint": "8fcff992b42b8dcacd893e4b7d53bdfef20d499eaabd02ef289242e96340ec1b",
       "parameters": {
         "path": "/path/to/ITA_SUT_nov16.xlsx",
@@ -1082,7 +1111,7 @@
       "guide": "wiod",
       "notebook": "source/notebooks/parsers/wiod/walkthrough_wiod.ipynb",
       "parser": "parse_wiod",
-      "cell": 22,
+      "cell": 23,
       "fingerprint": "ca43f1a5e1853ff826a9ee4cc9cf3c506ec80a1c46d0f658e90169875d99acc8",
       "parameters": {
         "path": "/path/to/wiod_directory",
@@ -1097,7 +1126,7 @@
       "guide": "wiod",
       "notebook": "source/notebooks/parsers/wiod/walkthrough_wiod.ipynb",
       "parser": "parse_wiod",
-      "cell": 24,
+      "cell": 25,
       "fingerprint": "ed5348f69550fe4b771ee4d946fca06ba8d441875838ee41556414fbc4456418",
       "parameters": {
         "path": "/path/to/WIOT2014_Nov16_ROW.xlsb",

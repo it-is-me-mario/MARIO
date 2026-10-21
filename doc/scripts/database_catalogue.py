@@ -33,7 +33,7 @@ SET_SHEETS = {
     "Consumption category": "Consumption categories",
 }
 SOURCE_NAMES = {
-    "adb": "Asian Development Bank", "bea": "BEA", "ceads": "CEADS",
+    "adb": "Asian Development Bank", "bea": "BEA", "bonsai": "BONSAI", "ceads": "CEADS",
     "cepalstat": "CEPALSTAT", "emerging": "EMERGING", "eora": "EORA",
     "eurostat": "EUROSTAT", "figaro": "FIGARO", "gloria": "GLORIA",
     "gtap": "GTAP", "istat": "ISTAT", "oecd": "OECD", "statcan": "StatCan",
@@ -165,8 +165,12 @@ def enrich_profile(profile):
 
 def extract_profile(database, *, job, recipe, parameters):
     """Read original sets and stored axes without calculating/copying matrices."""
-    sets = {name: [scalar(item) for item in (items if items is not None else [])]
-            for name, items in database.get_index("all").items()}
+    def labels(items):
+        if isinstance(items, dict):
+            # Heterogeneous indexes are region -> native labels, not label lists.
+            return list(dict.fromkeys(label for values in items.values() for label in labels(values)))
+        return [scalar(item) for item in (items if items is not None else [])]
+    sets = {name: labels(items) for name, items in database.get_index("all").items()}
     if not sets.get("Region"):
         raise ValueError("The parsed database has no model region set")
     axes, memberships = [], {}

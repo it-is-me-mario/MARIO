@@ -105,6 +105,16 @@ Compare databases
    subsidies on intermediate and final commodity uses; independent world
    income/expenditure checks retain the source residuals. Value-added and GHG sectors use the README’s
    ISIC Rev. 4 concordance; Other services remains combined S+T.</p>
+   <p><strong>BONSAI.</strong> The native b2 HIOT has reference year 2016,
+   with frozen inputs updated on 21 October 2026. GDP and value added are
+   unavailable: MARIO's factor placeholders are not source observations.
+   GHG shows characterised producer emissions from the native elementary
+   flows, including the supplied iLUC extension, with BONSAI's GWP100 factors
+   (AR6 plus Accelerated CO2 0.00772). Separate direct final-demand emissions
+   are unavailable. Its GWP basis differs from the AR5 EDGAR reference.
+   Whole-economy values are available; fine sector concordances remain
+   unverified. The native Global block contains global processes, not a
+   World total; the World aggregate sums every native region once.</p>
    <p><strong>EDGAR.</strong> References appear automatically where available,
    as separate dash markers. The country reference uses unchanged
    cells from EDGAR 2026's <em>TOTALS BY COUNTRY</em> worksheet, in Gg CO₂eq
@@ -132,7 +142,7 @@ Compare databases
    aggregation, filtering and conversion. It is a starting point for working
    with MARIO. Source matrices and coefficients are not distributed here.</p>
    <p><strong>Database availability and licences.</strong> The indicator browser
-   currently includes EXIOBASE, ADB, OECD ICIO, EMERGING, WIOD, FIGARO and GLORIA.
+   currently includes EXIOBASE, ADB, OECD ICIO, EMERGING, WIOD, FIGARO, GLORIA and BONSAI.
    The Environmentally extended filter selects readings with loaded emission
    accounts; years and versions without them are excluded.
    Current <a href="https://www.gtap.agecon.purdue.edu/resources/faqs/faqs_display.asp?F_ID=198">GTAP releases require a licence</a>;

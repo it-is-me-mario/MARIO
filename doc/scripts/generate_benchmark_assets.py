@@ -109,6 +109,10 @@ def main():
     (OUTPUT / "database-coverage.html").write_text(render_coverage(profiles))
     for name in ("electricity-country", "electricity-technology"):
         data = json.loads((DATA / f"{name}.json").read_text())
+        if name == "electricity-technology":
+            bonsai = json.loads((DATA / "bonsai-electricity-technology-2016.json").read_text())
+            data["source_metadata"] = {"BONSAI": bonsai["source"]}
+            data["records"].extend(bonsai["records"])
         for record in data["records"]:
             if not isinstance(record["value"], (int, float)):
                 raise ValueError(f"Non-numeric {name} observation: {record}")

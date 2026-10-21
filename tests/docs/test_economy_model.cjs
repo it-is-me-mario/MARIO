@@ -21,14 +21,14 @@ test('recent-year presets exclude the current year and forecasts before counting
 test('MRIO browser excludes national BEA and USEEIO but retains international SUTs',()=>{
  const eligible=snapshots.filter(M.isMRIO);
  assert.ok(!eligible.some(s=>['BEA','USEEIO'].includes(s.recipe.source)));
- assert.deepEqual(M.unique(eligible.map(s=>s.recipe.source)).sort(),['ADB','EMERGING','EXIOBASE','FIGARO','GLORIA','OECD','WIOD']);
+ assert.deepEqual(M.unique(eligible.map(s=>s.recipe.source)).sort(),['ADB','BONSAI','EMERGING','EXIOBASE','FIGARO','GLORIA','OECD','WIOD']);
  assert.ok(eligible.some(s=>s.recipe.source==='WIOD'&&s.recipe.table==='SUT'&&s.recipe.world_total_available===false));
  assert.ok(M.isMRIO({regions:[{kind:'country',iso3:'ITA'},{kind:'country',iso3:'FRA'}]}));
 });
 test('environmental selection keeps only readings with GHG, including ADB year gaps',()=>{
  const pool=snapshots.filter(M.isMRIO),config={...state(),families:M.unique(pool.map(s=>s.recipe.source)),versions:{},year:'all',environmentallyExtended:true};
  const selected=M.selected(pool,config);
- assert.deepEqual(M.unique(selected.map(s=>s.recipe.source)).sort(),['ADB','EMERGING','EXIOBASE','GLORIA']);
+ assert.deepEqual(M.unique(selected.map(s=>s.recipe.source)).sort(),['ADB','BONSAI','EMERGING','EXIOBASE','GLORIA']);
  assert.ok(selected.length);assert.ok(selected.every(s=>M.metricAvailable([s],'ghg')));
  assert.ok(M.metricAvailableForSelection(pool,config,'ghg'));
  assert.ok(!selected.some(s=>s.recipe.source==='ADB'&&[2000,2016,2024].includes(s.recipe.year)));

@@ -56,7 +56,7 @@
     const p=recipe.parser_options || {}, format=recipe.table || p.table || "IOT";
     // The Hybrid HIOT parser maps its columns onto the product axis.
     const system=format === "SUT" ? null : p.system || (p.iot_mode === "product" || recipe.source === "EXIOBASE" && p.unit === "Hybrid" ? "pxp" : p.iot_mode === "industry" ? "ixi" : recipe.dimension || null);
-    return {units:p.unit || "Monetary", version:String(recipe.release ?? ""), format, system, price:recipe.price_basis || "Current prices"};
+    return {units:recipe.native_units || p.unit || "Monetary", version:String(recipe.release ?? ""), format, system, price:recipe.price_basis || "Current prices"};
   }
   function focusFacets(snapshots, family, requested={}, selectedYears="all") {
     const recipes=snapshots.filter(s=>s.recipe.source===family).map(s=>s.recipe);
@@ -215,6 +215,7 @@
         !world&&!region?"Region is not represented with this definition in this reading":
         state.metric==="ghg"&&!metricAvailable([s],"ghg")?s.recipe.ghg_unavailable_reason||"No verified GHG aggregate":
         state.section===HOUSEHOLDS&&val==null?"Direct household emissions are not available in this reading":
+        ["gdp","value_added"].includes(state.metric)&&s.recipe.value_added_available===false?"GDP and value added are not supplied by this reading":
         state.metric==="gdp"&&val==null?"GDP tax bridge not verified; value added is available":val==null?"No matching population or exchange rate":"";
       if(val!=null&&state.metric==="gdp"&&s.recipe.gdp_bridge_verified===false)note=s.recipe.gdp_proxy?s.recipe.gdp_note:"GDP estimate; market-price bridge unverified";
       if(val!=null&&state.metric==="gdp"&&s.recipe.gdp_quality_note)note=[note,s.recipe.gdp_quality_note].filter(Boolean).join(" ");

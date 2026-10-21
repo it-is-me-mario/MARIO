@@ -8,6 +8,12 @@ package on PyPI, and dates are its publication dates.
 Unreleased
 ----------
 
+* The Database explorer includes BONSAI native b2 HIOT metadata, regional sets
+  and producer GHG totals, with the 21 October 2026 input update date. The
+  classification overview uses the Global block's 355 sectors and explains
+  regional variation in its hover text. GDP and value added are unavailable.
+  BONSAI 2016 direct and life-cycle electricity factors appear only in the
+  technology comparison, with native product/activity mappings and provenance.
 * ``parse_bonsai(table="IOT")`` reads native b2 HIOT directories or ZIP bundles,
   preserving sparse net-supply matrices, hybrid product units, nonuniform
   regional sectors and source diagonal normalization. It imports final demand

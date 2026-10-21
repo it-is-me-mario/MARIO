@@ -93,7 +93,7 @@ def test_heterogeneous_region_memberships_and_semantic_extension_axes(coefficien
         blocks = {name.lower(): block for name, block in blocks.items()}
     db = SimpleNamespace(
         table_type="IOT", get_index=lambda _: {"Region": pd.Index(["A", "B"]),
-                                               "Sector": ["Energy", "Transport"], "Satellite account": ["CO2"]},
+                                               "Sector": {"A": ["Energy"], "B": ["Transport"]}, "Satellite account": ["CO2"]},
         list_matrices=lambda: [*blocks, "X"],
         get_block=lambda name: blocks[name],
         units={"Satellite account": pd.DataFrame({"unit": ["kg"]}, index=extension)},

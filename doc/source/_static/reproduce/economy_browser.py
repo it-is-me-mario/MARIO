@@ -91,6 +91,16 @@ def annotate_ghg_method(recipe):
 def aggregate(db, recipe, tax_fd=None):
     """Aggregate named V/E rows without calculating a Leontief inverse."""
     annotate_ghg_method(recipe)
+    if recipe.get("value_added_available") is False:
+        # Native hybrid systems can publish emissions without any income accounts.
+        # Do not interpret MARIO's zero-filled factor placeholders as observations.
+        ghg = characterise(db.get_block(recipe.get("emissions_block", "E")), recipe["ghg_factors"])
+        totals = ghg.groupby(level="Region").sum()
+        if set(totals.index) != {r["label"] for r in recipe["regions"]}:
+            raise ValueError("The source geographic coverage changed; review the recipe")
+        return [{"code": r["label"], "name": r["name"], "iso3": r.get("iso3"),
+                 "kind": r["kind"], "gdp": None, "value_added": None,
+                 "ghg": [float(totals.loc[r["label"]])]} for r in recipe["regions"]]
     block = recipe.get("value_added_block", "V")
     V = db.get_block(block)
     if not V.columns.is_unique:

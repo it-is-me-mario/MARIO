@@ -222,6 +222,32 @@
         "air",
         "\\(air|^(nox|sox|so2|nh3|nmvoc|co|pm10|pm2[._]5|tsp|bc|oc|pb|cd|hg|as|cr|cu|ni|se|zn|pah|pcb|pcbs|pcdd[/_]f|hcb|b\\(a\\)p|b\\(b\\)f|b\\(k\\)f|indeno.*|benzo.*)( |$|-)"
       ]
+    ],
+    "BONSAI": [
+      [
+        "ghg",
+        "^(Dinitrogen monoxide|Accelerated CO2, Air|Carbon dioxide, (?:non-fossil|fossil)|Methane, (?:non-fossil|fossil)) \\| Air$"
+      ],
+      [
+        "air",
+        " \\| Air$"
+      ],
+      [
+        "land",
+        "^Occupation,"
+      ],
+      [
+        "water",
+        "^Water(?:,| \\|)"
+      ],
+      [
+        "materials",
+        " \\| unspecified(?: \\| [a-f0-9-]+)?$"
+      ],
+      [
+        "other",
+        " \\| (?:Water|Soil|undef)$"
+      ]
     ]
   },
   "without": {

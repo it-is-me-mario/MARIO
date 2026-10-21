@@ -2,6 +2,7 @@
   "schema_version": 1,
   "global_families": [
     "Asian Development Bank",
+    "BONSAI",
     "EMERGING",
     "EORA",
     "EXIOBASE",
