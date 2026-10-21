@@ -539,12 +539,14 @@ def _read_excel_workbook(path: str | Path) -> dict[str, pd.DataFrame]:
 
     formula_book = load_workbook(path, data_only=False)
     values_book = load_workbook(path, data_only=True)
+    # Workbook.__getitem__ scans all worksheets. Resolve each name once: large
+    # regional inventories can contain hundreds of sheets and millions of cells.
+    formula_sheets = {sheet.title: sheet for sheet in formula_book}
+    values_sheets = {sheet.title: sheet for sheet in values_book}
     cache: dict[tuple[str, str], Any] = {}
     sheets: dict[str, pd.DataFrame] = {}
 
-    for sheet_name in formula_book.sheetnames:
-        formula_sheet = formula_book[sheet_name]
-        values_sheet = values_book[sheet_name]
+    for sheet_name, formula_sheet in formula_sheets.items():
         rows = []
         for row in formula_sheet.iter_rows():
             rows.append(
@@ -552,8 +554,8 @@ def _read_excel_workbook(path: str | Path) -> dict[str, pd.DataFrame]:
                     _resolve_excel_cell(
                         sheet_name=sheet_name,
                         cell_coordinate=cell.coordinate,
-                        formula_book=formula_book,
-                        values_book=values_book,
+                        formula_book=formula_sheets,
+                        values_book=values_sheets,
                         cache=cache,
                         stack=set(),
                     )
