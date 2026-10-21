@@ -1,6 +1,7 @@
 """Actual sequential solves, conservative projections and checkpoint recovery."""
 from dataclasses import replace
 import json
+import hashlib
 
 import numpy as np
 import pandas as pd
@@ -66,6 +67,32 @@ def test_template_and_plan_validation(tmp_path):
     with pytest.raises(WrongInput, match="mandatory"):
         db.add_sectors(source, split=True, intermediate_steps=True)
     assert set(db.get_index("Sector")) == {"Parent", "Stable"}
+
+
+@pytest.mark.parametrize('layout',['database','.'])
+def test_checkpoint_database_layout_preserves_independent_outputs(tmp_path,layout):
+    db=balanced_database()
+    db.matrices['baseline']['X']=db.X+.01
+    directory=tmp_path/layout
+    db.to_parquet(path=directory,flows=True,coefficients=False,include_meta=True)
+    state=dict(format='mario-sector-steps-v1',status='complete',split_model_options={'accounting':'inherit'},
+               files={str(p.relative_to(tmp_path)):hashlib.sha256(p.read_bytes()).hexdigest()
+                      for p in directory.rglob('*') if p.is_file()})
+    if layout=='.':state['database_directory']='.'
+    (tmp_path/'state.json').write_text(json.dumps(state))
+    reloaded=load_checkpoint(tmp_path)
+    pd.testing.assert_frame_equal(reloaded.X,db.X)
+    with (directory/'flows/X.parquet').open('ab') as stream:stream.write(b'changed')
+    with pytest.raises(WrongInput,match='Checkpoint file changed'):
+        load_checkpoint(tmp_path)
+
+
+@pytest.mark.parametrize('directory',['../outside','/tmp',''])
+def test_checkpoint_database_directory_cannot_escape_its_root(tmp_path,directory):
+    (tmp_path/'state.json').write_text(json.dumps(dict(format='mario-sector-steps-v1',status='complete',
+                                                     files={},database_directory=directory)))
+    with pytest.raises(WrongInput,match='database directory'):
+        load_checkpoint(tmp_path)
 
 
 def test_future_inputs_are_projected_and_summed_without_mutating_source(tmp_path):

@@ -406,11 +406,17 @@ def load_checkpoint(path):
         source = path / relative
         if source.resolve().is_relative_to(path.resolve()) is False or _digest(source) != digest:
             raise WrongInput(f"Checkpoint file changed or is incomplete: {relative}")
-    database = mario.parse_from_parquet(str(path / "database" / "flows"), table="IOT", mode="flows")
+    relative = state.get('database_directory', 'database')
+    if not isinstance(relative,str) or not relative.strip() or Path(relative).is_absolute():
+        raise WrongInput('Invalid checkpoint database directory.')
+    directory = (path / relative).resolve()
+    if not directory.is_relative_to(path.resolve()):
+        raise WrongInput('Checkpoint database directory must remain inside the checkpoint.')
+    database = mario.parse_from_parquet(str(directory / "flows"), table="IOT", mode="flows")
     if (state.get('split_model_options') or {}).get('accounting') == 'inherit':
         # The generic flow parser treats X as derived. Here it is an audited
         # independent target, which must survive serialization and resume.
-        output = pd.read_parquet(path/'database'/'flows'/'X.parquet')
+        output = pd.read_parquet(directory/'flows'/'X.parquet')
         if (not output.index.equals(database.Z.index) or output.shape[1]!=1
                 or not np.isfinite(output.to_numpy()).all() or (output.to_numpy()<0).any()):
             raise WrongInput('Invalid independent output in inherited-accounting checkpoint.')

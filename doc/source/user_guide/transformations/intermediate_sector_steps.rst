@@ -194,6 +194,13 @@ A successful group writes ``001_<group>/`` containing:
 * ``state.json``: completed sectors, preserved canonical observations, runtime
   versions, conservation diagnostics and database checksums.
 
+Shared-data publishers may place ``flows/`` directly in the checkpoint root.
+Such copies set ``database_directory="."`` in ``state.json`` and rebase its
+checksum keys to the same root. The loader verifies those files and retains
+independent X targets exactly as for the default ``database/`` layout. A database
+directory must be relative and stay within the checkpoint. Publishers can store
+the workbooks separately; pass their actual paths explicitly when resuming.
+
 Only after writing all files does the checkpoint directory become committed.
 A failed group leaves a hidden partial directory with ``failure.json`` and
 diagnostic inputs, while the preceding checkpoint and live database stay valid.
