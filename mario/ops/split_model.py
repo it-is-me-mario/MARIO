@@ -20,7 +20,7 @@ import pandas as pd
 from mario.log_exc.exceptions import WrongInput
 
 
-MODEL_REVISION = 'adaptive-entropy-support-v2'
+MODEL_REVISION = 'constant-reference-kl-v3'
 DEFAULTS = dict(model=None, accounting='strict', value_added_loss='legacy', flow_loss='kl', final_demand_weight=0.,
                 supply_weight=0., complete_intermediate_priors=False,
                 check_feasibility=False, feasibility_solver='HIGHS', scale=1.,compact_constraints=False,
@@ -185,6 +185,24 @@ def _entropy_floor(prior, reference_floor):
     return floor
 
 
+def model_constant_kl(a, reference):
+    """Elementwise KL for a fixed, strictly positive numerical reference.
+
+    x*log(x/q)-x+q = -entr(x)-(log(q)+1)*x+q, including x=0.
+    Computing log(q) before canonicalisation keeps tiny prior values out of
+    exponential-cone coordinates. This is the same objective and closed domain,
+    not clipping, a new support floor or a relaxation. It must not be used for
+    an endogenous or dynamically changing reference.
+    """
+    import cvxpy as cp
+    if isinstance(reference, cp.Expression) and not reference.is_constant():
+        raise WrongInput('Constant-reference KL cannot use an endogenous reference.')
+    q = np.asarray(reference.value if hasattr(reference, 'value') else reference, dtype=float)
+    if not np.isfinite(q).all() or (q <= 0).any():
+        raise WrongInput('Constant-reference KL requires finite, strictly positive references.')
+    return -cp.entr(a) - cp.multiply(np.log(q) + 1., a) + q
+
+
 def model_active_kl(a, prior, zero_mask=None, signed=False, reference_floor=None):
     """KL on allowed cells; structural zeros create no exponential cones."""
     import cvxpy as cp
@@ -200,7 +218,7 @@ def model_active_kl(a, prior, zero_mask=None, signed=False, reference_floor=None
         vector = cp.multiply(np.where(q<0,-1.,1.),vector)
     # The floor is numerical support, not a source observation. Structural
     # exclusions remain fixed independently of the objective.
-    return cp.sum(cp.kl_div(vector,np.abs(q)+_entropy_floor(q, reference_floor)))
+    return cp.sum(model_constant_kl(vector,np.abs(q)+_entropy_floor(q, reference_floor)))
 
 
 def model_signed_kl(a, prior, zero_mask=None, reference_floor=None):

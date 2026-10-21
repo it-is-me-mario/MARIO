@@ -153,3 +153,25 @@ the checked-in workbooks. Run it explicitly after editing its specification,
 inspect the resulting workbook changes and run the template/model tests. The
 solver/bridge never invokes it. This keeps every supported formulation visible
 in this folder, including its strict/inherited/compact constraint profile.
+
+
+### Fixed-prior KL numerical representation
+
+The explicit MRIO KL operators evaluate fixed-prior KL as
+`-entr(x) - (log(q) + 1)*x + q`, with `q` the strictly positive,
+numerically supported reference. This is exactly
+`x*log(x/q) - x + q`, including the continuous extension at `x=0`,
+and preserves the domain `x >= 0`. Computing the constant `log(q)` before
+canonicalisation avoids placing tiny prior values directly in exponential-cone
+coordinates. No prior, adaptive-support coefficient, weight or physical constraint
+is altered. Negative entropy operands remain outside the domain and are not
+clipped during verification. Relative-entropy/legacy operators are unchanged.
+
+This representation addresses a reproducible MOSEK `UNKNOWN` failure with
+references as small as `1e-25` in scaled units; it does not guarantee convergence
+on every dataset. Failed attempts must remain visible. The model revision is
+`constant-reference-kl-v3`; earlier checkpoints retain their original model
+fingerprints and cannot silently resume under changed operator sources.
+
+See the [CVXPY atom definitions](https://www.cvxpy.org/functions/index.html)
+and [MOSEK entropy and relative-entropy representations](https://docs.mosek.com/modeling-cookbook/expo.html).

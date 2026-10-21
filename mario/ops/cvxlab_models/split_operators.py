@@ -11,7 +11,7 @@ from mario.log_exc.exceptions import WrongInput
 from mario.ops.split_model import (
     _values, model_active_kl, model_signed_kl, model_quadratic,
     model_masked_values, model_prior_signed_values, model_legacy_entropy,
-    _entropy_floor,
+    _entropy_floor, model_constant_kl,
 )
 
 
@@ -73,7 +73,7 @@ def _positive_loss(a, prior, zero, selector, floor, *, legacy=False):
                          'Correct the source explicitly or use the constrained quadratic model; '
                          'priors are never silently made positive.')
     reference = q + _entropy_floor(q, scalar(floor))
-    return cp.sum(cp.rel_entr(vector, reference) if legacy else cp.kl_div(vector, reference))
+    return cp.sum(cp.rel_entr(vector, reference) if legacy else model_constant_kl(vector, reference))
 
 
 def positive_va_kl(a, prior, zero, selector, floor):
@@ -90,7 +90,7 @@ def _free_loss(positive, negative, prior, zero, selector, floor, *, legacy=False
     if p is None:
         return cp.Constant(0.)
     epsilon = _entropy_floor(q, scalar(floor))
-    loss = cp.rel_entr if legacy else cp.kl_div
+    loss = cp.rel_entr if legacy else model_constant_kl
     # Both components have positive numerical support. Neither prior sign is a
     # hard domain for the net value V = positive - negative.
     return cp.sum(loss(p, np.maximum(q, 0) + epsilon) + loss(n, np.maximum(-q, 0) + epsilon))
