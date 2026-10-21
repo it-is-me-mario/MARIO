@@ -6,6 +6,9 @@ changes last only for that session. Pass ``persist=True`` explicitly to save
 defaults for future sessions. The installed package is never modified.
 Notebooks sharing the same kernel also share active settings.
 
+For an explanation of the compute options and practical configurations, see
+:doc:`../user_guide/advanced/compute_settings`.
+
 Matrix aliases in one session
 -----------------------------
 
@@ -122,6 +125,93 @@ can be corrected, replaced with a valid upload, or removed with
 
 See the executable walkthrough in
 :doc:`../user_guide/inspection/custom_labels_and_aliases`.
+
+Compute presets for large databases
+-----------------------------------
+
+BONSAI, GLORIA and EMERGING select ``compute_method="solve"`` and
+``linear_strategy="direct"`` during parsing. They prefer the optional UMFPACK
+backend and use SciPy when that backend cannot be imported. The selected
+solver is recorded in the import log and can be inspected with
+``mario.download_settings()["compute"]``. These defaults apply to this Python
+session, including other databases loaded later, and do not alter saved settings.
+An unsuccessful import restores the previous session settings. Other parsers
+leave the active compute settings unchanged.
+
+Install the optional solver before loading a full database. With conda:
+
+.. code-block:: shell
+
+   conda install -c conda-forge scikit-umfpack
+
+With pip, install SuiteSparse using your system package manager first, then:
+
+.. code-block:: shell
+
+   python -m pip install "mariopy[umfpack]"
+
+The Python wrapper is ``scikit-umfpack>=0.4.2``; SuiteSparse supplies its native
+UMFPACK library and is not installed by pip. See the
+`upstream installation guide <https://scikit-umfpack.github.io/scikit-umfpack/>`_.
+The ``all`` extra includes this optional wrapper and has the same SuiteSparse
+prerequisite. A regular ``pip install mariopy`` does not require it.
+
+The preset choice uses the already catalogued model sizes, without parsing new
+inputs or benchmarking solver speed:
+
+.. list-table:: Full readings represented in the local metadata catalogue
+   :header-rows: 1
+   :widths: 26 27 20 27
+
+   * - Database
+     - Economic dimensions
+     - One dense float64 square block
+     - Automatic parser preset
+   * - BONSAI b2 HIOT (21 Oct 2026 inputs)
+     - 53,750 native production nodes
+     - 21.53 GiB
+     - Solve / direct; UMFPACK preferred
+   * - EMERGING 2.2 / EMERGING-E
+     - 32,585 / 35,770 nodes
+     - 7.91 / 9.53 GiB
+     - Solve / direct; UMFPACK preferred
+   * - GLORIA v060 SUT
+     - 19,680 activities and 19,680 commodities
+     - 2.89 GiB per block
+     - Solve / direct; UMFPACK preferred
+   * - EXIOBASE monetary ixi / pxp
+     - 7,987 / 9,800 nodes
+     - 0.48 / 0.72 GiB
+     - Active settings unchanged
+   * - Eora26
+     - 4,914 nodes
+     - 0.18 GiB
+     - Active settings unchanged
+   * - OECD ICIO Extended / FIGARO
+     - 4,050 / 3,200 nodes
+     - 0.12 / 0.08 GiB
+     - Active settings unchanged
+   * - WIOD 2016 / ADB 74-economy reading
+     - 2,464 / 2,625 nodes
+     - 0.05 / 0.05 GiB
+     - Active settings unchanged
+
+These are lower bounds for storing a single dense block, calculated as
+``8 * n**2`` bytes. They exclude inputs, copies and factorization memory.
+GLORIA's combined activity/commodity system would need 11.54 GiB as a dense
+square matrix; solve-based calculations can avoid materializing it. The actual
+cost of sparse factorization also depends on sparsity and fill-in, so node
+counts alone do not establish which solver is fastest. Eora26 counts do not
+describe full-resolution Eora; GTAP and regional subsets need their own reading's
+dimensions. No new source database is read to choose these presets.
+
+Singularity handling is separate from performance: BONSAI retains
+``singular_policy="partial"`` with warnings and NaN for affected results;
+GLORIA and EMERGING select ``"raise"``. Missing optional libraries trigger the
+SciPy fallback; a numerical or factorization error does not. An explicit
+``mario.set_linear_solver("umfpack")`` still requires the backend to be installed.
+Keep ``calc_all=False`` to compute only requested matrices; requesting a full
+inverse explicitly can still allocate the large blocks described above.
 
 API reference
 -------------

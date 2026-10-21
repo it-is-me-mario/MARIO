@@ -481,6 +481,8 @@ def test_bonsai_profile_uses_n2o_and_distinct_methane_factors_without_biogenic_c
         ("co2-uptake", "Carbon dioxide, in air", "", 1000000., 2000000.),
         ("fossil-co2", "Carbon dioxide, fossil", "Water", 999999., 888888.),
     ]
+    if report == "AR6":
+        gases.append(("Accelerated CO2, Air", "Accelerated CO2, Air", "Air", 11., 13.))
     rows = [
         (substance, region, activity, compartment, "tonnes", value, name)
         for substance, name, compartment, emission, direct in gases
@@ -502,8 +504,9 @@ def test_bonsai_profile_uses_n2o_and_distinct_methane_factors_without_biogenic_c
     label = f"GHG {report} GWP-100"
     ea = dense_values(db.get_block("Ea").loc[label])
     ey = dense_values(db.get_block("EY").loc[label])
-    assert ea.sum() == pytest.approx(2 + 3 * methane_fossil + 5 * methane_biogenic + 7 * nitrous_oxide)
-    assert ey.sum() == pytest.approx(1 + 2 * methane_fossil + 3 * methane_biogenic + 4 * nitrous_oxide)
+    accelerated_factor = 0.00772 if report == "AR6" else 0
+    assert ea.sum() == pytest.approx(2 + 3 * methane_fossil + 5 * methane_biogenic + 7 * nitrous_oxide + 11 * accelerated_factor)
+    assert ey.sum() == pytest.approx(1 + 2 * methane_fossil + 3 * methane_biogenic + 4 * nitrous_oxide + 13 * accelerated_factor)
     assert not dense_values(db.get_block("Ec").loc[label]).any()
     assert db.units["Satellite account"].loc[label, "unit"] == "tonnes"
     assert "Carbon dioxide, non-fossil | Air" in db.get_index("Satellite account")
@@ -533,3 +536,59 @@ def test_bonsai_profile_accepts_identity_suffixes_and_older_full_labels(legacy):
 
     expected = db.E.loc[labels["CO2 - combustion - air"]] + 27 * db.E.loc[labels["CH4 - combustion - air"]] + 273 * db.E.loc[labels["N2O - combustion - air"]]
     pdt.assert_series_equal(db.E.loc["GHG AR6 GWP-100"], expected, check_names=False)
+
+
+@pytest.mark.parametrize("sparse_backed", [False, True])
+@pytest.mark.parametrize("suffix", ["", " | native-id", " | kg | native-id"])
+def test_bonsai_default_characterizes_accelerated_co2_in_flows_and_cached_multipliers(
+    sparse_backed, suffix,
+):
+    from mario.compute.helpers import dense_values
+    from mario.compute.types import ComputeOptions
+
+    db = _build_ghg_database()
+    db.calc_all(["f", "F"], compute_options=ComputeOptions(backend_override="sparse_direct"))
+    accelerated = "Accelerated CO2, Air | Air" + suffix
+    labels = {
+        "CO2 - combustion - air": "Carbon dioxide, fossil | Air",
+        "CH4 - combustion - air": "Methane, fossil | Air",
+        "N2O - combustion - air": "Dinitrogen monoxide | Air",
+        "Employment": accelerated,
+    }
+    db.meta.source = "BONSAI"
+    db.units["Satellite account"].loc["Employment", "unit"] = "kg"
+    db.units["Satellite account"] = db.units["Satellite account"].rename(index=labels)
+    db._indeces["k"]["main"] = [labels[x] for x in db.get_index("Satellite account")]
+    for name, frame in list(db.matrices["baseline"].items()):
+        frame = frame.rename(index=labels)
+        if sparse_backed:
+            frame = frame.astype(pd.SparseDtype(float, 0))
+        db.set_block(name, frame)
+    before = dict(db.matrices["baseline"])
+    db.calc_ghg()
+    for name in ["E", "EY", "e", "f", "F"]:
+        original = before[name]
+        expected = (
+            original.loc[labels["CO2 - combustion - air"]]
+            + 29.8 * original.loc[labels["CH4 - combustion - air"]]
+            + 273 * original.loc[labels["N2O - combustion - air"]]
+            + 0.00772 * original.loc[accelerated]
+        )
+        assert dense_values(db.get_block(name).loc["GHG AR6 GWP-100"]) == pytest.approx(dense_values(expected))
+        pdt.assert_frame_equal(db.get_block(name).loc[original.index], original)
+
+
+@pytest.mark.parametrize("report", ["AR4", "AR5"])
+def test_bonsai_accelerated_co2_factor_is_not_reused_for_other_reports(report):
+    db = _build_ghg_database()
+    label = "Accelerated CO2, Air | Air"
+    for name, frame in list(db.matrices["baseline"].items()):
+        db.set_block(name, frame.rename(index={"Employment": label}))
+    db._indeces["k"]["main"][-1] = label
+    db.units["Satellite account"] = db.units["Satellite account"].rename(index={"Employment": label})
+    db.units["Satellite account"].loc[label, "unit"] = "kg"
+    before = dict(db.matrices["baseline"])
+    with pytest.raises(ValueError, match="not available for 'Accelerated CO2"):
+        db.calc_ghg(profile="bonsai", ipcc_report=report)
+    assert all(db.get_block(name) is frame for name, frame in before.items())
+    assert f"GHG {report} GWP-100" not in db.get_index("Satellite account")

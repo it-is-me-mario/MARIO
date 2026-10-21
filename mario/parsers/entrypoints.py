@@ -229,13 +229,15 @@ def parse_bonsai(
     ``Database.units["Satellite account"]``.
 
     A successful import sets session compute defaults to ``compute_method='solve'``,
-    ``linear_solver='umfpack'``, ``linear_strategy='direct'`` and
+    ``linear_solver='umfpack'`` when installed (otherwise ``'scipy'``), ``linear_strategy='direct'`` and
     ``singular_policy='partial'``, including when ``calc_all=True``. These defaults
     also affect other databases in the same Python process; they can be changed
     afterwards with the compute settings functions. Other settings and the saved
     user profile are unchanged. UMFPACK requires ``scikit-umfpack`` and SuiteSparse
-    (``conda install -c conda-forge scikit-umfpack``); missing dependencies raise an
-    ImportError before reading the bundle. Failed imports restore prior settings.
+    (``conda install -c conda-forge scikit-umfpack``). The optional
+    ``mariopy[umfpack]`` extra installs the Python wrapper; pip users must install
+    SuiteSparse first. Missing optional dependencies select SciPy; numerical
+    failures are not retried with another solver. Failed imports restore prior settings.
     Partial solves warn and return NaN at coefficients affected by singular
     components, without changing source data. Defaults are defined in
     ``mario.settings.parser_profiles.PARSER_COMPUTE_PROFILES["bonsai"]``.
@@ -2213,6 +2215,15 @@ def parse_emerging(
     MATLAB v7.3 stored axes are normalized to MARIO's row/column convention
     during sparse loading, avoiding a dense transpose of the full matrix.
 
+    Full EMERGING readings have about 32,600--35,800 production nodes. Install
+    the optional sparse solver with ``conda install -c conda-forge scikit-umfpack``
+    or use ``pip install 'mariopy[umfpack]'`` after installing SuiteSparse.
+    Successful imports select session defaults ``solve``, ``direct`` and
+    ``singular_policy='raise'``, preferring UMFPACK and falling back to SciPy
+    if the optional backend cannot be imported. Defaults also affect other
+    databases in this Python session and do not change the saved profile.
+    Keep ``calc_all=False`` to calculate only the matrices requested later.
+
     Parameters
     ----------
     path : str
@@ -2804,6 +2815,16 @@ def parse_gloria(
     The current GLORIA backend targets the monetary multi-regional SUT bundles
     shipped as raw ``T``, ``Y`` and ``V`` csv files together with the GLORIA
     ReadMe workbook. GLORIA IOT parsing is intentionally left for a later step.
+
+    For full-region calculations, install the optional sparse solver with
+    ``conda install -c conda-forge scikit-umfpack`` or use
+    ``pip install 'mariopy[umfpack]'`` after installing SuiteSparse. A full v060
+    reading has 19,680 activities and 19,680 commodities. Successful imports
+    select session defaults ``solve``, ``direct`` and ``singular_policy='raise'``,
+    preferring UMFPACK and falling back to SciPy if the optional backend cannot
+    be imported. Defaults also affect other databases in this Python session
+    and do not change the saved profile. Keep ``calc_all=False`` to calculate
+    only the matrices requested later.
 
     Parameters
     ----------

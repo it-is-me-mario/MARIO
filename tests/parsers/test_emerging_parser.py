@@ -10,6 +10,8 @@ import mario
 from mario.log_exc.exceptions import NotImplementable, WrongInput
 from mario.parsers.emerging import detect_emerging_layout, parse_emerging_iot
 
+pytestmark = pytest.mark.usefixtures("isolated_session_settings")
+
 
 def _write_ref_list(handle: h5py.File, group: h5py.Group, name: str, values: list[str]) -> None:
     """Write one MATLAB-like cellstr list as HDF5 object references."""

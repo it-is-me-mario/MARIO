@@ -5680,7 +5680,11 @@ class Database(CoreModel):
             BONSAI is auto-detected and characterizes fossil CO2, fossil and
             non-fossil CH4, and N2O (``Dinitrogen monoxide``). Biogenic CO2 stays
             separate from the aggregate; NOx and resource CO2 uptake are not
-            characterized. This profile covers the gases available in the
+            characterized. AR6/GWP100 also includes ``Accelerated CO2, Air``
+            with factor 0.00772, following BONSAI's LCIA convention. That flow
+            has no built-in factor for other reports or horizons; when present,
+            those requests require an explicit ``gwp`` mapping.
+            This profile covers the gases available in the
             Balanced bundle, which has no fluorinated GHG accounts.
         gwp:
             Optional ``{satellite-account: factor}`` mapping that overrides
@@ -5696,14 +5700,13 @@ class Database(CoreModel):
             shared unit of the aggregated satellite accounts.
         time_horizon:
             Time horizon used to resolve built-in profile GWPs when available.
-            Default is ``100``. At the moment this matters only for built-in
-            profile gases whose factors vary across horizons, such as ``CH4``
-            and ``N2O``. Ignored when ``gwp=...`` is provided.
+            Default is ``100``. A factor must be available for each matched
+            account at the requested horizon. Ignored when ``gwp=...`` is provided.
         ipcc_report:
             IPCC assessment report used to resolve built-in profile GWPs when
             available. Supported built-in values currently are ``AR4``,
-            ``AR5``, and ``AR6``. At the moment this matters only for gases
-            whose factors vary across reports, such as ``CH4`` and ``N2O``.
+            ``AR5``, and ``AR6``. Each matched account must have a factor for
+            the selected report (BONSAI's accelerated CO2 supports AR6 only).
             Ignored when ``gwp=...`` is provided.
         inplace:
             When ``True`` mutate the database in place. When ``False`` return

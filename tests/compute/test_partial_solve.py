@@ -238,3 +238,15 @@ def test_nonsingular_partial_mode_is_a_normal_solution_without_warning(solver):
     assert not recorded
     assert not result.attrs
     np.testing.assert_allclose(result, np.linalg.solve(np.eye(2) - coeff.to_numpy(), rhs))
+
+
+def test_sparse_frame_distinguishes_structural_zeros_from_explicit_missing_values():
+    from scipy import sparse
+    from mario.compute.helpers import sparse_frame_from_spmatrix
+
+    values = np.array([[0., np.nan], [3., 0.]])
+    frame = sparse_frame_from_spmatrix(sparse.csc_matrix(values), index=["a", "b"], columns=["x", "y"])
+    assert all(dtype.fill_value == 0 for dtype in frame.dtypes)
+    assert frame.loc["a", "x"] == 0 and frame.loc["b", "y"] == 0
+    assert np.isnan(frame.loc["a", "y"])
+    np.testing.assert_equal(frame.sparse.to_coo().toarray(), values)

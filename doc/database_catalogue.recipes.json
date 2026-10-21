@@ -268,7 +268,7 @@
       "guide": "bonsai",
       "notebook": "source/notebooks/parsers/bonsai/walkthrough_bonsai.ipynb",
       "parser": "parse_bonsai",
-      "cell": 19,
+      "cell": 12,
       "fingerprint": "a9b37ddab8490dc31eecdf599e6aeac6c1952639363ac87adf6c101852e4e0b0",
       "parameters": {},
       "runnable": false,

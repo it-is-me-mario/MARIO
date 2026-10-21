@@ -8,6 +8,21 @@ package on PyPI, and dates are its publication dates.
 Unreleased
 ----------
 
+* Advanced workflows includes a concise computation-settings guide covering
+  inverse versus solve, solver choice, automatic memory estimates, singularity
+  handling and session/per-call configuration.
+* BONSAI's default AR6/GWP100 GHG profile includes ``Accelerated CO2, Air``
+  with factor 0.00772, matching the checked BONSAI LCIA calculation. The factor
+  applies to HSUT/HIOT environmental flows and cached coefficients/multipliers.
+  Unsupported report/horizon variants for this flow require explicit factors.
+* Sparse result frames explicitly retain zero fill values under pandas 3,
+  while preserving stored NaN diagnostics. This keeps structural zeros distinct
+  from undefined coefficients in multipliers, aggregation and GHG accounts.
+* GLORIA and EMERGING now select session-local solve/direct compute presets,
+  preferring optional UMFPACK with a SciPy fallback when unavailable. BONSAI
+  gains the same dependency fallback and retains its partial singular policy;
+  GLORIA and EMERGING use strict singular errors. Database walkthroughs explain
+  ``mariopy[umfpack]``, SuiteSparse, model sizes and the selected defaults.
 * The Database explorer includes BONSAI native b2 HIOT metadata, regional sets
   and producer GHG totals, with the 21 October 2026 input update date. The
   classification overview uses the Global block's 355 sectors and explains
@@ -20,13 +35,11 @@ Unreleased
   and direct elementary flows, reports unmatched source rows and leaves the
   existing Balanced HSUT parser as the default. No Stone reconstruction or
   precomputed inverse is required.
-* BONSAI documentation explains the equivalence between native ``E T^-1`` and
-  MARIO's ``e (I-z)^-1`` multipliers, electricity unit conversion, explicit
-  BONSAI LCIA characterization and comparison of matching source exports.
-  The executed walkthrough limits the HIOT solve to the required GHG rows. A dated local
-  verification records source checksums, numerical residuals and discrepancies
-  against older saved footprints; file modification dates are distinguished
-  from release identifiers.
+* The BONSAI parser walkthrough covers HSUT/HIOT imports, local layouts,
+  regional classifications, units and diagnostics, in line with the other
+  parser guides. The API documents the native HIOT representation and its
+  equivalence to MARIO's multiplier formula; dated footprint comparisons
+  remain separate validation artifacts.
 * ``get_index`` preserves complete Factor of production and Satellite account
   lists when custom extension layouts contain global scopes outside the Region
   set. GTAP global accounts are no longer discarded by regional-view inference;

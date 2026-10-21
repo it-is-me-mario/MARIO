@@ -109,6 +109,7 @@ setup(
         ],
         "all": [
             "pytest",
+            "scikit-umfpack>=0.4.2",
             "scipy",
             "h5py",
             "pyarrow>=17",

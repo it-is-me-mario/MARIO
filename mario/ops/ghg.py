@@ -59,13 +59,16 @@ GWPs = {
 # Profiles are evaluated in declaration order; the first matching profile
 # wins. Put the more specific profile (more substrings) first.
 GHG_PROFILES: Dict[str, dict] = {
-    # ---------------- BONSAI Balanced HSUT -----------------------------
+    # ---------------- BONSAI Balanced HSUT / native b2 HIOT ------------
     # Names and compartments are the parser's readable satellite labels.
     # Biogenic CO2 is retained separately, consistently with the existing
     # EXIOBASE/GLORIA profiles; this is not a net biogenic carbon balance.
     # N2O is "Dinitrogen monoxide", distinct from NOx ("Nitrogen oxides").
     # GWP100: IPCC AR6 Table 7.15; AR5/AR4 variants follow the shared factors.
     # https://ghgprotocol.org/sites/default/files/2024-08/Global-Warming-Potential-Values%20(August%202024).pdf
+    # Accelerated CO2 is a BONSAI-specific flow, characterized separately in
+    # its LCIA.xlsx and load_climate_factors/calculate_ghg_footprint routines.
+    # Only the checked AR6/GWP100 factor is supplied; do not extrapolate it.
     "bonsai": {
         "match": "bonsai",
         # Also accept disambiguating suffixes and the older unit/UUID labels.
@@ -77,6 +80,7 @@ GHG_PROFILES: Dict[str, dict] = {
             "Methane, fossil | Air": GWPs['Methane - fossil'],
             "Methane, non-fossil | Air": GWPs['Methane - non fossil'],
             "Dinitrogen monoxide | Air": GWPs['Nitrous oxide'],
+            "Accelerated CO2, Air | Air": {100: {"AR6": 0.00772}},
         },
     },
     # ---------------- EXIOBASE 3.x monetary (IOT and SUT) ----------------
@@ -341,12 +345,25 @@ def _resolve_profile_gwp(
     gwp: GWPMapping,
     time_horizon: int = 100,
     ipcc_report: str = "AR6",
+    *,
+    accounts: Optional[pd.Index] = None,
+    match_mode: str = "exact",
 ) -> Dict[str, GWPScalar]:
     """Resolve a profile GWP mapping into flat scalar factors."""
     report = str(ipcc_report).strip().upper()
     resolved: Dict[str, GWPScalar] = {}
 
     for account, factor in gwp.items():
+        # Optional source flows can have factors for fewer climate metrics.
+        # Resolve only present accounts, rather than rejecting a report due
+        # to an unavailable factor for a flow absent from the database.
+        if accounts is not None:
+            present = (
+                accounts.astype(str).str.startswith(account).any()
+                if match_mode == "prefix" else account in accounts
+            )
+            if not present:
+                continue
         if not isinstance(factor, dict):
             resolved[account] = factor
             continue
@@ -441,10 +458,11 @@ def _append_ghg_row(matrix, gwp, label, matched_labels, *, match_mode, block_nam
         isinstance(t, pd.SparseDtype) and t.fill_value == 0 for t in matrix.dtypes
     ):
         from scipy import sparse
+        from mario.compute.helpers import sparse_frame_from_spmatrix
 
         # Pandas concatenation otherwise appends separately to every column's
         # SparseArray. Native SUTs have tens of thousands of these columns.
-        result = pd.DataFrame.sparse.from_spmatrix(
+        result = sparse_frame_from_spmatrix(
             sparse.vstack([
                 matrix.sparse.to_coo().tocsr(),
                 sparse.csr_matrix(row.to_numpy().reshape(1, -1)),
@@ -637,12 +655,14 @@ def calc_ghg(
                 f"Invalid time horizon '{time_horizon}'. Expected an integer."
             ) from exc
 
+        match_mode = spec.get("match_mode", "exact")
         gwp = _resolve_profile_gwp(
             spec["gwp"],
             time_horizon=time_horizon,
             ipcc_report=ipcc_report,
+            accounts=pd.Index(target.get_index(SATELLITE)),
+            match_mode=match_mode,
         )
-        match_mode = spec.get("match_mode", "exact")
     else:
         match_mode = "exact"
 

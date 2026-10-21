@@ -404,23 +404,19 @@ def test_failed_bonsai_import_restores_session_defaults(balanced, monkeypatch, f
     assert mario.download_settings() == before
 
 
-def test_missing_bonsai_solver_fails_before_reading_and_preserves_settings(balanced, monkeypatch):
+def test_missing_optional_bonsai_solver_uses_scipy(balanced, monkeypatch):
     from mario.compute import linear_solvers
-    from mario.parsers import entrypoints
 
     before = mario.download_settings()
 
     def missing():
         raise ImportError("Install scikit-umfpack and SuiteSparse")
 
-    def forbidden(*args, **kwargs):
-        pytest.fail("A missing solver must be detected before reading a large bundle")
-
     monkeypatch.setattr(linear_solvers, "load_umfpack", missing)
-    monkeypatch.setattr(entrypoints, "parse_bonsai_hsut", forbidden)
-    with pytest.raises(ImportError, match="scikit-umfpack and SuiteSparse"):
-        mario.parse_bonsai(balanced)
-    assert mario.download_settings() == before
+    database = mario.parse_bonsai(balanced)
+    assert database.table_type == "SUT"
+    expected = {**BONSAI_COMPUTE, "linear_solver": "scipy"}
+    assert mario.download_settings() == {**before, "compute": {**before["compute"], **expected}}
 
 
 def test_raw_bonsai_reader_does_not_change_session_defaults(balanced):

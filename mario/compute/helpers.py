@@ -45,7 +45,7 @@ def sparse_frame_from_spmatrix(matrix, *, index, columns) -> pd.DataFrame:
         matrix,
         index=index,
         columns=columns,
-    )
+    ).astype(pd.SparseDtype(matrix.dtype, fill_value=0))
 
 
 def as_dense_series(vector: pd.DataFrame | pd.Series | np.ndarray | list[float] | tuple[float, ...]) -> pd.Series:

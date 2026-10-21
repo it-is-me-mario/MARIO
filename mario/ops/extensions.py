@@ -32,7 +32,7 @@ def _satellite_positions(instance, name, labels, side):
 
 def _filter_axis(frame, positions, selected, *, side):
     labels = frame.index if side == "index" else frame.columns
-    mask = pd.Series(True, index=range(len(labels))).to_numpy()
+    mask = pd.Series(True, index=range(len(labels))).to_numpy(copy=True)
     for position in positions:
         mask &= labels.get_level_values(position).isin(selected)
     return frame.loc[mask, :] if side == "index" else frame.loc[:, mask]

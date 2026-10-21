@@ -3,6 +3,8 @@
 Keys are parser function names without the ``parse_`` prefix. Parsers absent
 from the registry leave the active settings unchanged. Profiles override only
 the listed compute options and never modify the saved user profile.
+``linear_solver_fallback`` applies only if the preferred optional solver cannot
+be imported; mathematical or factorization failures never trigger a fallback.
 """
 
 from functools import wraps
@@ -10,14 +12,30 @@ import logging
 
 from mario.log_exc.logger import log_time
 from mario.settings.settings import download_settings, upload_settings
+from mario.log_exc.exceptions import WrongFormat
 
 
 PARSER_COMPUTE_PROFILES: dict[str, dict] = {
     "bonsai": {
         "compute_method": "solve",
         "linear_solver": "umfpack",
+        "linear_solver_fallback": "scipy",
         "linear_strategy": "direct",
         "singular_policy": "partial",
+    },
+    "gloria": {
+        "compute_method": "solve",
+        "linear_solver": "umfpack",
+        "linear_solver_fallback": "scipy",
+        "linear_strategy": "direct",
+        "singular_policy": "raise",
+    },
+    "emerging": {
+        "compute_method": "solve",
+        "linear_solver": "umfpack",
+        "linear_solver_fallback": "scipy",
+        "linear_strategy": "direct",
+        "singular_policy": "raise",
     },
 }
 
@@ -40,12 +58,28 @@ def with_parser_compute_profile(parser):
             return parser(*args, **kwargs)
 
         overrides = dict(profile)
+        fallback = overrides.pop("linear_solver_fallback", None)
+        if fallback not in (None, "scipy"):
+            raise WrongFormat(
+                "A parser's linear_solver_fallback must be 'scipy' or None."
+            )
         previous = download_settings()
         configured = {**previous, "compute": {**previous["compute"], **overrides}}
         if configured["compute"]["linear_solver"] == "umfpack":
             from mario.compute.linear_solvers import load_umfpack
 
-            load_umfpack()
+            try:
+                load_umfpack()
+            except ImportError:
+                if fallback is None:
+                    raise
+                overrides["linear_solver"] = fallback
+                configured["compute"]["linear_solver"] = fallback
+                log_time(
+                    logger,
+                    f"{profile_name.upper()}: optional UMFPACK unavailable; using SciPy.",
+                    "info",
+                )
         upload_settings(configured)
         try:
             result = parser(*args, **kwargs)

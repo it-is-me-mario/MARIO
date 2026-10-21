@@ -225,7 +225,9 @@ def _aggregate_frame_values(frame: pd.DataFrame, row_labels, col_labels) -> pd.D
     if _is_zero_fill_sparse_frame(frame):
         values = frame.sparse.to_coo().tocsr()
         aggregated = (row_aggregator @ values @ col_aggregator).tocsr()
-        return pd.DataFrame.sparse.from_spmatrix(
+        from mario.compute.helpers import sparse_frame_from_spmatrix
+
+        return sparse_frame_from_spmatrix(
             aggregated,
             index=unique_rows,
             columns=unique_cols,
