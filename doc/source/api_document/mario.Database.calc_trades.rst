@@ -3,6 +3,20 @@ mario.Database.calc\_trades
 
 .. currentmodule:: mario
 
+For intermediate and final trade components:
+
+.. math::
+
+   T_{od} = T_{od}^{\mathrm{int}} + T_{od}^{\mathrm{fin}}, \qquad
+   T_{od}^{(B)} = \sum_{i\in o}\sum_{j\in d} B_{ij}.
+
+The sums include only selected items and existing nodes. For IOT,
+:math:`B=Z` gives intermediate trade and :math:`B=Y` gives final trade.
+For Isard SUT, these are ``U`` and ``Yc``. Chenery-Moses SUT uses one
+supply-side sum from ``S``, selecting commodity columns; it is not split
+into intermediate and final components. Rows identify origin Regions and
+columns identify destinations. Domestic entries are retained.
+
 ``db.calc_trades(...)`` aggregates one sector or commodity into a
 region-by-region trade matrix.
 

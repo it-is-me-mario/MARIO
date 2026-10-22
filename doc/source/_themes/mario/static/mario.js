@@ -788,7 +788,7 @@
           row.hidden = !match;
           visible += match ? 1 : 0;
         });
-        count.textContent = `${visible} ${visible === 1 ? "method" : "methods"}`;
+        count.textContent = `${visible} ${visible === 1 ? "entry" : "entries"}`;
         empty.hidden = visible > 0;
       };
 

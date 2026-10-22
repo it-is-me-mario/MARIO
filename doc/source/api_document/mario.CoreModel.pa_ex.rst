@@ -3,8 +3,7 @@ mario.CoreModel.pa\_ex
 
 .. currentmodule:: mario
 
-.. math::
-
-	pa_{\mathrm{ex}} = \operatorname{diag}(va 1) w_{aa}
-
 .. automethod:: CoreModel.pa_ex
+
+The full baseline result is also available as the property
+:doc:`db.pa_ex_all <mario.CoreModel.pa_ex_all>`.

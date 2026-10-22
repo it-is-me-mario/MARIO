@@ -9,6 +9,33 @@ For a compact spreadsheet overview of the nomenclature and worked matrix
 calculations on the MARIO test ``IOT``, ``SUT_IT`` and ``SUT_PT`` examples,
 download the :download:`nomenclature and formulas workbook </_static/data/supporting_files/Nomenclature_and_formulas.xlsx>`.
 
+Reading the formulas
+--------------------
+
+Each standalone helper below documents its equation, inputs and returned axes.
+The same information is available in Python with, for example,
+``help(mario.calc_fc)``. Matrix products use ordinary mathematical multiplication
+in equations and ``@`` in Python.
+
+* :math:`I` is the identity matrix and :math:`\mathbf{1}` is a vector of ones
+  with the length required by the product.
+* :math:`\operatorname{diag}(x)` puts a vector on the diagonal.
+  :math:`\mathsf{T}` denotes transpose.
+* :math:`Y\mathbf{1}` sums final-demand categories and regions **for each
+  production node**. It is ``Y.sum(axis=1)`` in Python, not the matrix ``Y``.
+* Subscripts :math:`a` and :math:`c` identify activity and commodity nodes in
+  SUT formulas: :math:`e_a` is ``ea``, :math:`f_c` is ``fc`` and
+  :math:`w_{aa}` is ``waa`` in the API.
+
+For example, :math:`F=f\operatorname{diag}(Y\mathbf{1})` returns accounts by
+production nodes. To retain the final-demand category columns, use the separate
+matrix product ``f @ Y`` instead.
+
+Coefficient helpers use an elementwise inverse of production, assigning zero
+to inverse entries where production is zero. The notation
+:math:`\operatorname{diag}(X)^{-1}` describes this convention even when the
+diagonal matrix would be singular.
+
 Database Compute API
 --------------------
 
@@ -49,6 +76,7 @@ Database Compute API
      - Calculate embodied trade-content exposure to selected contributor Regions.
 
 .. toctree::
+  :hidden:
   :maxdepth: 1
 
   ../api_document/mario.CoreModel.calc_all
@@ -137,75 +165,203 @@ Changing the policy does not recompute already materialized matrices.
 Resolvable Database Blocks
 --------------------------
 
-Many SUT and IOT results do not have dedicated Python methods. They are still
-part of the public compute API through ``db.resolve(...)``, ``db.resolve_many(...)``,
+SUT and IOT results can also be requested as named blocks through
+``db.resolve(...)``, ``db.resolve_many(...)``,
 ``db.calc_all(...)`` and dotted access such as ``db.Xa`` or ``db.wcc``.
 
 See :doc:`api_resolvable_matrices` for the authoritative list of built-in block
 names currently supported by MARIO.
 
 
+Standalone SUT Use, Supply and Quadrant Helpers
+-----------------------------------------------
+
+These functions operate directly on pandas matrices, like ``calc_X`` and
+``calc_z``. They return a result without changing a database. Open a function
+for its signature, inputs, formula and returned axes.
+
+.. code-block:: python
+
+   u = mario.calc_u(U, Xa)
+   s = mario.calc_s(S, Xc)  # Industry-based technology (IT).
+   s_pt = mario.calc_s(S, Xa=Xa, tech_assumption="PT")
+   wcc = mario.calc_wcc(u, s)
+
+For scenario-aware calculation and automatic input resolution, the same
+blocks remain available through the :doc:`database compute API
+<api_resolvable_matrices>`.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 60
+
+   * - Function
+     - Formula
+   * - :func:`~mario.calc_u`
+     - .. math::
+
+          u = U\operatorname{diag}(X_a)^{-1}
+   * - :func:`~mario.calc_U`
+     - .. math::
+
+          U = u\operatorname{diag}(X_a)
+   * - :func:`~mario.calc_s`
+     - .. math::
+
+          s = \begin{cases}
+              S\operatorname{diag}(X_c)^{-1} & \text{IT},\\
+              \left(S^{\mathsf{T}}\operatorname{diag}(X_a)^{-1}\right)^{-1}
+              & \text{PT}.
+          \end{cases}
+   * - :func:`~mario.calc_S`
+     - .. math::
+
+          S = \begin{cases}
+              s\operatorname{diag}(X_c) & \text{IT},\\
+              \left(c\operatorname{diag}(X_a)\right)^{\mathsf{T}},
+              \quad c=s^{-1} & \text{PT}.
+          \end{cases}
+   * - :func:`~mario.calc_c`
+     - .. math::
+
+          c = S^{\mathsf{T}}\operatorname{diag}(X_a)^{-1}
+   * - :func:`~mario.calc_Xa`
+     - .. math::
+
+          X_a = S\mathbf{1} + Y_a\mathbf{1}
+   * - :func:`~mario.calc_Xc`
+     - .. math::
+
+          X_c = U\mathbf{1} + Y_c\mathbf{1}
+   * - :func:`~mario.calc_wcc`
+     - .. math::
+
+          w_{cc} = (I-us)^{-1}
+   * - :func:`~mario.calc_wca`
+     - .. math::
+
+          w_{ca} = (I-us)^{-1}u = w_{cc}u
+   * - :func:`~mario.calc_wac`
+     - .. math::
+
+          w_{ac} = (I-su)^{-1}s = w_{aa}s
+   * - :func:`~mario.calc_waa`
+     - .. math::
+
+          w_{aa} = (I-su)^{-1}
+   * - :func:`~mario.calc_bu`
+     - .. math::
+
+          b_u = \operatorname{diag}(X_c)^{-1}U
+   * - :func:`~mario.calc_bs`
+     - .. math::
+
+          b_s = \operatorname{diag}(X_a)^{-1}S
+   * - :func:`~mario.calc_gcc`
+     - .. math::
+
+          g_{cc} = (I-b_u b_s)^{-1}
+   * - :func:`~mario.calc_gca`
+     - .. math::
+
+          g_{ca} = g_{cc}b_u
+   * - :func:`~mario.calc_gac`
+     - .. math::
+
+          g_{ac} = g_{aa}b_s
+   * - :func:`~mario.calc_gaa`
+     - .. math::
+
+          g_{aa} = (I-b_s b_u)^{-1}
+   * - :func:`~mario.calc_pa`
+     - .. math::
+
+          p_a = w_{aa}^{\mathsf{T}}v_a^{\mathsf{T}}\mathbf{1} + w_{ca}^{\mathsf{T}}v_c^{\mathsf{T}}\mathbf{1}
+   * - :func:`~mario.calc_pc`
+     - .. math::
+
+          p_c = w_{ac}^{\mathsf{T}}v_a^{\mathsf{T}}\mathbf{1} + w_{cc}^{\mathsf{T}}v_c^{\mathsf{T}}\mathbf{1}
+
+.. toctree::
+   :hidden:
+   :maxdepth: 1
+
+   ../api_document/mario.calc_lower_u
+   ../api_document/mario.calc_U
+   ../api_document/mario.calc_lower_s
+   ../api_document/mario.calc_S
+   ../api_document/mario.calc_c
+   ../api_document/mario.calc_Xa
+   ../api_document/mario.calc_Xc
+   ../api_document/mario.calc_wcc
+   ../api_document/mario.calc_wca
+   ../api_document/mario.calc_wac
+   ../api_document/mario.calc_waa
+   ../api_document/mario.calc_bu
+   ../api_document/mario.calc_bs
+   ../api_document/mario.calc_gcc
+   ../api_document/mario.calc_gca
+   ../api_document/mario.calc_gac
+   ../api_document/mario.calc_gaa
+   ../api_document/mario.calc_pa
+   ../api_document/mario.calc_pc
+
+
 Standalone IOT Helpers
 ----------------------
 
 The functions below operate on pandas matrices directly. They do not mutate a
-``Database`` and they do not infer missing inputs. Matrix names and
-descriptions follow the :doc:`Matrices table in Nomenclature
+``Database`` and they do not infer missing inputs. Select a function for its signature, parameters and returned axes.
+Matrix names and descriptions follow the :doc:`Matrices table in Nomenclature
 </get_started/nomenclature>`.
 
 .. list-table::
    :header-rows: 1
+   :widths: 35 65
 
    * - Function
-     - Calculation
      - Formula
-   * - ``calc_X(Z, Y)``
-     - ``X`` total production vector from ``Z`` intersectoral transaction flows matrix and ``Y`` final demand matrix.
-     - ``X = Z 1 + Y 1``
-   * - ``calc_z(Z, X)``
-     - ``z`` intersectoral transaction coefficients matrix from ``Z`` and ``X``.
-     - ``z = Z diag(X)^{-1}``
-   * - ``calc_Z(z, X)``
-     - ``Z`` intersectoral transaction flows matrix from ``z`` and ``X``.
-     - ``Z = z diag(X)``
-   * - ``calc_w(z)``
-     - ``w`` Leontief inverse matrix.
-     - ``w = (I - z)^{-1}``
-   * - ``calc_X_from_w(w, Y)``
-     - ``X`` total production vector using a precomputed ``w``.
-     - ``X = w (Y 1)``
-   * - ``calc_X_from_z(z, Y)``
-     - ``X`` total production vector directly from ``z`` and ``Y``.
-     - ``X = (I - z)^{-1} (Y 1)``
-   * - ``calc_v(V, X)`` / ``calc_V(v, X)``
-     - Convert between ``V`` value added transaction flows matrix and ``v`` value added coefficients matrix.
-     - ``v = V diag(X)^{-1}``; ``V = v diag(X)``
-   * - ``calc_e(E, X)`` / ``calc_E(e, X)``
-     - Convert between ``E`` environmental transaction flows matrix and ``e`` environmental transaction coefficients matrix.
-     - ``e = E diag(X)^{-1}``; ``E = e diag(X)``
-   * - ``calc_m(v, w)`` / ``calc_m_from_z(v, z)``
-     - ``m`` total (direct+indirect) value added coefficients matrix.
-     - ``m = v w``; ``m = v (I - z)^{-1}``
-   * - ``calc_f(e, w)`` / ``calc_f_from_z(e, z)``
-     - ``f`` total (direct+indirect) environmental transaction coefficients matrix.
-     - ``f = e w``; ``f = e (I - z)^{-1}``
-   * - ``calc_M(m, Y)``
-     - ``M`` total (direct+indirect) value added transaction matrix.
-     - ``M = m diag(Y 1)``
-   * - ``calc_F(f, Y)``
-     - ``F`` total (direct+indirect) environmental transaction flows matrix.
-     - ``F = f diag(Y 1)``
-   * - ``calc_p(v, w)`` / ``calc_p_from_z(v, z)``
-     - ``p`` price index vector.
-     - ``p = w^T (v^T 1)``; ``p = (I - z)^{-T} (v^T 1)``
-   * - ``calc_b(X, Z)`` / ``calc_g(b)``
-     - ``b`` intersectoral transaction direct-output coefficients matrix and ``g`` Ghosh coefficients matrix.
-     - ``b = diag(X)^{-1} Z``; ``g = (I - b)^{-1}``
-   * - ``calc_y(Y)``
-     - Shares of the ``Y`` final demand matrix.
-     - ``y = Y / (1^T Y 1)``
+   * - :func:`~mario.calc_X`
+     - :math:`X = Z\mathbf{1} + Y\mathbf{1}`
+   * - :func:`~mario.calc_z`
+     - :math:`z = Z\operatorname{diag}(X)^{-1}`
+   * - :func:`~mario.calc_Z`
+     - :math:`Z = z\operatorname{diag}(X)`
+   * - :func:`~mario.calc_w`
+     - :math:`w = (I-z)^{-1}`
+   * - :func:`~mario.calc_X_from_w`
+     - :math:`X = w(Y\mathbf{1})`
+   * - :func:`~mario.calc_X_from_z`
+     - :math:`(I-z)X = Y\mathbf{1}`
+   * - :func:`~mario.calc_v` / :func:`~mario.calc_V`
+     - :math:`v = V\operatorname{diag}(X)^{-1}`
+
+       :math:`V = v\operatorname{diag}(X)`
+   * - :func:`~mario.calc_e` / :func:`~mario.calc_E`
+     - :math:`e = E\operatorname{diag}(X)^{-1}`
+
+       :math:`E = e\operatorname{diag}(X)`
+   * - :func:`~mario.calc_m` / :func:`~mario.calc_m_from_z`
+     - :math:`m = vw = v(I-z)^{-1}`
+   * - :func:`~mario.calc_f` / :func:`~mario.calc_f_from_z`
+     - :math:`f = ew = e(I-z)^{-1}`
+   * - :func:`~mario.calc_M`
+     - :math:`M = m\operatorname{diag}(Y\mathbf{1})`
+   * - :func:`~mario.calc_F`
+     - :math:`F = f\operatorname{diag}(Y\mathbf{1})`
+   * - :func:`~mario.calc_p` / :func:`~mario.calc_p_from_z`
+     - :math:`p = w^{\mathsf{T}}v^{\mathsf{T}}\mathbf{1}`
+   * - :func:`~mario.calc_b` / :func:`~mario.calc_g`
+     - :math:`b = \operatorname{diag}(X)^{-1}Z`
+
+       :math:`g = (I-b)^{-1}`
+   * - :func:`~mario.calc_y`
+     - :math:`y = Y / (\mathbf{1}^{\mathsf{T}}Y\mathbf{1})`
+   * - :func:`~mario.calc_f_dis`
+     - :math:`f_{\mathrm{dis}} = \operatorname{diag}(e_k)w`
 
 .. toctree::
+   :hidden:
    :maxdepth: 1
 
    ../api_document/mario.calc_X
@@ -229,6 +385,7 @@ descriptions follow the :doc:`Matrices table in Nomenclature
    ../api_document/mario.calc_b
    ../api_document/mario.calc_g
    ../api_document/mario.calc_y
+   ../api_document/mario.calc_f_dis
 
 
 Standalone SUT Split Helpers
@@ -239,38 +396,54 @@ you already have activity-side and commodity-side blocks as pandas matrices and
 want one standalone numerical helper instead of resolving through a
 ``Database``.
 
+The total multipliers include both activity-side and commodity-side direct
+coefficients. In ``calc_ma`` / ``calc_fa``, supplying ``vc`` / ``ec`` also
+requires ``u``. Omitting the commodity-side argument sets that term to zero.
+Here :math:`u` has commodity rows and activity columns; :math:`s` has activity
+rows and commodity columns. Consequently,
+:math:`w_{aa}=(I-su)^{-1}` and :math:`w_{cc}=(I-us)^{-1}`.
+
 .. list-table::
    :header-rows: 1
+   :widths: 35 65
 
    * - Function
-     - Calculation
      - Formula
-   * - ``calc_va(Va, Xa)`` / ``calc_Va(va, Xa)``
-     - Convert between ``Va`` activity-side value added flows and ``va`` activity-side value added coefficients.
-     - ``va = Va diag(Xa)^{-1}``; ``Va = va diag(Xa)``
-   * - ``calc_vc(Vc, Xc)`` / ``calc_Vc(vc, Xc)``
-     - Convert between ``Vc`` commodity-side value added flows and ``vc`` commodity-side value added coefficients.
-     - ``vc = Vc diag(Xc)^{-1}``; ``Vc = vc diag(Xc)``
-   * - ``calc_ea(Ea, Xa)`` / ``calc_Ea(ea, Xa)``
-     - Convert between ``Ea`` activity-side environmental flows and ``ea`` activity-side environmental coefficients.
-     - ``ea = Ea diag(Xa)^{-1}``; ``Ea = ea diag(Xa)``
-   * - ``calc_ec(Ec, Xc)`` / ``calc_Ec(ec, Xc)``
-     - Convert between ``Ec`` commodity-side environmental flows and ``ec`` commodity-side environmental coefficients.
-     - ``ec = Ec diag(Xc)^{-1}``; ``Ec = ec diag(Xc)``
-   * - ``calc_ma(va, waa)`` / ``calc_Ma(ma, s, Yc)``
-     - Build activity-side value added multipliers and total activity-side value added footprints.
-     - ``ma = va waa``; ``Ma = ma diag(s (Yc 1))``
-   * - ``calc_mc(va, s, wcc)`` / ``calc_Mc(mc, Yc)``
-     - Build commodity-side value added multipliers and total commodity-side value added footprints.
-     - ``mc = va s wcc``; ``Mc = mc diag(Yc 1)``
-   * - ``calc_fa(ea, waa)`` / ``calc_Fa(fa, s, Yc)``
-     - Build activity-side environmental multipliers and total activity-side environmental footprints.
-     - ``fa = ea waa``; ``Fa = fa diag(s (Yc 1))``
-   * - ``calc_fc(ea, s, wcc)`` / ``calc_Fc(fc, Yc)``
-     - Build commodity-side environmental multipliers and total commodity-side environmental footprints.
-     - ``fc = ea s wcc``; ``Fc = fc diag(Yc 1)``
+   * - :func:`~mario.calc_va` / :func:`~mario.calc_Va`
+     - :math:`v_a = V_a\operatorname{diag}(X_a)^{-1}`
+
+       :math:`V_a = v_a\operatorname{diag}(X_a)`
+   * - :func:`~mario.calc_vc` / :func:`~mario.calc_Vc`
+     - :math:`v_c = V_c\operatorname{diag}(X_c)^{-1}`
+
+       :math:`V_c = v_c\operatorname{diag}(X_c)`
+   * - :func:`~mario.calc_ea` / :func:`~mario.calc_Ea`
+     - :math:`e_a = E_a\operatorname{diag}(X_a)^{-1}`
+
+       :math:`E_a = e_a\operatorname{diag}(X_a)`
+   * - :func:`~mario.calc_ec` / :func:`~mario.calc_Ec`
+     - :math:`e_c = E_c\operatorname{diag}(X_c)^{-1}`
+
+       :math:`E_c = e_c\operatorname{diag}(X_c)`
+   * - :func:`~mario.calc_ma` / :func:`~mario.calc_Ma`
+     - :math:`m_a = (v_a+v_cu)w_{aa}`
+
+       :math:`M_a = m_a\operatorname{diag}(s(Y_c\mathbf{1}))`
+   * - :func:`~mario.calc_mc` / :func:`~mario.calc_Mc`
+     - :math:`m_c = (v_as+v_c)w_{cc}`
+
+       :math:`M_c = m_c\operatorname{diag}(Y_c\mathbf{1})`
+   * - :func:`~mario.calc_fa` / :func:`~mario.calc_Fa`
+     - :math:`f_a = (e_a+e_cu)w_{aa}`
+
+       :math:`F_a = f_a\operatorname{diag}(s(Y_c\mathbf{1}))`
+   * - :func:`~mario.calc_fc` / :func:`~mario.calc_Fc`
+     - :math:`f_c = (e_as+e_c)w_{cc}`
+
+       :math:`F_c = f_c\operatorname{diag}(Y_c\mathbf{1})`
 
 .. toctree::
+   :hidden:
    :maxdepth: 1
 
    ../api_document/mario.calc_Va
@@ -307,51 +480,39 @@ shorthands that return the full matrix for all accounts/factors at baseline
 scenario. Use the method form (e.g. ``db.f_ex(...)``) to filter or select a
 different scenario.
 
+In the formulas below, a two-block column means vertical concatenation:
+activity contributors first, then commodity contributors.
+The subscript ``k`` selects one satellite account and ``h`` selects one factor.
+Summing contributor rows recovers the corresponding total coefficient or price
+index. These are multiplier contributions; final demand is not applied.
+
 .. list-table::
    :header-rows: 1
+   :widths: 35 65
 
-   * - Method
-     - Property shorthand
-     - Table
+   * - Method / table
      - Formula
-   * - :doc:`db.f_ex(...) <../api_document/mario.CoreModel.f_ex>`
-     - :doc:`db.f_ex_all <../api_document/mario.CoreModel.f_ex_all>`
-     - IOT
-     - ``diag(e_k) @ w``
-   * - :doc:`db.fa_ex(...) <../api_document/mario.CoreModel.fa_ex>`
-     - :doc:`db.fa_ex_all <../api_document/mario.CoreModel.fa_ex_all>`
-     - SUT
-     - ``diag(ea_k) @ waa``
-   * - :doc:`db.fc_ex(...) <../api_document/mario.CoreModel.fc_ex>`
-     - :doc:`db.fc_ex_all <../api_document/mario.CoreModel.fc_ex_all>`
-     - SUT
-     - ``diag(ea_k) @ (s @ wcc)``
-   * - :doc:`db.m_ex(...) <../api_document/mario.CoreModel.m_ex>`
-     - :doc:`db.m_ex_all <../api_document/mario.CoreModel.m_ex_all>`
-     - IOT
-     - ``diag(v_f) @ w``
-   * - :doc:`db.ma_ex(...) <../api_document/mario.CoreModel.ma_ex>`
-     - :doc:`db.ma_ex_all <../api_document/mario.CoreModel.ma_ex_all>`
-     - SUT
-     - ``diag(va_f) @ waa``
-   * - :doc:`db.mc_ex(...) <../api_document/mario.CoreModel.mc_ex>`
-     - :doc:`db.mc_ex_all <../api_document/mario.CoreModel.mc_ex_all>`
-     - SUT
-     - ``diag(va_f) @ (s @ wcc)``
-   * - :doc:`db.p_ex(...) <../api_document/mario.CoreModel.p_ex>`
-     - :doc:`db.p_ex_all <../api_document/mario.CoreModel.p_ex_all>`
-     - IOT
-     - ``diag(v @ 1) @ w``
-   * - :doc:`db.pa_ex(...) <../api_document/mario.CoreModel.pa_ex>`
-     - :doc:`db.pa_ex_all <../api_document/mario.CoreModel.pa_ex_all>`
-     - SUT
-     - ``diag(va @ 1) @ waa``
-   * - :doc:`db.pc_ex(...) <../api_document/mario.CoreModel.pc_ex>`
-     - :doc:`db.pc_ex_all <../api_document/mario.CoreModel.pc_ex_all>`
-     - SUT
-     - ``diag(va @ 1) @ (s @ wcc)``
+   * - :doc:`db.f_ex(...) <../api_document/mario.CoreModel.f_ex>` (IOT)
+     - :math:`f_{\mathrm{ex}} = \operatorname{diag}(e_k)\,w`
+   * - :doc:`db.fa_ex(...) <../api_document/mario.CoreModel.fa_ex>` (SUT)
+     - :math:`f_{a,\mathrm{ex}} = \begin{bmatrix} \operatorname{diag}(e_{a,k})w_{aa} \\ \operatorname{diag}(e_{c,k})w_{ca} \end{bmatrix}`
+   * - :doc:`db.fc_ex(...) <../api_document/mario.CoreModel.fc_ex>` (SUT)
+     - :math:`f_{c,\mathrm{ex}} = \begin{bmatrix} \operatorname{diag}(e_{a,k})s\,w_{cc} \\ \operatorname{diag}(e_{c,k})w_{cc} \end{bmatrix}`
+   * - :doc:`db.m_ex(...) <../api_document/mario.CoreModel.m_ex>` (IOT)
+     - :math:`m_{\mathrm{ex}} = \operatorname{diag}(v_h)\,w`
+   * - :doc:`db.ma_ex(...) <../api_document/mario.CoreModel.ma_ex>` (SUT)
+     - :math:`m_{a,\mathrm{ex}} = \begin{bmatrix} \operatorname{diag}(v_{a,h})w_{aa} \\ \operatorname{diag}(v_{c,h})w_{ca} \end{bmatrix}`
+   * - :doc:`db.mc_ex(...) <../api_document/mario.CoreModel.mc_ex>` (SUT)
+     - :math:`m_{c,\mathrm{ex}} = \begin{bmatrix} \operatorname{diag}(v_{a,h})s\,w_{cc} \\ \operatorname{diag}(v_{c,h})w_{cc} \end{bmatrix}`
+   * - :doc:`db.p_ex(...) <../api_document/mario.CoreModel.p_ex>` (IOT)
+     - :math:`p_{\mathrm{ex}} = \operatorname{diag}(v^{\mathsf{T}}\mathbf{1})\,w`
+   * - :doc:`db.pa_ex(...) <../api_document/mario.CoreModel.pa_ex>` (SUT)
+     - :math:`p_{a,\mathrm{ex}} = \begin{bmatrix} \operatorname{diag}(v_a^{\mathsf{T}}\mathbf{1})w_{aa} \\ \operatorname{diag}(v_c^{\mathsf{T}}\mathbf{1})w_{ca} \end{bmatrix}`
+   * - :doc:`db.pc_ex(...) <../api_document/mario.CoreModel.pc_ex>` (SUT)
+     - :math:`p_{c,\mathrm{ex}} = \begin{bmatrix} \operatorname{diag}(v_a^{\mathsf{T}}\mathbf{1})s\,w_{cc} \\ \operatorname{diag}(v_c^{\mathsf{T}}\mathbf{1})w_{cc} \end{bmatrix}`
 
 .. toctree::
+   :hidden:
    :maxdepth: 1
 
    ../api_document/mario.CoreModel.f_ex

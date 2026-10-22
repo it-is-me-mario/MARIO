@@ -3,6 +3,27 @@ mario.Database.calc\_spa
 
 .. currentmodule:: mario
 
+Let :math:`d` be the selected direct indicator row and :math:`y` be ``Y``
+summed over the selected final-demand columns after filtering items.
+The full footprint and an individual path contribution are:
+
+.. math::
+
+   H = d(I-z)^{-1}y, \qquad
+   P_{i_k\to\cdots\to i_0\to\alpha}
+   = d_{i_k}\!\left(\prod_{r=1}^{k}z_{i_r i_{r-1}}\right)Y_{i_0\alpha}.
+
+Here :math:`\alpha` is one selected final-demand column and depth :math:`k`
+counts upstream coefficient steps. At depth zero the empty product is one,
+giving :math:`d_{i_0}Y_{i_0\alpha}`. ``share_of_total`` divides each signed
+contribution by :math:`H`. When :math:`H=0`, it uses the sum of reported
+contributions as the denominator; if that is also zero, shares are zero.
+
+When the spectral radius of :math:`z` is less than one,
+:math:`H=\sum_{k=0}^{\infty}dz^ky`. Reported paths are limited by ``max_depth``,
+``cutoff`` and ``top_n``, so their sum need not equal :math:`H`.
+The cutoff is applied to a path before expanding it.
+
 ``db.calc_spa(...)`` runs a first demand-driven structural path analysis for one
 indicator, one scenario, and one selected bundle of final demand.
 

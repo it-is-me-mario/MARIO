@@ -1,8 +1,13 @@
 API reference
 =============
 
-Every public method, with its signature, parameters and docstring. Filter
-the table by name or category, or open a category from the sidebar.
+Public methods and standalone functions include their signatures and parameters.
+Filter the table by name or category, or open a category from the sidebar.
+
+Calculation helpers include native SUT functions such as :func:`~mario.calc_u`,
+:func:`~mario.calc_s`, :func:`~mario.calc_U` and :func:`~mario.calc_S`,
+with equations, inputs and returned axes. See :doc:`api_calculation_methods`
+for the full formula overview.
 
 .. mario-api-index::
 

@@ -3,8 +3,7 @@ mario.CoreModel.ma\_ex
 
 .. currentmodule:: mario
 
-.. math::
-
-	ma_{\mathrm{ex},f} = \operatorname{diag}(va_f) w_{aa}
-
 .. automethod:: CoreModel.ma_ex
+
+The full baseline result is also available as the property
+:doc:`db.ma_ex_all <mario.CoreModel.ma_ex_all>`.

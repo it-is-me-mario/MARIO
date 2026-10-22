@@ -3,6 +3,17 @@ mario.Database.calc\_embodied\_imports
 
 .. currentmodule:: mario
 
+For trade-content matrix :math:`C` returned by
+:doc:`calc_trades_content <mario.Database.calc_trades_content>`:
+
+.. math::
+
+   \mathrm{Imports}_d = \sum_{o\ne d} C_{od}.
+
+Summation is over origin Regions; the same-label domestic entry is excluded.
+With ``aggregate=False``, this formula is applied separately to intermediate
+and final content.
+
 ``db.calc_embodied_imports(...)`` collapses
 ``db.calc_trades_content(...)`` into embodied import accounts by destination
 Region.

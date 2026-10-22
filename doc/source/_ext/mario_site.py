@@ -1039,7 +1039,7 @@ class mario_api_index(nodes.General, nodes.Element):
 
 
 class MarioApiIndex(Directive):
-    """Placeholder replaced by the filterable table of all API methods."""
+    """Placeholder replaced by the filterable table of API entries."""
 
     has_content = False
 
@@ -1090,13 +1090,23 @@ def _api_rows(app):
                         continue
                     seen.add(method_doc)
                     name = _doc_title(env, method_doc, method_title)
+                    summary = _summary(name)
+                    if not summary:
+                        # Named matrix blocks are resolved dynamically on a
+                        # database, rather than defined as class attributes.
+                        paragraph = next(
+                            iter(env.get_doctree(method_doc).findall(nodes.paragraph)),
+                            None,
+                        )
+                        if paragraph is not None:
+                            summary = _SENTENCE_END.split(paragraph.astext(), 1)[0]
                     rows.append(
                         {
                             "name": name,
                             "doc": method_doc,
                             "category": category,
                             "group": sub["caption"] or "",
-                            "summary": _summary(name),
+                            "summary": summary,
                         }
                     )
                     count += 1
@@ -1132,20 +1142,20 @@ def _render_api_index(app, doctree, fromdocname):
 <div class="mario-api-index" data-api-index>
   <div class="mario-api-index__controls">
     <label class="mario-field">
-      <span class="mario-visually-hidden">Filter API methods</span>
+      <span class="mario-visually-hidden">Filter API entries</span>
       <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <input type="search" placeholder="Filter methods, for example aggregate or calc" autocomplete="off" spellcheck="false" data-api-filter>
+      <input type="search" placeholder="Filter entries, for example aggregate, calc or calc_u" autocomplete="off" spellcheck="false" data-api-filter>
     </label>
     <div class="mario-chips" role="group" aria-label="Filter by category">{"".join(chips)}</div>
   </div>
-  <p class="mario-api-index__count" aria-live="polite" data-api-count>{len(rows)} methods</p>
+  <p class="mario-api-index__count" aria-live="polite" data-api-count>{len(rows)} entries</p>
   <div class="mario-scroll">
     <table class="mario-api-table">
-      <thead><tr><th scope="col">Method</th><th scope="col">Category</th><th scope="col">Description</th></tr></thead>
+      <thead><tr><th scope="col">API</th><th scope="col">Category</th><th scope="col">Description</th></tr></thead>
       <tbody>{"".join(body)}</tbody>
     </table>
   </div>
-  <p class="mario-api-index__empty" hidden data-api-empty>No method matches this filter.</p>
+  <p class="mario-api-index__empty" hidden data-api-empty>No entry matches this filter.</p>
 </div>
 """
     for placeholder in placeholders:
