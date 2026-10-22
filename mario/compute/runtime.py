@@ -8,7 +8,7 @@ from enum import Enum
 import os
 
 from mario.log_exc.exceptions import WrongInput
-from mario.settings.settings import Compute, COMPUTE_METHODS, LINEAR_SOLVERS, LINEAR_STRATEGIES
+from mario.settings.settings import Compute, COMPUTE_METHODS, LINEAR_SOLVERS, LINEAR_STRATEGIES, SINGULAR_POLICIES
 SOLVE_PREFERRED_IOT_TARGETS = frozenset({"w", "X", "m", "M", "f", "F", "p"})
 SOLVE_PREFERRED_SUT_TARGETS = frozenset({"wcc", "wca", "wac", "waa", "Xc", "ma", "mc", "fa", "fc", "pa", "pc"})
 AUTO_ITERATIVE_RHS_THRESHOLD = 8
@@ -23,6 +23,7 @@ class RuntimeComputeOptions:
     linear_strategy: str
     auto_w_memory_fraction: float
     auto_w_overhead_factor: float
+    singular_policy: str = "raise"
 
 
 def _normalize_selector_token(value) -> str | None:
@@ -109,6 +110,16 @@ def normalize_linear_strategy(value: str | None) -> str:
     return normalized
 
 
+def normalize_singular_policy(value: str | None) -> str:
+    """Validate the opt-in policy for partial singular-system results."""
+    normalized = "raise" if value is None else str(value).strip().lower()
+    if normalized not in SINGULAR_POLICIES:
+        raise WrongInput(
+            f"Unsupported singular policy {value!r}. Acceptable values are {sorted(SINGULAR_POLICIES)}."
+        )
+    return normalized
+
+
 def effective_compute_options(context=None) -> RuntimeComputeOptions:
     """Return the effective compute options for one resolution request.
 
@@ -135,6 +146,10 @@ def effective_compute_options(context=None) -> RuntimeComputeOptions:
     if linear_strategy is None:
         linear_strategy = _derive_linear_strategy_override(public_options)
 
+    singular_policy = getattr(context, "singular_policy", None)
+    if singular_policy is None:
+        singular_policy = getattr(public_options, "singular_policy", None)
+
     auto_w_memory_fraction = getattr(context, "auto_w_memory_fraction", None)
     if auto_w_memory_fraction is None and public_options is not None:
         auto_w_memory_fraction = getattr(public_options, "auto_memory_fraction", None)
@@ -147,6 +162,9 @@ def effective_compute_options(context=None) -> RuntimeComputeOptions:
         compute_method=normalize_compute_method(compute_method or configured.compute_method),
         linear_solver=normalize_linear_solver(getattr(context, "linear_solver", None) or configured.linear_solver),
         linear_strategy=normalize_linear_strategy(linear_strategy or configured.linear_strategy),
+        singular_policy=normalize_singular_policy(
+            configured.singular_policy if singular_policy is None else singular_policy
+        ),
         auto_w_memory_fraction=float(auto_w_memory_fraction or configured.auto_w_memory_fraction),
         auto_w_overhead_factor=float(auto_w_overhead_factor or configured.auto_w_overhead_factor),
     )
@@ -247,6 +265,19 @@ def choose_linear_strategy(
       iterative solves are likely cheaper than one sparse direct factorization.
     """
     options = effective_compute_options(context)
+    if options.singular_policy == "partial":
+        if options.linear_strategy == "iterative":
+            raise WrongInput(
+                "singular_policy='partial' requires linear_strategy='direct' or 'auto'."
+            )
+        return "direct"
+    if options.linear_solver == "umfpack":
+        if options.linear_strategy == "iterative":
+            raise WrongInput(
+                "UMFPACK is a direct solver and does not support linear_strategy='iterative'. "
+                "Use mario.set_linear_strategy('direct') or 'auto', or select linear_solver='scipy'."
+            )
+        return "direct"
     if options.linear_strategy == "direct":
         return "direct"
     if options.linear_strategy == "iterative":

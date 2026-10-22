@@ -205,13 +205,15 @@
         const regionItems=allRegions.filter(r=>r.kind==="country").map(r=>[r.id,r.name,"Countries / territories"]);
         regionItems.push(...allRegions.filter(r=>r.kind!=="country").map(r=>[r.id,`${r.name}${state.families.length===1?"":" · "+r.source+" · "+r.versions.join(" / ")}`,"Aggregate regions"]));
         picker("country",regionItems,"countries / regions");
-        const gdpOK=M.metricAvailableForSelection(pool,state,"gdp");
-        $("[data-metric] option[value=gdp]").disabled=!gdpOK;
-        if(state.metric==="gdp"&&!gdpOK&&active().length)state.metric="value_added";
-        const ghgOK=M.metricAvailableForSelection(pool,state,"ghg");
-        $("[data-metric] option[value=ghg]").disabled=!ghgOK;
-        $("[data-metric] option[value=ghg]").title=ghgOK?"":"All selected versions and years must include verified GHG accounts";
-        if(state.metric==="ghg"&&!ghgOK&&active().length)state.metric="value_added";
+        const availability=Object.fromEntries(["gdp","value_added","ghg"].map(metric=>[metric,M.metricAvailableForSelection(pool,state,metric)]));
+        for(const [metric,available] of Object.entries(availability)) {
+          const option=$(`[data-metric] option[value=${metric}]`);
+          option.disabled=!available;
+          option.title=available?"":"Unavailable for one or more selected readings";
+        }
+        if(!availability[state.metric]&&active().length) {
+          state.metric=["value_added","ghg","gdp"].find(metric=>availability[metric])||state.metric;
+        }
         filterCountries();
         const maps=candidates().map(mapping), compatible=maps.length&&maps.every(m=>m?.entries.length&&m.classification_id===maps[0]?.classification_id);
         // Sector aggregates apply to value added and GHG; GHG also offers direct household emissions, which need no sector mapping.
@@ -231,7 +233,7 @@
         $("[data-measure] option[value='per-capita']").disabled=!perCapitaOK;
         $("[data-measure]").disabled=!perCapitaOK;
         $("[data-metric]").value=state.metric;
-        $("[data-filter-note]").textContent=state.metric==="gdp"?"":!compatible?(householdsOK?"No common sector mapping; households are available.":"No common sector mapping."):`${maps[0].classification} sections.`;
+        $("[data-filter-note]").textContent=active().length&&!Object.values(availability).some(Boolean)?"Selected readings have no common available indicator.":state.metric==="gdp"?"":!compatible?(householdsOK?"No common sector mapping; households are available.":"No common sector mapping."):`${maps[0].classification} sections.`;
         const mapOK=active().length===1;
         root.querySelectorAll(".eb-filter-panel select").forEach(el=>{if(el.options.length===1)el.disabled=true;el.closest("label")?.classList.toggle("is-disabled",el.disabled);});
         $("[data-view='map']").disabled=!mapOK;

@@ -368,6 +368,9 @@ def test_public_parse_gtap_with_layouts_registers_block_specs(tmp_path):
     assert database.get_index(_MASTER_INDEX["f"]) == [
         "MTAX", "ITTM", "ETAX", "PTAX", "VAAD_LAB", "VTAX_PROD", "DTAX", "ITAX"
     ]
+    assert database.get_index(_MASTER_INDEX["k"]) == [
+        "EMI_CO2_dms", "EMI_CO2", "ENE_dms", "ENE"
+    ]
     assert database.V.index.names == ["Region", "Sector", "Factor of production"]
 
 

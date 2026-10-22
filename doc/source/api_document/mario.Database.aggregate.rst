@@ -25,4 +25,17 @@ When both ``io`` and ``region_aggregation`` are provided, MARIO injects the
 generated Region mapping only if the workbook or mapping does not already
 contain an explicit ``Region`` sheet.
 
+.. note::
+
+   For :ref:`regional classifications <regional-classifications>`, item mappings
+   use the original region and item as their source key, even when regions are
+   aggregated in the same operation. Only existing nodes are aggregated, and
+   unit compatibility checks still apply.
+
+   Regions can be merged only when their complete label sets match across all
+   regional classifications. This also applies to Region presets and in-memory
+   inputs. Comparisons use literal labels; MARIO does not infer equivalence
+   between different labels. See :doc:`mario.Database.get_aggregation_excel`
+   for the corresponding workbook layout.
+
 .. automethod:: Database.aggregate

@@ -206,3 +206,35 @@ def test_pool_trade_e2e_trade_and_supply_mix_are_decoupled():
         ].to_numpy(dtype=float),
         observed_r2.to_numpy(dtype=float),
     )
+
+
+@pytest.mark.parametrize("inplace", [False, True])
+@pytest.mark.parametrize("regional_level", [A, C, N])
+def test_pool_trade_rejects_nonuniform_sets_before_copy_or_query(
+    regional_level, inplace, monkeypatch,
+):
+    from copy import deepcopy
+    from tests.api.test_regional_indexes import regional_database
+
+    members = {
+        A: {"IT": ["A"], "DE": ["A"]},
+        C: {"IT": ["X"], "DE": ["X"]},
+        N: {"IT": ["HH"], "DE": ["HH"]},
+    }
+    # Equal counts with different labels are still different classifications.
+    members[regional_level]["DE"] = ["different"]
+    database = regional_database(members[A], members[C], members[N])
+    before = {name: frame.copy() for name, frame in database.matrices["baseline"].items()}
+    indexes = deepcopy(database._indeces)
+    history = deepcopy(database.meta._history)
+    monkeypatch.setattr(database, "copy", lambda: pytest.fail("Unsupported pooling copied the model"))
+    monkeypatch.setattr(database, "query", lambda *a, **k: pytest.fail("Unsupported pooling queried matrices"))
+
+    with pytest.raises(NotImplementable, match=f"region-specific classifications for {regional_level}"):
+        database.pool_trade("X", inplace=inplace)
+
+    assert database._indeces == indexes
+    assert database.meta._history == history
+    assert set(database.matrices["baseline"]) == set(before)
+    for name, frame in before.items():
+        pdt.assert_frame_equal(database.matrices["baseline"][name], frame)

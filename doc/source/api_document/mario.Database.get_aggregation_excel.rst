@@ -22,4 +22,48 @@ as ``Sector``.
 The resulting workbook contains a prefilled ``Region`` sheet and leaves the
 other requested sheets empty for manual editing.
 
+Special case: regional classifications
+--------------------------------------
+
+Common classifications use the label index and one ``Aggregation`` column.
+For :ref:`regional classifications <regional-classifications>`, when
+``get_index(set_name)`` returns a regional
+dictionary, its sheet instead has three columns:
+
+.. list-table:: Example Activity sheet
+   :header-rows: 1
+
+   * - Regions
+     - Item
+     - Aggregation
+   * - IT, FR
+     - A
+     - Industry
+   * - IT, FR
+     - B
+     - Industry
+   * - GB
+     - A
+     - Services
+   * - GB
+     - C
+     - Services
+
+Regions share rows only when their **complete sets of labels** are identical;
+label order does not matter. A label appearing in two different classifications
+has separate rows for those groups. Regions with unique classifications are
+included as groups of one, so their activities and commodities can still be
+aggregated. Empty regional classifications have no item rows. The grouping is
+computed independently for each set, including regional consumption categories.
+
+For a nonuniform database, the ``Region`` sheet has ``Regions``, ``Region`` and
+``Aggregation`` columns. It includes only groups of at least two regions whose
+classifications match across **every regional set**. The first column displays
+each compatibility group. Regions omitted from this sheet remain in the
+database unchanged. The sheet can be empty when no regions are compatible.
+
+``Regions`` cells contain comma-separated region labels. Labels containing a
+comma or double quote are CSV-quoted automatically. These are literal string
+comparisons, with no inferred semantic harmonization.
+
 .. automethod:: Database.get_aggregation_excel

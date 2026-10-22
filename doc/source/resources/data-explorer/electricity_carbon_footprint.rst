@@ -70,9 +70,15 @@ By generation technology
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 National averages conceal the differences between generation technologies.
-These distributions pool country × technology estimates from **nxsut 3.0** and
-**EXIOBASE Hybrid**, together with the article's literature references. Select
+These distributions pool country × technology estimates from **nxsut 3.0**,
+**EXIOBASE Hybrid** and **BONSAI**, together with the article's literature references. Select
 sources to see how each contributes to the distribution.
+
+BONSAI uses its **native b2 HIOT**, with **reference year 2016** and inputs
+updated on **21 October 2026** (Europe/Rome). Its direct intensities and
+life-cycle footprints use the native electricity-generation products, with
+one observation per available individual country and technology. The date is
+shown beside the source controls and retained in downloaded figures.
 
 .. container:: benchmark-wide
 
@@ -101,6 +107,19 @@ sources to see how each contributes to the distribution.
        and waste. This grouping does not imply that every included technology has
        a low or zero footprint. The model characterisation gives biogenic CO₂ a
        factor of zero; other emissions and upstream contributions can remain.</dd>
+       <dt>BONSAI</dt>
+       <dd>Native <code>C_elec_POW*</code> products are paired with
+       <code>A_POW*</code> generation activities and grouped using the supplied
+       classification. <code>POWP</code> is petroleum (Oil), <code>POWO</code>
+       is tide/wave/ocean, <code>POWM</code> is geothermal and <code>POWS</code>
+       is photovoltaic solar. Direct intensity uses characterised E divided by
+       source reference production; the life-cycle footprint uses MARIO's
+       <code>e(I-z)^-1</code>. Native t CO₂eq/TJ are multiplied by 3.6, without
+       a price conversion. BONSAI retains its GWP100 profile: fossil CO₂ 1,
+       fossil CH₄ 29.8, non-fossil CH₄ 27, N₂O 273 and Accelerated CO₂ 0.00772,
+       including the supplied iLUC extension. This differs from nxsut's AR5
+       characterisation. RoW and Global blocks are excluded from this country
+       sample; missing country/technology nodes are not filled.</dd>
        <dt>Sample and display limits</dt>
        <dd>The chart uses the pooled blogpost sample, rather than a common
        country-year panel across every source. Values outside the plotted range
@@ -119,6 +138,19 @@ resulting indicators and external reference factors into a common structure.
 The charts on this page are **fixed snapshots** of that analysis. They work
 without an account or a live API connection.
 
+BONSAI's technology observations were calculated separately with MARIO
+``parse_bonsai(table="IOT")`` from frozen inputs, added on 21 October 2026.
+On identical inputs, MARIO and BONSAI's dimensional formulation agree over
+all 53,750 production nodes (GWP100 relative L2 difference ``5.83e-16``),
+with no partial solve. This verifies calculation equivalence; it does not
+compare against an older saved footprint CSV.
+The :download:`BONSAI technology snapshot <../../_static/data/benchmarks/bonsai-electricity-technology-2016.json>`
+records source timestamps and hashes, the explicit technology mapping,
+characterisation, native country/product identities and verification.
+See the :doc:`BONSAI walkthrough <../../notebooks/parsers/bonsai/walkthrough_bonsai>`
+for parsing and calculating its footprints. The source folder label
+``20260615`` is retained as provenance; its contents are updated in place.
+
 .. raw:: html
 
    <div class="benchmark-links">
@@ -127,10 +159,12 @@ without an account or a live API connection.
      <a href="https://github.com/eNextHub/electricity-carbon-footprint/tree/enextgen_blogpost">Code and data ↗</a>
    </div>
 
-Charts and author-derived comparison data are adapted from the eNextGen
+Charts and the original author-derived comparison data are adapted from the eNextGen
 analysis and its accompanying repository, with attribution under **CC BY 4.0**.
 Third-party observations remain subject to their source terms; this page
 includes the comparison snapshot, rather than complete source databases.
+The additional BONSAI technology results are attributed to BONSAI and
+calculated with MARIO; they are not part of the article or eNextGen snapshot.
 See the source repository and blogpost for source-specific licences and
 redistribution limits.
 

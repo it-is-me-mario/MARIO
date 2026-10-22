@@ -4,6 +4,14 @@ const fs=require('node:fs');
 const path=require('node:path');
 const D=require('../../doc/source/_static/database-scope.js');
 const profiles=JSON.parse(fs.readFileSync(path.resolve(__dirname,'../../doc/source/_static/data/database_profiles.json'),'utf8')).profiles;
+test('BONSAI displays the Global count and retains heterogeneous native counts',()=>{
+ const profile=profiles.find(p=>p.source==='BONSAI');
+ assert.equal(profile.counts.Sector,1707);
+ assert.equal(profile.region_counts.find(r=>r.region==='Global'&&r.set==='Sector').count,355);
+ const [point]=D.scopePoints([profile]);assert.equal(point.sectors,355);assert.equal(point.regions,50);
+ assert.match(point.countNotes[0],/varies by region/);assert.match(point.countNotes[0],/355–1,332/);
+ assert.ok(point.environmental);assert.equal(point.units,'Hybrid');
+});
 test('GTAP standard and Power are licensed scope metadata with truthful parser status',()=>{
  const external=JSON.parse(fs.readFileSync(path.resolve(__dirname,'../../doc/source/_static/data/external_profiles.json'),'utf8')).profiles;
  const points=D.scopePoints(external).filter(p=>p.family==='GTAP');assert.equal(points.length,2);
@@ -78,7 +86,8 @@ test('source licences distinguish access conditions from licences of the metadat
  const external=JSON.parse(fs.readFileSync(path.resolve(__dirname,'../../doc/source/_static/data/external_profiles.json'),'utf8')).profiles;
  const licences=JSON.parse(fs.readFileSync(path.resolve(__dirname,'../../doc/source/_static/data/database_licences.json'),'utf8'));
  const points=D.scopePoints([...profiles,...external],licences);
- assert.ok(points.every(p=>['open','noncommercial','restricted'].includes(p.access)));
+ assert.ok(points.filter(p=>p.family!=='BONSAI').every(p=>['open','noncommercial','restricted'].includes(p.access)));
+ assert.equal(points.find(p=>p.family==='BONSAI').access,'unverified');
  assert.ok(points.filter(p=>['EORA','GTAP'].includes(p.family)).every(p=>p.access==='restricted'));
  assert.equal(points.find(p=>p.family==='CEDA').access,'restricted');
  assert.equal(points.find(p=>p.family==='CEDA').licences[0].metadata.label,'Open CEDA · CC BY-SA 4.0');
@@ -93,7 +102,7 @@ test('source licences distinguish access conditions from licences of the metadat
   const t=markers.find(t=>t.name===p.family),i=points.filter(q=>q.family===p.family).indexOf(p);
   assert.equal(t.marker.line.width[i],p.access==='open'?0:2);
   assert.equal(t.marker.line.color[i],colors.ink);
-  assert.equal(t.marker.line.dash[i],p.access==='noncommercial'?'3px,2px':'solid');
+  assert.equal(t.marker.line.dash[i],p.access==='noncommercial'?'3px,2px':p.access==='unverified'?'dot':'solid');
  }
  assert.match(markers.find(t=>t.name==='CEDA').customdata[0][7],/Proprietary \/ restricted.*Scope metadata:.*Open CEDA/);
  assert.ok(markers.find(t=>t.name==='EXIOBASE').customdata.filter(r=>r[1]==='Monetary').every(r=>r[7].includes('Licences vary by release')&&r[7].includes('3.8.2')&&r[7].includes('3.11.2')));

@@ -1,12 +1,19 @@
 Advanced workflows
 ==================
 
-End-to-end analyses that combine several MARIO features on real databases such
-as EXIOBASE.
+Practical guidance for configuring calculations and combining MARIO features
+in analyses of real databases.
 
 .. mario-cards::
    :columns: 2
    :links:
+
+   .. mario-card:: :doc:`Computation settings <compute_settings>`
+      :kicker: Compute configuration
+      :icon: advanced
+
+      Choose inverse or solve, configure the numerical solver and handle
+      singular systems.
 
    .. mario-card:: :doc:`Updating the electricity supply and trade mix <electricity_mix>`
       :kicker: db.update_supply_mix
@@ -37,6 +44,7 @@ as EXIOBASE.
 .. toctree::
    :hidden:
 
+   compute_settings
    electricity_mix
    greenhouse_gas_calculations
    supply_chain_analyses

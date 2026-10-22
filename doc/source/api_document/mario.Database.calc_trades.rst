@@ -28,6 +28,19 @@ For IOT tables it uses ``Z`` for intermediate trade and ``Y`` for final demand.
 For SUT tables it uses ``U`` for intermediate trade and ``Yc`` for final
 demand when the table follows the Isard format.
 
+A code is accepted when it exists in at least one region. Only existing
+region-item pairs contribute: the calculation does not create missing commodity
+or activity nodes. The returned matrix includes all database regions on both
+axes. In an Isard SUT, regions without the selected commodity have a zero origin
+row but can still import it. Regions with no relevant flows remain as zero rows
+and columns. Regional final-demand classifications may differ in size or be
+empty.
+
+Sparse transaction blocks are summed without converting them to dense arrays.
+Only the small region-by-region result is made dense. Native SUT supply blocks
+are used to detect the trade format when no unified ``Z``/``z`` is already
+materialized.
+
 For Chenery-Moses SUT tables, commodity trade is aggregated from ``S`` instead.
 Because that trade is stored as one supply-side flow matrix, MARIO currently
 supports only the aggregate case with ``intermediate=True``, ``final=True`` and
@@ -43,6 +56,9 @@ Use ``total=True`` to add row and column totals.
 Use ``clusters=...`` to aggregate the Region dimension before totals and
 plotting. This accepts Region aggregation presets such as ``'continent'`` and
 explicit mappings such as ``{'EU': ['FR', 'DE', 'IT']}``.
+
+These clusters sum the trade result; they do not aggregate the database itself
+or change its regional classifications.
 
 Use ``clusters_direction='origin'`` to aggregate only the origin Regions,
 ``'destination'`` to aggregate only the destination Regions, or ``'both'`` to

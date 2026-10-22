@@ -15,7 +15,7 @@ from mario.compute.helpers import (
     matvec,
     require_same_columns,
     require_same_index,
-    safe_inverse,
+    leontief_inverse,
     safe_solve,
     scale_columns,
     scale_rows,
@@ -110,8 +110,41 @@ def _solve_sut_system(
 ) -> pd.DataFrame | pd.Series:
     """Solve one SUT linear system without materializing the full inverse block."""
     validate_square(product)
+    if isinstance(rhs, pd.DataFrame) and rhs.shape[1] == 0:
+        return pd.DataFrame(index=product.index, columns=rhs.columns, dtype=float)
     options = effective_compute_options(context)
+    if options.singular_policy == "partial":
+        from mario.compute.linear_solvers import solve_sparse_system
+
+        choose_linear_strategy(size=product.shape[0], rhs_count=1, context=context)
+        return solve_sparse_system(
+            product, rhs, solver=options.linear_solver, transpose=transpose,
+            singular_policy="partial", cache=_resolver_linear_cache(resolver),
+            cache_key=(("sut", id(product)) if cache_key is None else tuple(cache_key))
+            + (bool(transpose), options.linear_solver),
+        )
+    if options.linear_solver == "umfpack":
+        from mario.compute.linear_solvers import solve_umfpack_system
+
+        choose_linear_strategy(
+            size=product.shape[0],
+            rhs_count=1 if isinstance(rhs, pd.Series) else rhs.shape[1],
+            context=context,
+        )
+        solver_cache_key = (
+            ("sut", id(product)) if cache_key is None else tuple(cache_key)
+        ) + (bool(transpose), "umfpack")
+        return solve_umfpack_system(
+            product,
+            rhs,
+            transpose=transpose,
+            cache=_resolver_linear_cache(resolver),
+            cache_key=solver_cache_key,
+        )
     if options.linear_solver == "scipy":
+        from mario.compute.linear_solvers import require_nonsingular_coefficients
+
+        require_nonsingular_coefficients(product)
         from scipy import sparse
         from scipy.sparse.linalg import LinearOperator, factorized, lgmres, lsmr
 
@@ -302,7 +335,7 @@ def build_sut_wcc_from_u_s(u: pd.DataFrame, s: pd.DataFrame) -> pd.DataFrame:
     require_same_index(u, s.columns, lhs_name="u", rhs_name="s.columns")
     product = matmul(u, s)
     validate_square(product)
-    return safe_inverse(identity_like(product) - product)
+    return leontief_inverse(product)
 
 
 def build_sut_wcc_from_u_s_solve(
@@ -317,6 +350,9 @@ def build_sut_wcc_from_u_s_solve(
     require_same_index(u, s.columns, lhs_name="u", rhs_name="s.columns")
     product = matmul(u, s)
     validate_square(product)
+    from mario.compute.linear_solvers import require_nonsingular_coefficients
+
+    require_nonsingular_coefficients(product)
     return _solve_sut_system(
         product,
         identity_like(product),
@@ -351,6 +387,9 @@ def build_sut_wca_from_u_s_solve(
     require_same_index(u, s.columns, lhs_name="u", rhs_name="s.columns")
     product = matmul(u, s)
     validate_square(product)
+    from mario.compute.linear_solvers import require_nonsingular_coefficients
+
+    require_nonsingular_coefficients(product)
     return _solve_sut_system(
         product,
         u,
@@ -385,6 +424,9 @@ def build_sut_wac_from_s_u_solve(
     require_same_index(s, u.columns, lhs_name="s", rhs_name="u.columns")
     product = matmul(s, u)
     validate_square(product)
+    from mario.compute.linear_solvers import require_nonsingular_coefficients
+
+    require_nonsingular_coefficients(product)
     return _solve_sut_system(
         product,
         s,
@@ -400,7 +442,7 @@ def build_sut_waa_from_s_u(s: pd.DataFrame, u: pd.DataFrame) -> pd.DataFrame:
     require_same_index(s, u.columns, lhs_name="s", rhs_name="u.columns")
     product = matmul(s, u)
     validate_square(product)
-    return safe_inverse(identity_like(product) - product)
+    return leontief_inverse(product)
 
 
 def build_sut_waa_from_s_u_solve(
@@ -415,6 +457,9 @@ def build_sut_waa_from_s_u_solve(
     require_same_index(s, u.columns, lhs_name="s", rhs_name="u.columns")
     product = matmul(s, u)
     validate_square(product)
+    from mario.compute.linear_solvers import require_nonsingular_coefficients
+
+    require_nonsingular_coefficients(product)
     return _solve_sut_system(
         product,
         identity_like(product),
@@ -450,7 +495,7 @@ def build_sut_gcc_from_bu_bs(bu: pd.DataFrame, bs: pd.DataFrame) -> pd.DataFrame
     require_same_index(bu, bs.columns, lhs_name="bu", rhs_name="bs.columns")
     product = matmul(bu, bs)
     validate_square(product)
-    return safe_inverse(identity_like(product) - product)
+    return leontief_inverse(product)
 
 
 def build_sut_gca_from_gcc_bu(gcc: pd.DataFrame, bu: pd.DataFrame) -> pd.DataFrame:
@@ -465,7 +510,7 @@ def build_sut_gaa_from_bs_bu(bs: pd.DataFrame, bu: pd.DataFrame) -> pd.DataFrame
     require_same_index(bs, bu.columns, lhs_name="bs", rhs_name="bu.columns")
     product = matmul(bs, bu)
     validate_square(product)
-    return safe_inverse(identity_like(product) - product)
+    return leontief_inverse(product)
 
 
 def build_sut_gac_from_gaa_bs(gaa: pd.DataFrame, bs: pd.DataFrame) -> pd.DataFrame:

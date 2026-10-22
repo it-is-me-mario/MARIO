@@ -112,6 +112,55 @@ See :doc:`mario.set_compute_method <../api_document/mario.set_compute_method>`,
 :doc:`mario.set_linear_solver <../api_document/mario.set_linear_solver>` and
 :doc:`mario.set_linear_strategy <../api_document/mario.set_linear_strategy>`.
 
+The optional UMFPACK backend uses sparse direct LU for solve-based IOT and SUT
+targets. Install ``scikit-umfpack`` and its SuiteSparse libraries, then select:
+
+.. code-block:: python
+
+   mario.set_compute_method("solve")
+   mario.set_linear_solver("umfpack")
+   mario.set_linear_strategy("direct")
+
+``auto`` is also supported as the linear strategy and selects direct solves
+for UMFPACK. The ``iterative`` strategy requires the SciPy backend. Selecting
+UMFPACK does not change matrices that are already materialized. It preserves
+float64 precision and raises an error for failed solves instead of applying a
+pseudo-inverse or least-squares fallback.
+Sparse factorization uses 64-bit indices and compares fill-reducing orderings.
+Singular diagonal blocks are diagnosed before native factorization, with the
+affected node labels in the error message. Selecting a faster solver cannot
+make a singular system invertible.
+
+Singular systems raise an error by default. To request only independently
+determined coefficients, enable the partial policy explicitly:
+
+.. code-block:: python
+
+   mario.set_singular_policy("partial")
+   fc = db.fc
+
+This policy applies to solve-based IOT and SUT targets with either SciPy or
+UMFPACK, using a direct or automatic linear strategy. Singular components and
+every coefficient depending on them become ``NaN``; the remaining equations
+are solved without changing their coefficients or right-hand sides. The
+residual check applies to this independent subsystem, not to the full singular
+system, which may be inconsistent or have nonunique solutions. Full inverse
+requests still raise an error.
+
+A :doc:`mario.PartialResultWarning <../api_document/mario.PartialResultWarning>`
+reports the singular node labels and the affected coefficient count whenever
+a partial result is computed. The result's ``attrs["mario_partial"]`` records
+the singular components and all affected node labels. MARIO compute reductions
+and products preserve undefined values; when using pandas directly, pass
+``skipna=False`` to reductions such as ``fc.sum(axis=1, skipna=False)``.
+User-defined pandas operations retain pandas' usual missing-value behavior.
+
+Use ``db.resolve("fc", compute_options=mario.ComputeOptions(
+backend_override="sparse_direct", singular_policy="partial"))`` for a
+per-call override. See
+:doc:`mario.set_singular_policy <../api_document/mario.set_singular_policy>`.
+Changing the policy does not recompute already materialized matrices.
+
 
 Resolvable Database Blocks
 --------------------------

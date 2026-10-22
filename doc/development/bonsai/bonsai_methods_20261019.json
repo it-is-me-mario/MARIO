@@ -1,0 +1,2130 @@
+{
+  "created": "2026-10-19T14:43:18.342441+00:00",
+  "scope": "API/structural probes; not economic result validation",
+  "probes": [
+    {
+      "scope": "small_balanced",
+      "method": "get_index/all",
+      "outcome": "ok",
+      "current": {
+        "status": "ok",
+        "seconds": 0.001,
+        "result": {
+          "type": "dict",
+          "keys": 6
+        },
+        "warnings": []
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.0,
+        "result": {
+          "type": "dict",
+          "keys": 6
+        },
+        "warnings": []
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "get_data/native",
+      "outcome": "ok",
+      "current": {
+        "status": "ok",
+        "seconds": 0.0,
+        "result": {
+          "type": "dict",
+          "keys": 1
+        },
+        "warnings": []
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.0,
+        "result": {
+          "type": "dict",
+          "keys": 1
+        },
+        "warnings": []
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "repr",
+      "outcome": "new_regression",
+      "current": {
+        "status": "incorrect_result",
+        "seconds": 0.003,
+        "exception": "IncorrectResult",
+        "message": "The database summary counts regions as activities.",
+        "site": [
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 398,
+            "function": "_run"
+          },
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 301,
+            "function": "_representation"
+          }
+        ]
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.0,
+        "result": "name = BONSAI Balanced HSUT\ntable = SUT\ntech_assumption = industry-based\nscenarios = ['baseline']\nActivity = 3\nCommodity = 3\nFactor of production = 1\nSatellite account = 1\nConsumption category = 2\nRegion = 2\n",
+        "warnings": []
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "search",
+      "outcome": "new_regression",
+      "current": {
+        "status": "incorrect_result",
+        "seconds": 0.001,
+        "exception": "IncorrectResult",
+        "message": "search does not find an existing activity: A1.",
+        "site": [
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 398,
+            "function": "_run"
+          },
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 137,
+            "function": "_search"
+          }
+        ]
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.0,
+        "result": {
+          "type": "list",
+          "length": 1
+        },
+        "warnings": []
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "default_clusters",
+      "outcome": "new_regression",
+      "current": {
+        "status": "incorrect_result",
+        "seconds": 0.049,
+        "exception": "IncorrectResult",
+        "message": "The Activity 'all' cluster contains region keys instead of activity codes.",
+        "site": [
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 398,
+            "function": "_run"
+          },
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 144,
+            "function": "_clusters"
+          }
+        ]
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.0,
+        "result": "3",
+        "warnings": []
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "set_clusters",
+      "outcome": "new_regression",
+      "current": {
+        "status": "error",
+        "seconds": 0.003,
+        "exception": "WrongInput",
+        "message": "{'A1'} in cluster selection for level Activity is/are not a valid item/s.",
+        "site": [
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 398,
+            "function": "_run"
+          },
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 317,
+            "function": "<lambda>"
+          },
+          {
+            "file": "database.py",
+            "line": 486,
+            "function": "set_clusters"
+          },
+          {
+            "file": "utils.py",
+            "line": 146,
+            "function": "check_clusters"
+          }
+        ]
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.0,
+        "result": "None",
+        "warnings": []
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "get_aggregation_excel",
+      "outcome": "new_regression",
+      "current": {
+        "status": "incorrect_result",
+        "seconds": 0.012,
+        "exception": "IncorrectResult",
+        "message": "Activity sheet contains region keys instead of activity codes.",
+        "site": [
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 398,
+            "function": "_run"
+          },
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 127,
+            "function": "_template"
+          }
+        ]
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.01,
+        "result": "3",
+        "warnings": []
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "equality/regional_members",
+      "outcome": "existing_problem",
+      "current": {
+        "status": "incorrect_result",
+        "seconds": 0.009,
+        "exception": "IncorrectResult",
+        "message": "Database equality ignores different regional activity memberships.",
+        "site": [
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 398,
+            "function": "_run"
+          },
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 289,
+            "function": "_equal_changed_domain"
+          }
+        ]
+      },
+      "legacy": {
+        "status": "incorrect_result",
+        "seconds": 0.006,
+        "exception": "IncorrectResult",
+        "message": "Database equality ignores different regional activity memberships.",
+        "site": [
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 398,
+            "function": "_run"
+          },
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 289,
+            "function": "_equal_changed_domain"
+          }
+        ]
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "calc_all/coefficients",
+      "outcome": "ok",
+      "current": {
+        "status": "ok",
+        "seconds": 0.006,
+        "result": "None",
+        "warnings": []
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.005,
+        "result": "None",
+        "warnings": []
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "calc_all/footprints",
+      "outcome": "ok",
+      "current": {
+        "status": "ok",
+        "seconds": 0.015,
+        "result": "None",
+        "warnings": []
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.012,
+        "result": "None",
+        "warnings": []
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "calc_linkages",
+      "outcome": "existing_problem",
+      "current": {
+        "status": "error",
+        "seconds": 0.041,
+        "exception": "TypeError",
+        "message": "SparseArray does not support item assignment via setitem",
+        "site": [
+          {
+            "file": "managers.py",
+            "line": 604,
+            "function": "setitem"
+          },
+          {
+            "file": "managers.py",
+            "line": 442,
+            "function": "apply"
+          },
+          {
+            "file": "blocks.py",
+            "line": 1667,
+            "function": "setitem"
+          },
+          {
+            "file": "array.py",
+            "line": 612,
+            "function": "__setitem__"
+          }
+        ]
+      },
+      "legacy": {
+        "status": "error",
+        "seconds": 0.036,
+        "exception": "TypeError",
+        "message": "SparseArray does not support item assignment via setitem",
+        "site": [
+          {
+            "file": "managers.py",
+            "line": 604,
+            "function": "setitem"
+          },
+          {
+            "file": "managers.py",
+            "line": 442,
+            "function": "apply"
+          },
+          {
+            "file": "blocks.py",
+            "line": 1667,
+            "function": "setitem"
+          },
+          {
+            "file": "array.py",
+            "line": 612,
+            "function": "__setitem__"
+          }
+        ]
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "calc_trades",
+      "outcome": "new_regression",
+      "current": {
+        "status": "error",
+        "seconds": 0.001,
+        "exception": "WrongInput",
+        "message": "Items: ['C1'] do not exist in the database Commodity index.",
+        "site": [
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 398,
+            "function": "_run"
+          },
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 332,
+            "function": "<lambda>"
+          },
+          {
+            "file": "database.py",
+            "line": 2624,
+            "function": "calc_trades"
+          },
+          {
+            "file": "database.py",
+            "line": 1851,
+            "function": "_normalize_trade_item_selection"
+          }
+        ]
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.009,
+        "result": {
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "warnings": []
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "calc_trades_content",
+      "outcome": "new_regression",
+      "current": {
+        "status": "error",
+        "seconds": 0.001,
+        "exception": "WrongInput",
+        "message": "Items: ['C1'] do not exist in the database Commodity index.",
+        "site": [
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 398,
+            "function": "_run"
+          },
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 335,
+            "function": "<lambda>"
+          },
+          {
+            "file": "database.py",
+            "line": 2833,
+            "function": "calc_trades_content"
+          },
+          {
+            "file": "database.py",
+            "line": 1851,
+            "function": "_normalize_trade_item_selection"
+          }
+        ]
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.02,
+        "result": {
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "warnings": []
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "get_extensions_excel",
+      "outcome": "ok",
+      "current": {
+        "status": "ok",
+        "seconds": 0.007,
+        "result": "None",
+        "warnings": []
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.007,
+        "result": "None",
+        "warnings": []
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "add_extensions",
+      "outcome": "ok",
+      "current": {
+        "status": "ok",
+        "seconds": 0.015,
+        "result": "None",
+        "warnings": []
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.016,
+        "result": "None",
+        "warnings": []
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "get_shock_excel",
+      "outcome": "new_regression",
+      "current": {
+        "status": "error",
+        "seconds": 0.007,
+        "exception": "AttributeError",
+        "message": "'dict' object has no attribute 'extend'",
+        "site": [
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 398,
+            "function": "_run"
+          },
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 346,
+            "function": "<lambda>"
+          },
+          {
+            "file": "database.py",
+            "line": 5788,
+            "function": "get_shock_excel"
+          },
+          {
+            "file": "excel.py",
+            "line": 62,
+            "function": "_sh_excel"
+          }
+        ]
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.034,
+        "result": "None",
+        "warnings": []
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "shock_calc/u",
+      "outcome": "changed_failure",
+      "current": {
+        "status": "error",
+        "seconds": 0.01,
+        "exception": "WrongInput",
+        "message": "C1 not in the database neither in clusters.",
+        "site": [
+          {
+            "file": "database.py",
+            "line": 5556,
+            "function": "shock_calc"
+          },
+          {
+            "file": "shocks.py",
+            "line": 974,
+            "function": "U_shock"
+          },
+          {
+            "file": "shocks.py",
+            "line": 919,
+            "function": "_split_intermediate_shock"
+          },
+          {
+            "file": "shocks.py",
+            "line": 115,
+            "function": "check_replace_clusters"
+          }
+        ]
+      },
+      "legacy": {
+        "status": "error",
+        "seconds": 0.008,
+        "exception": "TypeError",
+        "message": "SparseArray does not support item assignment via setitem",
+        "site": [
+          {
+            "file": "managers.py",
+            "line": 604,
+            "function": "setitem"
+          },
+          {
+            "file": "managers.py",
+            "line": 442,
+            "function": "apply"
+          },
+          {
+            "file": "blocks.py",
+            "line": 1667,
+            "function": "setitem"
+          },
+          {
+            "file": "array.py",
+            "line": 612,
+            "function": "__setitem__"
+          }
+        ]
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "update_supply_mix",
+      "outcome": "new_regression",
+      "current": {
+        "status": "error",
+        "seconds": 0.001,
+        "exception": "WrongInput",
+        "message": "Region 'AT' references unknown Activity labels: ['A1']",
+        "site": [
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 398,
+            "function": "_run"
+          },
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 249,
+            "function": "_supply_mix"
+          },
+          {
+            "file": "core_model.py",
+            "line": 2305,
+            "function": "update_supply_mix"
+          }
+        ]
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.018,
+        "result": "None",
+        "warnings": []
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "update_trade_mix",
+      "outcome": "new_regression",
+      "current": {
+        "status": "error",
+        "seconds": 0.001,
+        "exception": "WrongInput",
+        "message": "items references unknown Commodity labels: ['C1']",
+        "site": [
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 398,
+            "function": "_run"
+          },
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 256,
+            "function": "_trade_mix"
+          },
+          {
+            "file": "core_model.py",
+            "line": 2711,
+            "function": "update_trade_mix"
+          }
+        ]
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.021,
+        "result": "None",
+        "warnings": []
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "get_add_sectors_excel",
+      "outcome": "ok",
+      "current": {
+        "status": "ok",
+        "seconds": 0.006,
+        "result": "None",
+        "warnings": []
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.006,
+        "result": "None",
+        "warnings": []
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "pool_trade",
+      "outcome": "changed_failure",
+      "current": {
+        "status": "error",
+        "seconds": 0.002,
+        "exception": "WrongInput",
+        "message": "pool_trade references unknown commodities: ['C1']",
+        "site": [
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 355,
+            "function": "<lambda>"
+          },
+          {
+            "file": "database.py",
+            "line": 762,
+            "function": "pool_trade"
+          },
+          {
+            "file": "transforms.py",
+            "line": 199,
+            "function": "transform_pool_trade"
+          },
+          {
+            "file": "transforms.py",
+            "line": 228,
+            "function": "transform_pool_trade"
+          }
+        ]
+      },
+      "legacy": {
+        "status": "error",
+        "seconds": 0.015,
+        "exception": "KeyError",
+        "message": "\"[('DE', 'Commodity', 'C1')] not in index\"",
+        "site": [
+          {
+            "file": "multi.py",
+            "line": 3242,
+            "function": "_get_indexer_strict"
+          },
+          {
+            "file": "base.py",
+            "line": 6302,
+            "function": "_get_indexer_strict"
+          },
+          {
+            "file": "multi.py",
+            "line": 3262,
+            "function": "_raise_if_missing"
+          },
+          {
+            "file": "base.py",
+            "line": 6355,
+            "function": "_raise_if_missing"
+          }
+        ]
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "to_chenery_moses",
+      "outcome": "existing_problem",
+      "current": {
+        "status": "error",
+        "seconds": 0.018,
+        "exception": "ValueError",
+        "message": "Length mismatch: Expected axis has 3 elements, new values have 1 elements",
+        "site": [
+          {
+            "file": "properties.pyx",
+            "line": 69,
+            "function": "pandas._libs.properties.AxisProperty.__set__"
+          },
+          {
+            "file": "generic.py",
+            "line": 766,
+            "function": "_set_axis"
+          },
+          {
+            "file": "managers.py",
+            "line": 273,
+            "function": "set_axis"
+          },
+          {
+            "file": "managers.py",
+            "line": 288,
+            "function": "_validate_set_axis"
+          }
+        ]
+      },
+      "legacy": {
+        "status": "error",
+        "seconds": 0.017,
+        "exception": "ValueError",
+        "message": "Length mismatch: Expected axis has 3 elements, new values have 1 elements",
+        "site": [
+          {
+            "file": "properties.pyx",
+            "line": 69,
+            "function": "pandas._libs.properties.AxisProperty.__set__"
+          },
+          {
+            "file": "generic.py",
+            "line": 766,
+            "function": "_set_axis"
+          },
+          {
+            "file": "managers.py",
+            "line": 273,
+            "function": "set_axis"
+          },
+          {
+            "file": "managers.py",
+            "line": 288,
+            "function": "_validate_set_axis"
+          }
+        ]
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "to_iot",
+      "outcome": "ok",
+      "current": {
+        "status": "ok",
+        "seconds": 0.018,
+        "result": {
+          "type": "Database",
+          "regions": 2
+        },
+        "warnings": []
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.02,
+        "result": {
+          "type": "Database",
+          "regions": 2
+        },
+        "warnings": []
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "to_iot/to_pymrio",
+      "outcome": "existing_problem",
+      "current": {
+        "status": "error",
+        "seconds": 0.02,
+        "exception": "ValueError",
+        "message": "Shape of passed values is (6, 1), indices imply (3, 1)",
+        "site": [
+          {
+            "file": "export.py",
+            "line": 1089,
+            "function": "export_database_to_pymrio"
+          },
+          {
+            "file": "frame.py",
+            "line": 814,
+            "function": "__init__"
+          },
+          {
+            "file": "construction.py",
+            "line": 299,
+            "function": "ndarray_to_mgr"
+          },
+          {
+            "file": "construction.py",
+            "line": 372,
+            "function": "_check_values_indices_shape_match"
+          }
+        ]
+      },
+      "legacy": {
+        "status": "error",
+        "seconds": 0.018,
+        "exception": "ValueError",
+        "message": "Shape of passed values is (6, 1), indices imply (3, 1)",
+        "site": [
+          {
+            "file": "export.py",
+            "line": 1089,
+            "function": "export_database_to_pymrio"
+          },
+          {
+            "file": "frame.py",
+            "line": 814,
+            "function": "__init__"
+          },
+          {
+            "file": "construction.py",
+            "line": 299,
+            "function": "ndarray_to_mgr"
+          },
+          {
+            "file": "construction.py",
+            "line": 372,
+            "function": "_check_values_indices_shape_match"
+          }
+        ]
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "to_region_subset",
+      "outcome": "existing_problem",
+      "current": {
+        "status": "error",
+        "seconds": 0.001,
+        "exception": "NotImplementable",
+        "message": "Hybrid tables are not supported.",
+        "site": [
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 398,
+            "function": "_run"
+          },
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 361,
+            "function": "<lambda>"
+          },
+          {
+            "file": "database.py",
+            "line": 1267,
+            "function": "to_region_subset"
+          },
+          {
+            "file": "database.py",
+            "line": 1277,
+            "function": "to_region_subset"
+          }
+        ]
+      },
+      "legacy": {
+        "status": "error",
+        "seconds": 0.001,
+        "exception": "NotImplementable",
+        "message": "Hybrid tables are not supported.",
+        "site": [
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 398,
+            "function": "_run"
+          },
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 361,
+            "function": "<lambda>"
+          },
+          {
+            "file": "database.py",
+            "line": 1267,
+            "function": "to_region_subset"
+          },
+          {
+            "file": "database.py",
+            "line": 1277,
+            "function": "to_region_subset"
+          }
+        ]
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "to_pymrio",
+      "outcome": "existing_problem",
+      "current": {
+        "status": "error",
+        "seconds": 0.0,
+        "exception": "NotImplementable",
+        "message": "pymrio supports only IO tables.",
+        "site": [
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 398,
+            "function": "_run"
+          },
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 365,
+            "function": "<lambda>"
+          },
+          {
+            "file": "database.py",
+            "line": 4597,
+            "function": "to_pymrio"
+          },
+          {
+            "file": "export.py",
+            "line": 1061,
+            "function": "export_database_to_pymrio"
+          }
+        ]
+      },
+      "legacy": {
+        "status": "error",
+        "seconds": 0.0,
+        "exception": "NotImplementable",
+        "message": "pymrio supports only IO tables.",
+        "site": [
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 398,
+            "function": "_run"
+          },
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 365,
+            "function": "<lambda>"
+          },
+          {
+            "file": "database.py",
+            "line": 4597,
+            "function": "to_pymrio"
+          },
+          {
+            "file": "export.py",
+            "line": 1061,
+            "function": "export_database_to_pymrio"
+          }
+        ]
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "roundtrip/excel",
+      "outcome": "ok",
+      "current": {
+        "status": "ok",
+        "seconds": 0.065,
+        "result": {
+          "membership_and_values_preserved": true,
+          "axis_layout_or_order_changes": [
+            "Ya.columns",
+            "Yc.columns",
+            "EY.columns"
+          ]
+        },
+        "warnings": []
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.065,
+        "result": {
+          "membership_and_values_preserved": true,
+          "axis_layout_or_order_changes": [
+            "Ya.columns",
+            "Yc.columns",
+            "EY.columns"
+          ]
+        },
+        "warnings": []
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "roundtrip/csv",
+      "outcome": "ok",
+      "current": {
+        "status": "ok",
+        "seconds": 0.08,
+        "result": {
+          "membership_and_values_preserved": true,
+          "axis_layout_or_order_changes": [
+            "Ya.columns",
+            "Yc.columns",
+            "EY.columns"
+          ]
+        },
+        "warnings": []
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.079,
+        "result": {
+          "membership_and_values_preserved": true,
+          "axis_layout_or_order_changes": [
+            "Ya.columns",
+            "Yc.columns",
+            "EY.columns"
+          ]
+        },
+        "warnings": []
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "roundtrip/parquet",
+      "outcome": "ok",
+      "current": {
+        "status": "ok",
+        "seconds": 0.19,
+        "result": {
+          "membership_and_values_preserved": true,
+          "axis_layout_or_order_changes": [
+            "Ya.columns",
+            "Yc.columns",
+            "EY.columns"
+          ]
+        },
+        "warnings": []
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.064,
+        "result": {
+          "membership_and_values_preserved": true,
+          "axis_layout_or_order_changes": [
+            "Ya.columns",
+            "Yc.columns",
+            "EY.columns"
+          ]
+        },
+        "warnings": []
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "plot",
+      "outcome": "ok",
+      "current": {
+        "status": "ok",
+        "seconds": 0.153,
+        "result": "Figure({\n    'data': [{'hovertemplate': 'Region_to=AT<br>Item_from=%{x}<br>Value=%{y}<extra></extra>',\n              'legendgroup': 'AT',\n              'marker': {'color': '#3F8EFC', 'pattern': {'shape': ''}},\n              'name': 'AT',\n              'orientation': 'v',\n              'showlegend': True,\n              'textposition': 'auto',\n              'type': 'bar',\n              'x': array(['",
+        "warnings": []
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.031,
+        "result": "Figure({\n    'data': [{'hovertemplate': 'Region_to=AT<br>Item_from=%{x}<br>Value=%{y}<extra></extra>',\n              'legendgroup': 'AT',\n              'marker': {'color': '#3F8EFC', 'pattern': {'shape': ''}},\n              'name': 'AT',\n              'orientation': 'v',\n              'showlegend': True,\n              'textposition': 'auto',\n              'type': 'bar',\n              'x': array(['",
+        "warnings": []
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "calc_ghg/auto",
+      "outcome": "existing_problem",
+      "current": {
+        "status": "error",
+        "seconds": 0.001,
+        "exception": "ValueError",
+        "message": "Could not auto-detect a GHG profile; pass `profile=` or `gwp=` explicitly. Registered profiles: ['adb', 'emerging', 'eora', 'exiobase_hybrid', 'exiobase_monetary', 'gloria']",
+        "site": [
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 398,
+            "function": "_run"
+          },
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 375,
+            "function": "<lambda>"
+          },
+          {
+            "file": "database.py",
+            "line": 5402,
+            "function": "calc_ghg"
+          },
+          {
+            "file": "ghg.py",
+            "line": 509,
+            "function": "calc_ghg"
+          }
+        ]
+      },
+      "legacy": {
+        "status": "error",
+        "seconds": 0.001,
+        "exception": "ValueError",
+        "message": "Could not auto-detect a GHG profile; pass `profile=` or `gwp=` explicitly. Registered profiles: ['adb', 'emerging', 'eora', 'exiobase_hybrid', 'exiobase_monetary', 'gloria']",
+        "site": [
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 398,
+            "function": "_run"
+          },
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 375,
+            "function": "<lambda>"
+          },
+          {
+            "file": "database.py",
+            "line": 5402,
+            "function": "calc_ghg"
+          },
+          {
+            "file": "ghg.py",
+            "line": 509,
+            "function": "calc_ghg"
+          }
+        ]
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "calc_ghg/explicit",
+      "outcome": "ok",
+      "current": {
+        "status": "ok",
+        "seconds": 0.042,
+        "result": {
+          "type": "Database",
+          "regions": 2
+        },
+        "warnings": []
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.043,
+        "result": {
+          "type": "Database",
+          "regions": 2
+        },
+        "warnings": []
+      }
+    },
+    {
+      "scope": "full_balanced",
+      "method": "get_index/all",
+      "outcome": "ok",
+      "current": {
+        "status": "ok",
+        "seconds": 0.074,
+        "result": {
+          "type": "dict",
+          "keys": 6
+        },
+        "warnings": []
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.0,
+        "result": {
+          "type": "dict",
+          "keys": 6
+        },
+        "warnings": []
+      }
+    },
+    {
+      "scope": "full_balanced",
+      "method": "get_data/native",
+      "outcome": "ok",
+      "current": {
+        "status": "ok",
+        "seconds": 1.167,
+        "result": {
+          "type": "dict",
+          "keys": 1
+        },
+        "warnings": []
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 1.234,
+        "result": {
+          "type": "dict",
+          "keys": 1
+        },
+        "warnings": []
+      }
+    },
+    {
+      "scope": "full_balanced",
+      "method": "repr",
+      "outcome": "new_regression",
+      "current": {
+        "status": "incorrect_result",
+        "seconds": 0.11,
+        "exception": "IncorrectResult",
+        "message": "The database summary counts regions as activities.",
+        "site": [
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 398,
+            "function": "_run"
+          },
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 301,
+            "function": "_representation"
+          }
+        ]
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.001,
+        "result": "name = BONSAI Balanced HSUT\ntable = SUT\ntech_assumption = industry-based\nscenarios = ['baseline']\nActivity = 1585\nCommodity = 1665\nFactor of production = 1\nSatellite account = 127\nConsumption category = 6\nRegion = 50\n",
+        "warnings": []
+      }
+    },
+    {
+      "scope": "full_balanced",
+      "method": "search",
+      "outcome": "new_regression",
+      "current": {
+        "status": "incorrect_result",
+        "seconds": 0.036,
+        "exception": "IncorrectResult",
+        "message": "search does not find an existing activity: A_ADVERT.",
+        "site": [
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 398,
+            "function": "_run"
+          },
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 137,
+            "function": "_search"
+          }
+        ]
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.0,
+        "result": {
+          "type": "list",
+          "length": 2
+        },
+        "warnings": []
+      }
+    },
+    {
+      "scope": "full_balanced",
+      "method": "default_clusters",
+      "outcome": "new_regression",
+      "current": {
+        "status": "incorrect_result",
+        "seconds": 0.08,
+        "exception": "IncorrectResult",
+        "message": "The Activity 'all' cluster contains region keys instead of activity codes.",
+        "site": [
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 398,
+            "function": "_run"
+          },
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 144,
+            "function": "_clusters"
+          }
+        ]
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.005,
+        "result": "1585",
+        "warnings": []
+      }
+    },
+    {
+      "scope": "full_balanced",
+      "method": "set_clusters",
+      "outcome": "new_regression",
+      "current": {
+        "status": "error",
+        "seconds": 0.074,
+        "exception": "WrongInput",
+        "message": "{'A_ADVERT'} in cluster selection for level Activity is/are not a valid item/s.",
+        "site": [
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 398,
+            "function": "_run"
+          },
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 317,
+            "function": "<lambda>"
+          },
+          {
+            "file": "database.py",
+            "line": 486,
+            "function": "set_clusters"
+          },
+          {
+            "file": "utils.py",
+            "line": 146,
+            "function": "check_clusters"
+          }
+        ]
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.0,
+        "result": "None",
+        "warnings": []
+      }
+    },
+    {
+      "scope": "full_balanced",
+      "method": "get_aggregation_excel",
+      "outcome": "new_regression",
+      "current": {
+        "status": "incorrect_result",
+        "seconds": 0.092,
+        "exception": "IncorrectResult",
+        "message": "Activity sheet contains region keys instead of activity codes.",
+        "site": [
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 398,
+            "function": "_run"
+          },
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 127,
+            "function": "_template"
+          }
+        ]
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.066,
+        "result": "1585",
+        "warnings": []
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "aggregate/activity_identity",
+      "outcome": "new_regression",
+      "current": {
+        "status": "error",
+        "seconds": 0.003,
+        "exception": "WrongInput",
+        "message": "Following item are not acceptable for level Activity \n {'A2', 'A1', 'A3'}",
+        "site": [
+          {
+            "file": "database.py",
+            "line": 990,
+            "function": "aggregate"
+          },
+          {
+            "file": "aggregation.py",
+            "line": 64,
+            "function": "aggregate_database"
+          },
+          {
+            "file": "aggregation.py",
+            "line": 88,
+            "function": "aggregate_database"
+          },
+          {
+            "file": "database.py",
+            "line": 900,
+            "function": "read_aggregated_index"
+          }
+        ]
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.03,
+        "result": {
+          "type": "Database",
+          "regions": 2
+        },
+        "warnings": []
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "calc_all/vectors",
+      "outcome": "ok",
+      "current": {
+        "status": "ok",
+        "seconds": 0.003,
+        "result": "None",
+        "warnings": []
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.003,
+        "result": "None",
+        "warnings": []
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "is_isard",
+      "outcome": "ok",
+      "current": {
+        "status": "ok",
+        "seconds": 0.006,
+        "result": "True",
+        "warnings": []
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.006,
+        "result": "True",
+        "warnings": []
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "is_balanced",
+      "outcome": "existing_problem",
+      "current": {
+        "status": "error",
+        "seconds": 0.001,
+        "exception": "NotImplementable",
+        "message": "Balance test is not applicable for hybrid units tables.",
+        "site": [
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 408,
+            "function": "_run"
+          },
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 325,
+            "function": "<lambda>"
+          },
+          {
+            "file": "core_model.py",
+            "line": 3314,
+            "function": "is_balanced"
+          }
+        ]
+      },
+      "legacy": {
+        "status": "error",
+        "seconds": 0.0,
+        "exception": "NotImplementable",
+        "message": "Balance test is not applicable for hybrid units tables.",
+        "site": [
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 408,
+            "function": "_run"
+          },
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 325,
+            "function": "<lambda>"
+          },
+          {
+            "file": "core_model.py",
+            "line": 3314,
+            "function": "is_balanced"
+          }
+        ]
+      }
+    },
+    {
+      "scope": "full_balanced",
+      "method": "aggregate/activity_identity",
+      "outcome": "resource_limit",
+      "current": {
+        "status": "error",
+        "seconds": 3.235,
+        "exception": "WrongInput",
+        "message": "Following item are not acceptable for level Activity \n {'M_Bread', 'A_Oil_lins', 'M_Cauli', 'M_Ricey', 'A_Meat_camel', 'A_Artis', 'A_Prmilk_buff', 'M_Ckseednes', 'M_Coco_pow', 'A_Oil_kapo', 'A_vOil_nes', 'A_Snaia', 'M_Beer_maiz', 'A_Wine', 'M_Chee_cow_wh', 'M_ART', 'A_BA_INCI', 'M_BOTL_GLS', 'A_Oil_maiz', 'M_Meat_hors', 'M_Silkw', 'M_Fruprep', 'M_ALU_sort', 'M_Barld', 'A_N_AmmNit', 'A_Potas', 'A_Mule_les', 'M_Coco_husk', 'M_Melon', 'A_Potato_starch', 'A_SE_OTHE', 'A_MNF_RECY', 'A_Beany', 'A_Millt', 'M_BOTL_PET', 'M_Tomad', 'A_Silkw', 'A_Wafes', 'M_INCL_no_recov', 'M_PHAR', 'A_SECUR', 'EF_MGSL', 'M_UN_INCI_no_recov', 'M_GJET', 'M_Meat_buff', 'M_BA_LAND', 'M_Cotton', 'M_Rice_husk', 'A_INCL_no_recov', 'A_TE_INCI', 'A_FO_OTHE', 'A_Mate', 'M_Frucr', 'M_Cklins', 'A_BUILD_LAND_serv|A_OFFICE_ADM|A_SECUR', 'M_Rubber', 'A_LIB_MUSEUM', 'A_Frudry', 'M_Raped', 'M_ADVERT', 'M_Nutss', 'M_Meat_homo', 'A_Frui_nes', 'A_Plans', 'A_Rice_starch', 'M_Butt_goat', 'A_F_capture', 'A_Seedcot', 'M_PAPE_01_RES', ",
+        "site": [
+          {
+            "file": "database.py",
+            "line": 990,
+            "function": "aggregate"
+          },
+          {
+            "file": "aggregation.py",
+            "line": 64,
+            "function": "aggregate_database"
+          },
+          {
+            "file": "aggregation.py",
+            "line": 88,
+            "function": "aggregate_database"
+          },
+          {
+            "file": "database.py",
+            "line": 900,
+            "function": "read_aggregated_index"
+          }
+        ]
+      },
+      "legacy": {
+        "status": "timeout",
+        "seconds": 45.008,
+        "exception": "TimeoutError",
+        "message": "Probe exceeded its 45-second time budget.",
+        "site": [
+          {
+            "file": "frame.py",
+            "line": 4962,
+            "function": "_box_col_values"
+          },
+          {
+            "file": "frame.py",
+            "line": 688,
+            "function": "_constructor_sliced_from_mgr"
+          },
+          {
+            "file": "generic.py",
+            "line": 6227,
+            "function": "__setattr__"
+          },
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 400,
+            "function": "deadline"
+          }
+        ]
+      }
+    },
+    {
+      "scope": "full_balanced",
+      "method": "calc_all/vectors",
+      "outcome": "ok",
+      "current": {
+        "status": "ok",
+        "seconds": 3.329,
+        "result": "None",
+        "warnings": []
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 3.402,
+        "result": "None",
+        "warnings": []
+      }
+    },
+    {
+      "scope": "full_balanced",
+      "method": "is_isard",
+      "outcome": "resource_limit",
+      "current": {
+        "status": "timeout",
+        "seconds": 45.009,
+        "exception": "TimeoutError",
+        "message": "Probe exceeded its 45-second time budget.",
+        "site": [
+          {
+            "file": "take.py",
+            "line": 112,
+            "function": "take_nd"
+          },
+          {
+            "file": "array.py",
+            "line": 1094,
+            "function": "take"
+          },
+          {
+            "file": "array.py",
+            "line": 1128,
+            "function": "_take_with_fill"
+          },
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 400,
+            "function": "deadline"
+          }
+        ]
+      },
+      "legacy": {
+        "status": "timeout",
+        "seconds": 45.004,
+        "exception": "TimeoutError",
+        "message": "Probe exceeded its 45-second time budget.",
+        "site": [
+          {
+            "file": "take.py",
+            "line": 112,
+            "function": "take_nd"
+          },
+          {
+            "file": "array.py",
+            "line": 1094,
+            "function": "take"
+          },
+          {
+            "file": "array.py",
+            "line": 1128,
+            "function": "_take_with_fill"
+          },
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 400,
+            "function": "deadline"
+          }
+        ]
+      }
+    },
+    {
+      "scope": "full_balanced",
+      "method": "is_balanced",
+      "outcome": "existing_problem",
+      "current": {
+        "status": "error",
+        "seconds": 0.001,
+        "exception": "NotImplementable",
+        "message": "Balance test is not applicable for hybrid units tables.",
+        "site": [
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 408,
+            "function": "_run"
+          },
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 325,
+            "function": "<lambda>"
+          },
+          {
+            "file": "core_model.py",
+            "line": 3314,
+            "function": "is_balanced"
+          }
+        ]
+      },
+      "legacy": {
+        "status": "error",
+        "seconds": 0.0,
+        "exception": "NotImplementable",
+        "message": "Balance test is not applicable for hybrid units tables.",
+        "site": [
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 408,
+            "function": "_run"
+          },
+          {
+            "file": "diagnose_bonsai_methods.py",
+            "line": 325,
+            "function": "<lambda>"
+          },
+          {
+            "file": "core_model.py",
+            "line": 3314,
+            "function": "is_balanced"
+          }
+        ]
+      }
+    },
+    {
+      "scope": "small_balanced",
+      "method": "aggregate/regions_world",
+      "outcome": "ok",
+      "current": {
+        "status": "ok",
+        "seconds": 0.03,
+        "result": {
+          "type": "Database",
+          "regions": 1
+        },
+        "warnings": []
+      },
+      "legacy": {
+        "status": "ok",
+        "seconds": 0.029,
+        "result": {
+          "type": "Database",
+          "regions": 1
+        },
+        "warnings": []
+      }
+    },
+    {
+      "scope": "full_balanced",
+      "method": "aggregate/regions_world",
+      "outcome": "existing_problem",
+      "current": {
+        "status": "error",
+        "seconds": 30.208,
+        "exception": "TypeError",
+        "message": "Invalid value '0.0' for dtype 'Sparse[float64, 0.0]'",
+        "site": [
+          {
+            "file": "aggregation.py",
+            "line": 94,
+            "function": "aggregate_database"
+          },
+          {
+            "file": "aggregation_engine.py",
+            "line": 797,
+            "function": "_aggregator"
+          },
+          {
+            "file": "aggregation_engine.py",
+            "line": 753,
+            "function": "_aggregate_sut_split_flows"
+          },
+          {
+            "file": "aggregation_engine.py",
+            "line": 636,
+            "function": "_clear_zero_output_sut_flow_overrides"
+          },
+          {
+            "file": "indexing.py",
+            "line": 938,
+            "function": "__setitem__"
+          },
+          {
+            "file": "indexing.py",
+            "line": 1953,
+            "function": "_setitem_with_indexer"
+          },
+          {
+            "file": "indexing.py",
+            "line": 2044,
+            "function": "_setitem_with_indexer_split_path"
+          },
+          {
+            "file": "indexing.py",
+            "line": 2163,
+            "function": "_setitem_single_column"
+          }
+        ]
+      },
+      "legacy": {
+        "status": "error",
+        "seconds": 29.736,
+        "exception": "TypeError",
+        "message": "Invalid value '0.0' for dtype 'Sparse[float64, 0.0]'",
+        "site": [
+          {
+            "file": "aggregation.py",
+            "line": 94,
+            "function": "aggregate_database"
+          },
+          {
+            "file": "aggregation_engine.py",
+            "line": 797,
+            "function": "_aggregator"
+          },
+          {
+            "file": "aggregation_engine.py",
+            "line": 753,
+            "function": "_aggregate_sut_split_flows"
+          },
+          {
+            "file": "aggregation_engine.py",
+            "line": 636,
+            "function": "_clear_zero_output_sut_flow_overrides"
+          },
+          {
+            "file": "indexing.py",
+            "line": 938,
+            "function": "__setitem__"
+          },
+          {
+            "file": "indexing.py",
+            "line": 1953,
+            "function": "_setitem_with_indexer"
+          },
+          {
+            "file": "indexing.py",
+            "line": 2044,
+            "function": "_setitem_with_indexer_split_path"
+          },
+          {
+            "file": "indexing.py",
+            "line": 2163,
+            "function": "_setitem_single_column"
+          }
+        ]
+      }
+    }
+  ],
+  "datasets": {
+    "small_balanced": {
+      "reference_year": 2016,
+      "shapes": {
+        "S": [
+          3,
+          3
+        ],
+        "U": [
+          3,
+          3
+        ],
+        "Ya": [
+          3,
+          3
+        ],
+        "Yc": [
+          3,
+          3
+        ],
+        "Va": [
+          1,
+          3
+        ],
+        "Vc": [
+          1,
+          3
+        ],
+        "Ea": [
+          1,
+          3
+        ],
+        "Ec": [
+          1,
+          3
+        ],
+        "EY": [
+          1,
+          3
+        ]
+      },
+      "indexes": {
+        "Activity": {
+          "type": "dict",
+          "counts": {
+            "AT": 2,
+            "DE": 1
+          }
+        },
+        "Commodity": {
+          "type": "dict",
+          "counts": {
+            "AT": 1,
+            "DE": 2
+          }
+        },
+        "Factor of production": {
+          "type": "list",
+          "count": 1
+        },
+        "Satellite account": {
+          "type": "list",
+          "count": 1
+        },
+        "Consumption category": {
+          "type": "dict",
+          "counts": {
+            "AT": 1,
+            "DE": 2
+          }
+        },
+        "Region": {
+          "type": "list",
+          "count": 2
+        }
+      }
+    },
+    "full_balanced": {
+      "reference_year": 2016,
+      "shapes": {
+        "S": [
+          51356,
+          53400
+        ],
+        "U": [
+          53400,
+          51356
+        ],
+        "Ya": [
+          51356,
+          267
+        ],
+        "Yc": [
+          53400,
+          267
+        ],
+        "Va": [
+          1,
+          51356
+        ],
+        "Vc": [
+          1,
+          53400
+        ],
+        "Ea": [
+          127,
+          51356
+        ],
+        "Ec": [
+          127,
+          53400
+        ],
+        "EY": [
+          127,
+          267
+        ]
+      },
+      "indexes": {
+        "Activity": {
+          "type": "dict",
+          "counts": {
+            "AT": 1055,
+            "AU": 1053,
+            "BE": 1096,
+            "BG": 1093,
+            "BR": 1001,
+            "CA": 1037,
+            "CH": 987,
+            "CN": 1216,
+            "CY": 887,
+            "CZ": 1126,
+            "DE": 1130,
+            "DK": 1001,
+            "EE": 915,
+            "ES": 1184,
+            "FI": 1000,
+            "FR": 1158,
+            "GB": 1048,
+            "GR": 1082,
+            "Global": 365,
+            "HR": 1011,
+            "HU": 1121,
+            "ID": 924,
+            "IE": 912,
+            "IN": 979,
+            "IT": 1177,
+            "JP": 1042,
+            "KR": 950,
+            "LT": 973,
+            "LU": 863,
+            "LV": 916,
+            "MT": 791,
+            "MX": 1027,
+            "NL": 1115,
+            "NO": 995,
+            "PL": 1112,
+            "PT": 1080,
+            "RO": 1085,
+            "RU": 1022,
+            "SE": 999,
+            "SI": 975,
+            "SK": 1096,
+            "TR": 1085,
+            "TW": 489,
+            "US": 1127,
+            "WA": 1272,
+            "WE": 1219,
+            "WF": 1201,
+            "WL": 1219,
+            "WM": 1165,
+            "ZA": 980
+          }
+        },
+        "Commodity": {
+          "type": "dict",
+          "counts": {
+            "AT": 1098,
+            "AU": 1087,
+            "BE": 1146,
+            "BG": 1123,
+            "BR": 1033,
+            "CA": 1080,
+            "CH": 1035,
+            "CN": 1274,
+            "CY": 903,
+            "CZ": 1177,
+            "DE": 1185,
+            "DK": 1052,
+            "EE": 951,
+            "ES": 1232,
+            "FI": 1044,
+            "FR": 1212,
+            "GB": 1095,
+            "GR": 1119,
+            "Global": 365,
+            "HR": 1036,
+            "HU": 1174,
+            "ID": 946,
+            "IE": 940,
+            "IN": 1013,
+            "IT": 1237,
+            "JP": 1082,
+            "KR": 994,
+            "LT": 1013,
+            "LU": 894,
+            "LV": 943,
+            "MT": 809,
+            "MX": 1056,
+            "NL": 1166,
+            "NO": 1035,
+            "PL": 1171,
+            "PT": 1124,
+            "RO": 1123,
+            "RU": 1072,
+            "SE": 1048,
+            "SI": 1013,
+            "SK": 1144,
+            "TR": 1131,
+            "TW": 503,
+            "US": 1176,
+            "WA": 1335,
+            "WE": 1282,
+            "WF": 1245,
+            "WL": 1264,
+            "WM": 1207,
+            "ZA": 1013
+          }
+        },
+        "Factor of production": {
+          "type": "list",
+          "count": 1
+        },
+        "Satellite account": {
+          "type": "list",
+          "count": 127
+        },
+        "Consumption category": {
+          "type": "dict",
+          "counts": {
+            "AT": 6,
+            "AU": 5,
+            "BE": 5,
+            "BG": 5,
+            "BR": 5,
+            "CA": 5,
+            "CH": 6,
+            "CN": 5,
+            "CY": 6,
+            "CZ": 6,
+            "DE": 5,
+            "DK": 6,
+            "EE": 6,
+            "ES": 5,
+            "FI": 5,
+            "FR": 5,
+            "GB": 6,
+            "GR": 6,
+            "Global": 0,
+            "HR": 5,
+            "HU": 6,
+            "ID": 5,
+            "IE": 6,
+            "IN": 5,
+            "IT": 6,
+            "JP": 5,
+            "KR": 5,
+            "LT": 6,
+            "LU": 5,
+            "LV": 5,
+            "MT": 6,
+            "MX": 6,
+            "NL": 6,
+            "NO": 5,
+            "PL": 6,
+            "PT": 6,
+            "RO": 5,
+            "RU": 5,
+            "SE": 6,
+            "SI": 6,
+            "SK": 6,
+            "TR": 5,
+            "TW": 2,
+            "US": 5,
+            "WA": 6,
+            "WE": 6,
+            "WF": 6,
+            "WL": 6,
+            "WM": 6,
+            "ZA": 5
+          }
+        },
+        "Region": {
+          "type": "list",
+          "count": 50
+        }
+      }
+    }
+  },
+  "not_exercised": [
+    "Full-size inverse matrices, linkages, footprints, dense exports, plots and shocks: tested only on small_balanced.",
+    "add_sectors and CVXLab optimization: no filled inventory workbook or optimization model supplied; only template generation is probed.",
+    "Economic accuracy of calculated footprints and GHG factors is outside this structural diagnosis."
+  ],
+  "updated": "2026-10-19T14:54:32.499300+00:00",
+  "environment": {
+    "python": "3.13.14",
+    "mario": "1.3.1",
+    "pandas": "3.0.2",
+    "numpy": "2.1.1"
+  }
+}

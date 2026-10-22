@@ -1,0 +1,42 @@
+{
+  "release": "Balanced/20260615.zip",
+  "reference_year": 2016,
+  "region": "TW",
+  "note": "MARIO's current demand-based Xc creates numerically singular diagonal SCC blocks. The corresponding reference-supply HIOT blocks are nonsingular. No source values were changed.",
+  "current_output_convention": "Xa = S.sum(axis=1); Xc = U.sum(axis=1) + Yc.sum(axis=1)",
+  "hiot_construction_source": "https://gitlab.com/bonsamurais/bonsai/build/hybrid_sut/-/blob/cd497527a928fe64693c380ea28cf7df9882b0ab/src/bonsai/io/hiot/assemble_df_for_hiot.py#L532",
+  "comparisons": [
+    {
+      "product": "Beany",
+      "commodities": ["C_Beany", "M_Beany"],
+      "activities": ["A_Beany", "M_Beany"],
+      "unit": "tonnes",
+      "market_commodity_mass_balance_enforced": false,
+      "supply": [11992.102083608916, 11992.102044610312],
+      "use_plus_final": [11992.099078792951, 532.3308682151365],
+      "reference_supply_minus_use": [
+        [11992.102083608916, -11992.099078792951],
+        [-532.3308682151365, 11992.102044610312]
+      ],
+      "reference_supply_minus_use_determinant": 137426747.40168625,
+      "current_leontief_determinant": -3.874548037492123e-17,
+      "supply_based_leontief_determinant": 0.9556098895047145
+    },
+    {
+      "product": "Eggs_ggs",
+      "commodities": ["C_Eggs_ggs", "M_Eggs_ggs"],
+      "activities": ["A_Eggs_ggs", "M_Eggs_ggs"],
+      "unit": "tonnes",
+      "market_commodity_mass_balance_enforced": false,
+      "supply": [25980.149274208765, 25980.14885802429],
+      "use_plus_final": [25980.140636362023, 2598.045492554082],
+      "reference_supply_minus_use": [
+        [25980.149274208765, -25980.140636362023],
+        [-2598.045492554082, 25980.14885802429]
+      ],
+      "reference_supply_minus_use_determinant": 607470558.2214152,
+      "current_leontief_determinant": 1.1367847072519656e-16,
+      "supply_based_leontief_determinant": 0.8999988551660355
+    }
+  ]
+}

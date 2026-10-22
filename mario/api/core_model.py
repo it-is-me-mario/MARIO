@@ -11,13 +11,14 @@ from mario.api.metadata import MARIOMetaData
 from mario.compute.helpers import _is_sparse_backed_dataframe, sum_columns
 from mario.internal.access import block_to_matrix, block_to_pandas, block_to_table
 from mario.model.assumptions import resolve_tech_assumption
+from mario.model.indexes import main_index_view
 from mario.parsers.tabular import dataframe_parser
 from mario.settings.settings import IndexAliases, canonical_matrix_name, public_matrix_name
 from mario.model.matrix_store import ScenarioMatrices
 from mario.model.conventions import TABLE_LEVELS
 from tabulate import tabulate
 from collections import namedtuple
-from collections.abc import MutableMapping
+from collections.abc import Mapping, MutableMapping
 
 import numpy as np
 import pandas as pd
@@ -26,6 +27,7 @@ import os
 import copy
 import re
 import warnings
+from scipy import sparse
 
 # constants
 from mario.model.conventions import (
@@ -88,11 +90,36 @@ def _replace_selected_rows(
         frame.loc[selector, :] = replacement
         return frame
 
-    updated = pd.concat(
-        [frame.loc[~frame.index.isin(target_index), :], replacement],
-        axis=0,
-    ).reindex(frame.index)
-    return updated.astype(frame.dtypes.to_dict())
+    source = frame.sparse.to_coo()
+    positions = frame.index.get_indexer(target_index)
+    if (positions < 0).any():
+        raise ValueError("Replacement rows do not exist in the target frame.")
+    keep_rows = np.ones(len(frame), dtype=bool)
+    keep_rows[positions] = False
+    keep = keep_rows[source.row]
+    changed = (
+        replacement.sparse.to_coo()
+        if _is_sparse_backed_dataframe(replacement)
+        else sparse.coo_matrix(replacement.to_numpy())
+    )
+    updated = sparse.coo_matrix(
+        (
+            np.concatenate([source.data[keep], changed.data]),
+            (
+                np.concatenate([source.row[keep], positions[changed.row]]),
+                np.concatenate([source.col[keep], changed.col]),
+            ),
+        ),
+        shape=frame.shape,
+    )
+    result = pd.DataFrame.sparse.from_spmatrix(
+        updated, index=frame.index, columns=frame.columns
+    ).fillna(0.0)
+    return (
+        result
+        if result.dtypes.equals(frame.dtypes)
+        else result.astype(frame.dtypes.to_dict())
+    )
 
 
 def _redistribute_bundle_rows(block, weights, col_mask, *, weight_level="Item"):
@@ -101,19 +128,53 @@ def _redistribute_bundle_rows(block, weights, col_mask, *, weight_level="Item"):
     ``weight_level`` names the index level the weights are aligned on: the
     ``Item`` labels for supply mixes (labels competing within one region) or
     the ``Region`` labels for trade mixes (origins of one traded item).
-    Columns outside ``col_mask`` keep their original coefficients. The dense
-    replacement also works for sparse-backed blocks.
+    Columns outside ``col_mask`` keep their original coefficients. Sparse
+    blocks are rewritten without a dense bundle-by-column outer product.
     """
+    if _is_sparse_backed_dataframe(block):
+        if not col_mask.any():
+            return block.copy()
+        row_weights = weights.reindex(
+            block.index.get_level_values(weight_level)
+        ).to_numpy()
+        totals = sum_columns(block).to_numpy(copy=True)
+        totals[~col_mask] = 0.0
+        redistributed = (
+            sparse.csr_matrix(row_weights[:, None]) @ sparse.csr_matrix(totals[None, :])
+        ).tocoo()
+        original = block.sparse.to_coo()
+        keep = ~col_mask[original.col]
+        values = sparse.coo_matrix(
+            (
+                np.concatenate([original.data[keep], redistributed.data]),
+                (
+                    np.concatenate([original.row[keep], redistributed.row]),
+                    np.concatenate([original.col[keep], redistributed.col]),
+                ),
+            ),
+            shape=block.shape,
+        )
+        return pd.DataFrame.sparse.from_spmatrix(
+            values, index=block.index, columns=block.columns
+        ).fillna(0.0)
+
     values = np.asarray(block.to_numpy(), dtype=float).copy()
     if col_mask.any():
         row_weights = weights.reindex(
             block.index.get_level_values(weight_level)
         ).to_numpy()
-        redistributed = np.multiply.outer(
-            row_weights, sum_columns(block).to_numpy()
-        )
+        redistributed = np.multiply.outer(row_weights, sum_columns(block).to_numpy())
         values[:, col_mask] = redistributed[:, col_mask]
     return pd.DataFrame(values, index=block.index, columns=block.columns)
+
+
+def _mix_regional_members(database, level):
+    """Resolve mix labels once, retaining each actual regional domain."""
+    members = database.get_index(level)
+    if isinstance(members, dict):
+        return {region: set(labels) for region, labels in members.items()}
+    common = set(members)
+    return {region: common for region in database.get_index(_MASTER_INDEX["r"])}
 
 
 def _build_resolution_context(
@@ -1968,6 +2029,11 @@ class CoreModel:
         region, the selected sector values are normalized by the total
         production of the same selected sector bundle in ``X``. Regions with
         zero total production over the selected sectors return zero shares.
+        With region-specific classifications, only sectors present in each
+        region are included; a region without selected sectors returns ``{}``.
+        The selected productions must have comparable units. On transformed
+        hybrid IOTs, this reference-product mix need not equal historical
+        physical generation when by-product outputs have no independent nodes.
         The resulting mapping is also stored on ``self.mix``.
         """
 
@@ -1985,7 +2051,8 @@ class CoreModel:
         if not sectors:
             raise WrongInput("sectors must be one non-empty iterable of sector labels.")
 
-        valid_sectors = set(self.get_index(_MASTER_INDEX["s"]))
+        regional_members = _mix_regional_members(self, _MASTER_INDEX["s"])
+        valid_sectors = set().union(*regional_members.values())
         missing_sectors = [sector for sector in sectors if sector not in valid_sectors]
         if missing_sectors:
             raise WrongInput(f"get_mix references unknown sectors: {missing_sectors}")
@@ -1996,7 +2063,11 @@ class CoreModel:
 
         mix: dict[str, dict[str, float]] = {}
         for region in self.get_index(_MASTER_INDEX["r"]):
-            region_block = production.loc[(region, _MASTER_INDEX["s"], sectors), :]
+            local_sectors = [sector for sector in sectors if sector in regional_members[region]]
+            if not local_sectors:
+                mix[str(region)] = {}
+                continue
+            region_block = production.loc[(region, _MASTER_INDEX["s"], local_sectors), :]
             values = region_block.iloc[:, 0].astype(float)
             total = float(values.sum())
             if total > 0:
@@ -2192,6 +2263,14 @@ class CoreModel:
         ``u``/``Yc`` for SUT commodity mixes and ``s`` for SUT activity
         mixes.
 
+        With regional classifications, every supplied label must exist in its
+        specified region. Level inference checks these regional memberships.
+        Column selectors filter actual columns by label and region; they do
+        not create missing region-item pairs. Sparse inputs retain sparse
+        storage, and rows outside each selected bundle remain unchanged.
+        Explicit ``aggregate_commodity`` mappings apply to existing regional
+        occurrences of their member codes only.
+
         The target scenario is reset to coefficient-side storage internally
         before applying the redistribution, so callers do not need an extra
         ``reset_to_coefficients(...)`` around this operation.
@@ -2262,7 +2341,9 @@ class CoreModel:
                 "String-valued shares_by_region is currently supported only for 'electricity'."
             )
         if aggregate_as_ember and not electricity_requested:
-            raise WrongInput("aggregate_as_ember is currently supported only with shares_by_region='electricity'.")
+            raise WrongInput(
+                "aggregate_as_ember is currently supported only with shares_by_region='electricity'."
+            )
 
         # Structural commodity aggregation happens before anything reads the
         # Commodity index; the electricity mode derives the mapping from the
@@ -2270,7 +2351,11 @@ class CoreModel:
         aggregated_commodities: list[str] = []
         if is_sut:
             if electricity_requested and aggregate_commodity is None:
-                aggregate_commodity = _electricity_mix_module().resolve_electricity_commodity_aggregation(self)
+                aggregate_commodity = (
+                    _electricity_mix_module().resolve_electricity_commodity_aggregation(
+                        self
+                    )
+                )
             if aggregate_commodity is not None:
                 performed = self._apply_commodity_aggregation(aggregate_commodity)
                 aggregated_commodities = [str(target) for target in aggregate_commodity]
@@ -2352,10 +2437,16 @@ class CoreModel:
                     for sector_shares in shares_by_region.values()
                     for label in sector_shares
                 }
-                activity_labels = set(self.get_index(_MASTER_INDEX["a"]))
-                commodity_labels = set(self.get_index(_MASTER_INDEX["c"]))
-                only_activities = member_labels <= activity_labels
-                only_commodities = member_labels <= commodity_labels
+                activity_labels = _mix_regional_members(self, _MASTER_INDEX["a"])
+                commodity_labels = _mix_regional_members(self, _MASTER_INDEX["c"])
+                only_activities = all(
+                    set(shares) <= activity_labels[region]
+                    for region, shares in shares_by_region.items()
+                )
+                only_commodities = all(
+                    set(shares) <= commodity_labels[region]
+                    for region, shares in shares_by_region.items()
+                )
                 if only_activities and not only_commodities:
                     row_level = _MASTER_INDEX["a"]
                 elif only_commodities and not only_activities:
@@ -2386,9 +2477,12 @@ class CoreModel:
                     "no final-demand block."
                 )
         elif commodities is not None:
-            raise WrongInput("commodities applies only to Activity-level mixes on SUT databases.")
+            raise WrongInput(
+                "commodities applies only to Activity-level mixes on SUT databases."
+            )
 
-        valid_items = set(self.get_index(row_level))
+        regional_items = _mix_regional_members(self, row_level)
+        valid_items = set(self.get_index(row_level, flat=True))
         normalized_shares = {}
         sum_tolerance = 0.01
 
@@ -2400,7 +2494,9 @@ class CoreModel:
             if (weights < 0).any():
                 raise WrongInput(f"Region {region!r} contains negative shares.")
 
-            missing_items = [item for item in weights.index if item not in valid_items]
+            missing_items = [
+                item for item in weights.index if item not in regional_items[region]
+            ]
             if missing_items:
                 raise WrongInput(
                     f"Region {region!r} references unknown {row_level} labels: {missing_items}"
@@ -2440,18 +2536,18 @@ class CoreModel:
             col_items = _normalize_column_selector(
                 column_sectors,
                 name="column_sectors",
-                valid=set(self.get_index(_MASTER_INDEX["a"])),
+                valid=set(self.get_index(_MASTER_INDEX["a"], flat=True)),
             )
         else:
             col_items = _normalize_column_selector(
                 commodities,
                 name="commodities",
-                valid=set(self.get_index(_MASTER_INDEX["c"])),
+                valid=set(self.get_index(_MASTER_INDEX["c"], flat=True)),
             )
         col_categories = _normalize_column_selector(
             column_categories,
             name="column_categories",
-            valid=set(self.get_index(_MASTER_INDEX["n"])),
+            valid=set(self.get_index(_MASTER_INDEX["n"], flat=True)),
         )
 
         def _column_mask(columns, *, kind):
@@ -2510,7 +2606,9 @@ class CoreModel:
                     "aggregate_as_ember requires a Database instance exposing aggregate()."
                 )
 
-            sector_aggregation = _electricity_mix_module().build_electricity_ember_sector_aggregation(self)
+            sector_aggregation = (
+                _electricity_mix_module().build_electricity_ember_sector_aggregation(self)
+            )
             self.aggregate(
                 io={_MASTER_INDEX["s"]: sector_aggregation},
                 levels=_MASTER_INDEX["s"],
@@ -2540,9 +2638,9 @@ class CoreModel:
                 "aggregate_commodity requires a Database instance exposing aggregate()."
             )
 
-        current = list(self.get_index(_MASTER_INDEX["c"]))
+        regional = self.get_index(_MASTER_INDEX["c"])
+        current = self.get_index(_MASTER_INDEX["c"], flat=True)
         current_set = set(current)
-        aggregation = pd.DataFrame({"Aggregation": current}, index=current)
         assigned: dict[str, str] = {}
         performed = False
 
@@ -2577,11 +2675,23 @@ class CoreModel:
             if member_list == [target_label]:
                 continue
 
-            aggregation.loc[member_list, "Aggregation"] = target_label
             performed = True
 
         if not performed:
             return False
+
+        if isinstance(regional, dict):
+            pairs = [(region, item) for region, items in regional.items() for item in items]
+            index = pd.MultiIndex.from_tuples(pairs, names=[_MASTER_INDEX["r"], "Item"])
+            aggregation = pd.DataFrame(
+                {"Aggregation": [assigned.get(item, item) for _, item in pairs]},
+                index=index,
+            )
+        else:
+            aggregation = pd.DataFrame(
+                {"Aggregation": [assigned.get(item, item) for item in current]},
+                index=current,
+            )
 
         self.aggregate(
             io={_MASTER_INDEX["c"]: aggregation},
@@ -2635,8 +2745,8 @@ class CoreModel:
         JP, ... and RoW aggregates) are near-isolated can be set domestic-only
         (see ``fill_uncovered_domestic``) or left unchanged. The basis was validated
         against Electricity Maps, whose data is proprietary and cannot be redistributed.
-        ENTSO-E is not always right though: non-EU zones with poor coverage 
-        can be unreliable and are kept as-is. 
+        ENTSO-E is not always right though: non-EU zones with poor coverage
+        can be unreliable and are kept as-is.
 
         The blocks rewritten depend on where the table stores trade:
 
@@ -2741,6 +2851,14 @@ class CoreModel:
         same origin profile. Use ``column_sectors`` to keep selected buyers on
         their original (heterogeneous) sourcing.
 
+        With regional classifications, each item must exist in every explicitly
+        listed origin, including origins assigned zero weight. Missing pairs
+        raise ``WrongInput``; weights are not silently renormalized over the
+        available origins. A destination does not need a local node for the
+        origin item: its actual buyer or market columns receive the imports.
+        Column selectors filter actual columns, and sparse inputs remain
+        sparse. No missing production nodes are added.
+
         The method resets the target scenario to coefficient-side storage
         internally before applying the redistribution, so callers do not need
         an extra ``reset_to_coefficients(...)`` around this operation.
@@ -2782,7 +2900,9 @@ class CoreModel:
 
         items = [items] if isinstance(items, str) else list(dict.fromkeys(items))
         if not items:
-            raise WrongInput("items must be one non-empty item label or iterable of labels.")
+            raise WrongInput(
+                "items must be one non-empty item label or iterable of labels."
+            )
 
         if not is_sut:
             row_level = _MASTER_INDEX["s"]
@@ -2790,10 +2910,30 @@ class CoreModel:
             row_level = str(level)
         else:
             item_labels = {str(item) for item in items}
-            activity_labels = set(self.get_index(_MASTER_INDEX["a"]))
-            commodity_labels = set(self.get_index(_MASTER_INDEX["c"]))
+            activity_labels = set(self.get_index(_MASTER_INDEX["a"], flat=True))
+            commodity_labels = set(self.get_index(_MASTER_INDEX["c"], flat=True))
             only_activities = item_labels <= activity_labels
             only_commodities = item_labels <= commodity_labels
+            if (
+                only_activities
+                and only_commodities
+                and isinstance(shares_by_destination, Mapping)
+            ):
+                origins = {
+                    origin
+                    for shares in shares_by_destination.values()
+                    if isinstance(shares, Mapping)
+                    for origin in shares
+                }
+                activity_domains = _mix_regional_members(self, _MASTER_INDEX["a"])
+                commodity_domains = _mix_regional_members(self, _MASTER_INDEX["c"])
+                if origins and origins <= activity_domains.keys():
+                    only_activities = all(
+                        item_labels <= activity_domains[r] for r in origins
+                    )
+                    only_commodities = all(
+                        item_labels <= commodity_domains[r] for r in origins
+                    )
             if only_activities and not only_commodities:
                 row_level = _MASTER_INDEX["a"]
             elif only_commodities and not only_activities:
@@ -2805,7 +2945,8 @@ class CoreModel:
                     f"level='{_MASTER_INDEX['a']}' or level='{_MASTER_INDEX['c']}' explicitly."
                 )
 
-        valid_items = set(self.get_index(row_level))
+        regional_items = _mix_regional_members(self, row_level)
+        valid_items = set(self.get_index(row_level, flat=True))
         unknown_items = [item for item in items if item not in valid_items]
         if unknown_items:
             raise WrongInput(
@@ -2841,12 +2982,14 @@ class CoreModel:
                     "String-valued shares_by_destination is currently supported only "
                     "for 'electricity'."
                 )
-            shares_by_destination = _electricity_trade_module().build_electricity_trade_shares(
-                self,
-                year=year,
-                entsoe_path=entsoe_path,
-                api_key=api_key,
-                fill_uncovered_domestic=fill_uncovered_domestic,
+            shares_by_destination = (
+                _electricity_trade_module().build_electricity_trade_shares(
+                    self,
+                    year=year,
+                    entsoe_path=entsoe_path,
+                    api_key=api_key,
+                    fill_uncovered_domestic=fill_uncovered_domestic,
+                )
             )
             if not shares_by_destination:
                 log_time(
@@ -2861,7 +3004,10 @@ class CoreModel:
                 "shares_by_destination='electricity'."
             )
 
-        if not isinstance(shares_by_destination, MutableMapping) or not shares_by_destination:
+        if (
+            not isinstance(shares_by_destination, MutableMapping)
+            or not shares_by_destination
+        ):
             raise WrongInput(
                 "shares_by_destination must be one non-empty mapping of destination "
                 "regions to origin-share mappings."
@@ -2885,16 +3031,32 @@ class CoreModel:
 
             weights = pd.Series(origin_shares, dtype=float)
             if weights.isna().any() or not np.isfinite(weights.to_numpy()).all():
-                raise WrongInput(f"Destination {destination!r} contains non-finite origin shares.")
+                raise WrongInput(
+                    f"Destination {destination!r} contains non-finite origin shares."
+                )
 
             if (weights < 0).any():
-                raise WrongInput(f"Destination {destination!r} contains negative origin shares.")
+                raise WrongInput(
+                    f"Destination {destination!r} contains negative origin shares."
+                )
 
-            unknown_origins = [origin for origin in weights.index if origin not in valid_regions]
+            unknown_origins = [
+                origin for origin in weights.index if origin not in valid_regions
+            ]
             if unknown_origins:
                 raise WrongInput(
                     f"Destination {destination!r} references unknown origin regions: {unknown_origins}"
                 )
+
+            for origin in weights.index:
+                missing_items = [
+                    item for item in items if item not in regional_items[origin]
+                ]
+                if missing_items:
+                    raise WrongInput(
+                        f"Destination {destination!r}: origin region {origin!r} references "
+                        f"unknown {row_level} labels: {missing_items}"
+                    )
 
             total = float(weights.sum())
             if total <= 0:
@@ -2927,18 +3089,18 @@ class CoreModel:
             col_items = _normalize_column_selector(
                 column_sectors,
                 name="column_sectors",
-                valid=set(self.get_index(_MASTER_INDEX["a"])),
+                valid=set(self.get_index(_MASTER_INDEX["a"], flat=True)),
             )
         else:
             col_items = _normalize_column_selector(
                 commodities,
                 name="commodities",
-                valid=set(self.get_index(_MASTER_INDEX["c"])),
+                valid=set(self.get_index(_MASTER_INDEX["c"], flat=True)),
             )
         col_categories = _normalize_column_selector(
             column_categories,
             name="column_categories",
-            valid=set(self.get_index(_MASTER_INDEX["n"])),
+            valid=set(self.get_index(_MASTER_INDEX["n"], flat=True)),
         )
 
         self.reset_to_coefficients(scenario)
@@ -3261,7 +3423,7 @@ class CoreModel:
             log_time(logger, f"Database: {tech_note}", "warning")
             self.meta._add_history(tech_note)
 
-    def get_index(self, index, level="main"):
+    def get_index(self, index, level="main", *, region=None, flat=False):
         """Return one index level or the full index mapping for the database.
 
         Parameters
@@ -3271,17 +3433,42 @@ class CoreModel:
             retrieve every available set for the table type.
         level:
             Index variant to return, typically ``"main"`` or ``"aggregated"``.
+        region:
+            Optional region whose members should be returned as a list.
+            Available only for ``level="main"``.
+        flat:
+            When True, explicitly return the union of distinct labels as a
+            list even for a regional classification. Available only for
+            ``level="main"`` and mutually exclusive with ``region``.
 
         Returns
         -------
         list | dict
-            Requested index labels, or a dictionary of all labels when
-            ``index="all"``.
+            For ``level="main"``, a list when every region has the same
+            members, otherwise ``{region: list_of_members}``. Regions without
+            members have an empty list. Global sets remain lists. With
+            ``index="all"``, a dictionary of these results keyed by set name.
+            Other index levels retain their existing representation.
         """
+
+        if not isinstance(flat, bool):
+            raise WrongInput("flat must be True or False.")
+        if region is not None and flat:
+            raise WrongInput("region and flat=True cannot be combined.")
+        if level != "main" and (region is not None or flat):
+            raise WrongInput("region and flat apply only to level='main'.")
+        regions = self._indeces.get("r", {}).get("main", [])
+        if region is not None and region not in regions:
+            raise WrongInput(
+                f"Unknown region {region!r}. Available regions are {list(regions)}."
+            )
 
         if isinstance(index, str) and index.lower() == "all":
             return {
-                key: self._indeces[value].get(level)
+                key: (
+                    self.get_index(key, level=level, region=region, flat=flat)
+                    if level in self._indeces[value] else None
+                )
                 for key, value in TABLE_LEVELS[self.table_type].items()
             }
 
@@ -3301,7 +3488,18 @@ class CoreModel:
                 )
             )
 
-        return copy.deepcopy(self._indeces[TABLE_LEVELS[self.table_type][index]][level])
+        code = TABLE_LEVELS[self.table_type][index]
+        values = self._indeces[code][level]
+        if level != "main":
+            return copy.deepcopy(values)
+        return main_index_view(
+            values,
+            code=code,
+            regions=regions,
+            blocks=self.matrices.get("baseline", {}),
+            region=region,
+            flat=flat,
+        )
 
     @staticmethod
     def _normalize_set_token(value):
@@ -3463,31 +3661,35 @@ class CoreModel:
         except WrongInput as exc:
             raise WrongInput("Acceptable data_sets are:\n{}".format(self.scenarios)) from exc
 
-        if self.has_matrix(
-            _ENUM.z, scenario=scenario
-        ):  # this avoid to calculate z or Z in case one of them is missing, to avoid losing time
-            matrix = self.get_block_as_pandas(_ENUM.z, scenario=scenario)
+        # Reuse an existing unified view, but never build one just for this
+        # test: native use already contains the required regional flows.
+        source = next(
+            (
+                name
+                for name in (_ENUM.z, _ENUM.Z)
+                if self.has_matrix(name, scenario=scenario)
+            ),
+            None,
+        )
+        if source is not None:
+            matrix = self.get_block_as_pandas(source, scenario=scenario)
+            matrix = matrix.loc[
+                (slice(None), _MASTER_INDEX["c"], slice(None)),
+                (slice(None), _MASTER_INDEX["a"], slice(None)),
+            ]
         else:
-            matrix = self._get_matrix(_ENUM.Z, scenario=scenario, auto_calc=True)
+            matrix = self._get_matrix(_ENUM.U, scenario=scenario, auto_calc=True)
 
-        sN = slice(None)
-        matrix = matrix.loc[
-            (sN, _MASTER_INDEX["c"], sN), (sN, _MASTER_INDEX["a"], sN)
-        ]  # extract the use side from z or Z
-        matrix = matrix.groupby(level=[_MASTER_INDEX["r"]]).sum()
-        matrix = matrix.T.groupby(level=[_MASTER_INDEX["r"]]).sum().T
+        from mario.ops.trades import sum_trade_regions
 
-        is_diagonal = np.all(matrix.values == np.diag(np.diagonal(matrix)))
-
-        if is_diagonal:
-            log_time(logger, "Test: table is not in Isard format")
-
-            return False
-
-        else:
-            log_time(logger, "Test: table is in Isard format")
-
-            return True
+        regional = sum_trade_regions(matrix)
+        off_diagonal = (
+            regional.index.to_numpy()[:, None] != regional.columns.to_numpy()[None, :]
+        )
+        isard = bool(np.any(regional.to_numpy()[off_diagonal] != 0))
+        message = "in" if isard else "not in"
+        log_time(logger, f"Test: table is {message} Isard format")
+        return isard
 
     def is_chenerymoses(self, scenario: str = "baseline") -> bool:
         """Test whether a multi-regional SUT follows the Chenery-Moses format.
@@ -3507,9 +3709,7 @@ class CoreModel:
         if self.meta.table != "SUT":
             raise NotImplementable("This test is implementable only on SUT tables")
         elif len(self.get_index(_MASTER_INDEX["r"])) == 1:
-            raise NotImplementable(
-                "This test is not implementable on single-region tables"
-            )
+            raise NotImplementable("This test is not implementable on single-region tables")
 
         requested_scenario = str(scenario)
         try:
@@ -3521,31 +3721,35 @@ class CoreModel:
                 )
             ) from exc
 
-        if self.has_matrix(
-            _ENUM.z, scenario=scenario
-        ):  # this avoid to calculate z or Z in case one of them is missing, to avoid losing time
-            matrix = self.get_block_as_pandas(_ENUM.z, scenario=scenario)
+        # Reuse a unified source if it is already materialized; otherwise read
+        # native supply directly instead of constructing the full Z/z view.
+        source = next(
+            (
+                name
+                for name in (_ENUM.z, _ENUM.Z)
+                if self.has_matrix(name, scenario=scenario)
+            ),
+            None,
+        )
+        if source is not None:
+            matrix = self.get_block_as_pandas(source, scenario=scenario)
+            matrix = matrix.loc[
+                (slice(None), _MASTER_INDEX["a"], slice(None)),
+                (slice(None), _MASTER_INDEX["c"], slice(None)),
+            ]
         else:
-            matrix = self._get_matrix(_ENUM.Z, scenario=scenario, auto_calc=True)
+            matrix = self._get_matrix(_ENUM.S, scenario=scenario, auto_calc=True)
 
-        sN = slice(None)
-        matrix = matrix.loc[
-            (sN, _MASTER_INDEX["a"], sN), (sN, _MASTER_INDEX["c"], sN)
-        ]  # extract the supply side from z or Z
-        matrix = matrix.groupby(level=[_MASTER_INDEX["r"]]).sum()
-        matrix = matrix.T.groupby(level=[_MASTER_INDEX["r"]]).sum().T
+        from mario.ops.trades import sum_trade_regions
 
-        is_diagonal = np.all(matrix.values == np.diag(np.diagonal(matrix)))
-
-        if is_diagonal:
-            log_time(logger, "Test: table is not in Chenery-Moses format")
-
-            return False
-
-        else:
-            log_time(logger, "Test: table is in Chenery-Moses format")
-
-            return True
+        regional = sum_trade_regions(matrix)
+        off_diagonal = (
+            regional.index.to_numpy()[:, None] != regional.columns.to_numpy()[None, :]
+        )
+        chenery = bool(np.any(regional.to_numpy()[off_diagonal] != 0))
+        message = "in" if chenery else "not in"
+        log_time(logger, f"Test: table is {message} Chenery-Moses format")
+        return chenery
 
     def copy(self):
         """Return a deep copy of the database object.
@@ -3574,7 +3778,7 @@ class CoreModel:
         self.meta._save(path, format)
 
     def __str__(self):
-        """Render a compact structural summary of the database."""
+        """Render set counts, using per-region ranges for regional indexes."""
         to_print = (
             "name = {}\n"
             "table = {}\n".format(self.meta.name, self.meta.table)
@@ -3584,7 +3788,15 @@ class CoreModel:
             to_print += f"tech_assumption = {tech_assumption}\n"
         to_print += "scenarios = {}\n".format(self.scenarios)
         for item in TABLE_LEVELS[self.meta.table]:
-            to_print += "{} = {}\n".format(item, len(self.get_index(item)))
+            members = self.get_index(item)
+            if isinstance(members, dict):
+                counts = [len(values) for values in members.values()]
+                count = (
+                    f"from {min(counts, default=0)} to {max(counts, default=0)} per region"
+                )
+            else:
+                count = len(members)
+            to_print += "{} = {}\n".format(item, count)
 
         return to_print
 
@@ -3659,7 +3871,7 @@ class CoreModel:
 
         return GDP
 
-    def search(self, item=None, search=None, ignore_case=True):
+    def search(self, item=None, search=None, ignore_case=True, *, region=None, flat=False):
         """Search index values matching a pattern within one set or across all sets.
 
         Parameters
@@ -3671,12 +3883,21 @@ class CoreModel:
             Regular-expression fragment matched against the labels.
         ignore_case:
             When ``True``, perform a case-insensitive search.
+        region:
+            Optional region to search. Each matching set then returns a list.
+            Mutually exclusive with ``flat=True``.
+        flat:
+            When ``True``, search the union of distinct labels and return a
+            list for each matching set, including regional classifications.
 
         Returns
         -------
         list | dict
-            Matching labels in their stored order, or a dictionary grouped by
-            set when searching globally.
+            Matching labels in their stored order for a common classification,
+            or ``{region: matching_labels}`` for a regional classification.
+            Regions without matches are omitted. With ``region`` or
+            ``flat=True``, return a list. Global searches always return a
+            dictionary keyed by matching set, using these same value types.
         """
 
         if search is None:
@@ -3688,21 +3909,30 @@ class CoreModel:
         flags = re.IGNORECASE if ignore_case else 0
         pattern = re.compile(f"{search}", flags)
 
+        options = {}
+        if region is not None:
+            options["region"] = region
+        if flat is not False:
+            options["flat"] = flat
+
+        def matching_labels(labels):
+            return [label for label in labels if pattern.search(str(label))]
+
+        def matching_index(view):
+            if isinstance(view, dict):
+                matches = {r: matching_labels(labels) for r, labels in view.items()}
+                return {r: labels for r, labels in matches.items() if labels}
+            return matching_labels(view)
+
         if item is None:
-            found = {}
-            for set_name in self.sets:
-                matches = [
-                    label for label in self.get_index(set_name) if pattern.search(str(label))
-                ]
-                if matches:
-                    found[set_name] = matches
-            return found
+            matches = {
+                name: matching_index(view)
+                for name, view in self.get_index("all", **options).items()
+            }
+            return {name: labels for name, labels in matches.items() if labels}
 
         item = self._resolve_set_name(item)
-        items = self.get_index(item)
-        found = [label for label in items if pattern.search(str(label))]
-
-        return found
+        return matching_index(self.get_index(item, **options))
 
     @property
     def scenarios(self):
@@ -4070,7 +4300,11 @@ class CoreModel:
         self.matrices = matrices
 
     def __eq__(self, other):
-        """Return ``True`` when two databases expose the same sets and indexes."""
+        """Compare logical sets and regional membership, independently of order.
+
+        As in the historical comparison, matrix values and units do not
+        participate. Regional indexes additionally compare each region's members.
+        """
         main_sets = sorted(self.sets)
         other_sets = sorted(other.sets)
 
@@ -4078,8 +4312,21 @@ class CoreModel:
             return False
 
         for item in self.sets:
-            main_index = set(self.get_index(item))
-            other_index = set(other.get_index(item))
+            main_index = self.get_index(item)
+            other_index = other.get_index(item)
+
+            if isinstance(main_index, Mapping) and isinstance(other_index, Mapping):
+                main_index = {
+                    region: frozenset(members) for region, members in main_index.items()
+                }
+                other_index = {
+                    region: frozenset(members) for region, members in other_index.items()
+                }
+            elif isinstance(main_index, Mapping) or isinstance(other_index, Mapping):
+                return False
+            else:
+                main_index = set(main_index)
+                other_index = set(other_index)
 
             if main_index != other_index:
                 return False

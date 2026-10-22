@@ -6,6 +6,7 @@ import copy
 import xlsxwriter
 import os
 import pandas as pd
+from mario.compute.helpers import _is_sparse_backed_dataframe
 from copy import deepcopy as dc
 
 from mario.log_exc.exceptions import NotImplementable
@@ -19,17 +20,17 @@ from mario.ops.workbook_specs import (
 
 def _sh_excel(instance, num_shock, directory, clusters):
     """Write the Excel template used to define database shocks."""
-    regions = dc(instance.get_index(_MASTER_INDEX["r"]))
+    regions = dc(instance.get_index(_MASTER_INDEX["r"], flat=True))
     if instance.meta.table == "IOT":
-        sectors = dc(instance.get_index(_MASTER_INDEX["s"]))
+        sectors = dc(instance.get_index(_MASTER_INDEX["s"], flat=True))
         activities = commodities = None
     else:
-        activities = dc(instance.get_index(_MASTER_INDEX["a"]))
-        commodities = dc(instance.get_index(_MASTER_INDEX["c"]))
+        activities = dc(instance.get_index(_MASTER_INDEX["a"], flat=True))
+        commodities = dc(instance.get_index(_MASTER_INDEX["c"], flat=True))
         sectors = None
-    factors = dc(instance.get_index(_MASTER_INDEX["f"]))
-    extensions = dc(instance.get_index(_MASTER_INDEX["k"]))
-    categories = dc(instance.get_index(_MASTER_INDEX["n"]))
+    factors = dc(instance.get_index(_MASTER_INDEX["f"], flat=True))
+    extensions = dc(instance.get_index(_MASTER_INDEX["k"], flat=True))
+    categories = dc(instance.get_index(_MASTER_INDEX["n"], flat=True))
     types = ["Percentage", "Absolute", "Update"]
     # z/Y (IOT) and u/s/Yc (SUT) also accept supply-mix and trade-mix
     # redistributions (one number per mix row). The combined option list
@@ -77,6 +78,8 @@ def _sh_excel(instance, num_shock, directory, clusters):
         if block is None or getattr(block, "empty", False):
             return False
 
+        if _is_sparse_backed_dataframe(block):
+            return bool((block.sparse.to_coo().data != 0).any())
         if hasattr(block, "to_numpy"):
             values = block.to_numpy()
         else:

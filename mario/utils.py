@@ -17,6 +17,7 @@ from mario.model.conventions import (
 from mario.model.conventions import INDEX_NAME_LAYOUTS, TABLE_LEVELS
 
 from mario.log_exc.logger import log_time
+from mario.clusters.definitions import normalize_cluster_members
 
 from mario.log_exc.exceptions import (
     WrongInput,
@@ -118,6 +119,13 @@ def _manage_indeces(instance, case, **kwargs):
                     for i in range(instance._indeces[index]["aggregated"].shape[0])
                     if instance._indeces[index]["aggregated"].values[i][0] != "unused"
                 )
+                mapping = instance._indeces[index]["aggregated"]
+                if not isinstance(mapping.index, pd.MultiIndex):
+                    main.extend(
+                        item
+                        for item in instance._indeces[index]["main"]
+                        if item not in mapping.index and item not in main
+                    )
                 instance._indeces[index] = {"main": main}
 
     elif case == "single_region":
@@ -127,6 +135,7 @@ def _manage_indeces(instance, case, **kwargs):
 
 def check_clusters(index_dict, table, clusters):
     """Validate user-provided cluster definitions against database indexes."""
+
     def _format_items(items):
         return "{" + ", ".join(repr(item) for item in sorted(items)) + "}"
 
@@ -141,13 +150,9 @@ def check_clusters(index_dict, table, clusters):
 
     for level, level_cluster in clusters.items():
         for cluster, values in level_cluster.items():
-            differences = set(values).difference(set(index_dict[level]))
-            if differences:
-                raise WrongInput(
-                    "{} in cluster {} for level {} is/are not a valid item/s.".format(
-                        _format_items(differences), cluster, level
-                    )
-                )
+            normalize_cluster_members(
+                values, index_dict[level], level=level, name=cluster
+            )
 
 
 def all_file_reader(

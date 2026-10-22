@@ -40,11 +40,12 @@
   </div>
 
   <div class="f1-srcs" id="f1-srcs"></div>
+  <p class="foot" data-f1-source-note></p>
   <div class="f1-wrap" id="f1-wrap"></div>
   <div class="f1-tablewrap" id="f1-tablewrap" hidden></div>
   <p class="benchmark-chart-hint">Swipe across the chart to see the full range, or switch to Table.</p>
   <p class="foot">Physical-unit emission factors by technology, gCO₂eq/kWh, from the blogpost sample. The input–output sources
-    <b>nxsut&nbsp;3.0</b> and the <b>EXIOBASE Hybrid</b> contribute one point per country × technology.
+    <b>nxsut&nbsp;3.0</b>, <b>EXIOBASE Hybrid</b> and <b>BONSAI</b> contribute one point per available country × technology.
     The literature (Electricity&nbsp;Maps, IPCC, NREL, Ecoinvent) is the article's supplementary distribution:
     Citterio et al. (2026), <a href="https://doi.org/10.1007/s44498-026-00148-3">doi:10.1007/s44498-026-00148-3</a>.
     Life-cycle axis capped at 2500&nbsp;gCO₂eq/kWh (outliers beyond drawn at the edge).</p>
@@ -59,13 +60,16 @@
   const esc = s => String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
   const srcsEl = root.querySelector('#f1-srcs');
   const state = {flow:"lifecycle", clean:"all", view:"chart", srcHidden:new Set()};
-  const NXBASE_SRC = new Set(["nxsut 3.0","EXIOBASE Hybrid"]);
+  const MODEL_SRC = new Set(["nxsut 3.0","EXIOBASE Hybrid","BONSAI"]);
+  const bonsai = F1.source_metadata.BONSAI;
+  const updatedDate = new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'Europe/Rome'}).format(new Date(bonsai.inputs_updated_at));
+  root.querySelector('[data-f1-source-note]').textContent = `BONSAI · native b2 HIOT · reference year ${bonsai.reference_year} · inputs updated ${updatedDate} (Europe/Rome) · BONSAI GWP100, including iLUC and Accelerated CO2. Individual countries only; native RoW and Global blocks excluded.`;
   const CAP = {direct:{all:1600, clean:120}, lifecycle:{all:2500, clean:320}};
 
   function renderSrcs(){
     const present=[...new Set(F1.records.filter(r=>r.flow===state.flow).map(r=>r.source))];
-    const chip=(s,cls)=>`<button class="f1-src${cls}" data-src="${esc(s)}" aria-pressed="${!state.srcHidden.has(s)}" title="Click to show/hide · double-click to isolate"><span class="dot"></span><span class="nm">${esc(s)}</span></button>`;
-    const nx=present.filter(s=>NXBASE_SRC.has(s)), lit=present.filter(s=>!NXBASE_SRC.has(s));
+    const chip=(s,cls)=>`<button class="f1-src${cls}" data-src="${esc(s)}" aria-pressed="${!state.srcHidden.has(s)}" title="Click to show/hide · double-click to isolate${s==='BONSAI'?' · reference year '+bonsai.reference_year+' · inputs updated '+updatedDate:''}"><span class="dot"></span><span class="nm">${esc(s)}</span></button>`;
+    const nx=present.filter(s=>MODEL_SRC.has(s)), lit=present.filter(s=>!MODEL_SRC.has(s));
     const h=nx.map(s=>chip(s,'')).join('') + lit.map(s=>chip(s,' lit')).join('');
     srcsEl.innerHTML=h;
   }
@@ -266,14 +270,15 @@
       parts.push(`<text x="${px}" y="${y+13}" font-size="${FS}" font-weight="${it.head?'600':'400'}" fill="${it.head&&it.color?it.color:ink}" font-family="system-ui,-apple-system,sans-serif">${esc(it.text)}</text>`);
       lx=px + it.text.length*6.7 + GAP;
     });
-    const legH=rows*ROWH+6, totalH=TITLE_H+H+legH+PAD+64;
+    const withBonsai=!state.srcHidden.has('BONSAI');
+    const legH=rows*ROWH+6, totalH=TITLE_H+H+legH+PAD+64+(withBonsai?16:0);
     const pc=_inlinedClone(plot); pc.setAttribute('x',0); pc.setAttribute('y',TITLE_H); pc.setAttribute('width',W); pc.setAttribute('height',H); pc.removeAttribute('style');
     let head='';
     if(logo){ const lw=Math.round(LOGO_H*logo.w/logo.h); head+=`<image xlink:href="${logo.uri}" href="${logo.uri}" x="${W-PAD-lw}" y="${Math.round((TITLE_H-LOGO_H)/2)}" width="${lw}" height="${LOGO_H}"/>`; }
     if(title){ head+=`<text x="${PAD}" y="${Math.round(TITLE_H/2)+6}" font-size="17" font-weight="600" fill="${ink}" font-family="system-ui,-apple-system,sans-serif">${esc(title)}</text>`; }
     const svg=`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${W}" height="${totalH}" viewBox="0 0 ${W} ${totalH}"><rect width="${W}" height="${totalH}" fill="${bg}"/>`
       + head + pc.outerHTML + `<g transform="translate(0,${TITLE_H+H+4})">${parts.join('')}</g>`
-      + `<g transform="translate(${PAD},${TITLE_H+H+legH+20})" fill="${ink}" font-family="Arial,sans-serif" font-size="10"><text y="0">Citterio, Golinucci, Rinaldi and Rocco (2026) · adapted for MARIO · g CO2eq/kWh</text><text y="16">Article and author figures: CC BY 4.0 · doi:10.1007/s44498-026-00148-3</text><text y="32">Source observations retain their terms: enextgen.it/en/analyses/electricity-carbon-footprint/</text></g></svg>`;
+      + `<g transform="translate(${PAD},${TITLE_H+H+legH+20})" fill="${ink}" font-family="Arial,sans-serif" font-size="10"><text y="0">Citterio, Golinucci, Rinaldi and Rocco (2026) · adapted for MARIO · g CO2eq/kWh</text><text y="16">Article and author figures: CC BY 4.0 · doi:10.1007/s44498-026-00148-3</text><text y="32">Source observations retain their terms: enextgen.it/en/analyses/electricity-carbon-footprint/</text>${withBonsai?`<text y="48">BONSAI b2 HIOT · reference year ${bonsai.reference_year} · inputs updated ${esc(updatedDate)} · BONSAI GWP100 · calculated with MARIO</text>`:''}</g></svg>`;
     _rasterize(svg, W, totalH, filename);
   }
   function _f1LegendItems(){

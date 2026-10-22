@@ -31,6 +31,8 @@ from mario.parsers.api import (
 )
 from mario.parsers.adb import parse_adb_iot
 from mario.parsers.bea import parse_bea_sut
+from mario.parsers.bonsai import parse_bonsai_hsut
+from mario.parsers.bonsai_hiot import parse_bonsai_hiot
 from mario.parsers.cepalstat import parse_cepalstat_iot, parse_cepalstat_sut
 from mario.parsers.ceads import parse_ceads_iot
 from mario.parsers.emerging import parse_emerging_iot
@@ -70,6 +72,7 @@ from mario.parsers.tabular import parse_pymrio
 from mario.parsers.handshake import parse_exiobase_3_9_4
 from mario.parsers.useeio import parse_useeio_sut
 from mario.parsers.wiod import parse_wiod_iot, parse_wiod_sut
+from mario.settings.parser_profiles import with_parser_compute_profile
 
 from mario.parsers.specs import (
     HMRSUT_EXTENSIONS,
@@ -139,6 +142,144 @@ def _legacy_model_state_builder(
 models = {"Database": Database, "ModelState": _legacy_model_state_builder}
 logger = logging.getLogger(__name__)
 _GLORIA_CACHE_VERSION = "2026-03-25"
+
+
+@with_parser_compute_profile
+def parse_bonsai(
+    path: str | Path,
+    *,
+    table: str = "SUT",
+    year: int | None = None,
+    extensions: bool = True,
+    unmatched_extensions: str = "warn",
+    unmatched_final_demand: str = "warn",
+    chunksize: int = 100_000,
+    model: str = "Database",
+    name: str | None = None,
+    calc_all: bool = False,
+    **kwargs,
+) -> object:
+    """Parse BONSAI Balanced HSUT or the native, already modelled b2 HIOT.
+
+    Parameters
+    ----------
+    path : str or pathlib.Path
+        Complete ZIP archive or directory containing one Balanced HSUT or b2
+        HIOT release. A single nested release directory is detected automatically.
+    table : str, optional
+        ``SUT`` for Balanced HSUT (default), or ``IOT`` for the b2 HIOT.
+    year : int, optional
+        Reference year. For HSUT, an explicit value must match classification.csv.
+        For HIOT, it is read from nonempty elementary-flow ``time`` values when
+        available; otherwise provide it explicitly. Release dates are not years.
+    extensions : bool, optional
+        Load recalculated elementary flows: ``all_elementary_flows_AB_and_BB.csv``
+        for HSUT, ``total_elementary_flow_w_iLUC.csv`` for HIOT. Defaults to True;
+        False loads only economics with zero satellite placeholders.
+    unmatched_extensions : {"warn", "raise"}, optional
+        Report and omit elementary-flow rows without a classified process, or
+        reject the import. Full omitted rows are retained in the import report.
+    unmatched_final_demand : {"warn", "raise"}, optional
+        For HIOT, report and omit demand for products absent from the native
+        matrix, or reject the import. Full omitted rows remain in the report.
+    chunksize : int, optional
+        Number of CSV rows per read; economic matrices stay sparse.
+    model : {"Database", "ModelState"}, optional
+        Type of the returned MARIO object.
+    name : str, optional
+        Dataset name stored in metadata.
+    calc_all : bool, optional
+        Calculate derived matrices after import. Defaults to False. Large
+        Balanced tables should be inspected or aggregated before computing
+        full inverse matrices.
+
+    Notes
+    -----
+    HSUT requires ``classification.csv``, ``hybrid_supply_w_characteristic_unit.csv``
+    and ``hybrid_use_w_characteristic_unit.csv``. The reference year comes from
+    the classification, not the release directory. Native commodity codes,
+    regional flows and hybrid units are preserved. No value-added accounts are
+    inferred from mixed physical units: Va and Vc contain a zero placeholder.
+
+    HIOT requires ``extended_size_hiot.b2.pkl`` and ``final_demand.b2.csv``
+    from the same source snapshot. A release directory can be updated in place;
+    its name and file modification dates do not establish input consistency.
+    The native matrix already includes Stone, iLUC and
+    capital. Only load trusted BONSAI pickle exports.
+    Native product codes identify IOT Sectors; original activity/reference-product
+    pairs are retained in the import report. For the native net-supply matrix T,
+    X is its diagonal and Z = diag(X)-T. This retains the exact BONSAI system and
+    substitution credits even when source production and demand do not balance.
+    Gross reference production and self consumption cannot be recovered
+    separately. V/VY are zero placeholders. The parser does not convert Balanced
+    HSUTs or read precomputed Leontief inverses or footprints.
+
+    IOT multipliers satisfy f = e (I-z)^-1 = E T^-1. ``calc_ghg()`` applies the
+    MARIO GHG profile, not the export's LCIA workbook. Comparing saved BONSAI
+    footprints requires matching source snapshots, LCIA factors, regional
+    product identities and native units. Characterize the required accounts
+    before ``keep_extensions`` to limit the number of environmental solve rows.
+
+    Import diagnostics and satellite identities are stored in
+    ``Database.info["bonsai"]`` or ``ModelState.metadata.extra["bonsai"]``.
+    No archive extraction or automatic download is performed; HSUT uses only CSVs.
+    Satellite labels use ``name | compartment``. Native UUIDs are appended only
+    to disambiguate homonyms, and units only if the same identity has multiple
+    units. Original identities remain in the import report and units in
+    ``Database.units["Satellite account"]``.
+
+    A successful import sets session compute defaults to ``compute_method='solve'``,
+    ``linear_solver='umfpack'`` when installed (otherwise ``'scipy'``), ``linear_strategy='direct'`` and
+    ``singular_policy='partial'``, including when ``calc_all=True``. These defaults
+    also affect other databases in the same Python process; they can be changed
+    afterwards with the compute settings functions. Other settings and the saved
+    user profile are unchanged. UMFPACK requires ``scikit-umfpack`` and SuiteSparse
+    (``conda install -c conda-forge scikit-umfpack``). The optional
+    ``mariopy[umfpack]`` extra installs the Python wrapper; pip users must install
+    SuiteSparse first. Missing optional dependencies select SciPy; numerical
+    failures are not retried with another solver. Failed imports restore prior settings.
+    Partial solves warn and return NaN at coefficients affected by singular
+    components, without changing source data. Defaults are defined in
+    ``mario.settings.parser_profiles.PARSER_COMPUTE_PROFILES["bonsai"]``.
+    """
+    validate_parse_request(table=table, model=model)
+    reader = parse_bonsai_hsut if table == "SUT" else parse_bonsai_hiot
+    reader_options = {} if table == "SUT" else {
+        "year": year, "unmatched_final_demand": unmatched_final_demand,
+    }
+    matrices, indexes, units, layout = reader(
+        path,
+        extensions=extensions,
+        unmatched_extensions=unmatched_extensions,
+        chunksize=chunksize,
+        **reader_options,
+    )
+    if table == "SUT" and year is not None and (
+        isinstance(year, bool) or not isinstance(year, int) or year != layout.year
+    ):
+        raise WrongInput("BONSAI year must match the reference year in classification.csv.")
+    # Constructors normally discard derived X. In the HIOT export this is
+    # authoritative source production, needed even when Z/Y are not balanced.
+    source_output = matrices["baseline"].get("X")
+    result = models[model](
+        name=name or ("BONSAI Balanced HSUT" if table == "SUT" else "BONSAI HIOT b2"),
+        table=table,
+        source=layout.source,
+        year=layout.year,
+        init_by_parsers={"matrices": matrices, "_indeces": indexes, "units": units},
+        calc_all=calc_all if table == "SUT" else False,
+        notes=list(layout.notes),
+        **kwargs,
+    )
+    if model == "ModelState":
+        result.metadata.extra["bonsai"] = layout.report
+    else:
+        result.info["bonsai"] = layout.report
+    if source_output is not None:
+        result.set_block("X", source_output)
+        if calc_all and model == "Database":
+            result.calc_all()
+    return result
 
 
 def _normalize_gloria_regions(regions):
@@ -238,6 +379,7 @@ def _build_gloria_database(
         **kwargs,
     )
 
+@with_parser_compute_profile
 def parse_from_txt(
     path: str,
     table: str,
@@ -339,6 +481,7 @@ def parse_from_txt(
     )
 
 
+@with_parser_compute_profile
 def parse_from_parquet(
     path: str,
     table: str,
@@ -397,6 +540,7 @@ def parse_from_parquet(
     )
 
 
+@with_parser_compute_profile
 def parse_from_excel(
     path: str,
     table: str,
@@ -498,6 +642,7 @@ def parse_from_excel(
     )
 
 
+@with_parser_compute_profile
 def parse_exiobase_sut(
     path: str,
     calc_all: bool =False,
@@ -570,6 +715,7 @@ def parse_exiobase_sut(
     )
 
 
+@with_parser_compute_profile
 def parse_exiobase_3(
     path: str,
     calc_all: bool =False,
@@ -649,6 +795,7 @@ def parse_exiobase_3(
 
 
 
+@with_parser_compute_profile
 def parse_eora(
     path: str,
     multi_region: bool,
@@ -806,6 +953,7 @@ def _resolve_exiobase_parse_path(
     return path
 
 
+@with_parser_compute_profile
 def parse_exiobase(
     table:str,
     unit:str,
@@ -907,6 +1055,7 @@ def parse_exiobase(
     return parser(**kwargs)
 
 
+@with_parser_compute_profile
 def hybrid_sut_exiobase(
     path:str,
     extensions: list | str | None = None,
@@ -984,6 +1133,7 @@ def hybrid_sut_exiobase(
     )
 
 
+@with_parser_compute_profile
 def hybrid_iot_exiobase(
     path: str,
     extensions: list | str | None = None,
@@ -1039,6 +1189,7 @@ def hybrid_iot_exiobase(
     )
 
 
+@with_parser_compute_profile
 def parse_eurostat(
     country: str,
     year: int,
@@ -1208,6 +1359,7 @@ def parse_eurostat(
     )
 
 
+@with_parser_compute_profile
 def parse_statcan(
     year: int,
     table: str = "SUT",
@@ -1406,6 +1558,7 @@ def parse_statcan(
     )
 
 
+@with_parser_compute_profile
 def parse_oecd(
     path: str | None = None,
     *,
@@ -1514,6 +1667,7 @@ def parse_oecd(
     )
 
 
+@with_parser_compute_profile
 def parse_cepalstat(
     path: str,
     *,
@@ -1616,6 +1770,7 @@ def parse_cepalstat(
     )
 
 
+@with_parser_compute_profile
 def parse_istat(
     path: str,
     *,
@@ -1727,6 +1882,7 @@ def parse_istat(
     )
 
 
+@with_parser_compute_profile
 def parse_ceads(
     path: str,
     *,
@@ -1802,6 +1958,7 @@ def parse_ceads(
     )
 
 
+@with_parser_compute_profile
 def parse_bea(
     path: str,
     *,
@@ -1879,6 +2036,7 @@ def parse_bea(
     )
 
 
+@with_parser_compute_profile
 def parse_adb(
     path: str,
     table: str = "IOT",
@@ -1996,6 +2154,7 @@ def parse_adb(
     )
 
 
+@with_parser_compute_profile
 def parse_emerging(
     path: str,
     table: str = "IOT",
@@ -2055,6 +2214,15 @@ def parse_emerging(
 
     MATLAB v7.3 stored axes are normalized to MARIO's row/column convention
     during sparse loading, avoiding a dense transpose of the full matrix.
+
+    Full EMERGING readings have about 32,600--35,800 production nodes. Install
+    the optional sparse solver with ``conda install -c conda-forge scikit-umfpack``
+    or use ``pip install 'mariopy[umfpack]'`` after installing SuiteSparse.
+    Successful imports select session defaults ``solve``, ``direct`` and
+    ``singular_policy='raise'``, preferring UMFPACK and falling back to SciPy
+    if the optional backend cannot be imported. Defaults also affect other
+    databases in this Python session and do not change the saved profile.
+    Keep ``calc_all=False`` to calculate only the matrices requested later.
 
     Parameters
     ----------
@@ -2125,6 +2293,7 @@ def parse_emerging(
     )
 
 
+@with_parser_compute_profile
 def parse_wiod(
     path: str,
     table: str = "IOT",
@@ -2230,6 +2399,7 @@ def parse_wiod(
     )
 
 
+@with_parser_compute_profile
 def parse_eurostat_sut(
     country: str,
     year: int,
@@ -2254,6 +2424,7 @@ def parse_eurostat_sut(
     )
 
 
+@with_parser_compute_profile
 def parse_from_pymrio(
         io,
         value_added,
@@ -2307,6 +2478,7 @@ def parse_from_pymrio(
     )
 
 
+@with_parser_compute_profile
 def parse_figaro(
     path: str | None = None,
     table: str = "SUT",
@@ -2400,6 +2572,7 @@ def parse_figaro(
     )
 
 
+@with_parser_compute_profile
 def parse_gtap(
     path: str,
     table: str = "IOT",
@@ -2521,6 +2694,7 @@ def parse_gtap(
     return database
 
 
+@with_parser_compute_profile
 def parse_useeio(
     path: str,
     *,
@@ -2621,6 +2795,7 @@ def parse_useeio(
     )
 
 
+@with_parser_compute_profile
 def parse_gloria(
     path: str,
     table: str = "SUT",
@@ -2640,6 +2815,16 @@ def parse_gloria(
     The current GLORIA backend targets the monetary multi-regional SUT bundles
     shipped as raw ``T``, ``Y`` and ``V`` csv files together with the GLORIA
     ReadMe workbook. GLORIA IOT parsing is intentionally left for a later step.
+
+    For full-region calculations, install the optional sparse solver with
+    ``conda install -c conda-forge scikit-umfpack`` or use
+    ``pip install 'mariopy[umfpack]'`` after installing SuiteSparse. A full v060
+    reading has 19,680 activities and 19,680 commodities. Successful imports
+    select session defaults ``solve``, ``direct`` and ``singular_policy='raise'``,
+    preferring UMFPACK and falling back to SciPy if the optional backend cannot
+    be imported. Defaults also affect other databases in this Python session
+    and do not change the saved profile. Keep ``calc_all=False`` to calculate
+    only the matrices requested later.
 
     Parameters
     ----------

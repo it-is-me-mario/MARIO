@@ -12,3 +12,4 @@ recursive-include mario *.xlsx
 recursive-include mario *.yaml
 include mario/settings/*.yaml
 include mario/settings/*.py
+exclude mario/settings/api_keys.yaml

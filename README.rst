@@ -68,6 +68,18 @@ Install from PyPI:
 
 Parquet import and export support is included in the default installation.
 
+For full BONSAI, GLORIA and EMERGING calculations, the optional UMFPACK sparse
+solver is recommended:
+
+.. code-block:: bash
+
+   conda install -c conda-forge scikit-umfpack
+
+Alternatively, install SuiteSparse with your system package manager first,
+then run ``python -m pip install "mariopy[umfpack]"``. The ``all`` extra also
+includes this wrapper. These parsers select solve/direct defaults and use
+SciPy when UMFPACK is unavailable; see each database's parsing walkthrough.
+
 Install from source:
 
 .. code-block:: bash

@@ -28,11 +28,13 @@
       const units=p.provenance?.options?.unit || "Monetary";
       const licence=profileLicence(p,licenceMetadata);
       for(const dimension of ["Sector","Activity","Commodity"]) {
-        const sectors=p.counts[dimension];
+        const display=p.scope_counts?.[dimension];
+        const sectors=display?.count ?? p.counts[dimension];
         if(!(sectors>0))continue;
         const key=JSON.stringify([p.source,sectors,p.counts.Region,units,environmental]);
-        if(!groups.has(key))groups.set(key,{family:familyName(p.source),sectors,regions:p.counts.Region,units,environmental,dimensions:[],systems:[],releases:[],years:[],ids:[],statuses:[],parser_supported:[],yearEvidence:[],sourceCoverage:[],licensed:false,licences:[]});
+        if(!groups.has(key))groups.set(key,{family:familyName(p.source),sectors,regions:p.counts.Region,units,environmental,dimensions:[],systems:[],releases:[],years:[],ids:[],statuses:[],parser_supported:[],yearEvidence:[],sourceCoverage:[],countNotes:[],licensed:false,licences:[]});
         const item=groups.get(key);
+        item.countNotes=unique([...item.countNotes,display?.note].filter(Boolean));
         let terms=item.licences.find(entry=>entry.category===licence.category&&entry.label===licence.label&&entry.url===licence.url);
         if(!terms){terms={...licence,releases:[]};item.licences.push(terms);}
         terms.releases=unique([...terms.releases,p.release].filter(Boolean)).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
@@ -106,7 +108,7 @@
       return [{type:"scatter",mode:"markers",x:group.map(p=>p.sectors),y:group.map(p=>p.regions),name:family,legendgroup:family,showlegend:false,
           marker:{symbol,size:16,color:group.map(p=>p.environmental?colors.extended:colors.base),line:{color:group.map(()=>colors.outline || colors.ink),width:group.map(p=>p.access==="open"?0:2),dash:group.map(p=>p.access==="noncommercial"?"3px,2px":p.access==="unverified"?"dot":"solid")}},
           customdata:group.map(p=>[family,p.units,[p.dimensions.join(" / "),p.systems.join(" / ")].filter(Boolean).join(" · "),p.releases.length?"Versions: "+p.releases.sort((a,b)=>a.localeCompare(b,undefined,{numeric:true})).join(" · ")+"<br>":"",yearPeriods(p.years)+(p.sourceCoverage.length?"<br>Publisher series: "+p.sourceCoverage.join(" / "):""),p.environmental?"Environmental data included":"No environmental accounts",(p.yearEvidence.length?p.yearEvidence.join(" / "):p.statuses?.includes("source_verified")?(p.parser_supported.every(v=>!v)?"Source metadata · MARIO parser unavailable":"Native metadata · MARIO parser available"):"Verified MARIO parse · parser available")+(p.licensed?" · scope only; numerical indicators not published":""),licenceText(p)]),
-          hovertemplate:"<b>%{customdata[0]}</b><br>%{x} sectors · %{y} regions<br>%{customdata[1]} · %{customdata[2]}<br>%{customdata[3]}Base / data years: %{customdata[4]}<br>%{customdata[5]}<br>%{customdata[6]}<br>%{customdata[7]}<extra></extra>"},
+          hovertemplate:"<b>%{customdata[0]}</b><br>%{x} sectors · %{y} regions<br>%{customdata[1]} · %{customdata[2]}<br>%{customdata[3]}Base / data years: %{customdata[4]}<br>%{customdata[5]}<br>%{customdata[6]}<br>%{customdata[7]}<br>%{text}<extra></extra>",text:group.map(p=>(p.countNotes||[]).join("<br>"))},
         {type:"scatter",mode:"text",x:[labels[index].x],y:[labels[index].y],text:[family],textposition:"middle center",textfont:{color:colors.ink,size:labels[index].fontSize},name:family,legendgroup:family,showlegend:false,hoverinfo:"skip"}];
     });
     const base={rangemode:"tozero",tickformat:",d",nticks:6,gridcolor:colors.grid,gridwidth:1,zerolinecolor:colors.ink,zerolinewidth:1.5,showline:true,linecolor:colors.ink,linewidth:1.5,mirror:false,automargin:true};

@@ -44,7 +44,6 @@ from mario.log_exc.exceptions import WrongInput
 from mario.log_exc.logger import log_time
 from mario.model.conventions import _ENUM, _MASTER_INDEX
 from mario.settings.settings import canonical_matrix_name
-from mario.utils import delete_duplicates
 
 logger = logging.getLogger(__name__)
 
@@ -115,10 +114,20 @@ def _aggregate_legacy_axis(labels: pd.MultiIndex, agg_indeces: dict) -> pd.Multi
     )
     levels = list(labels.get_level_values(1))
 
+    mappings = {
+        level: _aggregation_mapping(agg_indeces.get(level)) for level in set(levels)
+    }
+    regional = {
+        level: isinstance(getattr(agg_indeces.get(level), "index", None), pd.MultiIndex)
+        for level in set(levels)
+    }
     items = []
-    for level_label, value in zip(levels, labels.get_level_values(2)):
-        level_mapping = _aggregation_mapping(agg_indeces.get(level_label))
-        items.append(level_mapping.get(value, value) if level_mapping else value)
+    for source_region, level_label, value in zip(
+        labels.get_level_values(0), levels, labels.get_level_values(2)
+    ):
+        level_mapping = mappings[level_label]
+        key = (source_region, value) if regional[level_label] else value
+        items.append(level_mapping.get(key, value) if level_mapping else value)
 
     return pd.MultiIndex.from_arrays(
         [regions, levels, items],
@@ -126,17 +135,26 @@ def _aggregate_legacy_axis(labels: pd.MultiIndex, agg_indeces: dict) -> pd.Multi
     )
 
 
-def _aggregate_semantic_axis(labels, semantic_names: tuple[str, ...], agg_indeces: dict):
+def _aggregate_semantic_axis(
+    labels, semantic_names: tuple[str, ...], agg_indeces: dict
+):
     """Aggregate one axis already expressed with semantic MARIO set names."""
     if isinstance(labels, pd.MultiIndex):
         arrays = []
         for position, level_name in enumerate(semantic_names):
-            arrays.append(
-                _map_values(
-                    labels.get_level_values(position),
-                    _aggregation_mapping(agg_indeces.get(level_name)),
+            stored = agg_indeces.get(level_name)
+            mapping = _aggregation_mapping(stored)
+            values = labels.get_level_values(position)
+            if isinstance(getattr(stored, "index", None), pd.MultiIndex):
+                source_regions = labels.get_level_values(_MASTER_INDEX["r"])
+                arrays.append(
+                    [
+                        mapping.get((region, value), value)
+                        for region, value in zip(source_regions, values)
+                    ]
                 )
-            )
+            else:
+                arrays.append(_map_values(values, mapping))
         return pd.MultiIndex.from_arrays(arrays, names=list(semantic_names))
 
     return pd.Index(
@@ -207,11 +225,13 @@ def _aggregate_frame_values(frame: pd.DataFrame, row_labels, col_labels) -> pd.D
     if _is_zero_fill_sparse_frame(frame):
         values = frame.sparse.to_coo().tocsr()
         aggregated = (row_aggregator @ values @ col_aggregator).tocsr()
-        return pd.DataFrame.sparse.from_spmatrix(
+        from mario.compute.helpers import sparse_frame_from_spmatrix
+
+        return sparse_frame_from_spmatrix(
             aggregated,
             index=unique_rows,
             columns=unique_cols,
-        ).fillna(0.0)
+        )
 
     values = frame.to_numpy(copy=False)
     if values.dtype == object:
@@ -330,11 +350,38 @@ def _nonzero_coefficient_columns(block: pd.DataFrame, labels: pd.Index) -> pd.In
     if len(columns) == 0:
         return columns
 
-    mask = (block.loc[:, columns].to_numpy(dtype=float) != 0).any(axis=0)
+    selected = block.loc[:, columns]
+    if _is_zero_fill_sparse_frame(selected):
+        values = selected.sparse.to_coo()
+        positions = np.unique(values.col[values.data != 0])
+        return columns[positions]
+    mask = (selected.to_numpy(dtype=float) != 0).any(axis=0)
     return columns[mask]
 
 
-def _build_zero_output_flow_overrides(instance, values, scenario: str, epsilon: float | None):
+def _replace_flow_columns(block, columns, replacement=0.0):
+    """Replace complete columns without assigning into immutable SparseArrays."""
+    block = block.copy()
+    for column in columns:
+        values = (
+            replacement[column]
+            if isinstance(replacement, pd.DataFrame)
+            else replacement
+        )
+        if isinstance(block[column].dtype, pd.SparseDtype):
+            if isinstance(values, pd.Series):
+                values = values.astype(block[column].dtype).array
+            else:
+                values = pd.arrays.SparseArray(
+                    np.full(len(block.index), values, dtype=float), fill_value=0.0
+                )
+        block[column] = values
+    return block
+
+
+def _build_zero_output_flow_overrides(
+    instance, values, scenario: str, epsilon: float | None
+):
     """Re-materialize tiny flow columns for zero-output items that still carry coefficients."""
     if epsilon is None:
         return {}, pd.Index([])
@@ -385,7 +432,7 @@ def _build_zero_output_flow_overrides(instance, values, scenario: str, epsilon: 
         rebuilt = calculator(coefficient_block, adjusted_X)
         columns = flow_block.columns.intersection(preserved_labels)
         if len(columns):
-            flow_block.loc[:, columns] = rebuilt.loc[:, columns]
+            flow_block = _replace_flow_columns(flow_block, columns, rebuilt)
         overrides[flow_name] = flow_block
 
     return overrides, preserved_labels
@@ -411,14 +458,11 @@ def _clear_zero_output_flow_overrides(matrices: dict[str, pd.DataFrame]) -> pd.I
         if len(columns) == 0:
             continue
 
-        mask = (block.loc[:, columns].to_numpy(dtype=float) != 0).any(axis=0)
-        impacted = columns[mask]
+        impacted = _nonzero_coefficient_columns(block, columns)
         if len(impacted) == 0:
             continue
 
-        block = block.copy()
-        block.loc[:, impacted] = 0.0
-        matrices[matrix_name] = block
+        matrices[matrix_name] = _replace_flow_columns(block, impacted)
         cleared = cleared.union(impacted)
 
     if len(cleared) == 0:
@@ -497,7 +541,9 @@ def _resolve_sut_output_blocks(instance, values, scenario: str) -> tuple[pd.Data
     return Xa, Xc
 
 
-def _build_zero_output_sut_flow_overrides(instance, values, scenario: str, epsilon: float | None):
+def _build_zero_output_sut_flow_overrides(
+    instance, values, scenario: str, epsilon: float | None
+):
     """Preserve SUT split-flow columns for zero-output items using split coefficients."""
     if epsilon is None:
         return {}, pd.Index([]), pd.Index([])
@@ -570,7 +616,7 @@ def _build_zero_output_sut_flow_overrides(instance, values, scenario: str, epsil
         rebuilt = builder(coefficient_block, output_block)
         columns = flow_block.columns.intersection(preserved_activities)
         if len(columns):
-            flow_block.loc[:, columns] = rebuilt.loc[:, columns]
+            flow_block = _replace_flow_columns(flow_block, columns, rebuilt)
         overrides[flow_name] = flow_block
 
     tech_assumption = getattr(instance, "tech_assumption", None)
@@ -603,13 +649,15 @@ def _build_zero_output_sut_flow_overrides(instance, values, scenario: str, epsil
         rebuilt = builder(coefficient_block, adjusted_Xc)
         columns = flow_block.columns.intersection(preserved_commodities)
         if len(columns):
-            flow_block.loc[:, columns] = rebuilt.loc[:, columns]
+            flow_block = _replace_flow_columns(flow_block, columns, rebuilt)
         overrides[flow_name] = flow_block
 
     return overrides, preserved_activities, preserved_commodities
 
 
-def _clear_zero_output_sut_flow_overrides(matrices: dict[str, pd.DataFrame]) -> pd.Index:
+def _clear_zero_output_sut_flow_overrides(
+    matrices: dict[str, pd.DataFrame]
+) -> pd.Index:
     """Clear split-flow columns that still aggregate to zero output in SUT scenarios."""
     Xa = matrices.get("Xa")
     Xc = matrices.get("Xc")
@@ -627,14 +675,11 @@ def _clear_zero_output_sut_flow_overrides(matrices: dict[str, pd.DataFrame]) -> 
         if len(columns) == 0:
             continue
 
-        mask = (block.loc[:, columns].to_numpy(dtype=float) != 0).any(axis=0)
-        impacted = columns[mask]
+        impacted = _nonzero_coefficient_columns(block, columns)
         if len(impacted) == 0:
             continue
 
-        block = block.copy()
-        block.loc[:, impacted] = 0.0
-        matrices[matrix_name] = block
+        matrices[matrix_name] = _replace_flow_columns(block, impacted)
         cleared = cleared.union(impacted)
 
     commodity_blocks = ("S", "Vc", "Ec")
@@ -647,14 +692,11 @@ def _clear_zero_output_sut_flow_overrides(matrices: dict[str, pd.DataFrame]) -> 
         if len(columns) == 0:
             continue
 
-        mask = (block.loc[:, columns].to_numpy(dtype=float) != 0).any(axis=0)
-        impacted = columns[mask]
+        impacted = _nonzero_coefficient_columns(block, columns)
         if len(impacted) == 0:
             continue
 
-        block = block.copy()
-        block.loc[:, impacted] = 0.0
-        matrices[matrix_name] = block
+        matrices[matrix_name] = _replace_flow_columns(block, impacted)
         cleared = cleared.union(impacted)
 
     if len(cleared) == 0:
@@ -866,54 +908,35 @@ def _aggregator(instance, drop, *, zero_output_epsilon: float | None = None):
 
 
 def unit_aggregation_check(instance, drop):
-    """
-    This function checks if two items with diffrerent units are not being aggregated
-    """
-
+    """Keep unit metadata aligned with global and regional aggregation targets."""
     if isinstance(drop, str):
         drop = [drop]
-
-    units = copy.deepcopy(instance.units)
-    new_units = {}
-
-    indeces = copy.deepcopy(instance.get_index("all", "aggregated"))
-    for item in [*units]:
-        aggregation = indeces.get(item)
-        if aggregation is not None:
-            aggregation.reset_index(level=0, inplace=True)
-            aggregation = aggregation.set_index("Aggregation")
-
-            aggregation.columns = ["values"]
-
-            aggregated = aggregation.index.unique()
-
-            _new_units = {}
-
-            for index in aggregated:
-                if index in drop:
-                    continue
-
-                match = list(aggregation.loc[index, :].to_numpy().flatten())
-
-                take_units = delete_duplicates(
-                    units[item].loc[match, "unit"].to_numpy().flatten()
-                )
-
-                if len(take_units) > 1:
-                    raise WrongInput(
-                        "Aggregation of items with different units are not allowed for {}.(check aggregation of {})".format(
-                            item, index
-                        )
-                    )
-                _new_units[index] = take_units[0]
-
-            _new_units = pd.DataFrame.from_dict(
-                _new_units, orient="index", columns=["unit"]
-            )
-
-            new_units[item] = _new_units
-
+    result = {}
+    mappings = instance.get_index("all", "aggregated")
+    for level, units in instance.units.items():
+        frame = mappings.get(level)
+        if frame is None:
+            result[level] = units.copy(deep=True)
+            continue
+        mapping = frame["Aggregation"].to_dict()
+        if isinstance(frame.index, pd.MultiIndex):
+            sources = [(source[1], target) for source, target in mapping.items()]
         else:
-            new_units[item] = units[item]
-
-    return new_units
+            sources = list(mapping.items()) + [
+                (source, source) for source in units.index if source not in mapping
+            ]
+        targets = {}
+        for source, target in sources:
+            if target in drop:
+                continue
+            unit = units.loc[source, "unit"]
+            if target in targets and targets[target] != unit:
+                raise WrongInput(
+                    "Aggregation of items with different units are not allowed "
+                    f"for {level}.(check aggregation of {target})"
+                )
+            targets[target] = unit
+        result[level] = pd.DataFrame.from_dict(
+            targets, orient="index", columns=["unit"]
+        )
+    return result

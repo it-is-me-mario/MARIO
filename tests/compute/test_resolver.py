@@ -65,9 +65,9 @@ def test_resolve_iot_solve_context_materializes_w_via_linear_solve(monkeypatch):
     expected = calc_w(calc_z(iot.Z, iot.X))
 
     def _boom(*args, **kwargs):
-        raise AssertionError("safe_inverse should not be called under solve context")
+        raise AssertionError("leontief_inverse should not be called under solve context")
 
-    monkeypatch.setattr("mario.compute.iot_formulas.safe_inverse", _boom)
+    monkeypatch.setattr("mario.compute.iot_formulas.leontief_inverse", _boom)
 
     resolved = resolve("w", iot, context=ResolutionContext(compute_method="solve", linear_solver="scipy"))
 
@@ -358,9 +358,9 @@ def test_resolve_sut_solve_context_materializes_w_via_linear_solve(monkeypatch):
     expected = calc_w(calc_z(sut.Z, sut.X))
 
     def _boom(*args, **kwargs):
-        raise AssertionError("safe_inverse should not be called under solve context")
+        raise AssertionError("leontief_inverse should not be called under solve context")
 
-    monkeypatch.setattr("mario.compute.sut_formulas.safe_inverse", _boom)
+    monkeypatch.setattr("mario.compute.sut_formulas.leontief_inverse", _boom)
 
     resolved = resolve("w", sut, context=ResolutionContext(compute_method="solve", linear_solver="scipy"))
 

@@ -301,10 +301,9 @@ def build_region_clusters(database):
 
 
 def build_default_clusters(database):
-    """Build default clusters for one database."""
+    """Build default clusters retaining each set's regional representation."""
     clusters = {
-        set_name: {"all": list(database.get_index(set_name))}
-        for set_name in database.sets
+        set_name: {"all": database.get_index(set_name)} for set_name in database.sets
     }
 
     if "Region" in clusters:

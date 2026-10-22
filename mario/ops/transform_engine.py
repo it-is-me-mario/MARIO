@@ -9,343 +9,52 @@ For further information check
 'Eurostat Manual of Supply, Use and Input-Output Tables, 2008'
 """
 
-from mario.log_exc.exceptions import (
-    WrongInput,
-    NotImplementable,
-)
-from mario.log_exc.logger import log_time
-import pandas as pd
-import numpy as np
-import copy
-from mario.compute.primitives import calc_X
-from mario.model.conventions import _ENUM, _MASTER_INDEX
-from mario.utils import rename_index
-
-
-import logging
-
-logger = logging.getLogger(__name__)
-
+from mario.model.conventions import _MASTER_INDEX
 
 SUT_TO_IOT_METHODS = ["A", "B", "C", "D"]
 
 
-def _restore_public_axis_names(axis, original):
-    """Restore axis names after legacy helpers overwrite them."""
-    if isinstance(original, pd.MultiIndex) and isinstance(axis, pd.MultiIndex) and axis.nlevels == original.nlevels:
-        return pd.MultiIndex.from_tuples(axis.tolist(), names=list(original.names))
-    if not isinstance(original, pd.MultiIndex) and not isinstance(axis, pd.MultiIndex):
-        return pd.Index(axis.tolist(), name=original.name)
-    return axis
-
-
 def SUT_to_IOT(instance, method):
-    """Convert a SUT database to an IOT using Eurostat methods ``A`` to ``D``."""
-    if method not in SUT_TO_IOT_METHODS:
-        raise WrongInput(
-            "'{}' is not an accpetable input for 'method'. "
-            "Acceptable values are \n{}".format(method, SUT_TO_IOT_METHODS)
-        )
-    # Making a deep copy of the matrices to avoid changing the baseline
+    """Convert native SUT flows using Eurostat methods ``A`` to ``D``."""
+    from mario.ops.sut_to_iot import convert
 
-    data = instance.query(
-        matrices=[
-            _ENUM.Z,
-            _ENUM.V,
-            _ENUM.E,
-            _ENUM.X,
-            _ENUM.Y,
-            _ENUM.S,
-            _ENUM.U,
-            _ENUM.EY,
-            _ENUM.VY,
-        ],
-    )
-
-    original_public_axes = {
-        _ENUM.V: data[_ENUM.V].index.copy(deep=True),
-        _ENUM.E: data[_ENUM.E].index.copy(deep=True),
-        _ENUM.EY: data[_ENUM.EY].index.copy(deep=True),
-        _ENUM.VY: data[_ENUM.VY].index.copy(deep=True),
-    }
-
-    data[_ENUM.V] = data[_ENUM.V].loc[:, (slice(None), _MASTER_INDEX["a"], slice(None))]
-    data[_ENUM.E] = data[_ENUM.E].loc[:, (slice(None), _MASTER_INDEX["a"], slice(None))]
-
-    q = data[_ENUM.X].loc[(slice(None), _MASTER_INDEX["c"], slice(None)), :].values
-    g = data[_ENUM.X].loc[(slice(None), _MASTER_INDEX["a"], slice(None)), :].values
-
-    if method == "A":
-        "Check number of commodities and industries"
-        if data[_ENUM.S].shape[0] != data[_ENUM.S].shape[1]:
-            raise NotImplementable(
-                "Method "
-                + str(method)
-                + " is not an acceptable for this table: commodities number must match activities number"
-            )
-
-        "Transformation matrix"
-        try:
-            T = np.linalg.inv(data[_ENUM.S].T) @ np.diagflat(q)
-        except np.linalg.LinAlgError:
-            log_time(
-                logger,
-                "Singular matrix issue. The (Moore-Penrose) "
-                "pseudo-inverse of a matrix will be used. This "
-                "may raise some inconsistency in the data",
-                "critical",
-            )
-            T = np.linalg.pinv(data[_ENUM.S].T) @ np.diagflat(q)
-
-        "Product by Product IOT"
-        Z_index = [
-            data[_ENUM.U].index.get_level_values(0),
-            [_MASTER_INDEX["s"]] * data[_ENUM.U].shape[0],
-            data[_ENUM.U].index.get_level_values(2),
-        ]
-
-        Z = pd.DataFrame(data[_ENUM.U].values @ T, index=Z_index, columns=Z_index)
-        V = pd.DataFrame(
-            data[_ENUM.V].values @ T, index=data[_ENUM.V].index, columns=Z_index
-        )
-        E = pd.DataFrame(
-            data[_ENUM.E].values @ T, index=data[_ENUM.E].index, columns=Z_index
-        )
-
-        Y = data[_ENUM.Y].loc[(slice(None), _MASTER_INDEX["c"], slice(None)), :]
-        Y.index = Z_index
-
-        "Fixing units"
-        units = copy.deepcopy(instance.units)
-        units[_MASTER_INDEX["s"]] = units[_MASTER_INDEX["c"]]
-
-        _indeces = copy.deepcopy(instance._indeces)
-        _indeces["s"] = _indeces["c"]
-
-    if method == "B":
-        "Transformation matrix"
-        try:
-            T = np.linalg.inv(np.diagflat(g)) @ data[_ENUM.S].values
-        except np.linalg.LinAlgError:
-            log_time(
-                logger,
-                "Singular matrix issue. The (Moore-Penrose) "
-                "pseudo-inverse of a matrix will be used. This "
-                "may raise some inconsistency in the data",
-                "critical",
-            )
-            T = np.linalg.pinv(np.diagflat(g)) @ data[_ENUM.S].values
-
-        "Product by Product IOT"
-        Z_index = [
-            data[_ENUM.U].index.get_level_values(0),
-            [_MASTER_INDEX["s"]] * data[_ENUM.U].shape[0],
-            data[_ENUM.U].index.get_level_values(2),
-        ]
-
-        Z = pd.DataFrame(data[_ENUM.U].values @ T, index=Z_index, columns=Z_index)
-        V = pd.DataFrame(
-            data[_ENUM.V].values @ T, index=data[_ENUM.V].index, columns=Z_index
-        )
-        E = pd.DataFrame(
-            data[_ENUM.E].values @ T, index=data[_ENUM.E].index, columns=Z_index
-        )
-
-        Y = data[_ENUM.Y].loc[(slice(None), _MASTER_INDEX["c"], slice(None)), :]
-        Y.index = Z_index
-
-        "Fixing units"
-        units = copy.deepcopy(instance.units)
-        units[_MASTER_INDEX["s"]] = units[_MASTER_INDEX["c"]]
-
-        _indeces = copy.deepcopy(instance._indeces)
-        _indeces["s"] = _indeces["c"]
-
-    if method == "C":
-        "Check number of commodities and industries"
-        if data[_ENUM.S].shape[0] != data[_ENUM.S].shape[1]:
-            raise NotImplementable(
-                "Method "
-                + str(method)
-                + " is not an acceptable for this table: commodities number must match activities number"
-            )
-
-        "Transformation matrix"
-        try:
-            T = np.diagflat(g) @ np.linalg.inv(data[_ENUM.S].T)
-        except np.linalg.LinAlgError:
-            log_time(
-                logger,
-                "Singular matrix issue. The (Moore-Penrose) "
-                "pseudo-inverse of a matrix will be used. This "
-                "may raise some inconsistency in the data",
-                "critical",
-            )
-            T = np.diagflat(g) @ np.linalg.pinv(data[_ENUM.S].T)
-
-        "Industry by Industry IOT"
-        Z_index = [
-            data[_ENUM.S].index.get_level_values(0),
-            [_MASTER_INDEX["s"]] * data[_ENUM.S].shape[0],
-            data[_ENUM.S].index.get_level_values(2),
-        ]
-
-        Z = pd.DataFrame(T @ data[_ENUM.U].values, index=Z_index, columns=Z_index)
-        V = pd.DataFrame(
-            data[_ENUM.V].values, index=data[_ENUM.V].index, columns=Z_index
-        )
-        E = pd.DataFrame(
-            data[_ENUM.E].values, index=data[_ENUM.E].index, columns=Z_index
-        )
-        Y = pd.DataFrame(
-            T
-            @ data[_ENUM.Y]
-            .loc[(slice(None), _MASTER_INDEX["c"], slice(None)), :]
-            .values,
-            index=Z_index,
-            columns=data[_ENUM.Y].columns,
-        )
-
-        "Fixing units"
-        units = copy.deepcopy(instance.units)
-        units[_MASTER_INDEX["s"]] = units[_MASTER_INDEX["a"]]
-
-        _indeces = copy.deepcopy(instance._indeces)
-        _indeces["s"] = _indeces["a"]
-
-    if method == "D":
-        "Transformation matrix"
-        try:
-            T = data[_ENUM.S].values @ np.linalg.inv(np.diagflat(q))
-        except np.linalg.LinAlgError:
-            log_time(
-                logger,
-                "Singular matrix issue. The (Moore-Penrose) "
-                "pseudo-inverse of a matrix will be used. This "
-                "may raise some inconsistency in the data",
-                "critical",
-            )
-            T = data[_ENUM.S].values @ np.linalg.pinv(np.diagflat(q))
-
-        "Industry by Industry IOT"
-        Z_index = [
-            data[_ENUM.S].index.get_level_values(0),
-            [_MASTER_INDEX["s"]] * data[_ENUM.S].shape[0],
-            data[_ENUM.S].index.get_level_values(2),
-        ]
-
-        Z = pd.DataFrame(T @ data[_ENUM.U].values, index=Z_index, columns=Z_index)
-        V = pd.DataFrame(
-            data[_ENUM.V].values, index=data[_ENUM.V].index, columns=Z_index
-        )
-        E = pd.DataFrame(
-            data[_ENUM.E].values, index=data[_ENUM.E].index, columns=Z_index
-        )
-        Y = pd.DataFrame(
-            T
-            @ data[_ENUM.Y]
-            .loc[(slice(None), _MASTER_INDEX["c"], slice(None)), :]
-            .values,
-            index=Z_index,
-            columns=data[_ENUM.Y].columns,
-        )
-
-        "Fixing units"
-        units = copy.deepcopy(instance.units)
-        units[_MASTER_INDEX["s"]] = units[_MASTER_INDEX["a"]]
-        _indeces = copy.deepcopy(instance._indeces)
-        _indeces["s"] = _indeces["a"]
-
-    del units[_MASTER_INDEX["c"]]
-    del units[_MASTER_INDEX["a"]]
-
-    del _indeces["c"]
-    del _indeces["a"]
-
-    X = calc_X(Z, Y)
-
-    matrices = {
-        "baseline": {
-            _ENUM.Z: Z,
-            _ENUM.V: V,
-            _ENUM.E: E,
-            _ENUM.X: X,
-            _ENUM.Y: Y,
-            _ENUM.EY: data[_ENUM.EY],
-            _ENUM.VY: data[_ENUM.VY],
-        }
-    }
-
-    indeces = {item: value for item, value in _indeces.items()}
-    rename_index(matrices["baseline"])
-    for matrix_name, original_axis in original_public_axes.items():
-        matrices["baseline"][matrix_name].index = _restore_public_axis_names(
-            matrices["baseline"][matrix_name].index,
-            original_axis,
-        )
-
-    return matrices, indeces, units
+    return convert(instance, method)
 
 
 def ISARD_TO_CHENERY_MOSES(instance, scenario):
-    """This function transforms a SUT in Isard format to a SUT in Chenery-Moses format.
-    The transformation implies moving from trades accounted in the USE matrix to trades accounted in the SUPPLY matrix.
-    For further notes on the transformation check:
-    - John M. Hartwick, 1970. "Notes on the Isard and Chenery-Moses Interregional Input-Output Models," Working Paper 16, Economics Department, Queen's University.
+    """Return compatibility Z/Y views of the sparse-native transformation.
+
+    The public wrapper stores split flow blocks directly, including transported
+    commodity accounts. This adapter retains the historical two-frame return
+    for callers of the old engine helper.
     """
+    from mario.ops.chenery_moses import as_csr, as_frame, convert_flows, read_flows
+    from mario.compute.helpers import _is_sparse_backed_dataframe
+    from mario.compute.views import concat_sut_Z, concat_sut_Y
+    from mario.compute.ordering import SUTUnifiedOrderingPolicy
+    from scipy import sparse
 
-    regions = instance.get_index(_MASTER_INDEX["r"])
-    commodities = instance.get_index(_MASTER_INDEX["c"])
-    sN = slice(None)
-
-    U_isard = instance.query(_ENUM.U, scenarios=scenario)
-    Y_isard = instance.query(_ENUM.Y, scenarios=scenario)
-    s_isard = instance.query(_ENUM.s, scenarios=scenario)
-
-    domestic_use = pd.DataFrame(0.0, index=U_isard.index, columns=regions)
-    for region in regions:
-        df = pd.DataFrame(
-            (
-                U_isard.loc[:, (region, sN, sN)].sum(axis=1)
-                + Y_isard.loc[(sN, _MASTER_INDEX["c"], sN), (region, sN, sN)].sum(
-                    axis=1
-                )
-            ).values,
-            index=U_isard.index,
-            columns=[region],
+    blocks = convert_flows(
+        read_flows(instance, scenario),
+        instance.get_index(_MASTER_INDEX["r"]),
+        scenario=scenario,
+    )
+    ordering = SUTUnifiedOrderingPolicy.from_blocks(
+        **{key: blocks[key] for key in ("U", "S", "Ya", "Yc")}
+    )
+    if _is_sparse_backed_dataframe(blocks["U"]) or _is_sparse_backed_dataframe(
+        blocks["S"]
+    ):
+        like = blocks["U"] if _is_sparse_backed_dataframe(blocks["U"]) else blocks["S"]
+        z = as_frame(
+            sparse.bmat(
+                [[None, as_csr(blocks["S"])], [as_csr(blocks["U"]), None]], format="csr"
+            ),
+            index=ordering.unified_index,
+            columns=ordering.unified_index,
+            like=like,
         )
-        domestic_use.update(df)
-
-    U_chenery = pd.DataFrame(0.0, index=U_isard.index, columns=U_isard.columns)
-    Y_chenery = pd.DataFrame(0.0, index=Y_isard.index, columns=Y_isard.columns)
-    S_chenery = pd.DataFrame(0.0, index=s_isard.index, columns=s_isard.columns)
-    for region in regions:
-        domestic_U = U_isard.loc[:, (region, sN, sN)].groupby(level=2).sum()
-        domestic_U.index = U_isard.loc[(region, sN, sN), :].index
-        U_chenery.loc[(region, sN, sN), (region, sN, sN)] = domestic_U.values
-
-        domestic_Y = (
-            Y_isard.loc[(sN, _MASTER_INDEX["c"], sN), (region, sN, sN)]
-            .groupby(level=2)
-            .sum()
-        )
-        domestic_Y.index = Y_isard.loc[(region, _MASTER_INDEX["c"], sN), :].index
-        Y_chenery.loc[
-            (region, _MASTER_INDEX["c"], sN), (region, sN, sN)
-        ] = domestic_Y.values
-
-        for region_2 in regions:
-            dom_use = np.diag(domestic_use.loc[(region_2, sN, sN), region].values)
-            market_share = s_isard.loc[(region_2, sN, sN), (region_2, sN, sN)].values
-
-            S_chenery.loc[(region_2, sN, sN), (region, sN, sN)] = market_share @ dom_use
-
-    Z_chenery = instance.query(_ENUM.Z, scenarios=scenario) * 0.0
-    Z_chenery.loc[
-        (sN, _MASTER_INDEX["a"], sN), (sN, _MASTER_INDEX["c"], sN)
-    ] = S_chenery
-    Z_chenery.loc[
-        (sN, _MASTER_INDEX["c"], sN), (sN, _MASTER_INDEX["a"], sN)
-    ] = U_chenery
-
-    return Z_chenery, Y_chenery
+        return z, concat_sut_Y(blocks["Ya"], blocks["Yc"], ordering)
+    return concat_sut_Z(blocks["U"], blocks["S"], ordering), concat_sut_Y(
+        blocks["Ya"], blocks["Yc"], ordering
+    )

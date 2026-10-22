@@ -1,9 +1,9 @@
 Database parsers
 ================
 
-Each guide is a notebook about one source: the parser workflow, the expected
-inputs, the supported versions, the local layout and the common caveats. Every
-guide also offers its notebook as a download at the bottom of the page.
+Each guide covers one source: the parser workflow, the expected inputs, the
+supported versions, the local layout and the common caveats. Notebook guides
+also offer their notebook as a download at the bottom of the page.
 
 The cards show regions and economic dimensions for versions with available set
 lists. Explore :ref:`Classifications <database-scopes>`
@@ -33,6 +33,13 @@ Environmentally-extended databases
 
       The hybrid EXIOBASE bundle, as supply-use and input-output tables, with a
       choice of extensions.
+
+   .. mario-card:: :doc:`BONSAI <../../notebooks/parsers/bonsai/walkthrough_bonsai>`
+      :kicker: mario.parse_bonsai
+      :logo: /_static/images/logos/bonsai.webp
+
+      Balanced hybrid supply-use exports and native b2 hybrid input-output
+      tables, read from a local ZIP or directory with direct elementary flows.
 
    .. mario-card:: :doc:`EORA <../../notebooks/parsers/eora/walkthrough_eora>`
       :kicker: mario.parse_eora
@@ -95,6 +102,7 @@ Environmentally-extended databases
 
    EXIOBASE, monetary <../../notebooks/parsers/exiobase/monetary>
    EXIOBASE, hybrid <../../notebooks/parsers/exiobase/hybrid>
+   BONSAI <../../notebooks/parsers/bonsai/walkthrough_bonsai>
    EORA <../../notebooks/parsers/eora/walkthrough_eora>
    GLORIA <../../notebooks/parsers/gloria/walkthrough_gloria>
    GTAP <../../notebooks/parsers/gtap/walkthrough_gtap>

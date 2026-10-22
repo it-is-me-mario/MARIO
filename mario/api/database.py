@@ -60,6 +60,15 @@ from mario.utils import (
 )
 
 from mario.ops.excel import _sh_excel
+from mario.ops.trades import direct_trade_breakdown, sum_trade_regions
+from mario.ops.trade_content import TradeContentProjection, sparse_flow
+from mario.ops.linkages import as_sparse, check_linkage_system, sparse_linkages
+from mario.ops.aggregation_inputs import (
+    aggregation_template,
+    normalize_aggregation_sheet,
+    validate_region_aggregation,
+)
+from mario.ops.extensions import keep_extensions
 
 from mario.views import plots as plt
 
@@ -79,6 +88,7 @@ from mario.compute.views import (
     concat_sut_z,
 )
 from mario.clusters import build_default_clusters, build_region_aggregation_index
+from mario.clusters.definitions import normalize_cluster_members
 
 import numpy as np
 import pandas as pd
@@ -448,12 +458,11 @@ class Database(CoreModel):
                 )
 
             target = normalized.setdefault(resolved_level, {})
+            domain = self.get_index(resolved_level)
             for cluster_name, members in level_clusters.items():
-                if isinstance(members, str):
-                    members = [members]
-                else:
-                    members = list(members)
-                target[str(cluster_name)] = members
+                target[str(cluster_name)] = normalize_cluster_members(
+                    members, domain, level=resolved_level, name=cluster_name
+                )
 
         return normalized
 
@@ -474,7 +483,10 @@ class Database(CoreModel):
         Parameters
         ----------
         clusters:
-            Preferred cluster payload using any supported set aliases.
+            Mapping of set -> cluster name -> members, using supported set
+            aliases. Members remain lists for common sets. Regional sets
+            accept region -> list mappings; omitted regions select nothing.
+            A list on a regional set is intersected with each region's domain.
         **legacy_clusters:
             Backward-compatible cluster payload passed as keyword arguments.
         """
@@ -483,7 +495,9 @@ class Database(CoreModel):
             normalized = self._normalize_cluster_mapping(payload)
             for level, level_clusters in normalized.items():
                 resolved.setdefault(level, {}).update(level_clusters)
-        check_clusters(index_dict=self.get_index("all"), table=self.table_type, clusters=resolved)
+        check_clusters(
+            index_dict=self.get_index("all"), table=self.table_type, clusters=resolved
+        )
         self._clusters = resolved
         self.meta._add_history("Database: shock clusters updated.")
 
@@ -491,9 +505,7 @@ class Database(CoreModel):
         """Add or replace one stored shock cluster."""
         updated = self.clusters
         resolved_level = self._resolve_set_name(level, allow_codes=True)
-        updated.setdefault(resolved_level, {})[str(name)] = (
-            [members] if isinstance(members, str) else list(members)
-        )
+        updated.setdefault(resolved_level, {})[str(name)] = copy.deepcopy(members)
         self.set_clusters(clusters=updated)
 
     def clear_clusters(self):
@@ -543,7 +555,9 @@ class Database(CoreModel):
             for level in resolved_levels:
                 if level == _MASTER_INDEX["r"] and level not in workbook.sheet_names:
                     continue
-                merged[level] = workbook.parse(sheet_name=level, index_col=0)
+                merged[level] = workbook.parse(
+                    sheet_name=level, index_col=0, keep_default_na=False
+                )
 
         merged.setdefault(_MASTER_INDEX["r"], region_index)
         return merged, resolved_levels
@@ -658,8 +672,11 @@ class Database(CoreModel):
         Parameters
         ----------
         method:
-            SUT-to-IOT transformation method understood by the transformation
-            engine.
+            Eurostat method: ``A``/``B`` for product-by-product or ``C``/``D``
+            for industry-by-industry. Regional classifications need not be
+            uniform. ``A``/``C`` require square, invertible supply and zero
+            activity final demand. ``B``/``D`` preserve nonzero ``Ya`` and
+            accounts attached to either side of the SUT.
         inplace:
             When ``True``, mutate the current database. When ``False``, return
             a transformed copy.
@@ -668,6 +685,15 @@ class Database(CoreModel):
         -------
         Database | None
             Transformed database when ``inplace=False``, otherwise ``None``.
+
+        Notes
+        -----
+        Converts the baseline and drops other scenarios, retaining its public
+        name. Only observed regional nodes are used. Sparse input stays sparse;
+        no unified SUT transaction view or dense inverse is constructed.
+        Undefined allocation at a zero-output node with nonzero flows/accounts
+        raises ``WrongInput`` naming the nodes. Singular supply also raises an
+        error; no pseudoinverse, balancing or data correction is applied.
         """
         return transform_sut_to_iot(self, method, inplace=inplace)
 
@@ -691,6 +717,30 @@ class Database(CoreModel):
         -------
         Database | None
             Transformed database when ``inplace=False``, otherwise ``None``.
+
+        Notes
+        -----
+        Uses native SUT flow blocks without constructing a unified ``Z`` or
+        dense diagonal matrices. Sparse inputs retain sparse storage; common
+        dense tables retain dense output blocks and their existing API.
+
+        Activities keep their original regional memberships. Commodity labels
+        are matched by their exact strings. A destination market is added only
+        where an observed nonzero use or final-demand flow requires a commodity
+        absent from that destination's original classification. Existing
+        commodity nodes, including unused nodes, are retained. Commodity axes
+        consequently describe destination markets after the transformation.
+
+        ``Ya``, activity-side accounts and direct final-demand accounts are
+        preserved. ``S``, ``Ec`` and ``Vc`` are allocated with each origin
+        commodity's observed destination shares. Their row totals are
+        preserved. An unused commodity retains its original supply and accounts;
+        zero net use with nonzero regional trade flows raises ``WrongInput``
+        because the sourcing shares are undefined. No balancing is performed.
+
+        New commodity markets are shared by all scenarios. Unselected scenarios
+        are extended with zeros on those axes while their existing flows are
+        preserved. Derived caches on affected scenarios are discarded.
         """
         return transform_to_chenery_moses(
             self,
@@ -744,6 +794,11 @@ class Database(CoreModel):
 
         Notes
         -----
+        Activity, Commodity and Consumption category labels must be the same
+        in every region. Nonuniform regional classifications raise
+        ``NotImplementable`` before copying the database or querying matrices,
+        including when ``inplace=False``.
+
         The pooling is a **representation change, not a data change** at the
         destination level: bilateral trade totals per destination region are
         preserved exactly, and the initial market shares written in ``s``
@@ -796,6 +851,14 @@ class Database(CoreModel):
         -------
         None
             The workbook is written to disk.
+
+        Notes
+        -----
+        Common classifications use a label index and an Aggregation column.
+        In the special case of nonuniform regional sets, the item sheets use
+        Regions/Item/Aggregation columns. Regions with identical complete label
+        sets share rows, including single-region groups. The Region sheet lists
+        only groups compatible across all regional sets.
         """
 
         _, levels = self._prepare_aggregation_inputs(
@@ -804,6 +867,10 @@ class Database(CoreModel):
             region_aggregation=region_aggregation,
         )
         region_index = build_region_aggregation_index(self, region_aggregation)
+
+        indexes = self.get_index("all")
+        if region_index is not None:
+            validate_region_aggregation(indexes, {_MASTER_INDEX["r"]: region_index})
 
         output_path = self._getdir(path, "Excels", "Aggregation.xlsx")
         if os.path.exists(output_path) and not overwrite:
@@ -823,13 +890,8 @@ class Database(CoreModel):
         try:
             with pd.ExcelWriter(temp_path, engine="openpyxl") as writer:
                 for level in levels:
-                    if level == _MASTER_INDEX["r"] and region_index is not None:
-                        data = region_index.copy()
-                    else:
-                        data = pd.DataFrame(
-                            index=self.get_index(level), columns=["Aggregation"]
-                        )
-                    data.to_excel(writer, sheet_name=level)
+                    data, write_index = aggregation_template(level, indexes, region_index)
+                    data.to_excel(writer, sheet_name=level, index=write_index)
             os.replace(temp_path, output_path)
         except Exception:
             if os.path.exists(temp_path):
@@ -843,6 +905,11 @@ class Database(CoreModel):
         ignore_nan=False,
     ):
         """Load aggregation mappings without applying them yet.
+
+        Grouped regional sheets are expanded to existing (Region, Item) pairs.
+        Omitted sources retain their labels. Geographic mergers require equal
+        original and mapped label sets across every regional classification.
+        All sheets are validated before stored mappings are changed.
 
         Parameters
         ----------
@@ -880,57 +947,24 @@ class Database(CoreModel):
         if levels == "all":
             levels = [*TABLE_LEVELS[self.meta.table]]
 
+        indexes = self.get_index("all")
         indeces = {}
         for level in levels:
             if isinstance(io, dict):
-                # Reading the aggregation data from a dict of pd.DataFrames similar to the Excel file
-                index = io[level]
+                frame = io[level]
             else:
-                # Reading the aggregation data from a single Excel file with differetn sheets '''
-
-                index = pd.read_excel(io, sheet_name=level, index_col=0)
-                index.index = index.index.fillna("None")
-
-            if index.shape[1] > 1:
-                index = index.iloc[:, 0].to_frame()
-
-            difference = set(index.index).difference(set(self.get_index(level)))
-
-            if difference:
-                raise WrongInput(
-                    f"Following item are not acceptable for level {level} \n {difference}"
+                frame = pd.read_excel(
+                    io, sheet_name=level, index_col=0, keep_default_na=False
                 )
+            indeces[level] = normalize_aggregation_sheet(
+                frame, level, indexes, ignore_nan=ignore_nan
+            )
 
-            index.columns = ["Aggregation"]
-
-            if index.isnull().values.any():
-                index = index.astype({"Aggregation": object})
-                isna = index.isna()
-                nans = isna.loc[isna["Aggregation"] == True].index
-                if ignore_nan:
-                    log_time(
-                        logger,
-                        "nan values for the aggregation of {} for following items ignored\n{}".format(
-                            level, list(nans)
-                        ),
-                        "warning",
-                    )
-
-                    index.loc[nans, "Aggregation"] = list(nans)
-                else:
-                    raise DataMissing(
-                        "nan values found for the aggregation of {} for following items."
-                        " if ignore_nan = True, nan items will be ignored and no aggregation on the items will be considered\n {}".format(
-                            level, list(nans)
-                        )
-                    )
-
-            indeces[level] = index
-
-        for level in levels:
-            self._indeces[TABLE_LEVELS[self.meta.table][level]]["aggregated"] = indeces[
-                level
-            ]
+        candidates = self.get_index("all", "aggregated")
+        candidates.update(indeces)
+        validate_region_aggregation(indexes, candidates)
+        for level, index in indeces.items():
+            self._indeces[TABLE_LEVELS[self.meta.table][level]]["aggregated"] = index
 
     def aggregate(
         self,
@@ -1032,6 +1066,46 @@ class Database(CoreModel):
 
         with pd.ExcelWriter(self._getdir(path, "Excels", "Extensions.xlsx")) as writer:
             extensions.to_excel(writer)
+
+    def keep_extensions(self, extensions, *, inplace=True):
+        """Keep only the selected satellite accounts in every scenario.
+
+        Parameters
+        ----------
+        extensions:
+            One Satellite account label or an iterable of labels to retain.
+            Labels must exist and must not be repeated. Their original database
+            order is preserved. An empty list removes all satellite accounts.
+        inplace:
+            When True, modify this database. When False, return an independent
+            copy with the selected accounts.
+
+        Returns
+        -------
+        Database | None
+            Filtered database when ``inplace=False``, otherwise None.
+
+        Notes
+        -----
+        Filters stored satellite flows, coefficients, multipliers and footprints,
+        including final-demand accounts, in all scenarios. Units, index mappings
+        and satellite clusters are updated. Sparse storage is preserved, and no
+        missing matrices are calculated. Cached custom operator results depending
+        on the affected blocks are discarded for on-demand recalculation.
+
+        This selects Satellite accounts, not Factors of production. Economic
+        nodes and the size of the linear system remain unchanged; selecting one
+        account reduces the number of right-hand sides needed for multipliers.
+        Import reports remain records of the original input data.
+
+        Examples
+        --------
+        Keep one account before computing multipliers::
+
+            db.keep_extensions(["CO2"])
+            co2_multipliers = db.f  # Use db.fc on a SUT.
+        """
+        return keep_extensions(self, extensions, inplace=inplace)
 
     def add_extensions(
         self,
@@ -1749,7 +1823,8 @@ class Database(CoreModel):
             When ``True``, normalize linkage indicators using the standard
             linkages convention.
         cut_diag:
-            When ``True``, exclude diagonal terms from the calculation.
+            When ``True``, exclude diagonal terms exactly, without changing
+            source matrices. Sparse inputs do not require a full inverse view.
         multi_mode:
             When ``True``, preserve the multi-regional interpretation of the
             linkages. This is valid only for multi-regional databases.
@@ -1768,11 +1843,54 @@ class Database(CoreModel):
             ``Local`` and ``Foreign`` components for each linkage measure and
             adds ``Local Share`` and ``Foreign Share`` columns for the same
             measures.
+
+        Raises
+        ------
+        WrongInput
+            When a singular production component is detected, identifying its
+            nodes, or a linear solve fails its residual accuracy check.
         """
 
         if not self.is_multi_region and multi_mode:
-            raise NotImplementable(
-                "multi_mode option is valid only for mult-regional data"
+            raise NotImplementable("multi_mode option is valid only for mult-regional data")
+
+        canonical_scenario = self._validate_scenario(scenario)
+        cached = self.matrices[canonical_scenario]
+        native_name = "U" if self.meta.table == "SUT" else _ENUM.Z
+        if self.meta.table == "SUT":
+            # Diagnose Ghosh before requesting any inverse or unified dense view.
+            blocks = self.query(matrices=["bu", "bs"], scenarios=scenario)
+            ordering = SUTUnifiedOrderingPolicy.from_blocks(
+                bu=blocks["bu"], bs=blocks["bs"]
+            )
+            index = ordering.unified_index
+            activities, commodities = ordering.activity_index, ordering.commodity_index
+            bs = as_sparse(blocks["bs"].reindex(index=activities, columns=commodities))
+            bu = as_sparse(blocks["bu"].reindex(index=commodities, columns=activities))
+            from scipy import sparse
+
+            forward = sparse.bmat([[None, bs], [bu, None]], format="csr")
+            check_linkage_system(forward, index, name="Ghosh")
+            blocks = self.query(matrices=["u", "s"], scenarios=scenario)
+            supply = as_sparse(blocks["s"].reindex(index=activities, columns=commodities))
+            use = as_sparse(blocks["u"].reindex(index=commodities, columns=activities))
+            backward = sparse.bmat([[None, supply], [use, None]], format="csr")
+        else:
+            b = self.query(matrices=[_ENUM.b], scenarios=scenario)
+            index = b.index
+            forward = as_sparse(b.reindex(index=index, columns=index))
+            check_linkage_system(forward, index, name="Ghosh")
+            z = self.query(matrices=[_ENUM.z], scenarios=scenario)
+            backward = as_sparse(z.reindex(index=index, columns=index))
+        check_linkage_system(backward, index, name="Leontief")
+        if sparse_flow(cached.get(native_name)):
+            return sparse_linkages(
+                backward,
+                forward,
+                index,
+                normalized=normalized,
+                cut_diag=cut_diag,
+                multi_mode=multi_mode,
             )
 
         if self.meta.table == "SUT":
@@ -1825,7 +1943,7 @@ class Database(CoreModel):
     def _normalize_trade_item_selection(self, item):
         """Normalize optional trade item selectors and guard heterogeneous units."""
         level = self._trade_item_level()
-        available = self.get_index(level)
+        available = self.get_index(level, flat=True)
         available_set = set(available)
 
         if item is None:
@@ -1860,32 +1978,30 @@ class Database(CoreModel):
         item=None,
         *,
         row_weights: pd.Series | None = None,
+        regions=None,
     ) -> pd.DataFrame:
         """Aggregate one transaction block into an origin-by-destination matrix."""
         if not isinstance(matrix.index, pd.MultiIndex) or matrix.index.nlevels < 3:
             raise WrongInput("Trade calculation requires a 3-level row MultiIndex.")
 
-        if item is None:
-            selected = matrix
-        else:
+        row_mask = None
+        if item is not None:
             items = item if isinstance(item, list) else [item]
             missing = sorted(set(items).difference(set(matrix.index.get_level_values(-1))))
             if missing:
-                raise WrongInput(f"Items {missing!r} do not exist in the matrix item index.")
+                raise WrongInput(
+                    f"Items {missing!r} do not exist in the matrix item index."
+                )
 
-            selector = items if len(items) > 1 else items[0]
-            selected = matrix.loc[(slice(None), slice(None), selector), :]
+            row_mask = matrix.index.get_level_values(-1).isin(items)
 
-        if row_weights is not None:
-            aligned_weights = row_weights.reindex(selected.index)
-            if aligned_weights.isna().any():
-                raise WrongInput("Trade content weights could not be aligned to trade rows.")
-            selected = selected.mul(aligned_weights, axis=0)
-
-        trade_matrix = (
-            selected.T.groupby(level=0, sort=False).sum().T.groupby(level=0, sort=False).sum()
-        )
-        regions = list(dict.fromkeys(matrix.index.get_level_values(0)))
+        trade_matrix = sum_trade_regions(matrix, row_mask=row_mask, row_weights=row_weights)
+        if regions is None:
+            regions = list(
+                dict.fromkeys(
+                    [*matrix.index.get_level_values(0), *matrix.columns.get_level_values(0)]
+                )
+            )
         trade_matrix = trade_matrix.reindex(index=regions, columns=regions, fill_value=0.0)
         trade_matrix.index.name = _MASTER_INDEX["r"]
         trade_matrix.columns.name = _MASTER_INDEX["r"]
@@ -1897,36 +2013,37 @@ class Database(CoreModel):
         item=None,
         *,
         row_weights: pd.Series | None = None,
+        regions=None,
     ) -> pd.DataFrame:
         """Aggregate one Chenery-Moses supply block into an origin-by-destination matrix."""
         if not isinstance(matrix.columns, pd.MultiIndex) or matrix.columns.nlevels < 3:
             raise WrongInput("Trade calculation requires a 3-level column MultiIndex.")
 
-        if item is None:
-            selected = matrix
-        else:
+        column_mask = None
+        if item is not None:
             items = item if isinstance(item, list) else [item]
-            missing = sorted(set(items).difference(set(matrix.columns.get_level_values(-1))))
+            missing = sorted(
+                set(items).difference(set(matrix.columns.get_level_values(-1)))
+            )
             if missing:
-                raise WrongInput(f"Items {missing!r} do not exist in the matrix item index.")
+                raise WrongInput(
+                    f"Items {missing!r} do not exist in the matrix item index."
+                )
 
-            selector = items if len(items) > 1 else items[0]
-            selected = matrix.loc[:, (slice(None), slice(None), selector)]
+            column_mask = matrix.columns.get_level_values(-1).isin(items)
 
-        if row_weights is not None:
-            aligned_weights = row_weights.reindex(selected.index)
-            if aligned_weights.isna().any():
-                raise WrongInput("Trade content weights could not be aligned to supply rows.")
-            selected = selected.mul(aligned_weights, axis=0)
-
-        trade_matrix = (
-            selected.groupby(level=0, sort=False).sum().T.groupby(level=0, sort=False).sum().T
+        trade_matrix = sum_trade_regions(
+            matrix, column_mask=column_mask, row_weights=row_weights
         )
-        row_regions = list(dict.fromkeys(matrix.index.get_level_values(0)))
-        column_regions = list(dict.fromkeys(matrix.columns.get_level_values(0)))
+        if regions is None:
+            regions = list(
+                dict.fromkeys(
+                    [*matrix.index.get_level_values(0), *matrix.columns.get_level_values(0)]
+                )
+            )
         trade_matrix = trade_matrix.reindex(
-            index=row_regions,
-            columns=column_regions,
+            index=regions,
+            columns=regions,
             fill_value=0.0,
         )
         trade_matrix.index.name = _MASTER_INDEX["r"]
@@ -2171,15 +2288,8 @@ class Database(CoreModel):
         normalized = "".join(ch for ch in str(indicator).strip().lower() if ch.isalnum())
         return normalized == "totalvalueadded"
 
-    def _resolve_trade_content_row(
-        self,
-        indicator,
-        *,
-        scenario,
-        method: str,
-        use_activity_side: bool,
-    ) -> tuple[pd.Series, str]:
-        """Resolve row weights for one trade-content indicator and method."""
+    def _trade_content_indicator_spec(self, indicator, *, use_activity_side):
+        """Share indicator selection and units across row and projected calculations."""
         if self.meta.table == "IOT":
             factor_direct, factor_total = _ENUM.v, _ENUM.m
             satellite_direct, satellite_total = _ENUM.e, _ENUM.f
@@ -2193,19 +2303,17 @@ class Database(CoreModel):
         factor_units = self.units[_MASTER_INDEX["f"]]
         satellite_units = self.units[_MASTER_INDEX["k"]]
 
-        if self._is_total_value_added_indicator(indicator):
-            direct_row = self.query(matrices=[factor_direct], scenarios=[scenario]).sum(axis=0)
-            total_row = self.query(matrices=[factor_total], scenarios=[scenario]).sum(axis=0)
+        sum_factors = self._is_total_value_added_indicator(indicator)
+        if sum_factors:
+            direct_name, total_name = factor_direct, factor_total
             unit_values = factor_units["unit"].dropna().astype(str).unique().tolist()
             unit = unit_values[0] if len(unit_values) == 1 else "Value"
         elif indicator in factor_units.index:
-            direct_row = self.query(matrices=[factor_direct], scenarios=[scenario]).loc[indicator]
-            total_row = self.query(matrices=[factor_total], scenarios=[scenario]).loc[indicator]
+            direct_name, total_name = factor_direct, factor_total
             unit_value = factor_units.loc[indicator, "unit"]
             unit = str(unit_value) if pd.notna(unit_value) else "Value"
         elif indicator in satellite_units.index:
-            direct_row = self.query(matrices=[satellite_direct], scenarios=[scenario]).loc[indicator]
-            total_row = self.query(matrices=[satellite_total], scenarios=[scenario]).loc[indicator]
+            direct_name, total_name = satellite_direct, satellite_total
             unit_value = satellite_units.loc[indicator, "unit"]
             unit = str(unit_value) if pd.notna(unit_value) else "Value"
         else:
@@ -2213,10 +2321,31 @@ class Database(CoreModel):
                 "indicator should be a Satellite account row, a Factor of production row, or 'total value added'."
             )
 
+        return direct_name, total_name, sum_factors, unit
+
+    def _resolve_trade_content_row(
+        self,
+        indicator,
+        *,
+        scenario,
+        method: str,
+        use_activity_side: bool,
+    ) -> tuple[pd.Series, str]:
+        """Resolve only the indicator rows required by the selected method."""
+        direct_name, total_name, sum_factors, unit = self._trade_content_indicator_spec(
+            indicator, use_activity_side=use_activity_side
+        )
+
+        def resolve_row(name):
+            block = self.query(matrices=[name], scenarios=[scenario])
+            return block.sum(axis=0) if sum_factors else block.loc[indicator]
+
         if method == "direct":
-            return direct_row, unit
+            return resolve_row(direct_name), unit
         if method == "total":
-            return total_row, unit
+            return resolve_row(total_name), unit
+        total_row = resolve_row(total_name)
+        direct_row = resolve_row(direct_name)
         return total_row.subtract(direct_row, fill_value=0.0), unit
 
     def _resolve_trade_content_total_exploded(
@@ -2274,6 +2403,47 @@ class Database(CoreModel):
             columns=direct_row.index.copy(),
         )
 
+    def _prepare_trade_content_projection(self, indicator, *, scenario, use_activity_side):
+        """Resolve direct coefficients and a reusable projected linear system."""
+        direct_name, _, sum_factors, unit = self._trade_content_indicator_spec(
+            indicator, use_activity_side=use_activity_side
+        )
+
+        def row(name):
+            frame = self.query(matrices=[name], scenarios=[scenario])
+            return frame.sum(axis=0) if sum_factors else frame.loc[indicator]
+
+        cached = self.matrices[self._validate_scenario(scenario)]
+        if self.meta.table == "IOT":
+            z = self.query(matrices=[_ENUM.z], scenarios=[scenario])
+            z = z.reindex(columns=z.index)
+            projection = TradeContentProjection(
+                [row(direct_name).reindex(z.index)],
+                z,
+                transfer=cached["w"] if "w" in cached else None,
+            )
+        else:
+            other_name, _, _, _ = self._trade_content_indicator_spec(
+                indicator, use_activity_side=not use_activity_side
+            )
+            a_name, c_name = (
+                (direct_name, other_name)
+                if use_activity_side
+                else (other_name, direct_name)
+            )
+            blocks = self.query(matrices=["u", "s"], scenarios=[scenario])
+            u, supply = blocks["u"], blocks["s"]
+            supply = supply.reindex(index=u.columns, columns=u.index)
+            transfer_name = "waa" if use_activity_side else "wcc"
+            projection = TradeContentProjection(
+                [row(a_name).reindex(supply.index), row(c_name).reindex(u.index)],
+                supply if use_activity_side else u,
+                secondary=u if use_activity_side else supply,
+                activity_side=use_activity_side,
+                transfer=cached[transfer_name] if transfer_name in cached else None,
+            )
+        return projection, unit
+
     def _resolve_trade_content_exploded(
         self,
         indicator,
@@ -2281,29 +2451,20 @@ class Database(CoreModel):
         scenario,
         method: str,
         use_activity_side: bool,
-    ) -> tuple[pd.DataFrame, str]:
-        """Resolve contributor-level content weights for breakdown outputs."""
-        direct_row, unit = self._resolve_trade_content_row(
-            indicator,
-            scenario=scenario,
-            method="direct",
-            use_activity_side=use_activity_side,
-        )
-        direct_exploded = self._explode_trade_content_direct_row(direct_row)
-
+    ) -> tuple[pd.Series | TradeContentProjection, str]:
+        """Resolve a direct vector or a lazy total/upstream projection."""
         if method == "direct":
-            return direct_exploded, unit
-
-        total_exploded, unit = self._resolve_trade_content_total_exploded(
+            return self._resolve_trade_content_row(
+                indicator,
+                scenario=scenario,
+                method="direct",
+                use_activity_side=use_activity_side,
+            )
+        return self._prepare_trade_content_projection(
             indicator,
             scenario=scenario,
             use_activity_side=use_activity_side,
         )
-
-        if method == "total":
-            return total_exploded, unit
-
-        return total_exploded.subtract(direct_exploded, fill_value=0.0), unit
 
     @staticmethod
     def _select_trade_rows(matrix: pd.DataFrame, item=None) -> pd.DataFrame:
@@ -2342,20 +2503,47 @@ class Database(CoreModel):
     @staticmethod
     def _aggregate_trade_content_breakdown_matrix_by_region(
         matrix: pd.DataFrame,
-        exploded_weights: pd.DataFrame,
+        exploded_weights: pd.DataFrame | pd.Series | TradeContentProjection,
         item=None,
+        *,
+        regions=None,
+        region_aggregation=None,
+        clusters_direction="both",
+        method="total",
     ) -> pd.DataFrame:
         """Break down row-oriented trade content by contributor and trade region pair."""
+        if isinstance(exploded_weights, TradeContentProjection):
+            return exploded_weights.aggregate(
+                matrix,
+                item,
+                method=method,
+                breakdown=True,
+                supply=False,
+                regions=regions,
+                region_aggregation=region_aggregation,
+                clusters_direction=clusters_direction,
+            )
+        if isinstance(exploded_weights, pd.Series):
+            return direct_trade_breakdown(
+                matrix,
+                exploded_weights,
+                item,
+                regions=regions,
+                region_aggregation=region_aggregation,
+                clusters_direction=clusters_direction,
+            )
         selected = Database._select_trade_rows(matrix, item)
         origin_regions = list(dict.fromkeys(selected.index.get_level_values(0).tolist()))
-        destination_regions = list(dict.fromkeys(matrix.columns.get_level_values(0).tolist()))
+        destination_regions = list(
+            dict.fromkeys(matrix.columns.get_level_values(0).tolist())
+        )
 
         frames = []
         for origin_region in origin_regions:
             origin_block = selected.loc[(origin_region, slice(None), slice(None)), :]
-            contribution = exploded_weights.reindex(columns=origin_block.index, fill_value=0.0).dot(
-                origin_block
-            )
+            contribution = exploded_weights.reindex(
+                columns=origin_block.index, fill_value=0.0
+            ).dot(origin_block)
             contribution = contribution.T.groupby(level=0, sort=False).sum().T
             contribution = contribution.reindex(columns=destination_regions, fill_value=0.0)
 
@@ -2365,25 +2553,57 @@ class Database(CoreModel):
             )
             frames.append(contribution)
 
-        return pd.concat(frames, axis=0)
+        return Database._aggregate_trade_content_breakdown_regions(
+            pd.concat(frames, axis=0),
+            region_aggregation,
+            clusters_direction=clusters_direction,
+        )
 
     @staticmethod
     def _aggregate_trade_content_breakdown_supply_by_region(
         matrix: pd.DataFrame,
-        exploded_weights: pd.DataFrame,
+        exploded_weights: pd.DataFrame | pd.Series | TradeContentProjection,
         item=None,
+        *,
+        regions=None,
+        region_aggregation=None,
+        clusters_direction="both",
+        method="total",
     ) -> pd.DataFrame:
         """Break down supply-oriented trade content by contributor and trade region pair."""
+        if isinstance(exploded_weights, TradeContentProjection):
+            return exploded_weights.aggregate(
+                matrix,
+                item,
+                method=method,
+                breakdown=True,
+                supply=True,
+                regions=regions,
+                region_aggregation=region_aggregation,
+                clusters_direction=clusters_direction,
+            )
+        if isinstance(exploded_weights, pd.Series):
+            return direct_trade_breakdown(
+                matrix,
+                exploded_weights,
+                item,
+                supply=True,
+                regions=regions,
+                region_aggregation=region_aggregation,
+                clusters_direction=clusters_direction,
+            )
         selected = Database._select_trade_supply_columns(matrix, item)
         origin_regions = list(dict.fromkeys(selected.index.get_level_values(0).tolist()))
-        destination_regions = list(dict.fromkeys(selected.columns.get_level_values(0).tolist()))
+        destination_regions = list(
+            dict.fromkeys(selected.columns.get_level_values(0).tolist())
+        )
 
         frames = []
         for origin_region in origin_regions:
             origin_block = selected.loc[(origin_region, slice(None), slice(None)), :]
-            contribution = exploded_weights.reindex(columns=origin_block.index, fill_value=0.0).dot(
-                origin_block
-            )
+            contribution = exploded_weights.reindex(
+                columns=origin_block.index, fill_value=0.0
+            ).dot(origin_block)
             contribution = contribution.T.groupby(level=0, sort=False).sum().T
             contribution = contribution.reindex(columns=destination_regions, fill_value=0.0)
 
@@ -2393,7 +2613,11 @@ class Database(CoreModel):
             )
             frames.append(contribution)
 
-        return pd.concat(frames, axis=0)
+        return Database._aggregate_trade_content_breakdown_regions(
+            pd.concat(frames, axis=0),
+            region_aggregation,
+            clusters_direction=clusters_direction,
+        )
 
     @staticmethod
     def _aggregate_trade_content_breakdown_regions(
@@ -2561,6 +2785,8 @@ class Database(CoreModel):
             Sector or commodity label to aggregate by region. When omitted,
             MARIO aggregates all sectors or commodities only if they share one
             common unit of measure.
+            On regional classifications, the code need only exist in one
+            region; only actual region-item pairs contribute to the result.
         scenario:
             Scenario to analyse.
         clusters:
@@ -2625,6 +2851,8 @@ class Database(CoreModel):
         region_aggregation = self._resolve_trade_region_aggregation(clusters)
         clusters_direction = self._normalize_trade_cluster_direction(clusters_direction)
 
+        regions = self.get_index(_MASTER_INDEX["r"])
+
         matrix_names = []
         if self.meta.table == "SUT":
             if intermediate:
@@ -2655,7 +2883,9 @@ class Database(CoreModel):
                 if isinstance(supply_block, dict):
                     supply_block = supply_block[_ENUM.S]
 
-                frame = self._aggregate_trade_supply_by_region(supply_block, item_selection)
+                frame = self._aggregate_trade_supply_by_region(
+                    supply_block, item_selection, regions=regions
+                )
                 frame = self._aggregate_trade_regions(
                     frame,
                     region_aggregation,
@@ -2676,6 +2906,7 @@ class Database(CoreModel):
                 frame = self._aggregate_trade_matrix_by_region(
                     blocks[matrix_name],
                     item_selection,
+                    regions=regions,
                 )
                 frame = self._aggregate_trade_regions(
                     frame,
@@ -2695,6 +2926,7 @@ class Database(CoreModel):
                 frame = self._aggregate_trade_matrix_by_region(
                     blocks[matrix_name],
                     item_selection,
+                    regions=regions,
                 )
                 frame = self._aggregate_trade_regions(
                     frame,
@@ -2785,6 +3017,8 @@ class Database(CoreModel):
             When ``True``, return a contributor-level decomposition instead of
             collapsing all contributors into one region-by-region total. The
             rows then carry a MultiIndex ``(origin region, contributor...)``.
+            Breakdowns preserve sparse storage when flow inputs are sparse;
+            total/upstream project trade vectors without a full inverse.
         clusters:
             Optional Region aggregation preset or mapping applied before totals.
         clusters_direction:
@@ -2835,9 +3069,12 @@ class Database(CoreModel):
         region_aggregation = self._resolve_trade_region_aggregation(clusters)
         clusters_direction = self._normalize_trade_cluster_direction(clusters_direction)
         content_unit = None
+        regions = self.get_index(_MASTER_INDEX["r"])
 
         if breakdown and total:
-            raise NotImplementable("calc_trades_content does not support total=True with breakdown=True.")
+            raise NotImplementable(
+                "calc_trades_content does not support total=True with breakdown=True."
+            )
 
         matrix_names = []
         if self.meta.table == "SUT":
@@ -2858,7 +3095,22 @@ class Database(CoreModel):
                 and len(self.get_index(_MASTER_INDEX["r"])) > 1
                 and self.is_chenerymoses(scenario=scenario_name)
             )
-            if breakdown:
+            native_name = (
+                "S" if use_chenery_supply else "U" if self.meta.table == "SUT" else _ENUM.Z
+            )
+            projected = method != "direct" and (
+                breakdown
+                or sparse_flow(
+                    self.matrices[self._validate_scenario(scenario_name)].get(native_name)
+                )
+            )
+            if projected:
+                content_weights, resolved_unit = self._prepare_trade_content_projection(
+                    indicator,
+                    scenario=scenario_name,
+                    use_activity_side=use_chenery_supply,
+                )
+            elif breakdown:
                 content_weights, resolved_unit = self._resolve_trade_content_exploded(
                     indicator,
                     scenario=scenario_name,
@@ -2891,17 +3143,30 @@ class Database(CoreModel):
                         supply_block,
                         content_weights,
                         item_selection,
+                        regions=regions,
+                        region_aggregation=region_aggregation,
+                        clusters_direction=clusters_direction,
+                        method=method,
                     )
-                    frame = self._aggregate_trade_content_breakdown_regions(
-                        frame,
-                        region_aggregation,
+                elif projected:
+                    frame = content_weights.aggregate(
+                        supply_block,
+                        item_selection,
+                        method=method,
+                        breakdown=False,
+                        supply=True,
+                        regions=regions,
+                        region_aggregation=region_aggregation,
                         clusters_direction=clusters_direction,
                     )
+                    if total:
+                        frame = self._add_trade_totals(frame)
                 else:
                     frame = self._aggregate_trade_supply_by_region(
                         supply_block,
                         item_selection,
                         row_weights=content_weights,
+                        regions=regions,
                     )
                     frame = self._aggregate_trade_regions(
                         frame,
@@ -2925,17 +3190,30 @@ class Database(CoreModel):
                         blocks[matrix_name],
                         content_weights,
                         item_selection,
+                        regions=regions,
+                        region_aggregation=region_aggregation,
+                        clusters_direction=clusters_direction,
+                        method=method,
                     )
-                    frame = self._aggregate_trade_content_breakdown_regions(
-                        frame,
-                        region_aggregation,
+                elif projected:
+                    frame = content_weights.aggregate(
+                        blocks[matrix_name],
+                        item_selection,
+                        method=method,
+                        breakdown=False,
+                        supply=False,
+                        regions=regions,
+                        region_aggregation=region_aggregation,
                         clusters_direction=clusters_direction,
                     )
+                    if total:
+                        frame = self._add_trade_totals(frame)
                 else:
                     frame = self._aggregate_trade_matrix_by_region(
                         blocks[matrix_name],
                         item_selection,
                         row_weights=content_weights,
+                        regions=regions,
                     )
                     frame = self._aggregate_trade_regions(
                         frame,
@@ -2953,17 +3231,30 @@ class Database(CoreModel):
                         blocks[matrix_name],
                         content_weights,
                         item_selection,
+                        regions=regions,
+                        region_aggregation=region_aggregation,
+                        clusters_direction=clusters_direction,
+                        method=method,
                     )
-                    frame = self._aggregate_trade_content_breakdown_regions(
-                        frame,
-                        region_aggregation,
+                elif projected:
+                    frame = content_weights.aggregate(
+                        blocks[matrix_name],
+                        item_selection,
+                        method=method,
+                        breakdown=False,
+                        supply=False,
+                        regions=regions,
+                        region_aggregation=region_aggregation,
                         clusters_direction=clusters_direction,
                     )
+                    if total:
+                        frame = self._add_trade_totals(frame)
                 else:
                     frame = self._aggregate_trade_matrix_by_region(
                         blocks[matrix_name],
                         item_selection,
                         row_weights=content_weights,
+                        regions=regions,
                     )
                     frame = self._aggregate_trade_regions(
                         frame,
@@ -3009,7 +3300,8 @@ class Database(CoreModel):
         return self._render_trade_plot(
             trades,
             trades_by_scenario,
-            title=title or f"{method.title()} {indicator} content in trades for {item_label}",
+            title=title
+            or f"{method.title()} {indicator} content in trades for {item_label}",
             unit_label=content_unit or "Value",
             auto_open=auto_open,
             output_path=output_path,
@@ -4592,6 +4884,16 @@ class Database(CoreModel):
         -------
         object
             ``pymrio.IOSystem`` instance created from the selected scenario.
+
+        Notes
+        -----
+        This exporter supports IOT databases with the same Sector and
+        Consumption category labels in every region. Regional classifications
+        raise ``NotImplementable`` before matrix queries or object creation.
+
+        A single-region representation with original regions encoded in item
+        labels is a separate representation change and is not performed by
+        this exporter. SUT databases require a SUT-to-IOT conversion first.
         """
 
         return export_database_to_pymrio(
@@ -5359,14 +5661,31 @@ class Database(CoreModel):
 
         Profile (and its default GWP factors) is auto-detected from the
         parser metadata when ``profile=None``. Pass ``gwp={...}`` to use
-        custom factors. The aggregation is appended to the baseline ``E`` and
-        ``EY`` matrices, registered as a new satellite account and followed by
-        a recalculation of dependent matrices.
+        custom factors. The aggregation is registered as a new satellite account
+        in every scenario. Only stored environmental blocks are updated: on a
+        native SUT these include ``Ea``, ``Ec`` and ``EY``. No economic matrices
+        or unified SUT views are requested, and no scenarios are deleted.
+
+        Existing environmental coefficients, multipliers and footprints receive
+        the same weighted row without further linear solves. Missing results
+        remain available for on-demand calculation. Cached custom operators
+        depending on updated environmental blocks are invalidated. Sparse
+        storage, row labels and column axes are preserved; undefined values
+        propagate for accounts with nonzero GWP factors.
 
         Parameters
         ----------
         profile:
             Registered profile name (see ``mario.ops.GHG_PROFILES``).
+            BONSAI is auto-detected and characterizes fossil CO2, fossil and
+            non-fossil CH4, and N2O (``Dinitrogen monoxide``). Biogenic CO2 stays
+            separate from the aggregate; NOx and resource CO2 uptake are not
+            characterized. AR6/GWP100 also includes ``Accelerated CO2, Air``
+            with factor 0.00772, following BONSAI's LCIA convention. That flow
+            has no built-in factor for other reports or horizons; when present,
+            those requests require an explicit ``gwp`` mapping.
+            This profile covers the gases available in the
+            Balanced bundle, which has no fluorinated GHG accounts.
         gwp:
             Optional ``{satellite-account: factor}`` mapping that overrides
             the profile defaults.
@@ -5381,14 +5700,13 @@ class Database(CoreModel):
             shared unit of the aggregated satellite accounts.
         time_horizon:
             Time horizon used to resolve built-in profile GWPs when available.
-            Default is ``100``. At the moment this matters only for built-in
-            profile gases whose factors vary across horizons, such as ``CH4``
-            and ``N2O``. Ignored when ``gwp=...`` is provided.
+            Default is ``100``. A factor must be available for each matched
+            account at the requested horizon. Ignored when ``gwp=...`` is provided.
         ipcc_report:
             IPCC assessment report used to resolve built-in profile GWPs when
             available. Supported built-in values currently are ``AR4``,
-            ``AR5``, and ``AR6``. At the moment this matters only for gases
-            whose factors vary across reports, such as ``CH4`` and ``N2O``.
+            ``AR5``, and ``AR6``. Each matched account must have a factor for
+            the selected report (BONSAI's accelerated CO2 supports AR6 only).
             Ignored when ``gwp=...`` is provided.
         inplace:
             When ``True`` mutate the database in place. When ``False`` return
@@ -5495,14 +5813,14 @@ class Database(CoreModel):
                 f"base_scenario {base_scenario!r} does not exist. Available scenarios are "
                 f"{list(self.matrices)}."
             )
-        # Shared with the module-level shock readers (mario.ops.shocks) so every
-        # base block is read from the chosen scenario, not just baseline.
-        self._shock_base_scenario = base_scenario
-
         clusters = self._resolved_clusters(clusters=clusters, legacy_clusters=legacy_clusters)
         check_clusters(
             index_dict=self.get_index("all"), table=self.table_type, clusters=clusters
         )
+
+        # Set this only after validating clusters, so rejected definitions do
+        # not leave an active shock base scenario on the database.
+        self._shock_base_scenario = base_scenario
 
         def _baseline_block(matrix_name):
             if self.has_matrix(matrix_name, scenario=base_scenario):

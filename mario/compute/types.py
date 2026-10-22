@@ -199,7 +199,12 @@ class MatrixSpec:
 
 @dataclass(frozen=True)
 class ComputeOptions:
-    """Advanced compute options carried by one resolution request."""
+    """Advanced compute options carried by one resolution request.
+
+    ``singular_policy`` overrides the session policy for solve-based targets:
+    ``'raise'`` rejects singular systems, while ``'partial'`` warns and retains
+    NaN at singular components and their dependent coefficients.
+    """
 
     execution_mode: ExecutionMode | str = ExecutionMode.AUTO
     planning_override: PlanningOverride | str = PlanningOverride.AUTO
@@ -209,6 +214,7 @@ class ComputeOptions:
     auto_inverse_overhead_factor: float | None = None
     debug_explain_decisions: bool = False
     allow_fallbacks: bool = True
+    singular_policy: str | None = None
 
 
 @dataclass(frozen=True)
@@ -227,6 +233,7 @@ class ResolutionContext:
     linear_strategy: str | None = None
     auto_w_memory_fraction: float | None = None
     auto_w_overhead_factor: float | None = None
+    singular_policy: str | None = None
 
 
 @dataclass(frozen=True)

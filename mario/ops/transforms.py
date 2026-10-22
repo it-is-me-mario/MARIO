@@ -7,8 +7,7 @@ import logging
 from mario.log_exc.exceptions import NotImplementable, WrongInput
 from mario.log_exc.logger import log_time
 from mario.model.conventions import _ENUM
-from mario.ops.transform_engine import ISARD_TO_CHENERY_MOSES, SUT_to_IOT
-from mario.utils import sort_frames
+from mario.ops.transform_engine import SUT_to_IOT
 
 logger = logging.getLogger(__name__)
 
@@ -129,36 +128,10 @@ def transform_to_chenery_moses(
         transform_to_chenery_moses(new, inplace=True, scenarios=scenarios)
         return new
 
-    if scenarios is None:
-        scenarios = database.scenarios
+    from mario.ops.chenery_moses import transform
 
-    for scenario in scenarios:
-        if database.is_chenerymoses(scenario=scenario):
-            raise NotImplementable(
-                f"scenario {scenario} is already in Chenery-Moses format"
-            )
-
-    log_time(
-        logger,
-        "Database: Transforming the database into Chenery-Moses",
-    )
-
-    for scenario in scenarios:
-        Z_chenery, Y_chenery = ISARD_TO_CHENERY_MOSES(database, scenario)
-        to_update = {_ENUM.Z: Z_chenery, _ENUM.Y: Y_chenery}
-        sort_frames(to_update)
-        database.update_scenarios(scenario, **to_update)
-        database.calc_all(
-            matrices=[_ENUM.U, _ENUM.S, "Ya", "Yc"],
-            scenario=scenario,
-            force_rewrite=True,
-        )
-        database.reset_to_flows(scenario=scenario)
-
-        database.meta._add_history(
-            f"Transformation of the database from into Chenery-Moses for scenario {scenario}"
-        )
-
+    log_time(logger, "Database: Transforming the database into Chenery-Moses")
+    transform(database, scenarios)
     log_time(logger, "Transformation of the database from into Chenery-Moses")
     return None
 
@@ -194,6 +167,21 @@ def transform_pool_trade(
     from mario.model.conventions import _MASTER_INDEX
     from mario.utils import _manage_indeces
 
+    if database.table_type != "SUT":
+        raise NotImplementable("pool_trade is implemented only for SUT databases.")
+
+    regional_sets = [
+        level
+        for level in (_MASTER_INDEX["a"], _MASTER_INDEX["c"], _MASTER_INDEX["n"])
+        if isinstance(database.get_index(level), dict)
+    ]
+    if regional_sets:
+        raise NotImplementable(
+            "pool_trade does not support region-specific classifications for "
+            f"{', '.join(regional_sets)}. This transformation requires the same "
+            "labels in every region."
+        )
+
     if not inplace:
         new = database.copy()
         transform_pool_trade(
@@ -204,9 +192,6 @@ def transform_pool_trade(
             inplace=True,
         )
         return new
-
-    if database.table_type != "SUT":
-        raise NotImplementable("pool_trade is implemented only for SUT databases.")
 
     A, C, N, R = (
         _MASTER_INDEX["a"],

@@ -68,9 +68,13 @@ def resolve_geography(profile, countries):
             regions.append({"label": label, "name": historical[text], "kind": "aggregate", "members": [],
                             "membership_status": "not_mapped", "historical": True})
             continue
-        if profile["source"] == "EXIOBASE" and text in EXIO_AGGREGATES:
+        if profile["source"] in {"EXIOBASE", "BONSAI"} and text in EXIO_AGGREGATES:
             regions.append({"label": label, "name": EXIO_AGGREGATES[text], "kind": "aggregate", "members": [],
                             "membership_status": "not_mapped"})
+            continue
+        if profile["source"] == "BONSAI" and text == "Global":
+            regions.append({"label": label, "name": "Global processes", "kind": "aggregate", "members": [],
+                            "membership_status": "not_mapped", "note": "Native global process block, not a World total or an additional country."})
             continue
         # The 71-economy source Legend explicitly labels RoLAC as Rest of LAC.
         if profile["guide"] == "adb" and text == "RoLAC":

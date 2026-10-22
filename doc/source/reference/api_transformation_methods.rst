@@ -15,6 +15,7 @@ Database Transformations
 
    ../api_document/mario.Database.aggregate
    ../api_document/mario.Database.add_extensions
+   ../api_document/mario.Database.keep_extensions
    ../api_document/mario.Database.add_sectors
    ../api_document/mario.Database.ras
    ../api_document/mario.Database.to_iot

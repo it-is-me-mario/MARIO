@@ -93,6 +93,23 @@ accepted aliases in the public API, and their intended meaning.
 .. raw:: html
    :file: _generated/indices_table.html
 
+.. _regional-classifications:
+
+.. note::
+
+   **Special case: regional classifications.** Most databases use the same
+   labels in every region, and ``db.get_index(...)`` returns a list. Some
+   sources, such as BONSAI, have different activity or commodity classifications
+   across regions. For a set whose members differ, the result is instead
+   ``{region: [members]}``; each set is evaluated independently, and common or
+   global sets still return lists. Equal counts do not imply identical members.
+
+   Use ``region="IT"`` to get one region's list, or ``flat=True`` to get the
+   union of distinct labels. The union does not mean that every label exists
+   in every region. See :doc:`Basic inspections
+   </user_guide/inspection/basic_inspections>` for examples and
+   :doc:`get_index </api_document/mario.CoreModel.get_index>` for the full API.
+
 Matrices
 ~~~~~~~~
 

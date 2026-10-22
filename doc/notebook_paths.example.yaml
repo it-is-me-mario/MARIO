@@ -25,6 +25,11 @@ replacements:
 # Replacements can also be scoped to a notebook, and optionally to code cells.
 # Cell indexes are zero-based notebook cell indexes, matching nbformat order.
 notebooks:
+  source/notebooks/parsers/bonsai/walkthrough_bonsai.ipynb:
+    replacements:
+      - placeholder: "/path/to/Balanced/20260615.zip"
+        local: "/absolute/local/path/to/Balanced/20260615.zip"
+
   source/notebooks/parsers/bea/walkthrough_bea.ipynb:
     replacements:
       - placeholder: "/path/to/SUPPLY-USE.zip"

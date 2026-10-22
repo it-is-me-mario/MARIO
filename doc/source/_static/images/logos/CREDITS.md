@@ -4,12 +4,13 @@ These logos identify the data sources that MARIO can parse, on the parsers
 overview page (`user_guide/parsers/index.rst`); `pymrio.png` and `cvxlab.png`
 also appear on the research page (`resources/research.rst`). They are trademarks of their
 owners and do not imply any endorsement of MARIO. Files were downloaded on
-2026-10-08, then resized or cropped.
+2026-10-08, then resized or cropped, unless otherwise noted below.
 
 | File | Owner | Source | Licence |
 |---|---|---|---|
 | `adb.svg` | Asian Development Bank | https://commons.wikimedia.org/wiki/File:Asian_Development_Bank_logo.svg | Public domain (Wikimedia Commons) |
 | `bea.svg` | U.S. Bureau of Economic Analysis | https://commons.wikimedia.org/wiki/File:US-BureauOfEconomicAnalysis-Logo.svg | Public domain (Wikimedia Commons) |
+| `bonsai.webp` | BONSAI | https://bonsai.uno/assets/bonsai_logo-DQorZpYj.webp | Trademark of the owner; original file added unchanged on 2026-10-20 |
 | `ceads.png` | CEADs | https://www.ceads.net/public/images/ceads/logo.png | Trademark of the owner; emblem cropped from the site logo |
 | `cvxlab.png` | CVXlab (MARIO team) | https://github.com/cvxlab/cvxlab/tree/main/docs/images/logo_10-25 | CVXlab project; emblem cropped from the vertical logo |
 | `eclac.svg` | UN ECLAC (CEPAL) | https://commons.wikimedia.org/wiki/File:United_Nations_Economic_Commission_for_Latin_America_and_the_Caribbean_Logo.svg | Public domain (Wikimedia Commons) |

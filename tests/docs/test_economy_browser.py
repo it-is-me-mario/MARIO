@@ -52,6 +52,17 @@ def test_ghg_characterisation_units_and_household_boundary():
     assert "ghg" not in result
 
 
+def test_emissions_without_income_accounts_never_publishes_placeholder_zeros():
+    blocks, recipe, _ = example()
+    recipe.update(value_added_available=False, final_demand_emissions_loaded=False,
+                  sectors=["All native production activities"])
+    # Even a nonzero V or EY must not be read as evidence for this source.
+    result = browser.aggregate(SimpleNamespace(get_block=lambda name: blocks["E"] if name == "E" else pytest.fail(name)), recipe)[0]
+    assert result["gdp"] is None and result["value_added"] is None
+    assert result["ghg"] == pytest.approx([4.044])
+    assert "household_ghg" not in result
+
+
 def test_fail_on_missing_gas_nonfinite_value_or_changed_classification():
     blocks, recipe, _ = example()
     with pytest.raises(KeyError):
@@ -111,8 +122,11 @@ def test_published_snapshots_have_finite_additive_indicators_and_no_private_path
             group_sectors = [s for items in recipe["sector_groups"].values() for s in items]
             assert sorted(group_sectors) == sorted(recipe["sectors"])
         for region in snapshot["regions"]:
-            assert len(region["value_added"]) == len(recipe["sectors"])
-            assert np.isfinite(region["value_added"]).all()
+            if recipe.get("value_added_available") is False:
+                assert region["value_added"] is None and region["gdp"] is None
+            else:
+                assert len(region["value_added"]) == len(recipe["sectors"])
+                assert np.isfinite(region["value_added"]).all()
             if "ghg" in region:
                 assert len(region["ghg"]) == len(recipe.get("ghg_sectors", recipe["sectors"]))
                 assert np.isfinite(region["ghg"]).all()
@@ -123,7 +137,7 @@ def test_published_snapshots_have_finite_additive_indicators_and_no_private_path
                 assert recipe["gdp_bridge_verified"] is False
                 assert region["gdp"] == sum(region["value_added"])
                 assert "net_product_taxes" not in region
-            else:
+            elif recipe.get("value_added_available") is not False:
                 assert "gdp" not in region
 
 

@@ -6,12 +6,16 @@ module contains the shock functions
 import copy
 import logging
 import os
+from collections.abc import Mapping
 
 import pandas as pd
+import numpy as np
+from mario.compute.helpers import _is_sparse_backed_dataframe, sparse_frame_from_spmatrix
 from mario.log_exc.logger import log_time
 from mario.log_exc.exceptions import WrongInput
 from mario.model.conventions import _MASTER_INDEX, _ENUM
 from mario.ops.workbook_specs import SHOCK_COLUMNS, SHOCK_FLAT_COLUMNS
+from mario.clusters.definitions import normalize_cluster_members
 
 logger = logging.getLogger(__name__)
 _SHOCK_SHEET_CACHE = {}
@@ -102,8 +106,27 @@ def _shock_column(info, *candidates, required=True, default=None):
     return [default] * len(info)
 
 
+class _RegionalCode(dict):
+    """A literal code, distinct from a cluster with an empty regional selection."""
+
+    def __init__(self, code, domain):
+        super().__init__(
+            (r, [code] if code in members else []) for r, members in domain.items()
+        )
+        self.code = code
+
+
 def check_replace_clusters(userValue, dataValues, clusters):
     """Resolve a user value directly or through the optional cluster mapping."""
+    if isinstance(dataValues, Mapping):
+        if any(userValue in members for members in dataValues.values()):
+            return _RegionalCode(userValue, dataValues)
+        if clusters is not None and userValue in clusters:
+            return normalize_cluster_members(
+                clusters[userValue], dataValues, level="regional set", name=userValue
+            )
+        raise WrongInput(f"{userValue} not in the database neither in clusters.")
+
     if userValue in dataValues:
         return userValue
 
@@ -526,6 +549,23 @@ def read_trade_mix_specs(instance, path):
 
 def _io_axis_key(axis, region, level, item):
     """Build one row/column key matching either legacy or flat IO axes."""
+    if isinstance(item, Mapping):
+        if not isinstance(axis, pd.MultiIndex):
+            raise WrongInput("Regional cluster members require a regional matrix axis.")
+        regions = list(region) if pd.api.types.is_list_like(region) else [region]
+        allowed = {r: set(item.get(r, ())) for r in regions}
+        keys = [
+            key
+            for key in axis
+            if key[0] in allowed
+            and (axis.nlevels == 2 or key[1] == level)
+            and key[-1] in allowed[key[0]]
+        ]
+        if not keys and isinstance(item, _RegionalCode):
+            raise WrongInput(
+                f"{item.code!r} does not exist in the selected regions {regions}."
+            )
+        return keys
     if isinstance(axis, pd.MultiIndex):
         if axis.nlevels >= 3:
             return (region, level, item)
@@ -536,12 +576,97 @@ def _io_axis_key(axis, region, level, item):
 
 def _fd_axis_key(axis, region, category):
     """Build one final-demand column key for legacy or flat layouts."""
+    if isinstance(category, Mapping):
+        return _io_axis_key(axis, region, _MASTER_INDEX["n"], category)
     if isinstance(axis, pd.MultiIndex):
         if axis.nlevels >= 3:
             return (region, _MASTER_INDEX["n"], category)
         if axis.nlevels == 2:
             return (region, category)
     return category
+
+
+def _account_axis_key(axis, level, members):
+    """Select regional factor/satellite rows by their own region-item pairs."""
+    if isinstance(members, Mapping):
+        return _io_axis_key(axis, list(members), level, members)
+    return members
+
+
+def _apply_shock(
+    frame, rows, columns, kind, value, *, flow=None, output=None, output_key=None
+):
+    """Update existing selections, retaining sparse storage and axis membership."""
+    row_positions = np.atleast_1d(
+        pd.Series(np.arange(len(frame.index)), index=frame.index).loc[rows]
+    ).astype(int)
+    column_positions = np.atleast_1d(
+        pd.Series(np.arange(len(frame.columns)), index=frame.columns).loc[columns]
+    ).astype(int)
+    if kind not in {"Percentage", "Absolute", "Update"}:
+        raise WrongInput(
+            "Acceptable values for type are Absolute, Percentage, and Update."
+        )
+    if not len(row_positions) or not len(column_positions):
+        return frame
+
+    sparse = _is_sparse_backed_dataframe(frame)
+    if sparse and kind == "Percentage":
+        matrix = frame.sparse.to_coo().astype(float)
+        selected = np.isin(matrix.row, row_positions) & np.isin(
+            matrix.col, column_positions
+        )
+        matrix.data[selected] *= 1 + value
+        matrix.eliminate_zeros()
+        return sparse_frame_from_spmatrix(
+            matrix, index=frame.index, columns=frame.columns
+        )
+
+    if kind == "Update":
+        values = value
+    elif kind == "Percentage":
+        values = get_value(frame.loc[rows, columns]) * (1 + value)
+    else:
+        source = frame if flow is None else flow
+        values = get_value(source.loc[rows, columns]) + value
+        if output is not None:
+            divisor = output.loc[output_key, "production"]
+            if isinstance(divisor, pd.Series):
+                # Output and matrix axes can have different orders, or omit
+                # the constant Level component on one of the two axes.
+                def node(label):
+                    return (label[0], label[-1]) if isinstance(label, tuple) else label
+
+                by_node = dict(zip(map(node, divisor.index), get_value(divisor)))
+                divisor = np.array(
+                    [
+                        by_node[node(label)]
+                        for label in frame.columns.take(column_positions)
+                    ]
+                )
+            values = values / get_value(divisor)
+
+    if not sparse:
+        frame.loc[rows, columns] = values
+        return frame
+
+    # Replace selected sparse columns, using at most one dense column vector
+    # rather than densifying the full matrix or assigning into SparseArray.
+    values = np.asarray(values)
+    if (
+        values.ndim == 1
+        and len(column_positions) == 1
+        and len(values) == len(row_positions)
+    ):
+        values = values[:, None]
+    values = np.broadcast_to(values, (len(row_positions), len(column_positions)))
+    for j, position in enumerate(column_positions):
+        column = (
+            frame.iloc[:, position].sparse.to_dense().to_numpy(dtype=float, copy=True)
+        )
+        column[row_positions] = values[:, j]
+        frame[frame.columns[position]] = pd.arrays.SparseArray(column, fill_value=0.0)
+    return frame
 
 
 def _baseline_block(instance, matrix_name):
@@ -611,9 +736,7 @@ def Y_shock(instance, path, boolean, clusters, to_baseline):
     value = _shock_column(info, SHOCK_FLAT_COLUMNS["value"], SHOCK_COLUMNS["value"])
 
     if info.isnull().values.any():
-        raise WrongInput(
-            f"nans(empty cells) found in the shock file for '{_ENUM.Y}'."
-        )
+        raise WrongInput(f"nans(empty cells) found in the shock file for '{_ENUM.Y}'.")
 
     for shock in range(len(info)):
         if _is_mix_type(_type[shock]):
@@ -638,9 +761,11 @@ def Y_shock(instance, path, boolean, clusters, to_baseline):
 
         row_level_ = check_replace_clusters(
             userValue=row_level[shock],
-            dataValues=[_MASTER_INDEX["s"]]
-            if instance.meta.table == "IOT"
-            else [_MASTER_INDEX["a"], _MASTER_INDEX["c"]],
+            dataValues=(
+                [_MASTER_INDEX["s"]]
+                if instance.meta.table == "IOT"
+                else [_MASTER_INDEX["a"], _MASTER_INDEX["c"]]
+            ),
             clusters=None,
         )
 
@@ -665,19 +790,7 @@ def Y_shock(instance, path, boolean, clusters, to_baseline):
         row_key = _io_axis_key(Y.index, row_region_, row_level_, row_sector_)
         col_key = _fd_axis_key(Y.columns, column_region_, demand_category_)
 
-        if _type[shock] == "Absolute":
-            Y.loc[row_key, col_key] = Y.loc[row_key, col_key] + value[shock]
-
-        elif _type[shock] == "Percentage":
-            Y.loc[row_key, col_key] = Y.loc[row_key, col_key] * (1 + value[shock])
-
-        elif _type[shock] == "Update":
-            Y.loc[row_key, col_key] = value[shock]
-
-        else:
-            raise WrongInput(
-                "Acceptable values for type are Absolute, Percentage, and Update."
-            )
+        Y = _apply_shock(Y, row_key, col_key, _type[shock], value[shock])
 
         notes.append(
             "Shock on Y implemented: row_region:{}, row_level:{}, "
@@ -723,9 +836,7 @@ def V_shock(instance, path, matrix, boolean, clusters, to_baseline):
         return coeff, notes
 
     if info.isnull().values.any():
-        raise WrongInput(
-            f"nans(empty cells) found in the shock file for '{matrix}'."
-        )
+        raise WrongInput(f"nans(empty cells) found in the shock file for '{matrix}'.")
 
     from_column = (
         SHOCK_FLAT_COLUMNS["factor_from"]
@@ -776,9 +887,11 @@ def V_shock(instance, path, matrix, boolean, clusters, to_baseline):
 
         column_level_ = check_replace_clusters(
             userValue=column_level[shock],
-            dataValues=[_MASTER_INDEX["s"]]
-            if instance.meta.table == "IOT"
-            else [_MASTER_INDEX["a"], _MASTER_INDEX["c"]],
+            dataValues=(
+                [_MASTER_INDEX["s"]]
+                if instance.meta.table == "IOT"
+                else [_MASTER_INDEX["a"], _MASTER_INDEX["c"]]
+            ),
             clusters=None,
         )
 
@@ -801,26 +914,17 @@ def V_shock(instance, path, matrix, boolean, clusters, to_baseline):
             column_sector_,
         )
 
-        if _type[shock] == "Percentage":
-            coeff.loc[row_sector_, column_key] = get_value(
-                coeff.loc[row_sector_, column_key]
-            ) * (
-                1 + value[shock]
-            )
-
-        elif _type[shock] == "Absolute":
-            coeff.loc[row_sector_, column_key] = (
-                get_value(flow.loc[row_sector_, column_key])
-                + value[shock]
-            ) / get_value(X.loc[output_key, "production"])
-
-        elif _type[shock] == "Update":
-            coeff.loc[row_sector_, column_key] = value[shock]
-
-        else:
-            raise WrongInput(
-                "Acceptable values for type are Absolute, Percentage and Update"
-            )
+        row_key = _account_axis_key(coeff.index, _MASTER_INDEX[_id], row_sector_)
+        coeff = _apply_shock(
+            coeff,
+            row_key,
+            column_key,
+            _type[shock],
+            value[shock],
+            flow=flow,
+            output=X,
+            output_key=output_key,
+        )
 
         notes.append(
             "Shock on {} implemented: row_sector:{}, column_region:{}, "
@@ -860,7 +964,9 @@ def _split_intermediate_shock(
     if not boolean:
         return coeff, notes
 
-    info = _read_shock_sheet(path, sheet_name, coefficient_matrix, str(coefficient_matrix).lower())
+    info = _read_shock_sheet(
+        path, sheet_name, coefficient_matrix, str(coefficient_matrix).lower()
+    )
     if info is None:
         return coeff, notes
 
@@ -932,23 +1038,24 @@ def _split_intermediate_shock(
             clusters=clusters.get(column_level),
         )
 
-        row_key = (row_region_, row_level, row_sector_)
-        col_key = (column_region_, column_level, column_sector_)
+        row_key = _io_axis_key(coeff.index, row_region_, row_level, row_sector_)
+        col_key = _io_axis_key(
+            coeff.columns, column_region_, column_level, column_sector_
+        )
+        output_key = _io_axis_key(
+            output.index, column_region_, column_level, column_sector_
+        )
 
-        if _type[shock] == "Percentage":
-            coeff.loc[row_key, col_key] = get_value(coeff.loc[row_key, col_key]) * (
-                1 + value[shock]
-            )
-        elif _type[shock] == "Absolute":
-            coeff.loc[row_key, col_key] = (
-                get_value(flow.loc[row_key, col_key]) + value[shock]
-            ) / get_value(output.loc[col_key, "production"])
-        elif _type[shock] == "Update":
-            coeff.loc[row_key, col_key] = value[shock]
-        else:
-            raise WrongInput(
-                "Acceptable values for type are Absolute, Percentage and Update"
-            )
+        coeff = _apply_shock(
+            coeff,
+            row_key,
+            col_key,
+            _type[shock],
+            value[shock],
+            flow=flow,
+            output=output,
+            output_key=output_key,
+        )
 
         notes.append(
             "Shock on {} implemented: row_region:{}, row_level:{}, "
@@ -1067,19 +1174,10 @@ def _split_final_demand_shock(
             clusters=clusters.get(_MASTER_INDEX["n"]),
         )
 
-        row_key = (row_region_, row_level, row_sector_)
-        col_key = (column_region_, _MASTER_INDEX["n"], demand_category_)
+        row_key = _io_axis_key(flow.index, row_region_, row_level, row_sector_)
+        col_key = _fd_axis_key(flow.columns, column_region_, demand_category_)
 
-        if _type[shock] == "Absolute":
-            flow.loc[row_key, col_key] = get_value(flow.loc[row_key, col_key]) + value[shock]
-        elif _type[shock] == "Percentage":
-            flow.loc[row_key, col_key] = get_value(flow.loc[row_key, col_key]) * (1 + value[shock])
-        elif _type[shock] == "Update":
-            flow.loc[row_key, col_key] = value[shock]
-        else:
-            raise WrongInput(
-                "Acceptable values for type are Absolute, Percentage, and Update."
-            )
+        flow = _apply_shock(flow, row_key, col_key, _type[shock], value[shock])
 
         notes.append(
             "Shock on {} implemented: row_region:{}, row_level:{}, row_sector:{}, "
@@ -1147,7 +1245,9 @@ def _split_factor_extension_shock(
     if not boolean:
         return coeff, notes
 
-    info = _read_shock_sheet(path, sheet_name, coefficient_matrix, str(coefficient_matrix))
+    info = _read_shock_sheet(
+        path, sheet_name, coefficient_matrix, str(coefficient_matrix)
+    )
     if info is None:
         return coeff, notes
 
@@ -1170,7 +1270,9 @@ def _split_factor_extension_shock(
         else SHOCK_FLAT_COLUMNS["commodity_to"]
     )
     row_sector = _shock_column(info, row_column, SHOCK_COLUMNS["r_sec"])
-    column_region = _shock_column(info, SHOCK_FLAT_COLUMNS["region_to"], SHOCK_COLUMNS["c_reg"])
+    column_region = _shock_column(
+        info, SHOCK_FLAT_COLUMNS["region_to"], SHOCK_COLUMNS["c_reg"]
+    )
     column_sector = _shock_column(info, column_to, SHOCK_COLUMNS["c_sec"])
     _type = _shock_column(info, SHOCK_FLAT_COLUMNS["type"], SHOCK_COLUMNS["type"])
     value = _shock_column(info, SHOCK_FLAT_COLUMNS["value"], SHOCK_COLUMNS["value"])
@@ -1192,20 +1294,24 @@ def _split_factor_extension_shock(
             clusters=clusters.get(column_level),
         )
 
-        col_key = (column_region_, column_level, column_sector_)
+        row_key = _account_axis_key(coeff.index, row_code, row_sector_)
+        col_key = _io_axis_key(
+            coeff.columns, column_region_, column_level, column_sector_
+        )
+        output_key = _io_axis_key(
+            output.index, column_region_, column_level, column_sector_
+        )
 
-        if _type[shock] == "Percentage":
-            coeff.loc[row_sector_, col_key] = get_value(coeff.loc[row_sector_, col_key]) * (1 + value[shock])
-        elif _type[shock] == "Absolute":
-            coeff.loc[row_sector_, col_key] = (
-                get_value(flow.loc[row_sector_, col_key]) + value[shock]
-            ) / get_value(output.loc[col_key, "production"])
-        elif _type[shock] == "Update":
-            coeff.loc[row_sector_, col_key] = value[shock]
-        else:
-            raise WrongInput(
-                "Acceptable values for type are Absolute, Percentage and Update"
-            )
+        coeff = _apply_shock(
+            coeff,
+            row_key,
+            col_key,
+            _type[shock],
+            value[shock],
+            flow=flow,
+            output=output,
+            output_key=output_key,
+        )
 
         notes.append(
             "Shock on {} implemented: row_sector:{}, column_region:{}, "
@@ -1301,29 +1407,37 @@ def Z_shock(instance, path, boolean, clusters, to_baseline):
 
     Z = _baseline_block(instance, _ENUM.Z)
     X = _baseline_block(instance, _ENUM.X)
-    info = _read_shock_sheet(path, _ENUM.z, _ENUM.Z, str(_ENUM.z).lower(), str(_ENUM.Z).upper())
+    info = _read_shock_sheet(
+        path, _ENUM.z, _ENUM.Z, str(_ENUM.z).lower(), str(_ENUM.Z).upper()
+    )
     if info is None:
         return z, notes
 
-    row_region = _shock_column(info, SHOCK_FLAT_COLUMNS["region_from"], SHOCK_COLUMNS["r_reg"])
+    row_region = _shock_column(
+        info, SHOCK_FLAT_COLUMNS["region_from"], SHOCK_COLUMNS["r_reg"]
+    )
     if instance.meta.table == "IOT":
         row_level = [_MASTER_INDEX["s"]] * len(info)
-        row_sector = _shock_column(info, SHOCK_FLAT_COLUMNS["sector_from"], SHOCK_COLUMNS["r_sec"])
+        row_sector = _shock_column(
+            info, SHOCK_FLAT_COLUMNS["sector_from"], SHOCK_COLUMNS["r_sec"]
+        )
         column_level = [_MASTER_INDEX["s"]] * len(info)
-        column_sector = _shock_column(info, SHOCK_FLAT_COLUMNS["sector_to"], SHOCK_COLUMNS["c_sec"])
+        column_sector = _shock_column(
+            info, SHOCK_FLAT_COLUMNS["sector_to"], SHOCK_COLUMNS["c_sec"]
+        )
     else:
         row_level = _shock_column(info, SHOCK_COLUMNS["r_lev"])
         row_sector = _shock_column(info, SHOCK_COLUMNS["r_sec"])
         column_level = _shock_column(info, SHOCK_COLUMNS["c_lev"])
         column_sector = _shock_column(info, SHOCK_COLUMNS["c_sec"])
-    column_region = _shock_column(info, SHOCK_FLAT_COLUMNS["region_to"], SHOCK_COLUMNS["c_reg"])
+    column_region = _shock_column(
+        info, SHOCK_FLAT_COLUMNS["region_to"], SHOCK_COLUMNS["c_reg"]
+    )
     _type = _shock_column(info, SHOCK_FLAT_COLUMNS["type"], SHOCK_COLUMNS["type"])
     value = _shock_column(info, SHOCK_FLAT_COLUMNS["value"], SHOCK_COLUMNS["value"])
 
     if info.isnull().values.any():
-        raise WrongInput(
-            f"nans(empty cells) found in the shock file for '{_ENUM.Z}'."
-        )
+        raise WrongInput(f"nans(empty cells) found in the shock file for '{_ENUM.Z}'.")
 
     for shock in range(len(info)):
         if _is_mix_type(_type[shock]):
@@ -1348,9 +1462,11 @@ def Z_shock(instance, path, boolean, clusters, to_baseline):
 
         row_level_ = check_replace_clusters(
             userValue=row_level[shock],
-            dataValues=[_MASTER_INDEX["s"]]
-            if instance.meta.table == "IOT"
-            else [_MASTER_INDEX["a"], _MASTER_INDEX["c"]],
+            dataValues=(
+                [_MASTER_INDEX["s"]]
+                if instance.meta.table == "IOT"
+                else [_MASTER_INDEX["a"], _MASTER_INDEX["c"]]
+            ),
             clusters=None,
         )
 
@@ -1368,9 +1484,11 @@ def Z_shock(instance, path, boolean, clusters, to_baseline):
 
         column_level_ = check_replace_clusters(
             userValue=column_level[shock],
-            dataValues=[_MASTER_INDEX["s"]]
-            if instance.meta.table == "IOT"
-            else [_MASTER_INDEX["a"], _MASTER_INDEX["c"]],
+            dataValues=(
+                [_MASTER_INDEX["s"]]
+                if instance.meta.table == "IOT"
+                else [_MASTER_INDEX["a"], _MASTER_INDEX["c"]]
+            ),
             clusters=None,
         )
 
@@ -1381,25 +1499,23 @@ def Z_shock(instance, path, boolean, clusters, to_baseline):
         )
 
         row_key = _io_axis_key(Z.index, row_region_, row_level_, row_sector_)
-        column_key = _io_axis_key(Z.columns, column_region_, column_level_, column_sector_)
-        output_key = _io_axis_key(X.index, column_region_, column_level_, column_sector_)
+        column_key = _io_axis_key(
+            Z.columns, column_region_, column_level_, column_sector_
+        )
+        output_key = _io_axis_key(
+            X.index, column_region_, column_level_, column_sector_
+        )
 
-        if _type[shock] == "Percentage":
-            z.loc[row_key, column_key] = z.loc[row_key, column_key] * (1 + value[shock])
-
-        elif _type[shock] == "Absolute":
-            z.loc[row_key, column_key] = (
-                get_value(Z.loc[row_key, column_key])
-                + value[shock]
-            ) / get_value(X.loc[output_key, "production"])
-
-        elif _type[shock] == "Update":
-            z.loc[row_key, column_key] = value[shock]
-
-        else:
-            raise WrongInput(
-                "Acceptable values for type are Absolute, Percentage, and Update."
-            )
+        z = _apply_shock(
+            z,
+            row_key,
+            column_key,
+            _type[shock],
+            value[shock],
+            flow=Z,
+            output=X,
+            output_key=output_key,
+        )
 
         notes.append(
             "Shock on z implemented: row_region_:{}, row_level_:{}, "

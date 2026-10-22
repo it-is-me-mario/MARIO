@@ -14,6 +14,8 @@ from mario.parsers import entrypoints as parser_entrypoints
 from mario.parsers import gloria as gloria_parser
 from mario.parsers.gloria import parse_gloria_sut
 
+pytestmark = pytest.mark.usefixtures("isolated_session_settings")
+
 
 def _write_gloria_readme(path: Path) -> None:
     """Create a minimal GLORIA ReadMe workbook."""

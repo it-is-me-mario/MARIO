@@ -23,7 +23,7 @@ def dense_values(
     *,
     copy: bool = False,
 ) -> np.ndarray:
-    """Return numeric values, treating pandas sparse structural gaps as zeros."""
+    """Return numeric values, preserving explicit NaN and zero-filled sparse gaps."""
     if isinstance(block, pd.DataFrame):
         if _is_sparse_backed_dataframe(block):
             return block.sparse.to_coo().toarray().astype(float, copy=copy)
@@ -31,7 +31,7 @@ def dense_values(
 
     if isinstance(block, pd.Series):
         if _is_sparse_backed_series(block):
-            return block.sparse.to_dense().fillna(0.0).to_numpy(dtype=float, copy=copy)
+            return block.sparse.to_dense().to_numpy(dtype=float, copy=copy)
         return block.to_numpy(dtype=float, copy=copy)
 
     if copy:
@@ -45,7 +45,7 @@ def sparse_frame_from_spmatrix(matrix, *, index, columns) -> pd.DataFrame:
         matrix,
         index=index,
         columns=columns,
-    ).fillna(0.0)
+    ).astype(pd.SparseDtype(matrix.dtype, fill_value=0))
 
 
 def as_dense_series(vector: pd.DataFrame | pd.Series | np.ndarray | list[float] | tuple[float, ...]) -> pd.Series:
@@ -97,7 +97,7 @@ def sum_rows(block: pd.DataFrame | pd.Series) -> pd.Series:
             summed = np.asarray(matrix.sum(axis=1)).reshape(-1)
             return pd.Series(summed, index=block.index, dtype=float)
 
-        return as_dense_series(block.sum(axis=1))
+        return as_dense_series(block.sum(axis=1, skipna=False))
 
     raise TypeError("Final demand block must be a pandas Series or DataFrame.")
 
@@ -113,7 +113,7 @@ def sum_columns(block: pd.DataFrame | pd.Series) -> pd.Series:
             summed = np.asarray(matrix.sum(axis=0)).reshape(-1)
             return pd.Series(summed, index=block.columns, dtype=float)
 
-        return as_dense_series(block.sum(axis=0))
+        return as_dense_series(block.sum(axis=0, skipna=False))
 
     raise TypeError("Block must be a pandas Series or DataFrame.")
 
@@ -180,6 +180,43 @@ def scale_rows(
     return frame.mul(series, axis=0)
 
 
+def _has_nan(values):
+    from scipy import sparse
+
+    return np.isnan(values.data if sparse.issparse(values) else values).any()
+
+
+def _matmul_with_missing(left, right):
+    """Propagate undefined terms only through nonzero dependencies.
+
+    Temporary zeros are used only to evaluate the known part. Every output
+    depending on an unknown term is explicitly restored to NaN. Thus unknown
+    coefficients never become zeros, and multiplication by a known zero does
+    not contaminate unrelated outputs.
+    """
+    from scipy import sparse
+
+    left = sparse.csr_matrix(left, copy=True)
+    right = sparse.csc_matrix(right, copy=True)
+
+    def masks(matrix):
+        unknown = matrix.copy()
+        unknown.data = np.isnan(matrix.data)
+        unknown.eliminate_zeros()
+        support = matrix.astype(bool)
+        support.eliminate_zeros()
+        matrix.data[np.isnan(matrix.data)] = 0.0
+        matrix.eliminate_zeros()
+        return unknown, support
+
+    left_unknown, left_support = masks(left)
+    right_unknown, right_support = masks(right)
+    affected = (left_unknown @ right_support + left_support @ right_unknown).tocoo()
+    result = (left @ right).tolil()
+    result[affected.row, affected.col] = np.nan
+    return result.tocsr()
+
+
 def matmul(left: pd.DataFrame, right: pd.DataFrame) -> pd.DataFrame:
     """Multiply two labelled dataframes using a sparse-aware backend when useful."""
     if not isinstance(left, pd.DataFrame) or not isinstance(right, pd.DataFrame):
@@ -203,7 +240,11 @@ def matmul(left: pd.DataFrame, right: pd.DataFrame) -> pd.DataFrame:
             if right_is_sparse
             else dense_values(right)
         )
-        product = left_matrix @ right_matrix
+        product = (
+            _matmul_with_missing(left_matrix, right_matrix)
+            if _has_nan(left_matrix) or _has_nan(right_matrix)
+            else left_matrix @ right_matrix
+        )
 
         if sparse.issparse(product):
             return sparse_frame_from_spmatrix(
@@ -218,8 +259,14 @@ def matmul(left: pd.DataFrame, right: pd.DataFrame) -> pd.DataFrame:
             columns=right.columns,
         )
 
+    left_values, right_values = dense_values(left), dense_values(right)
+    product = (
+        _matmul_with_missing(left_values, right_values).toarray()
+        if _has_nan(left_values) or _has_nan(right_values)
+        else left_values @ right_values
+    )
     return pd.DataFrame(
-        dense_values(left) @ dense_values(right),
+        product,
         index=left.index,
         columns=right.columns,
     )
@@ -237,13 +284,13 @@ def matvec(
     if not frame.columns.equals(series.index):
         raise ValueError("frame columns and vector index do not match.")
 
-    if _is_sparse_backed_dataframe(frame):
-        matrix = frame.sparse.to_coo().tocsr()
-        values = matrix @ dense_values(series)
-        return pd.Series(np.asarray(values).reshape(-1), index=frame.index, dtype=float)
+    matrix = frame.sparse.to_coo().tocsr() if _is_sparse_backed_dataframe(frame) else dense_values(frame)
+    if _has_nan(matrix) or _has_nan(dense_values(series)):
+        values = _matmul_with_missing(matrix, dense_values(series).reshape(-1, 1)).toarray().ravel()
+        return pd.Series(values, index=frame.index, dtype=float)
 
-    values = dense_values(frame) @ dense_values(series)
-    return pd.Series(values, index=frame.index, dtype=float)
+    values = matrix @ dense_values(series)
+    return pd.Series(np.asarray(values).reshape(-1), index=frame.index, dtype=float)
 
 
 def transpose_matvec(
@@ -258,13 +305,13 @@ def transpose_matvec(
     if not frame.index.equals(series.index):
         raise ValueError("frame index and vector index do not match.")
 
-    if _is_sparse_backed_dataframe(frame):
-        matrix = frame.sparse.to_coo().tocsc()
-        values = matrix.T @ dense_values(series)
-        return pd.Series(np.asarray(values).reshape(-1), index=frame.columns, dtype=float)
+    matrix = frame.sparse.to_coo().tocsc() if _is_sparse_backed_dataframe(frame) else dense_values(frame)
+    if _has_nan(matrix) or _has_nan(dense_values(series)):
+        values = _matmul_with_missing(matrix.T, dense_values(series).reshape(-1, 1)).toarray().ravel()
+        return pd.Series(values, index=frame.columns, dtype=float)
 
-    values = dense_values(frame).T @ dense_values(series)
-    return pd.Series(values, index=frame.columns, dtype=float)
+    values = matrix.T @ dense_values(series)
+    return pd.Series(np.asarray(values).reshape(-1), index=frame.columns, dtype=float)
 
 
 def inverse_vector(
@@ -287,6 +334,17 @@ def identity_like(square_block: pd.DataFrame) -> pd.DataFrame:
         index=square_block.index,
         columns=square_block.columns,
     )
+
+
+def leontief_inverse(coefficients: pd.DataFrame) -> pd.DataFrame:
+    """Invert ``I - A`` strictly, diagnosing singularity before dense allocation."""
+    from mario.compute.linear_solvers import require_nonsingular_coefficients
+
+    validate_square(coefficients)
+    require_nonsingular_coefficients(coefficients)
+    values = np.eye(len(coefficients)) - dense_values(coefficients)
+    inverse = np.linalg.inv(values)
+    return pd.DataFrame(inverse, index=coefficients.index, columns=coefficients.columns)
 
 
 def safe_inverse(matrix: pd.DataFrame) -> pd.DataFrame:
