@@ -10,6 +10,9 @@ from collections import defaultdict
 import hashlib
 import json
 from pathlib import Path
+import shutil
+
+from bonsai_classification_routes import build_bonsai
 
 
 def reviewed_pilot_routes(pilot, bridges):
@@ -341,6 +344,11 @@ def build(inputs, scope):
         c=groups[key]
         c['releases']=sorted(set(c['releases']+([p['release']] if p['release'] else [])))
         c['years']=sorted(set(c['years']+p['years']));c['profile_ids'].append(p['id']);c['formats']=sorted(set(c['formats']+[p['format']]))
+    bonsai=build_bonsai(inputs,refs,scope)
+    sources.update({s['id']:s for s in bonsai['sources']})
+    node_names.update(bonsai['node_names'])
+    for kind,column in bonsai['columns'].items():
+        columns[kind].append(column)
     for kind,cs in columns.items():
         cs.sort(key=lambda c:({'EXIOBASE':0,'ADB':1,'CEDA':2}.get(c['family'],3),c['family'],c['status']!='documented',{'Monetary':0,'Hybrid':1}.get(c['units'],2),c['native_count']))
         family_counts=defaultdict(int)
@@ -355,7 +363,7 @@ def build(inputs, scope):
             for n in c['native']:n['links']={k:v for k,v in n['links'].items() if k in valid}
     # Deduplicate source steps rather than repeating full provenance in every cell.
     route_steps=dict(products['route_steps'])
-    country_variants={'WIOD2016A':native['WIOD2016A']}
+    country_variants={'WIOD2016A':native['WIOD2016A'],**bonsai['country_variants']}
     inventories=[c['native'] for cs in columns.values() for c in cs]+list(country_variants.values())
     for inventory in inventories:
         for n in inventory:
@@ -369,7 +377,7 @@ def build(inputs, scope):
                         sid=hashlib.sha256(json.dumps(step,sort_keys=True).encode()).hexdigest()[:12]
                         route_steps[sid]=step;ids.append(sid)
                     route['steps']=ids
-    return {'schema_version':1,'as_of':'2026-10-11','references':refs,'columns':columns,
+    return {'schema_version':1,'as_of':bonsai['as_of'],'references':refs,'columns':columns,
             'route_steps':route_steps,'country_variants':country_variants,'node_names':node_names,'sources':{k:v for k,v in sources.items() if v.get('url')},
             'input_checksums':{f.name:hashlib.sha256(f.read_bytes()).hexdigest() for f in inputs.glob('*.json')},
             'note':'Classification metadata only. Published correspondences can be partial or imprecise; counts are linked reference classes, not economic allocation weights.'}
@@ -404,8 +412,10 @@ def enrich_country_scope(scope,sectoral):
         for column in columns:
             if not column['native']:continue
             mid='sectoral-'+column['id'];entries=[];sections={};details={};coarse_entries=[]
-            for native in column['native']:
-                for code,link in native['links'].items():
+            inventory=sectoral['country_variants'].get(column.get('country_variant'),column['native'])
+            for native in inventory:
+                for code,own in native['links'].items():
+                    link={**native.get('link_defaults',{}),**own}
                     route={k:link[k] for k in ['nodes','steps']}
                     rid=hashlib.sha256(json.dumps(route,sort_keys=True).encode()).hexdigest()[:16]
                     scope['mapping_routes'][rid]=route
@@ -418,15 +428,17 @@ def enrich_country_scope(scope,sectoral):
                     entries.append(entry)
                     section=sections_by_code[code]
                     sections[native['code'],section]={**entry,'official_code':section}
-                if native.get('coarse',{}).get('direct_nace') and kind=='activity':
+                coarse=native.get('coarse',{})
+                if kind=='activity' and (coarse.get('direct_nace') or coarse.get('classification_label')):
                     for anchor in native['coarse']['anchors']:
                         route={k:anchor[k] for k in ['nodes','steps']}
                         rid=hashlib.sha256(json.dumps(route,sort_keys=True).encode()).hexdigest()[:16]
                         scope['mapping_routes'][rid]=route
                         entry={'native_code':native['code'],'native_label':native['name'],'official_code':anchor['code'],
                             'reference_candidates':native['coarse']['reference_candidates'],'precision':'coarse','route_id':rid,
-                            'mapping_origin':'governed_nxbase','review_note':native['coarse']['note'],
-                            'relation':'Within a broader NACE anchor; leaf membership unverified'}
+                            'mapping_origin':'published_bonsai' if coarse.get('classification_label') else 'governed_nxbase',
+                            'review_note':coarse['note'],
+                            'relation':'Within a broader supplied anchor; leaf membership unverified'}
                         coarse_entries.append(entry)
                         for section in native['coarse']['reference_sections']:
                             sections.setdefault((native['code'],section),{**entry,'official_code':section})
@@ -453,6 +465,8 @@ if __name__=='__main__':
     # The Database scopes heatmap compares GTAP Standard only; the country lookup keeps the Power routes.
     result={**full,'columns':{k:[c for c in cs if not gtap_power(c)] for k,cs in full['columns'].items()}}
     args.output.parent.mkdir(parents=True,exist_ok=True);args.output.write_text(json.dumps(result,ensure_ascii=False,separators=(',',':'))+'\n')
+    for filename in ['bonsai-current-reviews.json','bonsai-native-correspondences.json']:
+        shutil.copyfile(args.inputs/filename,args.output.parent/filename)
     print(json.dumps({'leaf_rows':{k:len(v['leaves']) for k,v in result['references'].items()},'columns':{k:[(c['label'],c['status'],sum(bool(n['links']) for n in c['native'])) for c in cs] for k,cs in result['columns'].items()},'bytes':args.output.stat().st_size}))
     if args.country_output:
         updated=enrich_country_scope(json.loads(args.scope.read_text()),full)

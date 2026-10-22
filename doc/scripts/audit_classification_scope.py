@@ -19,6 +19,7 @@ def audit(data):
         'EXIO3P','EXIO3HSUTP','EXIO3HIOTP','USEEIO2017P','CEDA2024P',
         'GLORIA060P','FIGARO64P','WIOD2016P','GTAP12P','CPC2.1',
         'CPA2002','CPA2008','CPA2.1','CPA2.2',
+        'BONSAIP','BONSAISUTP',
     }
     for kind, reference in data['references'].items():
         nodes = {n['code']:n for n in reference['nodes']}
@@ -47,7 +48,7 @@ def audit(data):
             for native in column['native']:
                 if not native['links']:
                     missing.append({'code':native['code'],'name':native['name'],
-                                    'reason':'pending' if native.get('pending') else 'No verified fine correspondence'})
+                                    'reason':'pending' if native.get('pending') else 'Broader source anchor only' if native.get('coarse') else 'No verified fine correspondence'})
                 for code, own in native['links'].items():
                     link = {**native.get('link_defaults',{}), **own}
                     assert code in leaves, 'Invalid reference endpoint'
@@ -98,6 +99,8 @@ def audit(data):
         'EMERGING has native product inventories but no verified fine CPA bridge. EORA has no verified current fine concordance. OECD and ADB IOT industry sets are activities, not inferred product sets.',
         'NACE 46.89 has no predecessor in the supplied NACE 2 revision table; an unverified cell is not absence. CPA 2002 codes 33.30.90, 34.10.25 and 34.10.43 are absent from the historical revision table.',
         'EXIOBASE fertiliser and six landfill products lack CPA 2002 publisher links. GTAP product definitions without CPC codes remain unverified. No fuzzy matching or economic allocation weights are used.',
+        'BONSAI uses its complete observed regional HIOT vocabulary, not only the Global markets. Detailed native NACE Rev. 2 and CPA 2.1 links are composed with official current revisions. Broad detailed-process anchors remain context only; market NACE links are qualified producing-sector footprints.',
+        'BONSAI country lookup follows the supplied reference-product / process pairs and actual regional memberships. Explicit current electricity-definition reviews exclude incompatible generation sources and storage services; they are editorial refinements, not publisher-issued current concordances. Capital/carrier products without a route remain unverified.',
     ]
     return {'as_of':data['as_of'],'checks':dict(checks),'inventories':inventories,
             'notes':notes,'sources':sources}
@@ -164,7 +167,7 @@ def main():
         if row['unverified']:
             lines += ['### '+row['kind']+' / '+row['label'], '',
                 *[f'- `{n["code"]}` {n["name"]}: {n["reason"]}' for n in row['unverified']], '']
-    (args.doc.parent/'CONCORDANCE_REVIEW.md').write_text('\n'.join(lines)+'\n')
+    (args.doc.parent/'CONCORDANCE_REVIEW.md').write_text('\n'.join(lines).rstrip()+'\n')
     print(json.dumps(report['checks']))
 
 

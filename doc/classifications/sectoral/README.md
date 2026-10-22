@@ -80,6 +80,51 @@ and CPA references. In the Excel, Match IDs resolve through Routes to every
 intermediate step and its source. `classification-audit.json` and the root
 `CONCORDANCE_REVIEW.md` enumerate all checks, qualifications and native gaps.
 
+## BONSAI native HIOT — added 2026-10-22
+
+`bonsai-native-correspondences.json` snapshots classification facts from the
+synced BONSAI bundle: the 1,707 distinct regional HIOT reference-product/process
+pairs, descriptions, regional memberships, 1,594 detailed native/NACE records,
+1,664 revised CPA 2.1 records and explicit product/market correspondences.
+All revised CPA codes validate against the official 2.1 structure; 45 records
+are absent from CPA 2008. The 88-category NACE/CPA tables are aggregate
+definitions, not the limit of BONSAI's native vocabulary.
+
+The heatmap uses the union of observed regional identities. The classification
+overview continues to show Global's 355 sectors, with the regional 355–1,332
+range. Global consists of markets and cannot stand for the full productive
+classification. Market NACE links are qualified producing-sector footprints;
+CPA markets follow only supplied product/market links. A broad anchor for a
+detailed child stays context unless it has only one official descendant class.
+Only direct definitions of a complete native aggregate enumerate its members.
+Capital/carrier identities without a source route remain unverified.
+
+`bonsai-current-reviews.json` contains explicit editorial electricity-definition
+reviews. These preserve the surviving official revision routes while excluding
+incompatible generation classes and storage services. Mixed biomass/waste
+retains both generating-source classes. These reviews are separate from
+publisher-issued concordances. No exclusive regional partition is asserted.
+
+The country lookup uses the supplied HIOT reference-product/process pair and
+filters by actual regional Sector membership. It does not replace a product
+code with an activity code by string substitution. The source matrix is read
+only for its axes during snapshotting; no economic calculations or matrix data
+are exported.
+
+Refresh the snapshot after a BONSAI classification or HIOT-identity update:
+
+```bash
+python doc/scripts/snapshot_bonsai_classifications.py \
+  --bonsai /path/to/_bonsai \
+  --technosphere /path/to/frozen/extended_size_hiot.b2.pkl
+python doc/scripts/build_sectoral_scope.py \
+  --country-output doc/source/_static/data/economy/country-scope.json
+python doc/scripts/audit_classification_scope.py
+python doc/scripts/build_download_metadata.py
+node --max-old-space-size=8192 doc/scripts/build_classification_concordances.mjs
+node --test tests/docs/test_bonsai_classifications.cjs
+```
+
 ## Historical implementation notes — superseded where the current contract differs
 
 This folder contains normalized **classification metadata**, never economic

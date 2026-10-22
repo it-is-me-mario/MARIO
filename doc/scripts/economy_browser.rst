@@ -19,6 +19,15 @@ For a local preview, serve the HTML build with gzip and conditional caching::
 The server binds to loopback only. The existing private remote-preview proxy
 can continue forwarding to the same address.
 
+BONSAI uses a producer-only CO2/CH4/N2O subtotal on the explorer's
+EDGAR-compatible AR5 GWP100 basis (1, 28 and 265; both methane origins use 28).
+The same factors apply to its direct and life-cycle electricity observations.
+Accelerated CO2 is excluded because its AR5 factor is unverified; F-gases are
+not characterised. Supplied iLUC contributions to the selected gases remain
+included, so inventory boundaries still differ from EDGAR. MARIO's BONSAI
+default remains the official AR6 characterisation. The frozen AR6 equivalence
+audit is retained separately from these recharacterised explorer indicators.
+
 Refresh World Bank observations explicitly::
 
    python doc/scripts/fetch_world_bank.py --start 1990 --end 2025 \

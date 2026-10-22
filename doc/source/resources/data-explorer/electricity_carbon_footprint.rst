@@ -115,10 +115,14 @@ shown beside the source controls and retained in downloaded figures.
        is photovoltaic solar. Direct intensity uses characterised E divided by
        source reference production; the life-cycle footprint uses MARIO's
        <code>e(I-z)^-1</code>. Native t CO₂eq/TJ are multiplied by 3.6, without
-       a price conversion. BONSAI retains its GWP100 profile: fossil CO₂ 1,
-       fossil CH₄ 29.8, non-fossil CH₄ 27, N₂O 273 and Accelerated CO₂ 0.00772,
-       including the supplied iLUC extension. This differs from nxsut's AR5
-       characterisation. RoW and Global blocks are excluded from this country
+       a price conversion. For this explorer, native gas rows are
+       recharacterised with AR5 GWP100: fossil CO₂ 1, both methane origins 28
+       and N₂O 265, following the EDGAR convention used elsewhere in the
+       explorer. Contributions of iLUC to these gases are retained.
+       Accelerated CO₂ is excluded because no AR5 factor has been verified;
+       F-gases are not characterised. This three-gas subtotal differs from
+       the official BONSAI AR6 indicator and MARIO's BONSAI default.
+       RoW and Global blocks are excluded from this country
        sample; missing country/technology nodes are not filled.</dd>
        <dt>Sample and display limits</dt>
        <dd>The chart uses the pooled blogpost sample, rather than a common
@@ -141,9 +145,11 @@ without an account or a live API connection.
 BONSAI's technology observations were calculated separately with MARIO
 ``parse_bonsai(table="IOT")`` from frozen inputs, added on 21 October 2026.
 On identical inputs, MARIO and BONSAI's dimensional formulation agree over
-all 53,750 production nodes (GWP100 relative L2 difference ``5.83e-16``),
+all 53,750 production nodes (official AR6 GWP100 relative L2 difference ``5.83e-16``),
 with no partial solve. This verifies calculation equivalence; it does not
 compare against an older saved footprint CSV.
+The explorer's AR5 values are a linear combination of the verified native
+gas multipliers; the original AR6 audit is retained separately.
 The :download:`BONSAI technology snapshot <../../_static/data/benchmarks/bonsai-electricity-technology-2016.json>`
 records source timestamps and hashes, the explicit technology mapping,
 characterisation, native country/product identities and verification.

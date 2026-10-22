@@ -4,7 +4,7 @@ const data=JSON.parse(fs.readFileSync(path.join(root,'data/economy/sectoral-scop
 const col=family=>model.columns.find(c=>c.family===family&&c.status==='documented');
 test('Hybrid remains selectable but is omitted from the initial documented selection',()=>{
  const initial=model.columns.filter(c=>c.default_visible!==false&&['documented','section_only'].includes(c.status));
- assert.equal(initial.length,8);assert.ok(initial.some(c=>c.family==='GTAP'));
+ assert.equal(initial.length,9);assert.ok(initial.some(c=>c.family==='GTAP'));assert.ok(initial.some(c=>c.family==='BONSAI'));
  assert.ok(!initial.some(c=>c.family==='EXIOBASE'&&c.units==='Hybrid'));
  assert.equal(model.columns.find(c=>c.units==='Hybrid').status,'documented');
 });

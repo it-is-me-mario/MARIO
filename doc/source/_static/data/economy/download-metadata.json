@@ -124,6 +124,20 @@
         2024
       ]
     },
+    "bonsai-b2-2016-hiot-20261021": {
+      "label": "BONSAI · native b2 HIOT · inputs 21 Oct 2026",
+      "guide": "bonsai",
+      "source_url": "https://bonsai.uno/",
+      "license_url": "https://bonsai.uno/",
+      "license": "BONSAI source terms",
+      "usage": "Data-specific reuse terms are not classified here. BONSAI attribution is retained; the software licence does not establish the licence of the input data.",
+      "attribution": "BONSAI; parsed with MARIO",
+      "workbook_allowed": true,
+      "workbook": "_static/data/database_profiles/bonsai-b2-2016-hiot-20261021.xlsx",
+      "years": [
+        2016
+      ]
+    },
     "emerging-10-sets-12825d06": {
       "label": "EMERGING 1.0",
       "guide": "emerging",
@@ -172,6 +186,20 @@
         2018,
         2021,
         2023
+      ]
+    },
+    "emerging-e-sets-ad4be1b1": {
+      "label": "EMERGING-E",
+      "guide": "emerging",
+      "source_url": "https://zenodo.org/records/18303090",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "license": "CC BY 4.0",
+      "usage": "Credit the authors and the selected release DOI; indicate changes.",
+      "attribution": "EMERGING",
+      "workbook_allowed": true,
+      "workbook": "_static/data/database_profiles/emerging-e-sets-ad4be1b1.xlsx",
+      "years": [
+        2018
       ]
     },
     "eora26-2017-bp": {
@@ -1471,20 +1499,6 @@
         2014
       ]
     },
-    "emerging-e-sets-ad4be1b1": {
-      "label": "EMERGING-E",
-      "guide": "emerging",
-      "source_url": "https://zenodo.org/records/18303090",
-      "license_url": "https://creativecommons.org/licenses/by/4.0/",
-      "license": "CC BY 4.0",
-      "usage": "Credit the authors and the selected release DOI; indicate changes.",
-      "attribution": "EMERGING",
-      "workbook_allowed": true,
-      "workbook": "_static/data/database_profiles/emerging-e-sets-ad4be1b1.xlsx",
-      "years": [
-        2018
-      ]
-    },
     "open-ceda-2025-2023": {
       "label": "Open CEDA 2025 by Watershed · base year 2023",
       "guide": "ceda",
@@ -1940,6 +1954,76 @@
       "license_url": "https://exiobase.eu/terms-of-use/",
       "usage": "Public classification facts and reviewed correspondence records. Economic and environmental matrices and coefficients are excluded; numerical source access has separate terms.",
       "attribution": "EXIOBASE"
+    },
+    "B03": {
+      "source_url": "https://bonsai.uno/",
+      "license": "Source-specific terms; open licence not verified",
+      "license_url": "https://bonsai.uno/",
+      "usage": "Consult the publisher terms. No blanket licence or exact equivalence is inferred from a published link.",
+      "attribution": "BONSAI"
+    },
+    "B02": {
+      "source_url": "https://bonsai.uno/",
+      "license": "Source-specific terms; open licence not verified",
+      "license_url": "https://bonsai.uno/",
+      "usage": "Consult the publisher terms. No blanket licence or exact equivalence is inferred from a published link.",
+      "attribution": "BONSAI"
+    },
+    "B01": {
+      "source_url": "https://bonsai.uno/",
+      "license": "Source-specific terms; open licence not verified",
+      "license_url": "https://bonsai.uno/",
+      "usage": "Consult the publisher terms. No blanket licence or exact equivalence is inferred from a published link.",
+      "attribution": "BONSAI"
+    },
+    "B10": {
+      "source_url": "https://bonsai.uno/",
+      "license": "Eurostat data and metadata reuse policy",
+      "license_url": "https://ec.europa.eu/eurostat/help/copyright-notice",
+      "usage": "Acknowledge Eurostat; indicate changes; respect third-party exceptions.",
+      "attribution": "Eurostat (supplied by BONSAI)"
+    },
+    "B04": {
+      "source_url": "https://bonsai.uno/",
+      "license": "Source-specific terms; open licence not verified",
+      "license_url": "https://bonsai.uno/",
+      "usage": "Consult the publisher terms. No blanket licence or exact equivalence is inferred from a published link.",
+      "attribution": "BONSAI"
+    },
+    "B05": {
+      "source_url": "https://bonsai.uno/",
+      "license": "Source-specific terms; open licence not verified",
+      "license_url": "https://bonsai.uno/",
+      "usage": "Consult the publisher terms. No blanket licence or exact equivalence is inferred from a published link.",
+      "attribution": "BONSAI"
+    },
+    "B07": {
+      "source_url": "https://bonsai.uno/",
+      "license": "Source-specific terms; open licence not verified",
+      "license_url": "https://bonsai.uno/",
+      "usage": "Consult the publisher terms. No blanket licence or exact equivalence is inferred from a published link.",
+      "attribution": "BONSAI"
+    },
+    "B08": {
+      "source_url": "https://bonsai.uno/",
+      "license": "Source-specific terms; open licence not verified",
+      "license_url": "https://bonsai.uno/",
+      "usage": "Consult the publisher terms. No blanket licence or exact equivalence is inferred from a published link.",
+      "attribution": "BONSAI"
+    },
+    "B09": {
+      "source_url": "https://bonsai.uno/",
+      "license": "Source-specific terms; open licence not verified",
+      "license_url": "https://bonsai.uno/",
+      "usage": "Consult the publisher terms. No blanket licence or exact equivalence is inferred from a published link.",
+      "attribution": "BONSAI"
+    },
+    "B11": {
+      "source_url": "https://www.marioproject.com/en/latest/_static/data/economy/bonsai-current-reviews.json",
+      "license": "MARIO / nxbase editorial correspondence review",
+      "license_url": "https://github.com/it-is-me-mario/MARIO",
+      "usage": "Attribute the review and its cited upstream sources. Editorial links do not change upstream rights or establish numerical allocation weights.",
+      "attribution": "MARIO / nxbase editorial review"
     }
   }
 }
