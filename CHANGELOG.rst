@@ -5,8 +5,17 @@ Release History
 All notable changes to MARIO, newest first. Versions match the ``mariopy``
 package on PyPI, and dates are its publication dates.
 
-Unreleased
-----------
+v1.3.2
+------
+
+*Released 2026-10-22.*
+
+* CVXLab is pinned to the tested ``1.0.1b1`` release: later versions require
+  pandas 2.3.3, conflicting with MARIO's pandas 3 dependency, and 1.1 also changes
+  the settings API used by sector splitting. Local live-fetch API keys are
+  explicitly excluded from both source and wheel distributions.
+* Native SUT calculation helpers are exposed through the public API, with
+  complete formulas and examples in the calculation reference.
 
 * ``get_mix`` supports region-specific IOT Sector classifications, normalizing
   only observed regional nodes and preserving native production vectors. Regions

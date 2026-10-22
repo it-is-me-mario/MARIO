@@ -60,6 +60,7 @@ setup(
             "Split_sectors/*.py",
         ],
         },
+    exclude_package_data={"mario.settings": ["api_keys.yaml"]},
     install_requires=[
         "pandas == 3.0.2",
         "numpy == 2.1.1",
@@ -72,7 +73,8 @@ setup(
         "pyxlsb",
         "h5py",
         "scipy",
-        "cvxlab>=1.0.0b1",
+        # Later releases pin pandas 2.3.3; 1.1 also changes the bridge API.
+        "cvxlab==1.0.1b1",
         "IPython >= 8.27.0",
         "pymrio",
         "pyyaml",
@@ -91,7 +93,7 @@ setup(
             "scipy",
             "h5py",
             "pyxlsb",
-            "cvxlab>=1.0.0b1",
+            "cvxlab==1.0.1b1",
         ],
         "parquet": [
             "pyarrow>=17",
@@ -105,7 +107,7 @@ setup(
             "h5py",
             "pyarrow>=17",
             "pyxlsb",
-            "cvxlab>=1.0.0b1",
+            "cvxlab==1.0.1b1",
         ],
         "all": [
             "pytest",
@@ -114,7 +116,7 @@ setup(
             "h5py",
             "pyarrow>=17",
             "pyxlsb",
-            "cvxlab>=1.0.0b1",
+            "cvxlab==1.0.1b1",
         ],
     },
     # classifiers=[
