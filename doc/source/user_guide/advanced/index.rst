@@ -15,6 +15,13 @@ in analyses of real databases.
       Choose inverse or solve, configure the numerical solver and handle
       singular systems.
 
+   .. mario-card:: :doc:`Database profiles and concordances <database_profiles>`
+      :kicker: db.database_profile
+      :icon: advanced
+
+      Inspect GHG definitions, compute presets and native classification links
+      in one database-specific profile.
+
    .. mario-card:: :doc:`Updating the electricity supply and trade mix <electricity_mix>`
       :kicker: db.update_supply_mix
       :icon: power
@@ -45,6 +52,7 @@ in analyses of real databases.
    :hidden:
 
    compute_settings
+   database_profiles
    electricity_mix
    greenhouse_gas_calculations
    supply_chain_analyses

@@ -13,31 +13,8 @@ import logging
 from mario.log_exc.logger import log_time
 from mario.settings.settings import download_settings, upload_settings
 from mario.log_exc.exceptions import WrongFormat
+from mario.database_profiles.compute import PARSER_COMPUTE_PROFILES
 
-
-PARSER_COMPUTE_PROFILES: dict[str, dict] = {
-    "bonsai": {
-        "compute_method": "solve",
-        "linear_solver": "umfpack",
-        "linear_solver_fallback": "scipy",
-        "linear_strategy": "direct",
-        "singular_policy": "partial",
-    },
-    "gloria": {
-        "compute_method": "solve",
-        "linear_solver": "umfpack",
-        "linear_solver_fallback": "scipy",
-        "linear_strategy": "direct",
-        "singular_policy": "raise",
-    },
-    "emerging": {
-        "compute_method": "solve",
-        "linear_solver": "umfpack",
-        "linear_solver_fallback": "scipy",
-        "linear_strategy": "direct",
-        "singular_policy": "raise",
-    },
-}
 
 logger = logging.getLogger(__name__)
 

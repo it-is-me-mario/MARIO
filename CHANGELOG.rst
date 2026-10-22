@@ -5,6 +5,38 @@ Release History
 All notable changes to MARIO, newest first. Versions match the ``mariopy``
 package on PyPI, and dates are its publication dates.
 
+Unreleased
+----------
+
+Classification concordances
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Add ``get_concordances(set=..., classification=..., item=...)`` to retrieve
+  native-item code lists from the Database explorer's reviewed metadata.
+  Profiles follow the parsed database and native variant; ``region`` filters
+  actual membership and ``details=True`` includes descriptions, source locations,
+  route direction and qualifications. ``available_concordances`` lists targets.
+* Bundle offline NACE, ISIC, CPA and CPC revision routes and the supplied
+  EXIOBASE product / HS 2007 correspondence. Broad anchors remain coarse;
+  reverse and composed routes remain qualified and provide no allocation weights.
+  SUT→IOT conversions retain whether sectors represent activities or products.
+* Add ``get_aggregation`` and ``available_aggregations`` for reviewable NACE 2.1
+  and CPA 2.2 hierarchy presets, including sections and 2-digit divisions.
+  Each native item receives one target; unresolved items stay individual or
+  raise on request. Reports retain hierarchy sources and unresolved reasons,
+  and regional mappings feed the existing ``aggregate`` API.
+
+Database metadata
+~~~~~~~~~~~~~~~~~
+
+* Gather database identities, native GHG definitions, parser compute presets
+  and offline concordance metadata in ``mario.database_profiles``. Inspect
+  the shared registry with ``mario.get_database_profile`` or the selected
+  database with ``db.database_profile``. Existing GHG and parser-profile
+  import paths retain the same live registries. A concise advanced-workflow
+  guide explains the distinction between presets, active settings and
+  already characterised source emissions.
+
 v1.3.2
 ------
 

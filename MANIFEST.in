@@ -5,6 +5,7 @@ prune Output
 prune doc
 prune mariopy.egg-info
 recursive-include mario *.json
+recursive-include mario *.json.gz
 recursive-include mario *.py
 recursive-include mario *.stats
 recursive-include mario *.csv

@@ -177,6 +177,7 @@ from mario.settings.settings import (
 from mario.parsers.handshake import parse_exiobase_3_9_4
 
 from mario.model.conventions import IOT, SUT
+from mario.database_profiles import get_database_profile
 
 
 __authors__ = " 'Mohammad Amin Tahavori', Lorenzo Rinaldi', 'Nicolò Golinucci' "

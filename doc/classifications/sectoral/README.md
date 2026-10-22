@@ -125,6 +125,45 @@ node --max-old-space-size=8192 doc/scripts/build_classification_concordances.mjs
 node --test tests/docs/test_bonsai_classifications.cjs
 ```
 
+## Installable concordance API
+
+`build_runtime_concordances.py` invokes the same canonical compiler and writes
+compressed metadata under `mario/database_profiles/data/concordances`. These package assets
+support `Database.get_concordances` without documentation files, downloads,
+nxbase or IO calculations. The default output is `{native_label: [codes]}`;
+`details=True` retains source locations, direction, qualification and provenance.
+
+Primary NACE 2.1 and CPA 2.2 results reproduce the reviewed explorer footprints.
+Additional editions use explicit route prefixes or official taxonomy bridges.
+Reverse/composed bridges remain qualified; no product membership is derived
+from an industry. Native parent labels are never expanded into memberships.
+
+The compiled metadata also retain the official NACE 2.1 and CPA 2.2 hierarchies.
+`db.get_aggregation(set=..., classification=..., level="section")` prepares
+inputs for the existing aggregation API; `level="2 digits"` selects divisions.
+All linked codes must collapse to one ancestor to assign a native item.
+Unresolved items remain individual (or raise with `unresolved="raise"`), with
+reasons and hierarchy sources in each frame's `attrs["concordance"]` report.
+Regional domains retain actual region/item pairs. These are reviewable
+correspondence-footprint proposals; source qualifications still apply.
+
+`hs2007-exiobase.json` snapshots the original EXIOBASE v3 / HS 2007 workbook
+supplied with BONSAI. Exact typed `C_` product aliases join its rows to `EXIO3P`;
+unmatched aliases remain excluded. HS codes are validated against UN Comtrade's
+2007 description inventory. The source files, checksums, cells and edition are
+retained. The API does not substitute HS 2007 for other editions.
+
+Regenerate after changing a classification source:
+
+```bash
+python doc/scripts/build_runtime_concordances.py
+```
+
+To refresh the HS snapshot as well, pass `--hs /path/to/ex2hs07_1ton.xlsx`
+and `--hs-descriptions /path/to/hs3_desc.csv.gz`. The latter is the local
+`concordance` port's UN Comtrade description table, not a concordance source.
+The source workbook is read only; no source database or coefficients are bundled.
+
 ## Historical implementation notes — superseded where the current contract differs
 
 This folder contains normalized **classification metadata**, never economic
