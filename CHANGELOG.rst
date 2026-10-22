@@ -10,92 +10,92 @@ v1.3.2
 
 *Released 2026-10-22.*
 
-* CVXLab is pinned to the tested ``1.0.1b1`` release: later versions require
-  pandas 2.3.3, conflicting with MARIO's pandas 3 dependency, and 1.1 also changes
-  the settings API used by sector splitting. Local live-fetch API keys are
-  explicitly excluded from both source and wheel distributions.
-* Native SUT calculation helpers are exposed through the public API, with
-  complete formulas and examples in the calculation reference.
+BONSAI HSUT and HIOT support
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* ``get_mix`` supports region-specific IOT Sector classifications, normalizing
-  only observed regional nodes and preserving native production vectors. Regions
-  without selected sectors return empty mappings; zero-output bundles retain
-  zero shares.
+* Add ``mario.parse_bonsai`` for Balanced hybrid supply-use ZIPs and extracted
+  directories. Imports preserve native units, regional trade and direct final
+  demand extensions in sparse blocks, with explicit unmatched-flow diagnostics.
 
-* Advanced workflows includes a concise computation-settings guide covering
-  inverse versus solve, solver choice, automatic memory estimates, singularity
-  handling and session/per-call configuration.
-* BONSAI's default AR6/GWP100 GHG profile includes ``Accelerated CO2, Air``
-  with factor 0.00772, matching the checked BONSAI LCIA calculation. The factor
-  applies to HSUT/HIOT environmental flows and cached coefficients/multipliers.
-  Unsupported report/horizon variants for this flow require explicit factors.
-* Sparse result frames explicitly retain zero fill values under pandas 3,
-  while preserving stored NaN diagnostics. This keeps structural zeros distinct
-  from undefined coefficients in multipliers, aggregation and GHG accounts.
-* GLORIA and EMERGING now select session-local solve/direct compute presets,
-  preferring optional UMFPACK with a SciPy fallback when unavailable. BONSAI
-  gains the same dependency fallback and retains its partial singular policy;
-  GLORIA and EMERGING use strict singular errors. Database walkthroughs explain
-  ``mariopy[umfpack]``, SuiteSparse, model sizes and the selected defaults.
-* The Database explorer includes BONSAI native b2 HIOT metadata, regional sets
-  and producer GHG totals, with the 21 October 2026 input update date. The
-  classification overview uses the Global block's 355 sectors and explains
-  regional variation in its hover text. GDP and value added are unavailable.
-  BONSAI 2016 direct and life-cycle electricity factors appear only in the
-  technology comparison, with native product/activity mappings and provenance.
 * ``parse_bonsai(table="IOT")`` reads native b2 HIOT directories or ZIP bundles,
   preserving sparse net-supply matrices, hybrid product units, nonuniform
   regional sectors and source diagonal normalization. It imports final demand
   and direct elementary flows, reports unmatched source rows and leaves the
   existing Balanced HSUT parser as the default. No Stone reconstruction or
   precomputed inverse is required.
-* The BONSAI parser walkthrough covers HSUT/HIOT imports, local layouts,
-  regional classifications, units and diagnostics, in line with the other
-  parser guides. The API documents the native HIOT representation and its
-  equivalence to MARIO's multiplier formula; dated footprint comparisons
-  remain separate validation artifacts.
+
+* BONSAI's default AR6/GWP100 GHG profile includes ``Accelerated CO2, Air``
+  with factor 0.00772, matching the checked BONSAI LCIA calculation. The factor
+  applies to HSUT/HIOT environmental flows and cached coefficients/multipliers.
+  Unsupported report/horizon variants for this flow require explicit factors.
+
+Regional classifications and aggregation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* ``get_index`` keeps ordered lists for common regional classifications and
+  returns dictionaries of regional lists for nonuniform sets. ``region=...``
+  selects one region and ``flat=True`` explicitly requests the union of labels.
+
+* ``search`` searches regional member lists and returns matches grouped by
+  region for nonuniform sets, omitting regions with no matches. ``region=...``
+  and ``flat=True`` select one region or a distinct global union. Common
+  classifications retain list results; global searches remain grouped by set.
+
+* Database summaries show the minimum and maximum member count per region for
+  regional index dictionaries, including regions with no members. Common
+  classifications retain their existing scalar counts.
+
+* Aggregation workbooks group regions by each complete regional classification.
+  Nonuniform sets use ``Regions``, ``Item`` and ``Aggregation`` columns, including
+  single-region groups. The Region sheet lists only regions with compatible
+  classifications across all regional sets; omitted regions remain unchanged.
+  Geographic mergers across incompatible string sets are rejected. Readers,
+  sparse aggregation and unit checks support regional mappings, while common
+  classifications retain the legacy workbook format.
+
+* Regional sets retain region-to-list mappings in automatic ``all`` and user
+  clusters. Definitions are validated per region-code pair; list shorthand is
+  intersected with each region's domain. Common sets keep their existing list
+  clusters. Shock expansion selects actual nodes, including in split SUT and
+  legacy workbooks, and preserves sparse coefficient updates. Excel templates
+  use union picklists and inspect sparse blocks without densifying them.
+
+* Database equality compares the members of every region for nonuniform sets,
+  detecting different regional classifications even when region names and the
+  global label union match. Index order remains irrelevant, common lists keep
+  their previous behavior, and equality retains its historical index-only scope.
+
 * ``get_index`` preserves complete Factor of production and Satellite account
   lists when custom extension layouts contain global scopes outside the Region
   set. GTAP global accounts are no longer discarded by regional-view inference;
   extension axes composed entirely of database regions retain regional views.
-* ``to_iot`` converts native SUT blocks on their observed regional nodes, using
-  sparse products for B/D and batched supply solves for A/C instead of dense
-  diagonals, unified SUT views or inverses. B/D retain activity final demand and
-  both Activity/Commodity accounts, including allocation to direct final uses.
-  A/C require square, nonsingular supply and zero ``Ya``. Undefined zero-output
-  allocation raises an error naming the nodes; no pseudoinverse or data repair
-  is applied. Common dense cases retain their formulas, API and storage.
-* ``is_isard`` reads native ``U`` when no unified source is already cached and
-  sums sparse flows directly by regional labels, including unequal regional
-  domains and different row/column region orderings. No unified view is built.
-* ``to_chenery_moses`` transforms native SUT blocks using sparse allocation
-  matrices instead of dense diagonals and unified ``Z`` views. Regional
-  Activity memberships are preserved and only observed destination Commodity
-  markets are added. ``Ya`` and activity/direct final-demand accounts are
-  retained; Commodity accounts follow destination shares with conserved totals.
-  Unselected scenarios are zero-extended when new market axes are needed.
-  Undefined zero-net sourcing raises an error without data adjustments.
-  Common dense tables retain their output storage and API.
-* ``pool_trade`` explicitly rejects region-specific Activity, Commodity or
-  Consumption category classifications before copying or querying the model.
-  The transformation for common regional classifications is unchanged.
-* ``to_pymrio`` explicitly rejects region-specific Sector or Consumption
-  category classifications before querying matrices, instead of failing later
-  while expanding units. Common regional classifications retain their existing
-  export behavior. SUT-to-IOT conversion remains a separate operation.
-* ``update_supply_mix`` and ``update_trade_mix`` accept nonuniform regional
-  classifications, validate actual region-item pairs and retain sparse storage.
-  Missing explicitly requested origins raise an error even at zero weight;
-  destinations may import an item without a local node. Column filters select
-  existing columns only, and explicit commodity aggregation maps existing
-  regional occurrences without adding production nodes. Common classifications
-  retain their API, bundle totals and scenario behavior.
+
+Large databases and sparse calculations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* GLORIA and EMERGING now select session-local solve/direct compute presets,
+  preferring optional UMFPACK with a SciPy fallback when unavailable. BONSAI
+  gains the same dependency fallback and retains its partial singular policy;
+  GLORIA and EMERGING use strict singular errors. Database walkthroughs explain
+  ``mariopy[umfpack]``, SuiteSparse, model sizes and the selected defaults.
+
+* Sparse result frames explicitly retain zero fill values under pandas 3,
+  while preserving stored NaN diagnostics. This keeps structural zeros distinct
+  from undefined coefficients in multipliers, aggregation and GHG accounts.
+
 * ``calc_linkages`` supports sparse flow blocks and nonuniform regional
   classifications without constructing full inverse views. Regional reductions
   use actual production nodes; exact self effects are subtracted without
   modifying sparse arrays. Detected singular Ghosh/Leontief components raise
   an error naming their nodes, without exclusions or data corrections. Common
   dense tables retain their existing result layout and normalization.
+
+* ``calc_trades_content`` resolves only the indicator rows required by its
+  method: direct coefficients for ``direct``, total multipliers for ``total``,
+  and both for ``upstream``. Total contributor breakdowns no longer load or
+  construct an unused direct diagonal. Results, indicator units and accounting
+  formulas remain unchanged.
+
 * Total and upstream trade-content breakdowns project regional trade vectors
   through the IOT/SUT coefficient system without constructing an inverse or an
   exploded multiplier. SUT results retain both Activity and Commodity
@@ -104,52 +104,97 @@ v1.3.2
   projection for collapsed totals. Large iterative solves apply split
   coefficients as an operator, and exact proportional trade vectors share a
   solve. Nonconverged results raise an error.
+
 * Direct trade-content breakdowns weight actual flow entries without building a
   dense contributor diagonal. Sparse inputs produce zero-fill sparse results,
   retaining the contributor index and zero rows. Region clusters are applied
   before expanding the output; contributors retain their original regional
   labels. Dense inputs keep the existing dense output format.
-* ``calc_trades_content`` resolves only the indicator rows required by its
-  method: direct coefficients for ``direct``, total multipliers for ``total``,
-  and both for ``upstream``. Total contributor breakdowns no longer load or
-  construct an unused direct diagonal. Results, indicator units and accounting
-  formulas remain unchanged.
+
+Mixes, trades and SUT transformations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* ``get_mix`` supports region-specific IOT Sector classifications, normalizing
+  only observed regional nodes and preserving native production vectors. Regions
+  without selected sectors return empty mappings; zero-output bundles retain
+  zero shares.
+
+* ``update_supply_mix`` and ``update_trade_mix`` accept nonuniform regional
+  classifications, validate actual region-item pairs and retain sparse storage.
+  Missing explicitly requested origins raise an error even at zero weight;
+  destinations may import an item without a local node. Column filters select
+  existing columns only, and explicit commodity aggregation maps existing
+  regional occurrences without adding production nodes. Common classifications
+  retain their API, bundle totals and scenario behavior.
+
 * ``calc_trades`` accepts sector/commodity codes from regional classifications
   and sums actual region-item pairs. All database regions remain in its output,
   including zero rows and destinations without a local commodity node. Sparse
   flow blocks remain sparse until reduced to regional totals, including weighted
   sums. SUT supply-format checks read native ``S`` when no unified view is
   materialized, avoiding construction of ``Z`` just to choose the trade path.
-* Database equality compares the members of every region for nonuniform sets,
-  detecting different regional classifications even when region names and the
-  global label union match. Index order remains irrelevant, common lists keep
-  their previous behavior, and equality retains its historical index-only scope.
-* Aggregation workbooks group regions by each complete regional classification.
-  Nonuniform sets use ``Regions``, ``Item`` and ``Aggregation`` columns, including
-  single-region groups. The Region sheet lists only regions with compatible
-  classifications across all regional sets; omitted regions remain unchanged.
-  Geographic mergers across incompatible string sets are rejected. Readers,
-  sparse aggregation and unit checks support regional mappings, while common
-  classifications retain the legacy workbook format.
-* Regional sets retain region-to-list mappings in automatic ``all`` and user
-  clusters. Definitions are validated per region-code pair; list shorthand is
-  intersected with each region's domain. Common sets keep their existing list
-  clusters. Shock expansion selects actual nodes, including in split SUT and
-  legacy workbooks, and preserves sparse coefficient updates. Excel templates
-  use union picklists and inspect sparse blocks without densifying them.
-* ``search`` searches regional member lists and returns matches grouped by
-  region for nonuniform sets, omitting regions with no matches. ``region=...``
-  and ``flat=True`` select one region or a distinct global union. Common
-  classifications retain list results; global searches remain grouped by set.
-* Database summaries show the minimum and maximum member count per region for
-  regional index dictionaries, including regions with no members. Common
-  classifications retain their existing scalar counts.
-* ``get_index`` keeps ordered lists for common regional classifications and
-  returns dictionaries of regional lists for nonuniform sets. ``region=...``
-  selects one region and ``flat=True`` explicitly requests the union of labels.
-* Add ``mario.parse_bonsai`` for Balanced hybrid supply-use ZIPs and extracted
-  directories. Imports preserve native units, regional trade and direct final
-  demand extensions in sparse blocks, with explicit unmatched-flow diagnostics.
+
+* ``to_iot`` converts native SUT blocks on their observed regional nodes, using
+  sparse products for B/D and batched supply solves for A/C instead of dense
+  diagonals, unified SUT views or inverses. B/D retain activity final demand and
+  both Activity/Commodity accounts, including allocation to direct final uses.
+  A/C require square, nonsingular supply and zero ``Ya``. Undefined zero-output
+  allocation raises an error naming the nodes; no pseudoinverse or data repair
+  is applied. Common dense cases retain their formulas, API and storage.
+
+* ``to_chenery_moses`` transforms native SUT blocks using sparse allocation
+  matrices instead of dense diagonals and unified ``Z`` views. Regional
+  Activity memberships are preserved and only observed destination Commodity
+  markets are added. ``Ya`` and activity/direct final-demand accounts are
+  retained; Commodity accounts follow destination shares with conserved totals.
+  Unselected scenarios are zero-extended when new market axes are needed.
+  Undefined zero-net sourcing raises an error without data adjustments.
+  Common dense tables retain their output storage and API.
+
+* ``is_isard`` reads native ``U`` when no unified source is already cached and
+  sums sparse flows directly by regional labels, including unequal regional
+  domains and different row/column region orderings. No unified view is built.
+
+* Native SUT calculation helpers are exposed through the public API, with
+  complete formulas and examples in the calculation reference.
+
+Documentation and Database explorer
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* The Database explorer includes BONSAI native b2 HIOT metadata, regional sets
+  and producer GHG totals, with the 21 October 2026 input update date. The
+  classification overview uses the Global block's 355 sectors and explains
+  regional variation in its hover text. GDP and value added are unavailable.
+  BONSAI 2016 direct and life-cycle electricity factors appear only in the
+  technology comparison, with native product/activity mappings and provenance.
+
+* The BONSAI parser walkthrough covers HSUT/HIOT imports, local layouts,
+  regional classifications, units and diagnostics, in line with the other
+  parser guides. The API documents the native HIOT representation and its
+  equivalence to MARIO's multiplier formula; dated footprint comparisons
+  remain separate validation artifacts.
+
+* Advanced workflows includes a concise computation-settings guide covering
+  inverse versus solve, solver choice, automatic memory estimates, singularity
+  handling and session/per-call configuration.
+
+Dependencies and compatibility
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* CVXLab is pinned to the tested ``1.0.1b1`` release: later versions require
+  pandas 2.3.3, conflicting with MARIO's pandas 3 dependency, and 1.1 also changes
+  the settings API used by sector splitting. Local live-fetch API keys are
+  explicitly excluded from both source and wheel distributions.
+
+* ``pool_trade`` explicitly rejects region-specific Activity, Commodity or
+  Consumption category classifications before copying or querying the model.
+  The transformation for common regional classifications is unchanged.
+
+* ``to_pymrio`` explicitly rejects region-specific Sector or Consumption
+  category classifications before querying matrices, instead of failing later
+  while expanding units. Common regional classifications retain their existing
+  export behavior. SUT-to-IOT conversion remains a separate operation.
+
 
 v1.3.1
 ------

@@ -63,7 +63,7 @@
   const MODEL_SRC = new Set(["nxsut 3.0","EXIOBASE Hybrid","BONSAI"]);
   const bonsai = F1.source_metadata.BONSAI;
   const updatedDate = new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'Europe/Rome'}).format(new Date(bonsai.inputs_updated_at));
-  root.querySelector('[data-f1-source-note]').textContent = `BONSAI · native b2 HIOT · reference year ${bonsai.reference_year} · inputs updated ${updatedDate} (Europe/Rome) · BONSAI GWP100, including iLUC and Accelerated CO2. Individual countries only; native RoW and Global blocks excluded.`;
+  root.querySelector('[data-f1-source-note]').textContent = `BONSAI · native b2 HIOT · reference year ${bonsai.reference_year} · inputs updated ${updatedDate} (Europe/Rome) · ${bonsai.characterisation}. ${bonsai.characterisation_note} Individual countries only; native RoW and Global blocks excluded.`;
   const CAP = {direct:{all:1600, clean:120}, lifecycle:{all:2500, clean:320}};
 
   function renderSrcs(){

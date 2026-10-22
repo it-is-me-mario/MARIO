@@ -12,22 +12,20 @@ const out=process.env.MARIO_DOCS_QA_DIR||'/private/tmp/concordance-review/browse
  });
  await page.goto(new URL('resources/data-explorer/scope.html#sectoral-coverage',base).href,{waitUntil:'networkidle',timeout:90000});
  const root=page.locator('[data-sectoral-scope]');
- const checkAnchor=async()=>{
-  await page.waitForFunction(()=>{
-   const target=document.getElementById('sectoral-coverage');
-   return target&&Math.abs(target.getBoundingClientRect().top-parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop))<3;
-  });
- };
+ const checkAnchor=()=>page.waitForFunction(()=>{
+  const panel=document.getElementById('sectoral-coverage');
+  return panel&&!panel.hidden&&document.querySelector('[data-scope-tabs] [aria-selected="true"]')?.hash==='#sectoral-coverage';
+ });
  await checkAnchor();
  await page.reload({waitUntil:'networkidle',timeout:90000});await checkAnchor();
  const ready=()=>page.waitForFunction(()=>document.querySelector('[data-ss-chart]')?.getAttribute('aria-busy')==='false');
  await ready();const chart=root.locator('[data-ss-chart]');
  assert.equal(await chart.evaluate(n=>n.data[1].z.length),651);
- assert.equal(await chart.evaluate(n=>n.data[1].z[0].length),8);
+ assert.equal(await chart.evaluate(n=>n.data[1].z[0].length),9);
  assert.equal(await chart.evaluate(n=>n.layout.yaxis.title.text),'NACE Rev. 2.1');
  assert.ok((await chart.evaluate(n=>n.layout.xaxis.ticktext)).some(label=>label.includes('EXIOBASE')&&label.endsWith('<br>(163)')));
  assert.ok(!(await chart.evaluate(n=>n.layout.xaxis.ticktext.join(' '))).includes('Hybrid'));
- assert.match(await root.locator('[data-ss-database-note]').innerText(),/GTAP.*only as activities.*single Sector set/);
+ assert.match(await root.locator('[data-ss-database-note]').textContent(),/GTAP.*only as activities.*single Sector set/);
  await root.screenshot({path:path.join(out,'nace-light.png')});
  await root.locator('[data-ss-kind="commodity"]').click();await ready();
  assert.equal(await chart.evaluate(n=>n.data[1].z.length),3354);
@@ -36,7 +34,7 @@ const out=process.env.MARIO_DOCS_QA_DIR||'/private/tmp/concordance-review/browse
  assert.deepEqual(await chart.evaluate(n=>n.data[1].colorbar.ticktext),['0','1','5','10','25','50','100','300+']);
  assert.ok(await chart.evaluate(n=>n.data[1].z.flat().filter(v=>v!==null).every(v=>v<1)));
  assert.equal(await root.locator('[data-ss-labels] option').count(),6);
- assert.equal(await chart.evaluate(n=>n.data[1].z[0].length),4);
+ assert.equal(await chart.evaluate(n=>n.data[1].z[0].length),5);
  assert.ok(!(await chart.evaluate(n=>n.layout.xaxis.ticktext.join(' '))).match(/GTAP|CEDA/));
  assert.ok(!(await root.locator('[data-ss-db-list]').innerText()).match(/GTAP|CEDA/));
  assert.ok(await root.locator('[data-ss-database-note]').isHidden());
@@ -66,11 +64,13 @@ const out=process.env.MARIO_DOCS_QA_DIR||'/private/tmp/concordance-review/browse
  await ex.locator(':scope > .ss-native > summary').first().click();
  await ex.locator(':scope > .ss-native > .ss-intermediates > summary').last().click();
  assert.match(await ex.innerText(),/Reviewed native product correspondence|CPA2.2/);
- const downloadPromise=page.waitForEvent('download');await root.locator('[data-ss-csv]').click();
- const download=await downloadPromise,csv=await fs.promises.readFile(await download.path(),'utf8');
- assert.match(csv,/01\.11\.11/);assert.match(csv,/GLORIA/);assert.match(csv,/qualified|partial/);assert.match(download.suggestedFilename(),/cpa22/);
+ const downloadPromise=page.waitForEvent('download');
+ await page.locator('a[href$="classification-concordances.xlsx"]').click();
+ const download=await downloadPromise;
+ assert.equal(download.suggestedFilename(),'classification-concordances.xlsx');
+ assert.ok((await fs.promises.stat(await download.path())).size>10_000_000);
  await page.setViewportSize({width:390,height:844});await ready();await root.screenshot({path:path.join(out,'cpa-mobile.png')});
  assert.ok(await root.evaluate(n=>n.scrollWidth<=n.clientWidth+2));
  assert.deepEqual(errors,[]);await browser.close();
- console.log('Reviewed NACE / CPA browser QA passed: overview, switching, leaf selection, borders, CSV and light/dark/mobile.');
+ console.log('Reviewed NACE / CPA browser QA passed: overview, switching, leaf selection, borders, Excel download and light/dark/mobile.');
 })().catch(e=>{console.error(e);process.exit(1)});

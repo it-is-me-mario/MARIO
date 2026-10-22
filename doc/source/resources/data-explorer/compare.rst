@@ -109,11 +109,14 @@ Compare databases
    with frozen inputs updated on 21 October 2026. GDP and value added are
    unavailable: MARIO's factor placeholders are not source observations.
    GHG shows characterised producer emissions from the native elementary
-   flows, including the supplied iLUC extension, with BONSAI's GWP100 factors
-   (AR6 plus Accelerated CO2 0.00772). Separate direct final-demand emissions
-   are unavailable. Its GWP basis differs from the AR5 EDGAR reference.
-   Whole-economy values are available; fine sector concordances remain
-   unverified. The native Global block contains global processes, not a
+   flows with EDGAR-compatible AR5 GWP100 (CO2 1, both methane origins 28,
+   N2O 265). Supplied iLUC contributions to these gases are retained.
+   Accelerated CO2 is excluded because no AR5 factor has been verified;
+   F-gases are not characterised. This is a three-gas subtotal, with producer
+   and land-use boundaries that differ from EDGAR. Separate direct final-demand
+   emissions are unavailable. Whole-economy values are available; the
+   Classifications page provides the qualified NACE/CPA concordances.
+   The native Global block contains global processes, not a
    World total; the World aggregate sums every native region once.</p>
    <p><strong>EDGAR.</strong> References appear automatically where available,
    as separate dash markers. The country reference uses unchanged

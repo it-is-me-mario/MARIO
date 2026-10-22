@@ -168,6 +168,8 @@
  }
  function coarseHTML(cell){
   if(!cell.coarse.length)return '';
+  const named=cell.coarse.filter(n=>n.coarse.classification_label);
+  if(named.length)return `<details class="ss-intermediates ss-section-anchors"><summary>${named.length} native categories with a broader classification anchor</summary><p>The supplied anchor does not establish membership of ${esc(cell.code)}. These categories remain outside the resolution index.</p>${named.map(n=>`<details class="ss-native"><summary><b>${esc(n.code)}</b> · ${esc(n.name)}<small>${esc(n.coarse.classification_label)} · ${n.coarse.anchors.map(a=>esc(a.code)).join(' + ')}</small></summary><p>${esc(n.coarse.note)}</p>${n.coarse.anchors.map(routeHTML).join('')}</details>`).join('')}</details>`;
   const direct=cell.coarse.filter(n=>n.coarse.direct_nace);
   if(direct.length)return `<details class="ss-intermediates ss-section-anchors"><summary>${direct.length} native categories with a broader NACE anchor</summary><p>The nxbase parent is a container, not an enumeration of native member classes. These categories do not enter the colour index for ${esc(cell.code)}.</p>${direct.map(n=>`<details class="ss-native"><summary><b>${esc(n.code)}</b> · ${esc(n.name)}<small>NACE Rev. 2.1 · ${n.coarse.anchors.map(a=>esc(a.code)).join(' + ')}</small></summary><p>${esc(n.coarse.note)}</p>${n.coarse.anchors.map(routeHTML).join('')}</details>`).join('')}</details>`;
 

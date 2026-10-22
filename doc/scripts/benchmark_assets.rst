@@ -70,7 +70,16 @@ BONSAI LCIA workbook, input SHA-256 hashes and cached MARIO multipliers. The
 same-input dimensional and normalized solves agree to a relative L2 error of
 5.83e-16 for GWP100, without partial results. The exporter verifies the hashes,
 characterisation factors, cached multiplier alignment, production units and
-product/activity pairings. It uses actual native generation products, not the
+product/activity pairings. The published explorer indicators are recharacterised
+from the physical gas rows with EDGAR-compatible AR5 GWP100: fossil CO2 1,
+both methane origins 28, and N2O 265. Life-cycle results use the same linear
+combination of the verified gas multipliers, without another matrix solve.
+The original official-BONSAI AR6 equivalence audit is retained separately.
+Accelerated CO2 is excluded because no AR5 factor has been verified; F-gases
+are not characterised. Contributions of iLUC to the selected gases are retained.
+This three-gas subtotal differs from the official BONSAI AR6 indicator and
+does not establish identical inventory boundaries with EDGAR.
+It uses actual native generation products, not the
 ``M_electricity`` market footprint. The reviewed mapping is recorded alongside
 each observation; notably POWP is Oil and POWO is Tide and wave. Individual
 countries contribute available technologies; Global and RoW are excluded.
@@ -80,6 +89,12 @@ Regenerate from local frozen inputs and the supplied native descriptions::
     python doc/scripts/build_bonsai_explorer.py /path/to/bonsai_equivalence_20261021 --classification /path/to/classification.csv
     python doc/scripts/build_extension_scope.py
     python doc/scripts/generate_benchmark_assets.py
+
+Use ``--indicators-only`` on the BONSAI exporter to reuse the verified native
+profile when changing characterisation alone. After a full profile refresh,
+regenerate workbook source notices with ``build_download_metadata.py --jobs``
+and ``prepare_download_workbooks.mjs``; the latter appends the notice while
+preserving the original inventory sheets byte for byte.
 
 The source folder label ``20260615`` is not an immutable release or the
 reference year. Frozen HIOT inputs are dated 2026-10-21 14:47:27 and elementary
@@ -92,11 +107,14 @@ the repository's MIT software licence is not used as a data licence.
 The classification overview uses 355 sectors from the native Global block,
 while its hover explains the 355–1,332 regional range. The native union of
 1,707 distinct sector labels and all regional memberships remain in the set
-download. Fine NACE/CPA correspondences are unverified, so those cells remain
-unclassified. GDP and value added are unavailable, rather than published as
-zeros from MARIO placeholders. The indicator snapshot provides producer GHG
-totals with BONSAI GWP100 (AR6 plus Accelerated CO2), with no separate final-demand
-emission observations; it does not claim an identical basis to the AR5 reference.
+download. Sectoral scope uses this regional union, with source NACE Rev. 2
+and CPA 2.1 correspondences bridged to the current references. Broad anchors
+remain qualified context and never supply fine matches for detailed children.
+The concordance workbook retains every intermediate route and source location.
+GDP and value added are unavailable, rather than published as zeros from MARIO
+placeholders. Regional producer GHG totals use the same AR5 three-gas recipe
+as the electricity chart; separate final-demand emissions are unavailable.
+MARIO's default BONSAI parser profile remains AR6 to reproduce BONSAI results.
 
 Next data step: read the releases provided by Lorenzo through MARIO, export
 their original sets and units into per-release Excel workbooks, and replace

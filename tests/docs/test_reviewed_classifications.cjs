@@ -44,7 +44,7 @@ test('qualified producer exclusion prevents false grain joins and never creates 
 test('missing CPA producer evidence remains visible as unverified, with independent product routes',()=>{
  const ex=column(prod,'EXIOBASE','EXIO3P');assert.equal(ex.native.filter(n=>!n.classes.length).length,7);
  assert.ok(prod.columns.filter(c=>c.family==='EMERGING').every(c=>c.status==='unverified'));
- const allowed=new Set(['EXIO3P','EXIO3HSUTP','EXIO3HIOTP','USEEIO2017P','CEDA2024P','GLORIA060P','FIGARO64P','WIOD2016P','GTAP12P','CPC2.1','CPA2002','CPA2008','CPA2.1','CPA2.2']);
+ const allowed=new Set(['EXIO3P','EXIO3HSUTP','EXIO3HIOTP','USEEIO2017P','CEDA2024P','GLORIA060P','FIGARO64P','WIOD2016P','GTAP12P','CPC2.1','CPA2002','CPA2008','CPA2.1','CPA2.2','BONSAIP','BONSAISUTP']);
  for(const col of prod.columns)for(const n of col.native)for(const link of Object.values(n.links))assert.ok(link.nodes.every(n=>allowed.has(n[0])));
 });
 test('Italy current CPA lookup is available only to product readings, and exposes intermediate routes',()=>{

@@ -315,6 +315,50 @@ def test_missing_final_demand_accounts_are_not_zero_observations():
     assert "household_ghg" not in result
 
 
+def test_bonsai_explorer_uses_one_explicit_ar5_recipe_for_totals_and_technology():
+    data = ROOT / 'doc/source/_static/data'
+    snapshot = json.loads((data / 'economy/bonsai-b2-2016-hiot-20261021.json').read_text())
+    supplement = json.loads((data / 'benchmarks/bonsai-electricity-technology-2016.json').read_text())
+    factors = {
+        'Carbon dioxide, fossil | Air': 1,
+        'Methane, fossil | Air': 28,
+        'Methane, non-fossil | Air': 28,
+        'Dinitrogen monoxide | Air': 265,
+    }
+    recipe, source = snapshot['recipe'], supplement['source']
+    assert recipe['ghg_factors'] == source['characterisation_factors'] == factors
+    assert recipe['gwp_basis'] == source['characterisation']
+    assert 'AR5' in recipe['gwp_basis'] and recipe['gwp_horizon'] == 100
+    assert 'subtotal' in recipe['gwp_basis']
+    assert 'Accelerated CO2 is excluded' in recipe['ghg_note']
+    assert 'Accelerated CO2 is excluded' in source['characterisation_note']
+    assert source['excluded_climate_flows'] == ['Accelerated CO2, Air | Air']
+    assert source['official_ar6_equivalence_check']['allclose_rtol_1e-7_atol_1e-10']
+    assert not source['lcia_workbook']['used_for_ar5']
+    assert all(r['gdp'] is None and r['value_added'] is None for r in snapshot['regions'])
+    assert {r['year'] for r in supplement['records']} == {2016}
+    assert len(supplement['records']) == 588
+    assert len({(r['flow'], r['region'], r['product']) for r in supplement['records']}) == 588
+
+
+def test_bonsai_gas_recharacterisation_commutes_with_the_footprint_calculation(monkeypatch):
+    # Two native production nodes, with nonzero methane of both origins and
+    # N2O, expose an accidental reuse of the old AR6-characterised multiplier.
+    import runpy
+    monkeypatch.syspath_prepend(str(ROOT / 'doc/scripts'))
+    exporter = runpy.run_path(str(ROOT / 'doc/scripts/build_bonsai_explorer.py'))
+    rows = list(exporter['BONSAI_CF'])
+    e = pd.DataFrame([[1, 4], [2, 1], [3, 2], [4, 3], [100, 200]], index=rows)
+    w = np.linalg.inv(np.eye(2) - np.array([[.1, .2], [.3, .1]]))
+    gas_f = pd.DataFrame(e.to_numpy() @ w, index=rows)
+    result = exporter['characterise'](gas_f, exporter['CF'])
+    expected = np.array([1, 28, 28, 265, 0]) @ e.to_numpy() @ w
+    np.testing.assert_allclose(result, expected)
+    assert not np.allclose(result, exporter['characterise'](gas_f, exporter['BONSAI_CF']))
+    with pytest.raises(KeyError):
+        exporter['characterise'](gas_f.drop(index='Methane, fossil | Air'), exporter['CF'])
+
+
 def test_reviewed_public_ghg_methods_keep_characterised_rows_and_units():
     folder=ROOT/'doc/source/_static/data/economy'
     manifest=json.loads((folder/'manifest.json').read_text())

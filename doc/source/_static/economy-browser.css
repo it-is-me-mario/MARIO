@@ -256,7 +256,7 @@
  --explorer-selected-ink:var(--surface);
  padding-top:0;
 }
-.mario-article:has(.explorer-tabs) .mario-body { max-width:none; }
+.mario-article:has(.explorer-tabs) .mario-body { max-width:none; min-width:0; }
 .explorer-tabs {
  display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); align-items:start;
  margin:0 calc(-1 * var(--explorer-gutter)); padding:0; gap:0;

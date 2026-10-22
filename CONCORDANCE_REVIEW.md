@@ -1,6 +1,6 @@
 # Concordance review — NACE Rev. 2.1 and CPA 2.2
 
-Review completed 2026-10-11. Reproduce with `snapshot_nxbase_scope.py`, `build_sectoral_scope.py`, then `audit_classification_scope.py`.
+Review completed 2026-10-22. Reproduce with `snapshot_nxbase_scope.py`, `build_sectoral_scope.py`, then `audit_classification_scope.py`.
 
 All primary and alternative routes were checked for typed dimensions, valid leaf endpoints, continuity, cycles, attributable sources and native identities. This is a classification lookup, not an allocation matrix.
 
@@ -10,6 +10,7 @@ All primary and alternative routes were checked for typed dimensions, valid leaf
 | activity / EXIOBASE · Hybrid | 164 | 162 | 2 |
 | activity / ADB | 35 | 35 | 0 |
 | activity / CEDA | 400 | 391 | 9 |
+| activity / BONSAI | 1707 | 1043 | 664 |
 | activity / FIGARO | 64 | 64 | 0 |
 | activity / GLORIA | 120 | 120 | 0 |
 | activity / GTAP | 65 | 64 | 1 |
@@ -18,6 +19,7 @@ All primary and alternative routes were checked for typed dimensions, valid leaf
 | commodity / EXIOBASE · Monetary | 200 | 193 | 7 |
 | commodity / EXIOBASE · Hybrid · IOT | 164 | 157 | 7 |
 | commodity / EXIOBASE · Hybrid · SUT | 200 | 193 | 7 |
+| commodity / BONSAI | 1707 | 713 | 994 |
 | commodity / EMERGING · Monetary · IOT · 2.0/2.2 | 133 | 0 | 133 |
 | commodity / EMERGING · Monetary · IOT · 1.0 | 134 | 0 | 134 |
 | commodity / EMERGING · Monetary · IOT · E | 146 | 0 | 146 |
@@ -37,6 +39,8 @@ All primary and alternative routes were checked for typed dimensions, valid leaf
 - EMERGING has native product inventories but no verified fine CPA bridge. EORA has no verified current fine concordance. OECD and ADB IOT industry sets are activities, not inferred product sets.
 - NACE 46.89 has no predecessor in the supplied NACE 2 revision table; an unverified cell is not absence. CPA 2002 codes 33.30.90, 34.10.25 and 34.10.43 are absent from the historical revision table.
 - EXIOBASE fertiliser and six landfill products lack CPA 2002 publisher links. GTAP product definitions without CPC codes remain unverified. No fuzzy matching or economic allocation weights are used.
+- BONSAI uses its complete observed regional HIOT vocabulary, not only the Global markets. Detailed native NACE Rev. 2 and CPA 2.1 links are composed with official current revisions. Broad detailed-process anchors remain context only; market NACE links are qualified producing-sector footprints.
+- BONSAI country lookup follows the supplied reference-product / process pairs and actual regional memberships. Explicit current electricity-definition reviews exclude incompatible generation sources and storage services; they are editorial refinements, not publisher-issued current concordances. Capital/carrier products without a route remain unverified.
 - Country lookups, including GTAP Power and the separate WIOD SUT activity vocabulary, are checked against the same current references and actual native profile labels.
 - GTAP and Open CEDA are displayed only in Activities: their catalogued sector/industry vocabularies do not supply a separate native Commodity set. CPC and EPA product concordances remain documented intermediate sources; Open CEDA provides emission factors rather than a raw IOT.
 
@@ -44,19 +48,29 @@ All primary and alternative routes were checked for typed dimensions, valid leaf
 
 - reference_nodes: 6,871
 - reference_leaves: 4,005
-- edge_visits: 384,667
-- routes: 74,887
-- native_reference_links: 32,264
-- native_categories: 2,334
-- unique_used_steps: 35,995
-- sources: 56
-- country_unique_routes: 33,751
-- country_entries: 33,751
+- edge_visits: 422,780
+- routes: 85,576
+- native_reference_links: 42,219
+- native_categories: 5,748
+- unique_used_steps: 42,937
+- sources: 66
+- country_unique_routes: 43,706
+- country_entries: 43,706
 
 ## Source register
 
 | ID | Source | URL | SHA-256 |
 |---|---|---|---|
+| B01 | BONSAI · detailed native process / NACE Rev. 2 correspondence | https://bonsai.uno/ | c26352a599d62a5465c91703ea3bc8b094026ed01b81b64fb83fb1e5c79c6b29 |
+| B02 | BONSAI native b2 HIOT · reference identities | https://bonsai.uno/ | f8994aea51d9c6f1813c3196850b0b876950ac9ebdb1defd33e1ac2aa346fa19 |
+| B03 | BONSAI Balanced 20260615 · native descriptions | https://bonsai.uno/ | 341bd7f59efa45273a9dfc6601b3f727ad343dc78111f90658c7f8c27b464cdd |
+| B04 | BONSAI · revised detailed product / CPA correspondence | https://bonsai.uno/ | fcafab1208cc64146a0dee43b96bea2330002ec77b97fe25338f8b7f9d7842ff |
+| B05 | BONSAI · CPA 2.1 product classification annotations | https://bonsai.uno/ | 1cbe5a08ea61911c5c852152c2fa1120bfca28ae2ed40248198e60e690417c4d |
+| B07 | BONSAI · aggregated NACE Rev. 2 activity correspondence | https://bonsai.uno/ | 430cf95e0b0d41bbb09d9c3ba35f6b9100e4548361abd32ccbdb2d13228f5825 |
+| B08 | BONSAI · aggregated CPA 2008 product correspondence | https://bonsai.uno/ | 7cd02a9d431fe121fda5cab9f18f36bb813dc1f38638d11b33cce386d6cf3a00 |
+| B09 | BONSAI · explicit product / market correspondence (22 October 2026) | https://bonsai.uno/ | 008f75172055635db693e1b0dc8e9906830430a533f646257ca8d3e7f766a239 |
+| B10 | Eurostat NACE Rev. 2 structure supplied with BONSAI | https://bonsai.uno/ | 58cc07721767bc2a064ed6a126d03fb20547223a7f29a16888c70090874725e2 |
+| B11 | MARIO · BONSAI current electricity-definition reviews | bonsai-current-reviews.json | bd021b676f62f8a3ef66ea3ff085c9d2fd902412019c82e24a0fc478fa89cbc1 |
 | P01 | CPA 2.2 · official structure and explanatory notes | https://showvoc.op.europa.eu/semanticturkey/it.uniroma2.art.semanticturkey/st-core-services/Download/getFile?ctx_project=ESTAT_Statistical_classification_of_products_by_activity%2C_2.2_%28CPA_2.2%29&fileName=CPA+Ver.+2.2+-+Structure+and+explanatory+notes_EN.tsv | a97027da3a158ed842e53e5f85c25b1e64b7d53696c7a8161ae31a495de27a02 |
 | P02 | CPA 2.2 · latest multilingual headings | https://showvoc.op.europa.eu/semanticturkey/it.uniroma2.art.semanticturkey/st-core-services/Download/getFile?ctx_project=ESTAT_Statistical_classification_of_products_by_activity%2C_2.2_%28CPA_2.2%29&fileName=CPA2.2_Names_Multilingual.tsv | 41da641c531dd87b9b5d79f4a84a1e6f99705905a0deada1206da43f5f659840 |
 | P03 | CPA 2.1 · official RDF classification | https://showvoc.op.europa.eu/semanticturkey/it.uniroma2.art.semanticturkey/st-core-services/Download/getFile?ctx_project=ESTAT_Statistical_classification_of_products_by_activity%2C_2.1_%28CPA_2.1%29&fileName=RDF_DATASET.zip | 594aac581a540392701b0076c62c4e59e5b4aa41d1ccef42446a0df43bd90846 |
@@ -138,6 +152,673 @@ All primary and alternative routes were checked for typed dimensions, valid leaf
 - `GSLGO` State and local government other services: No verified fine correspondence
 - `S00203` Other state and local government enterprises: No verified fine correspondence
 
+### activity / BONSAI
+
+- `A_ACT_HOUS` service, households as employers of domestic personnel: No verified fine correspondence
+- `A_ALUM_01_RES` production of aluminium and aluminium products - residual: No verified fine correspondence
+- `A_ALU_sort` provision of services of sorting, crushing, etc. of aluminium waste: No verified fine correspondence
+- `A_Asses` raising of donkey, live: No verified fine correspondence
+- `A_BIOS` treatment of sewage sludge for bio-gasification and land application: No verified fine correspondence
+- `A_BOTL_GLM` production of bottle 0.75l, glass: No verified fine correspondence
+- `A_BOTL_GLS` production of bottle 0.33l, glass: No verified fine correspondence
+- `A_BOTL_PET` production of pet bottle: No verified fine correspondence
+- `A_Barley_flour` production of barley flour and grit: No verified fine correspondence
+- `A_Beef_boneless` production of meat of cattle boneless, fresh: No verified fine correspondence
+- `A_Buckw_flour` production of flour, buckwheat: No verified fine correspondence
+- `A_Buffaloes` raising of buffaloes: No verified fine correspondence
+- `A_CAN_ALD` production of beverage can, aluminium: No verified fine correspondence
+- `A_CAN_STEL` production of food can, steel: No verified fine correspondence
+- `A_CARDB` production of cardboard: No verified fine correspondence
+- `A_CMNT` production of cement, lime and plaster: Broader source anchor only
+- `A_COKE_bypr_recov` manufacture of coke oven product, with byproduct recovery: No verified fine correspondence
+- `A_COKE_no_recov` manufacture of coke oven product, without byproduct recovery: No verified fine correspondence
+- `A_CONTAI_GLS` production of small container, glass: No verified fine correspondence
+- `A_COPP_sort` provision of services of sorting, crushing, etc. of copper waste: No verified fine correspondence
+- `A_CRMC` production of ceramic goods: Broader source anchor only
+- `A_Camel` raising of camels: No verified fine correspondence
+- `A_Cassava_flour` production of flour, cassava: No verified fine correspondence
+- `A_Cassava_starch` production of starch, cassava: No verified fine correspondence
+- `A_Cattle` production of cattle: No verified fine correspondence
+- `A_Chickens` raising of chickens: No verified fine correspondence
+- `A_Citr_nes` production of citrus juice, concentrated nes: No verified fine correspondence
+- `A_Dry_ilk` production of dry whole cow milk: No verified fine correspondence
+- `A_Ducks` raising of ducks: No verified fine correspondence
+- `A_ELMA` production of electrical machinery and apparatus n.e.c. (31): Broader source anchor only
+- `A_Eggs_ggs` production of eggs, excluding hen eggs: No verified fine correspondence
+- `A_FABM_01_RES` production of other fabricated metal products, except machinery and equipment: No verified fine correspondence
+- `A_FOIL_PLA` production of plastic foil: No verified fine correspondence
+- `A_FORE` production of wood, excluding wood for combustion: Broader source anchor only
+- `A_FORE_comb` cultivation of wood, for combustion: Broader source anchor only
+- `A_F_aqua` production of fish from aquaculture: Broader source anchor only
+- `A_F_capture` capture of fish: Broader source anchor only
+- `A_Flax_raw` production of flax, raw or retted: No verified fine correspondence
+- `A_Flou_nes` production of flour of cereals nes: No verified fine correspondence
+- `A_Flou_oil_nes` production of flour of oilseeds: No verified fine correspondence
+- `A_Fonio_flour` production of flour, fonio: No verified fine correspondence
+- `A_ForGrass_Asses` production of forages and grass for asses: No verified fine correspondence
+- `A_ForGrass_Bufmilk` production of forages and grass for buffaloes: No verified fine correspondence
+- `A_ForGrass_Camel` production of forages and grass for camels: No verified fine correspondence
+- `A_ForGrass_Cattle` production of forages and grass for meat cattle: No verified fine correspondence
+- `A_ForGrass_Cowmilk` forages and grass for milk cows: No verified fine correspondence
+- `A_ForGrass_Goamilk` production of forages and grass for milk goat: No verified fine correspondence
+- `A_ForGrass_Goat` production of forages and grass for meat goat: No verified fine correspondence
+- `A_ForGrass_Horses` production of forages and grass for horses: No verified fine correspondence
+- `A_ForGrass_Pigs` production of forages and grass for pigs: No verified fine correspondence
+- `A_ForGrass_Rabbits` production of forages and grass for rabbits: No verified fine correspondence
+- `A_ForGrass_Sheep` production of forages and grass for meat sheep: No verified fine correspondence
+- `A_ForGrass_Shemilk` production of forages and grass for milk sheep: No verified fine correspondence
+- `A_Frozfrui` production of frozen fruit: Broader source anchor only
+- `A_Frozvege` production of frozen vegetables: Broader source anchor only
+- `A_Frui_nes` production of other tropical fruit, dried: No verified fine correspondence
+- `A_Fruits_flour` production of flour, fruit: No verified fine correspondence
+- `A_GAMB` service of gambling and betting: No verified fine correspondence
+- `A_GLAS_01_RES` production of glass and glass products - residual: No verified fine correspondence
+- `A_GLA_sort` provision of services of sorting, crushing, etc. of glass waste: No verified fine correspondence
+- `A_Goat` raising of goats: No verified fine correspondence
+- `A_Horses` raising of horse, live: No verified fine correspondence
+- `A_Icee` ice cream and edible ice: No verified fine correspondence
+- `A_JAR_GLS` production of small jar, glass: No verified fine correspondence
+- `A_Juic_nes` production of juice of citrus fruit n.e.c.: No verified fine correspondence
+- `A_KCAP_ACCOM` A_KCAP_ACCOM: No verified fine correspondence
+- `A_KCAP_ACCOM|A_KCAP_RESTAU` A_KCAP_ACCOM; A_KCAP_RESTAU: No verified fine correspondence
+- `A_KCAP_ACT_HOUS` A_KCAP_ACT_HOUS: No verified fine correspondence
+- `A_KCAP_ADVERT` A_KCAP_ADVERT: No verified fine correspondence
+- `A_KCAP_ADVERT|A_KCAP_ENGS|A_KCAP_LEGAL|A_KCAP_MANA|A_KCAP_OT_PROF_SCI|A_KCAP_RESERCH|A_KCAP_VET` A_KCAP_ADVERT; A_KCAP_ENGS; A_KCAP_LEGAL; A_KCAP_MANA; A_KCAP_OT_PROF_SCI; A_KCAP_RESERCH; A_KCAP_VET: No verified fine correspondence
+- `A_KCAP_ALUM_01_RES` A_KCAP_ALUM_01_RES: No verified fine correspondence
+- `A_KCAP_ART` A_KCAP_ART: No verified fine correspondence
+- `A_KCAP_ART|A_KCAP_GAMB|A_KCAP_LIB_MUSEUM` A_KCAP_ART; A_KCAP_GAMB; A_KCAP_LIB_MUSEUM: No verified fine correspondence
+- `A_KCAP_BRIK` A_KCAP_BRIK: No verified fine correspondence
+- `A_KCAP_BROAD_NEWS` A_KCAP_BROAD_NEWS: No verified fine correspondence
+- `A_KCAP_BROAD_NEWS|A_KCAP_COMP|A_KCAP_INFO|A_KCAP_PIC_VID_TV|A_KCAP_PTEL|A_KCAP_PUBL` A_KCAP_BROAD_NEWS; A_KCAP_COMP; A_KCAP_INFO; A_KCAP_PIC_VID_TV; A_KCAP_PTEL; A_KCAP_PUBL: No verified fine correspondence
+- `A_KCAP_BROAD_NEWS|A_KCAP_PIC_VID_TV` A_KCAP_BROAD_NEWS; A_KCAP_PIC_VID_TV: No verified fine correspondence
+- `A_KCAP_BUILD` A_KCAP_BUILD: No verified fine correspondence
+- `A_KCAP_BUILD_LAND_serv` A_KCAP_BUILD_LAND_serv: No verified fine correspondence
+- `A_KCAP_BUILD_LAND_serv|A_KCAP_EMPLOY|A_KCAP_OFFICE_ADM|A_KCAP_RENT|A_KCAP_SECUR|A_KCAP_TRAV` A_KCAP_BUILD_LAND_serv; A_KCAP_EMPLOY; A_KCAP_OFFICE_ADM; A_KCAP_RENT; A_KCAP_SECUR; A_KCAP_TRAV: No verified fine correspondence
+- `A_KCAP_BUILD_LAND_serv|A_KCAP_OFFICE_ADM|A_KCAP_SECUR` A_KCAP_BUILD_LAND_serv; A_KCAP_OFFICE_ADM; A_KCAP_SECUR: No verified fine correspondence
+- `A_KCAP_BUILD|A_KCAP_CIV_ENG` A_KCAP_BUILD; A_KCAP_CIV_ENG: No verified fine correspondence
+- `A_KCAP_Buffaloes` A_KCAP_Buffaloes: No verified fine correspondence
+- `A_KCAP_CHEM` A_KCAP_CHEM: No verified fine correspondence
+- `A_KCAP_CHMF` A_KCAP_CHMF: No verified fine correspondence
+- `A_KCAP_CIV_ENG` A_KCAP_CIV_ENG: No verified fine correspondence
+- `A_KCAP_CMNT` A_KCAP_CMNT: No verified fine correspondence
+- `A_KCAP_COMP` A_KCAP_COMP: No verified fine correspondence
+- `A_KCAP_COMP|A_KCAP_INFO` A_KCAP_COMP; A_KCAP_INFO: No verified fine correspondence
+- `A_KCAP_COPP` A_KCAP_COPP: No verified fine correspondence
+- `A_KCAP_CRMC` A_KCAP_CRMC: No verified fine correspondence
+- `A_KCAP_EDUC` A_KCAP_EDUC: No verified fine correspondence
+- `A_KCAP_ELMA` A_KCAP_ELMA: No verified fine correspondence
+- `A_KCAP_EMPLOY` A_KCAP_EMPLOY: No verified fine correspondence
+- `A_KCAP_ENGS` A_KCAP_ENGS: No verified fine correspondence
+- `A_KCAP_FABM_01_RES` A_KCAP_FABM_01_RES: No verified fine correspondence
+- `A_KCAP_FAUX` A_KCAP_FAUX: No verified fine correspondence
+- `A_KCAP_FAUX|A_KCAP_FINS|A_KCAP_FINT` A_KCAP_FAUX; A_KCAP_FINS; A_KCAP_FINT: No verified fine correspondence
+- `A_KCAP_FINS` A_KCAP_FINS: No verified fine correspondence
+- `A_KCAP_FINT` A_KCAP_FINT: No verified fine correspondence
+- `A_KCAP_FURN` A_KCAP_FURN: No verified fine correspondence
+- `A_KCAP_GAMB|A_KCAP_SPORT` A_KCAP_GAMB; A_KCAP_SPORT: No verified fine correspondence
+- `A_KCAP_GARM` A_KCAP_GARM: No verified fine correspondence
+- `A_KCAP_GLAS_01_RES` A_KCAP_GLAS_01_RES: No verified fine correspondence
+- `A_KCAP_HEAL` A_KCAP_HEAL: No verified fine correspondence
+- `A_KCAP_HEAL|A_KCAP_RES_CARE|A_KCAP_SOWO` A_KCAP_HEAL; A_KCAP_RES_CARE; A_KCAP_SOWO: No verified fine correspondence
+- `A_KCAP_INFO` A_KCAP_INFO: No verified fine correspondence
+- `A_KCAP_LEGAL` A_KCAP_LEGAL: No verified fine correspondence
+- `A_KCAP_LEGAL|A_KCAP_MANA` A_KCAP_LEGAL; A_KCAP_MANA: No verified fine correspondence
+- `A_KCAP_LETH` A_KCAP_LETH: No verified fine correspondence
+- `A_KCAP_LZTP` A_KCAP_LZTP: No verified fine correspondence
+- `A_KCAP_MACH` A_KCAP_MACH: No verified fine correspondence
+- `A_KCAP_MANA` A_KCAP_MANA: No verified fine correspondence
+- `A_KCAP_MDIA` A_KCAP_MDIA: No verified fine correspondence
+- `A_KCAP_MEIN` A_KCAP_MEIN: No verified fine correspondence
+- `A_KCAP_METC` A_KCAP_METC: No verified fine correspondence
+- `A_KCAP_MIN_SUPP` A_KCAP_MIN_SUPP: No verified fine correspondence
+- `A_KCAP_MOTO` A_KCAP_MOTO: No verified fine correspondence
+- `A_KCAP_OFFICE_ADM` A_KCAP_OFFICE_ADM: No verified fine correspondence
+- `A_KCAP_OFMA` A_KCAP_OFMA: No verified fine correspondence
+- `A_KCAP_ONFM` A_KCAP_ONFM: No verified fine correspondence
+- `A_KCAP_ONMM` A_KCAP_ONMM: No verified fine correspondence
+- `A_KCAP_ORGA` A_KCAP_ORGA: No verified fine correspondence
+- `A_KCAP_ORGA|A_KCAP_PERS_SER|A_KCAP_REPAIR` A_KCAP_ORGA; A_KCAP_PERS_SER; A_KCAP_REPAIR: No verified fine correspondence
+- `A_KCAP_OT_PROF_SCI` A_KCAP_OT_PROF_SCI: No verified fine correspondence
+- `A_KCAP_OT_PROF_SCI|A_KCAP_VET` A_KCAP_OT_PROF_SCI; A_KCAP_VET: No verified fine correspondence
+- `A_KCAP_PADF` A_KCAP_PADF: No verified fine correspondence
+- `A_KCAP_PAPE_01_RES` A_KCAP_PAPE_01_RES: No verified fine correspondence
+- `A_KCAP_PERS_SER` A_KCAP_PERS_SER: No verified fine correspondence
+- `A_KCAP_PHAR` A_KCAP_PHAR: No verified fine correspondence
+- `A_KCAP_PIC_VID_TV` A_KCAP_PIC_VID_TV: No verified fine correspondence
+- `A_KCAP_PLAS` A_KCAP_PLAS: No verified fine correspondence
+- `A_KCAP_POST` A_KCAP_POST: No verified fine correspondence
+- `A_KCAP_PREM` A_KCAP_PREM: No verified fine correspondence
+- `A_KCAP_PUBL` A_KCAP_PUBL: No verified fine correspondence
+- `A_KCAP_RATV` A_KCAP_RATV: No verified fine correspondence
+- `A_KCAP_REAL_OTHER` A_KCAP_REAL_OTHER: No verified fine correspondence
+- `A_KCAP_REAL_OTHER|A_KCAP_REAL_OWNER` A_KCAP_REAL_OTHER; A_KCAP_REAL_OWNER: No verified fine correspondence
+- `A_KCAP_REAL_OWNER` A_KCAP_REAL_OWNER: No verified fine correspondence
+- `A_KCAP_REMS` A_KCAP_REMS: No verified fine correspondence
+- `A_KCAP_RENT` A_KCAP_RENT: No verified fine correspondence
+- `A_KCAP_REPAIR` A_KCAP_REPAIR: No verified fine correspondence
+- `A_KCAP_REP_INST` A_KCAP_REP_INST: No verified fine correspondence
+- `A_KCAP_RESERCH` A_KCAP_RESERCH: No verified fine correspondence
+- `A_KCAP_RESTAU` A_KCAP_RESTAU: No verified fine correspondence
+- `A_KCAP_RES_CARE` A_KCAP_RES_CARE: No verified fine correspondence
+- `A_KCAP_RES_CARE|A_KCAP_SOWO` A_KCAP_RES_CARE; A_KCAP_SOWO: No verified fine correspondence
+- `A_KCAP_RUBP_01_RES` A_KCAP_RUBP_01_RES: No verified fine correspondence
+- `A_KCAP_SECUR` A_KCAP_SECUR: No verified fine correspondence
+- `A_KCAP_SOWO` A_KCAP_SOWO: No verified fine correspondence
+- `A_KCAP_SPORT` A_KCAP_SPORT: No verified fine correspondence
+- `A_KCAP_STEL` A_KCAP_STEL: No verified fine correspondence
+- `A_KCAP_STON` A_KCAP_STON: No verified fine correspondence
+- `A_KCAP_TAIR` A_KCAP_TAIR: No verified fine correspondence
+- `A_KCAP_TAUX` A_KCAP_TAUX: No verified fine correspondence
+- `A_KCAP_TELEC` A_KCAP_TELEC: No verified fine correspondence
+- `A_KCAP_TEXT` A_KCAP_TEXT: No verified fine correspondence
+- `A_KCAP_TOBC` A_KCAP_TOBC: No verified fine correspondence
+- `A_KCAP_TRAV` A_KCAP_TRAV: No verified fine correspondence
+- `A_KCAP_WATR` A_KCAP_WATR: No verified fine correspondence
+- `A_KCAP_WOOD` A_KCAP_WOOD: No verified fine correspondence
+- `A_KCAP_auto` A_KCAP_auto: No verified fine correspondence
+- `A_KCAP_bus` A_KCAP_bus: No verified fine correspondence
+- `A_KCAP_iwAlum` A_KCAP_iwAlum: No verified fine correspondence
+- `A_KCAP_iwCons` A_KCAP_iwCons: No verified fine correspondence
+- `A_KCAP_iwCopp` A_KCAP_iwCopp: No verified fine correspondence
+- `A_KCAP_iwDisc_eq` A_KCAP_iwDisc_eq: No verified fine correspondence
+- `A_KCAP_iwDisc_veh` A_KCAP_iwDisc_veh: No verified fine correspondence
+- `A_KCAP_iwFood` A_KCAP_iwFood: No verified fine correspondence
+- `A_KCAP_iwGlas` A_KCAP_iwGlas: No verified fine correspondence
+- `A_KCAP_iwHazar` A_KCAP_iwHazar: No verified fine correspondence
+- `A_KCAP_iwLead` A_KCAP_iwLead: No verified fine correspondence
+- `A_KCAP_iwMix_nonferr` A_KCAP_iwMix_nonferr: No verified fine correspondence
+- `A_KCAP_iwPape` A_KCAP_iwPape: No verified fine correspondence
+- `A_KCAP_iwPlas` A_KCAP_iwPlas: No verified fine correspondence
+- `A_KCAP_iwPrec` A_KCAP_iwPrec: No verified fine correspondence
+- `A_KCAP_iwSteel` A_KCAP_iwSteel: No verified fine correspondence
+- `A_KCAP_iwText` A_KCAP_iwText: No verified fine correspondence
+- `A_KCAP_iwUnsort` A_KCAP_iwUnsort: No verified fine correspondence
+- `A_KCAP_iwWood` A_KCAP_iwWood: No verified fine correspondence
+- `A_KCAP_truck` A_KCAP_truck: No verified fine correspondence
+- `A_KCAP_wAlum` A_KCAP_wAlum: No verified fine correspondence
+- `A_KCAP_wAsh` A_KCAP_wAsh: No verified fine correspondence
+- `A_KCAP_wBatt` A_KCAP_wBatt: No verified fine correspondence
+- `A_KCAP_wCons` A_KCAP_wCons: No verified fine correspondence
+- `A_KCAP_wCopp` A_KCAP_wCopp: No verified fine correspondence
+- `A_KCAP_wDisc_eq` A_KCAP_wDisc_eq: No verified fine correspondence
+- `A_KCAP_wDisc_veh` A_KCAP_wDisc_veh: No verified fine correspondence
+- `A_KCAP_wGlas` A_KCAP_wGlas: No verified fine correspondence
+- `A_KCAP_wHazar` A_KCAP_wHazar: No verified fine correspondence
+- `A_KCAP_wLead` A_KCAP_wLead: No verified fine correspondence
+- `A_KCAP_wMix_met` A_KCAP_wMix_met: No verified fine correspondence
+- `A_KCAP_wMix_nonferr` A_KCAP_wMix_nonferr: No verified fine correspondence
+- `A_KCAP_wPape` A_KCAP_wPape: No verified fine correspondence
+- `A_KCAP_wPlas` A_KCAP_wPlas: No verified fine correspondence
+- `A_KCAP_wPrec` A_KCAP_wPrec: No verified fine correspondence
+- `A_KCAP_wSteel` A_KCAP_wSteel: No verified fine correspondence
+- `A_KCAP_wText` A_KCAP_wText: No verified fine correspondence
+- `A_KCAP_wUnsort` A_KCAP_wUnsort: No verified fine correspondence
+- `A_KCAP_wWood` A_KCAP_wWood: No verified fine correspondence
+- `A_LEAD_sort` provision of services of sorting, crushing, etc. of lead, zinc and tin waste: No verified fine correspondence
+- `A_MEIN` medical, precision and optical instruments, watches and clocks: Broader source anchor only
+- `A_METC` foundry work services: Broader source anchor only
+- `A_Maize_flour` production of flour, maize: No verified fine correspondence
+- `A_Maizea_starch` production of starch, maize: No verified fine correspondence
+- `A_Malt` production of malt extract: No verified fine correspondence
+- `A_Mapl_ups` production of maple sugar and syrups: No verified fine correspondence
+- `A_Meat_camel` production of meat of camel, raw: No verified fine correspondence
+- `A_Meat_pig_boneless` production of meat of pig boneless, fresh or chilled: No verified fine correspondence
+- `A_Meat_pige` production of meat of pigeons and other birds n.e.c., fresh, chilled or frozen: No verified fine correspondence
+- `A_Millet_flour` production of flour, millet: No verified fine correspondence
+- `A_Mixed_flour` production of flour, mixed grain: No verified fine correspondence
+- `A_Mule_les` raising of mules: No verified fine correspondence
+- `A_Mustard_flour` production of flour, mustard: No verified fine correspondence
+- `A_Nat_COKE` domestic production of coke: No verified fine correspondence
+- `A_Nat_Fish` domestic production of fish: Broader source anchor only
+- `A_Oats_roll` production of oat grain: No verified fine correspondence
+- `A_Oliv_ved` production of olives preserved: No verified fine correspondence
+- `A_Oth_non_alcoh` production of other non-alcoholic caloric beverages: No verified fine correspondence
+- `A_Othdiar_buffaloes` production of ghee, buffalo milk: No verified fine correspondence
+- `A_Othe_camel` production of other camelids: No verified fine correspondence
+- `A_PACK_OPLA` production of other plastic packaging: No verified fine correspondence
+- `A_PAPE_01_RES` production of paper and paper products - residual: No verified fine correspondence
+- `A_PAP_sort` provision of services of sorting, crushing, etc. of paper waste: No verified fine correspondence
+- `A_PLA_sort` provision of services of sorting, crushing, etc. of plastic waste: No verified fine correspondence
+- `A_POST` service, postal and courier activities: No verified fine correspondence
+- `A_PULP` pulp: Broader source anchor only
+- `A_Pigs` raising of pigs: No verified fine correspondence
+- `A_Pork_saus` production of meat, pig sausage: No verified fine correspondence
+- `A_Potato_flour` production of flour, potatoes: No verified fine correspondence
+- `A_Potato_starch` production of starch, potatoes: No verified fine correspondence
+- `A_Prmilk_buff` production of milk, skimmed buffalo: No verified fine correspondence
+- `A_Prmilk_cow` production of milk, skimmed cow: No verified fine correspondence
+- `A_Prmilk_sheep` production of milk, skimmed sheep: No verified fine correspondence
+- `A_Pulses_flour` production of flour, pulses: No verified fine correspondence
+- `A_REAL_OTHER` service, real estate activity excluding imputed rents: No verified fine correspondence
+- `A_REAL_OTHER|A_REAL_OWNER` service, real estate activity excluding imputed rents;imputed rent of owner-occupied dwellings: No verified fine correspondence
+- `A_REAL_OWNER` imputed rent of owner-occupied dwellings: No verified fine correspondence
+- `A_REMS` service, remediation: No verified fine correspondence
+- `A_RUBP_01_RES` production of rubber and plastic products - residual, (market for): No verified fine correspondence
+- `A_Rabbits` raising of rabbits: No verified fine correspondence
+- `A_Rice_flour` production of flour, rice: No verified fine correspondence
+- `A_Rice_starch` production of gluten, rice: No verified fine correspondence
+- `A_Root_nes` production of roots and tubers, dried nes: No verified fine correspondence
+- `A_Root_nes_flour` production of flour, other roots and tubers: No verified fine correspondence
+- `A_Rubber` natural rubber: Broader source anchor only
+- `A_Rye_flour` production of flour, rye: No verified fine correspondence
+- `A_SE_INCI` incineration with energy recovery of sewage: No verified fine correspondence
+- `A_SE_INCI_no_recov` incineration without energy recovery of sewage: No verified fine correspondence
+- `A_SE_LAND` landfill of sewage: No verified fine correspondence
+- `A_SE_OTHE` other disposal of sewage: No verified fine correspondence
+- `A_SE_RECY` recycling of sewage: No verified fine correspondence
+- `A_SHEET_PA` production of paper sheet: No verified fine correspondence
+- `A_SHEET_PAPL` production of paper sheet, with plastic foil: No verified fine correspondence
+- `A_SHEET_PAPLAL` production of paper sheet, with plastic and aluminium foil: No verified fine correspondence
+- `A_STE_sort` provision of services of sorting, crushing, etc. of steel waste: No verified fine correspondence
+- `A_Sheep` raising of sheep: No verified fine correspondence
+- `A_Skim_sed` production of skim milk, condensed: No verified fine correspondence
+- `A_Skim_ted` production of skim milk, evaporated: No verified fine correspondence
+- `A_Sorghum_flour` production of flour, sorghum: No verified fine correspondence
+- `A_TETRA_PP` production of beverage packaging of paper sheet, with plastic foil: No verified fine correspondence
+- `A_TETRA_PPA` production of beverage packaging of paper sheet, with plastic and aluminium foil: No verified fine correspondence
+- `A_TEXT` textiles: Broader source anchor only
+- `A_TEXT_sort` provision of services of sorting, crushing, etc. of textile waste: No verified fine correspondence
+- `A_TOBC` tobacco products: No verified fine correspondence
+- `A_Tap_Cassava` production of tapioca, cassava: No verified fine correspondence
+- `A_Tap_Potatoes` production of tapioca, potatoes: No verified fine correspondence
+- `A_Transfer` energy reclassification: No verified fine correspondence
+- `A_Turkeys` raising of turkeys: No verified fine correspondence
+- `A_VET` service, veterinary activity: No verified fine correspondence
+- `A_Verm_tcx` production of vermouths, etc.: No verified fine correspondence
+- `A_WATR` service of water distribution, collected and purified water: No verified fine correspondence
+- `A_WOOD_sort` provision of services of sorting, crushing, etc. of wood waste: No verified fine correspondence
+- `A_Whflour` production of wheat flour: Broader source anchor only
+- `A_Whol_sed` production of whole milk, condensed: No verified fine correspondence
+- `A_Whol_ted` production of whole milk, evaporated: No verified fine correspondence
+- `A_Yautia` production of yautia (cocoyam): No verified fine correspondence
+- `A_Yoght_add` production of yoghurt, with additives: No verified fine correspondence
+- `A_auto` production of car: Broader source anchor only
+- `A_bus` production of buses: Broader source anchor only
+- `A_liver_prep` production of foie gras: No verified fine correspondence
+- `A_meat_asses` production of meat of donkey, fresh: No verified fine correspondence
+- `A_meat_game` production of meat from hunting of mammals, fresh: No verified fine correspondence
+- `A_meat_goose` production of meat of goose, fresh: No verified fine correspondence
+- `A_meat_horse` production of meat of horse, fresh: No verified fine correspondence
+- `A_meat_mule` production of meat of mule, fresh: No verified fine correspondence
+- `A_meat_rubbit` production of meat of rabbits and hares, fresh: No verified fine correspondence
+- `A_meat_th_camel` production of meat of camelids, fresh: No verified fine correspondence
+- `A_pBuffmeat` production of meat of buffalo, fresh: No verified fine correspondence
+- `A_pCatmeat` production of meat, cattle: No verified fine correspondence
+- `A_pChicken_meat` production of meat, chicken, fresh: No verified fine correspondence
+- `A_pDuck_meat` production of meat, duck, fresh: No verified fine correspondence
+- `A_pGoatmeat` production of meat of goat, fresh: No verified fine correspondence
+- `A_pSheepmeat` production of meat of sheep, fresh: No verified fine correspondence
+- `A_pTurkey_meat` production of meat, turkey fowl, fresh: No verified fine correspondence
+- `A_sugar` production of sugar confectionery: No verified fine correspondence
+- `A_truck` production of truck: Broader source anchor only
+- `EF_AGSL` aviation gasoline, combustion of: No verified fine correspondence
+- `EF_ANTH` combustion of anthracite: No verified fine correspondence
+- `EF_BIOD` biodiesel, combustion of: No verified fine correspondence
+- `EF_BIOG` biogasoline, combustion of: No verified fine correspondence
+- `EF_BITU` bitumen, combustion of: No verified fine correspondence
+- `EF_BKBP` combustion of bkb/peat briquette: No verified fine correspondence
+- `EF_CHAR` charcoal, combustion of: No verified fine correspondence
+- `EF_COIL` combustion of crude petroleum: No verified fine correspondence
+- `EF_COKC` combustion of coking coal: No verified fine correspondence
+- `EF_COKE` coke oven coke, combustion of: No verified fine correspondence
+- `EF_COOG` coke oven gas, combustion of: No verified fine correspondence
+- `EF_COTA` coal tar, combustion of: No verified fine correspondence
+- `EF_DOIL` gas/diesel oil, combustion of: No verified fine correspondence
+- `EF_ETHA` combustion of ethane: No verified fine correspondence
+- `EF_FOIL` heavy fuel oil, combustion of: No verified fine correspondence
+- `EF_FORE` combustion of forest product: No verified fine correspondence
+- `EF_GASE` natural gas and services related to natural gas extraction, excluding surveying, combustion of: No verified fine correspondence
+- `EF_GASL` natural gas liquids, combustion of: No verified fine correspondence
+- `EF_GCOK` gas coke, combustion of: No verified fine correspondence
+- `EF_KERO` kerosene, combustion of: No verified fine correspondence
+- `EF_KJET` kerosene type jet fuel, combustion of: No verified fine correspondence
+- `EF_LIBC` lignite/brown coal, combustion of: No verified fine correspondence
+- `EF_LPGA` liquefied petroleum gases (lpg), combustion of: No verified fine correspondence
+- `EF_LUBR` lubricants, combustion of: No verified fine correspondence
+- `EF_MBFG` blast furnace gas, combustion of: No verified fine correspondence
+- `EF_MBIO` biogas, combustion of: No verified fine correspondence
+- `EF_MGSL` motor gasoline, combustion of: No verified fine correspondence
+- `EF_MGWG` gas works gas, combustion of: No verified fine correspondence
+- `EF_MOSG` oxygen steel furnace gas, combustion of: No verified fine correspondence
+- `EF_NAPT` naphtha, combustion of: No verified fine correspondence
+- `EF_NSPP` non-specified petroleum products, combustion of: No verified fine correspondence
+- `EF_OTBC` other bituminous coal, combustion of: No verified fine correspondence
+- `EF_PARW` paraffin waxes, combustion of: No verified fine correspondence
+- `EF_PATF` patent fuel, combustion of: No verified fine correspondence
+- `EF_PEAT` peat, combustion of: No verified fine correspondence
+- `EF_PETC` petroleum coke, combustion of: No verified fine correspondence
+- `EF_RGAS` refinery gas, combustion of: No verified fine correspondence
+- `EF_SUBC` sub-bituminous coal, combustion of: No verified fine correspondence
+- `EF_WHSP` white spirit & sbp, combustion of: No verified fine correspondence
+- `L_crop_intens` L_crop_intens: No verified fine correspondence
+- `L_grass_pasture` L_grass_pasture: No verified fine correspondence
+- `L_pasture_intens` L_pasture_intens: No verified fine correspondence
+- `L_prim_managed` L_prim_managed: No verified fine correspondence
+- `L_second_crop` L_second_crop: No verified fine correspondence
+- `L_second_managed` L_second_managed: No verified fine correspondence
+- `M_ACCOM` service, accommodation (market for): No verified fine correspondence
+- `M_ACCOM|M_RESTAU` service, accommodation (market for);service, food and beverage serving (market for): No verified fine correspondence
+- `M_ACT_HOUS` service, households as employers of domestic personnel (market for): No verified fine correspondence
+- `M_ADVERT` service, advertising and market research (market for): No verified fine correspondence
+- `M_ADVERT|M_ENGS|M_LEGAL|M_MANA|M_OT_PROF_SCI|M_RESERCH|M_VET` service, advertising and market research (market for);service, architectural and engineering activities/technical testing and analysis (market for);service, legal and accounting activities (market for);service, head office and management consulting (market for);service, other professional, scientific and technical activities (market for);service, scientific research and development (market for);veterinary activity (market for): No verified fine correspondence
+- `M_ALUM_01_RES` production of aluminum and aluminum product - residual (market for): No verified fine correspondence
+- `M_ALU_sort` treatment of aluminum waste, including sorting, crashing, etc. (market for): No verified fine correspondence
+- `M_ART` service, arts creation and performing arts services (market for): No verified fine correspondence
+- `M_ART|M_GAMB|M_LIB_MUSEUM` service, arts creation and performing arts services (market for);service, gambling and betting (market for);service, libraries, archives, museums and other cultural activities (market for): No verified fine correspondence
+- `M_Alc_food` beverage, non-food alcohol (market for): No verified fine correspondence
+- `M_Asses` livestock, donkey (market for): No verified fine correspondence
+- `M_BIOF` food waste for treatment: bio-gasification and land application (market for): No verified fine correspondence
+- `M_BIOP` production of paper waste for treatment: bio-gasification and land application, (market for): No verified fine correspondence
+- `M_BIOS` treatment of sewage sludge for bio-gasification and land application (market for): No verified fine correspondence
+- `M_BOTL_GLM` bottle 0.75l, glass (market for): No verified fine correspondence
+- `M_BOTL_GLS` glass packaging, bottle, 0.33 litre, (market for): No verified fine correspondence
+- `M_BOTL_PET` plastic packaging, bottle, pet, (market for): No verified fine correspondence
+- `M_BROAD_NEWS` service, programming and broadcasting activities (market for): No verified fine correspondence
+- `M_BROAD_NEWS|M_COMP|M_INFO|M_PIC_VID_TV|M_PTEL|M_PUBL` service, programming and broadcasting activities (market for);computer and related services(market for);service, information activity (market for);motion picture, video and television programme production services, sound recording and music publishing (market for);postal and courier activities (market for);service, publishing activity (market for): No verified fine correspondence
+- `M_BROAD_NEWS|M_PIC_VID_TV` service, programming and broadcasting activities (market for);motion picture, video and television programme production services, sound recording and music publishing (market for): No verified fine correspondence
+- `M_BUILD` service, building and landscape activity (market for): No verified fine correspondence
+- `M_BUILD_LAND_serv` service, maintenance of building and landscape (market for): No verified fine correspondence
+- `M_BUILD_LAND_serv|M_EMPLOY|M_OFFICE_ADM|M_RENT|M_SECUR|M_TRAV` service, maintenance of building and landscape (market for);service, employment activity (market for);service, office administrative, office support and other business support activity (market for);service, rental and leasing activity (market for);service, security and investigation activity (market for);service, travel agency, tour operator and other reservation (market for): No verified fine correspondence
+- `M_BUILD_LAND_serv|M_OFFICE_ADM|M_SECUR` service, maintenance of building and landscape (market for);service, office administrative, office support and other business support activity (market for);service, security and investigation activity (market for): No verified fine correspondence
+- `M_BUILD|M_CIV_ENG` service, building and landscape activity (market for);service, construction and construction work for civil engineering (market for): No verified fine correspondence
+- `M_Beef_boneless` meat, cattle, boneless/fresh (market for): No verified fine correspondence
+- `M_Bran_bar` bran, barley (market for): No verified fine correspondence
+- `M_Bran_buc` bran, buckwheat (market for): No verified fine correspondence
+- `M_Bran_fon` bran, fonio (market for): No verified fine correspondence
+- `M_Bran_mai` bran, maize (market for): No verified fine correspondence
+- `M_Bran_mil` bran, millet (market for): No verified fine correspondence
+- `M_Bran_mix` bran, mixed grain (market for): No verified fine correspondence
+- `M_Bran_oat` bran, oat (market for): No verified fine correspondence
+- `M_Bran_pul` bran, pulse (market for): No verified fine correspondence
+- `M_Bran_rye` bran, rye (market for): No verified fine correspondence
+- `M_Bran_sor` bran, sorghum (market for): No verified fine correspondence
+- `M_Bran_tri` bran, triticale (market for): No verified fine correspondence
+- `M_Bran_whe` bran, wheat (market for): No verified fine correspondence
+- `M_Buffaloes` buffalo (market for): No verified fine correspondence
+- `M_CAN_ALD` beverage can, aluminium, (market for): No verified fine correspondence
+- `M_CAN_STEL` food can, steel (market for): No verified fine correspondence
+- `M_CARDB` production of cardboard, (market for): No verified fine correspondence
+- `M_CIV_ENG` service, construction and construction work for civil engineering (market for): No verified fine correspondence
+- `M_CMNT` cement, lime and plaster(market for): Broader source anchor only
+- `M_COMP` computer and related services(market for): Broader source anchor only
+- `M_COMP|M_INFO` computer and related services(market for);service, information activity (market for): No verified fine correspondence
+- `M_CONTAI_GLS` production of small container, glass, (market for): No verified fine correspondence
+- `M_COPP_sort` treatment of copper waste, including sorting, crashing, etc. (market for): No verified fine correspondence
+- `M_CRMC` ceramic good (market for): Broader source anchor only
+- `M_Camel` camel (market for): No verified fine correspondence
+- `M_Cattle` cattle (market for): No verified fine correspondence
+- `M_Chickens` chickens (market for): No verified fine correspondence
+- `M_Citr_nes` juice, other citrus, concentrated (market for): No verified fine correspondence
+- `M_Ckhemp` press cake, hempseed (market for): No verified fine correspondence
+- `M_Ckpopp` press cake, poppy seed (market for): No verified fine correspondence
+- `M_Ckseednes` press cake, other oilseed (market for): No verified fine correspondence
+- `M_Dry_ilk` dry whole cow milk (market for): No verified fine correspondence
+- `M_Ducks` raising of duck, (market for): No verified fine correspondence
+- `M_EDUC` education services(market for): Broader source anchor only
+- `M_ELMA` electrical machinery and apparatus n.e.c.(market for): Broader source anchor only
+- `M_EMPLOY` service, employment activity (market for): No verified fine correspondence
+- `M_ENGS` service, architectural and engineering activities/technical testing and analysis (market for): No verified fine correspondence
+- `M_Eggs_ggs` production of eggs, excluding hen eggs, (market for): No verified fine correspondence
+- `M_FABM_01_RES` other fabricated metal products, (market for): No verified fine correspondence
+- `M_FAUX` services auxiliary to financial intermediation(market for): Broader source anchor only
+- `M_FAUX|M_FINS|M_FINT` services auxiliary to financial intermediation(market for);insurance and pension funding services, except compulsory social security services(market for);service, financial intermediation except insurance and pension funding services (market for): No verified fine correspondence
+- `M_FINS` insurance and pension funding services, except compulsory social security services(market for): Broader source anchor only
+- `M_FINT` service, financial intermediation except insurance and pension funding services (market for): Broader source anchor only
+- `M_FISH` production of fish and other fishing products and services incidental to fishing (market for): Broader source anchor only
+- `M_FOIL_PLA` production of plastic foil, (market for): No verified fine correspondence
+- `M_FORE` products of forestry, logging and related services(market for): Broader source anchor only
+- `M_FURN` furniture and other manufactured goods (market for): No verified fine correspondence
+- `M_Feedn` feed and meal, gluten, (market for): No verified fine correspondence
+- `M_Flax_raw` flax, raw or retted (market for): No verified fine correspondence
+- `M_Flou_nes` flour, other cereal (market for): No verified fine correspondence
+- `M_Flour_barl` barley flour and grits(market for): Broader source anchor only
+- `M_Flour_buck` flour of buckwheat(market for): Broader source anchor only
+- `M_Flour_cass` flour of cassava(market for): Broader source anchor only
+- `M_Flour_foni` flour of fonio (market for): Broader source anchor only
+- `M_Flour_frui` flour of fruit (market for): Broader source anchor only
+- `M_Flour_maiz` flour of maize (market for): Broader source anchor only
+- `M_Flour_mill` flour of millet (market for): Broader source anchor only
+- `M_Flour_mixe` flour of mixed grain (market for): Broader source anchor only
+- `M_Flour_must` flour of mustard seed (market for): Broader source anchor only
+- `M_Flour_pota` flour of potato (market for): Broader source anchor only
+- `M_Flour_puls` flour of pulse (market for): Broader source anchor only
+- `M_Flour_rice` flour of rice(market for): Broader source anchor only
+- `M_Flour_root` production of flour, other roots and tubers (market for): Broader source anchor only
+- `M_Flour_rye` flour of rye(market for): Broader source anchor only
+- `M_Flour_sorg` flour of sorghum(market for): Broader source anchor only
+- `M_Flour_trit` flour of triticale(market for): Broader source anchor only
+- `M_Flour_whea` flour of wheat(market for): Broader source anchor only
+- `M_ForGrass_Asses` forages and grass for asses (market for): No verified fine correspondence
+- `M_ForGrass_Bufmilk` forages and grass for buffaloes (market for): No verified fine correspondence
+- `M_ForGrass_Camel` forages and grass for camels (market for): No verified fine correspondence
+- `M_ForGrass_Cattle` forages and grass for meat cattle (market for): No verified fine correspondence
+- `M_ForGrass_Cowmilk` forages and grass for milk cows (market for): No verified fine correspondence
+- `M_ForGrass_Goamilk` forages and grass for milk goat (market for): No verified fine correspondence
+- `M_ForGrass_Goat` forages and grass for meat goat (market for): No verified fine correspondence
+- `M_ForGrass_Horses` forages and grass for horses (market for): No verified fine correspondence
+- `M_ForGrass_Pigs` forages and grass for pigs (market for): No verified fine correspondence
+- `M_ForGrass_Rabbits` forages and grass for rabbits (market for): No verified fine correspondence
+- `M_ForGrass_Sheep` forages and grass for meat sheep (market for): No verified fine correspondence
+- `M_ForGrass_Shemilk` forages and grass for milk sheep (market for): No verified fine correspondence
+- `M_Frui_nes` other tropical fruit, dried (market for): No verified fine correspondence
+- `M_GAMB` service, gambling and betting (market for): No verified fine correspondence
+- `M_GAMB|M_SPORT` service, gambling and betting (market for);service, sporting/amusement/recreation service (market for): No verified fine correspondence
+- `M_GLAS_01_RES` glass and glass products - residual, (market for): No verified fine correspondence
+- `M_GLA_sort` treatment of glass waste, including sorting, crashing, etc. (market for): No verified fine correspondence
+- `M_Gluten_mais` maize gluten(market for): Broader source anchor only
+- `M_Gluten_rice` rice, gluten(market for): Broader source anchor only
+- `M_Gluten_wht` wheat gluten(market for): Broader source anchor only
+- `M_Goamilk` milk, goat, raw (market for): No verified fine correspondence
+- `M_Goat` goat (market for): No verified fine correspondence
+- `M_HEAL` health and social work service (market for): Broader source anchor only
+- `M_HEAL|M_RES_CARE|M_SOWO` health and social work service (market for);service, residential care (market for);service, social work services without accommodation (market for): No verified fine correspondence
+- `M_Horses` livestock, horse (market for): No verified fine correspondence
+- `M_INFO` service, information activity (market for): No verified fine correspondence
+- `M_Icee` dessert, ice cream and edible ice (market for): No verified fine correspondence
+- `M_JAR_GLS` small jar, glass, (market for): No verified fine correspondence
+- `M_Juic_nes` juice, other citrus fruit (market for): No verified fine correspondence
+- `M_Kapo_bre` fibre, kapok, raw (market for): No verified fine correspondence
+- `M_LEAD_sort` treatment of lead, zinc and tin waste, including sorting, crashing, etc. (market for): No verified fine correspondence
+- `M_LEGAL` service, legal and accounting activities (market for): No verified fine correspondence
+- `M_LEGAL|M_MANA` service, legal and accounting activities (market for);service, head office and management consulting (market for): No verified fine correspondence
+- `M_LETH` leather and leather products(market for): Broader source anchor only
+- `M_LIB_MUSEUM` service, libraries, archives, museums and other cultural activities (market for): No verified fine correspondence
+- `M_MACH` machinery and equipment n.e.c.(market for): Broader source anchor only
+- `M_MANA` service, head office and management consulting (market for): No verified fine correspondence
+- `M_MDIA` printed matter and recorded media(market for): Broader source anchor only
+- `M_MEIN` medical, precision and optical instruments, watches and clocks(market for): Broader source anchor only
+- `M_METC` foundry work services(market for): Broader source anchor only
+- `M_MIN_SUPP` mining support service activities (market for): No verified fine correspondence
+- `M_Malt_ext` malt extract(market for): Broader source anchor only
+- `M_Maltt` malt(market for): Broader source anchor only
+- `M_Mapl_ups` maple sugar and syrups (market for): No verified fine correspondence
+- `M_Meat_pig_boneless` meat of pig, boneless, fresh or chilled (market for): No verified fine correspondence
+- `M_Meat_pige` meat of pigeons and other birds not else specified, fresh, chilled or frozen (market for): No verified fine correspondence
+- `M_Mule_les` livestock, mule (market for): No verified fine correspondence
+- `M_Nfer_BIOF` nitrogen nutrient from biogasification of food (market for): No verified fine correspondence
+- `M_Nfer_BIOP` nitrogen nutrient from bio-gasification of paper (market for): No verified fine correspondence
+- `M_Nfer_BIOS` nitrogen nutrient from biogasification of sewage (market for): No verified fine correspondence
+- `M_Nfer_MANC` nitrogen nutrient from biogasification of manure (market for): No verified fine correspondence
+- `M_OFFICE_ADM` service, office administrative, office support and other business support activity (market for): No verified fine correspondence
+- `M_ORGA` membership organisation services n.e.c.(market for): Broader source anchor only
+- `M_ORGA|M_PERS_SER|M_REPAIR` membership organisation services n.e.c.(market for);service, other personal service activities (market for);service, repair of computers and personal and household goods (market for): No verified fine correspondence
+- `M_OT_PROF_SCI` service, other professional, scientific and technical activities (market for): No verified fine correspondence
+- `M_OT_PROF_SCI|M_VET` service, other professional, scientific and technical activities (market for);veterinary activity (market for): No verified fine correspondence
+- `M_Oatsd` oats, rolled(market for): Broader source anchor only
+- `M_Oil_tung` oil, tung nut (market for): No verified fine correspondence
+- `M_Oliv_ved` olive, preserved (market for): No verified fine correspondence
+- `M_Oth_non_alcoh` market of other non-alcoholic caloric beverages: No verified fine correspondence
+- `M_Othe_camel` livestock, other camelid (market for): No verified fine correspondence
+- `M_PACK_OPLA` other plastic packaging (market for): No verified fine correspondence
+- `M_PADF` public administration and defence services; compulsory social security services (market for): Broader source anchor only
+- `M_PAPE_01_RES` market of paper and paper products - residual: No verified fine correspondence
+- `M_PAP_sort` treatment of paper waste, including sorting, crashing, etc. (market for): No verified fine correspondence
+- `M_PERS_SER` service, other personal service activities (market for): No verified fine correspondence
+- `M_PHAR` pharmaceutical product, basic and preparations (market for): No verified fine correspondence
+- `M_PIC_VID_TV` motion picture, video and television programme production services, sound recording and music publishing (market for): No verified fine correspondence
+- `M_PLA_sort` treatment of plastic waste, including sorting, crashing, etc. (market for): No verified fine correspondence
+- `M_POST` service, postal and courier activities (market for): No verified fine correspondence
+- `M_POST|M_TAIR|M_TAUX|M_TLAND_ALL|M_TWATR_ALL` service, postal and courier activities (market for);transport, air (market for);supporting and auxiliary transport services; travel agency services(market for);service, land transport and transport via pipeline (market for);service, water transport (market for): No verified fine correspondence
+- `M_PUBL` service, publishing activity (market for): No verified fine correspondence
+- `M_PULP` pulp(market for): Broader source anchor only
+- `M_Palm_els` palm nut and kernel (market for): No verified fine correspondence
+- `M_Pfert_BIOF` phosphatic fertilizer from bio-gasification of food (market for): No verified fine correspondence
+- `M_Pfert_BIOP` phosphatic fertilizer from bio-gasification of paper (market for): No verified fine correspondence
+- `M_Pfert_BIOS` phosphatic fertilizers from bio-gasification of sewage (market for): No verified fine correspondence
+- `M_Pfert_MANC` phosphatic fertilizer from bio-gasification of manure (market for): No verified fine correspondence
+- `M_Pigs` pig (market for): No verified fine correspondence
+- `M_Pork_saus` production of meat, pig sausage, (market for): No verified fine correspondence
+- `M_Potan` frozen potato (market for): Broader source anchor only
+- `M_REAL_OTHER` service, real estate activity excluding imputed rents (market for): No verified fine correspondence
+- `M_REAL_OTHER|M_REAL_OWNER` service, real estate activity excluding imputed rents (market for);imputed rent of owner-occupied dwellings (market for): No verified fine correspondence
+- `M_REAL_OWNER` imputed rent of owner-occupied dwellings (market for): No verified fine correspondence
+- `M_REMS` service, remediation (market for): No verified fine correspondence
+- `M_RENT` service, rental and leasing activity (market for): No verified fine correspondence
+- `M_REPAIR` service, repair of computers and personal and household goods (market for): No verified fine correspondence
+- `M_REP_INST` service, repair and installation of machinery and equipment (market for): No verified fine correspondence
+- `M_RESERCH` service, scientific research and development (market for): No verified fine correspondence
+- `M_RESTAU` service, food and beverage serving (market for): No verified fine correspondence
+- `M_RES_CARE` service, residential care (market for): No verified fine correspondence
+- `M_RES_CARE|M_SOWO` service, residential care (market for);service, social work services without accommodation (market for): No verified fine correspondence
+- `M_RUBP_01_RES` rubber and plastic products - residual, (market for): No verified fine correspondence
+- `M_Rabbits` rabbit, (market for): No verified fine correspondence
+- `M_Rice_husk` rice, husked(market for): Broader source anchor only
+- `M_Rice_milhusk` rice, milled (husked)(market for): Broader source anchor only
+- `M_Rice_mill` rice, milled(market for): Broader source anchor only
+- `M_Root_nes` other roots and tubers, dried (market for): No verified fine correspondence
+- `M_Rubber` natural rubber(market for): Broader source anchor only
+- `M_SECUR` service, security and investigation activity (market for): No verified fine correspondence
+- `M_SE_INCI` incineration with energy recovery of sewage(market for): No verified fine correspondence
+- `M_SE_INCI_no_recov` incineration of sewage (market for): No verified fine correspondence
+- `M_SE_LAND` landfill of sewage(market for): No verified fine correspondence
+- `M_SE_OTHE` other disposal of sewage(market for): No verified fine correspondence
+- `M_SE_RECY` recycling of sewage(market for): No verified fine correspondence
+- `M_SHEET_PA` paper sheet, (market for): No verified fine correspondence
+- `M_SHEET_PAPL` production of paper sheet (market for): No verified fine correspondence
+- `M_SHEET_PAPLAL` paper sheet, with plastic and aluminum foil (market for): No verified fine correspondence
+- `M_SOWO` service, social work services without accommodation (market for): No verified fine correspondence
+- `M_SPORT` service, sporting/amusement/recreation service (market for): No verified fine correspondence
+- `M_STE_sort` treatment of steel waste, including sorting, crashing, etc. (market for): No verified fine correspondence
+- `M_Sheep` sheep (market for): No verified fine correspondence
+- `M_Skim_sed` skim milk, condensed (market for): No verified fine correspondence
+- `M_Skim_ted` skim milk, evaporated (market for): No verified fine correspondence
+- `M_Starch_cass` starch of cassava(market for): Broader source anchor only
+- `M_Starch_maiz` starch of maize(market for): Broader source anchor only
+- `M_Starch_pota` starch of potatoes(market for): Broader source anchor only
+- `M_Starch_rice` starch of rice(market for): Broader source anchor only
+- `M_Starch_whea` starch of wheat(market for): Broader source anchor only
+- `M_Sween` sweet corn, frozen(market for): Broader source anchor only
+- `M_TAIR` transport, air (market for): Broader source anchor only
+- `M_TAUX` supporting and auxiliary transport services; travel agency services(market for): Broader source anchor only
+- `M_TELEC` telecommunications (market for): No verified fine correspondence
+- `M_TETRA_PP` beverage packaging of paper sheet, with plastic foil (market for): No verified fine correspondence
+- `M_TETRA_PPA` beverage packaging of paper sheet, with plastic and aluminum foil (market for): No verified fine correspondence
+- `M_TEXT` textiles(market for): Broader source anchor only
+- `M_TEXT_sort` treatment of textile waste, including sorting, crashing, etc. (market for): No verified fine correspondence
+- `M_TLAND_ALL` service, land transport and transport via pipeline (market for): No verified fine correspondence
+- `M_TOBC` tobacco products(market for): No verified fine correspondence
+- `M_TRAV` service, travel agency, tour operator and other reservation (market for): No verified fine correspondence
+- `M_TWATR_ALL` service, water transport (market for): No verified fine correspondence
+- `M_Tapia` tapioca of cassava(market for): Broader source anchor only
+- `M_Tapis` tapioca of potatoes(market for): Broader source anchor only
+- `M_Turkeys` turkey (market for): No verified fine correspondence
+- `M_VET` veterinary activity (market for): No verified fine correspondence
+- `M_Vegew` vegetable fat, hydrogenated (market for): No verified fine correspondence
+- `M_Verm_tcx` vermouth, etc. (market for): No verified fine correspondence
+- `M_WATR` service of water distribution, collected and purified water (market for): No verified fine correspondence
+- `M_WOOD_sort` treatment of wood waste, including sorting, crashing, etc. (market for): No verified fine correspondence
+- `M_Whol_sed` production of whole milk, condensed, (market for): No verified fine correspondence
+- `M_Whol_ted` production of whole milk, evaporated, (market for): No verified fine correspondence
+- `M_Wool_asy` production of wool, greasy, (market for): No verified fine correspondence
+- `M_Wres_ww` treatment of residential waste water, waste (market for): No verified fine correspondence
+- `M_Yautia` production of yautia, (market for): No verified fine correspondence
+- `M_Yoght_add` production of yoghurt, with additives (market for): No verified fine correspondence
+- `M_auto` production of car (market for): Broader source anchor only
+- `M_bus` production of bus (market for): Broader source anchor only
+- `M_electricity` production of electricity (market for): Broader source anchor only
+- `M_feed_beer` animal feed by-product from brewing (market for): No verified fine correspondence
+- `M_feed_wine` animal feed by-product from wine production (market for): No verified fine correspondence
+- `M_fuel_Passenger` fuel mix and combustion for passenger road transport (market for): No verified fine correspondence
+- `M_fuel_TRAI` fuel mix and combustion for rail transport(market for): No verified fine correspondence
+- `M_fuel_TWAS` fuel for domestic navigation, (market for): No verified fine correspondence
+- `M_heat_CONS` fuel mix and combustion for construction(market for): No verified fine correspondence
+- `M_heat_HOUS` heat for households, (market for): No verified fine correspondence
+- `M_heat_STEL` heat for iron and steel, (market for): No verified fine correspondence
+- `M_heat_WOOD` heat for wood and wood products, (market for): No verified fine correspondence
+- `M_heat_agriculture` heat for agriculture/forestry, (market for): No verified fine correspondence
+- `M_heat_chemicals` heat for chemical and petrochemical, (market for): No verified fine correspondence
+- `M_heat_commercial` heat for commercial and public services, (market for): No verified fine correspondence
+- `M_heat_food` heat for food and tobacco, (market for): No verified fine correspondence
+- `M_heat_machinery` heat for machinery, (market for): No verified fine correspondence
+- `M_heat_mine` heat for mining and quarrying, (market for): No verified fine correspondence
+- `M_heat_motor` fuel mix and combustion for transport equipment(market for): No verified fine correspondence
+- `M_heat_non_ferrous` heat for non-ferrous metals, (market for): No verified fine correspondence
+- `M_heat_non_metallic` heat for non-metallic minerals, (market for): No verified fine correspondence
+- `M_heat_other` heat for industry not elsewhere specified, (market for): No verified fine correspondence
+- `M_heat_paper` heat for paper, pulp and printing, (market for): No verified fine correspondence
+- `M_heat_textile` heat for textile and leather, (market for): No verified fine correspondence
+- `M_iwAlum` treatment of aluminium, industrial waste (market for): No verified fine correspondence
+- `M_iwCons` treatment of construction waste,  industrial waste (market for): No verified fine correspondence
+- `M_iwCopp` treatment of copper, industrial waste (market for): No verified fine correspondence
+- `M_iwDisc_eq` treatment of discarded equipment, industrial waste (market for): No verified fine correspondence
+- `M_iwDisc_eq_special` treatment of discarded equipment, special industrial waste (market for): No verified fine correspondence
+- `M_iwDisc_veh` treatment of discarded vehicles, industrial waste (market for): No verified fine correspondence
+- `M_iwFood` treatment of food, industrial waste (market for): No verified fine correspondence
+- `M_iwFood_special` treatment of food, special industrial waste (market for): No verified fine correspondence
+- `M_iwGlas` treatment of glass, industrial waste (market for): No verified fine correspondence
+- `M_iwGlas_special` treatment of glass, special industrial waste (market for): No verified fine correspondence
+- `M_iwHazar` treatment of hazardous, industrial waste (market for): No verified fine correspondence
+- `M_iwHazar_special` treatment of hazardous, special industrial waste (market for): No verified fine correspondence
+- `M_iwLead` treatment of lead, industrial waste (market for): No verified fine correspondence
+- `M_iwLead_special` treatment of lead, special industrial waste (market for): No verified fine correspondence
+- `M_iwMix_nonferr` treatment of mix metals non-ferrous, industrial waste (market for): No verified fine correspondence
+- `M_iwMix_nonferr_special` treatment of mix metals non-ferrous, special industrial waste (market for): No verified fine correspondence
+- `M_iwPape` treatment of paper, industrial waste (market for): No verified fine correspondence
+- `M_iwPape_special` treatment of paper, special industrial waste (market for): No verified fine correspondence
+- `M_iwPlas` treatment of plastic, industrial waste (market for): No verified fine correspondence
+- `M_iwPlas_special` treatment of plastic, special industrial waste (market for): No verified fine correspondence
+- `M_iwPrec` treatment of precious metals, industrial waste (market for): No verified fine correspondence
+- `M_iwSteel` treatment of steel, industrial waste (market for): No verified fine correspondence
+- `M_iwText` treatment of textiles, industrial waste (market for): No verified fine correspondence
+- `M_iwText_special` treatment of textile, special industrial waste (market for): No verified fine correspondence
+- `M_iwUnsort` treatment of unsorted waste, industrial waste (market for): No verified fine correspondence
+- `M_iwUnsort_special` treatment of unsorted waste, special industrial waste (market for): No verified fine correspondence
+- `M_iwWood` treatment of wood, industrial waste (market for): No verified fine correspondence
+- `M_iwWood_special` treatment of wood, special industrial waste (market for): No verified fine correspondence
+- `M_iwrSteel` treatment of steel, industrial scraps reused internally (market for): No verified fine correspondence
+- `M_land_arable` M_land_arable: No verified fine correspondence
+- `M_land_forest` M_land_forest: No verified fine correspondence
+- `M_land_grass` M_land_grass: No verified fine correspondence
+- `M_meat_camel` meat, camel, fresh (market for): No verified fine correspondence
+- `M_sugar` sugar confectionery (market for): No verified fine correspondence
+- `M_truck` truck (market for): Broader source anchor only
+- `M_wAlum` treatment of aluminum, (market for): Broader source anchor only
+- `M_wAsh` treatment of ash(market for): Broader source anchor only
+- `M_wBatt` treatment of batteries and accumulators(market for): Broader source anchor only
+- `M_wCons` treatment of construction(market for): Broader source anchor only
+- `M_wCopp` treatment of copper(market for): Broader source anchor only
+- `M_wDisc_eq` treatment of discarded equipment (market for): Broader source anchor only
+- `M_wDisc_veh` treatment of discarded vehicle (market for): Broader source anchor only
+- `M_wFood` treatment of food, municipal waste (market for): Broader source anchor only
+- `M_wGlas` treatment of glass, municipal waste (market for): Broader source anchor only
+- `M_wHazar` treatment of hazardous (market for): Broader source anchor only
+- `M_wLead` treatment of lead(market for): Broader source anchor only
+- `M_wMix_met` treatment of mix metals(market for): Broader source anchor only
+- `M_wMix_nonferr` treatment of mix metals non-ferrous(market for): Broader source anchor only
+- `M_wPape` treatment of paper, municipal waste (market for): Broader source anchor only
+- `M_wPlas` treatment of plastic, municipal waste (market for): Broader source anchor only
+- `M_wPrec` treatment of precious metals(market for): Broader source anchor only
+- `M_wSewage` treatment of sewage(market for): Broader source anchor only
+- `M_wSteel` treatment of steel(market for): Broader source anchor only
+- `M_wText` treatment of textiles, municipal waste (market for): Broader source anchor only
+- `M_wUnsort` treatment of unsorted waste(market for): Broader source anchor only
+- `M_wWood` treatment of wood, municipal waste (market for): Broader source anchor only
+- `M_wpAlumi` treatment of aluminum packaging (market for): No verified fine correspondence
+- `M_wpGlass` treatment of glass packaging, (market for): No verified fine correspondence
+- `M_wpPaper` treatment of paper packaging, (market for): No verified fine correspondence
+- `M_wpPlast` treatment of plastic packaging, (market for): No verified fine correspondence
+- `M_wpSteel` treatment of steel packaging (market for): No verified fine correspondence
+
 ### activity / GTAP
 
 - `dwe` Dwellings: No verified fine correspondence
@@ -171,6 +852,1003 @@ All primary and alternative routes were checked for typed dimensions, valid leaf
 - `p90.5.d` Inert/metal/hazardous waste for treatment: landfill: No verified fine correspondence
 - `p90.5.e` Textiles waste for treatment: landfill: No verified fine correspondence
 - `p90.5.f` Wood waste for treatment: landfill: No verified fine correspondence
+
+### commodity / BONSAI
+
+- `C_ALUM_01_RES` aluminum, refined, other: No verified fine correspondence
+- `C_ALUW` recycling of aluminum: No verified fine correspondence
+- `C_ALU_sort` treatment of aluminum waste, sorting, crashing, etc.: No verified fine correspondence
+- `C_AL_INCI` incineration of aluminum with energy recovery: No verified fine correspondence
+- `C_AL_LAND` landfill of aluminum: No verified fine correspondence
+- `C_ANTH` hard coal (anthracite): No verified fine correspondence
+- `C_ASHW` treatment of ash, recycling for clinker substitute: No verified fine correspondence
+- `C_AS_LAND` landfill of ash: No verified fine correspondence
+- `C_Agavs` fibre, agave, raw/decorticated/dried: No verified fine correspondence
+- `C_Apriy` apricot, dried: No verified fine correspondence
+- `C_Arecs` areca nut: No verified fine correspondence
+- `C_BA_INCI` incineration of battery and accumulator waste with energy recovery: No verified fine correspondence
+- `C_BA_INCI_no_recov` incineration of battery and accumulator waste without energy recovery: No verified fine correspondence
+- `C_BA_LAND` landfill of batteries and accumulators wastes: No verified fine correspondence
+- `C_BA_RECY` recycling of battery and accumulator waste: No verified fine correspondence
+- `C_BIOF` food waste for treatment: biogasification and land application: No verified fine correspondence
+- `C_BIOP` treatment of paper waste for bio-gasification and land application: No verified fine correspondence
+- `C_BIOS` treatment of sewage sludge for bio-gasification and land application: No verified fine correspondence
+- `C_Barld` barley, pearled (without husk and bran): No verified fine correspondence
+- `C_Barlt` barley, with bran: No verified fine correspondence
+- `C_Bastr` kenaf, raw or retted: No verified fine correspondence
+- `C_Beann` bean, fresh, for shelling: No verified fine correspondence
+- `C_Beef_boneless` meat, cattle, boneless, fresh: No verified fine correspondence
+- `C_Beer_barl` beer, barley: No verified fine correspondence
+- `C_Beer_maiz` beer, millet: No verified fine correspondence
+- `C_Beer_millet` beer, maize: No verified fine correspondence
+- `C_Beer_sorg` beer, sorghum: No verified fine correspondence
+- `C_Berrs` vaccinium berry, other: No verified fine correspondence
+- `C_Bev_ferm` beverage, fermented rice: No verified fine correspondence
+- `C_Blues` blueberry, fresh: No verified fine correspondence
+- `C_Brazd` brazil nut, shelled: No verified fine correspondence
+- `C_Buffaloes` buffaloes: No verified fine correspondence
+- `C_Bufmilk` milk, buffalo, raw: No verified fine correspondence
+- `C_Butt_buff` butter, buffalo milk: No verified fine correspondence
+- `C_Butt_cow` butter, cow milk: No verified fine correspondence
+- `C_Butt_sheep` butter and ghee, sheep milk: No verified fine correspondence
+- `C_Butts` butter, shea: No verified fine correspondence
+- `C_CAN_ALD` beverage can, aluminum: No verified fine correspondence
+- `C_CAN_STEL` food can, steel: No verified fine correspondence
+- `C_COKC` metallurgical (coking) coal: No verified fine correspondence
+- `C_COKE_bypr_recov` coke oven coke, with byproduct recovery: No verified fine correspondence
+- `C_COKE_no_recov` coke oven coke, without byproduct recovery: No verified fine correspondence
+- `C_CONW` treatment of construction waste, sorting and crushing: No verified fine correspondence
+- `C_COPP_sort` treatment of copper waste, including sorting, crashing, etc.: No verified fine correspondence
+- `C_COPW` recycling of copper: No verified fine correspondence
+- `C_CO_INCI` incineration with energy recovery of construction waste: No verified fine correspondence
+- `C_CO_INCI_no_recov` incineration of construction waste without energy recovery: No verified fine correspondence
+- `C_CO_LAND` landfill of construction waste: No verified fine correspondence
+- `C_CO_OTHE` treatment of construction waste, other: No verified fine correspondence
+- `C_CU_INCI` incineration with energy recovery of copper: No verified fine correspondence
+- `C_CU_LAND` landfill of copper: No verified fine correspondence
+- `C_Camel` camel: No verified fine correspondence
+- `C_Cammilk` milk, camel, raw: No verified fine correspondence
+- `C_Cashe` cashew apple, fresh: No verified fine correspondence
+- `C_Cassd` cassava, dry: No verified fine correspondence
+- `C_Catmilk` milk, cow, raw: No verified fine correspondence
+- `C_Cattle` cattle: No verified fine correspondence
+- `C_Cer_brkf` breakfast cereal, prepared by swelling and roasting: No verified fine correspondence
+- `C_Cer_prep` cereal product, not from barley and oat, prepared by mechanical treatment: No verified fine correspondence
+- `C_Ceres` edible grain, other: No verified fine correspondence
+- `C_Chee_cow_sk` cheese, skimmed cow milk: No verified fine correspondence
+- `C_Chee_cow_wh` cheese, whole cow milk: No verified fine correspondence
+- `C_Cherr` cherry, sour: No verified fine correspondence
+- `C_Chers` cherry, sweet: No verified fine correspondence
+- `C_Chickens` chicken: No verified fine correspondence
+- `C_Chocs` chocolate product, other: No verified fine correspondence
+- `C_Citr_nes` juice, other citrus, concentrated: No verified fine correspondence
+- `C_Cksoyb` press cake, soybean: No verified fine correspondence
+- `C_Cocod` coconut meat, dried, for confectionery: No verified fine correspondence
+- `C_Cotton` cotton lint, ginned: No verified fine correspondence
+- `C_Crans` cranberry, fresh: No verified fine correspondence
+- `C_Currs` currants, fresh: No verified fine correspondence
+- `C_DE_INCI` incineration of discarded equipment with energy recovery: No verified fine correspondence
+- `C_DE_INCI_no_recov` incineration of discarded equipment without energy recovery: No verified fine correspondence
+- `C_DE_LAND` landfill of discarded equipment: No verified fine correspondence
+- `C_DE_OTHE` disposal of other discarded equipment: No verified fine correspondence
+- `C_DE_RECY` recycling of discarded equipment: No verified fine correspondence
+- `C_DV_INCI` incineration of discarded vehicle with energy recovery: No verified fine correspondence
+- `C_DV_LAND` landfill of discarded vehicles: No verified fine correspondence
+- `C_DV_RECY` recycling of discarded vehicles: No verified fine correspondence
+- `C_FABM_01_RES` good, other fabricated metal: No verified fine correspondence
+- `C_FO_OTHE` disposal of food, other: No verified fine correspondence
+- `C_FO_RECY` recycling of food: No verified fine correspondence
+- `C_Fat_live` preparation, fatty liver: No verified fine correspondence
+- `C_Figsd` fig, dried: No verified fine correspondence
+- `C_Flax_raw` flax, raw or retted: No verified fine correspondence
+- `C_Flou_nes` flour, other cereal: No verified fine correspondence
+- `C_Flour_barl` flour and grits, barley: No verified fine correspondence
+- `C_Flour_bran_nes` bran and flour, other cereals: No verified fine correspondence
+- `C_Flour_buck` flour, buckwheat: No verified fine correspondence
+- `C_Flour_cass` flour, cassava: No verified fine correspondence
+- `C_Flour_foni` flour, fonio: No verified fine correspondence
+- `C_Flour_frui` flour, fruit: No verified fine correspondence
+- `C_Flour_maiz` flour, maize: No verified fine correspondence
+- `C_Flour_mill` flour, millet: No verified fine correspondence
+- `C_Flour_mixe` flour, mixed grain: No verified fine correspondence
+- `C_Flour_must` flour, mustard: No verified fine correspondence
+- `C_Flour_puls` flour, pulses: No verified fine correspondence
+- `C_Flour_root` flour, other root and tuber: No verified fine correspondence
+- `C_Flour_rye` flour, rye: No verified fine correspondence
+- `C_Flour_sorg` flour, sorghum: No verified fine correspondence
+- `C_Flour_trit` flour, triticale: No verified fine correspondence
+- `C_ForGrass_Asses` forages and grass for asses: No verified fine correspondence
+- `C_ForGrass_Bufmilk` forages and grass for buffaloes: No verified fine correspondence
+- `C_ForGrass_Camel` forages and grass for camels: No verified fine correspondence
+- `C_ForGrass_Cattle` forages and grass for cattle: No verified fine correspondence
+- `C_ForGrass_Cowmilk` forages and grass for milk cows: No verified fine correspondence
+- `C_ForGrass_Goamilk` forages and grass for milk goat: No verified fine correspondence
+- `C_ForGrass_Goat` forages and grass for goat: No verified fine correspondence
+- `C_ForGrass_Horses` forages and grass for horses: No verified fine correspondence
+- `C_ForGrass_Pigs` forages and grass for pigs: No verified fine correspondence
+- `C_ForGrass_Rabbits` forages and grass for rabbits: No verified fine correspondence
+- `C_ForGrass_Sheep` forages and grass for meat sheep: No verified fine correspondence
+- `C_ForGrass_Shemilk` forages and grass for milk sheep: No verified fine correspondence
+- `C_Frudry` fruit, other, dried: No verified fine correspondence
+- `C_Fruhom` preparation, fruit, cooked, homogenized: No verified fine correspondence
+- `C_Frui_nes` other tropical fruit, dried: No verified fine correspondence
+- `C_GASE` natural gas: No verified fine correspondence
+- `C_GLAS_reuse` treatment of glass bottle for reuse: No verified fine correspondence
+- `C_GLAW` recycling of glass: No verified fine correspondence
+- `C_GLA_sort` treatment of glass waste, including sorting, crashing, etc.: No verified fine correspondence
+- `C_GL_INCI` incineration of glass with energy recovery: No verified fine correspondence
+- `C_GL_INCI_no_recov` incineration of glass without energy recovery: No verified fine correspondence
+- `C_GL_LAND` landfill of glass: No verified fine correspondence
+- `C_Germe` germ, maize: No verified fine correspondence
+- `C_Germt` germ, wheat: No verified fine correspondence
+- `C_Ghee_buff` ghee, buffalo milk: No verified fine correspondence
+- `C_Goamilk` milk, goat, raw: No verified fine correspondence
+- `C_Goat` goat: No verified fine correspondence
+- `C_Gooss` gooseberry, fresh: No verified fine correspondence
+- `C_Graid` grain, mixed: No verified fine correspondence
+- `C_HA_INCI` incineration of hazardous waste with energy recovery: No verified fine correspondence
+- `C_HA_INCI_no_recov` incineration of hazardous waste: No verified fine correspondence
+- `C_HA_LAND` landfill of hazardous: No verified fine correspondence
+- `C_HA_OTHE` disposal of hazardous, other: No verified fine correspondence
+- `C_HA_RECY` recycling of hazardous: No verified fine correspondence
+- `C_HWAT` heat (steam and hot water) from heat production, national supply only: No verified fine correspondence
+- `C_Hempd` hemp products, fibre and seed: No verified fine correspondence
+- `C_INCF` incineration of food with energy recovery: No verified fine correspondence
+- `C_INCF_no_recov` incineration of food, without energy recovery: No verified fine correspondence
+- `C_INCL` incineration of plastic/rubber with energy recovery: No verified fine correspondence
+- `C_INCL_no_recov` incineration of plastic/rubber, without energy recovery: No verified fine correspondence
+- `C_INCP` incineration of paper with energy recovery: No verified fine correspondence
+- `C_INCP_no_recov` incineration of paper: No verified fine correspondence
+- `C_INCW` incineration of wood with energy recovery: No verified fine correspondence
+- `C_INCW_no_recovery` incineration of wood waste: No verified fine correspondence
+- `C_Icee` ice cream and edible ice: No verified fine correspondence
+- `C_Jojod` jojoba seed: No verified fine correspondence
+- `C_Juic_nes` juice, other citrus fruit: No verified fine correspondence
+- `C_Juice_appl` juice, apple: No verified fine correspondence
+- `C_Juice_appl_con` juice, apple, concentrated: No verified fine correspondence
+- `C_Juice_frui` juice, other fruit: No verified fine correspondence
+- `C_Juice_grapef` juice, grapefruit, concentrated: No verified fine correspondence
+- `C_Juice_lemo` juice, lemon: No verified fine correspondence
+- `C_Juice_lemo_con` juice, lemon, concentrated: No verified fine correspondence
+- `C_Juice_mang` juice, mango: No verified fine correspondence
+- `C_Juice_oran` juice, orange: No verified fine correspondence
+- `C_Juice_oran_con` juice, orange, concentrated: No verified fine correspondence
+- `C_Juice_pine_con` juice, pineapple, concentrated: No verified fine correspondence
+- `C_Juice_tang` juice, mandarin: No verified fine correspondence
+- `C_Jute` jute, raw or retted: No verified fine correspondence
+- `C_Kapod` kapokseed, shelled: No verified fine correspondence
+- `C_Kapot` kapok pod: No verified fine correspondence
+- `C_Kari` karite nut (sheanut): No verified fine correspondence
+- `C_Kola` kola nut: No verified fine correspondence
+- `C_LANF` landfill of food: No verified fine correspondence
+- `C_LANL` landfill of plastic and rubber: No verified fine correspondence
+- `C_LANP` landfill of paper: No verified fine correspondence
+- `C_LANW` landfill of wood: No verified fine correspondence
+- `C_LEAD_sort` treatment of lead, zinc and tin waste, including sorting, crashing, etc.: No verified fine correspondence
+- `C_LIBC` lignite: No verified fine correspondence
+- `C_LZTO` ore and concentrate, lead, zinc and tin: No verified fine correspondence
+- `C_LZTW` recycling of lead, zinc and tin: No verified fine correspondence
+- `C_LZT_INCI` incineration of lead/zinc/tin with energy recovery: No verified fine correspondence
+- `C_LZT_LAND` landfill of lead, zinc and tin: No verified fine correspondence
+- `C_Lardl` lard oil and lard stearin: No verified fine correspondence
+- `C_Lupis` lupin, dry: No verified fine correspondence
+- `C_MANC` manure (conventional treatment): No verified fine correspondence
+- `C_MGWG` gas works gas: No verified fine correspondence
+- `C_MM_INCI` incineration with energy recovery of mix metal: No verified fine correspondence
+- `C_MM_INCI_no_recov` incineration of mix metal: No verified fine correspondence
+- `C_MM_LAND` landfill of mix metal: No verified fine correspondence
+- `C_MM_OTHE` disposal of mix metal, other: No verified fine correspondence
+- `C_MM_RECY` recycling of mix metal: No verified fine correspondence
+- `C_MNF_INCI` incineration of mix of non-ferrous metal with energy recovery: No verified fine correspondence
+- `C_MNF_INCI_no_recov` incineration of mix of non-ferrous metals: No verified fine correspondence
+- `C_MNF_LAND` landfill of mix of non-ferrous metals: No verified fine correspondence
+- `C_MNF_OTHE` disposal of other mixed non-ferrous metal: No verified fine correspondence
+- `C_MNF_RECY` recycling of mix of non-ferrous metals: No verified fine correspondence
+- `C_Maizn` sweet corn, fresh: No verified fine correspondence
+- `C_Mangp` mango pulp: No verified fine correspondence
+- `C_Manila` fibre, abacá, raw/dried: No verified fine correspondence
+- `C_Meat_ass` meat, donkey, fresh: No verified fine correspondence
+- `C_Meat_camel` meat, camel, fresh: No verified fine correspondence
+- `C_Meat_game` meat, from hunting of mammal, fresh: No verified fine correspondence
+- `C_Meat_hors` meat, horse, fresh: No verified fine correspondence
+- `C_Meat_mule` meat, mule, fresh: No verified fine correspondence
+- `C_Meat_nes` preparation, other meat: No verified fine correspondence
+- `C_Meat_othe` meat, other mammal, fresh: No verified fine correspondence
+- `C_Meat_pig_boneless` meat, pig boneless, fresh or chilled: No verified fine correspondence
+- `C_Meat_pige` meat, pigeon and other bird, fresh/chilled/frozen: No verified fine correspondence
+- `C_Melonse` melon seed: No verified fine correspondence
+- `C_Milk_skim_buff` milk, skimmed buffalo: No verified fine correspondence
+- `C_Milk_skim_cow` milk, skimmed cow: No verified fine correspondence
+- `C_Milk_skim_she` milk, skimmed sheep: No verified fine correspondence
+- `C_Mush_can` mushroom, canned: No verified fine correspondence
+- `C_Mush_dry` mushroom, dried: No verified fine correspondence
+- `C_Nutss` nut, cultivated, other: No verified fine correspondence
+- `C_OGPL` hydrocarbon, other: No verified fine correspondence
+- `C_ONFO` ore and concentrate, other non-ferrous metal: No verified fine correspondence
+- `C_ONFW` recycling of other non-ferrous metal: No verified fine correspondence
+- `C_ONF_INCI` incineration of other non-ferrous metal with energy recovery: No verified fine correspondence
+- `C_ONF_LAND` landfill of other non-ferrous metals: No verified fine correspondence
+- `C_OTBC` other bituminous coal: No verified fine correspondence
+- `C_Oil_hemp` oil, hempseed: No verified fine correspondence
+- `C_Oil_kapo` oil, kapokseed: No verified fine correspondence
+- `C_Oil_lins` oil, linseed (flax): No verified fine correspondence
+- `C_Oil_maiz` oil, maize: No verified fine correspondence
+- `C_Oil_must` mustard cooking oil: No verified fine correspondence
+- `C_Oil_popp` oil, poppy seed: No verified fine correspondence
+- `C_Oil_rape` oil, rapeseed: No verified fine correspondence
+- `C_Oil_rice` oil, rice bran: No verified fine correspondence
+- `C_Oil_saff` oil, safflower seed: No verified fine correspondence
+- `C_Oil_sesa` oil, sesame seed: No verified fine correspondence
+- `C_Oil_sunf` sunflower oil: No verified fine correspondence
+- `C_Oil_tung` oil, tung nut: No verified fine correspondence
+- `C_Oils_nes` oil and fat, other terrestrial animal, purified: No verified fine correspondence
+- `C_Oilss` oilseed, other: No verified fine correspondence
+- `C_Okraa` okra: No verified fine correspondence
+- `C_Oliv_ved` olives preserved: No verified fine correspondence
+- `C_Onion` onion and shallot, fresh, green: No verified fine correspondence
+- `C_Onioy` onion and shallot, fresh, dry: No verified fine correspondence
+- `C_Othe_camel` livestock, other camelid: No verified fine correspondence
+- `C_PACK_OPLA` other plastic packaging: No verified fine correspondence
+- `C_PAPR` recycling of paper: No verified fine correspondence
+- `C_PAP_sort` treatment of paper waste, including sorting, crashing, etc.: No verified fine correspondence
+- `C_PA_OTHE` disposal of paper, other: No verified fine correspondence
+- `C_PLAW` recycling of plastic and rubber: No verified fine correspondence
+- `C_PLA_sort` treatment of plastic waste, including sorting, crashing, etc.: No verified fine correspondence
+- `C_PL_OTHE` disposal of plastic and rubber, other: No verified fine correspondence
+- `C_PM_INCI` incineration of precious metal with energy recovery: No verified fine correspondence
+- `C_PM_LAND` landfill of precious metal: No verified fine correspondence
+- `C_PORK` meat, pig: No verified fine correspondence
+- `C_POST` service, postal and courier activities: No verified fine correspondence
+- `C_PREW` recycling of precious metal: No verified fine correspondence
+- `C_Peanr` butter, peanut: No verified fine correspondence
+- `C_Pears` pears, fresh: No verified fine correspondence
+- `C_Peppt` peppermint and spearmint: No verified fine correspondence
+- `C_Perss` persimmon, fresh: No verified fine correspondence
+- `C_Pigs` pig: No verified fine correspondence
+- `C_Pork_saus` sausage, pig meat: No verified fine correspondence
+- `C_Pulss` leguminous crop, dry, other: No verified fine correspondence
+- `C_Pyred` pyrethrum, dried flower: No verified fine correspondence
+- `C_Quins` quince, fresh: No verified fine correspondence
+- `C_REAL_OTHER` service, real estate activity excluding imputed rents: No verified fine correspondence
+- `C_REAL_OTHER|C_REAL_OWNER` service, real estate activity excluding imputed rents|imputed rent of owner-occupied dwellings: No verified fine correspondence
+- `C_REAL_OWNER` imputed rent of owner-occupied dwellings: No verified fine correspondence
+- `C_REFN` petroleum refinery products: No verified fine correspondence
+- `C_Ramie` fibre, ramie, raw, decorticated, dried and degummed, but not spun: No verified fine correspondence
+- `C_Rice_bran_flour` bran and flour, rice: No verified fine correspondence
+- `C_Rice_mill` rice, milled: No verified fine correspondence
+- `C_Root_nes` other roots and tubers, dried: No verified fine correspondence
+- `C_SE_INCI` incineration of sewage with energy recovery: No verified fine correspondence
+- `C_SE_INCI_no_recov` incineration of sewage: No verified fine correspondence
+- `C_SE_LAND` landfill of sewage: No verified fine correspondence
+- `C_SE_OTHE` disposal of sewage, other: No verified fine correspondence
+- `C_SE_RECY` recycling of sewage: No verified fine correspondence
+- `C_SHEET_PA` paper sheet: No verified fine correspondence
+- `C_SHEET_PAPL` paper sheet, with plastic foil: No verified fine correspondence
+- `C_SHEET_PAPLAL` paper sheet, with plastic and aluminum foil: No verified fine correspondence
+- `C_STEW` treatment of steel scrap, recycling in electric arc furnace: No verified fine correspondence
+- `C_STE_sort` treatment of steel waste, service of sorting, crashing, etc.: No verified fine correspondence
+- `C_ST_INCI` incineration of steel, with energy recovery: No verified fine correspondence
+- `C_ST_INCI_no_recov` incineration of steel without energy recovery: No verified fine correspondence
+- `C_ST_LAND` landfill of steel: No verified fine correspondence
+- `C_ST_OTHE` disposal of steel, other: No verified fine correspondence
+- `C_SUBC` sub-bituminous coal: No verified fine correspondence
+- `C_Sheep` sheep: No verified fine correspondence
+- `C_Shemilk` milk, sheep, raw: No verified fine correspondence
+- `C_Sisal` fibre, sisal, raw/decorticated/dried: No verified fine correspondence
+- `C_Soyace` soya sauce: No verified fine correspondence
+- `C_Soyard` soya curd: No verified fine correspondence
+- `C_Soyate` soya paste: No verified fine correspondence
+- `C_Starch_cass` starch, cassava: No verified fine correspondence
+- `C_Starch_maiz` starch, maize: No verified fine correspondence
+- `C_Starch_pota` starch, potatoes: No verified fine correspondence
+- `C_Starch_rice` starch, rice: No verified fine correspondence
+- `C_Starch_whea` starch, wheat: No verified fine correspondence
+- `C_Stris` bean, green, fresh, not for shelling: No verified fine correspondence
+- `C_Sugacrs` sugar crop, other: No verified fine correspondence
+- `C_Sugarn` sugar, other: No verified fine correspondence
+- `C_Sweed` sweet corn, preserved: No verified fine correspondence
+- `C_Sween` sweet corn, frozen: No verified fine correspondence
+- `C_TETRA_PP` beverage packaging of paper sheet, with plastic foil: No verified fine correspondence
+- `C_TETRA_PPA` beverage packaging of paper sheet, with plastic and aluminum foil: No verified fine correspondence
+- `C_TEXT_sort` treatment of textile waste, including sorting, crashing, etc.: No verified fine correspondence
+- `C_TE_INCI` incineration of textile with energy recovery: No verified fine correspondence
+- `C_TE_INCI_no_recov` incineration of textile: No verified fine correspondence
+- `C_TE_LAND` landfill of textile: No verified fine correspondence
+- `C_TE_RECY` recycling of textile: No verified fine correspondence
+- `C_Talld` tallowtree seed: No verified fine correspondence
+- `C_Tapia` tapioca, cassava: No verified fine correspondence
+- `C_Tapis` tapioca, potatoes: No verified fine correspondence
+- `C_Tomad` tomato, preserved: No verified fine correspondence
+- `C_Tomae` tomato paste, preserved: No verified fine correspondence
+- `C_Transfer` total reclassified enerrgy products: No verified fine correspondence
+- `C_Tung_nuts` tung nut: No verified fine correspondence
+- `C_UN_INCI` incineration with energy recovery of unsorted waste: No verified fine correspondence
+- `C_UN_INCI_no_recov` incineration of unsorted waste: No verified fine correspondence
+- `C_UN_LAND` landfill of unsorted waste: No verified fine correspondence
+- `C_UN_OTHE` disposal of unsorted waste, other: No verified fine correspondence
+- `C_UN_RECY` recycling of unsorted waste: No verified fine correspondence
+- `C_Vegeh` vegetables, homogenized preparations: No verified fine correspondence
+- `C_Vegew` vegetable fat, hydrogenated: No verified fine correspondence
+- `C_Vetcs` vetch, dry: No verified fine correspondence
+- `C_WOOD_sort` treatment of wood waste, including sorting, crashing, etc.: No verified fine correspondence
+- `C_WOOW` recycling of wood: No verified fine correspondence
+- `C_WO_OTHE` disposal of wood, other: No verified fine correspondence
+- `C_Wafes` wafers: No verified fine correspondence
+- `C_Walnd` walnut, shelled: No verified fine correspondence
+- `C_Yoght` yoghurt: No verified fine correspondence
+- `C_Yoght_add` yoghurt, with additives: No verified fine correspondence
+- `C_cOil_beans` castor bean oil: No verified fine correspondence
+- `C_heat_CHP` district heat, from combined heat and power plants: No verified fine correspondence
+- `C_heat_HWAT` district heat, from heat plant: No verified fine correspondence
+- `C_oFru_fresh` fruits, other, fresh: No verified fine correspondence
+- `C_oFru_pom` pome fruit, other: No verified fine correspondence
+- `C_oFru_ston` stone fruit, other: No verified fine correspondence
+- `C_oVege_fresh` vegetable, other, fresh: No verified fine correspondence
+- `C_palm` oil palm fruit: No verified fine correspondence
+- `C_vOil_nes` vegetable oil, other: No verified fine correspondence
+- `EF_AGSL` aviation gasoline, combustion of: No verified fine correspondence
+- `EF_ANTH` combustion of anthracite: No verified fine correspondence
+- `EF_BIOD` biodiesel, combustion of: No verified fine correspondence
+- `EF_BIOG` biogasoline, combustion of: No verified fine correspondence
+- `EF_BITU` bitumen, combustion of: No verified fine correspondence
+- `EF_BKBP` combustion of bkb/peat briquette: No verified fine correspondence
+- `EF_CHAR` charcoal, combustion of: No verified fine correspondence
+- `EF_COIL` combustion of crude petroleum: No verified fine correspondence
+- `EF_COKC` combustion of coking coal: No verified fine correspondence
+- `EF_COKE` coke oven coke, combustion of: No verified fine correspondence
+- `EF_COOG` coke oven gas, combustion of: No verified fine correspondence
+- `EF_COTA` coal tar, combustion of: No verified fine correspondence
+- `EF_DOIL` gas/diesel oil, combustion of: No verified fine correspondence
+- `EF_ETHA` combustion of ethane: No verified fine correspondence
+- `EF_FOIL` heavy fuel oil, combustion of: No verified fine correspondence
+- `EF_FORE` combustion of forest product: No verified fine correspondence
+- `EF_GASE` natural gas and services related to natural gas extraction, excluding surveying, combustion of: No verified fine correspondence
+- `EF_GASL` natural gas liquids, combustion of: No verified fine correspondence
+- `EF_GCOK` gas coke, combustion of: No verified fine correspondence
+- `EF_KERO` kerosene, combustion of: No verified fine correspondence
+- `EF_KJET` kerosene type jet fuel, combustion of: No verified fine correspondence
+- `EF_LIBC` lignite/brown coal, combustion of: No verified fine correspondence
+- `EF_LPGA` liquefied petroleum gases (lpg), combustion of: No verified fine correspondence
+- `EF_LUBR` lubricants, combustion of: No verified fine correspondence
+- `EF_MBFG` blast furnace gas, combustion of: No verified fine correspondence
+- `EF_MBIO` biogas, combustion of: No verified fine correspondence
+- `EF_MGSL` motor gasoline, combustion of: No verified fine correspondence
+- `EF_MGWG` gas works gas, combustion of: No verified fine correspondence
+- `EF_MOSG` oxygen steel furnace gas, combustion of: No verified fine correspondence
+- `EF_NAPT` naphtha, combustion of: No verified fine correspondence
+- `EF_NSPP` non-specified petroleum products, combustion of: No verified fine correspondence
+- `EF_OTBC` other bituminous coal, combustion of: No verified fine correspondence
+- `EF_PARW` paraffin waxes, combustion of: No verified fine correspondence
+- `EF_PATF` patent fuel, combustion of: No verified fine correspondence
+- `EF_PEAT` peat, combustion of: No verified fine correspondence
+- `EF_PETC` petroleum coke, combustion of: No verified fine correspondence
+- `EF_RGAS` refinery gas, combustion of: No verified fine correspondence
+- `EF_SUBC` sub-bituminous coal, combustion of: No verified fine correspondence
+- `EF_WHSP` white spirit & sbp, combustion of: No verified fine correspondence
+- `KCAP_ACCOM` KCAP_ACCOM: No verified fine correspondence
+- `KCAP_ACCOM|KCAP_RESTAU` KCAP_ACCOM; KCAP_RESTAU: No verified fine correspondence
+- `KCAP_ACT_HOUS` KCAP_ACT_HOUS: No verified fine correspondence
+- `KCAP_ADVERT` KCAP_ADVERT: No verified fine correspondence
+- `KCAP_ADVERT|KCAP_ENGS|KCAP_LEGAL|KCAP_MANA|KCAP_OT_PROF_SCI|KCAP_RESERCH|KCAP_VET` KCAP_ADVERT; KCAP_ENGS; KCAP_LEGAL; KCAP_MANA; KCAP_OT_PROF_SCI; KCAP_RESERCH; KCAP_VET: No verified fine correspondence
+- `KCAP_ALUM_01_RES` KCAP_ALUM_01_RES: No verified fine correspondence
+- `KCAP_ART` KCAP_ART: No verified fine correspondence
+- `KCAP_ART|KCAP_GAMB|KCAP_LIB_MUSEUM` KCAP_ART; KCAP_GAMB; KCAP_LIB_MUSEUM: No verified fine correspondence
+- `KCAP_BRIK` KCAP_BRIK: No verified fine correspondence
+- `KCAP_BROAD_NEWS` KCAP_BROAD_NEWS: No verified fine correspondence
+- `KCAP_BROAD_NEWS|KCAP_COMP|KCAP_INFO|KCAP_PIC_VID_TV|KCAP_PTEL|KCAP_PUBL` KCAP_BROAD_NEWS; KCAP_COMP; KCAP_INFO; KCAP_PIC_VID_TV; KCAP_PTEL; KCAP_PUBL: No verified fine correspondence
+- `KCAP_BROAD_NEWS|KCAP_PIC_VID_TV` KCAP_BROAD_NEWS; KCAP_PIC_VID_TV: No verified fine correspondence
+- `KCAP_BUILD` KCAP_BUILD: No verified fine correspondence
+- `KCAP_BUILD_LAND_serv` KCAP_BUILD_LAND_serv: No verified fine correspondence
+- `KCAP_BUILD_LAND_serv|KCAP_EMPLOY|KCAP_OFFICE_ADM|KCAP_RENT|KCAP_SECUR|KCAP_TRAV` KCAP_BUILD_LAND_serv; KCAP_EMPLOY; KCAP_OFFICE_ADM; KCAP_RENT; KCAP_SECUR; KCAP_TRAV: No verified fine correspondence
+- `KCAP_BUILD_LAND_serv|KCAP_OFFICE_ADM|KCAP_SECUR` KCAP_BUILD_LAND_serv; KCAP_OFFICE_ADM; KCAP_SECUR: No verified fine correspondence
+- `KCAP_BUILD|KCAP_CIV_ENG` KCAP_BUILD; KCAP_CIV_ENG: No verified fine correspondence
+- `KCAP_Buffaloes` KCAP_Buffaloes: No verified fine correspondence
+- `KCAP_CHEM` KCAP_CHEM: No verified fine correspondence
+- `KCAP_CHMF` KCAP_CHMF: No verified fine correspondence
+- `KCAP_CIV_ENG` KCAP_CIV_ENG: No verified fine correspondence
+- `KCAP_CMNT` KCAP_CMNT: No verified fine correspondence
+- `KCAP_COMP` KCAP_COMP: No verified fine correspondence
+- `KCAP_COMP|KCAP_INFO` KCAP_COMP; KCAP_INFO: No verified fine correspondence
+- `KCAP_COPP` KCAP_COPP: No verified fine correspondence
+- `KCAP_CRMC` KCAP_CRMC: No verified fine correspondence
+- `KCAP_EDUC` KCAP_EDUC: No verified fine correspondence
+- `KCAP_ELMA` KCAP_ELMA: No verified fine correspondence
+- `KCAP_EMPLOY` KCAP_EMPLOY: No verified fine correspondence
+- `KCAP_ENGS` KCAP_ENGS: No verified fine correspondence
+- `KCAP_FABM_01_RES` KCAP_FABM_01_RES: No verified fine correspondence
+- `KCAP_FAUX` KCAP_FAUX: No verified fine correspondence
+- `KCAP_FAUX|KCAP_FINS|KCAP_FINT` KCAP_FAUX; KCAP_FINS; KCAP_FINT: No verified fine correspondence
+- `KCAP_FINS` KCAP_FINS: No verified fine correspondence
+- `KCAP_FINT` KCAP_FINT: No verified fine correspondence
+- `KCAP_FURN` KCAP_FURN: No verified fine correspondence
+- `KCAP_GAMB|KCAP_SPORT` KCAP_GAMB; KCAP_SPORT: No verified fine correspondence
+- `KCAP_GARM` KCAP_GARM: No verified fine correspondence
+- `KCAP_GLAS_01_RES` KCAP_GLAS_01_RES: No verified fine correspondence
+- `KCAP_HEAL` KCAP_HEAL: No verified fine correspondence
+- `KCAP_HEAL|KCAP_RES_CARE|KCAP_SOWO` KCAP_HEAL; KCAP_RES_CARE; KCAP_SOWO: No verified fine correspondence
+- `KCAP_INFO` KCAP_INFO: No verified fine correspondence
+- `KCAP_LEGAL` KCAP_LEGAL: No verified fine correspondence
+- `KCAP_LEGAL|KCAP_MANA` KCAP_LEGAL; KCAP_MANA: No verified fine correspondence
+- `KCAP_LETH` KCAP_LETH: No verified fine correspondence
+- `KCAP_LZTP` KCAP_LZTP: No verified fine correspondence
+- `KCAP_MACH` KCAP_MACH: No verified fine correspondence
+- `KCAP_MANA` KCAP_MANA: No verified fine correspondence
+- `KCAP_MDIA` KCAP_MDIA: No verified fine correspondence
+- `KCAP_MEIN` KCAP_MEIN: No verified fine correspondence
+- `KCAP_METC` KCAP_METC: No verified fine correspondence
+- `KCAP_MIN_SUPP` KCAP_MIN_SUPP: No verified fine correspondence
+- `KCAP_MOTO` KCAP_MOTO: No verified fine correspondence
+- `KCAP_OFFICE_ADM` KCAP_OFFICE_ADM: No verified fine correspondence
+- `KCAP_OFMA` KCAP_OFMA: No verified fine correspondence
+- `KCAP_ONFM` KCAP_ONFM: No verified fine correspondence
+- `KCAP_ONMM` KCAP_ONMM: No verified fine correspondence
+- `KCAP_ORGA` KCAP_ORGA: No verified fine correspondence
+- `KCAP_ORGA|KCAP_PERS_SER|KCAP_REPAIR` KCAP_ORGA; KCAP_PERS_SER; KCAP_REPAIR: No verified fine correspondence
+- `KCAP_OT_PROF_SCI` KCAP_OT_PROF_SCI: No verified fine correspondence
+- `KCAP_OT_PROF_SCI|KCAP_VET` KCAP_OT_PROF_SCI; KCAP_VET: No verified fine correspondence
+- `KCAP_PADF` KCAP_PADF: No verified fine correspondence
+- `KCAP_PAPE_01_RES` KCAP_PAPE_01_RES: No verified fine correspondence
+- `KCAP_PERS_SER` KCAP_PERS_SER: No verified fine correspondence
+- `KCAP_PHAR` KCAP_PHAR: No verified fine correspondence
+- `KCAP_PIC_VID_TV` KCAP_PIC_VID_TV: No verified fine correspondence
+- `KCAP_PLAS` KCAP_PLAS: No verified fine correspondence
+- `KCAP_POST` KCAP_POST: No verified fine correspondence
+- `KCAP_PREM` KCAP_PREM: No verified fine correspondence
+- `KCAP_PUBL` KCAP_PUBL: No verified fine correspondence
+- `KCAP_RATV` KCAP_RATV: No verified fine correspondence
+- `KCAP_REAL_OTHER` KCAP_REAL_OTHER: No verified fine correspondence
+- `KCAP_REAL_OTHER|KCAP_REAL_OWNER` KCAP_REAL_OTHER; KCAP_REAL_OWNER: No verified fine correspondence
+- `KCAP_REAL_OWNER` KCAP_REAL_OWNER: No verified fine correspondence
+- `KCAP_REMS` KCAP_REMS: No verified fine correspondence
+- `KCAP_RENT` KCAP_RENT: No verified fine correspondence
+- `KCAP_REPAIR` KCAP_REPAIR: No verified fine correspondence
+- `KCAP_REP_INST` KCAP_REP_INST: No verified fine correspondence
+- `KCAP_RESERCH` KCAP_RESERCH: No verified fine correspondence
+- `KCAP_RESTAU` KCAP_RESTAU: No verified fine correspondence
+- `KCAP_RES_CARE` KCAP_RES_CARE: No verified fine correspondence
+- `KCAP_RES_CARE|KCAP_SOWO` KCAP_RES_CARE; KCAP_SOWO: No verified fine correspondence
+- `KCAP_RUBP_01_RES` KCAP_RUBP_01_RES: No verified fine correspondence
+- `KCAP_SECUR` KCAP_SECUR: No verified fine correspondence
+- `KCAP_SOWO` KCAP_SOWO: No verified fine correspondence
+- `KCAP_SPORT` KCAP_SPORT: No verified fine correspondence
+- `KCAP_STEL` KCAP_STEL: No verified fine correspondence
+- `KCAP_STON` KCAP_STON: No verified fine correspondence
+- `KCAP_TAIR` KCAP_TAIR: No verified fine correspondence
+- `KCAP_TAUX` KCAP_TAUX: No verified fine correspondence
+- `KCAP_TELEC` KCAP_TELEC: No verified fine correspondence
+- `KCAP_TEXT` KCAP_TEXT: No verified fine correspondence
+- `KCAP_TOBC` KCAP_TOBC: No verified fine correspondence
+- `KCAP_TRAV` KCAP_TRAV: No verified fine correspondence
+- `KCAP_WATR` KCAP_WATR: No verified fine correspondence
+- `KCAP_WOOD` KCAP_WOOD: No verified fine correspondence
+- `KCAP_auto` KCAP_auto: No verified fine correspondence
+- `KCAP_bus` KCAP_bus: No verified fine correspondence
+- `KCAP_iwAlum` KCAP_iwAlum: No verified fine correspondence
+- `KCAP_iwCons` KCAP_iwCons: No verified fine correspondence
+- `KCAP_iwCopp` KCAP_iwCopp: No verified fine correspondence
+- `KCAP_iwDisc_eq` KCAP_iwDisc_eq: No verified fine correspondence
+- `KCAP_iwDisc_veh` KCAP_iwDisc_veh: No verified fine correspondence
+- `KCAP_iwFood` KCAP_iwFood: No verified fine correspondence
+- `KCAP_iwGlas` KCAP_iwGlas: No verified fine correspondence
+- `KCAP_iwHazar` KCAP_iwHazar: No verified fine correspondence
+- `KCAP_iwLead` KCAP_iwLead: No verified fine correspondence
+- `KCAP_iwMix_nonferr` KCAP_iwMix_nonferr: No verified fine correspondence
+- `KCAP_iwPape` KCAP_iwPape: No verified fine correspondence
+- `KCAP_iwPlas` KCAP_iwPlas: No verified fine correspondence
+- `KCAP_iwPrec` KCAP_iwPrec: No verified fine correspondence
+- `KCAP_iwSteel` KCAP_iwSteel: No verified fine correspondence
+- `KCAP_iwText` KCAP_iwText: No verified fine correspondence
+- `KCAP_iwUnsort` KCAP_iwUnsort: No verified fine correspondence
+- `KCAP_iwWood` KCAP_iwWood: No verified fine correspondence
+- `KCAP_truck` KCAP_truck: No verified fine correspondence
+- `KCAP_wAlum` KCAP_wAlum: No verified fine correspondence
+- `KCAP_wAsh` KCAP_wAsh: No verified fine correspondence
+- `KCAP_wBatt` KCAP_wBatt: No verified fine correspondence
+- `KCAP_wCons` KCAP_wCons: No verified fine correspondence
+- `KCAP_wCopp` KCAP_wCopp: No verified fine correspondence
+- `KCAP_wDisc_eq` KCAP_wDisc_eq: No verified fine correspondence
+- `KCAP_wDisc_veh` KCAP_wDisc_veh: No verified fine correspondence
+- `KCAP_wGlas` KCAP_wGlas: No verified fine correspondence
+- `KCAP_wHazar` KCAP_wHazar: No verified fine correspondence
+- `KCAP_wLead` KCAP_wLead: No verified fine correspondence
+- `KCAP_wMix_met` KCAP_wMix_met: No verified fine correspondence
+- `KCAP_wMix_nonferr` KCAP_wMix_nonferr: No verified fine correspondence
+- `KCAP_wPape` KCAP_wPape: No verified fine correspondence
+- `KCAP_wPlas` KCAP_wPlas: No verified fine correspondence
+- `KCAP_wPrec` KCAP_wPrec: No verified fine correspondence
+- `KCAP_wSteel` KCAP_wSteel: No verified fine correspondence
+- `KCAP_wText` KCAP_wText: No verified fine correspondence
+- `KCAP_wUnsort` KCAP_wUnsort: No verified fine correspondence
+- `KCAP_wWood` KCAP_wWood: No verified fine correspondence
+- `L_crop_intens` L_crop_intens: No verified fine correspondence
+- `L_grass_pasture` L_grass_pasture: No verified fine correspondence
+- `L_pasture_intens` L_pasture_intens: No verified fine correspondence
+- `L_prim_managed` L_prim_managed: No verified fine correspondence
+- `L_second_crop` L_second_crop: No verified fine correspondence
+- `L_second_managed` L_second_managed: No verified fine correspondence
+- `M_ALUM_01_RES` production of aluminum and aluminum product - residual (market for): No verified fine correspondence
+- `M_ALUW` recycling of aluminium(market for): No verified fine correspondence
+- `M_ALU_sort` treatment of aluminum waste, including sorting, crashing, etc. (market for): No verified fine correspondence
+- `M_AL_INCI` incineration with energy recovery of aluminium(market for): No verified fine correspondence
+- `M_AL_LAND` landfill of aluminum (market for): No verified fine correspondence
+- `M_ANTH` anthracite (market for): No verified fine correspondence
+- `M_ASHW` recycling of ash (market for): No verified fine correspondence
+- `M_AS_LAND` landfill of ash (market for): No verified fine correspondence
+- `M_Agavs` other agave fibres, (market for): No verified fine correspondence
+- `M_Apriy` apricots, dried (market for): No verified fine correspondence
+- `M_Arecs` areca nuts, (market for): No verified fine correspondence
+- `M_BA_INCI` incineration of batteries and accumulators waste with energy recovery (market for): No verified fine correspondence
+- `M_BA_INCI_no_recov` incineration without energy recovery of batteries and accumulators waste(market for): No verified fine correspondence
+- `M_BA_LAND` landfill of batteries and accumulators waste(market for): No verified fine correspondence
+- `M_BA_RECY` recycling of batteries and accumulators waste(market for): No verified fine correspondence
+- `M_BIOF` food waste for treatment: bio-gasification and land application (market for): No verified fine correspondence
+- `M_BIOG` bio-gasoline (market for): No verified fine correspondence
+- `M_BIOP` production of paper waste for treatment: bio-gasification and land application, (market for): No verified fine correspondence
+- `M_BIOS` treatment of sewage sludge for bio-gasification and land application (market for): No verified fine correspondence
+- `M_Barld` barley, pearled (market for): No verified fine correspondence
+- `M_Barlt` pot barley(market for): No verified fine correspondence
+- `M_Bastr` jute-like fibres(market for): No verified fine correspondence
+- `M_Beann` beans, green(market for): No verified fine correspondence
+- `M_Beer_barl` beer of barley (market for): No verified fine correspondence
+- `M_Beer_maiz` beer of millet(market for): No verified fine correspondence
+- `M_Beer_millet` beer of maize(market for): No verified fine correspondence
+- `M_Beer_sorg` beer of sorghum(market for): No verified fine correspondence
+- `M_Beesx` beeswax, (market for): No verified fine correspondence
+- `M_Berrs` other berries, (market for): No verified fine correspondence
+- `M_Bev_ferm` rice-fermented beverages(market for): No verified fine correspondence
+- `M_Blues` blueberries, (market for): No verified fine correspondence
+- `M_Bran_bar` bran, barley (market for): No verified fine correspondence
+- `M_Bran_buc` bran, buckwheat (market for): No verified fine correspondence
+- `M_Bran_fon` bran, fonio (market for): No verified fine correspondence
+- `M_Bran_mai` bran, maize (market for): No verified fine correspondence
+- `M_Bran_mil` bran, millet (market for): No verified fine correspondence
+- `M_Bran_mix` bran, mixed grain (market for): No verified fine correspondence
+- `M_Bran_oat` bran, oat (market for): No verified fine correspondence
+- `M_Bran_pul` bran, pulse (market for): No verified fine correspondence
+- `M_Bran_rye` bran, rye (market for): No verified fine correspondence
+- `M_Bran_sor` bran, sorghum (market for): No verified fine correspondence
+- `M_Bran_tri` bran, triticale (market for): No verified fine correspondence
+- `M_Bran_whe` bran, wheat (market for): No verified fine correspondence
+- `M_Brazd` brazil nut, without shell (market for): No verified fine correspondence
+- `M_Buffaloes` buffalo (market for): No verified fine correspondence
+- `M_Bufmilk` milk raw from buffalo(market for): No verified fine correspondence
+- `M_Butt_buff` butter, buffalo milk (market for): No verified fine correspondence
+- `M_Butt_cow` butter, cow milk (market for): No verified fine correspondence
+- `M_Butt_sheep` butter and ghee of sheep milk(market for): No verified fine correspondence
+- `M_Buttk` buttermilk, curdled milk, acidified milk(market for): No verified fine correspondence
+- `M_Butts` butter, karite nut (market for): No verified fine correspondence
+- `M_CAN_ALD` beverage can, aluminium, (market for): No verified fine correspondence
+- `M_CAN_STEL` food can, steel (market for): No verified fine correspondence
+- `M_COKC` production of coking coal (market for): No verified fine correspondence
+- `M_CONW` recycling of construction waste(market for): No verified fine correspondence
+- `M_COOG` coke oven gas(market for): No verified fine correspondence
+- `M_COPP_sort` treatment of copper waste, including sorting, crashing, etc. (market for): No verified fine correspondence
+- `M_COPW` recycling of copper (market for): No verified fine correspondence
+- `M_CO_INCI` incineration with energy recovery of construction waste(market for): No verified fine correspondence
+- `M_CO_INCI_no_recov` incineration without energy recovery of construction waste(market for): No verified fine correspondence
+- `M_CO_LAND` landfill of construction waste(market for): No verified fine correspondence
+- `M_CO_OTHE` other disposal of construction waste(market for): No verified fine correspondence
+- `M_CU_INCI` incineration with energy recovery of copper(market for): No verified fine correspondence
+- `M_CU_LAND` landfill of copper(market for): No verified fine correspondence
+- `M_Camel` camel (market for): No verified fine correspondence
+- `M_Cammilk` milk raw from camel(market for): No verified fine correspondence
+- `M_Cashe` cashewapple (market for): No verified fine correspondence
+- `M_Cassd` cassava, dried (market for): No verified fine correspondence
+- `M_Catmilk` milk raw from cow(market for): No verified fine correspondence
+- `M_Cattle` cattle (market for): No verified fine correspondence
+- `M_Cer_brkf` cereal, breakfast (market for): No verified fine correspondence
+- `M_Cer_prep` cereal preparations(market for): No verified fine correspondence
+- `M_Ceres` cereals, nes(market for): No verified fine correspondence
+- `M_Chee_cow_sk` cheese from skimmed cow milk (market for): No verified fine correspondence
+- `M_Chee_cow_wh` cheese from whole cow milk (market for): No verified fine correspondence
+- `M_Cherr` sour cherries(market for): No verified fine correspondence
+- `M_Chers` cherries(market for): No verified fine correspondence
+- `M_Chickens` chickens (market for): No verified fine correspondence
+- `M_Chocs` production of other chocolate product (market for): No verified fine correspondence
+- `M_Citr_nes` juice, other citrus, concentrated (market for): No verified fine correspondence
+- `M_Ckcopra` cake of copra(market for): No verified fine correspondence
+- `M_Ckcotton` cake of cottonseed(market for): No verified fine correspondence
+- `M_Ckgound` cake of groundnuts(market for): No verified fine correspondence
+- `M_Ckhemp` press cake, hempseed (market for): No verified fine correspondence
+- `M_Ckkapok` cake of kapok(market for): No verified fine correspondence
+- `M_Cklins` cake of linseed(market for): No verified fine correspondence
+- `M_Ckmaize` cake of maize(market for): No verified fine correspondence
+- `M_Ckmust` cake of mustard seed(market for): No verified fine correspondence
+- `M_Ckpalm` cake of palm kernel(market for): No verified fine correspondence
+- `M_Ckpopp` press cake, poppy seed (market for): No verified fine correspondence
+- `M_Ckrapes` cake of rapeseed(market for): No verified fine correspondence
+- `M_Ckriceb` cake of rice bran(market for): No verified fine correspondence
+- `M_Cksaffl` cake of safflower seed(market for): No verified fine correspondence
+- `M_Ckseednes` press cake, other oilseed (market for): No verified fine correspondence
+- `M_Cksesam` cake of sesame seed(market for): No verified fine correspondence
+- `M_Cksoyb` cake of soybeans(market for): No verified fine correspondence
+- `M_Cksunf` cake of sunflower seed(market for): No verified fine correspondence
+- `M_Coco_but` cocoa butter(market for): No verified fine correspondence
+- `M_Coco_pas` cocoa paste(market for): No verified fine correspondence
+- `M_Coco_pow` cocoa powder and cake(market for): No verified fine correspondence
+- `M_Cocod` coconuts, desiccated(market for): No verified fine correspondence
+- `M_Coff_ext` coffee extracts(market for): No verified fine correspondence
+- `M_Coff_sub` coffee substitutes(market for): No verified fine correspondence
+- `M_Cotton` cotton lint (market for): No verified fine correspondence
+- `M_Crans` cultivation of cranberry, fresh (market for): No verified fine correspondence
+- `M_Currs` currants(market for): No verified fine correspondence
+- `M_DE_INCI` incineration of discarded equipment with energy recovery (market for): No verified fine correspondence
+- `M_DE_INCI_no_recov` incineration without energy recovery of discarded equipment(market for): No verified fine correspondence
+- `M_DE_LAND` landfill of discarded equipment (market for): No verified fine correspondence
+- `M_DE_OTHE` other disposal of discarded equipment(market for): No verified fine correspondence
+- `M_DE_RECY` recycling of discarded equipment(market for): No verified fine correspondence
+- `M_DV_INCI` incineration with energy recovery of discarded vehicles(market for): No verified fine correspondence
+- `M_DV_LAND` landfill of discarded vehicle (market for): No verified fine correspondence
+- `M_DV_RECY` recycling of discarded vehicles(market for): No verified fine correspondence
+- `M_FABM_01_RES` other fabricated metal products, (market for): No verified fine correspondence
+- `M_FO_OTHE` other disposal of food(market for): No verified fine correspondence
+- `M_FO_RECY` recycling of food(market for): No verified fine correspondence
+- `M_Fat_cam` fat of camels(market for): No verified fine correspondence
+- `M_Fat_live` fatty liver preparations(market for): No verified fine correspondence
+- `M_Fat_othe` fat of other camelids(market for): No verified fine correspondence
+- `M_Feedn` feed and meal, gluten, (market for): No verified fine correspondence
+- `M_Figsd` figs, dried(market for): No verified fine correspondence
+- `M_Flax_raw` flax, raw or retted (market for): No verified fine correspondence
+- `M_Flou_nes` flour, other cereal (market for): No verified fine correspondence
+- `M_Flour_barl` barley flour and grits(market for): No verified fine correspondence
+- `M_Flour_buck` flour of buckwheat(market for): No verified fine correspondence
+- `M_Flour_cass` flour of cassava(market for): No verified fine correspondence
+- `M_Flour_foni` flour of fonio (market for): No verified fine correspondence
+- `M_Flour_frui` flour of fruit (market for): No verified fine correspondence
+- `M_Flour_maiz` flour of maize (market for): No verified fine correspondence
+- `M_Flour_mill` flour of millet (market for): No verified fine correspondence
+- `M_Flour_mixe` flour of mixed grain (market for): No verified fine correspondence
+- `M_Flour_must` flour of mustard seed (market for): No verified fine correspondence
+- `M_Flour_puls` flour of pulse (market for): No verified fine correspondence
+- `M_Flour_rice` flour of rice(market for): No verified fine correspondence
+- `M_Flour_root` production of flour, other roots and tubers (market for): No verified fine correspondence
+- `M_Flour_rye` flour of rye(market for): No verified fine correspondence
+- `M_Flour_sorg` flour of sorghum(market for): No verified fine correspondence
+- `M_Flour_trit` flour of triticale(market for): No verified fine correspondence
+- `M_ForGrass_Asses` forages and grass for asses (market for): No verified fine correspondence
+- `M_ForGrass_Bufmilk` forages and grass for buffaloes (market for): No verified fine correspondence
+- `M_ForGrass_Camel` forages and grass for camels (market for): No verified fine correspondence
+- `M_ForGrass_Cattle` forages and grass for meat cattle (market for): No verified fine correspondence
+- `M_ForGrass_Cowmilk` forages and grass for milk cows (market for): No verified fine correspondence
+- `M_ForGrass_Goamilk` forages and grass for milk goat (market for): No verified fine correspondence
+- `M_ForGrass_Goat` forages and grass for meat goat (market for): No verified fine correspondence
+- `M_ForGrass_Horses` forages and grass for horses (market for): No verified fine correspondence
+- `M_ForGrass_Pigs` forages and grass for pigs (market for): No verified fine correspondence
+- `M_ForGrass_Rabbits` forages and grass for rabbits (market for): No verified fine correspondence
+- `M_ForGrass_Sheep` forages and grass for meat sheep (market for): No verified fine correspondence
+- `M_ForGrass_Shemilk` forages and grass for milk sheep (market for): No verified fine correspondence
+- `M_Frucr` other fructose and syrup(market for): No verified fine correspondence
+- `M_Frudry` fruit, dried nes(market for): No verified fine correspondence
+- `M_Fruhom` homogenized cooked fruit, prepared(market for): No verified fine correspondence
+- `M_Frui_nes` other tropical fruit, dried (market for): No verified fine correspondence
+- `M_GASE` natural gas extraction(market for): No verified fine correspondence
+- `M_GCOK` gas coke (market for): No verified fine correspondence
+- `M_GLAS_reuse` collection of glass bottle service (market for): No verified fine correspondence
+- `M_GLAW` recycling of glass(market for): No verified fine correspondence
+- `M_GLA_sort` treatment of glass waste, including sorting, crashing, etc. (market for): No verified fine correspondence
+- `M_GL_INCI` incineration with energy recovery of glass(market for): No verified fine correspondence
+- `M_GL_INCI_no_recov` incineration without energy recovery of glass(market for): No verified fine correspondence
+- `M_GL_LAND` landfill of glass(market for): No verified fine correspondence
+- `M_Germe` germ of maize(market for): No verified fine correspondence
+- `M_Germt` germ of wheat(market for): No verified fine correspondence
+- `M_Ghee_buff` ghee, from buffalo milk(market for): No verified fine correspondence
+- `M_Gluce` glucose and dextrose (market for): No verified fine correspondence
+- `M_Gluten_mais` maize gluten(market for): No verified fine correspondence
+- `M_Gluten_rice` rice, gluten(market for): No verified fine correspondence
+- `M_Gluten_wht` wheat gluten(market for): No verified fine correspondence
+- `M_Goamilk` milk, goat, raw (market for): No verified fine correspondence
+- `M_Goat` goat (market for): No verified fine correspondence
+- `M_Gooss` gooseberry (market for): No verified fine correspondence
+- `M_Graid` mixed grain (market for): No verified fine correspondence
+- `M_HA_INCI` incineration with energy recovery of hazardous waste(market for): No verified fine correspondence
+- `M_HA_INCI_no_recov` incineration without energy recovery of hazardous waste(market for): No verified fine correspondence
+- `M_HA_LAND` landfill of hazardous waste(market for): No verified fine correspondence
+- `M_HA_OTHE` other disposal of hazardous waste(market for): No verified fine correspondence
+- `M_HA_RECY` recycling of hazardous waste(market for): No verified fine correspondence
+- `M_HWAT` heat (steam and hot water) from heat production(market for): No verified fine correspondence
+- `M_Hemp` hemp fibre and tow(market for): No verified fine correspondence
+- `M_Hempd` hempseed(market for): No verified fine correspondence
+- `M_Hide_buff` buffalo hide, fresh (market for): No verified fine correspondence
+- `M_Hide_cow` cattle hides, fresh(market for): No verified fine correspondence
+- `M_INCF` incineration with energy recovery of food(market for): No verified fine correspondence
+- `M_INCF_no_recov` incineration without energy recovery of food(market for): No verified fine correspondence
+- `M_INCL` incineration with energy recovery of plastic/rubber(market for): No verified fine correspondence
+- `M_INCL_no_recov` incineration without energy recovery of plastic and rubber(market for): No verified fine correspondence
+- `M_INCP` incineration with energy recovery of paper(market for): No verified fine correspondence
+- `M_INCP_no_recov` incineration without energy recovery of paper(market for): No verified fine correspondence
+- `M_INCW` incineration with energy recovery of wood(market for): No verified fine correspondence
+- `M_INCW_no_recovery` incineration without energy recovery of wood waste(market for): No verified fine correspondence
+- `M_Icee` dessert, ice cream and edible ice (market for): No verified fine correspondence
+- `M_Isoge` isoglucose(market for): No verified fine correspondence
+- `M_Jojod` jojoba seed (market for): No verified fine correspondence
+- `M_Juic_nes` juice, other citrus fruit (market for): No verified fine correspondence
+- `M_Juice_appl` apple juice (market for): No verified fine correspondence
+- `M_Juice_appl_con` apple juice, concentrated (market for): No verified fine correspondence
+- `M_Juice_frui` juice of fruits nes(market for): No verified fine correspondence
+- `M_Juice_grapef` grapefruit juice, concentrated(market for): No verified fine correspondence
+- `M_Juice_lemo` juice of lemon(market for): No verified fine correspondence
+- `M_Juice_lemo_con` lemon juice, concentrated(market for): No verified fine correspondence
+- `M_Juice_mang` juice of mango(market for): No verified fine correspondence
+- `M_Juice_oran` juice of orange(market for): No verified fine correspondence
+- `M_Juice_oran_con` orange juice, concentrated(market for): No verified fine correspondence
+- `M_Juice_pine_con` juice of pineapples, concentrated(market for): No verified fine correspondence
+- `M_Juice_tang` juice of tangerine, mandarin and clementin(market for): No verified fine correspondence
+- `M_Jute` jute (market for): No verified fine correspondence
+- `M_K2Ofert` k fertilizer, (market for): No verified fine correspondence
+- `M_Kapo_bre` fibre, kapok, raw (market for): No verified fine correspondence
+- `M_Kapod` kapokseed, without shell(market for): No verified fine correspondence
+- `M_Kapol` kapokseed, in shell(market for): No verified fine correspondence
+- `M_Kari` karite nuts (sheanuts)(market for): No verified fine correspondence
+- `M_Kola` kolanuts(market for): No verified fine correspondence
+- `M_LANF` landfill of food(market for): No verified fine correspondence
+- `M_LANL` landfill of plastic and rubber(market for): No verified fine correspondence
+- `M_LANP` landfill of paper(market for): No verified fine correspondence
+- `M_LANW` landfill of wood(market for): No verified fine correspondence
+- `M_LEAD_sort` treatment of lead, zinc and tin waste, including sorting, crashing, etc. (market for): No verified fine correspondence
+- `M_LIBC` lignite/brown coal(market for): No verified fine correspondence
+- `M_LZTO` extraction of lead, zinc and tin ores and concentrates (market for): No verified fine correspondence
+- `M_LZTW` recycling of lead, zinc and tin(market for): No verified fine correspondence
+- `M_LZT_INCI` incineration with energy recovery of lead, zinc and tin(market for): No verified fine correspondence
+- `M_LZT_LAND` landfill of lead, zinc and tin(market for): No verified fine correspondence
+- `M_Lacte` lactose(market for): No verified fine correspondence
+- `M_Lardl` lard stearine and lard oil(market for): No verified fine correspondence
+- `M_Lupis` lupins(market for): No verified fine correspondence
+- `M_MANC` land application of manure(market for): No verified fine correspondence
+- `M_MBFG` blast furnace gas(market for): No verified fine correspondence
+- `M_MGWG` gas works gas (incl the gas)(market for): No verified fine correspondence
+- `M_MM_INCI` incineration with energy recovery of mix metals(market for): No verified fine correspondence
+- `M_MM_INCI_no_recov` incineration without energy recovery of mix metals(market for): No verified fine correspondence
+- `M_MM_LAND` landfill of mix metals(market for): No verified fine correspondence
+- `M_MM_OTHE` other disposal of mix metals(market for): No verified fine correspondence
+- `M_MM_RECY` recycling of mix metals(market for): No verified fine correspondence
+- `M_MNF_INCI` incineration with energy recovery of mix of non-ferrous metals(market for): No verified fine correspondence
+- `M_MNF_INCI_no_recov` incineration without energy recovery of mix of non-ferrous metals(market for): No verified fine correspondence
+- `M_MNF_LAND` landfill of mix of non-ferrous metals(market for): No verified fine correspondence
+- `M_MNF_OTHE` other disposal of mix of non-ferrous metals(market for): No verified fine correspondence
+- `M_MNF_RECY` recycling of mix of non-ferrous metals(market for): No verified fine correspondence
+- `M_Maizn` green corn (maize) (market for): No verified fine correspondence
+- `M_Malt_ext` malt extract(market for): No verified fine correspondence
+- `M_Mangp` mango pulp(market for): No verified fine correspondence
+- `M_Manila` abaca manila hemp (market for): No verified fine correspondence
+- `M_Margd` liquid margarine(market for): No verified fine correspondence
+- `M_Margt` margarine and shortening(market for): No verified fine correspondence
+- `M_Meat_ass` meat of asses(market for): No verified fine correspondence
+- `M_Meat_game` meat, game (market for): No verified fine correspondence
+- `M_Meat_hors` horse meat(market for): No verified fine correspondence
+- `M_Meat_mule` meat of mules(market for): No verified fine correspondence
+- `M_Meat_nes` meat, prepared nes(market for): No verified fine correspondence
+- `M_Meat_othe` meat of other domestic rodents(market for): No verified fine correspondence
+- `M_Meat_pig_boneless` meat of pig, boneless, fresh or chilled (market for): No verified fine correspondence
+- `M_Meat_pige` meat of pigeons and other birds not else specified, fresh, chilled or frozen (market for): No verified fine correspondence
+- `M_Melonse` melonseed(market for): No verified fine correspondence
+- `M_Milk_skim_buff` skim milk of buffalo(market for): No verified fine correspondence
+- `M_Milk_skim_cow` skim milk of cows(market for): No verified fine correspondence
+- `M_Milk_skim_she` skim sheep milk(market for): No verified fine correspondence
+- `M_Mush_can` canned mushroom (market for): No verified fine correspondence
+- `M_Mush_dry` mushroom, dried (market for): No verified fine correspondence
+- `M_Nfer_BIOF` nitrogen nutrient from biogasification of food (market for): No verified fine correspondence
+- `M_Nfer_BIOP` nitrogen nutrient from bio-gasification of paper (market for): No verified fine correspondence
+- `M_Nfer_BIOS` nitrogen nutrient from biogasification of sewage (market for): No verified fine correspondence
+- `M_Nfer_MANC` nitrogen nutrient from biogasification of manure (market for): No verified fine correspondence
+- `M_Nfert` n fertilizer, (market for): No verified fine correspondence
+- `M_Nutss` nuts nes(market for): No verified fine correspondence
+- `M_ONFO` other non-ferrous metal ores and concentrates(market for): No verified fine correspondence
+- `M_ONFW` recycling of other non-ferrous metals(market for): No verified fine correspondence
+- `M_ONF_INCI` incineration with energy recovery of other non-ferrous metals(market for): No verified fine correspondence
+- `M_ONF_LAND` landfill of other non-ferrous metals(market for): No verified fine correspondence
+- `M_OTBC` other bituminous coal(market for): No verified fine correspondence
+- `M_Offa_chick` offals and liver of chickens(market for): No verified fine correspondence
+- `M_Offa_turkey` offals and liver of turkey(market for): No verified fine correspondence
+- `M_Offas_came` offals of camels, edibles(market for): No verified fine correspondence
+- `M_Offas_hors` offals of horses(market for): No verified fine correspondence
+- `M_Oil_hemp` oil of hempseed(market for): No verified fine correspondence
+- `M_Oil_kapo` oil of kapok(market for): No verified fine correspondence
+- `M_Oil_lins` oil of linseed(market for): No verified fine correspondence
+- `M_Oil_maiz` oil of maize(market for): No verified fine correspondence
+- `M_Oil_must` oil of mustard seed(market for): No verified fine correspondence
+- `M_Oil_pal_ker` oil of palm kernel (market for): No verified fine correspondence
+- `M_Oil_popp` oil of poppy seed(market for): No verified fine correspondence
+- `M_Oil_rape` oil of rapeseed or canola oil(market for): No verified fine correspondence
+- `M_Oil_rice` oil of rice bran(market for): No verified fine correspondence
+- `M_Oil_saff` oil of safflower seed(market for): No verified fine correspondence
+- `M_Oil_sesa` oil of sesame seed(market for): No verified fine correspondence
+- `M_Oil_sunf` oil of sunflower seed(market for): No verified fine correspondence
+- `M_Oil_tung` oil, tung nut (market for): No verified fine correspondence
+- `M_Oils_nes` other animal oils and fats, (market for): No verified fine correspondence
+- `M_Oilss` oilseeds nes(market for): No verified fine correspondence
+- `M_Okraa` okra(market for): No verified fine correspondence
+- `M_Oliv_ved` olive, preserved (market for): No verified fine correspondence
+- `M_Onion` onions, shallots (green)(market for): No verified fine correspondence
+- `M_Onioy` onions, dry(market for): No verified fine correspondence
+- `M_Othe_camel` livestock, other camelid (market for): No verified fine correspondence
+- `M_P2O5fert` p fertilizer, (market for): No verified fine correspondence
+- `M_PACK_OPLA` other plastic packaging (market for): No verified fine correspondence
+- `M_PAPR` recycling of paper(market for): No verified fine correspondence
+- `M_PAP_sort` treatment of paper waste, including sorting, crashing, etc. (market for): No verified fine correspondence
+- `M_PA_OTHE` other disposal of paper(market for): No verified fine correspondence
+- `M_PLAW` recycling of plastic and rubber(market for): No verified fine correspondence
+- `M_PLA_sort` treatment of plastic waste, including sorting, crashing, etc. (market for): No verified fine correspondence
+- `M_PL_OTHE` other disposal of plastic and rubber(market for): No verified fine correspondence
+- `M_PM_INCI` incineration with energy recovery of precious metals(market for): No verified fine correspondence
+- `M_PM_LAND` landfill of precious metals(market for): No verified fine correspondence
+- `M_POST` service, postal and courier activities (market for): No verified fine correspondence
+- `M_PREW` recycling of precious metal (market for): No verified fine correspondence
+- `M_Palm_els` palm nut and kernel (market for): No verified fine correspondence
+- `M_Peanr` peanut butter(market for): No verified fine correspondence
+- `M_Pears` pears(market for): No verified fine correspondence
+- `M_Peppt` peppermint, spearmint(market for): No verified fine correspondence
+- `M_Perss` persimmons(market for): No verified fine correspondence
+- `M_Pfert_BIOF` phosphatic fertilizer from bio-gasification of food (market for): No verified fine correspondence
+- `M_Pfert_BIOP` phosphatic fertilizer from bio-gasification of paper (market for): No verified fine correspondence
+- `M_Pfert_BIOS` phosphatic fertilizers from bio-gasification of sewage (market for): No verified fine correspondence
+- `M_Pfert_MANC` phosphatic fertilizer from bio-gasification of manure (market for): No verified fine correspondence
+- `M_Pigs` pig (market for): No verified fine correspondence
+- `M_Pork_ons` pork meat processed, meat preparations(market for): No verified fine correspondence
+- `M_Pork_saus` production of meat, pig sausage, (market for): No verified fine correspondence
+- `M_Pulss` pulses nes(market for): No verified fine correspondence
+- `M_Pyred` pyrethrum, dried flowers(market for): No verified fine correspondence
+- `M_Quins` quinces(market for): No verified fine correspondence
+- `M_REAL_OTHER` service, real estate activity excluding imputed rents (market for): No verified fine correspondence
+- `M_REAL_OTHER|M_REAL_OWNER` service, real estate activity excluding imputed rents (market for);imputed rent of owner-occupied dwellings (market for): No verified fine correspondence
+- `M_REAL_OWNER` imputed rent of owner-occupied dwellings (market for): No verified fine correspondence
+- `M_RGAS` refinery gas(market for): No verified fine correspondence
+- `M_Ramie` ramie(market for): No verified fine correspondence
+- `M_Rice_mill` rice, milled(market for): No verified fine correspondence
+- `M_Root_nes` other roots and tubers, dried (market for): No verified fine correspondence
+- `M_SE_INCI` incineration with energy recovery of sewage(market for): No verified fine correspondence
+- `M_SE_INCI_no_recov` incineration of sewage (market for): No verified fine correspondence
+- `M_SE_LAND` landfill of sewage(market for): No verified fine correspondence
+- `M_SE_OTHE` other disposal of sewage(market for): No verified fine correspondence
+- `M_SE_RECY` recycling of sewage(market for): No verified fine correspondence
+- `M_SHEET_PA` paper sheet, (market for): No verified fine correspondence
+- `M_SHEET_PAPL` production of paper sheet (market for): No verified fine correspondence
+- `M_SHEET_PAPLAL` paper sheet, with plastic and aluminum foil (market for): No verified fine correspondence
+- `M_STEW` recycling of steel (market for): No verified fine correspondence
+- `M_STE_sort` treatment of steel waste, including sorting, crashing, etc. (market for): No verified fine correspondence
+- `M_ST_INCI` incineration with energy recovery of steel(market for): No verified fine correspondence
+- `M_ST_INCI_no_recov` incineration without energy recovery of steel(market for): No verified fine correspondence
+- `M_ST_LAND` landfill of steel(market for): No verified fine correspondence
+- `M_ST_OTHE` other disposal of steel(market for): No verified fine correspondence
+- `M_SUBC` sub-bituminous coal(market for): No verified fine correspondence
+- `M_Sheep` sheep (market for): No verified fine correspondence
+- `M_Shemilk` milk raw from sheep(market for): No verified fine correspondence
+- `M_Sisal` sisal(market for): No verified fine correspondence
+- `M_Soyace` soya sauce(market for): No verified fine correspondence
+- `M_Soyard` soya curd(market for): No verified fine correspondence
+- `M_Soyate` soya paste(market for): No verified fine correspondence
+- `M_Starch_cass` starch of cassava(market for): No verified fine correspondence
+- `M_Starch_maiz` starch of maize(market for): No verified fine correspondence
+- `M_Starch_pota` starch of potatoes(market for): No verified fine correspondence
+- `M_Starch_rice` starch of rice(market for): No verified fine correspondence
+- `M_Starch_whea` starch of wheat(market for): No verified fine correspondence
+- `M_Stris` string beans(market for): No verified fine correspondence
+- `M_Sugacrs` production of sugar crop (market for): No verified fine correspondence
+- `M_Sugar_nc` sugar, non-centrifugal(market for): No verified fine correspondence
+- `M_Sugar_rc` sugar, raw centrifugal(market for): No verified fine correspondence
+- `M_Sugarn` sugar and syrups nes(market for): No verified fine correspondence
+- `M_Sweed` sweet corn, prepared or preserved(market for): No verified fine correspondence
+- `M_Sween` sweet corn, frozen(market for): No verified fine correspondence
+- `M_TETRA_PP` beverage packaging of paper sheet, with plastic foil (market for): No verified fine correspondence
+- `M_TETRA_PPA` beverage packaging of paper sheet, with plastic and aluminum foil (market for): No verified fine correspondence
+- `M_TEXT_sort` treatment of textile waste, including sorting, crashing, etc. (market for): No verified fine correspondence
+- `M_TE_INCI` incineration with energy recovery of textiles(market for): No verified fine correspondence
+- `M_TE_INCI_no_recov` incineration without energy recovery of textiles(market for): No verified fine correspondence
+- `M_TE_LAND` landfill of textiles(market for): No verified fine correspondence
+- `M_TE_RECY` recycling of textile (market for): No verified fine correspondence
+- `M_Talld` tallowtree seeds(market for): No verified fine correspondence
+- `M_Tapia` tapioca of cassava(market for): No verified fine correspondence
+- `M_Tapis` tapioca of potatoes(market for): No verified fine correspondence
+- `M_Tomad` tomatoes, peeled (o/t vinegar)(market for): No verified fine correspondence
+- `M_Tomae` paste of tomatoes(market for): No verified fine correspondence
+- `M_Tung_nuts` tung nuts(market for): No verified fine correspondence
+- `M_UN_INCI` incineration with energy recovery of unsorted waste(market for): No verified fine correspondence
+- `M_UN_INCI_no_recov` incineration without energy recovery of unsorted waste(market for): No verified fine correspondence
+- `M_UN_LAND` landfill of unsorted waste(market for): No verified fine correspondence
+- `M_UN_OTHE` other disposal of unsorted waste(market for): No verified fine correspondence
+- `M_UN_RECY` recycling of unsorted waste (market for): No verified fine correspondence
+- `M_Vegeh` homogenized vegetable preparations(market for): No verified fine correspondence
+- `M_Vegew` vegetable fat, hydrogenated (market for): No verified fine correspondence
+- `M_Vetcs` vetches(market for): No verified fine correspondence
+- `M_WOOD_sort` treatment of wood waste, including sorting, crashing, etc. (market for): No verified fine correspondence
+- `M_WOOW` recycling of wood(market for): No verified fine correspondence
+- `M_WO_OTHE` other disposal of wood(market for): No verified fine correspondence
+- `M_Wafes` wafers(market for): No verified fine correspondence
+- `M_Walnd` walnuts, shelled, market of: No verified fine correspondence
+- `M_Whey_con` whey, condensed(market for): No verified fine correspondence
+- `M_Wres_ww` treatment of residential waste water, waste (market for): No verified fine correspondence
+- `M_Yoght` yoghurt(market for): No verified fine correspondence
+- `M_Yoght_add` production of yoghurt, with additives (market for): No verified fine correspondence
+- `M_cOil_beans` oil of castor beans(market for): No verified fine correspondence
+- `M_feed_beer` animal feed by-product from brewing (market for): No verified fine correspondence
+- `M_feed_ener` energy feed, (market for): No verified fine correspondence
+- `M_feed_prot` protein feed, (market for): No verified fine correspondence
+- `M_feed_wine` animal feed by-product from wine production (market for): No verified fine correspondence
+- `M_fuel_Passenger` fuel mix and combustion for passenger road transport (market for): No verified fine correspondence
+- `M_fuel_TAIR` fuel for domestic aviation, (market for): No verified fine correspondence
+- `M_fuel_TLND` fuel for road, (market for): No verified fine correspondence
+- `M_fuel_TRAI` fuel mix and combustion for rail transport(market for): No verified fine correspondence
+- `M_fuel_TWAS` fuel for domestic navigation, (market for): No verified fine correspondence
+- `M_heat_CONS` fuel mix and combustion for construction(market for): No verified fine correspondence
+- `M_heat_HOUS` heat for households, (market for): No verified fine correspondence
+- `M_heat_STEL` heat for iron and steel, (market for): No verified fine correspondence
+- `M_heat_WOOD` heat for wood and wood products, (market for): No verified fine correspondence
+- `M_heat_agriculture` heat for agriculture/forestry, (market for): No verified fine correspondence
+- `M_heat_chemicals` heat for chemical and petrochemical, (market for): No verified fine correspondence
+- `M_heat_commercial` heat for commercial and public services, (market for): No verified fine correspondence
+- `M_heat_food` heat for food and tobacco, (market for): No verified fine correspondence
+- `M_heat_machinery` heat for machinery, (market for): No verified fine correspondence
+- `M_heat_mine` heat for mining and quarrying, (market for): No verified fine correspondence
+- `M_heat_motor` fuel mix and combustion for transport equipment(market for): No verified fine correspondence
+- `M_heat_non_ferrous` heat for non-ferrous metals, (market for): No verified fine correspondence
+- `M_heat_non_metallic` heat for non-metallic minerals, (market for): No verified fine correspondence
+- `M_heat_other` heat for industry not elsewhere specified, (market for): No verified fine correspondence
+- `M_heat_paper` heat for paper, pulp and printing, (market for): No verified fine correspondence
+- `M_heat_textile` heat for textile and leather, (market for): No verified fine correspondence
+- `M_iwAlum` treatment of aluminium, industrial waste (market for): No verified fine correspondence
+- `M_iwCons` treatment of construction waste,  industrial waste (market for): No verified fine correspondence
+- `M_iwCopp` treatment of copper, industrial waste (market for): No verified fine correspondence
+- `M_iwDisc_eq` treatment of discarded equipment, industrial waste (market for): No verified fine correspondence
+- `M_iwDisc_eq_special` treatment of discarded equipment, special industrial waste (market for): No verified fine correspondence
+- `M_iwDisc_veh` treatment of discarded vehicles, industrial waste (market for): No verified fine correspondence
+- `M_iwFood` treatment of food, industrial waste (market for): No verified fine correspondence
+- `M_iwFood_special` treatment of food, special industrial waste (market for): No verified fine correspondence
+- `M_iwGlas` treatment of glass, industrial waste (market for): No verified fine correspondence
+- `M_iwGlas_special` treatment of glass, special industrial waste (market for): No verified fine correspondence
+- `M_iwHazar` treatment of hazardous, industrial waste (market for): No verified fine correspondence
+- `M_iwHazar_special` treatment of hazardous, special industrial waste (market for): No verified fine correspondence
+- `M_iwLead` treatment of lead, industrial waste (market for): No verified fine correspondence
+- `M_iwLead_special` treatment of lead, special industrial waste (market for): No verified fine correspondence
+- `M_iwMix_nonferr` treatment of mix metals non-ferrous, industrial waste (market for): No verified fine correspondence
+- `M_iwMix_nonferr_special` treatment of mix metals non-ferrous, special industrial waste (market for): No verified fine correspondence
+- `M_iwPape` treatment of paper, industrial waste (market for): No verified fine correspondence
+- `M_iwPape_special` treatment of paper, special industrial waste (market for): No verified fine correspondence
+- `M_iwPlas` treatment of plastic, industrial waste (market for): No verified fine correspondence
+- `M_iwPlas_special` treatment of plastic, special industrial waste (market for): No verified fine correspondence
+- `M_iwPrec` treatment of precious metals, industrial waste (market for): No verified fine correspondence
+- `M_iwSteel` treatment of steel, industrial waste (market for): No verified fine correspondence
+- `M_iwText` treatment of textiles, industrial waste (market for): No verified fine correspondence
+- `M_iwText_special` treatment of textile, special industrial waste (market for): No verified fine correspondence
+- `M_iwUnsort` treatment of unsorted waste, industrial waste (market for): No verified fine correspondence
+- `M_iwUnsort_special` treatment of unsorted waste, special industrial waste (market for): No verified fine correspondence
+- `M_iwWood` treatment of wood, industrial waste (market for): No verified fine correspondence
+- `M_iwWood_special` treatment of wood, special industrial waste (market for): No verified fine correspondence
+- `M_iwrSteel` treatment of steel, industrial scraps reused internally (market for): No verified fine correspondence
+- `M_land_arable` M_land_arable: No verified fine correspondence
+- `M_land_forest` M_land_forest: No verified fine correspondence
+- `M_land_grass` M_land_grass: No verified fine correspondence
+- `M_meat_camel` meat, camel, fresh (market for): No verified fine correspondence
+- `M_oFru_fresh` fruit, fresh nes(market for): No verified fine correspondence
+- `M_oFru_pom` pome fruit nes(market for): No verified fine correspondence
+- `M_oFru_ston` stone fruit, fresh nes(market for): No verified fine correspondence
+- `M_oVege_fresh` vegetables, fresh n.e.s.(market for): No verified fine correspondence
+- `M_palm` oil palm fruit (market for): No verified fine correspondence
+- `M_vOil_nes` oil of vegetable origin nes(market for): No verified fine correspondence
+- `M_wAlum` treatment of aluminum, (market for): No verified fine correspondence
+- `M_wAsh` treatment of ash(market for): No verified fine correspondence
+- `M_wBatt` treatment of batteries and accumulators(market for): No verified fine correspondence
+- `M_wCons` treatment of construction(market for): No verified fine correspondence
+- `M_wCopp` treatment of copper(market for): No verified fine correspondence
+- `M_wDisc_eq` treatment of discarded equipment (market for): No verified fine correspondence
+- `M_wDisc_veh` treatment of discarded vehicle (market for): No verified fine correspondence
+- `M_wFood` treatment of food, municipal waste (market for): No verified fine correspondence
+- `M_wGlas` treatment of glass, municipal waste (market for): No verified fine correspondence
+- `M_wHazar` treatment of hazardous (market for): No verified fine correspondence
+- `M_wLead` treatment of lead(market for): No verified fine correspondence
+- `M_wMix_met` treatment of mix metals(market for): No verified fine correspondence
+- `M_wMix_nonferr` treatment of mix metals non-ferrous(market for): No verified fine correspondence
+- `M_wPape` treatment of paper, municipal waste (market for): No verified fine correspondence
+- `M_wPlas` treatment of plastic, municipal waste (market for): No verified fine correspondence
+- `M_wPrec` treatment of precious metals(market for): No verified fine correspondence
+- `M_wSewage` treatment of sewage(market for): No verified fine correspondence
+- `M_wSteel` treatment of steel(market for): No verified fine correspondence
+- `M_wText` treatment of textiles, municipal waste (market for): No verified fine correspondence
+- `M_wUnsort` treatment of unsorted waste(market for): No verified fine correspondence
+- `M_wWood` treatment of wood, municipal waste (market for): No verified fine correspondence
+- `M_wpAlumi` treatment of aluminum packaging (market for): No verified fine correspondence
+- `M_wpGlass` treatment of glass packaging, (market for): No verified fine correspondence
+- `M_wpPaper` treatment of paper packaging, (market for): No verified fine correspondence
+- `M_wpPlast` treatment of plastic packaging, (market for): No verified fine correspondence
+- `M_wpSteel` treatment of steel packaging (market for): No verified fine correspondence
 
 ### commodity / EMERGING · Monetary · IOT · 2.0/2.2
 

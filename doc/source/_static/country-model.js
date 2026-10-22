@@ -70,9 +70,9 @@
   const edges=mapping.entries.filter(e=>descendants.has(e.official_code)&&natives.has(e.native_label));
   const coarse=(mapping.coarse_entries||[]).filter(e=>natives.has(e.native_label)&&e.reference_candidates.some(c=>descendants.has(c)));
   if(!edges.length&&coarse.length){
-   const broaderAnchors=unique(coarse.map(e=>e.official_code)).map(code=>classification.nodes.find(n=>n.code===code));
+   const broaderAnchors=unique(coarse.map(e=>e.official_code)).map(code=>classification.nodes.find(n=>n.code===code)).filter(Boolean);
    const ancestor=broaderAnchors[0];
-   return {status:'coarse',reason:'Only broader nxbase anchors are available; leaf membership is unverified.',ancestor,broaderAnchors,matches:coarse,complete:false,source:mapping};
+   return {status:'coarse',reason:'Only broader classification anchors are available; leaf membership is unverified.',ancestor,broaderAnchors,matches:coarse,complete:false,source:mapping};
   }
   const nativeCodes=unique(edges.map(e=>e.native_code));
   const matches=nativeCodes.map(native_code=>{

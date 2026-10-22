@@ -1,0 +1,209 @@
+{
+  "schema_version": 1,
+  "as_of": "2026-10-22",
+  "activity": [
+    {
+      "native": "A_POWB",
+      "name": "production of electricity by biomass and waste",
+      "references": [
+        "35.11",
+        "35.12"
+      ],
+      "note": "Technology definition narrows the old electricity class to its current production class. Electricity storage is excluded. Biomass and waste retains both source types because fossil waste is not separately identified."
+    },
+    {
+      "native": "A_POWC",
+      "name": "production of electricity by coal",
+      "references": [
+        "35.11"
+      ],
+      "note": "Technology definition narrows the old electricity class to its current production class; electricity storage is excluded."
+    },
+    {
+      "native": "A_POWG",
+      "name": "production of electricity by gas",
+      "references": [
+        "35.11"
+      ],
+      "note": "Technology definition narrows the old electricity class to its current production class; electricity storage is excluded."
+    },
+    {
+      "native": "A_POWH",
+      "name": "electricity by hydro",
+      "references": [
+        "35.12"
+      ],
+      "note": "Technology definition narrows the old electricity class to its current production class; electricity storage is excluded."
+    },
+    {
+      "native": "A_POWM",
+      "name": "electricity by geothermal",
+      "references": [
+        "35.12"
+      ],
+      "note": "Technology definition narrows the old electricity class to its current production class; electricity storage is excluded."
+    },
+    {
+      "native": "A_POWN",
+      "name": "electricity by nuclear",
+      "references": [
+        "35.11"
+      ],
+      "note": "Technology definition narrows the old electricity class to its current production class; electricity storage is excluded."
+    },
+    {
+      "native": "A_POWO",
+      "name": "electricity by tide, wave, ocean",
+      "references": [
+        "35.12"
+      ],
+      "note": "Technology definition narrows the old electricity class to its current production class; electricity storage is excluded."
+    },
+    {
+      "native": "A_POWP",
+      "name": "electricity by petroleum and other oil derivatives",
+      "references": [
+        "35.11"
+      ],
+      "note": "Technology definition narrows the old electricity class to its current production class; electricity storage is excluded."
+    },
+    {
+      "native": "A_POWS",
+      "name": "electricity by solar photovoltaic",
+      "references": [
+        "35.12"
+      ],
+      "note": "Technology definition narrows the old electricity class to its current production class; electricity storage is excluded."
+    },
+    {
+      "native": "A_POWW",
+      "name": "electricity by wind",
+      "references": [
+        "35.12"
+      ],
+      "note": "Technology definition narrows the old electricity class to its current production class; electricity storage is excluded."
+    }
+  ],
+  "commodity": [
+    {
+      "native": "C_elec_POWB",
+      "name": "electricity, from biomass",
+      "legacy_cpa21": "35.11.10",
+      "references": [
+        "35.11.00",
+        "35.12.00"
+      ],
+      "note": "Electricity product identified by its supplied technology and reference process; not an electricity-storage service. Biomass/waste remains mixed where the supplied process definition is mixed."
+    },
+    {
+      "native": "C_elec_POWC",
+      "name": "electricity, from combustion of coal",
+      "legacy_cpa21": "35.11.10",
+      "references": [
+        "35.11.00"
+      ],
+      "note": "Electricity product identified by its supplied technology and reference process; not an electricity-storage service. Biomass/waste remains mixed where the supplied process definition is mixed."
+    },
+    {
+      "native": "C_elec_POWG",
+      "name": "electricity, from combustion of gas",
+      "legacy_cpa21": "35.11.10",
+      "references": [
+        "35.11.00"
+      ],
+      "note": "Electricity product identified by its supplied technology and reference process; not an electricity-storage service. Biomass/waste remains mixed where the supplied process definition is mixed."
+    },
+    {
+      "native": "C_elec_POWH",
+      "name": "electricity, from kinetic energy of water",
+      "legacy_cpa21": "35.11.10",
+      "references": [
+        "35.12.00"
+      ],
+      "note": "Electricity product identified by its supplied technology and reference process; not an electricity-storage service. Biomass/waste remains mixed where the supplied process definition is mixed."
+    },
+    {
+      "native": "C_elec_POWM",
+      "name": "electricity, from geothermal energy",
+      "legacy_cpa21": "35.11.10",
+      "references": [
+        "35.12.00"
+      ],
+      "note": "Electricity product identified by its supplied technology and reference process; not an electricity-storage service. Biomass/waste remains mixed where the supplied process definition is mixed."
+    },
+    {
+      "native": "C_elec_POWN",
+      "name": "electricity, from nuclear fission",
+      "legacy_cpa21": "35.11.10",
+      "references": [
+        "35.11.00"
+      ],
+      "note": "Electricity product identified by its supplied technology and reference process; not an electricity-storage service. Biomass/waste remains mixed where the supplied process definition is mixed."
+    },
+    {
+      "native": "C_elec_POWO",
+      "name": "electricity, from kinetic energy of tide, waves, or ocean currents",
+      "legacy_cpa21": "35.11.10",
+      "references": [
+        "35.12.00"
+      ],
+      "note": "Electricity product identified by its supplied technology and reference process; not an electricity-storage service. Biomass/waste remains mixed where the supplied process definition is mixed."
+    },
+    {
+      "native": "C_elec_POWP",
+      "name": "electricity, from combustion of petroleum",
+      "legacy_cpa21": "35.11.10",
+      "references": [
+        "35.11.00"
+      ],
+      "note": "Electricity product identified by its supplied technology and reference process; not an electricity-storage service. Biomass/waste remains mixed where the supplied process definition is mixed."
+    },
+    {
+      "native": "C_elec_POWS",
+      "name": "electricity, from photovoltaic conversion of solar energy",
+      "legacy_cpa21": "35.11.10",
+      "references": [
+        "35.12.00"
+      ],
+      "note": "Electricity product identified by its supplied technology and reference process; not an electricity-storage service. Biomass/waste remains mixed where the supplied process definition is mixed."
+    },
+    {
+      "native": "C_elec_POWW",
+      "name": "electricity, from kinetic energy of wind",
+      "legacy_cpa21": "35.11.10",
+      "references": [
+        "35.12.00"
+      ],
+      "note": "Electricity product identified by its supplied technology and reference process; not an electricity-storage service. Biomass/waste remains mixed where the supplied process definition is mixed."
+    },
+    {
+      "native": "C_ELEC",
+      "name": "electricity, national supply only",
+      "legacy_cpa21": "35.11.10",
+      "references": [
+        "35.11.00",
+        "35.12.00"
+      ],
+      "note": "Mixed electricity energy product. Both generating-source classes remain possible; storage services are a different product and are excluded."
+    },
+    {
+      "native": "M_electricity",
+      "name": "production of electricity (market for)",
+      "legacy_cpa21": "35.11.10",
+      "references": [
+        "35.11.00",
+        "35.12.00"
+      ],
+      "note": "Mixed electricity energy product. Both generating-source classes remain possible; storage services are a different product and are excluded."
+    }
+  ],
+  "note": "MARIO editorial refinements of supplied native definitions against NACE Rev. 2.1 / CPA 2.2. These are not publisher-issued current concordances. Native identities must match the frozen BONSAI classification; official current targets and surviving revision routes are validated. No economic allocation or exclusive subdivision is asserted.",
+  "evidence": [
+    "B03",
+    "B01",
+    "S07",
+    "S14",
+    "P03",
+    "P05"
+  ]
+}
