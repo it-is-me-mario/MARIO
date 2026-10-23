@@ -44,6 +44,12 @@ Avoid slogans, metaphors and rhetorical labels. Prefer two or three decisions
 to an exhaustive option table. Name the units and axes when explaining a result.
 Use figures to explain an actual result, with captions describing its scope.
 
+For navigation cards with one destination, make the whole card clickable using
+a native link and a visible keyboard-focus state. The format chooser uses a
+title link stretched across ``mario-format-choice`` with CSS; it has one tab
+stop per card and works without JavaScript. Do not apply this to cards with
+multiple destinations or embedded controls.
+
 Executable companions
 ---------------------
 

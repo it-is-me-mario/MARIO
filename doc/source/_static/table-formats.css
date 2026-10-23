@@ -5,11 +5,18 @@ body[data-group="formats"] .mario-body h2 { margin-top: 2.4rem; font-size: 1.5re
 body[data-group="formats"] .mario-body > section > section:first-of-type > h2 { margin-top: 1.3rem; }
 .mario-format-choices .mario-card { border-top: 4px solid var(--ribbon-cyan); }
 .mario-format-choices .mario-card + .mario-card { border-top-color: var(--ribbon-lilac); }
+.mario-format-choice { position: relative; }
+.mario-format-choice .mario-card__title a { color: inherit; text-decoration: none; }
+.mario-format-choice .mario-card__title a::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: var(--radius); }
+.mario-format-choice:hover { box-shadow: 0 0 0 1px var(--link); }
+.mario-format-choice:hover .mario-card__title a { color: var(--link); }
+.mario-format-choice:has(.mario-card__title a:focus-visible) { outline: 3px solid var(--focus); outline-offset: 4px; }
+.mario-format-choice .mario-format-cta { margin-top: 1.2rem; color: var(--link); font-weight: 650; }
+.mario-format-choice .mario-format-cta p { margin: 0; }
 .mario-format-choices .mario-scheme { margin: 1rem 0; }
 .mario-format-choices .mario-scheme__title { display: none; }
 .mario-format-choices .mario-scheme__grid { max-height: 11rem; }
 .mario-format-choices .mario-scheme__cell { font-size: 1.5rem; }
-.mario-format-choices .mario-card__body > p:last-child { margin-top: 1.2rem; font-weight: 650; }
 .mario-object-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin: 1.25rem 0; }
 .mario-object-strip > div { border-top: 2px solid var(--line-strong); padding-top: .75rem; }
 .mario-object-strip p { font-size: .9rem; line-height: 1.55; }

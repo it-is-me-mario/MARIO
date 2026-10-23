@@ -12,7 +12,7 @@ axes and calculation assumptions together.
    .. mario-cards::
       :columns: 2
 
-      .. mario-card:: Input-Output Tables
+      .. mario-card:: :doc:`Input-Output Tables <table_formats/iot>`
          :kicker: IOT
          :class: mario-format-choice
 
@@ -24,9 +24,11 @@ axes and calculation assumptions together.
             :col-sizes: 3 1.5
             :row-sizes: 2 0.6 0.6
 
-         :doc:`Explore IOT structure and nomenclature <table_formats/iot>`
+         .. container:: mario-format-cta
 
-      .. mario-card:: Supply and Use Tables
+            Explore IOT structure and nomenclature
+
+      .. mario-card:: :doc:`Supply and Use Tables <table_formats/sut>`
          :kicker: SUT
          :class: mario-format-choice
 
@@ -38,7 +40,9 @@ axes and calculation assumptions together.
             :col-sizes: 1.5 1.5 1.5
             :row-sizes: 1 1 0.6 0.6
 
-         :doc:`Explore SUT structure and nomenclature <table_formats/sut>`
+         .. container:: mario-format-cta
+
+            Explore SUT structure and nomenclature
 
 .. _format-basic-definitions:
 
