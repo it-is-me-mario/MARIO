@@ -92,6 +92,12 @@ leave active settings unchanged. Apply any manual changes after parsing.
 See :doc:`../../reference/api_settings_methods` for installation instructions,
 model sizes, presets and saving defaults for future sessions.
 
+To inspect a parser's preferences before parsing, use
+``mario.get_database_profile("gloria")["compute"]["parser_presets"]``.
+This describes the preferred backend and fallback; it is not the active session
+configuration returned by ``mario.download_settings()["compute"]``.
+See :doc:`database_profiles` for the complete metadata view.
+
 Use partial results deliberately
 --------------------------------
 

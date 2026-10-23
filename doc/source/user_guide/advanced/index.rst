@@ -15,12 +15,12 @@ in analyses of real databases.
       Choose inverse or solve, configure the numerical solver and handle
       singular systems.
 
-   .. mario-card:: :doc:`Database profiles and concordances <database_profiles>`
+   .. mario-card:: :doc:`Database profiles <database_profiles>`
       :kicker: db.database_profile
       :icon: advanced
 
-      Inspect GHG definitions, compute presets and native classification links
-      in one database-specific profile.
+      Inspect GHG definitions, parser compute preferences and classification
+      metadata; distinguish them from active session settings.
 
    .. mario-card:: :doc:`Updating the electricity supply and trade mix <electricity_mix>`
       :kicker: db.update_supply_mix

@@ -16,6 +16,13 @@ the result.
       Look inside a parsed database: sets, labels, matrices and searches, on an
       IOT and on a SUT.
 
+   .. mario-card:: :doc:`Classification concordances <concordances>`
+      :kicker: db.get_concordances
+      :icon: table-search
+
+      Find NACE, ISIC, CPA, CPC or HS codes for native items and inspect
+      source evidence, missing links and regional availability.
+
    .. mario-card:: :doc:`Compute matrices <compute_matrices>`
       :kicker: db.calc_all
       :icon: compute
@@ -47,6 +54,7 @@ the result.
    :hidden:
 
    basic_inspections
+   concordances
    compute_matrices
    visualization
    custom_labels_and_aliases

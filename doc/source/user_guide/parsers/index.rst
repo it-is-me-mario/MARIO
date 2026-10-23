@@ -10,6 +10,12 @@ lists. Explore :ref:`Classifications <database-scopes>`
 for geographical and sectoral coverage, or download all sets from :doc:`Downloadable material
 <../../resources/material>`.
 
+After parsing, inspect :doc:`database profiles <../advanced/database_profiles>`
+for native GHG definitions, compute preferences and concordance availability.
+Use :doc:`classification concordances <../inspection/concordances>` to query
+native items, or :doc:`classification aggregation <../transformations/classification_aggregation>`
+to prepare NACE or CPA groups.
+
 
 Environmentally-extended databases
 ----------------------------------

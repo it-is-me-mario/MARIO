@@ -1,109 +1,143 @@
-Database profiles and concordances
-==================================
+Database profiles
+=================
 
-Database-specific metadata live together in ``mario/database_profiles``.
-The registry identifies each family and connects its native GHG definitions,
-parser compute presets and packaged classification concordances.
+A database profile describes the GHG accounts, parser compute preferences and
+classification correspondences bundled for one database family. Inspect it
+before importing a database, or identify the definitions applicable to an
+existing ``db``.
 
-Inspect a family without downloading or parsing a database::
+.. list-table:: Choose the operation
+   :header-rows: 1
+   :widths: 32 40 28
 
-    import mario
+   * - You want to
+     - Use
+     - Result
+   * - Inspect metadata for a family
+     - ``mario.get_database_profile("gloria")``
+     - Metadata dictionary
+   * - Inspect metadata for a parsed model
+     - ``db.database_profile``
+     - Metadata dictionary with model availability
+   * - Find classification codes for native items
+     - :doc:`db.get_concordances <../inspection/concordances>`
+     - ``{native_item: [codes]}``
+   * - Prepare NACE sections or divisions
+     - :doc:`db.get_aggregation <../transformations/classification_aggregation>`
+     - Mapping ready for ``db.aggregate``
 
-    profiles = mario.get_database_profile()         # Every registered family.
-    gloria = mario.get_database_profile("gloria")
-    gloria["ghg"]["profiles"]
-    gloria["compute"]["parser_presets"]
-    gloria["concordances"]["profiles"]
+These inspection and preparation methods leave matrices and settings unchanged.
+``db.aggregate(...)`` is the separate operation that applies an aggregation.
 
-On a parsed database, the same view also includes its metadata, selected GHG
-profile and native-set concordance availability::
-
-    profile = db.database_profile
-    profile["database"]
-    profile["ghg"]["selected_profile"]
-    profile["concordances"]["available"]
-
-The returned dictionaries are independent copies. Editing them does not change
-registries, settings or model data.
-
-What the three sections mean
-----------------------------
-
-* ``ghg``: native account labels, factors, output units and matching rules used
-  by ``calc_ghg``. The API defaults are AR6/GWP100; already characterised source
-  CO2eq rows retain their original basis. BONSAI's native AR6 profile and the
-  explorer's AR5 comparison recipe are explicitly distinct.
-* ``compute``: preferences selected by parser, including optional solver
-  fallback. These are not current or persisted settings. Use
-  ``mario.download_settings()["compute"]`` to inspect the active session.
-* ``concordances``: editions, native variants, source URLs, snapshot date and
-  actual availability. Support for a classification does not guarantee that
-  every native item has a verified link. Unsupported variants retain a reason.
-
-Retrieve item concordances
---------------------------
+Inspect a family before parsing
+-------------------------------
 
 .. code-block:: python
 
-    db.available_concordances
-    db.get_concordances(
-        set="Activity", classification="NACE Rev. 2.1",
-        item=["Growing wheat", "Growing rice"],
-    )
-    # {'Growing wheat': ['01.11'], 'Growing rice': ['01.12']}
+    import mario
 
-``item`` accepts one label, several labels, or no filter. ``region=...`` limits
-the lookup to actual regional members; otherwise it uses the distinct union.
-``details=True`` adds code descriptions, sources, locations, route direction
-and qualifications. IOTs use ``Sector``; transformations retain whether its
-identities came from Activity or Commodity. BONSAI HIOT also supplies an explicit
-reference-product/process association for the activity lookup.
+    families = mario.get_database_profile()
+    list(families)  # Registered database family identifiers.
 
-Targets include NACE, ISIC, CPA, CPC and the supplied EXIOBASE product / HS 2007
-table, with explicit editions. No industry-to-product memberships are fabricated.
-Current NACE 2.1 and CPA 2.2 results match the explorer's reviewed footprints;
-other editions follow explicit prefixes or qualified official bridges. Broad
-anchors remain broad, and pending proposals remain outside the mapping.
-Empty lists mean unverified; **concordance links are not allocation weights**.
-See :meth:`~mario.CoreModel.get_concordances` for the complete contract.
+    gloria = mario.get_database_profile("gloria")
+    gloria["ghg"]["profiles"]["gloria"]
+    gloria["compute"]["parser_presets"]["gloria"]
+    gloria["concordances"]["classifications"]
 
-Prepare a predefined aggregation
+No source database is downloaded or parsed. This view lists all bundled
+variants: for example, ``"exiobase"`` includes monetary and hybrid definitions.
+It does not select a variant or check the accounts in a particular file.
+
+Inspect a parsed database
+-------------------------
+
+For a model already imported with a MARIO parser:
+
+.. code-block:: python
+
+    profile = db.database_profile
+    profile["database"]                         # Source, year, table, version.
+    profile["ghg"]["selected_profile"]          # Autodetected GHG profile ID.
+    profile["concordances"]["available"]        # Editions by current native set.
+    profile["concordances"]["unavailable_reason"]
+
+MARIO uses source metadata and native identities to select a mapped variant.
+The bundled GLORIA concordances, for example, cover release 060. A model that
+declares release 057 has no available concordance for that variant; the reason
+explains the mismatch. Unknown database families raise ``WrongInput``.
+
+``concordances["supported"]`` describes the **family**. It can be ``True`` even
+when the current model's variant is unsupported. Check ``available`` and
+``unavailable_reason`` for the model itself. In a family-only query, model
+metadata, selected GHG profile and native-set availability are ``None``.
+
+Read the three metadata sections
 --------------------------------
 
-The same metadata can propose section, division (2 digits), group (3 digits)
-or class (4 digits) aggregations. Packaged official hierarchies currently cover
-NACE Rev. 2.1 and CPA 2.2; CPA also supports categories and subcategories::
+GHG definitions
+~~~~~~~~~~~~~~~
 
-    db.available_aggregations
-    mapping = db.get_aggregation(
-        set="Activity", classification="NACE Rev. 2.1", level="2 digits",
-    )
-    mapping["Activity"]                         # Review the proposed targets.
-    mapping["Activity"].attrs["concordance"]    # Sources and unresolved items.
-    aggregated = db.aggregate(mapping, levels=list(mapping), inplace=False)
+``ghg["profiles"]`` holds native account labels, characterisation factors,
+matching rules and units used by :meth:`~mario.Database.calc_ghg`.
+``selected_profile`` is autodetected from the model's source/name. It does not
+record the last explicit ``calc_ghg(profile=...)`` call or verify that every
+configured gas account is present.
 
-An item whose linked codes all belong to one target group is assigned once.
-Items crossing groups, lacking verified links or already coarser than the
-requested level retain their original labels. ``unresolved="raise"`` instead
-requires a unique assignment for every item. Regional memberships remain
-regional, and no item is duplicated, split or dropped. Target labels include
-the edition, for example ``NACE Rev. 2.1:A``.
+The API defaults are AR6/GWP100. Already characterised source CO2eq rows,
+such as those used by ADB and EMERGING, retain their original characterisation
+when multiplied by their scalar factor. Changing ``ipcc_report`` does not
+recharacterise those source totals. BONSAI's default AR6 profile also differs
+from the documentation explorer's AR5 comparison recipe.
+See :doc:`greenhouse_gas_calculations` for calculations and
+:doc:`../../api_document/mario.Database.calc_ghg` for the BONSAI-specific factor.
 
-These are reviewable groupings of qualified correspondence footprints. Consult
-``get_concordances(details=True)`` for the underlying source qualifications;
-an unweighted correspondence does not certify complete native containment.
-Preparing a mapping leaves the database unchanged; applying it uses the
-existing aggregation API and its unit and regional validation.
+Compute preferences
+~~~~~~~~~~~~~~~~~~~
 
-Maintaining the metadata
-------------------------
+``compute["parser_presets"]`` describes preferences selected by a successful
+parser. BONSAI, GLORIA and EMERGING prefer solve/direct with optional UMFPACK
+and a SciPy fallback when UMFPACK cannot be imported. The actual active solver
+can therefore differ from the preferred solver in the profile.
 
-``registry.py`` owns database identities and references to the three metadata
-domains. ``ghg.py``, ``compute.py`` and ``concordances.py`` hold their definitions;
-``data/concordances`` contains the compressed, installable explorer snapshots.
-Regenerate the latter with ``doc/scripts/build_runtime_concordances.py`` after
-updating the canonical classification sources. No IO observations are packaged.
+Inspect the current session separately:
 
-Existing ``mario.ops.ghg.GHG_PROFILES``, ``register_ghg_profile`` and
-``mario.settings.parser_profiles.PARSER_COMPUTE_PROFILES`` remain compatible:
-they use the same live dictionaries, not duplicate configurations.
+.. code-block:: python
+
+    preferred = mario.get_database_profile("gloria")["compute"]["parser_presets"]
+    active = mario.download_settings()["compute"]
+
+An empty ``parser_presets`` dictionary means that the parser leaves active
+settings unchanged. It does not mean the model has no computation settings.
+Settings apply to all databases in the current Python process. Apply manual
+overrides after parsing; see :doc:`compute_settings` for options and persistence.
+
+Concordance metadata
+~~~~~~~~~~~~~~~~~~~~
+
+``concordances`` lists native variants, target editions, source URLs and the
+snapshot date (``as_of``). The date describes the packaged classification
+metadata, not the economic database's reference year or the latest query.
+``profiles`` records bundled releases and native variants; ``classifications``
+also lists the available hierarchy aggregation levels.
+
+A listed edition has a supported correspondence route. Coverage can still be
+incomplete for individual items. See :doc:`../inspection/concordances` to read
+code lists, missing links and source qualifications, then
+:doc:`../transformations/classification_aggregation` to prepare an aggregation.
+
+Availability is independent across sections. EORA has a built-in GHG profile
+and no bundled native concordance; FIGARO has bundled concordances and no
+built-in GHG profile.
+
+Copies and updates
+------------------
+
+Returned dictionaries are independent copies. Editing ``profile["compute"]``
+does not configure the solver; use the computation settings API. Editing
+``profile["ghg"]`` does not register a profile; use
+``mario.ops.ghg.register_ghg_profile`` or pass an explicit ``gwp`` mapping.
+
+Definitions are packaged with MARIO and queried offline. Updating source files
+outside the package does not refresh the bundled snapshot automatically. The
+legacy GHG and parser-profile import paths remain compatible and refer to the
+same live registries as ``mario.database_profiles``.

@@ -3467,9 +3467,15 @@ class CoreModel:
 
         Examples
         --------
+        On a GLORIA release 060 SUT:
+
         >>> db.get_concordances(set="Activity", classification="NACE Rev. 2.1", item="Growing wheat")  # doctest: +SKIP
         {'Growing wheat': ['01.11']}
-        >>> db.get_concordances(set="Commodity", classification="HS 2007", item="Wheat", details=True)  # doctest: +SKIP
+
+        On an EXIOBASE monetary SUT parsed as ``exio``:
+
+        >>> exio.get_concordances(set="Commodity", classification="HS 2007", item="Wheat")  # doctest: +SKIP
+        {'Wheat': ['100110', '100190']}
         """
         from mario.model.concordances import get_concordances
 
@@ -3524,6 +3530,11 @@ class CoreModel:
         qualifications: this is a reviewable grouping proposal, not certified
         native containment or an allocation model. Inspect
         ``get_concordances(details=True)`` before applying it.
+
+        Prepares the complete selected native set; item and region filters are
+        not accepted. With unresolved="keep", the proposal can mix standard
+        groups and retained native labels. Unit compatibility is checked when
+        the mapping is applied by aggregate, not during preparation.
         """
         from mario.model.classification_aggregation import get_aggregation
 
@@ -3535,6 +3546,8 @@ class CoreModel:
 
         Returns an independent dictionary from the central database registry.
         Compute presets describe parser preferences, not current session settings.
+        The selected GHG profile is autodetected from source/name metadata,
+        rather than a record of the last explicit calc_ghg profile argument.
         """
         from mario.database_profiles import get_database_profile
 

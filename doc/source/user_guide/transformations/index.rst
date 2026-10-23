@@ -16,6 +16,13 @@ formats.
       Group regions, sectors and other sets with an Excel workbook or a Region
       preset.
 
+   .. mario-card:: :doc:`Aggregating by classification <classification_aggregation>`
+      :kicker: db.get_aggregation
+      :icon: merge
+
+      Prepare NACE or CPA hierarchy groups, review unresolved items and
+      apply the mapping to a copy of the database.
+
    .. mario-card:: :doc:`Add extensions <add_extensions>`
       :kicker: db.add_extensions
       :icon: add-rows
@@ -60,6 +67,7 @@ formats.
    :hidden:
 
    aggregate
+   classification_aggregation
    add_extensions
    apply_shocks
    add_sectors
