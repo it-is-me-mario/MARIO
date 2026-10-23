@@ -5,37 +5,73 @@ Release History
 All notable changes to MARIO, newest first. Versions match the ``mariopy``
 package on PyPI, and dates are its publication dates.
 
-Unreleased
-----------
+v1.3.3
+------
+
+*Released 2026-10-23.*
 
 Classification concordances
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* Add ``get_concordances(set=..., classification=..., item=...)`` to retrieve
-  native-item code lists from the Database explorer's reviewed metadata.
-  Profiles follow the parsed database and native variant; ``region`` filters
-  actual membership and ``details=True`` includes descriptions, source locations,
-  route direction and qualifications. ``available_concordances`` lists targets.
-* Bundle offline NACE, ISIC, CPA and CPC revision routes and the supplied
+* Add ``db.get_concordances()`` to look up the Database explorer's reviewed
+  classifications directly from a parsed model. Return native-item code lists,
+  filter by productive set, item or region, and request descriptions, sources
+  and qualifications with ``details=True``. ``available_concordances`` lists
+  the targets supported by the model's database and variant.
+* Package offline NACE, ISIC, CPA and CPC revision routes, plus the supplied
   EXIOBASE product / HS 2007 correspondence. Broad anchors remain coarse;
-  reverse and composed routes remain qualified and provide no allocation weights.
-  SUT→IOT conversions retain whether sectors represent activities or products.
-* Add ``get_aggregation`` and ``available_aggregations`` for reviewable NACE 2.1
-  and CPA 2.2 hierarchy presets, including sections and 2-digit divisions.
-  Each native item receives one target; unresolved items stay individual or
-  raise on request. Reports retain hierarchy sources and unresolved reasons,
-  and regional mappings feed the existing ``aggregate`` API.
+  reverse and composed routes retain their qualifications. Concordances are
+  classification links, not numerical allocation weights.
+* Preserve whether IOT sectors represent activities or products after SUT
+  conversion, so subsequent concordance queries use the correct native set.
 
-Database metadata
+Predefined classification aggregations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Add ``db.get_aggregation()`` and ``available_aggregations`` for NACE Rev. 2.1
+  and CPA 2.2 hierarchy presets, including sections and 2-digit divisions.
+  The returned mappings feed the existing ``aggregate()`` method and preserve
+  actual regional memberships.
+* Assign a native item only when its verified links resolve to one target
+  group. Unresolved items remain separate by default or raise on request;
+  mapping reports include hierarchy sources and reasons for unresolved cases.
+
+Shared database profiles
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Collect database identities, GHG definitions, parser compute presets and
+  concordance metadata in ``mario.database_profiles``. Inspect a family without
+  parsing files through ``mario.get_database_profile()`` or the current model
+  through ``db.database_profile``.
+* Keep existing GHG and parser-profile import paths connected to the same live
+  registries. Inspection returns independent copies and does not change active
+  calculation settings or recharacterize source CO2eq accounts.
+
+Documentation
+~~~~~~~~~~~~~
+
+* Reorganize Docs around data sources, database inspection, calculations,
+  transformations, configuration, examples and API reference. Task guides link
+  to the corresponding APIs and worked examples, including structural paths.
+* Replace rendered notebooks with concise RST guides, using short examples,
+  visible results and expandable technical detail. Preserve all 38 executable
+  notebook companions as downloads from their guides and the shared catalogue.
+* Combine table structures and nomenclature in visual IOT and SUT guides, with
+  interactive block diagrams, native axes, units and calculation assumptions.
+  Preserve former page and section links through compatibility redirects.
+* Add guides to database profiles, concordances, classification aggregation
+  and mapping limitations. Explain all four SUT-to-IOT methods with allocation
+  examples, constraints and equations, plus an executable comparison notebook.
+* Establish a versioned maintenance KB covering page ownership, authoring,
+  verification and releases, with automated local-link and download checks.
+
+Database explorer
 ~~~~~~~~~~~~~~~~~
 
-* Gather database identities, native GHG definitions, parser compute presets
-  and offline concordance metadata in ``mario.database_profiles``. Inspect
-  the shared registry with ``mario.get_database_profile`` or the selected
-  database with ``db.database_profile``. Existing GHG and parser-profile
-  import paths retain the same live registries. A concise advanced-workflow
-  guide explains the distinction between presets, active settings and
-  already characterised source emissions.
+* Include BONSAI's supplied NACE/CPA correspondences and qualified routes in
+  sectoral scope, retaining regional native memberships and unresolved links.
+* Align BONSAI explorer GHG and electricity comparisons to their stated AR5
+  basis. The runtime BONSAI GHG profile retains its native AR6/GWP100 recipe.
 
 v1.3.2
 ------

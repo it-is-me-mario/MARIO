@@ -14,6 +14,8 @@ Maintenance references
   together when it changes.
 * `Verification <verification.rst>`_: build, link/download checks, example
   validation and visual review.
+* `Releases and publication <releases.rst>`_: version selection, packaging,
+  merge requirements, artifact checks and public deployment verification.
 
 Update workflow
 ---------------
@@ -68,6 +70,10 @@ Established decisions
 
 Keeping the KB current
 ----------------------
+
+After a release, merge, deployment or other significant operation, capture any
+new repeatable check in the appropriate page before closing the work. Record
+the procedure and its reason, not a transcript of one run.
 
 Maintain one authoring policy and one change map. Link to specialized generator
 instructions instead of copying them here. Add a new map row when a new feature

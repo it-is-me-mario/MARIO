@@ -141,7 +141,8 @@ Shared metadata and generated assets
        update date, plots and exports
    * - Release or installation behaviour
      - Package version/dependencies and ``CHANGELOG.rst``
-     - README, Get started installation and affected feature guides
+     - README, Get started installation, affected feature guides and
+       `release checklist <releases.rst>`_
 
 Use `catalogue instructions <../scripts/database_catalogue.rst>`_,
 `classification instructions <../classifications/sectoral/README.md>`_ and

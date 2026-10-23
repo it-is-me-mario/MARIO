@@ -6,6 +6,9 @@ Before changing public APIs, parsers, database metadata, examples or the docs
 site, read [the documentation maintenance KB](doc/maintenance/README.rst).
 Use its change map to identify affected pages and downloads before editing.
 Follow [the authoring rules](doc/AUTHORING.rst) for user-facing content.
+For releases, merges and public deployments, also follow the
+[release checklist](doc/maintenance/releases.rst). Record newly learned,
+repeatable operational checks in the KB as part of the same change.
 
 A feature must be discoverable from its topic guide and API reference; a worked
 example alone is not sufficient. Keep database notebooks as downloadable

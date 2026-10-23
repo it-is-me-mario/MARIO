@@ -27,9 +27,12 @@ def umfpack():
 def _system(sparse_backed=False):
     axis = pd.MultiIndex.from_tuples([("IT", "a"), ("GB", "b"), ("GB", "c")])
     values = np.array([[0.1, 0.2, 0.0], [0.0, 0.3, 0.1], [0.2, 0.0, 0.1]])
+    frame = pd.DataFrame(values, index=axis, columns=axis)
     if sparse_backed:
-        return pd.DataFrame.sparse.from_spmatrix(sparse.csc_matrix(values), index=axis, columns=axis)
-    return pd.DataFrame(values, index=axis, columns=axis)
+        # pandas 3 can infer NaN fill from a SciPy matrix. Structural gaps in
+        # this coefficient fixture are zeros, including in the dense reference.
+        return frame.astype(pd.SparseDtype(float, 0.0))
+    return frame
 
 
 @pytest.mark.parametrize("sparse_backed", [False, True])
