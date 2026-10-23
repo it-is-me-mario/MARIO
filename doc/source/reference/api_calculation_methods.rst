@@ -312,8 +312,8 @@ Standalone IOT Helpers
 
 The functions below operate on pandas matrices directly. They do not mutate a
 ``Database`` and they do not infer missing inputs. Select a function for its signature, parameters and returned axes.
-Matrix names and descriptions follow the :doc:`Matrices table in Nomenclature
-</get_started/nomenclature>`.
+Matrix names and descriptions follow the :doc:`matrix catalogue
+<api_resolvable_matrices>` and the :doc:`IOT guide </get_started/table_formats/iot>`.
 
 .. list-table::
    :header-rows: 1

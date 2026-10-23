@@ -2,7 +2,7 @@
 {%- set hero = mario.hero %}
 <section class="mario-hero mario-hero--{{ mario.layout }}" data-hero data-snap>
   <div class="mario-hero__inner mario-wide">
-    {%- if mario.layout == "tabs" %}
+    {%- if mario.layout == "tabs" and mario.group_key != "formats" %}
     <p class="mario-hero__title">{{ hero.title }}</p>
     {%- else %}
     <h1 class="mario-hero__title">{{ hero.title }}</h1>

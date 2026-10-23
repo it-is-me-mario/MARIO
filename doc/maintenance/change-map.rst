@@ -19,6 +19,11 @@ Page ownership
      - ``user_guide/parsers/index.rst`` and source guides in
        ``notebooks/parsers/``; BONSAI uses ``user_guide/parsers/bonsai.rst``
      - Parser API, companion, source profile and catalogue
+   * - Table structures and nomenclature
+     - ``get_started/table_formats.rst`` and ``table_formats/iot.rst`` /
+       ``table_formats/sut.rst`` under ``get_started/``
+     - ``reference/api_indices.rst``, ``reference/api_resolvable_matrices.rst``,
+       nomenclature generator, workbook, diagrams and compatibility anchors
    * - Inspecting, querying and exporting
      - ``user_guide/inspection/`` and its ``index.rst``
      - API, paired notebook and file-format examples
@@ -62,6 +67,12 @@ task links. Update both when adding or moving a page; do not infer membership
 from a legacy ``advanced/`` or ``notebooks/`` path. Search navigation is generated
 as ``_static/mario-nav.json`` in the build output, not edited by hand.
 
+Nomenclature's old URL redirects to Table formats; its former anchors route to
+the appropriate reference or clusters page. Redirect entries can use a
+``target`` and an ``anchors`` mapping in ``conf.py``. Table formats also retains
+links for its former IOT/SUT/technology anchors. Review both document and
+fragment destinations when moving conceptual content.
+
 For a public feature, connect **guide <-> API**, and **guide <-> worked example**
 when an example exists. Check the feature from the topic menu as well as from
 search. Adding a page only to Examples leaves the operation undiscoverable.
@@ -70,6 +81,16 @@ Components live in ``doc/source/_ext/mario_site.py``; styling in
 ``doc/source/_static/docs-workflows.css`` and ``doc/source/_themes/mario/``.
 Changes there require representative desktop and narrow-screen checks, including
 navigation, code blocks, disclosure links and keyboard interaction.
+
+Format diagrams and tables come from
+``doc/scripts/generate_nomenclature_tables.py`` and the shared
+``Nomenclature_and_formulas.xlsx`` workbook in ``doc/source/_static/data/supporting_files/``.
+The generator selects introductory blocks and derived matrices for each format;
+descriptions and axes come from the same workbook as the full reference. Run
+``python doc/scripts/generate_nomenclature_tables.py`` after changing the source
+or its presentation. Do not hand-edit ``get_started/_generated/``.
+The interactive diagram uses ``_static/table-formats.css`` and
+``_static/table-formats.js``; its links and definitions must also work without JS.
 
 Notebook companions
 -------------------

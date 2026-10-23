@@ -1,0 +1,68 @@
+/* Table-format guides: diagram first, then definitions and a small example. */
+body[data-group="formats"] .mario-hero { padding-bottom: 1.75rem; }
+body[data-group="formats"] .mario-body > section > p { max-width: 74ch; }
+body[data-group="formats"] .mario-body h2 { margin-top: 2.4rem; font-size: 1.5rem; }
+body[data-group="formats"] .mario-body > section > section:first-of-type > h2 { margin-top: 1.3rem; }
+.mario-format-choices .mario-card { border-top: 4px solid var(--ribbon-cyan); }
+.mario-format-choices .mario-card + .mario-card { border-top-color: var(--ribbon-lilac); }
+.mario-format-choices .mario-scheme { margin: 1rem 0; }
+.mario-format-choices .mario-scheme__title { display: none; }
+.mario-format-choices .mario-scheme__grid { max-height: 11rem; }
+.mario-format-choices .mario-scheme__cell { font-size: 1.5rem; }
+.mario-format-choices .mario-card__body > p:last-child { margin-top: 1.2rem; font-weight: 650; }
+.mario-object-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin: 1.25rem 0; }
+.mario-object-strip > div { border-top: 2px solid var(--line-strong); padding-top: .75rem; }
+.mario-object-strip p { font-size: .9rem; line-height: 1.55; }
+.mario-object-strip p:first-child { margin: 0 0 .6rem; }
+.mario-format-note { margin: 1.25rem 0; padding: .85rem 1rem; border-left: 3px solid var(--ribbon-cyan); background: var(--surface-2); font-size: .9rem; }
+.mario-format-note p:last-child { margin-bottom: 0; }
+.table-map { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(14rem, 1fr); gap: 1.5rem; align-items: start; margin: 1.5rem 0; }
+.table-map__scroll { min-width: 0; overflow-x: auto; }
+.mario-article .table-map__grid { width: 100%; border: 0; border-collapse: separate; border-spacing: .4rem; table-layout: fixed; margin: 0; }
+.table-map__grid caption { text-align: left; font-size: .8rem; font-weight: 600; color: var(--ink-muted); padding: 0 .4rem .6rem; }
+.mario-article .table-map__grid th,
+.mario-article .table-map__grid td { border: 0; background: transparent; padding: 0; text-align: center; vertical-align: middle; }
+.mario-article .table-map__grid th { font-size: .75rem; font-weight: 600; color: var(--ink-soft); line-height: 1.35; overflow-wrap: anywhere; }
+.mario-article .table-map__grid th[scope="row"] { text-align: left; padding-right: .35rem; }
+.mario-article .table-map__grid thead td { width: 20%; }
+.table-map__block { --block-color: var(--ribbon-cyan); }
+.table-map__block.is-demand { --block-color: var(--accent); }
+.table-map__block.is-factors { --block-color: var(--ribbon-lilac); }
+.table-map__block.is-satellite { --block-color: var(--ribbon-green); }
+.mario-article .table-map__block a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .25rem; min-height: 5rem; padding: .65rem .3rem; border: 2px solid transparent; border-radius: 5px; color: #16100d; background: var(--block-color); text-decoration: none; transition: box-shadow .15s ease; }
+.mario-article .table-map__block a:hover { box-shadow: inset 0 0 0 2px #16100d; }
+.mario-article .table-map__block a[aria-current="true"] { border-color: #16100d; box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink); }
+.mario-article .table-map__block a:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+.mario-article .table-map__block code { color: inherit; background: transparent; border: 0; font-size: 1.7rem; padding: 0; font-weight: 700; }
+.table-map__block span { font-size: .65rem; font-weight: 600; line-height: 1.2; }
+.table-map__empty { color: var(--ink-muted); }
+.table-map__definitions { border: 1px solid var(--line-strong); border-radius: 8px; padding: 1.4rem; background: var(--surface-2); min-height: 17rem; }
+.table-map__definition + .table-map__definition { border-top: 1px solid var(--line); padding-top: 1rem; }
+.table-map.is-enhanced .table-map__definition { border: 0; padding: 0; }
+.table-map__symbol { display: flex; align-items: center; gap: .8rem; margin: 0 0 .8rem; }
+.mario-article .table-map__symbol code { font-size: 2rem; border: 0; background: transparent; padding: 0; color: var(--ink); }
+.table-map__symbol span { color: var(--ink-muted); font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; }
+.table-map__description { font-size: 1.05rem; font-weight: 600; line-height: 1.5; }
+.table-map__definition dl { margin: 1rem 0 0; }
+.table-map__definition dt { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-muted); margin-top: .8rem; }
+.table-map__definition dd { margin: .2rem 0 0; font-size: .9rem; }
+@media (max-width: 850px) {
+  .table-map { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+  .table-map__definitions { min-height: 0; padding: 1rem; }
+  .table-map__definition dl { display: grid; grid-template-columns: 5rem minmax(0, 1fr); align-items: baseline; gap: .5rem; }
+  .table-map__definition dt, .table-map__definition dd { margin: 0; }
+  .mario-object-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 480px) {
+  .mario-article .table-map__grid { border-spacing: .3rem; }
+  .mario-article .table-map__grid thead td { width: 26%; }
+  .mario-article .table-map__grid th { font-size: .65rem; }
+  .mario-article .table-map__block a { min-height: 4.3rem; }
+  .mario-article .table-map__block code { font-size: 1.35rem; }
+  .table-map__block span { font-size: .58rem; }
+}
+@media print {
+  .table-map { display: block; }
+  .table-map__definition[hidden] { display: block; }
+  .table-map__definitions { margin-top: 1rem; }
+}

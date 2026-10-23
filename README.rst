@@ -121,7 +121,7 @@ Documentation Map
 
 The published documentation is organized into three sections:
 
-* `Get started <https://www.marioproject.com/en/latest/get_started/index.html>`_ for installation, nomenclature, table formats and scenarios;
+* `Get started <https://www.marioproject.com/en/latest/get_started/index.html>`_ for installation, table formats with their nomenclature, and scenarios;
 * `Docs <https://www.marioproject.com/en/latest/user_guide/index.html>`_ for data sources, inspection, analysis, transformations, configuration, examples and the
   `API reference <https://www.marioproject.com/en/latest/reference/api_library.html>`_;
 * `Resources <https://www.marioproject.com/en/latest/resources/research.html>`_ for the software paper and related research.

@@ -5,7 +5,7 @@ Working with a database
 
 Use these guides once you have imported a database. For the meaning of
 regions, activities, commodities and sectors, see
-:doc:`Nomenclature <../../get_started/nomenclature>`.
+:doc:`Table formats <../../get_started/table_formats>`.
 
 .. list-table::
    :header-rows: 1
@@ -17,6 +17,8 @@ regions, activities, commodities and sectors, see
      - :doc:`Inspect and query a database <basic_inspections>`
    * - Find NACE, CPA, ISIC, CPC or HS codes for native items
      - :doc:`Classification concordances <concordances>`
+   * - Save and reuse named groups of labels
+     - :doc:`Work with clusters <clusters>`
    * - Save a model to Excel, CSV or Parquet
      - :doc:`Export a database <export_and_roundtrip>`
 
@@ -29,5 +31,6 @@ source, inspect its :doc:`database profile <../advanced/database_profiles>`.
    :hidden:
 
    basic_inspections
+   clusters
    concordances
    export_and_roundtrip

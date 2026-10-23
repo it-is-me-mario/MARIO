@@ -211,6 +211,22 @@ html_js_files = [
 # Long signatures get one parameter per line.
 python_maximum_signature_line_length = 88
 
+_nomenclature_redirect = {
+    "target": "get_started/table_formats",
+    "anchors": {
+        "nomenclature": "get_started/table_formats",
+        "basic-definitions": "get_started/table_formats#format-basic-definitions",
+        "default-canonical-labels": "reference/api_indices#canonical-names-and-aliases",
+        "indices": "reference/api_indices",
+        "regional-classifications": "reference/api_indices#regional-classifications",
+        "matrices": "reference/api_resolvable_matrices#block-catalog",
+        "terminology-indices-table": "reference/api_indices#terminology-indices-table",
+        "terminology-matrices-table": "reference/api_resolvable_matrices#terminology-matrices-table",
+        "clusters": "user_guide/inspection/clusters",
+        "concept-clusters": "user_guide/inspection/clusters#concept-clusters",
+    },
+}
+
 mario_site = {
     "github": "https://github.com/it-is-me-mario/MARIO",
     "pypi": "https://pypi.org/project/mariopy/",
@@ -242,12 +258,13 @@ mario_site = {
             "prefixes": ["get_started/"],
             "hero": {
                 "title": "<mark>Install</mark> and <mark>discover</mark> MARIO",
-                "text": "Set up your MARIO environment and learn about definitions, nomenclature and other fundamentals.",
+                "text": "Install MARIO, understand your table's structure and work with scenarios.",
             },
             "tabs": [
                 {"label": "Installation", "doc": "get_started/index", "summary": "Install MARIO and prepare your Python environment."},
-                {"label": "Nomenclature", "doc": "get_started/nomenclature", "summary": "Understand the tables, matrices and sets."},
-                {"label": "Table formats", "doc": "get_started/table_formats", "summary": "Explore input-output and supply-use tables."},
+                {"label": "Table formats", "key": "formats", "doc": "get_started/table_formats",
+                 "prefixes": ["get_started/table_formats/"],
+                 "summary": "Read IOT and SUT structure, indices and matrix names."},
                 {"label": "Scenarios", "doc": "get_started/scenarios", "summary": "Organise and compare different model scenarios."},
             ],
         },
@@ -428,12 +445,13 @@ mario_site = {
     # Pages moved or removed in the 2026 redesign keep working through redirect pages.
     "redirects": {
         "setup/index": "get_started/index",
-        "concepts/index": "get_started/nomenclature",
-        "concepts/nomenclature": "get_started/nomenclature",
+        "concepts/index": _nomenclature_redirect,
+        "concepts/nomenclature": _nomenclature_redirect,
+        "get_started/nomenclature": _nomenclature_redirect,
         "concepts/table_formats": "get_started/table_formats",
         "concepts/scenarios": "get_started/scenarios",
-        "concepts/clusters": "get_started/nomenclature#clusters",
-        "concepts/technology_assumptions": "get_started/table_formats#technology-assumptions",
+        "concepts/clusters": "user_guide/inspection/clusters",
+        "concepts/technology_assumptions": "get_started/table_formats/sut#technology-assumptions",
         "contribute/index": "index",
         "contribute/architecture_overview": "index",
         "contribute/compute_layer": "index",
@@ -446,7 +464,7 @@ mario_site = {
         "notebooks/parsers/bonsai/walkthrough_bonsai": "user_guide/parsers/bonsai",
         "user_guide/advanced/greenhouse_gas_calculations": "user_guide/analysis/greenhouse_gases",
         "user_guide/advanced/index": "user_guide/index",
-        "user_guide/parsers/bonsai_methods": "get_started/nomenclature#regional-classifications",
+        "user_guide/parsers/bonsai_methods": "reference/api_indices#regional-classifications",
         "resources/publications": "resources/projects_publications",
         "resources/data-explorer": "resources/data-explorer/scope",
         "resources/data-explorer/browsers": "resources/data-explorer/compare",

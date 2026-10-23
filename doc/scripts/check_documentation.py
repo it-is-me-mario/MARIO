@@ -83,12 +83,13 @@ def audit(site, source=SOURCE):
     patterns = excluded_patterns(source)
     pages = sorted(
         path.relative_to(source).with_suffix(".html")
-        for folder in ("user_guide", "notebooks/parsers")
+        for folder in ("get_started", "user_guide", "notebooks/parsers")
         for path in (source / folder).rglob("*.rst")
         if not any(fnmatch.fnmatchcase(path.relative_to(source).as_posix(), pattern)
                    for pattern in patterns)
     )
     pages.append(Path("resources/material.html"))
+    pages.extend(Path(f"reference/{name}.html") for name in ("api_indices", "api_resolvable_matrices"))
 
     def read(path):
         if path not in cache:

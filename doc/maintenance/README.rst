@@ -48,6 +48,10 @@ Established decisions
 
 * Keep **Get started** focused on installation, first use and core concepts.
   Advanced features belong in Docs; do not expand onboarding into a catalogue.
+* **Table formats** owns each format's structure, indices, nomenclature and
+  assumptions together. Keep common object definitions in its overview and
+  complete catalogues in the API reference. Clusters belong in the inspection
+  guides. Do not reintroduce a separate Nomenclature navigation item.
 * Organize Docs by user task, not by the historical location of a source file.
   Structural path analysis, for example, has an analysis guide as well as a
   separate worked example.

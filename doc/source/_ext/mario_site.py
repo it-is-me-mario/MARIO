@@ -349,6 +349,11 @@ def _page_context(app, pagename, templatename, context, doctree):
             page["layout"] = "tabs"
             page["group_key"] = (tab or {}).get("key", "")
             page["hero"] = hero
+            if page["group_key"] == "formats":
+                metadata = env.metadata.get(pagename, {})
+                page["hero"] = {"title": context.get("title", ""),
+                                "text": metadata.get("summary", ""), "install": False}
+                context["body"] = _FIRST_H1.sub("", context.get("body", ""), count=1)
     page["hero"].setdefault("text", "")
     page["hero"].setdefault("install", False)
 
@@ -364,8 +369,11 @@ def _page_context(app, pagename, templatename, context, doctree):
                            "dialog": closing.get("dialog")}
 
     context["mario_page"] = page
-    if page["topic_navigation"]:
+    if page["topic_navigation"] or page["group_key"] == "formats":
         app.add_css_file("docs-workflows.css")
+    if page["group_key"] == "formats":
+        app.add_css_file("table-formats.css")
+        app.add_js_file("table-formats.js", defer="defer")
     if pagename in {"resources/data-explorer/compare", "resources/data-explorer/scope", "resources/data-explorer/analyses"}:
         app.add_css_file("economy-browser.css")
     if pagename == "resources/data-explorer/scope":
@@ -1253,35 +1261,46 @@ def _render_api_index(app, doctree, fromdocname):
 # --------------------------------------------------------------------------
 
 
-def _redirect_html(target):
+def _redirect_html(target, anchors=None):
     target_attr = html.escape(target, quote=True)
     target_js = json.dumps(target)
+    anchor_js = json.dumps(anchors or {}).replace("<", "\\u003c")
+    alternatives = "".join(
+        f'<li><a href="{html.escape(destination, quote=True)}">{html.escape(anchor)}</a></li>'
+        for anchor, destination in (anchors or {}).items()
+    )
     return f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <title>This page has moved</title>
 <link rel="canonical" href="{target_attr}">
 <meta http-equiv="refresh" content="0; url={target_attr}">
-<script>location.replace({target_js} + ({target_js}.indexOf("#") < 0 ? location.hash : ""));</script>
-</head><body><p>This page has moved to <a href="{target_attr}">{target_attr}</a>.</p></body></html>
+<script>const anchors = {anchor_js}; location.replace(anchors[location.hash.slice(1)] || ({target_js} + ({target_js}.indexOf("#") < 0 ? location.hash : "")));</script>
+</head><body><p>This page has moved to <a href="{target_attr}">{target_attr}</a>.</p><ul>{alternatives}</ul></body></html>
 """
 
 
 def _write_redirects(app):
     outdir = Path(app.outdir)
     for old, new in app.config.mario_site.get("redirects", {}).items():
-        new_doc, _, anchor = new.partition("#")
         if old in app.env.found_docs:
             logger.warning("mario_site: redirect source %s is still a page; skipped", old)
             continue
-        if new_doc not in app.env.found_docs:
-            logger.warning("mario_site: redirect target %s does not exist", new_doc)
+        def destination(value):
+            new_doc, _, anchor = value.partition("#")
+            if new_doc not in app.env.found_docs:
+                logger.warning("mario_site: redirect target %s does not exist", new_doc)
+                return None
+            target = posixpath.relpath(app.builder.get_target_uri(new_doc), posixpath.dirname(old) or ".")
+            return f"{target}#{anchor}" if anchor else target
+
+        record = new if isinstance(new, dict) else {"target": new}
+        target = destination(record["target"])
+        anchors = {anchor: destination(value) for anchor, value in record.get("anchors", {}).items()}
+        if target is None or any(value is None for value in anchors.values()):
             continue
-        target = posixpath.relpath(app.builder.get_target_uri(new_doc), posixpath.dirname(old) or ".")
-        if anchor:
-            target = f"{target}#{anchor}"
         path = outdir / f"{old}.html"
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(_redirect_html(target), encoding="utf-8")
+        path.write_text(_redirect_html(target, anchors), encoding="utf-8")
 
 
 def _section_label(config, docname):

@@ -68,7 +68,7 @@ over requested targets and scenarios.
       commodity_output = sut.query("Xc")
 
    The inspection pattern stays the same; SUTs have separate activity and
-   commodity sets and split matrix blocks. See :doc:`../../get_started/table_formats`.
+   commodity sets and split matrix blocks. See :doc:`../../get_started/table_formats/sut`.
 
 .. mario-details:: BONSAI and other regional classifications
 
@@ -83,5 +83,5 @@ over requested targets and scenarios.
    These calls require a database containing ``IT``. A label in the union need
    not exist in every region. ``search()`` accepts the same selectors.
 
-Continue with :doc:`classification concordances <concordances>` or
+Continue with :doc:`named groups <clusters>`, :doc:`classification concordances <concordances>` or
 :doc:`exporting your model <export_and_roundtrip>`.

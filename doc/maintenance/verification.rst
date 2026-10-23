@@ -17,11 +17,13 @@ Build with warnings treated as errors, then check the built guides::
 Use a new output directory after moving/removing pages or assets. ``-E -a``
 rebuilds Sphinx documents but does not delete obsolete published files.
 
-The checker discovers guide/parser RST pages and notebook companions from the
+The checker discovers Get started, guide/parser pages and notebook companions from the
 source tree. It checks built pages, sidebar membership, local links and anchors,
 guide downloads, the shared download list, output-free notebook copies with
 source notices, and absence of raw notebook sources. It does not execute examples,
 check external URLs or assess scientific correctness and visual quality.
+For format/nomenclature changes, also verify IOT/SUT block selection, keyboard
+activation and old Nomenclature/technology-assumption URLs with their fragments.
 
 Run existing tests relevant to the change. For public APIs or notebook downloads::
 
