@@ -78,8 +78,9 @@ Merge, publish and verify
    and validation. Check that the head SHA is the one reviewed and tested.
    Satisfy the repository's checks and review requirements, using any explicitly
    authorized exception only within its stated scope.
-2. After merge, fetch main and verify its commit and tree. Tag the intended
-   commit. Never silently retarget or overwrite a published tag. If the merged
+2. After merge, fetch main and verify its commit and tree. Use the full commit
+   SHA for release API targets; an abbreviated local SHA may be rejected.
+   Tag the intended commit. Never silently retarget or overwrite a published tag. If the merged
    tree differs from the tested candidate, rebuild and rerun affected checks.
 3. Prepare the GitHub release and attach the wheel, source archive and checksum
    file. Publish the same validated bytes to PyPI through the configured
