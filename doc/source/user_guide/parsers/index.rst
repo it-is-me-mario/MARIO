@@ -1,15 +1,17 @@
-Database parsers
-================
+Data sources
+============
 
-Each guide covers one source: the parser workflow, the expected inputs, the
-supported versions, the local layout and the common caveats. Notebook guides
-also offer their notebook as a download at the bottom of the page.
+Choose the database you want to import. Each source guide describes supported
+inputs, the files to obtain and the import call. For classifications and
+comparisons across sources, open the :doc:`Database explorer <../../resources/data-explorer/scope>`.
 
-The cards show regions and economic dimensions for versions with available set
-lists. Explore :ref:`Classifications <database-scopes>`
-for geographical and sectoral coverage, or download all sets from :doc:`Downloadable material
-<../../resources/material>`.
+Already have a model? Inspect its :doc:`database profile <../advanced/database_profiles>`
+for GHG definitions, parser compute preferences and available concordances.
 
+.. toctree::
+   :hidden:
+
+   ../advanced/database_profiles
 
 Environmentally-extended databases
 ----------------------------------
@@ -34,7 +36,7 @@ Environmentally-extended databases
       The hybrid EXIOBASE bundle, as supply-use and input-output tables, with a
       choice of extensions.
 
-   .. mario-card:: :doc:`BONSAI <../../notebooks/parsers/bonsai/walkthrough_bonsai>`
+   .. mario-card:: :doc:`BONSAI <bonsai>`
       :kicker: mario.parse_bonsai
       :logo: /_static/images/logos/bonsai.webp
 
@@ -102,7 +104,7 @@ Environmentally-extended databases
 
    EXIOBASE, monetary <../../notebooks/parsers/exiobase/monetary>
    EXIOBASE, hybrid <../../notebooks/parsers/exiobase/hybrid>
-   BONSAI <../../notebooks/parsers/bonsai/walkthrough_bonsai>
+   BONSAI <bonsai>
    EORA <../../notebooks/parsers/eora/walkthrough_eora>
    GLORIA <../../notebooks/parsers/gloria/walkthrough_gloria>
    GTAP <../../notebooks/parsers/gtap/walkthrough_gtap>

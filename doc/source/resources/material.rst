@@ -51,8 +51,9 @@ Explore them in :ref:`Sectoral coverage <sectoral-coverage>`.
 Notebooks
 ---------
 
-Download the notebook behind a guide, with code and explanations but without
-cached results, execution history or local paths. Install MARIO and supply
+Download database parser notebooks and complete analysis examples. Each file
+contains code and explanations, without cached results, execution history or
+local paths. Install MARIO and supply
 your own source files under their applicable licence. Links to example files
 are kept in the notebook; download these before running cells that use them.
 

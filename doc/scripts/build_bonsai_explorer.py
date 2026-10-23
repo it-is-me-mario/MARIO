@@ -297,7 +297,7 @@ def main(audit, classification, *, indicators_only=False):
         "currency": None,
         "parser": "parse_bonsai",
         "parser_options": {"table": "IOT"},
-        "parser_guide": "notebooks/parsers/bonsai/walkthrough_bonsai.html",
+        "parser_guide": "user_guide/parsers/bonsai.html",
         "mario_revision": report["mario_commit"],
         "regions": native_regions,
         "sectors": ["All native production activities"],

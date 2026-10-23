@@ -35,7 +35,7 @@ commodity and activity axes. If ``c`` is singular, the current inverse
 builder falls back to the Moore-Penrose pseudoinverse. Under IT, zero
 commodity production gives a zero coefficient column.
 
-See :doc:`/get_started/table_formats` for assumption switching and
+See :doc:`/get_started/table_formats/sut` for assumption switching and
 the fallback to IT when importing a non-square SUT.
 
 Example

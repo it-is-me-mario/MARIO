@@ -52,7 +52,6 @@ MARIO
    :hidden:
 
    get_started/index
-   get_started/nomenclature
    get_started/table_formats
    get_started/scenarios
 

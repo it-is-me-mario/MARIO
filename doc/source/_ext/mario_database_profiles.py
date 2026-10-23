@@ -422,7 +422,11 @@ def _catalogue_html(app, docname, profiles):
 
 
 def _insert_guide_summary(top, panel):
-    """Leave the existing introduction before the overview, including its lists."""
+    """Keep an authored import recipe ahead of the detailed source inventory."""
+    for index, child in enumerate(top.children):
+        if isinstance(child, nodes.section) and any(key in child.get("ids", []) for key in ("import", "inspect-the-imported-model")):
+            top.insert(index + 1, panel)
+            return
     section = next((i for i, child in enumerate(top.children) if isinstance(child, nodes.section)), len(top.children))
     top.insert(section, panel)
 

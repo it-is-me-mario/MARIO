@@ -191,6 +191,15 @@ def test_eora_download_uses_the_publisher_instead_of_repackaging_sets():
     assert extension._workbook_url(None, 'resources/material', {'guide': 'eora'}) is None
 
 
+def test_relocated_bonsai_example_keeps_attribution_and_published_guide_links():
+    clean = module('mario_downloads').clean_notebook
+    example = clean(SOURCE / 'user_guide/examples/bonsai.ipynb', SOURCE)
+    text = '\n'.join(''.join(cell['source']) for cell in example['cells'])
+    assert 'BONSAI source terms' in text
+    assert 'https://www.marioproject.com/en/latest/user_guide/parsers/bonsai.html' in text
+    assert 'https://www.marioproject.com/en/latest/api_document/mario.parse_bonsai.html' in text
+
+
 def test_concordance_workbook_matches_typed_native_sets_and_carries_terms():
     book = SOURCE / '_static/data/economy/classification-concordances.xlsx'
     assert 'Source terms' in set(texts(book, 'Sources'))

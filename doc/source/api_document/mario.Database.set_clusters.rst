@@ -44,3 +44,5 @@ Shock expansion respects these regional definitions for activity, commodity,
 sector and final-demand axes. It selects actual matrix nodes, never a padded
 region-by-item grid. A literal code absent from all selected regions is an
 error; a regional cluster with no members in those regions selects nothing.
+
+See :doc:`the clusters guide </user_guide/inspection/clusters>` for examples.

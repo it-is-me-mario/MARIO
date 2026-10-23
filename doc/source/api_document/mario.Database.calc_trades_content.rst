@@ -1,6 +1,8 @@
 mario.Database.calc\_trades\_content
 ====================================
 
+:doc:`Trade and supply-chain analysis </user_guide/analysis/supply_chains>` provides a task guide and a minimal example.
+
 .. currentmodule:: mario
 
 Let :math:`t_{od}` be the vector of selected traded flows from origin

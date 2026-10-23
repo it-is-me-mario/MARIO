@@ -1,0 +1,5 @@
+{%- from "partials/pagebar.html" import render_toc with context %}
+<aside class="mario-doc-toc" aria-label="On this page">
+  <p>On this page</p>
+  <nav class="mario-localtoc">{{ render_toc(mario.local_toc) }}</nav>
+</aside>

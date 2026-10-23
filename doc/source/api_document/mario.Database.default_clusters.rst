@@ -20,3 +20,5 @@ Empty regions appear with empty lists. Cluster expansion selects existing
 region-item pairs, so ``C2`` is not selected in Germany. Default cluster
 generation does not compute matrices. Mutating returned nested lists does not
 change the database.
+
+See :doc:`the clusters guide </user_guide/inspection/clusters>` for examples.

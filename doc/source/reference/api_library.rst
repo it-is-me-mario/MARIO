@@ -18,6 +18,7 @@ for the full formula overview.
    api_parsing_methods
    api_download_methods
    api_inspection_methods
+   api_indices
    api_calculation_methods
    api_transformation_methods
    api_export_methods

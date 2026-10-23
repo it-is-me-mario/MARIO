@@ -2281,6 +2281,7 @@ def parse_emerging(
         labels_path=labels_path,
         variant=variant,
     )
+    kwargs.setdefault("version", layout.bundle_version)
     return models[model](
         name=name or layout.dataset_name,
         table="IOT",

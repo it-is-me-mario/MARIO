@@ -11,6 +11,9 @@ Typical patterns are:
 - aggregate multiple sets from a filled Excel workbook;
 - aggregate only ``Region`` directly, without creating a workbook first;
 - combine a prefilled Region mapping with other workbook-based aggregations.
+- apply a NACE or CPA mapping prepared by
+  :meth:`~mario.CoreModel.get_aggregation`, as shown in
+  :doc:`Aggregating by classification <../user_guide/transformations/classification_aggregation>`.
 
 .. code-block:: python
 

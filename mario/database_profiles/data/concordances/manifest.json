@@ -1,0 +1,661 @@
+{
+  "schema_version": 1,
+  "as_of": "2026-10-22",
+  "note": "Compiled from the Database explorer's canonical classification sources. Qualified links are not allocation matrices; native parents are context only.",
+  "input_checksums": {
+    "activity-pilot.json": "602b860a82c4ed3d3c913be35c5821ad4aa37124e9d4836a739ac31f1acc56da",
+    "bonsai-current-reviews.json": "bd021b676f62f8a3ef66ea3ff085c9d2fd902412019c82e24a0fc478fa89cbc1",
+    "bonsai-native-correspondences.json": "1ea3ba275a355f0aa8872aa18acaaebf30e8d4f0d6398ad7a2ef99e062cfa988",
+    "commodity-correspondences.json": "275994be9aa27597345bc68e00ff2971d2d584ec05b3670c1f6969208294292d",
+    "cpa22-structure.json": "cff414669fee44cd08dad897082304067bc11cf41dbe5b91d9b782fda67a6f7a",
+    "exiobase-hybrid-activities.json": "726397596ac2fdc84813fa4c0d5589bac2f66dacc8b10aa58d29734f22ef63bb",
+    "exiobase-monetary-activities.json": "a7f7e0b44f5db89ee68eb081ac11899e908ecddf78af12d94a3580d74cce56f2",
+    "gloria-060-sections.json": "4f9c2988d78057ab1ce8456be068a8e4dfba2d9cdfb369e08317c757886a8f0d",
+    "gtap-scope-metadata.json": "b2a1b939f049b213fad6e22bff2bdc1ce277082841290c568665d63edd8e357e",
+    "hs2007-exiobase.json": "99d19569f6f43b6bfe4bfa7f5985ad88e6ca0f3df78f35fe8fe254e7e8c5a4b0",
+    "nace21-structure.json": "3348fc3eb795e71fd5873d4a2d1372fff275f25fc0136ec2b72050ad358eb211",
+    "nxbase-activity-refinements.json": "54d7802e6e979bad70bb9f746aa6e0597398eb7af59820218b899c22e8333377",
+    "nxbase-exiobase-hybrid.json": "f4db9d38c9a7c29a670a59b3f5986b55ccf06a2b7117ab85775f25682b657df5",
+    "nxbase-figaro-wiod.json": "8340430d13d6438e682e073f2a68aada92ae2229ee8a69e989017009eb1d5940",
+    "nxbase-gloria-icio.json": "c4c26acc4432a48e198d871768c52aaf8f5617d790fd864c985c2cdea8271398",
+    "nxbase-gtap.json": "c7106cbe2e33dd01777f3df76facce43de8654d71d3a1dde863c21c5b3f9f720",
+    "nxbase-products.json": "38afde3ac0ccd3a2cfb985613e1ab1008d91ef9f8ac2c8d0a177658fdb3c8f67",
+    "nxbase-reviewed-activities.json": "8ee4b9f1607762bcf3e2991554c333b8cb9458fb88ac52d39f2d9ea4d7c59454",
+    "official-activity-bridges.json": "6a7d0a34ede65f0a3db8359f7eb7e460effbb47b21ef7d24d9b484c4a56b71ea",
+    "product-production-reviews.json": "18e69666296524aa02567dbb2002b286b7fb8fe4518742bd110e11f9a7e8a1bf",
+    "reviewed-activity-correspondences.json": "4ef82811627b7355bf00e59cb2c7855c108330ca55e62d95fda4e3c73b198c3e"
+  },
+  "families": [
+    "ADB",
+    "BONSAI",
+    "CEDA",
+    "EMERGING",
+    "EXIOBASE",
+    "FIGARO",
+    "GLORIA",
+    "GTAP",
+    "OECD",
+    "WIOD"
+  ],
+  "profiles": [
+    {
+      "id": "adb-monetary-activity-4edffc01c985",
+      "family": "ADB",
+      "units": "Monetary",
+      "namespace": "ADB35",
+      "releases": [
+        "62 economies",
+        "71 economies",
+        "72 economies",
+        "74 economies"
+      ],
+      "formats": [
+        "IOT"
+      ],
+      "source_url": "https://www.adb.org/what-we-do/data/regional-input-output-tables",
+      "kind": "activity",
+      "reference": "NACE2.1",
+      "direct_classifications": [
+        "ISIC3.1",
+        "ISIC4",
+        "NACE2",
+        "NACE2.1"
+      ],
+      "classifications": [
+        "NACE2.1",
+        "NACE2",
+        "NACE1.1",
+        "ISIC4",
+        "ISIC3.1"
+      ]
+    },
+    {
+      "id": "bonsai-hybrid-activity",
+      "family": "BONSAI",
+      "units": "Hybrid",
+      "namespace": "BONSAIA",
+      "releases": [
+        "b2 · 2026-10-21"
+      ],
+      "formats": [
+        "IOT"
+      ],
+      "source_url": "https://bonsai.uno/",
+      "kind": "activity",
+      "reference": "NACE2.1",
+      "direct_classifications": [
+        "NACE2",
+        "NACE2.1"
+      ],
+      "classifications": [
+        "NACE2.1",
+        "NACE2",
+        "NACE1.1",
+        "ISIC4",
+        "ISIC3.1"
+      ]
+    },
+    {
+      "id": "bonsai-hybrid-activity-hiot-reference-process",
+      "family": "BONSAI",
+      "units": "Hybrid",
+      "namespace": "BONSAIA",
+      "releases": [
+        "b2 · 2026-10-21"
+      ],
+      "formats": [
+        "IOT"
+      ],
+      "source_url": "https://bonsai.uno/",
+      "kind": "activity",
+      "reference": "NACE2.1",
+      "reference_process": true,
+      "direct_classifications": [
+        "NACE2",
+        "NACE2.1"
+      ],
+      "classifications": [
+        "NACE2.1",
+        "NACE2",
+        "NACE1.1",
+        "ISIC4",
+        "ISIC3.1"
+      ]
+    },
+    {
+      "id": "bonsai-hybrid-commodity",
+      "family": "BONSAI",
+      "units": "Hybrid",
+      "namespace": "BONSAIP",
+      "releases": [
+        "b2 · 2026-10-21"
+      ],
+      "formats": [
+        "IOT"
+      ],
+      "source_url": "https://bonsai.uno/",
+      "kind": "commodity",
+      "reference": "CPA2.2",
+      "direct_classifications": [
+        "CPA2.1",
+        "CPA2.2",
+        "CPA2008"
+      ],
+      "classifications": [
+        "CPA2.2",
+        "CPA2.1",
+        "CPA2008",
+        "CPA2002",
+        "CPC2.1"
+      ]
+    },
+    {
+      "id": "ceda-monetary-activity-b1c07784e6e5",
+      "family": "CEDA",
+      "units": "Monetary",
+      "namespace": "CEDA2024",
+      "releases": [
+        "2025"
+      ],
+      "formats": [
+        "Emission factors"
+      ],
+      "source_url": "https://watershed.com/en-GB/solutions/ceda",
+      "kind": "activity",
+      "reference": "NACE2.1",
+      "direct_classifications": [
+        "ISIC4",
+        "NACE2",
+        "NACE2.1"
+      ],
+      "classifications": [
+        "NACE2.1",
+        "NACE2",
+        "NACE1.1",
+        "ISIC4",
+        "ISIC3.1"
+      ]
+    },
+    {
+      "id": "emerging-monetary-commodity-30d4b437fd34",
+      "family": "EMERGING",
+      "units": "Monetary",
+      "namespace": "EMERG2P",
+      "releases": [
+        "2.0",
+        "2.2"
+      ],
+      "formats": [
+        "IOT"
+      ],
+      "source_url": "https://zenodo.org/records/17557778",
+      "kind": "commodity",
+      "reference": "CPA2.2",
+      "direct_classifications": [],
+      "classifications": [
+        "CPA2.2",
+        "CPA2.1",
+        "CPA2008",
+        "CPA2002",
+        "CPC2.1"
+      ]
+    },
+    {
+      "id": "emerging-monetary-commodity-4f89949afe85",
+      "family": "EMERGING",
+      "units": "Monetary",
+      "namespace": "EMERG1P",
+      "releases": [
+        "1.0"
+      ],
+      "formats": [
+        "IOT"
+      ],
+      "source_url": "https://zenodo.org/records/10956623",
+      "kind": "commodity",
+      "reference": "CPA2.2",
+      "direct_classifications": [],
+      "classifications": [
+        "CPA2.2",
+        "CPA2.1",
+        "CPA2008",
+        "CPA2002",
+        "CPC2.1"
+      ]
+    },
+    {
+      "id": "emerging-monetary-commodity-79255683927b",
+      "family": "EMERGING",
+      "units": "Monetary",
+      "namespace": null,
+      "releases": [
+        "E"
+      ],
+      "formats": [
+        "IOT"
+      ],
+      "source_url": "https://zenodo.org/records/18303090",
+      "kind": "commodity",
+      "reference": "CPA2.2",
+      "direct_classifications": [],
+      "classifications": [
+        "CPA2.2",
+        "CPA2.1",
+        "CPA2008",
+        "CPA2002",
+        "CPC2.1"
+      ]
+    },
+    {
+      "id": "exiobase-monetary-activity-af7dca1c56ff",
+      "family": "EXIOBASE",
+      "units": "Monetary",
+      "namespace": "EXIO3I",
+      "releases": [
+        "3.8.2",
+        "3.9.4",
+        "3.9.5",
+        "3.9.6",
+        "3.10.1",
+        "3.10.2",
+        "3.11.2"
+      ],
+      "formats": [
+        "IOT",
+        "SUT"
+      ],
+      "source_url": "https://zenodo.org/records/18937492",
+      "kind": "activity",
+      "reference": "NACE2.1",
+      "direct_classifications": [
+        "NACE1.1",
+        "NACE2",
+        "NACE2.1"
+      ],
+      "classifications": [
+        "NACE2.1",
+        "NACE2",
+        "NACE1.1",
+        "ISIC4",
+        "ISIC3.1"
+      ]
+    },
+    {
+      "id": "exiobase-hybrid-activity-a6e4fa014712",
+      "family": "EXIOBASE",
+      "units": "Hybrid",
+      "namespace": "EXIO3H",
+      "releases": [
+        "3.3.18"
+      ],
+      "formats": [
+        "SUT"
+      ],
+      "source_url": "https://zenodo.org/records/7244919",
+      "kind": "activity",
+      "reference": "NACE2.1",
+      "direct_classifications": [
+        "NACE1.1",
+        "NACE2",
+        "NACE2.1"
+      ],
+      "classifications": [
+        "NACE2.1",
+        "NACE2",
+        "NACE1.1",
+        "ISIC4",
+        "ISIC3.1"
+      ]
+    },
+    {
+      "id": "exiobase-monetary-commodity-d5f42f0ba59a",
+      "family": "EXIOBASE",
+      "units": "Monetary",
+      "namespace": "EXIO3P",
+      "releases": [
+        "3.10.1",
+        "3.10.2",
+        "3.11.2",
+        "3.8.2",
+        "3.9.4",
+        "3.9.5",
+        "3.9.6"
+      ],
+      "formats": [
+        "IOT",
+        "SUT"
+      ],
+      "source_url": "https://zenodo.org/records/18937492",
+      "kind": "commodity",
+      "reference": "CPA2.2",
+      "direct_classifications": [
+        "CPA2.1",
+        "CPA2.2",
+        "CPA2002",
+        "CPA2008",
+        "HS2007"
+      ],
+      "classifications": [
+        "CPA2.2",
+        "CPA2.1",
+        "CPA2008",
+        "CPA2002",
+        "CPC2.1",
+        "HS2007"
+      ]
+    },
+    {
+      "id": "exiobase-hybrid-commodity-3b42704b8c25",
+      "family": "EXIOBASE",
+      "units": "Hybrid",
+      "namespace": "EXIO3HIOTP",
+      "releases": [
+        "3.3.18"
+      ],
+      "formats": [
+        "IOT"
+      ],
+      "source_url": "https://zenodo.org/records/7244919",
+      "kind": "commodity",
+      "reference": "CPA2.2",
+      "direct_classifications": [
+        "CPA2.1",
+        "CPA2.2",
+        "CPA2002",
+        "CPA2008",
+        "HS2007"
+      ],
+      "classifications": [
+        "CPA2.2",
+        "CPA2.1",
+        "CPA2008",
+        "CPA2002",
+        "CPC2.1",
+        "HS2007"
+      ]
+    },
+    {
+      "id": "exiobase-hybrid-commodity-aca8f620cb9a",
+      "family": "EXIOBASE",
+      "units": "Hybrid",
+      "namespace": "EXIO3HSUTP",
+      "releases": [
+        "3.3.18"
+      ],
+      "formats": [
+        "SUT"
+      ],
+      "source_url": null,
+      "kind": "commodity",
+      "reference": "CPA2.2",
+      "direct_classifications": [
+        "CPA2.1",
+        "CPA2.2",
+        "CPA2002",
+        "CPA2008",
+        "HS2007"
+      ],
+      "classifications": [
+        "CPA2.2",
+        "CPA2.1",
+        "CPA2008",
+        "CPA2002",
+        "CPC2.1",
+        "HS2007"
+      ]
+    },
+    {
+      "id": "figaro-monetary-activity-67fa08b5c053",
+      "family": "FIGARO",
+      "units": "Monetary",
+      "namespace": "FIGARO64",
+      "releases": [],
+      "formats": [
+        "IOT",
+        "SUT"
+      ],
+      "source_url": "https://ec.europa.eu/eurostat/web/esa-supply-use-input-tables/database",
+      "kind": "activity",
+      "reference": "NACE2.1",
+      "direct_classifications": [
+        "NACE2",
+        "NACE2.1"
+      ],
+      "classifications": [
+        "NACE2.1",
+        "NACE2",
+        "NACE1.1",
+        "ISIC4",
+        "ISIC3.1"
+      ]
+    },
+    {
+      "id": "figaro-monetary-commodity-4f9af4a5b7e1",
+      "family": "FIGARO",
+      "units": "Monetary",
+      "namespace": "FIGARO64P",
+      "releases": [],
+      "formats": [
+        "IOT",
+        "SUT"
+      ],
+      "source_url": "https://ec.europa.eu/eurostat/web/esa-supply-use-input-tables/database",
+      "kind": "commodity",
+      "reference": "CPA2.2",
+      "direct_classifications": [
+        "CPA2.1",
+        "CPA2.2"
+      ],
+      "classifications": [
+        "CPA2.2",
+        "CPA2.1",
+        "CPA2008",
+        "CPA2002",
+        "CPC2.1"
+      ]
+    },
+    {
+      "id": "gloria-monetary-activity-7635ea2a072b",
+      "family": "GLORIA",
+      "units": "Monetary",
+      "namespace": "GLORIA060",
+      "releases": [
+        "060"
+      ],
+      "formats": [
+        "SUT"
+      ],
+      "source_url": "https://ielab.info/resources/gloria",
+      "kind": "activity",
+      "reference": "NACE2.1",
+      "direct_classifications": [
+        "ISIC4",
+        "NACE2",
+        "NACE2.1"
+      ],
+      "classifications": [
+        "NACE2.1",
+        "NACE2",
+        "NACE1.1",
+        "ISIC4",
+        "ISIC3.1"
+      ]
+    },
+    {
+      "id": "gloria-monetary-commodity-7635ea2a072b",
+      "family": "GLORIA",
+      "units": "Monetary",
+      "namespace": "GLORIA060P",
+      "releases": [
+        "060"
+      ],
+      "formats": [
+        "SUT"
+      ],
+      "source_url": "https://ielab.info/resources/gloria",
+      "kind": "commodity",
+      "reference": "CPA2.2",
+      "direct_classifications": [
+        "CPA2.1",
+        "CPA2.2",
+        "CPA2002",
+        "CPA2008"
+      ],
+      "classifications": [
+        "CPA2.2",
+        "CPA2.1",
+        "CPA2008",
+        "CPA2002",
+        "CPC2.1"
+      ]
+    },
+    {
+      "id": "gtap-monetary-activity-8a368bc42f09",
+      "family": "GTAP",
+      "units": "Monetary",
+      "namespace": "GTAP12I",
+      "releases": [
+        "12 · Standard"
+      ],
+      "formats": [
+        "Model sectors"
+      ],
+      "source_url": "https://www.gtap.agecon.purdue.edu/databases/v12/index.aspx",
+      "kind": "activity",
+      "reference": "NACE2.1",
+      "direct_classifications": [
+        "CPC2.1",
+        "ISIC4",
+        "NACE2",
+        "NACE2.1"
+      ],
+      "classifications": [
+        "NACE2.1",
+        "NACE2",
+        "NACE1.1",
+        "ISIC4",
+        "ISIC3.1",
+        "CPA2.2",
+        "CPA2.1",
+        "CPA2008",
+        "CPA2002",
+        "CPC2.1"
+      ]
+    },
+    {
+      "id": "gtap-monetary-activity-e6b77dc1aa21",
+      "family": "GTAP",
+      "units": "Monetary",
+      "namespace": "GTAP12POWERI",
+      "releases": [
+        "12 · Power"
+      ],
+      "formats": [
+        "IOT"
+      ],
+      "source_url": "https://www.gtap.agecon.purdue.edu/databases/Utilities/v12.aspx",
+      "kind": "activity",
+      "reference": "NACE2.1",
+      "direct_classifications": [
+        "CPC2.1",
+        "ISIC4",
+        "NACE2",
+        "NACE2.1"
+      ],
+      "classifications": [
+        "NACE2.1",
+        "NACE2",
+        "NACE1.1",
+        "ISIC4",
+        "ISIC3.1",
+        "CPA2.2",
+        "CPA2.1",
+        "CPA2008",
+        "CPA2002",
+        "CPC2.1"
+      ]
+    },
+    {
+      "id": "oecd-monetary-activity-65d5ce7dd20f",
+      "family": "OECD",
+      "units": "Monetary",
+      "namespace": "ICIO2025",
+      "releases": [
+        "Extended",
+        "Regular"
+      ],
+      "formats": [
+        "IOT"
+      ],
+      "source_url": "https://www.oecd.org/en/data/datasets/inter-country-input-output-tables.html",
+      "kind": "activity",
+      "reference": "NACE2.1",
+      "direct_classifications": [
+        "ISIC4",
+        "NACE2",
+        "NACE2.1"
+      ],
+      "classifications": [
+        "NACE2.1",
+        "NACE2",
+        "NACE1.1",
+        "ISIC4",
+        "ISIC3.1"
+      ]
+    },
+    {
+      "id": "wiod-monetary-activity-5af2abb46cca",
+      "family": "WIOD",
+      "units": "Monetary",
+      "namespace": "WIOD2016",
+      "releases": [
+        "2016"
+      ],
+      "formats": [
+        "IOT",
+        "SUT"
+      ],
+      "source_url": "https://www.rug.nl/ggdc/valuechain/wiod/wiod-2016-release?lang=en",
+      "kind": "activity",
+      "reference": "NACE2.1",
+      "direct_classifications": [
+        "NACE2",
+        "NACE2.1"
+      ],
+      "classifications": [
+        "NACE2.1",
+        "NACE2",
+        "NACE1.1",
+        "ISIC4",
+        "ISIC3.1"
+      ]
+    },
+    {
+      "id": "wiod-monetary-commodity-3e3132c0b3ab",
+      "family": "WIOD",
+      "units": "Monetary",
+      "namespace": "WIOD2016P",
+      "releases": [
+        "2016"
+      ],
+      "formats": [
+        "SUT"
+      ],
+      "source_url": "https://www.rug.nl/ggdc/valuechain/wiod/wiod-2016-release?lang=en",
+      "kind": "commodity",
+      "reference": "CPA2.2",
+      "direct_classifications": [
+        "CPA2.1",
+        "CPA2.2",
+        "CPA2008"
+      ],
+      "classifications": [
+        "CPA2.2",
+        "CPA2.1",
+        "CPA2008",
+        "CPA2002",
+        "CPC2.1"
+      ]
+    }
+  ]
+}

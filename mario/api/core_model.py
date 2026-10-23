@@ -3423,6 +3423,148 @@ class CoreModel:
             log_time(logger, f"Database: {tech_note}", "warning")
             self.meta._add_history(tech_note)
 
+    def get_concordances(self, set=None, classification=None, item=None, *, region=None, details=False):
+        """Return classification codes for this database's native items.
+
+        Parameters
+        ----------
+        set : str, optional
+            ``Activity`` or ``Commodity`` for SUTs; ``Sector`` for IOTs.
+            Defaults to Activity for SUTs and Sector for IOTs. On IOTs,
+            Activity/Commodity also select a compatible native projection.
+            BONSAI HIOT has an explicit reference-product/process bridge.
+        classification : str, optional
+            Target edition, e.g. ``"NACE Rev. 2.1"``, ``"NACE Rev. 2"``,
+            ``"ISIC Rev. 4"``, ``"CPA 2.2"``, ``"CPC 2.1"`` or ``"HS 2007"``.
+            Defaults to NACE 2.1 for activities and CPA 2.2 for commodities.
+            See :attr:`available_concordances` for this native variant.
+        item : str or iterable of str, optional
+            One native label, or several labels. Omit to include the complete
+            current set. Dictionary keys retain native labels and input order.
+        region : str, optional
+            Restrict to items actually present in one region. Without a region,
+            use the distinct union of the current regional memberships.
+        details : bool, default False
+            Include descriptions, original source locations, route direction
+            and qualifications instead of returning only code lists.
+
+        Returns
+        -------
+        dict
+            ``{native_item: [classification_codes]}``, or detailed records.
+            Unverified/unknown native identities have an empty code list.
+            An item absent from the selected database set raises WrongInput.
+
+        Notes
+        -----
+        Uses offline metadata compiled from the Database explorer sources.
+        It neither computes IO matrices nor downloads data. Correspondences
+        can be partial or many-to-many and do not provide allocation weights.
+        Source parents do not establish detailed membership. Aggregated,
+        renamed or newly added identities are unverified unless an explicit
+        bundled identity matches. Standard aliases select NACE 2.1, CPA 2.2,
+        ISIC 4, CPC 2.1 and HS 2007; other editions must be explicit.
+
+        Examples
+        --------
+        On a GLORIA release 060 SUT:
+
+        >>> db.get_concordances(set="Activity", classification="NACE Rev. 2.1", item="Growing wheat")  # doctest: +SKIP
+        {'Growing wheat': ['01.11']}
+
+        On an EXIOBASE monetary SUT parsed as ``exio``:
+
+        >>> exio.get_concordances(set="Commodity", classification="HS 2007", item="Wheat")  # doctest: +SKIP
+        {'Wheat': ['100110', '100190']}
+        """
+        from mario.model.concordances import get_concordances
+
+        return get_concordances(self, set, classification, item, region=region, details=details)
+
+    @property
+    def available_aggregations(self):
+        """Classification editions and hierarchy levels usable by get_aggregation.
+
+        Levels require a packaged official hierarchy and a concordance profile
+        for this database's native set. Individual items may remain unresolved.
+        """
+        from mario.model.classification_aggregation import available_aggregations
+
+        return available_aggregations(self)
+
+    def get_aggregation(self, set=None, classification=None, level="section", *, unresolved="keep"):
+        """Build a proposed aggregation from this database's concordances.
+
+        Parameters
+        ----------
+        set : str, optional
+            Activity or Commodity for SUTs; Sector for IOTs. Defaults follow
+            :meth:`get_concordances`.
+        classification : str, optional
+            Target edition. Defaults to NACE Rev. 2.1 for activities and CPA
+            2.2 for commodities. See :attr:`available_aggregations`.
+        level : str, default "section"
+            Official hierarchy level: section, division, group or class;
+            CPA also has category and subcategory. Aliases such as
+            ``"2 digits"`` select division.
+        unresolved : {"keep", "raise"}, default "keep"
+            Keep unverified items and items spanning several target groups
+            individually, or raise WrongInput if any remain unresolved.
+
+        Returns
+        -------
+        dict[str, pandas.DataFrame]
+            ``{set_name: mapping}``, ready for
+            ``db.aggregate(mapping, levels=list(mapping), inplace=False)``.
+            Each frame has an Aggregation column and a native-item index,
+            or a (region, item) index for regional sets. Its
+            ``attrs["concordance"]`` report contains group descriptions,
+            hierarchy source and unresolved items with reasons.
+
+        Notes
+        -----
+        No matrices or settings are changed. Several linked codes can collapse
+        to one ancestor group; an item is never duplicated or split between
+        targets. Names include the classification edition, e.g.
+        ``"NACE Rev. 2.1:A"``. Correspondence footprints retain their source
+        qualifications: this is a reviewable grouping proposal, not certified
+        native containment or an allocation model. Inspect
+        ``get_concordances(details=True)`` before applying it.
+
+        Prepares the complete selected native set; item and region filters are
+        not accepted. With unresolved="keep", the proposal can mix standard
+        groups and retained native labels. Unit compatibility is checked when
+        the mapping is applied by aggregate, not during preparation.
+        """
+        from mario.model.classification_aggregation import get_aggregation
+
+        return get_aggregation(self, set, classification, level, unresolved=unresolved)
+
+    @property
+    def database_profile(self):
+        """Database-specific GHG, compute and concordance metadata.
+
+        Returns an independent dictionary from the central database registry.
+        Compute presets describe parser preferences, not current session settings.
+        The selected GHG profile is autodetected from source/name metadata,
+        rather than a record of the last explicit calc_ghg profile argument.
+        """
+        from mario.database_profiles import get_database_profile
+
+        return get_database_profile(self)
+
+    @property
+    def available_concordances(self):
+        """Available target classification editions, grouped by native set.
+
+        The result depends on the parser source, native table variant and
+        bundled correspondence routes. Availability does not establish complete
+        coverage of every native item. No source database is downloaded.
+        """
+        from mario.model.concordances import available_concordances
+
+        return available_concordances(self)
+
     def get_index(self, index, level="main", *, region=None, flat=False):
         """Return one index level or the full index mapping for the database.
 

@@ -6,7 +6,7 @@ import logging
 
 from mario.log_exc.exceptions import NotImplementable, WrongInput
 from mario.log_exc.logger import log_time
-from mario.model.conventions import _ENUM
+from mario.model.conventions import _ENUM, _MASTER_INDEX as MI
 from mario.ops.transform_engine import SUT_to_IOT
 
 logger = logging.getLogger(__name__)
@@ -66,6 +66,9 @@ def build_new_instance_from_scenario(database, scenario):
         new.set_clusters(clusters=database.clusters)
     if hasattr(database, "baseline_scenario_name") and hasattr(new, "rename_baseline_scenario"):
         new.rename_baseline_scenario(database.baseline_scenario_name)
+    for field in ("version", "sector_type"):
+        if getattr(database.meta, field, None) is not None:
+            new.meta._add_attribute(**{field: getattr(database.meta, field)})
     return new
 
 
@@ -98,7 +101,8 @@ def transform_sut_to_iot(database, method, inplace: bool = True):
     database.units = units
 
     database.meta.table = "IOT"
-    database.meta._add_attribute(tech_assumption=None)
+    database.meta._add_attribute(tech_assumption=None,
+                                 sector_type=MI["c"] if method in ("A", "B") else MI["a"])
     if captured_specs:
         _restore_iot_transform_block_specs(database, captured_specs)
     database.meta._add_history(

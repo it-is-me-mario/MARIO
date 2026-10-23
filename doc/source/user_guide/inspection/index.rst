@@ -1,53 +1,36 @@
-Inspection and calculations
-===========================
+:summary: Explore a parsed model, retrieve its data and save your work.
 
-Once a table is parsed, these guides show how to look inside the *database*,
-compute the *matrices* you need, plot them, customise their labels and export
-the result.
+Working with a database
+=======================
 
-.. mario-cards::
-   :columns: 2
-   :links:
+Use these guides once you have imported a database. For the meaning of
+regions, activities, commodities and sectors, see
+:doc:`Table formats <../../get_started/table_formats>`.
 
-   .. mario-card:: :doc:`Basic inspections <basic_inspections>`
-      :kicker: db.query
-      :icon: table-search
+.. list-table::
+   :header-rows: 1
+   :widths: 40 60
 
-      Look inside a parsed database: sets, labels, matrices and searches, on an
-      IOT and on a SUT.
+   * - I want to
+     - Guide
+   * - Find sets, scenarios, labels and matrix values
+     - :doc:`Inspect and query a database <basic_inspections>`
+   * - Find NACE, CPA, ISIC, CPC or HS codes for native items
+     - :doc:`Classification concordances <concordances>`
+   * - Save and reuse named groups of labels
+     - :doc:`Work with clusters <clusters>`
+   * - Save a model to Excel, CSV or Parquet
+     - :doc:`Export a database <export_and_roundtrip>`
 
-   .. mario-card:: :doc:`Compute matrices <compute_matrices>`
-      :kicker: db.calc_all
-      :icon: compute
-
-      Calculate the matrices that are not stored yet and choose how MARIO
-      computes them.
-
-   .. mario-card:: :doc:`Visualization workflows <visualization>`
-      :kicker: db.plot
-      :icon: chart
-
-      Plot matrices and results with one entry point, from quick presets to full
-      Plotly Express mappings.
-
-   .. mario-card:: :doc:`Custom matrices and indices labels <custom_labels_and_aliases>`
-      :kicker: mario.upload_settings
-      :icon: tag
-
-      Rename matrices and set aliases through the MARIO settings, and see how the
-      API follows.
-
-   .. mario-card:: :doc:`Exporting <export_and_roundtrip>`
-      :kicker: db.to_excel
-      :icon: export
-
-      Write a database to Excel, CSV and Parquet, and read the output layouts.
+To create matrices that have not been calculated yet, continue to
+:doc:`Calculations and analysis <../analysis/index>`.
+For GHG definitions, compute preferences and available classifications for a
+source, inspect its :doc:`database profile <../advanced/database_profiles>`.
 
 .. toctree::
    :hidden:
 
    basic_inspections
-   compute_matrices
-   visualization
-   custom_labels_and_aliases
+   clusters
+   concordances
    export_and_roundtrip

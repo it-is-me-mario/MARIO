@@ -213,12 +213,15 @@ def _build_custom_sut_database():
 
 def test_build_new_instance_from_scenario_returns_baseline_clone():
     database = load_test("IOT")
+    database.meta._add_attribute(version="2.0", sector_type="Commodity")
     database.calc_all([_ENUM.X])
     database.clone_scenario("baseline", "policy")
 
     instance = build_new_instance_from_scenario(database, "policy")
 
     assert instance.scenarios == ["baseline"]
+    assert instance.meta.version == "2.0"
+    assert instance.meta.sector_type == "Commodity"
     for matrix, value in instance["baseline"].items():
         database.calc_all([matrix], scenario="policy")
         pdt.assert_frame_equal(database["policy"][matrix].round(0), value.round(0))

@@ -1,0 +1,10 @@
+<header class="mario-doc-heading">
+  <nav class="mario-breadcrumbs" aria-label="Breadcrumb">
+    {%- for crumb in mario.breadcrumbs %}
+    <a href="{{ crumb.url }}">{{ crumb.title }}</a><span aria-hidden="true">/</span>
+    {%- endfor %}
+    <span>{{ mario.page_type }}</span>
+  </nav>
+  <h1>{{ mario.hero.title }}</h1>
+  {%- if mario.summary %}<p class="mario-doc-heading__summary">{{ mario.summary }}</p>{% endif %}
+</header>

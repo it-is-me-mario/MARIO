@@ -31,7 +31,8 @@ jobs:
         env:
           MARIO_DOCS_BASEURL: https://www.marioproject.com/en/latest/
         run: |
-          python -m sphinx -b html doc/source _site/en/latest
+          python -m sphinx -b html -W --keep-going doc/source _site/en/latest
+          python doc/scripts/check_documentation.py _site/en/latest
           touch _site/.nojekyll
           cat > _site/index.html <<'HTML'
           <!doctype html>

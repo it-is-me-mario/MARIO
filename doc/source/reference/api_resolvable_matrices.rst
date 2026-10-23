@@ -56,7 +56,7 @@ Core equations
 IOT results follow the equations in :doc:`api_calculation_methods`. For SUT,
 ``u`` maps activity production to commodity inputs and ``s`` maps commodity
 demand to activity production. The technology assumption determines the
-construction of ``s``; see :doc:`/get_started/table_formats`.
+construction of ``s``; see :doc:`/get_started/table_formats/sut`.
 Once those coefficients are available, the four Leontief quadrants are:
 
 .. math::
@@ -100,6 +100,12 @@ Block catalog
 The reference table below reuses the authoritative nomenclature matrix catalog
 and therefore covers both IOT and SUT built-ins, along with their table format,
 mode and default axes.
+
+For an introduction with block diagrams, see :doc:`IOT structure
+</get_started/table_formats/iot>` and :doc:`SUT structure
+</get_started/table_formats/sut>`. :doc:`api_indices` explains the sets and aliases.
+``*`` marks extension axes that can carry additional levels via ``matrix_layouts``;
+``**`` marks the assumption-dependent definition of ``s``.
 
 .. raw:: html
    :file: ../get_started/_generated/matrices_table.html

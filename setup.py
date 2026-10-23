@@ -54,6 +54,7 @@ setup(
         "mario.settings": ["*.yaml", "*.csv"],
         "mario.clusters": ["*.yaml", "*.xlsx"],
         "mario.parsers": ["*.csv", "*.yaml"],
+        "mario.database_profiles": ["data/concordances/*.json", "data/concordances/*.json.gz"],
         "mario.test":["*.xlsx"],
         "mario.ops.cvxlab_models": [
             "Split_sectors/*.xlsx",

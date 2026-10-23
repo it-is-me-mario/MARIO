@@ -46,6 +46,12 @@ Sets, Metadata and Scenarios
    :maxdepth: 1
 
    ../api_document/mario.CoreModel.get_index
+   ../api_document/mario.CoreModel.get_concordances
+   ../api_document/mario.CoreModel.available_concordances
+   ../api_document/mario.CoreModel.get_aggregation
+   ../api_document/mario.CoreModel.available_aggregations
+   ../api_document/mario.CoreModel.database_profile
+   ../api_document/mario.get_database_profile
    ../api_document/mario.CoreModel.search
    ../api_document/mario.CoreModel.sets
    ../api_document/mario.CoreModel.units

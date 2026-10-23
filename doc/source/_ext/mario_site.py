@@ -118,6 +118,10 @@ def _find_section(config, pagename):
 
 
 def _active_tab(section, pagename):
+    # Explicit ownership lets guides move between topics without breaking URLs.
+    for tab in section.get("tabs", []):
+        if pagename == tab["doc"] or pagename in tab.get("pages", ()):
+            return tab
     for tab in section.get("tabs", []):
         if _matches(pagename, tab["doc"], tab.get("prefixes", ())):
             return tab
@@ -177,6 +181,27 @@ def _sidebar(app, pagename, tab):
         }
         groups.insert(0, {"caption": None, "items": [overview]})
     return groups
+
+
+def _docs_sidebar(app, pagename, section):
+    """Keep every topic visible and expand the current topic's page tree."""
+    active = _active_tab(section, pagename)
+    items = [{"title": "Overview", "url": app.builder.get_relative_uri(pagename, section["landing"]),
+              "active": pagename == section["landing"], "open": False, "children": []}]
+    for topic in section.get("tabs", []):
+        children = _sidebar(app, pagename, topic) if topic is active else []
+        for group in children:
+            if group["caption"]:
+                group["collapsible"] = True
+                group["open"] = any(item["open"] for item in group["items"])
+        items.append({
+            "title": topic["label"],
+            "url": app.builder.get_relative_uri(pagename, topic["doc"]),
+            "active": pagename == topic["doc"],
+            "open": topic is active,
+            "children": children,
+        })
+    return [{"caption": None, "items": items}]
 
 
 def _local_toc(env, pagename, max_depth=2):
@@ -241,7 +266,7 @@ def _page_context(app, pagename, templatename, context, doctree):
             "children": [
                 {"label": tab["label"], "url": url(tab["doc"]), "summary": tab.get("summary", ""),
                  "featured": tab.get("featured", False),
-                 "active": _matches(pagename, tab["doc"], tab.get("prefixes", ())),
+                 "active": _active_tab(section, pagename) is tab,
                  "exact": pagename == tab["doc"]}
                 for tab in section.get("tabs", [])
             ],
@@ -266,6 +291,10 @@ def _page_context(app, pagename, templatename, context, doctree):
         "install": config.get("install", ""),
         "ai_notice": config.get("ai_notice", ""),
         "closing": None,
+        "topic_navigation": False,
+        "breadcrumbs": [],
+        "page_type": "",
+        "summary": "",
     }
 
     section = _find_section(config, pagename)
@@ -289,7 +318,28 @@ def _page_context(app, pagename, templatename, context, doctree):
             for item in section.get("tabs", [])
         ]
         hero = dict(section.get("hero", {}))
-        if section.get("sidebar") and pagename != section["landing"] and tab is not None:
+        if section.get("navigation_style") == "sidebar":
+            page["layout"] = "docs"
+            page["topic_navigation"] = True
+            page["tabs"] = []
+            page["group_key"] = (tab or {}).get("key", "")
+            page["sidebar"] = _docs_sidebar(app, pagename, section)
+            page["sidebar_label"] = "Documentation"
+            page["hero"] = {"title": context.get("title", ""), "text": "", "install": False}
+            page["breadcrumbs"] = [{"title": "Docs", "url": url(section["landing"])}]
+            if tab and pagename != tab["doc"]:
+                page["breadcrumbs"].append({"title": tab["label"], "url": url(tab["doc"])})
+            metadata = env.metadata.get(pagename, {})
+            default_type = "API reference" if pagename.startswith(("api_document/", "reference/")) else "Guide"
+            if pagename == section["landing"] or (tab and pagename == tab["doc"]):
+                default_type = "Overview"
+            elif tab and tab["key"] == "examples":
+                default_type = "Worked example"
+            elif pagename == "changelog":
+                default_type = "Release notes"
+            page["page_type"] = metadata.get("page-type", default_type)
+            page["summary"] = metadata.get("summary", "")
+        elif section.get("sidebar") and pagename != section["landing"] and tab is not None:
             page["layout"] = "docs"
             page["group_key"] = tab.get("key", "")
             page["sidebar"] = _sidebar(app, pagename, tab)
@@ -299,6 +349,11 @@ def _page_context(app, pagename, templatename, context, doctree):
             page["layout"] = "tabs"
             page["group_key"] = (tab or {}).get("key", "")
             page["hero"] = hero
+            if page["group_key"] == "formats":
+                metadata = env.metadata.get(pagename, {})
+                page["hero"] = {"title": context.get("title", ""),
+                                "text": metadata.get("summary", ""), "install": False}
+                context["body"] = _FIRST_H1.sub("", context.get("body", ""), count=1)
     page["hero"].setdefault("text", "")
     page["hero"].setdefault("install", False)
 
@@ -314,6 +369,11 @@ def _page_context(app, pagename, templatename, context, doctree):
                            "dialog": closing.get("dialog")}
 
     context["mario_page"] = page
+    if page["topic_navigation"] or page["group_key"] == "formats":
+        app.add_css_file("docs-workflows.css")
+    if page["group_key"] == "formats":
+        app.add_css_file("table-formats.css")
+        app.add_js_file("table-formats.js", defer="defer")
     if pagename in {"resources/data-explorer/compare", "resources/data-explorer/scope", "resources/data-explorer/analyses"}:
         app.add_css_file("economy-browser.css")
     if pagename == "resources/data-explorer/scope":
@@ -463,6 +523,32 @@ class MarioCard(Directive):
             body += summary
         card += body
         return [card, *messages]
+
+
+class guide_details(nodes.container):
+    """A keyboard-accessible disclosure that keeps its content in the document."""
+
+
+def _visit_guide_details(translator, node):
+    translator.body.append(translator.starttag(node, "details", CLASS="mario-details"))
+    translator.body.append("<summary>" + html.escape(node["label"]) + "</summary>")
+
+
+def _depart_guide_details(translator, node):
+    translator.body.append("</details>")
+
+
+class MarioDetails(Directive):
+    required_arguments = 1
+    final_argument_whitespace = True
+    has_content = True
+
+    def run(self):
+        panel = guide_details(label=self.arguments[0])
+        panel["names"].append(nodes.fully_normalize_name(self.arguments[0]))
+        self.state.document.note_implicit_target(panel, panel)
+        self.state.nested_parse(self.content, self.content_offset, panel)
+        return [panel]
 
 
 class MarioSteps(Directive):
@@ -959,22 +1045,30 @@ class MarioNotebookDownloads(Directive):
         config = app.config.mario_notebook_downloads
         prefixes = tuple(config.get("prefixes", ()))
         pages = set(config.get("pages", ()))
+        notebooks = {
+            **config.get("companions", {}),
+            **{
+                docname: str(env.doc2path(docname, False))
+                for docname in env.found_docs
+                if (docname.startswith(prefixes) or docname in pages)
+                and str(env.doc2path(docname)).endswith(".ipynb")
+            },
+        }
         docs = [
             docname
             for docname in env.found_docs
-            if (docname.startswith(prefixes) or docname in pages)
-            and str(env.doc2path(docname)).endswith(".ipynb")
+            if docname in notebooks
         ]
         section = next((item for item in app.config.mario_site["sections"] if item.get("sidebar")), None)
         tabs = section.get("tabs", []) if section else []
 
         wrapper = nodes.container(classes=["mario-downloads"])
         for tab in tabs:
-            members = [docname for docname in docs if _matches(docname, tab["doc"], tab.get("prefixes", ()))]
+            members = [docname for docname in docs if _active_tab(section, docname) is tab]
             if not members:
                 continue
             titled = sorted(
-                ((_notebook_title(env.doc2path(docname)) or docname.split("/")[-1], docname) for docname in members),
+                ((_notebook_title(Path(env.srcdir) / notebooks[docname]) or docname.split("/")[-1], docname) for docname in members),
                 key=lambda item: item[0].casefold(),
             )
             group = nodes.container(classes=["mario-downloads__group"])
@@ -987,7 +1081,7 @@ class MarioNotebookDownloads(Directive):
                     "",
                     "",
                     nodes.inline(title, title, classes=["mario-notebook-title"]),
-                    reftarget="/" + str(env.doc2path(docname, False)),
+                    reftarget="/" + notebooks[docname],
                     refdoc=env.docname,
                     refdomain="",
                     reftype="download",
@@ -1167,35 +1261,46 @@ def _render_api_index(app, doctree, fromdocname):
 # --------------------------------------------------------------------------
 
 
-def _redirect_html(target):
+def _redirect_html(target, anchors=None):
     target_attr = html.escape(target, quote=True)
     target_js = json.dumps(target)
+    anchor_js = json.dumps(anchors or {}).replace("<", "\\u003c")
+    alternatives = "".join(
+        f'<li><a href="{html.escape(destination, quote=True)}">{html.escape(anchor)}</a></li>'
+        for anchor, destination in (anchors or {}).items()
+    )
     return f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <title>This page has moved</title>
 <link rel="canonical" href="{target_attr}">
 <meta http-equiv="refresh" content="0; url={target_attr}">
-<script>location.replace({target_js} + ({target_js}.indexOf("#") < 0 ? location.hash : ""));</script>
-</head><body><p>This page has moved to <a href="{target_attr}">{target_attr}</a>.</p></body></html>
+<script>const anchors = {anchor_js}; location.replace(anchors[location.hash.slice(1)] || ({target_js} + ({target_js}.indexOf("#") < 0 ? location.hash : "")));</script>
+</head><body><p>This page has moved to <a href="{target_attr}">{target_attr}</a>.</p><ul>{alternatives}</ul></body></html>
 """
 
 
 def _write_redirects(app):
     outdir = Path(app.outdir)
     for old, new in app.config.mario_site.get("redirects", {}).items():
-        new_doc, _, anchor = new.partition("#")
         if old in app.env.found_docs:
             logger.warning("mario_site: redirect source %s is still a page; skipped", old)
             continue
-        if new_doc not in app.env.found_docs:
-            logger.warning("mario_site: redirect target %s does not exist", new_doc)
+        def destination(value):
+            new_doc, _, anchor = value.partition("#")
+            if new_doc not in app.env.found_docs:
+                logger.warning("mario_site: redirect target %s does not exist", new_doc)
+                return None
+            target = posixpath.relpath(app.builder.get_target_uri(new_doc), posixpath.dirname(old) or ".")
+            return f"{target}#{anchor}" if anchor else target
+
+        record = new if isinstance(new, dict) else {"target": new}
+        target = destination(record["target"])
+        anchors = {anchor: destination(value) for anchor, value in record.get("anchors", {}).items()}
+        if target is None or any(value is None for value in anchors.values()):
             continue
-        target = posixpath.relpath(app.builder.get_target_uri(new_doc), posixpath.dirname(old) or ".")
-        if anchor:
-            target = f"{target}#{anchor}"
         path = outdir / f"{old}.html"
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(_redirect_html(target), encoding="utf-8")
+        path.write_text(_redirect_html(target, anchors), encoding="utf-8")
 
 
 def _section_label(config, docname):
@@ -1274,6 +1379,8 @@ def setup(app):
     app.add_directive("mario-cards", MarioCards)
     app.add_directive("mario-card", MarioCard)
     app.add_directive("mario-steps", MarioSteps)
+    app.add_directive("mario-details", MarioDetails)
+    app.add_node(guide_details, html=(_visit_guide_details, _depart_guide_details))
     app.add_directive("mario-step", MarioStep)
     app.add_directive("mario-switch", MarioSwitch)
     app.add_directive("mario-switch-option", MarioSwitchOption)

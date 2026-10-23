@@ -3,6 +3,9 @@ mario.Database.calc\_ghg
 
 .. currentmodule:: mario
 
+For the operational steps, see :doc:`Calculate greenhouse gas emissions
+<../user_guide/analysis/greenhouse_gases>`.
+
 The aggregate extension is a GWP-weighted sum of matched gas accounts:
 
 .. math::
