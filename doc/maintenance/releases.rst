@@ -76,6 +76,13 @@ Merge, publish and verify
 
 1. Push the reviewed branch and create or update its PR with the final scope
    and validation. Check that the head SHA is the one reviewed and tested.
+   Read human and automated reviews, including inline comments. Wait for any
+   requested review to finish; automated test success alone does not clear
+   unresolved findings. Recheck the review state immediately before merge,
+   since a review can arrive while the merge is being prepared. An authorized
+   bypass changes the approval requirement, not the need to assess findings.
+   A review submitted as ``COMMENTED`` can still contain recommended changes;
+   assess its content as well as its formal state and reviewed commit.
    Satisfy the repository's checks and review requirements, using any explicitly
    authorized exception only within its stated scope.
 2. After merge, fetch main and verify its commit and tree. Use the full commit

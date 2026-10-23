@@ -24,6 +24,9 @@ Classification concordances
   classification links, not numerical allocation weights.
 * Preserve whether IOT sectors represent activities or products after SUT
   conversion, so subsequent concordance queries use the correct native set.
+* Recognize the standard EMERGING ``2.x`` bundle marker as the V2 family when
+  selecting concordances and aggregation presets, while preserving explicit
+  release constraints and matching the model's native identities.
 
 Predefined classification aggregations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -64,6 +67,9 @@ Documentation
   examples, constraints and equations, plus an executable comparison notebook.
 * Establish a versioned maintenance KB covering page ownership, authoring,
   verification and releases, with automated local-link and download checks.
+* Correct the GHG comparison to attribute consumption footprints to destination
+  regions through ``f @ Y``, and promote the updated generation scenario before
+  pooling electricity trade. Update and verify both downloadable companions.
 
 Database explorer
 ~~~~~~~~~~~~~~~~~

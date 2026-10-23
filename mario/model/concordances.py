@@ -137,7 +137,13 @@ def _profile(database, family, kind, items):
         match = re.search(r"(?:version|release|\bv)\s*(\d+\.\d+|e)\b", source)
         version = str(version) if version is not None else match.group(1) if match else None
         if version is not None:
-            profiles = [p for p in profiles if version.casefold() in {v.casefold() for v in p['releases']}]
+            # Standard V2 filenames identify a family, not a minor release.
+            # Keep that constraint, then select by native identities below.
+            profiles = [p for p in profiles if any(
+                version.casefold() == v.casefold()
+                or (version.casefold() == "2.x" and re.fullmatch(r"2\.\d+", v))
+                for v in p["releases"]
+            )]
             if not profiles:
                 raise WrongInput(f"No bundled EMERGING concordance profile for release {version!r}.")
     # Compare identities, never sector counts alone. Ambiguous vocabularies

@@ -48,6 +48,15 @@ Example verification
   match the intended source. Retain portable paths and input/licence guidance.
 * After scientific changes, reconcile affected equations, examples, figures and
   captions. State characterization, allocation and numerical limits where relevant.
+* For regional footprints, verify producer and consumer attribution on a small
+  cross-border example; a conserved global total can hide incorrect geography.
+  For chained scenario workflows, execute the sequence through transformations
+  that consume only the baseline or discard other scenarios, and check that
+  earlier updates survive.
+  ``tests/docs/test_workflow_examples.py`` executes the affected RST recipes
+  and notebook calculations on small accounting/scenario fixtures. Run it
+  when changing those examples; source-database and live-provider runs remain
+  separate checks.
 
 Rendered review
 ---------------

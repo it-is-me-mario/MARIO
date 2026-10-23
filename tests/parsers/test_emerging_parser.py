@@ -564,3 +564,34 @@ def test_emerging_e_matlab_orientation_preserves_direction_and_output_balance(tm
     assert z[0, 4] == 5 and z[4, 0] == 8
     np.testing.assert_array_equal(z.sum(axis=1) + y.sum(axis=1), output)
     np.testing.assert_array_equal(z.sum(axis=0) + base["V"].to_numpy().reshape(-1), output)
+
+
+@pytest.mark.parametrize('version', [None, '2.0', '2.2', '2.1'])
+def test_public_v2_parser_keeps_ambiguous_version_usable_for_concordances(tmp_path, version):
+    main, _, labels = _write_emerging_bundle(tmp_path)
+    names = ['live animals', 'meat and edible meat offal']
+    with pd.ExcelWriter(labels, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+        pd.DataFrame({'Code': [1, 2], 'Sector': names}).to_excel(writer, sheet_name='Sector', index=False)
+    kwargs = {} if version is None else {'version': version}
+    db = mario.parse_emerging(main, labels_path=labels, load_co2=False, **kwargs)
+    assert db.meta.version == ('2.x' if version is None else version)
+    if version == '2.1':
+        with pytest.raises(WrongInput, match='release.*2.1'):
+            db.get_concordances()
+        return
+    codes = db.get_concordances()
+    assert list(codes) == names
+    details = db.get_concordances(details=True)
+    assert all(item['native_code'] for item in details.values())
+    assert 'CPA 2.2' in db.available_concordances['Sector']
+    mapping = db.get_aggregation(level='division')['Sector']
+    assert mapping.index.tolist() == names
+    # Fine CPA membership is unverified for these supplied EMERGING items;
+    # selecting the right profile must not invent links or aggregation groups.
+    assert mapping['Aggregation'].tolist() == names
+    assert all(item['reason'] == 'unverified'
+               for item in mapping.attrs['concordance']['unresolved'].values())
+    # The family marker narrows to mapped V2 variants without inventing an
+    # exact release, while an explicit version keeps its original meaning.
+    db.meta._add_attribute(version='2.0')
+    assert db.get_concordances() == codes

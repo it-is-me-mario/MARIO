@@ -53,7 +53,7 @@ Analysis steps
 
          db.calc_ghg(ipcc_report="AR5", time_horizon=100)
          ghg = "GHG AR5 GWP-100"
-         db.calc_all(["F"])
+         db.calc_all(["f"])
 
       This block applies to a compatible IOT with the required gas accounts.
       See :doc:`../analysis/ghg_characterization` for source-total limitations.
@@ -64,7 +64,13 @@ Analysis steps
 
          direct_fd = db.EY.loc[ghg].groupby(level=0).sum()
          pba = db.E.loc[ghg].groupby(level=0).sum() + direct_fd
-         cba = db.F.loc[ghg].groupby(level=0).sum() + direct_fd
+         embodied_fd = db.f.loc[ghg] @ db.Y
+         cba = embodied_fd.groupby(level=0).sum() + direct_fd
+
+      ``f @ Y`` retains final-demand columns, so their region identifies the
+      **consumer**. ``F`` instead retains production-node columns and cannot
+      be grouped by origin to obtain consumption-based totals. Direct
+      final-demand emissions are added once to both accounting views.
 
       The companion's harmonization step aligns regional labels and units.
       For partial numerical results, handle NaN explicitly before aggregating.

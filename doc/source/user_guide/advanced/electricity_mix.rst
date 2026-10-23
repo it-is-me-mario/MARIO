@@ -80,20 +80,25 @@ independently estimate every technology's historical share.
 
 .. mario-details:: Separate generation and trade in an Isard SUT
 
-   After updating supply, pool the shared electricity commodity:
+   Promote ``updated_mix`` to the baseline of a separate database, then pool
+   the shared electricity commodity. ``pool_trade()`` operates on the baseline
+   and discards other scenarios; promoting first keeps the generation update.
 
    .. code-block:: python
 
-      db.pool_trade("electricity")
-      pooled = db.meta.pooled_trade_map["electricity"]
-      db.update_trade_mix(
+      pooled_db = db.build_new_instance("updated_mix")
+      pooled_db.pool_trade("electricity")
+      pooled = pooled_db.meta.pooled_trade_map["electricity"]
+      pooled_db.update_trade_mix(
           "electricity", items=pooled["supply"], commodities=pooled["need"],
           level="Activity", scenario="trade_mix", clone_from="baseline",
           fill_uncovered_domestic=False,
       )
 
    The pool adds a pass-through activity and a need commodity per region.
-   Generation and sourcing then occupy separate market-share columns.
+   ``pooled_db`` retains the updated generation mix; its ``trade_mix`` scenario
+   adds the sourcing update. Generation and sourcing occupy separate
+   market-share columns. The original ``db`` remains available for comparison.
    This example uses the packaged ENTSO-E snapshot and keeps uncovered regions'
    sourcing. Its net commercial exchanges are not physical cross-border flows.
 
