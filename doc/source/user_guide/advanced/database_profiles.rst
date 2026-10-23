@@ -96,7 +96,7 @@ such as those used by ADB and EMERGING, retain their original characterisation
 when multiplied by their scalar factor. Changing ``ipcc_report`` does not
 recharacterise those source totals. BONSAI's default AR6 profile also differs
 from the documentation explorer's AR5 comparison recipe.
-See :doc:`greenhouse_gas_calculations` for calculations and
+See :doc:`../analysis/greenhouse_gases` for calculations and
 :doc:`../../api_document/mario.Database.calc_ghg` for the BONSAI-specific factor.
 
 Compute preferences

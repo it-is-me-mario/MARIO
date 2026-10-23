@@ -39,14 +39,15 @@
 
 {%- block content %}
   <div id="mario-main" class="mario-main">
-    {%- include "partials/hero.html" %}
+    {%- if not mario.topic_navigation %}{% include "partials/hero.html" %}{% endif %}
     {%- if mario.tabs %}{% include "partials/tabs.html" %}{% include "partials/menu.html" %}{% endif %}
     <div class="mario-shell mario-shell--{{ mario.layout }}{% if mario.layout == 'docs' and not mario.sidebar %} mario-shell--single{% endif %}{% if pagename.startswith('resources/data-explorer/') %} mario-shell--benchmark{% endif %}">
       {%- if mario.sidebar %}{% include "partials/sidebar.html" %}{% endif %}
       <div class="mario-content">
         {#- Pages with tabs always keep the page-bar row, even when it is empty, so the box starts at the same height everywhere. #}
-        {%- if mario.tabs or (mario.local_toc and mario.local_toc|length > 1) %}{% include "partials/pagebar.html" %}{% endif %}
+        {%- if mario.topic_navigation or mario.tabs or (mario.local_toc and mario.local_toc|length > 1) %}{% include "partials/pagebar.html" %}{% endif %}
         <article class="mario-box mario-article" data-snap>
+          {%- if mario.topic_navigation %}{% include "partials/docs-heading.html" %}{% endif %}
           <div class="mario-body" role="main">
             {% if mario.layout == "home" %}{% include "partials/home-navigation.html" %}{% endif %}
             {% block body %}{% endblock %}
@@ -61,6 +62,7 @@
           {%- endif %}
         </article>
       </div>
+      {%- if mario.topic_navigation and mario.local_toc %}{% include "partials/docs-toc.html" %}{% endif %}
     </div>
   </div>
 {%- endblock %}

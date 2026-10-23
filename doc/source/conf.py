@@ -120,7 +120,7 @@ nbsphinx_execute = "never"
 # Notebooks offered as downloads: at the bottom of their page (nbsphinx_epilog) and
 # in the list on resources/material (``mario-notebook-downloads``).
 mario_notebook_downloads = {
-    "prefixes": ["notebooks/parsers/", "user_guide/advanced/"],
+    "prefixes": ["notebooks/parsers/", "user_guide/advanced/", "user_guide/examples/"],
     "pages": [
         "user_guide/parsers/provide_your_database",
         "user_guide/inspection/basic_inspections",
@@ -258,59 +258,121 @@ mario_site = {
                     "look up every method in the API reference and see what changed in each release."
                 ),
             },
+            "navigation_style": "sidebar",
             "tabs": [
                 {
                     "key": "parsers",
                     "icon": "parsers",
-                    "label": "Parsers",
+                    "label": "Data sources",
                     "doc": "user_guide/parsers/index",
-                    "prefixes": ["user_guide/parsers/", "notebooks/parsers/"],
-                    "toc": {"doc": "user_guide/parsers/index", "overview": "Overview", "show_caption": True},
-                    "summary": "Read tables from EXIOBASE, EORA, FIGARO, OECD and more, or bring your own.",
+                    "prefixes": [
+                        "user_guide/parsers/",
+                        "notebooks/parsers/"
+                    ],
+                    "pages": [
+                        "user_guide/advanced/database_profiles"
+                    ],
+                    "toc": {
+                        "doc": "user_guide/parsers/index",
+                        "show_caption": True
+                    },
+                    "summary": "Choose a source, import its tables and understand its metadata."
                 },
                 {
                     "key": "inspection",
                     "icon": "inspection",
-                    "label": "Inspection",
+                    "label": "Working with a database",
                     "doc": "user_guide/inspection/index",
-                    "prefixes": ["user_guide/inspection/"],
-                    "toc": {"doc": "user_guide/inspection/index", "overview": "Overview"},
-                    "summary": "Look inside a database, compute its matrices, plot and export them.",
+                    "prefixes": [
+                        "user_guide/inspection/"
+                    ],
+                    "toc": {
+                        "doc": "user_guide/inspection/index"
+                    },
+                    "summary": "Explore sets and matrices, find classification codes and export data."
+                },
+                {
+                    "key": "analysis",
+                    "icon": "chart",
+                    "label": "Calculations and analysis",
+                    "doc": "user_guide/analysis/index",
+                    "prefixes": [
+                        "user_guide/analysis/"
+                    ],
+                    "pages": [
+                        "user_guide/inspection/compute_matrices",
+                        "user_guide/inspection/visualization"
+                    ],
+                    "toc": {
+                        "doc": "user_guide/analysis/index"
+                    },
+                    "summary": "Calculate matrices, characterize emissions and interpret results."
                 },
                 {
                     "key": "transformations",
                     "icon": "transformations",
-                    "label": "Transformations",
+                    "label": "Transformations and scenarios",
                     "doc": "user_guide/transformations/index",
-                    "prefixes": ["user_guide/transformations/"],
-                    "toc": {"doc": "user_guide/transformations/index", "overview": "Overview"},
-                    "summary": "Aggregate, extend, shock and convert a database.",
+                    "prefixes": [
+                        "user_guide/transformations/"
+                    ],
+                    "pages": [
+                        "user_guide/advanced/electricity_mix"
+                    ],
+                    "toc": {
+                        "doc": "user_guide/transformations/index"
+                    },
+                    "summary": "Aggregate or convert a table, extend its accounts and build scenarios."
                 },
                 {
-                    "key": "advanced",
+                    "key": "configuration",
                     "icon": "advanced",
-                    "label": "Advanced",
-                    "doc": "user_guide/advanced/index",
-                    "prefixes": ["user_guide/advanced/"],
-                    "toc": {"doc": "user_guide/advanced/index", "overview": "Overview"},
-                    "summary": "End-to-end analyses on real databases such as EXIOBASE.",
+                    "label": "Configuration",
+                    "doc": "user_guide/configuration/index",
+                    "prefixes": [
+                        "user_guide/configuration/"
+                    ],
+                    "pages": [
+                        "user_guide/advanced/compute_settings",
+                        "user_guide/inspection/custom_labels_and_aliases"
+                    ],
+                    "toc": {
+                        "doc": "user_guide/configuration/index"
+                    },
+                    "summary": "Choose computation settings and customize your Python session."
+                },
+                {
+                    "key": "examples",
+                    "icon": "paths",
+                    "label": "Examples",
+                    "doc": "user_guide/examples/index",
+                    "prefixes": [
+                        "user_guide/examples/"
+                    ],
+                    "pages": [
+                        "user_guide/advanced/supply_chain_analyses",
+                        "user_guide/advanced/structural_path_analysis"
+                    ],
+                    "toc": {
+                        "doc": "user_guide/examples/index"
+                    },
+                    "summary": "Follow complete analyses with downloadable notebooks."
                 },
                 {
                     "key": "api",
                     "icon": "api",
-                    "label": "API",
+                    "label": "API reference",
                     "doc": "reference/api_library",
-                    "prefixes": ["reference/", "api_document/"],
-                    "toc": {"doc": "reference/api_library", "overview": "API reference", "max_depth": 0},
-                    "summary": "Every public method, with its signature and parameters.",
-                },
-                {
-                    "key": "changelog",
-                    "icon": "changelog",
-                    "label": "Changelog",
-                    "doc": "changelog",
-                    "summary": "What changed in each MARIO release, newest first.",
-                },
+                    "prefixes": [
+                        "reference/",
+                        "api_document/"
+                    ],
+                    "toc": {
+                        "doc": "reference/api_library",
+                        "max_depth": 1
+                    },
+                    "summary": "Look up signatures, parameters, returned values and equations."
+                }
             ],
         },
         {
@@ -373,7 +435,9 @@ mario_site = {
         "contribute/realdata_fixtures": "index",
         "contribute/documentation": "index",
         "user_guide/parsers/country_coverage": "user_guide/parsers/index",
-        "user_guide/parsers/bonsai": "notebooks/parsers/bonsai/walkthrough_bonsai",
+        "notebooks/parsers/bonsai/walkthrough_bonsai": "user_guide/parsers/bonsai",
+        "user_guide/advanced/greenhouse_gas_calculations": "user_guide/analysis/greenhouse_gases",
+        "user_guide/advanced/index": "user_guide/index",
         "user_guide/parsers/bonsai_methods": "get_started/nomenclature#regional-classifications",
         "resources/publications": "resources/projects_publications",
         "resources/data-explorer": "resources/data-explorer/scope",

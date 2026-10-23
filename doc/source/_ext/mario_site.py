@@ -118,6 +118,10 @@ def _find_section(config, pagename):
 
 
 def _active_tab(section, pagename):
+    # Explicit ownership lets guides move between topics without breaking URLs.
+    for tab in section.get("tabs", []):
+        if pagename == tab["doc"] or pagename in tab.get("pages", ()):
+            return tab
     for tab in section.get("tabs", []):
         if _matches(pagename, tab["doc"], tab.get("prefixes", ())):
             return tab
@@ -177,6 +181,27 @@ def _sidebar(app, pagename, tab):
         }
         groups.insert(0, {"caption": None, "items": [overview]})
     return groups
+
+
+def _docs_sidebar(app, pagename, section):
+    """Keep every topic visible and expand the current topic's page tree."""
+    active = _active_tab(section, pagename)
+    items = [{"title": "Overview", "url": app.builder.get_relative_uri(pagename, section["landing"]),
+              "active": pagename == section["landing"], "open": False, "children": []}]
+    for topic in section.get("tabs", []):
+        children = _sidebar(app, pagename, topic) if topic is active else []
+        for group in children:
+            if group["caption"]:
+                group["collapsible"] = True
+                group["open"] = any(item["open"] for item in group["items"])
+        items.append({
+            "title": topic["label"],
+            "url": app.builder.get_relative_uri(pagename, topic["doc"]),
+            "active": pagename == topic["doc"],
+            "open": topic is active,
+            "children": children,
+        })
+    return [{"caption": None, "items": items}]
 
 
 def _local_toc(env, pagename, max_depth=2):
@@ -241,7 +266,7 @@ def _page_context(app, pagename, templatename, context, doctree):
             "children": [
                 {"label": tab["label"], "url": url(tab["doc"]), "summary": tab.get("summary", ""),
                  "featured": tab.get("featured", False),
-                 "active": _matches(pagename, tab["doc"], tab.get("prefixes", ())),
+                 "active": _active_tab(section, pagename) is tab,
                  "exact": pagename == tab["doc"]}
                 for tab in section.get("tabs", [])
             ],
@@ -266,6 +291,10 @@ def _page_context(app, pagename, templatename, context, doctree):
         "install": config.get("install", ""),
         "ai_notice": config.get("ai_notice", ""),
         "closing": None,
+        "topic_navigation": False,
+        "breadcrumbs": [],
+        "page_type": "",
+        "summary": "",
     }
 
     section = _find_section(config, pagename)
@@ -289,7 +318,28 @@ def _page_context(app, pagename, templatename, context, doctree):
             for item in section.get("tabs", [])
         ]
         hero = dict(section.get("hero", {}))
-        if section.get("sidebar") and pagename != section["landing"] and tab is not None:
+        if section.get("navigation_style") == "sidebar":
+            page["layout"] = "docs"
+            page["topic_navigation"] = True
+            page["tabs"] = []
+            page["group_key"] = (tab or {}).get("key", "")
+            page["sidebar"] = _docs_sidebar(app, pagename, section)
+            page["sidebar_label"] = "Documentation"
+            page["hero"] = {"title": context.get("title", ""), "text": "", "install": False}
+            page["breadcrumbs"] = [{"title": "Docs", "url": url(section["landing"])}]
+            if tab and pagename != tab["doc"]:
+                page["breadcrumbs"].append({"title": tab["label"], "url": url(tab["doc"])})
+            metadata = env.metadata.get(pagename, {})
+            default_type = "API reference" if pagename.startswith(("api_document/", "reference/")) else "Guide"
+            if pagename == section["landing"] or (tab and pagename == tab["doc"]):
+                default_type = "Overview"
+            elif tab and tab["key"] == "examples":
+                default_type = "Worked example"
+            elif pagename == "changelog":
+                default_type = "Release notes"
+            page["page_type"] = metadata.get("page-type", default_type)
+            page["summary"] = metadata.get("summary", "")
+        elif section.get("sidebar") and pagename != section["landing"] and tab is not None:
             page["layout"] = "docs"
             page["group_key"] = tab.get("key", "")
             page["sidebar"] = _sidebar(app, pagename, tab)
@@ -314,6 +364,8 @@ def _page_context(app, pagename, templatename, context, doctree):
                            "dialog": closing.get("dialog")}
 
     context["mario_page"] = page
+    if page["topic_navigation"]:
+        app.add_css_file("docs-workflows.css")
     if pagename in {"resources/data-explorer/compare", "resources/data-explorer/scope", "resources/data-explorer/analyses"}:
         app.add_css_file("economy-browser.css")
     if pagename == "resources/data-explorer/scope":
@@ -970,7 +1022,7 @@ class MarioNotebookDownloads(Directive):
 
         wrapper = nodes.container(classes=["mario-downloads"])
         for tab in tabs:
-            members = [docname for docname in docs if _matches(docname, tab["doc"], tab.get("prefixes", ()))]
+            members = [docname for docname in docs if _active_tab(section, docname) is tab]
             if not members:
                 continue
             titled = sorted(

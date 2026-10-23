@@ -11,22 +11,10 @@
   <details class="mario-pagebar__menu mario-pagebar__pages" data-pagebar-menu>
     <summary><span class="mario-pagebar__long">{{ mario.sidebar_label }} pages</span><span class="mario-pagebar__short">Pages</span> {{ icon("chevron") }}</summary>
     <div class="mario-pagebar__panel mario-sidenav">
+      {%- from "partials/sidebar.html" import render_items with context %}
       {%- for group in mario.sidebar %}
         {%- if group.caption %}<p class="mario-sidenav__caption">{{ group.caption }}</p>{% endif %}
-        <ul class="mario-sidenav__list">
-          {%- for item in group['items'] %}
-          <li class="{% if item.active %}is-active{% endif %}"><a href="{{ item.url }}"{% if item.active %} aria-current="page"{% endif %}>{{ item.title }}</a>
-            {%- for sub in item.children %}
-              {%- if sub.caption %}<p class="mario-sidenav__caption">{{ sub.caption }}</p>{% endif %}
-              <ul class="mario-sidenav__list">
-                {%- for child in sub['items'] %}
-                <li class="{% if child.active %}is-active{% endif %}"><a href="{{ child.url }}"{% if child.active %} aria-current="page"{% endif %}>{{ child.title }}</a></li>
-                {%- endfor %}
-              </ul>
-            {%- endfor %}
-          </li>
-          {%- endfor %}
-        </ul>
+        {{ render_items(group['items'], 0) }}
       {%- endfor %}
     </div>
   </details>

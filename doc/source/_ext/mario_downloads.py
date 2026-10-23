@@ -3,7 +3,7 @@ from copy import deepcopy
 import json
 from pathlib import Path
 import re
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit, urlunsplit
 
 DOCS = 'https://www.marioproject.com/en/latest/'
 
@@ -15,7 +15,10 @@ def clean_notebook(path, srcdir):
     guide = DOCS + docname + '.html'
     licences = json.loads((srcdir / '_static/data/database_licences.json').read_text())
     catalogue = json.loads((srcdir / '_static/data/database_profiles.json').read_text())
-    ids = [g['id'] for g in catalogue['guides'] if g['doc'] == docname]
+    # Examples can move away from a source guide while retaining its attribution.
+    source_guides = notebook.get('metadata', {}).get('mario', {}).get('source_guides', [])
+    ids = [g['id'] for g in catalogue['guides']
+           if g['doc'] == docname or g['id'] in source_guides]
     notices = [n for key in ids for n in licences['guides'].get(key, [])]
     note = ['### Running this notebook\n',
             f'Guide: [{guide}]({guide}). Install MARIO, then set the example paths to your own files.\n\n',
@@ -41,6 +44,11 @@ def clean_notebook(path, srcdir):
                 if link.startswith(('https://', 'http://', '#', 'mailto:')):
                     return match[0]
                 target = DOCS + link.lstrip('/') if link.startswith('/') else urljoin(guide, link)
+                parts = urlsplit(link)
+                local = srcdir / parts.path.lstrip('/') if parts.path.startswith('/') else path.parent / parts.path
+                if local.suffix in {'.rst', '.ipynb'} and local.is_file():
+                    published = urlsplit(target)
+                    target = urlunsplit(published._replace(path=str(Path(published.path).with_suffix('.html'))))
                 return f'[{label}]({target})'
             text = re.sub(r'\[([^\]]+)\]\(([^ )]+)\)', absolute, text)
         cell['source'] = text.splitlines(keepends=True)

@@ -3,6 +3,9 @@ mario.parse_bonsai
 
 .. currentmodule:: mario
 
+For input files and an import example, see the :doc:`BONSAI guide
+<../user_guide/parsers/bonsai>`.
+
 .. autofunction:: parse_bonsai
 
 Native b2 HIOT

@@ -153,7 +153,7 @@ gas multipliers; the original AR6 audit is retained separately.
 The :download:`BONSAI technology snapshot <../../_static/data/benchmarks/bonsai-electricity-technology-2016.json>`
 records source timestamps and hashes, the explicit technology mapping,
 characterisation, native country/product identities and verification.
-See the :doc:`BONSAI walkthrough <../../notebooks/parsers/bonsai/walkthrough_bonsai>`
+See the :doc:`BONSAI walkthrough <../../user_guide/parsers/bonsai>`
 for parsing and calculating its footprints. The source folder label
 ``20260615`` is retained as provenance; its contents are updated in place.
 

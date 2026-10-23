@@ -1,0 +1,99 @@
+/* Task-oriented Docs. Get started and Resources keep their own layouts. */
+body[data-section="docs"] .mario-shell--docs {
+  width: min(92rem, calc(100% - 3rem));
+  display: grid;
+  grid-template-columns: 15rem minmax(0, 1fr);
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+body[data-section="docs"] .mario-sidebar {
+  display: block;
+  margin-top: 0;
+  padding-top: 1rem;
+  background: var(--paper);
+  border-color: transparent;
+  box-shadow: none;
+}
+body[data-section="docs"] .mario-article {
+  padding: clamp(1.25rem, 3vw, 3rem);
+  border-top: 1px solid var(--line);
+}
+body[data-section="docs"] .mario-pagebar { display: none; }
+.mario-doc-heading { margin-bottom: 1.75rem; }
+.mario-breadcrumbs { display: flex; flex-wrap: wrap; align-items: center; gap: .55rem; margin-bottom: 1.2rem; color: var(--ink-muted); font-size: .78rem; }
+.mario-breadcrumbs a { color: var(--ink-soft); text-decoration: none; }
+.mario-breadcrumbs a:hover { color: var(--link); text-decoration: underline; }
+.mario-doc-heading h1 { margin: 0; color: var(--ink); font-size: clamp(1.9rem, 2.6vw, 2.65rem); line-height: 1.12; letter-spacing: -.035em; text-wrap: balance; overflow-wrap: anywhere; }
+.mario-doc-heading__summary { margin: 1rem 0 0; color: var(--ink-soft); font-size: 1.12rem; line-height: 1.6; max-width: 65ch; }
+.mario-doc-toc { display: none; position: sticky; top: calc(var(--header-h) + 1.5rem); max-height: calc(100vh - var(--header-h) - 3rem); overflow: auto; padding-top: 1rem; }
+.mario-doc-toc > p { font-size: .78rem; font-weight: 700; color: var(--ink-muted); margin: 0 0 .7rem .8rem; }
+.mario-doc-toc .mario-localtoc a { font-size: .8rem; padding-left: .8rem; }
+.mario-doc-toc .mario-localtoc ul ul a { padding-left: 1.5rem; font-size: .75rem; }
+html.mario-header-hidden .mario-doc-toc { top: 1.5rem; max-height: calc(100vh - 3rem); }
+body[data-section="docs"] .mario-sidenav__list--0 > li > a { font-weight: 650; padding-top: .6rem; padding-bottom: .6rem; }
+body[data-section="docs"] .mario-sidenav__list--1 { margin-bottom: .7rem; }
+body[data-section="docs"] .mario-sidenav__list--1 a { font-size: .82rem; }
+body[data-section="docs"] .mario-sidenav__list--2 a { padding-left: 2.8rem; font-size: .79rem; }
+body[data-section="docs"] .mario-sidenav__caption { font-size: .64rem; }
+.mario-sidenav__group > summary { padding: .6rem .5rem .6rem 2rem; color: var(--ink-muted); font-size: .7rem; font-weight: 650; cursor: pointer; line-height: 1.5; }
+.mario-sidenav__group > summary:hover { color: var(--ink); }
+.mario-sidenav__group > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+body[data-section="docs"] .mario-body > section > p { max-width: 72ch; }
+body[data-section="docs"] .mario-body h2 { margin-top: 2.3rem; font-size: 1.45rem; letter-spacing: -.02em; }
+body[data-section="docs"] .mario-docs-overview { grid-template-columns: 1fr; gap: .5rem; margin-top: 1.5rem; }
+body[data-section="docs"] .mario-docs-card { padding: 1.15rem 0; border: 0; border-bottom: 1px solid var(--line); background: transparent; box-shadow: none; }
+body[data-section="docs"] .mario-docs-card__list { display: flex; flex-wrap: wrap; gap: .3rem 1.4rem; }
+body[data-section="docs"] .mario-docs-card__list li { margin: 0; }
+body[data-section="docs"] .mario-docs-card__title { font-size: 1.1rem; }
+body[data-section="docs"] .mario-body .mario-docs-card__title { margin: 0 0 .5rem; font-size: 1.2rem; }
+body[data-section="docs"] .mario-docs-card__summary { margin-bottom: .6rem; }
+.mario-guide-facts { margin: 1.5rem 0; padding: 1rem 1.25rem; border-left: 3px solid var(--accent); background: var(--surface-2); border-radius: 0 var(--radius) var(--radius) 0; }
+.mario-guide-facts > :first-child { margin-top: 0; }
+.mario-guide-facts > :last-child { margin-bottom: 0; }
+.mario-guide-facts p { font-size: .92rem; }
+body[data-section="docs"] .mario-switch__option { padding: 1rem; }
+body[data-section="docs"] .mario-switch__title { font-size: 1.05rem; }
+body[data-section="docs"] .mario-switch__text { font-size: .85rem; }
+body[data-section="docs"] .mario-switch { margin-block: 1.5rem; }
+body[data-section="docs"][data-group="analysis"] { --group-color: var(--ribbon-green); }
+body[data-section="docs"][data-group="configuration"] { --group-color: var(--ribbon-lilac); }
+body[data-section="docs"][data-group="examples"] { --group-color: var(--ribbon-orange); }
+@media (min-width: 90em) {
+  body[data-section="docs"] .mario-shell--docs { grid-template-columns: 15rem minmax(0, 1fr) 12rem; }
+  .mario-doc-toc { display: block; }
+  body[data-section="docs"] .mario-shell--docs:not(:has(.mario-doc-toc)) { grid-template-columns: 15rem minmax(0, 1fr); max-width: 78.5rem; }
+}
+@media (min-width: 64em) and (max-width: 89.999em) {
+  body[data-section="docs"] .mario-pagebar:has(.mario-pagebar__toc) { display: flex; height: 3rem; }
+  body[data-section="docs"] .mario-pagebar__pages { display: none; }
+}
+@media (max-width: 63.999em) {
+  body[data-section="docs"] .mario-shell--docs { display: block; width: min(52rem, calc(100% - 2rem)); margin-top: 1rem; }
+  body[data-section="docs"] .mario-sidebar { display: none; }
+  body[data-section="docs"] .mario-pagebar { display: flex; height: 3.25rem; }
+  body[data-section="docs"] .mario-pagebar__pages { display: block; }
+  body[data-section="docs"] .mario-pagebar__panel { max-width: calc(100vw - 2rem); }
+}
+@media (max-width: 35em) {
+  body[data-section="docs"] .mario-cards { grid-template-columns: 1fr; }
+  body[data-section="docs"] .mario-docs-card__list { display: block; }
+}
+@media print {
+  body[data-section="docs"] .mario-shell--docs { display: block; width: 100%; }
+  body[data-section="docs"] .mario-sidebar, body[data-section="docs"] .mario-pagebar, .mario-doc-toc { display: none; }
+}
+/* Nested source categories stay lightweight inside the mobile page menu. */
+.mario-pagebar .mario-sidenav__group > summary {
+  display: block;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  white-space: normal;
+  font-size: .74rem;
+}
+.mario-sidenav__group > summary { list-style: none; }
+.mario-sidenav__group > summary::-webkit-details-marker { display: none; }
+.mario-sidenav__group > summary::before { content: "›"; display: inline-block; margin-right: .5rem; font-size: .95rem; }
+.mario-sidenav__group[open] > summary::before { transform: rotate(90deg); }

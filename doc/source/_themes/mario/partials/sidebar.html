@@ -4,8 +4,15 @@
   <li class="{% if item.active %}is-active{% endif %}{% if item.open %} is-open{% endif %}">
     <a href="{{ item.url }}"{% if item.active %} aria-current="page"{% endif %}>{{ item.title }}</a>
     {%- for group in item.children %}
+      {%- if group.collapsible %}
+      <details class="mario-sidenav__group"{% if group.open %} open{% endif %}>
+        <summary>{{ group.caption }}</summary>
+        {{- render_items(group['items'], depth + 1) }}
+      </details>
+      {%- else %}
       {%- if group.caption %}<p class="mario-sidenav__caption">{{ group.caption }}</p>{% endif %}
       {{- render_items(group['items'], depth + 1) }}
+      {%- endif %}
     {%- endfor %}
   </li>
   {%- endfor %}
