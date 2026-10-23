@@ -12,7 +12,7 @@ One data source, three documentation locations
 The ``mario_database_profiles`` Sphinx extension reads it to render:
 
 * compact version and region/economic-dimension counts in the parser cards;
-* a coverage panel after the existing introduction of each matching walkthrough;
+* a coverage panel after the import section of each matching source guide;
 * the geographic explorer on ``resources/database_coverage`` (displayed as
   Database comparisons; the URL stays compatible), with the compact Excel
   catalogue on ``resources/material`` (Downloadable material).

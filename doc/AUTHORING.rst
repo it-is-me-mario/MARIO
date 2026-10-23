@@ -1,6 +1,10 @@
 Writing MARIO documentation
 ===========================
 
+Start with the `maintenance KB <maintenance/README.rst>`_ to identify affected
+pages, metadata and downloads. This file defines the editorial rules; the KB
+contains the change map and verification procedure.
+
 Web pages and executable notebooks have different jobs. Author the web page in
 RST; keep the notebook as a downloadable companion. Do not paste a notebook's
 full cell sequence or cached tables into the page.
@@ -60,13 +64,6 @@ complete notebook. Examples need defined selectors and explicit source inputs.
 Verification
 ------------
 
-Build with warnings treated as errors::
-
-   python -m sphinx -b html -W --keep-going doc/source /tmp/mario-docs
-
-Run the relevant ``tests/docs`` checks and execute small guide examples on the
-packaged tables. Source-specific examples require their stated external files;
-do not imply they were rerun when only their API signatures were checked.
-Check internal links, companion downloads and source notices. Inspect the
-rendered layout on desktop and a narrow viewport, including disclosures and
-navigation. Keep existing source/licence notices with database documentation.
+Follow the `verification checklist <maintenance/verification.rst>`_ for builds,
+links, companion downloads, examples and rendered review. Keep existing
+source/licence notices with database documentation.

@@ -122,7 +122,7 @@ Documentation Map
 The published documentation is organized into three sections:
 
 * `Get started <https://www.marioproject.com/en/latest/get_started/index.html>`_ for installation, nomenclature, table formats and scenarios;
-* `Docs <https://www.marioproject.com/en/latest/user_guide/index.html>`_ for parsers, inspection, transformations, advanced workflows and the
+* `Docs <https://www.marioproject.com/en/latest/user_guide/index.html>`_ for data sources, inspection, analysis, transformations, configuration, examples and the
   `API reference <https://www.marioproject.com/en/latest/reference/api_library.html>`_;
 * `Resources <https://www.marioproject.com/en/latest/resources/research.html>`_ for the software paper and related research.
 
@@ -141,6 +141,10 @@ Contributions are welcome. To report a bug or suggest a feature, open an
 `issue on GitHub <https://github.com/it-is-me-mario/MARIO/issues>`_. To contribute
 code or documentation, open a pull request against ``main``; for larger changes,
 open an issue first or contact the maintainers so we can agree on the approach.
+
+For documentation and changes to public behaviour, start with the
+`documentation maintenance KB <doc/maintenance/README.rst>`_. It links the
+authoring rules, affected-page map and verification checklist.
 
 
 License
