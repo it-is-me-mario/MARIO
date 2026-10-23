@@ -6,7 +6,7 @@ OECD
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <walkthrough_oecd.ipynb>`
+   :download:`Download notebook <walkthrough_oecd.ipynb>`
 
 The dataset selector identifies different source families. National IOT and SUT workflows use different inputs and country/year options.
 

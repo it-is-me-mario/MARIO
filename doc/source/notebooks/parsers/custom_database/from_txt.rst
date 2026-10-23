@@ -6,7 +6,7 @@ TXT, CSV and Parquet
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <from_txt.ipynb>`
+   :download:`Download notebook <from_txt.ipynb>`
 
 Match flat and matrix layouts to the export you have. Keep the units file with the data; choose flows or coefficients explicitly.
 

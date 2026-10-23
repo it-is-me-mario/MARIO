@@ -6,7 +6,7 @@ Change the SUT trade representation
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <to_chenery_moses.ipynb>`
+   :download:`Download notebook <to_chenery_moses.ipynb>`
 
 .. container:: mario-recipe
 

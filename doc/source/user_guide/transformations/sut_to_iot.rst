@@ -6,7 +6,7 @@ Convert a SUT to an IOT
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <sut_to_iot.ipynb>`
+   :download:`Download notebook <sut_to_iot.ipynb>`
 
 .. container:: mario-recipe
 

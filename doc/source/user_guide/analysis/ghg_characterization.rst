@@ -4,8 +4,8 @@
 GHG characterization and footprints
 ====================================
 
-Characterization combines gas accounts
---------------------------------------
+Gas characterization
+--------------------
 
 For each producing node, MARIO multiplies the matched gas accounts by their
 characterization factors and sums them:
@@ -24,8 +24,8 @@ All matched accounts must share a unit; the method does not convert their
 magnitudes. For example, kilograms of each gas produce a result interpreted
 as kilograms of CO2-equivalent.
 
-A profile supplies the recipe
-------------------------------
+Built-in GHG profiles
+---------------------
 
 A built-in profile connects source account labels to factors. The profile
 is selected from source/name metadata unless explicitly supplied. Inspect it
@@ -64,8 +64,8 @@ This example covers those three accounts only. Include other relevant source
 accounts explicitly. With ``gwp=...``, report and horizon arguments do not
 modify the supplied factors; preserve the factor mapping with your results.
 
-Footprints add the production network
---------------------------------------
+Supply-chain footprints
+-----------------------
 
 On an IOT, direct emission coefficients ``e`` describe emissions per unit of
 output. The per-unit footprint includes the supply chain:
@@ -85,8 +85,8 @@ totals also require the appropriate activity or demand aggregation and treatment
 of direct final-demand emissions. The
 :doc:`comparison example <../examples/compare_ghg>` makes those choices explicit.
 
-Compare like with like
------------------------
+Cross-database comparisons
+--------------------------
 
 Record the source release and reference year, account coverage, actual factors,
 units and accounting boundary. The Explorer's published comparison recipes

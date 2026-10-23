@@ -6,7 +6,7 @@ Extract a region or subset
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <mrio_to_srio.ipynb>`
+   :download:`Download notebook <mrio_to_srio.ipynb>`
 
 .. container:: mario-recipe
 
@@ -30,8 +30,8 @@ Keep several regions
 
    subset = db.to_region_subset(["Reg1", "Reg2"], inplace=False)
 
-Check the new boundary
-----------------------
+External trade accounts
+-----------------------
 
 .. code-block:: python
 

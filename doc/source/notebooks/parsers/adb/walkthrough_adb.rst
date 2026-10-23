@@ -6,7 +6,7 @@ ADB
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <walkthrough_adb.ipynb>`
+   :download:`Download notebook <walkthrough_adb.ipynb>`
 
 Choose a workbook with the intended economy coverage and year. Air-emission accounts are imported separately.
 

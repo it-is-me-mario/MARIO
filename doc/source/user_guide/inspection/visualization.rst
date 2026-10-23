@@ -6,7 +6,7 @@ Visualize results
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <visualization.ipynb>`
+   :download:`Download notebook <visualization.ipynb>`
 
 .. container:: mario-recipe
 
@@ -26,8 +26,8 @@ Visualize results
       **Result** · An interactive figure and its prepared data. ``path=False``
       skips HTML export; ``auto_open=False`` leaves browser opening to you.
 
-Choose what the figure should explain
--------------------------------------
+Matrix plots and analysis plots
+-------------------------------
 
 .. mario-cards::
    :columns: 2

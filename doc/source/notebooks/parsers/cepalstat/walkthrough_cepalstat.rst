@@ -6,7 +6,7 @@ CEPALSTAT
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <walkthrough_cepalstat.ipynb>`
+   :download:`Download notebook <walkthrough_cepalstat.ipynb>`
 
 This parser is beta: supported file families and years differ by country. Select the observation year within the source release.
 

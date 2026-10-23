@@ -6,7 +6,7 @@ GLORIA
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <walkthrough_gloria.ipynb>`
+   :download:`Download notebook <walkthrough_gloria.ipynb>`
 
 The parser supports SUTs. Keep the economic files, matching ReadMe and optional satellite accounts together. Release 060 includes forecast years; record the year and release used.
 

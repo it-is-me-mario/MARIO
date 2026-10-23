@@ -6,7 +6,7 @@ Excel tables
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <from_excel.ipynb>`
+   :download:`Download notebook <from_excel.ipynb>`
 
 Prepare tables, labels and units in the expected layout. Use the custom-table template guide when starting from scratch.
 

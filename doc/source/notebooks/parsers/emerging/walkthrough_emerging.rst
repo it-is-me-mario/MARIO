@@ -6,7 +6,7 @@ EMERGING
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <walkthrough_emerging.ipynb>`
+   :download:`Download notebook <walkthrough_emerging.ipynb>`
 
 Choose the release, year and native variant together. The E variant needs its own input and variant selector; source CO2eq totals retain their original characterization.
 

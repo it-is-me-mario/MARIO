@@ -6,7 +6,7 @@ Calculate matrices
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <compute_matrices.ipynb>`
+   :download:`Download notebook <compute_matrices.ipynb>`
 
 .. container:: mario-recipe
 

@@ -6,7 +6,7 @@ Customize names and aliases
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <custom_labels_and_aliases.ipynb>`
+   :download:`Download notebook <custom_labels_and_aliases.ipynb>`
 
 Settings are shared by all databases in the process. Keep a copy to restore
 when the custom naming is no longer needed.

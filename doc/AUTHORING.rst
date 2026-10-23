@@ -35,8 +35,9 @@ Use the existing components selectively:
   inputs, material limitations and interpretation cautions visible.
 * ``mario-switch``: mutually exclusive workflows such as IOT versus SUT.
 
-Keep headings short and informative. Prefer two or three decisions to an
-exhaustive option table. Name the units and axes when explaining a result.
+Use short, descriptive headings that name the operation or information.
+Avoid slogans, metaphors and rhetorical labels. Prefer two or three decisions
+to an exhaustive option table. Name the units and axes when explaining a result.
 Use figures to explain an actual result, with captions describing its scope.
 
 Executable companions

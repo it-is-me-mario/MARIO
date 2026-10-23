@@ -6,7 +6,7 @@ BEA
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <walkthrough_bea.ipynb>`
+   :download:`Download notebook <walkthrough_bea.ipynb>`
 
 Select the reporting year and aggregation level. Detail-level tables are available for benchmark years.
 

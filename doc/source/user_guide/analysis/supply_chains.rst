@@ -24,8 +24,8 @@ Start with a traded item. IOTs use a sector; SUTs use a commodity.
       unit, and embodied CO2 in the indicator's unit. Rows are origins; columns
       are destinations. Domestic flows are included.
 
-Choose the question
--------------------
+Methods and indicators
+----------------------
 
 .. list-table::
    :header-rows: 1

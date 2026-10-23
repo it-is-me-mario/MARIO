@@ -6,7 +6,7 @@ GTAP
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <walkthrough_gtap.ipynb>`
+   :download:`Download notebook <walkthrough_gtap.ipynb>`
 
 The example selects a Power MRIO CSV bundle. Standard, GDX and alternative layouts require the matching options. Access to the source remains subject to its licence.
 

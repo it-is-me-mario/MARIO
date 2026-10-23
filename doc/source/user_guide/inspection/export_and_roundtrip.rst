@@ -6,7 +6,7 @@ Export a database
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <export_and_roundtrip.ipynb>`
+   :download:`Download notebook <export_and_roundtrip.ipynb>`
 
 Choose a format by what you plan to do next.
 

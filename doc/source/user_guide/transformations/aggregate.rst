@@ -6,7 +6,7 @@ Aggregate a database
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <aggregate.ipynb>`
+   :download:`Download notebook <aggregate.ipynb>`
 
 Choose the mapping first; apply it to a copy while checking the result.
 

@@ -6,7 +6,7 @@ Trace motor-vehicle supply chains
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <structural_path_analysis.ipynb>`
+   :download:`Download notebook <structural_path_analysis.ipynb>`
 
 .. container:: mario-guide-facts
 
@@ -20,8 +20,8 @@ Trace motor-vehicle supply chains
    Example output from the companion notebook. Only retained paths are shown;
    the plot is not the complete footprint.
 
-Follow the analysis
--------------------
+Analysis steps
+--------------
 
 .. mario-steps::
 

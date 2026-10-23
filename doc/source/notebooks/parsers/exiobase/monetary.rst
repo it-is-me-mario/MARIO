@@ -6,7 +6,7 @@ EXIOBASE monetary
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <monetary.ipynb>`
+   :download:`Download notebook <monetary.ipynb>`
 
 Recent releases provide IOTs; monetary SUT parsing uses release 3.8.2. Check extension coverage by year: recent economic years can contain now-cast emissions rather than observed inventories.
 

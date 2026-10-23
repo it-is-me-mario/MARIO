@@ -22,8 +22,8 @@ For a **GLORIA release 060 SUT** already parsed as ``db``:
       Codes remain strings, including leading zeros. The lookup uses packaged
       metadata and leaves model values unchanged.
 
-Make three choices
-------------------
+Set, classification and item
+----------------------------
 
 .. mario-cards::
    :columns: 3
@@ -46,8 +46,8 @@ Make three choices
       One label or a list of labels. Omit it to query the full set.
       Use ``db.get_index()`` to find labels.
 
-Read the evidence
------------------
+Descriptions and provenance
+---------------------------
 
 .. code-block:: python
 

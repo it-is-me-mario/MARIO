@@ -26,8 +26,8 @@ production or ``"total value added"`` as the indicator.
       **Result** · One row per reported path, ranked by absolute contribution.
       ``paths.attrs`` contains the total footprint and reported coverage.
 
-Read a path
------------
+Path contributions
+------------------
 
 .. container:: mario-flow
 
@@ -37,8 +37,8 @@ The row's ``contribution`` is the selected indicator generated at the upstream
 end of that path. ``depth=0`` is the producing sector's direct contribution;
 each additional depth adds one upstream transaction.
 
-Control how far the analysis goes
----------------------------------
+Depth and pruning
+-----------------
 
 .. mario-cards::
    :columns: 3
@@ -60,8 +60,8 @@ Control how far the analysis goes
       Number of rows returned **after** traversal. It does not limit traversal
       time. ``None`` returns all retained paths.
 
-Check coverage before interpreting a plot
------------------------------------------
+Footprint coverage
+------------------
 
 .. code-block:: python
 

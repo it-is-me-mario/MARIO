@@ -6,7 +6,7 @@ Import your own tables
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <provide_your_database.ipynb>`
+   :download:`Download notebook <provide_your_database.ipynb>`
 
 .. container:: mario-flow
 

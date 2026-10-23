@@ -6,7 +6,7 @@ Inspect and query a database
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <basic_inspections.ipynb>`
+   :download:`Download notebook <basic_inspections.ipynb>`
 
 Start with the packaged IOT; use your parsed ``db`` in the same calls.
 
@@ -25,8 +25,8 @@ Start with the packaged IOT; use your parsed ``db`` in the same calls.
       **Result** · ``sectors`` is a list of native labels; ``production`` is a
       pandas DataFrame indexed by region and sector.
 
-Find your way around
---------------------
+Sets, labels and scenarios
+--------------------------
 
 .. mario-cards::
    :columns: 2

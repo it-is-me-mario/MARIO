@@ -6,7 +6,7 @@ Add and split sectors
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <add_sectors.ipynb>`
+   :download:`Download notebook <add_sectors.ipynb>`
 
 .. mario-cards::
    :columns: 2

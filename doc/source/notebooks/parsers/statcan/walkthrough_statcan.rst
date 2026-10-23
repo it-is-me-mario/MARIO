@@ -6,7 +6,7 @@ Statistics Canada
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <walkthrough_statcan.ipynb>`
+   :download:`Download notebook <walkthrough_statcan.ipynb>`
 
 Choose geography and detail level. The retrieval workflow requires source access unless the necessary files are already cached.
 

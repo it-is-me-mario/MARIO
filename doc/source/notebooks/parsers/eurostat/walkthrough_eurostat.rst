@@ -6,7 +6,7 @@ Eurostat
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <walkthrough_eurostat.ipynb>`
+   :download:`Download notebook <walkthrough_eurostat.ipynb>`
 
 This call retrieves source data. For IOTs, select the product or industry system explicitly; availability varies by country and year.
 

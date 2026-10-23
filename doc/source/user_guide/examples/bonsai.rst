@@ -6,7 +6,7 @@ Inspect BONSAI after import
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <bonsai.ipynb>`
+   :download:`Download notebook <bonsai.ipynb>`
 
 **Inputs** · Local BONSAI Balanced HSUT and native b2 HIOT bundles.
 The companion uses the checked ``20260615`` directory and reference year 2016;

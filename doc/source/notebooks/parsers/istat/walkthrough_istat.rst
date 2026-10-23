@@ -6,7 +6,7 @@ ISTAT
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <walkthrough_istat.ipynb>`
+   :download:`Download notebook <walkthrough_istat.ipynb>`
 
 This example downloads the selected edition. Choose the table, valuation and industry or product system before comparing results.
 

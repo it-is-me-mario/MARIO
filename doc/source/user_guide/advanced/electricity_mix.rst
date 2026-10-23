@@ -6,7 +6,7 @@ Update electricity mixes
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <electricity_mix.ipynb>`
+   :download:`Download notebook <electricity_mix.ipynb>`
 
 Use a model with separate generation technologies, such as a supported
 EXIOBASE layout or EMERGING-E. Supply and trade shares answer different questions.

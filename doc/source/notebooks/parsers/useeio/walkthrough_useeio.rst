@@ -6,7 +6,7 @@ USEEIO
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <walkthrough_useeio.ipynb>`
+   :download:`Download notebook <walkthrough_useeio.ipynb>`
 
 Workbook release labels and economic source years can differ. These models are imported as SUTs, with commodity-side satellite accounts.
 

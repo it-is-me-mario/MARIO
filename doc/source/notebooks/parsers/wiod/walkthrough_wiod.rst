@@ -6,7 +6,7 @@ WIOD
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <walkthrough_wiod.ipynb>`
+   :download:`Download notebook <walkthrough_wiod.ipynb>`
 
 Use the matching workbook family and valuation. SUT, national and previous-year-price workbooks follow separate branches.
 

@@ -6,7 +6,7 @@ EXIOBASE hybrid
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <hybrid.ipynb>`
+   :download:`Download notebook <hybrid.ipynb>`
 
 Keep the matching hybrid release files together. Native product units differ; inspect units before summing sectors or comparing footprints.
 

@@ -6,7 +6,7 @@ CEADS
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <walkthrough_ceads.ipynb>`
+   :download:`Download notebook <walkthrough_ceads.ipynb>`
 
 Use a supported CEADS workbook. Optional province-level CO2 data needs an explicit mapping to the table.
 

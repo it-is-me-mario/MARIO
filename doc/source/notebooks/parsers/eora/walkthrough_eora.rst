@@ -6,7 +6,7 @@ EORA
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <walkthrough_eora.ipynb>`
+   :download:`Download notebook <walkthrough_eora.ipynb>`
 
 Obtain the economic files and their matching labels locally. Eora1/Eora26 and Eora2 are distinct source families; this guide covers the supported Eora1/Eora26 inputs.
 

@@ -6,7 +6,7 @@ Apply shocks and compare scenarios
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <apply_shocks.ipynb>`
+   :download:`Download notebook <apply_shocks.ipynb>`
 
 .. container:: mario-flow
 

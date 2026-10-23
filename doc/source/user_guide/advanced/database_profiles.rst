@@ -18,8 +18,8 @@ Database profiles
       **Result** · An offline metadata dictionary. No database files are
       downloaded or parsed, and no settings are changed.
 
-Choose the view
----------------
+Family and model profiles
+-------------------------
 
 .. mario-cards::
    :columns: 2
@@ -37,8 +37,8 @@ Choose the view
       adds the current model's metadata, selected GHG profile and available
       classifications.
 
-Three sections, three purposes
-------------------------------
+Profile contents
+----------------
 
 .. list-table::
    :header-rows: 1

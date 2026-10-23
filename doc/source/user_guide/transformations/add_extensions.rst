@@ -6,7 +6,7 @@ Add satellite accounts
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <add_extensions.ipynb>`
+   :download:`Download notebook <add_extensions.ipynb>`
 
 .. mario-steps::
 

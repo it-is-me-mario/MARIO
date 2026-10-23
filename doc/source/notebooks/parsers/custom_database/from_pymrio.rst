@@ -6,7 +6,7 @@ pymrio objects
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <from_pymrio.ipynb>`
+   :download:`Download notebook <from_pymrio.ipynb>`
 
 First load an IOSystem as io with pymrio. Select which extensions should become factors of production and satellite accounts.
 

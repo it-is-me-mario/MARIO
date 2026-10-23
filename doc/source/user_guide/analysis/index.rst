@@ -38,8 +38,8 @@ analysis; MARIO resolves their dependencies.
    * - Plot a matrix or a prepared result
      - :doc:`Visualize results <../inspection/visualization>`
 
-Analyses to follow
--------------------
+Worked examples
+---------------
 
 The :doc:`Examples <../examples/index>` collection connects these operations
 in complete analyses:

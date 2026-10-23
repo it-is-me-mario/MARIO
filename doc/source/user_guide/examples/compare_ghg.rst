@@ -6,7 +6,7 @@ Compare GHG footprints across databases
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <compare_ghg.ipynb>`
+   :download:`Download notebook <compare_ghg.ipynb>`
 
 **Inputs** · Local EXIOBASE 3.10.2, Eora26 and ADB releases with their extensions.
 The companion notebook lists the exact years and expected folder structure.
@@ -15,8 +15,8 @@ The companion notebook lists the exact years and expected folder structure.
 
    **Accounts** → **Characterization** → **Regional totals** → **Common units** → **Chart**
 
-What the comparison controls
-----------------------------
+Indicator, geography and units
+------------------------------
 
 .. mario-cards::
    :columns: 3
@@ -37,8 +37,8 @@ What the comparison controls
 
       Regional totals are converted to a common magnitude before plotting.
 
-Follow the analysis
--------------------
+Analysis steps
+--------------
 
 .. mario-steps::
 

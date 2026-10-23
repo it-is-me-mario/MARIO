@@ -6,7 +6,7 @@ FIGARO
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <walkthrough_figaro.ipynb>`
+   :download:`Download notebook <walkthrough_figaro.ipynb>`
 
 The parser uses Eurostat data and a local cache. Select table type and, for IOTs, the product or industry system.
 

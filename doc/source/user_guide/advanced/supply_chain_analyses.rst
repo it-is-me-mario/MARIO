@@ -6,7 +6,7 @@ Trace a nickel supply chain
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <supply_chain_analyses.ipynb>`
+   :download:`Download notebook <supply_chain_analyses.ipynb>`
 
 .. container:: mario-guide-facts
 
@@ -21,8 +21,8 @@ Trace a nickel supply chain
    Bilateral trade in the example's first year. Domestic flows are part of
    the returned trade matrix.
 
-Follow the analysis
--------------------
+Analysis steps
+--------------
 
 .. mario-steps::
 

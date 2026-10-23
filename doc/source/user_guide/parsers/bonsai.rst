@@ -6,7 +6,7 @@ BONSAI
 
 .. container:: mario-companion
 
-   :download:`Run the notebook <../examples/bonsai.ipynb>`
+   :download:`Download notebook <../examples/bonsai.ipynb>`
 
 .. container:: mario-guide-facts
 
