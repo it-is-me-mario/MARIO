@@ -6,6 +6,9 @@ classification correspondences bundled for one database family. Inspect it
 before importing a database, or identify the definitions applicable to an
 existing ``db``.
 
+Use :doc:`mario.get_database_profile() <../../api_document/mario.get_database_profile>` to inspect a family and
+:doc:`db.database_profile <../../api_document/mario.CoreModel.database_profile>` to inspect a parsed model.
+
 .. list-table:: Choose the operation
    :header-rows: 1
    :widths: 32 40 28
@@ -14,16 +17,16 @@ existing ``db``.
      - Use
      - Result
    * - Inspect metadata for a family
-     - ``mario.get_database_profile("gloria")``
+     - :doc:`mario.get_database_profile() <../../api_document/mario.get_database_profile>` with ``"gloria"``
      - Metadata dictionary
    * - Inspect metadata for a parsed model
-     - ``db.database_profile``
+     - :doc:`db.database_profile <../../api_document/mario.CoreModel.database_profile>`
      - Metadata dictionary with model availability
    * - Find classification codes for native items
-     - :doc:`db.get_concordances <../inspection/concordances>`
+     - :doc:`db.get_concordances() <../inspection/concordances>`
      - ``{native_item: [codes]}``
    * - Prepare NACE sections or divisions
-     - :doc:`db.get_aggregation <../transformations/classification_aggregation>`
+     - :doc:`db.get_aggregation() <../transformations/classification_aggregation>`
      - Mapping ready for ``db.aggregate``
 
 These inspection and preparation methods leave matrices and settings unchanged.
@@ -31,6 +34,9 @@ These inspection and preparation methods leave matrices and settings unchanged.
 
 Inspect a family before parsing
 -------------------------------
+
+Call :doc:`mario.get_database_profile() <../../api_document/mario.get_database_profile>` with a family name, or omit the argument
+to list all registered families:
 
 .. code-block:: python
 
@@ -51,7 +57,9 @@ It does not select a variant or check the accounts in a particular file.
 Inspect a parsed database
 -------------------------
 
-For a model already imported with a MARIO parser:
+For a model already imported with a MARIO parser, read
+:doc:`db.database_profile <../../api_document/mario.CoreModel.database_profile>`. It returns the same dictionary as
+calling :doc:`mario.get_database_profile() <../../api_document/mario.get_database_profile>` with that model:
 
 .. code-block:: python
 
