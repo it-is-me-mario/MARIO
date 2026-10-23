@@ -1,6 +1,8 @@
 mario.Database.calc\_trades
 ===========================
 
+:doc:`Trade and supply-chain analysis </user_guide/analysis/supply_chains>` provides a task guide and a minimal example.
+
 .. currentmodule:: mario
 
 For intermediate and final trade components:

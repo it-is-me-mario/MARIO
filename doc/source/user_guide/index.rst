@@ -9,8 +9,8 @@ Start with :doc:`a data source <parsers/index>`,
 For installation and the meaning of MARIO's tables and matrices, follow
 :doc:`Get started <../get_started/index>`.
 
-Guides explain a specific task. Worked examples combine tasks in downloadable
-notebooks. The API reference documents each method's parameters and return value.
+Guides explain a specific task. Worked examples connect tasks in a complete analysis. Download their
+companion notebooks when you want to run the code. The API reference documents each method's parameters and return value.
 
 .. mario-docs-overview::
    :max-items: 3

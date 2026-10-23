@@ -12,6 +12,9 @@ analysis; MARIO resolves their dependencies.
    ../inspection/compute_matrices
    greenhouse_gases
    ghg_characterization
+   supply_chains
+   structural_paths
+   production_mix
    ../inspection/visualization
 
 .. list-table::
@@ -26,6 +29,12 @@ analysis; MARIO resolves their dependencies.
      - :doc:`Calculate greenhouse gas emissions <greenhouse_gases>`
    * - Understand the GHG indicator and its units
      - :doc:`GHG characterization and footprints <ghg_characterization>`
+   * - Measure trade and embodied supply-chain content
+     - :doc:`Trade and supply-chain analysis <supply_chains>`
+   * - Identify individual upstream paths
+     - :doc:`Structural path analysis <structural_paths>`
+   * - Read regional production shares
+     - :doc:`Inspect production mixes <production_mix>`
    * - Plot a matrix or a prepared result
      - :doc:`Visualize results <../inspection/visualization>`
 

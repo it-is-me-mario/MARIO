@@ -4,6 +4,10 @@
 BONSAI
 ======
 
+.. container:: mario-companion
+
+   :download:`Run the notebook <../examples/bonsai.ipynb>`
+
 .. container:: mario-guide-facts
 
    **Inputs:** a local ZIP or extracted directory from BONSAI's shared storage.

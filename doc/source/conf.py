@@ -120,6 +120,12 @@ nbsphinx_execute = "never"
 # Notebooks offered as downloads: at the bottom of their page (nbsphinx_epilog) and
 # in the list on resources/material (``mario-notebook-downloads``).
 mario_notebook_downloads = {
+    "companions": {
+        path.with_suffix("").relative_to(Path(__file__).parent).as_posix():
+        path.relative_to(Path(__file__).parent).as_posix()
+        for path in Path(__file__).parent.rglob("*.ipynb")
+        if path.with_suffix(".rst").is_file()
+    },
     "prefixes": ["notebooks/parsers/", "user_guide/advanced/", "user_guide/examples/"],
     "pages": [
         "user_guide/parsers/provide_your_database",
@@ -163,6 +169,8 @@ templates_path = ["_templates"]
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
+    # Notebooks are executable downloads; authored RST pages own the web layout.
+    "**/*.ipynb",
     "__pycache__",
     "__pycache__/**",
     "notebooks/parsers/*/tutorial.ipynb",

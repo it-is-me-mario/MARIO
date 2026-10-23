@@ -1,6 +1,8 @@
 mario.Database.calc\_spa
 ========================
 
+:doc:`Structural path analysis </user_guide/analysis/structural_paths>` provides a task guide and a minimal example.
+
 .. currentmodule:: mario
 
 Let :math:`d` be the selected direct indicator row and :math:`y` be ``Y``

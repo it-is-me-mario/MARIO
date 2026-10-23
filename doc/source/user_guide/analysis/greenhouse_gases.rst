@@ -1,54 +1,26 @@
 :page-type: Guide
-:summary: Combine the gas accounts in your database into a GHG indicator and retrieve its footprint.
+:summary: Combine gas accounts into a GHG indicator, then retrieve its direct emissions or footprint.
 
 Calculate greenhouse gas emissions
-===================================
+==================================
 
-.. container:: mario-guide-facts
+Start with a parsed database whose imported gas accounts match a built-in
+profile. The default basis is **AR6 / GWP100** where the profile provides those
+factors. Already characterized source totals keep their original basis.
 
-   **You need:** a parsed database with environmental accounts and a supported
-   GHG profile, or an explicit mapping of accounts to characterization factors.
+.. container:: mario-recipe
 
-   **You obtain:** an additional satellite account in CO2-equivalent terms.
-   The default built-in basis is **AR6 / GWP100** where the profile provides
-   those factors. Already characterized source totals retain their source basis.
+   .. code-block:: python
 
-Check the source profile
--------------------------
+      db.calc_ghg(ipcc_report="AR6", time_horizon=100)
+      ghg = "GHG AR6 GWP-100"
+      db.units["Satellite account"].loc[ghg]
 
-For a known database family, inspect the profile selected from its metadata
-and the accounts actually present:
+   .. container:: mario-result
 
-.. code-block:: python
-
-    profile = db.database_profile["ghg"]
-    profile["selected_profile"]
-    db.get_index("Satellite account")
-
-The selected profile identifies a matching recipe; it does not certify that
-all gases are available in the imported file. If the family has no built-in
-profile, use the explicit-factor route in
-:doc:`GHG characterization <ghg_characterization>`.
-
-Create the GHG account
-----------------------
-
-On a freshly parsed model whose source profile provides AR6/GWP100 factors:
-
-.. code-block:: python
-
-    db.calc_ghg(ipcc_report="AR6", time_horizon=100)
-    ghg = "GHG AR6 GWP-100"
-    db.units["Satellite account"].loc[ghg]
-
-**Result:** ``GHG AR6 GWP-100`` is added to the satellite accounts in every
-existing scenario. The source gas accounts remain available. The aggregate
-uses their shared mass unit, now interpreted as CO2-equivalent mass.
-
-The call modifies ``db`` and returns ``None``. To keep the original model,
-use ``characterized = db.calc_ghg(inplace=False)`` instead, then continue with
-``characterized``. Choose one of these routes; adding the same account twice
-raises an error.
+      **Result** · A new CO2-equivalent satellite account in every existing
+      scenario. Source gas rows remain available. Its magnitude follows their
+      shared mass unit; the method does not convert units.
 
 Retrieve emissions and footprints
 ----------------------------------
@@ -99,8 +71,8 @@ SUT results
 ``Ea`` and ``Ec`` retain activity-side and commodity-side emissions.
 ``fc`` gives the footprint per native commodity unit.
 
-Check what the indicator represents
-------------------------------------
+Check the accounting boundary
+-----------------------------
 
 ``calc_ghg()`` characterizes available accounts. Retrieving a missing footprint
 matrix is the separate calculation shown above. Direct final-demand emissions
@@ -114,24 +86,42 @@ characterized CO2eq total, choosing ``ipcc_report`` does not reconstruct the
 underlying gases. Read :doc:`GHG characterization and footprints <ghg_characterization>`
 before comparing results across sources or reports.
 
-If the calculation fails
-------------------------
+.. mario-details:: Check the source profile before characterization
 
-.. list-table::
-   :header-rows: 1
-   :widths: 38 62
+   .. code-block:: python
 
-   * - Situation
-     - What to check
-   * - No profile can be selected
-     - Inspect the source metadata; supply a supported ``profile`` or an explicit ``gwp`` mapping.
-   * - No gas accounts match
-     - Check that extensions were imported and that their labels match the selected recipe.
-   * - Input accounts have different units
-     - Harmonize their magnitudes and units before characterization. The ``unit`` argument does not convert values.
-   * - The GHG label already exists
-     - Reuse that account, start from the uncharacterized model, or choose a distinct label for another indicator.
+      profile = db.database_profile["ghg"]
+      profile["selected_profile"]
+      db.get_index("Satellite account")
 
-See :doc:`db.calc_ghg() <../../api_document/mario.Database.calc_ghg>` for every
-argument, or follow the complete :doc:`cross-database comparison
-<../examples/compare_ghg>`.
+   A selected profile does not certify that all gases exist in the file.
+   For unsupported labels or families, use an explicit factor mapping in
+   :doc:`ghg_characterization`.
+
+.. mario-details:: Keep a copy or characterize another indicator
+
+   ``calc_ghg()`` modifies the model and returns ``None``. To keep the original,
+   use ``characterized = db.calc_ghg(inplace=False)`` on an uncharacterized model.
+   Do not apply both routes in sequence: adding the same account twice raises
+   an error. Choose a distinct label when adding another indicator.
+
+.. mario-details:: Troubleshoot a failed calculation
+
+   .. list-table::
+      :header-rows: 1
+      :widths: 38 62
+
+      * - Situation
+        - What to check
+      * - No profile can be selected
+        - Inspect the source metadata; supply a supported ``profile`` or an explicit ``gwp`` mapping.
+      * - No gas accounts match
+        - Check that extensions were imported and that their labels match the selected recipe.
+      * - Input accounts have different units
+        - Harmonize their magnitudes and units before characterization. The ``unit`` argument does not convert values.
+      * - The GHG label already exists
+        - Reuse that account, start from the uncharacterized model, or choose a distinct label for another indicator.
+
+
+See :doc:`db.calc_ghg() <../../api_document/mario.Database.calc_ghg>` for all
+arguments, or follow the :doc:`cross-database comparison <../examples/compare_ghg>`.

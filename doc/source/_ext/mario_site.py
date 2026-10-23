@@ -517,6 +517,32 @@ class MarioCard(Directive):
         return [card, *messages]
 
 
+class guide_details(nodes.container):
+    """A keyboard-accessible disclosure that keeps its content in the document."""
+
+
+def _visit_guide_details(translator, node):
+    translator.body.append(translator.starttag(node, "details", CLASS="mario-details"))
+    translator.body.append("<summary>" + html.escape(node["label"]) + "</summary>")
+
+
+def _depart_guide_details(translator, node):
+    translator.body.append("</details>")
+
+
+class MarioDetails(Directive):
+    required_arguments = 1
+    final_argument_whitespace = True
+    has_content = True
+
+    def run(self):
+        panel = guide_details(label=self.arguments[0])
+        panel["names"].append(nodes.fully_normalize_name(self.arguments[0]))
+        self.state.document.note_implicit_target(panel, panel)
+        self.state.nested_parse(self.content, self.content_offset, panel)
+        return [panel]
+
+
 class MarioSteps(Directive):
     """Rows with a short label on the left and the content on the right.
 
@@ -1011,11 +1037,19 @@ class MarioNotebookDownloads(Directive):
         config = app.config.mario_notebook_downloads
         prefixes = tuple(config.get("prefixes", ()))
         pages = set(config.get("pages", ()))
+        notebooks = {
+            **config.get("companions", {}),
+            **{
+                docname: str(env.doc2path(docname, False))
+                for docname in env.found_docs
+                if (docname.startswith(prefixes) or docname in pages)
+                and str(env.doc2path(docname)).endswith(".ipynb")
+            },
+        }
         docs = [
             docname
             for docname in env.found_docs
-            if (docname.startswith(prefixes) or docname in pages)
-            and str(env.doc2path(docname)).endswith(".ipynb")
+            if docname in notebooks
         ]
         section = next((item for item in app.config.mario_site["sections"] if item.get("sidebar")), None)
         tabs = section.get("tabs", []) if section else []
@@ -1026,7 +1060,7 @@ class MarioNotebookDownloads(Directive):
             if not members:
                 continue
             titled = sorted(
-                ((_notebook_title(env.doc2path(docname)) or docname.split("/")[-1], docname) for docname in members),
+                ((_notebook_title(Path(env.srcdir) / notebooks[docname]) or docname.split("/")[-1], docname) for docname in members),
                 key=lambda item: item[0].casefold(),
             )
             group = nodes.container(classes=["mario-downloads__group"])
@@ -1039,7 +1073,7 @@ class MarioNotebookDownloads(Directive):
                     "",
                     "",
                     nodes.inline(title, title, classes=["mario-notebook-title"]),
-                    reftarget="/" + str(env.doc2path(docname, False)),
+                    reftarget="/" + notebooks[docname],
                     refdoc=env.docname,
                     refdomain="",
                     reftype="download",
@@ -1326,6 +1360,8 @@ def setup(app):
     app.add_directive("mario-cards", MarioCards)
     app.add_directive("mario-card", MarioCard)
     app.add_directive("mario-steps", MarioSteps)
+    app.add_directive("mario-details", MarioDetails)
+    app.add_node(guide_details, html=(_visit_guide_details, _depart_guide_details))
     app.add_directive("mario-step", MarioStep)
     app.add_directive("mario-switch", MarioSwitch)
     app.add_directive("mario-switch-option", MarioSwitchOption)

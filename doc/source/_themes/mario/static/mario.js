@@ -892,3 +892,36 @@
     });
   }
 })();
+
+/* Open disclosures around an anchor reached from the TOC or a shared URL. */
+(() => {
+  function revealTarget() {
+    let id;
+    try { id = decodeURIComponent(location.hash.slice(1)); } catch (_) { return; }
+    const target = id && document.getElementById(id);
+    if (!target) return;
+    let opened = false;
+    for (let parent = target; parent; parent = parent.parentElement) {
+      if (parent.matches("details.mario-details") && !parent.open) {
+        parent.open = true;
+        opened = true;
+      }
+    }
+    if (opened) target.scrollIntoView();
+  }
+  window.addEventListener("hashchange", revealTarget);
+  window.addEventListener("beforeprint", () => {
+    document.querySelectorAll("details.mario-details:not([open])").forEach(panel => {
+      panel.dataset.printOpened = "true";
+      panel.open = true;
+    });
+  });
+  window.addEventListener("afterprint", () => {
+    document.querySelectorAll("details[data-print-opened]").forEach(panel => {
+      panel.open = false;
+      delete panel.dataset.printOpened;
+    });
+  });
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", revealTarget);
+  else revealTarget();
+})();
