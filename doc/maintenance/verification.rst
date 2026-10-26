@@ -16,6 +16,10 @@ Build with warnings treated as errors, then check the built guides::
 
 Use a new output directory after moving/removing pages or assets. ``-E -a``
 rebuilds Sphinx documents but does not delete obsolete published files.
+Use a fresh output directory for theme stylesheet changes too: an incremental
+build can retain the previous stylesheet version in HTML links even after
+copying new CSS. Check the versioned stylesheet URL before reviewing a cached
+browser preview.
 
 The checker discovers Get started, guide/parser pages and notebook companions from the
 source tree. It checks built pages, sidebar membership, local links and anchors,

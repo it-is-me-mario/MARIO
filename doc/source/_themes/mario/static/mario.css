@@ -2873,6 +2873,12 @@ html:not(.mario-js) .mario-switch {
   gap: var(--cell);
 }
 
+@media (min-width: 48.01em) {
+  .mario-switch__options:has(> :nth-child(3):last-child) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 .mario-switch__option {
   display: flex;
   align-items: center;

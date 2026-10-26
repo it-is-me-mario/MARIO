@@ -136,8 +136,8 @@ Other accounting databases
       :database: figaro
       :logo: /_static/images/logos/eurostat.png
 
-      FIGARO SUT/IOT from the Eurostat API and NAM national ledgers from local
-      CSV or XLSX files, with one selected country per bulk CSV import.
+      Input-output, supply-use and national accounting tables: API/cache
+      imports for IOT/SUT and local source files for NAM.
 
    .. mario-card:: :doc:`EUROSTAT <../../notebooks/parsers/eurostat/walkthrough_eurostat>`
       :kicker: mario.parse_eurostat
