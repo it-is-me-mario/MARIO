@@ -107,7 +107,8 @@ def test_nam_api_labels_include_supported_entrypoints_and_exclude_guarded_method
 
     for symbol in ('mario.parse_figaro', 'mario.parse_from_excel', 'mario.write_parse_template',
                    'mario.CoreModel.get_index', 'mario.CoreModel.set_block',
-                   'mario.Database.clone_scenario', 'mario.Database.to_excel'):
+                   'mario.Database.clone_scenario', 'mario.Database.to_excel',
+                   'mario.Database.to_iot', 'mario.api.nam.NAMDatabase.to_sut'):
         assert 'NAM' in api_formats(symbol), symbol
     for symbol in ('mario.Database.query', 'mario.Database.aggregate',
                    'mario.Database.to_parquet', 'mario.CoreModel.search',

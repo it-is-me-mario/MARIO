@@ -83,8 +83,10 @@ set sizes are reported as a range per region rather than a pooled total.
 
 The current NAM interface supports flow inspection, native block updates,
 scenario cloning, account totals, account-normalized coefficients, financial-side
-``B9_d``/``B9_f`` and Excel export/reload. NAM aggregation, model closure,
-inverses and ``to_sut`` are not implemented yet. The
+``B9_d``/``B9_f`` and Excel export/reload. FIGARO-NAM also supports
+:doc:`national SUT and IOT projections </user_guide/transformations/nam_to_sut>`
+with ``nam.to_sut()`` and ``nam.to_iot(method="B")``. NAM aggregation,
+model closure and inverses are not implemented. The
 :doc:`NAM database reference </reference/api_nam_database>` lists supported
 methods and their signatures. Other inherited IO operations raise an explicit
 error.

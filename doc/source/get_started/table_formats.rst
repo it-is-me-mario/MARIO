@@ -95,7 +95,8 @@ Each scenario stores its own matrices. MARIO can calculate registered results
 when their required inputs are available; :doc:`scenarios` explains how the
 states are managed. A table format also determines which operations and
 equations are supported. The NAM interface currently covers inspection,
-account totals, coefficients, native-flow edits and Excel round trips;
+account totals, coefficients, native-flow edits, Excel round trips and
+:doc:`FIGARO national SUT/IOT projections </user_guide/transformations/nam_to_sut>`;
 its :doc:`guide <table_formats/nam>` lists the modelling limits.
 
 .. _format-conventions:

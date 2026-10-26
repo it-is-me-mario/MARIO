@@ -4,7 +4,8 @@ NAM revision: one accounting set per block axis
 ===============================================
 
 This page records the implemented single-set revision (runtime schema and
-native workbook version 2). Coefficients and SUT conversion remain proposals.
+native workbook version 2). Account coefficients and the national FIGARO SUT/IOT
+projection are implemented; general conversion recipes remain proposals.
 
 Agreed constraints
 ------------------

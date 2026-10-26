@@ -127,15 +127,22 @@ block names: reject it explicitly and request regeneration/reparsing from the
 original source; do not silently rewrite user-edited workbooks.
 
 Changing native inputs invalidates derived results in descendant scenarios.
-Direct dataframe construction, aggregation, closure, inverses
-and ``to_sut`` remain unimplemented. Unsupported IO operations fail explicitly.
+Direct dataframe construction, aggregation, closure and inverses
+remain unimplemented. Unsupported IO operations fail explicitly.
+
+``NAMDatabase.to_sut`` implements a nonmutating national FIGARO ``use_imports``
+projection in ``mario/ops/nam_to_sut.py``. It selects one reporting economy,
+retains all scenarios and source units/codes, aggregates imports by trade
+account and records current production-account imbalances and input provenance.
+``NAMDatabase.to_iot`` composes it with the existing SUT conversion for every
+scenario. The public transformation guide owns its source-specific mapping
+and limitations. Other sources and supply-side imports remain unsupported.
 
 Remaining modelling work
 --------------------------
 
-The next target is a nonmutating open-national-SUT projection from native
-blocks, preserving scenarios, trade representation and provenance. Review each
-block's valuation and item types before deciding SUT targets. Investment,
+General SUT projection recipes still require review of each
+block's valuation, trade representation and item types before deciding targets. Investment,
 nonproduced assets, capital transfers and financial assets cannot all become
 newly produced product demand. Product/activity balances, import totals and
 GDP require reconciliation before a conversion can be certified.
@@ -164,8 +171,9 @@ validates structure, authority and runtime agreement, not economic correctness.
 
 ``tests/core/test_nam_core.py`` and ``tests/parsers/test_nam.py`` cover the core
 and portable I/O. Run affected compute, API, IOT/SUT parser and documentation
-regressions as listed in the maintenance KB. SUT conversion calls remain proposals; account-total and coefficient examples
-are executable.
+regressions as listed in the maintenance KB. ``tests/ops/test_nam_to_sut.py``
+executes the supported FIGARO projection and IOT composition. General conversion
+rules in the draft catalogue remain proposals.
 
 Reference
 ----------

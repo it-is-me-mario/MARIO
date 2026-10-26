@@ -1,7 +1,8 @@
 """Structural NAM contract; item codes belong to the source, never to the schema.
 
-The packaged JSON owns the implemented single-set structural contract;
-coefficient and conversion proposals remain in the development documentation.
+The packaged JSON owns the implemented single-set structural contract and
+account-normalized coefficients. Source-specific conversion belongs in ops;
+general conversion proposals remain in the development documentation.
 """
 
 from __future__ import annotations

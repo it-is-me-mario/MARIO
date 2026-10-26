@@ -145,6 +145,11 @@ its signatures and method descriptions are generated from ``mario/api/nam.py``.
 The format classifier reads that facade's own methods, rather than inferring
 support from Database inheritance. Review generic inspection, scenario,
 calculation, template and persistence guides when its supported subset changes.
+Source-specific NAM conversion rules live in ``mario/ops/nam_to_sut.py``;
+``user_guide/transformations/nam_to_sut.rst`` owns the workflow. Review the
+NAM facade reference, shared ``to_iot`` page, FIGARO guide/companion and
+transformation indexes together. Keep general draft recipes distinct from
+the supported national source projection.
 Flow/coefficient diagram panels must use registered coefficient names, and
 final-demand blocks without registered coefficients must remain clearly marked.
 

@@ -108,8 +108,9 @@ NAM native blocks and results
 The following NAM catalogue is generated from the packaged structural contract.
 Native ``matrix_layouts`` can retain origin/product descriptors in addition to
 the national account identity. ``T`` is a derived accounting view; ``B9_d``/``B9_f`` are
-financial-side results. Neither adds payments to native flow totals. NAM account totals and lowercase coefficients are available; inverses and SUT
-conversion remain unimplemented. See :doc:`api_nam_calculations` for the NAM
+financial-side results. Neither adds payments to native flow totals. NAM account totals and lowercase coefficients are available; NAM inverses
+remain unimplemented. FIGARO supports :doc:`national SUT/IOT projections
+</user_guide/transformations/nam_to_sut>`. See :doc:`api_nam_calculations` for the NAM
 denominators and zero-total policy.
 
 See :doc:`the NAM guide </get_started/table_formats/nam>`,

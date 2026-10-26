@@ -24,7 +24,9 @@ Internal design proposals
   native blocks and partner layouts, plus proposed SUT projection and modelling
   rules. It is not part of the published manual. Native flow I/O and local FIGARO-NAM parsing
   and account-normalized coefficients are documented in the NAM format/source
-  guides and calculation reference; conversion and closure remain future work.
+  guides and calculation reference. The national FIGARO SUT/IOT projection is
+  documented in the transformation guide; general conversion and NAM closure
+  remain future work.
   The supported database interface is documented in the NAM API reference.
 
 Update workflow

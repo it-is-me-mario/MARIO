@@ -10,7 +10,8 @@ policies. Internal flow-core support is described in `the design contract
 
 Domains carry their declared reference-economy scope. Extra partner and
 imported-product descriptors are specified in `catalogue.json
-<catalogue.json>`_. Account-total normalization is implemented; SUT conversion remains a proposal.
+<catalogue.json>`_. Account-total normalization and a source-specific FIGARO
+SUT projection are implemented; the general conversion policies below remain proposals.
 
 .. list-table:: Proposed blocks
    :header-rows: 1

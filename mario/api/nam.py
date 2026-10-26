@@ -262,6 +262,62 @@ class NAMDatabase(Database):
         """Return an independent database copy, retaining all scenarios and metadata."""
         return type(self)(copy.deepcopy(self._state))
 
+    def to_sut(self, *, region=None, tech_assumption=None):
+        """Return a new open national SUT from a supported FIGARO-NAM ledger.
+
+        Parameters
+        ----------
+        region : str, optional
+            Reporting economy to project. Inferred for a single-economy NAM;
+            required when several independent national ledgers are stored.
+        tech_assumption : str, optional
+            Forwarded to the SUT constructor (IT/PT or their long names).
+            Omission uses MARIO's usual SUT default.
+
+        Returns
+        -------
+        Database
+            Independent SUT with all source scenario names. The NAM is unchanged.
+
+        Notes
+        -----
+        Supports FIGARO ``use_imports`` ledgers, including native Excel reloads.
+        Preserves S/U and source item codes. Product consumption, investment
+        and exports become final demand; saving, transfers and financial
+        transactions stay outside the SUT. Primary factors, taxes and imports
+        populate Va/Vc/VY. Imports are aggregated by P7/P33; their native
+        origin/product detail remains in the NAM. Non-product external
+        settlements have separate VY rows at P6. Imports and settlements
+        are exogenous accounts, not domestic value added.
+
+        Source values, units and scenarios are retained without balancing or
+        changing valuation. ``info["nam_to_sut"]`` records input provenance
+        and current production-account imbalance per scenario, separately from
+        the original import audit. No model closure is selected. Other sources,
+        supply-side imports, unsupported nonzero routing and cross-economy
+        payments raise ``NotImplementable``; required missing flows raise
+        ``DataMissing``.
+        """
+        from mario.ops.nam_to_sut import convert
+
+        return convert(self, region=region, tech_assumption=tech_assumption)
+
+    def to_iot(self, method, *, region=None):
+        """Return a new IOT through :meth:`to_sut` and the existing SUT conversion.
+
+        ``method`` is the explicit Eurostat assumption A/B (product-by-product)
+        or C/D (industry-by-industry). A/C require square invertible supply
+        and zero activity final demand; B/D support nonzero Ya. All scenarios
+        and the source NAM are retained. ``region`` selects one reporting
+        economy as in :meth:`to_sut`. This NAM operation always returns a new
+        object; it has no ``inplace`` option. The returned IOT records the
+        selected method under ``info["nam_to_iot"]``. See the NAM-to-SUT
+        guide for supported source layouts and import aggregation.
+        """
+        from mario.ops.nam_to_sut import to_iot
+
+        return to_iot(self.to_sut(region=region), method)
+
     def to_excel(self, path, flows=True, coefficients=False, **kwargs):
         """Write all scenarios in the versioned MARIO native NAM workbook layout.
 

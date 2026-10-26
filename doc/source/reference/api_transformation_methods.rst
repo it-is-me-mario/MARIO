@@ -2,8 +2,8 @@ Transformations and Scenarios
 =============================
 
 These methods change the structure or scenario state of a database.
-For NAM, only scenario cloning and native-block updates are implemented;
-see :doc:`api_nam_database`. NAM aggregation, table conversion, scenario
+For NAM, national FIGARO SUT/IOT projections, scenario cloning and native-block updates are implemented;
+see :doc:`api_nam_database`. NAM aggregation, general conversion recipes, scenario
 renaming and shock propagation are not available.
 
 ``Database.aggregate(...)`` now also supports workbook-free Region
@@ -13,6 +13,10 @@ row and column margins with the biproportional RAS algorithm.
 
 Database Transformations
 ------------------------
+
+For :meth:`nam.to_sut() <mario.api.nam.NAMDatabase.to_sut>` and
+:meth:`nam.to_iot() <mario.api.nam.NAMDatabase.to_iot>`, use the
+:doc:`NAM conversion guide <../user_guide/transformations/nam_to_sut>`.
 
 .. toctree::
    :maxdepth: 1

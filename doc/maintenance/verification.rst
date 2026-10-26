@@ -99,6 +99,31 @@ valuation bridge or financial/nonfinancial reconciliation. Check retained
 origin/product attribution, external settlements and source controls, then
 export/reload and compare the native flows as well as ``T``.
 
+For exploratory NAM-to-SUT checks, match publication/revision as well as
+country and reference year; a current API cache may postdate the NAM release.
+Identify an edition through a versioned source download and compare it with
+the cache, rather than inferring the edition solely from an API update date.
+Start with unchanged native supply/use blocks and compare raw source cells
+before investigating final-demand or trade projection rules.
+Compare domestic uses with domestic uses, normalize classification spellings,
+and select activities from their declared classification (a code beginning
+with ``P`` can still be an activity). Check product and activity balances,
+full cells and component totals separately: similar national totals can hide
+large differences in allocation. Keep import use, direct final-demand taxes
+and non-product external settlements explicit. Regroup split primary-income
+components without adding a parent aggregate twice. An internally balanced
+projection does not establish equality with an independently revised SUT.
+
+For the supported projection, run ``tests/ops/test_nam_to_sut.py``. Check
+unchanged S/U, separate direct taxes/imports/settlements, typed investment
+routing, source units and codes, required missing inputs, and native reloads.
+Verify all scenarios through both national SUT output and explicit SUT-to-IOT
+composition for A/B/C/D; preserve edits and source imbalance without balancing.
+Exercise multi-ledger selection and unrelated missing financial accounts.
+The original import audit must remain separate from current projection checks.
+Do not infer support for other sources or import authorities from a successful
+FIGARO run.
+
 For NAM reference changes run ``python doc/scripts/generate_nomenclature_tables.py``
 and inspect the generated NAM tables together with the format/source guides.
 The JSON owns implemented structural metadata; the internal proposal stays

@@ -17,7 +17,11 @@ Unreleased
   from account balance and model closure.
 * Add account-total vectors and lowercase coefficients normalized by the full
   paying-account total, with explicit handling of inactive and signed-zero
-  accounts. NAM inverses, aggregation and SUT conversion remain future work.
+  accounts. NAM inverses and aggregation remain future work.
+* Add nonmutating ``nam.to_sut()`` for national FIGARO-NAM ledgers and
+  ``nam.to_iot(method)`` through the existing Eurostat SUT conversion. Preserve
+  all scenarios, source codes/units and input provenance, keep imports and
+  non-product settlements explicit, and reject unsupported or missing flows.
 * Add native NAM templates and Excel scenario round trips, a NAM database/API
   reference, flow/coefficient diagram switching and table-format API filters.
 

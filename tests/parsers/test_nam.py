@@ -98,7 +98,7 @@ def test_public_figaro_nam_preserves_every_source_flow_and_native_import_detail(
     capital = ("IT", NAM_SETS["capital_resident"]["label"], "S14")
     assert db.B9_d.loc["B9", capital] == -8
     assert dense(db.O_sc_d).iloc[-1, 0] == 1
-    for operation in ("to_iot", "aggregate", "calc_linkages", "is_isard"):
+    for operation in ("aggregate", "calc_linkages", "is_isard"):
         with pytest.raises(NotImplementable, match="NAM"):
             getattr(db, operation)
 

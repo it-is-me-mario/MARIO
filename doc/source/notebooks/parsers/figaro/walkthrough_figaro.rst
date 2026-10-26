@@ -119,6 +119,21 @@ full paying-account totals and preserve the import descriptors.
 See :doc:`the NAM calculation reference </reference/api_nam_calculations>`
 for signed zero-total accounts and the distinction from model closure.
 
+Extract the national production system with
+:meth:`nam.to_sut() <mario.api.nam.NAMDatabase.to_sut>` or pass an explicit
+Eurostat method to :meth:`nam.to_iot() <mario.api.nam.NAMDatabase.to_iot>`:
+
+.. code-block:: python
+
+   sut = nam.to_sut()
+   iot = nam.to_iot(method="B")
+
+Both return independent databases with all scenarios. For several reporting
+economies, select one with ``region="IT"``. Imports are aggregated by trade
+account; their native origin/product detail stays in the NAM. The
+:doc:`NAM conversion guide </user_guide/transformations/nam_to_sut>` explains
+the retained accounts, missing-data errors and publication-edition checks.
+
 For several workbook ledgers, the combined audit keeps a ``sources`` list
 with one audit per economy; ``reference_economies`` identifies the reporting
 economies. Each retains its own external accounts. Neither additional

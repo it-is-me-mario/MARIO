@@ -106,6 +106,17 @@ Native Excel persistence
 The :doc:`Excel guide </notebooks/parsers/custom_database/from_excel>`
 distinguishes native NAM workbooks from IOT/SUT layouts and FIGARO sources.
 
+National SUT and IOT projections
+--------------------------------
+
+.. automethod:: mario.api.nam.NAMDatabase.to_sut
+
+.. automethod:: mario.api.nam.NAMDatabase.to_iot
+
+See :doc:`Convert a NAM to a SUT or IOT
+</user_guide/transformations/nam_to_sut>` for the supported FIGARO recipe,
+source accounts retained in final demand, import aggregation and provenance.
+
 Scope of the interface
 -----------------------
 
@@ -114,6 +125,6 @@ The remaining inherited IOT/SUT database operations raise
 ``search``, profile/concordance and cluster methods, custom operator
 registration, plotting, scenario renaming, aggregation and shock propagation.
 Only native-flow Excel export is supported; TXT/CSV, Parquet and pymrio
-exports are not registered. NAM-to-SUT conversion, balancing and model
-closure are not implemented. The matrix names alone do not select FIDELIO
+exports are not registered. General NAM conversion recipes, balancing and model
+closure are not implemented. The FIGARO national projection above does not select FIDELIO
 or any other economic model.
