@@ -31,6 +31,96 @@ def python_blocks(path):
     return blocks
 
 
+def nam_notebook_cell(relative, ident):
+    notebook = json.loads((ROOT.parent / relative).read_text())
+    return ''.join(next(c for c in notebook['cells'] if c['id'] == ident)['source'])
+
+
+@pytest.fixture
+def nam_example(tmp_path):
+    """Portable public workbook input with one income account paying three blocks."""
+    from mario.internal.nam import NAMSchema
+
+    members = {'IT': {'commodity': ['Goods'], 'activity': ['Industry'], 'factor': ['Labour'],
+                      'income_resident': ['Households'], 'consumption': ['Household consumption'],
+                      'distribution': ['Income taxes'], 'capital_resident': ['Households']}}
+    units = {'currency': 'EUR', 'scale': 1_000_000, 'period': 2023}
+    schema = NAMSchema(members, representation='use_imports', **units)
+    source = tmp_path / 'nam_fixture.xlsx'
+    mario.write_parse_template(source, table='NAM', sets=members, units=units,
+                               block_states={n: 'declared_zero' for n in schema.required_flows()})
+    nam = mario.parse_from_excel(source, table='NAM', mode='flows')
+    for name, value in [('CF_d', 70.), ('TP_d', 20.), ('RS_dd', 10.)]:
+        frame = nam.get_block(name)
+        frame.iloc[0, 0] = value
+        nam.set_block(name, frame)
+    return nam
+
+
+@pytest.mark.parametrize('companion', [False, True], ids=['web-guide', 'notebook'])
+def test_nam_totals_recipe_uses_account_expenditure_across_blocks(nam_example, companion):
+    if companion:
+        code = nam_notebook_cell('notebooks/parsers/figaro/walkthrough_figaro.ipynb',
+                                 'nam-account-coefficients')
+    else:
+        code = next(b for b in python_blocks(ROOT / 'inspection/compute_matrices.rst')
+                    if 'totals = nam.resolve_many' in b)
+    scope = {'nam': nam_example}
+    exec(code, scope)
+    assert nam_example.Xsi_d.iloc[0, 0] == pytest.approx(100.)
+    assert scope['coefficients']['cf_d'].iloc[0, 0] == pytest.approx(.7)
+
+
+@pytest.mark.parametrize('companion', [False, True], ids=['web-guide', 'notebook'])
+def test_nam_scenario_recipe_keeps_baseline_and_recalculates_full_denominator(nam_example, companion):
+    if companion:
+        code = nam_notebook_cell('notebooks/parsers/figaro/walkthrough_figaro.ipynb',
+                                 'nam-scenario-edit')
+    else:
+        code = next(b for b in python_blocks(ROOT.parent / 'get_started/scenarios.rst')
+                    if 'nam.clone_scenario' in b)
+    exec(code, {'nam': nam_example})
+    assert nam_example.get_block('CF_d').iloc[0, 0] == pytest.approx(70.)
+    assert nam_example.resolve('Xsi_d', scenario='alternative').iloc[0, 0] == pytest.approx(100.7)
+    assert nam_example.resolve('cf_d', scenario='alternative').iloc[0, 0] == pytest.approx(70.7 / 100.7)
+
+
+@pytest.mark.parametrize('companion', [False, True], ids=['web-guide', 'notebook'])
+def test_nam_export_recipe_retains_scenarios_and_recomputes_coefficients(nam_example, tmp_path, monkeypatch, companion):
+    monkeypatch.chdir(tmp_path)
+    nam_example.clone_scenario('baseline', 'alternative')
+    if companion:
+        code = nam_notebook_cell('notebooks/parsers/figaro/walkthrough_figaro.ipynb', 'dc24b514')
+    else:
+        code = next(b for b in python_blocks(ROOT / 'inspection/export_and_roundtrip.rst')
+                    if 'nam.to_excel' in b)
+    scope = {'nam': nam_example, 'mario': mario}
+    exec(code, scope)
+    restored = scope['restored']
+    assert restored.scenarios == ['baseline', 'alternative']
+    assert restored.units == nam_example.units
+    pd.testing.assert_frame_equal(restored.get_block('CF_d'), nam_example.get_block('CF_d'))
+    assert restored.resolve('cf_d').iloc[0, 0] == pytest.approx(.7)
+
+
+@pytest.mark.parametrize('companion', [False, True], ids=['web-guide', 'notebook'])
+def test_nam_template_recipe_preserves_unknown_inputs(tmp_path, monkeypatch, companion):
+    monkeypatch.chdir(tmp_path)
+    if companion:
+        code = nam_notebook_cell('user_guide/parsers/provide_your_database.ipynb', 'nam-workflow')
+    else:
+        code = next(b for b in python_blocks(ROOT / 'parsers/provide_your_database.rst')
+                    if '"custom_nam.xlsx"' in b)
+    scope = {'mario': mario}
+    exec(code, scope)
+    nam = scope['nam']
+    assert nam.get_index('Region') == ['IT']
+    assert nam.get_index('c') == ['Goods', 'Services']
+    assert nam.list_matrices() == ()
+    assert 'U' in nam.available_matrices()
+    assert not nam.has_matrix('U')
+
+
 def consumer_example():
     sectors = pd.MultiIndex.from_tuples([('A', 'Sector', 'Product'), ('B', 'Sector', 'Product')])
     fd = pd.MultiIndex.from_tuples([(r, 'Consumption category', c)

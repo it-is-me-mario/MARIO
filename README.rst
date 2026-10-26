@@ -16,9 +16,9 @@ MARIO
 *******
 
 **MARIO** stands for **Multifunctional Analysis of Regions through Input-Output**.
-It is a Python package for working with Input-Output Tables (IOT) and Supply and
-Use Tables (SUT). Once parsed, a table becomes a MARIO *database* that can be
-inspected, computed, transformed, aggregated, shocked, and exported.
+It is a Python package for working with Input-Output Tables (IOT), Supply and
+Use Tables (SUT), and National Accounting Matrices (NAM). A parsed table
+becomes a MARIO *database* with format-specific calculations and operations.
 
 Documentation is available at `marioproject.com <https://www.marioproject.com/en/latest/index.html>`_.
 
@@ -42,6 +42,11 @@ ingestion. Supported workflows include:
 * standard sources such as EXIOBASE, EORA, EUROSTAT, FIGARO, WIOD, OECD, and more;
 * custom databases from Excel, text, CSV, and pandas-based inputs;
 * aggregation, SUT-to-IOT conversion, scenario analysis, and exports.
+
+NAM supports local FIGARO CSV/workbook parsing, account totals and coefficients,
+native-flow scenario edits, and native Excel round trips. Aggregation, shock
+propagation, model closure and NAM-to-SUT conversion are not implemented.
+See the `NAM format guide <https://www.marioproject.com/en/latest/get_started/table_formats/nam.html>`_.
 
 
 Installation

@@ -21,6 +21,12 @@ Nomenclature and formulas
       calculation of every matrix on the IOT and SUT test tables, under both
       technology assumptions.
 
+NAM nomenclature and account-normalized equations are documented separately
+in :doc:`the NAM guide </get_started/table_formats/nam>` and
+:doc:`the NAM calculation reference </reference/api_nam_calculations>`.
+The FIGARO companion in the notebook list includes local NAM parsing;
+the IOT/SUT formulas workbook does not contain NAM calculations.
+
 
 .. _database-set-downloads:
 

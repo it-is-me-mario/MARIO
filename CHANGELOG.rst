@@ -5,6 +5,22 @@ Release History
 All notable changes to MARIO, newest first. Versions match the ``mariopy``
 package on PyPI, and dates are its publication dates.
 
+Unreleased
+----------
+
+* Add the NAM table format with set-scoped account identities, explicit
+  missing/zero states and native layouts retaining import-origin/product detail.
+* Read local FIGARO-NAM T02 workbooks/worksheet exports and published bulk
+  CSVs through ``parse_figaro(table="NAM")``. Bulk CSV import requires one
+  explicit reporting economy; national workbooks can retain several independent
+  ledgers with a common period. Source-cell reconstruction is audited separately
+  from account balance and model closure.
+* Add account-total vectors and lowercase coefficients normalized by the full
+  paying-account total, with explicit handling of inactive and signed-zero
+  accounts. NAM inverses, aggregation and SUT conversion remain future work.
+* Add native NAM templates and Excel scenario round trips, a NAM database/API
+  reference, flow/coefficient diagram switching and table-format API filters.
+
 v1.3.3
 ------
 

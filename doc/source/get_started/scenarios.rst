@@ -4,6 +4,33 @@ Scenarios
 MARIO stores *matrices* by *scenario*. Even when you work with a single *table*,
 the related *database* is scenario-aware. 
 
+NAM scenarios
+-------------
+
+NAM stores authoritative native flows. Clone a scenario, retrieve a copy of
+a block and replace that block to change its payments:
+
+.. code-block:: python
+
+   # nam is an already parsed NAM database.
+   nam.clone_scenario("baseline", "alternative")
+   consumption = nam.get_block("CF_d", scenario="alternative")
+   nam.set_block("CF_d", consumption * 1.01, scenario="alternative")
+   coefficients = nam.resolve("cf_d", scenario="alternative")
+
+``get_block`` returns a copy; editing it alone does not update the scenario.
+``set_block`` replaces a complete native block and invalidates affected
+derived caches. This example changes a payment; it does not propagate a
+shock, rebalance the accounts or solve a behavioural model.
+
+Use ``resolve(..., scenario=...)`` for NAM calculations. Dotted access uses
+``baseline``. NAM keeps that baseline name fixed and does not implement
+``query``, scenario renaming, ``update_scenarios`` or resets to coefficients.
+Native Excel export preserves all scenarios. The exact supported interface
+is in :doc:`the NAM database reference </reference/api_nam_database>`.
+
+The remaining scenario workflows describe IOT/SUT.
+
 
 Baseline and derived scenarios
 ------------------------------

@@ -1,11 +1,13 @@
 /* Table-format guides: diagram first, then definitions and a small example. */
 body[data-group="formats"] .mario-hero { padding-bottom: 1.75rem; }
-body[data-group="formats"] .mario-body > section > p { max-width: 74ch; }
 body[data-group="formats"] .mario-body h2 { margin-top: 2.4rem; font-size: 1.5rem; }
 body[data-group="formats"] .mario-body > section > section:first-of-type > h2 { margin-top: 1.3rem; }
 .mario-format-choices .mario-card { border-top: 4px solid var(--ribbon-cyan); }
 .mario-format-choices .mario-card + .mario-card { border-top-color: var(--ribbon-lilac); }
+.mario-format-choices .mario-card:nth-child(3) { border-top-color: var(--ribbon-green); }
 .mario-format-choice { position: relative; }
+.mario-format-choice .mario-card__header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; min-height: 4.5rem; }
+.mario-format-choice .mario-card__body { display: flex; flex-direction: column; flex: 1; }
 .mario-format-choice .mario-card__title a { color: inherit; text-decoration: none; }
 .mario-format-choice .mario-card__title a::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: var(--radius); }
 .mario-format-choice:hover { box-shadow: 0 0 0 1px var(--link); }
@@ -13,17 +15,28 @@ body[data-group="formats"] .mario-body > section > section:first-of-type > h2 { 
 .mario-format-choice:has(.mario-card__title a:focus-visible) { outline: 3px solid var(--focus); outline-offset: 4px; }
 .mario-format-choice .mario-format-cta { margin-top: 1.2rem; color: var(--link); font-weight: 650; }
 .mario-format-choice .mario-format-cta p { margin: 0; }
-.mario-format-choices .mario-scheme { margin: 1rem 0; }
+.mario-format-choices .mario-scheme { margin: auto 0 1rem; padding-top: 1rem; }
 .mario-format-choices .mario-scheme__title { display: none; }
 .mario-format-choices .mario-scheme__grid { max-height: 11rem; }
 .mario-format-choices .mario-scheme__cell { font-size: 1.5rem; }
+.mario-format-choices .mario-card:nth-child(3) .mario-scheme__cell { font-size: .85rem; }
 .mario-object-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin: 1.25rem 0; }
 .mario-object-strip > div { border-top: 2px solid var(--line-strong); padding-top: .75rem; }
 .mario-object-strip p { font-size: .9rem; line-height: 1.55; }
 .mario-object-strip p:first-child { margin: 0 0 .6rem; }
 .mario-format-note { margin: 1.25rem 0; padding: .85rem 1rem; border-left: 3px solid var(--ribbon-cyan); background: var(--surface-2); font-size: .9rem; }
 .mario-format-note p:last-child { margin-bottom: 0; }
-.table-map { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(14rem, 1fr); gap: 1.5rem; align-items: start; margin: 1.5rem 0; }
+.table-map { margin: 1.5rem 0; }
+.table-map__mode { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(14rem, 1fr); gap: 1.5rem; align-items: start; }
+.table-map__mode[hidden] { display: none; }
+.table-map__controls { display: flex; gap: .3rem; margin-bottom: 1rem; }
+.table-map__controls[hidden] { display: none; }
+.table-map__controls button { padding: .5rem .9rem; border: 1px solid var(--line-strong); border-radius: 5px; background: var(--surface-2); color: var(--ink); font: inherit; cursor: pointer; }
+.table-map__controls button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.table-map__controls button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+.table-map__mode[data-table-mode="coefficients"] .table-map__block a { background: color-mix(in srgb, var(--block-color) 48%, #cbd0d8); }
+.table-map__unavailable span { display: flex; flex-direction: column; gap: .4rem; align-items: center; padding: .6rem .2rem; color: var(--ink-muted); border: 1px dashed var(--line-strong); border-radius: 5px; }
+.table-map__unavailable small { font-size: .65rem; }
 .table-map__scroll { min-width: 0; overflow-x: auto; }
 .mario-article .table-map__grid { width: 100%; border: 0; border-collapse: separate; border-spacing: .4rem; table-layout: fixed; margin: 0; }
 .table-map__grid caption { text-align: left; font-size: .8rem; font-weight: 600; color: var(--ink-muted); padding: 0 .4rem .6rem; }
@@ -36,6 +49,8 @@ body[data-group="formats"] .mario-body > section > section:first-of-type > h2 { 
 .table-map__block.is-demand { --block-color: var(--accent); }
 .table-map__block.is-factors { --block-color: var(--ribbon-lilac); }
 .table-map__block.is-satellite { --block-color: var(--ribbon-green); }
+.table-map__block.is-capital { --block-color: var(--ribbon-green); }
+.table-map__block.is-trade { --block-color: var(--ribbon-orange); }
 .mario-article .table-map__block a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .25rem; min-height: 5rem; padding: .65rem .3rem; border: 2px solid transparent; border-radius: 5px; color: #16100d; background: var(--block-color); text-decoration: none; transition: box-shadow .15s ease; }
 .mario-article .table-map__block a:hover { box-shadow: inset 0 0 0 2px #16100d; }
 .mario-article .table-map__block a[aria-current="true"] { border-color: #16100d; box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink); }
@@ -53,12 +68,32 @@ body[data-group="formats"] .mario-body > section > section:first-of-type > h2 { 
 .table-map__definition dl { margin: 1rem 0 0; }
 .table-map__definition dt { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-muted); margin-top: .8rem; }
 .table-map__definition dd { margin: .2rem 0 0; font-size: .9rem; }
+/* NAM has more domains: keep the grid wide and the definition below it. */
+.table-map--nam .table-map__mode { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+.mario-article .table-map--nam .table-map__grid { min-width: 64rem; }
+.mario-article .table-map--nam .table-map__grid thead td { width: 5%; }
+.mario-article .table-map--nam .table-map__grid th[scope="col"] { vertical-align: bottom; padding-bottom: .6rem; }
+.table-map--nam .table-map__column-label { display: inline-block; writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; text-align: left; }
+.mario-article .table-map--nam .table-map__block a { min-height: 2.65rem; padding: .3rem; }
+.mario-article .table-map--nam .table-map__block code { font-size: .73rem; white-space: nowrap; }
+.table-map--nam .table-map__definitions { min-height: 0; }
+.table-map--nam.is-enhanced .table-map__definition { display: grid; grid-template-columns: 11rem minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; align-items: start; }
+.table-map--nam.is-enhanced .table-map__definition[hidden] { display: none; }
+.table-map--nam .table-map__symbol { flex-direction: column; align-items: flex-start; gap: .4rem; min-width: 0; }
+.mario-article .table-map--nam .table-map__symbol code { font-size: 1.5rem; overflow-wrap: anywhere; }
+.table-map--nam .table-map__description, .table-map--nam .table-map__definition dl { margin: 0; }
+.table-map--nam .table-map__definition dt:first-child { margin-top: 0; }
+.table-map__scroll:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 @media (max-width: 850px) {
-  .table-map { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+  .table-map__mode { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
   .table-map__definitions { min-height: 0; padding: 1rem; }
   .table-map__definition dl { display: grid; grid-template-columns: 5rem minmax(0, 1fr); align-items: baseline; gap: .5rem; }
   .table-map__definition dt, .table-map__definition dd { margin: 0; }
   .mario-object-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .table-map--nam.is-enhanced .table-map__definition { grid-template-columns: minmax(0, 1fr); gap: .7rem; }
+  .table-map--nam .table-map__symbol { flex-direction: row; align-items: center; }
+  .table-map--nam .table-map__scroll::before { content: "Scroll horizontally to see all accounts →"; display: block; margin-bottom: .6rem; color: var(--ink-muted); font-size: .75rem; }
+  .mario-article .table-map--nam .table-map__grid th[scope="row"] { position: sticky; left: 0; z-index: 1; background: var(--surface); }
 }
 @media (max-width: 480px) {
   .mario-article .table-map__grid { border-spacing: .3rem; }
@@ -71,5 +106,7 @@ body[data-group="formats"] .mario-body > section > section:first-of-type > h2 { 
 @media print {
   .table-map { display: block; }
   .table-map__definition[hidden] { display: block; }
+  .table-map--nam.is-enhanced .table-map__definition,
+  .table-map--nam.is-enhanced .table-map__definition[hidden] { display: block; }
   .table-map__definitions { margin-top: 1rem; }
 }

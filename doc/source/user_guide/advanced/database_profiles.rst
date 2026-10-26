@@ -4,6 +4,11 @@
 Database profiles
 =================
 
+This guide describes IOT/SUT profiles. The NAM interface exposes source audit
+information through ``nam.info["figaro_nam"]`` and units through ``nam.units``;
+``nam.database_profile`` and bundled concordance workflows are not supported.
+See :doc:`the FIGARO-NAM guide </notebooks/parsers/figaro/walkthrough_figaro>`.
+
 .. container:: mario-recipe
 
    .. code-block:: python

@@ -25,3 +25,8 @@ columns. See :doc:`the block formulas <../reference/api_resolvable_matrices>`
 for the SUT quadrants and the equivalent linear-system form.
 
 .. automethod:: CoreModel.resolve
+
+For NAM, the same method name resolves its own account totals, coefficients
+and accounting views. The SUT formula above does not apply to NAM. See
+:doc:`the NAM interface </reference/api_nam_database>` for its signature and
+:doc:`NAM calculations </reference/api_nam_calculations>` for its equations.

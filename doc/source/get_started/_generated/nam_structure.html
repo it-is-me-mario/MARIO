@@ -1,0 +1,922 @@
+<div class="table-map table-map--nam" data-table-map="nam"><div class="table-map__controls" data-table-mode-controls hidden role="group" aria-label="Matrix representation"><button type="button" data-table-mode-button="flows" aria-pressed="true">Flows</button><button type="button" data-table-mode-button="coefficients" aria-pressed="false">Coefficients</button></div><div class="table-map__mode" data-table-mode="flows">
+<div class="table-map__scroll" tabindex="0" role="region" aria-label="NAM flows block diagram; scroll horizontally on small screens">
+<table class="table-map__grid">
+<caption>NAM native flows · rows × columns</caption>
+<thead><tr><td></td>
+<th scope="col" data-set-id="commodity"><span class="table-map__column-label">c - Commodity</span></th>
+<th scope="col" data-set-id="activity"><span class="table-map__column-label">a - Activity</span></th>
+<th scope="col" data-set-id="factor"><span class="table-map__column-label">f - Factor of production</span></th>
+<th scope="col" data-set-id="income_resident"><span class="table-map__column-label">si_d - Institutional sector - Resident income</span></th>
+<th scope="col" data-set-id="income_nonresident"><span class="table-map__column-label">si_f - Institutional sector - Nonresident income</span></th>
+<th scope="col" data-set-id="distribution"><span class="table-map__column-label">d - Distributive transaction</span></th>
+<th scope="col" data-set-id="consumption"><span class="table-map__column-label">n - Consumption category</span></th>
+<th scope="col" data-set-id="tax"><span class="table-map__column-label">t - Taxes</span></th>
+<th scope="col" data-set-id="capital_resident"><span class="table-map__column-label">sc_d - Institutional sector - Resident capital</span></th>
+<th scope="col" data-set-id="capital_nonresident"><span class="table-map__column-label">sc_f - Institutional sector - Nonresident capital</span></th>
+<th scope="col" data-set-id="nonfinancial_asset"><span class="table-map__column-label">nf - Non-financial asset</span></th>
+<th scope="col" data-set-id="financial_instrument"><span class="table-map__column-label">fi - Financial instrument</span></th>
+<th scope="col" data-set-id="external_trade"><span class="table-map__column-label">tr - External trade account</span></th>
+<th scope="col" data-set-id="other"><span class="table-map__column-label">o - Other accounts</span></th>
+</tr></thead><tbody>
+<tr><th scope="row" data-set-id="commodity" title="Commodity">c</th>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-core"><a href="#matrix-U" data-matrix-link="matrix-U" data-flow-name="U" data-row-domain="commodity" data-column-domain="activity" aria-label="U: Intermediate product use by activity; domestic or total according to import representation."><code>U</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-core"><a href="#matrix-Yc_exp" data-matrix-link="matrix-Yc_exp" data-flow-name="Yc_exp" data-row-domain="commodity" data-column-domain="income_nonresident" aria-label="Yc_exp: Product exports paid by nonresident income accounts."><code>Yc_exp</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-demand"><a href="#matrix-Yc_c" data-matrix-link="matrix-Yc_c" data-flow-name="Yc_c" data-row-domain="commodity" data-column-domain="consumption" aria-label="Yc_c: Products purchased for final consumption."><code>Yc_c</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-capital"><a href="#matrix-Yc_cap_d" data-matrix-link="matrix-Yc_cap_d" data-flow-name="Yc_cap_d" data-row-domain="commodity" data-column-domain="capital_resident" aria-label="Yc_cap_d: Payments by Institutional sector - Resident capital accounts to Commodity accounts."><code>Yc_cap_d</code></a></td>
+<td class="table-map__block is-capital"><a href="#matrix-Yc_cap_f" data-matrix-link="matrix-Yc_cap_f" data-flow-name="Yc_cap_f" data-row-domain="commodity" data-column-domain="capital_nonresident" aria-label="Yc_cap_f: Payments by Institutional sector - Nonresident capital accounts to Commodity accounts."><code>Yc_cap_f</code></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-Yc_inv" data-matrix-link="matrix-Yc_inv" data-flow-name="Yc_inv" data-row-domain="commodity" data-column-domain="nonfinancial_asset" aria-label="Yc_inv: Products purchased for nonfinancial investment, including inventories and nonproduced assets."><code>Yc_inv</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-core"><a href="#matrix-Yc_exp_tr" data-matrix-link="matrix-Yc_exp_tr" data-flow-name="Yc_exp_tr" data-row-domain="commodity" data-column-domain="external_trade" aria-label="Yc_exp_tr: Product exports paid by external trade accounts."><code>Yc_exp_tr</code></a></td>
+<td class="table-map__block is-core"><a href="#matrix-C_o" data-matrix-link="matrix-C_o" data-flow-name="C_o" data-row-domain="commodity" data-column-domain="other" aria-label="C_o: Product purchases paid through Other accounts, including investment demand pools."><code>C_o</code></a></td>
+</tr>
+<tr><th scope="row" data-set-id="activity" title="Activity">a</th>
+<td class="table-map__block is-core"><a href="#matrix-S" data-matrix-link="matrix-S" data-flow-name="S" data-row-domain="activity" data-column-domain="commodity" aria-label="S: Activity output supplied to product accounts."><code>S</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-core"><a href="#matrix-Ya_exp" data-matrix-link="matrix-Ya_exp" data-flow-name="Ya_exp" data-row-domain="activity" data-column-domain="income_nonresident" aria-label="Ya_exp: Activity exports paid by nonresident income accounts."><code>Ya_exp</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-demand"><a href="#matrix-Ya_c" data-matrix-link="matrix-Ya_c" data-flow-name="Ya_c" data-row-domain="activity" data-column-domain="consumption" aria-label="Ya_c: Final consumption supplied directly by activities."><code>Ya_c</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-capital"><a href="#matrix-Ya_cap_d" data-matrix-link="matrix-Ya_cap_d" data-flow-name="Ya_cap_d" data-row-domain="activity" data-column-domain="capital_resident" aria-label="Ya_cap_d: Payments by Institutional sector - Resident capital accounts to Activity accounts."><code>Ya_cap_d</code></a></td>
+<td class="table-map__block is-capital"><a href="#matrix-Ya_cap_f" data-matrix-link="matrix-Ya_cap_f" data-flow-name="Ya_cap_f" data-row-domain="activity" data-column-domain="capital_nonresident" aria-label="Ya_cap_f: Payments by Institutional sector - Nonresident capital accounts to Activity accounts."><code>Ya_cap_f</code></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-Ya_inv" data-matrix-link="matrix-Ya_inv" data-flow-name="Ya_inv" data-row-domain="activity" data-column-domain="nonfinancial_asset" aria-label="Ya_inv: Nonfinancial investment supplied directly by activities."><code>Ya_inv</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-core"><a href="#matrix-Ya_exp_tr" data-matrix-link="matrix-Ya_exp_tr" data-flow-name="Ya_exp_tr" data-row-domain="activity" data-column-domain="external_trade" aria-label="Ya_exp_tr: Activity exports paid by external trade accounts."><code>Ya_exp_tr</code></a></td>
+<td class="table-map__block is-core"><a href="#matrix-A_o" data-matrix-link="matrix-A_o" data-flow-name="A_o" data-row-domain="activity" data-column-domain="other" aria-label="A_o: Payments by Other accounts to Activity accounts."><code>A_o</code></a></td>
+</tr>
+<tr><th scope="row" data-set-id="factor" title="Factor of production">f</th>
+<td class="table-map__block is-factors"><a href="#matrix-Vc_f" data-matrix-link="matrix-Vc_f" data-flow-name="Vc_f" data-row-domain="factor" data-column-domain="commodity" aria-label="Vc_f: Primary-factor payments by product accounts."><code>Vc_f</code></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-Va_f" data-matrix-link="matrix-Va_f" data-flow-name="Va_f" data-row-domain="factor" data-column-domain="activity" aria-label="Va_f: Primary-factor payments by activities."><code>Va_f</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-factors"><a href="#matrix-Vinst_f_d" data-matrix-link="matrix-Vinst_f_d" data-flow-name="Vinst_f_d" data-row-domain="factor" data-column-domain="income_resident" aria-label="Vinst_f_d: Payments by Institutional sector - Resident income accounts to Factor of production accounts."><code>Vinst_f_d</code></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-Vinst_f_f" data-matrix-link="matrix-Vinst_f_f" data-flow-name="Vinst_f_f" data-row-domain="factor" data-column-domain="income_nonresident" aria-label="Vinst_f_f: Payments by Institutional sector - Nonresident income accounts to Factor of production accounts."><code>Vinst_f_f</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-demand"><a href="#matrix-VY_f" data-matrix-link="matrix-VY_f" data-flow-name="VY_f" data-row-domain="factor" data-column-domain="consumption" aria-label="VY_f: Direct primary-factor payments by consumption."><code>VY_f</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-demand"><a href="#matrix-Vinv_f" data-matrix-link="matrix-Vinv_f" data-flow-name="Vinv_f" data-row-domain="factor" data-column-domain="nonfinancial_asset" aria-label="Vinv_f: Direct primary-factor payments by nonfinancial investment."><code>Vinv_f</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-factors"><a href="#matrix-F_o" data-matrix-link="matrix-F_o" data-flow-name="F_o" data-row-domain="factor" data-column-domain="other" aria-label="F_o: Payments by Other accounts to Factor of production accounts."><code>F_o</code></a></td>
+</tr>
+<tr><th scope="row" data-set-id="income_resident" title="Institutional sector - Resident income">si_d</th>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-factors"><a href="#matrix-RI_d" data-matrix-link="matrix-RI_d" data-flow-name="RI_d" data-row-domain="income_resident" data-column-domain="factor" aria-label="RI_d: Primary income received by resident institutional income accounts."><code>RI_d</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-factors"><a href="#matrix-TR_d" data-matrix-link="matrix-TR_d" data-flow-name="TR_d" data-row-domain="income_resident" data-column-domain="distribution" aria-label="TR_d: Distributive receipts of resident income accounts."><code>TR_d</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-factors"><a href="#matrix-RT_d" data-matrix-link="matrix-RT_d" data-flow-name="RT_d" data-row-domain="income_resident" data-column-domain="tax" aria-label="RT_d: Tax receipts of resident income accounts."><code>RT_d</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-factors"><a href="#matrix-SI_D_o" data-matrix-link="matrix-SI_D_o" data-flow-name="SI_D_o" data-row-domain="income_resident" data-column-domain="other" aria-label="SI_D_o: Payments by Other accounts to Institutional sector - Resident income accounts."><code>SI_D_o</code></a></td>
+</tr>
+<tr><th scope="row" data-set-id="income_nonresident" title="Institutional sector - Nonresident income">si_f</th>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-factors"><a href="#matrix-RI_f" data-matrix-link="matrix-RI_f" data-flow-name="RI_f" data-row-domain="income_nonresident" data-column-domain="factor" aria-label="RI_f: Primary income received by nonresident institutional income accounts."><code>RI_f</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-factors"><a href="#matrix-TR_f" data-matrix-link="matrix-TR_f" data-flow-name="TR_f" data-row-domain="income_nonresident" data-column-domain="distribution" aria-label="TR_f: Distributive receipts of nonresident income accounts."><code>TR_f</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-factors"><a href="#matrix-RT_f" data-matrix-link="matrix-RT_f" data-flow-name="RT_f" data-row-domain="income_nonresident" data-column-domain="tax" aria-label="RT_f: Tax receipts of nonresident income accounts."><code>RT_f</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-factors"><a href="#matrix-RT_trade" data-matrix-link="matrix-RT_trade" data-flow-name="RT_trade" data-row-domain="income_nonresident" data-column-domain="external_trade" aria-label="RT_trade: Settlement from external trade accounts to nonresident income accounts."><code>RT_trade</code></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-SI_F_o" data-matrix-link="matrix-SI_F_o" data-flow-name="SI_F_o" data-row-domain="income_nonresident" data-column-domain="other" aria-label="SI_F_o: Payments by Other accounts to Institutional sector - Nonresident income accounts."><code>SI_F_o</code></a></td>
+</tr>
+<tr><th scope="row" data-set-id="distribution" title="Distributive transaction">d</th>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-factors"><a href="#matrix-TP_d" data-matrix-link="matrix-TP_d" data-flow-name="TP_d" data-row-domain="distribution" data-column-domain="income_resident" aria-label="TP_d: Distributive payments by resident income accounts."><code>TP_d</code></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-TP_f" data-matrix-link="matrix-TP_f" data-flow-name="TP_f" data-row-domain="distribution" data-column-domain="income_nonresident" aria-label="TP_f: Distributive payments by nonresident income accounts."><code>TP_f</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-capital"><a href="#matrix-KP_d" data-matrix-link="matrix-KP_d" data-flow-name="KP_d" data-row-domain="distribution" data-column-domain="capital_resident" aria-label="KP_d: Capital transfers paid by resident capital accounts."><code>KP_d</code></a></td>
+<td class="table-map__block is-capital"><a href="#matrix-KP_f" data-matrix-link="matrix-KP_f" data-flow-name="KP_f" data-row-domain="distribution" data-column-domain="capital_nonresident" aria-label="KP_f: Capital transfers paid by nonresident capital accounts."><code>KP_f</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-factors"><a href="#matrix-D_o" data-matrix-link="matrix-D_o" data-flow-name="D_o" data-row-domain="distribution" data-column-domain="other" aria-label="D_o: Payments by Other accounts to Distributive transaction accounts."><code>D_o</code></a></td>
+</tr>
+<tr><th scope="row" data-set-id="consumption" title="Consumption category">n</th>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-core"><a href="#matrix-CF_d" data-matrix-link="matrix-CF_d" data-flow-name="CF_d" data-row-domain="consumption" data-column-domain="income_resident" aria-label="CF_d: Final consumption funded by resident income accounts."><code>CF_d</code></a></td>
+<td class="table-map__block is-core"><a href="#matrix-CF_f" data-matrix-link="matrix-CF_f" data-flow-name="CF_f" data-row-domain="consumption" data-column-domain="income_nonresident" aria-label="CF_f: Final consumption funded by nonresident income accounts."><code>CF_f</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-core"><a href="#matrix-N_o" data-matrix-link="matrix-N_o" data-flow-name="N_o" data-row-domain="consumption" data-column-domain="other" aria-label="N_o: Payments by Other accounts to Consumption category accounts."><code>N_o</code></a></td>
+</tr>
+<tr><th scope="row" data-set-id="tax" title="Taxes">t</th>
+<td class="table-map__block is-factors"><a href="#matrix-Vc_t" data-matrix-link="matrix-Vc_t" data-flow-name="Vc_t" data-row-domain="tax" data-column-domain="commodity" aria-label="Vc_t: Taxes less subsidies paid by product accounts."><code>Vc_t</code></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-TA" data-matrix-link="matrix-TA" data-flow-name="TA" data-row-domain="tax" data-column-domain="activity" aria-label="TA: Taxes less subsidies paid by activities; includes every tax item."><code>TA</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-demand"><a href="#matrix-TC" data-matrix-link="matrix-TC" data-flow-name="TC" data-row-domain="tax" data-column-domain="consumption" aria-label="TC: Taxes less subsidies paid by consumption; includes every tax item."><code>TC</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-capital"><a href="#matrix-Tcap_d" data-matrix-link="matrix-Tcap_d" data-flow-name="Tcap_d" data-row-domain="tax" data-column-domain="capital_resident" aria-label="Tcap_d: Payments by Institutional sector - Resident capital accounts to Taxes accounts."><code>Tcap_d</code></a></td>
+<td class="table-map__block is-capital"><a href="#matrix-Tcap_f" data-matrix-link="matrix-Tcap_f" data-flow-name="Tcap_f" data-row-domain="tax" data-column-domain="capital_nonresident" aria-label="Tcap_f: Payments by Institutional sector - Nonresident capital accounts to Taxes accounts."><code>Tcap_f</code></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-Tinv" data-matrix-link="matrix-Tinv" data-flow-name="Tinv" data-row-domain="tax" data-column-domain="nonfinancial_asset" aria-label="Tinv: Taxes less subsidies paid by nonfinancial investment."><code>Tinv</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-factors"><a href="#matrix-T_o" data-matrix-link="matrix-T_o" data-flow-name="T_o" data-row-domain="tax" data-column-domain="other" aria-label="T_o: Payments by Other accounts to Taxes accounts."><code>T_o</code></a></td>
+</tr>
+<tr><th scope="row" data-set-id="capital_resident" title="Institutional sector - Resident capital">sc_d</th>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-capital"><a href="#matrix-RS_dd" data-matrix-link="matrix-RS_dd" data-flow-name="RS_dd" data-row-domain="capital_resident" data-column-domain="income_resident" aria-label="RS_dd: Saving transferred from the specified income set to the specified capital set."><code>RS_dd</code></a></td>
+<td class="table-map__block is-capital"><a href="#matrix-RS_df" data-matrix-link="matrix-RS_df" data-flow-name="RS_df" data-row-domain="capital_resident" data-column-domain="income_nonresident" aria-label="RS_df: Saving transferred from the specified income set to the specified capital set."><code>RS_df</code></a></td>
+<td class="table-map__block is-capital"><a href="#matrix-KR_d" data-matrix-link="matrix-KR_d" data-flow-name="KR_d" data-row-domain="capital_resident" data-column-domain="distribution" aria-label="KR_d: Capital transfers received by resident capital accounts."><code>KR_d</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-demand"><a href="#matrix-DK_d" data-matrix-link="matrix-DK_d" data-flow-name="DK_d" data-row-domain="capital_resident" data-column-domain="nonfinancial_asset" aria-label="DK_d: Receipts from nonfinancial asset disposals of resident capital accounts."><code>DK_d</code></a></td>
+<td class="table-map__block is-capital"><a href="#matrix-LF_d" data-matrix-link="matrix-LF_d" data-flow-name="LF_d" data-row-domain="capital_resident" data-column-domain="financial_instrument" aria-label="LF_d: Net incurrence of financial liabilities by resident capital accounts."><code>LF_d</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-capital"><a href="#matrix-SC_D_o" data-matrix-link="matrix-SC_D_o" data-flow-name="SC_D_o" data-row-domain="capital_resident" data-column-domain="other" aria-label="SC_D_o: Payments by Other accounts to Institutional sector - Resident capital accounts."><code>SC_D_o</code></a></td>
+</tr>
+<tr><th scope="row" data-set-id="capital_nonresident" title="Institutional sector - Nonresident capital">sc_f</th>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-capital"><a href="#matrix-RS_fd" data-matrix-link="matrix-RS_fd" data-flow-name="RS_fd" data-row-domain="capital_nonresident" data-column-domain="income_resident" aria-label="RS_fd: Saving transferred from the specified income set to the specified capital set."><code>RS_fd</code></a></td>
+<td class="table-map__block is-capital"><a href="#matrix-RS_ff" data-matrix-link="matrix-RS_ff" data-flow-name="RS_ff" data-row-domain="capital_nonresident" data-column-domain="income_nonresident" aria-label="RS_ff: Saving transferred from the specified income set to the specified capital set."><code>RS_ff</code></a></td>
+<td class="table-map__block is-capital"><a href="#matrix-KR_f" data-matrix-link="matrix-KR_f" data-flow-name="KR_f" data-row-domain="capital_nonresident" data-column-domain="distribution" aria-label="KR_f: Capital transfers received by nonresident capital accounts."><code>KR_f</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-demand"><a href="#matrix-DK_f" data-matrix-link="matrix-DK_f" data-flow-name="DK_f" data-row-domain="capital_nonresident" data-column-domain="nonfinancial_asset" aria-label="DK_f: Receipts from nonfinancial asset disposals of nonresident capital accounts."><code>DK_f</code></a></td>
+<td class="table-map__block is-capital"><a href="#matrix-LF_f" data-matrix-link="matrix-LF_f" data-flow-name="LF_f" data-row-domain="capital_nonresident" data-column-domain="financial_instrument" aria-label="LF_f: Net incurrence of financial liabilities by nonresident capital accounts."><code>LF_f</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-capital"><a href="#matrix-SC_F_o" data-matrix-link="matrix-SC_F_o" data-flow-name="SC_F_o" data-row-domain="capital_nonresident" data-column-domain="other" aria-label="SC_F_o: Payments by Other accounts to Institutional sector - Nonresident capital accounts."><code>SC_F_o</code></a></td>
+</tr>
+<tr><th scope="row" data-set-id="nonfinancial_asset" title="Non-financial asset">nf</th>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-capital"><a href="#matrix-IK_d" data-matrix-link="matrix-IK_d" data-flow-name="IK_d" data-row-domain="nonfinancial_asset" data-column-domain="capital_resident" aria-label="IK_d: Nonfinancial assets acquired by resident capital accounts."><code>IK_d</code></a></td>
+<td class="table-map__block is-capital"><a href="#matrix-IK_f" data-matrix-link="matrix-IK_f" data-flow-name="IK_f" data-row-domain="nonfinancial_asset" data-column-domain="capital_nonresident" aria-label="IK_f: Nonfinancial assets acquired by nonresident capital accounts."><code>IK_f</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-core"><a href="#matrix-NF_o" data-matrix-link="matrix-NF_o" data-flow-name="NF_o" data-row-domain="nonfinancial_asset" data-column-domain="other" aria-label="NF_o: Payments by Other accounts to Non-financial asset accounts."><code>NF_o</code></a></td>
+</tr>
+<tr><th scope="row" data-set-id="financial_instrument" title="Financial instrument">fi</th>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-capital"><a href="#matrix-AF_d" data-matrix-link="matrix-AF_d" data-flow-name="AF_d" data-row-domain="financial_instrument" data-column-domain="capital_resident" aria-label="AF_d: Net acquisitions of financial assets by resident capital accounts."><code>AF_d</code></a></td>
+<td class="table-map__block is-capital"><a href="#matrix-AF_f" data-matrix-link="matrix-AF_f" data-flow-name="AF_f" data-row-domain="financial_instrument" data-column-domain="capital_nonresident" aria-label="AF_f: Net acquisitions of financial assets by nonresident capital accounts."><code>AF_f</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-core"><a href="#matrix-FI_o" data-matrix-link="matrix-FI_o" data-flow-name="FI_o" data-row-domain="financial_instrument" data-column-domain="other" aria-label="FI_o: Payments by Other accounts to Financial instrument accounts."><code>FI_o</code></a></td>
+</tr>
+<tr><th scope="row" data-set-id="external_trade" title="External trade account">tr</th>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-trade"><a href="#matrix-MU" data-matrix-link="matrix-MU" data-flow-name="MU" data-row-domain="external_trade" data-column-domain="activity" aria-label="MU: Imported intermediate inputs by using activity, retaining observed origin/product detail."><code>MU</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-trade"><a href="#matrix-TP_trade" data-matrix-link="matrix-TP_trade" data-flow-name="TP_trade" data-row-domain="external_trade" data-column-domain="income_nonresident" aria-label="TP_trade: Settlement from nonresident income accounts to external trade accounts; no bilateral allocation inferred."><code>TP_trade</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-trade"><a href="#matrix-MY" data-matrix-link="matrix-MY" data-flow-name="MY" data-row-domain="external_trade" data-column-domain="consumption" aria-label="MY: Imports used for final consumption."><code>MY</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-trade"><a href="#matrix-Mcap_d" data-matrix-link="matrix-Mcap_d" data-flow-name="Mcap_d" data-row-domain="external_trade" data-column-domain="capital_resident" aria-label="Mcap_d: Imports paid directly by resident capital accounts."><code>Mcap_d</code></a></td>
+<td class="table-map__block is-trade"><a href="#matrix-Mcap_f" data-matrix-link="matrix-Mcap_f" data-flow-name="Mcap_f" data-row-domain="external_trade" data-column-domain="capital_nonresident" aria-label="Mcap_f: Imports paid directly by nonresident capital accounts."><code>Mcap_f</code></a></td>
+<td class="table-map__block is-trade"><a href="#matrix-Minv" data-matrix-link="matrix-Minv" data-flow-name="Minv" data-row-domain="external_trade" data-column-domain="nonfinancial_asset" aria-label="Minv: Imports used for nonfinancial investment."><code>Minv</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-trade"><a href="#matrix-M_o" data-matrix-link="matrix-M_o" data-flow-name="M_o" data-row-domain="external_trade" data-column-domain="other" aria-label="M_o: Imports paid through Other accounts, including investment demand pools."><code>M_o</code></a></td>
+</tr>
+<tr><th scope="row" data-set-id="other" title="Other accounts">o</th>
+<td class="table-map__block is-core"><a href="#matrix-O_c" data-matrix-link="matrix-O_c" data-flow-name="O_c" data-row-domain="other" data-column-domain="commodity" aria-label="O_c: Payments by Commodity accounts to Other accounts."><code>O_c</code></a></td>
+<td class="table-map__block is-core"><a href="#matrix-O_a" data-matrix-link="matrix-O_a" data-flow-name="O_a" data-row-domain="other" data-column-domain="activity" aria-label="O_a: Payments by Activity accounts to Other accounts."><code>O_a</code></a></td>
+<td class="table-map__block is-core"><a href="#matrix-O_f" data-matrix-link="matrix-O_f" data-flow-name="O_f" data-row-domain="other" data-column-domain="factor" aria-label="O_f: Payments by Factor of production accounts to Other accounts."><code>O_f</code></a></td>
+<td class="table-map__block is-core"><a href="#matrix-O_si_d" data-matrix-link="matrix-O_si_d" data-flow-name="O_si_d" data-row-domain="other" data-column-domain="income_resident" aria-label="O_si_d: Payments by Institutional sector - Resident income accounts to Other accounts."><code>O_si_d</code></a></td>
+<td class="table-map__block is-core"><a href="#matrix-O_si_f" data-matrix-link="matrix-O_si_f" data-flow-name="O_si_f" data-row-domain="other" data-column-domain="income_nonresident" aria-label="O_si_f: Payments by Institutional sector - Nonresident income accounts to Other accounts."><code>O_si_f</code></a></td>
+<td class="table-map__block is-core"><a href="#matrix-O_d" data-matrix-link="matrix-O_d" data-flow-name="O_d" data-row-domain="other" data-column-domain="distribution" aria-label="O_d: Payments by Distributive transaction accounts to Other accounts."><code>O_d</code></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-O_n" data-matrix-link="matrix-O_n" data-flow-name="O_n" data-row-domain="other" data-column-domain="consumption" aria-label="O_n: Payments by Consumption category accounts to Other accounts."><code>O_n</code></a></td>
+<td class="table-map__block is-core"><a href="#matrix-O_t" data-matrix-link="matrix-O_t" data-flow-name="O_t" data-row-domain="other" data-column-domain="tax" aria-label="O_t: Payments by Taxes accounts to Other accounts."><code>O_t</code></a></td>
+<td class="table-map__block is-capital"><a href="#matrix-O_sc_d" data-matrix-link="matrix-O_sc_d" data-flow-name="O_sc_d" data-row-domain="other" data-column-domain="capital_resident" aria-label="O_sc_d: Payments by resident capital accounts to Other accounts, including observed statistical adjustments."><code>O_sc_d</code></a></td>
+<td class="table-map__block is-capital"><a href="#matrix-O_sc_f" data-matrix-link="matrix-O_sc_f" data-flow-name="O_sc_f" data-row-domain="other" data-column-domain="capital_nonresident" aria-label="O_sc_f: Payments by nonresident capital accounts to Other accounts, including observed statistical adjustments."><code>O_sc_f</code></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-O_nf" data-matrix-link="matrix-O_nf" data-flow-name="O_nf" data-row-domain="other" data-column-domain="nonfinancial_asset" aria-label="O_nf: Payments by nonfinancial asset accounts to Other accounts, including investment allocation pools."><code>O_nf</code></a></td>
+<td class="table-map__block is-core"><a href="#matrix-O_fi" data-matrix-link="matrix-O_fi" data-flow-name="O_fi" data-row-domain="other" data-column-domain="financial_instrument" aria-label="O_fi: Payments by Financial instrument accounts to Other accounts."><code>O_fi</code></a></td>
+<td class="table-map__block is-core"><a href="#matrix-O_tr" data-matrix-link="matrix-O_tr" data-flow-name="O_tr" data-row-domain="other" data-column-domain="external_trade" aria-label="O_tr: Payments by External trade accounts to Other accounts."><code>O_tr</code></a></td>
+<td class="table-map__block is-core"><a href="#matrix-O_o" data-matrix-link="matrix-O_o" data-flow-name="O_o" data-row-domain="other" data-column-domain="other" aria-label="O_o: Flows between distinct residual accounts, including links between investment pools."><code>O_o</code></a></td>
+</tr>
+</tbody></table></div><div class="table-map__definitions" aria-live="polite">
+<section id="matrix-U" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>U</code><span>Native flows</span></p><p class="table-map__description">Intermediate product use by activity; domestic or total according to import representation.</p><dl><dt>Rows</dt><dd>Commodity</dd><dt>Columns</dt><dd>Activity</dd>
+</dl></section>
+<section id="matrix-Yc_exp" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Yc_exp</code><span>Native flows</span></p><p class="table-map__description">Product exports paid by nonresident income accounts.</p><dl><dt>Rows</dt><dd>Commodity</dd><dt>Columns</dt><dd>Institutional sector - Nonresident income</dd>
+</dl></section>
+<section id="matrix-Yc_c" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Yc_c</code><span>Native flows</span></p><p class="table-map__description">Products purchased for final consumption.</p><dl><dt>Rows</dt><dd>Commodity</dd><dt>Columns</dt><dd>Consumption category</dd>
+</dl></section>
+<section id="matrix-Yc_cap_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Yc_cap_d</code><span>Native flows</span></p><p class="table-map__description">Payments by Institutional sector - Resident capital accounts to Commodity accounts.</p><dl><dt>Rows</dt><dd>Commodity</dd><dt>Columns</dt><dd>Institutional sector - Resident capital</dd>
+</dl></section>
+<section id="matrix-Yc_cap_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Yc_cap_f</code><span>Native flows</span></p><p class="table-map__description">Payments by Institutional sector - Nonresident capital accounts to Commodity accounts.</p><dl><dt>Rows</dt><dd>Commodity</dd><dt>Columns</dt><dd>Institutional sector - Nonresident capital</dd>
+</dl></section>
+<section id="matrix-Yc_inv" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Yc_inv</code><span>Native flows</span></p><p class="table-map__description">Products purchased for nonfinancial investment, including inventories and nonproduced assets.</p><dl><dt>Rows</dt><dd>Commodity</dd><dt>Columns</dt><dd>Non-financial asset</dd>
+</dl></section>
+<section id="matrix-Yc_exp_tr" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Yc_exp_tr</code><span>Native flows</span></p><p class="table-map__description">Product exports paid by external trade accounts.</p><dl><dt>Rows</dt><dd>Commodity</dd><dt>Columns</dt><dd>External trade account</dd>
+</dl></section>
+<section id="matrix-C_o" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>C_o</code><span>Native flows</span></p><p class="table-map__description">Product purchases paid through Other accounts, including investment demand pools.</p><dl><dt>Rows</dt><dd>Commodity</dd><dt>Columns</dt><dd>Other accounts</dd>
+</dl></section>
+<section id="matrix-S" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>S</code><span>Native flows</span></p><p class="table-map__description">Activity output supplied to product accounts.</p><dl><dt>Rows</dt><dd>Activity</dd><dt>Columns</dt><dd>Commodity</dd>
+</dl></section>
+<section id="matrix-Ya_exp" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Ya_exp</code><span>Native flows</span></p><p class="table-map__description">Activity exports paid by nonresident income accounts.</p><dl><dt>Rows</dt><dd>Activity</dd><dt>Columns</dt><dd>Institutional sector - Nonresident income</dd>
+</dl></section>
+<section id="matrix-Ya_c" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Ya_c</code><span>Native flows</span></p><p class="table-map__description">Final consumption supplied directly by activities.</p><dl><dt>Rows</dt><dd>Activity</dd><dt>Columns</dt><dd>Consumption category</dd>
+</dl></section>
+<section id="matrix-Ya_cap_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Ya_cap_d</code><span>Native flows</span></p><p class="table-map__description">Payments by Institutional sector - Resident capital accounts to Activity accounts.</p><dl><dt>Rows</dt><dd>Activity</dd><dt>Columns</dt><dd>Institutional sector - Resident capital</dd>
+</dl></section>
+<section id="matrix-Ya_cap_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Ya_cap_f</code><span>Native flows</span></p><p class="table-map__description">Payments by Institutional sector - Nonresident capital accounts to Activity accounts.</p><dl><dt>Rows</dt><dd>Activity</dd><dt>Columns</dt><dd>Institutional sector - Nonresident capital</dd>
+</dl></section>
+<section id="matrix-Ya_inv" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Ya_inv</code><span>Native flows</span></p><p class="table-map__description">Nonfinancial investment supplied directly by activities.</p><dl><dt>Rows</dt><dd>Activity</dd><dt>Columns</dt><dd>Non-financial asset</dd>
+</dl></section>
+<section id="matrix-Ya_exp_tr" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Ya_exp_tr</code><span>Native flows</span></p><p class="table-map__description">Activity exports paid by external trade accounts.</p><dl><dt>Rows</dt><dd>Activity</dd><dt>Columns</dt><dd>External trade account</dd>
+</dl></section>
+<section id="matrix-A_o" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>A_o</code><span>Native flows</span></p><p class="table-map__description">Payments by Other accounts to Activity accounts.</p><dl><dt>Rows</dt><dd>Activity</dd><dt>Columns</dt><dd>Other accounts</dd>
+</dl></section>
+<section id="matrix-Vc_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Vc_f</code><span>Native flows</span></p><p class="table-map__description">Primary-factor payments by product accounts.</p><dl><dt>Rows</dt><dd>Factor of production</dd><dt>Columns</dt><dd>Commodity</dd>
+</dl></section>
+<section id="matrix-Va_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Va_f</code><span>Native flows</span></p><p class="table-map__description">Primary-factor payments by activities.</p><dl><dt>Rows</dt><dd>Factor of production</dd><dt>Columns</dt><dd>Activity</dd>
+</dl></section>
+<section id="matrix-Vinst_f_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Vinst_f_d</code><span>Native flows</span></p><p class="table-map__description">Payments by Institutional sector - Resident income accounts to Factor of production accounts.</p><dl><dt>Rows</dt><dd>Factor of production</dd><dt>Columns</dt><dd>Institutional sector - Resident income</dd>
+</dl></section>
+<section id="matrix-Vinst_f_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Vinst_f_f</code><span>Native flows</span></p><p class="table-map__description">Payments by Institutional sector - Nonresident income accounts to Factor of production accounts.</p><dl><dt>Rows</dt><dd>Factor of production</dd><dt>Columns</dt><dd>Institutional sector - Nonresident income</dd>
+</dl></section>
+<section id="matrix-VY_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>VY_f</code><span>Native flows</span></p><p class="table-map__description">Direct primary-factor payments by consumption.</p><dl><dt>Rows</dt><dd>Factor of production</dd><dt>Columns</dt><dd>Consumption category</dd>
+</dl></section>
+<section id="matrix-Vinv_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Vinv_f</code><span>Native flows</span></p><p class="table-map__description">Direct primary-factor payments by nonfinancial investment.</p><dl><dt>Rows</dt><dd>Factor of production</dd><dt>Columns</dt><dd>Non-financial asset</dd>
+</dl></section>
+<section id="matrix-F_o" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>F_o</code><span>Native flows</span></p><p class="table-map__description">Payments by Other accounts to Factor of production accounts.</p><dl><dt>Rows</dt><dd>Factor of production</dd><dt>Columns</dt><dd>Other accounts</dd>
+</dl></section>
+<section id="matrix-RI_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>RI_d</code><span>Native flows</span></p><p class="table-map__description">Primary income received by resident institutional income accounts.</p><dl><dt>Rows</dt><dd>Institutional sector - Resident income</dd><dt>Columns</dt><dd>Factor of production</dd>
+</dl></section>
+<section id="matrix-TR_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>TR_d</code><span>Native flows</span></p><p class="table-map__description">Distributive receipts of resident income accounts.</p><dl><dt>Rows</dt><dd>Institutional sector - Resident income</dd><dt>Columns</dt><dd>Distributive transaction</dd>
+</dl></section>
+<section id="matrix-RT_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>RT_d</code><span>Native flows</span></p><p class="table-map__description">Tax receipts of resident income accounts.</p><dl><dt>Rows</dt><dd>Institutional sector - Resident income</dd><dt>Columns</dt><dd>Taxes</dd>
+</dl></section>
+<section id="matrix-SI_D_o" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>SI_D_o</code><span>Native flows</span></p><p class="table-map__description">Payments by Other accounts to Institutional sector - Resident income accounts.</p><dl><dt>Rows</dt><dd>Institutional sector - Resident income</dd><dt>Columns</dt><dd>Other accounts</dd>
+</dl></section>
+<section id="matrix-RI_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>RI_f</code><span>Native flows</span></p><p class="table-map__description">Primary income received by nonresident institutional income accounts.</p><dl><dt>Rows</dt><dd>Institutional sector - Nonresident income</dd><dt>Columns</dt><dd>Factor of production</dd>
+</dl></section>
+<section id="matrix-TR_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>TR_f</code><span>Native flows</span></p><p class="table-map__description">Distributive receipts of nonresident income accounts.</p><dl><dt>Rows</dt><dd>Institutional sector - Nonresident income</dd><dt>Columns</dt><dd>Distributive transaction</dd>
+</dl></section>
+<section id="matrix-RT_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>RT_f</code><span>Native flows</span></p><p class="table-map__description">Tax receipts of nonresident income accounts.</p><dl><dt>Rows</dt><dd>Institutional sector - Nonresident income</dd><dt>Columns</dt><dd>Taxes</dd>
+</dl></section>
+<section id="matrix-RT_trade" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>RT_trade</code><span>Native flows</span></p><p class="table-map__description">Settlement from external trade accounts to nonresident income accounts.</p><dl><dt>Rows</dt><dd>Institutional sector - Nonresident income</dd><dt>Columns</dt><dd>External trade account</dd>
+</dl></section>
+<section id="matrix-SI_F_o" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>SI_F_o</code><span>Native flows</span></p><p class="table-map__description">Payments by Other accounts to Institutional sector - Nonresident income accounts.</p><dl><dt>Rows</dt><dd>Institutional sector - Nonresident income</dd><dt>Columns</dt><dd>Other accounts</dd>
+</dl></section>
+<section id="matrix-TP_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>TP_d</code><span>Native flows</span></p><p class="table-map__description">Distributive payments by resident income accounts.</p><dl><dt>Rows</dt><dd>Distributive transaction</dd><dt>Columns</dt><dd>Institutional sector - Resident income</dd>
+</dl></section>
+<section id="matrix-TP_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>TP_f</code><span>Native flows</span></p><p class="table-map__description">Distributive payments by nonresident income accounts.</p><dl><dt>Rows</dt><dd>Distributive transaction</dd><dt>Columns</dt><dd>Institutional sector - Nonresident income</dd>
+</dl></section>
+<section id="matrix-KP_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>KP_d</code><span>Native flows</span></p><p class="table-map__description">Capital transfers paid by resident capital accounts.</p><dl><dt>Rows</dt><dd>Distributive transaction</dd><dt>Columns</dt><dd>Institutional sector - Resident capital</dd>
+</dl></section>
+<section id="matrix-KP_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>KP_f</code><span>Native flows</span></p><p class="table-map__description">Capital transfers paid by nonresident capital accounts.</p><dl><dt>Rows</dt><dd>Distributive transaction</dd><dt>Columns</dt><dd>Institutional sector - Nonresident capital</dd>
+</dl></section>
+<section id="matrix-D_o" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>D_o</code><span>Native flows</span></p><p class="table-map__description">Payments by Other accounts to Distributive transaction accounts.</p><dl><dt>Rows</dt><dd>Distributive transaction</dd><dt>Columns</dt><dd>Other accounts</dd>
+</dl></section>
+<section id="matrix-CF_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>CF_d</code><span>Native flows</span></p><p class="table-map__description">Final consumption funded by resident income accounts.</p><dl><dt>Rows</dt><dd>Consumption category</dd><dt>Columns</dt><dd>Institutional sector - Resident income</dd>
+</dl></section>
+<section id="matrix-CF_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>CF_f</code><span>Native flows</span></p><p class="table-map__description">Final consumption funded by nonresident income accounts.</p><dl><dt>Rows</dt><dd>Consumption category</dd><dt>Columns</dt><dd>Institutional sector - Nonresident income</dd>
+</dl></section>
+<section id="matrix-N_o" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>N_o</code><span>Native flows</span></p><p class="table-map__description">Payments by Other accounts to Consumption category accounts.</p><dl><dt>Rows</dt><dd>Consumption category</dd><dt>Columns</dt><dd>Other accounts</dd>
+</dl></section>
+<section id="matrix-Vc_t" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Vc_t</code><span>Native flows</span></p><p class="table-map__description">Taxes less subsidies paid by product accounts.</p><dl><dt>Rows</dt><dd>Taxes</dd><dt>Columns</dt><dd>Commodity</dd>
+</dl></section>
+<section id="matrix-TA" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>TA</code><span>Native flows</span></p><p class="table-map__description">Taxes less subsidies paid by activities; includes every tax item.</p><dl><dt>Rows</dt><dd>Taxes</dd><dt>Columns</dt><dd>Activity</dd>
+</dl></section>
+<section id="matrix-TC" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>TC</code><span>Native flows</span></p><p class="table-map__description">Taxes less subsidies paid by consumption; includes every tax item.</p><dl><dt>Rows</dt><dd>Taxes</dd><dt>Columns</dt><dd>Consumption category</dd>
+</dl></section>
+<section id="matrix-Tcap_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Tcap_d</code><span>Native flows</span></p><p class="table-map__description">Payments by Institutional sector - Resident capital accounts to Taxes accounts.</p><dl><dt>Rows</dt><dd>Taxes</dd><dt>Columns</dt><dd>Institutional sector - Resident capital</dd>
+</dl></section>
+<section id="matrix-Tcap_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Tcap_f</code><span>Native flows</span></p><p class="table-map__description">Payments by Institutional sector - Nonresident capital accounts to Taxes accounts.</p><dl><dt>Rows</dt><dd>Taxes</dd><dt>Columns</dt><dd>Institutional sector - Nonresident capital</dd>
+</dl></section>
+<section id="matrix-Tinv" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Tinv</code><span>Native flows</span></p><p class="table-map__description">Taxes less subsidies paid by nonfinancial investment.</p><dl><dt>Rows</dt><dd>Taxes</dd><dt>Columns</dt><dd>Non-financial asset</dd>
+</dl></section>
+<section id="matrix-T_o" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>T_o</code><span>Native flows</span></p><p class="table-map__description">Payments by Other accounts to Taxes accounts.</p><dl><dt>Rows</dt><dd>Taxes</dd><dt>Columns</dt><dd>Other accounts</dd>
+</dl></section>
+<section id="matrix-RS_dd" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>RS_dd</code><span>Native flows</span></p><p class="table-map__description">Saving transferred from the specified income set to the specified capital set.</p><dl><dt>Rows</dt><dd>Institutional sector - Resident capital</dd><dt>Columns</dt><dd>Institutional sector - Resident income</dd>
+</dl></section>
+<section id="matrix-RS_df" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>RS_df</code><span>Native flows</span></p><p class="table-map__description">Saving transferred from the specified income set to the specified capital set.</p><dl><dt>Rows</dt><dd>Institutional sector - Resident capital</dd><dt>Columns</dt><dd>Institutional sector - Nonresident income</dd>
+</dl></section>
+<section id="matrix-KR_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>KR_d</code><span>Native flows</span></p><p class="table-map__description">Capital transfers received by resident capital accounts.</p><dl><dt>Rows</dt><dd>Institutional sector - Resident capital</dd><dt>Columns</dt><dd>Distributive transaction</dd>
+</dl></section>
+<section id="matrix-DK_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>DK_d</code><span>Native flows</span></p><p class="table-map__description">Receipts from nonfinancial asset disposals of resident capital accounts.</p><dl><dt>Rows</dt><dd>Institutional sector - Resident capital</dd><dt>Columns</dt><dd>Non-financial asset</dd>
+</dl></section>
+<section id="matrix-LF_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>LF_d</code><span>Native flows</span></p><p class="table-map__description">Net incurrence of financial liabilities by resident capital accounts.</p><dl><dt>Rows</dt><dd>Institutional sector - Resident capital</dd><dt>Columns</dt><dd>Financial instrument</dd>
+</dl></section>
+<section id="matrix-SC_D_o" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>SC_D_o</code><span>Native flows</span></p><p class="table-map__description">Payments by Other accounts to Institutional sector - Resident capital accounts.</p><dl><dt>Rows</dt><dd>Institutional sector - Resident capital</dd><dt>Columns</dt><dd>Other accounts</dd>
+</dl></section>
+<section id="matrix-RS_fd" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>RS_fd</code><span>Native flows</span></p><p class="table-map__description">Saving transferred from the specified income set to the specified capital set.</p><dl><dt>Rows</dt><dd>Institutional sector - Nonresident capital</dd><dt>Columns</dt><dd>Institutional sector - Resident income</dd>
+</dl></section>
+<section id="matrix-RS_ff" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>RS_ff</code><span>Native flows</span></p><p class="table-map__description">Saving transferred from the specified income set to the specified capital set.</p><dl><dt>Rows</dt><dd>Institutional sector - Nonresident capital</dd><dt>Columns</dt><dd>Institutional sector - Nonresident income</dd>
+</dl></section>
+<section id="matrix-KR_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>KR_f</code><span>Native flows</span></p><p class="table-map__description">Capital transfers received by nonresident capital accounts.</p><dl><dt>Rows</dt><dd>Institutional sector - Nonresident capital</dd><dt>Columns</dt><dd>Distributive transaction</dd>
+</dl></section>
+<section id="matrix-DK_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>DK_f</code><span>Native flows</span></p><p class="table-map__description">Receipts from nonfinancial asset disposals of nonresident capital accounts.</p><dl><dt>Rows</dt><dd>Institutional sector - Nonresident capital</dd><dt>Columns</dt><dd>Non-financial asset</dd>
+</dl></section>
+<section id="matrix-LF_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>LF_f</code><span>Native flows</span></p><p class="table-map__description">Net incurrence of financial liabilities by nonresident capital accounts.</p><dl><dt>Rows</dt><dd>Institutional sector - Nonresident capital</dd><dt>Columns</dt><dd>Financial instrument</dd>
+</dl></section>
+<section id="matrix-SC_F_o" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>SC_F_o</code><span>Native flows</span></p><p class="table-map__description">Payments by Other accounts to Institutional sector - Nonresident capital accounts.</p><dl><dt>Rows</dt><dd>Institutional sector - Nonresident capital</dd><dt>Columns</dt><dd>Other accounts</dd>
+</dl></section>
+<section id="matrix-IK_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>IK_d</code><span>Native flows</span></p><p class="table-map__description">Nonfinancial assets acquired by resident capital accounts.</p><dl><dt>Rows</dt><dd>Non-financial asset</dd><dt>Columns</dt><dd>Institutional sector - Resident capital</dd>
+</dl></section>
+<section id="matrix-IK_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>IK_f</code><span>Native flows</span></p><p class="table-map__description">Nonfinancial assets acquired by nonresident capital accounts.</p><dl><dt>Rows</dt><dd>Non-financial asset</dd><dt>Columns</dt><dd>Institutional sector - Nonresident capital</dd>
+</dl></section>
+<section id="matrix-NF_o" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>NF_o</code><span>Native flows</span></p><p class="table-map__description">Payments by Other accounts to Non-financial asset accounts.</p><dl><dt>Rows</dt><dd>Non-financial asset</dd><dt>Columns</dt><dd>Other accounts</dd>
+</dl></section>
+<section id="matrix-AF_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>AF_d</code><span>Native flows</span></p><p class="table-map__description">Net acquisitions of financial assets by resident capital accounts.</p><dl><dt>Rows</dt><dd>Financial instrument</dd><dt>Columns</dt><dd>Institutional sector - Resident capital</dd>
+</dl></section>
+<section id="matrix-AF_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>AF_f</code><span>Native flows</span></p><p class="table-map__description">Net acquisitions of financial assets by nonresident capital accounts.</p><dl><dt>Rows</dt><dd>Financial instrument</dd><dt>Columns</dt><dd>Institutional sector - Nonresident capital</dd>
+</dl></section>
+<section id="matrix-FI_o" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>FI_o</code><span>Native flows</span></p><p class="table-map__description">Payments by Other accounts to Financial instrument accounts.</p><dl><dt>Rows</dt><dd>Financial instrument</dd><dt>Columns</dt><dd>Other accounts</dd>
+</dl></section>
+<section id="matrix-MU" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>MU</code><span>Native flows</span></p><p class="table-map__description">Imported intermediate inputs by using activity, retaining observed origin/product detail.</p><dl><dt>Rows</dt><dd>External trade account</dd><dt>Columns</dt><dd>Activity</dd>
+</dl></section>
+<section id="matrix-TP_trade" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>TP_trade</code><span>Native flows</span></p><p class="table-map__description">Settlement from nonresident income accounts to external trade accounts; no bilateral allocation inferred.</p><dl><dt>Rows</dt><dd>External trade account</dd><dt>Columns</dt><dd>Institutional sector - Nonresident income</dd>
+</dl></section>
+<section id="matrix-MY" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>MY</code><span>Native flows</span></p><p class="table-map__description">Imports used for final consumption.</p><dl><dt>Rows</dt><dd>External trade account</dd><dt>Columns</dt><dd>Consumption category</dd>
+</dl></section>
+<section id="matrix-Mcap_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Mcap_d</code><span>Native flows</span></p><p class="table-map__description">Imports paid directly by resident capital accounts.</p><dl><dt>Rows</dt><dd>External trade account</dd><dt>Columns</dt><dd>Institutional sector - Resident capital</dd>
+</dl></section>
+<section id="matrix-Mcap_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Mcap_f</code><span>Native flows</span></p><p class="table-map__description">Imports paid directly by nonresident capital accounts.</p><dl><dt>Rows</dt><dd>External trade account</dd><dt>Columns</dt><dd>Institutional sector - Nonresident capital</dd>
+</dl></section>
+<section id="matrix-Minv" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Minv</code><span>Native flows</span></p><p class="table-map__description">Imports used for nonfinancial investment.</p><dl><dt>Rows</dt><dd>External trade account</dd><dt>Columns</dt><dd>Non-financial asset</dd>
+</dl></section>
+<section id="matrix-M_o" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>M_o</code><span>Native flows</span></p><p class="table-map__description">Imports paid through Other accounts, including investment demand pools.</p><dl><dt>Rows</dt><dd>External trade account</dd><dt>Columns</dt><dd>Other accounts</dd>
+</dl></section>
+<section id="matrix-O_c" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>O_c</code><span>Native flows</span></p><p class="table-map__description">Payments by Commodity accounts to Other accounts.</p><dl><dt>Rows</dt><dd>Other accounts</dd><dt>Columns</dt><dd>Commodity</dd>
+</dl></section>
+<section id="matrix-O_a" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>O_a</code><span>Native flows</span></p><p class="table-map__description">Payments by Activity accounts to Other accounts.</p><dl><dt>Rows</dt><dd>Other accounts</dd><dt>Columns</dt><dd>Activity</dd>
+</dl></section>
+<section id="matrix-O_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>O_f</code><span>Native flows</span></p><p class="table-map__description">Payments by Factor of production accounts to Other accounts.</p><dl><dt>Rows</dt><dd>Other accounts</dd><dt>Columns</dt><dd>Factor of production</dd>
+</dl></section>
+<section id="matrix-O_si_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>O_si_d</code><span>Native flows</span></p><p class="table-map__description">Payments by Institutional sector - Resident income accounts to Other accounts.</p><dl><dt>Rows</dt><dd>Other accounts</dd><dt>Columns</dt><dd>Institutional sector - Resident income</dd>
+</dl></section>
+<section id="matrix-O_si_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>O_si_f</code><span>Native flows</span></p><p class="table-map__description">Payments by Institutional sector - Nonresident income accounts to Other accounts.</p><dl><dt>Rows</dt><dd>Other accounts</dd><dt>Columns</dt><dd>Institutional sector - Nonresident income</dd>
+</dl></section>
+<section id="matrix-O_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>O_d</code><span>Native flows</span></p><p class="table-map__description">Payments by Distributive transaction accounts to Other accounts.</p><dl><dt>Rows</dt><dd>Other accounts</dd><dt>Columns</dt><dd>Distributive transaction</dd>
+</dl></section>
+<section id="matrix-O_n" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>O_n</code><span>Native flows</span></p><p class="table-map__description">Payments by Consumption category accounts to Other accounts.</p><dl><dt>Rows</dt><dd>Other accounts</dd><dt>Columns</dt><dd>Consumption category</dd>
+</dl></section>
+<section id="matrix-O_t" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>O_t</code><span>Native flows</span></p><p class="table-map__description">Payments by Taxes accounts to Other accounts.</p><dl><dt>Rows</dt><dd>Other accounts</dd><dt>Columns</dt><dd>Taxes</dd>
+</dl></section>
+<section id="matrix-O_sc_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>O_sc_d</code><span>Native flows</span></p><p class="table-map__description">Payments by resident capital accounts to Other accounts, including observed statistical adjustments.</p><dl><dt>Rows</dt><dd>Other accounts</dd><dt>Columns</dt><dd>Institutional sector - Resident capital</dd>
+</dl></section>
+<section id="matrix-O_sc_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>O_sc_f</code><span>Native flows</span></p><p class="table-map__description">Payments by nonresident capital accounts to Other accounts, including observed statistical adjustments.</p><dl><dt>Rows</dt><dd>Other accounts</dd><dt>Columns</dt><dd>Institutional sector - Nonresident capital</dd>
+</dl></section>
+<section id="matrix-O_nf" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>O_nf</code><span>Native flows</span></p><p class="table-map__description">Payments by nonfinancial asset accounts to Other accounts, including investment allocation pools.</p><dl><dt>Rows</dt><dd>Other accounts</dd><dt>Columns</dt><dd>Non-financial asset</dd>
+</dl></section>
+<section id="matrix-O_fi" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>O_fi</code><span>Native flows</span></p><p class="table-map__description">Payments by Financial instrument accounts to Other accounts.</p><dl><dt>Rows</dt><dd>Other accounts</dd><dt>Columns</dt><dd>Financial instrument</dd>
+</dl></section>
+<section id="matrix-O_tr" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>O_tr</code><span>Native flows</span></p><p class="table-map__description">Payments by External trade accounts to Other accounts.</p><dl><dt>Rows</dt><dd>Other accounts</dd><dt>Columns</dt><dd>External trade account</dd>
+</dl></section>
+<section id="matrix-O_o" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>O_o</code><span>Native flows</span></p><p class="table-map__description">Flows between distinct residual accounts, including links between investment pools.</p><dl><dt>Rows</dt><dd>Other accounts</dd><dt>Columns</dt><dd>Other accounts</dd>
+</dl></section>
+</div></div>
+<div class="table-map__mode" data-table-mode="coefficients">
+<div class="table-map__scroll" tabindex="0" role="region" aria-label="NAM coefficients block diagram; scroll horizontally on small screens">
+<table class="table-map__grid">
+<caption>NAM coefficients · rows × columns</caption>
+<thead><tr><td></td>
+<th scope="col" data-set-id="commodity"><span class="table-map__column-label">c - Commodity</span></th>
+<th scope="col" data-set-id="activity"><span class="table-map__column-label">a - Activity</span></th>
+<th scope="col" data-set-id="factor"><span class="table-map__column-label">f - Factor of production</span></th>
+<th scope="col" data-set-id="income_resident"><span class="table-map__column-label">si_d - Institutional sector - Resident income</span></th>
+<th scope="col" data-set-id="income_nonresident"><span class="table-map__column-label">si_f - Institutional sector - Nonresident income</span></th>
+<th scope="col" data-set-id="distribution"><span class="table-map__column-label">d - Distributive transaction</span></th>
+<th scope="col" data-set-id="consumption"><span class="table-map__column-label">n - Consumption category</span></th>
+<th scope="col" data-set-id="tax"><span class="table-map__column-label">t - Taxes</span></th>
+<th scope="col" data-set-id="capital_resident"><span class="table-map__column-label">sc_d - Institutional sector - Resident capital</span></th>
+<th scope="col" data-set-id="capital_nonresident"><span class="table-map__column-label">sc_f - Institutional sector - Nonresident capital</span></th>
+<th scope="col" data-set-id="nonfinancial_asset"><span class="table-map__column-label">nf - Non-financial asset</span></th>
+<th scope="col" data-set-id="financial_instrument"><span class="table-map__column-label">fi - Financial instrument</span></th>
+<th scope="col" data-set-id="external_trade"><span class="table-map__column-label">tr - External trade account</span></th>
+<th scope="col" data-set-id="other"><span class="table-map__column-label">o - Other accounts</span></th>
+</tr></thead><tbody>
+<tr><th scope="row" data-set-id="commodity" title="Commodity">c</th>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-core"><a href="#matrix-u" data-matrix-link="matrix-u" data-flow-name="U" data-row-domain="commodity" data-column-domain="activity" aria-label="u: U divided columnwise by Xa, the full expenditure total of the paying account."><code>u</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-core"><a href="#matrix-yc_exp" data-matrix-link="matrix-yc_exp" data-flow-name="Yc_exp" data-row-domain="commodity" data-column-domain="income_nonresident" aria-label="yc_exp: Yc_exp divided columnwise by Xsi_f, the full expenditure total of the paying account."><code>yc_exp</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-demand"><a href="#matrix-yc_c" data-matrix-link="matrix-yc_c" data-flow-name="Yc_c" data-row-domain="commodity" data-column-domain="consumption" aria-label="yc_c: Yc_c divided columnwise by Xn, the full expenditure total of the paying account."><code>yc_c</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-capital"><a href="#matrix-yc_cap_d" data-matrix-link="matrix-yc_cap_d" data-flow-name="Yc_cap_d" data-row-domain="commodity" data-column-domain="capital_resident" aria-label="yc_cap_d: Yc_cap_d divided columnwise by Xsc_d, the full expenditure total of the paying account."><code>yc_cap_d</code></a></td>
+<td class="table-map__block is-capital"><a href="#matrix-yc_cap_f" data-matrix-link="matrix-yc_cap_f" data-flow-name="Yc_cap_f" data-row-domain="commodity" data-column-domain="capital_nonresident" aria-label="yc_cap_f: Yc_cap_f divided columnwise by Xsc_f, the full expenditure total of the paying account."><code>yc_cap_f</code></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-yc_inv" data-matrix-link="matrix-yc_inv" data-flow-name="Yc_inv" data-row-domain="commodity" data-column-domain="nonfinancial_asset" aria-label="yc_inv: Yc_inv divided columnwise by Xnf, the full expenditure total of the paying account."><code>yc_inv</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-core"><a href="#matrix-yc_exp_tr" data-matrix-link="matrix-yc_exp_tr" data-flow-name="Yc_exp_tr" data-row-domain="commodity" data-column-domain="external_trade" aria-label="yc_exp_tr: Yc_exp_tr divided columnwise by Xtr, the full expenditure total of the paying account."><code>yc_exp_tr</code></a></td>
+<td class="table-map__block is-core"><a href="#matrix-c_o" data-matrix-link="matrix-c_o" data-flow-name="C_o" data-row-domain="commodity" data-column-domain="other" aria-label="c_o: C_o divided columnwise by Xo, the full expenditure total of the paying account."><code>c_o</code></a></td>
+</tr>
+<tr><th scope="row" data-set-id="activity" title="Activity">a</th>
+<td class="table-map__block is-core"><a href="#matrix-s" data-matrix-link="matrix-s" data-flow-name="S" data-row-domain="activity" data-column-domain="commodity" aria-label="s: S divided columnwise by Xc, the full expenditure total of the paying account."><code>s</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-core"><a href="#matrix-ya_exp" data-matrix-link="matrix-ya_exp" data-flow-name="Ya_exp" data-row-domain="activity" data-column-domain="income_nonresident" aria-label="ya_exp: Ya_exp divided columnwise by Xsi_f, the full expenditure total of the paying account."><code>ya_exp</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-demand"><a href="#matrix-ya_c" data-matrix-link="matrix-ya_c" data-flow-name="Ya_c" data-row-domain="activity" data-column-domain="consumption" aria-label="ya_c: Ya_c divided columnwise by Xn, the full expenditure total of the paying account."><code>ya_c</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-capital"><a href="#matrix-ya_cap_d" data-matrix-link="matrix-ya_cap_d" data-flow-name="Ya_cap_d" data-row-domain="activity" data-column-domain="capital_resident" aria-label="ya_cap_d: Ya_cap_d divided columnwise by Xsc_d, the full expenditure total of the paying account."><code>ya_cap_d</code></a></td>
+<td class="table-map__block is-capital"><a href="#matrix-ya_cap_f" data-matrix-link="matrix-ya_cap_f" data-flow-name="Ya_cap_f" data-row-domain="activity" data-column-domain="capital_nonresident" aria-label="ya_cap_f: Ya_cap_f divided columnwise by Xsc_f, the full expenditure total of the paying account."><code>ya_cap_f</code></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-ya_inv" data-matrix-link="matrix-ya_inv" data-flow-name="Ya_inv" data-row-domain="activity" data-column-domain="nonfinancial_asset" aria-label="ya_inv: Ya_inv divided columnwise by Xnf, the full expenditure total of the paying account."><code>ya_inv</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-core"><a href="#matrix-ya_exp_tr" data-matrix-link="matrix-ya_exp_tr" data-flow-name="Ya_exp_tr" data-row-domain="activity" data-column-domain="external_trade" aria-label="ya_exp_tr: Ya_exp_tr divided columnwise by Xtr, the full expenditure total of the paying account."><code>ya_exp_tr</code></a></td>
+<td class="table-map__block is-core"><a href="#matrix-a_o" data-matrix-link="matrix-a_o" data-flow-name="A_o" data-row-domain="activity" data-column-domain="other" aria-label="a_o: A_o divided columnwise by Xo, the full expenditure total of the paying account."><code>a_o</code></a></td>
+</tr>
+<tr><th scope="row" data-set-id="factor" title="Factor of production">f</th>
+<td class="table-map__block is-factors"><a href="#matrix-vc_f" data-matrix-link="matrix-vc_f" data-flow-name="Vc_f" data-row-domain="factor" data-column-domain="commodity" aria-label="vc_f: Vc_f divided columnwise by Xc, the full expenditure total of the paying account."><code>vc_f</code></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-va_f" data-matrix-link="matrix-va_f" data-flow-name="Va_f" data-row-domain="factor" data-column-domain="activity" aria-label="va_f: Va_f divided columnwise by Xa, the full expenditure total of the paying account."><code>va_f</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-factors"><a href="#matrix-vinst_f_d" data-matrix-link="matrix-vinst_f_d" data-flow-name="Vinst_f_d" data-row-domain="factor" data-column-domain="income_resident" aria-label="vinst_f_d: Vinst_f_d divided columnwise by Xsi_d, the full expenditure total of the paying account."><code>vinst_f_d</code></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-vinst_f_f" data-matrix-link="matrix-vinst_f_f" data-flow-name="Vinst_f_f" data-row-domain="factor" data-column-domain="income_nonresident" aria-label="vinst_f_f: Vinst_f_f divided columnwise by Xsi_f, the full expenditure total of the paying account."><code>vinst_f_f</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-demand"><a href="#matrix-vy_f" data-matrix-link="matrix-vy_f" data-flow-name="VY_f" data-row-domain="factor" data-column-domain="consumption" aria-label="vy_f: VY_f divided columnwise by Xn, the full expenditure total of the paying account."><code>vy_f</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-demand"><a href="#matrix-vinv_f" data-matrix-link="matrix-vinv_f" data-flow-name="Vinv_f" data-row-domain="factor" data-column-domain="nonfinancial_asset" aria-label="vinv_f: Vinv_f divided columnwise by Xnf, the full expenditure total of the paying account."><code>vinv_f</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-factors"><a href="#matrix-f_o" data-matrix-link="matrix-f_o" data-flow-name="F_o" data-row-domain="factor" data-column-domain="other" aria-label="f_o: F_o divided columnwise by Xo, the full expenditure total of the paying account."><code>f_o</code></a></td>
+</tr>
+<tr><th scope="row" data-set-id="income_resident" title="Institutional sector - Resident income">si_d</th>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-factors"><a href="#matrix-ri_d" data-matrix-link="matrix-ri_d" data-flow-name="RI_d" data-row-domain="income_resident" data-column-domain="factor" aria-label="ri_d: RI_d divided columnwise by Xf, the full expenditure total of the paying account."><code>ri_d</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-factors"><a href="#matrix-tr_d" data-matrix-link="matrix-tr_d" data-flow-name="TR_d" data-row-domain="income_resident" data-column-domain="distribution" aria-label="tr_d: TR_d divided columnwise by Xd, the full expenditure total of the paying account."><code>tr_d</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-factors"><a href="#matrix-rt_d" data-matrix-link="matrix-rt_d" data-flow-name="RT_d" data-row-domain="income_resident" data-column-domain="tax" aria-label="rt_d: RT_d divided columnwise by Xt, the full expenditure total of the paying account."><code>rt_d</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-factors"><a href="#matrix-si_d_o" data-matrix-link="matrix-si_d_o" data-flow-name="SI_D_o" data-row-domain="income_resident" data-column-domain="other" aria-label="si_d_o: SI_D_o divided columnwise by Xo, the full expenditure total of the paying account."><code>si_d_o</code></a></td>
+</tr>
+<tr><th scope="row" data-set-id="income_nonresident" title="Institutional sector - Nonresident income">si_f</th>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-factors"><a href="#matrix-ri_f" data-matrix-link="matrix-ri_f" data-flow-name="RI_f" data-row-domain="income_nonresident" data-column-domain="factor" aria-label="ri_f: RI_f divided columnwise by Xf, the full expenditure total of the paying account."><code>ri_f</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-factors"><a href="#matrix-tr_f" data-matrix-link="matrix-tr_f" data-flow-name="TR_f" data-row-domain="income_nonresident" data-column-domain="distribution" aria-label="tr_f: TR_f divided columnwise by Xd, the full expenditure total of the paying account."><code>tr_f</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-factors"><a href="#matrix-rt_f" data-matrix-link="matrix-rt_f" data-flow-name="RT_f" data-row-domain="income_nonresident" data-column-domain="tax" aria-label="rt_f: RT_f divided columnwise by Xt, the full expenditure total of the paying account."><code>rt_f</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-factors"><a href="#matrix-rt_trade" data-matrix-link="matrix-rt_trade" data-flow-name="RT_trade" data-row-domain="income_nonresident" data-column-domain="external_trade" aria-label="rt_trade: RT_trade divided columnwise by Xtr, the full expenditure total of the paying account."><code>rt_trade</code></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-si_f_o" data-matrix-link="matrix-si_f_o" data-flow-name="SI_F_o" data-row-domain="income_nonresident" data-column-domain="other" aria-label="si_f_o: SI_F_o divided columnwise by Xo, the full expenditure total of the paying account."><code>si_f_o</code></a></td>
+</tr>
+<tr><th scope="row" data-set-id="distribution" title="Distributive transaction">d</th>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-factors"><a href="#matrix-tp_d" data-matrix-link="matrix-tp_d" data-flow-name="TP_d" data-row-domain="distribution" data-column-domain="income_resident" aria-label="tp_d: TP_d divided columnwise by Xsi_d, the full expenditure total of the paying account."><code>tp_d</code></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-tp_f" data-matrix-link="matrix-tp_f" data-flow-name="TP_f" data-row-domain="distribution" data-column-domain="income_nonresident" aria-label="tp_f: TP_f divided columnwise by Xsi_f, the full expenditure total of the paying account."><code>tp_f</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-capital"><a href="#matrix-kp_d" data-matrix-link="matrix-kp_d" data-flow-name="KP_d" data-row-domain="distribution" data-column-domain="capital_resident" aria-label="kp_d: KP_d divided columnwise by Xsc_d, the full expenditure total of the paying account."><code>kp_d</code></a></td>
+<td class="table-map__block is-capital"><a href="#matrix-kp_f" data-matrix-link="matrix-kp_f" data-flow-name="KP_f" data-row-domain="distribution" data-column-domain="capital_nonresident" aria-label="kp_f: KP_f divided columnwise by Xsc_f, the full expenditure total of the paying account."><code>kp_f</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-factors"><a href="#matrix-d_o" data-matrix-link="matrix-d_o" data-flow-name="D_o" data-row-domain="distribution" data-column-domain="other" aria-label="d_o: D_o divided columnwise by Xo, the full expenditure total of the paying account."><code>d_o</code></a></td>
+</tr>
+<tr><th scope="row" data-set-id="consumption" title="Consumption category">n</th>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-core"><a href="#matrix-cf_d" data-matrix-link="matrix-cf_d" data-flow-name="CF_d" data-row-domain="consumption" data-column-domain="income_resident" aria-label="cf_d: CF_d divided columnwise by Xsi_d, the full expenditure total of the paying account."><code>cf_d</code></a></td>
+<td class="table-map__block is-core"><a href="#matrix-cf_f" data-matrix-link="matrix-cf_f" data-flow-name="CF_f" data-row-domain="consumption" data-column-domain="income_nonresident" aria-label="cf_f: CF_f divided columnwise by Xsi_f, the full expenditure total of the paying account."><code>cf_f</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-core"><a href="#matrix-n_o" data-matrix-link="matrix-n_o" data-flow-name="N_o" data-row-domain="consumption" data-column-domain="other" aria-label="n_o: N_o divided columnwise by Xo, the full expenditure total of the paying account."><code>n_o</code></a></td>
+</tr>
+<tr><th scope="row" data-set-id="tax" title="Taxes">t</th>
+<td class="table-map__block is-factors"><a href="#matrix-vc_t" data-matrix-link="matrix-vc_t" data-flow-name="Vc_t" data-row-domain="tax" data-column-domain="commodity" aria-label="vc_t: Vc_t divided columnwise by Xc, the full expenditure total of the paying account."><code>vc_t</code></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-ta" data-matrix-link="matrix-ta" data-flow-name="TA" data-row-domain="tax" data-column-domain="activity" aria-label="ta: TA divided columnwise by Xa, the full expenditure total of the paying account."><code>ta</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-demand"><a href="#matrix-tc" data-matrix-link="matrix-tc" data-flow-name="TC" data-row-domain="tax" data-column-domain="consumption" aria-label="tc: TC divided columnwise by Xn, the full expenditure total of the paying account."><code>tc</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-capital"><a href="#matrix-tcap_d" data-matrix-link="matrix-tcap_d" data-flow-name="Tcap_d" data-row-domain="tax" data-column-domain="capital_resident" aria-label="tcap_d: Tcap_d divided columnwise by Xsc_d, the full expenditure total of the paying account."><code>tcap_d</code></a></td>
+<td class="table-map__block is-capital"><a href="#matrix-tcap_f" data-matrix-link="matrix-tcap_f" data-flow-name="Tcap_f" data-row-domain="tax" data-column-domain="capital_nonresident" aria-label="tcap_f: Tcap_f divided columnwise by Xsc_f, the full expenditure total of the paying account."><code>tcap_f</code></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-tinv" data-matrix-link="matrix-tinv" data-flow-name="Tinv" data-row-domain="tax" data-column-domain="nonfinancial_asset" aria-label="tinv: Tinv divided columnwise by Xnf, the full expenditure total of the paying account."><code>tinv</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-factors"><a href="#matrix-t_o" data-matrix-link="matrix-t_o" data-flow-name="T_o" data-row-domain="tax" data-column-domain="other" aria-label="t_o: T_o divided columnwise by Xo, the full expenditure total of the paying account."><code>t_o</code></a></td>
+</tr>
+<tr><th scope="row" data-set-id="capital_resident" title="Institutional sector - Resident capital">sc_d</th>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-capital"><a href="#matrix-rs_dd" data-matrix-link="matrix-rs_dd" data-flow-name="RS_dd" data-row-domain="capital_resident" data-column-domain="income_resident" aria-label="rs_dd: RS_dd divided columnwise by Xsi_d, the full expenditure total of the paying account."><code>rs_dd</code></a></td>
+<td class="table-map__block is-capital"><a href="#matrix-rs_df" data-matrix-link="matrix-rs_df" data-flow-name="RS_df" data-row-domain="capital_resident" data-column-domain="income_nonresident" aria-label="rs_df: RS_df divided columnwise by Xsi_f, the full expenditure total of the paying account."><code>rs_df</code></a></td>
+<td class="table-map__block is-capital"><a href="#matrix-kr_d" data-matrix-link="matrix-kr_d" data-flow-name="KR_d" data-row-domain="capital_resident" data-column-domain="distribution" aria-label="kr_d: KR_d divided columnwise by Xd, the full expenditure total of the paying account."><code>kr_d</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-demand"><a href="#matrix-dk_d" data-matrix-link="matrix-dk_d" data-flow-name="DK_d" data-row-domain="capital_resident" data-column-domain="nonfinancial_asset" aria-label="dk_d: DK_d divided columnwise by Xnf, the full expenditure total of the paying account."><code>dk_d</code></a></td>
+<td class="table-map__block is-capital"><a href="#matrix-lf_d" data-matrix-link="matrix-lf_d" data-flow-name="LF_d" data-row-domain="capital_resident" data-column-domain="financial_instrument" aria-label="lf_d: LF_d divided columnwise by Xfi, the full expenditure total of the paying account."><code>lf_d</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-capital"><a href="#matrix-sc_d_o" data-matrix-link="matrix-sc_d_o" data-flow-name="SC_D_o" data-row-domain="capital_resident" data-column-domain="other" aria-label="sc_d_o: SC_D_o divided columnwise by Xo, the full expenditure total of the paying account."><code>sc_d_o</code></a></td>
+</tr>
+<tr><th scope="row" data-set-id="capital_nonresident" title="Institutional sector - Nonresident capital">sc_f</th>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-capital"><a href="#matrix-rs_fd" data-matrix-link="matrix-rs_fd" data-flow-name="RS_fd" data-row-domain="capital_nonresident" data-column-domain="income_resident" aria-label="rs_fd: RS_fd divided columnwise by Xsi_d, the full expenditure total of the paying account."><code>rs_fd</code></a></td>
+<td class="table-map__block is-capital"><a href="#matrix-rs_ff" data-matrix-link="matrix-rs_ff" data-flow-name="RS_ff" data-row-domain="capital_nonresident" data-column-domain="income_nonresident" aria-label="rs_ff: RS_ff divided columnwise by Xsi_f, the full expenditure total of the paying account."><code>rs_ff</code></a></td>
+<td class="table-map__block is-capital"><a href="#matrix-kr_f" data-matrix-link="matrix-kr_f" data-flow-name="KR_f" data-row-domain="capital_nonresident" data-column-domain="distribution" aria-label="kr_f: KR_f divided columnwise by Xd, the full expenditure total of the paying account."><code>kr_f</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-demand"><a href="#matrix-dk_f" data-matrix-link="matrix-dk_f" data-flow-name="DK_f" data-row-domain="capital_nonresident" data-column-domain="nonfinancial_asset" aria-label="dk_f: DK_f divided columnwise by Xnf, the full expenditure total of the paying account."><code>dk_f</code></a></td>
+<td class="table-map__block is-capital"><a href="#matrix-lf_f" data-matrix-link="matrix-lf_f" data-flow-name="LF_f" data-row-domain="capital_nonresident" data-column-domain="financial_instrument" aria-label="lf_f: LF_f divided columnwise by Xfi, the full expenditure total of the paying account."><code>lf_f</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-capital"><a href="#matrix-sc_f_o" data-matrix-link="matrix-sc_f_o" data-flow-name="SC_F_o" data-row-domain="capital_nonresident" data-column-domain="other" aria-label="sc_f_o: SC_F_o divided columnwise by Xo, the full expenditure total of the paying account."><code>sc_f_o</code></a></td>
+</tr>
+<tr><th scope="row" data-set-id="nonfinancial_asset" title="Non-financial asset">nf</th>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-capital"><a href="#matrix-ik_d" data-matrix-link="matrix-ik_d" data-flow-name="IK_d" data-row-domain="nonfinancial_asset" data-column-domain="capital_resident" aria-label="ik_d: IK_d divided columnwise by Xsc_d, the full expenditure total of the paying account."><code>ik_d</code></a></td>
+<td class="table-map__block is-capital"><a href="#matrix-ik_f" data-matrix-link="matrix-ik_f" data-flow-name="IK_f" data-row-domain="nonfinancial_asset" data-column-domain="capital_nonresident" aria-label="ik_f: IK_f divided columnwise by Xsc_f, the full expenditure total of the paying account."><code>ik_f</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-core"><a href="#matrix-nf_o" data-matrix-link="matrix-nf_o" data-flow-name="NF_o" data-row-domain="nonfinancial_asset" data-column-domain="other" aria-label="nf_o: NF_o divided columnwise by Xo, the full expenditure total of the paying account."><code>nf_o</code></a></td>
+</tr>
+<tr><th scope="row" data-set-id="financial_instrument" title="Financial instrument">fi</th>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-capital"><a href="#matrix-af_d" data-matrix-link="matrix-af_d" data-flow-name="AF_d" data-row-domain="financial_instrument" data-column-domain="capital_resident" aria-label="af_d: AF_d divided columnwise by Xsc_d, the full expenditure total of the paying account."><code>af_d</code></a></td>
+<td class="table-map__block is-capital"><a href="#matrix-af_f" data-matrix-link="matrix-af_f" data-flow-name="AF_f" data-row-domain="financial_instrument" data-column-domain="capital_nonresident" aria-label="af_f: AF_f divided columnwise by Xsc_f, the full expenditure total of the paying account."><code>af_f</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-core"><a href="#matrix-fi_o" data-matrix-link="matrix-fi_o" data-flow-name="FI_o" data-row-domain="financial_instrument" data-column-domain="other" aria-label="fi_o: FI_o divided columnwise by Xo, the full expenditure total of the paying account."><code>fi_o</code></a></td>
+</tr>
+<tr><th scope="row" data-set-id="external_trade" title="External trade account">tr</th>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-trade"><a href="#matrix-mu" data-matrix-link="matrix-mu" data-flow-name="MU" data-row-domain="external_trade" data-column-domain="activity" aria-label="mu: MU divided columnwise by Xa, the full expenditure total of the paying account."><code>mu</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-trade"><a href="#matrix-tp_trade" data-matrix-link="matrix-tp_trade" data-flow-name="TP_trade" data-row-domain="external_trade" data-column-domain="income_nonresident" aria-label="tp_trade: TP_trade divided columnwise by Xsi_f, the full expenditure total of the paying account."><code>tp_trade</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-trade"><a href="#matrix-my" data-matrix-link="matrix-my" data-flow-name="MY" data-row-domain="external_trade" data-column-domain="consumption" aria-label="my: MY divided columnwise by Xn, the full expenditure total of the paying account."><code>my</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-trade"><a href="#matrix-mcap_d" data-matrix-link="matrix-mcap_d" data-flow-name="Mcap_d" data-row-domain="external_trade" data-column-domain="capital_resident" aria-label="mcap_d: Mcap_d divided columnwise by Xsc_d, the full expenditure total of the paying account."><code>mcap_d</code></a></td>
+<td class="table-map__block is-trade"><a href="#matrix-mcap_f" data-matrix-link="matrix-mcap_f" data-flow-name="Mcap_f" data-row-domain="external_trade" data-column-domain="capital_nonresident" aria-label="mcap_f: Mcap_f divided columnwise by Xsc_f, the full expenditure total of the paying account."><code>mcap_f</code></a></td>
+<td class="table-map__block is-trade"><a href="#matrix-minv" data-matrix-link="matrix-minv" data-flow-name="Minv" data-row-domain="external_trade" data-column-domain="nonfinancial_asset" aria-label="minv: Minv divided columnwise by Xnf, the full expenditure total of the paying account."><code>minv</code></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-trade"><a href="#matrix-m_o" data-matrix-link="matrix-m_o" data-flow-name="M_o" data-row-domain="external_trade" data-column-domain="other" aria-label="m_o: M_o divided columnwise by Xo, the full expenditure total of the paying account."><code>m_o</code></a></td>
+</tr>
+<tr><th scope="row" data-set-id="other" title="Other accounts">o</th>
+<td class="table-map__block is-core"><a href="#matrix-o_c" data-matrix-link="matrix-o_c" data-flow-name="O_c" data-row-domain="other" data-column-domain="commodity" aria-label="o_c: O_c divided columnwise by Xc, the full expenditure total of the paying account."><code>o_c</code></a></td>
+<td class="table-map__block is-core"><a href="#matrix-o_a" data-matrix-link="matrix-o_a" data-flow-name="O_a" data-row-domain="other" data-column-domain="activity" aria-label="o_a: O_a divided columnwise by Xa, the full expenditure total of the paying account."><code>o_a</code></a></td>
+<td class="table-map__block is-core"><a href="#matrix-o_f" data-matrix-link="matrix-o_f" data-flow-name="O_f" data-row-domain="other" data-column-domain="factor" aria-label="o_f: O_f divided columnwise by Xf, the full expenditure total of the paying account."><code>o_f</code></a></td>
+<td class="table-map__block is-core"><a href="#matrix-o_si_d" data-matrix-link="matrix-o_si_d" data-flow-name="O_si_d" data-row-domain="other" data-column-domain="income_resident" aria-label="o_si_d: O_si_d divided columnwise by Xsi_d, the full expenditure total of the paying account."><code>o_si_d</code></a></td>
+<td class="table-map__block is-core"><a href="#matrix-o_si_f" data-matrix-link="matrix-o_si_f" data-flow-name="O_si_f" data-row-domain="other" data-column-domain="income_nonresident" aria-label="o_si_f: O_si_f divided columnwise by Xsi_f, the full expenditure total of the paying account."><code>o_si_f</code></a></td>
+<td class="table-map__block is-core"><a href="#matrix-o_d" data-matrix-link="matrix-o_d" data-flow-name="O_d" data-row-domain="other" data-column-domain="distribution" aria-label="o_d: O_d divided columnwise by Xd, the full expenditure total of the paying account."><code>o_d</code></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-o_n" data-matrix-link="matrix-o_n" data-flow-name="O_n" data-row-domain="other" data-column-domain="consumption" aria-label="o_n: O_n divided columnwise by Xn, the full expenditure total of the paying account."><code>o_n</code></a></td>
+<td class="table-map__block is-core"><a href="#matrix-o_t" data-matrix-link="matrix-o_t" data-flow-name="O_t" data-row-domain="other" data-column-domain="tax" aria-label="o_t: O_t divided columnwise by Xt, the full expenditure total of the paying account."><code>o_t</code></a></td>
+<td class="table-map__block is-capital"><a href="#matrix-o_sc_d" data-matrix-link="matrix-o_sc_d" data-flow-name="O_sc_d" data-row-domain="other" data-column-domain="capital_resident" aria-label="o_sc_d: O_sc_d divided columnwise by Xsc_d, the full expenditure total of the paying account."><code>o_sc_d</code></a></td>
+<td class="table-map__block is-capital"><a href="#matrix-o_sc_f" data-matrix-link="matrix-o_sc_f" data-flow-name="O_sc_f" data-row-domain="other" data-column-domain="capital_nonresident" aria-label="o_sc_f: O_sc_f divided columnwise by Xsc_f, the full expenditure total of the paying account."><code>o_sc_f</code></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-o_nf" data-matrix-link="matrix-o_nf" data-flow-name="O_nf" data-row-domain="other" data-column-domain="nonfinancial_asset" aria-label="o_nf: O_nf divided columnwise by Xnf, the full expenditure total of the paying account."><code>o_nf</code></a></td>
+<td class="table-map__block is-core"><a href="#matrix-o_fi" data-matrix-link="matrix-o_fi" data-flow-name="O_fi" data-row-domain="other" data-column-domain="financial_instrument" aria-label="o_fi: O_fi divided columnwise by Xfi, the full expenditure total of the paying account."><code>o_fi</code></a></td>
+<td class="table-map__block is-core"><a href="#matrix-o_tr" data-matrix-link="matrix-o_tr" data-flow-name="O_tr" data-row-domain="other" data-column-domain="external_trade" aria-label="o_tr: O_tr divided columnwise by Xtr, the full expenditure total of the paying account."><code>o_tr</code></a></td>
+<td class="table-map__block is-core"><a href="#matrix-o_o" data-matrix-link="matrix-o_o" data-flow-name="O_o" data-row-domain="other" data-column-domain="other" aria-label="o_o: O_o divided columnwise by Xo, the full expenditure total of the paying account."><code>o_o</code></a></td>
+</tr>
+</tbody></table></div><div class="table-map__definitions" aria-live="polite">
+<section id="matrix-u" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>u</code><span>Coefficients</span></p><p class="table-map__description">U divided columnwise by Xa, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Commodity</dd><dt>Columns</dt><dd>Activity</dd>
+<dt>Column denominator</dt><dd><code>Xa</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-yc_exp" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>yc_exp</code><span>Coefficients</span></p><p class="table-map__description">Yc_exp divided columnwise by Xsi_f, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Commodity</dd><dt>Columns</dt><dd>Institutional sector - Nonresident income</dd>
+<dt>Column denominator</dt><dd><code>Xsi_f</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-yc_c" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>yc_c</code><span>Coefficients</span></p><p class="table-map__description">Yc_c divided columnwise by Xn, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Commodity</dd><dt>Columns</dt><dd>Consumption category</dd>
+<dt>Column denominator</dt><dd><code>Xn</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-yc_cap_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>yc_cap_d</code><span>Coefficients</span></p><p class="table-map__description">Yc_cap_d divided columnwise by Xsc_d, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Commodity</dd><dt>Columns</dt><dd>Institutional sector - Resident capital</dd>
+<dt>Column denominator</dt><dd><code>Xsc_d</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-yc_cap_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>yc_cap_f</code><span>Coefficients</span></p><p class="table-map__description">Yc_cap_f divided columnwise by Xsc_f, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Commodity</dd><dt>Columns</dt><dd>Institutional sector - Nonresident capital</dd>
+<dt>Column denominator</dt><dd><code>Xsc_f</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-yc_inv" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>yc_inv</code><span>Coefficients</span></p><p class="table-map__description">Yc_inv divided columnwise by Xnf, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Commodity</dd><dt>Columns</dt><dd>Non-financial asset</dd>
+<dt>Column denominator</dt><dd><code>Xnf</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-yc_exp_tr" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>yc_exp_tr</code><span>Coefficients</span></p><p class="table-map__description">Yc_exp_tr divided columnwise by Xtr, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Commodity</dd><dt>Columns</dt><dd>External trade account</dd>
+<dt>Column denominator</dt><dd><code>Xtr</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-c_o" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>c_o</code><span>Coefficients</span></p><p class="table-map__description">C_o divided columnwise by Xo, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Commodity</dd><dt>Columns</dt><dd>Other accounts</dd>
+<dt>Column denominator</dt><dd><code>Xo</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-s" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>s</code><span>Coefficients</span></p><p class="table-map__description">S divided columnwise by Xc, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Activity</dd><dt>Columns</dt><dd>Commodity</dd>
+<dt>Column denominator</dt><dd><code>Xc</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-ya_exp" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>ya_exp</code><span>Coefficients</span></p><p class="table-map__description">Ya_exp divided columnwise by Xsi_f, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Activity</dd><dt>Columns</dt><dd>Institutional sector - Nonresident income</dd>
+<dt>Column denominator</dt><dd><code>Xsi_f</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-ya_c" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>ya_c</code><span>Coefficients</span></p><p class="table-map__description">Ya_c divided columnwise by Xn, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Activity</dd><dt>Columns</dt><dd>Consumption category</dd>
+<dt>Column denominator</dt><dd><code>Xn</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-ya_cap_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>ya_cap_d</code><span>Coefficients</span></p><p class="table-map__description">Ya_cap_d divided columnwise by Xsc_d, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Activity</dd><dt>Columns</dt><dd>Institutional sector - Resident capital</dd>
+<dt>Column denominator</dt><dd><code>Xsc_d</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-ya_cap_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>ya_cap_f</code><span>Coefficients</span></p><p class="table-map__description">Ya_cap_f divided columnwise by Xsc_f, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Activity</dd><dt>Columns</dt><dd>Institutional sector - Nonresident capital</dd>
+<dt>Column denominator</dt><dd><code>Xsc_f</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-ya_inv" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>ya_inv</code><span>Coefficients</span></p><p class="table-map__description">Ya_inv divided columnwise by Xnf, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Activity</dd><dt>Columns</dt><dd>Non-financial asset</dd>
+<dt>Column denominator</dt><dd><code>Xnf</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-ya_exp_tr" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>ya_exp_tr</code><span>Coefficients</span></p><p class="table-map__description">Ya_exp_tr divided columnwise by Xtr, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Activity</dd><dt>Columns</dt><dd>External trade account</dd>
+<dt>Column denominator</dt><dd><code>Xtr</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-a_o" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>a_o</code><span>Coefficients</span></p><p class="table-map__description">A_o divided columnwise by Xo, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Activity</dd><dt>Columns</dt><dd>Other accounts</dd>
+<dt>Column denominator</dt><dd><code>Xo</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-vc_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>vc_f</code><span>Coefficients</span></p><p class="table-map__description">Vc_f divided columnwise by Xc, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Factor of production</dd><dt>Columns</dt><dd>Commodity</dd>
+<dt>Column denominator</dt><dd><code>Xc</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-va_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>va_f</code><span>Coefficients</span></p><p class="table-map__description">Va_f divided columnwise by Xa, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Factor of production</dd><dt>Columns</dt><dd>Activity</dd>
+<dt>Column denominator</dt><dd><code>Xa</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-vinst_f_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>vinst_f_d</code><span>Coefficients</span></p><p class="table-map__description">Vinst_f_d divided columnwise by Xsi_d, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Factor of production</dd><dt>Columns</dt><dd>Institutional sector - Resident income</dd>
+<dt>Column denominator</dt><dd><code>Xsi_d</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-vinst_f_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>vinst_f_f</code><span>Coefficients</span></p><p class="table-map__description">Vinst_f_f divided columnwise by Xsi_f, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Factor of production</dd><dt>Columns</dt><dd>Institutional sector - Nonresident income</dd>
+<dt>Column denominator</dt><dd><code>Xsi_f</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-vy_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>vy_f</code><span>Coefficients</span></p><p class="table-map__description">VY_f divided columnwise by Xn, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Factor of production</dd><dt>Columns</dt><dd>Consumption category</dd>
+<dt>Column denominator</dt><dd><code>Xn</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-vinv_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>vinv_f</code><span>Coefficients</span></p><p class="table-map__description">Vinv_f divided columnwise by Xnf, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Factor of production</dd><dt>Columns</dt><dd>Non-financial asset</dd>
+<dt>Column denominator</dt><dd><code>Xnf</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-f_o" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>f_o</code><span>Coefficients</span></p><p class="table-map__description">F_o divided columnwise by Xo, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Factor of production</dd><dt>Columns</dt><dd>Other accounts</dd>
+<dt>Column denominator</dt><dd><code>Xo</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-ri_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>ri_d</code><span>Coefficients</span></p><p class="table-map__description">RI_d divided columnwise by Xf, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Institutional sector - Resident income</dd><dt>Columns</dt><dd>Factor of production</dd>
+<dt>Column denominator</dt><dd><code>Xf</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-tr_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>tr_d</code><span>Coefficients</span></p><p class="table-map__description">TR_d divided columnwise by Xd, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Institutional sector - Resident income</dd><dt>Columns</dt><dd>Distributive transaction</dd>
+<dt>Column denominator</dt><dd><code>Xd</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-rt_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>rt_d</code><span>Coefficients</span></p><p class="table-map__description">RT_d divided columnwise by Xt, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Institutional sector - Resident income</dd><dt>Columns</dt><dd>Taxes</dd>
+<dt>Column denominator</dt><dd><code>Xt</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-si_d_o" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>si_d_o</code><span>Coefficients</span></p><p class="table-map__description">SI_D_o divided columnwise by Xo, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Institutional sector - Resident income</dd><dt>Columns</dt><dd>Other accounts</dd>
+<dt>Column denominator</dt><dd><code>Xo</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-ri_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>ri_f</code><span>Coefficients</span></p><p class="table-map__description">RI_f divided columnwise by Xf, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Institutional sector - Nonresident income</dd><dt>Columns</dt><dd>Factor of production</dd>
+<dt>Column denominator</dt><dd><code>Xf</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-tr_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>tr_f</code><span>Coefficients</span></p><p class="table-map__description">TR_f divided columnwise by Xd, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Institutional sector - Nonresident income</dd><dt>Columns</dt><dd>Distributive transaction</dd>
+<dt>Column denominator</dt><dd><code>Xd</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-rt_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>rt_f</code><span>Coefficients</span></p><p class="table-map__description">RT_f divided columnwise by Xt, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Institutional sector - Nonresident income</dd><dt>Columns</dt><dd>Taxes</dd>
+<dt>Column denominator</dt><dd><code>Xt</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-rt_trade" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>rt_trade</code><span>Coefficients</span></p><p class="table-map__description">RT_trade divided columnwise by Xtr, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Institutional sector - Nonresident income</dd><dt>Columns</dt><dd>External trade account</dd>
+<dt>Column denominator</dt><dd><code>Xtr</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-si_f_o" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>si_f_o</code><span>Coefficients</span></p><p class="table-map__description">SI_F_o divided columnwise by Xo, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Institutional sector - Nonresident income</dd><dt>Columns</dt><dd>Other accounts</dd>
+<dt>Column denominator</dt><dd><code>Xo</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-tp_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>tp_d</code><span>Coefficients</span></p><p class="table-map__description">TP_d divided columnwise by Xsi_d, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Distributive transaction</dd><dt>Columns</dt><dd>Institutional sector - Resident income</dd>
+<dt>Column denominator</dt><dd><code>Xsi_d</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-tp_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>tp_f</code><span>Coefficients</span></p><p class="table-map__description">TP_f divided columnwise by Xsi_f, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Distributive transaction</dd><dt>Columns</dt><dd>Institutional sector - Nonresident income</dd>
+<dt>Column denominator</dt><dd><code>Xsi_f</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-kp_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>kp_d</code><span>Coefficients</span></p><p class="table-map__description">KP_d divided columnwise by Xsc_d, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Distributive transaction</dd><dt>Columns</dt><dd>Institutional sector - Resident capital</dd>
+<dt>Column denominator</dt><dd><code>Xsc_d</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-kp_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>kp_f</code><span>Coefficients</span></p><p class="table-map__description">KP_f divided columnwise by Xsc_f, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Distributive transaction</dd><dt>Columns</dt><dd>Institutional sector - Nonresident capital</dd>
+<dt>Column denominator</dt><dd><code>Xsc_f</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-d_o" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>d_o</code><span>Coefficients</span></p><p class="table-map__description">D_o divided columnwise by Xo, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Distributive transaction</dd><dt>Columns</dt><dd>Other accounts</dd>
+<dt>Column denominator</dt><dd><code>Xo</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-cf_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>cf_d</code><span>Coefficients</span></p><p class="table-map__description">CF_d divided columnwise by Xsi_d, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Consumption category</dd><dt>Columns</dt><dd>Institutional sector - Resident income</dd>
+<dt>Column denominator</dt><dd><code>Xsi_d</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-cf_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>cf_f</code><span>Coefficients</span></p><p class="table-map__description">CF_f divided columnwise by Xsi_f, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Consumption category</dd><dt>Columns</dt><dd>Institutional sector - Nonresident income</dd>
+<dt>Column denominator</dt><dd><code>Xsi_f</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-n_o" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>n_o</code><span>Coefficients</span></p><p class="table-map__description">N_o divided columnwise by Xo, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Consumption category</dd><dt>Columns</dt><dd>Other accounts</dd>
+<dt>Column denominator</dt><dd><code>Xo</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-vc_t" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>vc_t</code><span>Coefficients</span></p><p class="table-map__description">Vc_t divided columnwise by Xc, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Taxes</dd><dt>Columns</dt><dd>Commodity</dd>
+<dt>Column denominator</dt><dd><code>Xc</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-ta" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>ta</code><span>Coefficients</span></p><p class="table-map__description">TA divided columnwise by Xa, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Taxes</dd><dt>Columns</dt><dd>Activity</dd>
+<dt>Column denominator</dt><dd><code>Xa</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-tc" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>tc</code><span>Coefficients</span></p><p class="table-map__description">TC divided columnwise by Xn, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Taxes</dd><dt>Columns</dt><dd>Consumption category</dd>
+<dt>Column denominator</dt><dd><code>Xn</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-tcap_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>tcap_d</code><span>Coefficients</span></p><p class="table-map__description">Tcap_d divided columnwise by Xsc_d, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Taxes</dd><dt>Columns</dt><dd>Institutional sector - Resident capital</dd>
+<dt>Column denominator</dt><dd><code>Xsc_d</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-tcap_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>tcap_f</code><span>Coefficients</span></p><p class="table-map__description">Tcap_f divided columnwise by Xsc_f, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Taxes</dd><dt>Columns</dt><dd>Institutional sector - Nonresident capital</dd>
+<dt>Column denominator</dt><dd><code>Xsc_f</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-tinv" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>tinv</code><span>Coefficients</span></p><p class="table-map__description">Tinv divided columnwise by Xnf, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Taxes</dd><dt>Columns</dt><dd>Non-financial asset</dd>
+<dt>Column denominator</dt><dd><code>Xnf</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-t_o" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>t_o</code><span>Coefficients</span></p><p class="table-map__description">T_o divided columnwise by Xo, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Taxes</dd><dt>Columns</dt><dd>Other accounts</dd>
+<dt>Column denominator</dt><dd><code>Xo</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-rs_dd" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>rs_dd</code><span>Coefficients</span></p><p class="table-map__description">RS_dd divided columnwise by Xsi_d, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Institutional sector - Resident capital</dd><dt>Columns</dt><dd>Institutional sector - Resident income</dd>
+<dt>Column denominator</dt><dd><code>Xsi_d</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-rs_df" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>rs_df</code><span>Coefficients</span></p><p class="table-map__description">RS_df divided columnwise by Xsi_f, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Institutional sector - Resident capital</dd><dt>Columns</dt><dd>Institutional sector - Nonresident income</dd>
+<dt>Column denominator</dt><dd><code>Xsi_f</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-kr_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>kr_d</code><span>Coefficients</span></p><p class="table-map__description">KR_d divided columnwise by Xd, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Institutional sector - Resident capital</dd><dt>Columns</dt><dd>Distributive transaction</dd>
+<dt>Column denominator</dt><dd><code>Xd</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-dk_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>dk_d</code><span>Coefficients</span></p><p class="table-map__description">DK_d divided columnwise by Xnf, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Institutional sector - Resident capital</dd><dt>Columns</dt><dd>Non-financial asset</dd>
+<dt>Column denominator</dt><dd><code>Xnf</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-lf_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>lf_d</code><span>Coefficients</span></p><p class="table-map__description">LF_d divided columnwise by Xfi, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Institutional sector - Resident capital</dd><dt>Columns</dt><dd>Financial instrument</dd>
+<dt>Column denominator</dt><dd><code>Xfi</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-sc_d_o" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>sc_d_o</code><span>Coefficients</span></p><p class="table-map__description">SC_D_o divided columnwise by Xo, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Institutional sector - Resident capital</dd><dt>Columns</dt><dd>Other accounts</dd>
+<dt>Column denominator</dt><dd><code>Xo</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-rs_fd" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>rs_fd</code><span>Coefficients</span></p><p class="table-map__description">RS_fd divided columnwise by Xsi_d, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Institutional sector - Nonresident capital</dd><dt>Columns</dt><dd>Institutional sector - Resident income</dd>
+<dt>Column denominator</dt><dd><code>Xsi_d</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-rs_ff" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>rs_ff</code><span>Coefficients</span></p><p class="table-map__description">RS_ff divided columnwise by Xsi_f, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Institutional sector - Nonresident capital</dd><dt>Columns</dt><dd>Institutional sector - Nonresident income</dd>
+<dt>Column denominator</dt><dd><code>Xsi_f</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-kr_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>kr_f</code><span>Coefficients</span></p><p class="table-map__description">KR_f divided columnwise by Xd, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Institutional sector - Nonresident capital</dd><dt>Columns</dt><dd>Distributive transaction</dd>
+<dt>Column denominator</dt><dd><code>Xd</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-dk_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>dk_f</code><span>Coefficients</span></p><p class="table-map__description">DK_f divided columnwise by Xnf, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Institutional sector - Nonresident capital</dd><dt>Columns</dt><dd>Non-financial asset</dd>
+<dt>Column denominator</dt><dd><code>Xnf</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-lf_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>lf_f</code><span>Coefficients</span></p><p class="table-map__description">LF_f divided columnwise by Xfi, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Institutional sector - Nonresident capital</dd><dt>Columns</dt><dd>Financial instrument</dd>
+<dt>Column denominator</dt><dd><code>Xfi</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-sc_f_o" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>sc_f_o</code><span>Coefficients</span></p><p class="table-map__description">SC_F_o divided columnwise by Xo, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Institutional sector - Nonresident capital</dd><dt>Columns</dt><dd>Other accounts</dd>
+<dt>Column denominator</dt><dd><code>Xo</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-ik_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>ik_d</code><span>Coefficients</span></p><p class="table-map__description">IK_d divided columnwise by Xsc_d, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Non-financial asset</dd><dt>Columns</dt><dd>Institutional sector - Resident capital</dd>
+<dt>Column denominator</dt><dd><code>Xsc_d</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-ik_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>ik_f</code><span>Coefficients</span></p><p class="table-map__description">IK_f divided columnwise by Xsc_f, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Non-financial asset</dd><dt>Columns</dt><dd>Institutional sector - Nonresident capital</dd>
+<dt>Column denominator</dt><dd><code>Xsc_f</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-nf_o" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>nf_o</code><span>Coefficients</span></p><p class="table-map__description">NF_o divided columnwise by Xo, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Non-financial asset</dd><dt>Columns</dt><dd>Other accounts</dd>
+<dt>Column denominator</dt><dd><code>Xo</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-af_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>af_d</code><span>Coefficients</span></p><p class="table-map__description">AF_d divided columnwise by Xsc_d, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Financial instrument</dd><dt>Columns</dt><dd>Institutional sector - Resident capital</dd>
+<dt>Column denominator</dt><dd><code>Xsc_d</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-af_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>af_f</code><span>Coefficients</span></p><p class="table-map__description">AF_f divided columnwise by Xsc_f, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Financial instrument</dd><dt>Columns</dt><dd>Institutional sector - Nonresident capital</dd>
+<dt>Column denominator</dt><dd><code>Xsc_f</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-fi_o" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>fi_o</code><span>Coefficients</span></p><p class="table-map__description">FI_o divided columnwise by Xo, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Financial instrument</dd><dt>Columns</dt><dd>Other accounts</dd>
+<dt>Column denominator</dt><dd><code>Xo</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-mu" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>mu</code><span>Coefficients</span></p><p class="table-map__description">MU divided columnwise by Xa, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>External trade account</dd><dt>Columns</dt><dd>Activity</dd>
+<dt>Column denominator</dt><dd><code>Xa</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-tp_trade" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>tp_trade</code><span>Coefficients</span></p><p class="table-map__description">TP_trade divided columnwise by Xsi_f, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>External trade account</dd><dt>Columns</dt><dd>Institutional sector - Nonresident income</dd>
+<dt>Column denominator</dt><dd><code>Xsi_f</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-my" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>my</code><span>Coefficients</span></p><p class="table-map__description">MY divided columnwise by Xn, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>External trade account</dd><dt>Columns</dt><dd>Consumption category</dd>
+<dt>Column denominator</dt><dd><code>Xn</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-mcap_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>mcap_d</code><span>Coefficients</span></p><p class="table-map__description">Mcap_d divided columnwise by Xsc_d, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>External trade account</dd><dt>Columns</dt><dd>Institutional sector - Resident capital</dd>
+<dt>Column denominator</dt><dd><code>Xsc_d</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-mcap_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>mcap_f</code><span>Coefficients</span></p><p class="table-map__description">Mcap_f divided columnwise by Xsc_f, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>External trade account</dd><dt>Columns</dt><dd>Institutional sector - Nonresident capital</dd>
+<dt>Column denominator</dt><dd><code>Xsc_f</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-minv" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>minv</code><span>Coefficients</span></p><p class="table-map__description">Minv divided columnwise by Xnf, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>External trade account</dd><dt>Columns</dt><dd>Non-financial asset</dd>
+<dt>Column denominator</dt><dd><code>Xnf</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-m_o" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>m_o</code><span>Coefficients</span></p><p class="table-map__description">M_o divided columnwise by Xo, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>External trade account</dd><dt>Columns</dt><dd>Other accounts</dd>
+<dt>Column denominator</dt><dd><code>Xo</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-o_c" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>o_c</code><span>Coefficients</span></p><p class="table-map__description">O_c divided columnwise by Xc, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Other accounts</dd><dt>Columns</dt><dd>Commodity</dd>
+<dt>Column denominator</dt><dd><code>Xc</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-o_a" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>o_a</code><span>Coefficients</span></p><p class="table-map__description">O_a divided columnwise by Xa, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Other accounts</dd><dt>Columns</dt><dd>Activity</dd>
+<dt>Column denominator</dt><dd><code>Xa</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-o_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>o_f</code><span>Coefficients</span></p><p class="table-map__description">O_f divided columnwise by Xf, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Other accounts</dd><dt>Columns</dt><dd>Factor of production</dd>
+<dt>Column denominator</dt><dd><code>Xf</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-o_si_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>o_si_d</code><span>Coefficients</span></p><p class="table-map__description">O_si_d divided columnwise by Xsi_d, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Other accounts</dd><dt>Columns</dt><dd>Institutional sector - Resident income</dd>
+<dt>Column denominator</dt><dd><code>Xsi_d</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-o_si_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>o_si_f</code><span>Coefficients</span></p><p class="table-map__description">O_si_f divided columnwise by Xsi_f, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Other accounts</dd><dt>Columns</dt><dd>Institutional sector - Nonresident income</dd>
+<dt>Column denominator</dt><dd><code>Xsi_f</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-o_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>o_d</code><span>Coefficients</span></p><p class="table-map__description">O_d divided columnwise by Xd, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Other accounts</dd><dt>Columns</dt><dd>Distributive transaction</dd>
+<dt>Column denominator</dt><dd><code>Xd</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-o_n" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>o_n</code><span>Coefficients</span></p><p class="table-map__description">O_n divided columnwise by Xn, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Other accounts</dd><dt>Columns</dt><dd>Consumption category</dd>
+<dt>Column denominator</dt><dd><code>Xn</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-o_t" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>o_t</code><span>Coefficients</span></p><p class="table-map__description">O_t divided columnwise by Xt, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Other accounts</dd><dt>Columns</dt><dd>Taxes</dd>
+<dt>Column denominator</dt><dd><code>Xt</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-o_sc_d" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>o_sc_d</code><span>Coefficients</span></p><p class="table-map__description">O_sc_d divided columnwise by Xsc_d, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Other accounts</dd><dt>Columns</dt><dd>Institutional sector - Resident capital</dd>
+<dt>Column denominator</dt><dd><code>Xsc_d</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-o_sc_f" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>o_sc_f</code><span>Coefficients</span></p><p class="table-map__description">O_sc_f divided columnwise by Xsc_f, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Other accounts</dd><dt>Columns</dt><dd>Institutional sector - Nonresident capital</dd>
+<dt>Column denominator</dt><dd><code>Xsc_f</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-o_nf" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>o_nf</code><span>Coefficients</span></p><p class="table-map__description">O_nf divided columnwise by Xnf, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Other accounts</dd><dt>Columns</dt><dd>Non-financial asset</dd>
+<dt>Column denominator</dt><dd><code>Xnf</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-o_fi" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>o_fi</code><span>Coefficients</span></p><p class="table-map__description">O_fi divided columnwise by Xfi, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Other accounts</dd><dt>Columns</dt><dd>Financial instrument</dd>
+<dt>Column denominator</dt><dd><code>Xfi</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-o_tr" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>o_tr</code><span>Coefficients</span></p><p class="table-map__description">O_tr divided columnwise by Xtr, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Other accounts</dd><dt>Columns</dt><dd>External trade account</dd>
+<dt>Column denominator</dt><dd><code>Xtr</code> · full account expenditure</dd>
+</dl></section>
+<section id="matrix-o_o" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>o_o</code><span>Coefficients</span></p><p class="table-map__description">O_o divided columnwise by Xo, the full expenditure total of the paying account.</p><dl><dt>Rows</dt><dd>Other accounts</dd><dt>Columns</dt><dd>Other accounts</dd>
+<dt>Column denominator</dt><dd><code>Xo</code> · full account expenditure</dd>
+</dl></section>
+</div></div></div>

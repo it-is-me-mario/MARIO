@@ -46,8 +46,10 @@ class StoredBlock:
     ) -> "StoredBlock":
         """Build a stored-block record from context and a block name."""
         axes = None
+        role = None
         try:
-            axes = get_matrix_spec(table_kind, name).axes
+            spec = get_matrix_spec(table_kind, name)
+            axes, role = spec.axes, spec.role
         except KeyError:
             pass
 
@@ -57,6 +59,6 @@ class StoredBlock:
             storage_key=storage_key,
             table_kind=table_kind,
             axes=axes,
-            role=_infer_role(name),
+            role=role if role is not None else _infer_role(name),
             metadata={} if metadata is None else metadata,
         )

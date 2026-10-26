@@ -29,3 +29,8 @@ regional view when validating region-item pairs.
 
 Membership includes existing nodes with zero flows. Non-main levels, including
 aggregation DataFrames, retain their existing representation.
+
+NAM accepts its registered short names, set IDs and display labels with
+``level="main"`` only. Its regional selectors follow the list/dictionary
+convention above; aggregation levels are not available. See
+:doc:`the NAM interface </reference/api_nam_database>` for its exact signature.

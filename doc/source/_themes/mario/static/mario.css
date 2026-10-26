@@ -17,6 +17,8 @@
   --wide-cells: 50;
   --narrow-cells: 36;
   --sidebar-cells: 10;
+  /* One article measure for Get started, Docs and the Database explorer. */
+  --article-width: calc(var(--wide-cells) * var(--cell));
 
   /* Logo colours */
   --mario-yellow: #fdca27;
@@ -286,10 +288,11 @@ kbd {
   width: min(calc(var(--narrow-cells) * var(--cell)), round(down, 100% - 2 * var(--gutter), calc(2 * var(--cell))));
 }
 
-/* Dedicated benchmark articles use the wider grid; their index stays standard. */
+/* Guides share the explorer's article width; navigation sits outside it. */
+body[data-section="get_started"] .mario-shell--tabs,
 .mario-shell--benchmark {
-  width: min(calc(var(--wide-cells) * var(--cell)), 100% - 2 * var(--gutter));
-  width: min(calc(var(--wide-cells) * var(--cell)), round(down, 100% - 2 * var(--gutter), calc(2 * var(--cell))));
+  width: min(var(--article-width), 100% - 2 * var(--gutter));
+  width: min(var(--article-width), round(down, 100% - 2 * var(--gutter), calc(2 * var(--cell))));
 }
 
 /* --------------------------------------------- background: matrix + dots */
@@ -2182,6 +2185,8 @@ a.mario-zoomable {
 .mario-api-table__summary {
   color: var(--ink-soft);
 }
+.mario-api-table__formats { white-space: nowrap; font-size: .78rem; font-weight: 650; }
+.mario-api-index .mario-field select { padding: .45rem .6rem; border: 1px solid var(--line-strong); border-radius: 5px; color: var(--ink); background: var(--surface); font: inherit; }
 
 .mario-pill {
   display: inline-block;
@@ -3929,10 +3934,12 @@ html:not(.mario-js) .mario-switch {
   [data-section="resources"] .mario-tabs__list a { white-space: normal; text-align: center; justify-content: center; }
 }
 
-/* Benchmark text and charts share a wider, centred content column. */
+/* Article text, diagrams and examples share the same centred content column. */
+body[data-section="get_started"] .mario-body,
+body[data-section="docs"] .mario-body,
 .mario-shell--benchmark .mario-body {
   width: 100%;
-  max-width: calc(44 * var(--cell));
+  max-width: calc(var(--article-width) - 4 * var(--cell));
   margin-inline: auto;
 }
 

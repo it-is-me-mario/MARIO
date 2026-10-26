@@ -12,7 +12,7 @@ from mario.compute.types import (
     MatrixStatus,
     ParsedStrategy,
 )
-from mario.model.enums import TableKind
+from mario.model.enums import BlockRole, TableKind
 from mario.model.labels import (
     COMMODITY_ACTIVITY_LABEL,
     INDEX_LABELS,
@@ -888,6 +888,38 @@ COMPUTE_CATALOG = {
         ),
     },
 }
+
+
+def _nam_catalog():
+    """Register NAM authority explicitly; no implicit lowercase coefficients."""
+    from mario.model.nam import NAM_BLOCKS
+
+    account_axis = ("Region", "Set", "Item")
+    entries = {}
+    for name, block in NAM_BLOCKS.items():
+        if name == "T":
+            strategies = (_formula((), "build_nam_T", "T = assemble(authoritative native flows)"),)
+        elif name in {"B9_d", "B9_f"}:
+            strategies = (_formula(tuple(block["depends_on"]), f"build_nam_{name}",
+                                   f"{name} = assets.sum(0) - liabilities.sum(1)"),)
+        elif block["role"] == "coefficient":
+            strategies = (_formula(tuple(block["depends_on"]), f"build_nam_{name}",
+                                   f"{name} = {block['source']} / {block['denominator']} (columns)"),)
+        elif name == "X" or "account_set" in block:
+            strategies = (_formula(tuple(block.get("depends_on", ())), f"build_nam_{name}",
+                                   f"{name} = account expenditure totals"),)
+        else:
+            strategies = (_parsed(False),)
+        entries[name] = MatrixSpec(
+            key=MatrixKey(table_kind=TableKind.NAM, name=name), status=ADD,
+            axes=AxisSpec(rows=("Balancing item",) if name.startswith("B9_") else account_axis,
+                          cols=("production",) if name == "X" or "account_set" in block else account_axis),
+            strategies=strategies, role=BlockRole(block["role"]),
+        )
+    return entries
+
+
+COMPUTE_CATALOG[TableKind.NAM] = _nam_catalog()
 
 
 def get_matrix_spec(table: "TableKind | str", name: str) -> MatrixSpec:

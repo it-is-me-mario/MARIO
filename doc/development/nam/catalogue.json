@@ -1,0 +1,2996 @@
+{
+  "schema_version": 2,
+  "status": "design_draft",
+  "implemented": false,
+  "table_kind": "NAM",
+  "scope": "harmonized_national_accounts_with_partner_detail",
+  "account_index": [
+    "reference_region",
+    "set",
+    "item"
+  ],
+  "orientation": "column_pays_row_receives",
+  "unit_policy": "common_currency_and_scale_per_reporting_period",
+  "presence_states": [
+    "observed",
+    "declared_zero",
+    "unavailable",
+    "derived"
+  ],
+  "sources": {
+    "prototype": "test_NAM_three_levels.xlsx: matrix_layouts, units and trade",
+    "figaro_example": "FIGARO_NAM_IT_2023.xlsx: T02",
+    "methodology": "https://ec.europa.eu/eurostat/documents/3888793/22644316/KS-01-25-050-EN-N.pdf/fafcf924-7491-dc42-5905-8b807a4c2230?t=1764748194426"
+  },
+  "sets": {
+    "commodity": {
+      "label": "Commodity",
+      "classification": "products",
+      "short_name": "c",
+      "total_vector": "Xc"
+    },
+    "activity": {
+      "label": "Activity",
+      "classification": "industries",
+      "short_name": "a",
+      "total_vector": "Xa"
+    },
+    "factor": {
+      "label": "Factor of production",
+      "classification": "primary_income_categories",
+      "short_name": "f",
+      "total_vector": "Xf"
+    },
+    "income_resident": {
+      "label": "Institutional sector - Resident income",
+      "classification": "institutional_sectors",
+      "account_role": "income",
+      "residency": "resident",
+      "short_name": "si_d",
+      "total_vector": "Xsi_d"
+    },
+    "income_nonresident": {
+      "label": "Institutional sector - Nonresident income",
+      "classification": "institutional_sectors",
+      "account_role": "income",
+      "residency": "nonresident",
+      "short_name": "si_f",
+      "total_vector": "Xsi_f"
+    },
+    "distribution": {
+      "label": "Distributive transaction",
+      "classification": "distributive_transactions",
+      "short_name": "d",
+      "total_vector": "Xd"
+    },
+    "consumption": {
+      "label": "Consumption category",
+      "classification": "final_consumption_categories",
+      "short_name": "n",
+      "total_vector": "Xn"
+    },
+    "tax": {
+      "label": "Taxes",
+      "classification": "taxes_less_subsidies",
+      "short_name": "t",
+      "total_vector": "Xt"
+    },
+    "capital_resident": {
+      "label": "Institutional sector - Resident capital",
+      "classification": "institutional_sectors",
+      "account_role": "capital",
+      "residency": "resident",
+      "short_name": "sc_d",
+      "total_vector": "Xsc_d"
+    },
+    "capital_nonresident": {
+      "label": "Institutional sector - Nonresident capital",
+      "classification": "institutional_sectors",
+      "account_role": "capital",
+      "residency": "nonresident",
+      "short_name": "sc_f",
+      "total_vector": "Xsc_f"
+    },
+    "nonfinancial_asset": {
+      "label": "Non-financial asset",
+      "classification": "nonfinancial_assets",
+      "short_name": "nf",
+      "total_vector": "Xnf"
+    },
+    "financial_instrument": {
+      "label": "Financial instrument",
+      "classification": "financial_instruments",
+      "short_name": "fi",
+      "total_vector": "Xfi"
+    },
+    "external_trade": {
+      "label": "External trade account",
+      "classification": "external_trade_accounts",
+      "short_name": "tr",
+      "total_vector": "Xtr"
+    },
+    "other": {
+      "label": "Other accounts",
+      "classification": "residual_accounts",
+      "short_name": "o",
+      "total_vector": "Xo"
+    }
+  },
+  "domains": {
+    "commodity": {
+      "sets": [
+        "commodity"
+      ]
+    },
+    "activity": {
+      "sets": [
+        "activity"
+      ]
+    },
+    "factor": {
+      "sets": [
+        "factor"
+      ]
+    },
+    "income_resident": {
+      "sets": [
+        "income_resident"
+      ]
+    },
+    "income_nonresident": {
+      "sets": [
+        "income_nonresident"
+      ]
+    },
+    "distribution": {
+      "sets": [
+        "distribution"
+      ]
+    },
+    "consumption": {
+      "sets": [
+        "consumption"
+      ]
+    },
+    "tax": {
+      "sets": [
+        "tax"
+      ]
+    },
+    "capital_resident": {
+      "sets": [
+        "capital_resident"
+      ]
+    },
+    "capital_nonresident": {
+      "sets": [
+        "capital_nonresident"
+      ]
+    },
+    "nonfinancial_asset": {
+      "sets": [
+        "nonfinancial_asset"
+      ]
+    },
+    "financial_instrument": {
+      "sets": [
+        "financial_instrument"
+      ]
+    },
+    "external_trade": {
+      "sets": [
+        "external_trade"
+      ]
+    },
+    "other": {
+      "sets": [
+        "other"
+      ]
+    },
+    "all_accounts": {
+      "sets": [
+        "commodity",
+        "activity",
+        "factor",
+        "income_resident",
+        "income_nonresident",
+        "distribution",
+        "consumption",
+        "tax",
+        "capital_resident",
+        "capital_nonresident",
+        "nonfinancial_asset",
+        "financial_instrument",
+        "external_trade",
+        "other"
+      ]
+    },
+    "balancing_item": {
+      "sets": [],
+      "label": "Balancing item",
+      "derived_only": true
+    },
+    "scalar": {
+      "sets": [],
+      "derived_only": true,
+      "label": "Single value"
+    }
+  },
+  "axis_roles": {
+    "reference_region": {
+      "base": "region",
+      "meaning": "Economy whose national accounts are reported; includes its external accounts."
+    },
+    "origin_region": {
+      "base": "region",
+      "meaning": "Origin of the imported product; never implies a complete endogenous national ledger."
+    },
+    "destination_region": {
+      "base": "region",
+      "meaning": "Destination of exports when supplied by the source."
+    },
+    "partner_region": {
+      "base": "region",
+      "meaning": "Counterparty country for a specifically observed transaction."
+    },
+    "imported_commodity": {
+      "base": "commodity",
+      "meaning": "Descriptor of imported products, distinct from the using Activity or destination-market Commodity."
+    }
+  },
+  "layout_defaults": {
+    "rows": [
+      "reference_region",
+      "<single accounting set>"
+    ],
+    "columns": [
+      "reference_region",
+      "<single accounting set>"
+    ]
+  },
+  "representations": {
+    "use_imports": {
+      "use_coverage": "domestic",
+      "authoritative_import_blocks": [
+        "MU",
+        "MY",
+        "Minv",
+        "M_o",
+        "Mcap_d",
+        "Mcap_f"
+      ],
+      "alternative_import_blocks": [
+        "MS"
+      ]
+    },
+    "supply_imports": {
+      "use_coverage": "total",
+      "authoritative_import_blocks": [
+        "MS"
+      ],
+      "alternative_import_blocks": [
+        "MU",
+        "MY",
+        "Minv",
+        "M_o",
+        "Mcap_d",
+        "Mcap_f"
+      ]
+    }
+  },
+  "coefficient_policies": {
+    "none": {
+      "status": "not_applicable",
+      "denominator": null
+    },
+    "pending": {
+      "status": "review_required",
+      "denominator": "Da definire per il blocco e la chiusura economica; nessuna normalizzazione automatica."
+    },
+    "account_total": {
+      "status": "implemented",
+      "denominator": "Full authoritative expenditure of the column account; inactive zero accounts have zero coefficients, active signed zero totals are undefined."
+    }
+  },
+  "sut_projections": {
+    "pending": {
+      "targets": [],
+      "rule": "Review item types, valuation and import representation before defining a SUT projection."
+    },
+    "derived_only": {
+      "targets": [],
+      "rule": "Do not add a balance or presentation view to native flow totals."
+    }
+  },
+  "matrices": [
+    {
+      "name": "U",
+      "rows": "commodity",
+      "columns": "activity",
+      "role": "flow",
+      "presence": "core",
+      "description_it": "Intermediate product use by activity; domestic or total according to import representation.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Intermediate product use by activity; domestic or total according to import representation."
+    },
+    {
+      "name": "S",
+      "rows": "activity",
+      "columns": "commodity",
+      "role": "flow",
+      "presence": "core",
+      "description_it": "Activity output supplied to product accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Activity output supplied to product accounts."
+    },
+    {
+      "name": "Va_f",
+      "rows": "factor",
+      "columns": "activity",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Primary-factor payments by activities.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Primary-factor payments by activities."
+    },
+    {
+      "name": "Vc_f",
+      "rows": "factor",
+      "columns": "commodity",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Primary-factor payments by product accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Primary-factor payments by product accounts."
+    },
+    {
+      "name": "VY_f",
+      "rows": "factor",
+      "columns": "consumption",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Direct primary-factor payments by consumption.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Direct primary-factor payments by consumption."
+    },
+    {
+      "name": "Vinv_f",
+      "rows": "factor",
+      "columns": "nonfinancial_asset",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Direct primary-factor payments by nonfinancial investment.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Direct primary-factor payments by nonfinancial investment."
+    },
+    {
+      "name": "F_o",
+      "rows": "factor",
+      "columns": "other",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Payments by Other accounts to Factor of production accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by Other accounts to Factor of production accounts."
+    },
+    {
+      "name": "Yc_c",
+      "rows": "commodity",
+      "columns": "consumption",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Products purchased for final consumption.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Products purchased for final consumption."
+    },
+    {
+      "name": "Ya_c",
+      "rows": "activity",
+      "columns": "consumption",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Final consumption supplied directly by activities.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Final consumption supplied directly by activities."
+    },
+    {
+      "name": "Yc_inv",
+      "rows": "commodity",
+      "columns": "nonfinancial_asset",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Products purchased for nonfinancial investment, including inventories and nonproduced assets.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Products purchased for nonfinancial investment, including inventories and nonproduced assets."
+    },
+    {
+      "name": "C_o",
+      "rows": "commodity",
+      "columns": "other",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Product purchases paid through Other accounts, including investment demand pools.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Product purchases paid through Other accounts, including investment demand pools."
+    },
+    {
+      "name": "Ya_inv",
+      "rows": "activity",
+      "columns": "nonfinancial_asset",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Nonfinancial investment supplied directly by activities.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Nonfinancial investment supplied directly by activities."
+    },
+    {
+      "name": "A_o",
+      "rows": "activity",
+      "columns": "other",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Payments by Other accounts to Activity accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by Other accounts to Activity accounts."
+    },
+    {
+      "name": "Yc_cap_d",
+      "rows": "commodity",
+      "columns": "capital_resident",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Payments by Institutional sector - Resident capital accounts to Commodity accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by Institutional sector - Resident capital accounts to Commodity accounts."
+    },
+    {
+      "name": "Yc_cap_f",
+      "rows": "commodity",
+      "columns": "capital_nonresident",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Payments by Institutional sector - Nonresident capital accounts to Commodity accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by Institutional sector - Nonresident capital accounts to Commodity accounts."
+    },
+    {
+      "name": "Ya_cap_d",
+      "rows": "activity",
+      "columns": "capital_resident",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Payments by Institutional sector - Resident capital accounts to Activity accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by Institutional sector - Resident capital accounts to Activity accounts."
+    },
+    {
+      "name": "Ya_cap_f",
+      "rows": "activity",
+      "columns": "capital_nonresident",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Payments by Institutional sector - Nonresident capital accounts to Activity accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by Institutional sector - Nonresident capital accounts to Activity accounts."
+    },
+    {
+      "name": "Yc_exp_tr",
+      "rows": "commodity",
+      "columns": "external_trade",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Product exports paid by external trade accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Product exports paid by external trade accounts."
+    },
+    {
+      "name": "Yc_exp",
+      "rows": "commodity",
+      "columns": "income_nonresident",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Product exports paid by nonresident income accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Product exports paid by nonresident income accounts."
+    },
+    {
+      "name": "Ya_exp_tr",
+      "rows": "activity",
+      "columns": "external_trade",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Activity exports paid by external trade accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Activity exports paid by external trade accounts."
+    },
+    {
+      "name": "Ya_exp",
+      "rows": "activity",
+      "columns": "income_nonresident",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Activity exports paid by nonresident income accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Activity exports paid by nonresident income accounts."
+    },
+    {
+      "name": "RI_d",
+      "rows": "income_resident",
+      "columns": "factor",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Primary income received by resident institutional income accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Primary income received by resident institutional income accounts."
+    },
+    {
+      "name": "RI_f",
+      "rows": "income_nonresident",
+      "columns": "factor",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Primary income received by nonresident institutional income accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Primary income received by nonresident institutional income accounts."
+    },
+    {
+      "name": "TP_d",
+      "rows": "distribution",
+      "columns": "income_resident",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Distributive payments by resident income accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Distributive payments by resident income accounts."
+    },
+    {
+      "name": "TP_f",
+      "rows": "distribution",
+      "columns": "income_nonresident",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Distributive payments by nonresident income accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Distributive payments by nonresident income accounts."
+    },
+    {
+      "name": "TR_d",
+      "rows": "income_resident",
+      "columns": "distribution",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Distributive receipts of resident income accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Distributive receipts of resident income accounts."
+    },
+    {
+      "name": "TR_f",
+      "rows": "income_nonresident",
+      "columns": "distribution",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Distributive receipts of nonresident income accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Distributive receipts of nonresident income accounts."
+    },
+    {
+      "name": "CF_d",
+      "rows": "consumption",
+      "columns": "income_resident",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Final consumption funded by resident income accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Final consumption funded by resident income accounts."
+    },
+    {
+      "name": "CF_f",
+      "rows": "consumption",
+      "columns": "income_nonresident",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Final consumption funded by nonresident income accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Final consumption funded by nonresident income accounts."
+    },
+    {
+      "name": "TA",
+      "rows": "tax",
+      "columns": "activity",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Taxes less subsidies paid by activities; includes every tax item.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Taxes less subsidies paid by activities; includes every tax item."
+    },
+    {
+      "name": "TC",
+      "rows": "tax",
+      "columns": "consumption",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Taxes less subsidies paid by consumption; includes every tax item.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Taxes less subsidies paid by consumption; includes every tax item."
+    },
+    {
+      "name": "Vc_t",
+      "rows": "tax",
+      "columns": "commodity",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Taxes less subsidies paid by product accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Taxes less subsidies paid by product accounts."
+    },
+    {
+      "name": "Tinv",
+      "rows": "tax",
+      "columns": "nonfinancial_asset",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Taxes less subsidies paid by nonfinancial investment.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Taxes less subsidies paid by nonfinancial investment."
+    },
+    {
+      "name": "T_o",
+      "rows": "tax",
+      "columns": "other",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Payments by Other accounts to Taxes accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by Other accounts to Taxes accounts."
+    },
+    {
+      "name": "Tcap_d",
+      "rows": "tax",
+      "columns": "capital_resident",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Payments by Institutional sector - Resident capital accounts to Taxes accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by Institutional sector - Resident capital accounts to Taxes accounts."
+    },
+    {
+      "name": "Tcap_f",
+      "rows": "tax",
+      "columns": "capital_nonresident",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Payments by Institutional sector - Nonresident capital accounts to Taxes accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by Institutional sector - Nonresident capital accounts to Taxes accounts."
+    },
+    {
+      "name": "RT_d",
+      "rows": "income_resident",
+      "columns": "tax",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Tax receipts of resident income accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Tax receipts of resident income accounts."
+    },
+    {
+      "name": "RT_f",
+      "rows": "income_nonresident",
+      "columns": "tax",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Tax receipts of nonresident income accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Tax receipts of nonresident income accounts."
+    },
+    {
+      "name": "RS_dd",
+      "rows": "capital_resident",
+      "columns": "income_resident",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Saving transferred from the specified income set to the specified capital set.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Saving transferred from the specified income set to the specified capital set."
+    },
+    {
+      "name": "RS_df",
+      "rows": "capital_resident",
+      "columns": "income_nonresident",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Saving transferred from the specified income set to the specified capital set.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Saving transferred from the specified income set to the specified capital set."
+    },
+    {
+      "name": "RS_fd",
+      "rows": "capital_nonresident",
+      "columns": "income_resident",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Saving transferred from the specified income set to the specified capital set.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Saving transferred from the specified income set to the specified capital set."
+    },
+    {
+      "name": "RS_ff",
+      "rows": "capital_nonresident",
+      "columns": "income_nonresident",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Saving transferred from the specified income set to the specified capital set.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Saving transferred from the specified income set to the specified capital set."
+    },
+    {
+      "name": "IK_d",
+      "rows": "nonfinancial_asset",
+      "columns": "capital_resident",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Nonfinancial assets acquired by resident capital accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Nonfinancial assets acquired by resident capital accounts."
+    },
+    {
+      "name": "IK_f",
+      "rows": "nonfinancial_asset",
+      "columns": "capital_nonresident",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Nonfinancial assets acquired by nonresident capital accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Nonfinancial assets acquired by nonresident capital accounts."
+    },
+    {
+      "name": "KP_d",
+      "rows": "distribution",
+      "columns": "capital_resident",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Capital transfers paid by resident capital accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Capital transfers paid by resident capital accounts."
+    },
+    {
+      "name": "KP_f",
+      "rows": "distribution",
+      "columns": "capital_nonresident",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Capital transfers paid by nonresident capital accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Capital transfers paid by nonresident capital accounts."
+    },
+    {
+      "name": "KR_d",
+      "rows": "capital_resident",
+      "columns": "distribution",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Capital transfers received by resident capital accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Capital transfers received by resident capital accounts."
+    },
+    {
+      "name": "KR_f",
+      "rows": "capital_nonresident",
+      "columns": "distribution",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Capital transfers received by nonresident capital accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Capital transfers received by nonresident capital accounts."
+    },
+    {
+      "name": "DK_d",
+      "rows": "capital_resident",
+      "columns": "nonfinancial_asset",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Receipts from nonfinancial asset disposals of resident capital accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Receipts from nonfinancial asset disposals of resident capital accounts."
+    },
+    {
+      "name": "DK_f",
+      "rows": "capital_nonresident",
+      "columns": "nonfinancial_asset",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Receipts from nonfinancial asset disposals of nonresident capital accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Receipts from nonfinancial asset disposals of nonresident capital accounts."
+    },
+    {
+      "name": "AF_d",
+      "rows": "financial_instrument",
+      "columns": "capital_resident",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Net acquisitions of financial assets by resident capital accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Net acquisitions of financial assets by resident capital accounts."
+    },
+    {
+      "name": "AF_f",
+      "rows": "financial_instrument",
+      "columns": "capital_nonresident",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Net acquisitions of financial assets by nonresident capital accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Net acquisitions of financial assets by nonresident capital accounts."
+    },
+    {
+      "name": "LF_d",
+      "rows": "capital_resident",
+      "columns": "financial_instrument",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Net incurrence of financial liabilities by resident capital accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Net incurrence of financial liabilities by resident capital accounts."
+    },
+    {
+      "name": "LF_f",
+      "rows": "capital_nonresident",
+      "columns": "financial_instrument",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Net incurrence of financial liabilities by nonresident capital accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Net incurrence of financial liabilities by nonresident capital accounts."
+    },
+    {
+      "name": "MU",
+      "rows": "external_trade",
+      "columns": "activity",
+      "role": "flow",
+      "presence": "trade_mode",
+      "description_it": "Imported intermediate inputs by using activity, retaining observed origin/product detail.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Imported intermediate inputs by using activity, retaining observed origin/product detail."
+    },
+    {
+      "name": "MY",
+      "rows": "external_trade",
+      "columns": "consumption",
+      "role": "flow",
+      "presence": "trade_mode",
+      "description_it": "Imports used for final consumption.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Imports used for final consumption."
+    },
+    {
+      "name": "Minv",
+      "rows": "external_trade",
+      "columns": "nonfinancial_asset",
+      "role": "flow",
+      "presence": "trade_mode",
+      "description_it": "Imports used for nonfinancial investment.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Imports used for nonfinancial investment."
+    },
+    {
+      "name": "M_o",
+      "rows": "external_trade",
+      "columns": "other",
+      "role": "flow",
+      "presence": "trade_mode",
+      "description_it": "Imports paid through Other accounts, including investment demand pools.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Imports paid through Other accounts, including investment demand pools."
+    },
+    {
+      "name": "Mcap_d",
+      "rows": "external_trade",
+      "columns": "capital_resident",
+      "role": "flow",
+      "presence": "trade_mode",
+      "description_it": "Imports paid directly by resident capital accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Imports paid directly by resident capital accounts."
+    },
+    {
+      "name": "Mcap_f",
+      "rows": "external_trade",
+      "columns": "capital_nonresident",
+      "role": "flow",
+      "presence": "trade_mode",
+      "description_it": "Imports paid directly by nonresident capital accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Imports paid directly by nonresident capital accounts."
+    },
+    {
+      "name": "MS",
+      "rows": "external_trade",
+      "columns": "commodity",
+      "role": "flow",
+      "presence": "trade_mode",
+      "description_it": "Supply-side imports by product, alternative to use-side import authority.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Supply-side imports by product, alternative to use-side import authority."
+    },
+    {
+      "name": "Vinst_f_d",
+      "rows": "factor",
+      "columns": "income_resident",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Payments by Institutional sector - Resident income accounts to Factor of production accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by Institutional sector - Resident income accounts to Factor of production accounts."
+    },
+    {
+      "name": "Vinst_f_f",
+      "rows": "factor",
+      "columns": "income_nonresident",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Payments by Institutional sector - Nonresident income accounts to Factor of production accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by Institutional sector - Nonresident income accounts to Factor of production accounts."
+    },
+    {
+      "name": "O_o",
+      "rows": "other",
+      "columns": "other",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Flows between distinct residual accounts, including links between investment pools.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Flows between distinct residual accounts, including links between investment pools."
+    },
+    {
+      "name": "O_nf",
+      "rows": "other",
+      "columns": "nonfinancial_asset",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Payments by nonfinancial asset accounts to Other accounts, including investment allocation pools.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by nonfinancial asset accounts to Other accounts, including investment allocation pools."
+    },
+    {
+      "name": "RT_trade",
+      "rows": "income_nonresident",
+      "columns": "external_trade",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Settlement from external trade accounts to nonresident income accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Settlement from external trade accounts to nonresident income accounts."
+    },
+    {
+      "name": "TP_trade",
+      "rows": "external_trade",
+      "columns": "income_nonresident",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Settlement from nonresident income accounts to external trade accounts; no bilateral allocation inferred.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Settlement from nonresident income accounts to external trade accounts; no bilateral allocation inferred."
+    },
+    {
+      "name": "O_sc_d",
+      "rows": "other",
+      "columns": "capital_resident",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Payments by resident capital accounts to Other accounts, including observed statistical adjustments.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by resident capital accounts to Other accounts, including observed statistical adjustments."
+    },
+    {
+      "name": "O_sc_f",
+      "rows": "other",
+      "columns": "capital_nonresident",
+      "role": "flow",
+      "presence": "source_dependent",
+      "description_it": "Payments by nonresident capital accounts to Other accounts, including observed statistical adjustments.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by nonresident capital accounts to Other accounts, including observed statistical adjustments."
+    },
+    {
+      "name": "O_c",
+      "rows": "other",
+      "columns": "commodity",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Payments by Commodity accounts to Other accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by Commodity accounts to Other accounts."
+    },
+    {
+      "name": "O_a",
+      "rows": "other",
+      "columns": "activity",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Payments by Activity accounts to Other accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by Activity accounts to Other accounts."
+    },
+    {
+      "name": "O_f",
+      "rows": "other",
+      "columns": "factor",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Payments by Factor of production accounts to Other accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by Factor of production accounts to Other accounts."
+    },
+    {
+      "name": "O_si_d",
+      "rows": "other",
+      "columns": "income_resident",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Payments by Institutional sector - Resident income accounts to Other accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by Institutional sector - Resident income accounts to Other accounts."
+    },
+    {
+      "name": "SI_D_o",
+      "rows": "income_resident",
+      "columns": "other",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Payments by Other accounts to Institutional sector - Resident income accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by Other accounts to Institutional sector - Resident income accounts."
+    },
+    {
+      "name": "O_si_f",
+      "rows": "other",
+      "columns": "income_nonresident",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Payments by Institutional sector - Nonresident income accounts to Other accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by Institutional sector - Nonresident income accounts to Other accounts."
+    },
+    {
+      "name": "SI_F_o",
+      "rows": "income_nonresident",
+      "columns": "other",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Payments by Other accounts to Institutional sector - Nonresident income accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by Other accounts to Institutional sector - Nonresident income accounts."
+    },
+    {
+      "name": "O_d",
+      "rows": "other",
+      "columns": "distribution",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Payments by Distributive transaction accounts to Other accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by Distributive transaction accounts to Other accounts."
+    },
+    {
+      "name": "D_o",
+      "rows": "distribution",
+      "columns": "other",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Payments by Other accounts to Distributive transaction accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by Other accounts to Distributive transaction accounts."
+    },
+    {
+      "name": "O_n",
+      "rows": "other",
+      "columns": "consumption",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Payments by Consumption category accounts to Other accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by Consumption category accounts to Other accounts."
+    },
+    {
+      "name": "N_o",
+      "rows": "consumption",
+      "columns": "other",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Payments by Other accounts to Consumption category accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by Other accounts to Consumption category accounts."
+    },
+    {
+      "name": "O_t",
+      "rows": "other",
+      "columns": "tax",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Payments by Taxes accounts to Other accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by Taxes accounts to Other accounts."
+    },
+    {
+      "name": "SC_D_o",
+      "rows": "capital_resident",
+      "columns": "other",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Payments by Other accounts to Institutional sector - Resident capital accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by Other accounts to Institutional sector - Resident capital accounts."
+    },
+    {
+      "name": "SC_F_o",
+      "rows": "capital_nonresident",
+      "columns": "other",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Payments by Other accounts to Institutional sector - Nonresident capital accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by Other accounts to Institutional sector - Nonresident capital accounts."
+    },
+    {
+      "name": "NF_o",
+      "rows": "nonfinancial_asset",
+      "columns": "other",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Payments by Other accounts to Non-financial asset accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by Other accounts to Non-financial asset accounts."
+    },
+    {
+      "name": "O_fi",
+      "rows": "other",
+      "columns": "financial_instrument",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Payments by Financial instrument accounts to Other accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by Financial instrument accounts to Other accounts."
+    },
+    {
+      "name": "FI_o",
+      "rows": "financial_instrument",
+      "columns": "other",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Payments by Other accounts to Financial instrument accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by Other accounts to Financial instrument accounts."
+    },
+    {
+      "name": "O_tr",
+      "rows": "other",
+      "columns": "external_trade",
+      "role": "flow",
+      "presence": "optional",
+      "description_it": "Payments by External trade accounts to Other accounts.",
+      "coefficient": "account_total",
+      "sut": "pending",
+      "description": "Payments by External trade accounts to Other accounts."
+    },
+    {
+      "name": "B9_d",
+      "rows": "balancing_item",
+      "columns": "capital_resident",
+      "role": "result",
+      "presence": "derived",
+      "depends_on": [
+        "AF_d",
+        "LF_d"
+      ],
+      "description_it": "Financial-side net lending of d capital accounts: net asset acquisitions minus net liabilities; statistical adjustments stay separate.",
+      "coefficient": "none",
+      "sut": "derived_only",
+      "description": "Financial-side net lending of d capital accounts: net asset acquisitions minus net liabilities; statistical adjustments stay separate."
+    },
+    {
+      "name": "B9_f",
+      "rows": "balancing_item",
+      "columns": "capital_nonresident",
+      "role": "result",
+      "presence": "derived",
+      "depends_on": [
+        "AF_f",
+        "LF_f"
+      ],
+      "description_it": "Financial-side net lending of f capital accounts: net asset acquisitions minus net liabilities; statistical adjustments stay separate.",
+      "coefficient": "none",
+      "sut": "derived_only",
+      "description": "Financial-side net lending of f capital accounts: net asset acquisitions minus net liabilities; statistical adjustments stay separate."
+    },
+    {
+      "name": "T",
+      "rows": "all_accounts",
+      "columns": "all_accounts",
+      "role": "view",
+      "presence": "derived",
+      "description_it": "Square national accounting view with the same ordered accounts on both axes; assembled only from authoritative native flows.",
+      "coefficient": "none",
+      "sut": "derived_only",
+      "description": "Square national accounting view with the same ordered accounts on both axes; assembled only from authoritative native flows."
+    },
+    {
+      "name": "X",
+      "rows": "all_accounts",
+      "columns": "scalar",
+      "role": "result",
+      "presence": "derived",
+      "depends_on": [
+        "T"
+      ],
+      "description": "Complete account expenditure totals, with one row per national accounting node.",
+      "description_it": "Complete account expenditure totals, with one row per national accounting node.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "Xc",
+      "rows": "commodity",
+      "columns": "scalar",
+      "role": "result",
+      "presence": "derived",
+      "account_set": "commodity",
+      "description": "Total expenditure of each Commodity account across all authoritative outgoing flows.",
+      "description_it": "Total expenditure of each Commodity account across all authoritative outgoing flows.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "Xa",
+      "rows": "activity",
+      "columns": "scalar",
+      "role": "result",
+      "presence": "derived",
+      "account_set": "activity",
+      "description": "Total expenditure of each Activity account across all authoritative outgoing flows.",
+      "description_it": "Total expenditure of each Activity account across all authoritative outgoing flows.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "Xf",
+      "rows": "factor",
+      "columns": "scalar",
+      "role": "result",
+      "presence": "derived",
+      "account_set": "factor",
+      "description": "Total expenditure of each Factor of production account across all authoritative outgoing flows.",
+      "description_it": "Total expenditure of each Factor of production account across all authoritative outgoing flows.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "Xsi_d",
+      "rows": "income_resident",
+      "columns": "scalar",
+      "role": "result",
+      "presence": "derived",
+      "account_set": "income_resident",
+      "description": "Total expenditure of each Institutional sector - Resident income account across all authoritative outgoing flows.",
+      "description_it": "Total expenditure of each Institutional sector - Resident income account across all authoritative outgoing flows.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "Xsi_f",
+      "rows": "income_nonresident",
+      "columns": "scalar",
+      "role": "result",
+      "presence": "derived",
+      "account_set": "income_nonresident",
+      "description": "Total expenditure of each Institutional sector - Nonresident income account across all authoritative outgoing flows.",
+      "description_it": "Total expenditure of each Institutional sector - Nonresident income account across all authoritative outgoing flows.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "Xd",
+      "rows": "distribution",
+      "columns": "scalar",
+      "role": "result",
+      "presence": "derived",
+      "account_set": "distribution",
+      "description": "Total expenditure of each Distributive transaction account across all authoritative outgoing flows.",
+      "description_it": "Total expenditure of each Distributive transaction account across all authoritative outgoing flows.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "Xn",
+      "rows": "consumption",
+      "columns": "scalar",
+      "role": "result",
+      "presence": "derived",
+      "account_set": "consumption",
+      "description": "Total expenditure of each Consumption category account across all authoritative outgoing flows.",
+      "description_it": "Total expenditure of each Consumption category account across all authoritative outgoing flows.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "Xt",
+      "rows": "tax",
+      "columns": "scalar",
+      "role": "result",
+      "presence": "derived",
+      "account_set": "tax",
+      "description": "Total expenditure of each Taxes account across all authoritative outgoing flows.",
+      "description_it": "Total expenditure of each Taxes account across all authoritative outgoing flows.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "Xsc_d",
+      "rows": "capital_resident",
+      "columns": "scalar",
+      "role": "result",
+      "presence": "derived",
+      "account_set": "capital_resident",
+      "description": "Total expenditure of each Institutional sector - Resident capital account across all authoritative outgoing flows.",
+      "description_it": "Total expenditure of each Institutional sector - Resident capital account across all authoritative outgoing flows.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "Xsc_f",
+      "rows": "capital_nonresident",
+      "columns": "scalar",
+      "role": "result",
+      "presence": "derived",
+      "account_set": "capital_nonresident",
+      "description": "Total expenditure of each Institutional sector - Nonresident capital account across all authoritative outgoing flows.",
+      "description_it": "Total expenditure of each Institutional sector - Nonresident capital account across all authoritative outgoing flows.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "Xnf",
+      "rows": "nonfinancial_asset",
+      "columns": "scalar",
+      "role": "result",
+      "presence": "derived",
+      "account_set": "nonfinancial_asset",
+      "description": "Total expenditure of each Non-financial asset account across all authoritative outgoing flows.",
+      "description_it": "Total expenditure of each Non-financial asset account across all authoritative outgoing flows.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "Xfi",
+      "rows": "financial_instrument",
+      "columns": "scalar",
+      "role": "result",
+      "presence": "derived",
+      "account_set": "financial_instrument",
+      "description": "Total expenditure of each Financial instrument account across all authoritative outgoing flows.",
+      "description_it": "Total expenditure of each Financial instrument account across all authoritative outgoing flows.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "Xtr",
+      "rows": "external_trade",
+      "columns": "scalar",
+      "role": "result",
+      "presence": "derived",
+      "account_set": "external_trade",
+      "description": "Total expenditure of each external trade account across all authoritative outgoing flows.",
+      "description_it": "Spesa totale di ogni conto degli scambi con l'estero, su tutti i flussi in uscita autorevoli.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "Xo",
+      "rows": "other",
+      "columns": "scalar",
+      "role": "result",
+      "presence": "derived",
+      "account_set": "other",
+      "description": "Total expenditure of each node in Other accounts across all authoritative outgoing flows.",
+      "description_it": "Spesa totale di ogni nodo in Other accounts, su tutti i flussi in uscita autorevoli.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "u",
+      "rows": "commodity",
+      "columns": "activity",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "U",
+      "denominator": "Xa",
+      "depends_on": [
+        "U",
+        "Xa"
+      ],
+      "description": "U divided columnwise by Xa, the full expenditure total of the paying account.",
+      "description_it": "U divided columnwise by Xa, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "s",
+      "rows": "activity",
+      "columns": "commodity",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "S",
+      "denominator": "Xc",
+      "depends_on": [
+        "S",
+        "Xc"
+      ],
+      "description": "S divided columnwise by Xc, the full expenditure total of the paying account.",
+      "description_it": "S divided columnwise by Xc, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "va_f",
+      "rows": "factor",
+      "columns": "activity",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "Va_f",
+      "denominator": "Xa",
+      "depends_on": [
+        "Va_f",
+        "Xa"
+      ],
+      "description": "Va_f divided columnwise by Xa, the full expenditure total of the paying account.",
+      "description_it": "Va_f divided columnwise by Xa, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "vc_f",
+      "rows": "factor",
+      "columns": "commodity",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "Vc_f",
+      "denominator": "Xc",
+      "depends_on": [
+        "Vc_f",
+        "Xc"
+      ],
+      "description": "Vc_f divided columnwise by Xc, the full expenditure total of the paying account.",
+      "description_it": "Vc_f divided columnwise by Xc, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "vy_f",
+      "rows": "factor",
+      "columns": "consumption",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "VY_f",
+      "denominator": "Xn",
+      "depends_on": [
+        "VY_f",
+        "Xn"
+      ],
+      "description": "VY_f divided columnwise by Xn, the full expenditure total of the paying account.",
+      "description_it": "VY_f divided columnwise by Xn, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "vinv_f",
+      "rows": "factor",
+      "columns": "nonfinancial_asset",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "Vinv_f",
+      "denominator": "Xnf",
+      "depends_on": [
+        "Vinv_f",
+        "Xnf"
+      ],
+      "description": "Vinv_f divided columnwise by Xnf, the full expenditure total of the paying account.",
+      "description_it": "Vinv_f divided columnwise by Xnf, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "f_o",
+      "rows": "factor",
+      "columns": "other",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "F_o",
+      "denominator": "Xo",
+      "depends_on": [
+        "F_o",
+        "Xo"
+      ],
+      "description": "F_o divided columnwise by Xo, the full expenditure total of the paying account.",
+      "description_it": "F_o divided columnwise by Xo, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "yc_c",
+      "rows": "commodity",
+      "columns": "consumption",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "Yc_c",
+      "denominator": "Xn",
+      "depends_on": [
+        "Yc_c",
+        "Xn"
+      ],
+      "description": "Yc_c divided columnwise by Xn, the full expenditure total of the paying account.",
+      "description_it": "Yc_c divided columnwise by Xn, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "ya_c",
+      "rows": "activity",
+      "columns": "consumption",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "Ya_c",
+      "denominator": "Xn",
+      "depends_on": [
+        "Ya_c",
+        "Xn"
+      ],
+      "description": "Ya_c divided columnwise by Xn, the full expenditure total of the paying account.",
+      "description_it": "Ya_c divided columnwise by Xn, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "yc_inv",
+      "rows": "commodity",
+      "columns": "nonfinancial_asset",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "Yc_inv",
+      "denominator": "Xnf",
+      "depends_on": [
+        "Yc_inv",
+        "Xnf"
+      ],
+      "description": "Yc_inv divided columnwise by Xnf, the full expenditure total of the paying account.",
+      "description_it": "Yc_inv divided columnwise by Xnf, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "c_o",
+      "rows": "commodity",
+      "columns": "other",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "C_o",
+      "denominator": "Xo",
+      "depends_on": [
+        "C_o",
+        "Xo"
+      ],
+      "description": "C_o divided columnwise by Xo, the full expenditure total of the paying account.",
+      "description_it": "C_o divided columnwise by Xo, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "ya_inv",
+      "rows": "activity",
+      "columns": "nonfinancial_asset",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "Ya_inv",
+      "denominator": "Xnf",
+      "depends_on": [
+        "Ya_inv",
+        "Xnf"
+      ],
+      "description": "Ya_inv divided columnwise by Xnf, the full expenditure total of the paying account.",
+      "description_it": "Ya_inv divided columnwise by Xnf, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "a_o",
+      "rows": "activity",
+      "columns": "other",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "A_o",
+      "denominator": "Xo",
+      "depends_on": [
+        "A_o",
+        "Xo"
+      ],
+      "description": "A_o divided columnwise by Xo, the full expenditure total of the paying account.",
+      "description_it": "A_o divided columnwise by Xo, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "yc_cap_d",
+      "rows": "commodity",
+      "columns": "capital_resident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "Yc_cap_d",
+      "denominator": "Xsc_d",
+      "depends_on": [
+        "Yc_cap_d",
+        "Xsc_d"
+      ],
+      "description": "Yc_cap_d divided columnwise by Xsc_d, the full expenditure total of the paying account.",
+      "description_it": "Yc_cap_d divided columnwise by Xsc_d, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "yc_cap_f",
+      "rows": "commodity",
+      "columns": "capital_nonresident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "Yc_cap_f",
+      "denominator": "Xsc_f",
+      "depends_on": [
+        "Yc_cap_f",
+        "Xsc_f"
+      ],
+      "description": "Yc_cap_f divided columnwise by Xsc_f, the full expenditure total of the paying account.",
+      "description_it": "Yc_cap_f divided columnwise by Xsc_f, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "ya_cap_d",
+      "rows": "activity",
+      "columns": "capital_resident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "Ya_cap_d",
+      "denominator": "Xsc_d",
+      "depends_on": [
+        "Ya_cap_d",
+        "Xsc_d"
+      ],
+      "description": "Ya_cap_d divided columnwise by Xsc_d, the full expenditure total of the paying account.",
+      "description_it": "Ya_cap_d divided columnwise by Xsc_d, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "ya_cap_f",
+      "rows": "activity",
+      "columns": "capital_nonresident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "Ya_cap_f",
+      "denominator": "Xsc_f",
+      "depends_on": [
+        "Ya_cap_f",
+        "Xsc_f"
+      ],
+      "description": "Ya_cap_f divided columnwise by Xsc_f, the full expenditure total of the paying account.",
+      "description_it": "Ya_cap_f divided columnwise by Xsc_f, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "yc_exp_tr",
+      "rows": "commodity",
+      "columns": "external_trade",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "Yc_exp_tr",
+      "denominator": "Xtr",
+      "depends_on": [
+        "Yc_exp_tr",
+        "Xtr"
+      ],
+      "description": "Yc_exp_tr divided columnwise by Xtr, the full expenditure total of the paying account.",
+      "description_it": "Yc_exp_tr divided columnwise by Xtr, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "yc_exp",
+      "rows": "commodity",
+      "columns": "income_nonresident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "Yc_exp",
+      "denominator": "Xsi_f",
+      "depends_on": [
+        "Yc_exp",
+        "Xsi_f"
+      ],
+      "description": "Yc_exp divided columnwise by Xsi_f, the full expenditure total of the paying account.",
+      "description_it": "Yc_exp divided columnwise by Xsi_f, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "ya_exp_tr",
+      "rows": "activity",
+      "columns": "external_trade",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "Ya_exp_tr",
+      "denominator": "Xtr",
+      "depends_on": [
+        "Ya_exp_tr",
+        "Xtr"
+      ],
+      "description": "Ya_exp_tr divided columnwise by Xtr, the full expenditure total of the paying account.",
+      "description_it": "Ya_exp_tr divided columnwise by Xtr, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "ya_exp",
+      "rows": "activity",
+      "columns": "income_nonresident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "Ya_exp",
+      "denominator": "Xsi_f",
+      "depends_on": [
+        "Ya_exp",
+        "Xsi_f"
+      ],
+      "description": "Ya_exp divided columnwise by Xsi_f, the full expenditure total of the paying account.",
+      "description_it": "Ya_exp divided columnwise by Xsi_f, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "ri_d",
+      "rows": "income_resident",
+      "columns": "factor",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "RI_d",
+      "denominator": "Xf",
+      "depends_on": [
+        "RI_d",
+        "Xf"
+      ],
+      "description": "RI_d divided columnwise by Xf, the full expenditure total of the paying account.",
+      "description_it": "RI_d divided columnwise by Xf, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "ri_f",
+      "rows": "income_nonresident",
+      "columns": "factor",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "RI_f",
+      "denominator": "Xf",
+      "depends_on": [
+        "RI_f",
+        "Xf"
+      ],
+      "description": "RI_f divided columnwise by Xf, the full expenditure total of the paying account.",
+      "description_it": "RI_f divided columnwise by Xf, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "tp_d",
+      "rows": "distribution",
+      "columns": "income_resident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "TP_d",
+      "denominator": "Xsi_d",
+      "depends_on": [
+        "TP_d",
+        "Xsi_d"
+      ],
+      "description": "TP_d divided columnwise by Xsi_d, the full expenditure total of the paying account.",
+      "description_it": "TP_d divided columnwise by Xsi_d, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "tp_f",
+      "rows": "distribution",
+      "columns": "income_nonresident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "TP_f",
+      "denominator": "Xsi_f",
+      "depends_on": [
+        "TP_f",
+        "Xsi_f"
+      ],
+      "description": "TP_f divided columnwise by Xsi_f, the full expenditure total of the paying account.",
+      "description_it": "TP_f divided columnwise by Xsi_f, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "tr_d",
+      "rows": "income_resident",
+      "columns": "distribution",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "TR_d",
+      "denominator": "Xd",
+      "depends_on": [
+        "TR_d",
+        "Xd"
+      ],
+      "description": "TR_d divided columnwise by Xd, the full expenditure total of the paying account.",
+      "description_it": "TR_d divided columnwise by Xd, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "tr_f",
+      "rows": "income_nonresident",
+      "columns": "distribution",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "TR_f",
+      "denominator": "Xd",
+      "depends_on": [
+        "TR_f",
+        "Xd"
+      ],
+      "description": "TR_f divided columnwise by Xd, the full expenditure total of the paying account.",
+      "description_it": "TR_f divided columnwise by Xd, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "cf_d",
+      "rows": "consumption",
+      "columns": "income_resident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "CF_d",
+      "denominator": "Xsi_d",
+      "depends_on": [
+        "CF_d",
+        "Xsi_d"
+      ],
+      "description": "CF_d divided columnwise by Xsi_d, the full expenditure total of the paying account.",
+      "description_it": "CF_d divided columnwise by Xsi_d, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "cf_f",
+      "rows": "consumption",
+      "columns": "income_nonresident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "CF_f",
+      "denominator": "Xsi_f",
+      "depends_on": [
+        "CF_f",
+        "Xsi_f"
+      ],
+      "description": "CF_f divided columnwise by Xsi_f, the full expenditure total of the paying account.",
+      "description_it": "CF_f divided columnwise by Xsi_f, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "ta",
+      "rows": "tax",
+      "columns": "activity",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "TA",
+      "denominator": "Xa",
+      "depends_on": [
+        "TA",
+        "Xa"
+      ],
+      "description": "TA divided columnwise by Xa, the full expenditure total of the paying account.",
+      "description_it": "TA divided columnwise by Xa, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "tc",
+      "rows": "tax",
+      "columns": "consumption",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "TC",
+      "denominator": "Xn",
+      "depends_on": [
+        "TC",
+        "Xn"
+      ],
+      "description": "TC divided columnwise by Xn, the full expenditure total of the paying account.",
+      "description_it": "TC divided columnwise by Xn, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "vc_t",
+      "rows": "tax",
+      "columns": "commodity",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "Vc_t",
+      "denominator": "Xc",
+      "depends_on": [
+        "Vc_t",
+        "Xc"
+      ],
+      "description": "Vc_t divided columnwise by Xc, the full expenditure total of the paying account.",
+      "description_it": "Vc_t divided columnwise by Xc, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "tinv",
+      "rows": "tax",
+      "columns": "nonfinancial_asset",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "Tinv",
+      "denominator": "Xnf",
+      "depends_on": [
+        "Tinv",
+        "Xnf"
+      ],
+      "description": "Tinv divided columnwise by Xnf, the full expenditure total of the paying account.",
+      "description_it": "Tinv divided columnwise by Xnf, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "t_o",
+      "rows": "tax",
+      "columns": "other",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "T_o",
+      "denominator": "Xo",
+      "depends_on": [
+        "T_o",
+        "Xo"
+      ],
+      "description": "T_o divided columnwise by Xo, the full expenditure total of the paying account.",
+      "description_it": "T_o divided columnwise by Xo, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "tcap_d",
+      "rows": "tax",
+      "columns": "capital_resident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "Tcap_d",
+      "denominator": "Xsc_d",
+      "depends_on": [
+        "Tcap_d",
+        "Xsc_d"
+      ],
+      "description": "Tcap_d divided columnwise by Xsc_d, the full expenditure total of the paying account.",
+      "description_it": "Tcap_d divided columnwise by Xsc_d, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "tcap_f",
+      "rows": "tax",
+      "columns": "capital_nonresident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "Tcap_f",
+      "denominator": "Xsc_f",
+      "depends_on": [
+        "Tcap_f",
+        "Xsc_f"
+      ],
+      "description": "Tcap_f divided columnwise by Xsc_f, the full expenditure total of the paying account.",
+      "description_it": "Tcap_f divided columnwise by Xsc_f, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "rt_d",
+      "rows": "income_resident",
+      "columns": "tax",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "RT_d",
+      "denominator": "Xt",
+      "depends_on": [
+        "RT_d",
+        "Xt"
+      ],
+      "description": "RT_d divided columnwise by Xt, the full expenditure total of the paying account.",
+      "description_it": "RT_d divided columnwise by Xt, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "rt_f",
+      "rows": "income_nonresident",
+      "columns": "tax",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "RT_f",
+      "denominator": "Xt",
+      "depends_on": [
+        "RT_f",
+        "Xt"
+      ],
+      "description": "RT_f divided columnwise by Xt, the full expenditure total of the paying account.",
+      "description_it": "RT_f divided columnwise by Xt, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "rs_dd",
+      "rows": "capital_resident",
+      "columns": "income_resident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "RS_dd",
+      "denominator": "Xsi_d",
+      "depends_on": [
+        "RS_dd",
+        "Xsi_d"
+      ],
+      "description": "RS_dd divided columnwise by Xsi_d, the full expenditure total of the paying account.",
+      "description_it": "RS_dd divided columnwise by Xsi_d, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "rs_df",
+      "rows": "capital_resident",
+      "columns": "income_nonresident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "RS_df",
+      "denominator": "Xsi_f",
+      "depends_on": [
+        "RS_df",
+        "Xsi_f"
+      ],
+      "description": "RS_df divided columnwise by Xsi_f, the full expenditure total of the paying account.",
+      "description_it": "RS_df divided columnwise by Xsi_f, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "rs_fd",
+      "rows": "capital_nonresident",
+      "columns": "income_resident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "RS_fd",
+      "denominator": "Xsi_d",
+      "depends_on": [
+        "RS_fd",
+        "Xsi_d"
+      ],
+      "description": "RS_fd divided columnwise by Xsi_d, the full expenditure total of the paying account.",
+      "description_it": "RS_fd divided columnwise by Xsi_d, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "rs_ff",
+      "rows": "capital_nonresident",
+      "columns": "income_nonresident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "RS_ff",
+      "denominator": "Xsi_f",
+      "depends_on": [
+        "RS_ff",
+        "Xsi_f"
+      ],
+      "description": "RS_ff divided columnwise by Xsi_f, the full expenditure total of the paying account.",
+      "description_it": "RS_ff divided columnwise by Xsi_f, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "ik_d",
+      "rows": "nonfinancial_asset",
+      "columns": "capital_resident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "IK_d",
+      "denominator": "Xsc_d",
+      "depends_on": [
+        "IK_d",
+        "Xsc_d"
+      ],
+      "description": "IK_d divided columnwise by Xsc_d, the full expenditure total of the paying account.",
+      "description_it": "IK_d divided columnwise by Xsc_d, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "ik_f",
+      "rows": "nonfinancial_asset",
+      "columns": "capital_nonresident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "IK_f",
+      "denominator": "Xsc_f",
+      "depends_on": [
+        "IK_f",
+        "Xsc_f"
+      ],
+      "description": "IK_f divided columnwise by Xsc_f, the full expenditure total of the paying account.",
+      "description_it": "IK_f divided columnwise by Xsc_f, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "kp_d",
+      "rows": "distribution",
+      "columns": "capital_resident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "KP_d",
+      "denominator": "Xsc_d",
+      "depends_on": [
+        "KP_d",
+        "Xsc_d"
+      ],
+      "description": "KP_d divided columnwise by Xsc_d, the full expenditure total of the paying account.",
+      "description_it": "KP_d divided columnwise by Xsc_d, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "kp_f",
+      "rows": "distribution",
+      "columns": "capital_nonresident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "KP_f",
+      "denominator": "Xsc_f",
+      "depends_on": [
+        "KP_f",
+        "Xsc_f"
+      ],
+      "description": "KP_f divided columnwise by Xsc_f, the full expenditure total of the paying account.",
+      "description_it": "KP_f divided columnwise by Xsc_f, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "kr_d",
+      "rows": "capital_resident",
+      "columns": "distribution",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "KR_d",
+      "denominator": "Xd",
+      "depends_on": [
+        "KR_d",
+        "Xd"
+      ],
+      "description": "KR_d divided columnwise by Xd, the full expenditure total of the paying account.",
+      "description_it": "KR_d divided columnwise by Xd, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "kr_f",
+      "rows": "capital_nonresident",
+      "columns": "distribution",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "KR_f",
+      "denominator": "Xd",
+      "depends_on": [
+        "KR_f",
+        "Xd"
+      ],
+      "description": "KR_f divided columnwise by Xd, the full expenditure total of the paying account.",
+      "description_it": "KR_f divided columnwise by Xd, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "dk_d",
+      "rows": "capital_resident",
+      "columns": "nonfinancial_asset",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "DK_d",
+      "denominator": "Xnf",
+      "depends_on": [
+        "DK_d",
+        "Xnf"
+      ],
+      "description": "DK_d divided columnwise by Xnf, the full expenditure total of the paying account.",
+      "description_it": "DK_d divided columnwise by Xnf, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "dk_f",
+      "rows": "capital_nonresident",
+      "columns": "nonfinancial_asset",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "DK_f",
+      "denominator": "Xnf",
+      "depends_on": [
+        "DK_f",
+        "Xnf"
+      ],
+      "description": "DK_f divided columnwise by Xnf, the full expenditure total of the paying account.",
+      "description_it": "DK_f divided columnwise by Xnf, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "af_d",
+      "rows": "financial_instrument",
+      "columns": "capital_resident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "AF_d",
+      "denominator": "Xsc_d",
+      "depends_on": [
+        "AF_d",
+        "Xsc_d"
+      ],
+      "description": "AF_d divided columnwise by Xsc_d, the full expenditure total of the paying account.",
+      "description_it": "AF_d divided columnwise by Xsc_d, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "af_f",
+      "rows": "financial_instrument",
+      "columns": "capital_nonresident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "AF_f",
+      "denominator": "Xsc_f",
+      "depends_on": [
+        "AF_f",
+        "Xsc_f"
+      ],
+      "description": "AF_f divided columnwise by Xsc_f, the full expenditure total of the paying account.",
+      "description_it": "AF_f divided columnwise by Xsc_f, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "lf_d",
+      "rows": "capital_resident",
+      "columns": "financial_instrument",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "LF_d",
+      "denominator": "Xfi",
+      "depends_on": [
+        "LF_d",
+        "Xfi"
+      ],
+      "description": "LF_d divided columnwise by Xfi, the full expenditure total of the paying account.",
+      "description_it": "LF_d divided columnwise by Xfi, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "lf_f",
+      "rows": "capital_nonresident",
+      "columns": "financial_instrument",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "LF_f",
+      "denominator": "Xfi",
+      "depends_on": [
+        "LF_f",
+        "Xfi"
+      ],
+      "description": "LF_f divided columnwise by Xfi, the full expenditure total of the paying account.",
+      "description_it": "LF_f divided columnwise by Xfi, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "mu",
+      "rows": "external_trade",
+      "columns": "activity",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "MU",
+      "denominator": "Xa",
+      "depends_on": [
+        "MU",
+        "Xa"
+      ],
+      "description": "MU divided columnwise by Xa, the full expenditure total of the paying account.",
+      "description_it": "MU divided columnwise by Xa, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "my",
+      "rows": "external_trade",
+      "columns": "consumption",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "MY",
+      "denominator": "Xn",
+      "depends_on": [
+        "MY",
+        "Xn"
+      ],
+      "description": "MY divided columnwise by Xn, the full expenditure total of the paying account.",
+      "description_it": "MY divided columnwise by Xn, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "minv",
+      "rows": "external_trade",
+      "columns": "nonfinancial_asset",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "Minv",
+      "denominator": "Xnf",
+      "depends_on": [
+        "Minv",
+        "Xnf"
+      ],
+      "description": "Minv divided columnwise by Xnf, the full expenditure total of the paying account.",
+      "description_it": "Minv divided columnwise by Xnf, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "m_o",
+      "rows": "external_trade",
+      "columns": "other",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "M_o",
+      "denominator": "Xo",
+      "depends_on": [
+        "M_o",
+        "Xo"
+      ],
+      "description": "M_o divided columnwise by Xo, the full expenditure total of the paying account.",
+      "description_it": "M_o divided columnwise by Xo, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "mcap_d",
+      "rows": "external_trade",
+      "columns": "capital_resident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "Mcap_d",
+      "denominator": "Xsc_d",
+      "depends_on": [
+        "Mcap_d",
+        "Xsc_d"
+      ],
+      "description": "Mcap_d divided columnwise by Xsc_d, the full expenditure total of the paying account.",
+      "description_it": "Mcap_d divided columnwise by Xsc_d, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "mcap_f",
+      "rows": "external_trade",
+      "columns": "capital_nonresident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "Mcap_f",
+      "denominator": "Xsc_f",
+      "depends_on": [
+        "Mcap_f",
+        "Xsc_f"
+      ],
+      "description": "Mcap_f divided columnwise by Xsc_f, the full expenditure total of the paying account.",
+      "description_it": "Mcap_f divided columnwise by Xsc_f, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "ms",
+      "rows": "external_trade",
+      "columns": "commodity",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "MS",
+      "denominator": "Xc",
+      "depends_on": [
+        "MS",
+        "Xc"
+      ],
+      "description": "MS divided columnwise by Xc, the full expenditure total of the paying account.",
+      "description_it": "MS divided columnwise by Xc, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "vinst_f_d",
+      "rows": "factor",
+      "columns": "income_resident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "Vinst_f_d",
+      "denominator": "Xsi_d",
+      "depends_on": [
+        "Vinst_f_d",
+        "Xsi_d"
+      ],
+      "description": "Vinst_f_d divided columnwise by Xsi_d, the full expenditure total of the paying account.",
+      "description_it": "Vinst_f_d divided columnwise by Xsi_d, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "vinst_f_f",
+      "rows": "factor",
+      "columns": "income_nonresident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "Vinst_f_f",
+      "denominator": "Xsi_f",
+      "depends_on": [
+        "Vinst_f_f",
+        "Xsi_f"
+      ],
+      "description": "Vinst_f_f divided columnwise by Xsi_f, the full expenditure total of the paying account.",
+      "description_it": "Vinst_f_f divided columnwise by Xsi_f, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "o_o",
+      "rows": "other",
+      "columns": "other",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "O_o",
+      "denominator": "Xo",
+      "depends_on": [
+        "O_o",
+        "Xo"
+      ],
+      "description": "O_o divided columnwise by Xo, the full expenditure total of the paying account.",
+      "description_it": "O_o divided columnwise by Xo, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "o_nf",
+      "rows": "other",
+      "columns": "nonfinancial_asset",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "O_nf",
+      "denominator": "Xnf",
+      "depends_on": [
+        "O_nf",
+        "Xnf"
+      ],
+      "description": "O_nf divided columnwise by Xnf, the full expenditure total of the paying account.",
+      "description_it": "O_nf divided columnwise by Xnf, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "rt_trade",
+      "rows": "income_nonresident",
+      "columns": "external_trade",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "RT_trade",
+      "denominator": "Xtr",
+      "depends_on": [
+        "RT_trade",
+        "Xtr"
+      ],
+      "description": "RT_trade divided columnwise by Xtr, the full expenditure total of the paying account.",
+      "description_it": "RT_trade divided columnwise by Xtr, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "tp_trade",
+      "rows": "external_trade",
+      "columns": "income_nonresident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "TP_trade",
+      "denominator": "Xsi_f",
+      "depends_on": [
+        "TP_trade",
+        "Xsi_f"
+      ],
+      "description": "TP_trade divided columnwise by Xsi_f, the full expenditure total of the paying account.",
+      "description_it": "TP_trade divided columnwise by Xsi_f, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "o_sc_d",
+      "rows": "other",
+      "columns": "capital_resident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "O_sc_d",
+      "denominator": "Xsc_d",
+      "depends_on": [
+        "O_sc_d",
+        "Xsc_d"
+      ],
+      "description": "O_sc_d divided columnwise by Xsc_d, the full expenditure total of the paying account.",
+      "description_it": "O_sc_d divided columnwise by Xsc_d, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "o_sc_f",
+      "rows": "other",
+      "columns": "capital_nonresident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "O_sc_f",
+      "denominator": "Xsc_f",
+      "depends_on": [
+        "O_sc_f",
+        "Xsc_f"
+      ],
+      "description": "O_sc_f divided columnwise by Xsc_f, the full expenditure total of the paying account.",
+      "description_it": "O_sc_f divided columnwise by Xsc_f, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "o_c",
+      "rows": "other",
+      "columns": "commodity",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "O_c",
+      "denominator": "Xc",
+      "depends_on": [
+        "O_c",
+        "Xc"
+      ],
+      "description": "O_c divided columnwise by Xc, the full expenditure total of the paying account.",
+      "description_it": "O_c divided columnwise by Xc, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "o_a",
+      "rows": "other",
+      "columns": "activity",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "O_a",
+      "denominator": "Xa",
+      "depends_on": [
+        "O_a",
+        "Xa"
+      ],
+      "description": "O_a divided columnwise by Xa, the full expenditure total of the paying account.",
+      "description_it": "O_a divided columnwise by Xa, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "o_f",
+      "rows": "other",
+      "columns": "factor",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "O_f",
+      "denominator": "Xf",
+      "depends_on": [
+        "O_f",
+        "Xf"
+      ],
+      "description": "O_f divided columnwise by Xf, the full expenditure total of the paying account.",
+      "description_it": "O_f divided columnwise by Xf, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "o_si_d",
+      "rows": "other",
+      "columns": "income_resident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "O_si_d",
+      "denominator": "Xsi_d",
+      "depends_on": [
+        "O_si_d",
+        "Xsi_d"
+      ],
+      "description": "O_si_d divided columnwise by Xsi_d, the full expenditure total of the paying account.",
+      "description_it": "O_si_d divided columnwise by Xsi_d, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "si_d_o",
+      "rows": "income_resident",
+      "columns": "other",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "SI_D_o",
+      "denominator": "Xo",
+      "depends_on": [
+        "SI_D_o",
+        "Xo"
+      ],
+      "description": "SI_D_o divided columnwise by Xo, the full expenditure total of the paying account.",
+      "description_it": "SI_D_o divided columnwise by Xo, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "o_si_f",
+      "rows": "other",
+      "columns": "income_nonresident",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "O_si_f",
+      "denominator": "Xsi_f",
+      "depends_on": [
+        "O_si_f",
+        "Xsi_f"
+      ],
+      "description": "O_si_f divided columnwise by Xsi_f, the full expenditure total of the paying account.",
+      "description_it": "O_si_f divided columnwise by Xsi_f, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "si_f_o",
+      "rows": "income_nonresident",
+      "columns": "other",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "SI_F_o",
+      "denominator": "Xo",
+      "depends_on": [
+        "SI_F_o",
+        "Xo"
+      ],
+      "description": "SI_F_o divided columnwise by Xo, the full expenditure total of the paying account.",
+      "description_it": "SI_F_o divided columnwise by Xo, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "o_d",
+      "rows": "other",
+      "columns": "distribution",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "O_d",
+      "denominator": "Xd",
+      "depends_on": [
+        "O_d",
+        "Xd"
+      ],
+      "description": "O_d divided columnwise by Xd, the full expenditure total of the paying account.",
+      "description_it": "O_d divided columnwise by Xd, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "d_o",
+      "rows": "distribution",
+      "columns": "other",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "D_o",
+      "denominator": "Xo",
+      "depends_on": [
+        "D_o",
+        "Xo"
+      ],
+      "description": "D_o divided columnwise by Xo, the full expenditure total of the paying account.",
+      "description_it": "D_o divided columnwise by Xo, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "o_n",
+      "rows": "other",
+      "columns": "consumption",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "O_n",
+      "denominator": "Xn",
+      "depends_on": [
+        "O_n",
+        "Xn"
+      ],
+      "description": "O_n divided columnwise by Xn, the full expenditure total of the paying account.",
+      "description_it": "O_n divided columnwise by Xn, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "n_o",
+      "rows": "consumption",
+      "columns": "other",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "N_o",
+      "denominator": "Xo",
+      "depends_on": [
+        "N_o",
+        "Xo"
+      ],
+      "description": "N_o divided columnwise by Xo, the full expenditure total of the paying account.",
+      "description_it": "N_o divided columnwise by Xo, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "o_t",
+      "rows": "other",
+      "columns": "tax",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "O_t",
+      "denominator": "Xt",
+      "depends_on": [
+        "O_t",
+        "Xt"
+      ],
+      "description": "O_t divided columnwise by Xt, the full expenditure total of the paying account.",
+      "description_it": "O_t divided columnwise by Xt, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "sc_d_o",
+      "rows": "capital_resident",
+      "columns": "other",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "SC_D_o",
+      "denominator": "Xo",
+      "depends_on": [
+        "SC_D_o",
+        "Xo"
+      ],
+      "description": "SC_D_o divided columnwise by Xo, the full expenditure total of the paying account.",
+      "description_it": "SC_D_o divided columnwise by Xo, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "sc_f_o",
+      "rows": "capital_nonresident",
+      "columns": "other",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "SC_F_o",
+      "denominator": "Xo",
+      "depends_on": [
+        "SC_F_o",
+        "Xo"
+      ],
+      "description": "SC_F_o divided columnwise by Xo, the full expenditure total of the paying account.",
+      "description_it": "SC_F_o divided columnwise by Xo, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "nf_o",
+      "rows": "nonfinancial_asset",
+      "columns": "other",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "NF_o",
+      "denominator": "Xo",
+      "depends_on": [
+        "NF_o",
+        "Xo"
+      ],
+      "description": "NF_o divided columnwise by Xo, the full expenditure total of the paying account.",
+      "description_it": "NF_o divided columnwise by Xo, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "o_fi",
+      "rows": "other",
+      "columns": "financial_instrument",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "O_fi",
+      "denominator": "Xfi",
+      "depends_on": [
+        "O_fi",
+        "Xfi"
+      ],
+      "description": "O_fi divided columnwise by Xfi, the full expenditure total of the paying account.",
+      "description_it": "O_fi divided columnwise by Xfi, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "fi_o",
+      "rows": "financial_instrument",
+      "columns": "other",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "FI_o",
+      "denominator": "Xo",
+      "depends_on": [
+        "FI_o",
+        "Xo"
+      ],
+      "description": "FI_o divided columnwise by Xo, the full expenditure total of the paying account.",
+      "description_it": "FI_o divided columnwise by Xo, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "o_tr",
+      "rows": "other",
+      "columns": "external_trade",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "O_tr",
+      "denominator": "Xtr",
+      "depends_on": [
+        "O_tr",
+        "Xtr"
+      ],
+      "description": "O_tr divided columnwise by Xtr, the full expenditure total of the paying account.",
+      "description_it": "O_tr divided columnwise by Xtr, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    },
+    {
+      "name": "t",
+      "rows": "all_accounts",
+      "columns": "all_accounts",
+      "role": "coefficient",
+      "presence": "derived",
+      "source": "T",
+      "denominator": "X",
+      "depends_on": [
+        "T",
+        "X"
+      ],
+      "description": "T divided columnwise by X, the full expenditure total of the paying account.",
+      "description_it": "T divided columnwise by X, the full expenditure total of the paying account.",
+      "coefficient": "none",
+      "sut": "derived_only"
+    }
+  ],
+  "open_decisions": [
+    {
+      "id": "sut_projection",
+      "decision": "Definire una conversione SUT con ponti di valutazione e trattamento dei conti residuali.",
+      "blocks_flow_core": false
+    }
+  ],
+  "implementation_status": "Native flows, account totals, account-normalized coefficients and local FIGARO parsing implemented; closure and conversion remain proposals.",
+  "coefficient_policy": {
+    "normalization": "column_account_total",
+    "zero_account": "zero coefficients only if every outgoing flow is zero; otherwise undefined",
+    "total_vector_column": "production"
+  }
+}

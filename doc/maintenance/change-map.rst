@@ -21,7 +21,7 @@ Page ownership
      - Parser API, companion, source profile and catalogue
    * - Table structures and nomenclature
      - ``get_started/table_formats.rst`` and ``table_formats/iot.rst`` /
-       ``table_formats/sut.rst`` under ``get_started/``
+       ``table_formats/sut.rst`` / ``table_formats/nam.rst`` under ``get_started/``
      - ``reference/api_indices.rst``, ``reference/api_resolvable_matrices.rst``,
        nomenclature generator, workbook, diagrams and compatibility anchors
    * - Inspecting, querying and exporting
@@ -81,12 +81,19 @@ Components live in ``doc/source/_ext/mario_site.py``; styling in
 ``doc/source/_static/docs-workflows.css`` and ``doc/source/_themes/mario/``.
 Changes there require representative desktop and narrow-screen checks, including
 navigation, code blocks, disclosure links and keyboard interaction.
+The theme's ``--article-width`` token owns the shared maximum article width for
+Get started, Docs and the Database explorer. Docs adds navigation columns around
+that measure in ``docs-workflows.css``; keep the page menu available until there
+is room for the right-hand contents column.
 
 Format diagrams and tables come from
 ``doc/scripts/generate_nomenclature_tables.py`` and the shared
 ``Nomenclature_and_formulas.xlsx`` workbook in ``doc/source/_static/data/supporting_files/``.
 The generator selects introductory blocks and derived matrices for each format;
-descriptions and axes come from the same workbook as the full reference. Run
+IOT/SUT descriptions and axes come from the same workbook as the full reference.
+NAM's introductory diagram selects exact domain pairs from its runtime JSON,
+using one import representation; it is not a compressed or aggregated ``T``.
+Run
 ``python doc/scripts/generate_nomenclature_tables.py`` after changing the source
 or its presentation. Do not hand-edit ``get_started/_generated/``.
 The interactive diagram uses ``_static/table-formats.css`` and
@@ -111,6 +118,35 @@ and other downloadable assets.
 
 Shared metadata and generated assets
 ------------------------------------
+
+NAM's structural contract is ``mario/model/nam_schema.json``. Its
+development specification and proposed SUT projection live under
+``doc/development/nam/``. ``doc/scripts/check_nam_spec.py`` compares shared
+definitions and generates the readable internal catalogue. Keep the development
+proposal outside the public manual; implemented NAM flow I/O is documented in
+``get_started/table_formats/nam.rst`` and the FIGARO source guide. The native
+workbook contract is owned by ``mario/parsers/nam_workbook.py``; source T02
+and bulk CSV normalization by ``mario/parsers/figaro_nam.py``. Its packaged
+``figaro_nam_accounts.csv`` owns source account codes and descriptions, including
+accounts omitted from sparse releases because all their values are zero. Review these with template,
+parser and export APIs and the FIGARO notebook companion.
+
+IOT/SUT nomenclature remains in the shared workbook. NAM English descriptions,
+set labels and domains come from the packaged JSON; the same nomenclature
+generator writes ``nam_structure.html``, ``nam_indices.html`` and
+``nam_matrices.html`` for the format guide and public set/matrix references.
+Do not duplicate NAM definitions into the IOT/SUT
+workbook or publish proposed conversion rules as implemented APIs.
+The calculation-format labels in the API index and individual reference pages
+come from ``mario/compute/format_support.py`` and the runtime compute catalogue.
+Keep NAM block references distinct from standalone IOT/SUT helper conventions.
+``reference/api_nam_database.rst`` owns the supported NAM database interface;
+its signatures and method descriptions are generated from ``mario/api/nam.py``.
+The format classifier reads that facade's own methods, rather than inferring
+support from Database inheritance. Review generic inspection, scenario,
+calculation, template and persistence guides when its supported subset changes.
+Flow/coefficient diagram panels must use registered coefficient names, and
+final-demand blocks without registered coefficients must remain clearly marked.
 
 .. list-table::
    :header-rows: 1

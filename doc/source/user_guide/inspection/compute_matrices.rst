@@ -8,6 +8,9 @@ Calculate matrices
 
    :download:`Download notebook <compute_matrices.ipynb>`
 
+Each table format has its own equations. The first examples below use
+IOT/SUT; the NAM workflow is described in its own section.
+
 .. container:: mario-recipe
 
    .. code-block:: python
@@ -44,6 +47,33 @@ Choose the quantity
 
 Use the :doc:`matrix catalogue <../../reference/api_resolvable_matrices>` for
 all definitions and axes. In a hybrid model, each output keeps its native unit.
+
+NAM account totals and coefficients
+-----------------------------------
+
+Start from a parsed NAM database, for example the local FIGARO workflow in
+:doc:`/notebooks/parsers/figaro/walkthrough_figaro`:
+
+.. code-block:: python
+
+   totals = nam.resolve_many(["Xa", "Xc", "Xsi_d"])
+   coefficients = nam.resolve_many(["u", "cf_d", "rs_dd"])
+   plan = nam.explain("cf_d")
+
+``Xa`` sums every authoritative payment made by activity accounts.
+``Xsi_d`` does the same for resident income accounts. ``cf_d`` divides
+``CF_d`` columns by ``Xsi_d``; it never divides by the subtotal of ``CF_d``.
+The coefficient retains the native flow's axes and import descriptors.
+The :doc:`NAM calculation reference </reference/api_nam_calculations>`
+defines zero and signed accounts and the complete naming convention.
+
+Use ``scenario=...`` on ``resolve`` or ``resolve_many`` for another scenario.
+``nam.calc_all()`` without targets assembles ``T`` only; request the desired
+totals and coefficients explicitly. ``available_matrices()`` lists registered
+names, including results whose inputs may still be missing. NAM does not
+register IO inverses, environmental multipliers or a model closure.
+
+The calculation routes and footprint examples below apply to IOT/SUT.
 
 Calculate several targets
 -------------------------

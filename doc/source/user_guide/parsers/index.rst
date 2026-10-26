@@ -115,8 +115,10 @@ Environmentally-extended databases
    CEADS <../../notebooks/parsers/ceads/walkthrough_ceads>
 
 
-Other MRIO and SRIO databases
------------------------------
+.. _other-mrio-and-srio-databases:
+
+Other accounting databases
+---------------------------
 
 .. mario-cards::
    :columns: 2
@@ -134,7 +136,8 @@ Other MRIO and SRIO databases
       :database: figaro
       :logo: /_static/images/logos/eurostat.png
 
-      FIGARO SUT and IOT, downloaded directly from the Eurostat API.
+      FIGARO SUT/IOT from the Eurostat API and NAM national ledgers from local
+      CSV or XLSX files, with one selected country per bulk CSV import.
 
    .. mario-card:: :doc:`EUROSTAT <../../notebooks/parsers/eurostat/walkthrough_eurostat>`
       :kicker: mario.parse_eurostat

@@ -1,5 +1,5 @@
 :page-type: Overview
-:summary: Read the structure, indices and matrix names of an IOT or a SUT.
+:summary: Read the structure, indices and matrix names of IOT, SUT and NAM tables.
 
 Table formats
 =============
@@ -10,7 +10,7 @@ axes and calculation assumptions together.
 .. container:: mario-format-choices
 
    .. mario-cards::
-      :columns: 2
+      :columns: 3
 
       .. mario-card:: :doc:`Input-Output Tables <table_formats/iot>`
          :kicker: IOT
@@ -44,6 +44,22 @@ axes and calculation assumptions together.
 
             Explore SUT structure and nomenclature
 
+      .. mario-card:: :doc:`National Accounting Matrices <table_formats/nam>`
+         :kicker: NAM
+         :class: mario-format-choice
+
+         **Production, income, consumption and capital accounts** in one
+         accounting system, with native partner detail where observed.
+
+         .. mario-scheme:: Selected NAM blocks: factors, institutional income, saving and fixed assets
+            :flows: Va_f . Vinst_f_f . / . RI_d . . / . . RS_dd . / . . . IK_d
+            :col-sizes: 1.2 1.2 1.2 1.2
+            :row-sizes: 1 1 1 1
+
+         .. container:: mario-format-cta
+
+            Explore NAM structure and native workbooks
+
 .. _format-basic-definitions:
 
 Objects in MARIO
@@ -61,7 +77,7 @@ Objects in MARIO
 
       **Table**
 
-      The accounting structure: IOT or SUT. Inspect it with ``db.table_type``.
+      The accounting structure: IOT, SUT or NAM. Inspect it with ``db.table_type``.
 
    .. container::
 
@@ -75,31 +91,43 @@ Objects in MARIO
 
       A named block or result, such as ``db.Z`` or ``db.U``.
 
-Each scenario stores its own matrices. MARIO can calculate missing quantities
-when requested; :doc:`scenarios` explains how the states are managed.
+Each scenario stores its own matrices. MARIO can calculate registered results
+when their required inputs are available; :doc:`scenarios` explains how the
+states are managed. A table format also determines which operations and
+equations are supported. The NAM interface currently covers inspection,
+account totals, coefficients, native-flow edits and Excel round trips;
+its :doc:`guide <table_formats/nam>` lists the modelling limits.
 
 .. _format-conventions:
 
 Flows, coefficients and units
 -----------------------------
 
-For paired names such as ``Z`` / ``z`` or ``E`` / ``e``, capitals indicate
+For IOT/SUT paired names such as ``Z`` / ``z`` or ``E`` / ``e``, capitals indicate
 **absolute flows** and lowercase indicates **coefficients per unit of output**.
 A table can contain both. Final-demand blocks remain flows.
+
+NAM roles are declared explicitly: ``T`` is a view and ``B9_d``/``B9_f`` are results.
+NAM coefficients use lowercase flow names and divide by the full paying-account
+total. Each format has its own equations and supported calculation blocks;
+see :doc:`the calculation reference </reference/api_calculation_methods>`.
 
 The format describes the arrangement of the table. Monetary or physical units
 come from the database: a hybrid table can use different units for different
 products. Check units before summing quantities or comparing coefficients.
 
-These guides use MARIO's default names. See :doc:`custom labels
-</user_guide/inspection/custom_labels_and_aliases>` to change them, or the
-:doc:`matrix reference </reference/api_resolvable_matrices>` for the full catalogue.
+These guides use MARIO's default names. IOT/SUT support :doc:`custom labels
+</user_guide/inspection/custom_labels_and_aliases>`. NAM uses the registered
+set names and source-defined item labels described in its guide. The
+:doc:`matrix reference </reference/api_resolvable_matrices>` contains each
+format's catalogue.
 
 .. toctree::
    :hidden:
 
    table_formats/iot
    table_formats/sut
+   table_formats/nam
 
 .. raw:: html
 

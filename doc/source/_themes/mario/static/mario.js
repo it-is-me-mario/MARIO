@@ -772,6 +772,7 @@
   function initApiIndex() {
     document.querySelectorAll("[data-api-index]").forEach((index) => {
       const input = index.querySelector("[data-api-filter]");
+      const format = index.querySelector("[data-api-format]");
       const chips = Array.from(index.querySelectorAll(".mario-chip"));
       const rows = Array.from(index.querySelectorAll("tbody tr"));
       const count = index.querySelector("[data-api-count]");
@@ -784,7 +785,9 @@
         rows.forEach((row) => {
           const haystack = row.dataset.search || "";
           const match =
-            (!category || row.dataset.category === category) && terms.every((term) => haystack.includes(term));
+            (!category || row.dataset.category === category) &&
+            (!format || !format.value || (row.dataset.formats || '').split(' ').includes(format.value)) &&
+            terms.every((term) => haystack.includes(term));
           row.hidden = !match;
           visible += match ? 1 : 0;
         });
@@ -800,6 +803,7 @@
         })
       );
       input.addEventListener("input", apply);
+      if (format) format.addEventListener("change", apply);
     });
   }
 

@@ -10,6 +10,11 @@ Excel tables
 
 Prepare tables, labels and units in the expected layout. Use the custom-table template guide when starting from scratch.
 
+Choose the reader for the workbook you have. The IOT/SUT examples below use
+MARIO table layouts. A MARIO native NAM workbook uses a separate registry-based
+layout; a FIGARO source workbook must go through :func:`mario.parse_figaro`.
+Set inventories on this page describe the packaged IOT/SUT examples.
+
 Import
 ------
 
@@ -26,8 +31,35 @@ Import
       **Result** · A MARIO database. Inspect ``db``, ``db.get_index("all")``
       and ``db.units`` before selecting quantities for your analysis.
 
+Native NAM workbooks
+--------------------
+
+Read a workbook produced by ``nam.to_excel`` or
+:func:`mario.write_parse_template` with ``table="NAM"``:
+
+.. code-block:: python
+
+   nam = mario.parse_from_excel("nam_native.xlsx", table="NAM", mode="flows")
+   nam.get_index("all")
+   nam.units
+
+NAM reads its embedded ``metadata``, ``accounts``, ``descriptors``,
+``matrix_layouts`` and ``flows`` sheets. It retains every scenario and each
+block's observed, declared-zero or unavailable state. Derived coefficients
+can be requested after loading; they are not workbook inputs.
+``data_sheet``, ``unit_sheet`` and layout overrides belong to the IOT/SUT
+workflows; NAM uses the native sheets and embedded layouts. ``mode="flows"``
+is required and no SUT technology assumption applies.
+
+The native contract requires version 2. Reparse the original source or create
+a new template for an older workbook; it is not silently reclassified. See
+:doc:`Import your own tables </user_guide/parsers/provide_your_database>`
+and the :doc:`NAM database reference </reference/api_nam_database>`.
+
 Inputs and options
 ------------------
+
+The following options describe IOT/SUT workbook layouts.
 
 .. mario-details:: Example workbooks
 
@@ -184,7 +216,7 @@ Inputs and options
 
 .. mario-details:: Layout notes and caveats
 
-   The workbook that ``mario.parse_from_excel(...)`` reads is always one Excel file with at least a data sheet and a units sheet.
+   An IOT/SUT workbook has at least a data sheet and a units sheet.
 
    In the standard layout, rows and columns use three index levels: region, level name, and level label. The units sheet lists the units for sectors or activities or commodities, factors of production, and satellite accounts used by the workbook. If the sheet names are not the defaults, use ``data_sheet=`` and ``unit_sheet=`` explicitly.
 

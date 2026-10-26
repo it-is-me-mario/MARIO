@@ -8,8 +8,11 @@ Customize names and aliases
 
    :download:`Download notebook <custom_labels_and_aliases.ipynb>`
 
-Settings are shared by all databases in the process. Keep a copy to restore
-when the custom naming is no longer needed.
+These naming overrides apply to IOT/SUT. NAM uses the registered set names
+and source-defined item labels in :doc:`its format guide
+</get_started/table_formats/nam>`.
+Settings are shared within the Python process. Keep a copy to restore when
+the custom naming is no longer needed.
 
 .. container:: mario-recipe
 

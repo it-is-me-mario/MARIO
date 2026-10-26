@@ -7,6 +7,12 @@ aggregation, shocks, extensions or sector-addition workflows.
 through ``region_aggregation`` when you want to combine automatic regional
 grouping with manual edits on the other sets.
 
+For NAM, :func:`mario.write_parse_template` creates the native workbook from
+explicit regional memberships, currency, scale and period. See
+:doc:`the template guide </user_guide/parsers/provide_your_database>`.
+The aggregation, shock and sector/extension helper workbooks below apply to
+IOT/SUT.
+
 Custom Database Templates
 -------------------------
 

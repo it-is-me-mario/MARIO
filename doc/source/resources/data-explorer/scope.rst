@@ -15,6 +15,11 @@ Classifications
 
    Compare regional and sectoral detail across MRIO databases. The list of databases is not exhaustive.
 
+   FIGARO inventories here describe parsed IOT/SUT readings. Local NAM input
+   support is documented in :doc:`the FIGARO guide
+   </notebooks/parsers/figaro/walkthrough_figaro>`; NAM reporting economies and
+   import-origin descriptors are not additional MRIO coverage in these charts.
+
    .. container:: explorer-feedback
 
       Found an error, or know a database we should add? Tell us on `GitHub Issues <https://github.com/it-is-me-mario/MARIO/issues>`_.

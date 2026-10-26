@@ -73,8 +73,10 @@ def normalize_matrix_layouts(
     matrix_layouts: dict[str, object] | None,
     *,
     table: str | None = None,
-) -> dict[str, tuple[str, ...]]:
-    """Normalize per-matrix layout declarations to tuples of canonical set names."""
+) -> dict[str, tuple[str, ...] | dict[str, tuple[str, ...]]]:
+    """Normalize legacy set prefixes or explicit NAM row/column role layouts."""
+    if str(getattr(table, "value", table)).upper() == "NAM":
+        return normalize_nam_matrix_layouts(matrix_layouts)
     if matrix_layouts is None:
         return {}
     if not isinstance(matrix_layouts, dict):
@@ -119,6 +121,54 @@ def normalize_matrix_layouts(
             f"Allowed semantic prefixes are: {sorted(allowed_prefixes)}."
         )
     return normalized
+
+
+def normalize_nam_matrix_layouts(matrix_layouts):
+    """Validate explicit NAM row/column roles without changing IOT/SUT syntax.
+
+    Both sides retain a reference-economy role. Partner/product descriptors are
+    additional roles, followed by the block's declared accounting domain.
+    """
+    from mario.model.nam import NAM_AXIS_ROLES, NAM_BLOCKS, nam_default_layout
+
+    if matrix_layouts is None:
+        return {}
+    if not isinstance(matrix_layouts, dict):
+        raise WrongInput("NAM matrix_layouts must be a mapping of matrix names to rows/columns.")
+    normalized = {}
+    for name, layout in matrix_layouts.items():
+        if name not in NAM_BLOCKS or NAM_BLOCKS[name]["role"] != "flow":
+            raise WrongInput(f"Unknown native NAM block in matrix_layouts: {name!r}.")
+        if not isinstance(layout, dict) or set(layout) != {"rows", "columns"}:
+            raise WrongInput(f"{name}: NAM layouts must explicitly declare rows and columns.")
+        normalized[name] = {}
+        for side, default in nam_default_layout(name).items():
+            roles = layout[side]
+            if not isinstance(roles, (tuple, list)) or not roles:
+                raise WrongInput(f"{name}: {side} must be a nonempty sequence of roles.")
+            roles = tuple(roles)
+            if any(not isinstance(role, str) for role in roles):
+                raise WrongInput(f"{name}: axis roles must be strings.")
+            if len(set(roles)) != len(roles):
+                raise WrongInput(f"{name}: duplicate semantic roles on {side}.")
+            if roles[-1] != default[-1] or roles.count("reference_region") != 1:
+                raise WrongInput(f"{name}: {side} needs reference_region and terminal domain {default[-1]}.")
+            if not set(roles[:-1]) <= NAM_AXIS_ROLES.keys():
+                raise WrongInput(f"{name}: unknown descriptor on {side}.")
+            normalized[name][side] = roles
+    return normalized
+
+
+def nam_block_spec(name, layout):
+    """Describe role IDs separately from their possibly shared classifications."""
+    from mario.model.nam import NAM_AXIS_ROLES
+
+    def axes(roles):
+        return [(role, NAM_AXIS_ROLES[role]["base"]) for role in roles[:-1]] + [
+            ("Set", "accounting_sets"), ("Item", roles[-1])
+        ]
+
+    return block_spec(name, row_axes=axes(layout["rows"]), col_axes=axes(layout["columns"]))
 
 
 def infer_item_sets_from_units(units_frame: pd.DataFrame) -> dict[object, str]:

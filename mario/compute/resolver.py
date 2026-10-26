@@ -39,6 +39,10 @@ class ResolutionError(LookupError):
 
 def _lookup_callable(name: str):
     """Look up a compute implementation by name across compute modules."""
+    if name.startswith("build_nam_"):
+        from mario.compute import nam_formulas
+
+        return nam_formulas.get_formula(name)
     for module in (views, iot_formulas, sut_formulas):
         function = getattr(module, name, None)
         if callable(function):

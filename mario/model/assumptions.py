@@ -47,7 +47,7 @@ def resolve_tech_assumption(
     table_kind = TableKind.coerce(table)
     requested = normalize_tech_assumption(tech_assumption)
 
-    if table_kind == TableKind.IOT:
+    if table_kind != TableKind.SUT:
         if requested is not None:
             raise WrongInput("tech_assumption is only supported for SUT databases.")
         return None, None

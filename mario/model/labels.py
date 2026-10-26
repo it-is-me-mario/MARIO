@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 
 from mario.model.enums import TableKind
+from mario.model.nam import NAM_SETS
 from mario.settings.settings import Index, CanonicalNomenclature
 
 ITEM_LABEL = "Item"
@@ -32,11 +33,13 @@ MATRIX_LABELS = _matrix_labels()
 TABLE_LEVEL_CODES = {
     TableKind.IOT: ("f", "k", "n", "r", "s"),
     TableKind.SUT: ("a", "c", "f", "k", "n", "r"),
+    TableKind.NAM: ("region", *NAM_SETS),
 }
 
 TABLE_UNIT_CODES = {
     TableKind.IOT: ("s", "f", "k"),
     TableKind.SUT: ("a", "c", "f", "k"),
+    TableKind.NAM: TABLE_LEVEL_CODES[TableKind.NAM][1:],
 }
 
 
@@ -61,7 +64,11 @@ class TableSchemaLabels:
 
 def level_name(code: str) -> str:
     """Translate an index code into its configured display label."""
-    return INDEX_LABELS[code]
+    if code in INDEX_LABELS:
+        return INDEX_LABELS[code]
+    if code == "region":
+        return "Region"
+    return NAM_SETS[code]["label"]
 
 
 def matrix_name(code: str) -> str:

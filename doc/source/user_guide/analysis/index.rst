@@ -6,6 +6,12 @@ Calculations and analysis
 Start from an imported database. Request the quantities needed for your
 analysis; MARIO resolves their dependencies.
 
+NAM supports account totals and account-normalized coefficients through
+:doc:`Calculate matrices <../inspection/compute_matrices>` and the
+:doc:`NAM calculation reference </reference/api_nam_calculations>`.
+The footprint, supply-chain, path, production-mix and plotting workflows
+below currently apply to IOT/SUT; NAM does not yet select a model closure.
+
 .. toctree::
    :hidden:
 

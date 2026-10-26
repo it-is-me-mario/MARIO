@@ -3,6 +3,9 @@ Visualization
 
 Visualization in MARIO is centered on one plotting engine:
 :doc:`db.plot(...) <../api_document/mario.Database.plot>`.
+This database plotting interface currently supports IOT/SUT. NAM blocks are
+returned as pandas DataFrames for inspection or external plotting; see
+:doc:`api_nam_database`.
 
 Use it in two ways:
 

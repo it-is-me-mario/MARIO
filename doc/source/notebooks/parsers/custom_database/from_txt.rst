@@ -10,6 +10,11 @@ TXT, CSV and Parquet
 
 Match flat and matrix layouts to the export you have. Keep the units file with the data; choose flows or coefficients explicitly.
 
+This custom-file reader supports IOT/SUT. For FIGARO's published NAM CSV,
+use :func:`mario.parse_figaro` with ``table="NAM"`` and an explicit country;
+see :doc:`the FIGARO guide <../figaro/walkthrough_figaro>`. MARIO native NAM
+round trips use :doc:`Excel <from_excel>`.
+
 Import
 ------
 

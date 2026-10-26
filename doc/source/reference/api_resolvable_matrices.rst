@@ -3,7 +3,7 @@ Resolvable Matrices and Blocks
 
 The database compute API resolves named blocks and their dependencies for a
 scenario. Standalone ``calc_*`` functions are listed in
-:doc:`api_calculation_methods`. To request blocks from a database:
+:doc:`api_calculation_methods`. For example, with a parsed SUT database:
 
 .. code-block:: python
 
@@ -14,18 +14,23 @@ scenario. Standalone ``calc_*`` functions are listed in
    db.wcc
 
 Use :doc:`../api_document/mario.CoreModel.available_matrices` to list the block
-names accepted by the current table, and
+names registered for the current table, and
 :doc:`../api_document/mario.CoreModel.get_block_spec` to inspect their semantic
 axes.
 
-For SUT databases, the built-in split and quadrant blocks include ``U``, ``u``,
+Registration is independent of data availability. ``list_matrices()`` shows
+available stored blocks; uncomputed results still need covered dependencies.
+For NAM, use :doc:`api_nam_database` for the supported interface and
+:doc:`api_nam_calculations` for account-total denominators.
+
+Each format owns its interpretation of a block name. For SUT databases, the built-in split and quadrant blocks include ``U``, ``u``,
 ``S``, ``s``, ``Xa``, ``Xc``, ``Va``, ``Vc``, ``Ea``, ``Ec``, ``Ya``, ``Yc``,
 ``wcc``, ``wca``, ``wac``, ``waa``, ``fa``, ``fc``, ``ma``, ``mc``, ``pa`` and
 ``pc``. The canonical commodity production vector name is ``Xc``; ``Cx`` is
 not a built-in MARIO matrix name.
 
-Use and supply coefficients
----------------------------
+SUT use and supply coefficients
+--------------------------------
 
 The native use and supply calculations have dedicated block pages:
 
@@ -50,8 +55,8 @@ The :doc:`native SUT calculation reference <api_calculation_methods>` also
 links production vectors, Leontief/Ghosh quadrants, direct-output coefficients
 and price vectors.
 
-Core equations
---------------
+IOT/SUT model equations
+-----------------------
 
 IOT results follow the equations in :doc:`api_calculation_methods`. For SUT,
 ``u`` maps activity production to commodity inputs and ``s`` maps commodity
@@ -96,6 +101,26 @@ originally calculated.
 
 Block catalog
 -------------
+
+NAM native blocks and results
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The following NAM catalogue is generated from the packaged structural contract.
+Native ``matrix_layouts`` can retain origin/product descriptors in addition to
+the national account identity. ``T`` is a derived accounting view; ``B9_d``/``B9_f`` are
+financial-side results. Neither adds payments to native flow totals. NAM account totals and lowercase coefficients are available; inverses and SUT
+conversion remain unimplemented. See :doc:`api_nam_calculations` for the NAM
+denominators and zero-total policy.
+
+See :doc:`the NAM guide </get_started/table_formats/nam>`,
+:doc:`mario.parse_figaro </api_document/mario.parse_figaro>` and
+:doc:`mario.write_parse_template </api_document/mario.write_parse_template>`.
+
+.. raw:: html
+   :file: ../get_started/_generated/nam_matrices.html
+
+IOT and SUT blocks
+~~~~~~~~~~~~~~~~~~
 
 The reference table below reuses the authoritative nomenclature matrix catalog
 and therefore covers both IOT and SUT built-ins, along with their table format,

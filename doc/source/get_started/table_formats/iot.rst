@@ -6,7 +6,7 @@
 Input-Output Tables
 ===================
 
-:doc:`Table formats <../table_formats>` / **IOT** · :doc:`SUT <sut>`
+:doc:`Table formats <../table_formats>` / **IOT** · :doc:`SUT <sut>` · :doc:`NAM <nam>`
 
 An IOT uses the same **Sector** set on the rows and columns of its square
 transaction matrix. A sector represents an industry or a product, depending
@@ -15,7 +15,10 @@ on the source. In a multiregional table, each sector is also identified by regio
 Structure and native matrices
 -----------------------------
 
-Select a block to see its definition and default axes.
+Select a block to see its definition and default axes. Switch between **Flows**
+and **Coefficients** to see the lowercase coefficient names with softer colours.
+Final-demand blocks without a registered coefficient remain labelled as
+exogenous flows in the coefficient view.
 
 .. raw:: html
    :file: ../_generated/iot_structure.html

@@ -1,6 +1,6 @@
-/* Task-oriented Docs. Get started and Resources keep their own layouts. */
+/* Task-oriented Docs. Reserve the shared article width plus navigation. */
 body[data-section="docs"] .mario-shell--docs {
-  width: min(92rem, calc(100% - 3rem));
+  width: min(calc(var(--article-width) + 16.5rem), calc(100% - 3rem));
   display: grid;
   grid-template-columns: 15rem minmax(0, 1fr);
   gap: 1.5rem;
@@ -38,7 +38,6 @@ body[data-section="docs"] .mario-sidenav__caption { font-size: .64rem; }
 .mario-sidenav__group > summary { padding: .6rem .5rem .6rem 2rem; color: var(--ink-muted); font-size: .7rem; font-weight: 650; cursor: pointer; line-height: 1.5; }
 .mario-sidenav__group > summary:hover { color: var(--ink); }
 .mario-sidenav__group > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
-body[data-section="docs"] .mario-body > section > p { max-width: 72ch; }
 body[data-section="docs"] .mario-body h2 { margin-top: 2.3rem; font-size: 1.45rem; letter-spacing: -.02em; }
 body[data-section="docs"] .mario-docs-overview { grid-template-columns: 1fr; gap: .5rem; margin-top: 1.5rem; }
 body[data-section="docs"] .mario-docs-card { padding: 1.15rem 0; border: 0; border-bottom: 1px solid var(--line); background: transparent; box-shadow: none; }
@@ -58,17 +57,17 @@ body[data-section="docs"] .mario-switch { margin-block: 1.5rem; }
 body[data-section="docs"][data-group="analysis"] { --group-color: var(--ribbon-green); }
 body[data-section="docs"][data-group="configuration"] { --group-color: var(--ribbon-lilac); }
 body[data-section="docs"][data-group="examples"] { --group-color: var(--ribbon-orange); }
-@media (min-width: 90em) {
-  body[data-section="docs"] .mario-shell--docs { grid-template-columns: 15rem minmax(0, 1fr) 12rem; }
+@media (min-width: 108em) {
+  body[data-section="docs"] .mario-shell--docs { width: min(calc(var(--article-width) + 30rem), calc(100% - 3rem)); grid-template-columns: 15rem minmax(0, 1fr) 12rem; }
   .mario-doc-toc { display: block; }
-  body[data-section="docs"] .mario-shell--docs:not(:has(.mario-doc-toc)) { grid-template-columns: 15rem minmax(0, 1fr); max-width: 78.5rem; }
+  body[data-section="docs"] .mario-shell--docs:not(:has(.mario-doc-toc)) { grid-template-columns: 15rem minmax(0, 1fr); width: min(calc(var(--article-width) + 16.5rem), calc(100% - 3rem)); }
 }
-@media (min-width: 64em) and (max-width: 89.999em) {
+@media (min-width: 64em) and (max-width: 107.999em) {
   body[data-section="docs"] .mario-pagebar:has(.mario-pagebar__toc) { display: flex; height: 3rem; }
   body[data-section="docs"] .mario-pagebar__pages { display: none; }
 }
 @media (max-width: 63.999em) {
-  body[data-section="docs"] .mario-shell--docs { display: block; width: min(52rem, calc(100% - 2rem)); margin-top: 1rem; }
+  body[data-section="docs"] .mario-shell--docs { display: block; width: min(var(--article-width), calc(100% - 2rem)); margin-top: 1rem; }
   body[data-section="docs"] .mario-sidebar { display: none; }
   body[data-section="docs"] .mario-pagebar { display: flex; height: 3.25rem; }
   body[data-section="docs"] .mario-pagebar__pages { display: block; }
@@ -100,7 +99,6 @@ body[data-section="docs"][data-group="examples"] { --group-color: var(--ribbon-o
 
 /* Guide components: one task per block, result beside the code in reading order. */
 body[data-section="docs"] .mario-body { line-height: 1.65; }
-body[data-section="docs"] .mario-body p { max-width: 68ch; }
 body[data-section="docs"] .mario-body li > p { margin-block: .4rem; }
 .mario-companion { margin: -.5rem 0 1.5rem; font-size: .8rem; }
 .mario-companion a { display: inline-flex; align-items: center; gap: .5rem; border: 1px solid var(--line); border-radius: 2rem; padding: .4rem .8rem; text-decoration: none; }

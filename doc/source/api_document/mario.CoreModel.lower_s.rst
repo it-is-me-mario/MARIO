@@ -53,3 +53,13 @@ Example
 Use :doc:`resolve <mario.CoreModel.resolve>` for scenario selection and
 recomputation options. Existing targets are reused. The other SUT equations
 are listed in :doc:`../reference/api_resolvable_matrices`.
+
+
+NAM convention
+--------------
+
+``nam.s`` is always native ``S`` divided columnwise by ``nam.Xc``. It
+does not use an IT/PT technology assumption.
+See :doc:`the NAM calculation reference <../reference/api_nam_calculations>`.
+The SUT-specific formulas and zero-production conventions above remain
+separate from NAM's accounting totals and signed-zero policy.

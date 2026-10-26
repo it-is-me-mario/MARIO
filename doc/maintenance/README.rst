@@ -17,6 +17,16 @@ Maintenance references
 * `Releases and publication <releases.rst>`_: version selection, packaging,
   merge requirements, artifact checks and public deployment verification.
 
+Internal design proposals
+-------------------------
+
+* `NAM data contract <../development/nam/README.rst>`_: implemented sets,
+  native blocks and partner layouts, plus proposed SUT projection and modelling
+  rules. It is not part of the published manual. Native flow I/O and local FIGARO-NAM parsing
+  and account-normalized coefficients are documented in the NAM format/source
+  guides and calculation reference; conversion and closure remain future work.
+  The supported database interface is documented in the NAM API reference.
+
 Update workflow
 ---------------
 

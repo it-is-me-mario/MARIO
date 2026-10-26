@@ -23,6 +23,7 @@ from mario.compute.types import (
     StrategyKind,
 )
 from mario.model.enums import TableKind
+from mario.model.nam import NAM_BLOCKS
 
 _IOT_SOLVE_FORMULAS = {
     "build_iot_w_from_z_solve",
@@ -114,6 +115,16 @@ class ResolutionStore:
         """Persist one materialized block back to the wrapped dataset."""
         dataset = self.dataset
         if hasattr(dataset, "set_block"):
+            if getattr(dataset, "nam_schema", None) is not None:
+                from mario.model.nam import NAM_BLOCKS, nam_block_role
+                from mario.model.enums import BlockRole
+
+                if nam_block_role(name) != BlockRole.FLOW:
+                    dependencies = dataset.nam_schema.dependencies(name)
+                    dataset.set_block(name, value, scenario=self.scenario,
+                                      metadata={"presence": "derived", "provenance": "NAM compute resolver",
+                                                "dependencies": dependencies})
+                    return
             dataset.set_block(name, value, scenario=self.scenario)
             return
         self._scenario_mapping()[name] = value
@@ -271,6 +282,15 @@ def candidate_strategies(
 ) -> tuple[Strategy, ...]:
     """Return candidate strategies ordered by the planner priority rules."""
     table_kind = resolve_table_kind(dataset, context)
+    if table_kind == TableKind.NAM and (target == "T" or "account_set" in NAM_BLOCKS.get(target, {})):
+        if getattr(dataset, "nam_schema", None) is None:
+            raise ValueError("Resolving NAM T requires a state with an explicit NAMSchema.")
+        from mario.internal.nam import ensure_available
+
+        inputs = dataset.nam_schema.dependencies(target)
+        ensure_available(dataset, inputs, scenario)
+        return (FormulaStrategy(inputs=inputs, function=f"build_nam_{target}",
+                                spreadsheet_expr=f"{target} = authoritative account flows"),)
     try:
         spec = get_matrix_spec(table_kind, target)
     except KeyError:

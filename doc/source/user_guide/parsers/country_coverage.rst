@@ -15,3 +15,9 @@ Download the :download:`Country_coverage workbook </_static/data/supporting_file
 For the runtime aggregation details, see :ref:`clusters <concept-clusters>`.
 
 The parser coverage query remains available from :doc:`index`.
+
+This workbook does not define NAM account memberships or import partners.
+For FIGARO-NAM, the selected local release supplies reporting economies and
+origin detail; see :doc:`the FIGARO guide
+</notebooks/parsers/figaro/walkthrough_figaro>`. Existing FIGARO IOT/SUT
+coverage rows must not be interpreted as NAM release inventories.

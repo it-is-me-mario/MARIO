@@ -45,6 +45,8 @@ Verify before publication
   runtime dependencies. Investigate failures; distinguish code regressions,
   obsolete expectations and optional/external prerequisites with evidence.
   Do not silently deselect a failing required check.
+  Use the repository test root (``python -m pytest tests``): unrelated research
+  projects under local ``outputs/`` are not part of MARIO's test collection.
   Preview-server tests need permission to bind loopback sockets. Reuse valid
   local data for optional integration tests where possible; do not trigger
   large downloads just to repair a missing fixture path. Sparse numerical
@@ -108,3 +110,30 @@ Merge, publish and verify
 
 Documentation-only publication uses the same source, link, deployment-commit
 and live-page checks, without inventing a package-version bump or PyPI upload.
+
+Branch documentation previews
+-----------------------------
+
+Read the Docs branch previews are separate from the canonical main-site
+deployment. Before replacing one:
+
+1. Read the hosting project's current version list and identify the old preview
+   by its repository branch, active state and documentation URL. Do not infer
+   a version slug from a branch name; use the provider's returned URL.
+2. Build and check the intended feature tree locally, then commit and push that
+   branch with its required code, documentation and generated assets. Exclude
+   local inputs, credentials, unrelated outputs and built HTML. A documentation
+   build using autodoc needs the matching runtime code as well as RST files.
+3. Activate the new branch version and preserve the intended visibility.
+   ``Hidden`` removes a version from the selector; it is not private access.
+   Trigger its build and verify success and the exact pushed commit before
+   reporting a live preview.
+4. Retire the old preview by deactivating its version. This removes its served
+   documentation while retaining project settings and build history; do not
+   delete the hosting project or the source branch to remove a preview.
+5. Verify the new format/source/API pages and downloads at the public version
+   URL, then verify that the old preview is unavailable. Keep the canonical
+   default version and main-site deployment unchanged during a preview swap.
+
+Record build IDs, commit and live URLs in the operation report, not as permanent
+KB values.

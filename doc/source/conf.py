@@ -240,7 +240,7 @@ mario_site = {
     "home_hero": {
         "title": "Input-output analysis in <mark>Python</mark>",
         "text": (
-            "Work with input-output and supply-use tables, from reading a database "
+            "Work with input-output, supply-use and national accounting tables, from reading a database "
             "to building scenarios and analysing impacts across regions and sectors."
         ),
         "install": True,
@@ -264,7 +264,7 @@ mario_site = {
                 {"label": "Installation", "doc": "get_started/index", "summary": "Install MARIO and prepare your Python environment."},
                 {"label": "Table formats", "key": "formats", "doc": "get_started/table_formats",
                  "prefixes": ["get_started/table_formats/"],
-                 "summary": "Read IOT and SUT structure, indices and matrix names."},
+                 "summary": "Read IOT, SUT and NAM structure, indices and matrix names."},
                 {"label": "Scenarios", "doc": "get_started/scenarios", "summary": "Organise and compare different model scenarios."},
             ],
         },

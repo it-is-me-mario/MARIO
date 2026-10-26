@@ -51,6 +51,7 @@ setup(
     include_package_data=True,
     packages=find_packages(include=("mario", "mario.*")),
     package_data={
+        "mario.model": ["nam_schema.json"],
         "mario.settings": ["*.yaml", "*.csv"],
         "mario.clusters": ["*.yaml", "*.xlsx"],
         "mario.parsers": ["*.csv", "*.yaml"],

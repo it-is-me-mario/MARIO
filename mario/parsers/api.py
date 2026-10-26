@@ -158,6 +158,17 @@ def build_database_from_state(
     if model == "ModelState":
         return state
 
+    if state.table_kind == TableKind.NAM:
+        from mario.api.nam import NAMDatabase
+
+        if kwargs:
+            raise WrongInput(f"Unsupported NAM initialization options: {sorted(kwargs)}.")
+        database = NAMDatabase(state, name=name, source=source, license=license,
+                               version=version, year=year, price=price)
+        if calc_all:
+            database.calc_all()
+        return database
+
     matrices, indexes, units = state_to_database_payload(state)
     metadata = state.metadata
 

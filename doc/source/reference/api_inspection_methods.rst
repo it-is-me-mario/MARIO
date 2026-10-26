@@ -4,6 +4,17 @@ Inspection and Data Access
 These methods help inspect a parsed database, retrieve matrices, inspect
 available sets, and read metadata or scenario information.
 
+NAM supports a subset of these names. Its exact signatures and supported
+properties are in :doc:`api_nam_database`. Use ``resolve`` to request NAM
+results and ``get_block`` to read available data; ``query``, ``get_data``,
+``search``, custom operator registration, clusters and profile/concordance
+methods currently apply to IOT/SUT.
+
+.. toctree::
+   :maxdepth: 1
+
+   api_nam_database
+
 Query and Block Access
 ----------------------
 

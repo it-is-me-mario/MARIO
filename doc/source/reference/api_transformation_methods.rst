@@ -2,6 +2,10 @@ Transformations and Scenarios
 =============================
 
 These methods change the structure or scenario state of a database.
+For NAM, only scenario cloning and native-block updates are implemented;
+see :doc:`api_nam_database`. NAM aggregation, table conversion, scenario
+renaming and shock propagation are not available.
+
 ``Database.aggregate(...)`` now also supports workbook-free Region
 aggregation through ``region_aggregation`` presets or explicit mappings.
 ``Database.ras(...)`` rebalances the ``Z`` block of an IOT scenario to target

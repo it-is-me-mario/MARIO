@@ -1,5 +1,6 @@
-<div class="table-map" data-table-map="sut">
-<div class="table-map__scroll"><table class="table-map__grid">
+<div class="table-map" data-table-map="sut"><div class="table-map__controls" data-table-mode-controls hidden role="group" aria-label="Matrix representation"><button type="button" data-table-mode-button="flows" aria-pressed="true">Flows</button><button type="button" data-table-mode-button="coefficients" aria-pressed="false">Coefficients</button></div><div class="table-map__mode" data-table-mode="flows">
+<div class="table-map__scroll" tabindex="0" role="region" aria-label="SUT flows block diagram; scroll horizontally on small screens">
+<table class="table-map__grid">
 <caption>SUT native flows · rows × columns</caption>
 <thead><tr><td></td>
 <th scope="col">Commodities</th>
@@ -7,34 +8,87 @@
 <th scope="col">Final demand</th>
 </tr></thead><tbody>
 <tr><th scope="row">Commodities</th>
-<td class="table-map__empty"><span aria-label="No native block">—</span></td>
-<td class="table-map__block is-core"><a href="#matrix-U" data-matrix-link="matrix-U"><code>U</code><span>Use</span></a></td>
-<td class="table-map__block is-demand"><a href="#matrix-Yc" data-matrix-link="matrix-Yc"><code>Yc</code><span>Final demand</span></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-core"><a href="#matrix-U" data-matrix-link="matrix-U" data-flow-name="U" data-row-domain="Commodities" data-column-domain="Activities" aria-label="U: Use transaction flows matrix"><code>U</code><span>Use</span></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-Yc" data-matrix-link="matrix-Yc" data-flow-name="Yc" data-row-domain="Commodities" data-column-domain="Final demand" aria-label="Yc: Final demand of commodities matrix"><code>Yc</code><span>Final demand</span></a></td>
 </tr>
 <tr><th scope="row">Activities</th>
-<td class="table-map__block is-core"><a href="#matrix-S" data-matrix-link="matrix-S"><code>S</code><span>Supply</span></a></td>
-<td class="table-map__empty"><span aria-label="No native block">—</span></td>
-<td class="table-map__block is-demand"><a href="#matrix-Ya" data-matrix-link="matrix-Ya"><code>Ya</code><span>Final demand</span></a></td>
+<td class="table-map__block is-core"><a href="#matrix-S" data-matrix-link="matrix-S" data-flow-name="S" data-row-domain="Activities" data-column-domain="Commodities" aria-label="S: Make transaction flows matrix"><code>S</code><span>Supply</span></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-demand"><a href="#matrix-Ya" data-matrix-link="matrix-Ya" data-flow-name="Ya" data-row-domain="Activities" data-column-domain="Final demand" aria-label="Ya: Final demand of activities matrix"><code>Ya</code><span>Final demand</span></a></td>
 </tr>
 <tr><th scope="row">Factors</th>
-<td class="table-map__block is-factors"><a href="#matrix-Vc" data-matrix-link="matrix-Vc"><code>Vc</code><span>Factors</span></a></td>
-<td class="table-map__block is-factors"><a href="#matrix-Va" data-matrix-link="matrix-Va"><code>Va</code><span>Factors</span></a></td>
-<td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY"><code>VY</code><span>Factors</span></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-Vc" data-matrix-link="matrix-Vc" data-flow-name="Vc" data-row-domain="Factors" data-column-domain="Commodities" aria-label="Vc: Value added transaction flows by commodity matrix"><code>Vc</code><span>Factors</span></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-Va" data-matrix-link="matrix-Va" data-flow-name="Va" data-row-domain="Factors" data-column-domain="Activities" aria-label="Va: Value added transaction flows by activity matrix"><code>Va</code><span>Factors</span></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY" data-flow-name="VY" data-row-domain="Factors" data-column-domain="Final demand" aria-label="VY: Value added transaction matrix for final demand"><code>VY</code><span>Factors</span></a></td>
 </tr>
 <tr><th scope="row">Satellite accounts</th>
-<td class="table-map__block is-satellite"><a href="#matrix-Ec" data-matrix-link="matrix-Ec"><code>Ec</code><span>Satellite accounts</span></a></td>
-<td class="table-map__block is-satellite"><a href="#matrix-Ea" data-matrix-link="matrix-Ea"><code>Ea</code><span>Satellite accounts</span></a></td>
-<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY"><code>EY</code><span>Satellite accounts</span></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-Ec" data-matrix-link="matrix-Ec" data-flow-name="Ec" data-row-domain="Satellite accounts" data-column-domain="Commodities" aria-label="Ec: Environmental transaction flows by commodity matrix"><code>Ec</code><span>Satellite accounts</span></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-Ea" data-matrix-link="matrix-Ea" data-flow-name="Ea" data-row-domain="Satellite accounts" data-column-domain="Activities" aria-label="Ea: Environmental transaction flows by activity matrix"><code>Ea</code><span>Satellite accounts</span></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY" data-flow-name="EY" data-row-domain="Satellite accounts" data-column-domain="Final demand" aria-label="EY: Environmental transaction flows matrix for final demand"><code>EY</code><span>Satellite accounts</span></a></td>
 </tr>
 </tbody></table></div><div class="table-map__definitions" aria-live="polite">
-<section id="matrix-U" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>U</code><span>Native flows</span></p><p class="table-map__description">Use transaction flows matrix</p><dl><dt>Rows</dt><dd>Region, Commodity</dd><dt>Columns</dt><dd>Region, Activity</dd></dl></section>
-<section id="matrix-Yc" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Yc</code><span>Native flows</span></p><p class="table-map__description">Final demand of commodities matrix</p><dl><dt>Rows</dt><dd>Region, Commodity</dd><dt>Columns</dt><dd>Region, Consumption category</dd></dl></section>
-<section id="matrix-S" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>S</code><span>Native flows</span></p><p class="table-map__description">Make transaction flows matrix</p><dl><dt>Rows</dt><dd>Region, Activity</dd><dt>Columns</dt><dd>Region, Commodity</dd></dl></section>
-<section id="matrix-Ya" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Ya</code><span>Native flows</span></p><p class="table-map__description">Final demand of activities matrix</p><dl><dt>Rows</dt><dd>Region, Activity</dd><dt>Columns</dt><dd>Region, Consumption category</dd></dl></section>
-<section id="matrix-Vc" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Vc</code><span>Native flows</span></p><p class="table-map__description">Value added transaction flows by commodity matrix</p><dl><dt>Rows</dt><dd>Factor of production*</dd><dt>Columns</dt><dd>Region, Commodity</dd></dl></section>
-<section id="matrix-Va" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Va</code><span>Native flows</span></p><p class="table-map__description">Value added transaction flows by activity matrix</p><dl><dt>Rows</dt><dd>Factor of production*</dd><dt>Columns</dt><dd>Region, Activity</dd></dl></section>
-<section id="matrix-VY" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>VY</code><span>Native flows</span></p><p class="table-map__description">Value added transaction matrix for final demand</p><dl><dt>Rows</dt><dd>Factor of production*</dd><dt>Columns</dt><dd>Region, Consumption category</dd></dl></section>
-<section id="matrix-Ec" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Ec</code><span>Native flows</span></p><p class="table-map__description">Environmental transaction flows by commodity matrix</p><dl><dt>Rows</dt><dd>Satellite account*</dd><dt>Columns</dt><dd>Region, Commodity</dd></dl></section>
-<section id="matrix-Ea" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Ea</code><span>Native flows</span></p><p class="table-map__description">Environmental transaction flows by activity matrix</p><dl><dt>Rows</dt><dd>Satellite account*</dd><dt>Columns</dt><dd>Region, Activity</dd></dl></section>
-<section id="matrix-EY" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>EY</code><span>Native flows</span></p><p class="table-map__description">Environmental transaction flows matrix for final demand</p><dl><dt>Rows</dt><dd>Satellite account*</dd><dt>Columns</dt><dd>Region, Consumption category</dd></dl></section>
+<section id="matrix-U" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>U</code><span>Native flows</span></p><p class="table-map__description">Use transaction flows matrix</p><dl><dt>Rows</dt><dd>Region, Commodity</dd><dt>Columns</dt><dd>Region, Activity</dd>
+</dl></section>
+<section id="matrix-Yc" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Yc</code><span>Native flows</span></p><p class="table-map__description">Final demand of commodities matrix</p><dl><dt>Rows</dt><dd>Region, Commodity</dd><dt>Columns</dt><dd>Region, Consumption category</dd>
+</dl></section>
+<section id="matrix-S" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>S</code><span>Native flows</span></p><p class="table-map__description">Make transaction flows matrix</p><dl><dt>Rows</dt><dd>Region, Activity</dd><dt>Columns</dt><dd>Region, Commodity</dd>
+</dl></section>
+<section id="matrix-Ya" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Ya</code><span>Native flows</span></p><p class="table-map__description">Final demand of activities matrix</p><dl><dt>Rows</dt><dd>Region, Activity</dd><dt>Columns</dt><dd>Region, Consumption category</dd>
+</dl></section>
+<section id="matrix-Vc" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Vc</code><span>Native flows</span></p><p class="table-map__description">Value added transaction flows by commodity matrix</p><dl><dt>Rows</dt><dd>Factor of production*</dd><dt>Columns</dt><dd>Region, Commodity</dd>
+</dl></section>
+<section id="matrix-Va" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Va</code><span>Native flows</span></p><p class="table-map__description">Value added transaction flows by activity matrix</p><dl><dt>Rows</dt><dd>Factor of production*</dd><dt>Columns</dt><dd>Region, Activity</dd>
+</dl></section>
+<section id="matrix-VY" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>VY</code><span>Native flows</span></p><p class="table-map__description">Value added transaction matrix for final demand</p><dl><dt>Rows</dt><dd>Factor of production*</dd><dt>Columns</dt><dd>Region, Consumption category</dd>
+</dl></section>
+<section id="matrix-Ec" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Ec</code><span>Native flows</span></p><p class="table-map__description">Environmental transaction flows by commodity matrix</p><dl><dt>Rows</dt><dd>Satellite account*</dd><dt>Columns</dt><dd>Region, Commodity</dd>
+</dl></section>
+<section id="matrix-Ea" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Ea</code><span>Native flows</span></p><p class="table-map__description">Environmental transaction flows by activity matrix</p><dl><dt>Rows</dt><dd>Satellite account*</dd><dt>Columns</dt><dd>Region, Activity</dd>
+</dl></section>
+<section id="matrix-EY" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>EY</code><span>Native flows</span></p><p class="table-map__description">Environmental transaction flows matrix for final demand</p><dl><dt>Rows</dt><dd>Satellite account*</dd><dt>Columns</dt><dd>Region, Consumption category</dd>
+</dl></section>
 </div></div>
+<div class="table-map__mode" data-table-mode="coefficients">
+<div class="table-map__scroll" tabindex="0" role="region" aria-label="SUT coefficients block diagram; scroll horizontally on small screens">
+<table class="table-map__grid">
+<caption>SUT coefficients · rows × columns</caption>
+<thead><tr><td></td>
+<th scope="col">Commodities</th>
+<th scope="col">Activities</th>
+<th scope="col">Final demand</th>
+</tr></thead><tbody>
+<tr><th scope="row">Commodities</th>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__block is-core"><a href="#matrix-u" data-matrix-link="matrix-u" data-flow-name="U" data-row-domain="Commodities" data-column-domain="Activities" aria-label="u: Use transaction coefficients matrix"><code>u</code><span>Use</span></a></td>
+<td class="table-map__unavailable"><span title="No built-in coefficient; this final-demand block remains an exogenous flow"><code>Yc</code><small>Exogenous flow</small></span></td>
+</tr>
+<tr><th scope="row">Activities</th>
+<td class="table-map__block is-core"><a href="#matrix-s" data-matrix-link="matrix-s" data-flow-name="S" data-row-domain="Activities" data-column-domain="Commodities" aria-label="s: Make transaction coefficients matrix - Market share or inverted product-mix matrix"><code>s</code><span>Supply</span></a></td>
+<td class="table-map__empty"><span aria-label="No native block in this representation">—</span></td>
+<td class="table-map__unavailable"><span title="No built-in coefficient; this final-demand block remains an exogenous flow"><code>Ya</code><small>Exogenous flow</small></span></td>
+</tr>
+<tr><th scope="row">Factors</th>
+<td class="table-map__block is-factors"><a href="#matrix-vc" data-matrix-link="matrix-vc" data-flow-name="Vc" data-row-domain="Factors" data-column-domain="Commodities" aria-label="vc: Value added transaction coefficients by commodity matrix"><code>vc</code><span>Factors</span></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-va" data-matrix-link="matrix-va" data-flow-name="Va" data-row-domain="Factors" data-column-domain="Activities" aria-label="va: Value added transaction coefficients by activity matrix"><code>va</code><span>Factors</span></a></td>
+<td class="table-map__unavailable"><span title="No built-in coefficient; this final-demand block remains an exogenous flow"><code>VY</code><small>Exogenous flow</small></span></td>
+</tr>
+<tr><th scope="row">Satellite accounts</th>
+<td class="table-map__block is-satellite"><a href="#matrix-ec" data-matrix-link="matrix-ec" data-flow-name="Ec" data-row-domain="Satellite accounts" data-column-domain="Commodities" aria-label="ec: Environmental transaction coefficients by commodity matrix"><code>ec</code><span>Satellite accounts</span></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-ea" data-matrix-link="matrix-ea" data-flow-name="Ea" data-row-domain="Satellite accounts" data-column-domain="Activities" aria-label="ea: Environmental transaction coefficients by activity matrix"><code>ea</code><span>Satellite accounts</span></a></td>
+<td class="table-map__unavailable"><span title="No built-in coefficient; this final-demand block remains an exogenous flow"><code>EY</code><small>Exogenous flow</small></span></td>
+</tr>
+</tbody></table></div><div class="table-map__definitions" aria-live="polite">
+<section id="matrix-u" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>u</code><span>Coefficients</span></p><p class="table-map__description">Use transaction coefficients matrix</p><dl><dt>Rows</dt><dd>Region, Commodity</dd><dt>Columns</dt><dd>Region, Activity</dd>
+</dl></section>
+<section id="matrix-s" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>s</code><span>Coefficients</span></p><p class="table-map__description">Make transaction coefficients matrix - Market share or inverted product-mix matrix</p><dl><dt>Rows</dt><dd>Region, Activity</dd><dt>Columns</dt><dd>Region, Commodity</dd>
+</dl></section>
+<section id="matrix-vc" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>vc</code><span>Coefficients</span></p><p class="table-map__description">Value added transaction coefficients by commodity matrix</p><dl><dt>Rows</dt><dd>Factor of production*</dd><dt>Columns</dt><dd>Region, Commodity</dd>
+</dl></section>
+<section id="matrix-va" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>va</code><span>Coefficients</span></p><p class="table-map__description">Value added transaction coefficients by activity matrix</p><dl><dt>Rows</dt><dd>Factor of production*</dd><dt>Columns</dt><dd>Region, Activity</dd>
+</dl></section>
+<section id="matrix-ec" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>ec</code><span>Coefficients</span></p><p class="table-map__description">Environmental transaction coefficients by commodity matrix</p><dl><dt>Rows</dt><dd>Satellite account*</dd><dt>Columns</dt><dd>Region, Commodity</dd>
+</dl></section>
+<section id="matrix-ea" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>ea</code><span>Coefficients</span></p><p class="table-map__description">Environmental transaction coefficients by activity matrix</p><dl><dt>Rows</dt><dd>Satellite account*</dd><dt>Columns</dt><dd>Region, Activity</dd>
+</dl></section>
+</div></div></div>

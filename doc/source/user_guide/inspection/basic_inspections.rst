@@ -8,7 +8,8 @@ Inspect and query a database
 
    :download:`Download notebook <basic_inspections.ipynb>`
 
-Start with the packaged IOT; use your parsed ``db`` in the same calls.
+Start with the packaged IOT; the same query pattern applies to parsed IOT/SUT
+databases. For NAM, use the dedicated section below.
 
 .. container:: mario-recipe
 
@@ -42,7 +43,8 @@ Sets, labels and scenarios
 
       ``db.scenarios`` lists the scenarios.
       ``db.list_matrices(scenario="baseline")`` shows what is stored.
-      ``db.available_matrices()`` lists quantities the runtime can resolve.
+      ``db.available_matrices()`` lists registered names. A registered result
+      can be calculated only when its required inputs are available.
 
 Read data
 ---------
@@ -69,6 +71,36 @@ over requested targets and scenarios.
 
    The inspection pattern stays the same; SUTs have separate activity and
    commodity sets and split matrix blocks. See :doc:`../../get_started/table_formats/sut`.
+
+Inspect a NAM
+-------------
+
+After :doc:`importing FIGARO-NAM </notebooks/parsers/figaro/walkthrough_figaro>`,
+inspect its sets and request data through the NAM resolver:
+
+.. code-block:: python
+
+   nam.sets
+   residents = nam.get_index("si_d")
+   stored = nam.list_matrices()
+   registered = nam.available_matrices()
+   consumption = nam.get_block("CF_d")
+   coefficients = nam.resolve("cf_d")
+   axes = nam.get_block_spec("MU")
+
+``CF_d`` receives consumption funding on rows and records the paying resident
+income sectors on columns. ``get_block`` reads available data without
+calculating it; ``resolve`` calculates a registered result when needed.
+An unavailable flow is absent from ``list_matrices()``, even though its name
+exists in the catalogue. ``has_matrix`` tests availability in that scenario,
+not whether every dependency of an uncomputed result can be resolved.
+
+National axes use ``Region / Set / Item``. FIGARO import rows also retain
+``origin_region`` and ``imported_commodity``; those origins are not extra
+reporting economies. ``nam.units`` is a dictionary of currency, scale and
+period. NAM does not implement ``query`` or ``search``; use ``get_index``
+and pandas selection on returned frames. See :doc:`/reference/api_nam_database`
+for exact signatures and :doc:`compute_matrices` for coefficients.
 
 .. mario-details:: BONSAI and other regional classifications
 

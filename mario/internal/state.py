@@ -4,22 +4,26 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import logging
+from typing import TYPE_CHECKING
 
 import pandas as pd
 
 from mario.compute.resolver import Resolver
-from mario.compute.types import ResolutionContext
+from mario.compute.types import AxisSpec, ResolutionContext
 from mario.internal.access import block_to_matrix, block_to_pandas, block_to_table
 from mario.internal.block import StoredBlock
 from mario.internal.metadata import ModelStateMetadata
 from mario.internal.scenario import ScenarioState
 from mario.log_exc.logger import log_time
-from mario.model.enums import TableKind
+from mario.model.enums import BlockRole, TableKind
 from mario.model.labels import INDEX_LABELS
 from mario.storage.base import BlockRepository
 from mario.storage.repository import InMemoryBlockRepository
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from mario.internal.nam import NAMSchema
 
 
 def _storage_key(scenario: str, name: str) -> str:
@@ -64,11 +68,19 @@ class ModelState:
     scenarios: dict[str, ScenarioState] = field(default_factory=dict)
     indexes: dict[str, dict[str, tuple[object, ...]]] = field(default_factory=dict)
     units: dict[str, object] = field(default_factory=dict)
+    nam_schema: NAMSchema | None = None
 
     def __post_init__(self) -> None:
         """Normalize constructor inputs and ensure a baseline scenario exists."""
         self.indexes = _normalize_indexes(self.indexes)
         self.units = _copy_units(self.units)
+        if self.table_kind == TableKind.NAM:
+            from mario.internal.nam import NAMSchema
+
+            if not isinstance(self.nam_schema, NAMSchema):
+                raise ValueError("NAM state requires an explicit NAMSchema.")
+        elif self.nam_schema is not None:
+            raise ValueError("NAMSchema is only valid for a NAM state.")
         if "baseline" not in self.scenarios:
             self.scenarios["baseline"] = ScenarioState(name="baseline")
         log_time(logger, f"ModelState: initialized for {self.table_kind.value}.", "debug")
@@ -114,15 +126,21 @@ class ModelState:
     def list_matrices(self, scenario: str = "baseline", include_inherited: bool = True) -> tuple[str, ...]:
         """List matrix names visible from one scenario."""
         if not include_inherited:
-            return self.scenarios[scenario].list_local_blocks()
+            names = self.scenarios[scenario].list_local_blocks()
+            return tuple(name for name in names if self.has_matrix(name, scenario))
 
         names: set[str] = set()
         for item in self._scenario_chain(scenario):
             names.update(item.blocks)
-        return tuple(sorted(names))
+        return tuple(sorted(name for name in names if self.has_matrix(name, scenario)))
 
     def has_matrix(self, name: str, scenario: str = "baseline") -> bool:
         """Return whether a matrix is available in a scenario chain."""
+        if self.table_kind == TableKind.NAM:
+            try:
+                return self._resolve_block_record(name, scenario).metadata.get("presence") != "unavailable"
+            except KeyError:
+                return False
         for item in self._scenario_chain(scenario):
             if item.has_local_block(name):
                 return True
@@ -134,10 +152,21 @@ class ModelState:
 
     def get_index(self, code: str, level: str = "main") -> tuple[object, ...]:
         """Return one logical index level stored on the state."""
+        if self.table_kind == TableKind.NAM:
+            if level != "main":
+                raise ValueError("NAM core exposes main memberships; aggregation is not implemented yet.")
+            if code in {"region", "Region", "r"}:
+                return tuple(self.nam_schema.memberships)
+            from mario.model.nam import NAM_SETS, nam_set_id
+
+            label = NAM_SETS[nam_set_id(code)]["label"]
+            return tuple(node for node in self.nam_schema.accounts() if node[1] == label)
         return tuple(self.indexes[code][level])
 
     def set_index(self, code: str, values, level: str = "main") -> None:
         """Store one logical index level on the state."""
+        if self.table_kind == TableKind.NAM:
+            raise NotImplementedError("Changing NAM membership requires a new validated schema and blocks.")
         levels = self.indexes.setdefault(code, {})
         levels[level] = tuple(values)
 
@@ -156,12 +185,24 @@ class ModelState:
         """Return the block metadata record visible from one scenario chain."""
         for item in self._scenario_chain(scenario):
             if item.has_local_block(name):
-                return item.get_local_block(name)
+                block = item.get_local_block(name)
+                if self.table_kind == TableKind.NAM and item.name != scenario:
+                    from mario.model.nam import NAM_DERIVED
+
+                    if name in NAM_DERIVED:
+                        continue
+                return block
         raise KeyError(name)
 
     def get_block(self, name: str, scenario: str = "baseline"):
         """Load one block value from the backing repository."""
         block = self._resolve_block_record(name, scenario=scenario)
+        if self.table_kind == TableKind.NAM:
+            if block.metadata.get("presence") == "unavailable":
+                from mario.log_exc.exceptions import DataMissing
+
+                raise DataMissing(f"NAM block {name} is unavailable in {scenario}.")
+            return self.repository.get(block.storage_key).copy(deep=True)
         return self.repository.get(block.storage_key)
 
     def set_block(
@@ -172,11 +213,14 @@ class ModelState:
         metadata: dict[str, object] | None = None,
     ) -> StoredBlock:
         """Store a block value and register its metadata in the scenario."""
+        if self.table_kind == TableKind.NAM:
+            value, metadata = self.nam_schema.prepare_block(name, value, metadata)
         if scenario not in self.scenarios:
             self.create_scenario(scenario, parent="baseline" if scenario != "baseline" else None)
 
         storage_key = _storage_key(scenario, name)
-        self.repository.put(storage_key, value)
+        if not (self.table_kind == TableKind.NAM and metadata["presence"] == "unavailable"):
+            self.repository.put(storage_key, value)
         block = StoredBlock.from_name(
             name=name,
             scenario=scenario,
@@ -184,6 +228,21 @@ class ModelState:
             table_kind=self.table_kind,
             metadata=metadata,
         )
+        if self.table_kind == TableKind.NAM:
+            from dataclasses import replace
+            from mario.model.nam import NAM_DERIVED, nam_block_role
+
+            if nam_block_role(name) == BlockRole.FLOW:
+                # Parent changes can invalidate descendants; cached results are
+                # cheap and never an authority, so clear them across scenarios.
+                for item in self.scenarios.values():
+                    for derived in NAM_DERIVED:
+                        item.blocks.pop(derived, None)
+                spec = self.nam_schema.block_spec(name)
+                block = replace(block, axes=AxisSpec(
+                    rows=tuple(axis.id for axis in spec.row_axes),
+                    cols=tuple(axis.id for axis in spec.col_axes)),
+                    role=BlockRole.VIEW if metadata["presence"] == "derived" else BlockRole.FLOW)
         self.scenarios[scenario].set_block(block)
         log_time(logger, f"ModelState: block {name} stored in {scenario}.", "debug")
         return block
@@ -255,13 +314,18 @@ class ModelState:
 
     def validate(self) -> dict[str, object]:
         """Return a lightweight validation summary of the current state."""
-        return {
+        result = {
             "table_kind": self.table_kind.value,
             "scenarios": self.list_scenarios(),
             "indexes": tuple(sorted(self.indexes)),
             "units": tuple(sorted(self.units)),
             "blocks": {scenario: self.list_matrices(scenario) for scenario in self.list_scenarios()},
         }
+        if self.table_kind == TableKind.NAM:
+            from mario.internal.nam import coverage
+
+            result["nam"] = {name: coverage(self, name) for name in self.list_scenarios()}
+        return result
 
     @classmethod
     def from_database(cls, database, repository: BlockRepository | None = None) -> "ModelState":

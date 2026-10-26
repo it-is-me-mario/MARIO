@@ -10,6 +10,27 @@ Export a database
 
 Choose a format by what you plan to do next.
 
+NAM currently uses its versioned native Excel format: ``nam.to_excel(...)``
+followed by ``mario.parse_from_excel(..., table="NAM", mode="flows")``.
+It preserves block states, native layouts and scenarios. The CSV/Parquet and
+coefficient options below apply to IOT/SUT; see :doc:`the NAM workflow
+</get_started/table_formats/nam>` for its template and supported operations.
+
+.. code-block:: python
+
+   # nam is an already parsed NAM database.
+   import mario
+
+   nam.to_excel("nam_native.xlsx")
+   restored = mario.parse_from_excel("nam_native.xlsx", table="NAM", mode="flows")
+   restored.resolve("cf_d")
+
+Totals, coefficients, ``T`` and ``B9_d``/``B9_f`` are calculated outputs;
+they are not additional workbook payments. Reload recomputes them from
+available flows. Keep the workbook's registry and metadata sheets with its
+values. The NAM format is distinct from FIGARO's source workbook and from
+the IOT/SUT Excel layouts below. See :doc:`/reference/api_nam_database`.
+
 .. mario-cards::
    :columns: 2
 

@@ -1,7 +1,13 @@
 Calculations
 ============
 
-These methods compute matrices, indicators and standalone IOT/SUT formula outputs.
+Each table format has its own accounting equations and resolvable blocks.
+IOT uses sector production, SUT separates activity and commodity production,
+and NAM extends account totals to all institutional and transaction sets.
+The API index and calculation pages label the relevant table formats.
+Standalone ``calc_*`` helpers document IOT or SUT formula conventions and
+operate on the supplied arrays; they do not inspect or dispatch on a database
+format. For NAM, use the database resolver and :doc:`api_nam_calculations`.
 For normal database workflows, prefer the database compute API because it
 understands scenarios, table format and already materialized matrices.
 
@@ -31,13 +37,19 @@ For example, :math:`F=f\operatorname{diag}(Y\mathbf{1})` returns accounts by
 production nodes. To retain the final-demand category columns, use the separate
 matrix product ``f @ Y`` instead.
 
-Coefficient helpers use an elementwise inverse of production, assigning zero
+Standalone IOT/SUT coefficient helpers use an elementwise inverse of production, assigning zero
 to inverse entries where production is zero. The notation
 :math:`\operatorname{diag}(X)^{-1}` describes this convention even when the
 diagonal matrix would be singular.
 
 Database Compute API
 --------------------
+
+``resolve``, ``resolve_many``, ``calc_all`` and ``explain`` support IOT, SUT
+and NAM, using each format's own catalogue. The analysis methods below apply
+to IOT/SUT; structural path analysis (``calc_spa``) currently requires IOT.
+NAM does not acquire IO inverses or closure rules by registering coefficients.
+
 
 .. list-table::
    :header-rows: 1
@@ -95,10 +107,11 @@ Database Compute API
   ../api_document/mario.Database.calc_trades_concentration
   ../api_document/mario.Database.calc_trades_exposure
   api_resolvable_matrices
+  api_nam_calculations
 
 
-Runtime Compute Options
------------------------
+IOT/SUT Runtime Compute Options
+-------------------------------
 
 Demand-driven matrices such as the ``X`` total production vector, the ``f``
 total (direct+indirect) environmental transaction coefficients matrix, the
@@ -165,7 +178,7 @@ Changing the policy does not recompute already materialized matrices.
 Resolvable Database Blocks
 --------------------------
 
-SUT and IOT results can also be requested as named blocks through
+IOT, SUT and NAM results can be requested as named blocks through
 ``db.resolve(...)``, ``db.resolve_many(...)``,
 ``db.calc_all(...)`` and dotted access such as ``db.Xa`` or ``db.wcc``.
 

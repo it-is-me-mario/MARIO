@@ -85,3 +85,42 @@ def test_all_public_calculation_helpers_have_reachable_function_pages():
         assert name in documented, f"Missing function page for mario.{name}"
         assert f"../api_document/{documented[name]}" in reference, name
         assert ".. math::" in function.__doc__, f"Missing formula for mario.{name}"
+
+
+def test_calculation_format_labels_follow_distinct_table_conventions():
+    from mario.compute.format_support import calculation_formats
+
+    assert calculation_formats('mario.calc_z') == ('IOT',)
+    assert calculation_formats('mario.calc_s') == ('SUT',)
+    assert calculation_formats('mario.CoreModel.lower_s') == ('SUT', 'NAM')
+    assert calculation_formats('mario.CoreModel.Xa') == ('SUT', 'NAM')
+    assert calculation_formats('mario.CoreModel.resolve') == ('IOT', 'SUT', 'NAM')
+    assert calculation_formats('mario.Database.calc_spa') == ('IOT',)
+    assert calculation_formats('mario.CoreModel.fc_ex_all') == ('SUT',)
+    reference = (DOC_ROOT / 'reference/api_calculation_methods.rst').read_text()
+    assert 'api_nam_calculations' in reference
+    assert 'api_nam_calculations' in (DOC_ROOT / 'get_started/table_formats/nam.rst').read_text()
+
+
+def test_nam_api_labels_include_supported_entrypoints_and_exclude_guarded_methods():
+    from mario.compute.format_support import api_formats
+
+    for symbol in ('mario.parse_figaro', 'mario.parse_from_excel', 'mario.write_parse_template',
+                   'mario.CoreModel.get_index', 'mario.CoreModel.set_block',
+                   'mario.Database.clone_scenario', 'mario.Database.to_excel'):
+        assert 'NAM' in api_formats(symbol), symbol
+    for symbol in ('mario.Database.query', 'mario.Database.aggregate',
+                   'mario.Database.to_parquet', 'mario.CoreModel.search',
+                   'mario.CoreModel.database_profile', 'mario.calc_s'):
+        assert 'NAM' not in api_formats(symbol), symbol
+
+
+def test_nam_interface_documents_its_actual_methods_and_is_reachable():
+    from mario.api.nam import NAMDatabase
+
+    page = (DOC_ROOT / 'reference/api_nam_database.rst').read_text()
+    for name in _public_direct_symbols(NAMDatabase):
+        assert re.search(rf'\b{re.escape(name)}\b', page), name
+    inspection = (DOC_ROOT / 'reference/api_inspection_methods.rst').read_text()
+    assert '   api_nam_database' in inspection
+    assert 'api_nam_database' in (DOC_ROOT / 'get_started/table_formats/nam.rst').read_text()

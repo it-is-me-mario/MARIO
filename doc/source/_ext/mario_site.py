@@ -22,6 +22,7 @@ from docutils import nodes
 from docutils.parsers.rst import Directive, directives
 from sphinx import addnodes
 from sphinx.util import logging
+from mario.compute.format_support import api_formats
 
 logger = logging.getLogger(__name__)
 
@@ -1174,12 +1175,26 @@ def _api_rows(app):
     root = app.config.mario_site.get("api_root", "reference/api_library")
     rows, seen = [], set()
     categories = []
+    nam_references = {
+        "reference/api_nam_calculations": ("NAM account totals and coefficients",
+            "X vectors and lowercase coefficients normalized by full paying-account totals."),
+        "reference/api_nam_database": ("NAM database interface",
+            "Supported NAM inspection, calculation, native-flow updates, scenarios and Excel persistence."),
+    }
     for group in _toc_groups(env, root):
         for title, category_doc in group["entries"]:
             category = _doc_title(env, category_doc, title).split(" and ")[0].strip()
             count = 0
             for sub in _toc_groups(env, category_doc):
                 for method_title, method_doc in sub["entries"]:
+                    if method_doc in nam_references and method_doc not in seen:
+                        seen.add(method_doc)
+                        name, summary = nam_references[method_doc]
+                        rows.append({"name": name, "doc": method_doc,
+                                     "category": category, "group": "NAM", "formats": ("NAM",),
+                                     "summary": summary})
+                        count += 1
+                        continue
                     if method_doc in seen or not method_doc.startswith("api_document/"):
                         continue
                     seen.add(method_doc)
@@ -1201,6 +1216,7 @@ def _api_rows(app):
                             "category": category,
                             "group": sub["caption"] or "",
                             "summary": summary,
+                            "formats": api_formats(method_doc.split("/", 1)[1]),
                         }
                     )
                     count += 1
@@ -1225,11 +1241,13 @@ def _render_api_index(app, doctree, fromdocname):
     for row in rows:
         href = app.builder.get_relative_uri(fromdocname, row["doc"])
         short = row["name"].removeprefix("mario.")
-        search = " ".join([row["name"], row["category"], row["group"], row["summary"]]).lower()
+        formats = row["formats"]
+        search = " ".join([row["name"], row["category"], row["group"], row["summary"], *formats]).lower()
         body.append(
-            f'<tr data-category="{esc(row["category"])}" data-search="{esc(search)}">'
+            f'<tr data-category="{esc(row["category"])}" data-formats="{" ".join(formats)}" data-search="{esc(search)}">'
             f'<td class="mario-api-table__name"><a href="{esc(href)}"><code>{esc(short)}</code></a></td>'
             f'<td class="mario-api-table__category"><span class="mario-pill">{esc(row["category"])}</span></td>'
+            f'<td class="mario-api-table__formats">{esc(" · ".join(formats)) if formats else "—"}</td>'
             f'<td class="mario-api-table__summary">{esc(row["summary"])}</td></tr>'
         )
     markup = f"""
@@ -1240,12 +1258,17 @@ def _render_api_index(app, doctree, fromdocname):
       <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
       <input type="search" placeholder="Filter entries, for example aggregate, calc or calc_u" autocomplete="off" spellcheck="false" data-api-filter>
     </label>
+    <label class="mario-field">Table format
+      <select data-api-format aria-label="Filter API entries by table format">
+        <option value="">All formats</option><option>IOT</option><option>SUT</option><option>NAM</option>
+      </select>
+    </label>
     <div class="mario-chips" role="group" aria-label="Filter by category">{"".join(chips)}</div>
   </div>
   <p class="mario-api-index__count" aria-live="polite" data-api-count>{len(rows)} entries</p>
   <div class="mario-scroll">
     <table class="mario-api-table">
-      <thead><tr><th scope="col">API</th><th scope="col">Category</th><th scope="col">Description</th></tr></thead>
+      <thead><tr><th scope="col">API</th><th scope="col">Category</th><th scope="col">Table formats</th><th scope="col">Description</th></tr></thead>
       <tbody>{"".join(body)}</tbody>
     </table>
   </div>
@@ -1367,6 +1390,24 @@ def _build_finished(app, exception):
     restricted.unlink(missing_ok=True)
 
 
+def _api_format_note(app, doctree, fromdocname):
+    if not fromdocname.startswith("api_document/"):
+        return
+    formats = api_formats(fromdocname.split("/", 1)[1])
+    if not formats:
+        return
+    paragraph = nodes.paragraph(classes=["mario-format-note"])
+    paragraph += nodes.strong("", "Table formats: ")
+    paragraph += nodes.Text(" · ".join(formats))
+    if "NAM" in formats and fromdocname.startswith(("api_document/mario.CoreModel.", "api_document/mario.Database.")):
+        paragraph += nodes.Text(". See the ")
+        paragraph += nodes.reference("", "NAM interface", refuri=app.builder.get_relative_uri(
+            fromdocname, "reference/api_nam_database"), internal=True)
+        paragraph += nodes.Text(" for its supported signature and options.")
+    section = next(iter(doctree.findall(nodes.section)), None)
+    (section if section is not None else doctree).insert(1, paragraph)
+
+
 def setup(app):
     app.add_js_file("mario.js", defer="defer")
     app.add_js_file("download-figure.js", defer="defer")
@@ -1392,6 +1433,7 @@ def setup(app):
     app.connect("env-purge-doc", _purge_doc)
     app.connect("env-merge-info", _merge_info)
     app.connect("doctree-resolved", _render_api_index)
+    app.connect("doctree-resolved", _api_format_note)
     app.connect("doctree-resolved", _render_docs_overview)
     app.connect("doctree-resolved", _finish_notebook_downloads)
     app.connect("html-page-context", _page_context)

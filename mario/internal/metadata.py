@@ -22,6 +22,11 @@ class ModelStateMetadata:
     history: list[str] = field(default_factory=list)
     extra: dict[str, object] = field(default_factory=dict)
 
+    def __post_init__(self):
+        self.table_kind = TableKind.coerce(self.table_kind)
+        if self.table_kind == TableKind.NAM and self.tech_assumption is not None:
+            raise ValueError("NAM does not select a SUT technology assumption.")
+
     def add_history(self, note: str) -> None:
         """Append one provenance or transformation note."""
         self.history.append(note)

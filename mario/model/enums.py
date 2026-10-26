@@ -10,6 +10,7 @@ class TableKind(str, Enum):
 
     IOT = "IOT"
     SUT = "SUT"
+    NAM = "NAM"
 
     @classmethod
     def coerce(cls, value: "TableKind | str") -> "TableKind":

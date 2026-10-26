@@ -8,6 +8,10 @@ Visualize results
 
    :download:`Download notebook <visualization.ipynb>`
 
+This plotting interface supports IOT/SUT databases. For NAM, retrieve a
+DataFrame with ``get_block`` or ``resolve`` and use an external plotting
+library; see :doc:`the NAM interface </reference/api_nam_database>`.
+
 .. container:: mario-recipe
 
    .. code-block:: python

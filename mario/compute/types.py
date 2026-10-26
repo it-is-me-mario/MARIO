@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import TypeAlias
 
-from mario.model.enums import TableKind
+from mario.model.enums import BlockRole, TableKind
 
 
 class StrategyKind(str, Enum):
@@ -195,6 +195,7 @@ class MatrixSpec:
     notes: tuple[str, ...] = ()
     todo: str | None = None
     alternate_names: tuple[str, ...] = ()
+    role: BlockRole | None = None
 
 
 @dataclass(frozen=True)

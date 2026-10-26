@@ -7,6 +7,12 @@ These guides change the structure of a *database* or add *scenarios* to it:
 aggregation, new extensions and sectors, shocks, and conversions between table
 formats.
 
+These transformation workflows apply to IOT/SUT. NAM currently supports
+cloning a scenario and replacing native flow blocks with ``set_block``;
+see :doc:`NAM scenarios </get_started/scenarios>` and the
+:doc:`NAM database reference </reference/api_nam_database>`.
+NAM aggregation, shock propagation and conversion to SUT are not implemented.
+
 .. list-table::
    :header-rows: 1
    :widths: 40 60

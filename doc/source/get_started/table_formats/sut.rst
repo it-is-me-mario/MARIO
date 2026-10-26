@@ -6,7 +6,7 @@
 Supply and Use Tables
 =====================
 
-:doc:`Table formats <../table_formats>` / :doc:`IOT <iot>` · **SUT**
+:doc:`Table formats <../table_formats>` / :doc:`IOT <iot>` · **SUT** · :doc:`NAM <nam>`
 
 A SUT separates **activities**, which produce, from **commodities**, which are
 produced and used. Their labels and counts can differ. The supply and use
@@ -15,7 +15,10 @@ blocks therefore need not be square.
 Structure and native matrices
 -----------------------------
 
-Select a block to see its definition and default axes.
+Select a block to see its definition and default axes. Switch between **Flows**
+and **Coefficients** to see the lowercase coefficient names with softer colours.
+Final-demand blocks without a registered coefficient remain labelled as
+exogenous flows in the coefficient view.
 
 .. raw:: html
    :file: ../_generated/sut_structure.html

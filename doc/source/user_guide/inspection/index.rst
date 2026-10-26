@@ -7,6 +7,12 @@ Use these guides once you have imported a database. For the meaning of
 regions, activities, commodities and sectors, see
 :doc:`Table formats <../../get_started/table_formats>`.
 
+For NAM, follow the dedicated sections in :doc:`basic_inspections`,
+:doc:`compute_matrices` and :doc:`export_and_roundtrip`. Clusters,
+classification concordances and source profiles below currently apply to
+IOT/SUT. The :doc:`NAM database reference </reference/api_nam_database>` lists
+the supported operations.
+
 .. list-table::
    :header-rows: 1
    :widths: 40 60

@@ -186,7 +186,9 @@ class MARIOMetaData:
         var:
             Table kind to store, typically ``"IOT"`` or ``"SUT"``.
         """
-        if var not in [*TABLE_LEVELS]:
-            raise WrongInput("table can be: {}".format(*TABLE_LEVELS))
+        from mario.model.enums import TableKind
+
+        if var not in {kind.value for kind in TableKind}:
+            raise WrongInput(f"Unsupported table kind: {var!r}.")
 
         self.__table = var

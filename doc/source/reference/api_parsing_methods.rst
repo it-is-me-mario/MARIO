@@ -4,8 +4,17 @@ Parsing and Data Loading
 These pages cover parser entry points, dataset-specific parsers, and related
 loading helpers.
 
+For NAM, use :func:`mario.parse_figaro` on local FIGARO source files, or
+:func:`mario.parse_from_excel` on a MARIO native NAM workbook. These are
+different layouts: a FIGARO T02 workbook is not a native MARIO export.
+See :doc:`the FIGARO guide </notebooks/parsers/figaro/walkthrough_figaro>`
+and :doc:`the NAM database interface <api_nam_database>`.
+
 Import Parser Data Into an Existing Database
 --------------------------------------------
+
+These in-place parser workflows apply to IOT/SUT. For NAM, import a new
+database, then clone a scenario and update native blocks as needed.
 
 .. toctree::
    :maxdepth: 1
