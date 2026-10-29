@@ -20,11 +20,12 @@ import pandas as pd
 from mario.log_exc.exceptions import WrongInput
 
 
-MODEL_REVISION = 'constant-reference-kl-v3'
+MODEL_REVISION = 'prior-floor-kl-v6'
 DEFAULTS = dict(model=None, accounting='strict', value_added_loss='legacy', flow_loss='kl', final_demand_weight=0.,
                 supply_weight=0., complete_intermediate_priors=False,
                 check_feasibility=False, feasibility_solver='HIGHS', scale=1.,compact_constraints=False,
-                defer_satellite_recalculation=False, require_finite_objective=False)
+                defer_satellite_recalculation=False, require_finite_objective=False,
+                prior_zero_tolerance=None, solution_cleanup=None)
 FLOW_TABLES = {'Z0','V0','X','Trade','Zold','Yold','Vold','Z_refine',
                'RowResidual','ColumnResidual','Y0','Z_use0','Z_supply0'}
 
@@ -71,6 +72,28 @@ def normalize_options(options):
     if len(matches) != 1:
         raise WrongInput('No packaged model matches these objective options.')
     result['model'] = matches[0]
+    prior_tol = result['prior_zero_tolerance']
+    if prior_tol is not None:
+        if (isinstance(prior_tol, bool) or not isinstance(prior_tol, (int, float))
+                or not np.isfinite(prior_tol) or prior_tol <= 0):
+            raise WrongInput('prior_zero_tolerance must be positive and finite, in original monetary units.')
+        if result['model'] != 'Split_sectors_MRIO_KL':
+            raise WrongInput('The prior-threshold experiment currently requires Split_sectors_MRIO_KL.')
+    cleanup = result['solution_cleanup']
+    if cleanup is not None:
+        if cleanup == 'postprocess':
+            cleanup = {'validation': 'report_only'}
+        keys = {'max_cell_adjustment', 'absolute_tolerance', 'relative_tolerance'}
+        report_only = cleanup == {'validation': 'report_only'}
+        if not report_only and (not isinstance(cleanup, dict) or set(cleanup) != keys):
+            raise WrongInput(f'solution_cleanup must be postprocess or contain exactly {sorted(keys)}.')
+        for key, value in ({} if report_only else cleanup).items():
+            if (isinstance(value, bool) or not isinstance(value, (int, float))
+                    or not np.isfinite(value) or value < 0):
+                raise WrongInput(f'solution_cleanup.{key} must be finite and nonnegative.')
+        if result['model'] != 'Split_sectors_MRIO_KL':
+            raise WrongInput('The solution-cleanup experiment currently requires Split_sectors_MRIO_KL.')
+        result['solution_cleanup'] = dict(cleanup)
     return result
 
 
@@ -100,6 +123,7 @@ def describe_model(options, *, staged=False):
                     'split_operators.py': hashlib.sha256((resources.files('mario.ops.cvxlab_models') / 'split_operators.py').read_bytes()).hexdigest(),
                     'Split_sectors/user_defined_operators.py': hashlib.sha256((resources.files('mario.ops.cvxlab_models') / 'Split_sectors/user_defined_operators.py').read_bytes()).hexdigest(),
                     'split_model.py': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+                    'split_solution.py': hashlib.sha256(Path(__file__).with_name('split_solution.py').read_bytes()).hexdigest(),
                 })
 
 
@@ -218,7 +242,7 @@ def model_active_kl(a, prior, zero_mask=None, signed=False, reference_floor=None
         vector = cp.multiply(np.where(q<0,-1.,1.),vector)
     # The floor is numerical support, not a source observation. Structural
     # exclusions remain fixed independently of the objective.
-    return cp.sum(model_constant_kl(vector,np.abs(q)+_entropy_floor(q, reference_floor)))
+    return cp.sum(model_constant_kl(vector,np.maximum(np.abs(q), _entropy_floor(q, reference_floor))))
 
 
 def model_signed_kl(a, prior, zero_mask=None, reference_floor=None):
@@ -337,6 +361,70 @@ def fill_model_inputs(instance, input_data, flat_matrices, set_map, scenario_lab
             raise WrongInput(f'Incomplete or nonfinite {name} model inputs.')
 
 
+def prepare_prior_references(input_data, options, destination):
+    """Threshold objective priors only, then floor positive/signed references.
+
+    Baseline flows, X, trade targets, accounting residuals and all masks remain
+    untouched. Y's sign is captured before thresholding, including small negative
+    priors, so its entropy domain cannot flip when the magnitude is set to zero.
+    V0 stays a signed net prior: its two references are floored in free_va_kl.
+    No output matrix or returned solver point is clipped by this function.
+    """
+    if options is None or options.get('prior_zero_tolerance') is None:
+        return
+    tolerance = float(options['prior_zero_tolerance'])
+    epsilon = tolerance * 1e-2
+    names = ['Z_use0', 'V0']
+    if options['final_demand_weight']:
+        names.append('Y0')
+    if options['supply_weight'] or options['complete_intermediate_priors']:
+        names.append('Z_supply0')
+    summary = dict(tolerance=tolerance, epsilon=epsilon, epsilon_factor=1e-2,
+                   units='original monetary units before scale division',
+                   scope='enabled objective priors only', reference_operation='maximum', tables={})
+    changed_rows = []
+    for name in names:
+        if name not in input_data:
+            continue
+        frame = input_data[name]
+        original = frame['values'].to_numpy(dtype=float, copy=True)
+        if not np.isfinite(original).all():
+            raise WrongInput(f'Nonfinite objective prior {name}.')
+        small = np.abs(original) < tolerance
+        cleaned = np.where(small, 0., original)
+        if name == 'V0':
+            # Never apply max to signed net Tax/TTM. The loss floors p/n separately.
+            reference = cleaned
+        elif name == 'Y0':
+            sign = np.where(original < 0., -1., 1.)
+            reference = sign * np.maximum(np.abs(cleaned), epsilon)
+        else:
+            if (cleaned < 0.).any():
+                raise WrongInput(f'Negative intermediate-input prior in {name}.')
+            reference = np.maximum(cleaned, epsilon)
+        changed = original != reference
+        summary['tables'][name] = dict(
+            cells=len(original), thresholded_nonzero=int((small & (original != 0)).sum()),
+            floored_references=int((np.abs(cleaned) < epsilon).sum()) if name != 'V0' else 0,
+            changed_cells=int(changed.sum()), negative_before=int((original < 0).sum()),
+            negative_after=int((reference < 0).sum()),
+            minimum_nonzero_absolute_before=float(np.abs(original[original != 0]).min()) if (original != 0).any() else None,
+            gross_amount_thresholded=float(np.abs(original[small]).sum()),
+            maximum_absolute_change=float(np.max(np.abs(reference-original), initial=0.)))
+        if changed.any():
+            audit = frame.loc[changed, [c for c in frame if c != 'values']].copy()
+            audit.insert(0, 'table', name)
+            audit['original_prior'] = original[changed]
+            audit['after_threshold'] = cleaned[changed]
+            audit['reference_written'] = reference[changed]
+            changed_rows.append(audit)
+        input_data[name] = frame.assign(values=reference)
+    destination = Path(destination)
+    (destination/'prior_preparation.json').write_text(json.dumps(summary, indent=2, allow_nan=False))
+    if changed_rows:
+        pd.concat(changed_rows, ignore_index=True).to_csv(destination/'prior_preparation.csv', index=False)
+
+
 def fill_numerical_controls(input_data, options, destination):
     """Compute support after input preparation/clipping and before unit scaling.
 
@@ -364,7 +452,13 @@ def fill_numerical_controls(input_data, options, destination):
                   rule='10 ** (floor(log10(min(abs(nonzero prior)))) - 4)',
                   scale=options['scale'], revision=MODEL_REVISION)
     if names:
-        record.update(entropy_support(input_data[name]['values'].to_numpy(dtype=float) for name in names))
+        if options.get('prior_zero_tolerance') is not None:
+            record.update(rule='prior_zero_tolerance * 1e-2',
+                          prior_zero_tolerance=options['prior_zero_tolerance'],
+                          coefficient=options['prior_zero_tolerance'] * 1e-2,
+                          reference_operation='maximum')
+        else:
+            record.update(entropy_support(input_data[name]['values'].to_numpy(dtype=float) for name in names))
         record['coefficient_scaled'] = record['coefficient'] / options['scale']
         _entropy_floor([], record['coefficient_scaled'])
     controls = dict(y_weight=options['final_demand_weight'], supply_weight=supply,
@@ -550,40 +644,138 @@ def solver_failure(exc):
     return isinstance(exc, (cp.error.SolverError, ImportError)) or type(exc).__module__.startswith(('mosek', 'gurobipy'))
 
 
+def _entropy_operand_diagnostics(expression, scale):
+    """Inspect the original returned operands; never project or change them."""
+    result, seen, pending = [], set(), [expression]
+    while pending:
+        node = pending.pop()
+        if id(node) in seen:
+            continue
+        seen.add(id(node))
+        pending.extend(getattr(node, 'args', []))
+        if type(node).__name__ not in ('entr', 'rel_entr', 'kl_div'):
+            continue
+        operands = []
+        for arg in node.args:
+            values = _array(arg.value)
+            negative = values < 0
+            operands.append(dict(shape=list(values.shape), negative_cells=int(negative.sum()),
+                                 zero_cells=int((values == 0).sum()),
+                                 minimum_original_units=float(values.min())*scale if values.size else None,
+                                 negative_flat_positions=np.flatnonzero(negative)[:10].tolist(),
+                                 variables=[v.name() for v in arg.variables()]))
+        result.append(dict(atom=type(node).__name__, operands=operands))
+    return result
+
+
 def verify_model_solution(model, destination, options):
+    """Validate the raw point, or an explicitly requested, audited projection."""
+    cleanup = (options or {}).get('solution_cleanup')
+    if cleanup is None:
+        return _verify_model_solution(model, destination, options)
+    if cleanup.get('validation') == 'report_only':
+        statuses = [row['problem'].status for frame in model.core.problem.numerical_problems.values()
+                    for _, row in frame.iterrows()]
+        if not statuses or any(status != 'optimal' for status in statuses):
+            raise WrongInput('Post-processing requires optimal solver status; other statuses remain distinct.')
+    from mario.ops.split_solution import project_solution, save_solution_snapshot
+    destination = Path(destination)
+    save_solution_snapshot(model, destination, 'returned_solution')
+    raw_error = None
+    try:
+        _verify_model_solution(model, destination, {**options, 'solution_cleanup': None})
+    except WrongInput as exc:
+        raw_error = str(exc)
+    for name in ('model_solution.json', 'constraint_diagnostics.json'):
+        path = destination / name
+        if path.exists():
+            path.rename(destination / ('raw_' + name))
+    audit = project_solution(model, destination, options)
+    audit['raw_validation_error'] = raw_error
+    try:
+        _verify_model_solution(model, destination, options, reevaluate_objective=True)
+        audit['status'] = ('postprocessed_pending_review' if cleanup.get('validation') == 'report_only'
+                           else 'accepted_with_cleanup')
+    except Exception as exc:
+        audit.update(status='rejected_after_cleanup', error=str(exc))
+        raise
+    finally:
+        save_solution_snapshot(model, destination, 'cleaned_solution')
+        (destination / 'solution_cleanup.json').write_text(json.dumps(audit, indent=2, allow_nan=False))
+
+
+def _verify_model_solution(model, destination, options, *, reevaluate_objective=False):
     """Report and validate every affine constraint/domain in original units."""
     if options is None:
         return
+    cleanup = options.get('solution_cleanup')
+    report_only = bool(cleanup and cleanup.get('validation') == 'report_only')
+    absolute_tolerance = cleanup.get('absolute_tolerance', 1e-6) if cleanup else 1e-6
+    relative_tolerance = cleanup.get('relative_tolerance', 1e-8) if cleanup else 1e-8
     records = []
     failures = 0
     nonfinite_objectives = 0
+    details = []
+    snapshots, snapshot_index = {}, []
     for key,frame in model.core.problem.numerical_problems.items():
         for scenario,row in frame.iterrows():
             problem = row['problem']
-            bad, worst = 0, 0.
-            for constraint in problem.constraints+problem.objective.expr.domain:
+            bad, strict_bad, worst = 0, 0, 0.
+            constraints = problem.constraints+problem.objective.expr.domain
+            for index, constraint in enumerate(constraints):
                 violation = _affine_constraint_violation(constraint)
                 if not np.isfinite(violation).all():
                     raise WrongInput('Nonfinite model solution constraint residual.')
                 reference = np.abs(_array(constraint.args[0].value))
                 if len(constraint.args) == 2:
                     reference = np.maximum(reference, np.abs(_array(constraint.args[1].value)))
-                bad += int(np.count_nonzero(violation > 1e-6/options['scale']+1e-8*reference))
+                exceeded = violation > absolute_tolerance/options['scale']+relative_tolerance*reference
+                strict_bad += int(np.count_nonzero(violation > 1e-6/options['scale']+1e-8*reference))
+                count = int(np.count_nonzero(exceeded))
+                bad += count
                 worst = max(worst,float(violation.max(initial=0.))*options['scale'])
+                positions = np.flatnonzero(exceeded)
+                if positions.size:
+                    positions = positions[np.argsort(violation.reshape(-1)[positions])[-5:][::-1]]
+                details.append(dict(problem=str(key), scenario=str(scenario), index=index,
+                    origin='explicit' if index < len(problem.constraints) else 'objective_domain',
+                    kind=type(constraint).__name__, variables=[v.name() for v in constraint.variables()],
+                    shape=list(violation.shape), cells=int(violation.size), failed_cells=count,
+                    max_violation_original_units=float(violation.max(initial=0.))*options['scale'],
+                    worst_failed_flat_positions=positions.tolist(),
+                    worst_failed_original_units=(violation.reshape(-1)[positions]*options['scale']).tolist()))
             stats = problem.solver_stats
-            objective = float(problem.value)*options['scale']
+            objective = float(problem.objective.value if reevaluate_objective else problem.value)*options['scale']
             records.append(dict(problem=str(key),scenario=str(scenario),status=problem.status,
                                 objective=objective if np.isfinite(objective) else None,
                                 objective_finite=bool(np.isfinite(objective)),failed_constraint_cells=bad,
                                 objective_required_finite=options['require_finite_objective'],
                                 max_constraint_violation=worst,solver_seconds=stats.solve_time))
+            if cleanup:
+                records[-1].update(validation='postprocessed_pending_review' if report_only else 'approximate_after_cleanup',
+                    residuals_enforced=not report_only, economic_review='pending',
+                    strict_failed_constraint_cells=strict_bad,
+                    absolute_tolerance_original_units=absolute_tolerance,
+                    relative_tolerance=relative_tolerance)
+            records[-1]['entropy_operands'] = _entropy_operand_diagnostics(problem.objective.expr, options['scale'])
+            if bad or not np.isfinite(objective):
+                for variable in getattr(problem, 'variables', lambda: [])():
+                    if variable.value is not None:
+                        label = f'variable_{len(snapshot_index)}'
+                        snapshots[label] = _array(variable.value)
+                        snapshot_index.append(dict(array=label, name=variable.name(),
+                                                   shape=list(variable.shape), problem=str(key), scenario=str(scenario)))
             if not np.isfinite(objective):
                 records[-1]['warning'] = ('Objective evaluation is nonfinite at the returned point; '
                                           'all explicit and implicit domain residuals are checked independently.')
                 nonfinite_objectives += 1
             failures += bad
     (Path(destination)/'model_solution.json').write_text(json.dumps(records,indent=2,allow_nan=False))
-    if nonfinite_objectives and options['require_finite_objective']:
+    (Path(destination)/'constraint_diagnostics.json').write_text(json.dumps(details,indent=2,allow_nan=False))
+    if snapshots and not reevaluate_objective:
+        np.savez_compressed(Path(destination)/'returned_solution_scaled.npz', **snapshots)
+        (Path(destination)/'returned_solution_index.json').write_text(json.dumps(snapshot_index, indent=2))
+    if nonfinite_objectives and options['require_finite_objective'] and not report_only:
         raise WrongInput('Nonfinite model solution objective; see model_solution.json. Try another solver without clipping the solution.')
-    if failures:
+    if failures and not report_only:
         raise WrongInput(f'{failures} split constraint cells exceed numerical precision; see model_solution.json.')

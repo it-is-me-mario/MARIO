@@ -189,7 +189,7 @@ def test_stop_after_named_step_saves_checkpoint_and_resumable_pending_plan(tmp_p
     pending=read_add_sector_workbook(first/'remaining_add_sectors.xlsx',table='IOT')
     assert pending.intermediate_steps=={'Refine second':['Refining']}
     assert set(pending.master_sheet.Sector)=={'Refining'}
-    assert len(list(checkpoints.iterdir()))==1
+    assert [p.name for p in checkpoints.iterdir() if p.is_dir()]==['001_Mine_first']
 
 
 def test_failed_second_solve_keeps_first_checkpoint_and_can_resume(tmp_path):

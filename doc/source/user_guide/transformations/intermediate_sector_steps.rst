@@ -1,3 +1,6 @@
+:page-type: guide
+:summary: Add IOT sector groups sequentially, preserve accepted checkpoints and choose whether to continue after a failed solve.
+
 Sequential IOT sector splits
 ============================
 
@@ -45,6 +48,64 @@ retains the later groups for resumption. An unknown or already completed stop
 name is rejected before starting a solve. Omitting the option executes every
 pending group.
 
+Continue after a failed step
+----------------------------
+
+Set ``on_step_failure="continue"`` to attempt subsequent groups after an
+optimisation failure. The default, ``"raise"``, stops and raises as before.
+Both policies preserve every preceding accepted checkpoint.
+
+.. code-block:: python
+
+   db.add_sectors(
+       "add_sectors.xlsx",
+       split=True,
+       intermediate_steps=True,
+       save_intermediates="run/checkpoints",
+       on_step_failure="continue",
+       solver="GUROBI",
+       split_model_options={
+           "model": "Split_sectors_MRIO_quadratic",
+           "accounting": "inherit",
+           "defer_satellite_recalculation": True,
+       },
+   )
+
+The option is independent of the chosen model or solver. If a solve fails,
+its candidate is discarded and the next group starts from the last accepted
+database. No production, trade target or source inventory is reassigned to
+another child. References to the absent sector are projected to its existing
+parent by the ordinary step compiler. The original detailed observations
+remain available for later refinement.
+
+Each pending group is attempted once per call. A column containing several
+sectors is atomic: the entire group succeeds or is deferred. Put one sector
+in each column for sector-by-sector continuation. A group depending on a
+deferred parent is recorded as ``blocked`` without calling the solver.
+Invalid inputs, unresolved classifications, programming errors and export
+errors still raise; the option handles recognised optimisation failures,
+not arbitrary exceptions. Numerical result acceptance is unchanged.
+
+``run_report.json`` in the checkpoint directory records completed, pending
+and deferred sectors and every attempt. Each call also retains its own
+``run_report_<run_id>.json``. These reports include failures after the last
+accepted checkpoint and the case where no group succeeds. Individual failed
+attempts retain ``failure.json`` and generated diagnostics in their staging
+directory. Checkpoints already saved remain immutable.
+
+Failed sectors remain in ``remaining_add_sectors.xlsx``. To attempt them
+again, load the last accepted checkpoint with
+``mario.ops.add_sector_steps.load_checkpoint`` and call ``add_sectors`` with
+the original or remaining workbook. Only absent sectors are attempted; there
+is no automatic retry loop. If every group failed, reuse the unchanged source
+database. When ``stop_after_step`` is supplied with the continue policy, the
+call returns after attempting that named group, including when it fails.
+
+See :meth:`mario.Database.add_sectors` for the argument contract and return
+behaviour. Data preparation and project-specific correspondences take place
+before this call; the dynamic projection to the current classification takes
+place inside MARIO.
+
 Inventory projection and preservation
 -------------------------------------
 
@@ -63,18 +124,18 @@ Resolved nonnegative sector coefficients and the standard three-level IOT axes
 are required for these deferred refinements. An aggregate inventory observation
 does not identify shares within the group it denotes.
 
-By default, each solved result is reaggregated to the preceding classification and checked
+Each solved result is reaggregated to the preceding classification and checked
 for Z, Y, V, E, X, EY and VY, with elementwise allowance
 ``1e-6 + 1e-8 * abs(reference)`` in each matrix's units. Supplied baseline
 accounting residuals are preserved; they are not repaired. Order can affect the
 final solution because earlier aggregates become binding constraints.
-New child columns must also satisfy their own input/output accounting. Each
+New child columns have input/output accounting constraints. Each
 final-demand cell is split within its preceding sign domain: negative stock
 changes remain permissible, while positive consumption cannot be offset by
 negative child consumption. For nonnegative source Z/Y, new negative flows
-below -1e-6 are rejected. Solver
+below -1e-6 are rejected by the historical acceptance path. Solver
 statuses, including ``optimal_inaccurate``, are retained in the checkpoint;
-acceptance also requires these independent numerical checks.
+the named MRIO models use the numerical export policy described below.
 
 Experimental convex split options
 ---------------------------------
@@ -145,8 +206,29 @@ for pending intermediate groups, with all accounting/weights/numerical controls
 and completed inventory fingerprints preserved. ``model_history`` records the
 actual models and solvers. The default remains False. The pipeline orchestrates
 this policy; a direct MARIO call selects one explicit formulation/solver.
-``require_finite_objective=True`` rejects a nonfinite objective without clipping
-the solver result; the entropy-first pipeline enables this additional check.
+For a named MRIO model, an ``optimal`` result is exported after projecting only
+forbidden signs and explicit structural zeros. This applies to KL, quadratic
+and the mixed MRIO formulations. Raw and cleaned points and all corrections
+are archived. Legitimate negative Y and Tax/TTM remain signed. No second solve,
+rebalancing or change to baseline, priors, targets or equations is involved.
+
+Monetary constraint, accounting and reaggregation residuals are reported for
+subsequent economic review, without a monetary rejection threshold. The
+reference tolerance above still defines diagnostic comparison flags; a false
+flag does not invalidate an optimal point. This also applies to monetary X/VY
+preservation checks after a checkpoint. Nonfinite returned data and incompatible
+coordinates remain errors, and other solver states are not promoted to optimal.
+An infinite objective evaluation is reported explicitly. The historical
+``split_model_options=None`` path retains its original acceptance checks.
+``state.json`` records ``numerical_validation_policy`` separately from the
+unchanged mathematical ``split_model_options`` and model fingerprint.
+See :doc:`../../api_document/mario.Database.add_sectors` for the API contract.
+
+Checkpoint resume compares the mathematical sources exactly while allowing a
+change to the dedicated postprocessing module ``split_solution.py``. Its full
+source hashes remain recorded, and a transition is recorded separately as
+``numerical_validation_code_transition``. Changes to workbooks, operators or
+model construction still require a fresh starting point.
 
 These factor domains and the adaptive entropy support change the model. Historical checkpoints
 remain readable, but cannot be resumed silently with the new experimental
@@ -190,7 +272,8 @@ that certificate can be much more expensive than the feasibility decision.
 An infeasible LP stops before optimization and writes ``feasibility.json``,
 including native status, numerical band and measured residuals. A feasible
 preflight establishes only feasibility within that band; the final solution
-must independently pass all constraint and conservation checks.
+is audited independently, with the named-MRIO monetary residuals retained as
+diagnostics under the export policy above.
 
 ``compact_constraints=True`` indexes structural/sign masks at their active
 coordinates and replaces exact two-sided bands with single equalities. These
@@ -201,7 +284,7 @@ before returning them. Numerical prior offsets scale with the flows. Baseline,
 inventory and checkpoint units remain unchanged. ``model_solution.json`` reports
 every explicit/domain constraint in original units. Nonfinite objective
 evaluation at a numerical domain boundary is reported explicitly; independent
-constraint and conservation checks still control acceptance. Solver status and
+constraint and conservation discrepancies are reported. Solver status and
 this warning must be considered when assessing optimality.
 
 Checkpoint state retains the normalized options. Changing them after completed

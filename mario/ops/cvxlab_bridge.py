@@ -140,6 +140,11 @@ def optimize_split_in_cvxlab(
                      split_model_options=split_model_options)
     instance._last_split_status = _cvxlab_problem_status_values(model.core.problem.problem_status)
     instance._last_split_solver = solver
+    instance.__dict__.pop('_last_split_solver_replay', None)
+    replay_path = dest_dir / 'solver_replay.json'
+    if replay_path.exists():
+        import json
+        instance._last_split_solver_replay = json.loads(replay_path.read_text())
     return _parse_split_results(dest_dir, flat_matrices, residue=residue)
 
 
@@ -166,26 +171,9 @@ def _run_split_model(model, *, dest_dir: Path, solver, solver_parameters, split_
                 force_overwrite=True,
             )
 
-        from mario.ops.split_model import check_feasibility
-        check_feasibility(model, dest_dir, split_model_options)
-        run_model_signature = inspect.signature(model.run_model).parameters
-        run_kwargs = _solver_verbosity_kwargs(model)
-        if "solution_mode" in run_model_signature:
-            run_kwargs["solution_mode"] = "parallel"
-        else:
-            run_kwargs["integrated_problems"] = False
-        if solver is not None:
-            run_kwargs["solver"] = solver
-        if solver_parameters is not None and "solver_settings" in run_model_signature:
-            # CVXLab forwards solver_settings to cvxpy's solve(); MOSEK options
-            # must be nested under ``mosek_params``. A bare ``mosek_params``
-            # kwarg of run_model would be swallowed by **kwargs and ignored.
-            if str(solver).upper() == "MOSEK" and "mosek_params" not in solver_parameters:
-                run_kwargs["solver_settings"] = {"mosek_params": solver_parameters}
-            else:
-                run_kwargs["solver_settings"] = solver_parameters
-
-        model.run_model(**run_kwargs)
+        from mario.ops.split_solution_replay import restore_saved_solution
+        if not restore_saved_solution(model, dest_dir):
+            _solve_initialized_split_model(model, dest_dir, solver, solver_parameters, split_model_options)
 
         if not _cvxlab_problem_solved_optimally(model.core.problem.problem_status):
             raise WrongInput(
@@ -193,9 +181,32 @@ def _run_split_model(model, *, dest_dir: Path, solver, solver_parameters, split_
             )
 
         from mario.ops.split_model import verify_model_solution
-        verify_model_solution(model, dest_dir, split_model_options)
+        from mario.ops.split_solution import effective_validation_options
+        validation_options = effective_validation_options(
+            split_model_options, _cvxlab_problem_status_values(model.core.problem.problem_status))
+        verify_model_solution(model, dest_dir, validation_options)
 
         model.load_results_to_database(force_overwrite=True)
+
+
+def _solve_initialized_split_model(model, dest_dir, solver, solver_parameters, split_model_options):
+    from mario.ops.split_model import check_feasibility
+    check_feasibility(model, dest_dir, split_model_options)
+    run_model_signature = inspect.signature(model.run_model).parameters
+    run_kwargs = _solver_verbosity_kwargs(model)
+    if "solution_mode" in run_model_signature:
+        run_kwargs["solution_mode"] = "parallel"
+    else:
+        run_kwargs["integrated_problems"] = False
+    if solver is not None:
+        run_kwargs["solver"] = solver
+    if solver_parameters is not None and "solver_settings" in run_model_signature:
+        # MOSEK options must be nested for CVXLab's CVXPY forwarding.
+        if str(solver).upper() == "MOSEK" and "mosek_params" not in solver_parameters:
+            run_kwargs["solver_settings"] = {"mosek_params": solver_parameters}
+        else:
+            run_kwargs["solver_settings"] = solver_parameters
+    model.run_model(**run_kwargs)
 
 
 def _solver_verbosity_kwargs(model) -> dict:
@@ -1209,7 +1220,7 @@ def _write_input_data(
         input_data["Zero_V_mask"], parent_vrow_zeros, join_cols=v_join_cols
     )
 
-    from mario.ops.split_model import fill_model_inputs, fill_numerical_controls, FLOW_TABLES
+    from mario.ops.split_model import fill_model_inputs, prepare_prior_references, fill_numerical_controls, FLOW_TABLES
     fill_model_inputs(instance, input_data, flat_matrices, set_map, scenario_label, split_model_options)
 
     #Remove values below the residue threshold, if specified.
@@ -1222,6 +1233,7 @@ def _write_input_data(
             magnitude = df["values"].abs() if table_name in _SIGNED_TABLES else df["values"]
             input_data[table_name] = df.assign(values=df["values"].where(magnitude >= threshold, 0))
 
+    prepare_prior_references(input_data, split_model_options, dest_dir)
     fill_numerical_controls(input_data, split_model_options, dest_dir)
     if split_model_options is not None:
         for table_name in FLOW_TABLES & input_data.keys():

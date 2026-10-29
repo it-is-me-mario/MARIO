@@ -6,10 +6,12 @@ from dataclasses import replace
 import hashlib
 from importlib.metadata import version
 import json
+import logging
 from pathlib import Path
 import re
 import tempfile
 import traceback
+from uuid import uuid4
 
 import numpy as np
 import pandas as pd
@@ -22,6 +24,32 @@ from mario.ops.add_sector_workbook import (
 )
 
 ATOL, RTOL = 1e-6, 1e-8
+logger = logging.getLogger(__name__)
+
+
+def _recoverable_step_failure(exc):
+    """Recognise failed optimisation without hiding schema or code errors."""
+    from mario.ops.split_model import solver_failure
+    if not isinstance(exc, ImportError) and solver_failure(exc):
+        return True
+    return isinstance(exc, WrongInput) and any(message in str(exc) for message in (
+        'CVXLab split optimization did not solve optimally',
+        'Linear split feasibility check returned',
+        'split constraint cells exceed numerical precision',
+        'Nonfinite model solution constraint residual', 'Nonfinite model solution objective',
+        'Step does not preserve preceding', 'Step introduced row-accounting discrepancies',
+        'New-sector columns are not balanced', 'Step introduced negative',
+        'Step changed the sign domain',
+    ))
+
+
+def _write_run_report(root, report):
+    """Keep each call's journal and a convenient latest copy, atomically."""
+    content = json.dumps(report, indent=2, allow_nan=False)
+    for name in (f"run_report_{report['run_id']}.json", 'run_report.json'):
+        temporary = root / f'.{name}.tmp'
+        temporary.write_text(content)
+        temporary.replace(root / name)
 
 
 class _SectorWorkbookWriter(OpenpyxlWriter):
@@ -213,6 +241,15 @@ def _collapse(frame, parents):
 
 def verify_preservation(before, after, parents, *, scenario="baseline", split_model_options=None):
     report = {}
+    cleanup = (split_model_options or {}).get('solution_cleanup')
+    report_only = bool(cleanup and cleanup.get('validation') == 'report_only')
+    atol = cleanup.get('absolute_tolerance', ATOL) if cleanup else ATOL
+    rtol = cleanup.get('relative_tolerance', RTOL) if cleanup else RTOL
+    if cleanup:
+        report['numerical_validation'] = dict(status='postprocessed_pending_review' if report_only else 'approximate_after_cleanup',
+            residuals_enforced=not report_only, economic_review='pending',
+            absolute_tolerance_original_units=atol, relative_tolerance=rtol,
+            strict_absolute_tolerance=ATOL, strict_relative_tolerance=RTOL)
     defer_e = bool((split_model_options or {}).get('defer_satellite_recalculation'))
     for name in ("Z", "Y", "V", "E", "X", "EY", "VY"):
         if name == 'E' and defer_e:
@@ -226,10 +263,17 @@ def verify_preservation(before, after, parents, *, scenario="baseline", split_mo
         actual = actual.reindex(index=expected.index, columns=expected.columns).to_numpy(dtype=float)
         reference = expected.to_numpy(dtype=float)
         difference = np.abs(actual - reference)
+        matrix_atol, matrix_rtol = (atol, rtol) if name in ('Z', 'Y', 'V') else (ATOL, RTOL)
         passed = np.isfinite(actual).all() and np.isfinite(reference).all() and (
-            difference <= ATOL + RTOL * np.abs(reference)).all()
+            difference <= matrix_atol + matrix_rtol * np.abs(reference)).all()
         report[name] = {"passed": bool(passed), "max_absolute_difference": float(difference.max(initial=0))}
-        if not passed:
+        if report_only and name in ('Z', 'Y', 'V', 'X', 'VY'):
+            report[name]['enforced'] = False
+        if cleanup and name in ('Z', 'Y', 'V'):
+            report[name]['strict_passed'] = bool((difference <= ATOL + RTOL * np.abs(reference)).all())
+        if not np.isfinite(actual).all() or not np.isfinite(reference).all():
+            raise WrongInput(f'Nonfinite values in reconstructed {name}.')
+        if not passed and not (report_only and name in ('Z', 'Y', 'V', 'X', 'VY')):
             raise WrongInput(f"Step does not preserve preceding {name}: {report[name]}")
     z, v, x = (after.resolve(name) for name in ("Z", "V", "X"))
     sector_level = "Sector" if "Sector" in z.columns.names else "Item"
@@ -246,18 +290,22 @@ def verify_preservation(before, after, parents, *, scenario="baseline", split_mo
         row_residual = after.resolve('Z').sum(axis=1)+after.resolve('Y').sum(axis=1)-x.iloc[:,0]
         row_difference = row_residual-targets['row']
         row_passed = np.isfinite(row_difference).all() and (
-            row_difference.abs() <= ATOL+RTOL*x.iloc[:,0].abs()).all()
+            row_difference.abs() <= atol+rtol*x.iloc[:,0].abs()).all()
         report['inherited_row_accounting'] = {
             'passed':bool(row_passed),'max_absolute_difference':float(row_difference.abs().max()),
             'max_absolute_inherited_residual':float(targets['row'].abs().max())}
-        if not row_passed:
+        if not np.isfinite(row_difference).all():
+            raise WrongInput('Nonfinite row-accounting discrepancies.')
+        if not row_passed and not report_only:
             raise WrongInput(f"Step introduced row-accounting discrepancies: {report['inherited_row_accounting']}")
     difference = residual-expected
-    passed = np.isfinite(difference).all() and (np.abs(difference) <= ATOL + RTOL * np.abs(production)).all()
+    passed = np.isfinite(difference).all() and (np.abs(difference) <= atol + rtol * np.abs(production)).all()
     report["new_sector_column_accounting"] = {"passed": bool(passed),
         "max_absolute_difference": float(np.abs(difference).max(initial=0)),
         "max_absolute_inherited_residual": float(np.abs(expected).max(initial=0))}
-    if not passed:
+    if not np.isfinite(difference).all():
+        raise WrongInput('Nonfinite column-accounting discrepancies.')
+    if not passed and not report_only:
         raise WrongInput(f"New-sector columns are not balanced: {report['new_sector_column_accounting']}")
     for name in ("Z", "Y"):
         baseline = before.resolve(name, scenario=scenario).to_numpy(dtype=float)
@@ -435,8 +483,24 @@ def load_checkpoint(path):
     return database
 
 
+def compatible_model_definition(recorded, current):
+    """Compare the mathematical definition separately from export-policy code.
+
+    Keep the complete source hashes in each checkpoint. Only the dedicated
+    postprocessing module may change without invalidating the preceding solve;
+    workbooks, operators, model construction and all other fields stay exact.
+    """
+    def mathematical(definition):
+        if not isinstance(definition, dict):
+            return definition
+        shared = dict(definition.get('shared_operators_sha256', {}))
+        shared.pop('split_solution.py', None)
+        return {**definition, 'shared_operators_sha256': shared}
+    return mathematical(recorded) == mathematical(current)
+
+
 def run_intermediate_steps(instance, *, io, scenario, inplace, split, save_intermediates, options,
-                           stop_after_step=None, allow_model_change=False):
+                           stop_after_step=None, allow_model_change=False, on_step_failure="raise"):
     if not save_intermediates:
         raise WrongInput("save_intermediates is mandatory when intermediate_steps=True.")
     if instance.table_type != "IOT" or not split:
@@ -469,8 +533,17 @@ def run_intermediate_steps(instance, *, io, scenario, inplace, split, save_inter
                 or any(preceding_options[k] != model_options[k] for k in model_options.keys() - objective_keys)):
             raise WrongInput('Split model options changed; only an explicit named-objective transition with '
                              'unchanged accounting, weights and numerical controls is allowed.')
-    if completed and preceding_options is not None and state.get('model_definition') != describe_model(preceding_options, staged=True):
-        raise WrongInput('Packaged split model definition changed; restart before the completed steps.')
+    validation_code_transition = None
+    if completed and preceding_options is not None:
+        recorded_definition = state.get('model_definition')
+        current_definition = describe_model(preceding_options, staged=True)
+        if not compatible_model_definition(recorded_definition, current_definition):
+            raise WrongInput('Packaged split model definition changed; restart before the completed steps.')
+        if recorded_definition != current_definition:
+            validation_code_transition = dict(
+                module='split_solution.py', reason='postprocessing_policy_only',
+                previous_sha256=recorded_definition.get('shared_operators_sha256', {}).get('split_solution.py'),
+                current_sha256=current_definition['shared_operators_sha256'].get('split_solution.py'))
     plan, parents = validate_plan(workbook, target.get_index("Sector"), completed=completed)
     if stop_after_step is not None and stop_after_step not in [name for name, _ in plan]:
         raise WrongInput("stop_after_step must name a pending group in Intermediate steps.")
@@ -486,30 +559,60 @@ def run_intermediate_steps(instance, *, io, scenario, inplace, split, save_inter
     root = Path(save_intermediates)
     root.mkdir(parents=True, exist_ok=True)
     counter = state.get("step_index", 0)
+    deferred = set(state.get('deferred_sectors', [])) - set(target.get_index('Sector'))
+    report = dict(format='mario-sector-steps-report-v1', run_id=uuid4().hex,
+                  status='running', on_step_failure=on_step_failure,
+                  stop_after_step=stop_after_step, attempts=[], last_checkpoint_this_call=None)
+
+    def save_report(status):
+        pending = set(workbook.master_sheet['Sector']) - set(target.get_index('Sector'))
+        report.update(status=status, completed_sectors=list(
+            getattr(target, '_intermediate_steps_state', {}).get('completed_sectors', [])),
+            pending_sectors=sorted(pending), deferred_sectors=sorted(deferred & pending))
+        _write_run_report(root, report)
+        target._intermediate_steps_report = json.loads(json.dumps(report))
+
+    save_report('running')
     for name, sectors in plan:
         counter += 1
         slug = re.sub(r"[^\w-]+", "_", name, flags=re.UNICODE).strip("_")[:50] or "step"
         destination = root / f"{counter:03d}_{slug}"
         if destination.exists():
+            report['error'] = f'Checkpoint already exists: {destination}'
+            save_report('failed')
             raise FileExistsError(f"Checkpoint already exists: {destination}")
-        compiled = compile_step(workbook, sectors, target.get_index("Sector"), parents)
         staging = Path(tempfile.mkdtemp(prefix=f".{counter:03d}_{slug}_", dir=root))
-        candidate = target.copy()
-        _attach(candidate, compiled)
-        candidate._intermediate_refinement = refinement_priors(target, canonical, sectors, parents)
-        refinement_count = len(candidate._intermediate_refinement)
-        write_workbook_payload(compiled, staging / "step_add_sectors.xlsx", instance=target)
-        solve_options = dict(options)
-        work_root = Path(solve_options.pop("cvxlab_path")) / destination.name if options.get("cvxlab_path") else staging / "cvxlab"
-        work_root.mkdir(parents=True, exist_ok=True)
-        solve_options["cvxlab_path"] = work_root
+        attempt = dict(step=name, step_index=counter, sectors=list(sectors),
+                       status='running', directory=str(staging), phase='compile')
+        report['attempts'].append(attempt)
+        save_report('running')
+        missing_parents = {parents[s] for s in sectors} - set(target.get_index('Sector'))
+        blocked = bool(missing_parents) and missing_parents <= deferred
         try:
+            if blocked:
+                raise WrongInput(f'Step depends on deferred parent sectors: {sorted(missing_parents)}')
+            compiled = compile_step(workbook, sectors, target.get_index("Sector"), parents)
+            candidate = target.copy()
+            _attach(candidate, compiled)
+            candidate._intermediate_refinement = refinement_priors(target, canonical, sectors, parents)
+            refinement_count = len(candidate._intermediate_refinement)
+            write_workbook_payload(compiled, staging / "step_add_sectors.xlsx", instance=target)
+            solve_options = dict(options)
+            work_root = Path(solve_options.pop("cvxlab_path")) / destination.name if options.get("cvxlab_path") else staging / "cvxlab"
+            work_root.mkdir(parents=True, exist_ok=True)
+            solve_options["cvxlab_path"] = work_root
+            attempt['phase'] = 'solve'
             try:
                 candidate.add_sectors(io="inventories", scenario=scenario, split=True, **solve_options)
             finally:
                 candidate.__dict__.pop("_intermediate_refinement", None)
+            from mario.ops.split_solution import effective_validation_options
+            attempt['phase'] = 'validate'
+            validation_options = effective_validation_options(
+                model_options, getattr(candidate, '_last_split_status', []))
             preservation = verify_preservation(target, candidate, {s: parents[s] for s in sectors}, scenario=scenario,
-                                               split_model_options=model_options)
+                                               split_model_options=validation_options)
+            attempt['phase'] = 'export'
             candidate.to_parquet(path=staging / "database", flows=True, coefficients=False, include_meta=True)
             write_workbook_payload(_remaining(workbook, candidate.get_index("Sector")),
                                    staging / "remaining_add_sectors.xlsx", instance=candidate)
@@ -517,14 +620,20 @@ def run_intermediate_steps(instance, *, io, scenario, inplace, split, save_inter
             completed = list(dict.fromkeys([*completed, *sectors]))
             fingerprints.update({s: _fingerprint(workbook, s) for s in sectors})
             canonical.update({s: _canonical_record(workbook, s, parents) for s in sectors})
+            deferred.difference_update(sectors)
+            cleanup = (validation_options or {}).get('solution_cleanup')
             state = {"format": "mario-sector-steps-v1", "status": "complete", "step_index": counter,
                      "step_name": name, "step_sectors": sectors, "completed_sectors": completed,
                      "sector_fingerprints": fingerprints, "preservation": preservation,
                      "sector_parents": parents, "canonical_inventories": canonical,
+                     "on_step_failure": on_step_failure, "deferred_sectors": sorted(deferred),
                      "refinement_prior_cells": refinement_count,
                      "runtime": {p: version(p) for p in ("mariopy", "cvxlab", "pandas", "cvxpy")},
                      "solver_status": getattr(candidate, "_last_split_status", []),
+                     "solver_replay": getattr(candidate, '_last_split_solver_replay', None),
                      "split_model_options": model_options,
+                     "numerical_validation_policy": cleanup,
+                     "numerical_validation_code_transition": validation_code_transition,
                      "split_model_revision": MODEL_REVISION if model_options is not None else None,
                      "model_definition": getattr(candidate, '_last_split_model_definition', None),
                      "model_history": [*state.get('model_history', []), dict(
@@ -535,20 +644,40 @@ def run_intermediate_steps(instance, *, io, scenario, inplace, split, save_inter
                          explicit_model_change=bool(state.get('completed_sectors') and
                              normalize_options(state.get('split_model_options')) != model_options))],
                      "pending_recalculations": ['E'] if preservation['E'].get('requires_recalculation') else [],
-                     "tolerances": {"absolute": ATOL, "relative": RTOL},
+                     "tolerances": {"absolute": cleanup.get('absolute_tolerance', ATOL) if cleanup else ATOL,
+                                    "relative": cleanup.get('relative_tolerance', RTOL) if cleanup else RTOL,
+                                    "monetary_residuals_enforced": not bool(cleanup and cleanup.get('validation') == 'report_only')},
                      "files": {str(p.relative_to(staging)): _digest(p)
                                for p in (staging / "database").rglob("*") if p.is_file()}}
             (staging / "state.json").write_text(json.dumps(state, indent=2, allow_nan=False))
             staging.rename(destination)
         except Exception as exc:
+            recoverable = blocked or (attempt['phase'] in ('solve', 'validate') and _recoverable_step_failure(exc))
+            attempt.update(status='blocked' if blocked else 'failed', error=str(exc),
+                           error_type=type(exc).__name__, recoverable=recoverable)
             (staging / "failure.json").write_text(json.dumps({"step": name, "sectors": sectors,
                 "error": str(exc), "traceback": traceback.format_exc(),
-                "status": "failed", "completed_sectors": completed}, indent=2))
+                "status": attempt['status'], "completed_sectors": report['completed_sectors'],
+                "phase": attempt['phase'], "recoverable": recoverable}, indent=2))
+            if on_step_failure == 'continue' and recoverable:
+                deferred.update(sectors)
+                save_report('running')
+                logger.warning('Step %r %s; retaining the preceding database and continuing: %s',
+                               name, attempt['status'], exc)
+                if name == stop_after_step:
+                    break
+                continue
+            save_report('failed')
             raise
         candidate._intermediate_steps_state = state
         target.__dict__.clear()
         target.__dict__.update(candidate.__dict__)
+        attempt.update(status='accepted', phase='complete', directory=str(destination))
+        report['last_checkpoint_this_call'] = str(destination)
+        save_report('running')
+        validation_code_transition = None
         scenario = "baseline"
         if name == stop_after_step:
             break
+    save_report('partial' if report['deferred_sectors'] else 'stopped' if report['pending_sectors'] else 'complete')
     return None if inplace else target

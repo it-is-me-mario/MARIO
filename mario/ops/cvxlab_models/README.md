@@ -120,11 +120,22 @@ The quadratic normalisation retains its separate `Reference_floor` of
 `1e-8/scale`; this change does not reweight the quadratic objective. The original
 historical `Split_sectors` and SUT formulations retain their own numerical rules.
 
-`require_finite_objective=True` rejects an infinite/NaN objective even when affine
-residuals pass. The entropy-first pipeline enables it, so numerical negative
-entropy operands trigger a solver retry without clipping values. The default
-False retains the earlier residual-only compatibility behaviour for direct calls,
-with the nonfinite objective still reported explicitly.
+For an **optimal** named MRIO solution, MARIO projects forbidden signs and
+explicit structural zeros after solving, for both entropy and quadratic models.
+Legitimate negative Y and Tax/TTM remain signed. The raw point, cleaned point and
+every correction are archived. Monetary constraint, accounting and reaggregation
+residuals are diagnostic, without a dollar rejection limit; their measured
+comparison flags remain visible even when false. Economic review remains pending.
+No second optimization or rebalancing is performed, and no input, target or
+mathematical constraint is changed. The export policy is recorded separately
+from the normalized mathematical model settings and their fingerprint.
+
+`require_finite_objective` is retained in the model settings for compatibility.
+An optimal named MRIO point with a nonfinite objective evaluation is reported
+explicitly rather than retried solely for that evaluation. Nonfinite returned
+data, incompatible coordinates and nonoptimal solver states remain distinct.
+The historical model selected with `split_model_options=None` retains its
+original acceptance path.
 
 The old `flow_loss`, `value_added_loss`, `complete_intermediate_priors` options
 still select the corresponding explicit folder. A named model plus conflicting
@@ -164,8 +175,9 @@ numerically supported reference. This is exactly
 and preserves the domain `x >= 0`. Computing the constant `log(q)` before
 canonicalisation avoids placing tiny prior values directly in exponential-cone
 coordinates. No prior, adaptive-support coefficient, weight or physical constraint
-is altered. Negative entropy operands remain outside the domain and are not
-clipped during verification. Relative-entropy/legacy operators are unchanged.
+is altered. Negative entropy operands remain outside the mathematical domain;
+their numerical sign projection takes place only in the audited postprocessing
+of an optimal returned point. Relative-entropy/legacy operators are unchanged.
 
 This representation resolves a small regression example where direct KL returns
 MOSEK `UNKNOWN` with references as small as `1e-25` in scaled units. The real

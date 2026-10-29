@@ -198,3 +198,27 @@ def test_fully_allocated_parent_only_accepts_floating_point_roundoff(scale, exce
         assert output.at[(region, MI["s"], "n1"), "production"] == 0.1 * scale
         assert output.at[(region, MI["s"], "n2"), "production"] == 0.2 * scale
         assert output.loc[(region, MI["s"], ["a", "n1", "n2"]), "production"].sum() == pytest.approx(0.3 * scale, rel=4e-16, abs=0)
+
+
+@pytest.mark.parametrize("excess", [0.0, 1.0])
+def test_sequential_output_guard_accounts_for_preceding_sibling_roundoff(excess):
+    instance = _build_instance(0, {"n1": "a"})
+    parent = 277.47861966698247
+    requested = 277.4786196669839 + excess
+    for region in REGIONS:
+        instance.X.at[(region, MI["s"], "a"), "production"] = parent
+        instance.X.at[(region, MI["s"], "b"), "production"] = 1280.599679742415
+    instance._intermediate_steps_state = {
+        "completed_sectors": ["b"], "sector_parents": {"b": "a"}
+    }
+    instance.split_info[ADD_SECTOR_SPLIT_OUTPUT_SHEET]["Quantity"] = requested
+    if excess:
+        with pytest.raises(WrongInput, match="larger than parent"):
+            build_split_flow_scenario(instance)
+        return
+    scenario = build_split_flow_scenario(instance)
+    output = instance.matrices[scenario][_ENUM["X"]]
+    for region in REGIONS:
+        assert output.at[(region, MI["s"], "a"), "production"] == 0.0
+        assert output.at[(region, MI["s"], "n1"), "production"] == requested
+        assert output.at[(region, MI["s"], "b"), "production"] == 1280.599679742415

@@ -72,7 +72,8 @@ def _positive_loss(a, prior, zero, selector, floor, *, legacy=False):
         raise WrongInput('Negative Capital/Labor or other nonnegative-factor prior in an entropy model. '
                          'Correct the source explicitly or use the constrained quadratic model; '
                          'priors are never silently made positive.')
-    reference = q + _entropy_floor(q, scalar(floor))
+    epsilon = _entropy_floor(q, scalar(floor))
+    reference = q + epsilon if legacy else np.maximum(q, epsilon)
     return cp.sum(cp.rel_entr(vector, reference) if legacy else model_constant_kl(vector, reference))
 
 
@@ -93,7 +94,13 @@ def _free_loss(positive, negative, prior, zero, selector, floor, *, legacy=False
     loss = cp.rel_entr if legacy else model_constant_kl
     # Both components have positive numerical support. Neither prior sign is a
     # hard domain for the net value V = positive - negative.
-    return cp.sum(loss(p, np.maximum(q, 0) + epsilon) + loss(n, np.maximum(-q, 0) + epsilon))
+    if legacy:
+        positive_reference = np.maximum(q, 0) + epsilon
+        negative_reference = np.maximum(-q, 0) + epsilon
+    else:
+        positive_reference = np.maximum(np.maximum(q, 0), epsilon)
+        negative_reference = np.maximum(np.maximum(-q, 0), epsilon)
+    return cp.sum(loss(p, positive_reference) + loss(n, negative_reference))
 
 
 def free_va_kl(positive, negative, prior, zero, selector, floor):

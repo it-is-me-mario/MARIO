@@ -244,6 +244,31 @@ def build_split_flow_scenario(
 
     old_X = copy.deepcopy(instance.X)
     X = copy.deepcopy(old_X)
+    all_regions = list(instance.get_index(MI["r"]))
+    production_col = X.columns.get_loc("production")
+    region_positions = {region: i for i, region in enumerate(all_regions)}
+    sibling_counts = Counter(sector_to_parent_map[s] for s in getattr(instance, "to_split_sectors", []))
+    history = getattr(instance, "_intermediate_steps_state", {})
+    historical_parents = history.get("sector_parents", {})
+    output_roundoff = {}
+    for parent, count in sibling_counts.items():
+        rows = _row_positions(old_X.index, all_regions, parent)
+        magnitude = abs(old_X.iloc[rows, production_col].to_numpy(dtype=float))
+        terms = count + 1
+        # A later step subtracts from an already rounded residual. Include the
+        # preceding sibling allocations when bounding accumulated subtraction.
+        for sibling in history.get("completed_sectors", []):
+            if historical_parents.get(sibling) == parent:
+                previous_rows = _row_positions(old_X.index, all_regions, sibling)
+                # The original family total and the subtracted allocations
+                # both contain each preceding sibling's output.
+                magnitude += 2 * abs(old_X.iloc[previous_rows, production_col].to_numpy(dtype=float))
+                terms += 1
+        for sector in getattr(instance, "to_split_sectors", []):
+            if sector_to_parent_map[sector] == parent:
+                for _, row in split_output.loc[split_output[sector_col] == sector].iterrows():
+                    magnitude[region_positions[row[region_col]]] += abs(float(row[quantity_col]))
+        output_roundoff[parent] = terms * np.finfo(float).eps * magnitude
 
     for sector in getattr(instance, "to_split_sectors", []):
         parent_sector = sector_to_parent_map[sector]
@@ -253,7 +278,8 @@ def build_split_flow_scenario(
             region = row[region_col]
             quantity = float(row[quantity_col])
             parent_output = float(old_X.loc[(region, MI["s"], parent_sector), "production"])
-            if quantity > parent_output:
+            roundoff = output_roundoff[parent_sector][region_positions[region]]
+            if quantity > parent_output and quantity - parent_output > roundoff:
                 raise WrongInput(
                     f"Split sector output larger than parent sector: sector '{sector}' in region "
                     f"'{region}' has output {quantity} which exceeds parent '{parent_sector}' output {parent_output}."
@@ -270,9 +296,6 @@ def build_split_flow_scenario(
     Z = calc_Z(z, X)
     E = calc_E(e, X)
     V = calc_V(v, X)
-
-    all_regions = list(instance.get_index(MI["r"]))
-    production_col = X.columns.get_loc("production")
 
     for sector in getattr(instance, "to_split_sectors", []):
         parent_sector = sector_to_parent_map[sector]
@@ -291,12 +314,10 @@ def build_split_flow_scenario(
     # after sibling subtraction / workbook serialization. Only remove errors
     # within the floating-point subtraction bound; real budget excesses still
     # fail below, and the child output observations remain untouched.
-    sibling_counts = Counter(sector_to_parent_map[s] for s in getattr(instance, "to_split_sectors", []))
-    for parent_sector, count in sibling_counts.items():
+    for parent_sector in sibling_counts:
         rows = _row_positions(X.index, all_regions, parent_sector)
         residual = X.iloc[rows, production_col].to_numpy(dtype=float)
-        original = old_X.iloc[rows, production_col].to_numpy(dtype=float)
-        roundoff = (count + 1) * np.finfo(float).eps * (abs(original) + abs(original - residual))
+        roundoff = output_roundoff[parent_sector]
         tiny_negative = (residual < 0) & (residual >= -roundoff)
         X.iloc[rows[tiny_negative], production_col] = 0.0
 

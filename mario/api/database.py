@@ -4867,6 +4867,7 @@ class Database(CoreModel):
         stop_after_step=None,
         split_model_options=None,
         allow_model_change=False,
+        on_step_failure="raise",
     ):
         """Apply the add-sectors workbook to the selected scenario.
 
@@ -4938,8 +4939,9 @@ class Database(CoreModel):
             correction is applied.
         intermediate_steps:
             Execute the named columns in ``Intermediate steps`` sequentially
-            (IOT, split=True). Each accepted result must aggregate back to the
-            preceding database within 1e-6 + 1e-8 * abs(reference).
+            (IOT, split=True). Reaggregation and accounting discrepancies are
+            recorded for every step. For optimal named MRIO models these are
+            diagnostics for economic review, without monetary rejection limits.
         save_intermediates:
             Required checkpoint directory when intermediate_steps=True. Each
             successful step contains reloadable flows, a remaining workbook
@@ -4947,14 +4949,43 @@ class Database(CoreModel):
         stop_after_step:
             Optional pending group name at which to return after saving its
             checkpoint. Later groups remain in the remaining workbook. Requires
-            intermediate_steps=True; None executes every pending group.
+            intermediate_steps=True; None executes every pending group. With
+            on_step_failure='continue', return after attempting this group even
+            if it fails.
+        on_step_failure:
+            Policy for sequential IOT split failures: ``'raise'`` (default)
+            stops at the first failed solve; ``'continue'`` retains the last
+            accepted database and attempts the next group once. Failed sectors
+            remain represented by their parents, with the original inventories
+            and targets preserved for later resumption. A group whose parent
+            failed is recorded as blocked. Invalid inputs, programming errors
+            and export errors still raise. ``'continue'`` requires
+            intermediate_steps=True. The checkpoint directory receives a
+            ``run_report.json`` and a separate report for each call, including
+            failures after the last accepted checkpoint. Group atomicity,
+            solver settings and the numerical acceptance policy are unchanged.
         split_model_options:
             Optional experimental IOT model settings. ``accounting='inherit'``
             preserves supplied accounting discrepancies by fixed output shares;
             optional convex losses, prior coverage, LP feasibility and numerical
             scaling are configured independently. ``defer_satellite_recalculation``
             skips E conservation in sequential acceptance and marks E pending.
-            None retains the packaged model.
+            Named MRIO models (including KL and quadratic) automatically export
+            optimal solver points after sign/zero-domain projection, with
+            monetary residuals reported for review without a dollar cutoff.
+            Raw and cleaned points and all corrections are retained. Other
+            solver statuses remain distinct; nonfinite data and incompatible
+            coordinates remain errors. The numerical export policy is recorded
+            separately from the mathematical model settings. The earlier
+            full-KL bounded trial accepted ``solution_cleanup`` with explicit
+            ``max_cell_adjustment``, ``absolute_tolerance`` (original monetary
+            units) and ``relative_tolerance``. It projects sign/zero domains,
+            archives raw and cleaned points and validates approximate residuals
+            before export; these historical settings remain readable, but the
+            optimal named-MRIO export policy supersedes monetary limits. This
+            does not change the optimization problem or X targets.
+            ``split_model_options=None`` retains the historical packaged model
+            and its original numerical acceptance.
         allow_model_change:
             Explicitly permit a different named objective for pending intermediate
             steps. Accounting, weights, numerical controls and completed inputs
@@ -4979,6 +5010,10 @@ class Database(CoreModel):
         are accepted to disambiguate equal labels).
         """
         from mario.ops.split_model import normalize_options
+        if not isinstance(on_step_failure, str) or on_step_failure not in ("raise", "continue"):
+            raise WrongInput("on_step_failure must be 'raise' or 'continue'.")
+        if on_step_failure != "raise" and not intermediate_steps:
+            raise WrongInput("on_step_failure='continue' requires intermediate_steps=True.")
         if not isinstance(allow_model_change, bool) or (allow_model_change and not intermediate_steps):
             raise WrongInput('allow_model_change must be boolean and requires intermediate_steps=True.')
         split_model_options = normalize_options(split_model_options)
@@ -4993,6 +5028,7 @@ class Database(CoreModel):
                 save_intermediates=save_intermediates,
                 stop_after_step=stop_after_step,
                 allow_model_change=allow_model_change,
+                on_step_failure=on_step_failure,
                 options=dict(keep_all_split_steps=keep_all_split_steps, notes=notes,
                              ignore_warnings=ignore_warnings, cvxlab_path=cvxlab_path,
                              input_data_files_type=input_data_files_type,
