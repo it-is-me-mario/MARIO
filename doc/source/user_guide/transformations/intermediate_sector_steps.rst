@@ -20,10 +20,35 @@ Create and edit a plan
        intermediate_steps=True,
    )
 
-Fill the inventories and split-support sheets as usual. In ``Intermediate
-steps``, give each column a custom group name and list its sectors underneath.
-Columns execute from left to right. Every Master sector must occur exactly
-once. Several regions of the same sector belong to the same group.
+Fill the inventories and split-support sheets, including ``Total outputs``.
+You can then fill ``Intermediate steps`` automatically:
+
+.. code-block:: python
+
+   plan = db.get_add_sectors_intermediate_steps_plan(
+       io="add_sectors.xlsx",
+       max_sectors_per_step=2,
+       ordering="suppliers_first",
+   )
+   plan.summary
+   plan.diagnostics["unmet_preferences"]
+
+This updates the existing workbook and returns its ordered ``plan.steps``, a
+summary table, diagnostics and ``plan.path``. Planning does not call a solver.
+All other workbook parts, including inventories, targets and formulas, are
+preserved. ``io="inventories"`` reloads the single workbook previously loaded
+with ``read_add_sectors_excel``. A directory of input workbooks is not supported
+by the planner.
+
+Open the workbook to inspect or change the proposed plan. Each named column
+lists the sectors introduced together; columns execute from left to right.
+Every Master sector must occur exactly once, and all its regions belong to the
+same group. ``max_sectors_per_step`` is a maximum, not a required group size.
+Two sectors in one column are solved jointly and succeed or fail as one group.
+
+``add_sectors(..., intermediate_steps=True)`` reads exactly the saved sheet,
+including manual edits, without calculating a new plan. Changing the returned
+Python dictionary alone does not rewrite the workbook.
 
 .. code-block:: python
 
@@ -47,6 +72,57 @@ canonical inventories remain available, and ``remaining_add_sectors.xlsx``
 retains the later groups for resumption. An unknown or already completed stop
 name is rejected before starting a solve. Omitting the option executes every
 pending group.
+
+Choose ordering and partial instructions
+----------------------------------------
+
+``ordering="suppliers_first"`` prefers an explicit supplier before its buyer;
+``"buyers_first"`` reverses that preference. An input coefficient for Batteries
+in a Cars inventory identifies Batteries as a supplier. A reference only to
+Electrical equipment does not identify Batteries. A multi-sector cluster also
+does not identify how much belongs to each member; ambiguous observations are
+listed in ``plan.diagnostics["ambiguous_clusters"]`` rather than allocated.
+
+Dependency weights are regional production targets times positive technical
+input coefficients, after conversion to comparable monetary units. Regional
+profiles are counted once; overlapping coverage is rejected. Self-inputs,
+zero inputs, non-sector rows and inventories marked ``Leave empty`` do not
+create ordering links. Non-``Update`` observations are reported and omitted
+because a relative change alone does not identify an absolute input amount.
+The planner cannot infer reliability from an inventory's numerical density;
+an empirical observation and an imputed coefficient are not distinguished
+without additional provenance metadata.
+
+Supply-chain preferences can be circular. The deterministic greedy algorithm
+first selects available groups with no incoming preferred links. When none
+exists, it favours outgoing over incoming dependency weight, with sector names
+breaking ties. ``cycles``, ``dependencies`` and ``unmet_preferences`` in the
+diagnostics expose this choice. It is a scheduling heuristic, not a certificate
+of the best possible sequence or final economic result. Same-step links are
+resolved jointly and do not count as unmet preferences.
+
+Partial instructions override automatic preferences:
+
+.. code-block:: python
+
+   plan = db.get_add_sectors_intermediate_steps_plan(
+       "add_sectors.xlsx",
+       max_sectors_per_step=2,
+       before=[("Mining", "Refining")],
+   )
+
+``before`` requires strictly earlier steps. ``together=[["A", "B"]]`` requires
+one joint step; overlapping groups are joined. A group larger than the maximum
+or contradictory instructions raises before writing the file. A newly split
+parent must precede its children even with reverse ordering. Other conflicts
+between an automatic preference and a hard instruction are reported.
+
+For resumption, plan an editable copy of ``remaining_add_sectors.xlsx`` outside
+the committed checkpoint. The planner requires Master sectors absent from the
+current database; it does not rewrite completed-sector history or checkpoint
+hashes. See
+:doc:`../../api_document/mario.Database.get_add_sectors_intermediate_steps_plan`
+for the full method contract.
 
 Continue after a failed step
 ----------------------------

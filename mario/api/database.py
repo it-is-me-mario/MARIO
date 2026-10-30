@@ -4672,6 +4672,73 @@ class Database(CoreModel):
             intermediate_steps=intermediate_steps,
         )
 
+    def get_add_sectors_intermediate_steps_plan(
+        self,
+        io="inventories",
+        *,
+        max_sectors_per_step=1,
+        ordering="suppliers_first",
+        before=None,
+        together=None,
+    ):
+        """Fill an existing workbook's Intermediate steps sheet from its inventories.
+
+        Parameters
+        ----------
+        io:
+            One populated ``add_sectors.xlsx`` file. ``'inventories'`` reloads
+            the single file previously loaded by ``read_add_sectors_excel``.
+            The method replaces or creates only its ``Intermediate steps``
+            worksheet and attaches the resulting inputs to this instance.
+            Copy a checkpoint workbook outside its checkpoint before planning.
+        max_sectors_per_step:
+            Positive maximum number of new sectors solved jointly per step,
+            across all their regions. Default 1. The last or precedence-limited
+            step can be smaller. A joint group is atomic during execution.
+        ordering:
+            ``'suppliers_first'`` (default) prefers suppliers before buyers;
+            ``'buyers_first'`` reverses that preference. Links come from
+            explicit singleton inventory references, weighted by fixed regional
+            production times the positive technical input coefficient, in
+            comparable monetary units. The deterministic greedy algorithm
+            reports cycles and unmet preferences; it does not certify a global
+            optimum or infer missing links from sector names or parent totals.
+        before:
+            Optional pairs ``[(earlier_sector, later_sector), ...]`` requiring
+            strictly earlier steps. New parents must also precede their children.
+            These hard precedences override the automatic ordering preference.
+        together:
+            Optional groups ``[[sector_a, sector_b], ...]`` introduced in one
+            step. Overlapping groups are joined. A group larger than the maximum,
+            contradictory precedences, or a parent inside its child's group
+            raises before the workbook is written.
+
+        Returns
+        -------
+        AddSectorsIntermediateStepsPlan
+            ``steps`` is the ordered step-to-sector dictionary written to the
+            workbook; ``summary`` is a pandas table; ``diagnostics`` records
+            dependencies, cycles, unresolved observations and unmet preferences;
+            ``path`` identifies the updated workbook. Edit the workbook to
+            revise the executable plan; changing this returned dictionary alone
+            does not rewrite the file.
+
+        Notes
+        -----
+        Supports IOT Split inputs whose Master sectors are absent from this
+        database. Fill inventories and Total outputs first. Planning calls no
+        solver and preserves all other workbook parts, including formulas.
+        ``add_sectors(..., intermediate_steps=True)`` later reads the saved plan
+        without recomputing it. To replan a resumed run, use an editable copy of
+        its remaining workbook, rather than the full completed-sector workbook.
+        """
+        from mario.ops.add_sector_plan import get_intermediate_steps_plan
+
+        return get_intermediate_steps_plan(
+            self, io, max_sectors_per_step=max_sectors_per_step,
+            ordering=ordering, before=before, together=together,
+        )
+
     def read_add_sectors_excel(
         self,
         path,

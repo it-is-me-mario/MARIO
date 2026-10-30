@@ -2,6 +2,14 @@
 Release History
 ****************
 
+Unreleased
+----------
+
+* Added ``Database.get_add_sectors_intermediate_steps_plan`` to fill an existing
+  IOT add-sectors workbook with an inventory-driven sequential plan. It supports
+  supplier/buyer preferences, maximum group size, mandatory precedences and joint
+  groups, and reports weighted cycle conflicts without invoking a solver.
+
 v1.1.0
 ------
 

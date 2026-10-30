@@ -3,7 +3,7 @@ Sequential split verification
 
 For changes to the sector-step controller or its public arguments, run::
 
-   python -m pytest tests/ops/test_sector_step_failures.py tests/ops/test_add_sector_steps.py
+   python -m pytest tests/ops/test_add_sector_plan.py tests/ops/test_sector_step_failures.py tests/ops/test_add_sector_steps.py
    python -m pytest tests/docs/test_api_reference_docs.py
 
 Use portable synthetic flows. Verify a failure before the first accepted
@@ -20,6 +20,15 @@ reference page. Keep the ordinary stop-on-failure default covered. Solver
 fixtures may be optional; report skipped solver checks explicitly. Review
 the guide and API in a warnings-as-errors Sphinx build. This check requires
 no project database or large MRIO run.
+
+For inventory-driven planning, verify chains in both directions, weighted cycle
+breaking, strict user precedences, joint groups and parent dependencies. Compare
+uncompressed XLSX archive parts before and after: replacing an existing plan
+must change only its worksheet part; adding the sheet may also change the three
+workbook relationship/content-type parts. Preserve formulas and unrelated user
+sheets exactly. Test atomic-write failure and concurrent edits. Execution must
+honour a manually revised sheet without recalculating the plan. None of these
+planning checks requires CVXLab or an optimisation solve.
 
 For changes to pre-optimization output checks, also run::
 

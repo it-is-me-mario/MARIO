@@ -26,6 +26,7 @@ Workflow Helper Workbooks
    ../api_document/mario.Database.get_aggregation_excel
    ../api_document/mario.Database.get_extensions_excel
    ../api_document/mario.Database.get_add_sectors_excel
+   ../api_document/mario.Database.get_add_sectors_intermediate_steps_plan
    ../api_document/mario.Database.get_shock_excel
 
 
