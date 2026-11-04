@@ -1,5 +1,5 @@
 :page-type: Database guide
-:summary: Import monetary input-output tables or the supported supply-use release.
+:summary: Import monetary input-output tables or locally supplied supply-use bundles.
 
 EXIOBASE monetary
 =================
@@ -8,7 +8,10 @@ EXIOBASE monetary
 
    :download:`Download notebook <monetary.ipynb>`
 
-Recent releases provide IOTs; monetary SUT parsing uses release 3.8.2. Check extension coverage by year: recent economic years can contain now-cast emissions rather than observed inventories.
+The monetary SUT parser reads both the public 3.8.2 bundles and locally supplied
+3.11.2 bundles with the same MRSUT layout. Automatic SUT downloads cover 3.8.2.
+Check extension coverage by year: recent economic years can contain now-cast
+emissions rather than observed inventories.
 
 Import
 ------
@@ -75,19 +78,23 @@ Inputs and options
 
    - ``table``: choose ``"IOT"`` or ``"SUT"``
    - ``unit``: use ``"Monetary"``
-   - ``path``: local EXIOBASE directory to parse
+   - ``path``: local EXIOBASE directory or ZIP archive to parse
    - ``year``: optional metadata override, usually inferred from the payload
    - ``add_extensions``: monetary SUT-only helper to import extensions from a matching IOT
+   - ``version``: release label; for SUTs, checked when detected, otherwise recorded from your input
 
 .. mario-details:: Local layout expectation
 
-   The current monetary parsers expect the EXIOBASE dataset to be available as a local directory with the files required by the corresponding release. The parser auto-detects the layout and database version from the directory contents and metadata.
+   Provide a local directory or ZIP archive containing the files required by
+   the corresponding release. The parser detects the layout from its contents.
+   A SUT bundle needs ``supply.csv``, ``use.csv``, ``final_demand.csv`` and
+   ``value_added.csv``; these are tab-separated despite their suffix.
 
    For SUT parsing, extensions can be added by pointing ``add_extensions`` to the matching monetary IOT directory.
 
 .. mario-details:: Local layout details and caveats
 
-   ``path`` points to one extracted monetary EXIOBASE release.
+   ``path`` points to one extracted monetary EXIOBASE bundle or its ZIP archive.
 
    Typical layouts are:
 
@@ -106,8 +113,8 @@ Inputs and options
 
    Practical caveats:
 
-   - monetary ``SUT`` parsing is currently available only for ``3.8.2``;
-   - the newer supported monetary releases, including ``3.11.2``, are ``IOT``-only;
+   - monetary ``SUT`` parsing shares one reader for 3.8.2 and local 3.11.2 MRSUT bundles;
+   - the newer Zenodo releases listed above provide IOT downloads; obtain any local SUT separately;
    - extension directories vary with source-year coverage and are auto-detected;
    - EXIOBASE 3.9 and later use a customized non-commercial CC-BY-SA-NC-derived license; check the license supplied with the dataset before use;
    - EXIOBASE 1 and 2 are not handled by this parser family.
@@ -172,15 +179,30 @@ Inputs and options
 
    Use this path when the source dataset is the monetary supply-use table.
 
-   At the moment, this path is tied to EXIOBASE **3.8.2**.
+   The same parser handles the public 3.8.2 layout and locally supplied 3.11.2
+   MRSUT bundles. Supply is read as product × activity and transposed into
+   MARIO's ``S`` block; use becomes ``U``, final demand ``Yc`` and value added
+   ``Va``. Monetary units are read from ``meta.json`` (``Euro`` becomes ``EUR``).
+   Satellite accounts require a matching IOT via ``add_extensions``.
 
    .. code:: python
 
       db_sut = mario.parse_exiobase(
-          path="/path/to/MRSUT_2019",
+          path="/path/to/MRSUT_2024.zip",
           table="SUT",
           unit="Monetary",
+          version="3.11.2",
       )
+
+   Set ``version`` when you know the release from the data supplier. It is
+   checked against a release found in metadata or the bundle/directory name;
+   otherwise it records your supplied label. The MRSUT ``meta.json`` field
+   ``vers`` is a revision date, not a release number. Leave ``version`` unset
+   when the release is unknown. Local 3.11.2 support does not add a SUT download
+   to the Zenodo catalogue.
+
+   See :func:`mario.parse_exiobase_sut` for the complete SUT interface, or use
+   :func:`mario.parse_exiobase` as above.
 
 .. mario-details:: Add SUT extensions from the matching monetary IOT
 

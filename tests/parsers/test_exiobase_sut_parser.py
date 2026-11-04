@@ -5,7 +5,7 @@ import pandas as pd
 import pandas.testing as pdt
 import pytest
 
-from mario import parse_exiobase_sut
+from mario import parse_exiobase, parse_exiobase_sut
 from mario.log_exc.exceptions import WrongInput
 from mario.compute.ordering import SUTUnifiedOrderingPolicy
 from mario.compute.views import concat_sut_V, concat_sut_Y, concat_sut_Z
@@ -220,6 +220,87 @@ def test_parse_exiobase_sut_accepts_zip_bundle(tmp_path):
     assert db.meta.price == "current"
     assert "version 3.8.2" in db.meta.source
     assert set(db.matrices["baseline"]) == {"EY", "Ea", "Ec", "S", "U", "Va", "Vc", "Ya", "Yc"}
+
+
+@pytest.mark.parametrize("as_zip", [False, True])
+def test_local_3112_sut_reuses_382_parser(tmp_path, as_zip):
+    old_root = tmp_path / "Exiobase 3.8.2 - MRSUT_2011_ixi"
+    root = tmp_path / "MRSUT_2024"
+    _write_exiobase_sut(old_root)
+    _write_exiobase_sut(root)
+    (root / "meta.json").write_text(json.dumps({
+        "year": 2024, "currency": "Euro", "price": "current", "vers": "20260612",
+    }))
+    path = root
+    if as_zip:
+        path = tmp_path / "MRSUT_2024.zip"
+        _zip_tree(root, path)
+
+    old = parse_exiobase_sut(str(old_root), calc_all=False)
+    db = parse_exiobase(
+        path=str(path), table="SUT", unit="Monetary", version="3.11.2", calc_all=False,
+    )
+
+    assert db.meta.year == 2024
+    assert db.meta.price == "current"
+    assert "version 3.11.2" in db.meta.source
+    assert db.units[_MASTER_INDEX["a"]].loc["act_a", "unit"] == "EUR"
+    assert db.units[_MASTER_INDEX["c"]].loc["prod_a", "unit"] == "EUR"
+    assert set(db.matrices["baseline"]) == set(old.matrices["baseline"])
+    for block in old.matrices["baseline"]:
+        pdt.assert_frame_equal(db.matrices["baseline"][block], old.matrices["baseline"][block])
+
+
+def test_sut_revision_date_does_not_identify_release(tmp_path):
+    root = tmp_path / "MRSUT_2024"
+    _write_exiobase_sut(root)
+    (root / "meta.json").write_text(json.dumps({"year": 2024, "vers": "20260612"}))
+
+    layout = detect_exiobase_sut_layout(root)
+    db = parse_exiobase_sut(str(root), calc_all=False)
+
+    assert layout.version is None
+    assert "version" not in db.meta.source
+    assert "20260612" not in db.meta.source
+
+
+def test_sut_zip_retains_release_hint_from_original_archive_name(tmp_path):
+    root = tmp_path / "MRSUT_2024"
+    _write_exiobase_sut(root)
+    archive = tmp_path / "EXIOBASE 3.11.2 - MRSUT_2024.zip"
+    _zip_tree(root, archive)
+
+    db = parse_exiobase_sut(str(archive), version="3.11.2", calc_all=False)
+
+    assert "version 3.11.2" in db.meta.source
+
+
+@pytest.mark.parametrize("release_source", ["directory", "archive", "metadata"])
+def test_sut_rejects_release_mismatch_before_reading_matrices(tmp_path, monkeypatch, release_source):
+    root = tmp_path / ("EXIOBASE 3.8.2 - MRSUT_2011" if release_source == "directory" else "MRSUT_2011")
+    _write_exiobase_sut(root)
+    path = root
+    if release_source == "archive":
+        path = tmp_path / "EXIOBASE 3.8.2 - MRSUT_2011.zip"
+        _zip_tree(root, path)
+    elif release_source == "metadata":
+        (root / "meta.json").write_text(json.dumps({"year": 2011, "version": "3.8.2"}))
+
+    def unexpected_read(*args, **kwargs):
+        raise AssertionError("Release mismatch should be rejected before reading matrices")
+
+    monkeypatch.setattr(exiobase_sut_parser, "_read_numeric_matrix", unexpected_read)
+    with pytest.raises(WrongInput, match="does not match detected version '3.8.2'"):
+        parse_exiobase_sut(str(path), version="3.11.2", calc_all=False)
+
+
+def test_state_sut_parser_accepts_caller_supplied_release(tmp_path):
+    root = tmp_path / "MRSUT_2024"
+    _write_exiobase_sut(root)
+
+    state = parse_state_exiobase_sut(str(root), version="3.11.2")
+
+    assert "version 3.11.2" in state.metadata.source
 
 
 def test_parse_exiobase_sut_can_import_extensions_from_matching_iot(tmp_path):

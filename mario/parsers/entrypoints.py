@@ -657,13 +657,15 @@ def parse_exiobase_sut(
 
     .. note::
 
-        The monetary SUT parser is currently tied to EXIOBASE ``3.8.2``
-        (`Zenodo 5589597 <https://doi.org/10.5281/zenodo.5589597>`_).
+        EXIOBASE ``3.8.2`` and locally supplied ``3.11.2`` MRSUT bundles
+        share the same text layout and parser. Automatic SUT downloads are
+        available for ``3.8.2`` only.
 
     Parameters
     ----------
     path : str
-        path to the EXIOBASE SUT directory
+        Path to the EXIOBASE SUT directory or ZIP archive containing
+        ``supply.csv``, ``use.csv``, ``final_demand.csv`` and ``value_added.csv``.
 
     calc_all : boolean
         if True, by default will calculate z,v,e after parsing
@@ -677,8 +679,12 @@ def parse_exiobase_sut(
         ``Ea`` and ``EY`` for the SUT.
 
     version : str, Optional
-        optional compatibility check against the version detected from the
-        dataset metadata and folder layout.
+        Release label in major.minor.patch form. Checked against a release
+        found in metadata or the bundle/directory name; otherwise recorded
+        as the caller-supplied release. The ``meta.json`` field ``vers`` is
+        a revision date and does not identify a release. Leave unset if the
+        release is unknown. For a confirmed local 3.11.2 bundle, pass
+        ``version="3.11.2"``.
 
     name : str, Optional
         optional but suggested. is useful for visualization and metadata.
@@ -697,11 +703,8 @@ def parse_exiobase_sut(
     matrices, indeces, units, layout = parse_exiobase_sut_monetary(
         path,
         add_extensions=add_extensions,
+        version=version,
     )
-    if version is not None and layout.version != version:
-        raise WrongInput(
-            f"Requested EXIOBASE version {version!r} does not match detected version {layout.version!r}."
-        )
 
     return models[model](
         name=name or layout.dataset_name,

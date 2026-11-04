@@ -44,6 +44,12 @@ Example verification
 * Source-specific calls need the stated release, files and options. When those
   inputs are unavailable, check signatures and data requirements and explicitly
   report that full execution was not performed.
+* For locally supplied EXIOBASE MRSUT bundles, compare all four matrices' row
+  and column labels, order and units with the supported layout. Verify imported
+  cells against the source, including the supply transpose. Treat ``meta.json``
+  ``vers`` as a revision date; use supplier confirmation for a release absent
+  from the payload. Keep local parser support separate from the public download
+  registry and parsed-release catalogue.
 * Check that notebook variables are defined in execution order and selectors
   match the intended source. Retain portable paths and input/licence guidance.
 * After scientific changes, reconcile affected equations, examples, figures and

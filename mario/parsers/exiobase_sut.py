@@ -1,4 +1,4 @@
-"""Direct monetary EXIOBASE SUT parser for the 3.8.2 MRSUT text layout."""
+"""Direct monetary EXIOBASE SUT parser for the shared MRSUT text layout."""
 
 from __future__ import annotations
 
@@ -56,15 +56,8 @@ def _read_json(path: Path) -> dict[str, object]:
 
 def _normalize_version(value: object) -> str | None:
     """Normalize version strings such as ``3.8.2``."""
-    if value is None:
-        return None
-    text = str(value).strip()
-    if not text:
-        return None
-    match = re.search(r"(\d+\.\d+\.\d+)", text)
-    if match:
-        return match.group(1)
-    return text
+    match = re.search(r"(\d+\.\d+\.\d+)", str(value)) if value is not None else None
+    return match.group(1) if match else None
 
 
 def _looks_like_exiobase_sut_root(root: Path) -> bool:
@@ -108,7 +101,12 @@ def _open_exiobase_sut_root(path: str | Path):
         yield _resolve_extracted_sut_root(extraction_root)
 
 
-def _detect_exiobase_sut_layout(root: Path) -> ExiobaseSUTLayout:
+def _detect_exiobase_sut_layout(
+    root: Path,
+    *,
+    source_path: Path | None = None,
+    version: str | None = None,
+) -> ExiobaseSUTLayout:
     """Inspect one EXIOBASE monetary SUT folder and detect its parse layout."""
     if not root.exists():
         raise FileNotFoundError(root)
@@ -121,7 +119,20 @@ def _detect_exiobase_sut_layout(root: Path) -> ExiobaseSUTLayout:
             raise WrongInput(f"Missing required EXIOBASE SUT file: {file_name}")
 
     metadata = _read_json(root / "meta.json")
-    version = _normalize_version(re.search(r"(\d+\.\d+\.\d+)", root.name).group(1)) if re.search(r"(\d+\.\d+\.\d+)", root.name) else None
+    # MRSUT's ``vers`` field is a revision date, not a numbered release.
+    # Keep the original ZIP name available when extraction loses that hint.
+    detected_version = (
+        _normalize_version(metadata.get("version"))
+        or _normalize_version(root.name)
+        or _normalize_version(source_path.stem if source_path is not None else None)
+    )
+    requested_version = _normalize_version(version)
+    if version is not None and requested_version is None:
+        raise WrongInput("EXIOBASE version must use the major.minor.patch format, for example '3.11.2'.")
+    if requested_version is not None and detected_version is not None and requested_version != detected_version:
+        raise WrongInput(
+            f"Requested EXIOBASE version {version!r} does not match detected version {detected_version!r}."
+        )
     system_match = re.search(r"(i[xp]i)\s*$", root.name, flags=re.IGNORECASE)
     system = system_match.group(1).lower() if system_match else None
     year = metadata.get("year")
@@ -131,7 +142,7 @@ def _detect_exiobase_sut_layout(root: Path) -> ExiobaseSUTLayout:
 
     layout = ExiobaseSUTLayout(
         root=root,
-        version=version,
+        version=detected_version or requested_version,
         year=year,
         system=system,
         currency=str(metadata.get("currency")) if metadata.get("currency") is not None else None,
@@ -275,6 +286,7 @@ def parse_exiobase_sut_monetary(
     path: str | Path,
     *,
     add_extensions: str | Path | None = None,
+    version: str | None = None,
 ) -> tuple[dict[str, dict[str, pd.DataFrame]], dict[str, dict[str, list[str]]], dict[str, pd.DataFrame], ExiobaseSUTLayout]:
     """Parse an EXIOBASE monetary SUT folder into split-native MARIO blocks.
 
@@ -285,7 +297,7 @@ def parse_exiobase_sut_monetary(
     if add_extensions is not None:
         detect_exiobase_iot_layout(add_extensions)
     with _open_exiobase_sut_root(path) as root:
-        layout = _detect_exiobase_sut_layout(root)
+        layout = _detect_exiobase_sut_layout(root, source_path=Path(path), version=version)
         log_time(logger, f"Parser: reading EXIOBASE SUT from {layout.root}.", "info")
 
         supply = _read_numeric_matrix(layout.root / "supply.csv", index_col=[0, 1], header=[0, 1])
