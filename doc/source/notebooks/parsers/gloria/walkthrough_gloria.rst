@@ -30,6 +30,31 @@ Import
       **Result** · A MARIO database. Inspect ``db``, ``db.get_index("all")``
       and ``db.units`` before selecting quantities for your analysis.
 
+
+Read purchasers’ values
+-----------------------
+
+Use :func:`mario.read_gloria_use_valuations` to get the signed components of
+intermediate and final use for a commodity and selected buyers.
+
+.. code-block:: python
+
+   prices = mario.read_gloria_use_valuations(
+       "/path/to/GLORIA",
+       year=2024,
+       commodity="Electric power generation, transmission and distribution",
+       destination_regions=["ITA"],
+   )
+   household_spend = prices["purchaser"].loc[
+       :, ("final", "ITA", "Household final consumption P.3h")
+   ]
+
+The result retains all supplier regions. Purchasers’ values sum the basic
+values, trade margins, transport margins, product taxes and signed subsidies.
+Use these values as the spend denominator for the same demand basket whose
+embodied emissions were calculated with the basic-price SUT. Treat emissions
+from separately allocated margin services according to the footprint boundary.
+
 Inputs and options
 ------------------
 

@@ -732,6 +732,121 @@ def _build_axes(
     return activity_axis, commodity_axis, final_demand_axis, factor_axis, satellite_axis
 
 
+def _read_gloria_use_rows(
+    resource: GloriaResource,
+    *,
+    row_positions: dict[int, int],
+    columns: np.ndarray,
+    width: int,
+) -> np.ndarray:
+    """Select commodity rows without tokenizing the other GLORIA CSV rows."""
+    data = np.empty((len(row_positions), len(columns)), dtype=np.float64)
+    remaining = len(row_positions)
+    with _open_gloria_resource(resource) as stream:
+        for position, raw_row in enumerate(stream):
+            target = row_positions.get(position)
+            if target is None:
+                continue
+            values = np.fromstring(raw_row, sep=",", dtype=np.float64)
+            if len(values) != width or not np.isfinite(values).all():
+                raise WrongInput(f"Invalid GLORIA row {position + 1} in {resource.location}.")
+            data[target] = values[columns]
+            remaining -= 1
+            if remaining == 0:
+                return data
+    raise WrongInput(f"GLORIA file {resource.location} is missing selected commodity rows.")
+
+
+def read_gloria_use_valuations(
+    path: str | Path,
+    *,
+    commodity: str,
+    year: int | None = None,
+    destination_regions: list[str] | tuple[str, ...] | None = None,
+) -> dict[str, pd.DataFrame]:
+    """Read signed GLORIA use valuations for one commodity.
+
+    Parameters
+    ----------
+    path : str or Path
+        Local GLORIA release root, annual archive, or annual CSV directory.
+    commodity : str
+        Exact native commodity label from the GLORIA ReadMe.
+    year : int, optional
+        Reference year. Required if the source contains multiple years.
+    destination_regions : sequence of str, optional
+        GLORIA region codes for purchasers, in the requested order.
+        By default, keep all purchasers. All supplier regions are retained.
+
+    Returns
+    -------
+    dict of str to pandas.DataFrame
+        Basic values, trade margins, transport margins, product taxes, signed
+        product subsidies, and their sum, under keys ``basic``, ``trade``,
+        ``transport``, ``taxes``, ``subsidies`` and ``purchaser``.
+        Rows are supplier regions and columns are a three-level index of use
+        type, destination region and buyer activity or final demand category.
+        Values use GLORIA's native monetary unit (current thousand USD).
+
+    Notes
+    -----
+    Use these values to price a demand basket. This function reads use-side
+    transactions and does not build a purchaser-price production model.
+    """
+    layout, metadata = detect_gloria_layout(path, year=year)
+    if commodity not in metadata.sector_names:
+        raise WrongInput(f"Unknown GLORIA commodity: {commodity!r}.")
+    regions, destinations = _normalize_region_selection(metadata, destination_regions)
+    if not regions or len(set(regions)) != len(regions):
+        raise WrongInput("Choose at least one distinct GLORIA destination region.")
+
+    components = ("basic", "trade", "transport", "taxes", "subsidies")
+    resources = {}
+    for match, resource in _gloria_file_resources(layout.data_root, {"T", "Y"}):
+        if int(match.group("year")) != layout.year or match.group("release") != layout.release:
+            continue
+        key = (match.group("var").upper(), int(match.group("markup")))
+        if key in resources:
+            raise WrongInput(f"Duplicate GLORIA valuation file: {resource.location}.")
+        resources[key] = resource
+    for markup, component in enumerate(components, 1):
+        if any((block, markup) not in resources for block in ("T", "Y")):
+            raise WrongInput(f"GLORIA {layout.year} requires both T and Y for {component} (Markup{markup:03d}).")
+
+    sector_count = len(metadata.sector_names)
+    fd_count = len(metadata.final_demand_names)
+    region_count = len(metadata.region_codes)
+    commodity_position = metadata.sector_names.index(commodity)
+    row_positions = {
+        (2 * region + 1) * sector_count + commodity_position: region
+        for region in range(region_count)
+    }
+    activity_columns = _activity_positions(regions, sector_count)
+    fd_columns = _final_demand_positions(regions, fd_count)
+    columns = pd.MultiIndex.from_tuples(
+        [("intermediate", region, item) for region in destinations for item in metadata.sector_names]
+        + [("final", region, item) for region in destinations for item in metadata.final_demand_names],
+        names=["Use", "Destination", "Buyer"],
+    )
+    index = pd.Index(metadata.region_codes, name="Origin")
+    valuations = {}
+    for markup, component in enumerate(components, 1):
+        log_time(logger, f"Parser: reading GLORIA {layout.year} use values for {component}.", "info")
+        intermediate = _read_gloria_use_rows(
+            resources["T", markup], row_positions=row_positions,
+            columns=activity_columns, width=2 * region_count * sector_count,
+        )
+        final = _read_gloria_use_rows(
+            resources["Y", markup], row_positions=row_positions,
+            columns=fd_columns, width=region_count * fd_count,
+        )
+        valuations[component] = pd.DataFrame(
+            np.concatenate((intermediate, final), axis=1), index=index, columns=columns,
+        )
+    valuations["purchaser"] = sum(valuations.values())
+    return valuations
+
+
 def _iter_csv_batches(
     path: GloriaResource,
     *,

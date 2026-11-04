@@ -152,6 +152,7 @@ from mario.parsers.entrypoints import (
     parse_wiod,
 )
 
+from mario.parsers.gloria import read_gloria_use_valuations
 from mario.views.plots import set_palette
 
 from mario.log_exc import exceptions

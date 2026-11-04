@@ -30,6 +30,7 @@ Top-Level Parser Entrypoints
    ../api_document/mario.parse_bonsai
    ../api_document/mario.parse_figaro
    ../api_document/mario.parse_gloria
+   ../api_document/mario.read_gloria_use_valuations
    ../api_document/mario.parse_gtap
    ../api_document/mario.parse_wiod
    ../api_document/mario.parse_oecd
