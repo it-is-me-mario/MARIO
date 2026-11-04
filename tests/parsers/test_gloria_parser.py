@@ -474,3 +474,65 @@ def test_gloria_use_valuations_reject_an_incomplete_price_bridge(tmp_path):
     _write_gloria_year(tmp_path)
     with pytest.raises(WrongInput, match=r"both T and Y for transport"):
         mario.read_gloria_use_valuations(tmp_path, commodity="Wheat", year=2025)
+
+
+def test_parse_gloria_reconstructs_all_purchaser_uses_and_invalidates_cache(tmp_path, monkeypatch):
+    annual = _write_gloria_year(tmp_path)
+    for markup, amount in [(3, 3.0), (4, 4.0), (5, -5.0)]:
+        for block, shape in [("T", (8, 8)), ("Y", (8, 4))]:
+            values = np.zeros(shape)
+            values[6, 0] = amount
+            values[3, 2 if block == "Y" else 4] = 2 * amount
+            # These activity rows exercise the distinction between S and Ya.
+            values[0, 2 if block == "T" else 0] = amount
+            np.savetxt(annual / f"test_{block}-Results_2025_060_Markup{markup:03d}(full).csv",
+                       values, delimiter=",")
+
+    options = {"year": 2025, "regions": ["ME", "IT"]}
+    with pytest.raises(WrongInput, match="calc_all=False"):
+        mario.parse_gloria(str(tmp_path), valuation="purchaser", calc_all=True, **options)
+    basic = mario.parse_gloria(str(tmp_path), **options)["baseline"]
+    first = mario.parse_gloria(str(tmp_path), valuation="purchaser", cache=True, **options)
+    blocks = first["baseline"]
+    assert first.meta.price == "Purchaser prices"
+    for block in ("S", "Va", "Vc", "Ea", "Ec", "EY"):
+        pd.testing.assert_frame_equal(blocks[block], basic[block])
+
+    # The fixture's trade layer is ten times the basic layer. The remaining
+    # three layers add signed adjustments in two commodities and in Ya.
+    u = basic["U"].to_numpy() * 11
+    u[0, 2] += 2
+    u[3, 0] += 4
+    yc = basic["Yc"].to_numpy() * 11
+    yc[0, 2] += 2
+    yc[3, 0] += 4
+    np.testing.assert_allclose(blocks["U"].to_numpy(), u)
+    np.testing.assert_allclose(blocks["Yc"].to_numpy(), yc)
+    np.testing.assert_allclose(blocks["Ya"].to_numpy()[2, 2], 2)
+
+    def unexpected_parse(*args, **kwargs):
+        pytest.fail("the purchaser-price cache should be reused")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(parser_entrypoints, "parse_gloria_sut", unexpected_parse)
+        cached = mario.parse_gloria(str(tmp_path), valuation="purchaser", cache=True, **options)
+        assert cached.meta.price == first.meta.price
+        assert any("Supply, value added and satellite accounts" in note for note in cached.meta._history)
+        for key in ("U", "Ya", "Yc"):
+            expected = blocks[key]
+            actual = cached["baseline"][key].reindex(index=expected.index, columns=expected.columns)
+            np.testing.assert_allclose(actual.to_numpy(), expected.to_numpy())
+
+    adjustment = next(annual.glob("*T-Results*Markup005*"))
+    values = np.loadtxt(adjustment, delimiter=",")
+    values[6, 0] -= 1
+    np.savetxt(adjustment, values, delimiter=",")
+    changed = mario.parse_gloria(str(tmp_path), valuation="purchaser", cache=True, **options)
+    u[0, 2] -= 1
+    np.testing.assert_allclose(changed["baseline"]["U"].to_numpy(), u)
+
+
+def test_parse_gloria_purchaser_requires_all_layers(tmp_path):
+    _write_gloria_year(tmp_path)
+    with pytest.raises(WrongInput, match=r"both T and Y for transport"):
+        mario.parse_gloria(str(tmp_path), valuation="purchaser", year=2025)

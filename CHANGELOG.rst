@@ -11,6 +11,10 @@ v1.3.4
 GLORIA use valuations
 ~~~~~~~~~~~~~~~~~~~~~
 
+* Set ``valuation="purchaser"`` in ``parse_gloria()`` to reconstruct complete
+  intermediate and final use tables from the five signed layers. Supply,
+  value added and the satellite accounts use Markup001.
+
 * Add ``mario.read_gloria_use_valuations()`` to read basic values, trade and
   transport margins, product taxes and signed product subsidies for one
   commodity. Select purchaser regions while retaining all supplier origins.

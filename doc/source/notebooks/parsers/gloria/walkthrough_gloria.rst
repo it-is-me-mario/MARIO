@@ -34,6 +34,25 @@ Import
 Read purchasers’ values
 -----------------------
 
+Use :func:`mario.parse_gloria` with ``valuation="purchaser"`` to load
+intermediate and final uses for all products in the selected regions.
+
+.. code-block:: python
+
+   purchaser = mario.parse_gloria(
+       "/path/to/GLORIA", year=2024, valuation="purchaser",
+       regions=["ITA", "DEU"],
+   )
+   uses = purchaser["baseline"]
+   intermediate_use = uses["U"]
+   final_use = uses["Yc"]
+
+A region subset keeps only flows among the selected regions. Omit ``regions``
+to include all regions. MARIO sums all five signed layers for
+``U``, ``Yc`` and ``Ya``. Supply, value added and the satellite accounts come
+from Markup001. Keep ``calc_all=False`` and calculate production coefficients
+and footprints on a separate basic-price parse.
+
 Use :func:`mario.read_gloria_use_valuations` to get the signed components of
 intermediate and final use for a commodity and selected buyers.
 
@@ -71,7 +90,9 @@ Inputs and options
 
    - ``path``: GLORIA release root, the Google Drive ``part_I`` economic-account folder, or directly the ``GLORIA_MRIOs_*`` directory;
    - ``table``: currently only ``"SUT"`` is supported;
-   - ``valuation``: choose one markup branch such as ``basic``, ``trade``, ``transport``, ``taxes``, or ``subsidies``;
+   - ``valuation``: read one markup layer with ``basic``, ``trade``,
+     ``transport``, ``taxes`` or ``subsidies``, or sum all five use layers
+     with ``purchaser``;
    - ``year``: used when the selected root contains more than one GLORIA year;
    - ``regions``: optional subset of GLORIA region acronyms;
    - ``satellites``: optional satellite group or row selector;

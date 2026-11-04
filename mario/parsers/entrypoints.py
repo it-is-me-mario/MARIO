@@ -141,7 +141,7 @@ def _legacy_model_state_builder(
 
 models = {"Database": Database, "ModelState": _legacy_model_state_builder}
 logger = logging.getLogger(__name__)
-_GLORIA_CACHE_VERSION = "2026-03-25"
+_GLORIA_CACHE_VERSION = "2026-11-04"
 
 
 @with_parser_compute_profile
@@ -299,7 +299,10 @@ def _gloria_cache_satellites(satellites):
 def _gloria_cache_signature(layout, *, regions, satellites, dtype):
     """Build a deterministic signature for one GLORIA parse request."""
     file_inputs = []
-    for candidate in [layout.T_path, layout.Y_path, layout.V_path, layout.TQ_path, layout.YQ_path]:
+    resources = [layout.T_path, layout.Y_path, layout.V_path, layout.TQ_path, layout.YQ_path]
+    for pair in layout.use_adjustments:
+        resources.extend(pair)
+    for candidate in resources:
         if candidate is None:
             continue
         file_inputs.append(gloria_resource_signature(candidate))
@@ -334,10 +337,11 @@ def _default_gloria_cache_dir(layout, *, regions, satellites, dtype):
         satellite_token = satellite_part
     safe_region_token = (region_token or "all").replace("/", "_").replace(" ", "_")
     safe_satellite_token = (satellite_token or "all").replace("/", "_").replace(" ", "_").replace("|", "_")
+    markup_token = "purchaser" if layout.markup is None else f"{layout.markup:03d}"
     return (
         Path(layout.root)
         / ".mario_cache"
-        / f"gloria_sut_{layout.year}_{layout.release}_{layout.markup:03d}_{safe_region_token}_{safe_satellite_token}_{dtype}"
+        / f"gloria_sut_{layout.year}_{layout.release}_{markup_token}_{safe_region_token}_{safe_satellite_token}_{dtype}"
     )
 
 
@@ -2837,7 +2841,11 @@ def parse_gloria(
         currently only ``SUT`` is supported.
     valuation : str or int, optional
         one of ``basic``, ``trade``, ``transport``, ``taxes`` or
-        ``subsidies`` (or the corresponding markup number ``1``-``5``).
+        ``subsidies`` (or the corresponding markup number ``1``-``5``). Use
+        ``"purchaser"`` to sum the five signed layers of intermediate and final
+        use. Supply, value added and the satellite accounts use Markup001.
+        Use the basic-price database to calculate production coefficients and
+        footprints, and the purchaser-price uses to value the same demand.
     year : int, optional
         reference year when the selected folder contains more than one yearly
         GLORIA bundle.
@@ -2867,6 +2875,8 @@ def parse_gloria(
         valuation=valuation,
         year=year,
     )
+    if layout.markup is None and calc_all:
+        raise WrongInput("GLORIA purchaser uses require calc_all=False. Calculate footprints with valuation='basic'.")
     _select_gloria_satellites(metadata, satellites)
     cache_dir = None
     cache_signature = None
@@ -2900,6 +2910,7 @@ def parse_gloria(
                     year=cache_info.get("year", layout.year),
                     price=cache_info.get("price", layout.price),
                 )
+                state.metadata.history.extend(layout.notes)
                 return build_database_from_state(
                     state,
                     model=model,
