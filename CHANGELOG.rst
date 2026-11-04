@@ -5,6 +5,23 @@ Release History
 All notable changes to MARIO, newest first. Versions match the ``mariopy``
 package on PyPI, and dates are its publication dates.
 
+v1.3.4
+------
+
+GLORIA use valuations
+~~~~~~~~~~~~~~~~~~~~~
+
+* Add ``mario.read_gloria_use_valuations()`` to read basic values, trade and
+  transport margins, product taxes and signed product subsidies for one
+  commodity. Select purchaser regions while retaining all supplier origins.
+  The sum gives intermediate and final use at purchasers' prices.
+
+Heatmaps
+~~~~~~~~
+
+* Show the original matrix values in notebook heatmap tooltips, including with
+  logarithmic or clipped colour scales and in older notebook renderers.
+
 v1.3.3
 ------
 
