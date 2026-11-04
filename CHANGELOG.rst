@@ -25,7 +25,7 @@ Heatmaps
 v1.3.3
 ------
 
-*Released 2026-10-23.*
+*Released 2026-11-04.*
 
 Classification concordances
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
