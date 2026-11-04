@@ -1,3 +1,4 @@
+import json
 from unittest.mock import Mock, patch
 
 import pandas as pd
@@ -5,6 +6,33 @@ import pytest
 
 from mario.log_exc.exceptions import WrongInput
 from mario.views import plots
+
+
+@pytest.mark.parametrize("color_options", [
+    {},
+    {"log_color": True},
+    {"color_clip": (0.1, 0.9)},
+    {"log_color": True, "color_clip": (0.1, 0.9)},
+])
+def test_heatmap_hover_values_serialize_as_original_numbers_for_notebook_renderers(color_options):
+    data = pd.DataFrame({
+        "Origin": ["a", "a", "b", "b", "c", "c"],
+        "Destination": ["x", "y"] * 3,
+        "Value": [0.0, 1.0, 10.0, 100.0, 1000.0, 1e6],
+    })
+    figure = plots.plot_frame(
+        data, kind="heatmap", x="Destination", heatmap_y="Origin",
+        category_orders={"Origin": ["c", "b", "a"], "Destination": ["y", "x"]},
+        **color_options,
+    )
+
+    # Test the browser payload: NumPy arrays can become binary objects here even
+    # when the values in the Python figure look correct.
+    trace = json.loads(figure.to_json())["data"][0]
+    assert trace["customdata"] == [[1e6, 1000.0], [100.0, 10.0], [1.0, 0.0]]
+    assert trace["y"] == ["c", "b", "a"]
+    assert trace["x"] == ["y", "x"]
+    assert "%{customdata:.4g}" in trace["hovertemplate"]
 
 
 def test_plotter_writes_html_when_inline_jupyter_rendering_fails(tmp_path):
