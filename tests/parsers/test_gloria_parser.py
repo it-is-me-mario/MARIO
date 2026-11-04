@@ -441,3 +441,36 @@ def test_public_parse_gloria_can_reload_from_parquet_cache(tmp_path, monkeypatch
         second.Z.sort_index().sort_index(axis=1).to_numpy(),
         first.Z.sort_index().sort_index(axis=1).to_numpy(),
     )
+
+
+def test_gloria_use_valuations_keep_import_origins_and_signed_subsidies(tmp_path):
+    annual = _write_gloria_year(tmp_path)
+    for markup, amount in [(3, 3.0), (4, 4.0), (5, -5.0)]:
+        for block, shape in [("T", (8, 8)), ("Y", (8, 4))]:
+            values = np.zeros(shape)
+            # Wheat from Montenegro, bought by the first Italian buyer.
+            values[6, 0] = amount
+            np.savetxt(
+                annual / f"20260121_120secMother_AllCountries_002_{block}-Results_2025_060_Markup{markup:03d}(full).csv",
+                values,
+                delimiter=",",
+            )
+
+    archive = _archive_directory(annual)
+    valuations = mario.read_gloria_use_valuations(
+        archive, year=2025, commodity="Wheat", destination_regions=["ME", "IT"],
+    )
+
+    assert list(valuations["basic"].index) == ["IT", "ME"]
+    assert list(valuations["basic"].columns.get_level_values("Destination").unique()) == ["ME", "IT"]
+    assert valuations["basic"].loc["IT", ("intermediate", "ME", "Wheat")] == 2.0
+    assert valuations["basic"].loc["IT", ("final", "IT", "Household")] == 11.0
+    assert valuations["subsidies"].loc["ME", ("intermediate", "IT", "Wheat")] == -5.0
+    assert valuations["purchaser"].loc["ME", ("intermediate", "IT", "Wheat")] == 13.0
+    assert valuations["purchaser"].loc["ME", ("final", "IT", "Household")] == 2.0
+
+
+def test_gloria_use_valuations_reject_an_incomplete_price_bridge(tmp_path):
+    _write_gloria_year(tmp_path)
+    with pytest.raises(WrongInput, match=r"both T and Y for transport"):
+        mario.read_gloria_use_valuations(tmp_path, commodity="Wheat", year=2025)
