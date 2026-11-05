@@ -31,6 +31,18 @@ def python_blocks(path):
     return blocks
 
 
+def test_supply_mix_guide_examples_use_packaged_labels():
+    scope = {}
+    for code in python_blocks(ROOT / 'transformations/supply_mix.rst'):
+        exec(code, scope)
+    db = scope['db']
+    assert db.scenarios == ['baseline', 'new_mix', 'regional_recipe']
+    y = db.query('Y', scenarios='new_mix')
+    industry = y.loc[('Reg1', 'Sector', 'Industry')]
+    services = y.loc[('Reg1', 'Sector', 'Services')]
+    np.testing.assert_allclose(industry, (industry + services) * .7)
+
+
 def consumer_example():
     sectors = pd.MultiIndex.from_tuples([('A', 'Sector', 'Product'), ('B', 'Sector', 'Product')])
     fd = pd.MultiIndex.from_tuples([(r, 'Consumption category', c)

@@ -50,6 +50,15 @@ The provider groups are coarser than native technologies. MARIO redistributes
 within each group using its existing internal composition. This does not
 independently estimate every technology's historical share.
 
+When the new mix activates a producer with zero baseline output and an empty
+input recipe, MARIO estimates its coefficients from active producers of the
+same technology. The recipe uses output-weighted donors and the receiving
+country's input sourcing shares; missing direct-emissions and value-added
+columns are filled too. ``recipe_regions`` selects donor countries or enables
+interactive selection. This behaviour applies to **any supply bundle**, not
+only electricity: see :doc:`../transformations/supply_mix` for the assumptions,
+fallbacks and explicit mappings.
+
 .. mario-details:: Inspect the resulting IOT mix
 
    .. code-block:: python

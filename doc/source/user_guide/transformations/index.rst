@@ -29,6 +29,8 @@ formats.
      - :doc:`MRIO to SRIO <mrio_to_srio>`
    * - Change the SUT trade representation
      - :doc:`Isard to Chenery-Moses <to_chenery_moses>`
+   * - Change any supply bundle and estimate missing production recipes
+     - :doc:`Update supply mixes <supply_mix>`
    * - Update electricity generation or trade shares
      - :doc:`Update electricity mixes <../advanced/electricity_mix>`
 
@@ -44,4 +46,5 @@ formats.
    sut_to_iot
    mrio_to_srio
    to_chenery_moses
+   supply_mix
    ../advanced/electricity_mix

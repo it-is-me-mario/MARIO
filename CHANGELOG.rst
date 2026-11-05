@@ -5,6 +5,18 @@ Release History
 All notable changes to MARIO, newest first. Versions match the ``mariopy``
 package on PyPI, and dates are its publication dates.
 
+Unreleased
+----------
+
+* ``update_supply_mix`` estimates missing input recipes when a mix activates
+  previously inactive producers, for arbitrary sectors, commodities and
+  activities as well as the electricity preset. Output-weighted donor recipes
+  use the receiving country's input sourcing, falling back to donor origins
+  when purchases are absent. Empty direct-emissions and value-added columns
+  are filled too. Select donor regions globally, per receiving-region/item
+  pair or through optional prompts; ``fill_missing_recipes=False`` retains
+  the previous behaviour. Sparse storage is preserved.
+
 v1.3.3
 ------
 

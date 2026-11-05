@@ -63,6 +63,12 @@ Example verification
   and notebook calculations on small accounting/scenario fixtures. Run it
   when changing those examples; source-database and live-provider runs remain
   separate checks.
+* For supply-mix recipe estimation, check unequal donor outputs, receiving-region
+  domestic/import shares and the no-purchases fallback independently. Verify
+  both intermediate and direct coefficients, SUT commodity-to-activity routing,
+  sparse storage and unchanged source scenarios. Exercise more than one newly
+  activated producer in reversed update order; donor weights and sourcing must
+  come from the pre-update scenario, not earlier imputed columns.
 
 Rendered review
 ---------------

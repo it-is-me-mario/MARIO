@@ -36,8 +36,9 @@ Page ownership
        ``production_mix.rst`` in the same directory
      - Corresponding API; worked examples in ``user_guide/advanced/``
    * - Transformations and scenarios
-     - ``user_guide/transformations/``; electricity updates use
-       ``user_guide/advanced/electricity_mix.rst``
+     - ``user_guide/transformations/``; general supply updates and recipe
+       estimation use ``user_guide/transformations/supply_mix.rst``;
+       electricity presets use ``user_guide/advanced/electricity_mix.rst``
      - API, paired notebook and transformation index
    * - Database profiles and classifications
      - ``user_guide/advanced/database_profiles.rst``,
