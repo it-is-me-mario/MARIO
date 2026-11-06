@@ -109,6 +109,12 @@ The supplemental year and country-sector labels must match the economic
 bundle. The native aggregate climate-change row is also retained separately;
 its scope and the detailed source reconstruction need not coincide exactly.
 
+The companion supplies production coefficients for the first five detailed
+sources, without a source-specific final-demand split. Their ``EY`` entries
+are zero; native direct household climate impacts remain in the original
+``Climate change impacts`` row of ``EY``. Detailed LULUCF includes its published
+final-demand account.
+
 The ``rex3`` database profile identifies these already characterised CO2eq
 rows separately from standard monetary EXIOBASE. To sum the six detailed
 sources, including LULUCF, without adding the overlapping native aggregate:
@@ -119,7 +125,21 @@ sources, including LULUCF, without adding the overlapping native aggregate:
 
 Changing ``ipcc_report`` or ``time_horizon`` does not recharacterise these
 source CO2eq accounts. Use an explicit label describing the chosen inventory.
+The detailed aggregate does not include the native direct household climate
+row. When constructing a total that includes those emissions, add that
+``EY`` row once, alongside the detailed production and LULUCF accounts.
 No standard EXIOBASE classification concordance is assumed for REX3.
+
+Source consistency
+------------------
+
+The import preserves the published flows without balancing or reconciling
+the two inventories. In the pinned 2022 files, global output from
+``Z.sum(axis=1) + Y.sum(axis=1)`` is about 0.118% below intermediate inputs
+plus value added. The five detailed production GHG sources total about
+1.996% less than the native production climate-change account. Country-sector
+differences can be much larger than these global differences. Check the
+source balance and inventory scope before interpreting regional results.
 
 Memory and calculation scope
 ----------------------------

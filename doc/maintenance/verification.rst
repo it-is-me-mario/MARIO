@@ -77,6 +77,12 @@ Example verification
   sector. Keep the detailed GHG sum separate from the overlapping native
   aggregate. Saved notebook outputs document a previous run, not a current
   integration test; rerun a full real bundle when it is locally available.
+  ``scripts/benchmark_rex3_ghg.py`` streams an independent source benchmark
+  before database construction; inspect country-sector diagnostics as well as
+  global totals. Compare imported blocks with the oriented source cells to
+  distinguish source imbalances from import errors. Verify that native direct
+  household climate impacts remain in ``EY`` and are not silently included
+  in the detailed source aggregate, whose first five ``EY`` rows are zero.
 
 Rendered review
 ---------------
