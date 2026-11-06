@@ -90,10 +90,13 @@ def prepare(doc=DOC):
         notebooks = [p for p in notebooks if p.parent.name != "bonsai"] + [bonsai]
     for path in sorted(notebooks, key=lambda p: ("bonsai" if p == bonsai else p.parent.name, p.stem)):
         family = "bonsai" if path == bonsai else path.parent.name
-        key = family if family not in {"exiobase", "custom_database"} else f"{family}-{path.stem}".replace("_", "-")
+        distinct = family in {"exiobase", "custom_database"} or (family == "figaro" and path.stem == "e3")
+        key = f"{family}-{path.stem}".replace("_", "-") if distinct else family
         label = SOURCE_NAMES[family]
         if family == "exiobase":
             label += ", " + path.stem
+        elif key == "figaro-e3":
+            label = "FIGARO E3"
         elif family == "custom_database":
             label = {"from_excel": "Excel custom parser", "from_txt": "TXT, CSV and Parquet custom parser",
                      "from_pymrio": "Pymrio bridge"}[path.stem]

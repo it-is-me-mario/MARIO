@@ -71,7 +71,7 @@ test('a reference class without a predecessor remains null in published NACE-bas
 test('FIGARO and WIOD use their complete published activity partitions and keep annual systems compact',()=>{
  for(const [family,count,source] of [['FIGARO',64,'S26'],['WIOD',56,'S27']]){
   const db=col(family);assert.equal(db.native.length,count);assert.equal(db.native_count,count);
-  assert.equal(model.columns.filter(c=>c.family===family).length,1);assert.ok(db.profile_ids.length>1);
+  assert.equal(model.columns.filter(c=>c.family===family&&c.variant!=='E3').length,1);assert.ok(db.profile_ids.length>1);
   assert.equal(new Set(db.native.flatMap(n=>n.classes)).size,650);
   assert.deepEqual(M.cell(model,db,'01.11').matches.map(m=>m.native.code),['A01']);
   assert.deepEqual(M.cell(model,db,'28.23').matches.map(m=>m.native.code),['C28']);

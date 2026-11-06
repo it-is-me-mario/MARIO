@@ -105,6 +105,8 @@ def geographic_groups(profiles):
     for profile in _ordered_profiles(profiles):
         signature = profile.get("coverage_signatures", {}).get("geography", profile["id"])
         namespace = "REX3" if profile.get("guide") == "exiobase-rex3" or profile.get("variant") == "REX3" else ""
+        if profile.get("guide") == "figaro-e3" or profile.get("variant") == "E3":
+            namespace = "E3"
         groups.setdefault((profile.get("source", ""), namespace, signature), []).append(profile)
     return list(groups.values())
 

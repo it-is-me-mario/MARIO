@@ -4,6 +4,11 @@
 Database profiles
 =================
 
+FIGARO E3 has a separate runtime identity and a source AR5/GWP100 CO2eq
+profile. Its detailed native codes do not inherit standard FIGARO concordances.
+See the :doc:`local E3 guide <../../notebooks/parsers/figaro/e3>` for alternative
+gas inventories and employment estimates.
+
 .. container:: mario-recipe
 
    .. code-block:: python

@@ -86,7 +86,7 @@ def resolve_geography(profile, countries):
             regions.append({"label": label, "name": "Rest of Latin America and the Caribbean", "kind": "aggregate", "members": [],
                             "membership_status": "not_mapped"})
             continue
-        if text.casefold() in {"row", "rest of world", "rest of the world"}:
+        if text.casefold() in {"row", "rest of world", "rest of the world"} or (profile["guide"] == "figaro-e3" and text == "FIGW1"):
             regions.append({"label": label, "name": "Rest of the world", "kind": "aggregate", "members": [],
                             "membership_status": "not_mapped"})
             continue

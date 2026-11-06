@@ -46,6 +46,8 @@ from mario.parsers.exiobase_hybrid import (
 )
 from mario.parsers.exiobase_iot import parse_exiobase_iot_monetary
 from mario.parsers.exiobase_rex import parse_rex3_iot
+from mario.parsers.figaro_e3 import parse_figaro_e3_data
+from mario.model.conventions import _MASTER_INDEX
 from mario.parsers.exiobase_sut import parse_exiobase_sut_monetary
 from mario.parsers.eora import parse_eora_single_region, parse_eora26
 from mario.parsers.eurostat_sdmx import (
@@ -2610,6 +2612,96 @@ def parse_from_pymrio(
 
 
 @with_parser_compute_profile
+def parse_figaro_e3(
+    path: str,
+    table: str = "SUT",
+    year: int = 2015,
+    iot_mode: str = "industry",
+    input_format: str = "auto",
+    extensions="all",
+    emissions: str = "co2eq",
+    employment: str = "EDU",
+    extension_allocation: str | None = None,
+    chunksize: int = 250_000,
+    model: str = "Database",
+    name: str | None = None,
+    calc_all: bool = False,
+    **kwargs,
+):
+    """Read locally downloaded JRC FIGARO-E3 tables and extensions.
+
+    Parameters
+    ----------
+    path : str or Path
+        Root containing extracted CSVs and the published classification XLSX.
+        Nested distribution folders are supported. Identical browser copies
+        are collapsed; conflicting copies require selecting one release root.
+    table : {"SUT", "IOT"}, optional
+        Read native rectangular supply/use tables or a published symmetric IOT.
+    year : int, optional
+        Reference year; this release supports 2015.
+    iot_mode : {"industry", "product"}, optional
+        Model D industry IOT (default) or model B product IOT. Ignored for SUTs.
+    input_format : {"auto", "matrix", "flatfile"}, optional
+        Auto prefers economic matrices and falls back to flat files. Extensions
+        may use another available representation; energy auto prefers the
+        complete six-indicator flat file. An explicit format applies to all inputs.
+    extensions : str, iterable of str, bool or None, optional
+        ``"all"`` (default), or selected ``emissions``, ``energy``, ``employment``
+        groups. ``False``/``None`` omits extensions.
+    emissions : {"co2eq", "mass"}, optional
+        Published AR5/GWP100 CO2eq (default) or gas-mass accounts. F-gases are
+        already characterised in both representations. Only one is imported.
+    employment : {"EDU", "OCC", "both"}, optional
+        Education-based (default), occupation-based, or separately labelled
+        estimates. These alternatives must not be summed together.
+    extension_allocation : {None, "industry_technology"}, optional
+        Product IOT extensions require explicit ``"industry_technology"`` and
+        supply data. Industry-native extensions are allocated using published
+        industry output and supply shares. Direct final demand is unchanged.
+    chunksize : int, optional
+        Flat-file observations read per chunk; defaults to 250000.
+    model : str, optional
+        Public MARIO model class; defaults to ``"Database"``.
+    name : str, optional
+        Display name; defaults to source year, table and IOT mode.
+    calc_all : bool, optional
+        Materialize derived blocks; defaults to ``False``.
+    **kwargs
+        Additional model-construction options.
+
+    Notes
+    -----
+    Imports preserve the complete inter-country table, native codes, signed
+    adjustments and direct final-demand flows. No standard FIGARO classification
+    mapping is assumed. See :doc:`/notebooks/parsers/figaro/e3` for file choices,
+    scientific assumptions and the downloadable notebook.
+    """
+    if model not in models:
+        raise WrongInput("Available models are {}".format([*models]))
+    validate_parse_request(table=table, model=model)
+    matrices, indeces, units, layout = parse_figaro_e3_data(
+        path, table=table, year=year, iot_mode=iot_mode, input_format=input_format,
+        extensions=extensions, emissions=emissions, employment=employment,
+        extension_allocation=extension_allocation, chunksize=chunksize,
+    )
+    kwargs.setdefault("license", "CC BY 4.0")
+    result = models[model](
+        name=name or layout.dataset_name, table=table, source=layout.source,
+        year=layout.year, price="Basic prices",
+        init_by_parsers={"matrices":matrices,"_indeces":indeces,"units":units},
+        calc_all=calc_all, notes=layout.notes, **kwargs,
+    )
+    if model == "Database":
+        result.info["figaro_e3"] = {"input_files":layout.files,"classifications":layout.labels,
+                                    "emissions":emissions,"employment":employment,
+                                    "extension_allocation":extension_allocation}
+        if table == "IOT":
+            result.meta._add_attribute(sector_type=_MASTER_INDEX["a" if iot_mode == "industry" else "c"])
+    return result
+
+
+@with_parser_compute_profile
 def parse_figaro(
     path: str | None = None,
     table: str = "SUT",
@@ -2621,6 +2713,7 @@ def parse_figaro(
     model: str = "Database",
     name: str = None,
     calc_all: bool = False,
+    variant: str = "standard",
     **kwargs,
 ) -> object:
     """Parse FIGARO tables from the Eurostat API.
@@ -2657,6 +2750,10 @@ def parse_figaro(
     calc_all : bool, optional
         Materialize derived matrices immediately after parsing; defaults to
         ``False``.
+    variant : {"standard", "E3"}, optional
+        Standard Eurostat API (default), or the local JRC FIGARO-E3 bundle.
+        E3 uses ``path`` as a source root, defaults to 2015 and uses the
+        industry IOT when ``iot_mode="auto"``. See :func:`parse_figaro_e3`.
 
     Notes
     -----
@@ -2666,6 +2763,14 @@ def parse_figaro(
     """
     if model not in models:
         raise WrongInput("Available models are {}".format([*models]))
+    if str(variant).casefold() == "e3":
+        if countries is not None or unit != "MIO_EUR":
+            raise WrongInput("FIGARO E3 requires the complete country scope and monetary units MIO_EUR.")
+        return parse_figaro_e3(path=path, table=table, year=2015 if year is None else year,
+                               iot_mode="industry" if iot_mode == "auto" else iot_mode,
+                               model=model,name=name,calc_all=calc_all,**kwargs)
+    if str(variant).casefold() != "standard":
+        raise WrongInput("FIGARO variant must be standard or E3.")
     if year is None:
         raise WrongInput("FIGARO API parsing requires an explicit year.")
 

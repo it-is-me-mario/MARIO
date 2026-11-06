@@ -4,6 +4,10 @@
 FIGARO
 ======
 
+For the detailed local JRC dataset with employment, energy and emissions,
+use the :doc:`FIGARO E3 guide <e3>`. The API workflow below reads standard
+FIGARO tables.
+
 .. container:: mario-companion
 
    :download:`Download notebook <walkthrough_figaro.ipynb>`

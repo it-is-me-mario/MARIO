@@ -4,7 +4,8 @@
   const name = source => source === "Asian Development Bank" ? "ADB" : source;
   const rows = profile => profile.geography.regions;
   const isRex3 = p => p.guide === "exiobase-rex3" || p.variant === "REX3" || p.release === "REX3";
-  const geographyKey = p => (isRex3(p) ? "REX3|" : "") + (p.coverage_signatures?.geography || JSON.stringify(rows(p).map(r => r.label).sort()));
+  const isE3 = p => p.guide === "figaro-e3" || p.variant === "E3";
+  const geographyKey = p => (isRex3(p) ? "REX3|" : isE3(p) ? "E3|" : "") + (p.coverage_signatures?.geography || JSON.stringify(rows(p).map(r => r.label).sort()));
   const releaseOrder = (a,b) => {
     const numericA=/^\d/.test(a), numericB=/^\d/.test(b);
     return Number(numericB)-Number(numericA) || (numericA
@@ -20,7 +21,7 @@
     return [...groups.values()].map(group => {
       const releases = [...new Set(group.profiles.map(p => p.release).filter(Boolean))].sort(releaseOrder);
       const type = source === "EXIOBASE" ? (group.profiles.every(p => p.guide === "exiobase-hybrid") ? "Hybrid" : "Monetary") : "";
-      group.label = group.profiles.every(isRex3) ? "REX3" : type === "Monetary" ? "Monetary - Standard releases" : [type, source === "WIOD" ? `${releases.join(" / ")} · ${[...new Set(group.profiles.map(p=>p.table))].join(" / ")}` : source === "FIGARO" ? [...new Set(group.profiles.map(p=>[p.table,p.provenance?.options?.iot_mode==="product"?"pxp":p.provenance?.options?.iot_mode==="industry"?"ixi":null].filter(Boolean).join(" · ")))].join(" / ") : releases.join(" / ") || name(source)].filter(Boolean).join(" · ");
+      group.label = group.profiles.every(isE3) ? "E3" : group.profiles.every(isRex3) ? "REX3" : type === "Monetary" ? "Monetary - Standard releases" : [type, source === "WIOD" ? `${releases.join(" / ")} · ${[...new Set(group.profiles.map(p=>p.table))].join(" / ")}` : source === "FIGARO" ? [...new Set(group.profiles.map(p=>[p.table,p.provenance?.options?.iot_mode==="product"?"pxp":p.provenance?.options?.iot_mode==="industry"?"ixi":null].filter(Boolean).join(" · ")))].join(" / ") : releases.join(" / ") || name(source)].filter(Boolean).join(" · ");
       return group;
     });
   };
