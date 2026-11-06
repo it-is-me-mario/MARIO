@@ -185,6 +185,17 @@ def test_closed_unit_feedback_is_preserved_and_full_inverse_rejected(tmp_path,sy
     assert flows.iloc[0,0]==0.004
     with pytest.raises(np.linalg.LinAlgError,match='singular'):
         db.resolve('wcc' if system=='sut' else 'w')
+    with pytest.warns(mario.PartialResultWarning):
+        partial=db.resolve('fc' if system=='sut' else 'f',
+                           compute_options=mario.ComputeOptions(
+                               backend_override='sparse_direct',singular_policy='partial'))
+    assert partial.iloc[:,0].isna().all()
+    assert np.isfinite(partial.iloc[:,1:].to_numpy()).all()
+    assert partial.attrs['mario_partial']['undefined_nodes']==[partial.columns[0]]
+    with pytest.raises(np.linalg.LinAlgError,match='singular'):
+        db.resolve('wcc' if system=='sut' else 'w',
+                   compute_options=mario.ComputeOptions(
+                       backend_override='sparse_direct',singular_policy='partial'))
     assert flows.iloc[0,0]==0.004
 
 
