@@ -171,8 +171,42 @@ the singularity. MARIO's default strict policy raises an error; the parser
 preserves the source flows. The companion demonstrates import and account
 aggregation, not a successful complete Leontief footprint calculation.
 
-Any treatment of the closed component, or explicitly partial result, must
-be chosen and reported as an additional modelling assumption. A pseudoinverse
-or successful import must not be presented as a full Leontief inverse.
+To calculate independently determined multipliers, explicitly request the
+same partial policy used by BONSAI:
+
+.. code-block:: python
+
+   options = mario.ComputeOptions(
+       backend_override="sparse_direct", singular_policy="partial",
+   )
+   fc = db.resolve("fc", compute_options=options)  # SUT commodity multipliers
+   fc.attrs.get("mario_partial")
+   # For an industry IOT: industry.resolve("f", compute_options=options)
+
+On the checked native 2015 files, this returns finite multipliers for 8,095
+of 8,096 industry IOT nodes and 9,797 of 9,798 SUT commodity nodes. The Irish
+paper-waste node remains ``NaN`` for every loaded satellite account, with a
+:class:`~mario.PartialResultWarning`. The retained equations pass the residual
+check without changes to source flows. This certifies the independent
+subsystem, not a complete solution of the singular system. Full inverse
+requests still raise an error. See :doc:`partial singular results
+<../../../reference/api_calculation_methods>` for dependency propagation and
+reductions; pandas totals that include undefined coefficients need
+``skipna=False``.
+
+The `JRC construction code
+<https://jeodpp.jrc.ec.europa.eu/ftp/public/JRC-OpenData/FIGARO-E3/>`_ builds
+and balances the economic tables; it does not calculate a Leontief inverse.
+Its final export script rounds monetary
+flows to three decimal places and also defines unrounded exports. Comparing
+unrounded results could help diagnose lost small flows, but their invertibility
+has not been established. The code's ``EPS`` assignments preserve explicit
+zeros for export (``EpsOut=0``), rather than regularizing ``I - z``; see the
+`GAMS special-value definitions
+<https://www.gams.com/latest/docs/UG_Parameters.html#UG_Parameters_ExtendedRangeArithmetic>`_.
+
+Any alteration of the closed component must be chosen and reported as an
+additional modelling assumption. A partial result, pseudoinverse or successful
+import must not be presented as a full Leontief inverse.
 
 Full interfaces: :func:`~mario.parse_figaro_e3` and :func:`~mario.parse_figaro`.

@@ -98,6 +98,13 @@ inverse rejects them before allocating a dense identity. A solve-based preset
 does not establish nonsingularity. Keep source loops and undefined results
 explicit rather than silently changing flows or applying a pseudoinverse.
 
+If partial calculations are offered, exercise the public multiplier target
+on the source files, verify the undefined-node mask and residual of the
+independent subsystem, and confirm that full inverse requests still fail.
+Inspect construction-code export precision before attributing a singularity
+to rounding; the existence of an unrounded export path is not evidence that
+its data is available or nonsingular.
+
 Rendered review
 ---------------
 
