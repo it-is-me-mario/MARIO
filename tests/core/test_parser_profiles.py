@@ -83,7 +83,7 @@ def test_profiled_parser_retains_signature_and_scenario_import(tmp_path):
     assert database.scenarios == ["baseline", "second"]
 
 
-@pytest.mark.parametrize("name", ["bonsai", "gloria", "emerging"])
+@pytest.mark.parametrize("name", ["bonsai", "gloria", "emerging", "exiobase_rex"])
 @pytest.mark.parametrize("available", [True, False])
 def test_large_database_profiles_choose_an_available_solver_without_persisting(
     name, available, tmp_path, monkeypatch

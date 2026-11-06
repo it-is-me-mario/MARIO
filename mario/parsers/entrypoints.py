@@ -15,6 +15,7 @@ from mario.download import (
     _statcan_local_csv_path,
     _statcan_openio_local_xlsx_path,
     download_exiobase3,
+    download_exiobase_rex,
     download_eurostat,
     download_hybrid_exiobase,
     download_istat_io,
@@ -44,6 +45,7 @@ from mario.parsers.exiobase_hybrid import (
     parse_exiobase_hybrid_sut,
 )
 from mario.parsers.exiobase_iot import parse_exiobase_iot_monetary
+from mario.parsers.exiobase_rex import parse_rex3_iot
 from mario.parsers.exiobase_sut import parse_exiobase_sut_monetary
 from mario.parsers.eora import parse_eora_single_region, parse_eora26
 from mario.parsers.eurostat_sdmx import (
@@ -661,13 +663,15 @@ def parse_exiobase_sut(
 
     .. note::
 
-        The monetary SUT parser is currently tied to EXIOBASE ``3.8.2``
-        (`Zenodo 5589597 <https://doi.org/10.5281/zenodo.5589597>`_).
+        EXIOBASE ``3.8.2`` and locally supplied ``3.11.2`` MRSUT bundles
+        share the same text layout and parser. Automatic SUT downloads are
+        available for ``3.8.2`` only.
 
     Parameters
     ----------
     path : str
-        path to the EXIOBASE SUT directory
+        Path to the EXIOBASE SUT directory or ZIP archive containing
+        ``supply.csv``, ``use.csv``, ``final_demand.csv`` and ``value_added.csv``.
 
     calc_all : boolean
         if True, by default will calculate z,v,e after parsing
@@ -681,8 +685,12 @@ def parse_exiobase_sut(
         ``Ea`` and ``EY`` for the SUT.
 
     version : str, Optional
-        optional compatibility check against the version detected from the
-        dataset metadata and folder layout.
+        Release label in major.minor.patch form. Checked against a release
+        found in metadata or the bundle/directory name; otherwise recorded
+        as the caller-supplied release. The ``meta.json`` field ``vers`` is
+        a revision date and does not identify a release. Leave unset if the
+        release is unknown. For a confirmed local 3.11.2 bundle, pass
+        ``version="3.11.2"``.
 
     name : str, Optional
         optional but suggested. is useful for visualization and metadata.
@@ -701,11 +709,8 @@ def parse_exiobase_sut(
     matrices, indeces, units, layout = parse_exiobase_sut_monetary(
         path,
         add_extensions=add_extensions,
+        version=version,
     )
-    if version is not None and layout.version != version:
-        raise WrongInput(
-            f"Requested EXIOBASE version {version!r} does not match detected version {layout.version!r}."
-        )
 
     return models[model](
         name=name or layout.dataset_name,
@@ -793,6 +798,105 @@ def parse_exiobase_3(
         source=layout.source,
         year=year if year is not None else layout.year,
         init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
+        calc_all=calc_all,
+        **kwargs,
+    )
+
+
+@with_parser_compute_profile
+def parse_exiobase_rex(
+    path: str,
+    table: str = "IOT",
+    year: int | None = None,
+    labels_path: str | None = None,
+    ghg_path: str | None = None,
+    download: bool = False,
+    overwrite_download: bool = False,
+    model: str = "Database",
+    name: str | None = None,
+    calc_all: bool = False,
+    **kwargs,
+):
+    """Parse the REX3 global monetary MRIO and its environmental extensions.
+
+    REX3 yearly tables and labels are distributed through Zenodo record
+    ``10354283``.  The detailed greenhouse-gas companion comes from record
+    ``14724086`` and is always required and imported.
+
+    The five production-side coefficient rows for coal, oil, gas, biogenic
+    emissions, and calcination are converted to absolute flows before MARIO
+    constructs the database.  LULUCF is read from its published absolute flow
+    account so emissions assigned to zero-output sectors are not lost.
+
+    Parameters
+    ----------
+    path : str
+        local REX3 bundle root or one extracted ``REX3_<year>`` directory. If
+        ``download=True``, this is the download/cache directory.
+    table : str, optional
+        only ``"IOT"`` is supported.
+    year : int, optional
+        year to select. Required for automatic download and when a local root
+        contains multiple yearly bundles.
+    labels_path, ghg_path : str, optional
+        explicit companion directories. Normally they are auto-detected next
+        to the yearly bundle or recursively under the common root. The
+        economic and GHG records may be extracted into separate version
+        subdirectories. Archives must be extracted before local parsing.
+    download : bool, optional
+        download and extract the year, labels, and GHG companion automatically.
+    overwrite_download : bool, optional
+        replace an existing local download/extraction.
+    calc_all : bool, optional
+        whether to materialize derived MARIO blocks after parsing.
+
+    Notes
+    -----
+    REX3 is always imported as the complete 189-region MRIO. Region slicing is
+    intentionally unsupported because dropping the excluded trade blocks would
+    produce an economically open and internally inconsistent sub-table.
+
+    See :doc:`/notebooks/parsers/exiobase/rex3` for source files, directory
+    layouts, memory requirements and the downloadable notebook. The two
+    Zenodo records are pinned; later record versions are not substituted.
+    """
+    if model not in models:
+        raise WrongInput("Available models are {}".format([*models]))
+    unsupported = sorted({"regions", "block_columns"}.intersection(kwargs))
+    if unsupported:
+        raise WrongInput(
+            "REX3 is always parsed as the complete 189-region MRIO; "
+            f"unsupported arguments: {unsupported}."
+        )
+    validate_parse_request(table=table, model=model)
+    if table != "IOT":
+        raise NotImplementable("REX3 parsing supports only IOT tables.")
+
+    effective_path = path
+    if download:
+        if year is None:
+            raise WrongInput("parse_exiobase_rex(..., download=True) requires 'year'.")
+        info = download_exiobase_rex(
+            path,
+            years=year,
+            overwrite=overwrite_download,
+        )
+        effective_path = info["download_dir"]
+
+    matrices, indeces, units, layout = parse_rex3_iot(
+        effective_path,
+        year=year,
+        labels_path=labels_path,
+        ghg_path=ghg_path,
+    )
+    return models[model](
+        name=name or layout.dataset_name,
+        table="IOT",
+        source=layout.source,
+        year=layout.year,
+        price=layout.price,
+        init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
+        notes=list(layout.notes),
         calc_all=calc_all,
         **kwargs,
     )
@@ -967,6 +1071,7 @@ def parse_exiobase(
     year:int = None, 
     calc_all: bool = False,
     download: bool = False,
+    variant: str | None = None,
     **kwargs
 ):
     """Dispatch to the appropriate EXIOBASE parser.
@@ -986,12 +1091,16 @@ def parse_exiobase(
     download : boolean, Optional
         when ``True``, download the requested EXIOBASE package into ``path``
         and then parse it locally. Monetary downloads require ``year``.
+    variant : str, Optional
+        use ``"standard"`` for conventional EXIOBASE releases or ``"REX3"``
+        for the 189-country REX3 MATLAB bundle. REX3 requires ``table="IOT"``
+        and ``unit="Monetary"`` and always imports its environmental companion.
     year : int, Optional
         optional to the Database (just for recoding the metadata)
     name : str, Optional
         optional but suggested. is useful for visualization and metadata.
     **kwargs: dict
-        all the specific configuation of single exiobase parsers (please refer
+        all the specific configuration of single EXIOBASE parsers (please refer
         to the separate function documentations for more information). For
         hybrid EXIOBASE, the most relevant parser-specific argument is
         ``extensions=...``:
@@ -1025,6 +1134,23 @@ def parse_exiobase(
 
     if unit not in INPUT_OPTIONS["unit"]:
         raise WrongInput("Unit con be only chosen among {}".format(INPUT_OPTIONS["unit"]))
+
+    normalized_variant = "standard" if variant is None else str(variant).strip().casefold()
+    if normalized_variant in {"rex3", "rex"}:
+        if table != "IOT" or unit != "Monetary":
+            raise WrongInput("The REX3 variant requires table='IOT' and unit='Monetary'.")
+        return parse_exiobase_rex(
+            path=path,
+            table=table,
+            year=year,
+            download=download,
+            model=model,
+            name=name,
+            calc_all=calc_all,
+            **kwargs,
+        )
+    if normalized_variant not in {"standard", "default", "base"}:
+        raise WrongInput("Supported EXIOBASE variants are 'standard' and 'REX3'.")
 
     version = kwargs.get("version")
     system = kwargs.get("system")

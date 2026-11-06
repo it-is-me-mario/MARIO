@@ -11,6 +11,7 @@ from mario.download import (
     download_eurostat,
     download_emerging,
     download_exiobase3,
+    download_exiobase_rex,
     download_hybrid_exiobase,
     download_istat_io,
     download_statcan,
@@ -211,6 +212,46 @@ def test_download_exiobase3_rejects_unavailable_sut_release(tmp_path):
             table="SUT",
             version="3.9.6",
         )
+
+
+def test_download_exiobase_rex_includes_labels_and_ghg(monkeypatch, tmp_path):
+    economic_record_url = "https://zenodo.org/api/records/10354283"
+    ghg_record_url = "https://zenodo.org/api/records/14724086"
+    payloads = {
+        "https://files/rex-year": _zip_bytes({"T_REX3.mat": b"T"}),
+        "https://files/rex-labels": _zip_bytes({"Labels_Q_REX3.mat": b"labels"}),
+        "https://files/rex-ghg": _zip_bytes({"d_CC_REX3_timeline.mat": b"ghg"}),
+    }
+
+    def fake_get(url, **kwargs):
+        if url == economic_record_url:
+            return FakeResponse(
+                json_data={
+                    "files": [
+                        {"key": "REX3_1995.zip", "links": {"self": "https://files/rex-year"}},
+                        {"key": "REX3_Labels.zip", "links": {"self": "https://files/rex-labels"}},
+                    ]
+                }
+            )
+        if url == ghg_record_url:
+            return FakeResponse(
+                json_data={
+                    "files": [
+                        {"key": "GHG_data_REX3.zip", "links": {"self": "https://files/rex-ghg"}},
+                    ]
+                }
+            )
+        return FakeResponse(content=payloads[url])
+
+    monkeypatch.setattr("mario.download.requests.get", fake_get)
+
+    info = download_exiobase_rex(tmp_path, years=1995)
+
+    assert info["years"] == [1995]
+    assert (tmp_path / "REX3_1995" / "T_REX3.mat").exists()
+    assert (tmp_path / "REX3_Labels" / "Labels_Q_REX3.mat").exists()
+    assert (tmp_path / "GHG_data_REX3" / "d_CC_REX3_timeline.mat").exists()
+    assert info["archives"] == []
 
 
 def test_download_emerging_v1_downloads_version_record(monkeypatch, tmp_path):

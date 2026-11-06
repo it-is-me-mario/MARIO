@@ -36,7 +36,7 @@ def test_readings_keep_their_own_accounts():
     data = ext.build()
     f = {x["family"]: x for x in data["families"]}
     exio = {v["variant"]: v["readings"] for v in f["EXIOBASE"]["variants"]}
-    assert set(exio) == {"Monetary", "Hybrid"}
+    assert set(exio) == {"Monetary", "Hybrid", "REX3"}
     sizes = {sum(len(c["labels"]) for c in data["sets"][r["set"]].values()) for r in exio["Monetary"]}
     assert len(sizes) > 3  # releases and year groups differ, so no union is reported
     assert exio["Monetary"][0]["release"] == "3.11.2"  # newest first

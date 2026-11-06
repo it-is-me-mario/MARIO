@@ -1,25 +1,16 @@
 /* Geographic versions share region sets; Excel inventories retain economic variants. */
 (() => {
   "use strict";
-  const root = document.querySelector("[data-database-comparisons]");
-  if (!root) return;
-  const profiles = JSON.parse(root.querySelector("[data-comparison-profiles]").textContent);
-  const prefix = root.dataset.root;
-  const escape = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"}[c]));
   const name = source => source === "Asian Development Bank" ? "ADB" : source;
-  const sources = [...new Set(profiles.map(p => p.source))].sort();
-  const downloads = prefix + "resources/material.html#database-set-downloads";
   const rows = profile => profile.geography.regions;
-  const direct = (profile, iso3) => rows(profile).some(r => r.kind === "country" && r.iso3 === iso3);
-  const aggregate = (profile, iso3) => !direct(profile,iso3) && (profile.geography.scope === "global" || rows(profile).some(r => r.kind === "aggregate" && (r.members || []).includes(iso3)));
-  const geographyKey = p => p.coverage_signatures?.geography || JSON.stringify(rows(p).map(r => r.label).sort());
-  profiles.sort((a, b) => Number(b.year || 0) - Number(a.year || 0) || a.label.localeCompare(b.label));
+  const isRex3 = p => p.guide === "exiobase-rex3" || p.variant === "REX3" || p.release === "REX3";
+  const geographyKey = p => (isRex3(p) ? "REX3|" : "") + (p.coverage_signatures?.geography || JSON.stringify(rows(p).map(r => r.label).sort()));
   const releaseOrder = (a,b) => {
     const numericA=/^\d/.test(a), numericB=/^\d/.test(b);
     return Number(numericB)-Number(numericA) || (numericA
       ? b.localeCompare(a,undefined,{numeric:true}) : a.localeCompare(b,undefined,{numeric:true}));
   };
-  const versions = source => {
+  const geographicVersions = (profiles, source) => {
     const groups = new Map();
     for (const profile of profiles.filter(p => p.source === source)) {
       const key = geographyKey(profile);
@@ -29,10 +20,23 @@
     return [...groups.values()].map(group => {
       const releases = [...new Set(group.profiles.map(p => p.release).filter(Boolean))].sort(releaseOrder);
       const type = source === "EXIOBASE" ? (group.profiles.every(p => p.guide === "exiobase-hybrid") ? "Hybrid" : "Monetary") : "";
-      group.label = type === "Monetary" ? "Monetary - All versions" : [type, source === "WIOD" ? `${releases.join(" / ")} · ${[...new Set(group.profiles.map(p=>p.table))].join(" / ")}` : source === "FIGARO" ? [...new Set(group.profiles.map(p=>[p.table,p.provenance?.options?.iot_mode==="product"?"pxp":p.provenance?.options?.iot_mode==="industry"?"ixi":null].filter(Boolean).join(" · ")))].join(" / ") : releases.join(" / ") || name(source)].filter(Boolean).join(" · ");
+      group.label = group.profiles.every(isRex3) ? "REX3" : type === "Monetary" ? "Monetary - Standard releases" : [type, source === "WIOD" ? `${releases.join(" / ")} · ${[...new Set(group.profiles.map(p=>p.table))].join(" / ")}` : source === "FIGARO" ? [...new Set(group.profiles.map(p=>[p.table,p.provenance?.options?.iot_mode==="product"?"pxp":p.provenance?.options?.iot_mode==="industry"?"ixi":null].filter(Boolean).join(" · ")))].join(" / ") : releases.join(" / ") || name(source)].filter(Boolean).join(" · ");
       return group;
     });
   };
+  if (typeof module !== "undefined" && module.exports) module.exports = {geographicVersions, geographyKey};
+  if (typeof document === "undefined") return;
+  const root = document.querySelector("[data-database-comparisons]");
+  if (!root) return;
+  const profiles = JSON.parse(root.querySelector("[data-comparison-profiles]").textContent);
+  const prefix = root.dataset.root;
+  const escape = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"}[c]));
+  const sources = [...new Set(profiles.map(p => p.source))].sort();
+  const downloads = prefix + "resources/material.html#database-set-downloads";
+  const direct = (profile, iso3) => rows(profile).some(r => r.kind === "country" && r.iso3 === iso3);
+  const aggregate = (profile, iso3) => !direct(profile,iso3) && (profile.geography.scope === "global" || rows(profile).some(r => r.kind === "aggregate" && (r.members || []).includes(iso3)));
+  profiles.sort((a, b) => Number(b.year || 0) - Number(a.year || 0) || a.label.localeCompare(b.label));
+  const versions = source => geographicVersions(profiles, source);
   if (!profiles.length) return;
   root.setAttribute("aria-busy", "true");
 
@@ -242,7 +246,7 @@
       const count = relevantSources().length;
       root.querySelector("[data-coverage-headline]").innerHTML = selectedSource === "all"
         ? `<strong>${countries.filter(c => coverageCount(c.iso3) > 0).length}</strong> countries / territories · <strong>${count}</strong> ${count === 1 ? "database" : "databases"}`
-        : pool.length ? `<strong>${pool[0].geography.individual_countries}</strong> individual regions · <strong>${pool[0].geography.aggregate_count}</strong> aggregate regions` : "No verified coverage inventory for this year.";
+        : pool.length ? `<strong>${pool[0].geography.individual_countries}</strong> individual regions · <strong>${pool[0].geography.aggregate_count}</strong> aggregate regions${pool[0].geography.unresolved_count ? ` · <strong>${pool[0].geography.unresolved_count}</strong> unmatched source labels` : ""}` : "No verified coverage inventory for this year.";
       renderLegend();
       for (const path of root.querySelectorAll("[data-map-country]")) {
         const iso = path.dataset.mapCountry;

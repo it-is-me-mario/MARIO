@@ -44,6 +44,12 @@ Example verification
 * Source-specific calls need the stated release, files and options. When those
   inputs are unavailable, check signatures and data requirements and explicitly
   report that full execution was not performed.
+* For locally supplied EXIOBASE MRSUT bundles, compare all four matrices' row
+  and column labels, order and units with the supported layout. Verify imported
+  cells against the source, including the supply transpose. Treat ``meta.json``
+  ``vers`` as a revision date; use supplier confirmation for a release absent
+  from the payload. Keep local parser support separate from the public download
+  registry and parsed-release catalogue.
 * Check that notebook variables are defined in execution order and selectors
   match the intended source. Retain portable paths and input/licence guidance.
 * After scientific changes, reconcile affected equations, examples, figures and
@@ -57,6 +63,26 @@ Example verification
   and notebook calculations on small accounting/scenario fixtures. Run it
   when changing those examples; source-database and live-provider runs remain
   separate checks.
+* For supply-mix recipe estimation, check unequal donor outputs, receiving-region
+  domestic/import shares and the no-purchases fallback independently. Verify
+  both intermediate and direct coefficients, SUT commodity-to-activity routing,
+  sparse storage and unchanged source scenarios. Exercise more than one newly
+  activated producer in reversed update order; donor weights and sourcing must
+  come from the pre-update scenario, not earlier imputed columns.
+
+* For REX3, verify nested economic/GHG version folders and explicit companion
+  selectors, including the requested year and country-sector label alignment.
+  Check MATLAB orientation against source cells, coefficient-to-flow GHG
+  reconstruction using complete output, and absolute LULUCF on a zero-output
+  sector. Keep the detailed GHG sum separate from the overlapping native
+  aggregate. Saved notebook outputs document a previous run, not a current
+  integration test; rerun a full real bundle when it is locally available.
+  ``scripts/benchmark_rex3_ghg.py`` streams an independent source benchmark
+  before database construction; inspect country-sector diagnostics as well as
+  global totals. Compare imported blocks with the oriented source cells to
+  distinguish source imbalances from import errors. Verify that native direct
+  household climate impacts remain in ``EY`` and are not silently included
+  in the detailed source aggregate, whose first five ``EY`` rows are zero.
 
 Rendered review
 ---------------

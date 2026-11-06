@@ -118,6 +118,17 @@ EXIOBASE_MONETARY_ZENODO_RECORDS = {
     },
 }
 
+REX3_ZENODO_URL = "https://doi.org/10.5281/zenodo.10354283"
+REX3_RECORD_ID = "10354283"
+REX3_GHG_ZENODO_URL = "https://doi.org/10.5281/zenodo.14724086"
+REX3_GHG_RECORD_ID = "14724086"
+REX3_SOURCE = (
+    "REX3 global monetary MRIO via Zenodo "
+    f"({REX3_ZENODO_URL}); detailed GHG extension via {REX3_GHG_ZENODO_URL}"
+)
+REX3_MONETARY_UNIT = "Mio Euro"
+REX3_GHG_UNIT = "kg CO2-eq"
+
 
 EMERGING_CONCEPT_DOI = "https://doi.org/10.5281/zenodo.10956622"
 EMERGING_V1_ZENODO_URL = "https://doi.org/10.5281/zenodo.10956623"

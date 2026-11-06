@@ -82,9 +82,14 @@ while the imported release has none. On a parsed model, inspect:
    ``compute["parser_presets"]`` describes a parser's preferred settings.
    The current configuration is ``mario.download_settings()["compute"]``.
 
-   BONSAI, GLORIA and EMERGING prefer solve/direct with optional UMFPACK and
+   BONSAI, GLORIA, EMERGING and REX3 prefer solve/direct with optional UMFPACK and
    a SciPy fallback. An empty preset leaves the session unchanged.
    Apply manual overrides after parsing.
+
+REX3 has its own profile, separate from standard EXIOBASE. Its detailed
+GHG/LULUCF sum excludes the overlapping native aggregate climate account;
+source CO2eq is not recharacterised by changing the report argument. See the
+:doc:`REX3 guide <../../notebooks/parsers/exiobase/rex3>` for the source inventory.
 
 .. mario-details:: Versions, provenance and copies
 

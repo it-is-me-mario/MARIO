@@ -8,6 +8,39 @@ package on PyPI, and dates are its publication dates.
 v1.3.4
 ------
 
+EXIOBASE REX3
+~~~~~~~~~~~~~
+
+* Add the complete REX3 monetary IOT parser and downloader through
+  ``parse_exiobase(..., variant="REX3")``, with its mandatory detailed
+  GHG/LULUCF companion. Support nested economic/GHG version directories and
+  preserve published absolute LULUCF flows at zero output.
+* Provide a dedicated GHG recipe that excludes the overlapping native climate
+  aggregate, a solve-based parser preset, and a linked guide and notebook.
+  Document source consistency and direct household emissions separately.
+* Keep REX3 within the EXIOBASE Overview family, with its own geographical
+  Version, native classifications and CC BY 4.0 terms.
+
+Supply-mix recipes
+~~~~~~~~~~~~~~~~~~
+
+* Estimate missing input recipes when a mix activates previously inactive
+  producers, for arbitrary sectors, commodities and activities as well as the
+  electricity preset. Weight donor recipes by output and use the receiving
+  region's input sourcing, with donor origins as the no-purchases fallback.
+* Fill empty direct-emissions and value-added columns too. Select donor
+  regions globally, per receiving-region/item pair or through optional
+  prompts; ``fill_missing_recipes=False`` retains the previous behaviour.
+  Preserve sparse storage and source scenarios.
+
+Local EXIOBASE SUT bundles
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Read locally supplied monetary EXIOBASE 3.11.2 MRSUT bundles with the shared
+  SUT parser. Check explicit release labels independently of revision dates
+  and preserve the supported block layout, labels and units. Automatic SUT
+  downloads remain limited to the registered 3.8.2 release.
+
 GLORIA use valuations
 ~~~~~~~~~~~~~~~~~~~~~
 

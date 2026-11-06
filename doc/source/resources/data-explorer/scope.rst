@@ -49,6 +49,10 @@ Overview
 
 Compare region and sector counts. Hover for versions, environmental extensions and licences.
 
+REX3 is grouped under EXIOBASE, with its own resolved geography and CC BY 4.0
+terms. In Geographical scope, choose EXIOBASE and then **Version → REX3**;
+standard EXIOBASE coverage and classification links remain separate.
+
 .. raw:: html
 
    <div class="database-scope-chart" data-database-scope data-root="../../" aria-busy="true">

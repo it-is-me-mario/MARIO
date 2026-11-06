@@ -17,6 +17,29 @@ def read_book(path, sheet=None):
         book.close()
 
 
+def source_only_profile(profile, detail, guides):
+    """Add a reviewed label inventory without numerical readings or inherited mappings."""
+    if profile['status'] != 'source_verified' or profile.get('numeric_publication') is not False:
+        raise ValueError('Source-only profiles must be source_verified with numeric_publication=False')
+    options = profile.get('provenance', {}).get('options', {})
+    return {
+        'id': profile['id'], 'family': profile['source'], 'release': str(profile['release']),
+        'units': options.get('unit', 'Monetary'), 'format': profile['table'], 'system': options.get('system'),
+        'price_basis': profile.get('price_basis', ''), 'years': profile.get('years', [profile['year']]),
+        'counts': profile['counts'], 'region_counts': profile.get('region_counts', []),
+        'regions': profile['geography']['regions'], 'memberships': {},
+        'sets': {key: values for key, values in detail['sets'].items() if key != 'Region'},
+        'set_flags': profile.get('set_flags', {}), 'reading_ids': [], 'reading_years': {},
+        'indicator_flags': {}, 'availability': {}, 'status': profile['status'],
+        'parser_supported': profile.get('parser_supported', True), 'native_codes': {},
+        'source_url': profile.get('source_url'), 'scope_note': profile.get('scope_note', ''),
+        'license_url': profile.get('license_url'), 'attribution': profile.get('attribution', ''),
+        'workbook': profile['workbook'], 'guide': next((g['doc']+'.html' for g in guides if g['id']==profile['guide']), None),
+        'mapping': None, 'mapping_ids': [], 'signature': profile.get('coverage_signatures', {}),
+        **{key: profile[key] for key in ['environmental', 'numeric_publication', 'version', 'variant', 'scope_group'] if key in profile},
+    }
+
+
 def build(data, concordances):
     catalogue = json.loads((data/'database_profiles.json').read_text())
     external_path=data/'external_profiles.json'
@@ -84,6 +107,8 @@ def build(data, concordances):
                      'mapping':mid,'mapping_ids':mids,'signature':p.get('coverage_signatures',{})})
         for key in ['environmental','numeric_publication','version','variant','scope_group','source_structure_url']:
             if key in p:rows[-1][key]=p[key]
+        if p.get('guide')=='exiobase-rex3' or str(opts.get('variant','')).casefold() in {'rex','rex3'}:
+            rows[-1]['variant']='REX3'
     # NACE Rev. 1.1 taxonomy: official codes/descriptions in the source, without
     # pretending its EXIOBASE 2 native industry edges describe all current sectors.
     nace_path = concordances/'Archive/International classifications/NACE1.1 - EXIOBASE2.0_FINAL.xlsx'

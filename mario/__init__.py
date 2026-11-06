@@ -135,6 +135,7 @@ from mario.parsers.entrypoints import (
     parse_from_parquet,
     parse_from_excel,
     parse_exiobase_3,
+    parse_exiobase_rex,
     parse_eora,
     parse_eurostat,
     hybrid_iot_exiobase,
