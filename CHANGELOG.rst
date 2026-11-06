@@ -8,6 +8,16 @@ package on PyPI, and dates are its publication dates.
 Unreleased
 ----------
 
+* Add local JRC FIGARO-E3 SUT and model B/D IOT parsing through
+  ``parse_figaro_e3`` or ``parse_figaro(..., variant="E3")``. Read matrix and
+  chunked flat files, collapse identical download copies, and reject
+  conflicting revisions. Preserve primary-input and direct final-demand flows.
+* Import the chosen FIGARO E3 gas inventory, all six energy indicators and
+  separately labelled EDU/OCC employment estimates. Require explicit industry
+  technology allocation for product IOT extensions and reject unallocatable flows.
+* Add FIGARO E3 GHG/compute profiles, guide and notebook, keeping its native
+  classification and geographical Version separate from standard FIGARO.
+
 * Integrate the REX3 monetary IOT parser and downloader through
   ``parse_exiobase(..., variant="REX3")``, with the mandatory detailed
   GHG/LULUCF companion. Support nested economic/GHG version folders, identify

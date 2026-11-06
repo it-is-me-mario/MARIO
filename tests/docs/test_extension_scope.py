@@ -45,6 +45,9 @@ def test_readings_keep_their_own_accounts():
     assert emerging["gases"] == ["co2"] and len(emerging["labels"]) == 7
     assert set(data["sets"][f["WIOD"]["variants"][0]["readings"][0]["set"]]) == {"employment", "economic"}
     assert f["ADB"]["status"] == "partial" and f["ADB"]["releases_without"]
-    assert {f[name]["status"] for name in ["FIGARO", "OECD ICIO"]} == {"restricted"}
+    assert f["OECD ICIO"]["status"] == "restricted"
+    assert f["FIGARO"]["status"] == "partial"
+    assert {v['variant'] for v in f['FIGARO']['variants']} == {'E3'}
+    assert {r['system'] for r in f['FIGARO']['variants'][0]['readings']} == {'SUT','ixi'}
     assert f["CEDA"]["status"] == "not_published" and not f["CEDA"]["variants"]
     assert "USEEIO" not in f and "BEA" not in f  # National models are omitted.

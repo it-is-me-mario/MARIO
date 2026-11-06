@@ -84,6 +84,15 @@ Example verification
   household climate impacts remain in ``EY`` and are not silently included
   in the detailed source aggregate, whose first five ``EY`` rows are zero.
 
+For FIGARO E3, compare matrix and flat-file economic blocks cell by cell,
+including signed primary inputs and direct final-demand adjustments. Match
+extension columns by codes after trimming source whitespace; their final-demand
+order differs from the economic tables. Test gas-mass versus characterised
+CO2eq choices, separate EDU/OCC estimates, all energy indicators, conflicting
+browser copies, and product-extension allocation on unequal industry outputs.
+Nonzero extensions on zero-output industries must remain in native industry
+accounts or cause an explicit allocation error, never disappear.
+
 Rendered review
 ---------------
 

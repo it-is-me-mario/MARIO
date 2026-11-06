@@ -1,0 +1,151 @@
+:page-type: Guide
+:summary: Read local FIGARO-E3 supply/use and B/D input-output tables with employment, energy and emissions.
+
+FIGARO E3
+=========
+
+.. container:: mario-companion
+
+   :download:`Download notebook <e3.ipynb>`
+
+Download the CSV files and classifications from the
+`JRC FIGARO-E3 collection <https://data.jrc.ec.europa.eu/collection/id-00403>`_.
+Keep the extracted files under one root; distribution subfolders are allowed.
+Import the complete supply-use system:
+
+.. code-block:: python
+
+   from pathlib import Path
+   import mario
+
+   root = Path("/path/to/FIGARO E3")
+   db = mario.parse_figaro_e3(
+       path=root, table="SUT", year=2015, employment="both", calc_all=False,
+   )
+
+The published system has 46 regions, including Rest of the World, 176
+activities and 213 commodities. ``S`` is transposed from the source supply
+table; ``U`` and ``Yc`` retain commodity origins and industry/final-demand
+destinations. All 11 primary-input and adjustment rows are retained, including
+their direct final-demand values in ``VY``. Native codes remain the model
+labels; ``db.info["figaro_e3"]["classifications"]`` supplies their descriptions.
+
+Choose files and formats
+------------------------
+
+The same economic data is published as a wide ``matrix_*.csv`` or a long
+``flatfile_*.csv``. Both representations are valid. ``input_format="auto"``
+prefers economic matrices and uses an available flat file where needed.
+Select ``"matrix"`` or ``"flatfile"`` to require that format for all inputs.
+Flat files are read in chunks; the full table is retained in the model.
+
+The classification workbook is required for every parse. Choose the remaining
+files according to the requested system:
+
+.. list-table:: Economic inputs
+   :header-rows: 1
+   :widths: 22 78
+
+   * - System
+     - Filename stems, after ``matrix_`` or ``flatfile_``
+   * - SUT
+     - ``FIGARO-e-ic-supply_millionEUR_2015.csv`` and
+       ``FIGARO-e-ic-use_millionEUR_2015.csv``
+   * - Industry IOT
+     - ``FIGARO-e-ic-io-D_ind-by-ind_millionEUR_2015.csv``
+   * - Product IOT
+     - ``FIGARO-e-ic-io-B_prod-by-prod_millionEUR_2015.csv``
+
+Model D is industry-by-industry; model B is product-by-product. They are
+different economic tables, rather than duplicate downloads:
+
+.. code-block:: python
+
+   industry = mario.parse_figaro_e3(
+       path=root, table="IOT", iot_mode="industry", year=2015,
+   )
+   product = mario.parse_figaro_e3(
+       path=root, table="IOT", iot_mode="product", year=2015,
+       extensions=False,
+   )
+
+The shared entry point also accepts
+``mario.parse_figaro(path=root, variant="E3", table="SUT")``. Standard
+FIGARO retains its Eurostat API workflow. E3's default IOT mode is industry,
+matching the native extension axes. E3 keeps its own classification and does
+not inherit the standard 64-industry FIGARO concordances.
+
+Browser suffixes such as ``copy``, ``-2`` and ``(1)`` are accepted when the
+candidate files are byte-identical. Conflicting copies or classification
+revisions raise an error: put the chosen release in a separate directory.
+The parser does not infer a preferred revision from download timestamps.
+The GAMS construction-code archive is not required for importing the CSVs.
+
+Select extensions
+-----------------
+
+``extensions="all"`` reads emissions, energy and employment. Select individual
+groups with a list, or pass ``extensions=False`` for economic flows alone.
+The groups have different alternatives and accounting scopes:
+
+* ``emissions="co2eq"`` imports the published four-gas AR5/GWP100 CO2eq
+  account, from ``AEM_Gg_CO2e`` files. ``emissions="mass"`` selects
+  ``AEM_Gg``: CO2, CH4 and N2O are in kt of each gas, while F-gases remain
+  in kt CO2eq. Import one inventory at a time. A Gg is numerically one kt.
+* Energy includes PES, NEU, FEU, EOU, LOSS and NENE in TJ. Auto uses the
+  complete ``flatfile_FIGARO-e_ENE_TJ_2015.csv`` when available; matrix-only
+  parsing requires all six indicator files. Energy indicators overlap:
+  FEU, EOU and LOSS are components of NEU, so summing the rows is not an
+  energy footprint.
+* ``employment="EDU"`` (default) and ``"OCC"`` are alternative estimates
+  based on education and occupation. ``"both"`` retains them as separately
+  labelled six-row inventories. Do not add the two methods together.
+  Employment is in thousand persons and has no direct final-demand extension.
+
+Direct final-demand emissions and energy are aligned by their codes, including
+the published extension files' different final-demand ordering and trailing
+spaces. Source signs are preserved, including negative energy/adjustment flows.
+
+For the already characterised CO2eq account:
+
+.. code-block:: python
+
+   db.calc_ghg(profile="figaro_e3", label="GHG source AR5 GWP100")
+
+This sums the four gas rows, including direct final demand, once. Changing an
+IPCC report or time-horizon argument does not recharacterise those source
+CO2eq values. The gas-mass option retains mixed native units and therefore
+requires an explicit characterization recipe and output unit.
+
+Product IOT extensions
+----------------------
+
+The published extensions use industries, not products. To allocate them to
+the model B IOT, explicitly set
+``extension_allocation="industry_technology"`` and supply the complete supply
+table. MARIO divides each industry's extension by its output, then allocates
+flows to products through that industry's supply. This is a derived extension
+under the industry technology assumption, rather than a published product
+account. Direct final-demand extensions retain their source values.
+
+Allocation fails if an industry has nonzero extensions but zero supply output;
+the parser does not discard those flows. Use the SUT or industry IOT, or read
+the product IOT with ``extensions=False`` in that case.
+The published 2015 bundle triggers this guard with all extension groups
+selected. The native SUT and industry IOT retain those accounts unchanged.
+
+Source and calculation scope
+----------------------------
+
+The source year is 2015. Dates in the classification and metadata filenames
+refer to supporting-document revisions, not observation years. The files use
+CC BY 4.0; credit the JRC and the source authors and indicate changes. See the
+`source methods paper <https://doi.org/10.1038/s41597-025-04431-z>`_ for the
+construction and inventory boundaries.
+
+The parser reads local files and keeps the complete inter-country scope.
+Use ``calc_all=False`` for an initial import. Monetary flows are in million
+EUR; use sufficient RAM for full dense economic blocks. A solve-based session
+preset prefers optional UMFPACK and falls back to SciPy.
+
+Full interfaces: :func:`~mario.parse_figaro_e3` and :func:`~mario.parse_figaro`.

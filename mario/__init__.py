@@ -144,6 +144,7 @@ from mario.parsers.entrypoints import (
     hybrid_sut_exiobase,
     parse_exiobase,
     parse_figaro,
+    parse_figaro_e3,
     parse_gloria,
     parse_gtap,
     parse_istat,

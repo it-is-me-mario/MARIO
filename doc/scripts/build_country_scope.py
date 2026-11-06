@@ -21,10 +21,18 @@ def source_only_profile(profile, detail, guides):
     """Add a reviewed label inventory without numerical readings or inherited mappings."""
     if profile['status'] != 'source_verified' or profile.get('numeric_publication') is not False:
         raise ValueError('Source-only profiles must be source_verified with numeric_publication=False')
+    return native_profile_without_readings(profile, detail, guides)
+
+
+def native_profile_without_readings(profile, detail, guides):
+    """Compile verified native sets without inventing indicators or mappings."""
+    if profile['status'] not in {'parsed', 'source_verified'}:
+        raise ValueError('Native scope requires parsed or source-verified metadata')
     options = profile.get('provenance', {}).get('options', {})
     return {
         'id': profile['id'], 'family': profile['source'], 'release': str(profile['release']),
-        'units': options.get('unit', 'Monetary'), 'format': profile['table'], 'system': options.get('system'),
+        'units': options.get('unit', 'Monetary'), 'format': profile['table'],
+        'system': None if profile['table']=='SUT' else options.get('system') or {'industry':'ixi','product':'pxp'}.get(options.get('iot_mode')),
         'price_basis': profile.get('price_basis', ''), 'years': profile.get('years', [profile['year']]),
         'counts': profile['counts'], 'region_counts': profile.get('region_counts', []),
         'regions': profile['geography']['regions'], 'memberships': {},
@@ -109,6 +117,8 @@ def build(data, concordances):
             if key in p:rows[-1][key]=p[key]
         if p.get('guide')=='exiobase-rex3' or str(opts.get('variant','')).casefold() in {'rex','rex3'}:
             rows[-1]['variant']='REX3'
+        if p.get('guide')=='figaro-e3' or p.get('provenance',{}).get('parser')=='parse_figaro_e3':
+            rows[-1]['variant']='E3'
     # NACE Rev. 1.1 taxonomy: official codes/descriptions in the source, without
     # pretending its EXIOBASE 2 native industry edges describe all current sectors.
     nace_path = concordances/'Archive/International classifications/NACE1.1 - EXIOBASE2.0_FINAL.xlsx'
@@ -178,12 +188,39 @@ def build(data, concordances):
             'note':'Metadata only. Classification queries do not disaggregate economic or emission values.'}
 
 
+def upsert_unmapped_guide(data, guide, output=None):
+    """Add a parsed guide's native scope without needing legacy concordances."""
+    data=Path(data)
+    output=Path(output) if output else data/'economy/country-scope.json'
+    scope=json.loads(output.read_text())
+    catalogue=json.loads((data/'database_profiles.json').read_text())
+    profiles=[p for p in catalogue['profiles'] if p['guide']==guide and p['status']=='parsed']
+    if not profiles:
+        raise ValueError(f'No parsed profiles for {guide}')
+    ids={p['id'] for p in profiles}
+    if any(p.get('mapping') or p.get('mapping_ids') or p.get('reading_ids') for p in scope['profiles'] if p['id'] in ids):
+        raise ValueError('Existing reviewed mappings/readings require the full scope build')
+    rows=[]
+    for p in profiles:
+        detail=json.loads((data.parent.parent/p['detail']).read_text())
+        row=native_profile_without_readings(p,detail,catalogue['guides'])
+        if guide=='figaro-e3':row['variant']='E3'
+        rows.append(row)
+    scope['profiles']=[p for p in scope['profiles'] if p['id'] not in ids]+rows
+    output.write_text(json.dumps(scope,ensure_ascii=False,separators=(',',':'))+'\n')
+    return scope
+
+
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--concordances',type=Path,required=True)
+    parser.add_argument('--concordances',type=Path)
+    parser.add_argument('--unmapped-guide',help='Refresh parsed native scope only; preserve all existing classifications and readings')
     parser.add_argument('--data',type=Path,default=Path(__file__).resolve().parents[1]/'source/_static/data')
     parser.add_argument('--output',type=Path)
-    args=parser.parse_args(); result=build(args.data,args.concordances)
+    args=parser.parse_args()
+    if not args.concordances and not args.unmapped_guide:
+        parser.error('Supply --concordances for a full build or --unmapped-guide for native sets only')
+    result=upsert_unmapped_guide(args.data,args.unmapped_guide,args.output) if args.unmapped_guide else build(args.data,args.concordances)
     output=args.output or args.data/'economy/country-scope.json'
     output.write_text(json.dumps(result,ensure_ascii=False,separators=(',',':'))+'\n')
-    print(json.dumps({'profiles':len(result['profiles']),'classifications':{k:len(c['nodes']) for k,c in result['classifications'].items()},'detailed_native_counts':[(m['mapped_native_count'],m['native_count']) for m in result['mappings'].values() if m['depth']>1]}))
+    print(json.dumps({'profiles':len(result['profiles']),'classifications':{k:len(c['nodes']) for k,c in result['classifications'].items()},'detailed_native_counts':[(m['mapped_native_count'],m['native_count']) for m in result['mappings'].values() if m.get('depth',0)>1 and 'mapped_native_count' in m]}))

@@ -86,6 +86,12 @@
       "doc": "notebooks/parsers/exiobase/rex3"
     },
     {
+      "id": "figaro-e3",
+      "source": "FIGARO",
+      "label": "FIGARO E3",
+      "doc": "notebooks/parsers/figaro/e3"
+    },
+    {
       "id": "figaro",
       "source": "FIGARO",
       "label": "FIGARO",
@@ -735,6 +741,57 @@
       "reason": "This example needs in-memory Python objects, not only file paths."
     },
     {
+      "id": "figaro-e3--01",
+      "guide": "figaro-e3",
+      "notebook": "source/notebooks/parsers/figaro/e3.ipynb",
+      "parser": "parse_figaro_e3",
+      "cell": 3,
+      "fingerprint": "035247b781b23c120032f8cff38c6bb7727e5973f36fa147c6bc2e511c7a2bad",
+      "parameters": {
+        "path": "/path/to/FIGARO E3",
+        "table": "SUT",
+        "year": 2015,
+        "employment": "both",
+        "input_format": "auto",
+        "calc_all": false
+      },
+      "runnable": true
+    },
+    {
+      "id": "figaro-e3--02",
+      "guide": "figaro-e3",
+      "notebook": "source/notebooks/parsers/figaro/e3.ipynb",
+      "parser": "parse_figaro_e3",
+      "cell": 9,
+      "fingerprint": "dd3f086818ecdb32f86da7735eeb9db1df1d111a47b9793c6b36803d30e2b3bb",
+      "parameters": {
+        "path": "/path/to/FIGARO E3",
+        "table": "IOT",
+        "iot_mode": "industry",
+        "year": 2015,
+        "employment": "both",
+        "calc_all": false
+      },
+      "runnable": true
+    },
+    {
+      "id": "figaro-e3--03",
+      "guide": "figaro-e3",
+      "notebook": "source/notebooks/parsers/figaro/e3.ipynb",
+      "parser": "parse_figaro_e3",
+      "cell": 12,
+      "fingerprint": "2cc23219592909d7e0a3c84c8fa2b7c2d9cd34af8e7a334d77ca9fb49fb5a394",
+      "parameters": {
+        "path": "/path/to/FIGARO E3",
+        "table": "IOT",
+        "iot_mode": "product",
+        "year": 2015,
+        "extensions": false,
+        "calc_all": false
+      },
+      "runnable": true
+    },
+    {
       "id": "figaro--01",
       "guide": "figaro",
       "notebook": "source/notebooks/parsers/figaro/walkthrough_figaro.ipynb",
@@ -790,6 +847,17 @@
         "year": 2023
       },
       "runnable": true
+    },
+    {
+      "id": "gloria--03",
+      "guide": "gloria",
+      "notebook": "source/notebooks/parsers/gloria/walkthrough_gloria.ipynb",
+      "parser": "parse_gloria",
+      "cell": 12,
+      "fingerprint": "9ec280419e8d219fddec71d7a4a10517a6f9384a147a31090e03c7ced502a662",
+      "parameters": {},
+      "runnable": false,
+      "reason": "This example needs in-memory Python objects, not only file paths."
     },
     {
       "id": "gtap--01",

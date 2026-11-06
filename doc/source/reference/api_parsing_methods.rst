@@ -30,6 +30,7 @@ Top-Level Parser Entrypoints
    ../api_document/mario.parse_exiobase_rex
    ../api_document/mario.parse_bonsai
    ../api_document/mario.parse_figaro
+   ../api_document/mario.parse_figaro_e3
    ../api_document/mario.parse_gloria
    ../api_document/mario.read_gloria_use_valuations
    ../api_document/mario.parse_gtap

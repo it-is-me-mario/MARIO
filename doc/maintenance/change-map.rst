@@ -142,6 +142,13 @@ Shared metadata and generated assets
      - REX3 guide and companion, external profile, source notice, scope views and
        native-set download. Keep EXIOBASE as the Overview family and REX3 as a
        separate geographical Version; do not inherit standard concordances.
+   * - FIGARO E3 local releases
+     - ``mario/parsers/figaro_e3.py``; paired E3 guide/notebook and catalogue
+     - Native SUT and B/D IOT axes, matrix/flat equivalence, extension basis,
+       direct final demand, licence and geographical Version. Keep the FIGARO
+       family but do not inherit the standard FIGARO sector concordances.
+       Refresh unmapped native scope with ``build_country_scope.py`` before
+       rebuilding sectoral and extension scope.
    * - Explorer indicators
      - Source-specific scripts in ``doc/scripts/`` and their saved provenance
      - Indicator definitions, units, characterization, reference year,

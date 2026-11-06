@@ -116,7 +116,7 @@ test('current NACE country lookup shares activity footprints with the heatmap, e
 test('FIGARO and WIOD country lookup preserves native IOT and SUT activity identities',()=>{
  const c=data.classifications['nace-2.1'];
  for(const family of ['FIGARO','WIOD']){
-  const profiles=data.profiles.filter(p=>p.family===family&&(p.format==='SUT'||p.system==='ixi'||family==='WIOD'));
+  const profiles=data.profiles.filter(p=>p.family===family&&p.variant!=='E3'&&(p.format==='SUT'||p.system==='ixi'||family==='WIOD'));
   assert.ok(profiles.some(p=>p.format==='SUT'));assert.ok(profiles.some(p=>p.format==='IOT'));
   for(const p of profiles){
    const result=S.query(p,'ITA',c,'01.11',data.mappings);

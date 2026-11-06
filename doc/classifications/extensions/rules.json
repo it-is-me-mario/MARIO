@@ -277,12 +277,26 @@
         "other",
         "^(Particulate-matter related|Freshwater eutrophication|Marine eutrophication)"
       ]
+    ],
+    "FIGARO E3": [
+      [
+        "ghg",
+        "^GHG \\|"
+      ],
+      [
+        "energy",
+        "^Energy \\|"
+      ],
+      [
+        "employment",
+        "^Employment \\|"
+      ]
     ]
   },
   "without": {
     "FIGARO": {
-      "status": "restricted",
-      "note": "Eurostat publishes FIGARO-based emission footprints, not direct emissions by industry under open terms; non-European emissions derive from EDGAR/IEA (CC BY-NC-ND 4.0)."
+      "status": "partial",
+      "note": "JRC FIGARO E3 direct emissions, energy and employment are loaded under CC BY 4.0. Standard Eurostat FIGARO emission footprints have separate source terms and are not direct industry accounts loaded by the standard parser."
     },
     "OECD": {
       "status": "restricted",

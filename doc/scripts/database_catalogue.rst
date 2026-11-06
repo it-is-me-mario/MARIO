@@ -1,6 +1,22 @@
 Database comparisons: parsed profiles and original set downloads
 ===============================================================
 
+FIGARO E3 uses its own ``figaro-e3`` guide and recipe identifiers; standard
+FIGARO retains ``figaro``. Publish the parsed SUT, industry IOT and monetary
+product IOT inventories from the paired notebook. Keep native productive codes
+and explicit extension selections in provenance. Parsed sets are independent
+of numerical indicator publication.
+
+After publishing new E3 sets, refresh their unmapped native scope while
+preserving the existing taxonomy and numerical readings::
+
+   python doc/scripts/build_country_scope.py --unmapped-guide figaro-e3
+   python doc/scripts/build_sectoral_scope.py --country-output doc/source/_static/data/economy/country-scope.json
+   python doc/scripts/build_extension_scope.py
+
+The native-only update refuses to replace a profile that already has reviewed
+mapping or numerical-reading links. Use the full scope build in that case.
+
 This workflow produces release profiles and downloadable original-set lists
 from successful local parsing runs. Counts come from the actual reading, rather
 than notebook output snapshots, headline figures or declared coverage tables.
