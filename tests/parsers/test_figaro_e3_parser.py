@@ -165,6 +165,29 @@ def test_truncated_domestic_supply_is_not_filled_with_zeros(tmp_path):
         mario.parse_figaro_e3(tmp_path,input_format='flatfile',extensions=False)
 
 
+@pytest.mark.parametrize('system',['industry','product','sut'])
+def test_closed_unit_feedback_is_preserved_and_full_inverse_rejected(tmp_path,system):
+    bundle(tmp_path)
+    stems=({'sut':['FIGARO-e-ic-supply_millionEUR','FIGARO-e-ic-use_millionEUR'],
+            'industry':['FIGARO-e-ic-io-D_ind-by-ind_millionEUR'],
+            'product':['FIGARO-e-ic-io-B_prod-by-prod_millionEUR']})[system]
+    for stem in stems:
+        path=tmp_path/f'matrix_{stem}_2015.csv'
+        frame=pd.read_csv(path,index_col=0)
+        frame.iloc[0,:]=0.
+        frame.iloc[:,0]=0.
+        frame.iloc[0,0]=0.004
+        frame.to_csv(path)
+    db=mario.parse_figaro_e3(tmp_path,table='SUT' if system=='sut' else 'IOT',
+                             iot_mode='industry' if system=='sut' else system,
+                             extensions=False,input_format='matrix')
+    flows=db.matrices['baseline']['S' if system=='sut' else 'Z']
+    assert flows.iloc[0,0]==0.004
+    with pytest.raises(np.linalg.LinAlgError,match='singular'):
+        db.resolve('wcc' if system=='sut' else 'w')
+    assert flows.iloc[0,0]==0.004
+
+
 def test_extension_unit_and_final_demand_labels_are_validated(tmp_path):
     bundle(tmp_path)
     path=tmp_path/'flatfile_FIGARO-e_AEM_Gg_2015.csv'

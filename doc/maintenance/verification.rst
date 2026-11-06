@@ -92,6 +92,11 @@ CO2eq choices, separate EDU/OCC estimates, all energy indicators, conflicting
 browser copies, and product-extension allocation on unequal industry outputs.
 Nonzero extensions on zero-output industries must remain in native industry
 accounts or cause an explicit allocation error, never disappear.
+Verify model solvability separately from import: inspect sparse Leontief
+systems for closed unit-feedback components and confirm the strict public
+inverse rejects them before allocating a dense identity. A solve-based preset
+does not establish nonsingularity. Keep source loops and undefined results
+explicit rather than silently changing flows or applying a pseudoinverse.
 
 Rendered review
 ---------------
