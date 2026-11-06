@@ -30,6 +30,11 @@ destinations. All 11 primary-input and adjustment rows are retained, including
 their direct final-demand values in ``VY``. Native codes remain the model
 labels; ``db.info["figaro_e3"]["classifications"]`` supplies their descriptions.
 
+The published 2015 tables have a singular Leontief system. Importing flows
+and aggregating satellite accounts works, but a complete Leontief inverse
+does not exist. See `Leontief singularity`_ before calculating multipliers or
+footprints.
+
 Choose files and formats
 ------------------------
 
@@ -147,5 +152,27 @@ The parser reads local files and keeps the complete inter-country scope.
 Use ``calc_all=False`` for an initial import. Monetary flows are in million
 EUR; use sufficient RAM for full dense economic blocks. A solve-based session
 preset prefers optional UMFPACK and falls back to SciPy.
+
+Leontief singularity
+--------------------
+
+The native industry IOT (model D), product IOT (model B), and industry-based
+SUT system are singular at float64 precision in the published 2015 files.
+The Irish industry ``E37T39_D`` (paper-waste incineration), or its product
+``CPA_E37T39_D``, forms a closed production loop. In the product IOT its
+output and intermediate self-use are both 0.004 million EUR, with no other
+sales or final demand. Its own-input coefficient is exactly one, giving a
+zero row in ``I - z``. The corresponding SUT activity/commodity block in
+the generalized system is ``[[1, -1], [-1, 1]]``.
+
+This is separate from the zero-output extension-allocation issue above.
+Switching between an explicit inverse and a linear solve does not remove
+the singularity. MARIO's default strict policy raises an error; the parser
+preserves the source flows. The companion demonstrates import and account
+aggregation, not a successful complete Leontief footprint calculation.
+
+Any treatment of the closed component, or explicitly partial result, must
+be chosen and reported as an additional modelling assumption. A pseudoinverse
+or successful import must not be presented as a full Leontief inverse.
 
 Full interfaces: :func:`~mario.parse_figaro_e3` and :func:`~mario.parse_figaro`.
