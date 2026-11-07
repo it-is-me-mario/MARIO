@@ -8,6 +8,8 @@ package on PyPI, and dates are its publication dates.
 v1.3.4
 ------
 
+*Released 2026-11-07.*
+
 FIGARO E3
 ~~~~~~~~~
 
