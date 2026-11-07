@@ -105,6 +105,16 @@ Inspect construction-code export precision before attributing a singularity
 to rounding; the existence of an unrounded export path is not evidence that
 its data is available or nonsingular.
 
+When a parser applies a source-specific correction, test its exact node and
+structural guards, the uncorrected opt-out, and both matrix representations.
+Verify changed cells against the raw import, retained absolute accounts and
+output references, and the reported balance gap. Pin required output
+references before eager calculations, for both Database and ModelState.
+Check full inverses against the corrected operator and confirm that opting
+out restores the original failure. Such a correction is not evidence that
+the unmodified source is invertible or that its producer accounts reconcile
+with native final-demand footprints.
+
 Rendered review
 ---------------
 

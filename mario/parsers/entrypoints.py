@@ -2622,6 +2622,7 @@ def parse_figaro_e3(
     model: str = "Database",
     name: str | None = None,
     calc_all: bool = False,
+    diagonal_correction: float | None = 1e-3,
     **kwargs,
 ):
     """Read locally downloaded JRC FIGARO-E3 tables and extensions.
@@ -2663,6 +2664,13 @@ def parse_figaro_e3(
         Display name; defaults to source year, table and IOT mode.
     calc_all : bool, optional
         Materialize derived blocks; defaults to ``False``.
+    diagonal_correction : float or None, optional
+        Correct only the verified isolated 2015 Irish paper-incineration loop.
+        The default epsilon ``1e-3`` reduces its own-input coefficient from
+        one to 0.999, preserving the original output reference and absolute
+        satellite accounts. A warning and import report record the changed
+        flow and balance gap. ``None`` imports the uncorrected source system.
+        Other nodes and parsers are unaffected. See the guide for interpretation.
     **kwargs
         Additional model-construction options.
 
@@ -2680,18 +2688,30 @@ def parse_figaro_e3(
         path, table=table, year=year, iot_mode=iot_mode, input_format=input_format,
         extensions=extensions, emissions=emissions, employment=employment,
         extension_allocation=extension_allocation, chunksize=chunksize,
+        diagonal_correction=diagonal_correction,
     )
     kwargs.setdefault("license", "CC BY 4.0")
     result = models[model](
         name=name or layout.dataset_name, table=table, source=layout.source,
         year=layout.year, price="Basic prices",
         init_by_parsers={"matrices":matrices,"_indeces":indeces,"units":units},
-        calc_all=calc_all, notes=layout.notes, **kwargs,
+        calc_all=False if layout.reference_outputs else calc_all, notes=layout.notes, **kwargs,
     )
+    report = {"input_files":layout.files,"classifications":layout.labels,
+              "emissions":emissions,"employment":employment,
+              "extension_allocation":extension_allocation,
+              "diagonal_correction":layout.diagonal_correction}
+    if model == "ModelState":
+        result.metadata.extra["figaro_e3"] = report
+    else:
+        result.info["figaro_e3"] = report
+    # Constructors discard derived production blocks. Pin the source output
+    # reference before computing recipes, as in the native BONSAI IOT parser.
+    for block, output in layout.reference_outputs.items():
+        result.set_block(block, output)
+    if calc_all and layout.reference_outputs and model == "Database":
+        result.calc_all()
     if model == "Database":
-        result.info["figaro_e3"] = {"input_files":layout.files,"classifications":layout.labels,
-                                    "emissions":emissions,"employment":employment,
-                                    "extension_allocation":extension_allocation}
         if table == "IOT":
             result.meta._add_attribute(sector_type=_MASTER_INDEX["a" if iot_mode == "industry" else "c"])
     return result

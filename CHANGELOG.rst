@@ -17,6 +17,11 @@ Unreleased
   technology allocation for product IOT extensions and reject unallocatable flows.
 * Add FIGARO E3 GHG/compute profiles, guide and notebook, keeping its native
   classification and geographical Version separate from standard FIGARO.
+* Correct the verified isolated 2015 Irish paper-incineration loop within the
+  FIGARO E3 parser, using ``diagonal_correction=1e-3`` by default for SUT and
+  both IOTs. Retain original output references and absolute satellite accounts;
+  report the changed flow and balance gap. ``None`` preserves the singular
+  source system. Other parsers and the general compute policy are unchanged.
 
 * Integrate the REX3 monetary IOT parser and downloader through
   ``parse_exiobase(..., variant="REX3")``, with the mandatory detailed

@@ -199,6 +199,122 @@ def test_closed_unit_feedback_is_preserved_and_full_inverse_rejected(tmp_path,sy
     assert flows.iloc[0,0]==0.004
 
 
+def irish_loop_bundle(root, system):
+    bundle(root)
+    book=root/'230312_D_FIGARO-env_Classifications.xlsx'
+    sheets=pd.read_excel(book,sheet_name=None)
+    replacements={'AA':'IE','I1':'E37T39_D','CPA_P1':'CPA_E37T39_D'}
+    with pd.ExcelWriter(book) as writer:
+        for name,frame in sheets.items():
+            frame['code']=frame['code'].replace(replacements)
+            frame.to_excel(writer,sheet_name=name,index=False)
+    for path in root.glob('*.csv'):
+        text=path.read_text().replace('AA_','IE_').replace('AA,','IE,')
+        text=text.replace('CPA_P1','CPA_E37T39_D').replace('I1','E37T39_D')
+        path.write_text(text)
+    stems=({'sut':['FIGARO-e-ic-supply_millionEUR','FIGARO-e-ic-use_millionEUR'],
+            'industry':['FIGARO-e-ic-io-D_ind-by-ind_millionEUR'],
+            'product':['FIGARO-e-ic-io-B_prod-by-prod_millionEUR']})[system]
+    for stem in stems:
+        path=root/f'matrix_{stem}_2015.csv'
+        frame=pd.read_csv(path,index_col=0)
+        frame.iloc[0,:]=0.
+        frame.iloc[:,0]=0.
+        frame.iloc[0,0]=0.004
+        frame.to_csv(path)
+        flat=frame.rename_axis(index='rowId',columns='colId').stack().rename('obsValue').reset_index()
+        flat['unit']='million EURO'
+        flat.to_csv(root/f'flatfile_{stem}_2015.csv',index=False)
+
+
+@pytest.mark.parametrize('system',['industry','product','sut'])
+@pytest.mark.parametrize('fmt',['matrix','flatfile'])
+@pytest.mark.parametrize('model',['Database','ModelState'])
+def test_known_irish_loop_is_corrected_only_in_e3_parser(tmp_path,system,fmt,model):
+    from mario.compute import resolve
+    from mario.compute.types import ResolutionContext, ComputeOptions
+    irish_loop_bundle(tmp_path,system)
+    kwargs=dict(table='SUT' if system=='sut' else 'IOT',
+                iot_mode='industry' if system=='sut' else system,
+                extensions=False if system=='product' else 'emissions',
+                input_format=fmt,model=model)
+    raw=mario.parse_figaro_e3(tmp_path,diagonal_correction=None,**kwargs)
+    with pytest.warns(UserWarning,match='isolated IE paper-incineration loop'):
+        corrected=mario.parse_figaro_e3(tmp_path,**kwargs)
+    keys=(['S','U','Ya','Yc','Va','Vc','Ea','Ec','EY','VY'] if system=='sut'
+          else ['Z','Y','V','VY','E','EY'])
+    before={key:raw.get_block(key) for key in keys}
+    after={key:corrected.get_block(key) for key in keys}
+    flow='U' if system=='sut' else 'Z'
+    expected=before[flow].copy()
+    expected.iloc[0,0]=0.004*0.999
+    pd.testing.assert_frame_equal(after[flow],expected)
+    for name in before:
+        if name!=flow:
+            pd.testing.assert_frame_equal(after[name],before[name])
+    report=(corrected.info if model=='Database' else corrected.metadata.extra)['figaro_e3']['diagonal_correction']
+    assert report['applied'] and report['epsilon']==1e-3
+    assert report['balance_gap_million_eur']==pytest.approx(4e-6)
+    assert report['reference_output_million_eur']==0.004
+    target='wcc' if system=='sut' else 'w'
+    context=ResolutionContext(compute=ComputeOptions(backend_override='dense_inverse'))
+    w=resolve(target,corrected,context=context)
+    assert np.isfinite(w.to_numpy()).all()
+    assert w.iloc[0,0]==pytest.approx(1000.)
+    f=resolve('fc' if system=='sut' else 'f',corrected,context=context)
+    assert np.isfinite(f.to_numpy()).all()
+    output=resolve('Xc' if system=='sut' else 'X',corrected,context=context)
+    assert output.iloc[0,0]==0.004
+    with pytest.raises(np.linalg.LinAlgError,match='singular'):
+        resolve(target,raw,context=context)
+    if model=='Database' and system!='product':
+        corrected.calc_ghg(profile='figaro_e3')
+        multipliers=corrected.resolve('fc' if system=='sut' else 'f',
+                                      compute_options=ComputeOptions(backend_override='dense_inverse'))
+        assert np.isfinite(multipliers.to_numpy()).all()
+        assert corrected.resolve('Xc' if system=='sut' else 'X').iloc[0,0]==0.004
+
+
+@pytest.mark.parametrize('epsilon',[True,False,0.,-1.,1.,np.nan,np.inf,1e-20,'small'])
+def test_invalid_diagonal_correction_is_rejected(tmp_path,epsilon):
+    bundle(tmp_path)
+    with pytest.raises(WrongInput,match='diagonal_correction'):
+        mario.parse_figaro_e3(tmp_path,diagonal_correction=epsilon)
+
+
+def test_irish_correction_guard_and_generic_dispatch(tmp_path):
+    irish_loop_bundle(tmp_path,'industry')
+    with pytest.warns(UserWarning):
+        db=mario.parse_figaro(tmp_path,variant='E3',table='IOT',extensions=False,diagonal_correction=1e-2)
+    assert db.z.iloc[0,0]==pytest.approx(0.99)
+    path=tmp_path/'matrix_FIGARO-e-ic-io-D_ind-by-ind_millionEUR_2015.csv'
+    frame=pd.read_csv(path,index_col=0)
+    frame.iloc[0,1]=0.001
+    frame.to_csv(path)
+    guarded=mario.parse_figaro_e3(tmp_path,table='IOT',extensions=False,input_format='matrix')
+    assert not guarded.info['figaro_e3']['diagonal_correction']['applied']
+    assert guarded.matrices['baseline']['Z'].iloc[0,0]==0.004
+
+
+@pytest.mark.parametrize('system',['industry','sut'])
+def test_eager_calculation_sees_preserved_output_and_report(tmp_path,monkeypatch,system):
+    irish_loop_bundle(tmp_path,system)
+    seen=[]
+    def eager(database,*args,**kwargs):
+        output=database.resolve('Xc' if system=='sut' else 'X')
+        assert output.iloc[0,0]==0.004
+        assert database.info['figaro_e3']['diagonal_correction']['applied']
+        w=database.resolve('wcc' if system=='sut' else 'w',
+                           compute_options=mario.ComputeOptions(backend_override='dense_inverse'))
+        assert w.iloc[0,0]==pytest.approx(1000.)
+        seen.append(True)
+    monkeypatch.setattr(mario.Database,'calc_all',eager)
+    with pytest.warns(UserWarning):
+        mario.parse_figaro_e3(tmp_path,table='SUT' if system=='sut' else 'IOT',
+                             extensions=False,calc_all=True)
+    assert seen==[True]
+
+
 def test_extension_unit_and_final_demand_labels_are_validated(tmp_path):
     bundle(tmp_path)
     path=tmp_path/'flatfile_FIGARO-e_AEM_Gg_2015.csv'
