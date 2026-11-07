@@ -20,6 +20,11 @@ FIGARO E3
   allocation for product IOT extensions and reject unallocatable flows.
 * Add source-specific GHG/compute profiles, guide and notebook, keeping the
   detailed classification separate from standard FIGARO.
+* Correct the verified isolated 2015 Irish paper-incineration loop within the
+  FIGARO E3 parser, using ``diagonal_correction=1e-3`` by default for SUT and
+  both IOTs. Retain original output references and absolute satellite accounts;
+  report the changed flow and balance gap. ``None`` preserves the singular
+  source system. Other parsers and the general compute policy are unchanged.
 
 EXIOBASE REX3
 ~~~~~~~~~~~~~

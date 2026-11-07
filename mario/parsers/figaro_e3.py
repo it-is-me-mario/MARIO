@@ -6,8 +6,10 @@ import csv
 from functools import lru_cache
 import hashlib
 import logging
+from numbers import Real
 from pathlib import Path
 import re
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -36,6 +38,8 @@ class FigaroE3Layout:
     files: dict[str, str] = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
     labels: dict = field(default_factory=dict)
+    diagonal_correction: dict = field(default_factory=dict)
+    reference_outputs: dict = field(default_factory=dict)
 
     @property
     def dataset_name(self):
@@ -45,6 +49,91 @@ class FigaroE3Layout:
     def source(self):
         basis = "CO2eq AR5 GWP100" if self.emissions == "co2eq" else "gas mass" if self.emissions == "mass" else "no GHG inventory"
         return f"FIGARO E3 {basis} ({SOURCE})"
+
+
+def _correct_irish_paper_loop(matrices, layout, epsilon, satellite_units):
+    """Correct only the verified, isolated 2015 IE paper-incineration loop.
+
+    Retain the original output reference: recomputing it from the reduced
+    self-flow would otherwise restore a unit own-input coefficient. The
+    resulting small balance gap is reported, not assigned to invented final
+    demand or value added. This is a FIGARO-E3 source treatment, not a generic
+    singular-system policy.
+    """
+    report = {"epsilon": epsilon, "applied": False, "status": "disabled" if epsilon is None else "not_needed"}
+    layout.diagonal_correction = report
+    if epsilon is None:
+        return
+    if layout.table == "IOT":
+        code = "E37T39_D" if layout.mode == "industry" else "CPA_E37T39_D"
+        node = ("IE", MI["s"], code)
+        flow, demand, accounts = matrices["Z"], matrices["Y"], matrices["E"]
+        if node not in flow.index:
+            return
+        row, column = node, node
+        output = flow.sum(axis=1) + demand.sum(axis=1)
+        originals = {"X": output.to_frame("production")}
+        source_flow = float(flow.at[row, column])
+        isolated = (
+            np.count_nonzero(flow.loc[row].to_numpy()) == 1
+            and np.count_nonzero(flow.loc[:, column].to_numpy()) == 1
+            and not np.any(demand.loc[row].to_numpy())
+            and source_flow > 0 and float(output.loc[node]) == source_flow
+        )
+        block = "Z"
+    else:
+        activity = ("IE", MI["a"], "E37T39_D")
+        commodity = ("IE", MI["c"], "CPA_E37T39_D")
+        flow, supply, demand, accounts = matrices["U"], matrices["S"], matrices["Yc"], matrices["Ea"]
+        if activity not in supply.index or commodity not in flow.index:
+            return
+        row, column, node = commodity, activity, activity
+        output = flow.sum(axis=1) + demand.sum(axis=1)
+        originals = {"Xc": output.to_frame("production")}
+        source_flow = float(flow.at[row, column])
+        isolated = (
+            np.count_nonzero(flow.loc[row].to_numpy()) == 1
+            and np.count_nonzero(flow.loc[:, column].to_numpy()) == 1
+            and np.count_nonzero(supply.loc[activity].to_numpy()) == 1
+            and np.count_nonzero(supply.loc[:, commodity].to_numpy()) == 1
+            and not np.any(demand.loc[commodity].to_numpy())
+            and not np.any(matrices["Ya"].loc[activity].to_numpy())
+            and source_flow > 0
+            and float(supply.at[activity, commodity]) == source_flow
+            and float(output.loc[commodity]) == source_flow
+        )
+        block = "U"
+    if not isolated:
+        report["status"] = "source_pattern_not_matched"
+        return
+    corrected = source_flow * (1. - epsilon)
+    if not 0 < corrected < source_flow:
+        raise WrongInput("diagonal_correction cannot change this source flow at float64 precision; choose a larger representable epsilon.")
+    flow.at[row, column] = corrected
+    rename_index(originals)
+    layout.reference_outputs = originals
+    gap = source_flow - corrected
+    report.update({
+        "applied": True, "status": "corrected", "block": block,
+        "row": list(row), "column": list(column),
+        "source_flow_million_eur": source_flow,
+        "corrected_flow_million_eur": corrected,
+        "source_own_input_coefficient": 1., "corrected_own_input_coefficient": 1. - epsilon,
+        "balance_gap_million_eur": gap,
+        "reference_output_blocks": list(originals),
+        "reference_output_million_eur": source_flow,
+        "unchanged_production_accounts": [
+            {"account": str(label), "amount": float(amount), "unit": unit}
+            for (label, amount), unit in zip(accounts.loc[:, node].items(), satellite_units)
+        ],
+        "interpretation": "Parser-specific numerical correction. Original output references and absolute production accounts are retained; the isolated accounts are not allocated to native final demand. The reported balance gap is not inserted into final demand or value added.",
+    })
+    note = (f"FIGARO E3: corrected the isolated IE paper-incineration loop in {block} "
+            f"with epsilon={epsilon:g}; own-input coefficient 1 -> {1.-epsilon:g}. "
+            "Original output reference and absolute satellite accounts retained; "
+            f"balance gap {gap:g} million EUR. See the figaro_e3 diagonal_correction report.")
+    layout.notes.append(note)
+    warnings.warn(note, UserWarning, stacklevel=3)
 
 
 @lru_cache(maxsize=128)
@@ -269,7 +358,8 @@ def _extensions(root, metadata, *, input_format, year, emissions, employment, se
 
 def parse_figaro_e3_data(path, *, table="SUT", year=2015, iot_mode="industry",
                          input_format="auto", extensions="all", emissions="co2eq",
-                         employment="EDU", extension_allocation=None, chunksize=250_000):
+                         employment="EDU", extension_allocation=None, chunksize=250_000,
+                         diagonal_correction=1e-3):
     """Return native flow blocks, sets, units and source provenance."""
     root = Path(path)
     if not root.is_dir():
@@ -285,6 +375,14 @@ def parse_figaro_e3_data(path, *, table="SUT", year=2015, iot_mode="industry",
         raise WrongInput("Choose emissions=co2eq/mass and employment=EDU/OCC/both.")
     if not isinstance(chunksize, int) or chunksize <= 0:
         raise WrongInput("chunksize must be a positive integer.")
+    if diagonal_correction is not None:
+        if (isinstance(diagonal_correction, (bool, np.bool_))
+                or not isinstance(diagonal_correction, Real)
+                or not 0 < diagonal_correction < 1
+                or not np.isfinite(float(diagonal_correction))
+                or 1. - float(diagonal_correction) == 1.):
+            raise WrongInput("diagonal_correction must be None or a finite epsilon strictly between 0 and 1, representable at float64 precision.")
+        diagonal_correction = float(diagonal_correction)
     if extension_allocation not in {None, "industry_technology"}:
         raise WrongInput("extension_allocation must be None or industry_technology.")
     selected = [] if extensions is False or extensions is None else (["emissions", "energy", "employment"] if extensions is True or extensions == "all" else ([extensions] if isinstance(extensions,str) else list(extensions)))
@@ -355,5 +453,6 @@ def parse_figaro_e3_data(path, *, table="SUT", year=2015, iot_mode="industry",
              MI["k"]:pd.DataFrame({"unit":ext_units},index=k)}
     layout.notes.extend(["FIGARO E3 is a separate detailed classification; standard FIGARO concordances are not assumed.",
                          "Energy indicators overlap; do not sum PES, NEU and their components. EDU and OCC employment are alternative estimates."])
+    _correct_irish_paper_loop(matrices, layout, diagonal_correction, ext_units)
     rename_index(matrices)
     return {"baseline":matrices}, indices, units, layout

@@ -30,19 +30,27 @@ destinations. All 11 primary-input and adjustment rows are retained, including
 their direct final-demand values in ``VY``. Native codes remain the model
 labels; ``db.info["figaro_e3"]["classifications"]`` supplies their descriptions.
 
-The published 2015 tables have a singular Leontief system. Importing flows
-and aggregating satellite accounts works, but a complete Leontief inverse
-does not exist. See `Leontief singularity`_ before calculating multipliers or
-footprints.
+The parser applies a targeted numerical correction to the isolated Irish
+paper-incineration loop in the published 2015 tables. Its default
+``diagonal_correction=1e-3`` makes that component invertible and records the
+changed cell and output reference. Set ``diagonal_correction=None`` to retain
+the uncorrected singular source system. See `Leontief singularity`_ for the
+modelling assumption and accounting gap.
 
 Choose files and formats
 ------------------------
 
-The same economic data is published as a wide ``matrix_*.csv`` or a long
-``flatfile_*.csv``. Both representations are valid. ``input_format="auto"``
+Economic data is published as a wide ``matrix_*.csv`` or a long
+``flatfile_*.csv``. Both representations are supported. ``input_format="auto"``
 prefers economic matrices and uses an available flat file where needed.
 Select ``"matrix"`` or ``"flatfile"`` to require that format for all inputs.
 Flat files are read in chunks; the full table is retained in the model.
+
+The checked 2015 industry IOT representations agree in ``Z`` and ``Y``, but
+differ in the medium-skill labour and net-operating-surplus primary accounts.
+They must not be treated as identical copies for value-added analysis.
+The parser retains the selected source's primary accounts; it does not
+reconcile them. Choose the format explicitly when comparing those results.
 
 The classification workbook is required for every parse. Choose the remaining
 files according to the requested system:
@@ -156,43 +164,64 @@ preset prefers optional UMFPACK and falls back to SciPy.
 Leontief singularity
 --------------------
 
-The native industry IOT (model D), product IOT (model B), and industry-based
-SUT system are singular at float64 precision in the published 2015 files.
+The uncorrected industry IOT (model D), product IOT (model B), and
+industry-based SUT system are singular in the published 2015 files.
 The Irish industry ``E37T39_D`` (paper-waste incineration), or its product
 ``CPA_E37T39_D``, forms a closed production loop. In the product IOT its
 output and intermediate self-use are both 0.004 million EUR, with no other
-sales or final demand. Its own-input coefficient is exactly one, giving a
-zero row in ``I - z``. The corresponding SUT activity/commodity block in
-the generalized system is ``[[1, -1], [-1, 1]]``.
+sales or final demand. Its own-input coefficient is exactly one. Changing
+the numerical solver alone cannot invert that source system.
 
-This is separate from the zero-output extension-allocation issue above.
-Switching between an explicit inverse and a linear solve does not remove
-the singularity. MARIO's default strict policy raises an error; the parser
-preserves the source flows. The companion demonstrates import and account
-aggregation, not a successful complete Leontief footprint calculation.
+By default, the parser corrects only this verified isolated component:
 
-To calculate independently determined multipliers, explicitly request the
-same partial policy used by BONSAI:
+* IOT: reduce its own-input ``Z`` cell by the selected epsilon fraction.
+* SUT: reduce its own-input ``U`` cell; retain ``S`` unchanged.
+* Retain the original output reference in ``X`` (IOT) or ``Xc`` (SUT), so
+  normalization does not recreate a unit own-input coefficient.
+
+With epsilon ``1e-3``, self-use changes from 0.004 to 0.003996 million EUR,
+the own-input coefficient becomes 0.999, and its Leontief diagonal becomes
+1,000. No other flow cell, ordinary zero diagonal, or database parser is
+changed. The correction is skipped when the known nodes are absent or the
+isolated source pattern no longer matches. It is not a general guarantee
+against other singular components.
+
+Inspect the warning and structured import report:
 
 .. code-block:: python
 
-   options = mario.ComputeOptions(
-       backend_override="sparse_direct", singular_policy="partial",
-   )
-   fc = db.resolve("fc", compute_options=options)  # SUT commodity multipliers
-   fc.attrs.get("mario_partial")
-   # For an industry IOT: industry.resolve("f", compute_options=options)
+   db.info["figaro_e3"]["diagonal_correction"]
 
-On the checked native 2015 files, this returns finite multipliers for 8,095
-of 8,096 industry IOT nodes and 9,797 of 9,798 SUT commodity nodes. The Irish
-paper-waste node remains ``NaN`` for every loaded satellite account, with a
-:class:`~mario.PartialResultWarning`. The retained equations pass the residual
-check without changes to source flows. This certifies the independent
-subsystem, not a complete solution of the singular system. Full inverse
-requests still raise an error. See :doc:`partial singular results
-<../../../reference/api_calculation_methods>` for dependency propagation and
-reductions; pandas totals that include undefined coefficients need
-``skipna=False``.
+For ``model="ModelState"``, the report is in
+``state.metadata.extra["figaro_e3"]["diagonal_correction"]``. It records the
+original and changed flow, epsilon, preserved output reference, accounting
+gap and unchanged production satellite accounts. Absolute emissions, energy,
+employment, value added and final demand are retained. Source files are not
+edited.
+
+This is an explicit numerical modelling assumption, not an official JRC
+correction or a reconstruction of unpublished values. Preserving output
+introduces a reported 0.000004 million EUR (4 EUR) balance gap at the default
+epsilon. It is not assigned to invented final demand or value added. The
+isolated node's original production accounts, including 5.321 kt CO2eq in
+the checked four-gas inventory, remain outside native final-demand attribution.
+A complete inverse of the corrected system does not establish complete
+reconciliation with the source production inventory.
+
+Epsilon controls the result: ``1e-6`` would give an own Leontief multiplier
+of 1,000,000. Choose another finite epsilon strictly between zero and one
+only with an explicit sensitivity analysis. To read exact uncorrected flows:
+
+.. code-block:: python
+
+   raw = mario.parse_figaro_e3(
+       path=root, table="SUT", diagonal_correction=None,
+   )
+
+The uncorrected system still raises on a full inverse request. Independently
+determined partial multipliers can instead use the existing
+:doc:`partial singular policy <../../../reference/api_calculation_methods>`.
+The zero-output product-extension allocation limitation above remains separate.
 
 The `JRC construction code
 <https://jeodpp.jrc.ec.europa.eu/ftp/public/JRC-OpenData/FIGARO-E3/>`_ builds
@@ -205,8 +234,7 @@ zeros for export (``EpsOut=0``), rather than regularizing ``I - z``; see the
 `GAMS special-value definitions
 <https://www.gams.com/latest/docs/UG_Parameters.html#UG_Parameters_ExtendedRangeArithmetic>`_.
 
-Any alteration of the closed component must be chosen and reported as an
-additional modelling assumption. A partial result, pseudoinverse or successful
-import must not be presented as a full Leontief inverse.
+A partial result, pseudoinverse or successful import must not be presented as
+a full inverse of the uncorrected source system.
 
 Full interfaces: :func:`~mario.parse_figaro_e3` and :func:`~mario.parse_figaro`.
