@@ -104,7 +104,10 @@ def geographic_groups(profiles):
     groups = {}
     for profile in _ordered_profiles(profiles):
         signature = profile.get("coverage_signatures", {}).get("geography", profile["id"])
-        groups.setdefault((profile.get("source", ""), signature), []).append(profile)
+        namespace = "REX3" if profile.get("guide") == "exiobase-rex3" or profile.get("variant") == "REX3" else ""
+        if profile.get("guide") == "figaro-e3" or profile.get("variant") == "E3":
+            namespace = "E3"
+        groups.setdefault((profile.get("source", ""), namespace, signature), []).append(profile)
     return list(groups.values())
 
 
@@ -489,6 +492,8 @@ def _render(app, doctree, docname):
                                                  if r.get("kind") == "country"}) > 1]
         for profile in lightweight:
             original = next(p for p in profiles if p["id"] == profile["id"])
+            if original.get("variant"):
+                profile["variant"] = original["variant"]
             profile["years"] = original.get("years", [original.get("year")])
             profile["status"] = original["status"]
             profile["parser_supported"] = original.get("parser_supported", True)

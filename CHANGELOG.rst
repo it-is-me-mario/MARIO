@@ -5,10 +5,90 @@ Release History
 All notable changes to MARIO, newest first. Versions match the ``mariopy``
 package on PyPI, and dates are its publication dates.
 
+v1.3.4
+------
+
+*Released 2026-11-07.*
+
+FIGARO E3
+~~~~~~~~~
+
+* Add local JRC FIGARO-E3 SUT and model B/D IOT parsing through
+  ``parse_figaro_e3`` or ``parse_figaro(..., variant="E3")``. Read both matrix
+  and chunked flat files, collapse identical download copies, and reject
+  conflicting revisions. Preserve primary-input and direct final-demand flows.
+* Import the chosen gas inventory, all six energy indicators and separately
+  labelled EDU/OCC employment estimates. Require explicit industry-technology
+  allocation for product IOT extensions and reject unallocatable flows.
+* Add source-specific GHG/compute profiles, guide and notebook, keeping the
+  detailed classification separate from standard FIGARO.
+* Correct the verified isolated 2015 Irish paper-incineration loop within the
+  FIGARO E3 parser, using ``diagonal_correction=1e-3`` by default for SUT and
+  both IOTs. Retain original output references and absolute satellite accounts;
+  report the changed flow and balance gap. ``None`` preserves the singular
+  source system. Other parsers and the general compute policy are unchanged.
+
+EXIOBASE REX3
+~~~~~~~~~~~~~
+
+* Add the complete REX3 monetary IOT parser and downloader through
+  ``parse_exiobase(..., variant="REX3")``, with its mandatory detailed
+  GHG/LULUCF companion. Support nested economic/GHG version directories and
+  preserve published absolute LULUCF flows at zero output.
+* Provide a dedicated GHG recipe that excludes the overlapping native climate
+  aggregate, a solve-based parser preset, and a linked guide and notebook.
+  Document source consistency and direct household emissions separately.
+* Keep REX3 within the EXIOBASE Overview family, with its own geographical
+  Version, native classifications and CC BY 4.0 terms.
+
+Supply-mix recipes
+~~~~~~~~~~~~~~~~~~
+
+* Estimate missing input recipes when a mix activates previously inactive
+  producers, for arbitrary sectors, commodities and activities as well as the
+  electricity preset. Weight donor recipes by output and use the receiving
+  region's input sourcing, with donor origins as the no-purchases fallback.
+* Fill empty direct-emissions and value-added columns too. Select donor
+  regions globally, per receiving-region/item pair or through optional
+  prompts; ``fill_missing_recipes=False`` retains the previous behaviour.
+  Preserve sparse storage and source scenarios.
+
+Local EXIOBASE SUT bundles
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Read locally supplied monetary EXIOBASE 3.11.2 MRSUT bundles with the shared
+  SUT parser. Check explicit release labels independently of revision dates
+  and preserve the supported block layout, labels and units. Automatic SUT
+  downloads remain limited to the registered 3.8.2 release.
+
+GLORIA use valuations
+~~~~~~~~~~~~~~~~~~~~~
+
+* Set ``valuation="purchaser"`` in ``parse_gloria()`` to reconstruct complete
+  intermediate and final use tables from the five signed layers. Supply,
+  value added and the satellite accounts use Markup001.
+
+* Add ``mario.read_gloria_use_valuations()`` to read basic values, trade and
+  transport margins, product taxes and signed product subsidies for one
+  commodity. Select purchaser regions while retaining all supplier origins.
+  The sum gives intermediate and final use at purchasers' prices.
+
+Heatmaps
+~~~~~~~~
+
+* Show the original matrix values in notebook heatmap tooltips, including with
+  logarithmic or clipped colour scales and in older notebook renderers.
+
+CVXLab compatibility
+~~~~~~~~~~~~~~~~~~~~
+
+* Generate split-sector Excel and CSV inputs with CVXLab's attribute-based
+  model settings, while retaining support for older dictionary settings.
+
 v1.3.3
 ------
 
-*Released 2026-10-23.*
+*Released 2026-11-04.*
 
 Classification concordances
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~

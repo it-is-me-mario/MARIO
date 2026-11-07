@@ -174,6 +174,10 @@ def test_packaged_primary_concordances_equal_the_published_explorer_for_every_na
         target = 'NACE2.1' if kind == 'activity' else 'CPA2.2'
         for column in columns:
             bundle = _bundle(column['family'])
+            if column.get('variant') in {'REX3', 'E3'}:
+                assert column['status'] == 'unverified' and not any(n['links'] for n in column['native'])
+                assert column['id'] not in {p['id'] for p in bundle['profiles']}
+                continue
             profile = next(p for p in bundle['profiles'] if p['id'] == column['id'])
             for native, original in zip(profile['native'], column['native']):
                 assert native['code'] == original['code']

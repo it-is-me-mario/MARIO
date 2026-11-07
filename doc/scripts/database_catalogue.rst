@@ -1,6 +1,22 @@
 Database comparisons: parsed profiles and original set downloads
 ===============================================================
 
+FIGARO E3 uses its own ``figaro-e3`` guide and recipe identifiers; standard
+FIGARO retains ``figaro``. Publish the parsed SUT, industry IOT and monetary
+product IOT inventories from the paired notebook. Keep native productive codes
+and explicit extension selections in provenance. Parsed sets are independent
+of numerical indicator publication.
+
+After publishing new E3 sets, refresh their unmapped native scope while
+preserving the existing taxonomy and numerical readings::
+
+   python doc/scripts/build_country_scope.py --unmapped-guide figaro-e3
+   python doc/scripts/build_sectoral_scope.py --country-output doc/source/_static/data/economy/country-scope.json
+   python doc/scripts/build_extension_scope.py
+
+The native-only update refuses to replace a profile that already has reviewed
+mapping or numerical-reading links. Use the full scope build in that case.
+
 This workflow produces release profiles and downloadable original-set lists
 from successful local parsing runs. Counts come from the actual reading, rather
 than notebook output snapshots, headline figures or declared coverage tables.
@@ -37,6 +53,11 @@ AST, records their literal options and a call fingerprint, and refreshes
 ``doc/database_catalogue.recipes.json``. It preserves existing parsed profiles.
 It never executes a notebook or parser. An example requiring an in-memory object
 (the pymrio bridge) is registered but cannot be run from a path-only JSON job.
+
+Preparation also includes BONSAI's shared companion at
+``source/user_guide/examples/bonsai.ipynb`` under its source-guide identity
+``user_guide/parsers/bonsai``. Keep that route when regenerating the registry;
+the companion does not live under the parser-notebook directory.
 
 ``--plan`` lists the recipes while there is no local configuration. Once a local
 configuration exists it checks inputs, notebook fingerprints and basic options
@@ -196,3 +217,23 @@ have 48 regions without TW, while the published classification workbook lists
 49 with TW. The parser reads these CSV axes directly. Aggregate memberships are
 therefore still awaiting a reading-specific concordance; they are not borrowed
 from the monetary profile. The model's aggregate names remain visible in the UI.
+
+REX3 source nomenclature
+------------------------
+
+REX3 is one version within the EXIOBASE family in the scope explorer. Its
+geography, native activity labels and CC BY 4.0 terms remain distinct from
+standard EXIOBASE. Before a new full MRIO run is available, the public label
+bundle can supply a ``source_verified`` inventory without economic values::
+
+    python doc/scripts/build_rex3_scope.py --labels /path/to/REX3_Labels
+    python doc/scripts/build_sectoral_scope.py --country-output doc/source/_static/data/economy/country-scope.json
+    python doc/scripts/build_extension_scope.py
+
+The first command validates the country-sector label ordering and records
+source checksums. It updates only REX3 in the external-profile registry and
+country lookup, preserving the existing reviewed mappings and parsed releases.
+It does not read ``T_REX3`` or create numerical indicator readings. Historical
+regions retain their labels; ambiguous territorial names remain unresolved.
+The source-described six GHG/LULUCF account labels supplement the economic
+label inventory. Do not mark this metadata-only refresh as a full parser run.

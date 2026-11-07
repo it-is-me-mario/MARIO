@@ -46,6 +46,25 @@ GWPs = {
 # Profiles are evaluated in declaration order; the first matching profile
 # wins. Put the more specific profile (more substrings) first.
 GHG_PROFILES: Dict[str, dict] = {
+    "figaro_e3": {
+        "match": ("figaro e3", "co2eq"),
+        "unit": "kt CO2-eq",
+        "gwp": {f"GHG | {gas} | AR5 GWP100 CO2eq": 1 for gas in ("CO2", "CH4", "N2O", "F-gases")},
+    },
+    # Source-characterised CO2eq: use the detailed sources and published
+    # LULUCF once, excluding the overlapping native aggregate climate row.
+    "rex3": {
+        "match": "rex3",
+        "unit": "kg CO2-eq",
+        "gwp": {
+            "GHG emissions from coal": 1,
+            "GHG emissions from oil": 1,
+            "GHG emissions from gas": 1,
+            "GHG emissions from biogenic sources": 1,
+            "GHG emissions from calcination": 1,
+            "Land use change climate impacts (Blue model)": 1,
+        },
+    },
     # ---------------- BONSAI Balanced HSUT / native b2 HIOT ------------
     # Names and compartments are the parser's readable satellite labels.
     # Biogenic CO2 is retained separately, consistently with the existing

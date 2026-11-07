@@ -422,7 +422,9 @@ def _plot_matrix_heatmap(
         **kwargs,
     )
     fig.update_traces(
-        customdata=values,
+        # Older notebook renderers cannot decode binary arrays in customdata.
+        # Keep original values as JSON lists, including when colors are transformed.
+        customdata=values.tolist(),
         hovertemplate=f"{heatmap_y}: %{{y}}<br>{x}: %{{x}}<br>{value}: %{{customdata:.4g}}<extra></extra>",
     )
 

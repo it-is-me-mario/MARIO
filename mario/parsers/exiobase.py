@@ -34,6 +34,7 @@ class ExiobaseSUTParser(BaseParser):
         year: int | None = None,
         price: str | None = None,
         add_extensions: str | None = None,
+        version: str | None = None,
         repository: BlockRepository | None = None,
     ) -> ModelState:
         """Parse a monetary EXIOBASE SUT source into a canonical ``ModelState``."""
@@ -41,6 +42,7 @@ class ExiobaseSUTParser(BaseParser):
         matrices, indexes, units, layout = parse_exiobase_sut_monetary(
             path,
             add_extensions=add_extensions,
+            version=version,
         )
         state = build_state_from_parser_output(
             table="SUT",

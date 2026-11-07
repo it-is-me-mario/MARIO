@@ -300,18 +300,21 @@ def build(inputs, scope):
                 if set(labels)!=set(wiod_names):raise ValueError('WIOD activity code vocabulary changed')
                 labels=[wiod_names[code] for code in labels]
             signature=hashlib.sha256(json.dumps(sorted(labels),ensure_ascii=False).encode()).hexdigest()[:12]
-            key=(p['family'],p['units'],kind,signature)
+            variant=p.get('variant','') if p.get('variant') in {'REX3','E3'} else ''
+            key=(p['family'],p['units'],kind,signature,variant)
             if key not in groups:
                 known_ns='EXIO3I' if p['family']=='EXIOBASE' and p['units']=='Monetary' and kind=='activity' else 'EXIO3H' if p['family']=='EXIOBASE' and p['units']=='Hybrid' else 'ADB35' if p['family']=='ADB' else 'CEDA2024' if p['family']=='CEDA' else 'GLORIA060' if p['family']=='GLORIA' and p['release']=='060' else 'ICIO2025' if p['family']=='OECD' else 'FIGARO64' if p['family']=='FIGARO' else 'WIOD2016' if p['family']=='WIOD' else 'GTAP12POWERI' if p['family']=='GTAP' and p['release'].endswith('Power') else 'GTAP12I' if p['family']=='GTAP' else None
+                if variant:known_ns=None
                 values=native[known_ns] if known_ns else []
                 # Reuse only if the actual set labels match the complete pilot vocabulary.
                 if {n['name'] for n in values}!=set(labels):values=[]
                 column={'id':'-'.join([p['family'].lower().replace(' ','-'),p['units'].lower(),kind,signature]),
-                        'family':p['family'],'units':p['units'],'kind':kind,'native_count':len(labels),
+                        'family':p['family'],'units':p['units'],'kind':kind,'native_count':len(labels),'variant':variant,
                         'namespace':known_ns if values else None,'native':values,'releases':[],'years':[],
                         'profile_ids':[],'formats':[],'guide':p['guide'],'source_url':p['source_url'] or ('https://zenodo.org/records/7244919' if known_ns=='EXIO3H' else None),'workbook':p['workbook'],
                         'note':'Shared activity identities reuse the monetary correspondence footprint. Hybrid gas subdivisions and secondary lead retain their own nxbase routes; reviewed electricity paths and pending cases stay explicit.' if known_ns=='EXIO3H' else 'Open CEDA supplies emission factors for 400 industries, without a separate native Commodity set. BEA/NAICS and EPA concordances support this producing-activity lookup.' if p['family']=='CEDA' else 'GLORIA detailed footprints are editorial nxbase links checked against source descriptors and official definitions. Qualified overlaps remain explicit; this is not a publisher-supplied detailed concordance.' if p['family']=='GLORIA' else 'GTAP is shown only as activities, reflecting its single Sector set in the ixi representation. Published CPC and ISIC definitions support the NACE concordance; they do not add a separate Commodity set.' if p['family']=='GTAP' else '',
                         'status':'documented' if values else 'unverified'}
+                if variant:column['id']+='-'+variant.lower()
                 groups[key]=column;columns[kind].append(column)
             c=groups[key];c['releases']=sorted(set(c['releases']+[p['release']]),key=lambda s:[int(x) if x.isdigit() else x for x in s.replace('.',' ').split()]) if p['release'] else c['releases']
             c['years']=sorted(set(c['years']+p['years']));c['profile_ids'].append(p['id']);c['formats']=sorted(set(c['formats']+[p['format']]))
@@ -325,9 +328,11 @@ def build(inputs, scope):
             labels=p['sets'].get('Sector')
         if labels is None:continue
         signature=hashlib.sha256(json.dumps(sorted(labels),ensure_ascii=False).encode()).hexdigest()[:12]
-        key=(p['family'],p['units'],'commodity',signature)
+        variant=p.get('variant','') if p.get('variant') in {'REX3','E3'} else ''
+        key=(p['family'],p['units'],'commodity',signature,variant)
         if key not in groups:
             ns=('EXIO3HIOTP' if p['format']=='IOT' else 'EXIO3HSUTP') if p['family']=='EXIOBASE' and p['units']=='Hybrid' else 'EXIO3P' if p['family']=='EXIOBASE' else 'CEDA2024P' if p['family']=='CEDA' else 'GLORIA060P' if p['family']=='GLORIA' else 'FIGARO64P' if p['family']=='FIGARO' else 'WIOD2016P' if p['family']=='WIOD' else None
+            if variant:ns=None
             if p['family']=='EMERGING':
                 candidates=[s for s in ['EMERGP','EMERG1P','EMERG2P'] if {n['name'] for n in native[s]}==set(labels)]
                 ns=candidates[0] if candidates else None
@@ -335,11 +340,12 @@ def build(inputs, scope):
             values=[copy.deepcopy(indexed.get(label,{'code':'','name':label,'links':{},'mapping_origin':'unverified'})) for label in labels]
             known=sum(bool(n['links']) for n in values)
             c={'id':'-'.join([p['family'].lower().replace(' ','-'),p['units'].lower(),'commodity',signature]),
-               'family':p['family'],'units':p['units'],'kind':'commodity','native_count':len(labels),
+               'family':p['family'],'units':p['units'],'kind':'commodity','native_count':len(labels),'variant':variant,
                'namespace':ns,'native':values,'releases':[],'years':[],'profile_ids':[],'formats':[],
                'guide':p['guide'],'source_url':p['source_url'],'workbook':p['workbook'],
                'note':'Product-only correspondence footprint. Published binary links and revision joins can be partial; no allocation weights are inferred.',
                'status':'documented' if known else 'unverified'}
+            if variant:c['id']+='-'+variant.lower()
             groups[key]=c;columns['commodity'].append(c)
         c=groups[key]
         c['releases']=sorted(set(c['releases']+([p['release']] if p['release'] else [])))
@@ -358,6 +364,8 @@ def build(inputs, scope):
             if sum(d['family']==c['family'] and d['units']==c['units'] and d['formats']==c['formats'] for d in cs)>1:
                 c['label']+=' · '+('/'.join(c['releases']) or str(c['native_count'])+' categories')
             if c['family']=='GTAP':c['label']='GTAP · Power' if gtap_power(c) else 'GTAP'
+            if c.get('variant')=='REX3':c['label']='EXIOBASE · REX3'
+            if c.get('variant')=='E3':c['label']='FIGARO · E3'
             c['default_visible']=not (c['family']=='EXIOBASE' and c['units']=='Hybrid')
             valid=set(refs[kind]['leaves'])
             for n in c['native']:n['links']={k:v for k,v in n['links'].items() if k in valid}

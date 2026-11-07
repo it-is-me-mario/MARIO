@@ -248,12 +248,55 @@
         "other",
         " \\| (?:Water|Soil|undef)$"
       ]
+    ],
+    "REX3": [
+      [
+        "ghg",
+        "^(Climate change impacts|GHG emissions from|Land use change climate impacts)",
+        {
+          "gas": "total"
+        }
+      ],
+      [
+        "materials",
+        "^Total material footprint$"
+      ],
+      [
+        "water",
+        "^(Blue water consumption|Water stress)$"
+      ],
+      [
+        "employment",
+        "^Workforce$"
+      ],
+      [
+        "land",
+        "^(Total land|Land use area|Land-use related|Conversion of|Other land conversion)"
+      ],
+      [
+        "other",
+        "^(Particulate-matter related|Freshwater eutrophication|Marine eutrophication)"
+      ]
+    ],
+    "FIGARO E3": [
+      [
+        "ghg",
+        "^GHG \\|"
+      ],
+      [
+        "energy",
+        "^Energy \\|"
+      ],
+      [
+        "employment",
+        "^Employment \\|"
+      ]
     ]
   },
   "without": {
     "FIGARO": {
-      "status": "restricted",
-      "note": "Eurostat publishes FIGARO-based emission footprints, not direct emissions by industry under open terms; non-European emissions derive from EDGAR/IEA (CC BY-NC-ND 4.0)."
+      "status": "partial",
+      "note": "JRC FIGARO E3 direct emissions, energy and employment are loaded under CC BY 4.0. Standard Eurostat FIGARO emission footprints have separate source terms and are not direct industry accounts loaded by the standard parser."
     },
     "OECD": {
       "status": "restricted",

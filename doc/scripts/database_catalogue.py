@@ -84,17 +84,24 @@ def prepare(doc=DOC):
     """Refresh the recipe manifest and guide registry, retaining parsed profiles."""
     doc = Path(doc)
     guides, recipes = [], []
-    for path in sorted((doc / "source/notebooks/parsers").glob("*/*.ipynb")):
-        family = path.parent.name
-        key = family if family not in {"exiobase", "custom_database"} else f"{family}-{path.stem}".replace("_", "-")
+    notebooks = list((doc / "source/notebooks/parsers").glob("*/*.ipynb"))
+    bonsai = doc / "source/user_guide/examples/bonsai.ipynb"
+    if bonsai.is_file():
+        notebooks = [p for p in notebooks if p.parent.name != "bonsai"] + [bonsai]
+    for path in sorted(notebooks, key=lambda p: ("bonsai" if p == bonsai else p.parent.name, p.stem)):
+        family = "bonsai" if path == bonsai else path.parent.name
+        distinct = family in {"exiobase", "custom_database"} or (family == "figaro" and path.stem == "e3")
+        key = f"{family}-{path.stem}".replace("_", "-") if distinct else family
         label = SOURCE_NAMES[family]
         if family == "exiobase":
             label += ", " + path.stem
+        elif key == "figaro-e3":
+            label = "FIGARO E3"
         elif family == "custom_database":
             label = {"from_excel": "Excel custom parser", "from_txt": "TXT, CSV and Parquet custom parser",
                      "from_pymrio": "Pymrio bridge"}[path.stem]
         guide = {"id": key, "source": SOURCE_NAMES[family], "label": label,
-                 "doc": path.relative_to(doc / "source").with_suffix("").as_posix()}
+                 "doc": "user_guide/parsers/bonsai" if path == bonsai else path.relative_to(doc / "source").with_suffix("").as_posix()}
         guides.append(guide)
         for number, call in enumerate(notebook_calls(path), 1):
             recipes.append({"id": f"{key}--{number:02}", "guide": key,

@@ -92,7 +92,7 @@ test('source licences distinguish access conditions from licences of the metadat
  assert.equal(points.find(p=>p.family==='CEDA').access,'restricted');
  assert.equal(points.find(p=>p.family==='CEDA').licences[0].metadata.label,'Open CEDA · CC BY-SA 4.0');
  assert.equal(points.find(p=>p.family==='GLORIA').access,'noncommercial');
- const exio=points.filter(p=>p.family==='EXIOBASE'&&p.units==='Monetary');assert.equal(exio.length,2);
+ const exio=points.filter(p=>p.family==='EXIOBASE'&&p.units==='Monetary'&&!p.releases.includes('REX3'));assert.equal(exio.length,2);
  assert.ok(exio.every(p=>p.access==='noncommercial'&&p.licences.some(l=>l.category==='open'&&l.releases.includes('3.8.2'))));
  assert.ok(points.filter(p=>p.family==='EXIOBASE'&&p.units==='Hybrid').every(p=>p.access==='open'));
  const colors={background:'#fff',surface:'#fff',ink:'#222',grid:'#ddd',extended:'#178',base:'#978',font:'Arial'};
@@ -105,7 +105,7 @@ test('source licences distinguish access conditions from licences of the metadat
   assert.equal(t.marker.line.dash[i],p.access==='noncommercial'?'3px,2px':p.access==='unverified'?'dot':'solid');
  }
  assert.match(markers.find(t=>t.name==='CEDA').customdata[0][7],/Proprietary \/ restricted.*Scope metadata:.*Open CEDA/);
- assert.ok(markers.find(t=>t.name==='EXIOBASE').customdata.filter(r=>r[1]==='Monetary').every(r=>r[7].includes('Licences vary by release')&&r[7].includes('3.8.2')&&r[7].includes('3.11.2')));
+ assert.ok(markers.find(t=>t.name==='EXIOBASE').customdata.filter(r=>r[1]==='Monetary'&&!r[3].includes('REX3')).every(r=>r[7].includes('Licences vary by release')&&r[7].includes('3.8.2')&&r[7].includes('3.11.2')));
  const future={...profiles.find(p=>p.guide==='exiobase-monetary'),release:'9.0'};
  assert.equal(D.scopePoints([future],licences)[0].access,'unverified');
  assert.equal(D.scopePoints([{...future,guide:'new-source',numeric_publication:false}],licences)[0].access,'unverified');

@@ -36,8 +36,9 @@ Page ownership
        ``production_mix.rst`` in the same directory
      - Corresponding API; worked examples in ``user_guide/advanced/``
    * - Transformations and scenarios
-     - ``user_guide/transformations/``; electricity updates use
-       ``user_guide/advanced/electricity_mix.rst``
+     - ``user_guide/transformations/``; general supply updates and recipe
+       estimation use ``user_guide/transformations/supply_mix.rst``;
+       electricity presets use ``user_guide/advanced/electricity_mix.rst``
      - API, paired notebook and transformation index
    * - Database profiles and classifications
      - ``user_guide/advanced/database_profiles.rst``,
@@ -135,6 +136,19 @@ Shared metadata and generated assets
        ``doc/source/_static/data/database_profiles.json`` is the summary
      - Parser cards and guide panels, explorer coverage, native-set downloads
        and source notices
+   * - REX3 source-only nomenclature and scope
+     - ``doc/scripts/build_rex3_scope.py`` reads the pinned public label bundle;
+       the sectoral and extension scope generators compile its reviewed metadata
+     - REX3 guide and companion, external profile, source notice, scope views and
+       native-set download. Keep EXIOBASE as the Overview family and REX3 as a
+       separate geographical Version; do not inherit standard concordances.
+   * - FIGARO E3 local releases
+     - ``mario/parsers/figaro_e3.py``; paired E3 guide/notebook and catalogue
+     - Native SUT and B/D IOT axes, matrix/flat equivalence, extension basis,
+       direct final demand, licence and geographical Version. Keep the FIGARO
+       family but do not inherit the standard FIGARO sector concordances.
+       Refresh unmapped native scope with ``build_country_scope.py`` before
+       rebuilding sectoral and extension scope.
    * - Explorer indicators
      - Source-specific scripts in ``doc/scripts/`` and their saved provenance
      - Indicator definitions, units, characterization, reference year,

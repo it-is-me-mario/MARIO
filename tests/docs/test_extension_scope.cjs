@@ -5,7 +5,7 @@ test('chips split variants and show account ranges; the detail lists one reading
  const html=E.render(data);
  for(const c of data.categories)assert.ok(html.includes(`data-ext-card="${c.id}"`));
  const ghg=E.categoryRows(data,'ghg'),exio=ghg.filter(r=>r.family==='EXIOBASE');
- assert.deepEqual(exio.map(r=>r.variant).sort(),['Hybrid','Monetary']);
+ assert.deepEqual(exio.map(r=>r.variant).sort(),['Hybrid','Monetary','REX3']);
  const monetary=exio.find(r=>r.variant==='Monetary');assert.ok(monetary.min<monetary.max);assert.ok(monetary.readings.length>1);
  assert.match(html,/class="ext-gas" data-absent/);
  assert.ok(!html.includes('ext-without'));

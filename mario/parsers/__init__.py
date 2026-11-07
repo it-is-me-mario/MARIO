@@ -23,11 +23,14 @@ __all__ = [
     "parse_eora",
     "parse_eurostat",
     "parse_figaro",
+    "parse_figaro_e3",
     "parse_gloria",
+    "read_gloria_use_valuations",
     "parse_gtap",
     "parse_istat",
     "parse_exiobase",
     "parse_exiobase_3",
+    "parse_exiobase_rex",
     "parse_exiobase_sut",
     "parse_exiobase_3_9_4",
     "parse_from_excel",
@@ -45,6 +48,9 @@ __all__ = [
 
 def __getattr__(name: str):
     """Lazily expose parser classes and entry points without eager imports."""
+    if name == "read_gloria_use_valuations":
+        return import_module("mario.parsers.gloria").read_gloria_use_valuations
+
     if name in {
         "BaseParser",
         "ParserRegistry",
@@ -63,11 +69,13 @@ def __getattr__(name: str):
         "parse_eora",
         "parse_eurostat",
         "parse_figaro",
+        "parse_figaro_e3",
         "parse_gloria",
         "parse_gtap",
         "parse_istat",
         "parse_exiobase",
         "parse_exiobase_3",
+        "parse_exiobase_rex",
         "parse_exiobase_sut",
         "parse_from_excel",
         "parse_from_parquet",

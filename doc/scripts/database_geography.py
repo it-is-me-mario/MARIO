@@ -20,6 +20,10 @@ ADB_ALIASES = {
 EORA_ALIASES = {"SDS": "SSD", "SUD": "SDN"}
 EORA_HISTORICAL = {"ANT": "Netherlands Antilles (historical grouping)",
                    "USR": "Soviet Union (former; historical grouping)"}
+REX3_ALIASES = {"Turkey": "TUR", "Brunei": "BRN", "Macao SAR": "MAC",
+                "TFYR Macedonia": "MKD", "Cape Verde": "CPV", "Swaziland": "SWZ", "UAE": "ARE"}
+REX3_HISTORICAL = {"Former USSR": "Soviet Union (former; historical grouping)",
+                   "Netherlands Antilles": "Netherlands Antilles (historical grouping)"}
 # The author workbook has exactly the same 245 native identifiers as the
 # parsed V2.2 / 2023 reading. SER is labelled Serbia/Montenegro, not Serbia alone.
 EMERGING22_HISTORICAL = {"ANT": "Netherlands Antilles (historical grouping)",
@@ -61,7 +65,8 @@ def resolve_geography(profile, countries):
         (profile.get("release") == "2.2" and profile.get("year") == 2023)
         or (profile.get("release") in {"1.0", "2.0", "2.2", "E"}
             and native_signature == EMERGING22_NOMENCLATURE["validated_geography_sha256"])))
-    historical = EORA_HISTORICAL if profile["guide"] == "eora" else EMERGING22_HISTORICAL if emerging_reviewed else {}
+    historical = (REX3_HISTORICAL if profile["guide"] == "exiobase-rex3" else
+                  EORA_HISTORICAL if profile["guide"] == "eora" else EMERGING22_HISTORICAL if emerging_reviewed else {})
     for label in profile["sets"]["Region"]:
         text = str(label)
         if text in historical:
@@ -81,13 +86,15 @@ def resolve_geography(profile, countries):
             regions.append({"label": label, "name": "Rest of Latin America and the Caribbean", "kind": "aggregate", "members": [],
                             "membership_status": "not_mapped"})
             continue
-        if text.casefold() in {"row", "rest of world", "rest of the world"}:
+        if text.casefold() in {"row", "rest of world", "rest of the world"} or (profile["guide"] == "figaro-e3" and text == "FIGW1"):
             regions.append({"label": label, "name": "Rest of the world", "kind": "aggregate", "members": [],
                             "membership_status": "not_mapped"})
             continue
         code = ADB_ALIASES.get(text) if profile["guide"] == "adb" else None
         if profile["guide"] == "eora":
             code = EORA_ALIASES.get(text)
+        if profile["guide"] == "exiobase-rex3":
+            code = REX3_ALIASES.get(text)
         if emerging_reviewed:
             code = EMERGING22_ALIASES.get(text)
         code = code or NAME_ALIASES.get(text) or exact.get(text.casefold())

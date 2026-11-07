@@ -36,12 +36,26 @@ Environmentally-extended databases
       The hybrid EXIOBASE bundle, as supply-use and input-output tables, with a
       choice of extensions.
 
+   .. mario-card:: :doc:`EXIOBASE REX3 <../../notebooks/parsers/exiobase/rex3>`
+      :kicker: mario.parse_exiobase_rex
+      :database: exiobase-rex3
+      :logo: /_static/images/logos/exiobase.png
+
+      The complete REX3 monetary IOT with its detailed GHG and LULUCF companion.
+
    .. mario-card:: :doc:`BONSAI <bonsai>`
       :kicker: mario.parse_bonsai
       :logo: /_static/images/logos/bonsai.webp
 
       Balanced hybrid supply-use exports and native b2 hybrid input-output
       tables, read from a local ZIP or directory with direct elementary flows.
+
+   .. mario-card:: :doc:`FIGARO E3 <../../notebooks/parsers/figaro/e3>`
+      :kicker: mario.parse_figaro_e3
+      :database: figaro-e3
+
+      Detailed JRC supply-use and B/D input-output tables, with employment,
+      energy and emissions, in local matrix or flat-file format.
 
    .. mario-card:: :doc:`EORA <../../notebooks/parsers/eora/walkthrough_eora>`
       :kicker: mario.parse_eora
@@ -104,6 +118,8 @@ Environmentally-extended databases
 
    EXIOBASE, monetary <../../notebooks/parsers/exiobase/monetary>
    EXIOBASE, hybrid <../../notebooks/parsers/exiobase/hybrid>
+   EXIOBASE REX3 <../../notebooks/parsers/exiobase/rex3>
+   FIGARO E3 <../../notebooks/parsers/figaro/e3>
    BONSAI <bonsai>
    EORA <../../notebooks/parsers/eora/walkthrough_eora>
    GLORIA <../../notebooks/parsers/gloria/walkthrough_gloria>

@@ -114,3 +114,28 @@ def test_parse_exiobase_download_hybrid_uses_download_dir(monkeypatch, tmp_path)
     assert calls["download"]["table"] == "IOT"
     assert calls["parser"]["path"] == str(tmp_path)
 
+
+def test_parse_exiobase_rex3_variant_dispatches_before_standard_download(monkeypatch, tmp_path):
+    calls = {}
+    sentinel = object()
+
+    def fake_parser(**kwargs):
+        calls.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr("mario.parsers.entrypoints.parse_exiobase_rex", fake_parser)
+
+    parsed = parse_exiobase(
+        table="IOT",
+        unit="Monetary",
+        path=str(tmp_path),
+        year=2005,
+        download=True,
+        variant="REX3",
+        calc_all=False,
+    )
+
+    assert parsed is sentinel
+    assert calls["year"] == 2005
+    assert calls["download"] is True
+    assert "regions" not in calls

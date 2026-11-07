@@ -2104,6 +2104,8 @@ class CoreModel:
         level: str | None = None,
         commodities=None,
         aggregate_commodity=None,
+        fill_missing_recipes: bool = True,
+        recipe_regions=None,
     ) -> None:
         """Update one regional supply mix in the selected scenario.
 
@@ -2250,6 +2252,31 @@ class CoreModel:
             only the selected scenario. With ``shares_by_region="electricity"``
             the mapping defaults to the packaged electricity profile, so it can
             be omitted for EXIOBASE-style layouts.
+        fill_missing_recipes:
+            Default ``True``. When a previously inactive producer receives
+            demand and has an entirely zero input column, estimate its recipe
+            from active producers of the same item in the pre-update scenario.
+            Donor coefficients are weighted by output, summed over input
+            origins, then allocated using the receiving region's purchases
+            of each input (intermediate plus final demand, including domestic
+            supply). Inputs with no purchases use the donors' origin shares.
+            Empty direct-emissions and value-added columns are filled with
+            the same donor weights. Existing nonzero columns are preserved.
+            On SUT commodity mixes, missing supply columns are localized to
+            domestic activities before repairing their use recipes. Required
+            domestic activities must already exist. No eligible donor raises
+            :class:`WrongInput`; ``False`` retains the previous behaviour.
+        recipe_regions:
+            Donor regions for missing recipes. ``None`` or ``'global'`` uses
+            all other regions with positive output of the item. Pass a region
+            or list of regions to restrict all recipes, or a mapping such as
+            ``{('IT', 'steel'): ['DE', 'FR']}`` for individual region/item
+            pairs; unspecified pairs use global donors. For SUT commodity
+            mixes, a commodity override also applies to its producers unless
+            an activity override is present. ``'prompt'`` asks for donors for
+            each missing recipe (Enter selects global); mapping values can
+            also be ``'prompt'``. Explicit donors must have positive output.
+            Interactive input is optional; use mappings in unattended scripts.
 
         Returns
         -------
@@ -2258,16 +2285,18 @@ class CoreModel:
 
         Notes
         -----
-        The method rewrites coefficient-side blocks preserving the original
-        column totals of each selected regional bundle: ``z``/``Y`` for IOT,
-        ``u``/``Yc`` for SUT commodity mixes and ``s`` for SUT activity
-        mixes.
+        Bundle redistribution preserves the original column totals of each
+        selected regional bundle: ``z``/``Y`` for IOT, ``u``/``Yc`` for SUT
+        commodity mixes and ``s`` for SUT activity mixes. Recipe imputation
+        additionally creates input requirements in previously empty producer
+        columns, so their original zero totals are not preserved.
 
         With regional classifications, every supplied label must exist in its
         specified region. Level inference checks these regional memberships.
         Column selectors filter actual columns by label and region; they do
         not create missing region-item pairs. Sparse inputs retain sparse
-        storage, and rows outside each selected bundle remain unchanged.
+        storage. Redistribution leaves rows outside each selected bundle
+        unchanged; imputed producer columns can add coefficients in those rows.
         Explicit ``aggregate_commodity`` mappings apply to existing regional
         occurrences of their member codes only.
 
@@ -2294,7 +2323,14 @@ class CoreModel:
             construction.
         """
 
+        from mario.ops.supply_recipes import SupplyRecipeFiller, stored_outputs
+
         is_sut = self.table_type == "SUT"
+        if not isinstance(fill_missing_recipes, bool):
+            raise WrongInput("fill_missing_recipes must be a boolean.")
+        # Validate donor options before cloning or structurally aggregating.
+        if fill_missing_recipes:
+            SupplyRecipeFiller(self, scenario, recipe_regions, {})
 
         if not is_sut:
             if aggregate_commodity is not None:
@@ -2366,6 +2402,7 @@ class CoreModel:
                     )
 
         coefficients_ready = False
+        recipe_outputs = stored_outputs(self, scenario) if fill_missing_recipes else {}
 
         if electricity_requested:
             if is_sut:
@@ -2598,7 +2635,33 @@ class CoreModel:
                     ),
                 )
 
+        recipe_records = []
+        if fill_missing_recipes:
+            filler = SupplyRecipeFiller(self, scenario, recipe_regions, recipe_outputs)
+            filler.fill(row_level, normalized_shares, target_blocks)
+            filled_blocks = filler.apply({})
+            # Apply the requested split to imputed input columns too. Their
+            # new bundle totals were absent during the activation preview.
+            for name, frame in filled_blocks.items():
+                if name in block_plan:
+                    for region, weights in normalized_shares.items():
+                        selector = (region, row_level, list(weights.index))
+                        block = frame.loc[selector, :]
+                        frame = _replace_selected_rows(
+                            frame, selector=selector, target_index=block.index,
+                            replacement=_redistribute_bundle_rows(
+                                block, weights, column_masks[name], weight_level="Item"
+                            ),
+                        )
+                target_blocks[name] = frame
+            recipe_records = filler.records
+
         self.update_scenarios(scenario, **target_blocks)
+        for key, donors in recipe_records:
+            self.meta._add_history(
+                f"Database: imputed supply-mix recipe for {key!r} from "
+                f"output-weighted donor regions {donors!r}, regionalized to pre-update sourcing."
+            )
 
         if aggregate_as_ember:
             if not hasattr(self, "aggregate"):

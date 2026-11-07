@@ -64,7 +64,10 @@ _VALUATION_ALIASES = {
     "taxes on products": 4,
     "subsidies": 5,
     "subsidies on products": 5,
+    "purchaser": None,
+    "purchaser prices": None,
 }
+_USE_COMPONENTS = ("basic", "trade", "transport", "taxes", "subsidies")
 
 
 @dataclass(frozen=True)
@@ -137,7 +140,7 @@ class GloriaLayout:
     satellite_root: Path | None
     year: int
     release: str
-    markup: int
+    markup: int | None
     valuation_name: str
     T_path: GloriaResource
     Y_path: GloriaResource
@@ -145,6 +148,7 @@ class GloriaLayout:
     TQ_path: GloriaResource | None
     YQ_path: GloriaResource | None
     notes: tuple[str, ...] = field(default_factory=tuple)
+    use_adjustments: tuple[tuple[GloriaResource, GloriaResource], ...] = ()
 
     @property
     def dataset_name(self) -> str:
@@ -165,8 +169,8 @@ class GloriaLayout:
         )
 
 
-def _normalize_valuation(value: str | int) -> int:
-    """Normalize user-facing GLORIA valuation selectors into one markup id."""
+def _normalize_valuation(value: str | int) -> int | None:
+    """Resolve a native markup id, or None for reconstructed purchaser values."""
     key = value if isinstance(value, int) else str(value).strip().lower()
     if key not in _VALUATION_ALIASES:
         accepted = [
@@ -175,6 +179,7 @@ def _normalize_valuation(value: str | int) -> int:
             "transport",
             "taxes",
             "subsidies",
+            "purchaser",
             "1",
             "2",
             "3",
@@ -485,6 +490,30 @@ def load_gloria_metadata(readme_path: str | Path) -> GloriaMetadata:
     )
 
 
+def _gloria_use_valuation_paths(
+    data_root: Path, *, year: int, release: str,
+) -> tuple[tuple[GloriaResource, GloriaResource], ...]:
+    """Resolve the ordered T/Y pairs that make up purchasers' use values."""
+    resources = {}
+    for match, resource in _gloria_file_resources(data_root, {"T", "Y"}):
+        if int(match.group("year")) != year or match.group("release") != release:
+            continue
+        key = (match.group("var").upper(), int(match.group("markup")))
+        if key in resources:
+            raise WrongInput(f"Duplicate GLORIA valuation file: {resource.location}.")
+        resources[key] = resource
+
+    pairs = []
+    for markup, component in enumerate(_USE_COMPONENTS, 1):
+        try:
+            pairs.append((resources["T", markup], resources["Y", markup]))
+        except KeyError as exc:
+            raise WrongInput(
+                f"GLORIA {year} requires both T and Y for {component} (Markup{markup:03d})."
+            ) from exc
+    return tuple(pairs)
+
+
 def detect_gloria_layout(
     path: str | Path,
     *,
@@ -518,20 +547,33 @@ def detect_gloria_layout(
             raise WrongInput("No GLORIA result files were found in the selected directory.")
         year = next(iter(years))
 
-    try:
-        T_path = by_var_and_markup[("T", markup)]
-        Y_path = by_var_and_markup[("Y", markup)]
-    except KeyError as exc:
-        raise WrongInput(
-            f"Could not find GLORIA T and Y files for valuation markup {markup:03d} and year {year}."
-        ) from exc
+    use_adjustments = ()
+    notes: list[str] = []
+    if markup is None:
+        (T_path, Y_path), *adjustments = _gloria_use_valuation_paths(
+            data_root, year=year, release=release,
+        )
+        use_adjustments = tuple(adjustments)
+        valuation_name = "Purchaser prices"
+        notes.append(
+            "GLORIA purchaser prices apply to intermediate and final uses. "
+            "Supply, value added and satellite accounts use Markup001. "
+            "Use a basic-price database for production-model calculations."
+        )
+    else:
+        try:
+            T_path = by_var_and_markup["T", markup]
+            Y_path = by_var_and_markup["Y", markup]
+        except KeyError as exc:
+            raise WrongInput(
+                f"Could not find GLORIA T and Y files for valuation markup {markup:03d} and year {year}."
+            ) from exc
+        valuation_name = metadata.valuation_names.get(markup, GLORIA_VALUATION_MARKUPS[markup])
 
     V_path = by_var_and_markup.get(("V", markup)) or by_var_and_markup.get(("V", 1))
     if V_path is None:
         raise WrongInput(f"Could not find a GLORIA V file for year {year}.")
-
-    notes: list[str] = []
-    if markup != 1 and _GLORIA_FILE_RE.match(V_path.name).group("markup") != f"{markup:03d}":
+    if markup not in (None, 1) and _GLORIA_FILE_RE.match(V_path.name).group("markup") != f"{markup:03d}":
         notes.append("No markup-specific GLORIA V file was found; value added was read from Markup001.")
 
     satellite_root = _find_gloria_satellite_root(root, data_root, year=year, release=release or "unknown")
@@ -556,13 +598,14 @@ def detect_gloria_layout(
         year=year,
         release=release or "unknown",
         markup=markup,
-        valuation_name=metadata.valuation_names.get(markup, GLORIA_VALUATION_MARKUPS[markup]),
+        valuation_name=valuation_name,
         T_path=T_path,
         Y_path=Y_path,
         V_path=V_path,
         TQ_path=TQ_path,
         YQ_path=YQ_path,
         notes=tuple(notes),
+        use_adjustments=use_adjustments,
     )
     log_time(
         logger,
@@ -732,33 +775,146 @@ def _build_axes(
     return activity_axis, commodity_axis, final_demand_axis, factor_axis, satellite_axis
 
 
+def _read_gloria_use_rows(
+    resource: GloriaResource,
+    *,
+    row_positions: dict[int, int],
+    columns: np.ndarray,
+    width: int,
+) -> np.ndarray:
+    """Select commodity rows without tokenizing the other GLORIA CSV rows."""
+    data = np.empty((len(row_positions), len(columns)), dtype=np.float64)
+    remaining = len(row_positions)
+    with _open_gloria_resource(resource) as stream:
+        for position, raw_row in enumerate(stream):
+            target = row_positions.get(position)
+            if target is None:
+                continue
+            values = np.fromstring(raw_row, sep=",", dtype=np.float64)
+            if len(values) != width or not np.isfinite(values).all():
+                raise WrongInput(f"Invalid GLORIA row {position + 1} in {resource.location}.")
+            data[target] = values[columns]
+            remaining -= 1
+            if remaining == 0:
+                return data
+    raise WrongInput(f"GLORIA file {resource.location} is missing selected commodity rows.")
+
+
+def read_gloria_use_valuations(
+    path: str | Path,
+    *,
+    commodity: str,
+    year: int | None = None,
+    destination_regions: list[str] | tuple[str, ...] | None = None,
+) -> dict[str, pd.DataFrame]:
+    """Read signed GLORIA use valuations for one commodity.
+
+    Parameters
+    ----------
+    path : str or Path
+        Local GLORIA release root, annual archive, or annual CSV directory.
+    commodity : str
+        Exact native commodity label from the GLORIA ReadMe.
+    year : int, optional
+        Reference year. Required if the source contains multiple years.
+    destination_regions : sequence of str, optional
+        GLORIA region codes for purchasers, in the requested order.
+        By default, keep all purchasers. All supplier regions are retained.
+
+    Returns
+    -------
+    dict of str to pandas.DataFrame
+        Basic values, trade margins, transport margins, product taxes, signed
+        product subsidies, and their sum, under keys ``basic``, ``trade``,
+        ``transport``, ``taxes``, ``subsidies`` and ``purchaser``.
+        Rows are supplier regions and columns are a three-level index of use
+        type, destination region and buyer activity or final demand category.
+        Values use GLORIA's native monetary unit (current thousand USD).
+
+    Notes
+    -----
+    Use these values to price a demand basket. This function reads use-side
+    transactions and does not build a purchaser-price production model.
+    """
+    layout, metadata = detect_gloria_layout(path, year=year)
+    if commodity not in metadata.sector_names:
+        raise WrongInput(f"Unknown GLORIA commodity: {commodity!r}.")
+    regions, destinations = _normalize_region_selection(metadata, destination_regions)
+    if not regions or len(set(regions)) != len(regions):
+        raise WrongInput("Choose at least one distinct GLORIA destination region.")
+
+    paths = _gloria_use_valuation_paths(
+        layout.data_root, year=layout.year, release=layout.release,
+    )
+
+    sector_count = len(metadata.sector_names)
+    fd_count = len(metadata.final_demand_names)
+    region_count = len(metadata.region_codes)
+    commodity_position = metadata.sector_names.index(commodity)
+    row_positions = {
+        (2 * region + 1) * sector_count + commodity_position: region
+        for region in range(region_count)
+    }
+    activity_columns = _activity_positions(regions, sector_count)
+    fd_columns = _final_demand_positions(regions, fd_count)
+    columns = pd.MultiIndex.from_tuples(
+        [("intermediate", region, item) for region in destinations for item in metadata.sector_names]
+        + [("final", region, item) for region in destinations for item in metadata.final_demand_names],
+        names=["Use", "Destination", "Buyer"],
+    )
+    index = pd.Index(metadata.region_codes, name="Origin")
+    valuations = {}
+    for component, (T_path, Y_path) in zip(_USE_COMPONENTS, paths):
+        log_time(logger, f"Parser: reading GLORIA {layout.year} use values for {component}.", "info")
+        intermediate = _read_gloria_use_rows(
+            T_path, row_positions=row_positions,
+            columns=activity_columns, width=2 * region_count * sector_count,
+        )
+        final = _read_gloria_use_rows(
+            Y_path, row_positions=row_positions,
+            columns=fd_columns, width=region_count * fd_count,
+        )
+        valuations[component] = pd.DataFrame(
+            np.concatenate((intermediate, final), axis=1), index=index, columns=columns,
+        )
+    valuations["purchaser"] = sum(valuations.values())
+    return valuations
+
+
 def _iter_csv_batches(
     path: GloriaResource,
     *,
     columns: np.ndarray | list[int] | tuple[int, ...],
     dtype: np.dtype,
     batch_size: int,
+    row_limit: int | None = None,
 ):
-    """Yield ``(row_numbers, values)`` batches from one wide GLORIA csv file."""
+    """Yield rows in file order and columns in the requested order."""
     column_numbers = [int(value) for value in columns]
     if not column_numbers:
         raise ValueError("At least one column should be selected.")
-    contiguous_full_width = column_numbers == list(range(column_numbers[-1] + 1))
+    ordered_columns = sorted(column_numbers)
+    take = None if ordered_columns == column_numbers else np.searchsorted(ordered_columns, column_numbers)
     offset = 0
     with _open_gloria_resource(path) as stream:
         for chunk in pd.read_csv(
             stream,
             header=None,
-            usecols=None if contiguous_full_width else column_numbers,
+            usecols=ordered_columns,
             dtype=dtype.name,
             chunksize=batch_size,
+            nrows=row_limit,
             engine="c",
             na_filter=False,
         ):
             values = chunk.to_numpy(copy=False)
+            if values.shape[1] < len(column_numbers):
+                raise WrongInput(f"GLORIA file {path.location} is missing requested columns.")
             row_numbers = np.arange(offset, offset + len(chunk), dtype=np.int64)
             offset += len(chunk)
-            yield row_numbers, values
+            yield row_numbers, values if take is None else values[:, take]
+    if row_limit is not None and offset != row_limit:
+        raise WrongInput(f"GLORIA file {path.location} ended before row {row_limit}.")
 
 
 def _recommended_batch_size(column_count: int, dtype: np.dtype, *, target_mb: int = 64) -> int:
@@ -790,7 +946,7 @@ def _coo_from_triplets(
 
 
 def _read_transaction_blocks(
-    path: Path,
+    path: GloriaResource,
     *,
     activity_columns: np.ndarray,
     commodity_columns: np.ndarray,
@@ -799,8 +955,9 @@ def _read_transaction_blocks(
     s_shape: tuple[int, int],
     u_shape: tuple[int, int],
     dtype: np.dtype,
+    use_adjustments: tuple[GloriaResource, ...] = (),
 ) -> tuple[sparse.csr_matrix, np.ndarray]:
-    """Read one GLORIA ``T`` file once and derive both ``S`` and ``U`` blocks."""
+    """Read supply from the selected layer and add any use adjustments in place."""
     combined_columns = np.sort(np.concatenate([activity_columns, commodity_columns]).astype(np.int32, copy=False))
     activity_take = np.searchsorted(combined_columns, activity_columns)
     commodity_take = np.searchsorted(combined_columns, commodity_columns)
@@ -811,7 +968,10 @@ def _read_transaction_blocks(
     s_values: list[np.ndarray] = []
     u_data = np.zeros(u_shape, dtype=dtype)
 
-    for row_numbers, block in _iter_csv_batches(path, columns=combined_columns, dtype=dtype, batch_size=batch_size):
+    row_limit = max(max(activity_row_map), max(commodity_row_map)) + 1 if use_adjustments else None
+    for row_numbers, block in _iter_csv_batches(
+        path, columns=combined_columns, dtype=dtype, batch_size=batch_size, row_limit=row_limit,
+    ):
         activity_block = block[:, activity_take]
         commodity_block = block[:, commodity_take]
         for raw_row, activity_values, commodity_values in zip(row_numbers.tolist(), activity_block, commodity_block):
@@ -829,11 +989,23 @@ def _read_transaction_blocks(
             if commodity_row is not None:
                 u_data[commodity_row, :] = activity_values
 
+    adjustment_batch_size = _recommended_batch_size(len(activity_columns), dtype)
+    for adjustment in use_adjustments:
+        log_time(logger, f"Parser: adding GLORIA intermediate use from {adjustment.name}.", "info")
+        for row_numbers, values in _iter_csv_batches(
+            adjustment, columns=activity_columns, dtype=dtype,
+            batch_size=adjustment_batch_size, row_limit=row_limit,
+        ):
+            for raw_row, row in zip(row_numbers.tolist(), values):
+                commodity_row = commodity_row_map.get(raw_row)
+                if commodity_row is not None:
+                    u_data[commodity_row, :] += row
+
     return _coo_from_triplets(s_rows, s_cols, s_values, shape=s_shape, dtype=dtype), u_data
 
 
 def _read_final_demand_blocks(
-    path: Path,
+    path: GloriaResource,
     *,
     final_demand_columns: np.ndarray,
     activity_row_map: dict[int, int],
@@ -841,34 +1013,40 @@ def _read_final_demand_blocks(
     ya_shape: tuple[int, int],
     yc_shape: tuple[int, int],
     dtype: np.dtype,
+    use_adjustments: tuple[GloriaResource, ...] = (),
 ) -> tuple[sparse.csr_matrix, np.ndarray]:
-    """Read one GLORIA ``Y`` file once and derive both ``Ya`` and ``Yc`` blocks."""
+    """Read final demand, summing all requested valuation layers."""
     batch_size = _recommended_batch_size(len(final_demand_columns), dtype)
     ya_rows: list[np.ndarray] = []
     ya_cols: list[np.ndarray] = []
     ya_values: list[np.ndarray] = []
     yc_data = np.zeros(yc_shape, dtype=dtype)
 
-    for row_numbers, block in _iter_csv_batches(
-        path,
-        columns=final_demand_columns,
-        dtype=dtype,
-        batch_size=batch_size,
-    ):
-        for raw_row, raw_values in zip(row_numbers.tolist(), block):
-            raw_row = int(raw_row)
-            activity_row = activity_row_map.get(raw_row)
-            if activity_row is not None:
-                nonzero = np.flatnonzero(raw_values)
-                if len(nonzero) > 0:
-                    ya_rows.append(np.full(len(nonzero), activity_row, dtype=np.int32))
-                    ya_cols.append(nonzero.astype(np.int32, copy=False))
-                    ya_values.append(raw_values[nonzero].astype(dtype, copy=False))
-                continue
+    row_limit = max(max(activity_row_map), max(commodity_row_map)) + 1 if use_adjustments else None
+    for resource in (path, *use_adjustments):
+        if resource != path:
+            log_time(logger, f"Parser: adding GLORIA final use from {resource.name}.", "info")
+        for row_numbers, block in _iter_csv_batches(
+            resource,
+            columns=final_demand_columns,
+            dtype=dtype,
+            batch_size=batch_size,
+            row_limit=row_limit,
+        ):
+            for raw_row, raw_values in zip(row_numbers.tolist(), block):
+                raw_row = int(raw_row)
+                activity_row = activity_row_map.get(raw_row)
+                if activity_row is not None:
+                    nonzero = np.flatnonzero(raw_values)
+                    if len(nonzero) > 0:
+                        ya_rows.append(np.full(len(nonzero), activity_row, dtype=np.int32))
+                        ya_cols.append(nonzero.astype(np.int32, copy=False))
+                        ya_values.append(raw_values[nonzero].astype(dtype, copy=False))
+                    continue
 
-            commodity_row = commodity_row_map.get(raw_row)
-            if commodity_row is not None:
-                yc_data[commodity_row, :] = raw_values
+                commodity_row = commodity_row_map.get(raw_row)
+                if commodity_row is not None:
+                    yc_data[commodity_row, :] += raw_values
 
     return _coo_from_triplets(ya_rows, ya_cols, ya_values, shape=ya_shape, dtype=dtype), yc_data
 
@@ -971,7 +1149,7 @@ def _read_sparse_all_rows(
     dtype: np.dtype,
 ) -> sparse.csr_matrix:
     """Read all rows from one GLORIA file into a sparse block."""
-    columns = np.sort(np.asarray(columns, dtype=np.int32))
+    columns = np.asarray(columns, dtype=np.int32)
     rows: list[np.ndarray] = []
     cols: list[np.ndarray] = []
     values: list[np.ndarray] = []
@@ -1052,6 +1230,8 @@ def parse_gloria_sut(
     dtype = np.dtype(dtype)
 
     selected_positions, selected_codes = _normalize_region_selection(metadata, regions)
+    if layout.use_adjustments and (not selected_positions or len(set(selected_positions)) != len(selected_positions)):
+        raise WrongInput("Choose at least one distinct GLORIA region.")
     if selected_codes != list(metadata.region_codes):
         log_time(logger, f"Parser: restricting GLORIA parsing to regions {selected_codes}.", "info")
     satellite_positions, satellite_axis, satellite_units = _select_gloria_satellites(metadata, satellites)
@@ -1100,6 +1280,7 @@ def parse_gloria_sut(
         s_shape=(len(activity_axis), len(commodity_axis)),
         u_shape=(len(commodity_axis), len(activity_axis)),
         dtype=dtype,
+        use_adjustments=tuple(T_path for T_path, _ in layout.use_adjustments),
     )
 
     log_time(logger, f"Parser: reading GLORIA final demand from {layout.Y_path.name} in CSV chunks.", "info")
@@ -1111,6 +1292,7 @@ def parse_gloria_sut(
         ya_shape=(len(activity_axis), len(final_demand_axis)),
         yc_shape=(len(commodity_axis), len(final_demand_axis)),
         dtype=dtype,
+        use_adjustments=tuple(Y_path for _, Y_path in layout.use_adjustments),
     )
 
     log_time(logger, f"Parser: reading GLORIA value added from {layout.V_path.name} in CSV chunks.", "info")

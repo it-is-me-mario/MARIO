@@ -113,6 +113,8 @@ def main(inputs, scope, output):
     grouped = defaultdict(list)
     for kind, columns in source["columns"].items():
         for column in columns:
+            if column.get("variant") in {"REX3", "E3"}:
+                continue  # Detailed variants do not inherit standard concordances.
             own = {k: column[k] for k in ("id", "family", "units", "namespace", "native", "releases", "formats", "source_url")}
             own.update(kind=kind, reference="NACE2.1" if kind == "activity" else "CPA2.2")
             grouped[column["family"]].append(own)

@@ -69,17 +69,19 @@ def build(data=DATA, rules_path=RULES):
     families, sets, unmatched = {}, {}, []
     for p in profiles:
         source = p['source']
+        rex3 = p.get('variant')=='REX3' or p.get('guide')=='exiobase-rex3'
+        e3 = p.get('variant')=='E3' or p.get('guide')=='figaro-e3'
         family = families.setdefault(source, {'family': DISPLAY.get(source, source), 'source': source, 'variants': {}, 'without': set()})
         unit = ((p.get('provenance') or {}).get('options') or {}).get('unit') or 'Monetary'
         # Variants are distinct products of one publisher: monetary/hybrid units, or Eora1/Eora2.
-        variant = unit if len(units[source]) > 1 else (str(p.get('release')) if source == 'EORA' else '')
+        variant = 'E3' if e3 else 'REX3' if rex3 else unit if len(units[source]) > 1 else (str(p.get('release')) if source == 'EORA' else '')
         labels = satellite_labels(p, data)
         if not labels:
             family['without'].add(str(p.get('release') or ''))
             continue
         groups = {}
         for label in labels:
-            category, options = classify(label, rules['families'].get(source, []))
+            category, options = classify(label, rules['families'].get('FIGARO E3' if e3 else 'REX3' if rex3 else source, []))
             if category is None:
                 unmatched.append((source, label))
                 continue

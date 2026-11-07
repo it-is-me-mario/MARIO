@@ -15,6 +15,7 @@ from mario.download import (
     _statcan_local_csv_path,
     _statcan_openio_local_xlsx_path,
     download_exiobase3,
+    download_exiobase_rex,
     download_eurostat,
     download_hybrid_exiobase,
     download_istat_io,
@@ -44,6 +45,9 @@ from mario.parsers.exiobase_hybrid import (
     parse_exiobase_hybrid_sut,
 )
 from mario.parsers.exiobase_iot import parse_exiobase_iot_monetary
+from mario.parsers.exiobase_rex import parse_rex3_iot
+from mario.parsers.figaro_e3 import parse_figaro_e3_data
+from mario.model.conventions import _MASTER_INDEX
 from mario.parsers.exiobase_sut import parse_exiobase_sut_monetary
 from mario.parsers.eora import parse_eora_single_region, parse_eora26
 from mario.parsers.eurostat_sdmx import (
@@ -141,7 +145,7 @@ def _legacy_model_state_builder(
 
 models = {"Database": Database, "ModelState": _legacy_model_state_builder}
 logger = logging.getLogger(__name__)
-_GLORIA_CACHE_VERSION = "2026-03-25"
+_GLORIA_CACHE_VERSION = "2026-11-04"
 
 
 @with_parser_compute_profile
@@ -299,7 +303,10 @@ def _gloria_cache_satellites(satellites):
 def _gloria_cache_signature(layout, *, regions, satellites, dtype):
     """Build a deterministic signature for one GLORIA parse request."""
     file_inputs = []
-    for candidate in [layout.T_path, layout.Y_path, layout.V_path, layout.TQ_path, layout.YQ_path]:
+    resources = [layout.T_path, layout.Y_path, layout.V_path, layout.TQ_path, layout.YQ_path]
+    for pair in layout.use_adjustments:
+        resources.extend(pair)
+    for candidate in resources:
         if candidate is None:
             continue
         file_inputs.append(gloria_resource_signature(candidate))
@@ -334,10 +341,11 @@ def _default_gloria_cache_dir(layout, *, regions, satellites, dtype):
         satellite_token = satellite_part
     safe_region_token = (region_token or "all").replace("/", "_").replace(" ", "_")
     safe_satellite_token = (satellite_token or "all").replace("/", "_").replace(" ", "_").replace("|", "_")
+    markup_token = "purchaser" if layout.markup is None else f"{layout.markup:03d}"
     return (
         Path(layout.root)
         / ".mario_cache"
-        / f"gloria_sut_{layout.year}_{layout.release}_{layout.markup:03d}_{safe_region_token}_{safe_satellite_token}_{dtype}"
+        / f"gloria_sut_{layout.year}_{layout.release}_{markup_token}_{safe_region_token}_{safe_satellite_token}_{dtype}"
     )
 
 
@@ -657,13 +665,15 @@ def parse_exiobase_sut(
 
     .. note::
 
-        The monetary SUT parser is currently tied to EXIOBASE ``3.8.2``
-        (`Zenodo 5589597 <https://doi.org/10.5281/zenodo.5589597>`_).
+        EXIOBASE ``3.8.2`` and locally supplied ``3.11.2`` MRSUT bundles
+        share the same text layout and parser. Automatic SUT downloads are
+        available for ``3.8.2`` only.
 
     Parameters
     ----------
     path : str
-        path to the EXIOBASE SUT directory
+        Path to the EXIOBASE SUT directory or ZIP archive containing
+        ``supply.csv``, ``use.csv``, ``final_demand.csv`` and ``value_added.csv``.
 
     calc_all : boolean
         if True, by default will calculate z,v,e after parsing
@@ -677,8 +687,12 @@ def parse_exiobase_sut(
         ``Ea`` and ``EY`` for the SUT.
 
     version : str, Optional
-        optional compatibility check against the version detected from the
-        dataset metadata and folder layout.
+        Release label in major.minor.patch form. Checked against a release
+        found in metadata or the bundle/directory name; otherwise recorded
+        as the caller-supplied release. The ``meta.json`` field ``vers`` is
+        a revision date and does not identify a release. Leave unset if the
+        release is unknown. For a confirmed local 3.11.2 bundle, pass
+        ``version="3.11.2"``.
 
     name : str, Optional
         optional but suggested. is useful for visualization and metadata.
@@ -697,11 +711,8 @@ def parse_exiobase_sut(
     matrices, indeces, units, layout = parse_exiobase_sut_monetary(
         path,
         add_extensions=add_extensions,
+        version=version,
     )
-    if version is not None and layout.version != version:
-        raise WrongInput(
-            f"Requested EXIOBASE version {version!r} does not match detected version {layout.version!r}."
-        )
 
     return models[model](
         name=name or layout.dataset_name,
@@ -789,6 +800,105 @@ def parse_exiobase_3(
         source=layout.source,
         year=year if year is not None else layout.year,
         init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
+        calc_all=calc_all,
+        **kwargs,
+    )
+
+
+@with_parser_compute_profile
+def parse_exiobase_rex(
+    path: str,
+    table: str = "IOT",
+    year: int | None = None,
+    labels_path: str | None = None,
+    ghg_path: str | None = None,
+    download: bool = False,
+    overwrite_download: bool = False,
+    model: str = "Database",
+    name: str | None = None,
+    calc_all: bool = False,
+    **kwargs,
+):
+    """Parse the REX3 global monetary MRIO and its environmental extensions.
+
+    REX3 yearly tables and labels are distributed through Zenodo record
+    ``10354283``.  The detailed greenhouse-gas companion comes from record
+    ``14724086`` and is always required and imported.
+
+    The five production-side coefficient rows for coal, oil, gas, biogenic
+    emissions, and calcination are converted to absolute flows before MARIO
+    constructs the database.  LULUCF is read from its published absolute flow
+    account so emissions assigned to zero-output sectors are not lost.
+
+    Parameters
+    ----------
+    path : str
+        local REX3 bundle root or one extracted ``REX3_<year>`` directory. If
+        ``download=True``, this is the download/cache directory.
+    table : str, optional
+        only ``"IOT"`` is supported.
+    year : int, optional
+        year to select. Required for automatic download and when a local root
+        contains multiple yearly bundles.
+    labels_path, ghg_path : str, optional
+        explicit companion directories. Normally they are auto-detected next
+        to the yearly bundle or recursively under the common root. The
+        economic and GHG records may be extracted into separate version
+        subdirectories. Archives must be extracted before local parsing.
+    download : bool, optional
+        download and extract the year, labels, and GHG companion automatically.
+    overwrite_download : bool, optional
+        replace an existing local download/extraction.
+    calc_all : bool, optional
+        whether to materialize derived MARIO blocks after parsing.
+
+    Notes
+    -----
+    REX3 is always imported as the complete 189-region MRIO. Region slicing is
+    intentionally unsupported because dropping the excluded trade blocks would
+    produce an economically open and internally inconsistent sub-table.
+
+    See :doc:`/notebooks/parsers/exiobase/rex3` for source files, directory
+    layouts, memory requirements and the downloadable notebook. The two
+    Zenodo records are pinned; later record versions are not substituted.
+    """
+    if model not in models:
+        raise WrongInput("Available models are {}".format([*models]))
+    unsupported = sorted({"regions", "block_columns"}.intersection(kwargs))
+    if unsupported:
+        raise WrongInput(
+            "REX3 is always parsed as the complete 189-region MRIO; "
+            f"unsupported arguments: {unsupported}."
+        )
+    validate_parse_request(table=table, model=model)
+    if table != "IOT":
+        raise NotImplementable("REX3 parsing supports only IOT tables.")
+
+    effective_path = path
+    if download:
+        if year is None:
+            raise WrongInput("parse_exiobase_rex(..., download=True) requires 'year'.")
+        info = download_exiobase_rex(
+            path,
+            years=year,
+            overwrite=overwrite_download,
+        )
+        effective_path = info["download_dir"]
+
+    matrices, indeces, units, layout = parse_rex3_iot(
+        effective_path,
+        year=year,
+        labels_path=labels_path,
+        ghg_path=ghg_path,
+    )
+    return models[model](
+        name=name or layout.dataset_name,
+        table="IOT",
+        source=layout.source,
+        year=layout.year,
+        price=layout.price,
+        init_by_parsers={"matrices": matrices, "_indeces": indeces, "units": units},
+        notes=list(layout.notes),
         calc_all=calc_all,
         **kwargs,
     )
@@ -963,6 +1073,7 @@ def parse_exiobase(
     year:int = None, 
     calc_all: bool = False,
     download: bool = False,
+    variant: str | None = None,
     **kwargs
 ):
     """Dispatch to the appropriate EXIOBASE parser.
@@ -982,12 +1093,16 @@ def parse_exiobase(
     download : boolean, Optional
         when ``True``, download the requested EXIOBASE package into ``path``
         and then parse it locally. Monetary downloads require ``year``.
+    variant : str, Optional
+        use ``"standard"`` for conventional EXIOBASE releases or ``"REX3"``
+        for the 189-country REX3 MATLAB bundle. REX3 requires ``table="IOT"``
+        and ``unit="Monetary"`` and always imports its environmental companion.
     year : int, Optional
         optional to the Database (just for recoding the metadata)
     name : str, Optional
         optional but suggested. is useful for visualization and metadata.
     **kwargs: dict
-        all the specific configuation of single exiobase parsers (please refer
+        all the specific configuration of single EXIOBASE parsers (please refer
         to the separate function documentations for more information). For
         hybrid EXIOBASE, the most relevant parser-specific argument is
         ``extensions=...``:
@@ -1021,6 +1136,23 @@ def parse_exiobase(
 
     if unit not in INPUT_OPTIONS["unit"]:
         raise WrongInput("Unit con be only chosen among {}".format(INPUT_OPTIONS["unit"]))
+
+    normalized_variant = "standard" if variant is None else str(variant).strip().casefold()
+    if normalized_variant in {"rex3", "rex"}:
+        if table != "IOT" or unit != "Monetary":
+            raise WrongInput("The REX3 variant requires table='IOT' and unit='Monetary'.")
+        return parse_exiobase_rex(
+            path=path,
+            table=table,
+            year=year,
+            download=download,
+            model=model,
+            name=name,
+            calc_all=calc_all,
+            **kwargs,
+        )
+    if normalized_variant not in {"standard", "default", "base"}:
+        raise WrongInput("Supported EXIOBASE variants are 'standard' and 'REX3'.")
 
     version = kwargs.get("version")
     system = kwargs.get("system")
@@ -2480,6 +2612,116 @@ def parse_from_pymrio(
 
 
 @with_parser_compute_profile
+def parse_figaro_e3(
+    path: str,
+    table: str = "SUT",
+    year: int = 2015,
+    iot_mode: str = "industry",
+    input_format: str = "auto",
+    extensions="all",
+    emissions: str = "co2eq",
+    employment: str = "EDU",
+    extension_allocation: str | None = None,
+    chunksize: int = 250_000,
+    model: str = "Database",
+    name: str | None = None,
+    calc_all: bool = False,
+    diagonal_correction: float | None = 1e-3,
+    **kwargs,
+):
+    """Read locally downloaded JRC FIGARO-E3 tables and extensions.
+
+    Parameters
+    ----------
+    path : str or Path
+        Root containing extracted CSVs and the published classification XLSX.
+        Nested distribution folders are supported. Identical browser copies
+        are collapsed; conflicting copies require selecting one release root.
+    table : {"SUT", "IOT"}, optional
+        Read native rectangular supply/use tables or a published symmetric IOT.
+    year : int, optional
+        Reference year; this release supports 2015.
+    iot_mode : {"industry", "product"}, optional
+        Model D industry IOT (default) or model B product IOT. Ignored for SUTs.
+    input_format : {"auto", "matrix", "flatfile"}, optional
+        Auto prefers economic matrices and falls back to flat files. Extensions
+        may use another available representation; energy auto prefers the
+        complete six-indicator flat file. An explicit format applies to all inputs.
+    extensions : str, iterable of str, bool or None, optional
+        ``"all"`` (default), or selected ``emissions``, ``energy``, ``employment``
+        groups. ``False``/``None`` omits extensions.
+    emissions : {"co2eq", "mass"}, optional
+        Published AR5/GWP100 CO2eq (default) or gas-mass accounts. F-gases are
+        already characterised in both representations. Only one is imported.
+    employment : {"EDU", "OCC", "both"}, optional
+        Education-based (default), occupation-based, or separately labelled
+        estimates. These alternatives must not be summed together.
+    extension_allocation : {None, "industry_technology"}, optional
+        Product IOT extensions require explicit ``"industry_technology"`` and
+        supply data. Industry-native extensions are allocated using published
+        industry output and supply shares. Direct final demand is unchanged.
+    chunksize : int, optional
+        Flat-file observations read per chunk; defaults to 250000.
+    model : str, optional
+        Public MARIO model class; defaults to ``"Database"``.
+    name : str, optional
+        Display name; defaults to source year, table and IOT mode.
+    calc_all : bool, optional
+        Materialize derived blocks; defaults to ``False``.
+    diagonal_correction : float or None, optional
+        Correct only the verified isolated 2015 Irish paper-incineration loop.
+        The default epsilon ``1e-3`` reduces its own-input coefficient from
+        one to 0.999, preserving the original output reference and absolute
+        satellite accounts. A warning and import report record the changed
+        flow and balance gap. ``None`` imports the uncorrected source system.
+        Other nodes and parsers are unaffected. See the guide for interpretation.
+    **kwargs
+        Additional model-construction options.
+
+    Notes
+    -----
+    Imports preserve the complete inter-country table, native codes, signed
+    adjustments and direct final-demand flows. No standard FIGARO classification
+    mapping is assumed. See :doc:`/notebooks/parsers/figaro/e3` for file choices,
+    scientific assumptions and the downloadable notebook.
+    """
+    if model not in models:
+        raise WrongInput("Available models are {}".format([*models]))
+    validate_parse_request(table=table, model=model)
+    matrices, indeces, units, layout = parse_figaro_e3_data(
+        path, table=table, year=year, iot_mode=iot_mode, input_format=input_format,
+        extensions=extensions, emissions=emissions, employment=employment,
+        extension_allocation=extension_allocation, chunksize=chunksize,
+        diagonal_correction=diagonal_correction,
+    )
+    kwargs.setdefault("license", "CC BY 4.0")
+    result = models[model](
+        name=name or layout.dataset_name, table=table, source=layout.source,
+        year=layout.year, price="Basic prices",
+        init_by_parsers={"matrices":matrices,"_indeces":indeces,"units":units},
+        calc_all=False if layout.reference_outputs else calc_all, notes=layout.notes, **kwargs,
+    )
+    report = {"input_files":layout.files,"classifications":layout.labels,
+              "emissions":emissions,"employment":employment,
+              "extension_allocation":extension_allocation,
+              "diagonal_correction":layout.diagonal_correction}
+    if model == "ModelState":
+        result.metadata.extra["figaro_e3"] = report
+    else:
+        result.info["figaro_e3"] = report
+    # Constructors discard derived production blocks. Pin the source output
+    # reference before computing recipes, as in the native BONSAI IOT parser.
+    for block, output in layout.reference_outputs.items():
+        result.set_block(block, output)
+    if calc_all and layout.reference_outputs and model == "Database":
+        result.calc_all()
+    if model == "Database":
+        if table == "IOT":
+            result.meta._add_attribute(sector_type=_MASTER_INDEX["a" if iot_mode == "industry" else "c"])
+    return result
+
+
+@with_parser_compute_profile
 def parse_figaro(
     path: str | None = None,
     table: str = "SUT",
@@ -2491,6 +2733,7 @@ def parse_figaro(
     model: str = "Database",
     name: str = None,
     calc_all: bool = False,
+    variant: str = "standard",
     **kwargs,
 ) -> object:
     """Parse FIGARO tables from the Eurostat API.
@@ -2527,6 +2770,10 @@ def parse_figaro(
     calc_all : bool, optional
         Materialize derived matrices immediately after parsing; defaults to
         ``False``.
+    variant : {"standard", "E3"}, optional
+        Standard Eurostat API (default), or the local JRC FIGARO-E3 bundle.
+        E3 uses ``path`` as a source root, defaults to 2015 and uses the
+        industry IOT when ``iot_mode="auto"``. See :func:`parse_figaro_e3`.
 
     Notes
     -----
@@ -2536,6 +2783,14 @@ def parse_figaro(
     """
     if model not in models:
         raise WrongInput("Available models are {}".format([*models]))
+    if str(variant).casefold() == "e3":
+        if countries is not None or unit != "MIO_EUR":
+            raise WrongInput("FIGARO E3 requires the complete country scope and monetary units MIO_EUR.")
+        return parse_figaro_e3(path=path, table=table, year=2015 if year is None else year,
+                               iot_mode="industry" if iot_mode == "auto" else iot_mode,
+                               model=model,name=name,calc_all=calc_all,**kwargs)
+    if str(variant).casefold() != "standard":
+        raise WrongInput("FIGARO variant must be standard or E3.")
     if year is None:
         raise WrongInput("FIGARO API parsing requires an explicit year.")
 
@@ -2837,7 +3092,11 @@ def parse_gloria(
         currently only ``SUT`` is supported.
     valuation : str or int, optional
         one of ``basic``, ``trade``, ``transport``, ``taxes`` or
-        ``subsidies`` (or the corresponding markup number ``1``-``5``).
+        ``subsidies`` (or the corresponding markup number ``1``-``5``). Use
+        ``"purchaser"`` to sum the five signed layers of intermediate and final
+        use. Supply, value added and the satellite accounts use Markup001.
+        Use the basic-price database to calculate production coefficients and
+        footprints, and the purchaser-price uses to value the same demand.
     year : int, optional
         reference year when the selected folder contains more than one yearly
         GLORIA bundle.
@@ -2867,6 +3126,8 @@ def parse_gloria(
         valuation=valuation,
         year=year,
     )
+    if layout.markup is None and calc_all:
+        raise WrongInput("GLORIA purchaser uses require calc_all=False. Calculate footprints with valuation='basic'.")
     _select_gloria_satellites(metadata, satellites)
     cache_dir = None
     cache_signature = None
@@ -2900,6 +3161,7 @@ def parse_gloria(
                     year=cache_info.get("year", layout.year),
                     price=cache_info.get("price", layout.price),
                 )
+                state.metadata.history.extend(layout.notes)
                 return build_database_from_state(
                     state,
                     model=model,

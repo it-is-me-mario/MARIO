@@ -537,3 +537,14 @@ def test_source_rights_do_not_invent_inventory_or_offer_eora_downloads():
     eora = extension._summary_html(app,"notebooks/parsers/eora/walkthrough_eora","eora",data["profiles"],metadata=rights)
     assert "Eora1 26" in eora and "2017" in eora and rights["guides"]["eora"][0]["label"] in eora
     assert "Excel set lists" not in eora and "download=" not in eora
+
+
+def test_prepare_keeps_shared_bonsai_companion_under_source_guide(tmp_path):
+    doc = tmp_path / 'doc'
+    path = doc / 'source/user_guide/examples/bonsai.ipynb'
+    catalogue.write_json(path, {'cells': [{'cell_type': 'code', 'source': ['db = mario.parse_bonsai(path="/path/to/Balanced.zip")']}]})
+    manifest = catalogue.prepare(doc)
+    guide = next(g for g in manifest['guides'] if g['id']=='bonsai')
+    assert guide['doc']=='user_guide/parsers/bonsai'
+    recipe = next(r for r in manifest['recipes'] if r['guide']=='bonsai')
+    assert recipe['notebook']=='source/user_guide/examples/bonsai.ipynb'

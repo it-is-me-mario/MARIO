@@ -44,6 +44,12 @@ Example verification
 * Source-specific calls need the stated release, files and options. When those
   inputs are unavailable, check signatures and data requirements and explicitly
   report that full execution was not performed.
+* For locally supplied EXIOBASE MRSUT bundles, compare all four matrices' row
+  and column labels, order and units with the supported layout. Verify imported
+  cells against the source, including the supply transpose. Treat ``meta.json``
+  ``vers`` as a revision date; use supplier confirmation for a release absent
+  from the payload. Keep local parser support separate from the public download
+  registry and parsed-release catalogue.
 * Check that notebook variables are defined in execution order and selectors
   match the intended source. Retain portable paths and input/licence guidance.
 * After scientific changes, reconcile affected equations, examples, figures and
@@ -57,6 +63,57 @@ Example verification
   and notebook calculations on small accounting/scenario fixtures. Run it
   when changing those examples; source-database and live-provider runs remain
   separate checks.
+* For supply-mix recipe estimation, check unequal donor outputs, receiving-region
+  domestic/import shares and the no-purchases fallback independently. Verify
+  both intermediate and direct coefficients, SUT commodity-to-activity routing,
+  sparse storage and unchanged source scenarios. Exercise more than one newly
+  activated producer in reversed update order; donor weights and sourcing must
+  come from the pre-update scenario, not earlier imputed columns.
+
+* For REX3, verify nested economic/GHG version folders and explicit companion
+  selectors, including the requested year and country-sector label alignment.
+  Check MATLAB orientation against source cells, coefficient-to-flow GHG
+  reconstruction using complete output, and absolute LULUCF on a zero-output
+  sector. Keep the detailed GHG sum separate from the overlapping native
+  aggregate. Saved notebook outputs document a previous run, not a current
+  integration test; rerun a full real bundle when it is locally available.
+  ``scripts/benchmark_rex3_ghg.py`` streams an independent source benchmark
+  before database construction; inspect country-sector diagnostics as well as
+  global totals. Compare imported blocks with the oriented source cells to
+  distinguish source imbalances from import errors. Verify that native direct
+  household climate impacts remain in ``EY`` and are not silently included
+  in the detailed source aggregate, whose first five ``EY`` rows are zero.
+
+For FIGARO E3, compare matrix and flat-file economic blocks cell by cell,
+including signed primary inputs and direct final-demand adjustments. Match
+extension columns by codes after trimming source whitespace; their final-demand
+order differs from the economic tables. Test gas-mass versus characterised
+CO2eq choices, separate EDU/OCC estimates, all energy indicators, conflicting
+browser copies, and product-extension allocation on unequal industry outputs.
+Nonzero extensions on zero-output industries must remain in native industry
+accounts or cause an explicit allocation error, never disappear.
+Verify model solvability separately from import: inspect sparse Leontief
+systems for closed unit-feedback components and confirm the strict public
+inverse rejects them before allocating a dense identity. A solve-based preset
+does not establish nonsingularity. Keep source loops and undefined results
+explicit rather than silently changing flows or applying a pseudoinverse.
+
+If partial calculations are offered, exercise the public multiplier target
+on the source files, verify the undefined-node mask and residual of the
+independent subsystem, and confirm that full inverse requests still fail.
+Inspect construction-code export precision before attributing a singularity
+to rounding; the existence of an unrounded export path is not evidence that
+its data is available or nonsingular.
+
+When a parser applies a source-specific correction, test its exact node and
+structural guards, the uncorrected opt-out, and both matrix representations.
+Verify changed cells against the raw import, retained absolute accounts and
+output references, and the reported balance gap. Pin required output
+references before eager calculations, for both Database and ModelState.
+Check full inverses against the corrected operator and confirm that opting
+out restores the original failure. Such a correction is not evidence that
+the unmodified source is invertible or that its producer accounts reconcile
+with native final-demand footprints.
 
 Rendered review
 ---------------

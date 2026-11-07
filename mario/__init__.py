@@ -135,6 +135,7 @@ from mario.parsers.entrypoints import (
     parse_from_parquet,
     parse_from_excel,
     parse_exiobase_3,
+    parse_exiobase_rex,
     parse_eora,
     parse_eurostat,
     hybrid_iot_exiobase,
@@ -143,6 +144,7 @@ from mario.parsers.entrypoints import (
     hybrid_sut_exiobase,
     parse_exiobase,
     parse_figaro,
+    parse_figaro_e3,
     parse_gloria,
     parse_gtap,
     parse_istat,
@@ -152,6 +154,7 @@ from mario.parsers.entrypoints import (
     parse_wiod,
 )
 
+from mario.parsers.gloria import read_gloria_use_valuations
 from mario.views.plots import set_palette
 
 from mario.log_exc import exceptions
