@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from contextlib import contextmanager
 import inspect
 import os
@@ -1101,11 +1102,15 @@ def _write_input_data(
 
 
 def _cvxlab_input_storage(model) -> tuple[str, bool]:
-    """Read input-file storage settings from the CVXLab model instance."""
+    """Read legacy mapping or current attribute-based CVXLab settings."""
 
     settings = getattr(model, "settings", {})
-    file_extension = settings.get("input_data_files_type", "xlsx")
-    multiple_input_files = bool(settings.get("multiple_input_files", False))
+    if isinstance(settings, Mapping):
+        file_extension = settings.get("input_data_files_type", "xlsx")
+        multiple_input_files = bool(settings.get("multiple_input_files", False))
+    else:
+        file_extension = getattr(settings, "input_data_files_type", "xlsx")
+        multiple_input_files = bool(getattr(settings, "multiple_input_files", False))
     return file_extension, multiple_input_files
 
 

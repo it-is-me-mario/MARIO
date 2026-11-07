@@ -58,6 +58,8 @@ Verify before publication
   large downloads just to repair a missing fixture path. Sparse numerical
   fixtures must state their fill value explicitly, so pandas version defaults
   cannot turn structural zeros into NaNs in a reference calculation.
+  With CVXLab installed, include split-sector Excel and CSV generation checks;
+  mocked solver checks alone do not exercise changes to its settings container.
 * Build Sphinx with ``-W --keep-going`` into a fresh directory and run
   ``doc/scripts/check_documentation.py``. Review representative desktop/mobile
   pages, navigation, old redirects and downloadable notebooks. Execute changed

@@ -79,6 +79,12 @@ Heatmaps
 * Show the original matrix values in notebook heatmap tooltips, including with
   logarithmic or clipped colour scales and in older notebook renderers.
 
+CVXLab compatibility
+~~~~~~~~~~~~~~~~~~~~
+
+* Generate split-sector Excel and CSV inputs with CVXLab's attribute-based
+  model settings, while retaining support for older dictionary settings.
+
 v1.3.3
 ------
 
