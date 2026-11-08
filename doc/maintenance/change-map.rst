@@ -150,9 +150,12 @@ Shared metadata and generated assets
        Refresh unmapped native scope with ``build_country_scope.py`` before
        rebuilding sectoral and extension scope.
    * - Explorer indicators
-     - Source-specific scripts in ``doc/scripts/`` and their saved provenance
+     - Active source-specific pipelines in
+       ``https://github.com/it-is-me-mario/database-explorer``; legacy scripts
+       and snapshots here are frozen compatibility inputs
      - Indicator definitions, units, characterization, reference year,
-       update date, plots and exports
+       update date, plots and exports in the explorer repository. Parser/API
+       documentation and packaged runtime classifications remain in MARIO.
    * - Release or installation behaviour
      - Package version/dependencies and ``CHANGELOG.rst``
      - README, Get started installation, affected feature guides and

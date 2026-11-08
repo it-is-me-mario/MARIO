@@ -253,6 +253,8 @@ def _page_context(app, pagename, templatename, context, doctree):
     builder = app.builder
 
     def url(docname):
+        if docname.startswith(("https://", "http://")):
+            return docname
         return builder.get_relative_uri(pagename, docname)
 
     nav = [
@@ -369,6 +371,14 @@ def _page_context(app, pagename, templatename, context, doctree):
                            "dialog": closing.get("dialog")}
 
     context["mario_page"] = page
+    external = config.get("external_pages", {}).get(pagename)
+    if external:
+        target = html.escape(external, quote=True)
+        context["metatags"] = context.get("metatags", "") + (
+            f'<link rel="canonical" href="{target}">'
+            f'<meta http-equiv="refresh" content="0;url={target}">'
+            '<script>location.replace(' + json.dumps(external) + '+location.hash);</script>'
+        )
     if page["topic_navigation"] or page["group_key"] == "formats":
         app.add_css_file("docs-workflows.css")
     if page["group_key"] == "formats":
