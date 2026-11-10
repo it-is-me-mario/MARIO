@@ -10,49 +10,10 @@ from mario.compute.helpers import _is_sparse_backed_dataframe
 from mario.log_exc.exceptions import WrongInput
 from mario.model.conventions import _MASTER_INDEX as MI
 from mario.ops.chenery_moses import read_flows
-
-
-def _csr(frame):
-    if not len(frame.columns):
-        return sparse.csr_matrix(frame.shape, dtype=float)
-    if _is_sparse_backed_dataframe(frame):
-        if all(dtype.fill_value == 0 for dtype in frame.dtypes):
-            result = frame.sparse.to_coo().tocsr()
-            if not np.isfinite(result.data).all():
-                raise WrongInput("SUT extraction requires finite flow values.")
-            result.eliminate_zeros()
-            return result
-        # Fully stored account columns can carry fill=NaN metadata. Actual
-        # missing values, including implicit nonzero/NaN gaps, are invalid.
-        values, rows, pointers = [], [], [0]
-        for _, column in frame.items():
-            array = column.array
-            if array.fill_value != 0 and len(array.sp_values) != len(column):
-                raise WrongInput("SUT extraction requires finite, zero-fill sparse flows.")
-            values.extend(array.sp_values)
-            rows.extend(array.sp_index.indices)
-            pointers.append(len(values))
-        result = sparse.csc_matrix((values, rows, pointers), shape=frame.shape).tocsr()
-    else:
-        result = sparse.csr_matrix(frame.to_numpy(dtype=float))
-    if not np.isfinite(result.data).all():
-        raise WrongInput("SUT extraction requires finite flow values.")
-    result.eliminate_zeros()
-    return result
-
-
-def _align(frame, index, columns):
-    if not frame.index.is_unique or not frame.columns.is_unique:
-        raise WrongInput("SUT extraction requires unique native block axes.")
-    if frame.index.equals(index) and frame.columns.equals(columns):
-        return _csr(frame)
-    rows, cols = frame.index.get_indexer(index), frame.columns.get_indexer(columns)
-    if (
-        len(rows) != len(frame.index) or len(cols) != len(frame.columns)
-        or (rows < 0).any() or (cols < 0).any()
-    ):
-        raise WrongInput("SUT extraction found inconsistent native block axes.")
-    return _csr(frame)[rows, :][:, cols]
+from mario.ops.import_accounts import (
+    _align, _export_columns, _exports,
+    combine_factor_accounts, register_factor_layout,
+)
 
 
 def _inverse_totals(matrix, axis, used, nodes):
@@ -94,7 +55,7 @@ def _imports(S, U, Ya, Yc, activities, commodities, fd, selected, by, trade_mode
     regions = list(dict.fromkeys(activities.get_level_values(0).tolist()
                                  + commodities.get_level_values(0).tolist()))
     items = (
-        list(dict.fromkeys((commodities if by == "product" else activities)
+        list(dict.fromkeys((commodities if by == "commodity" else activities)
                           .get_level_values(2))) if by else [None]
     )
     partners = regions if trade_mode == "by_region" else [None]
@@ -123,7 +84,7 @@ def _imports(S, U, Ya, Yc, activities, commodities, fd, selected, by, trade_mode
         hc = ha @ S.multiply(inv)
     else:
         hc = projection(commodities)
-        if by == "product":
+        if by == "commodity":
             used = _active_rows(ya)
             if used.any():
                 inv = _inverse_totals(S, 1, used, activities)
@@ -141,7 +102,7 @@ def _imports(S, U, Ya, Yc, activities, commodities, fd, selected, by, trade_mode
 
     imports_a = (hc @ ua).tocsr()
     imports_y = (hc @ yc + ha @ ya).tocsr()
-    if by == "product":
+    if by == "commodity":
         row = positions(activities.get_level_values(0)[sr],
                         commodities[c_local].get_level_values(2)[sc])
         imports_c = sparse.coo_matrix(
@@ -158,54 +119,10 @@ def _imports(S, U, Ya, Yc, activities, commodities, fd, selected, by, trade_mode
     if by is None:
         used |= np.array([origin not in selected for origin, _ in keys])
     else:
-        nodes = commodities[~c_local] if by == "product" else activities[~a_local]
+        nodes = commodities[~c_local] if by == "commodity" else activities[~a_local]
         used[positions(nodes.get_level_values(0), nodes.get_level_values(2))] = True
-    labels = []
-    for origin, item in np.array(keys, dtype=object)[used]:
-        label = "imports"
-        if by == "product":
-            label += f" of {item}"
-        elif by == "activity":
-            label += f" by {item}"
-        if trade_mode == "by_region":
-            label += f" from {origin}"
-        labels.append(label)
-    if len(set(labels)) != len(labels):
-        raise WrongInput("Import labels are ambiguous; rename the source items first.")
-    return labels, imports_a[used], imports_c[used], imports_y[used]
-
-
-def _export_columns(selected, excluded, fd, trade_mode, layout):
-    types = ["Export"] if layout == "sectorized" else [
-        "Final Demand exports", "Intermediate exports"
-    ]
-    labels = [f"{kind} to {r}" for kind in types for r in excluded] \
-        if trade_mode == "by_region" else types
-    columns = pd.MultiIndex.from_tuples(
-        [(r, MI["n"], label) for r in selected for label in labels], names=fd.names
-    )
-    return columns, labels
-
-
-def _exports(intermediate, final, rows, intermediate_axis, fd,
-             selected, excluded, trade_mode, layout, columns):
-    """Sum boundary flows into export columns owned by each exporting region."""
-    owner = pd.Index(selected).get_indexer(rows.get_level_values(0))
-    count = len(columns) // len(selected)
-    matrices = []
-    for source, axis, category in ((final, fd, 0), (intermediate, intermediate_axis, 1)):
-        coo = source.tocoo()
-        foreign = ~axis.get_level_values(0).isin(selected)[coo.col]
-        rr, cc, data = coo.row[foreign], coo.col[foreign], coo.data[foreign]
-        group = np.zeros(len(data), dtype=int)
-        if trade_mode == "by_region":
-            group = pd.Index(excluded).get_indexer(axis.get_level_values(0)[cc])
-        if layout == "legacy":
-            group += category * (len(excluded) if trade_mode == "by_region" else 1)
-        matrices.append(sparse.coo_matrix(
-            (data, (rr, owner[rr] * count + group)), shape=(len(rows), len(columns))
-        ).tocsr())
-    return matrices[0] + matrices[1]
+    retained_keys = [key for key, keep in zip(keys, used) if keep]
+    return retained_keys, imports_a[used], imports_c[used], imports_y[used]
 
 
 def transform(database, selected, *, trade_mode, layout, imports_by):
@@ -226,11 +143,6 @@ def transform(database, selected, *, trade_mode, layout, imports_by):
     n = fd.get_level_values(0).isin(selected)
     local_a, local_c, local_n = activities[a], commodities[c], fd[n]
     rows_f, rows_e = blocks["Va"].index, blocks["Ea"].index
-    regional_factors = isinstance(rows_f, pd.MultiIndex)
-    if regional_factors and (rows_f.nlevels != 2 or rows_f.names[0] != MI["r"]):
-        raise WrongInput(
-            "SUT extraction supports common factor rows or Region/Factor of production rows."
-        )
     native = {"S": _align(blocks["S"], activities, commodities),
               "U": _align(blocks["U"], commodities, activities),
               "Ya": _align(blocks["Ya"], activities, fd),
@@ -240,13 +152,11 @@ def transform(database, selected, *, trade_mode, layout, imports_by):
             name = prefix + suffix
             native[name] = _align(blocks[name], rows, axis)
 
-    by = imports_by or ("product" if layout == "sectorized" else None)
-    labels, import_a, import_c, import_y = _imports(
+    by = imports_by or ("commodity" if layout == "sectorized" else None)
+    import_keys, import_a, import_c, import_y = _imports(
         *(native[name] for name in ("S", "U", "Ya", "Yc")),
         activities, commodities, fd, selected, by, trade_mode,
     )
-    if set(labels) & set(database.get_index(MI["f"], flat=True)):
-        raise WrongInput("Generated import labels collide with existing factors of production.")
     export_cols, export_labels = _export_columns(selected, excluded, fd, trade_mode, layout)
     if set(export_labels) & set(database.get_index(MI["n"], flat=True)):
         raise WrongInput("Generated export labels collide with existing consumption categories.")
@@ -260,27 +170,19 @@ def transform(database, selected, *, trade_mode, layout, imports_by):
                            buyers, fd, selected, excluded, trade_mode, layout, export_cols)
         output[name] = sparse.hstack([native[name][mask, :][:, n], exports], format="csr")
 
-    import_rows = pd.Index(labels, name=rows_f.name)
-    if regional_factors:
-        import_rows = pd.MultiIndex.from_product([selected, labels], names=rows_f.names)
-
-        def regionalize(matrix, cols):
-            coo = matrix.tocoo()
-            owner = pd.Index(selected).get_indexer(cols.get_level_values(0))
-            return sparse.coo_matrix(
-                (coo.data, (owner[coo.col] * len(labels) + coo.row, coo.col)),
-                shape=(len(import_rows), len(cols)),
-            ).tocsr()
-
-        import_a, import_c, import_y = (
-            regionalize(matrix, axis) for matrix, axis in
-            ((import_a, local_a), (import_c, local_c), (import_y, local_n))
-        )
-    target_f = rows_f.append(import_rows)
-    for name, mask, imports in (("Va", a, import_a), ("Vc", c, import_c)):
-        output[name] = sparse.vstack([native[name][:, mask], imports], format="csr")
+    classification = {"commodity": MI["c"], "activity": MI["a"]}.get(by)
+    target_f, accounts = combine_factor_accounts(
+        database, rows_f,
+        {"Va": (native["Va"][:, a], local_a),
+         "Vc": (native["Vc"][:, c], local_c),
+         "VY": (native["VY"][:, n], local_n)},
+        {"Va": import_a, "Vc": import_c, "VY": import_y}, import_keys,
+        selected=selected, classification=classification,
+        by_region=trade_mode == "by_region",
+    )
+    output["Va"], output["Vc"] = accounts["Va"], accounts["Vc"]
     output["VY"] = sparse.hstack([
-        sparse.vstack([native["VY"][:, n], import_y], format="csr"),
+        accounts["VY"],
         sparse.csr_matrix((len(target_f), len(export_cols))),
     ], format="csr")
     output["Ea"], output["Ec"] = native["Ea"][:, a], native["Ec"][:, c]
@@ -311,18 +213,16 @@ def transform(database, selected, *, trade_mode, layout, imports_by):
     for code, values in (("r", selected), ("a", local_a.get_level_values(2)),
                          ("c", local_c.get_level_values(2)),
                          ("n", target_n.get_level_values(2)),
-                         ("f", database.get_index(MI["f"], flat=True) + labels)):
+                         ("f", database.get_index(MI["f"], flat=True) + ["imports"])):
         indexes[code] = {"main": list(dict.fromkeys(values))}
     units = {key: value.copy(deep=True) for key, value in database.units.items()}
-    for code in ("a", "c"):
-        units[MI[code]] = units[MI[code]].reindex(indexes[code]["main"])
     monetary_unit = database.units[MI["a"]]["unit"].iloc[0]
-    for label in labels:
-        units[MI["f"]].loc[label, "unit"] = monetary_unit
+    units[MI["f"]].loc["imports", "unit"] = monetary_unit
 
     database.matrices = {"baseline": frames}
     database._indeces = indexes
     database.units = units
+    register_factor_layout(database, target_f)
     database.meta._add_history(
         f"Transformation: SUT region subset {selected}; imports by {by or 'total'}, "
         f"trade_mode={trade_mode}. Imported final demand is retained in VY."

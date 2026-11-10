@@ -60,6 +60,12 @@ MARIO's pandas representation also stores the set label in its ``Level`` index
 level. Satellite and factor accounts can carry extra levels through
 ``matrix_layouts`` (marked ``*`` in the block descriptions).
 
+Regional extraction can use Commodity or Activity as an import-row dimension
+on the factor accounts, with Region added when source partners are retained.
+Original factors without that classification keep an empty level. Aggregation
+maps the classification on both productive and import axes; see
+:doc:`regional extraction </user_guide/transformations/mrio_to_srio>`.
+
 .. raw:: html
    :file: ../_generated/sut_indices.html
 

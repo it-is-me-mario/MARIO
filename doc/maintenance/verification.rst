@@ -62,6 +62,18 @@ Example verification
   to producers; verify each source cell, both native monetary balances and
   unchanged domestic environmental accounts. Keep sparse-path checks separate
   from numerical comparisons so a unified matrix cannot hide a memory regression.
+  For IOT and SUT import accounts, aggregate the productive classification alone
+  and verify the row classifier in both production and final-demand factor
+  blocks. Exercise total foreign sourcing and explicit source regions. Preserve
+  factors with empty classification levels, including Excel round trips with
+  the declared matrix layouts. Canonicalize missing MultiIndex components in
+  scalar/groupby references before label alignment: pandas can encode the same
+  missing component either as a level member or as a missing code.
+  Include import-only classifier labels and geographic presets for explicit
+  origins. Check that descriptor mappings do not add endogenous nodes and that
+  the stored Region aggregation map includes only the modeled source regions.
+  Inspect the combined DataFrame view before aggregation and verify its factor
+  and final-demand cells without changing live matrix indexes or row ordering.
   For chained scenario workflows, execute the sequence through transformations
   that consume only the baseline or discard other scenarios, and check that
   earlier updates survive.

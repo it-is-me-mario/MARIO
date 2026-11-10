@@ -59,6 +59,11 @@ An axis combines the relevant sets. For example, a transaction connects a
 ``(Region, Consumption category)``. MARIO's pandas representation also stores
 the set label in its ``Level`` index level.
 
+For regional extraction, ``imports_by="sector"`` adds a Sector row dimension
+to ``V`` and ``VY``. Ordinary factors retain an empty Sector level, while
+imports carry their source sector. Source regions can be retained separately;
+see :doc:`regional extraction </user_guide/transformations/mrio_to_srio>`.
+
 .. raw:: html
    :file: ../_generated/iot_indices.html
 

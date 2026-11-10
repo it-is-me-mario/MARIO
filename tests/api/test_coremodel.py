@@ -696,7 +696,8 @@ def test_to_region_subset_keeps_selected_regions_explicit_and_externalizes_rest(
     ] == pytest.approx(0.0)
     assert subset.VY.index.equals(subset.V.index)
     assert subset.VY.columns.equals(subset.Y.columns)
-    assert subset.VY.loc["imports"].eq(0.0).all()
+    assert subset.VY.loc["imports", ("R1", _MASTER_INDEX["n"], "FD")] == pytest.approx(70.0)
+    assert subset.VY.loc["imports", ("R2", _MASTER_INDEX["n"], "FD")] == pytest.approx(80.0)
 
 
 def test_to_region_subset_by_region_keeps_exogenous_trade_by_region():
@@ -704,8 +705,8 @@ def test_to_region_subset_by_region_keeps_exogenous_trade_by_region():
 
     subset = database.to_region_subset(["R1", "R2"], inplace=False, trade_mode="by_region")
 
-    assert "imports from R3" in subset.get_index(_MASTER_INDEX["f"])
-    assert subset.V.loc["imports from R3", ("R1", _MASTER_INDEX["s"], "s1")] == pytest.approx(7.0)
+    assert "imports" in subset.get_index(_MASTER_INDEX["f"])
+    assert subset.V.loc[("R3", "imports"), ("R1", _MASTER_INDEX["s"], "s1")] == pytest.approx(7.0)
     assert subset.Y.loc[
         ("R1", _MASTER_INDEX["s"], "s1"),
         ("R1", _MASTER_INDEX["n"], "Final Demand exports to R3"),
@@ -716,7 +717,7 @@ def test_to_region_subset_by_region_keeps_exogenous_trade_by_region():
     ] == pytest.approx(6.0)
     assert subset.VY.index.equals(subset.V.index)
     assert subset.VY.columns.equals(subset.Y.columns)
-    assert subset.VY.loc["imports from R3"].eq(0.0).all()
+    assert subset.VY.loc[("R3", "imports"), ("R1", _MASTER_INDEX["n"], "FD")] == pytest.approx(70.0)
 
 
 def test_to_region_subset_sectorized_trade_groups_factor_rows_by_region():
@@ -732,17 +733,15 @@ def test_to_region_subset_sectorized_trade_groups_factor_rows_by_region():
     assert subset.Z.columns.names == ["Region", "Sector"]
     assert subset.Y.index.names == ["Region", "Sector"]
     assert subset.Y.columns.names == ["Region", "Consumption category"]
-    assert subset.V.index.names == ["Region", "Factor of production"]
+    assert subset.V.index.names == ["Sector", "Factor of production"]
     assert tuple(axis.id for axis in subset.get_block_spec("V").row_axes) == (
-        "Region",
+        "Sector",
         "Factor of production",
     )
-    assert subset.V.loc[("R1", "VA"), ("R1", "s1")] == pytest.approx(100.0)
-    assert subset.V.loc[("R1", "VA"), ("R2", "s1")] == pytest.approx(0.0)
-    assert subset.V.loc[("R2", "VA"), ("R2", "s1")] == pytest.approx(200.0)
-    assert subset.V.loc[("R1", "imports of s1"), ("R1", "s1")] == pytest.approx(7.0)
-    assert subset.V.loc[("R1", "imports of s1"), ("R2", "s1")] == pytest.approx(0.0)
-    assert subset.V.loc[("R2", "imports of s1"), ("R2", "s1")] == pytest.approx(8.0)
+    assert subset.V.loc[(None, "VA"), ("R1", "s1")] == pytest.approx(100.0)
+    assert subset.V.loc[(None, "VA"), ("R2", "s1")] == pytest.approx(200.0)
+    assert subset.V.loc[("s1", "imports"), ("R1", "s1")] == pytest.approx(7.0)
+    assert subset.V.loc[("s1", "imports"), ("R2", "s1")] == pytest.approx(8.0)
     assert subset.Y.loc[
         ("R1", "s1"),
         ("R1", "Export"),
@@ -753,7 +752,7 @@ def test_to_region_subset_sectorized_trade_groups_factor_rows_by_region():
     ] == pytest.approx(66.0)
     assert subset.VY.index.equals(subset.V.index)
     assert subset.VY.columns.equals(subset.Y.columns)
-    assert subset.VY.loc[("R1", "imports of s1")].eq(0.0).all()
+    assert subset.VY.loc[("s1", "imports"), ("R1", "FD")] == pytest.approx(70.0)
 
 
 def test_to_region_subset_sectorized_trade_by_region_keeps_partner_detail():
@@ -766,13 +765,13 @@ def test_to_region_subset_sectorized_trade_by_region_keeps_partner_detail():
         externalized_trade_layout="sectorized",
     )
 
-    assert subset.V.index.names == ["Region", "Factor of production"]
+    assert subset.V.index.names == ["Region", "Sector", "Factor of production"]
     assert subset.V.loc[
-        ("R1", "imports of s1 from R3"),
+        ("R3", "s1", "imports"),
         ("R1", "s1"),
     ] == pytest.approx(7.0)
     assert subset.V.loc[
-        ("R2", "imports of s1 from R3"),
+        ("R3", "s1", "imports"),
         ("R2", "s1"),
     ] == pytest.approx(8.0)
     assert subset.Y.loc[
@@ -801,7 +800,7 @@ def test_to_region_subset_sectorized_trade_exports_to_excel(tmp_path):
         value for value in exported.to_numpy().ravel().tolist() if isinstance(value, str)
     }
     assert "Export" in flat_values
-    assert "imports of s1" in flat_values
+    assert "imports" in flat_values
     assert "Sector" not in flat_values
     assert "Consumption category" not in flat_values
 
@@ -851,10 +850,9 @@ def test_to_single_region_by_region_explodes_each_excluded_region():
     single_region = database.to_single_region("R1", inplace=False, trade_mode="by_region")
 
     assert not single_region.is_multi_region
-    assert "imports from R2" in single_region.get_index(_MASTER_INDEX["f"])
-    assert "imports from R3" in single_region.get_index(_MASTER_INDEX["f"])
-    assert single_region.V.loc["imports from R2", ("R1", _MASTER_INDEX["s"], "s1")] == pytest.approx(4.0)
-    assert single_region.V.loc["imports from R3", ("R1", _MASTER_INDEX["s"], "s1")] == pytest.approx(7.0)
+    assert "imports" in single_region.get_index(_MASTER_INDEX["f"])
+    assert single_region.V.loc[("R2", "imports"), ("R1", _MASTER_INDEX["s"], "s1")] == pytest.approx(4.0)
+    assert single_region.V.loc[("R3", "imports"), ("R1", _MASTER_INDEX["s"], "s1")] == pytest.approx(7.0)
     assert single_region.Y.loc[
         ("R1", _MASTER_INDEX["s"], "s1"),
         ("R1", _MASTER_INDEX["n"], "Final Demand exports to R2"),
@@ -886,7 +884,8 @@ def test_to_region_subset_by_region_supports_sut():
         [database.get_index("Region")[0]], inplace=False, trade_mode="by_region",
     )
     assert subset.table_type == "SUT"
-    assert any(label.startswith("imports from ") for label in subset.factors)
+    assert "imports" in subset.factors
+    assert subset.query("Va").index.names == ["Region", "Factor of production"]
 
 
 def test_to_region_subset_sut_legacy_no_longer_fails_on_sector_lookup():

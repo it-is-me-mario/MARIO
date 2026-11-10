@@ -120,6 +120,13 @@ def _manage_indeces(instance, case, **kwargs):
                     if instance._indeces[index]["aggregated"].values[i][0] != "unused"
                 )
                 mapping = instance._indeces[index]["aggregated"]
+                if index == "r":
+                    targets = mapping.iloc[:, 0].to_dict()
+                    main = delete_duplicates(
+                        targets.get(region, region)
+                        for region in instance._indeces[index]["main"]
+                        if targets.get(region, region) != "unused"
+                    )
                 if not isinstance(mapping.index, pd.MultiIndex):
                     main.extend(
                         item
@@ -127,6 +134,13 @@ def _manage_indeces(instance, case, **kwargs):
                         if item not in mapping.index and item not in main
                     )
                 instance._indeces[index] = {"main": main}
+
+        # Descriptor-only source members do not become productive nodes.
+        for code in ("s", "a", "c", "n"):
+            if code in instance._indeces:
+                name = next((name for name, value in TABLE_LEVELS[instance.meta.table].items() if value == code), None)
+                if name is not None:
+                    instance._indeces[code]["main"] = instance.get_index(name, flat=True)
 
     elif case == "single_region":
         for key, value in kwargs.items():

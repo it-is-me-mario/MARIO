@@ -9,6 +9,7 @@ regions as exogenous imports and exports. This generalizes
 remain endogenous.
 
 See :doc:`Extract a region or subset <../user_guide/transformations/mrio_to_srio>`
-for SUT product/producer import classification and the native accounting blocks.
+for sector, commodity and producer import classifications, source-region detail
+and the native accounting blocks.
 
 .. automethod:: Database.to_region_subset

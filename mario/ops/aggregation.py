@@ -18,6 +18,8 @@ def _build_region_aggregation_map(database) -> dict[str, list[str]] | None:
     previous = getattr(database.meta, "region_aggregation_map", None)
     mapping: dict[str, list[str]] = {}
     for source_region, target_region in region_index["Aggregation"].items():
+        if source_region not in database.get_index(_MASTER_INDEX["r"]):
+            continue
         target_key = str(target_region)
         source_key = str(source_region)
         members = previous.get(source_key, [source_key]) if isinstance(previous, dict) else [source_key]

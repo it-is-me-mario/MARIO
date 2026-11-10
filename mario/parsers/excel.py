@@ -327,6 +327,13 @@ def _resolve_sut_productive_public_sequence(
                 f"Unable to classify productive SUT item {item!r}. It is not listed in units as Activity or Commodity."
             )
 
+    if not unresolved_positions:
+        # The units catalogue can include source items used only as import
+        # descriptors. Explicitly classified economic nodes need no padding.
+        if len(set(resolved)) != len(resolved):
+            raise WrongInput("The explicit SUT productive layout contains duplicate nodes.")
+        return [item for item in resolved if item is not None]
+
     expected_commodities = len(regions) * len(commodity_items)
     expected_activities = len(regions) * len(activity_items)
     remaining_commodities = expected_commodities - commodity_assigned
@@ -467,10 +474,8 @@ def parse_explicit_iot_excel_layout(
     sector_rows: list[dict[str, object]] = []
     factor_rows: list[dict[str, object]] = []
     satellite_rows: list[dict[str, object]] = []
-    for position, raw_tokens in enumerate(
-        _compact_tokens(row) for row in row_meta.itertuples(index=False, name=None)
-    ):
-        tokens = raw_tokens
+    for position, raw_tokens in enumerate(row_meta.itertuples(index=False, name=None)):
+        tokens = _compact_tokens(raw_tokens)
         if not tokens:
             continue
         try:
@@ -486,7 +491,7 @@ def parse_explicit_iot_excel_layout(
             sector_public_names = None
         try:
             factor_tuple, _, factor_public_tuple, factor_public_names = interpret_axis_tokens(
-                tokens,
+                raw_tokens,
                 iot_axis_names("V", "from", matrix_layouts),
                 matrix_name="V",
                 side="from",
@@ -502,7 +507,7 @@ def parse_explicit_iot_excel_layout(
                 satellite_public_tuple,
                 satellite_public_names,
             ) = interpret_axis_tokens(
-                tokens,
+                raw_tokens,
                 iot_axis_names("E", "from", matrix_layouts),
                 matrix_name="E",
                 side="from",
@@ -709,7 +714,8 @@ def parse_explicit_sut_excel_layout(
     productive_row_positions: list[int] = []
     factor_rows: list[dict[str, object]] = []
     satellite_rows: list[dict[str, object]] = []
-    for position, tokens in enumerate(_compact_tokens(row) for row in row_meta.itertuples(index=False, name=None)):
+    for position, raw_tokens in enumerate(row_meta.itertuples(index=False, name=None)):
+        tokens = _compact_tokens(raw_tokens)
         if not tokens:
             continue
 
@@ -731,7 +737,7 @@ def parse_explicit_sut_excel_layout(
 
         try:
             factor_tuple, _, factor_public_tuple, factor_public_names = interpret_axis_tokens(
-                tokens,
+                raw_tokens,
                 sut_axis_names("V", "from", matrix_layouts),
                 matrix_name="V",
                 side="from",
@@ -742,7 +748,7 @@ def parse_explicit_sut_excel_layout(
             factor_public_names = None
         try:
             satellite_tuple, _, satellite_public_tuple, satellite_public_names = interpret_axis_tokens(
-                tokens,
+                raw_tokens,
                 sut_axis_names("E", "from", matrix_layouts),
                 matrix_name="E",
                 side="from",

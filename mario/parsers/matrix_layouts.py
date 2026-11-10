@@ -34,6 +34,8 @@ TABLE_LAYOUT_PREFIXES = {
         ("Commodity",),
         ("Region", "Activity"),
         ("Region", "Commodity"),
+        ("Activity", "Commodity"),
+        ("Region", "Activity", "Commodity"),
     },
 }
 
@@ -240,6 +242,26 @@ def interpret_axis_tokens(
         not pd.isna(value) and value != "" for value in raw
     ):
         return raw, expected_names, raw, expected_names
+
+    # Extra factor/satellite dimensions may be genuinely inapplicable. Keep
+    # their empty positions, rather than compacting them out of the layout.
+    if (side == "from" and matrix_name in {"V", "v", "VY", "E", "e", "EY"}
+            and len(expected_names) > 1):
+        candidate = list(raw)
+        while candidate and (pd.isna(candidate[-1]) or candidate[-1] == ""):
+            candidate.pop()
+        marker = len(candidate) > 1 and candidate[-2] == expected_names[-1]
+        width = len(expected_names) + int(marker)
+        while len(candidate) > width and (pd.isna(candidate[0]) or candidate[0] == ""):
+            candidate.pop(0)
+        semantic = candidate[:-2] + [candidate[-1]] if marker else candidate
+        if (len(semantic) == len(expected_names)
+                and any(pd.isna(value) or value == "" for value in semantic[:-1])):
+            semantic = tuple(None if pd.isna(value) or value == "" else value for value in semantic)
+            if marker:
+                public = semantic[:-1] + (expected_names[-1], semantic[-1])
+                return semantic, expected_names, public, expected_names[:-1] + ("Level", "Item")
+            return semantic, expected_names, semantic, expected_names
 
     compact = _compact_axis_tokens(tokens)
 

@@ -67,9 +67,7 @@ def expected_imports(source, selected, by, partners):
     def add(block, origin, item, buyer, value):
         if value == 0:
             return
-        label = f"imports {'of' if by == 'product' else 'by'} {item}"
-        if partners:
-            label += f" from {origin}"
+        label = (origin, item, "imports") if partners else (item, "imports")
         key = (label, buyer)
         expected[block][key] = expected[block].get(key, 0.0) + value
 
@@ -81,7 +79,7 @@ def expected_imports(source, selected, by, partners):
                 if buyer[0] not in selected:
                     continue
                 amount = frame.loc[commodity, buyer]
-                if by == "product":
+                if by == "commodity":
                     add(block, commodity[0], commodity[2], buyer, amount)
                 elif amount:
                     for producer in s.index:
@@ -92,7 +90,7 @@ def expected_imports(source, selected, by, partners):
             continue
         for commodity in s.columns:
             if commodity[0] in selected:
-                item = commodity[2] if by == "product" else producer[2]
+                item = commodity[2] if by == "commodity" else producer[2]
                 add("Vc", producer[0], item, commodity, s.loc[producer, commodity])
         for buyer in ya.columns:
             if buyer[0] not in selected:
@@ -107,7 +105,7 @@ def expected_imports(source, selected, by, partners):
     return expected
 
 
-@pytest.mark.parametrize("by", ["product", "activity"])
+@pytest.mark.parametrize("by", ["commodity", "activity"])
 @pytest.mark.parametrize("partners", [False, True])
 @pytest.mark.parametrize("selected", [["IT"], ["IT", "FR"]])
 def test_import_cells_and_balances_match_independent_source(database, by, partners, selected):
@@ -120,8 +118,7 @@ def test_import_cells_and_balances_match_independent_source(database, by, partne
     expected = expected_imports(source, selected, by, partners)
     for name, values in expected.items():
         frame = dense(result.query(name))
-        original_rows = source["Va"].index
-        actual = frame.drop(index=original_rows)
+        actual = frame.loc[frame.index.get_level_values("Factor of production") == "imports"]
         for row in actual.index:
             for col in actual.columns:
                 assert actual.loc[row, col] == pytest.approx(values.get((row, col), 0))
@@ -139,10 +136,15 @@ def test_import_cells_and_balances_match_independent_source(database, by, partne
     local_fd = original_budget.index.get_level_values(0).isin(selected)
     result_budget = sum(dense(result.query(name)).sum(axis=0) for name in ("Ya", "Yc", "VY"))
     np.testing.assert_allclose(result_budget.loc[original_budget.index[local_fd]], original_budget[local_fd])
-    for name in ("EY", "VY"):
-        actual = dense(result.query(name))
-        cols = source[name].columns[local_fd]
-        pd.testing.assert_frame_equal(actual.loc[source[name].index, cols], dense(source[name]).loc[:, cols])
+    cols = source["EY"].columns[local_fd]
+    pd.testing.assert_frame_equal(dense(result.query("EY")).loc[:, cols], dense(source["EY"]).loc[:, cols])
+    actual_vy = dense(result.query("VY"))
+    for factor in source["VY"].index:
+        actual = actual_vy.xs(factor, level="Factor of production").loc[:, cols].sum(axis=0)
+        np.testing.assert_allclose(actual, dense(source["VY"]).loc[factor, cols])
+    prefix = "Commodity" if by == "commodity" else "Activity"
+    ordinary = result.query("Va").index.get_level_values("Factor of production") != "imports"
+    assert result.query("Va").index.get_level_values(prefix)[ordinary].isna().all()
     assert result.get_index("Activity", region="IT") == ["manufacturing", "wind"]
     assert result.get_index("Commodity", region="IT") == ["goods", "electricity"]
     assert result.get_index("Consumption category", region="IT")[:2] == ["HH", "GOV"]
@@ -150,7 +152,7 @@ def test_import_cells_and_balances_match_independent_source(database, by, partne
         pd.testing.assert_frame_equal(database.matrices["baseline"][name], original)
 
 
-@pytest.mark.parametrize("by", ["product", "activity"])
+@pytest.mark.parametrize("by", ["commodity", "activity"])
 def test_chenery_moses_supply_imports_enter_vc_and_exports_enter_ya(database, by):
     database.to_chenery_moses()
     source = {name: frame.copy() for name, frame in database.matrices["baseline"].items()}
@@ -161,7 +163,7 @@ def test_chenery_moses_supply_imports_enter_vc_and_exports_enter_ya(database, by
         for (row, col), value in values.items():
             assert frame.loc[row, col] == pytest.approx(value)
     vc = dense(result.query("Vc"))
-    assert vc.drop(index=source["Vc"].index).sum().sum() > 0
+    assert vc.loc[vc.index.get_level_values("Factor of production") == "imports"].sum().sum() > 0
     assert dense(result.query("Ya")).iloc[:, -1].sum() > 0
     # Both sides of the native monetary accounting remain balanced.
     s, u = (dense(result.query(name)) for name in ("S", "U"))
@@ -200,19 +202,19 @@ def test_undefined_producer_allocation_leaves_source_unchanged(database):
         pd.testing.assert_frame_equal(database.matrices["baseline"][name], frame)
     assert database.meta._history == history
     # Product imports do not require a producer-allocation assumption.
-    database.to_single_region("IT", imports_by="product")
+    database.to_single_region("IT", imports_by="commodity")
 
 
 def test_alias_and_wrapper_keep_scenarios_and_account_units_consistent(database):
     database.clone_scenario("baseline", "policy")
     database.rename_baseline_scenario("reference")
-    result = database.to_single_region("IT", imports_by="product", trade_mode="by_sector", inplace=False)
-    equivalent = database.to_region_subset(["IT"], imports_by="product", externalized_trade_layout="sectorized", inplace=False)
+    result = database.to_single_region("IT", imports_by="commodity", trade_mode="by_sector", inplace=False)
+    equivalent = database.to_region_subset(["IT"], imports_by="commodity", externalized_trade_layout="sectorized", inplace=False)
     assert result.scenarios == ["reference"]
     assert database.scenarios == ["reference", "policy"]
     for name, frame in result.matrices["baseline"].items():
         pd.testing.assert_frame_equal(frame, equivalent.matrices["baseline"][name])
-    assert result.units["Factor of production"].loc["imports of electricity", "unit"] == "EUR"
+    assert result.units["Factor of production"].loc["imports", "unit"] == "EUR"
     result.keep_extensions(["CO2"])
     assert result.query("EY").shape[0] == 1
     assert result.query("VY").index.equals(result.query("Va").index)
@@ -237,10 +239,10 @@ def test_default_extraction_retains_imported_final_demand(database):
 def test_missing_direct_accounts_are_zero_and_existing_ones_are_not_overwritten(database):
     for name in ("EY", "VY"):
         database.matrices["baseline"].pop(name)
-    database.to_single_region("IT", imports_by="product")
+    database.to_single_region("IT", imports_by="commodity")
     assert dense(database.query("EY")).eq(0).all().all()
-    assert dense(database.query("VY")).loc["VA"].eq(0).all()
-    assert dense(database.query("VY")).loc["imports of electricity"].sum() > 0
+    assert dense(database.query("VY")).xs("VA", level="Factor of production").eq(0).all().all()
+    assert dense(database.query("VY")).loc[("electricity", "imports")].sum() > 0
 
 
 def test_structured_factor_rows_preserve_receiving_region(database):
@@ -250,11 +252,11 @@ def test_structured_factor_rows_preserve_receiving_region(database):
             [("IT", value) for value in frame.index],
             names=["Region", "Factor of production"],
         )
-    database.to_region_subset(["IT", "FR"], imports_by="product")
+    database.to_region_subset(["IT", "FR"], imports_by="commodity")
     va = dense(database.query("Va"))
-    assert va.loc[("IT", "imports of electricity"), ("IT", "Activity", "manufacturing")] == pytest.approx(8)
-    assert va.loc[("FR", "imports of electricity"), ("IT", "Activity", "manufacturing")] == 0
-    assert va.loc[("FR", "imports of electricity"), ("FR", "Activity", "coal")] == pytest.approx(2)
+    assert va.loc[(None, "electricity", "imports"), ("IT", "Activity", "manufacturing")] == pytest.approx(8)
+    assert va.loc[("IT", None, "VA"), ("IT", "Activity", "manufacturing")] > 0
+    assert va.loc[(None, "electricity", "imports"), ("FR", "Activity", "coal")] == pytest.approx(2)
     assert database.query("VY").index.equals(database.query("Vc").index)
 
 
@@ -269,7 +271,7 @@ def test_signed_imports_and_reordered_axes_keep_source_values(database):
     for name, frame in expected.matrices["baseline"].items():
         aligned = actual.query(name).reindex(index=frame.index, columns=frame.columns)
         pd.testing.assert_frame_equal(dense(aligned), dense(frame))
-    assert actual.query("VY").loc["imports by coal", ("IT", "Consumption category", "GOV")] == pytest.approx(-1.5)
+    assert actual.query("VY").loc[("coal", "imports"), ("IT", "Consumption category", "GOV")] == pytest.approx(-1.5)
 
 
 def test_nonfinite_imports_fail_without_repair(database):
@@ -277,7 +279,7 @@ def test_nonfinite_imports_fail_without_repair(database):
     frame.iloc[3, 0] = np.nan
     database.matrices["baseline"]["U"] = frame
     with pytest.raises(WrongInput, match="finite flow"):
-        database.to_single_region("IT", imports_by="product")
+        database.to_single_region("IT", imports_by="commodity")
     assert np.isnan(database.query("U").iloc[3, 0])
     assert len(database.regions) == 3
 
@@ -285,12 +287,12 @@ def test_nonfinite_imports_fail_without_repair(database):
 def test_import_classification_is_sut_only():
     from mario import load_test
 
-    with pytest.raises(WrongInput, match="only for SUT"):
-        load_test("IOT").to_single_region("Reg1", imports_by="product", inplace=False)
+    with pytest.raises(WrongInput, match="imports_by for IOT"):
+        load_test("IOT").to_single_region("Reg1", imports_by="commodity", inplace=False)
 
 
-@pytest.mark.parametrize("by,label", [("product", "imports of goods"),
-                                      ("activity", "imports by services")])
+@pytest.mark.parametrize("by,label", [("commodity", ("goods", "imports")),
+                                      ("activity", ("services", "imports"))])
 def test_zero_import_rows_keep_the_external_classification(database, by, label):
     for name in ("U", "Ya", "Yc"):
         frame = dense(database.query(name))
@@ -305,11 +307,26 @@ def test_zero_import_rows_keep_the_external_classification(database, by, label):
 def test_imported_final_demand_survives_excel_roundtrip(database, tmp_path):
     from mario import parse_from_excel
 
-    result = database.to_single_region("IT", imports_by="product", inplace=False)
+    result = database.to_single_region("IT", imports_by="commodity", inplace=False)
     path = tmp_path / "national_sut.xlsx"
     result.to_excel(path=str(path), flows=True, coefficients=False)
-    loaded = parse_from_excel(str(path), table="SUT", mode="flows")
+    loaded = parse_from_excel(str(path), table="SUT", mode="flows", matrix_layouts={"V": "Commodity"})
     for name in ("S", "U", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "VY", "EY"):
         expected = dense(result.query(name))
         actual = dense(loaded.query(name)).reindex(index=expected.index, columns=expected.columns)
         np.testing.assert_allclose(actual, expected, rtol=1e-12, atol=1e-12)
+
+
+@pytest.mark.parametrize("partners", [False, True])
+def test_import_only_activity_labels_can_be_aggregated_without_adding_nodes(database, partners):
+    database.to_single_region("IT", imports_by="activity", trade_mode="by_region" if partners else "aggregate")
+    assert "services" not in database.get_index("Activity")
+    before = dense(database.query("VY"))
+    database.aggregate(
+        {"Activity": pd.DataFrame({"Aggregation": ["foreign services"]}, index=["services"])},
+        levels=["Activity"], zero_output_epsilon=None,
+    )
+    assert database.get_index("Activity") == ["manufacturing", "wind"]
+    assert "foreign services" in database.query("VY").index.get_level_values("Activity")
+    assert "services" not in database.query("VY").index.get_level_values("Activity")
+    np.testing.assert_allclose(dense(database.query("VY")).sum(axis=0), before.sum(axis=0))

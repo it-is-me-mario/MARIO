@@ -146,13 +146,27 @@ def _aggregate_semantic_axis(
             mapping = _aggregation_mapping(stored)
             values = labels.get_level_values(position)
             if isinstance(getattr(stored, "index", None), pd.MultiIndex):
-                source_regions = labels.get_level_values(_MASTER_INDEX["r"])
-                arrays.append(
-                    [
-                        mapping.get((region, value), value)
-                        for region, value in zip(source_regions, values)
-                    ]
-                )
+                source_regions = (labels.get_level_values(_MASTER_INDEX["r"])
+                                  if _MASTER_INDEX["r"] in semantic_names else [None] * len(labels))
+                grouped = {}
+                for (_, item), target in mapping.items():
+                    grouped.setdefault(item, set()).add(target)
+                mapped = []
+                for region, value in zip(source_regions, values):
+                    if pd.isna(value):
+                        mapped.append(value)
+                    elif pd.isna(region):
+                        targets = grouped.get(value, {value})
+                        if len(targets) > 1:
+                            raise WrongInput(
+                                f"Cannot apply region-specific {level_name} aggregation "
+                                f"to {value!r} after import origins were collapsed. "
+                                "Retain imports with trade_mode='by_region'."
+                            )
+                        mapped.append(next(iter(targets)))
+                    else:
+                        mapped.append(mapping.get((region, value), value))
+                arrays.append(mapped)
             else:
                 arrays.append(_map_values(values, mapping))
         return pd.MultiIndex.from_arrays(arrays, names=list(semantic_names))

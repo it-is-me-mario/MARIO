@@ -1,6 +1,7 @@
 """Aggregation workbook groups and validated source-to-target mappings."""
 
 from collections.abc import Mapping
+from copy import deepcopy
 import csv
 from io import StringIO
 
@@ -8,6 +9,40 @@ import pandas as pd
 
 from mario.log_exc.exceptions import DataMissing, WrongInput
 from mario.model.conventions import _MASTER_INDEX as MI
+
+
+def aggregation_domains(database):
+    """Include observed row descriptors without creating endogenous nodes."""
+    indexes = deepcopy(database.get_index("all"))
+    observed = []
+    for name in ("V", "Va", "Vc", "VY"):
+        frame = database.matrices.get("baseline", {}).get(name)
+        axis = getattr(frame, "index", None)
+        if not isinstance(axis, pd.MultiIndex) or MI["f"] not in axis.names:
+            continue
+        for value in axis:
+            fields = dict(zip(axis.names, value))
+            origin = fields.get(MI["r"])
+            if origin is not None and pd.notna(origin) and origin not in indexes[MI["r"]]:
+                indexes[MI["r"]].append(origin)
+            observed.append(fields)
+    for fields in observed:
+        origin = fields.get(MI["r"])
+        for level in (MI["s"], MI["a"], MI["c"]):
+            value = fields.get(level)
+            if level not in indexes or value is None or pd.isna(value):
+                continue
+            members = indexes[level]
+            if isinstance(members, Mapping):
+                # A collapsed origin may use only a mapping common to all
+                # source regions; the semantic aggregator rejects ambiguity.
+                regions = [origin] if origin is not None and pd.notna(origin) else indexes[MI["r"]]
+                for region in regions:
+                    if value not in members.setdefault(region, []):
+                        members[region].append(value)
+            elif value not in members:
+                members.append(value)
+    return indexes
 
 
 def classification_groups(membership):

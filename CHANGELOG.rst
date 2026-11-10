@@ -8,18 +8,26 @@ package on PyPI, and dates are its publication dates.
 Unreleased
 ----------
 
-SUT regional extraction
-~~~~~~~~~~~~~~~~~~~~~~~
+Regional extraction and semantic import accounts
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* Add ``imports_by="product"`` and ``imports_by="activity"`` to
-  ``to_single_region()`` and ``to_region_subset()`` for monetary SUTs.
-  Activity attribution uses source supply shares and rejects undefined
-  zero-supply allocations. Preserve optional foreign partner detail.
-* Support SUT trade modes without constructing unified transaction matrices.
-  Preserve sparse native blocks, supply-side imports in ``Vc``, use-side
-  imports in ``Va`` and imported final demand in ``VY``. Keep environmental
-  accounts and existing classifications separate, appending export columns.
-  The default SUT extraction now preserves imported final demand too.
+* Add ``imports_by="sector"`` for IOTs and ``"commodity"`` or ``"activity"``
+  for SUTs to ``to_single_region()`` and ``to_region_subset()``. Independently
+  choose total foreign sourcing or explicit origins with
+  ``trade_mode="aggregate"`` / ``"by_region"``.
+* Store imported classifications as declared matrix-layout dimensions beside
+  the single factor label ``"imports"``. Sector, Commodity and Activity
+  aggregation applies to import rows as well as productive axes. Original
+  factors keep empty classification levels where inapplicable. This replaces
+  text-encoded factor labels in detailed IOT trade layouts.
+* Retain imported final demand in ``VY`` for IOTs and SUTs, including default
+  extraction. Keep sparse native SUT blocks, supply-side imports in ``Vc``
+  and use-side imports in ``Va``. Activity attribution uses source supply
+  shares and rejects undefined zero-supply allocations.
+* Preserve empty extra factor dimensions through Excel export and parsing;
+  retain declared layouts on factor coefficients and multipliers.
+* Keep semantic dimensions in ``DataFrame()`` views without changing the
+  live model's matrix indexes; retain the historical view for standard layouts.
 
 v1.3.4
 ------
