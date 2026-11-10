@@ -1279,6 +1279,8 @@ class Database(CoreModel):
         inplace=True,
         trade_mode="aggregate",
         externalized_trade_layout="legacy",
+        *,
+        imports_by=None,
     ):
         """Keep one explicit region subset and externalize the remaining regions.
 
@@ -1300,10 +1302,18 @@ class Database(CoreModel):
         externalized_trade_layout:
             ``"legacy"`` keeps the historical subset layout with one aggregated
             imports row plus separate intermediate/final-demand export
-            categories. ``"sectorized"`` groups factor rows by endogenous
-            region through ``matrix_layouts``, adds one imports row per
-            selected region-sector pair, and uses one aggregate ``Export``
-            column per selected region.
+            categories. ``"sectorized"`` keeps detailed import accounts and
+            uses one aggregate ``Export`` column per selected region. On IOTs
+            it groups factor rows by endogenous region through
+            ``matrix_layouts``; SUTs retain their native productive axes and
+            factor-row layout, defaulting to product import classification.
+        imports_by:
+            SUT only: ``"product"`` keeps one import account per commodity;
+            ``"activity"`` attributes imports to foreign producing activities
+            using their shares in the source supply matrix. ``None`` retains
+            aggregate import accounts, or selects products when the layout is
+            ``"sectorized"``. Combine with ``trade_mode="by_region"`` to
+            retain producer/partner regions too.
 
         Returns
         -------
@@ -1321,6 +1331,14 @@ class Database(CoreModel):
         ``trade_mode="by_region"`` to preserve one import row and one export
         category per excluded region.
 
+        SUT extraction preserves native blocks and direct final-demand imports
+        in ``VY``. Use-side imports enter ``Va``; supply-side imports (including
+        Chenery-Moses trade) enter ``Vc``. Domestic ``Ea``, ``Ec`` and ``EY``
+        remain separate. Original productive and final-demand classifications
+        are retained; export columns are appended. Activity attribution is a
+        proportional allocation, not observed producer-to-buyer transactions.
+        Undefined allocation at a zero-supply node raises ``WrongInput``.
+
         Examples
         --------
         Keep ``IT`` and ``FR`` explicit while treating the remaining regions as
@@ -1336,6 +1354,11 @@ class Database(CoreModel):
                 trade_mode="by_region",
             )
         """
+        if imports_by not in (None, "product", "activity"):
+            raise WrongInput("imports_by should be None, 'product', or 'activity'.")
+        if imports_by is not None and self.table_type != "SUT":
+            raise WrongInput("imports_by is available only for SUT tables.")
+
         if not inplace:
             new = self.copy()
             new.to_region_subset(
@@ -1343,6 +1366,7 @@ class Database(CoreModel):
                 inplace=True,
                 trade_mode=trade_mode,
                 externalized_trade_layout=externalized_trade_layout,
+                imports_by=imports_by,
             )
 
             return new
@@ -1403,11 +1427,12 @@ class Database(CoreModel):
                 "externalized_trade_layout should be either 'legacy' or 'sectorized'."
             )
 
-        if self.table_type == "SUT" and (
-            trade_mode != "aggregate" or externalized_trade_layout != "legacy"
-        ):
-            raise NotImplementable(
-                "to_region_subset with trade_mode or externalized_trade_layout is currently supported only for IOT tables."
+        if self.table_type == "SUT":
+            from mario.ops.sut_region_subset import transform
+
+            return transform(
+                self, selected_regions, trade_mode=trade_mode,
+                layout=externalized_trade_layout, imports_by=imports_by,
             )
 
         excluded_regions = [
@@ -1769,6 +1794,8 @@ class Database(CoreModel):
         inplace=True,
         trade_mode="aggregate",
         externalized_trade_layout="legacy",
+        *,
+        imports_by=None,
     ):
         """Extract one region from a multi-regional database.
 
@@ -1787,6 +1814,10 @@ class Database(CoreModel):
             :meth:`to_region_subset`.
         externalized_trade_layout:
             Forwarded to :meth:`to_region_subset`.
+        imports_by:
+            SUT import classification: ``"product"`` or foreign producing
+            ``"activity"``. ``None`` retains the layout's default. See
+            :meth:`to_region_subset` for allocation and block semantics.
 
         Returns
         -------
@@ -1804,6 +1835,7 @@ class Database(CoreModel):
             inplace=inplace,
             trade_mode=trade_mode,
             externalized_trade_layout=externalized_trade_layout,
+            imports_by=imports_by,
         )
 
     def calc_linkages(

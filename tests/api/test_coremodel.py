@@ -879,18 +879,14 @@ def test_to_single_region_aggregate_matches_region_subset_single_region():
     pdt.assert_frame_equal(from_single.VY, from_subset.VY)
 
 
-def test_to_region_subset_rejects_trade_mode_for_sut():
+def test_to_region_subset_by_region_supports_sut():
     database = load_test("SUT")
 
-    with pytest.raises(
-        NotImplementable,
-        match="supported only for IOT tables",
-    ):
-        database.to_region_subset(
-            [database.get_index("Region")[0]],
-            inplace=False,
-            trade_mode="by_region",
-        )
+    subset = database.to_region_subset(
+        [database.get_index("Region")[0]], inplace=False, trade_mode="by_region",
+    )
+    assert subset.table_type == "SUT"
+    assert any(label.startswith("imports from ") for label in subset.factors)
 
 
 def test_to_region_subset_sut_legacy_no_longer_fails_on_sector_lookup():

@@ -56,6 +56,12 @@ Example verification
   captions. State characterization, allocation and numerical limits where relevant.
 * For regional footprints, verify producer and consumer attribution on a small
   cross-border example; a conserved global total can hide incorrect geography.
+  For SUT regional extraction, check use-side and supply-side imports
+  independently, including direct final-demand imports and nonzero ``Ya``.
+  Exercise unequal supplier shares and co-production when attributing imports
+  to producers; verify each source cell, both native monetary balances and
+  unchanged domestic environmental accounts. Keep sparse-path checks separate
+  from numerical comparisons so a unified matrix cannot hide a memory regression.
   For chained scenario workflows, execute the sequence through transformations
   that consume only the baseline or discard other scenarios, and check that
   earlier updates survive.

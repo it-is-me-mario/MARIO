@@ -5,6 +5,22 @@ Release History
 All notable changes to MARIO, newest first. Versions match the ``mariopy``
 package on PyPI, and dates are its publication dates.
 
+Unreleased
+----------
+
+SUT regional extraction
+~~~~~~~~~~~~~~~~~~~~~~~
+
+* Add ``imports_by="product"`` and ``imports_by="activity"`` to
+  ``to_single_region()`` and ``to_region_subset()`` for monetary SUTs.
+  Activity attribution uses source supply shares and rejects undefined
+  zero-supply allocations. Preserve optional foreign partner detail.
+* Support SUT trade modes without constructing unified transaction matrices.
+  Preserve sparse native blocks, supply-side imports in ``Vc``, use-side
+  imports in ``Va`` and imported final demand in ``VY``. Keep environmental
+  accounts and existing classifications separate, appending export columns.
+  The default SUT extraction now preserves imported final demand too.
+
 v1.3.4
 ------
 
