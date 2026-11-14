@@ -110,29 +110,80 @@ COEFFICIENT_NAMES = {"Z": "z", "S": "s", "U": "u", "V": "v", "E": "e",
                      "IMP": "imp", "IMP_a": "imp_a", "IMP_c": "imp_c"}
 
 
-def regional_pattern(trade, flow_name):
-    regions = ["R1", "R2"]
-    productive = flow_name in {"Z", "Y", "U", "S", "Ya", "Yc"}
-    origins = regions if productive else []
+def matrix_cell(flow_name, mode, *, trade=None, origin=None, destination=None):
+    """Render one native block at its declared regional coordinates."""
+    if flow_name is None:
+        return '<td class="table-map__empty"><span aria-label="No native block">—</span></td>', None
+    name = COEFFICIENT_NAMES.get(flow_name, flow_name) if mode == "coefficients" else flow_name
+    family = {"Y": "demand", "V": "factors", "E": "satellite", "I": "imports"}.get(flow_name[0], "core")
     topology = REGIONAL_TOPOLOGY.get(trade, {}).get(flow_name, "bilateral")
-    columns = len(regions) + bool(origins)
-    cells = ['<span class="table-map__region-corner" aria-hidden="true"></span>'] if origins else []
-    cells.extend(f'<span class="table-map__region-axis" aria-label="Column region {region}">{region}</span>'
-                 for region in regions)
-    for origin in origins or [None]:
-        if origin is not None:
-            cells.append(f'<span class="table-map__region-axis" aria-label="Row region {origin}">{origin}</span>')
+    zero = origin is not None and topology == "diagonal" and origin != destination
+    coordinates = ""
+    label = name
+    if destination is not None:
+        coordinates = f' data-region-to="{destination}"'
+        label += f" to {destination}"
+    if origin is not None:
+        coordinates += f' data-region-from="{origin}"'
+        label = f"{name} from {origin} to {destination}"
+    if zero:
+        label += ", structural zero"
+    cell = (f'<td class="table-map__block is-{family}{" is-zero" if zero else ""}"{coordinates}>'
+            f'<a href="#matrix-{name}" data-matrix-link="matrix-{name}" aria-label="{label}">'
+            f'<code>{"0" if zero else name}</code></a></td>')
+    return cell, name
+
+
+def regional_grid(kind, trade, mode, caption):
+    """Put Region outside the productive and final-demand classifications."""
+    layout = FORMATS[kind]
+    regions = ("R1", "R2")
+    productive_rows = 2 if kind == "sut" else 1
+    parts = ['<table class="table-map__grid table-map__grid--regional">', caption,
+             '<colgroup><col class="table-map__row-region"><col class="table-map__row-type"></colgroup>']
+    parts.extend(f'<colgroup span="{len(layout["columns"])}"></colgroup>' for _ in regions)
+    parts.append('<thead><tr><th colspan="2" rowspan="2"></th>')
+    parts.extend(f'<th scope="colgroup" colspan="{len(layout["columns"])}" '
+                 f'class="table-map__region-heading">{region}</th>' for region in regions)
+    parts.append('</tr><tr>')
+    for region in regions:
+        parts.extend(f'<th scope="col" data-region="{region}">{label}</th>' for label in layout["columns"])
+    parts.append('</tr></thead>')
+    names = []
+    for origin in regions:
+        parts.append(f'<tbody class="table-map__regional-body" data-region="{origin}">')
+        for position in range(productive_rows):
+            parts.append('<tr>')
+            if position == 0:
+                parts.append(f'<th scope="rowgroup" rowspan="{productive_rows}" '
+                             f'class="table-map__region-heading">{origin}</th>')
+            parts.append(f'<th scope="row">{layout["rows"][position]}</th>')
+            for destination in regions:
+                for flow_name in layout["blocks"][position]:
+                    cell, name = matrix_cell(flow_name, mode, trade=trade, origin=origin, destination=destination)
+                    parts.append(cell)
+                    if name is not None:
+                        names.append(name)
+            parts.append('</tr>')
+        parts.append('</tbody>')
+    parts.append('<tbody class="table-map__common-accounts">')
+    for label, row in zip(layout["rows"][productive_rows:], layout["blocks"][productive_rows:]):
+        parts.append(f'<tr><th scope="row" colspan="2">{label}</th>')
         for destination in regions:
-            zero = productive and topology == "diagonal" and origin != destination
-            route = f"{origin} to {destination}" if origin is not None else f"{destination} account column"
-            cells.append(f'<span class="{"is-zero" if zero else "is-flow"}" '
-                         f'aria-label="{route}, {"structural zero" if zero else "allowed flow"}">'
-                         f'{"0" if zero else "●"}</span>')
-    return (f'<span class="table-map__regions" style="--region-columns:{columns}" '
-            'aria-label="Regional row and column coordinates">' + ''.join(cells) + '</span>')
+            for flow_name in row:
+                cell, name = matrix_cell(flow_name, mode, destination=destination)
+                parts.append(cell)
+                names.append(name)
+        parts.append('</tr>')
+    parts.append('</tbody></table>')
+    return '\n'.join(parts), names
 
 
 def configuration_grid(kind, scope, trade, imports, mode):
+    label = trade.replace("-", " ").title() if scope == "multi-region" else imports.replace("-", " ")
+    caption = f'<caption>{kind.upper()} · {scope} · {label} · {mode} · rows × columns</caption>'
+    if scope == "multi-region":
+        return regional_grid(kind, trade, mode, caption)
     layout = FORMATS[kind]
     rows = list(layout["rows"])
     blocks = [list(row) for row in layout["blocks"]]
@@ -141,33 +192,24 @@ def configuration_grid(kind, scope, trade, imports, mode):
         imported = IMPORT_FLOW_BLOCKS[kind.upper()]
         # SUT's diagram reads commodity columns before activity columns.
         blocks.insert(-1, [imported[1], imported[0], imported[2]] if kind == "sut" else list(imported))
-    label = trade.replace("-", " ").title() if scope == "multi-region" else imports.replace("-", " ")
-    parts = ['<table class="table-map__grid">',
-             f'<caption>{kind.upper()} · {scope} · {label} · {mode} · rows × columns</caption>',
-             '<thead><tr><td></td>']
+    parts = ['<table class="table-map__grid">', caption, '<thead><tr><td></td>']
     parts.extend(f'<th scope="col">{name}</th>' for name in layout["columns"])
     parts.append('</tr></thead><tbody>')
     names = []
     for label, row in zip(rows, blocks):
         parts.append(f'<tr><th scope="row">{label}</th>')
         for flow_name in row:
-            name = COEFFICIENT_NAMES.get(flow_name, flow_name) if mode == "coefficients" else flow_name
-            if name is None:
-                parts.append('<td class="table-map__empty"><span aria-label="No native block">—</span></td>')
-                continue
-            names.append(name)
-            family = {"Y": "demand", "V": "factors", "E": "satellite", "I": "imports"}.get(flow_name[0], "core")
-            pattern = regional_pattern(trade, flow_name) if scope == "multi-region" else ""
-            parts.append(f'<td class="table-map__block is-{family}">'
-                         f'<a href="#matrix-{name}" data-matrix-link="matrix-{name}">'
-                         f'<code>{name}</code>{pattern}</a></td>')
+            cell, name = matrix_cell(flow_name, mode)
+            parts.append(cell)
+            if name is not None:
+                names.append(name)
         parts.append('</tr>')
     parts.append('</tbody></table>')
     return '\n'.join(parts), names
 
 
 def render_structure(kind, records):
-    parts = [f'<div class="table-map" data-table-map="{kind}">',
+    parts = [f'<div class="table-map is-multiregional" data-table-map="{kind}">',
              '<div class="table-map__controls" hidden>',
              '<label>Regions<select data-config="scope"><option value="multi-region">Multi-region</option>'
              '<option value="single-region">Single-region</option></select></label>']
@@ -195,7 +237,7 @@ def render_structure(kind, records):
     parts.append(f'<div class="table-map__scroll">{default_grid}</div>')
     parts.append('<p class="table-map__legend"><span data-regional-legend>'
                  'R1 and R2 identify representative regions on the axes. '
-                 '● allows a flow. 0 marks a structural zero. — marks an absent native block. </span>'
+                 'Colored matrix cells allow flows. 0 marks a structural zero. — marks an absent native block. </span>'
                  '<span data-config-explanation></span></p>')
     parts.append('<div class="table-map__definitions" aria-live="polite">')
     for name in dict.fromkeys(names):

@@ -1,44 +1,102 @@
-<div class="table-map" data-table-map="iot">
+<div class="table-map is-multiregional" data-table-map="iot">
 <div class="table-map__controls" hidden>
 <label>Regions<select data-config="scope"><option value="multi-region">Multi-region</option><option value="single-region">Single-region</option></select></label>
 <label data-import-control hidden>Imports<select data-config="imports"><option value="factor-accounts">Factor accounts</option><option value="separate">Separate blocks</option></select></label>
 <label>View<select data-config="mode"><option value="flows">Flows</option><option value="coefficients">Coefficients</option></select></label></div>
-<template data-config-grid="multi-region/bilateral/factor-accounts/flows"><table class="table-map__grid">
+<template data-config-grid="multi-region/bilateral/factor-accounts/flows"><table class="table-map__grid table-map__grid--regional">
 <caption>IOT · multi-region · Bilateral · flows · rows × columns</caption>
-<thead><tr><td></td>
-<th scope="col">Sectors</th>
-<th scope="col">Final demand</th>
-</tr></thead><tbody>
-<tr><th scope="row">Sectors</th>
-<td class="table-map__block is-core"><a href="#matrix-Z" data-matrix-link="matrix-Z"><code>Z</code><span class="table-map__regions" style="--region-columns:3" aria-label="Regional row and column coordinates"><span class="table-map__region-corner" aria-hidden="true"></span><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="table-map__region-axis" aria-label="Row region R1">R1</span><span class="is-flow" aria-label="R1 to R1, allowed flow">●</span><span class="is-flow" aria-label="R1 to R2, allowed flow">●</span><span class="table-map__region-axis" aria-label="Row region R2">R2</span><span class="is-flow" aria-label="R2 to R1, allowed flow">●</span><span class="is-flow" aria-label="R2 to R2, allowed flow">●</span></span></a></td>
-<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y"><code>Y</code><span class="table-map__regions" style="--region-columns:3" aria-label="Regional row and column coordinates"><span class="table-map__region-corner" aria-hidden="true"></span><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="table-map__region-axis" aria-label="Row region R1">R1</span><span class="is-flow" aria-label="R1 to R1, allowed flow">●</span><span class="is-flow" aria-label="R1 to R2, allowed flow">●</span><span class="table-map__region-axis" aria-label="Row region R2">R2</span><span class="is-flow" aria-label="R2 to R1, allowed flow">●</span><span class="is-flow" aria-label="R2 to R2, allowed flow">●</span></span></a></td>
+<colgroup><col class="table-map__row-region"><col class="table-map__row-type"></colgroup>
+<colgroup span="2"></colgroup>
+<colgroup span="2"></colgroup>
+<thead><tr><th colspan="2" rowspan="2"></th>
+<th scope="colgroup" colspan="2" class="table-map__region-heading">R1</th>
+<th scope="colgroup" colspan="2" class="table-map__region-heading">R2</th>
+</tr><tr>
+<th scope="col" data-region="R1">Sectors</th>
+<th scope="col" data-region="R1">Final demand</th>
+<th scope="col" data-region="R2">Sectors</th>
+<th scope="col" data-region="R2">Final demand</th>
+</tr></thead>
+<tbody class="table-map__regional-body" data-region="R1">
+<tr>
+<th scope="rowgroup" rowspan="1" class="table-map__region-heading">R1</th>
+<th scope="row">Sectors</th>
+<td class="table-map__block is-core" data-region-to="R1" data-region-from="R1"><a href="#matrix-Z" data-matrix-link="matrix-Z" aria-label="Z from R1 to R1"><code>Z</code></a></td>
+<td class="table-map__block is-demand" data-region-to="R1" data-region-from="R1"><a href="#matrix-Y" data-matrix-link="matrix-Y" aria-label="Y from R1 to R1"><code>Y</code></a></td>
+<td class="table-map__block is-core" data-region-to="R2" data-region-from="R1"><a href="#matrix-Z" data-matrix-link="matrix-Z" aria-label="Z from R1 to R2"><code>Z</code></a></td>
+<td class="table-map__block is-demand" data-region-to="R2" data-region-from="R1"><a href="#matrix-Y" data-matrix-link="matrix-Y" aria-label="Y from R1 to R2"><code>Y</code></a></td>
 </tr>
-<tr><th scope="row">Factors</th>
-<td class="table-map__block is-factors"><a href="#matrix-V" data-matrix-link="matrix-V"><code>V</code><span class="table-map__regions" style="--region-columns:2" aria-label="Regional row and column coordinates"><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="is-flow" aria-label="R1 account column, allowed flow">●</span><span class="is-flow" aria-label="R2 account column, allowed flow">●</span></span></a></td>
-<td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY"><code>VY</code><span class="table-map__regions" style="--region-columns:2" aria-label="Regional row and column coordinates"><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="is-flow" aria-label="R1 account column, allowed flow">●</span><span class="is-flow" aria-label="R2 account column, allowed flow">●</span></span></a></td>
+</tbody>
+<tbody class="table-map__regional-body" data-region="R2">
+<tr>
+<th scope="rowgroup" rowspan="1" class="table-map__region-heading">R2</th>
+<th scope="row">Sectors</th>
+<td class="table-map__block is-core" data-region-to="R1" data-region-from="R2"><a href="#matrix-Z" data-matrix-link="matrix-Z" aria-label="Z from R2 to R1"><code>Z</code></a></td>
+<td class="table-map__block is-demand" data-region-to="R1" data-region-from="R2"><a href="#matrix-Y" data-matrix-link="matrix-Y" aria-label="Y from R2 to R1"><code>Y</code></a></td>
+<td class="table-map__block is-core" data-region-to="R2" data-region-from="R2"><a href="#matrix-Z" data-matrix-link="matrix-Z" aria-label="Z from R2 to R2"><code>Z</code></a></td>
+<td class="table-map__block is-demand" data-region-to="R2" data-region-from="R2"><a href="#matrix-Y" data-matrix-link="matrix-Y" aria-label="Y from R2 to R2"><code>Y</code></a></td>
 </tr>
-<tr><th scope="row">Satellite accounts</th>
-<td class="table-map__block is-satellite"><a href="#matrix-E" data-matrix-link="matrix-E"><code>E</code><span class="table-map__regions" style="--region-columns:2" aria-label="Regional row and column coordinates"><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="is-flow" aria-label="R1 account column, allowed flow">●</span><span class="is-flow" aria-label="R2 account column, allowed flow">●</span></span></a></td>
-<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY"><code>EY</code><span class="table-map__regions" style="--region-columns:2" aria-label="Regional row and column coordinates"><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="is-flow" aria-label="R1 account column, allowed flow">●</span><span class="is-flow" aria-label="R2 account column, allowed flow">●</span></span></a></td>
+</tbody>
+<tbody class="table-map__common-accounts">
+<tr><th scope="row" colspan="2">Factors</th>
+<td class="table-map__block is-factors" data-region-to="R1"><a href="#matrix-V" data-matrix-link="matrix-V" aria-label="V to R1"><code>V</code></a></td>
+<td class="table-map__block is-factors" data-region-to="R1"><a href="#matrix-VY" data-matrix-link="matrix-VY" aria-label="VY to R1"><code>VY</code></a></td>
+<td class="table-map__block is-factors" data-region-to="R2"><a href="#matrix-V" data-matrix-link="matrix-V" aria-label="V to R2"><code>V</code></a></td>
+<td class="table-map__block is-factors" data-region-to="R2"><a href="#matrix-VY" data-matrix-link="matrix-VY" aria-label="VY to R2"><code>VY</code></a></td>
+</tr>
+<tr><th scope="row" colspan="2">Satellite accounts</th>
+<td class="table-map__block is-satellite" data-region-to="R1"><a href="#matrix-E" data-matrix-link="matrix-E" aria-label="E to R1"><code>E</code></a></td>
+<td class="table-map__block is-satellite" data-region-to="R1"><a href="#matrix-EY" data-matrix-link="matrix-EY" aria-label="EY to R1"><code>EY</code></a></td>
+<td class="table-map__block is-satellite" data-region-to="R2"><a href="#matrix-E" data-matrix-link="matrix-E" aria-label="E to R2"><code>E</code></a></td>
+<td class="table-map__block is-satellite" data-region-to="R2"><a href="#matrix-EY" data-matrix-link="matrix-EY" aria-label="EY to R2"><code>EY</code></a></td>
 </tr>
 </tbody></table></template>
-<template data-config-grid="multi-region/bilateral/factor-accounts/coefficients"><table class="table-map__grid">
+<template data-config-grid="multi-region/bilateral/factor-accounts/coefficients"><table class="table-map__grid table-map__grid--regional">
 <caption>IOT · multi-region · Bilateral · coefficients · rows × columns</caption>
-<thead><tr><td></td>
-<th scope="col">Sectors</th>
-<th scope="col">Final demand</th>
-</tr></thead><tbody>
-<tr><th scope="row">Sectors</th>
-<td class="table-map__block is-core"><a href="#matrix-z" data-matrix-link="matrix-z"><code>z</code><span class="table-map__regions" style="--region-columns:3" aria-label="Regional row and column coordinates"><span class="table-map__region-corner" aria-hidden="true"></span><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="table-map__region-axis" aria-label="Row region R1">R1</span><span class="is-flow" aria-label="R1 to R1, allowed flow">●</span><span class="is-flow" aria-label="R1 to R2, allowed flow">●</span><span class="table-map__region-axis" aria-label="Row region R2">R2</span><span class="is-flow" aria-label="R2 to R1, allowed flow">●</span><span class="is-flow" aria-label="R2 to R2, allowed flow">●</span></span></a></td>
-<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y"><code>Y</code><span class="table-map__regions" style="--region-columns:3" aria-label="Regional row and column coordinates"><span class="table-map__region-corner" aria-hidden="true"></span><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="table-map__region-axis" aria-label="Row region R1">R1</span><span class="is-flow" aria-label="R1 to R1, allowed flow">●</span><span class="is-flow" aria-label="R1 to R2, allowed flow">●</span><span class="table-map__region-axis" aria-label="Row region R2">R2</span><span class="is-flow" aria-label="R2 to R1, allowed flow">●</span><span class="is-flow" aria-label="R2 to R2, allowed flow">●</span></span></a></td>
+<colgroup><col class="table-map__row-region"><col class="table-map__row-type"></colgroup>
+<colgroup span="2"></colgroup>
+<colgroup span="2"></colgroup>
+<thead><tr><th colspan="2" rowspan="2"></th>
+<th scope="colgroup" colspan="2" class="table-map__region-heading">R1</th>
+<th scope="colgroup" colspan="2" class="table-map__region-heading">R2</th>
+</tr><tr>
+<th scope="col" data-region="R1">Sectors</th>
+<th scope="col" data-region="R1">Final demand</th>
+<th scope="col" data-region="R2">Sectors</th>
+<th scope="col" data-region="R2">Final demand</th>
+</tr></thead>
+<tbody class="table-map__regional-body" data-region="R1">
+<tr>
+<th scope="rowgroup" rowspan="1" class="table-map__region-heading">R1</th>
+<th scope="row">Sectors</th>
+<td class="table-map__block is-core" data-region-to="R1" data-region-from="R1"><a href="#matrix-z" data-matrix-link="matrix-z" aria-label="z from R1 to R1"><code>z</code></a></td>
+<td class="table-map__block is-demand" data-region-to="R1" data-region-from="R1"><a href="#matrix-Y" data-matrix-link="matrix-Y" aria-label="Y from R1 to R1"><code>Y</code></a></td>
+<td class="table-map__block is-core" data-region-to="R2" data-region-from="R1"><a href="#matrix-z" data-matrix-link="matrix-z" aria-label="z from R1 to R2"><code>z</code></a></td>
+<td class="table-map__block is-demand" data-region-to="R2" data-region-from="R1"><a href="#matrix-Y" data-matrix-link="matrix-Y" aria-label="Y from R1 to R2"><code>Y</code></a></td>
 </tr>
-<tr><th scope="row">Factors</th>
-<td class="table-map__block is-factors"><a href="#matrix-v" data-matrix-link="matrix-v"><code>v</code><span class="table-map__regions" style="--region-columns:2" aria-label="Regional row and column coordinates"><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="is-flow" aria-label="R1 account column, allowed flow">●</span><span class="is-flow" aria-label="R2 account column, allowed flow">●</span></span></a></td>
-<td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY"><code>VY</code><span class="table-map__regions" style="--region-columns:2" aria-label="Regional row and column coordinates"><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="is-flow" aria-label="R1 account column, allowed flow">●</span><span class="is-flow" aria-label="R2 account column, allowed flow">●</span></span></a></td>
+</tbody>
+<tbody class="table-map__regional-body" data-region="R2">
+<tr>
+<th scope="rowgroup" rowspan="1" class="table-map__region-heading">R2</th>
+<th scope="row">Sectors</th>
+<td class="table-map__block is-core" data-region-to="R1" data-region-from="R2"><a href="#matrix-z" data-matrix-link="matrix-z" aria-label="z from R2 to R1"><code>z</code></a></td>
+<td class="table-map__block is-demand" data-region-to="R1" data-region-from="R2"><a href="#matrix-Y" data-matrix-link="matrix-Y" aria-label="Y from R2 to R1"><code>Y</code></a></td>
+<td class="table-map__block is-core" data-region-to="R2" data-region-from="R2"><a href="#matrix-z" data-matrix-link="matrix-z" aria-label="z from R2 to R2"><code>z</code></a></td>
+<td class="table-map__block is-demand" data-region-to="R2" data-region-from="R2"><a href="#matrix-Y" data-matrix-link="matrix-Y" aria-label="Y from R2 to R2"><code>Y</code></a></td>
 </tr>
-<tr><th scope="row">Satellite accounts</th>
-<td class="table-map__block is-satellite"><a href="#matrix-e" data-matrix-link="matrix-e"><code>e</code><span class="table-map__regions" style="--region-columns:2" aria-label="Regional row and column coordinates"><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="is-flow" aria-label="R1 account column, allowed flow">●</span><span class="is-flow" aria-label="R2 account column, allowed flow">●</span></span></a></td>
-<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY"><code>EY</code><span class="table-map__regions" style="--region-columns:2" aria-label="Regional row and column coordinates"><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="is-flow" aria-label="R1 account column, allowed flow">●</span><span class="is-flow" aria-label="R2 account column, allowed flow">●</span></span></a></td>
+</tbody>
+<tbody class="table-map__common-accounts">
+<tr><th scope="row" colspan="2">Factors</th>
+<td class="table-map__block is-factors" data-region-to="R1"><a href="#matrix-v" data-matrix-link="matrix-v" aria-label="v to R1"><code>v</code></a></td>
+<td class="table-map__block is-factors" data-region-to="R1"><a href="#matrix-VY" data-matrix-link="matrix-VY" aria-label="VY to R1"><code>VY</code></a></td>
+<td class="table-map__block is-factors" data-region-to="R2"><a href="#matrix-v" data-matrix-link="matrix-v" aria-label="v to R2"><code>v</code></a></td>
+<td class="table-map__block is-factors" data-region-to="R2"><a href="#matrix-VY" data-matrix-link="matrix-VY" aria-label="VY to R2"><code>VY</code></a></td>
+</tr>
+<tr><th scope="row" colspan="2">Satellite accounts</th>
+<td class="table-map__block is-satellite" data-region-to="R1"><a href="#matrix-e" data-matrix-link="matrix-e" aria-label="e to R1"><code>e</code></a></td>
+<td class="table-map__block is-satellite" data-region-to="R1"><a href="#matrix-EY" data-matrix-link="matrix-EY" aria-label="EY to R1"><code>EY</code></a></td>
+<td class="table-map__block is-satellite" data-region-to="R2"><a href="#matrix-e" data-matrix-link="matrix-e" aria-label="e to R2"><code>e</code></a></td>
+<td class="table-map__block is-satellite" data-region-to="R2"><a href="#matrix-EY" data-matrix-link="matrix-EY" aria-label="EY to R2"><code>EY</code></a></td>
 </tr>
 </tbody></table></template>
 <template data-config-grid="single-region/external-trade/factor-accounts/flows"><table class="table-map__grid">
@@ -48,16 +106,16 @@
 <th scope="col">Final demand</th>
 </tr></thead><tbody>
 <tr><th scope="row">Sectors</th>
-<td class="table-map__block is-core"><a href="#matrix-Z" data-matrix-link="matrix-Z"><code>Z</code></a></td>
-<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y"><code>Y</code></a></td>
+<td class="table-map__block is-core"><a href="#matrix-Z" data-matrix-link="matrix-Z" aria-label="Z"><code>Z</code></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y" aria-label="Y"><code>Y</code></a></td>
 </tr>
 <tr><th scope="row">Factors</th>
-<td class="table-map__block is-factors"><a href="#matrix-V" data-matrix-link="matrix-V"><code>V</code></a></td>
-<td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY"><code>VY</code></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-V" data-matrix-link="matrix-V" aria-label="V"><code>V</code></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY" aria-label="VY"><code>VY</code></a></td>
 </tr>
 <tr><th scope="row">Satellite accounts</th>
-<td class="table-map__block is-satellite"><a href="#matrix-E" data-matrix-link="matrix-E"><code>E</code></a></td>
-<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY"><code>EY</code></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-E" data-matrix-link="matrix-E" aria-label="E"><code>E</code></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY" aria-label="EY"><code>EY</code></a></td>
 </tr>
 </tbody></table></template>
 <template data-config-grid="single-region/external-trade/factor-accounts/coefficients"><table class="table-map__grid">
@@ -67,16 +125,16 @@
 <th scope="col">Final demand</th>
 </tr></thead><tbody>
 <tr><th scope="row">Sectors</th>
-<td class="table-map__block is-core"><a href="#matrix-z" data-matrix-link="matrix-z"><code>z</code></a></td>
-<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y"><code>Y</code></a></td>
+<td class="table-map__block is-core"><a href="#matrix-z" data-matrix-link="matrix-z" aria-label="z"><code>z</code></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y" aria-label="Y"><code>Y</code></a></td>
 </tr>
 <tr><th scope="row">Factors</th>
-<td class="table-map__block is-factors"><a href="#matrix-v" data-matrix-link="matrix-v"><code>v</code></a></td>
-<td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY"><code>VY</code></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-v" data-matrix-link="matrix-v" aria-label="v"><code>v</code></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY" aria-label="VY"><code>VY</code></a></td>
 </tr>
 <tr><th scope="row">Satellite accounts</th>
-<td class="table-map__block is-satellite"><a href="#matrix-e" data-matrix-link="matrix-e"><code>e</code></a></td>
-<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY"><code>EY</code></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-e" data-matrix-link="matrix-e" aria-label="e"><code>e</code></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY" aria-label="EY"><code>EY</code></a></td>
 </tr>
 </tbody></table></template>
 <template data-config-grid="single-region/external-trade/separate/flows"><table class="table-map__grid">
@@ -86,20 +144,20 @@
 <th scope="col">Final demand</th>
 </tr></thead><tbody>
 <tr><th scope="row">Sectors</th>
-<td class="table-map__block is-core"><a href="#matrix-Z" data-matrix-link="matrix-Z"><code>Z</code></a></td>
-<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y"><code>Y</code></a></td>
+<td class="table-map__block is-core"><a href="#matrix-Z" data-matrix-link="matrix-Z" aria-label="Z"><code>Z</code></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y" aria-label="Y"><code>Y</code></a></td>
 </tr>
 <tr><th scope="row">Factors</th>
-<td class="table-map__block is-factors"><a href="#matrix-V" data-matrix-link="matrix-V"><code>V</code></a></td>
-<td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY"><code>VY</code></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-V" data-matrix-link="matrix-V" aria-label="V"><code>V</code></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY" aria-label="VY"><code>VY</code></a></td>
 </tr>
 <tr><th scope="row">External imports</th>
-<td class="table-map__block is-imports"><a href="#matrix-IMP" data-matrix-link="matrix-IMP"><code>IMP</code></a></td>
-<td class="table-map__block is-imports"><a href="#matrix-IMP_Y" data-matrix-link="matrix-IMP_Y"><code>IMP_Y</code></a></td>
+<td class="table-map__block is-imports"><a href="#matrix-IMP" data-matrix-link="matrix-IMP" aria-label="IMP"><code>IMP</code></a></td>
+<td class="table-map__block is-imports"><a href="#matrix-IMP_Y" data-matrix-link="matrix-IMP_Y" aria-label="IMP_Y"><code>IMP_Y</code></a></td>
 </tr>
 <tr><th scope="row">Satellite accounts</th>
-<td class="table-map__block is-satellite"><a href="#matrix-E" data-matrix-link="matrix-E"><code>E</code></a></td>
-<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY"><code>EY</code></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-E" data-matrix-link="matrix-E" aria-label="E"><code>E</code></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY" aria-label="EY"><code>EY</code></a></td>
 </tr>
 </tbody></table></template>
 <template data-config-grid="single-region/external-trade/separate/coefficients"><table class="table-map__grid">
@@ -109,42 +167,71 @@
 <th scope="col">Final demand</th>
 </tr></thead><tbody>
 <tr><th scope="row">Sectors</th>
-<td class="table-map__block is-core"><a href="#matrix-z" data-matrix-link="matrix-z"><code>z</code></a></td>
-<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y"><code>Y</code></a></td>
+<td class="table-map__block is-core"><a href="#matrix-z" data-matrix-link="matrix-z" aria-label="z"><code>z</code></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y" aria-label="Y"><code>Y</code></a></td>
 </tr>
 <tr><th scope="row">Factors</th>
-<td class="table-map__block is-factors"><a href="#matrix-v" data-matrix-link="matrix-v"><code>v</code></a></td>
-<td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY"><code>VY</code></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-v" data-matrix-link="matrix-v" aria-label="v"><code>v</code></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY" aria-label="VY"><code>VY</code></a></td>
 </tr>
 <tr><th scope="row">External imports</th>
-<td class="table-map__block is-imports"><a href="#matrix-imp" data-matrix-link="matrix-imp"><code>imp</code></a></td>
-<td class="table-map__block is-imports"><a href="#matrix-IMP_Y" data-matrix-link="matrix-IMP_Y"><code>IMP_Y</code></a></td>
+<td class="table-map__block is-imports"><a href="#matrix-imp" data-matrix-link="matrix-imp" aria-label="imp"><code>imp</code></a></td>
+<td class="table-map__block is-imports"><a href="#matrix-IMP_Y" data-matrix-link="matrix-IMP_Y" aria-label="IMP_Y"><code>IMP_Y</code></a></td>
 </tr>
 <tr><th scope="row">Satellite accounts</th>
-<td class="table-map__block is-satellite"><a href="#matrix-e" data-matrix-link="matrix-e"><code>e</code></a></td>
-<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY"><code>EY</code></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-e" data-matrix-link="matrix-e" aria-label="e"><code>e</code></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY" aria-label="EY"><code>EY</code></a></td>
 </tr>
 </tbody></table></template>
-<div class="table-map__scroll"><table class="table-map__grid">
+<div class="table-map__scroll"><table class="table-map__grid table-map__grid--regional">
 <caption>IOT · multi-region · Bilateral · flows · rows × columns</caption>
-<thead><tr><td></td>
-<th scope="col">Sectors</th>
-<th scope="col">Final demand</th>
-</tr></thead><tbody>
-<tr><th scope="row">Sectors</th>
-<td class="table-map__block is-core"><a href="#matrix-Z" data-matrix-link="matrix-Z"><code>Z</code><span class="table-map__regions" style="--region-columns:3" aria-label="Regional row and column coordinates"><span class="table-map__region-corner" aria-hidden="true"></span><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="table-map__region-axis" aria-label="Row region R1">R1</span><span class="is-flow" aria-label="R1 to R1, allowed flow">●</span><span class="is-flow" aria-label="R1 to R2, allowed flow">●</span><span class="table-map__region-axis" aria-label="Row region R2">R2</span><span class="is-flow" aria-label="R2 to R1, allowed flow">●</span><span class="is-flow" aria-label="R2 to R2, allowed flow">●</span></span></a></td>
-<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y"><code>Y</code><span class="table-map__regions" style="--region-columns:3" aria-label="Regional row and column coordinates"><span class="table-map__region-corner" aria-hidden="true"></span><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="table-map__region-axis" aria-label="Row region R1">R1</span><span class="is-flow" aria-label="R1 to R1, allowed flow">●</span><span class="is-flow" aria-label="R1 to R2, allowed flow">●</span><span class="table-map__region-axis" aria-label="Row region R2">R2</span><span class="is-flow" aria-label="R2 to R1, allowed flow">●</span><span class="is-flow" aria-label="R2 to R2, allowed flow">●</span></span></a></td>
+<colgroup><col class="table-map__row-region"><col class="table-map__row-type"></colgroup>
+<colgroup span="2"></colgroup>
+<colgroup span="2"></colgroup>
+<thead><tr><th colspan="2" rowspan="2"></th>
+<th scope="colgroup" colspan="2" class="table-map__region-heading">R1</th>
+<th scope="colgroup" colspan="2" class="table-map__region-heading">R2</th>
+</tr><tr>
+<th scope="col" data-region="R1">Sectors</th>
+<th scope="col" data-region="R1">Final demand</th>
+<th scope="col" data-region="R2">Sectors</th>
+<th scope="col" data-region="R2">Final demand</th>
+</tr></thead>
+<tbody class="table-map__regional-body" data-region="R1">
+<tr>
+<th scope="rowgroup" rowspan="1" class="table-map__region-heading">R1</th>
+<th scope="row">Sectors</th>
+<td class="table-map__block is-core" data-region-to="R1" data-region-from="R1"><a href="#matrix-Z" data-matrix-link="matrix-Z" aria-label="Z from R1 to R1"><code>Z</code></a></td>
+<td class="table-map__block is-demand" data-region-to="R1" data-region-from="R1"><a href="#matrix-Y" data-matrix-link="matrix-Y" aria-label="Y from R1 to R1"><code>Y</code></a></td>
+<td class="table-map__block is-core" data-region-to="R2" data-region-from="R1"><a href="#matrix-Z" data-matrix-link="matrix-Z" aria-label="Z from R1 to R2"><code>Z</code></a></td>
+<td class="table-map__block is-demand" data-region-to="R2" data-region-from="R1"><a href="#matrix-Y" data-matrix-link="matrix-Y" aria-label="Y from R1 to R2"><code>Y</code></a></td>
 </tr>
-<tr><th scope="row">Factors</th>
-<td class="table-map__block is-factors"><a href="#matrix-V" data-matrix-link="matrix-V"><code>V</code><span class="table-map__regions" style="--region-columns:2" aria-label="Regional row and column coordinates"><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="is-flow" aria-label="R1 account column, allowed flow">●</span><span class="is-flow" aria-label="R2 account column, allowed flow">●</span></span></a></td>
-<td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY"><code>VY</code><span class="table-map__regions" style="--region-columns:2" aria-label="Regional row and column coordinates"><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="is-flow" aria-label="R1 account column, allowed flow">●</span><span class="is-flow" aria-label="R2 account column, allowed flow">●</span></span></a></td>
+</tbody>
+<tbody class="table-map__regional-body" data-region="R2">
+<tr>
+<th scope="rowgroup" rowspan="1" class="table-map__region-heading">R2</th>
+<th scope="row">Sectors</th>
+<td class="table-map__block is-core" data-region-to="R1" data-region-from="R2"><a href="#matrix-Z" data-matrix-link="matrix-Z" aria-label="Z from R2 to R1"><code>Z</code></a></td>
+<td class="table-map__block is-demand" data-region-to="R1" data-region-from="R2"><a href="#matrix-Y" data-matrix-link="matrix-Y" aria-label="Y from R2 to R1"><code>Y</code></a></td>
+<td class="table-map__block is-core" data-region-to="R2" data-region-from="R2"><a href="#matrix-Z" data-matrix-link="matrix-Z" aria-label="Z from R2 to R2"><code>Z</code></a></td>
+<td class="table-map__block is-demand" data-region-to="R2" data-region-from="R2"><a href="#matrix-Y" data-matrix-link="matrix-Y" aria-label="Y from R2 to R2"><code>Y</code></a></td>
 </tr>
-<tr><th scope="row">Satellite accounts</th>
-<td class="table-map__block is-satellite"><a href="#matrix-E" data-matrix-link="matrix-E"><code>E</code><span class="table-map__regions" style="--region-columns:2" aria-label="Regional row and column coordinates"><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="is-flow" aria-label="R1 account column, allowed flow">●</span><span class="is-flow" aria-label="R2 account column, allowed flow">●</span></span></a></td>
-<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY"><code>EY</code><span class="table-map__regions" style="--region-columns:2" aria-label="Regional row and column coordinates"><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="is-flow" aria-label="R1 account column, allowed flow">●</span><span class="is-flow" aria-label="R2 account column, allowed flow">●</span></span></a></td>
+</tbody>
+<tbody class="table-map__common-accounts">
+<tr><th scope="row" colspan="2">Factors</th>
+<td class="table-map__block is-factors" data-region-to="R1"><a href="#matrix-V" data-matrix-link="matrix-V" aria-label="V to R1"><code>V</code></a></td>
+<td class="table-map__block is-factors" data-region-to="R1"><a href="#matrix-VY" data-matrix-link="matrix-VY" aria-label="VY to R1"><code>VY</code></a></td>
+<td class="table-map__block is-factors" data-region-to="R2"><a href="#matrix-V" data-matrix-link="matrix-V" aria-label="V to R2"><code>V</code></a></td>
+<td class="table-map__block is-factors" data-region-to="R2"><a href="#matrix-VY" data-matrix-link="matrix-VY" aria-label="VY to R2"><code>VY</code></a></td>
+</tr>
+<tr><th scope="row" colspan="2">Satellite accounts</th>
+<td class="table-map__block is-satellite" data-region-to="R1"><a href="#matrix-E" data-matrix-link="matrix-E" aria-label="E to R1"><code>E</code></a></td>
+<td class="table-map__block is-satellite" data-region-to="R1"><a href="#matrix-EY" data-matrix-link="matrix-EY" aria-label="EY to R1"><code>EY</code></a></td>
+<td class="table-map__block is-satellite" data-region-to="R2"><a href="#matrix-E" data-matrix-link="matrix-E" aria-label="E to R2"><code>E</code></a></td>
+<td class="table-map__block is-satellite" data-region-to="R2"><a href="#matrix-EY" data-matrix-link="matrix-EY" aria-label="EY to R2"><code>EY</code></a></td>
 </tr>
 </tbody></table></div>
-<p class="table-map__legend"><span data-regional-legend>R1 and R2 identify representative regions on the axes. ● allows a flow. 0 marks a structural zero. — marks an absent native block. </span><span data-config-explanation></span></p>
+<p class="table-map__legend"><span data-regional-legend>R1 and R2 identify representative regions on the axes. Colored matrix cells allow flows. 0 marks a structural zero. — marks an absent native block. </span><span data-config-explanation></span></p>
 <div class="table-map__definitions" aria-live="polite">
 <section id="matrix-Z" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Z</code></p><p class="table-map__description">Intersectoral transaction flows matrix</p><dl><dt>Rows</dt><dd>Region, Sector</dd><dt>Columns</dt><dd>Region, Sector</dd></dl></section>
 <section id="matrix-Y" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Y</code></p><p class="table-map__description">Final demand matrix</p><dl><dt>Rows</dt><dd>Region, Sector</dd><dt>Columns</dt><dd>Region, Consumption category</dd></dl></section>

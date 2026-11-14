@@ -24,6 +24,9 @@ source notices, and absence of raw notebook sources. It does not execute example
 check external URLs or assess scientific correctness and visual quality.
 For format/nomenclature changes, also verify IOT/SUT block selection, keyboard
 activation and old Nomenclature/technology-assumption URLs with their fragments.
+Check outer Region row/column groups, the productive and final-demand headers
+inside them, and structural zeros at their actual origin/destination coordinates.
+``tests/docs/test_table_configurations.py`` checks the generated layouts.
 
 Run existing tests relevant to the change. For public APIs or notebook downloads::
 

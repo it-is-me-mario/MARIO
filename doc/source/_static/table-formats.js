@@ -33,6 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
         .find((node) => node.dataset.configGrid === key);
       if (!template) return;
       scroll.replaceChildren(template.content.cloneNode(true));
+      map.classList.toggle("is-multiregional", multi);
       map.querySelector("[data-import-control]").hidden = multi;
       const tradeControl = map.querySelector("[data-trade-control]");
       if (tradeControl) tradeControl.hidden = !multi;
