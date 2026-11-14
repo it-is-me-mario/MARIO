@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import MutableMapping
+import json
+from collections.abc import Mapping, MutableMapping
 from contextlib import contextmanager
 import inspect
 from pathlib import Path
@@ -46,16 +47,18 @@ _SUT_NATIVE_MATRIX_EXPORT_MATRICES = {
 
 def _matrix_export_names(database, mode: str) -> list[str]:
     """Return the matrix names to export for one database and mode."""
-    if database.table_type == "SUT":
-        return _SUT_NATIVE_MATRIX_EXPORT_MATRICES[mode]
-    return _MATRIX_EXPORT_MATRICES[mode]
+    from mario.model.configuration import import_blocks
+
+    standard = _SUT_NATIVE_MATRIX_EXPORT_MATRICES if database.table_type == "SUT" else _MATRIX_EXPORT_MATRICES
+    return [*standard[mode], *import_blocks(database, mode)]
 
 
 def _flat_export_names(database, mode: str) -> list[str]:
     """Return the flat matrix names to export for one database and mode."""
-    if database.table_type == "SUT":
-        return _SUT_NATIVE_MATRIX_EXPORT_MATRICES[mode]
-    return _FLAT_EXPORT_MATRICES[mode]
+    from mario.model.configuration import import_blocks
+
+    standard = _SUT_NATIVE_MATRIX_EXPORT_MATRICES if database.table_type == "SUT" else _FLAT_EXPORT_MATRICES
+    return [*standard[mode], *import_blocks(database, mode)]
 
 
 class _AxisOneGroupBy:
@@ -285,6 +288,9 @@ def _export_flat_directory(
 ) -> None:
     """Export one scenario as a single flat data file plus units."""
     root.mkdir(parents=True, exist_ok=True)
+    from mario.ops.accounting_export import write_accounting_manifest
+
+    write_accounting_manifest(database, root, scenario, mode)
     export_matrices = _flat_export_names(database, mode)
     matrices = database.query(
         matrices=export_matrices,
@@ -341,6 +347,9 @@ def _export_matrix_directory(
 ) -> None:
     """Export one scenario as one file per matrix plus a units file."""
     root.mkdir(parents=True, exist_ok=True)
+    from mario.ops.accounting_export import write_accounting_manifest
+
+    write_accounting_manifest(database, root, scenario, mode)
     matrices = database.query(
         matrices=_matrix_export_names(database, mode),
         scenarios=[scenario],
@@ -368,6 +377,7 @@ def _export_matrix_directory(
 _FLOW_MATRIX_NAMES = {
     "Z", "Y", "V", "E", "EY", "VY", "X",
     "U", "S", "Ya", "Yc", "Va", "Vc", "Ea", "Ec",
+    "IMP", "IMP_a", "IMP_c", "IMP_Y", "IM", "IM_a", "IM_c",
 }
 
 _NUMERATOR_SET_PRIORITY = (
@@ -558,6 +568,14 @@ def _matrix_flat_with_units(
     flat = _matrix_to_flat_frame(matrix_name, frame, scenario=scenario)
     is_coefficient = matrix_name not in _FLOW_MATRIX_NAMES
     unit = _flat_units_column(flat, lookups, is_coefficient=is_coefficient)
+    if matrix_name.startswith(("IMP", "imp", "IM", "im")):
+        from mario.model.configuration import configuration_values
+
+        numerator = configuration_values(database).get("import_unit", "")
+        unit = pd.Series(numerator, index=flat.index)
+        if is_coefficient:
+            denominator = _resolve_side_units(flat, lookups, side="to", priority=_DENOMINATOR_SET_PRIORITY)
+            unit = unit + "/" + denominator
     flat.insert(len(flat.columns) - 1, "Unit", unit)
     return _apply_export_filters(flat, filters)
 
@@ -843,6 +861,46 @@ def export_database_matrices(
     log_time(logger, f"Export: matrix-specific {format} export written to {export_root}.", "info")
 
 
+def export_database_sets(database, *, path=None, include_scenarios=True) -> Path:
+    """Write native MARIO set names and members without resolving matrices."""
+    if not isinstance(include_scenarios, bool):
+        raise WrongInput("include_scenarios must be True or False.")
+
+    frames = {}
+    for name, members in database.get_index("all").items():
+        if isinstance(members, Mapping):
+            frames[name] = pd.DataFrame(
+                [(region, item) for region, items in members.items() for item in items],
+                columns=[_MASTER_INDEX["r"], name],
+            )
+        else:
+            frames[name] = pd.DataFrame({name: members})
+    if include_scenarios:
+        frames["Scenario"] = pd.DataFrame({"Scenario": database.scenarios})
+
+    output_path = Path(database._getdir(path, "Database", "sets.xlsx"))
+    if output_path.is_dir() or not output_path.suffix:
+        output_path /= "sets.xlsx"
+    if output_path.suffix.lower() != ".xlsx":
+        raise WrongInput("Set exports require an .xlsx workbook path or a directory.")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with pd.ExcelWriter(
+        output_path,
+        engine="xlsxwriter",
+        engine_kwargs={"options": {"strings_to_formulas": False, "strings_to_urls": False}},
+    ) as writer:
+        for name, frame in frames.items():
+            frame.to_excel(writer, sheet_name=name, index=False, freeze_panes=(1, 0))
+            worksheet = writer.sheets[name]
+            for column, label in enumerate(frame.columns):
+                width = max([len(str(label)), *(len(str(v)) for v in frame[label])]) + 2
+                worksheet.set_column(column, column, min(width, 255))
+            worksheet.autofilter(0, 0, len(frame), len(frame.columns) - 1)
+    log_time(logger, f"Export: sets written to {output_path}.", "info")
+    return output_path
+
+
 def export_database_to_excel(
     database,
     *,
@@ -873,6 +931,24 @@ def export_database_to_excel(
         str(output_path),
         scenario,
     )
+
+    from mario.ops.accounting_export import accounting_manifest
+
+    manifest = accounting_manifest(database, scenario, "flows" if flows else "coefficients")
+    if manifest:
+        from mario.model.configuration import import_blocks
+        from mario.parsers.accounting import EXCEL_MANIFEST
+
+        with pd.ExcelWriter(output_path, engine="openpyxl", mode="a") as writer:
+            for mode, enabled in (("flows", flows), ("coefficients", coefficients)):
+                if enabled:
+                    manifest[mode] = accounting_manifest(database, scenario, mode)
+                    for block in import_blocks(database, mode):
+                        frame = _coerce_sparse_columns_to_dense(database.resolve(block, scenario=scenario))
+                        frame.to_excel(writer, sheet_name=f"{mode}_{block}")
+            pd.DataFrame([[json.dumps(manifest, ensure_ascii=False)]]).to_excel(
+                writer, sheet_name=EXCEL_MANIFEST, header=False, index=False,
+            )
 
     if include_meta:
         _write_metadata_file(database, output_path.parent)

@@ -37,6 +37,10 @@ one; on a larger MRIO, ``regions_to_keep`` can contain several regions.
 External trade accounts
 -----------------------
 
+For native import matrices, pass ``import_representation="separate"`` when
+retaining one region. See :doc:`separate import accounts <import_accounts>`
+for the IOT/SUT blocks, coefficients and reversible conversion.
+
 .. code-block:: python
 
    regional.factors

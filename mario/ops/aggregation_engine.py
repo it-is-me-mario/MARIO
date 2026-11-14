@@ -758,7 +758,9 @@ def _aggregate_sut_split_flows(instance, drop, agg_indeces: dict, *, zero_output
             zero_output_epsilon,
         )
 
-        for matrix_name in _SUT_SPLIT_FLOW_BLOCKS:
+        from mario.model.configuration import import_blocks
+
+        for matrix_name in (*_SUT_SPLIT_FLOW_BLOCKS, *import_blocks(instance)):
             block = flow_overrides.get(matrix_name)
             if block is None:
                 block = _scenario_sut_block(instance, values, scenario, matrix_name)
@@ -873,7 +875,9 @@ def _aggregator(instance, drop, *, zero_output_epsilon: float | None = None):
             zero_output_epsilon,
         )
 
-        for matrix in [_ENUM.Z, _ENUM.E, _ENUM.V, _ENUM.EY, _ENUM.VY, _ENUM.Y]:
+        from mario.model.configuration import import_blocks
+
+        for matrix in [_ENUM.Z, _ENUM.E, _ENUM.V, _ENUM.EY, _ENUM.VY, _ENUM.Y, *import_blocks(instance)]:
             item = (
                 flow_overrides[matrix]
                 if matrix in flow_overrides

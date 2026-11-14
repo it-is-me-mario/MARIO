@@ -93,6 +93,15 @@ or its presentation. Do not hand-edit ``get_started/_generated/``.
 The interactive diagram uses ``_static/table-formats.css`` and
 ``_static/table-formats.js``; its links and definitions must also work without JS.
 
+Accounting configuration values and regional zero patterns live in
+``mario/model/configuration.py``. Separate-import operators, equations and
+descriptions live in ``mario/compute/import_catalog.py``. The nomenclature
+generator reads these sources for configuration diagrams and import-reference
+tables. Review ``user_guide/transformations/import_accounts.rst``, its companion,
+regional extraction, inspection/export guides and configuration API pages together.
+Structural export manifests are owned by ``ops/accounting_export.py`` and
+``parsers/accounting.py``. Keep their parser/export round trips paired.
+
 Notebook companions
 -------------------
 

@@ -15,6 +15,7 @@ on the source. In a multiregional table, each sector is also identified by regio
 Structure and native matrices
 -----------------------------
 
+Select regional scope, import representation and flows or coefficients.
 Select a block to see its definition and default axes.
 
 .. raw:: html

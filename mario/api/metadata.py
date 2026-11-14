@@ -108,7 +108,7 @@ class MARIOMetaData:
             except AttributeError:
                 pass
 
-        for attr in ["region_aggregation_map"]:
+        for attr in ["region_aggregation_map", "model_configuration"]:
             try:
                 meta_as_dict[attr] = getattr(self, attr)
             except AttributeError:

@@ -10,6 +10,10 @@ Aggregate a database
 
 Choose the mapping first; apply it to a copy while checking the result.
 
+For :doc:`separate import accounts <import_accounts>`, mappings also apply to
+native import-row descriptors belonging to the selected productive sets.
+Foreign origin descriptors stay outside the endogenous Region set.
+
 .. mario-cards::
    :columns: 3
 

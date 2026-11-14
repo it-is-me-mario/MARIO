@@ -22,6 +22,8 @@ def _axis_records(axis, terminal):
                 record[record.pop("Level")] = record.pop("Item")
             elif "Item" in record:
                 record[terminal] = record.pop("Item")
+            if terminal == "Import account":
+                record.setdefault("Import account", "Imports")
             records.append(record)
     return records
 
@@ -30,10 +32,12 @@ def _semantic_database_frame(data):
     """Keep all declared row dimensions, including inapplicable empty levels."""
     Z, Y, V, E, EY, VY = (data[name] for name in (_ENUM.Z, _ENUM.Y, _ENUM.V, _ENUM.E, _ENUM.EY, _ENUM.VY))
     row_blocks = [(Z, "Sector"), (V, "Factor of production"), (E, "Satellite account")]
+    if "IMP" in data:
+        row_blocks.insert(-1, (data["IMP"], "Import account"))
     column_blocks = [(Z, "Sector"), (Y, "Consumption category")]
     row_records = [_axis_records(frame.index, terminal) for frame, terminal in row_blocks]
     col_records = [_axis_records(frame.columns, terminal) for frame, terminal in column_blocks]
-    order = ("Region", "Sector", "Activity", "Commodity", "Factor of production", "Satellite account", "Consumption category")
+    order = ("Region", "Sector", "Activity", "Commodity", "Factor of production", "Import account", "Satellite account", "Consumption category")
     row_names = [name for name in order if any(name in row for records in row_records for row in records)]
     col_names = [name for name in order if any(name in row for records in col_records for row in records)]
     index = pd.MultiIndex.from_tuples(
@@ -50,13 +54,17 @@ def _semantic_database_frame(data):
             frame = frame.sparse.to_dense()
         return frame.to_numpy()
 
-    for frame, row_terminal, col_terminal in (
+    blocks = [
         (Z, "Sector", "Sector"), (Y, "Sector", "Consumption category"),
         (V, "Factor of production", "Sector"),
         (VY, "Factor of production", "Consumption category"),
         (E, "Satellite account", "Sector"),
         (EY, "Satellite account", "Consumption category"),
-    ):
+    ]
+    if "IMP" in data:
+        blocks.extend([(data["IMP"], "Import account", "Sector"),
+                       (data["IMP_Y"], "Import account", "Consumption category")])
+    for frame, row_terminal, col_terminal in blocks:
         source_rows = pd.MultiIndex.from_tuples(
             [tuple(record.get(name) for name in row_names) for record in _axis_records(frame.index, row_terminal)],
             names=row_names,
@@ -75,12 +83,18 @@ def _semantic_database_frame(data):
 def build_database_frame(database, scenario: str = "baseline") -> pd.DataFrame:
     """Return the historical single-sheet dataframe view of the database."""
 
+    from mario.model.configuration import separate_imports
+
+    imported = separate_imports(database)
+    names = [_ENUM.Z, _ENUM.Y, _ENUM.V, _ENUM.E, _ENUM.EY, _ENUM.VY]
+    if imported:
+        names.extend(["IMP", "IMP_Y"])
     data = database.query(
-        matrices=[_ENUM.Z, _ENUM.Y, _ENUM.V, _ENUM.E, _ENUM.EY, _ENUM.VY],
+        matrices=names,
         scenarios=scenario,
     )
 
-    if (any(isinstance(data[name].index, pd.MultiIndex) for name in (_ENUM.V, _ENUM.E))
+    if (imported or any(isinstance(data[name].index, pd.MultiIndex) for name in (_ENUM.V, _ENUM.E))
             or data[_ENUM.Z].index.nlevels != 3 or data[_ENUM.Y].columns.nlevels != 3):
         return _semantic_database_frame(data)
 

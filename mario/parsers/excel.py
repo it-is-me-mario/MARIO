@@ -95,7 +95,10 @@ class ExcelParser(BaseParser):
     ) -> ModelState:
         """Parse a generic Excel workbook into a canonical ``ModelState``."""
         log_time(logger, f"Parser: excel reading {table} {mode} from {path}.", "info")
-        normalized_layouts = normalize_matrix_layouts(matrix_layouts, table=table)
+        from mario.parsers.accounting import manifest_layouts, read_import_frames, read_manifest, restore_configuration
+
+        manifest = read_manifest(path, excel=True)
+        normalized_layouts = normalize_matrix_layouts(manifest_layouts(manifest, matrix_layouts), table=table)
         uses_explicit_template = _looks_like_explicit_units_sheet(path, data_sheet, unit_sheet)
         if not normalized_layouts and not uses_explicit_template:
             matrices, indexes, units = excel_parser(path, table, mode, data_sheet, unit_sheet)
@@ -120,6 +123,10 @@ class ExcelParser(BaseParser):
             raise WrongInput(
                 "Unsupported matrix_layouts combination for parse_from_excel."
             )
+        matrices["baseline"].update(read_import_frames(path, manifest, mode=mode, excel=True))
+        from mario.parsers.accounting import restore_public_axes
+
+        restore_public_axes(matrices, manifest)
         state = build_parser_state(
             table=table,
             matrices=matrices,
@@ -136,6 +143,7 @@ class ExcelParser(BaseParser):
             repository=repository,
         )
         state.metadata.extra.update(extra)
+        restore_configuration(state, manifest)
         log_time(logger, f"Parser: excel state ready for {table}.", "info")
         return state
 

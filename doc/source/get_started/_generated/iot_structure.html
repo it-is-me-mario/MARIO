@@ -1,27 +1,161 @@
 <div class="table-map" data-table-map="iot">
-<div class="table-map__scroll"><table class="table-map__grid">
-<caption>IOT native flows · rows × columns</caption>
+<div class="table-map__controls" hidden>
+<label>Regions<select data-config="scope"><option value="multi-region">Multi-region</option><option value="single-region">Single-region</option></select></label>
+<label data-import-control hidden>Imports<select data-config="imports"><option value="factor-accounts">Factor accounts</option><option value="separate">Separate blocks</option></select></label>
+<label>View<select data-config="mode"><option value="flows">Flows</option><option value="coefficients">Coefficients</option></select></label></div>
+<template data-config-grid="multi-region/bilateral/factor-accounts/flows"><table class="table-map__grid">
+<caption>IOT · multi-region · Bilateral · flows · rows × columns</caption>
 <thead><tr><td></td>
 <th scope="col">Sectors</th>
 <th scope="col">Final demand</th>
 </tr></thead><tbody>
 <tr><th scope="row">Sectors</th>
-<td class="table-map__block is-core"><a href="#matrix-Z" data-matrix-link="matrix-Z"><code>Z</code><span>Transactions</span></a></td>
-<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y"><code>Y</code><span>Final demand</span></a></td>
+<td class="table-map__block is-core"><a href="#matrix-Z" data-matrix-link="matrix-Z"><code>Z</code><span class="table-map__regions" style="--region-columns:3" aria-label="Regional row and column coordinates"><span class="table-map__region-corner" aria-hidden="true"></span><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="table-map__region-axis" aria-label="Row region R1">R1</span><span class="is-flow" aria-label="R1 to R1, allowed flow">●</span><span class="is-flow" aria-label="R1 to R2, allowed flow">●</span><span class="table-map__region-axis" aria-label="Row region R2">R2</span><span class="is-flow" aria-label="R2 to R1, allowed flow">●</span><span class="is-flow" aria-label="R2 to R2, allowed flow">●</span></span></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y"><code>Y</code><span class="table-map__regions" style="--region-columns:3" aria-label="Regional row and column coordinates"><span class="table-map__region-corner" aria-hidden="true"></span><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="table-map__region-axis" aria-label="Row region R1">R1</span><span class="is-flow" aria-label="R1 to R1, allowed flow">●</span><span class="is-flow" aria-label="R1 to R2, allowed flow">●</span><span class="table-map__region-axis" aria-label="Row region R2">R2</span><span class="is-flow" aria-label="R2 to R1, allowed flow">●</span><span class="is-flow" aria-label="R2 to R2, allowed flow">●</span></span></a></td>
 </tr>
 <tr><th scope="row">Factors</th>
-<td class="table-map__block is-factors"><a href="#matrix-V" data-matrix-link="matrix-V"><code>V</code><span>Factors</span></a></td>
-<td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY"><code>VY</code><span>Factors</span></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-V" data-matrix-link="matrix-V"><code>V</code><span class="table-map__regions" style="--region-columns:2" aria-label="Regional row and column coordinates"><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="is-flow" aria-label="R1 account column, allowed flow">●</span><span class="is-flow" aria-label="R2 account column, allowed flow">●</span></span></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY"><code>VY</code><span class="table-map__regions" style="--region-columns:2" aria-label="Regional row and column coordinates"><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="is-flow" aria-label="R1 account column, allowed flow">●</span><span class="is-flow" aria-label="R2 account column, allowed flow">●</span></span></a></td>
 </tr>
 <tr><th scope="row">Satellite accounts</th>
-<td class="table-map__block is-satellite"><a href="#matrix-E" data-matrix-link="matrix-E"><code>E</code><span>Satellite accounts</span></a></td>
-<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY"><code>EY</code><span>Satellite accounts</span></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-E" data-matrix-link="matrix-E"><code>E</code><span class="table-map__regions" style="--region-columns:2" aria-label="Regional row and column coordinates"><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="is-flow" aria-label="R1 account column, allowed flow">●</span><span class="is-flow" aria-label="R2 account column, allowed flow">●</span></span></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY"><code>EY</code><span class="table-map__regions" style="--region-columns:2" aria-label="Regional row and column coordinates"><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="is-flow" aria-label="R1 account column, allowed flow">●</span><span class="is-flow" aria-label="R2 account column, allowed flow">●</span></span></a></td>
 </tr>
-</tbody></table></div><div class="table-map__definitions" aria-live="polite">
-<section id="matrix-Z" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Z</code><span>Native flows</span></p><p class="table-map__description">Intersectoral transaction flows matrix</p><dl><dt>Rows</dt><dd>Region, Sector</dd><dt>Columns</dt><dd>Region, Sector</dd></dl></section>
-<section id="matrix-Y" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Y</code><span>Native flows</span></p><p class="table-map__description">Final demand matrix</p><dl><dt>Rows</dt><dd>Region, Sector</dd><dt>Columns</dt><dd>Region, Consumption category</dd></dl></section>
-<section id="matrix-V" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>V</code><span>Native flows</span></p><p class="table-map__description">Value added transaction flows matrix</p><dl><dt>Rows</dt><dd>Factor of production*</dd><dt>Columns</dt><dd>Region, Sector</dd></dl></section>
-<section id="matrix-VY" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>VY</code><span>Native flows</span></p><p class="table-map__description">Value added transaction matrix for final demand</p><dl><dt>Rows</dt><dd>Factor of production*</dd><dt>Columns</dt><dd>Region, Consumption category</dd></dl></section>
-<section id="matrix-E" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>E</code><span>Native flows</span></p><p class="table-map__description">Environmental transaction flows matrix</p><dl><dt>Rows</dt><dd>Satellite account*</dd><dt>Columns</dt><dd>Region, Sector</dd></dl></section>
-<section id="matrix-EY" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>EY</code><span>Native flows</span></p><p class="table-map__description">Environmental transaction flows matrix for final demand</p><dl><dt>Rows</dt><dd>Satellite account*</dd><dt>Columns</dt><dd>Region, Consumption category</dd></dl></section>
+</tbody></table></template>
+<template data-config-grid="multi-region/bilateral/factor-accounts/coefficients"><table class="table-map__grid">
+<caption>IOT · multi-region · Bilateral · coefficients · rows × columns</caption>
+<thead><tr><td></td>
+<th scope="col">Sectors</th>
+<th scope="col">Final demand</th>
+</tr></thead><tbody>
+<tr><th scope="row">Sectors</th>
+<td class="table-map__block is-core"><a href="#matrix-z" data-matrix-link="matrix-z"><code>z</code><span class="table-map__regions" style="--region-columns:3" aria-label="Regional row and column coordinates"><span class="table-map__region-corner" aria-hidden="true"></span><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="table-map__region-axis" aria-label="Row region R1">R1</span><span class="is-flow" aria-label="R1 to R1, allowed flow">●</span><span class="is-flow" aria-label="R1 to R2, allowed flow">●</span><span class="table-map__region-axis" aria-label="Row region R2">R2</span><span class="is-flow" aria-label="R2 to R1, allowed flow">●</span><span class="is-flow" aria-label="R2 to R2, allowed flow">●</span></span></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y"><code>Y</code><span class="table-map__regions" style="--region-columns:3" aria-label="Regional row and column coordinates"><span class="table-map__region-corner" aria-hidden="true"></span><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="table-map__region-axis" aria-label="Row region R1">R1</span><span class="is-flow" aria-label="R1 to R1, allowed flow">●</span><span class="is-flow" aria-label="R1 to R2, allowed flow">●</span><span class="table-map__region-axis" aria-label="Row region R2">R2</span><span class="is-flow" aria-label="R2 to R1, allowed flow">●</span><span class="is-flow" aria-label="R2 to R2, allowed flow">●</span></span></a></td>
+</tr>
+<tr><th scope="row">Factors</th>
+<td class="table-map__block is-factors"><a href="#matrix-v" data-matrix-link="matrix-v"><code>v</code><span class="table-map__regions" style="--region-columns:2" aria-label="Regional row and column coordinates"><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="is-flow" aria-label="R1 account column, allowed flow">●</span><span class="is-flow" aria-label="R2 account column, allowed flow">●</span></span></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY"><code>VY</code><span class="table-map__regions" style="--region-columns:2" aria-label="Regional row and column coordinates"><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="is-flow" aria-label="R1 account column, allowed flow">●</span><span class="is-flow" aria-label="R2 account column, allowed flow">●</span></span></a></td>
+</tr>
+<tr><th scope="row">Satellite accounts</th>
+<td class="table-map__block is-satellite"><a href="#matrix-e" data-matrix-link="matrix-e"><code>e</code><span class="table-map__regions" style="--region-columns:2" aria-label="Regional row and column coordinates"><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="is-flow" aria-label="R1 account column, allowed flow">●</span><span class="is-flow" aria-label="R2 account column, allowed flow">●</span></span></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY"><code>EY</code><span class="table-map__regions" style="--region-columns:2" aria-label="Regional row and column coordinates"><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="is-flow" aria-label="R1 account column, allowed flow">●</span><span class="is-flow" aria-label="R2 account column, allowed flow">●</span></span></a></td>
+</tr>
+</tbody></table></template>
+<template data-config-grid="single-region/external-trade/factor-accounts/flows"><table class="table-map__grid">
+<caption>IOT · single-region · factor accounts · flows · rows × columns</caption>
+<thead><tr><td></td>
+<th scope="col">Sectors</th>
+<th scope="col">Final demand</th>
+</tr></thead><tbody>
+<tr><th scope="row">Sectors</th>
+<td class="table-map__block is-core"><a href="#matrix-Z" data-matrix-link="matrix-Z"><code>Z</code></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y"><code>Y</code></a></td>
+</tr>
+<tr><th scope="row">Factors</th>
+<td class="table-map__block is-factors"><a href="#matrix-V" data-matrix-link="matrix-V"><code>V</code></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY"><code>VY</code></a></td>
+</tr>
+<tr><th scope="row">Satellite accounts</th>
+<td class="table-map__block is-satellite"><a href="#matrix-E" data-matrix-link="matrix-E"><code>E</code></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY"><code>EY</code></a></td>
+</tr>
+</tbody></table></template>
+<template data-config-grid="single-region/external-trade/factor-accounts/coefficients"><table class="table-map__grid">
+<caption>IOT · single-region · factor accounts · coefficients · rows × columns</caption>
+<thead><tr><td></td>
+<th scope="col">Sectors</th>
+<th scope="col">Final demand</th>
+</tr></thead><tbody>
+<tr><th scope="row">Sectors</th>
+<td class="table-map__block is-core"><a href="#matrix-z" data-matrix-link="matrix-z"><code>z</code></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y"><code>Y</code></a></td>
+</tr>
+<tr><th scope="row">Factors</th>
+<td class="table-map__block is-factors"><a href="#matrix-v" data-matrix-link="matrix-v"><code>v</code></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY"><code>VY</code></a></td>
+</tr>
+<tr><th scope="row">Satellite accounts</th>
+<td class="table-map__block is-satellite"><a href="#matrix-e" data-matrix-link="matrix-e"><code>e</code></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY"><code>EY</code></a></td>
+</tr>
+</tbody></table></template>
+<template data-config-grid="single-region/external-trade/separate/flows"><table class="table-map__grid">
+<caption>IOT · single-region · separate · flows · rows × columns</caption>
+<thead><tr><td></td>
+<th scope="col">Sectors</th>
+<th scope="col">Final demand</th>
+</tr></thead><tbody>
+<tr><th scope="row">Sectors</th>
+<td class="table-map__block is-core"><a href="#matrix-Z" data-matrix-link="matrix-Z"><code>Z</code></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y"><code>Y</code></a></td>
+</tr>
+<tr><th scope="row">Factors</th>
+<td class="table-map__block is-factors"><a href="#matrix-V" data-matrix-link="matrix-V"><code>V</code></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY"><code>VY</code></a></td>
+</tr>
+<tr><th scope="row">External imports</th>
+<td class="table-map__block is-imports"><a href="#matrix-IMP" data-matrix-link="matrix-IMP"><code>IMP</code></a></td>
+<td class="table-map__block is-imports"><a href="#matrix-IMP_Y" data-matrix-link="matrix-IMP_Y"><code>IMP_Y</code></a></td>
+</tr>
+<tr><th scope="row">Satellite accounts</th>
+<td class="table-map__block is-satellite"><a href="#matrix-E" data-matrix-link="matrix-E"><code>E</code></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY"><code>EY</code></a></td>
+</tr>
+</tbody></table></template>
+<template data-config-grid="single-region/external-trade/separate/coefficients"><table class="table-map__grid">
+<caption>IOT · single-region · separate · coefficients · rows × columns</caption>
+<thead><tr><td></td>
+<th scope="col">Sectors</th>
+<th scope="col">Final demand</th>
+</tr></thead><tbody>
+<tr><th scope="row">Sectors</th>
+<td class="table-map__block is-core"><a href="#matrix-z" data-matrix-link="matrix-z"><code>z</code></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y"><code>Y</code></a></td>
+</tr>
+<tr><th scope="row">Factors</th>
+<td class="table-map__block is-factors"><a href="#matrix-v" data-matrix-link="matrix-v"><code>v</code></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY"><code>VY</code></a></td>
+</tr>
+<tr><th scope="row">External imports</th>
+<td class="table-map__block is-imports"><a href="#matrix-imp" data-matrix-link="matrix-imp"><code>imp</code></a></td>
+<td class="table-map__block is-imports"><a href="#matrix-IMP_Y" data-matrix-link="matrix-IMP_Y"><code>IMP_Y</code></a></td>
+</tr>
+<tr><th scope="row">Satellite accounts</th>
+<td class="table-map__block is-satellite"><a href="#matrix-e" data-matrix-link="matrix-e"><code>e</code></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY"><code>EY</code></a></td>
+</tr>
+</tbody></table></template>
+<div class="table-map__scroll"><table class="table-map__grid">
+<caption>IOT · multi-region · Bilateral · flows · rows × columns</caption>
+<thead><tr><td></td>
+<th scope="col">Sectors</th>
+<th scope="col">Final demand</th>
+</tr></thead><tbody>
+<tr><th scope="row">Sectors</th>
+<td class="table-map__block is-core"><a href="#matrix-Z" data-matrix-link="matrix-Z"><code>Z</code><span class="table-map__regions" style="--region-columns:3" aria-label="Regional row and column coordinates"><span class="table-map__region-corner" aria-hidden="true"></span><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="table-map__region-axis" aria-label="Row region R1">R1</span><span class="is-flow" aria-label="R1 to R1, allowed flow">●</span><span class="is-flow" aria-label="R1 to R2, allowed flow">●</span><span class="table-map__region-axis" aria-label="Row region R2">R2</span><span class="is-flow" aria-label="R2 to R1, allowed flow">●</span><span class="is-flow" aria-label="R2 to R2, allowed flow">●</span></span></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y"><code>Y</code><span class="table-map__regions" style="--region-columns:3" aria-label="Regional row and column coordinates"><span class="table-map__region-corner" aria-hidden="true"></span><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="table-map__region-axis" aria-label="Row region R1">R1</span><span class="is-flow" aria-label="R1 to R1, allowed flow">●</span><span class="is-flow" aria-label="R1 to R2, allowed flow">●</span><span class="table-map__region-axis" aria-label="Row region R2">R2</span><span class="is-flow" aria-label="R2 to R1, allowed flow">●</span><span class="is-flow" aria-label="R2 to R2, allowed flow">●</span></span></a></td>
+</tr>
+<tr><th scope="row">Factors</th>
+<td class="table-map__block is-factors"><a href="#matrix-V" data-matrix-link="matrix-V"><code>V</code><span class="table-map__regions" style="--region-columns:2" aria-label="Regional row and column coordinates"><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="is-flow" aria-label="R1 account column, allowed flow">●</span><span class="is-flow" aria-label="R2 account column, allowed flow">●</span></span></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY"><code>VY</code><span class="table-map__regions" style="--region-columns:2" aria-label="Regional row and column coordinates"><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="is-flow" aria-label="R1 account column, allowed flow">●</span><span class="is-flow" aria-label="R2 account column, allowed flow">●</span></span></a></td>
+</tr>
+<tr><th scope="row">Satellite accounts</th>
+<td class="table-map__block is-satellite"><a href="#matrix-E" data-matrix-link="matrix-E"><code>E</code><span class="table-map__regions" style="--region-columns:2" aria-label="Regional row and column coordinates"><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="is-flow" aria-label="R1 account column, allowed flow">●</span><span class="is-flow" aria-label="R2 account column, allowed flow">●</span></span></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY"><code>EY</code><span class="table-map__regions" style="--region-columns:2" aria-label="Regional row and column coordinates"><span class="table-map__region-axis" aria-label="Column region R1">R1</span><span class="table-map__region-axis" aria-label="Column region R2">R2</span><span class="is-flow" aria-label="R1 account column, allowed flow">●</span><span class="is-flow" aria-label="R2 account column, allowed flow">●</span></span></a></td>
+</tr>
+</tbody></table></div>
+<p class="table-map__legend"><span data-regional-legend>R1 and R2 identify representative regions on the axes. ● allows a flow. 0 marks a structural zero. — marks an absent native block. </span><span data-config-explanation></span></p>
+<div class="table-map__definitions" aria-live="polite">
+<section id="matrix-Z" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Z</code></p><p class="table-map__description">Intersectoral transaction flows matrix</p><dl><dt>Rows</dt><dd>Region, Sector</dd><dt>Columns</dt><dd>Region, Sector</dd></dl></section>
+<section id="matrix-Y" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Y</code></p><p class="table-map__description">Final demand matrix</p><dl><dt>Rows</dt><dd>Region, Sector</dd><dt>Columns</dt><dd>Region, Consumption category</dd></dl></section>
+<section id="matrix-V" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>V</code></p><p class="table-map__description">Value added transaction flows matrix</p><dl><dt>Rows</dt><dd>Factor of production*</dd><dt>Columns</dt><dd>Region, Sector</dd></dl></section>
+<section id="matrix-VY" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>VY</code></p><p class="table-map__description">Value added transaction matrix for final demand</p><dl><dt>Rows</dt><dd>Factor of production*</dd><dt>Columns</dt><dd>Region, Consumption category</dd></dl></section>
+<section id="matrix-E" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>E</code></p><p class="table-map__description">Environmental transaction flows matrix</p><dl><dt>Rows</dt><dd>Satellite account*</dd><dt>Columns</dt><dd>Region, Sector</dd></dl></section>
+<section id="matrix-EY" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>EY</code></p><p class="table-map__description">Environmental transaction flows matrix for final demand</p><dl><dt>Rows</dt><dd>Satellite account*</dd><dt>Columns</dt><dd>Region, Consumption category</dd></dl></section>
+<section id="matrix-z" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>z</code></p><p class="table-map__description">Intersectoral transaction coefficients matrix</p><dl><dt>Rows</dt><dd>Region, Sector</dd><dt>Columns</dt><dd>Region, Sector</dd></dl></section>
+<section id="matrix-v" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>v</code></p><p class="table-map__description">Value added coefficients matrix</p><dl><dt>Rows</dt><dd>Factor of production*</dd><dt>Columns</dt><dd>Region, Sector</dd></dl></section>
+<section id="matrix-e" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>e</code></p><p class="table-map__description">Environmental transaction coefficients matrix</p><dl><dt>Rows</dt><dd>Satellite account*</dd><dt>Columns</dt><dd>Region, Sector</dd></dl></section>
+<section id="matrix-IMP" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>IMP</code></p><p class="table-map__description">External import flows into domestic production.</p><dl><dt>Rows</dt><dd>Import descriptors, or one total-import row</dd><dt>Columns</dt><dd>Region × Sector</dd></dl></section>
+<section id="matrix-IMP_Y" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>IMP_Y</code></p><p class="table-map__description">External imports delivered directly to final demand.</p><dl><dt>Rows</dt><dd>Import descriptors, or one total-import row</dd><dt>Columns</dt><dd>Region × Consumption category</dd></dl></section>
+<section id="matrix-imp" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>imp</code></p><p class="table-map__description">External import coefficients per unit of domestic output.</p><dl><dt>Rows</dt><dd>Import descriptors, or one total-import row</dd><dt>Columns</dt><dd>Region × Sector</dd></dl></section>
 </div></div>

@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from scipy import sparse
 
-from mario.compute.helpers import _is_sparse_backed_dataframe
+from mario.compute.helpers import _is_sparse_backed_dataframe, sparse_frame_from_spmatrix
 from mario.log_exc.exceptions import WrongInput
 from mario.model.conventions import _MASTER_INDEX as MI
 from mario.ops.chenery_moses import read_flows
@@ -205,7 +205,7 @@ def transform(database, selected, *, trade_mode, layout, imports_by):
             raise WrongInput("SUT import allocation produced non-finite flows.")
         index, columns = axes[name]
         frames[name] = (
-            pd.DataFrame.sparse.from_spmatrix(matrix, index=index, columns=columns)
+            sparse_frame_from_spmatrix(matrix, index=index, columns=columns)
             if sparse_output else pd.DataFrame(matrix.toarray(), index=index, columns=columns)
         )
 
@@ -222,6 +222,9 @@ def transform(database, selected, *, trade_mode, layout, imports_by):
     database.matrices = {"baseline": frames}
     database._indeces = indexes
     database.units = units
+    from mario.model.configuration import update_configuration
+    update_configuration(database, imports_by=by, import_origins=trade_mode,
+                         import_representation="factor-accounts")
     register_factor_layout(database, target_f)
     database.meta._add_history(
         f"Transformation: SUT region subset {selected}; imports by {by or 'total'}, "

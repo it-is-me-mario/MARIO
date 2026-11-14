@@ -119,6 +119,7 @@ from mario.ops import (
     build_new_instance_from_scenario,
     calc_ghg as _calc_ghg,
     export_database_matrices,
+    export_database_sets,
     export_database_to_excel,
     export_database_to_parquet,
     export_database_to_pymrio,
@@ -696,6 +697,16 @@ class Database(CoreModel):
         raises ``WrongInput`` naming the nodes. Singular supply also raises an
         error; no pseudoinverse, balancing or data correction is applied.
         """
+        from mario.model.configuration import separate_imports
+
+        if separate_imports(self):
+            staged = self.to_import_representation("factor-accounts", inplace=False)
+            transformed = transform_sut_to_iot(staged, method, inplace=False)
+            transformed.to_import_representation("separate")
+            if inplace:
+                self._adopt_accounting_state(transformed)
+                return None
+            return transformed
         return transform_sut_to_iot(self, method, inplace=inplace)
 
     def to_chenery_moses(
@@ -1282,6 +1293,7 @@ class Database(CoreModel):
         externalized_trade_layout="legacy",
         *,
         imports_by=None,
+        import_representation="factor-accounts",
     ):
         """Keep one explicit region subset and externalize the remaining regions.
 
@@ -1314,6 +1326,10 @@ class Database(CoreModel):
             aggregate import accounts, or selects the table's productive set
             when the layout is ``"sectorized"``. Combine with
             ``trade_mode="by_region"`` to retain producer/partner regions too.
+        import_representation:
+            ``"factor-accounts"`` stores external imports with factors.
+            ``"separate"`` creates native import blocks and requires exactly
+            one retained region. Inspect the choices with ``configuration``.
 
         Returns
         -------
@@ -1357,6 +1373,21 @@ class Database(CoreModel):
                 trade_mode="by_region",
             )
         """
+        from mario.model.configuration import validate_import_representation
+        validate_import_representation(import_representation)
+        if import_representation == "separate":
+            selected = [regions] if isinstance(regions, str) else list(regions)
+            if len(selected) != 1:
+                raise WrongInput("Separate-import accounting requires one modeled region.")
+            new = self.to_region_subset(
+                selected, inplace=False, trade_mode=trade_mode,
+                externalized_trade_layout=externalized_trade_layout, imports_by=imports_by,
+            )
+            new.to_import_representation("separate")
+            if inplace:
+                self._adopt_accounting_state(new)
+                return None
+            return new
         accepted_imports = (None, "sector") if self.table_type == "IOT" else (None, "commodity", "activity")
         if imports_by not in accepted_imports:
             raise WrongInput(
@@ -1448,6 +1479,7 @@ class Database(CoreModel):
         externalized_trade_layout="legacy",
         *,
         imports_by=None,
+        import_representation="factor-accounts",
     ):
         """Extract one region from a multi-regional database.
 
@@ -1470,6 +1502,10 @@ class Database(CoreModel):
             Import classification: ``"sector"`` for IOTs; ``"commodity"``
             or foreign producing ``"activity"`` for SUTs. ``None`` retains the layout's default. See
             :meth:`to_region_subset` for allocation and block semantics.
+        import_representation:
+            ``"factor-accounts"`` (default) includes imports in factors.
+            ``"separate"`` creates ``IMP`` / ``IMP_Y`` for IOTs or
+            ``IMP_a`` / ``IMP_c`` / ``IMP_Y`` for SUTs.
 
         Returns
         -------
@@ -1488,7 +1524,43 @@ class Database(CoreModel):
             trade_mode=trade_mode,
             externalized_trade_layout=externalized_trade_layout,
             imports_by=imports_by,
+            import_representation=import_representation,
         )
+
+    def _adopt_accounting_state(self, staged):
+        """Commit a prepared accounting conversion after all scenarios succeed."""
+        for name in ("matrices", "_indeces", "units"):
+            setattr(self, name, getattr(staged, name))
+        self.meta = staged.meta
+        self._custom_block_specs = staged._custom_block_specs
+        self.info = staged.info
+
+    def to_import_representation(self, representation, *, inplace=True):
+        """Convert a single-region model's import accounting representation.
+
+        Parameters
+        ----------
+        representation : str
+            ``"separate"`` stores imports in native ``IMP`` / ``IMP_Y``
+            blocks for IOTs and ``IMP_a`` / ``IMP_c`` / ``IMP_Y`` for SUTs.
+            ``"factor-accounts"`` combines them with the factor accounts.
+        inplace : bool, optional
+            Commit the conversion to this object when True; otherwise return
+            a converted copy. All scenarios are converted together. Failed
+            conversions preserve the original object.
+
+        Returns
+        -------
+        Database | None
+            Converted database when ``inplace=False``.
+        """
+        from mario.ops.import_representation import convert
+        staged = self.copy()
+        convert(staged, representation)
+        if inplace:
+            self._adopt_accounting_state(staged)
+            return None
+        return staged
 
     def calc_linkages(
         self,
@@ -4539,6 +4611,42 @@ class Database(CoreModel):
             sep=sep,
             filters=filters,
             **meta_overrides,
+        )
+
+    def export_sets(self, path=None, *, include_scenarios=True):
+        """Export the current sets to an Excel workbook using MARIO names.
+
+        Parameters
+        ----------
+        path:
+            Workbook path or output directory. Directories receive a
+            ``sets.xlsx`` file. Defaults to ``Database/sets.xlsx`` under
+            :attr:`directory`. Missing parent directories are created.
+        include_scenarios:
+            When ``True``, also write a ``Scenario`` sheet containing the
+            current scenario names.
+
+        Returns
+        -------
+        pathlib.Path
+            Path of the written workbook.
+
+        Notes
+        -----
+        Each set has its own sheet and a column named after the set, with
+        members in their current order. Nonuniform regional sets retain one
+        row per observed region/member pair in ``Region`` and set columns.
+        Common sets remain single-column lists. No matrices are calculated.
+        Sheet and column names use canonical MARIO set names; input aliases
+        do not rename them. Names are not mapped to another application.
+
+        Examples
+        --------
+        >>> db = mario.load_test("SUT")
+        >>> path = db.export_sets(path="exports/sets.xlsx")
+        """
+        return export_database_sets(
+            self, path=path, include_scenarios=include_scenarios,
         )
 
     def to_pymrio(

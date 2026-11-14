@@ -77,6 +77,13 @@ Example verification
   For chained scenario workflows, execute the sequence through transformations
   that consume only the baseline or discard other scenarios, and check that
   earlier updates survive.
+  For separate-import configurations, compare prices, production and domestic
+  environmental accounts with the combined representation. Exercise both flow
+  and coefficient resets, SUT-to-IOT methods, scenario copies, the combined
+  display and monetary balance diagnostics. Round-trip native imports through
+  Excel and matrix/flat text and Parquet, retaining their structural manifests,
+  descriptors and technology assumptions. Use the pinned pandas dependency
+  when checking flat reconstruction and copy-on-write behaviour.
   ``tests/docs/test_workflow_examples.py`` executes the affected RST recipes
   and notebook calculations on small accounting/scenario fixtures. Run it
   when changing those examples; source-database and live-provider runs remain

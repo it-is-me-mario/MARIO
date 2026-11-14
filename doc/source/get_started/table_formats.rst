@@ -80,6 +80,49 @@ when requested; :doc:`scenarios` explains how the states are managed.
 
 .. _format-conventions:
 
+Model configurations
+--------------------
+
+Each table has an accounting configuration. Inspect the baseline with
+:attr:`db.configuration <mario.CoreModel.configuration>` or select a scenario
+with :meth:`db.get_configuration() <mario.CoreModel.get_configuration>`.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 28 72
+
+   * - Choice
+     - Meaning
+   * - Table format
+     - IOT has one productive set. SUT separates activities and commodities.
+   * - Regional scope
+     - Single-region or multi-region, determined by endogenous Region members.
+   * - Trade representation
+     - Isard carries trade in SUT use and final demand. Chenery–Moses carries
+       commodity trade in supply. IOT transactions are bilateral.
+   * - Import representation
+     - Single-region models can include external imports in factor accounts
+       or use separate native import blocks.
+   * - Import detail
+     - Total imports, or imports by Sector, Commodity or producing Activity.
+       Source regions can be aggregated or retained independently.
+   * - Technology assumption
+     - Industry-based or product-based SUT supply coefficients. For an IOT,
+       ``sector_type`` records the productive classification when available.
+
+Trade representation belongs to each scenario. The import representation and
+descriptors are shared by the database's scenarios. Existing national tables
+without declared import accounts report unspecified import detail. Mixed
+regional SUT patterns report ``mixed``. A table with zero international flows
+reports ``domestic-only``. A coefficient-only or incomplete source can report
+``unspecified`` until its regional pattern is available.
+
+The IOT and SUT diagrams provide selectors for regional scope, trade, imports
+and flows or coefficients. Foreign origin descriptors on imports identify
+external suppliers. The endogenous Region set determines regional scope.
+See :doc:`separate import accounts </user_guide/transformations/import_accounts>`
+for extraction and reversible conversion.
+
 Flows, coefficients and units
 -----------------------------
 

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from itertools import combinations
+
 import pandas as pd
 
 from mario.compute import block_spec
@@ -37,6 +39,12 @@ TABLE_LAYOUT_PREFIXES = {
         ("Activity", "Commodity"),
         ("Region", "Activity", "Commodity"),
     },
+}
+
+IOT_FACTOR_PREFIXES = {
+    prefix
+    for length in range(5)
+    for prefix in combinations(("Region", "Sector", "Activity", "Commodity"), length)
 }
 
 
@@ -107,10 +115,14 @@ def normalize_matrix_layouts(
         )
 
     allowed_prefixes = TABLE_LAYOUT_PREFIXES[table_key]
+    prefixes_by_matrix = {name: allowed_prefixes for name in normalized}
+    if table_key == "IOT":
+        for name in {"V", "v", "VY"}.intersection(normalized):
+            prefixes_by_matrix[name] = IOT_FACTOR_PREFIXES
     invalid_layouts = {
         matrix_name: layout
         for matrix_name, layout in normalized.items()
-        if layout not in allowed_prefixes
+        if layout not in prefixes_by_matrix[matrix_name]
     }
     if invalid_layouts:
         formatted = ", ".join(
@@ -118,7 +130,8 @@ def normalize_matrix_layouts(
         )
         raise WrongInput(
             f"Invalid matrix_layouts for {table_key}: {formatted}. "
-            f"Allowed semantic prefixes are: {sorted(allowed_prefixes)}."
+            f"Allowed semantic prefixes are {sorted(allowed_prefixes)}. "
+            "IOT factor rows can also retain Activity or Commodity import descriptors."
         )
     return normalized
 

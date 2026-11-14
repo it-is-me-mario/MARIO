@@ -15,6 +15,7 @@ blocks therefore need not be square.
 Structure and native matrices
 -----------------------------
 
+Select regional scope, trade representation, imports and flows or coefficients.
 Select a block to see its definition and default axes.
 
 .. raw:: html
@@ -24,6 +25,15 @@ Select a block to see its definition and default axes.
 **producing activities → supplied commodities**; this orientation matters when
 importing a source that publishes supply in the opposite orientation.
 The empty diagonal cells are not additional native flow blocks.
+
+For two representative regions, the nested cells show allowed flows and
+structural zeros. Isard has block-diagonal supply and permits bilateral use
+and final demand. Chenery–Moses has bilateral supply and block-diagonal
+commodity use and final demand. Its commodity regions identify destination
+markets. ``Ya`` retains its source activity-to-final-demand flows.
+See :doc:`Isard to Chenery–Moses </user_guide/transformations/to_chenery_moses>`
+for the transformation and :doc:`separate imports
+</user_guide/transformations/import_accounts>` for single-region blocks.
 
 .. container:: mario-format-note
 

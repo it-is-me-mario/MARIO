@@ -54,4 +54,5 @@ class ModelStateMetadata:
             price=getattr(metadata, "price", None),
             tech_assumption=getattr(metadata, "tech_assumption", None),
             history=list(getattr(metadata, "_history", [])),
+            extra={"model_configuration": dict(getattr(metadata, "model_configuration", {}) or {})},
         )

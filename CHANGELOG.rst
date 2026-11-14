@@ -8,6 +8,35 @@ package on PyPI, and dates are its publication dates.
 Unreleased
 ----------
 
+Model configurations and native import blocks
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Expose immutable baseline and scenario configurations through
+  ``configuration`` and ``get_configuration()``. Describe table format,
+  regional scope, trade representation, import detail and technology assumptions.
+* Add ``import_representation="separate"`` to single-region extraction and
+  reversible ``to_import_representation()`` conversion across all scenarios.
+  IOT uses ``IMP`` / ``IMP_Y``. SUT uses ``IMP_a`` / ``IMP_c`` / ``IMP_Y``.
+  Provide native coefficients and import requirements, including imports once
+  in prices and monetary balance diagnostics.
+* Preserve native imports through aggregation, scenario copies, flow/coefficient
+  resets, SUT-to-IOT conversion, combined views and Excel/text/Parquet round trips.
+  Keep structural accounting manifests with exported native blocks.
+* Add ``export_sets()`` for native sets and optional scenario names in a workbook.
+* Add configuration selectors to the IOT/SUT diagrams, with regional structural
+  zeros for Isard and Chenery–Moses and separate-import rows.
+* Preserve zero-filled sparse extraction outputs with the pinned pandas version.
+
+GLORIA additive valuations
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Default ``valuation=None`` reads basic prices. A selected valuation adds
+  that signed adjustment to basic prices. Sequences add each selected layer
+  once. ``"purchaser"`` includes all four adjustments. Supply, value added and
+  satellite accounts retain their basic-price source.
+* Keep caches specific to the selected layers and preserve the requested
+  numerical dtype when reloading them.
+
 Regional extraction and semantic import accounts
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

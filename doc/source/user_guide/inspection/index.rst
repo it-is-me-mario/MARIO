@@ -19,7 +19,7 @@ regions, activities, commodities and sectors, see
      - :doc:`Classification concordances <concordances>`
    * - Save and reuse named groups of labels
      - :doc:`Work with clusters <clusters>`
-   * - Save a model to Excel, CSV or Parquet
+   * - Save matrices to Excel, CSV or Parquet, or export set lists to Excel
      - :doc:`Export a database <export_and_roundtrip>`
 
 To create matrices that have not been calculated yet, continue to

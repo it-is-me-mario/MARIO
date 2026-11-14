@@ -2,11 +2,15 @@ from __future__ import annotations
 
 from html import escape
 from pathlib import Path
+import sys
 
 from openpyxl import load_workbook
 
 
 DOC_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(DOC_ROOT.parent))
+from mario.compute.import_catalog import IMPORT_DESCRIPTIONS, import_catalog
+from mario.model.configuration import IMPORT_FLOW_BLOCKS, REGIONAL_TOPOLOGY
 WORKBOOK = DOC_ROOT / "source" / "_static" / "data" / "supporting_files" / "Nomenclature_and_formulas.xlsx"
 OUTPUT_DIR = DOC_ROOT / "source" / "get_started" / "_generated"
 
@@ -101,32 +105,108 @@ BLOCK_LABELS = {"Z": "Transactions", "U": "Use", "S": "Supply", "Y": "Final dema
                 "V": "Factors", "E": "Satellite accounts"}
 
 
-def render_structure(kind, records):
+COEFFICIENT_NAMES = {"Z": "z", "S": "s", "U": "u", "V": "v", "E": "e",
+                     "Va": "va", "Vc": "vc", "Ea": "ea", "Ec": "ec",
+                     "IMP": "imp", "IMP_a": "imp_a", "IMP_c": "imp_c"}
+
+
+def regional_pattern(trade, flow_name):
+    regions = ["R1", "R2"]
+    productive = flow_name in {"Z", "Y", "U", "S", "Ya", "Yc"}
+    origins = regions if productive else []
+    topology = REGIONAL_TOPOLOGY.get(trade, {}).get(flow_name, "bilateral")
+    columns = len(regions) + bool(origins)
+    cells = ['<span class="table-map__region-corner" aria-hidden="true"></span>'] if origins else []
+    cells.extend(f'<span class="table-map__region-axis" aria-label="Column region {region}">{region}</span>'
+                 for region in regions)
+    for origin in origins or [None]:
+        if origin is not None:
+            cells.append(f'<span class="table-map__region-axis" aria-label="Row region {origin}">{origin}</span>')
+        for destination in regions:
+            zero = productive and topology == "diagonal" and origin != destination
+            route = f"{origin} to {destination}" if origin is not None else f"{destination} account column"
+            cells.append(f'<span class="{"is-zero" if zero else "is-flow"}" '
+                         f'aria-label="{route}, {"structural zero" if zero else "allowed flow"}">'
+                         f'{"0" if zero else "●"}</span>')
+    return (f'<span class="table-map__regions" style="--region-columns:{columns}" '
+            'aria-label="Regional row and column coordinates">' + ''.join(cells) + '</span>')
+
+
+def configuration_grid(kind, scope, trade, imports, mode):
     layout = FORMATS[kind]
-    parts = [f'<div class="table-map" data-table-map="{kind}">',
-             '<div class="table-map__scroll"><table class="table-map__grid">',
-             f'<caption>{kind.upper()} native flows · rows × columns</caption>',
+    rows = list(layout["rows"])
+    blocks = [list(row) for row in layout["blocks"]]
+    if imports == "separate":
+        rows.insert(-1, "External imports")
+        imported = IMPORT_FLOW_BLOCKS[kind.upper()]
+        # SUT's diagram reads commodity columns before activity columns.
+        blocks.insert(-1, [imported[1], imported[0], imported[2]] if kind == "sut" else list(imported))
+    label = trade.replace("-", " ").title() if scope == "multi-region" else imports.replace("-", " ")
+    parts = ['<table class="table-map__grid">',
+             f'<caption>{kind.upper()} · {scope} · {label} · {mode} · rows × columns</caption>',
              '<thead><tr><td></td>']
     parts.extend(f'<th scope="col">{name}</th>' for name in layout["columns"])
     parts.append('</tr></thead><tbody>')
     names = []
-    for label, blocks in zip(layout["rows"], layout["blocks"]):
+    for label, row in zip(rows, blocks):
         parts.append(f'<tr><th scope="row">{label}</th>')
-        for name in blocks:
+        for flow_name in row:
+            name = COEFFICIENT_NAMES.get(flow_name, flow_name) if mode == "coefficients" else flow_name
             if name is None:
                 parts.append('<td class="table-map__empty"><span aria-label="No native block">—</span></td>')
                 continue
             names.append(name)
-            family = {"Y": "demand", "V": "factors", "E": "satellite"}.get(name[0], "core")
+            family = {"Y": "demand", "V": "factors", "E": "satellite", "I": "imports"}.get(flow_name[0], "core")
+            pattern = regional_pattern(trade, flow_name) if scope == "multi-region" else ""
             parts.append(f'<td class="table-map__block is-{family}">'
                          f'<a href="#matrix-{name}" data-matrix-link="matrix-{name}">'
-                         f'<code>{name}</code><span>{BLOCK_LABELS[name[0]]}</span></a></td>')
+                         f'<code>{name}</code>{pattern}</a></td>')
         parts.append('</tr>')
-    parts.append('</tbody></table></div><div class="table-map__definitions" aria-live="polite">')
-    for name in names:
-        row = records[name]
+    parts.append('</tbody></table>')
+    return '\n'.join(parts), names
+
+
+def render_structure(kind, records):
+    parts = [f'<div class="table-map" data-table-map="{kind}">',
+             '<div class="table-map__controls" hidden>',
+             '<label>Regions<select data-config="scope"><option value="multi-region">Multi-region</option>'
+             '<option value="single-region">Single-region</option></select></label>']
+    if kind == "sut":
+        parts.append('<label data-trade-control>Trade<select data-config="trade">'
+                     '<option value="isard">Isard</option><option value="chenery-moses">Chenery–Moses</option></select></label>')
+    parts.extend(['<label data-import-control hidden>Imports<select data-config="imports">'
+                  '<option value="factor-accounts">Factor accounts</option><option value="separate">Separate blocks</option></select></label>',
+                  '<label>View<select data-config="mode"><option value="flows">Flows</option>'
+                  '<option value="coefficients">Coefficients</option></select></label></div>'])
+    names = []
+    default_trade = "isard" if kind == "sut" else "bilateral"
+    configurations = [("multi-region", default_trade, "factor-accounts"),
+                      ("single-region", "external-trade", "factor-accounts"),
+                      ("single-region", "external-trade", "separate")]
+    if kind == "sut":
+        configurations.insert(1, ("multi-region", "chenery-moses", "factor-accounts"))
+    for scope, trade, imports in configurations:
+        for mode in ("flows", "coefficients"):
+            grid, selected_names = configuration_grid(kind, scope, trade, imports, mode)
+            key = f"{scope}/{trade}/{imports}/{mode}"
+            parts.append(f'<template data-config-grid="{key}">{grid}</template>')
+            names.extend(selected_names)
+    default_grid, _ = configuration_grid(kind, "multi-region", default_trade, "factor-accounts", "flows")
+    parts.append(f'<div class="table-map__scroll">{default_grid}</div>')
+    parts.append('<p class="table-map__legend"><span data-regional-legend>'
+                 'R1 and R2 identify representative regions on the axes. '
+                 '● allows a flow. 0 marks a structural zero. — marks an absent native block. </span>'
+                 '<span data-config-explanation></span></p>')
+    parts.append('<div class="table-map__definitions" aria-live="polite">')
+    for name in dict.fromkeys(names):
+        row = records.get(name)
+        if row is None:
+            spec = import_catalog(kind.upper())[name]
+            row = {"Description": IMPORT_DESCRIPTIONS[name],
+                   "Row indices": "Import descriptors, or one total-import row",
+                   "Column indices": " × ".join(axis for axis in spec.axes.cols if axis != "Item")}
         parts.append(f'<section id="matrix-{name}" class="table-map__definition" data-matrix-definition>'
-                     f'<p class="table-map__symbol"><code>{name}</code><span>Native flows</span></p>'
+                     f'<p class="table-map__symbol"><code>{name}</code></p>'
                      f'<p class="table-map__description">{escape(row["Description"])}</p><dl>'
                      f'<dt>Rows</dt><dd>{escape(row["Row indices"])}</dd>'
                      f'<dt>Columns</dt><dd>{escape(row["Column indices"])}</dd></dl></section>')
@@ -151,6 +231,17 @@ def main():
         (OUTPUT_DIR / f"{kind}_derived.html").write_text(
             render_table(f"{kind}-derived", columns, derived, preview_rows=5, preview_label="matrices"),
             encoding="utf-8")
+
+        imports = []
+        for name, spec in import_catalog(kind.upper()).items():
+            if name not in IMPORT_DESCRIPTIONS:
+                continue
+            formulas = [strategy.spreadsheet_expr for strategy in spec.strategies if hasattr(strategy, "spreadsheet_expr")]
+            columns = " × ".join(axis for axis in spec.axes.cols if axis != "Item")
+            imports.append([name, IMPORT_DESCRIPTIONS[name], "Import descriptors", columns, " or ".join(formulas)])
+        (OUTPUT_DIR / f"{kind}_imports.html").write_text(render_table(
+            f"{kind}-imports", ["Matrix", "Description", "Row indices", "Column indices", "Formula"], imports,
+        ), encoding="utf-8")
 
     (OUTPUT_DIR / "indices_table.html").write_text(
         render_table(

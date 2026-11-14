@@ -36,6 +36,21 @@ body[data-group="formats"] .mario-body > section > section:first-of-type > h2 { 
 .table-map__block.is-demand { --block-color: var(--accent); }
 .table-map__block.is-factors { --block-color: var(--ribbon-lilac); }
 .table-map__block.is-satellite { --block-color: var(--ribbon-green); }
+.table-map__block.is-imports { --block-color: #efc17e; }
+.table-map__controls { display: flex; flex-wrap: wrap; gap: 1rem; grid-column: 1 / -1; }
+.table-map [hidden] { display: none; }
+.table-map__controls label { display: flex; flex-direction: column; gap: .3rem; font-size: .8rem; font-weight: 600; }
+.table-map__controls select { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 5px; padding: .45rem .6rem; }
+.table-map__controls select:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.table-map__scroll { grid-column: 1; grid-row: 2; }
+.table-map__definitions { grid-column: 2; grid-row: 2; }
+.table-map__legend { grid-column: 1 / -1; grid-row: 3; margin: 0; font-size: .8rem; color: var(--ink-soft); }
+.table-map__block .table-map__regions { display: grid; grid-template-columns: repeat(var(--region-columns), minmax(0, 1fr)); width: min(100%, 5.4rem); gap: 2px; }
+.table-map__regions > span { padding: .2rem; border: 1px solid #16100d55; font-size: .7rem; }
+.table-map__regions .table-map__region-axis { border: 0; font-size: .6rem; font-weight: 700; }
+.table-map__regions .table-map__region-corner { border: 0; }
+.table-map__regions .is-flow { background: #16100d22; }
+.table-map__regions .is-zero { background: #ffffffa8; }
 .mario-article .table-map__block a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .25rem; min-height: 5rem; padding: .65rem .3rem; border: 2px solid transparent; border-radius: 5px; color: #16100d; background: var(--block-color); text-decoration: none; transition: box-shadow .15s ease; }
 .mario-article .table-map__block a:hover { box-shadow: inset 0 0 0 2px #16100d; }
 .mario-article .table-map__block a[aria-current="true"] { border-color: #16100d; box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink); }
@@ -56,6 +71,8 @@ body[data-group="formats"] .mario-body > section > section:first-of-type > h2 { 
 @media (max-width: 850px) {
   .table-map { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
   .table-map__definitions { min-height: 0; padding: 1rem; }
+  .table-map__definitions { grid-column: 1; grid-row: 3; }
+  .table-map__legend { grid-row: 4; }
   .table-map__definition dl { display: grid; grid-template-columns: 5rem minmax(0, 1fr); align-items: baseline; gap: .5rem; }
   .table-map__definition dt, .table-map__definition dd { margin: 0; }
   .mario-object-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }

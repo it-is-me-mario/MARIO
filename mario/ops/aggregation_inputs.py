@@ -15,13 +15,15 @@ def aggregation_domains(database):
     """Include observed row descriptors without creating endogenous nodes."""
     indexes = deepcopy(database.get_index("all"))
     observed = []
-    for name in ("V", "Va", "Vc", "VY"):
+    from mario.model.configuration import import_blocks
+
+    for name in ("V", "Va", "Vc", "VY", *import_blocks(database)):
         frame = database.matrices.get("baseline", {}).get(name)
         axis = getattr(frame, "index", None)
-        if not isinstance(axis, pd.MultiIndex) or MI["f"] not in axis.names:
+        if axis is None:
             continue
         for value in axis:
-            fields = dict(zip(axis.names, value))
+            fields = dict(zip(axis.names, value if isinstance(value, tuple) else (value,)))
             origin = fields.get(MI["r"])
             if origin is not None and pd.notna(origin) and origin not in indexes[MI["r"]]:
                 indexes[MI["r"]].append(origin)

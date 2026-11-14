@@ -40,7 +40,20 @@ def _restore_iot_transform_block_specs(database, captured_specs):
 def build_new_instance_from_scenario(database, scenario):
     """Return a new database whose baseline is the requested scenario."""
 
-    database._validate_scenario(scenario)
+    scenario = database._validate_scenario(scenario)
+
+    from mario.model.configuration import configuration_values, update_configuration
+
+    values = configuration_values(database)
+    if values:
+        new = database.copy()
+        new.reset_to_flows(scenario)
+        new.matrices = {"baseline": dict(new.matrices[scenario])}
+        values["trade_representations"] = {
+            "baseline": values.get("trade_representations", {}).get(scenario, "unspecified")
+        }
+        update_configuration(new, **values)
+        return new
 
     data = database.query(
         matrices=[_ENUM.Y, _ENUM.E, _ENUM.V, _ENUM.Z, _ENUM.EY, _ENUM.VY],

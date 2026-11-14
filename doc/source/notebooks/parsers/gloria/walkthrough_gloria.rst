@@ -34,6 +34,21 @@ Import
 Read purchasers’ values
 -----------------------
 
+``valuation=None`` is the default and reads basic prices. A selected component
+is added to basic prices. A sequence adds each selected component once.
+
+.. code-block:: python
+
+   trade = mario.parse_gloria("/path/to/GLORIA", year=2024, valuation="trade")
+   margins = mario.parse_gloria(
+       "/path/to/GLORIA", year=2024, valuation=["trade", "transport"],
+   )
+
+Components are ``trade``, ``transport``, ``taxes`` and ``subsidies``, or their
+markup numbers ``2``–``5``. ``basic`` and ``1`` alias the default.
+Signed adjustments retain their source signs. Only the selected adjustment
+files are required. The cache identifies the selected layers and their files.
+
 Use :func:`mario.parse_gloria` with ``valuation="purchaser"`` to load
 intermediate and final uses for all products in the selected regions.
 
@@ -90,9 +105,8 @@ Inputs and options
 
    - ``path``: GLORIA release root, the Google Drive ``part_I`` economic-account folder, or directly the ``GLORIA_MRIOs_*`` directory;
    - ``table``: currently only ``"SUT"`` is supported;
-   - ``valuation``: read one markup layer with ``basic``, ``trade``,
-     ``transport``, ``taxes`` or ``subsidies``, or sum all five use layers
-     with ``purchaser``;
+   - ``valuation`` selects basic prices plus requested signed adjustments,
+     or all five signed use layers with ``purchaser``;
    - ``year``: used when the selected root contains more than one GLORIA year;
    - ``regions``: optional subset of GLORIA region acronyms;
    - ``satellites``: optional satellite group or row selector;
