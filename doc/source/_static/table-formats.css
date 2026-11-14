@@ -69,11 +69,15 @@ body[data-group="formats"] .mario-body > section > section:first-of-type > h2 { 
 .table-map[data-table-map="iot"] .table-map__grid--regional { min-width: 27rem; }
 .table-map__row-region { width: 2.5rem; }
 .table-map__row-type { width: 6rem; }
-.mario-article .table-map__grid--regional .table-map__region-heading { color: var(--ink); font-size: .85rem; font-weight: 750; }
-.mario-article .table-map__grid--regional thead .table-map__region-heading { border-bottom: 2px solid var(--line-strong); padding: .4rem 0; }
-.mario-article .table-map__grid--regional .table-map__block a { min-height: 3.5rem; padding: .4rem .2rem; }
-.mario-article .table-map__grid--regional .table-map__block code { font-size: 1.25rem; }
-.mario-article .table-map__grid--regional .is-zero a { color: var(--ink-soft); background: var(--surface-2); border: 1px dashed var(--line-strong); }
+.mario-article .table-map__grid--regional .table-map__region-heading { color: var(--ink-soft); font-size: .7rem; font-weight: 600; }
+.mario-article .table-map__grid--regional thead th[scope="colgroup"] { color: var(--ink); font-weight: 700; border-bottom: 2px solid var(--line-strong); padding: .4rem 0; }
+.mario-article .table-map__grid--regional .table-map__block a { min-height: 4.5rem; position: relative; overflow: hidden; }
+.mario-article .table-map__grid--regional .table-map__block[rowspan="2"] a { height: 9.3rem; }
+.mario-article .table-map__grid--regional .table-map__block code { position: relative; z-index: 1; background: var(--block-color); padding: .1rem .3rem; border: 1px solid #16100d44; border-radius: 4px; }
+.table-map__partition { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(var(--region-rows), minmax(0, 1fr)); gap: 1px; background: #16100d55; }
+.table-map__partition > span { display: flex; align-items: center; justify-content: center; font-size: 1.25rem; }
+.table-map__partition .is-flow { background: var(--block-color); }
+.table-map__partition .is-zero { background: var(--surface-2); color: var(--ink-soft); }
 .table-map__regional-body + .table-map__regional-body > tr:first-child > *,
 .table-map__common-accounts > tr:first-child > * { padding-top: .45rem; }
 @media (max-width: 850px) {
@@ -81,7 +85,7 @@ body[data-group="formats"] .mario-body > section > section:first-of-type > h2 { 
   .table-map__definitions { min-height: 0; padding: 1rem; }
   .table-map__definitions { grid-column: 1; grid-row: 3; }
   .table-map__legend { grid-row: 4; }
-  .mario-article .table-map__grid--regional thead th[scope="col"] { font-size: .6rem; overflow-wrap: normal; }
+  .mario-article .table-map__grid--regional thead th[scope="colgroup"] { font-size: .7rem; overflow-wrap: normal; }
   .table-map__definition dl { display: grid; grid-template-columns: 5rem minmax(0, 1fr); align-items: baseline; gap: .5rem; }
   .table-map__definition dt, .table-map__definition dd { margin: 0; }
   .mario-object-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }

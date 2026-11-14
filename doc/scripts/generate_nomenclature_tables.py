@@ -110,70 +110,77 @@ COEFFICIENT_NAMES = {"Z": "z", "S": "s", "U": "u", "V": "v", "E": "e",
                      "IMP": "imp", "IMP_a": "imp_a", "IMP_c": "imp_c"}
 
 
-def matrix_cell(flow_name, mode, *, trade=None, origin=None, destination=None):
-    """Render one native block at its declared regional coordinates."""
+def matrix_cell(flow_name, mode, *, trade=None, regional=False, row_span=1):
+    """Render one matrix, with regional partitions aligned to the outer axes."""
+    dimensions = f' colspan="2" rowspan="{row_span}"' if regional else ""
     if flow_name is None:
-        return '<td class="table-map__empty"><span aria-label="No native block">—</span></td>', None
+        return (f'<td class="table-map__empty"{dimensions}>'
+                '<span aria-label="No native block">—</span></td>'), None
     name = COEFFICIENT_NAMES.get(flow_name, flow_name) if mode == "coefficients" else flow_name
     family = {"Y": "demand", "V": "factors", "E": "satellite", "I": "imports"}.get(flow_name[0], "core")
-    topology = REGIONAL_TOPOLOGY.get(trade, {}).get(flow_name, "bilateral")
-    zero = origin is not None and topology == "diagonal" and origin != destination
-    coordinates = ""
-    label = name
-    if destination is not None:
-        coordinates = f' data-region-to="{destination}"'
-        label += f" to {destination}"
-    if origin is not None:
-        coordinates += f' data-region-from="{origin}"'
-        label = f"{name} from {origin} to {destination}"
-    if zero:
-        label += ", structural zero"
-    cell = (f'<td class="table-map__block is-{family}{" is-zero" if zero else ""}"{coordinates}>'
+    partition = ""
+    zeros = []
+    if regional:
+        regions = ("R1", "R2")
+        origins = regions if row_span == 2 else (None,)
+        topology = REGIONAL_TOPOLOGY.get(trade, {}).get(flow_name, "bilateral")
+        cells = []
+        for origin in origins:
+            for destination in regions:
+                zero = origin is not None and topology == "diagonal" and origin != destination
+                coordinates = f' data-region-to="{destination}"'
+                route = f"{destination} account column"
+                if origin is not None:
+                    coordinates += f' data-region-from="{origin}"'
+                    route = f"{origin} to {destination}"
+                if zero:
+                    zeros.append(route)
+                cells.append(f'<span class="{"is-zero" if zero else "is-flow"}"{coordinates} '
+                             f'aria-label="{route}, {"structural zero" if zero else "allowed flow"}">'
+                             f'{"0" if zero else ""}</span>')
+        partition = (f'<span class="table-map__partition" style="--region-rows:{row_span}">'
+                     + ''.join(cells) + '</span>')
+    label = name + (", structural zeros " + " and ".join(zeros) if zeros else "")
+    cell = (f'<td class="table-map__block is-{family}"{dimensions}>'
             f'<a href="#matrix-{name}" data-matrix-link="matrix-{name}" aria-label="{label}">'
-            f'<code>{"0" if zero else name}</code></a></td>')
+            f'{partition}<code>{name}</code></a></td>')
     return cell, name
 
 
 def regional_grid(kind, trade, mode, caption):
-    """Put Region outside the productive and final-demand classifications."""
+    """Keep each matrix whole and place Region inside the classification axes."""
     layout = FORMATS[kind]
     regions = ("R1", "R2")
     productive_rows = 2 if kind == "sut" else 1
     parts = ['<table class="table-map__grid table-map__grid--regional">', caption,
-             '<colgroup><col class="table-map__row-region"><col class="table-map__row-type"></colgroup>']
-    parts.extend(f'<colgroup span="{len(layout["columns"])}"></colgroup>' for _ in regions)
+             '<colgroup><col class="table-map__row-type"><col class="table-map__row-region"></colgroup>']
+    parts.extend('<colgroup span="2"></colgroup>' for _ in layout["columns"])
     parts.append('<thead><tr><th colspan="2" rowspan="2"></th>')
-    parts.extend(f'<th scope="colgroup" colspan="{len(layout["columns"])}" '
-                 f'class="table-map__region-heading">{region}</th>' for region in regions)
+    parts.extend(f'<th scope="colgroup" colspan="2">{label}</th>' for label in layout["columns"])
     parts.append('</tr><tr>')
-    for region in regions:
-        parts.extend(f'<th scope="col" data-region="{region}">{label}</th>' for label in layout["columns"])
+    for label in layout["columns"]:
+        parts.extend(f'<th scope="col" data-classification="{label}" '
+                     f'class="table-map__region-heading">{region}</th>' for region in regions)
     parts.append('</tr></thead>')
     names = []
-    for origin in regions:
-        parts.append(f'<tbody class="table-map__regional-body" data-region="{origin}">')
-        for position in range(productive_rows):
-            parts.append('<tr>')
-            if position == 0:
-                parts.append(f'<th scope="rowgroup" rowspan="{productive_rows}" '
-                             f'class="table-map__region-heading">{origin}</th>')
-            parts.append(f'<th scope="row">{layout["rows"][position]}</th>')
-            for destination in regions:
-                for flow_name in layout["blocks"][position]:
-                    cell, name = matrix_cell(flow_name, mode, trade=trade, origin=origin, destination=destination)
-                    parts.append(cell)
-                    if name is not None:
-                        names.append(name)
-            parts.append('</tr>')
-        parts.append('</tbody>')
+    for position in range(productive_rows):
+        label = layout["rows"][position]
+        parts.append(f'<tbody class="table-map__regional-body" data-classification="{label}"><tr>')
+        parts.append(f'<th scope="rowgroup" rowspan="2">{label}</th>')
+        parts.append('<th scope="row" class="table-map__region-heading">R1</th>')
+        for flow_name in layout["blocks"][position]:
+            cell, name = matrix_cell(flow_name, mode, trade=trade, regional=True, row_span=2)
+            parts.append(cell)
+            if name is not None:
+                names.append(name)
+        parts.append('</tr><tr><th scope="row" class="table-map__region-heading">R2</th></tr></tbody>')
     parts.append('<tbody class="table-map__common-accounts">')
     for label, row in zip(layout["rows"][productive_rows:], layout["blocks"][productive_rows:]):
         parts.append(f'<tr><th scope="row" colspan="2">{label}</th>')
-        for destination in regions:
-            for flow_name in row:
-                cell, name = matrix_cell(flow_name, mode, destination=destination)
-                parts.append(cell)
-                names.append(name)
+        for flow_name in row:
+            cell, name = matrix_cell(flow_name, mode, regional=True)
+            parts.append(cell)
+            names.append(name)
         parts.append('</tr>')
     parts.append('</tbody></table>')
     return '\n'.join(parts), names

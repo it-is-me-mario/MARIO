@@ -26,10 +26,10 @@ Select a block to see its definition and default axes.
 importing a source that publishes supply in the opposite orientation.
 The empty diagonal cells are not additional native flow blocks.
 
-Outer region headers group the commodity, activity and final-demand columns.
-Row headers identify each region's commodities and activities. Factor and
-satellite rows share the regional columns. Each matrix cell connects its row
-region to its column region. Isard has block-diagonal supply and permits bilateral use
+Commodity, activity and final-demand headings each contain regional subheadings.
+Each matrix spans those regional coordinates, with one symbol for the whole block.
+Its internal partitions show the regional flows and structural zeros. Factor and
+satellite rows share the regional columns. Isard has block-diagonal supply and permits bilateral use
 and final demand. Chenery–Moses has bilateral supply and block-diagonal
 commodity use and final demand. Its commodity regions identify destination
 markets. ``Ya`` retains its source activity-to-final-demand flows.

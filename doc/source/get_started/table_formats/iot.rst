@@ -18,8 +18,9 @@ Structure and native matrices
 Select regional scope, import representation and flows or coefficients.
 Select a block to see its definition and default axes.
 
-In the multiregional view, outer region headers group sectors and final demand.
-Each transaction cell connects its row region to its column region.
+In the multiregional view, sector and final-demand headings contain regional
+subheadings. Each matrix spans its regional coordinates and has one symbol
+for the whole block.
 
 .. raw:: html
    :file: ../_generated/iot_structure.html

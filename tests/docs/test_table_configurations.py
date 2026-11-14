@@ -1,4 +1,4 @@
-"""Format diagrams keep regional coordinates and structural zeros visible."""
+"""Format diagrams keep matrices whole and regions inside their axes."""
 
 from bs4 import BeautifulSoup
 import pytest
@@ -12,37 +12,43 @@ def diagram(kind, configuration):
     return soup.select_one(f'template[data-config-grid="{configuration}"]')
 
 
+@pytest.mark.parametrize("mode", ["flows", "coefficients"])
 @pytest.mark.parametrize("trade,diagonal", [("isard", {"S"}), ("chenery-moses", {"U", "Yc"})])
-def test_sut_regional_headers_and_structural_zeros(trade, diagonal):
-    grid = diagram("sut", f"multi-region/{trade}/factor-accounts/flows")
-    assert [str(node.string) for node in grid.select('thead th[scope="colgroup"]')] == ["R1", "R2"]
-    assert [str(node.string) for node in grid.select('th[scope="rowgroup"]')] == ["R1", "R2"]
-    assert [str(node.string) for node in grid.select('thead th[scope="col"]')] == [
-        "Commodities", "Activities", "Final demand",
+def test_sut_regional_subheadings_and_whole_matrices(mode, trade, diagonal):
+    grid = diagram("sut", f"multi-region/{trade}/factor-accounts/{mode}")
+    assert [str(node.string) for node in grid.select('thead th[scope="colgroup"]')] == [
         "Commodities", "Activities", "Final demand",
     ]
-    for name in ("S", "U", "Yc", "Ya"):
+    assert [str(node.string) for node in grid.select('th[scope="rowgroup"]')] == [
+        "Commodities", "Activities",
+    ]
+    assert [str(node.string) for node in grid.select('thead th[scope="col"]')] == ["R1", "R2"] * 3
+    assert [str(node.string) for node in grid.select('tbody .table-map__region-heading')] == ["R1", "R2"] * 2
+    for flow_name in ("S", "U", "Yc", "Ya", "Va", "Vc", "VY", "Ea", "Ec", "EY"):
+        name = flow_name.lower() if mode == "coefficients" and flow_name in {"S", "U", "Va", "Vc", "Ea", "Ec"} else flow_name
         blocks = grid.select(f'[data-matrix-link="matrix-{name}"]')
-        assert len(blocks) == 4
-        for block in blocks:
-            cell = block.parent
-            zero = name in diagonal and cell["data-region-from"] != cell["data-region-to"]
+        assert len(blocks) == 1
+        block = blocks[0]
+        assert str(block.code.string) == name
+        assert len(block.select("code")) == 1
+        assert block.parent["colspan"] == "2"
+        cells = block.select(".table-map__partition > span")
+        assert len(cells) == (4 if flow_name in {"S", "U", "Yc", "Ya"} else 2)
+        for cell in cells:
+            zero = flow_name in diagonal and cell["data-region-from"] != cell["data-region-to"]
             assert ("is-zero" in cell["class"]) == zero
-            assert str(block.code.string) == ("0" if zero else name)
-    for name in ("Va", "Vc", "VY", "Ea", "Ec", "EY"):
-        blocks = grid.select(f'[data-matrix-link="matrix-{name}"]')
-        assert [block.parent["data-region-to"] for block in blocks] == ["R1", "R2"]
-        assert all("data-region-from" not in block.parent.attrs for block in blocks)
 
 
-@pytest.mark.parametrize("mode,name", [("flows", "Z"), ("coefficients", "z")])
-def test_iot_groups_productive_and_final_demand_columns_by_region(mode, name):
+@pytest.mark.parametrize("mode", ["flows", "coefficients"])
+def test_iot_keeps_each_matrix_whole_with_regional_subheadings(mode):
     grid = diagram("iot", f"multi-region/bilateral/factor-accounts/{mode}")
-    assert [str(node.string) for node in grid.select('thead th[scope="colgroup"]')] == ["R1", "R2"]
-    assert [str(node.string) for node in grid.select('thead th[scope="col"]')] == [
-        "Sectors", "Final demand", "Sectors", "Final demand",
+    assert [str(node.string) for node in grid.select('thead th[scope="colgroup"]')] == [
+        "Sectors", "Final demand",
     ]
-    assert len(grid.select(f'[data-matrix-link="matrix-{name}"]')) == 4
+    assert [str(node.string) for node in grid.select('thead th[scope="col"]')] == ["R1", "R2"] * 2
+    names = ("Z", "Y", "V", "VY", "E", "EY") if mode == "flows" else ("z", "Y", "v", "VY", "e", "EY")
+    for name in names:
+        assert len(grid.select(f'[data-matrix-link="matrix-{name}"]')) == 1
     assert not grid.select(".is-zero")
 
 
@@ -52,4 +58,5 @@ def test_single_region_blocks_use_the_compact_layout(kind, name):
     block = grid.select_one(f'[data-matrix-link="matrix-{name}"]')
     assert block is not None
     assert not grid.select(".table-map__region-heading")
+    assert not grid.select(".table-map__partition")
     assert not grid.select(".table-map__grid--regional")
