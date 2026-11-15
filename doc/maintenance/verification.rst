@@ -104,6 +104,11 @@ Example verification
   match the intended source. Retain portable paths and input/licence guidance.
 * After scientific changes, reconcile affected equations, examples, figures and
   captions. State characterization, allocation and numerical limits where relevant.
+  For comparisons across modelling packages, match classifications, units and
+  the treatment of zero-output nodes when checking equations and executed
+  outputs. Inspect the recipes of technologies assigned positive production
+  after a zero-output reference. Verify the receiving package's actual input
+  files and model execution as well as the independent equation calculation.
 * For regional footprints, verify producer and consumer attribution on a small
   cross-border example; a conserved global total can hide incorrect geography.
   For SUT regional extraction, check use-side and supply-side imports
