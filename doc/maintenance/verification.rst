@@ -42,6 +42,10 @@ independent of publishing the development API documentation.
 Check the long pinned command and its copy control on the Dev home at 320 px.
 Download a companion from each channel and check that its guide notice links
 back to that channel, including pages available in Dev.
+Check the floating selector at the bottom-right before and after scrolling,
+including when the header hides, and at the page footer. Its menu opens upward,
+stays within a 320 px viewport and supports keyboard activation and Escape.
+Check both colour themes and verify that footer links remain accessible.
 
 Build with warnings treated as errors, then check the built guides::
 

@@ -1,0 +1,11 @@
+{%- if mario_versions is defined %}
+{%- from "partials/icons.html" import icon %}
+<details class="mario-versions" data-docs-versions data-document="{{ mario_versions.document }}" data-catalogue="{{ mario_versions.catalogue }}">
+  <summary aria-label="Documentation version, {{ mario_versions.label }}">{{ mario_versions.label }} {{ icon("chevron") }}</summary>
+  <nav class="mario-versions__options" aria-label="Documentation versions">
+    {%- for item in mario_versions.choices %}
+    <a href="{{ item.url }}" data-docs-version="{{ item.key }}"{% if item.key == mario_versions.current %} aria-current="page"{% endif %}>{{ item.label }}</a>
+    {%- endfor %}
+  </nav>
+</details>
+{%- endif %}
