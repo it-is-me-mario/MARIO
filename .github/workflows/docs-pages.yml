@@ -2,11 +2,11 @@ name: Publish documentation to GitHub Pages
 
 on:
   push:
-    branches: [main, codex/model-configurations]
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_run:
-    workflows: [Publish documentation to GitHub Pages]
+    workflows: [Verify development documentation]
     types: [completed]
     branches: [codex/model-configurations]
   workflow_dispatch:
