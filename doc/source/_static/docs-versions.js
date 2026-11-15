@@ -23,7 +23,11 @@
       if (!response.ok) throw new Error("Version catalogue unavailable");
       return response.json();
     })
-    .then((catalogue) => updateLinks(menu, catalogue, window.location))
+    .then((catalogue) => {
+      const refresh = () => updateLinks(menu, catalogue, window.location);
+      refresh();
+      window.addEventListener("hashchange", refresh);
+    })
     .catch(() => { /* The native links continue to open each version's home. */ });
   document.addEventListener("click", (event) => {
     if (!menu.contains(event.target)) menu.open = false;
