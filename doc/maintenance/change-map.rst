@@ -63,11 +63,15 @@ Navigation and layout
 
 Documentation channels are selected in ``doc/versions.json`` and built together
 by ``doc/scripts/build_versioned_docs.py``. The ``mario_versions`` extension,
-header control, ``docs-versions.js`` and ``docs-versions.css`` supply the selector
-and development notice. Review the installation page and hero command together
+``partials/versions.html``, ``docs-versions.js`` and ``docs-versions.css`` supply
+the selector and development notice. Review the installation page and hero command together
 so Dev installs its recorded source revision. The cross-version catalogue is
 generated from published HTML routes and anchors. Changing a source branch also
 requires reviewing the workflow's push and completed-build triggers.
+The selector is a body-level floating control in the bottom-right corner,
+included by the layout footer. Keep it outside the animated header so scrolling
+cannot change its fixed positioning. Tutorials and Explorer import the same
+partial and assets through their pinned shared theme.
 
 The independent tutorial site is maintained in the organization’s ``Tutorials``
 repository. Its catalogue selects canonical source repositories and its publisher
