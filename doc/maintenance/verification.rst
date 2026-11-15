@@ -1,6 +1,20 @@
 Documentation verification
 ==========================
 
+For cross-repository site links, verify the public Tutorials and Explorer hosts
+and representative paths before merging navigation changes. Their publication
+workflows run independently. Verify a tutorial's deployed source manifest against
+its canonical repository commit and compare downloaded notebook source cells
+with that commit. Preserve the original repository links used in external work.
+Check the complete cross-site header at narrow widths, including 320 and 390 px.
+Verify dropdown keyboard activation and that the document has no horizontal
+overflow with menus closed or open.
+Run ``node --test tests/docs/test_external_links.cjs`` when changing link
+behaviour. Check navigation between the main site, Tutorials and Explorer in
+the browser and confirm that these destinations use the current tab. The shared
+``_static/external-links.js`` owns this behaviour; update consumers' pinned theme
+revisions after its publication.
+
 Run commands from the repository root, using an environment with MARIO and
 ``doc/docs-requirements.txt`` installed. Use the supported Python version in
 the project's packaging configuration. No real database is needed for a
@@ -8,6 +22,20 @@ documentation build or the structural checks below.
 
 Build and structural checks
 ---------------------------
+
+For the versioned publisher, use clean checkouts of the configured refs and a
+fresh output directory::
+
+   node --test tests/docs/test_docs_versions.cjs tests/docs/test_external_links.cjs
+   python doc/scripts/build_versioned_docs.py --latest-source /path/to/latest --dev-source /path/to/dev --output /tmp/mario-versioned-docs
+
+Both Sphinx builds run with strict warnings and their own source's link/download
+checker. Check ``docs-versions.json`` against the checkout commits. In a browser,
+switch a common page and anchor, then a Dev-only page that falls back to the
+Latest home. Check native home links with scripts unavailable, Escape and narrow
+layouts with the selector open. The development installation command must name
+the same commit as the notice and catalogue. Tutorial publication remains
+independent of publishing the development API documentation.
 
 Build with warnings treated as errors, then check the built guides::
 

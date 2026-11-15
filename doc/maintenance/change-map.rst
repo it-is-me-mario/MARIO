@@ -61,6 +61,21 @@ Page ownership
 Navigation and layout
 ---------------------
 
+Documentation channels are selected in ``doc/versions.json`` and built together
+by ``doc/scripts/build_versioned_docs.py``. The ``mario_versions`` extension,
+header control, ``docs-versions.js`` and ``docs-versions.css`` supply the selector
+and development notice. Review the installation page and hero command together
+so Dev installs its recorded source revision. The cross-version catalogue is
+generated from published HTML routes and anchors. Changing a source branch also
+requires reviewing the workflow's push and completed-build triggers.
+
+The independent tutorial site is maintained in the organization’s ``Tutorials``
+repository. Its catalogue selects canonical source repositories and its publisher
+records source commits. MARIO owns the Resources navigation link and the Teaching,
+Examples and related-project entry points. Review those links together when
+changing the tutorial site address. Follow ``site/README.rst`` in Tutorials for
+build, download and cross-repository refresh verification.
+
 ``doc/source/conf.py`` owns topic membership through
 ``mario_site["sections"]`` and compatibility URLs through
 ``mario_site["redirects"]``. Each topic index also owns its toctree and visible
@@ -167,9 +182,12 @@ Shared metadata and generated assets
        Refresh unmapped native scope with ``build_country_scope.py`` before
        rebuilding sectoral and extension scope.
    * - Explorer indicators
-     - Source-specific scripts in ``doc/scripts/`` and their saved provenance
+     - Active source-specific pipelines in
+       ``https://github.com/it-is-me-mario/database-explorer``; legacy scripts
+       and snapshots here are frozen compatibility inputs
      - Indicator definitions, units, characterization, reference year,
-       update date, plots and exports
+       update date, plots and exports in the explorer repository. Parser/API
+       documentation and packaged runtime classifications remain in MARIO.
    * - Release or installation behaviour
      - Package version/dependencies and ``CHANGELOG.rst``
      - README, Get started installation, affected feature guides and

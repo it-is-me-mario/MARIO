@@ -48,6 +48,18 @@ for each edit:
 Established decisions
 ---------------------
 
+* The documentation publisher builds Latest and Dev into one Pages artifact.
+  ``doc/versions.json`` owns their source refs. The version selector and Dev
+  notice use the recorded build commits. See the publication and verification
+  checklists when changing channel sources or navigation.
+
+* The Database Explorer application and new trade snapshots are maintained in
+  ``it-is-me-mario/database-explorer`` and deployed at
+  ``https://explorer.marioproject.com/``. MARIO owns the library, API and parser
+  documentation. Its former explorer pages retain labels and redirect to the
+  independent site. Legacy published snapshots are retained as frozen
+  compatibility assets; new explorer indicators are not refreshed in this repo.
+
 * Keep **Get started** focused on installation, first use and core concepts.
   Advanced features belong in Docs; do not expand onboarding into a catalogue.
 * **Table formats** owns each format's structure, indices, nomenclature and

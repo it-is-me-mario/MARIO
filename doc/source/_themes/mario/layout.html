@@ -39,6 +39,12 @@
 
 {%- block content %}
   <div id="mario-main" class="mario-main">
+    {%- if mario_versions is defined and mario_versions.current == 'dev' %}
+    <aside class="mario-dev-notice" aria-label="Development documentation">
+      Development documentation · Features awaiting release.
+      <a href="{{ mario_versions.source_url }}">Source {{ mario_versions.revision }}</a>
+    </aside>
+    {%- endif %}
     {%- if not mario.topic_navigation %}{% include "partials/hero.html" %}{% endif %}
     {%- if mario.tabs %}{% include "partials/tabs.html" %}{% include "partials/menu.html" %}{% endif %}
     <div class="mario-shell mario-shell--{{ mario.layout }}{% if mario.layout == 'docs' and not mario.sidebar %} mario-shell--single{% endif %}{% if pagename.startswith('resources/data-explorer/') %} mario-shell--benchmark{% endif %}">

@@ -1,0 +1,40 @@
+.mario-versions { position: relative; }
+.mario-versions summary {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  min-height: 2.5rem;
+  padding: .35rem .6rem;
+  border: 1px solid var(--line);
+  border-radius: .35rem;
+  cursor: pointer;
+  font-size: .8rem;
+  list-style: none;
+}
+.mario-versions summary::-webkit-details-marker { display: none; }
+.mario-versions__options {
+  position: absolute;
+  right: 0;
+  top: calc(100% + .4rem);
+  z-index: 100;
+  min-width: 10rem;
+  padding: .4rem;
+  border: 1px solid var(--line);
+  border-radius: .35rem;
+  background: var(--surface);
+  box-shadow: 0 .6rem 2rem #0003;
+}
+.mario-versions__options a { display: block; padding: .5rem .65rem; border-radius: .2rem; }
+.mario-versions__options a[aria-current] { font-weight: 700; }
+.mario-dev-notice {
+  padding: .6rem 1rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink);
+  text-align: center;
+  font-size: .82rem;
+}
+.mario-dev-notice a { margin-left: .65rem; text-decoration: underline; }
+@media (max-width: 480px) {
+  .mario-versions summary { padding: .25rem .4rem; font-size: .73rem; }
+}

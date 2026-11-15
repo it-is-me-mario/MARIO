@@ -1,0 +1,4 @@
+{
+  "latest": {"label": "Latest", "ref": "main"},
+  "dev": {"label": "Dev", "ref": "codex/model-configurations"}
+}

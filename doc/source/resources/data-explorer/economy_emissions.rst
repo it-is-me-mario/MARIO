@@ -3,8 +3,6 @@
 Data browser
 ============
 
-The browser is now part of :doc:`Database explorer <compare>`.
+The Database Explorer has moved to its independent website.
 
-.. raw:: html
-
-   <script>window.location.replace("compare.html");</script>
+`Open this page in the Database Explorer <https://explorer.marioproject.com/resources/data-explorer/economy_emissions.html>`_.

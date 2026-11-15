@@ -8,11 +8,23 @@ Installation
       conda create -n mario python=3.12
       conda activate mario
 
-2. Install MARIO from PyPI.
+2. Install MARIO.
 
-   .. code-block:: bash
+   .. only:: not development
 
-      pip install mariopy
+      Install the published package from PyPI.
+
+      .. code-block:: bash
+
+         pip install mariopy
+
+   .. only:: development
+
+      Install the exact development revision documented on this site.
+
+      .. parsed-literal::
+
+         |mario_development_install|
 
    .. note::
 

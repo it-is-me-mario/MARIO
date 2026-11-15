@@ -95,6 +95,15 @@ author = 'Lorenzo Rinaldi, Mohammad Amin Tahavori, Nicolo Golinucci'
 # The full version, including alpha/beta/rc tags
 release = run_path(str(Path(__file__).resolve().parents[2] / "mario" / "version.py"))["__version__"]
 
+if os.environ.get("MARIO_DOCS_CHANNEL") == "dev":
+    tags.add("development")
+_docs_revision = os.environ.get("MARIO_DOCS_REVISION", "main")
+_development_install = (
+    'python -m pip install "mariopy @ git+https://github.com/it-is-me-mario/MARIO.git@'
+    + _docs_revision + '"'
+)
+rst_epilog = "\n.. |mario_development_install| replace:: " + _development_install + "\n"
+
 
 # -- General configuration ---------------------------------------------------
 
@@ -102,6 +111,7 @@ release = run_path(str(Path(__file__).resolve().parents[2] / "mario" / "version.
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    "mario_versions",
     "sphinx.ext.autodoc",
     "nbsphinx",
     "IPython.sphinxext.ipython_console_highlighting",
@@ -231,7 +241,7 @@ _nomenclature_redirect = {
 mario_site = {
     "github": "https://github.com/it-is-me-mario/MARIO",
     "pypi": "https://pypi.org/project/mariopy/",
-    "install": "pip install mariopy",
+    "install": _development_install if os.environ.get("MARIO_DOCS_CHANNEL") == "dev" else "pip install mariopy",
     # Transparency notice on AI-assisted content (EU AI Act, Regulation (EU) 2024/1689), shown in every footer.
     "ai_notice": (
         "<strong>AI disclosure.</strong> This documentation and its database explorer were written and built "
@@ -402,24 +412,33 @@ mario_site = {
             ],
         },
         {
+            "key": "explorer",
+            "home_label": "Database explorer",
+            "home_summary": "Compare database classifications and explore economic and environmental indicators.",
+            "label": "Database explorer",
+            "landing": "https://explorer.marioproject.com/",
+            "prefixes": ["resources/data-explorer/"],
+            "tabs": [
+                {"label": "Classifications", "doc": "https://explorer.marioproject.com/resources/data-explorer/scope.html", "summary": "Compare geographical, sectoral and environmental coverage."},
+                {"label": "Compare databases", "doc": "https://explorer.marioproject.com/resources/data-explorer/compare.html", "summary": "Explore economic indicators, emissions and bilateral trade."},
+                {"label": "Analyses", "doc": "https://explorer.marioproject.com/resources/data-explorer/analyses.html", "summary": "Read economic and electricity comparisons across databases."},
+            ],
+        },
+        {
             "key": "resources",
             "home_label": "Resources",
-            "home_summary": "Explore databases, applications and learning material.",
+            "home_summary": "Find tutorials, courses, applications and learning material.",
             "label": "Resources",
-            "landing": "resources/data-explorer/scope",
+            "landing": "https://tutorials.marioproject.com/",
             "prefixes": ["resources/"],
             "hero": {
                 "title": "Everything <mark>around</mark> MARIO",
-                "text": "Database explorer, projects and publications, teaching and downloadable material.",
+                "text": "Tutorials, teaching, projects and publications, and downloadable material.",
             },
             "tabs": [
-                {"label": "Database explorer", "doc": "resources/data-explorer/scope", "featured": True, "summary": "Compare classifications, explore indicators and read analyses.", "prefixes": ["resources/data-explorer/"], "children": [
-                    {"label": "Classifications", "doc": "resources/data-explorer/scope"},
-                    {"label": "Compare databases", "doc": "resources/data-explorer/compare"},
-                    {"label": "Analyses", "doc": "resources/data-explorer/analyses", "prefixes": ["resources/data-explorer/electricity_"]},
-                ]},
+                {"label": "Tutorials", "doc": "https://tutorials.marioproject.com/", "summary": "Follow complete exercises and download their source materials."},
+                {"label": "Teaching", "doc": "resources/teaching", "summary": "Learn through courses and recorded lessons."},
                 {"label": "Projects & Publications", "doc": "resources/projects_publications", "summary": "Discover the research built with MARIO."},
-                {"label": "Teaching", "doc": "resources/teaching", "summary": "Learn through courses and guided examples."},
                 {"label": "Downloadable material", "doc": "resources/material", "summary": "Download notebooks, set lists and reference sheets."},
             ],
         },
@@ -477,3 +496,9 @@ bibtex_bibfiles = ["publications/mario.bib"]
 
 # copy btn settings
 copybutton_prompt_text = "<AxesSubplot:>"
+
+# The independent explorer has its own release and deployment workflow.
+mario_site["external_pages"] = {
+    "resources/data-explorer/" + name: "https://explorer.marioproject.com/resources/data-explorer/" + name + ".html"
+    for name in ("scope", "compare", "analyses", "electricity_carbon_footprint", "economy_emissions")
+}
