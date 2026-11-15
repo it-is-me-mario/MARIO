@@ -26,6 +26,8 @@ Model configurations and native import blocks
 * Add configuration selectors to the IOT/SUT diagrams, with regional structural
   zeros for Isard and Chenery–Moses and separate-import rows.
 * Preserve zero-filled sparse extraction outputs with the pinned pandas version.
+* Normalize import-block axes with economic blocks when reloading unsorted
+  exports, keeping coefficient and price calculations available after reload.
 
 GLORIA additive valuations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~

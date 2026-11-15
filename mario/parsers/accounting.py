@@ -104,19 +104,41 @@ def restore_configuration(state, manifest):
 
 
 def restore_public_axes(matrices, manifest):
-    """Restore the bundle's public productive-axis convention after parsing."""
-    if not manifest.get("legacy_public_axes"):
-        return
-    for name, frame in matrices["baseline"].items():
-        for side in ("index", "columns"):
-            if side == "index" and name.startswith(("IMP", "imp")):
+    """Restore public axis conventions and align imports with economic blocks."""
+    frames = matrices["baseline"]
+    if manifest.get("legacy_public_axes"):
+        for name, frame in frames.items():
+            for side in ("index", "columns"):
+                if side == "index" and name.startswith(("IMP", "imp")):
+                    continue
+                axis = getattr(frame, side)
+                if axis.nlevels == 2 and axis.names[0] == "Region" and axis.names[1] in {
+                    "Sector", "Activity", "Commodity", "Consumption category",
+                }:
+                    restored = pd.MultiIndex.from_arrays(
+                        [axis.get_level_values(0), [axis.names[1]] * len(axis), axis.get_level_values(1)],
+                        names=["Region", "Level", "Item"],
+                    )
+                    setattr(frame, side, restored)
+
+    for names, references in (
+        (("IMP", "imp"), ("V", "v")),
+        (("IMP_a", "imp_a"), ("Va", "va")),
+        (("IMP_c", "imp_c"), ("Vc", "vc")),
+        (("IMP_Y",), ("VY",)),
+    ):
+        for name in names:
+            if name not in frames:
                 continue
-            axis = getattr(frame, side)
-            if axis.nlevels == 2 and axis.names[0] == "Region" and axis.names[1] in {
-                "Sector", "Activity", "Commodity", "Consumption category",
-            }:
-                restored = pd.MultiIndex.from_arrays(
-                    [axis.get_level_values(0), [axis.names[1]] * len(axis), axis.get_level_values(1)],
-                    names=["Region", "Level", "Item"],
-                )
-                setattr(frame, side, restored)
+            reference = next((key for key in references if key in frames), None)
+            if reference is None:
+                raise WrongInput(f"Import block {name} has no corresponding economic block.")
+            frame = frames[name]
+            columns = frames[reference].columns
+            if (
+                not frame.columns.is_unique
+                or len(frame.columns) != len(columns)
+                or (frame.columns.get_indexer(columns) < 0).any()
+            ):
+                raise WrongInput(f"Import block {name} columns do not match {reference} columns.")
+            frames[name] = frame.reindex(columns=columns)

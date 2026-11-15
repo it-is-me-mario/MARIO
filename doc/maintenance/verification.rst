@@ -44,6 +44,11 @@ Example verification
 
 * Execute changed minimal examples against packaged IOT/SUT fixtures where
   possible. Check outputs, units and axes, not just absence of exceptions.
+* Export separate-import models with reversed productive axes in flow and
+  coefficient modes. After Excel, text and Parquet reloads, calculate prices
+  and import coefficients to verify that import columns follow the economic
+  blocks' normalized order. ``tests/ops/test_import_representation.py`` covers
+  these round trips.
 * Source-specific calls need the stated release, files and options. When those
   inputs are unavailable, check signatures and data requirements and explicitly
   report that full execution was not performed.

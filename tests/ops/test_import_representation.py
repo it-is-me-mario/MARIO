@@ -65,12 +65,17 @@ def test_conversion_errors_are_atomic(iot):
 @pytest.mark.parametrize("table,by", [("IOT", "sector"), ("SUT", "commodity"), ("IOT", None), ("SUT", None)])
 @pytest.mark.parametrize("format,flat", [("parquet", False), ("parquet", True), ("txt", False), ("txt", True), ("excel", False)])
 @pytest.mark.parametrize("mode", ["flows", "coefficients"])
-def test_native_roundtrip(tmp_path, table, by, format, flat, mode):
+@pytest.mark.parametrize("reverse_axes", [False, True])
+def test_native_roundtrip(tmp_path, table, by, format, flat, mode, reverse_axes):
     source = mario.load_test(table)
     db = source.to_single_region(
         source.regions[0], imports_by=by, trade_mode="by_region" if by else "aggregate",
         import_representation="separate", inplace=False,
     )
+    if reverse_axes:
+        db.matrices["baseline"] = {
+            name: frame.iloc[::-1, ::-1] for name, frame in db.matrices["baseline"].items()
+        }
     options = {"flows": mode == "flows", "coefficients": mode == "coefficients"}
     if format == "excel":
         path = tmp_path / "table.xlsx"
