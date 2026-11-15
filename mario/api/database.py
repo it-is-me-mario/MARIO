@@ -4649,6 +4649,69 @@ class Database(CoreModel):
             self, path=path, include_scenarios=include_scenarios,
         )
 
+    def to_cvxlab(self, *, model_settings, path, mapping, scenarios="baseline"):
+        """Fill CVXLab set and input workbooks using explicit name mappings.
+
+        Parameters
+        ----------
+        model_settings : str or pathlib.Path
+            CVXLab ``model_settings.xlsx`` workbook defining sets, input
+            tables, variables and the symbolic problem.
+        path : str or pathlib.Path
+            Destination model directory. The method writes the settings,
+            ``sets.xlsx`` and ``input_data/input_data.xlsx`` workbooks.
+        mapping : dict
+            Dictionary containing ``sets`` and ``matrices`` dictionaries.
+            Set keys use MARIO flat coordinates such as ``Activity_to``,
+            ``Commodity_from`` or ``Scenario``. Values name CVXLab sets,
+            including ``copy_from`` sets. A list of destination sets is
+            accepted. Bare MARIO set names apply to either populated side.
+            Matrix keys name MARIO matrices and values name distinct CVXLab
+            exogenous data tables, as defined in the settings workbook.
+        scenarios : str or iterable of str, optional
+            Existing MARIO scenarios to transfer. Defaults to ``"baseline"``.
+            Multiple scenarios require an explicit ``Scenario`` mapping.
+
+        Returns
+        -------
+        dict
+            Paths under ``path``, ``sets_file`` and ``input_files``, together
+            with ``written_cells`` by CVXLab table and ``pending_sets``,
+            ``missing_attributes``, ``pending_matrices``, ``unmapped_tables``,
+            ``unmatched_coordinates``, ``missing_values`` and
+            ``extra_input_rows`` diagnostics. Extra input rows count existing
+            records outside the current CVXLab coordinate/filter domain.
+            Pending matrices list the additional CVXLab set coordinates
+            needed before those matrices can be transferred.
+
+        Notes
+        -----
+        Requires the optional ``cvxlab`` package. CVXLab generates the
+        workbook structures. Existing set members and attributes are kept,
+        new mapped members are appended, and mapped matrix cells are
+        updated by their coordinates. Other input tables and workbook
+        sheets retain their existing contents. Missing information is
+        reported so that the method can be called again after completion.
+
+        Source axes with multiple labels require mappings. A singleton
+        source axis can be omitted, and an additional target coordinate
+        with one defined member can be filled automatically. Target
+        coordinates filtered by CVXLab determine the rows to update.
+        The report counts source rows outside those coordinates.
+        Values use the units of the selected MARIO matrices.
+
+        Workbooks are prepared before destination files are updated.
+        Concurrent exports to the same destination are rejected, and a
+        failed file replacement restores the previous files. The returned
+        workbooks provide inputs for subsequent CVXLab model initialization.
+        """
+        from mario.ops.cvxlab_export import export_to_cvxlab
+
+        return export_to_cvxlab(
+            self, model_settings=model_settings, path=path,
+            mapping=mapping, scenarios=scenarios,
+        )
+
     def to_pymrio(
         self,
         satellite_account="satellite_account",

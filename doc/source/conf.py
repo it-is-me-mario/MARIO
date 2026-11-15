@@ -134,6 +134,7 @@ mario_notebook_downloads = {
         "user_guide/inspection/visualization",
         "user_guide/inspection/custom_labels_and_aliases",
         "user_guide/inspection/export_and_roundtrip",
+        "user_guide/inspection/to_cvxlab",
         "user_guide/transformations/aggregate",
         "user_guide/transformations/add_extensions",
         "user_guide/transformations/apply_shocks",

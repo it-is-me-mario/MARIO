@@ -21,6 +21,8 @@ regions, activities, commodities and sectors, see
      - :doc:`Work with clusters <clusters>`
    * - Save matrices to Excel, CSV or Parquet, or export set lists to Excel
      - :doc:`Export a database <export_and_roundtrip>`
+   * - Fill CVXLab set and input workbooks using model-specific names
+     - :doc:`Prepare CVXLab inputs <to_cvxlab>`
 
 To create matrices that have not been calculated yet, continue to
 :doc:`Calculations and analysis <../analysis/index>`.
@@ -34,3 +36,4 @@ source, inspect its :doc:`database profile <../advanced/database_profiles>`.
    clusters
    concordances
    export_and_roundtrip
+   to_cvxlab

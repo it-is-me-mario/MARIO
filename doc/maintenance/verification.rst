@@ -49,6 +49,13 @@ Example verification
   and import coefficients to verify that import columns follow the economic
   blocks' normalized order. ``tests/ops/test_import_representation.py`` covers
   these round trips.
+* For ``to_cvxlab()``, run ``tests/api/test_to_cvxlab.py`` with CVXLab installed.
+  Exercise its actual template APIs and reload the generated workbooks into
+  CVXLab's database. Check copied-set dependency order, existing attributes and
+  unmapped data, several scenarios, incomplete coordinates, repeated calls and
+  rollback after a file-replacement failure. Execute the companion with its
+  downloaded settings workbook beside it. The split-model bridge has separate
+  Excel/CSV integration checks in the add-sector tests.
 * Source-specific calls need the stated release, files and options. When those
   inputs are unavailable, check signatures and data requirements and explicitly
   report that full execution was not performed.

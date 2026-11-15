@@ -8,6 +8,7 @@ These methods write MARIO databases or scenarios to external formats.
 
    ../api_document/mario.Database.export
    ../api_document/mario.Database.export_sets
+   ../api_document/mario.Database.to_cvxlab
    ../api_document/mario.Database.to_excel
    ../api_document/mario.Database.to_txt
    ../api_document/mario.Database.to_parquet

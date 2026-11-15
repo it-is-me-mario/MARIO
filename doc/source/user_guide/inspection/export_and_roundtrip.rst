@@ -56,6 +56,9 @@ remain single-column lists. The method preserves MARIO names and label order;
 it does not apply CVXLab mappings. The downloadable companion includes the same
 call. Full arguments are in the :meth:`API reference <mario.Database.export_sets>`.
 
+To populate a CVXLab model's set and input workbooks with its own names and
+coordinates, follow :doc:`to_cvxlab`.
+
 Save and reload
 ---------------
 

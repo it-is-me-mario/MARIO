@@ -8,6 +8,19 @@ package on PyPI, and dates are its publication dates.
 Unreleased
 ----------
 
+CVXLab input preparation
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Add ``to_cvxlab(model_settings=..., path=..., mapping=..., scenarios=...)``
+  to populate CVXLab set and input workbooks from IOT/SUT matrices, including
+  native imports. Use explicit set-axis and exogenous-table mappings.
+* Preserve existing set attributes, input values outside the selected updates
+  and additional sheets. Report missing sets, attributes, coordinates and
+  additional inputs. Support repeated calls and multiple mapped scenarios.
+* Prepare templates through CVXLab APIs, order copied-set dependencies in
+  exported settings and restore destination files when a replacement fails.
+  Include a guide, API reference, notebook and example settings workbook.
+
 Model configurations and native import blocks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

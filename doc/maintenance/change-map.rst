@@ -102,6 +102,14 @@ regional extraction, inspection/export guides and configuration API pages togeth
 Structural export manifests are owned by ``ops/accounting_export.py`` and
 ``parsers/accounting.py``. Keep their parser/export round trips paired.
 
+``ops/cvxlab_export.py`` owns general model-input preparation through
+``Database.to_cvxlab()``; ``ops/cvxlab_bridge.py`` also contains the existing
+split-model adapter and shared CVXLab compatibility helpers. Review
+``user_guide/inspection/to_cvxlab.rst``, its notebook and API page together.
+``doc/scripts/generate_cvxlab_example.py`` owns the downloadable settings under
+``_static/data/supporting_files/cvxlab_sut_settings.xlsx``. Regenerate that
+workbook after changing the example model or its mapping.
+
 Notebook companions
 -------------------
 
