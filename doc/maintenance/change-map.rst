@@ -61,6 +61,14 @@ Page ownership
 Navigation and layout
 ---------------------
 
+Documentation channels are selected in ``doc/versions.json`` and built together
+by ``doc/scripts/build_versioned_docs.py``. The ``mario_versions`` extension,
+header control, ``docs-versions.js`` and ``docs-versions.css`` supply the selector
+and development notice. Review the installation page and hero command together
+so Dev installs its recorded source revision. The cross-version catalogue is
+generated from published HTML routes and anchors. Changing a source branch also
+requires reviewing the workflow's push and completed-build triggers.
+
 The independent tutorial site is maintained in the organization’s ``Tutorials``
 repository. Its catalogue selects canonical source repositories and its publisher
 records source commits. MARIO owns the Resources navigation link and the Teaching,

@@ -3,58 +3,78 @@ name: Publish documentation to GitHub Pages
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_run:
+    workflows: [Verify development documentation]
+    types: [completed]
+    branches: [codex/model-configurations]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: github-pages
+  group: mario-docs-${{ github.ref == 'refs/heads/main' && 'publish' || github.ref }}
   cancel-in-progress: false
 
 jobs:
   build:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: publisher
+      - name: Read documentation sources
+        id: sources
+        working-directory: publisher
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          sources = json.loads(Path('doc/versions.json').read_text())
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('dev=' + sources['dev']['ref'] + '\n')
+          PY
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.sha || github.ref == 'refs/heads/main' && github.sha || 'main' }}
+          path: source-latest
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.sources.outputs.dev }}
+          path: source-dev
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
           cache: pip
-          cache-dependency-path: doc/docs-requirements.txt
+          cache-dependency-path: publisher/doc/docs-requirements.txt
       - name: Install build dependencies
+        working-directory: publisher
         run: |
           sudo apt-get update
           sudo apt-get install -y pandoc
           python -m pip install -r doc/docs-requirements.txt
-      - name: Build Sphinx site
-        env:
-          MARIO_DOCS_BASEURL: https://www.marioproject.com/en/latest/
+      - name: Check cross-site navigation
+        working-directory: publisher
+        run: node --test tests/docs/test_external_links.cjs tests/docs/test_docs_versions.cjs
+      - name: Build and verify both versions
         run: |
-          python -m sphinx -b html -W --keep-going doc/source _site/en/latest
-          python doc/scripts/check_documentation.py _site/en/latest
-          touch _site/.nojekyll
-          cat > _site/index.html <<'HTML'
-          <!doctype html>
-          <html lang="en">
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <meta http-equiv="refresh" content="0; url=en/latest/">
-            <title>MARIO documentation</title>
-          </head>
-          <body><a href="en/latest/">MARIO documentation</a></body>
-          </html>
-          HTML
+          python publisher/doc/scripts/build_versioned_docs.py \
+            --latest-source source-latest --dev-source source-dev --output _site
           test -s _site/en/latest/index.html
-          test -s _site/en/latest/_static/mario-nav.json
-          test -s _site/en/latest/resources/data-explorer/compare.html
+          test -s _site/en/dev/user_guide/inspection/to_cvxlab.html
+          test -s _site/en/dev/user_guide/transformations/import_accounts.html
       - uses: actions/configure-pages@v5
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
       - uses: actions/upload-pages-artifact@v4
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         with:
           path: _site
 
   deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-24.04
     permissions:

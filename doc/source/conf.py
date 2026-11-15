@@ -95,6 +95,15 @@ author = 'Lorenzo Rinaldi, Mohammad Amin Tahavori, Nicolo Golinucci'
 # The full version, including alpha/beta/rc tags
 release = run_path(str(Path(__file__).resolve().parents[2] / "mario" / "version.py"))["__version__"]
 
+if os.environ.get("MARIO_DOCS_CHANNEL") == "dev":
+    tags.add("development")
+_docs_revision = os.environ.get("MARIO_DOCS_REVISION", "main")
+_development_install = (
+    'python -m pip install "mariopy @ git+https://github.com/it-is-me-mario/MARIO.git@'
+    + _docs_revision + '"'
+)
+rst_epilog = "\n.. |mario_development_install| replace:: " + _development_install + "\n"
+
 
 # -- General configuration ---------------------------------------------------
 
@@ -102,6 +111,7 @@ release = run_path(str(Path(__file__).resolve().parents[2] / "mario" / "version.
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    "mario_versions",
     "sphinx.ext.autodoc",
     "nbsphinx",
     "IPython.sphinxext.ipython_console_highlighting",
@@ -230,7 +240,7 @@ _nomenclature_redirect = {
 mario_site = {
     "github": "https://github.com/it-is-me-mario/MARIO",
     "pypi": "https://pypi.org/project/mariopy/",
-    "install": "pip install mariopy",
+    "install": _development_install if os.environ.get("MARIO_DOCS_CHANNEL") == "dev" else "pip install mariopy",
     # Transparency notice on AI-assisted content (EU AI Act, Regulation (EU) 2024/1689), shown in every footer.
     "ai_notice": (
         "<strong>AI disclosure.</strong> This documentation and its database explorer were written and built "

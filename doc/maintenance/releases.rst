@@ -107,8 +107,13 @@ Merge, publish and verify
    artifacts, and verify the GitHub release is public with the correct tag and
    assets. Report partial publication accurately if any destination fails.
 5. Read the current documentation workflow and canonical URL. At present,
-   ``.github/workflows/docs-pages.yml`` deploys main to GitHub Pages at
-   ``https://www.marioproject.com/en/latest/``. Check the workflow run for the
+   ``.github/workflows/docs-pages.yml`` builds the refs in ``doc/versions.json``
+   and deploys both ``/en/latest/`` and ``/en/dev/`` at
+   ``https://www.marioproject.com/``. The Dev branch runs verification on push;
+   the separate ``docs-dev.yml`` workflow; its successful build requests a
+   default-branch publication through ``workflow_run``. GitHub rejects workflows
+   that listen to their own completion, so keep verification and publication
+   in separate files. Only the main-branch job deploys to Pages. Check the run for the
    **merged commit**, wait for deployment success, and open representative
    public pages. Read the Docs and a local preview are separate build targets;
    do not assume either proves the canonical site has been updated.
