@@ -1,16 +1,29 @@
-{%- from "partials/icons.html" import icon %}
-<nav class="mario-home-map" aria-label="Explore the MARIO website">
-  {%- for area in mario.nav %}
-  <section class="mario-home-area mario-home-area--{{ area.key }}" aria-labelledby="home-{{ area.key }}">
-    <div class="mario-home-area__intro">
-      <h2 id="home-{{ area.key }}"><a href="{{ area.url }}">{{ area.home_label }} <span aria-hidden="true">↗</span></a></h2>
-      <p>{{ area.summary }}</p>
-    </div>
-    <ul>
-      {%- for link in area.children %}
-      <li{% if link.featured %} class="mario-home-featured"{% endif %}><a href="{{ link.url }}"><span class="mario-home-area__label">{% if link.featured %}<span class="mario-home-area__name">{{ icon("flame") }} {{ link.label }}</span>{% else %}{{ link.label }}{% endif %} {{ icon("next") }}</span><span class="mario-home-area__description">{{ link.summary }}</span></a></li>
-      {%- endfor %}
-    </ul>
-  </section>
-  {%- endfor %}
-</nav>
+{%- set destinations = namespace(explorer='', tutorials='', docs='') %}
+{%- for area in mario.nav %}
+  {%- if area.key == 'explorer' %}{% set destinations.explorer = area.url %}{% endif %}
+  {%- if area.key == 'docs' %}{% set destinations.docs = area.url %}{% endif %}
+  {%- if area.key == 'resources' %}{% for child in area.children if child.label == 'Tutorials' %}{% set destinations.tutorials = child.url %}{% endfor %}{% endif %}
+{%- endfor %}
+<section class="mario-pathways" aria-labelledby="mario-pathways-title">
+  <div class="mario-section-heading"><p class="mario-eyebrow">Choose your starting point</p><h2 id="mario-pathways-title">A question. Three ways in.</h2></div>
+  <nav class="mario-pathways__grid" aria-label="Start exploring MARIO">
+    <a class="mario-pathway mario-pathway--explore" href="{{ destinations.explorer }}">
+      <span class="mario-eyebrow">Explore the data</span><h3>What do the indicators tell us?</h3>
+      <p>Investigate economies, emissions and trade. Inspect the sources and the assumptions behind each result.</p><span class="mario-pathway__link">Open Explorer <span aria-hidden="true">↗</span></span>
+    </a>
+    <a class="mario-pathway" href="{{ destinations.tutorials }}">
+      <span class="mario-eyebrow">Learn by doing</span><h3>How does a change affect the system?</h3>
+      <p>Follow a complete analysis, from the research question to scenarios, results and downloadable notebooks.</p><span class="mario-pathway__link">Browse tutorials <span aria-hidden="true">↗</span></span>
+    </a>
+    <a class="mario-pathway" href="{{ destinations.docs }}">
+      <span class="mario-eyebrow">Build your analysis</span><h3>Make the workflow your own.</h3>
+      <p>Import a database, inspect its accounts and model a scenario. Find focused guides and the complete API.</p><span class="mario-pathway__link">Read the documentation <span aria-hidden="true">→</span></span>
+    </a>
+  </nav>
+  <div class="mario-workflow-links"><span>Work with MARIO</span>
+    <a href="{{ pathto('user_guide/parsers/index') }}">Import data</a>
+    <a href="{{ pathto('user_guide/analysis/index') }}">Calculate impacts</a>
+    <a href="{{ pathto('user_guide/transformations/index') }}">Build scenarios</a>
+    <a href="{{ pathto('reference/api_library') }}">API reference</a>
+  </div>
+</section>

@@ -73,6 +73,14 @@ included by the layout footer. Keep it outside the animated header so scrolling
 cannot change its fixed positioning. Tutorials and Explorer import the same
 partial and assets through their pinned shared theme.
 
+For a local design preview, ``doc/scripts/add_preview_channel.py`` adds a third
+``Preview`` choice to the built artifact using that same partial. Run it after
+building and rewriting local cross-site links. It records the preview's actual
+pages and anchors and can reuse a published catalogue for Latest/Dev matching;
+without one, those choices retain their native home destinations. Apply it to
+each site's own output directory. This does not change ``doc/versions.json`` or
+publish a new channel.
+
 The independent tutorial site is maintained in the organization’s ``Tutorials``
 repository. Its catalogue selects canonical source repositories and its publisher
 records source commits. MARIO owns the Resources navigation link and the Teaching,
@@ -105,6 +113,25 @@ Components live in ``doc/source/_ext/mario_site.py``; styling in
 ``doc/source/_static/docs-workflows.css`` and ``doc/source/_themes/mario/``.
 Changes there require representative desktop and narrow-screen checks, including
 navigation, code blocks, disclosure links and keyboard interaction.
+
+The shared layout loads ``mario-fonts.css`` and ``mario-editorial.css`` after
+page-specific styles. The former declares the bundled fonts; the latter owns
+the reading/application layouts, neutral surfaces and typography scale across
+MARIO, Tutorials and Explorer. Keep component behaviour and data palettes in
+their existing owners. Tutorial section indexes come from Sphinx's generated
+``toc`` in the shared layout, with a desktop index and a native mobile disclosure.
+Fonts live under the theme's ``static/fonts/`` directory with licences and
+``sources.json`` recording source URLs and checksums. Treat them as static assets,
+not Sphinx source documents. Consumers adopt the complete theme at their pinned
+revision; preview the same local theme against all three sites before updating
+those pins.
+
+The shared header promotes the existing Tutorials destination to a direct link;
+Resources retains its full submenu. ``partials/home-navigation.html`` owns the
+main site's three entry paths, and ``partials/home-system.html`` owns its
+illustrative accounting diagram. The diagram contains no observed data.
+Home titles and actions remain in ``conf.py``. Keep navigation labels consistent
+with the independent sites without moving their published documents.
 
 Format diagrams and tables come from
 ``doc/scripts/generate_nomenclature_tables.py`` and the shared

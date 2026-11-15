@@ -95,7 +95,7 @@ author = 'Lorenzo Rinaldi, Mohammad Amin Tahavori, Nicolo Golinucci'
 # The full version, including alpha/beta/rc tags
 release = run_path(str(Path(__file__).resolve().parents[2] / "mario" / "version.py"))["__version__"]
 
-if os.environ.get("MARIO_DOCS_CHANNEL") == "dev":
+if os.environ.get("MARIO_DOCS_CHANNEL") in {"dev", "preview"}:
     tags.add("development")
 _docs_revision = os.environ.get("MARIO_DOCS_REVISION", "main")
 _development_install = (
@@ -103,7 +103,8 @@ _development_install = (
     + _docs_revision + '"'
 )
 rst_epilog = "\n.. |mario_development_install| replace:: " + _development_install + "\n"
-_site_channel_path = "dev/" if os.environ.get("MARIO_DOCS_CHANNEL") == "dev" else ""
+_docs_channel = os.environ.get("MARIO_DOCS_CHANNEL", "latest")
+_site_channel_path = _docs_channel + "/" if _docs_channel in {"dev", "preview"} else ""
 _explorer_url = "https://explorer.marioproject.com/" + _site_channel_path
 _tutorials_url = "https://tutorials.marioproject.com/" + _site_channel_path
 
@@ -244,7 +245,7 @@ _nomenclature_redirect = {
 mario_site = {
     "github": "https://github.com/it-is-me-mario/MARIO",
     "pypi": "https://pypi.org/project/mariopy/",
-    "install": _development_install if os.environ.get("MARIO_DOCS_CHANNEL") == "dev" else "pip install mariopy",
+    "install": _development_install if _docs_channel in {"dev", "preview"} else "pip install mariopy",
     # Transparency notice on AI-assisted content (EU AI Act, Regulation (EU) 2024/1689), shown in every footer.
     "ai_notice": (
         "<strong>AI disclosure.</strong> This documentation and its database explorer were written and built "
@@ -252,14 +253,16 @@ mario_site = {
         'Spotted an error? <a href="https://github.com/it-is-me-mario/MARIO/issues">Tell us on GitHub Issues</a>.'
     ),
     "home_hero": {
-        "title": "Input-output analysis in <mark>Python</mark>",
+        "eyebrow": "Open-source Python · Input-output analysis",
+        "title": "Input-output analysis<br>in <mark>Python</mark>",
         "text": (
             "Work with input-output and supply-use tables, from reading a database "
             "to building scenarios and analysing impacts across regions and sectors."
         ),
         "install": True,
         "actions": [
-            {"label": "Get started", "doc": "get_started/index"},
+            {"label": "Start with MARIO", "doc": "get_started/index"},
+            {"label": "Explore indicators", "url": _explorer_url + "resources/data-explorer/compare.html"},
         ],
     },
     "sections": [
@@ -416,14 +419,14 @@ mario_site = {
         },
         {
             "key": "explorer",
-            "home_label": "Database explorer",
+            "home_label": "Explorer",
             "home_summary": "Compare database classifications and explore economic and environmental indicators.",
-            "label": "Database explorer",
+            "label": "Explorer",
             "landing": _explorer_url,
             "prefixes": ["resources/data-explorer/"],
             "tabs": [
                 {"label": "Classifications", "doc": _explorer_url + "resources/data-explorer/scope.html", "summary": "Compare geographical, sectoral and environmental coverage."},
-                {"label": "Compare databases", "doc": _explorer_url + "resources/data-explorer/compare.html", "summary": "Explore economic indicators, emissions and bilateral trade."},
+                {"label": "Indicators", "doc": _explorer_url + "resources/data-explorer/compare.html", "summary": "Explore economic indicators, emissions and bilateral trade."},
                 {"label": "Analyses", "doc": _explorer_url + "resources/data-explorer/analyses.html", "summary": "Read economic and electricity comparisons across databases."},
             ],
         },

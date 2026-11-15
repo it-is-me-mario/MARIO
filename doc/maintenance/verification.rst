@@ -46,6 +46,10 @@ Check the floating selector at the bottom-right before and after scrolling,
 including when the header hides, and at the page footer. Its menu opens upward,
 stays within a 320 px viewport and supports keyboard activation and Escape.
 Check both colour themes and verify that footer links remain accessible.
+For local design previews, verify the added ``Preview`` choice and active label
+on all three sites, and confirm that Latest/Dev use their published URLs rather
+than nonexistent local version directories. Check a nested page and anchor
+against the preview catalogue after adding the selector.
 
 Build with warnings treated as errors, then check the built guides::
 
@@ -220,6 +224,17 @@ Open ``http://127.0.0.1:8765``. For affected pages:
 * Open disclosures with mouse and keyboard; test deep links into them.
 * Download a companion and confirm it is the intended notebook. For changes to
   download cleaning, inspect code, source notices and removal of saved results.
+
+For shared typography/layout changes, inspect a home page, task guide, API page,
+long tutorial and Explorer chart. Cover light and dark themes and desktop, 390
+and 320 px widths across those representative pages. Check the tutorial's desktop index and mobile disclosure, heading
+anchors, long code/table scrolling and header dropdowns. Font files and licences
+must be present in every built site's ``_static/fonts/``; verify the WOFF2 files
+against ``sources.json`` and check that normal, italic, bold and monospace text
+load from the site itself. Keep font licence filenames outside the configured
+Sphinx source suffixes so they are copied as assets rather than parsed as pages.
+Visual-only changes require rendering and companion integrity checks, not
+re-execution of unchanged scientific calculations.
 
 A local build is not an online deployment. Report the preview location and
 verification limits accurately; publishing is a separate task.
