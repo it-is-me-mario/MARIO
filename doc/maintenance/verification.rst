@@ -43,6 +43,9 @@ Check both colour themes and verify that footer links remain accessible.
 Check Preview's complete page and download inventory, its native selector entry
 from Latest and Dev, and same-channel navigation among all three sites. Its
 theme pin and source commit are distinct from the stable and development channels.
+After packaging, rerun each source's link/download checker. Verify the legacy
+data manifest's hashes against Latest and keep the complete artifact below the
+Pages size limit. This step must not remove linked JSON or any workbook/notebook.
 
 Build with warnings treated as errors, then check the built guides::
 

@@ -60,10 +60,12 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y pandoc
-          python -m pip install -r doc/docs-requirements.txt
+          python -m pip install -r doc/docs-requirements.txt pytest
       - name: Check cross-site navigation
         working-directory: publisher
-        run: node --test tests/docs/test_external_links.cjs tests/docs/test_docs_versions.cjs
+        run: |
+          node --test tests/docs/test_external_links.cjs tests/docs/test_docs_versions.cjs
+          python -m pytest tests/docs/test_versioned_packaging.py -q
       - name: Build and verify all versions
         run: |
           python publisher/doc/scripts/build_versioned_docs.py \

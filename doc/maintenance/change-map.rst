@@ -79,6 +79,12 @@ The publisher fills every native selector from the final channel catalogue,
 including older source themes. Preview links to Tutorials and Explorer must
 retain ``/preview/``. Publishing requires the ordinary main-branch workflow;
 changing the preview ref does not update the public site until that workflow runs.
+The publisher retains frozen legacy Explorer JSON at its canonical Latest URLs.
+Dev and Preview omit only large, byte-identical JSON copies that no rendered page
+references. Changed JSON, all linked files and classification workbooks remain
+local. ``legacy-data-manifest.json`` records the canonical URLs and checksums;
+an active legacy Explorer widget blocks this packaging step. This avoids
+triplicating historical data after the Explorer application moved to its own host.
 
 The independent tutorial site is maintained in the organization’s ``Tutorials``
 repository. Its catalogue selects canonical source repositories and its publisher

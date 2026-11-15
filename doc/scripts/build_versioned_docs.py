@@ -1,14 +1,17 @@
 """Build Latest, Dev and Preview into one verified GitHub Pages artifact."""
 
 import argparse
+import hashlib
 from html import escape
 from html.parser import HTMLParser
 import json
 import os
 import re
+import shutil
 from pathlib import Path
 import subprocess
 import sys
+from urllib.parse import unquote, urlsplit
 
 
 class PageAnchors(HTMLParser):
@@ -45,6 +48,56 @@ def write_catalogue(output, catalogue):
     (output / "docs-versions.json").write_text(payload)
 
 
+class PageAssets(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.urls = []
+        self.explorer = False
+
+    def handle_starttag(self, tag, attrs):
+        values = dict(attrs)
+        self.urls.extend(values[key] for key in ("href", "src") if values.get(key))
+        self.explorer |= any(key in values for key in (
+            "data-economy-browser", "data-database-comparisons", "data-database-scope",
+            "data-sectoral-scope", "data-extension-scope",
+        ))
+
+
+def deduplicate_legacy_json(output, catalogue):
+    """Keep frozen compatibility JSON on Latest, plus every referenced/changed file."""
+    latest = output / "en/latest"
+    for channel in catalogue["versions"]:
+        if channel == "latest":
+            continue
+        destination = output / "en" / channel
+        referenced = set()
+        for page in destination.rglob("*.html"):
+            parser = PageAssets()
+            parser.feed(page.read_text())
+            if parser.explorer:
+                raise ValueError("Legacy Explorer widgets must be migrated before sharing frozen assets")
+            for address in parser.urls:
+                url = urlsplit(address)
+                if not url.scheme and not url.netloc and url.path:
+                    referenced.add((page.parent / unquote(url.path)).resolve())
+        shared = {}
+        for path in (destination / "_static/data").rglob("*.json"):
+            if path.stat().st_size < 64 * 1024 or path.resolve() in referenced:
+                continue
+            relative = path.relative_to(destination)
+            counterpart = latest / relative
+            if not counterpart.is_file() or path.read_bytes() != counterpart.read_bytes():
+                continue
+            shared[relative.as_posix()] = {
+                "url": catalogue["versions"]["latest"]["url"] + relative.as_posix(),
+                "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            }
+            path.unlink()
+        (destination / "legacy-data-manifest.json").write_text(json.dumps(shared, sort_keys=True) + "\n")
+    for folder in output.rglob(".doctrees"):
+        shutil.rmtree(folder)
+
+
 def build(sources, output, site_root):
     if output.exists() and any(output.iterdir()):
         raise ValueError("Use a fresh output directory for the versioned site")
@@ -69,9 +122,6 @@ def build(sources, output, site_root):
             sys.executable, "-m", "sphinx", "-b", "html", "-W", "--keep-going",
             str(source / "doc/source"), str(destination),
         ], cwd=source, env=env, check=True)
-        subprocess.run([
-            sys.executable, str(source / "doc/scripts/check_documentation.py"), str(destination),
-        ], cwd=source, env=env, check=True)
         documents = {}
         for path in sorted(destination.rglob("*.html")):
             parser = PageAnchors()
@@ -81,6 +131,15 @@ def build(sources, output, site_root):
             **definitions[channel], "commit": revision, "url": base_url, "documents": documents,
         }
     write_catalogue(output, catalogue)
+    deduplicate_legacy_json(output, catalogue)
+    size = sum(path.stat().st_size for path in output.rglob('*') if path.is_file())
+    if size > 1024 ** 3:
+        raise ValueError(f"The combined Pages artifact exceeds 1 GB ({size:,} bytes)")
+    for channel, source in sources.items():
+        subprocess.run([
+            sys.executable, str(source / "doc/scripts/check_documentation.py"),
+            str(output / "en" / channel),
+        ], cwd=source, env={**os.environ, "PYTHONPATH": str(source)}, check=True)
     (output / ".nojekyll").touch()
     (output / "index.html").write_text(
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
@@ -89,7 +148,7 @@ def build(sources, output, site_root):
         '<title>MARIO documentation</title></head><body>'
         '<a href="en/latest/">MARIO documentation</a></body></html>'
     )
-    print("PASS versioned documentation and source catalogue", flush=True)
+    print(f"PASS versioned documentation and source catalogue; {size:,} bytes", flush=True)
 
 
 if __name__ == "__main__":
