@@ -27,9 +27,9 @@ For the versioned publisher, use clean checkouts of the configured refs and a
 fresh output directory::
 
    node --test tests/docs/test_docs_versions.cjs tests/docs/test_external_links.cjs
-   python doc/scripts/build_versioned_docs.py --latest-source /path/to/latest --dev-source /path/to/dev --output /tmp/mario-versioned-docs
+   python doc/scripts/build_versioned_docs.py --latest-source /path/to/latest --dev-source /path/to/dev --preview-source /path/to/preview --output /tmp/mario-versioned-docs
 
-Both Sphinx builds run with strict warnings and their own source's link/download
+All three Sphinx builds run with strict warnings and their own source's link/download
 checker. Check ``docs-versions.json`` against the checkout commits. In a browser,
 switch a common page and anchor, then a Dev-only page that falls back to the
 Latest home. Check native home links with scripts unavailable, Escape and narrow
@@ -40,6 +40,9 @@ Check the floating selector at the bottom-right before and after scrolling,
 including when the header hides, and at the page footer. Its menu opens upward,
 stays within a 320 px viewport and supports keyboard activation and Escape.
 Check both colour themes and verify that footer links remain accessible.
+Check Preview's complete page and download inventory, its native selector entry
+from Latest and Dev, and same-channel navigation among all three sites. Its
+theme pin and source commit are distinct from the stable and development channels.
 
 Build with warnings treated as errors, then check the built guides::
 

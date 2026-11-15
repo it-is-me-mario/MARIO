@@ -1,9 +1,11 @@
-"""Build both documentation channels into one verified GitHub Pages artifact."""
+"""Build Latest, Dev and Preview into one verified GitHub Pages artifact."""
 
 import argparse
+from html import escape
 from html.parser import HTMLParser
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -20,12 +22,37 @@ class PageAnchors(HTMLParser):
             self.ids.append(value)
 
 
+def write_catalogue(output, catalogue):
+    """Give every source theme the same native version choices and inventory."""
+    payload = json.dumps(catalogue, separators=(",", ":")) + "\n"
+    for channel, version in catalogue["versions"].items():
+        destination = output / "en" / channel
+        (destination / "_static/docs-versions.json").write_text(payload)
+        links = "\n".join(
+            f'<a href="{escape(item["url"], quote=True)}" data-docs-version="{key}"'
+            + (' aria-current="page"' if key == channel else '')
+            + f'>{escape(item["label"])}</a>'
+            for key, item in catalogue["versions"].items()
+        )
+        for document in version["documents"]:
+            path = destination / (document + ".html")
+            content = path.read_text()
+            content = re.sub(
+                r'(<nav class="mario-versions__options"[^>]*>).*?(</nav>)',
+                lambda match: match[1] + "\n" + links + "\n" + match[2], content, flags=re.S,
+            )
+            path.write_text(content)
+    (output / "docs-versions.json").write_text(payload)
+
+
 def build(sources, output, site_root):
     if output.exists() and any(output.iterdir()):
         raise ValueError("Use a fresh output directory for the versioned site")
     output.mkdir(parents=True, exist_ok=True)
     definitions = json.loads((Path(__file__).parents[1] / "versions.json").read_text())
-    catalogue = {"versions": {}}
+    catalogue = {"publisher_commit": subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=Path(__file__).parents[2], text=True
+    ).strip(), "versions": {}}
     for channel, source in sources.items():
         revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=source, text=True).strip()
         destination = output / "en" / channel
@@ -53,10 +80,7 @@ def build(sources, output, site_root):
         catalogue["versions"][channel] = {
             **definitions[channel], "commit": revision, "url": base_url, "documents": documents,
         }
-    payload = json.dumps(catalogue, separators=(",", ":")) + "\n"
-    for channel in sources:
-        (output / "en" / channel / "_static/docs-versions.json").write_text(payload)
-    (output / "docs-versions.json").write_text(payload)
+    write_catalogue(output, catalogue)
     (output / ".nojekyll").touch()
     (output / "index.html").write_text(
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
@@ -72,8 +96,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--latest-source", type=Path, required=True)
     parser.add_argument("--dev-source", type=Path, required=True)
+    parser.add_argument("--preview-source", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--site-root", default="https://www.marioproject.com")
     args = parser.parse_args()
-    build({"latest": args.latest_source.resolve(), "dev": args.dev_source.resolve()},
+    build({"latest": args.latest_source.resolve(), "dev": args.dev_source.resolve(),
+           "preview": args.preview_source.resolve()},
           args.output.resolve(), args.site_root)

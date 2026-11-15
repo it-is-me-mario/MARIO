@@ -1,4 +1,5 @@
 {
   "latest": {"label": "Latest", "ref": "main"},
-  "dev": {"label": "Dev", "ref": "codex/model-configurations"}
+  "dev": {"label": "Dev", "ref": "codex/model-configurations"},
+  "preview": {"label": "Preview", "ref": "codex/visual-refresh"}
 }
