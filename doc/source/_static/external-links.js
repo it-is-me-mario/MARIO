@@ -2,6 +2,11 @@ document.addEventListener("DOMContentLoaded", function () {
   document
     .querySelectorAll('a[href^="http://"], a[href^="https://"]')
     .forEach(function (link) {
+      var hostname = link.hostname || "";
+      if (hostname === "marioproject.com" || hostname.endsWith(".marioproject.com")) {
+        link.removeAttribute("target");
+        return;
+      }
       link.setAttribute("target", "_blank");
       link.setAttribute("rel", "noopener noreferrer");
     });

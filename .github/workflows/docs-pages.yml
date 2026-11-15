@@ -27,6 +27,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y pandoc
           python -m pip install -r doc/docs-requirements.txt
+      - name: Check cross-site navigation
+        run: node --test tests/docs/test_external_links.cjs
       - name: Build Sphinx site
         env:
           MARIO_DOCS_BASEURL: https://www.marioproject.com/en/latest/
