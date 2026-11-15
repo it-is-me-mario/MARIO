@@ -35,6 +35,14 @@
   font-size: .82rem;
 }
 .mario-dev-notice a { margin-left: .65rem; text-decoration: underline; }
+.mario-home-actions { max-width: 100%; min-width: 0; }
+.mario-home-actions .mario-install { max-width: 100%; min-width: 0; }
+.mario-home-actions .mario-install code {
+  min-width: 0;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.mario-home-actions .mario-install__copy { flex-shrink: 0; }
 @media (max-width: 480px) {
   .mario-versions summary { padding: .25rem .4rem; font-size: .73rem; }
 }

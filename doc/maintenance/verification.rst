@@ -36,6 +36,7 @@ Latest home. Check native home links with scripts unavailable, Escape and narrow
 layouts with the selector open. The development installation command must name
 the same commit as the notice and catalogue. Tutorial publication remains
 independent of publishing the development API documentation.
+Check the long pinned command and its copy control on the Dev home at 320 px.
 Download a companion from each channel and check that its guide notice links
 back to that channel, including pages available in Dev.
 
