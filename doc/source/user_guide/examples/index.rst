@@ -40,6 +40,10 @@ Calculations and analysis, or Transformations and scenarios. Other guide
 notebooks and Excel templates are also available in
 :doc:`Downloadable material <../../resources/material>`.
 
+For complete exercises maintained in their own repositories, visit
+`MARIO Tutorials <https://tutorials.marioproject.com/>`_. Each published tutorial
+links to its canonical notebook, supporting materials and source revision.
+
 .. toctree::
    :hidden:
 

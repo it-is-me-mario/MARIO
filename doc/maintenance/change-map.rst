@@ -61,6 +61,13 @@ Page ownership
 Navigation and layout
 ---------------------
 
+The independent tutorial site is maintained in the organization’s ``Tutorials``
+repository. Its catalogue selects canonical source repositories and its publisher
+records source commits. MARIO owns the Resources navigation link and the Teaching,
+Examples and related-project entry points. Review those links together when
+changing the tutorial site address. Follow ``site/README.rst`` in Tutorials for
+build, download and cross-repository refresh verification.
+
 ``doc/source/conf.py`` owns topic membership through
 ``mario_site["sections"]`` and compatibility URLs through
 ``mario_site["redirects"]``. Each topic index also owns its toctree and visible
