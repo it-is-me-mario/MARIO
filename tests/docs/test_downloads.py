@@ -137,6 +137,14 @@ def module(name):
     return result
 
 
+def test_notebook_guide_link_uses_the_requested_documentation_channel():
+    cleaner = module('mario_downloads')
+    path = SOURCE / 'user_guide/inspection/to_cvxlab.ipynb'
+    notebook = cleaner.clean_notebook(path, SOURCE, base_url='https://www.marioproject.com/en/dev')
+    notice = next(cell for cell in notebook['cells'] if cell.get('id') == 'mario-download-notes')
+    assert 'https://www.marioproject.com/en/dev/user_guide/inspection/to_cvxlab.html' in ''.join(notice['source'])
+
+
 def texts(book, name):
     with zipfile.ZipFile(book) as z:
         workbook = ET.fromstring(z.read('xl/workbook.xml'))
