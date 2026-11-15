@@ -70,7 +70,7 @@ source classification to multiple destination sets. ``copy_from`` aliases use
 their source sheet in ``sets.xlsx``. The exported settings order source sets
 before their aliases so that CVXLab can load the workbook directly.
 
-Matrix keys identify MARIO matrices. Destination names identify distinct CVXLab
+Matrix keys identify MARIO matrices. Destination names identify CVXLab
 **exogenous data tables** in ``structure_variables``. Use the table key defined
 there. The transferred columns follow the table's coordinate declarations.
 Values use the units of the selected MARIO matrices.
@@ -85,6 +85,45 @@ Native ``IMP_a``, ``IMP_c`` and ``IMP_Y`` use the same matrix interface as ``Va`
 and ``VY``. For an IOT, map ``Sector_from`` and ``Sector_to`` and select the IOT
 matrices, including ``IMP`` and ``IMP_Y`` when imports are separate. See
 :doc:`../transformations/import_accounts` for extraction and import detail.
+
+Populate one table from several matrices
+----------------------------------------
+
+Assign the same destination to several matrices to populate disjoint blocks
+of a CVXLab table. For example, a model can declare ``use_0`` and ``imports_0``
+over ``products`` and ``accounts``, and ``extensions_0`` over ``extensions``
+and ``accounts``. Map activities and final demand to the shared account set,
+and factors and environmental flows to the shared extension set.
+
+.. code-block:: python
+
+   shared_mapping = {
+       "sets": {
+           "Commodity_from": "products",
+           "Activity_to": "accounts",
+           "Consumption category_to": "accounts",
+           "Factor of production_from": "extensions",
+           "Satellite account_from": "extensions",
+       },
+       "matrices": {
+           "U": "use_0", "Yc": "use_0",
+           "IMP_a": "imports_0", "IMP_Y": "imports_0",
+           "Va": "extensions_0", "VY": "extensions_0",
+           "Ea": "extensions_0", "EY": "extensions_0",
+       },
+   }
+   report = db.to_cvxlab(
+       model_settings="combined_model_settings.xlsx",
+       path="combined_model",
+       mapping=shared_mapping,
+   )
+
+The model settings for this example must declare those shared tables and sets.
+CVXLab generates their coordinates, then MARIO writes each source block into
+its matching cells. Overlapping source coordinates cause an explicit error
+before destination files are updated. A source whose extra coordinates are
+pending is listed in ``pending_matrices`` while other complete blocks can be
+transferred. ``written_cells`` counts the cells written to each target table.
 
 Update existing workbooks
 -------------------------

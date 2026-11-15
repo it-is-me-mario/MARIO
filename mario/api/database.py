@@ -4666,8 +4666,9 @@ class Database(CoreModel):
             ``Commodity_from`` or ``Scenario``. Values name CVXLab sets,
             including ``copy_from`` sets. A list of destination sets is
             accepted. Bare MARIO set names apply to either populated side.
-            Matrix keys name MARIO matrices and values name distinct CVXLab
-            exogenous data tables, as defined in the settings workbook.
+            Matrix keys name MARIO matrices and values name CVXLab exogenous
+            data tables, as defined in the settings workbook. Multiple matrices
+            can populate one table when their mapped coordinates are disjoint.
         scenarios : str or iterable of str, optional
             Existing MARIO scenarios to transfer. Defaults to ``"baseline"``.
             Multiple scenarios require an explicit ``Scenario`` mapping.

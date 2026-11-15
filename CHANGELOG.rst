@@ -14,6 +14,9 @@ CVXLab input preparation
 * Add ``to_cvxlab(model_settings=..., path=..., mapping=..., scenarios=...)``
   to populate CVXLab set and input workbooks from IOT/SUT matrices, including
   native imports. Use explicit set-axis and exogenous-table mappings.
+* Allow several source matrices to populate one CVXLab input table, including
+  use/final demand, imports and value-added/environmental blocks. Align by mapped
+  coordinates and reject overlapping source cells before updating files.
 * Preserve existing set attributes, input values outside the selected updates
   and additional sheets. Report missing sets, attributes, coordinates and
   additional inputs. Support repeated calls and multiple mapped scenarios.

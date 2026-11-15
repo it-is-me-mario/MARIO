@@ -47,8 +47,6 @@ def _payloads(database, mapping, scenarios):
         for key, value in matrices.items()
     ):
         raise WrongInput("Matrix mappings require nonempty MARIO and CVXLab table names.")
-    if len(set(matrices.values())) != len(matrices):
-        raise WrongInput("Each mapped MARIO matrix requires a distinct CVXLab input table.")
     try:
         selected = [scenarios] if isinstance(scenarios, str) else list(dict.fromkeys(scenarios))
     except TypeError as error:
@@ -394,14 +392,29 @@ def export_to_cvxlab(database, *, model_settings, path, mapping, scenarios="base
             mapping["matrices"], payloads, selected,
         )
         generated, exogenous = _generate_inputs(model, pending_sets)
-        updates = {}
+        grouped = {}
         pending_matrices = {}
         for matrix, target in mapping["matrices"].items():
-            updates[target], pending = _mapped_values(
+            values, pending = _mapped_values(
                 matrix, payloads[matrix], exogenous[target], model.core.index.sets, set_map,
             )
+            grouped.setdefault(target, [])
             if pending:
                 pending_matrices[matrix] = pending
+            else:
+                grouped[target].append(values)
+        updates = {}
+        for target, frames in grouped.items():
+            if not frames:
+                updates[target] = None
+                continue
+            combined = pd.concat(frames, ignore_index=True)
+            keys = list(exogenous[target].coordinates_headers.values())
+            duplicates = combined.duplicated(subset=keys, keep=False)
+            if duplicates.any():
+                coordinate = combined.loc[duplicates, keys].iloc[0].to_dict()
+                raise WrongInput(f"Matrices mapped to CVXLab table {target} overlap at {coordinate}.")
+            updates[target] = combined
         counts, unmatched, missing_values, extra_input_rows = _merge_inputs(
             generated, destination / relative_inputs, exogenous, updates,
         )

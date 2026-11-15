@@ -400,3 +400,82 @@ def test_multiregional_standard_models(tmp_path, table):
     assert not report["unmatched_coordinates"]
     for matrix, fields in axes.items():
         assert_matrix_values(report["input_files"][0], db, matrix, fields, mapping)
+
+
+def make_shared_settings(path, *, scenarios=False):
+    sets = pd.DataFrame({"set_key": ["products", "accounts", "extensions"]})
+    if scenarios:
+        sets = pd.concat([sets, pd.DataFrame([{"set_key": "scenarios", "split_problem": True}])], ignore_index=True)
+    rows = []
+    for name, row_set in (("use_0", "products"), ("imports_0", "products"), ("extensions_0", "extensions")):
+        rows.append({"table_key": name, "type": "exogenous",
+                     "coordinates": f"{row_set}, accounts" + (", scenarios" if scenarios else ""),
+                     "variables_info": f"input_{name}", row_set: "dim: rows", "accounts": "dim: cols"})
+    rows.append({"table_key": "OUTPUT", "type": "endogenous",
+                 "coordinates": "products" + (", scenarios" if scenarios else ""),
+                 "variables_info": "decision", "products": "dim: rows"})
+    with pd.ExcelWriter(path) as writer:
+        sets.to_excel(writer, sheet_name="structure_sets", index=False)
+        pd.DataFrame(rows).to_excel(writer, sheet_name="structure_variables", index=False)
+        pd.DataFrame([{"objective": "Minimize(sum(decision))", "expressions": "decision >= 0"}]).to_excel(
+            writer, sheet_name="problem", index=False,
+        )
+    mapping = {
+        "sets": {"Commodity_from": "products", "Activity_to": "accounts",
+                 "Consumption category_to": "accounts", "Factor of production_from": "extensions",
+                 "Satellite account_from": "extensions"},
+        "matrices": {"U": "use_0", "Yc": "use_0", "IMP_a": "imports_0", "IMP_Y": "imports_0",
+                     "Va": "extensions_0", "VY": "extensions_0", "Ea": "extensions_0", "EY": "extensions_0"},
+    }
+    if scenarios:
+        mapping["sets"]["Scenario"] = "scenarios"
+    return mapping
+
+
+def assert_shared_values(report, db, mapping, scenario="baseline"):
+    for matrix, target in mapping["matrices"].items():
+        actual = pd.read_excel(report["input_files"][0], sheet_name=target)
+        if "scenarios_Name" in actual:
+            actual = actual.loc[actual["scenarios_Name"].eq(scenario)]
+        row_header = "extensions_Name" if target == "extensions_0" else "products_Name"
+        actual = actual.set_index([row_header, "accounts_Name"])["values"]
+        expected = db.query(matrix, scenarios=scenario)
+        for i, row in enumerate(expected.index.get_level_values(-1)):
+            for j, column in enumerate(expected.columns.get_level_values(-1)):
+                assert actual.loc[(row, column)] == pytest.approx(expected.iloc[i, j])
+
+
+@pytest.mark.parametrize("scenarios", [False, True])
+def test_several_matrices_populate_shared_tables(tmp_path, source, scenarios):
+    settings = tmp_path / "settings.xlsx"
+    mapping = make_shared_settings(settings, scenarios=scenarios)
+    selected = ["baseline"]
+    if scenarios:
+        source.clone_scenario("baseline", "policy")
+        source.matrices["policy"]["Yc"] = source.Yc * 2
+        selected.append("policy")
+    report = source.to_cvxlab(model_settings=settings, path=tmp_path / "model", mapping=mapping, scenarios=selected)
+    assert not report["pending_matrices"]
+    assert not report["missing_values"]
+    assert not report["unmatched_coordinates"]
+    for target in set(mapping["matrices"].values()):
+        expected = sum(source.query(name).size for name, table in mapping["matrices"].items() if table == target)
+        assert report["written_cells"][target] == expected * len(selected)
+    for scenario in selected:
+        assert_shared_values(report, source, mapping, scenario)
+    source.matrices["baseline"]["Yc"] = source.Yc * 3
+    report = source.to_cvxlab(model_settings=settings, path=tmp_path / "model", mapping=mapping)
+    for scenario in selected:
+        assert_shared_values(report, source, mapping, scenario)
+
+
+def test_overlapping_shared_cells_leave_existing_files_intact(tmp_path, source):
+    settings = tmp_path / "settings.xlsx"
+    mapping = make_shared_settings(settings)
+    target = tmp_path / "model"
+    source.to_cvxlab(model_settings=settings, path=target, mapping=mapping)
+    before = {path: path.read_bytes() for path in target.rglob("*.xlsx")}
+    mapping["matrices"]["IMP_a"] = "use_0"
+    with pytest.raises(WrongInput, match="use_0.*overlap"):
+        source.to_cvxlab(model_settings=settings, path=target, mapping=mapping)
+    assert {path: path.read_bytes() for path in target.rglob("*.xlsx")} == before

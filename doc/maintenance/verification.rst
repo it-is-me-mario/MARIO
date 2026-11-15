@@ -53,7 +53,9 @@ Example verification
   Exercise its actual template APIs and reload the generated workbooks into
   CVXLab's database. Check copied-set dependency order, existing attributes and
   unmapped data, several scenarios, incomplete coordinates, repeated calls and
-  rollback after a file-replacement failure. Execute the companion with its
+  rollback after a file-replacement failure. Exercise shared target tables for
+  use/final demand, imports and factors/extensions, including multiple scenarios
+  and conflicting source coordinates. Execute the companion with its
   downloaded settings workbook beside it. The split-model bridge has separate
   Excel/CSV integration checks in the add-sector tests.
 * Source-specific calls need the stated release, files and options. When those
