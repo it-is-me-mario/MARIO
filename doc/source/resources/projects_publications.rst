@@ -68,8 +68,10 @@ Close software projects
       `GitHub <https://github.com/cvxlab/cvxlab>`__
       `Docs <https://cvxlab.readthedocs.io/en/latest/>`__
 
-      Complete MARIO exercises using CVXLab are available in
-      `Tutorials <https://tutorials.marioproject.com/>`_.
+      Prepare the data for CVXLab in
+      `Economy-wide impact assessment
+      <https://tutorials.marioproject.com/economy-wide-impact-assessment/index.html>`_,
+      the MARIO companion to its optimisation tutorial.
 
    .. mario-card:: Industrial Ecology Dashboard
       :kicker: IndEcol community list
