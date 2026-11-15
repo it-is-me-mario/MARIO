@@ -703,7 +703,7 @@ def test_to_region_subset_keeps_selected_regions_explicit_and_externalizes_rest(
 def test_to_region_subset_by_region_keeps_exogenous_trade_by_region():
     database = _build_three_region_iot_database()
 
-    subset = database.to_region_subset(["R1", "R2"], inplace=False, trade_mode="by_region")
+    subset = database.to_region_subset(["R1", "R2"], inplace=False, trade_resolution="by_region")
 
     assert "imports" in subset.get_index(_MASTER_INDEX["f"])
     assert subset.V.loc[("R3", "imports"), ("R1", _MASTER_INDEX["s"], "s1")] == pytest.approx(7.0)
@@ -761,7 +761,7 @@ def test_to_region_subset_sectorized_trade_by_region_keeps_partner_detail():
     subset = database.to_region_subset(
         ["R1", "R2"],
         inplace=False,
-        trade_mode="by_region",
+        trade_resolution="by_region",
         externalized_trade_layout="sectorized",
     )
 
@@ -816,7 +816,7 @@ def test_to_region_subset_by_sector_alias_matches_sectorized_layout():
     aliased = database.to_region_subset(
         ["R1", "R2"],
         inplace=False,
-        trade_mode="by_sector",
+        trade_resolution="by_sector",
     )
 
     pdt.assert_frame_equal(explicit.V, aliased.V)
@@ -830,13 +830,13 @@ def test_to_region_subset_by_region_and_sector_alias_matches_sectorized_layout()
     explicit = database.to_region_subset(
         ["R1", "R2"],
         inplace=False,
-        trade_mode="by_region",
+        trade_resolution="by_region",
         externalized_trade_layout="sectorized",
     )
     aliased = database.to_region_subset(
         ["R1", "R2"],
         inplace=False,
-        trade_mode="by_region_and_sector",
+        trade_resolution="by_region_and_sector",
     )
 
     pdt.assert_frame_equal(explicit.V, aliased.V)
@@ -847,7 +847,7 @@ def test_to_region_subset_by_region_and_sector_alias_matches_sectorized_layout()
 def test_to_single_region_by_region_explodes_each_excluded_region():
     database = _build_three_region_iot_database()
 
-    single_region = database.to_single_region("R1", inplace=False, trade_mode="by_region")
+    single_region = database.to_single_region("R1", inplace=False, trade_resolution="by_region")
 
     assert not single_region.is_multi_region
     assert "imports" in single_region.get_index(_MASTER_INDEX["f"])
@@ -881,7 +881,7 @@ def test_to_region_subset_by_region_supports_sut():
     database = load_test("SUT")
 
     subset = database.to_region_subset(
-        [database.get_index("Region")[0]], inplace=False, trade_mode="by_region",
+        [database.get_index("Region")[0]], inplace=False, trade_resolution="by_region",
     )
     assert subset.table_type == "SUT"
     assert "imports" in subset.factors

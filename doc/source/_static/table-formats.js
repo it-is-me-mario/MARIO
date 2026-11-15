@@ -28,25 +28,47 @@ document.addEventListener("DOMContentLoaded", () => {
       const multi = fields.scope.value === "multi-region";
       const trade = multi ? (fields.trade?.value || "bilateral") : "external-trade";
       const imports = multi ? "factor-accounts" : fields.imports.value;
-      const key = `${fields.scope.value}/${trade}/${imports}/${fields.mode.value}`;
+      const resolution = fields.resolution.value;
+      const detail = fields.detail.value;
+      const baseKey = `${fields.scope.value}/${trade}/${imports}/${fields.mode.value}`;
+      const key = multi ? baseKey : `${baseKey}/${resolution}/${detail}`;
       const template = Array.from(map.querySelectorAll("[data-config-grid]"))
         .find((node) => node.dataset.configGrid === key);
       if (!template) return;
       scroll.replaceChildren(template.content.cloneNode(true));
       map.classList.toggle("is-multiregional", multi);
-      map.querySelector("[data-import-control]").hidden = multi;
+      map.querySelectorAll("[data-import-control]").forEach((node) => { node.hidden = multi; });
       const tradeControl = map.querySelector("[data-trade-control]");
       if (tradeControl) tradeControl.hidden = !multi;
       map.querySelector("[data-regional-legend]").hidden = !multi;
+      const importLegend = map.querySelector("[data-import-legend]");
+      importLegend.hidden = multi;
+      const itemNames = { sector: "S1/S2 represent imported sectors.",
+        commodity: "C1/C2 represent imported commodities.",
+        activity: "A1/A2 represent foreign producing activities." };
+      importLegend.textContent = ["Yellow rows identify imports.",
+        resolution === "by_region" ? "F1/F2 represent foreign import origins and export partners." : "Foreign partners are aggregated.",
+        itemNames[detail] || "Total imports use one row per retained origin."].join(" ") + " ";
+      const classifier = detail === "total" ? "" : detail[0].toUpperCase() + detail.slice(1);
+      const descriptors = [classifier, resolution === "by_region" ? "Foreign region" : ""].filter(Boolean);
+      const importAxis = descriptors.join(" × ") || "One total-import row";
+      const factors = new Set(["V", "v", "Va", "va", "Vc", "vc", "VY"]);
+      definitions.forEach((definition) => {
+        const rows = definition.querySelector("[data-row-indices]");
+        const name = definition.id.replace("matrix-", "");
+        rows.textContent = rows.dataset.defaultRows;
+        if (!multi && /^(IMP|imp)/.test(name)) rows.textContent = importAxis;
+        if (!multi && imports === "factor-accounts" && factors.has(name)) {
+          rows.textContent = `Factor of production, followed by import rows (${importAxis}).`;
+        }
+      });
       map.querySelector("[data-config-explanation]").textContent = multi
         ? (trade === "bilateral"
           ? "Sector regions identify suppliers and buyers. Transactions and final demand can cross regional borders."
           : trade === "chenery-moses"
           ? "Commodity regions identify destination markets. Supply carries bilateral trade."
           : "Commodity regions identify origins. Use and final demand can cross regional borders.")
-        : (imports === "separate"
-          ? "Imports have their own blocks and share existing origin and item descriptors."
-          : "The factor accounts include external imports.");
+        : "Foreign-origin descriptors identify external suppliers. The model retains one endogenous region. Export partners follow trade_resolution.";
       select(links().some((link) => link.dataset.matrixLink === selected)
         ? selected : links()[0].dataset.matrixLink);
     };

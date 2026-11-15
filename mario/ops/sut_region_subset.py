@@ -33,7 +33,7 @@ def _active_rows(matrix):
     return np.diff(matrix.tocsr().indptr) != 0
 
 
-def _imports(S, U, Ya, Yc, activities, commodities, fd, selected, by, trade_mode):
+def _imports(S, U, Ya, Yc, activities, commodities, fd, selected, by, trade_resolution):
     """Return import accounts on activities, commodities and final demand.
 
     Use-side trade is exact by product. Activity attribution uses the source
@@ -58,13 +58,13 @@ def _imports(S, U, Ya, Yc, activities, commodities, fd, selected, by, trade_mode
         list(dict.fromkeys((commodities if by == "commodity" else activities)
                           .get_level_values(2))) if by else [None]
     )
-    partners = regions if trade_mode == "by_region" else [None]
+    partners = regions if trade_resolution == "by_region" else [None]
     keys = [(origin, item) for origin in partners for item in items]
     key_position = {key: i for i, key in enumerate(keys)}
 
     def positions(origins, codes):
         return np.array([
-            key_position[(origin if trade_mode == "by_region" else None,
+            key_position[(origin if trade_resolution == "by_region" else None,
                           code if by else None)]
             for origin, code in zip(origins, codes)
         ], dtype=int)
@@ -125,7 +125,7 @@ def _imports(S, U, Ya, Yc, activities, commodities, fd, selected, by, trade_mode
     return retained_keys, imports_a[used], imports_c[used], imports_y[used]
 
 
-def transform(database, selected, *, trade_mode, layout, imports_by):
+def transform(database, selected, *, trade_resolution, layout, imports_by):
     """Stage a complete national/subset SUT before replacing the baseline."""
     blocks = read_flows(database, "baseline")
     activities, commodities = blocks["S"].index, blocks["S"].columns
@@ -155,9 +155,9 @@ def transform(database, selected, *, trade_mode, layout, imports_by):
     by = imports_by or ("commodity" if layout == "sectorized" else None)
     import_keys, import_a, import_c, import_y = _imports(
         *(native[name] for name in ("S", "U", "Ya", "Yc")),
-        activities, commodities, fd, selected, by, trade_mode,
+        activities, commodities, fd, selected, by, trade_resolution,
     )
-    export_cols, export_labels = _export_columns(selected, excluded, fd, trade_mode, layout)
+    export_cols, export_labels = _export_columns(selected, excluded, fd, trade_resolution, layout)
     if set(export_labels) & set(database.get_index(MI["n"], flat=True)):
         raise WrongInput("Generated export labels collide with existing consumption categories.")
     target_n = local_n.append(export_cols)
@@ -167,7 +167,7 @@ def transform(database, selected, *, trade_mode, layout, imports_by):
         ("Yc", c, local_c, "U", activities),
     ):
         exports = _exports(native[intermediate][mask], native[name][mask], axis,
-                           buyers, fd, selected, excluded, trade_mode, layout, export_cols)
+                           buyers, fd, selected, excluded, trade_resolution, layout, export_cols)
         output[name] = sparse.hstack([native[name][mask, :][:, n], exports], format="csr")
 
     classification = {"commodity": MI["c"], "activity": MI["a"]}.get(by)
@@ -178,7 +178,7 @@ def transform(database, selected, *, trade_mode, layout, imports_by):
          "VY": (native["VY"][:, n], local_n)},
         {"Va": import_a, "Vc": import_c, "VY": import_y}, import_keys,
         selected=selected, classification=classification,
-        by_region=trade_mode == "by_region",
+        by_region=trade_resolution == "by_region",
     )
     output["Va"], output["Vc"] = accounts["Va"], accounts["Vc"]
     output["VY"] = sparse.hstack([
@@ -223,10 +223,10 @@ def transform(database, selected, *, trade_mode, layout, imports_by):
     database._indeces = indexes
     database.units = units
     from mario.model.configuration import update_configuration
-    update_configuration(database, imports_by=by, import_origins=trade_mode,
+    update_configuration(database, imports_by=by, trade_resolution=trade_resolution,
                          import_representation="factor-accounts")
     register_factor_layout(database, target_f)
     database.meta._add_history(
         f"Transformation: SUT region subset {selected}; imports by {by or 'total'}, "
-        f"trade_mode={trade_mode}. Imported final demand is retained in VY."
+        f"trade_resolution={trade_resolution}. Imported final demand is retained in VY."
     )

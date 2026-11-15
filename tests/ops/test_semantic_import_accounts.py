@@ -59,7 +59,7 @@ def iot(request):
 def test_iot_import_cells_and_empty_sector_factors(iot, partners):
     original = {name: dense(iot.query(name)) for name in ("Z", "Y", "V", "VY", "E", "EY")}
     result = iot.to_single_region(
-        "IT", imports_by="sector", trade_mode="by_region" if partners else "aggregate", inplace=False,
+        "IT", imports_by="sector", trade_resolution="by_region" if partners else "aggregate", inplace=False,
     )
     expected = {name: {} for name in ("V", "VY")}
     for target, source in (("V", "Z"), ("VY", "Y")):
@@ -123,7 +123,7 @@ def aggregate_reference(frame, set_name, new_label):
 @pytest.mark.parametrize("partners", [False, True])
 def test_iot_sector_aggregation_applies_to_v_and_vy_without_factor_mapping(iot, partners):
     result = iot.to_single_region(
-        "IT", trade_mode="by_region_and_sector" if partners else "by_sector", inplace=False,
+        "IT", trade_resolution="by_region_and_sector" if partners else "by_sector", inplace=False,
     )
     source = {name: result.query(name).copy() for name in ("Z", "Y", "V", "VY", "E", "EY")}
     result.query("m")
@@ -150,7 +150,7 @@ def test_empty_classification_levels_survive_excel_and_aggregation(table, classi
     db = mario.load_test(table)
     db.to_single_region(
         db.regions[0], imports_by=classification,
-        trade_mode="by_region" if partners else "aggregate",
+        trade_resolution="by_region" if partners else "aggregate",
     )
     prefix = tuple(axis.id for axis in db.get_block_spec("V").row_axes[:-1])
     path = tmp_path / f"{table}-{classification}-{partners}.xlsx"
@@ -183,7 +183,7 @@ def test_iot_sparse_extraction_never_densifies_source(iot):
 
 
 def test_source_region_aggregation_does_not_add_endogenous_regions(iot):
-    result = iot.to_single_region("IT", imports_by="sector", trade_mode="by_region", inplace=False)
+    result = iot.to_single_region("IT", imports_by="sector", trade_resolution="by_region", inplace=False)
     before = result.VY.xs("imports", level="Factor of production").sum(axis=0)
     result.aggregate(io=None, levels=["Region"], region_aggregation="continent", zero_output_epsilon=None)
     assert result.regions == ["Europe"]
@@ -215,7 +215,7 @@ def test_existing_activity_factor_layout_can_add_commodity_imports(regional, tmp
         frame.index = pd.MultiIndex.from_tuples(values, names=prefix + ["Factor of production"])
         db.matrices["baseline"][name] = frame
     register_factor_layout(db, db.query("Va").index)
-    db.to_single_region(region, imports_by="commodity", trade_mode="aggregate")
+    db.to_single_region(region, imports_by="commodity", trade_resolution="aggregate")
     expected_names = prefix + ["Commodity", "Factor of production"]
     assert list(db.query("Va").index.names) == expected_names
     assert db.query("Va").index.get_level_values("Commodity")[
@@ -235,7 +235,7 @@ def test_existing_activity_factor_layout_can_add_commodity_imports(regional, tmp
 def test_dataframe_view_preserves_empty_dimensions_values_and_live_matrices(table, classification, partners):
     db = mario.load_test(table)
     db.to_single_region(db.regions[0], imports_by=classification,
-                        trade_mode="by_region" if partners else "aggregate")
+                        trade_resolution="by_region" if partners else "aggregate")
     names = ["Z", "Y", "V", "E", "EY", "VY"]
     original = {name: db.query(name).copy() for name in names}
     # Direct final-demand account ordering need not match productive accounts.

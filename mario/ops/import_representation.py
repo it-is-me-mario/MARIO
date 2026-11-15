@@ -33,8 +33,8 @@ def _restore_import_detail(database):
         raise WrongInput("Import rows require one declared productive classification.")
     if "imports_by" not in values:
         values["imports_by"] = classifiers[active[0]] if active else None
-    if "import_origins" not in values:
-        values["import_origins"] = (
+    if "trade_resolution" not in values:
+        values["trade_resolution"] = (
             "by_region" if any(pd.notna(row.get(MI["r"])) for row in imported) else "aggregate"
         )
     update_configuration(database, **values)
@@ -98,7 +98,7 @@ def _separate(database):
 def _combine(database):
     values = configuration_values(database)
     classification = {"commodity": MI["c"], "activity": MI["a"], "sector": MI["s"]}.get(values.get("imports_by"))
-    by_region = values.get("import_origins") == "by_region"
+    by_region = values.get("trade_resolution") == "by_region"
     output = {}
     factor_axis = None
     for scenario in database._storage_scenarios():

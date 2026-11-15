@@ -112,7 +112,7 @@ def test_import_cells_and_balances_match_independent_source(database, by, partne
     source = {name: frame.copy() for name, frame in database.matrices["baseline"].items()}
     original_x = {name: dense(database.query(name)) for name in ("Xa", "Xc")}
     result = database.to_region_subset(
-        selected, imports_by=by, trade_mode="by_region" if partners else "aggregate",
+        selected, imports_by=by, trade_resolution="by_region" if partners else "aggregate",
         inplace=False,
     )
     expected = expected_imports(source, selected, by, partners)
@@ -208,7 +208,7 @@ def test_undefined_producer_allocation_leaves_source_unchanged(database):
 def test_alias_and_wrapper_keep_scenarios_and_account_units_consistent(database):
     database.clone_scenario("baseline", "policy")
     database.rename_baseline_scenario("reference")
-    result = database.to_single_region("IT", imports_by="commodity", trade_mode="by_sector", inplace=False)
+    result = database.to_single_region("IT", imports_by="commodity", trade_resolution="by_sector", inplace=False)
     equivalent = database.to_region_subset(["IT"], imports_by="commodity", externalized_trade_layout="sectorized", inplace=False)
     assert result.scenarios == ["reference"]
     assert database.scenarios == ["reference", "policy"]
@@ -319,7 +319,7 @@ def test_imported_final_demand_survives_excel_roundtrip(database, tmp_path):
 
 @pytest.mark.parametrize("partners", [False, True])
 def test_import_only_activity_labels_can_be_aggregated_without_adding_nodes(database, partners):
-    database.to_single_region("IT", imports_by="activity", trade_mode="by_region" if partners else "aggregate")
+    database.to_single_region("IT", imports_by="activity", trade_resolution="by_region" if partners else "aggregate")
     assert "services" not in database.get_index("Activity")
     before = dense(database.query("VY"))
     database.aggregate(

@@ -15,7 +15,7 @@ from mario.ops.import_accounts import (
 )
 
 
-def transform(database, selected, *, trade_mode, layout, imports_by):
+def transform(database, selected, *, trade_resolution, layout, imports_by):
     blocks = {name: database.query(name) for name in ("Z", "Y", "V", "E")}
     productive, fd = blocks["Z"].index, blocks["Y"].columns
     for axis in (productive, fd):
@@ -44,12 +44,12 @@ def transform(database, selected, *, trade_mode, layout, imports_by):
     }
     classification = MI["s"] if imports_by == "sector" or layout == "sectorized" else None
     foreign = productive[~p]
-    source_keys = [(origin if trade_mode == "by_region" else None,
+    source_keys = [(origin if trade_resolution == "by_region" else None,
                     sector if classification else None)
                    for origin, sector in zip(foreign.get_level_values(0),
                                              foreign.get_level_values(-1))]
     import_keys = list(dict.fromkeys(source_keys))
-    if not import_keys and trade_mode == "aggregate":
+    if not import_keys and trade_resolution == "aggregate":
         import_keys = [(None, None)]
     positions = {key: i for i, key in enumerate(import_keys)}
     projection = sparse.coo_matrix(
@@ -63,13 +63,13 @@ def transform(database, selected, *, trade_mode, layout, imports_by):
         database, rows_f,
         {"V": (values["V"][:, p], local_p), "VY": (values["VY"][:, n], local_n)},
         {"V": imports_v, "VY": imports_y}, import_keys,
-        selected=selected, classification=classification, by_region=trade_mode == "by_region",
+        selected=selected, classification=classification, by_region=trade_resolution == "by_region",
     )
-    export_cols, export_labels = _export_columns(selected, excluded, fd, trade_mode, layout)
+    export_cols, export_labels = _export_columns(selected, excluded, fd, trade_resolution, layout)
     if set(export_labels) & set(database.get_index(MI["n"], flat=True)):
         raise WrongInput("Generated export labels collide with existing consumption categories.")
     exports = _exports(values["Z"][p], values["Y"][p], local_p,
-                       productive, fd, selected, excluded, trade_mode, layout, export_cols)
+                       productive, fd, selected, excluded, trade_resolution, layout, export_cols)
     target_n = local_n.append(export_cols)
     output = {
         "Z": values["Z"][p, :][:, p],
@@ -118,9 +118,9 @@ def transform(database, selected, *, trade_mode, layout, imports_by):
     database.units = units
     from mario.model.configuration import update_configuration
     update_configuration(database, imports_by="sector" if classification else None,
-                         import_origins=trade_mode, import_representation="factor-accounts")
+                         trade_resolution=trade_resolution, import_representation="factor-accounts")
     register_factor_layout(database, target_f)
     database.meta._add_history(
         f"Transformation: IOT region subset {selected}; semantic imports by "
-        f"{classification or 'total'}, trade_mode={trade_mode}. Final-demand imports retained in VY."
+        f"{classification or 'total'}, trade_resolution={trade_resolution}. Final-demand imports retained in VY."
     )

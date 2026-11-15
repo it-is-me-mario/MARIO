@@ -38,10 +38,10 @@ Choose the representation
 The default ``"factor-accounts"`` keeps external imports in ``V`` or
 ``Va`` / ``Vc``, with direct final-demand imports in ``VY``.
 
-``imports_by`` and ``trade_mode`` control detail in both representations.
+``imports_by`` and ``trade_resolution`` control detail in both representations.
 IOT accepts ``"sector"``. SUT accepts ``"commodity"`` or ``"activity"``.
 ``None`` uses total imports with the default extraction layout.
-``trade_mode="by_region"`` retains source regions. See
+``trade_resolution="by_region"`` retains source regions. See
 :doc:`regional extraction <mrio_to_srio>` for producer attribution and exports.
 
 Import rows use existing Region and productive-classification descriptors.
@@ -71,7 +71,9 @@ can carry imports on the supply side. Imports attached to either side remain
 visible after extraction.
 
 The IOT and SUT diagrams under :doc:`/get_started/table_formats` show the
-additional row when single-region and separate imports are selected.
+additional row when single-region and separate imports are selected. Their
+``trade_resolution`` and ``imports_by`` menus show how foreign origins and
+imported classifications change the row descriptors in either representation.
 The :ref:`import matrix reference <separate-import-matrices>` lists all native
 flows, coefficients and results.
 

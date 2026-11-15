@@ -358,7 +358,7 @@ def test_filtered_target_rows_are_reported(tmp_path, source):
 
 def test_foreign_import_origins_use_their_target_set_domain(tmp_path):
     db = mario.load_test("SUT")
-    db.to_single_region(db.regions[0], imports_by="commodity", trade_mode="by_region",
+    db.to_single_region(db.regions[0], imports_by="commodity", trade_resolution="by_region",
                         import_representation="separate")
     axes = {"S": SUT_AXES["S"], "IMP_a": ["Region_from", *SUT_AXES["IMP_a"]]}
     settings = tmp_path / "settings.xlsx"

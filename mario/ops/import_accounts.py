@@ -153,12 +153,12 @@ def _align(frame, index, columns):
     return _csr(frame)[rows, :][:, cols]
 
 
-def _export_columns(selected, excluded, fd, trade_mode, layout):
+def _export_columns(selected, excluded, fd, trade_resolution, layout):
     types = ["Export"] if layout == "sectorized" else [
         "Final Demand exports", "Intermediate exports"
     ]
     labels = [f"{kind} to {r}" for kind in types for r in excluded] \
-        if trade_mode == "by_region" else types
+        if trade_resolution == "by_region" else types
     columns = pd.MultiIndex.from_tuples(
         [(r, MI["n"], label) if fd.nlevels == 3 else (r, label)
          for r in selected for label in labels], names=fd.names
@@ -167,7 +167,7 @@ def _export_columns(selected, excluded, fd, trade_mode, layout):
 
 
 def _exports(intermediate, final, rows, intermediate_axis, fd,
-             selected, excluded, trade_mode, layout, columns):
+             selected, excluded, trade_resolution, layout, columns):
     """Sum boundary flows into export columns owned by each exporting region."""
     owner = pd.Index(selected).get_indexer(rows.get_level_values(0))
     count = len(columns) // len(selected)
@@ -177,10 +177,10 @@ def _exports(intermediate, final, rows, intermediate_axis, fd,
         foreign = ~axis.get_level_values(0).isin(selected)[coo.col]
         rr, cc, data = coo.row[foreign], coo.col[foreign], coo.data[foreign]
         group = np.zeros(len(data), dtype=int)
-        if trade_mode == "by_region":
+        if trade_resolution == "by_region":
             group = pd.Index(excluded).get_indexer(axis.get_level_values(0)[cc])
         if layout == "legacy":
-            group += category * (len(excluded) if trade_mode == "by_region" else 1)
+            group += category * (len(excluded) if trade_resolution == "by_region" else 1)
         matrices.append(sparse.coo_matrix(
             (data, (rr, owner[rr] * count + group)), shape=(len(rows), len(columns))
         ).tocsr())

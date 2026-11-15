@@ -1,7 +1,11 @@
 <div class="table-map is-multiregional" data-table-map="iot">
 <div class="table-map__controls" hidden>
 <label>Regions<select data-config="scope"><option value="multi-region">Multi-region</option><option value="single-region">Single-region</option></select></label>
-<label data-import-control hidden>Imports<select data-config="imports"><option value="factor-accounts">Factor accounts</option><option value="separate">Separate blocks</option></select></label>
+<label data-import-control hidden>import_representation<select data-config="imports"><option value="factor-accounts">Factor accounts</option><option value="separate">Separate blocks</option></select></label>
+<label data-import-control hidden>trade_resolution<select data-config="resolution"><option value="aggregate">aggregate</option><option value="by_region">by_region</option></select></label>
+<label data-import-control hidden>imports_by<select data-config="detail"><option value="total">Total (None)</option>
+<option value="sector">sector</option>
+</select></label>
 <label>View<select data-config="mode"><option value="flows">Flows</option><option value="coefficients">Coefficients</option></select></label></div>
 <template data-config-grid="multi-region/bilateral/factor-accounts/flows"><table class="table-map__grid table-map__grid--regional">
 <caption>IOT · multi-region · Bilateral · flows · rows × columns</caption>
@@ -63,49 +67,163 @@
 <td class="table-map__block is-satellite" colspan="2" rowspan="1"><a href="#matrix-EY" data-matrix-link="matrix-EY" aria-label="EY"><span class="table-map__partition" style="--region-rows:1"><span class="is-flow" data-region-to="R1" aria-label="R1 account column, allowed flow"></span><span class="is-flow" data-region-to="R2" aria-label="R2 account column, allowed flow"></span></span><code>EY</code></a></td>
 </tr>
 </tbody></table></template>
-<template data-config-grid="single-region/external-trade/factor-accounts/flows"><table class="table-map__grid">
-<caption>IOT · single-region · factor accounts · flows · rows × columns</caption>
+<template data-config-grid="single-region/external-trade/factor-accounts/flows/aggregate/total"><table class="table-map__grid">
+<caption>IOT · single-region · flows<br>import_representation=factor-accounts · trade_resolution=aggregate · imports_by=None</caption>
 <thead><tr><td></td>
 <th scope="col">Sectors</th>
-<th scope="col">Final demand</th>
+<th scope="col">Final demand<small class="table-map__export-partners">Export partners aggregated</small></th>
 </tr></thead><tbody>
 <tr><th scope="row">Sectors</th>
 <td class="table-map__block is-core"><a href="#matrix-Z" data-matrix-link="matrix-Z" aria-label="Z"><code>Z</code></a></td>
 <td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y" aria-label="Y"><code>Y</code></a></td>
 </tr>
-<tr><th scope="row">Factors</th>
-<td class="table-map__block is-factors"><a href="#matrix-V" data-matrix-link="matrix-V" aria-label="V"><code>V</code></a></td>
-<td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY" aria-label="VY"><code>VY</code></a></td>
+<tr><th scope="row" class="table-map__account-axis" data-imports-by="total"><span class="table-map__axis-caption">Factors and imports</span><span class="table-map__axis-members"><span data-account-kind="factor"><span>Factors</span></span><span data-account-kind="import"><span>Total imports</span></span></span></th>
+<td class="table-map__block is-factors has-account-rows" style="--account-rows:2"><a href="#matrix-V" data-matrix-link="matrix-V" aria-label="V"><code>V</code><span class="table-map__account-partition"><span class="is-factor" data-account-kind="factor" data-import-item="Factors" aria-label="Factors"></span><span class="is-import" data-account-kind="import" aria-label="Import "></span></span></a></td>
+<td class="table-map__block is-factors has-account-rows" style="--account-rows:2"><a href="#matrix-VY" data-matrix-link="matrix-VY" aria-label="VY"><code>VY</code><span class="table-map__account-partition"><span class="is-factor" data-account-kind="factor" data-import-item="Factors" aria-label="Factors"></span><span class="is-import" data-account-kind="import" aria-label="Import "></span></span></a></td>
 </tr>
 <tr><th scope="row">Satellite accounts</th>
 <td class="table-map__block is-satellite"><a href="#matrix-E" data-matrix-link="matrix-E" aria-label="E"><code>E</code></a></td>
 <td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY" aria-label="EY"><code>EY</code></a></td>
 </tr>
 </tbody></table></template>
-<template data-config-grid="single-region/external-trade/factor-accounts/coefficients"><table class="table-map__grid">
-<caption>IOT · single-region · factor accounts · coefficients · rows × columns</caption>
+<template data-config-grid="single-region/external-trade/factor-accounts/flows/aggregate/sector"><table class="table-map__grid">
+<caption>IOT · single-region · flows<br>import_representation=factor-accounts · trade_resolution=aggregate · imports_by=sector</caption>
 <thead><tr><td></td>
 <th scope="col">Sectors</th>
-<th scope="col">Final demand</th>
+<th scope="col">Final demand<small class="table-map__export-partners">Export partners aggregated</small></th>
+</tr></thead><tbody>
+<tr><th scope="row">Sectors</th>
+<td class="table-map__block is-core"><a href="#matrix-Z" data-matrix-link="matrix-Z" aria-label="Z"><code>Z</code></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y" aria-label="Y"><code>Y</code></a></td>
+</tr>
+<tr><th scope="row" class="table-map__account-axis" data-imports-by="sector"><span class="table-map__axis-caption">Factors and imports</span><span class="table-map__axis-members"><span data-account-kind="factor"><span>Factors</span></span><span data-account-kind="import"><span>S1</span></span><span data-account-kind="import"><span>S2</span></span></span></th>
+<td class="table-map__block is-factors has-account-rows" style="--account-rows:3"><a href="#matrix-V" data-matrix-link="matrix-V" aria-label="V"><code>V</code><span class="table-map__account-partition"><span class="is-factor" data-account-kind="factor" data-import-item="Factors" aria-label="Factors"></span><span class="is-import" data-account-kind="import" data-import-item="S1" aria-label="Import S1"></span><span class="is-import" data-account-kind="import" data-import-item="S2" aria-label="Import S2"></span></span></a></td>
+<td class="table-map__block is-factors has-account-rows" style="--account-rows:3"><a href="#matrix-VY" data-matrix-link="matrix-VY" aria-label="VY"><code>VY</code><span class="table-map__account-partition"><span class="is-factor" data-account-kind="factor" data-import-item="Factors" aria-label="Factors"></span><span class="is-import" data-account-kind="import" data-import-item="S1" aria-label="Import S1"></span><span class="is-import" data-account-kind="import" data-import-item="S2" aria-label="Import S2"></span></span></a></td>
+</tr>
+<tr><th scope="row">Satellite accounts</th>
+<td class="table-map__block is-satellite"><a href="#matrix-E" data-matrix-link="matrix-E" aria-label="E"><code>E</code></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY" aria-label="EY"><code>EY</code></a></td>
+</tr>
+</tbody></table></template>
+<template data-config-grid="single-region/external-trade/factor-accounts/flows/by_region/total"><table class="table-map__grid">
+<caption>IOT · single-region · flows<br>import_representation=factor-accounts · trade_resolution=by_region · imports_by=None</caption>
+<thead><tr><td></td>
+<th scope="col">Sectors</th>
+<th scope="col">Final demand<small class="table-map__export-partners">Export partners F1, F2</small></th>
+</tr></thead><tbody>
+<tr><th scope="row">Sectors</th>
+<td class="table-map__block is-core"><a href="#matrix-Z" data-matrix-link="matrix-Z" aria-label="Z"><code>Z</code></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y" aria-label="Y"><code>Y</code></a></td>
+</tr>
+<tr><th scope="row" class="table-map__account-axis" data-imports-by="total"><span class="table-map__axis-caption">Factors and imports</span><span class="table-map__axis-members"><span data-account-kind="factor"><span>Factors</span></span><span data-account-kind="import"><span>Imports</span><span class="table-map__foreign-region" data-foreign-region="F1">F1</span></span><span data-account-kind="import"><span>Imports</span><span class="table-map__foreign-region" data-foreign-region="F2">F2</span></span></span></th>
+<td class="table-map__block is-factors has-account-rows" style="--account-rows:3"><a href="#matrix-V" data-matrix-link="matrix-V" aria-label="V"><code>V</code><span class="table-map__account-partition"><span class="is-factor" data-account-kind="factor" data-import-item="Factors" aria-label="Factors"></span><span class="is-import" data-account-kind="import" data-foreign-region="F1" aria-label="Import F1"></span><span class="is-import" data-account-kind="import" data-foreign-region="F2" aria-label="Import F2"></span></span></a></td>
+<td class="table-map__block is-factors has-account-rows" style="--account-rows:3"><a href="#matrix-VY" data-matrix-link="matrix-VY" aria-label="VY"><code>VY</code><span class="table-map__account-partition"><span class="is-factor" data-account-kind="factor" data-import-item="Factors" aria-label="Factors"></span><span class="is-import" data-account-kind="import" data-foreign-region="F1" aria-label="Import F1"></span><span class="is-import" data-account-kind="import" data-foreign-region="F2" aria-label="Import F2"></span></span></a></td>
+</tr>
+<tr><th scope="row">Satellite accounts</th>
+<td class="table-map__block is-satellite"><a href="#matrix-E" data-matrix-link="matrix-E" aria-label="E"><code>E</code></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY" aria-label="EY"><code>EY</code></a></td>
+</tr>
+</tbody></table></template>
+<template data-config-grid="single-region/external-trade/factor-accounts/flows/by_region/sector"><table class="table-map__grid">
+<caption>IOT · single-region · flows<br>import_representation=factor-accounts · trade_resolution=by_region · imports_by=sector</caption>
+<thead><tr><td></td>
+<th scope="col">Sectors</th>
+<th scope="col">Final demand<small class="table-map__export-partners">Export partners F1, F2</small></th>
+</tr></thead><tbody>
+<tr><th scope="row">Sectors</th>
+<td class="table-map__block is-core"><a href="#matrix-Z" data-matrix-link="matrix-Z" aria-label="Z"><code>Z</code></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y" aria-label="Y"><code>Y</code></a></td>
+</tr>
+<tr><th scope="row" class="table-map__account-axis" data-imports-by="sector"><span class="table-map__axis-caption">Factors and imports</span><span class="table-map__axis-members"><span data-account-kind="factor"><span>Factors</span></span><span data-account-kind="import"><span>S1</span><span class="table-map__foreign-region" data-foreign-region="F1">F1</span></span><span data-account-kind="import"><span>S1</span><span class="table-map__foreign-region" data-foreign-region="F2">F2</span></span><span data-account-kind="import"><span>S2</span><span class="table-map__foreign-region" data-foreign-region="F1">F1</span></span><span data-account-kind="import"><span>S2</span><span class="table-map__foreign-region" data-foreign-region="F2">F2</span></span></span></th>
+<td class="table-map__block is-factors has-account-rows" style="--account-rows:5"><a href="#matrix-V" data-matrix-link="matrix-V" aria-label="V"><code>V</code><span class="table-map__account-partition"><span class="is-factor" data-account-kind="factor" data-import-item="Factors" aria-label="Factors"></span><span class="is-import" data-account-kind="import" data-import-item="S1" data-foreign-region="F1" aria-label="Import S1 F1"></span><span class="is-import" data-account-kind="import" data-import-item="S1" data-foreign-region="F2" aria-label="Import S1 F2"></span><span class="is-import" data-account-kind="import" data-import-item="S2" data-foreign-region="F1" aria-label="Import S2 F1"></span><span class="is-import" data-account-kind="import" data-import-item="S2" data-foreign-region="F2" aria-label="Import S2 F2"></span></span></a></td>
+<td class="table-map__block is-factors has-account-rows" style="--account-rows:5"><a href="#matrix-VY" data-matrix-link="matrix-VY" aria-label="VY"><code>VY</code><span class="table-map__account-partition"><span class="is-factor" data-account-kind="factor" data-import-item="Factors" aria-label="Factors"></span><span class="is-import" data-account-kind="import" data-import-item="S1" data-foreign-region="F1" aria-label="Import S1 F1"></span><span class="is-import" data-account-kind="import" data-import-item="S1" data-foreign-region="F2" aria-label="Import S1 F2"></span><span class="is-import" data-account-kind="import" data-import-item="S2" data-foreign-region="F1" aria-label="Import S2 F1"></span><span class="is-import" data-account-kind="import" data-import-item="S2" data-foreign-region="F2" aria-label="Import S2 F2"></span></span></a></td>
+</tr>
+<tr><th scope="row">Satellite accounts</th>
+<td class="table-map__block is-satellite"><a href="#matrix-E" data-matrix-link="matrix-E" aria-label="E"><code>E</code></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY" aria-label="EY"><code>EY</code></a></td>
+</tr>
+</tbody></table></template>
+<template data-config-grid="single-region/external-trade/factor-accounts/coefficients/aggregate/total"><table class="table-map__grid">
+<caption>IOT · single-region · coefficients<br>import_representation=factor-accounts · trade_resolution=aggregate · imports_by=None</caption>
+<thead><tr><td></td>
+<th scope="col">Sectors</th>
+<th scope="col">Final demand<small class="table-map__export-partners">Export partners aggregated</small></th>
 </tr></thead><tbody>
 <tr><th scope="row">Sectors</th>
 <td class="table-map__block is-core"><a href="#matrix-z" data-matrix-link="matrix-z" aria-label="z"><code>z</code></a></td>
 <td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y" aria-label="Y"><code>Y</code></a></td>
 </tr>
-<tr><th scope="row">Factors</th>
-<td class="table-map__block is-factors"><a href="#matrix-v" data-matrix-link="matrix-v" aria-label="v"><code>v</code></a></td>
-<td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY" aria-label="VY"><code>VY</code></a></td>
+<tr><th scope="row" class="table-map__account-axis" data-imports-by="total"><span class="table-map__axis-caption">Factors and imports</span><span class="table-map__axis-members"><span data-account-kind="factor"><span>Factors</span></span><span data-account-kind="import"><span>Total imports</span></span></span></th>
+<td class="table-map__block is-factors has-account-rows" style="--account-rows:2"><a href="#matrix-v" data-matrix-link="matrix-v" aria-label="v"><code>v</code><span class="table-map__account-partition"><span class="is-factor" data-account-kind="factor" data-import-item="Factors" aria-label="Factors"></span><span class="is-import" data-account-kind="import" aria-label="Import "></span></span></a></td>
+<td class="table-map__block is-factors has-account-rows" style="--account-rows:2"><a href="#matrix-VY" data-matrix-link="matrix-VY" aria-label="VY"><code>VY</code><span class="table-map__account-partition"><span class="is-factor" data-account-kind="factor" data-import-item="Factors" aria-label="Factors"></span><span class="is-import" data-account-kind="import" aria-label="Import "></span></span></a></td>
 </tr>
 <tr><th scope="row">Satellite accounts</th>
 <td class="table-map__block is-satellite"><a href="#matrix-e" data-matrix-link="matrix-e" aria-label="e"><code>e</code></a></td>
 <td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY" aria-label="EY"><code>EY</code></a></td>
 </tr>
 </tbody></table></template>
-<template data-config-grid="single-region/external-trade/separate/flows"><table class="table-map__grid">
-<caption>IOT · single-region · separate · flows · rows × columns</caption>
+<template data-config-grid="single-region/external-trade/factor-accounts/coefficients/aggregate/sector"><table class="table-map__grid">
+<caption>IOT · single-region · coefficients<br>import_representation=factor-accounts · trade_resolution=aggregate · imports_by=sector</caption>
 <thead><tr><td></td>
 <th scope="col">Sectors</th>
-<th scope="col">Final demand</th>
+<th scope="col">Final demand<small class="table-map__export-partners">Export partners aggregated</small></th>
+</tr></thead><tbody>
+<tr><th scope="row">Sectors</th>
+<td class="table-map__block is-core"><a href="#matrix-z" data-matrix-link="matrix-z" aria-label="z"><code>z</code></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y" aria-label="Y"><code>Y</code></a></td>
+</tr>
+<tr><th scope="row" class="table-map__account-axis" data-imports-by="sector"><span class="table-map__axis-caption">Factors and imports</span><span class="table-map__axis-members"><span data-account-kind="factor"><span>Factors</span></span><span data-account-kind="import"><span>S1</span></span><span data-account-kind="import"><span>S2</span></span></span></th>
+<td class="table-map__block is-factors has-account-rows" style="--account-rows:3"><a href="#matrix-v" data-matrix-link="matrix-v" aria-label="v"><code>v</code><span class="table-map__account-partition"><span class="is-factor" data-account-kind="factor" data-import-item="Factors" aria-label="Factors"></span><span class="is-import" data-account-kind="import" data-import-item="S1" aria-label="Import S1"></span><span class="is-import" data-account-kind="import" data-import-item="S2" aria-label="Import S2"></span></span></a></td>
+<td class="table-map__block is-factors has-account-rows" style="--account-rows:3"><a href="#matrix-VY" data-matrix-link="matrix-VY" aria-label="VY"><code>VY</code><span class="table-map__account-partition"><span class="is-factor" data-account-kind="factor" data-import-item="Factors" aria-label="Factors"></span><span class="is-import" data-account-kind="import" data-import-item="S1" aria-label="Import S1"></span><span class="is-import" data-account-kind="import" data-import-item="S2" aria-label="Import S2"></span></span></a></td>
+</tr>
+<tr><th scope="row">Satellite accounts</th>
+<td class="table-map__block is-satellite"><a href="#matrix-e" data-matrix-link="matrix-e" aria-label="e"><code>e</code></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY" aria-label="EY"><code>EY</code></a></td>
+</tr>
+</tbody></table></template>
+<template data-config-grid="single-region/external-trade/factor-accounts/coefficients/by_region/total"><table class="table-map__grid">
+<caption>IOT · single-region · coefficients<br>import_representation=factor-accounts · trade_resolution=by_region · imports_by=None</caption>
+<thead><tr><td></td>
+<th scope="col">Sectors</th>
+<th scope="col">Final demand<small class="table-map__export-partners">Export partners F1, F2</small></th>
+</tr></thead><tbody>
+<tr><th scope="row">Sectors</th>
+<td class="table-map__block is-core"><a href="#matrix-z" data-matrix-link="matrix-z" aria-label="z"><code>z</code></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y" aria-label="Y"><code>Y</code></a></td>
+</tr>
+<tr><th scope="row" class="table-map__account-axis" data-imports-by="total"><span class="table-map__axis-caption">Factors and imports</span><span class="table-map__axis-members"><span data-account-kind="factor"><span>Factors</span></span><span data-account-kind="import"><span>Imports</span><span class="table-map__foreign-region" data-foreign-region="F1">F1</span></span><span data-account-kind="import"><span>Imports</span><span class="table-map__foreign-region" data-foreign-region="F2">F2</span></span></span></th>
+<td class="table-map__block is-factors has-account-rows" style="--account-rows:3"><a href="#matrix-v" data-matrix-link="matrix-v" aria-label="v"><code>v</code><span class="table-map__account-partition"><span class="is-factor" data-account-kind="factor" data-import-item="Factors" aria-label="Factors"></span><span class="is-import" data-account-kind="import" data-foreign-region="F1" aria-label="Import F1"></span><span class="is-import" data-account-kind="import" data-foreign-region="F2" aria-label="Import F2"></span></span></a></td>
+<td class="table-map__block is-factors has-account-rows" style="--account-rows:3"><a href="#matrix-VY" data-matrix-link="matrix-VY" aria-label="VY"><code>VY</code><span class="table-map__account-partition"><span class="is-factor" data-account-kind="factor" data-import-item="Factors" aria-label="Factors"></span><span class="is-import" data-account-kind="import" data-foreign-region="F1" aria-label="Import F1"></span><span class="is-import" data-account-kind="import" data-foreign-region="F2" aria-label="Import F2"></span></span></a></td>
+</tr>
+<tr><th scope="row">Satellite accounts</th>
+<td class="table-map__block is-satellite"><a href="#matrix-e" data-matrix-link="matrix-e" aria-label="e"><code>e</code></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY" aria-label="EY"><code>EY</code></a></td>
+</tr>
+</tbody></table></template>
+<template data-config-grid="single-region/external-trade/factor-accounts/coefficients/by_region/sector"><table class="table-map__grid">
+<caption>IOT · single-region · coefficients<br>import_representation=factor-accounts · trade_resolution=by_region · imports_by=sector</caption>
+<thead><tr><td></td>
+<th scope="col">Sectors</th>
+<th scope="col">Final demand<small class="table-map__export-partners">Export partners F1, F2</small></th>
+</tr></thead><tbody>
+<tr><th scope="row">Sectors</th>
+<td class="table-map__block is-core"><a href="#matrix-z" data-matrix-link="matrix-z" aria-label="z"><code>z</code></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y" aria-label="Y"><code>Y</code></a></td>
+</tr>
+<tr><th scope="row" class="table-map__account-axis" data-imports-by="sector"><span class="table-map__axis-caption">Factors and imports</span><span class="table-map__axis-members"><span data-account-kind="factor"><span>Factors</span></span><span data-account-kind="import"><span>S1</span><span class="table-map__foreign-region" data-foreign-region="F1">F1</span></span><span data-account-kind="import"><span>S1</span><span class="table-map__foreign-region" data-foreign-region="F2">F2</span></span><span data-account-kind="import"><span>S2</span><span class="table-map__foreign-region" data-foreign-region="F1">F1</span></span><span data-account-kind="import"><span>S2</span><span class="table-map__foreign-region" data-foreign-region="F2">F2</span></span></span></th>
+<td class="table-map__block is-factors has-account-rows" style="--account-rows:5"><a href="#matrix-v" data-matrix-link="matrix-v" aria-label="v"><code>v</code><span class="table-map__account-partition"><span class="is-factor" data-account-kind="factor" data-import-item="Factors" aria-label="Factors"></span><span class="is-import" data-account-kind="import" data-import-item="S1" data-foreign-region="F1" aria-label="Import S1 F1"></span><span class="is-import" data-account-kind="import" data-import-item="S1" data-foreign-region="F2" aria-label="Import S1 F2"></span><span class="is-import" data-account-kind="import" data-import-item="S2" data-foreign-region="F1" aria-label="Import S2 F1"></span><span class="is-import" data-account-kind="import" data-import-item="S2" data-foreign-region="F2" aria-label="Import S2 F2"></span></span></a></td>
+<td class="table-map__block is-factors has-account-rows" style="--account-rows:5"><a href="#matrix-VY" data-matrix-link="matrix-VY" aria-label="VY"><code>VY</code><span class="table-map__account-partition"><span class="is-factor" data-account-kind="factor" data-import-item="Factors" aria-label="Factors"></span><span class="is-import" data-account-kind="import" data-import-item="S1" data-foreign-region="F1" aria-label="Import S1 F1"></span><span class="is-import" data-account-kind="import" data-import-item="S1" data-foreign-region="F2" aria-label="Import S1 F2"></span><span class="is-import" data-account-kind="import" data-import-item="S2" data-foreign-region="F1" aria-label="Import S2 F1"></span><span class="is-import" data-account-kind="import" data-import-item="S2" data-foreign-region="F2" aria-label="Import S2 F2"></span></span></a></td>
+</tr>
+<tr><th scope="row">Satellite accounts</th>
+<td class="table-map__block is-satellite"><a href="#matrix-e" data-matrix-link="matrix-e" aria-label="e"><code>e</code></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY" aria-label="EY"><code>EY</code></a></td>
+</tr>
+</tbody></table></template>
+<template data-config-grid="single-region/external-trade/separate/flows/aggregate/total"><table class="table-map__grid">
+<caption>IOT · single-region · flows<br>import_representation=separate · trade_resolution=aggregate · imports_by=None</caption>
+<thead><tr><td></td>
+<th scope="col">Sectors</th>
+<th scope="col">Final demand<small class="table-map__export-partners">Export partners aggregated</small></th>
 </tr></thead><tbody>
 <tr><th scope="row">Sectors</th>
 <td class="table-map__block is-core"><a href="#matrix-Z" data-matrix-link="matrix-Z" aria-label="Z"><code>Z</code></a></td>
@@ -115,20 +233,89 @@
 <td class="table-map__block is-factors"><a href="#matrix-V" data-matrix-link="matrix-V" aria-label="V"><code>V</code></a></td>
 <td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY" aria-label="VY"><code>VY</code></a></td>
 </tr>
-<tr><th scope="row">External imports</th>
-<td class="table-map__block is-imports"><a href="#matrix-IMP" data-matrix-link="matrix-IMP" aria-label="IMP"><code>IMP</code></a></td>
-<td class="table-map__block is-imports"><a href="#matrix-IMP_Y" data-matrix-link="matrix-IMP_Y" aria-label="IMP_Y"><code>IMP_Y</code></a></td>
+<tr><th scope="row" class="table-map__account-axis" data-imports-by="total"><span class="table-map__axis-caption">External imports</span><span class="table-map__axis-members"><span data-account-kind="import"><span>Total imports</span></span></span></th>
+<td class="table-map__block is-imports has-account-rows" style="--account-rows:1"><a href="#matrix-IMP" data-matrix-link="matrix-IMP" aria-label="IMP"><code>IMP</code><span class="table-map__account-partition"><span class="is-import" data-account-kind="import" aria-label="Import "></span></span></a></td>
+<td class="table-map__block is-imports has-account-rows" style="--account-rows:1"><a href="#matrix-IMP_Y" data-matrix-link="matrix-IMP_Y" aria-label="IMP_Y"><code>IMP_Y</code><span class="table-map__account-partition"><span class="is-import" data-account-kind="import" aria-label="Import "></span></span></a></td>
 </tr>
 <tr><th scope="row">Satellite accounts</th>
 <td class="table-map__block is-satellite"><a href="#matrix-E" data-matrix-link="matrix-E" aria-label="E"><code>E</code></a></td>
 <td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY" aria-label="EY"><code>EY</code></a></td>
 </tr>
 </tbody></table></template>
-<template data-config-grid="single-region/external-trade/separate/coefficients"><table class="table-map__grid">
-<caption>IOT · single-region · separate · coefficients · rows × columns</caption>
+<template data-config-grid="single-region/external-trade/separate/flows/aggregate/sector"><table class="table-map__grid">
+<caption>IOT · single-region · flows<br>import_representation=separate · trade_resolution=aggregate · imports_by=sector</caption>
 <thead><tr><td></td>
 <th scope="col">Sectors</th>
-<th scope="col">Final demand</th>
+<th scope="col">Final demand<small class="table-map__export-partners">Export partners aggregated</small></th>
+</tr></thead><tbody>
+<tr><th scope="row">Sectors</th>
+<td class="table-map__block is-core"><a href="#matrix-Z" data-matrix-link="matrix-Z" aria-label="Z"><code>Z</code></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y" aria-label="Y"><code>Y</code></a></td>
+</tr>
+<tr><th scope="row">Factors</th>
+<td class="table-map__block is-factors"><a href="#matrix-V" data-matrix-link="matrix-V" aria-label="V"><code>V</code></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY" aria-label="VY"><code>VY</code></a></td>
+</tr>
+<tr><th scope="row" class="table-map__account-axis" data-imports-by="sector"><span class="table-map__axis-caption">External imports</span><span class="table-map__axis-members"><span data-account-kind="import"><span>S1</span></span><span data-account-kind="import"><span>S2</span></span></span></th>
+<td class="table-map__block is-imports has-account-rows" style="--account-rows:2"><a href="#matrix-IMP" data-matrix-link="matrix-IMP" aria-label="IMP"><code>IMP</code><span class="table-map__account-partition"><span class="is-import" data-account-kind="import" data-import-item="S1" aria-label="Import S1"></span><span class="is-import" data-account-kind="import" data-import-item="S2" aria-label="Import S2"></span></span></a></td>
+<td class="table-map__block is-imports has-account-rows" style="--account-rows:2"><a href="#matrix-IMP_Y" data-matrix-link="matrix-IMP_Y" aria-label="IMP_Y"><code>IMP_Y</code><span class="table-map__account-partition"><span class="is-import" data-account-kind="import" data-import-item="S1" aria-label="Import S1"></span><span class="is-import" data-account-kind="import" data-import-item="S2" aria-label="Import S2"></span></span></a></td>
+</tr>
+<tr><th scope="row">Satellite accounts</th>
+<td class="table-map__block is-satellite"><a href="#matrix-E" data-matrix-link="matrix-E" aria-label="E"><code>E</code></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY" aria-label="EY"><code>EY</code></a></td>
+</tr>
+</tbody></table></template>
+<template data-config-grid="single-region/external-trade/separate/flows/by_region/total"><table class="table-map__grid">
+<caption>IOT · single-region · flows<br>import_representation=separate · trade_resolution=by_region · imports_by=None</caption>
+<thead><tr><td></td>
+<th scope="col">Sectors</th>
+<th scope="col">Final demand<small class="table-map__export-partners">Export partners F1, F2</small></th>
+</tr></thead><tbody>
+<tr><th scope="row">Sectors</th>
+<td class="table-map__block is-core"><a href="#matrix-Z" data-matrix-link="matrix-Z" aria-label="Z"><code>Z</code></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y" aria-label="Y"><code>Y</code></a></td>
+</tr>
+<tr><th scope="row">Factors</th>
+<td class="table-map__block is-factors"><a href="#matrix-V" data-matrix-link="matrix-V" aria-label="V"><code>V</code></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY" aria-label="VY"><code>VY</code></a></td>
+</tr>
+<tr><th scope="row" class="table-map__account-axis" data-imports-by="total"><span class="table-map__axis-caption">External imports</span><span class="table-map__axis-members"><span data-account-kind="import"><span>Imports</span><span class="table-map__foreign-region" data-foreign-region="F1">F1</span></span><span data-account-kind="import"><span>Imports</span><span class="table-map__foreign-region" data-foreign-region="F2">F2</span></span></span></th>
+<td class="table-map__block is-imports has-account-rows" style="--account-rows:2"><a href="#matrix-IMP" data-matrix-link="matrix-IMP" aria-label="IMP"><code>IMP</code><span class="table-map__account-partition"><span class="is-import" data-account-kind="import" data-foreign-region="F1" aria-label="Import F1"></span><span class="is-import" data-account-kind="import" data-foreign-region="F2" aria-label="Import F2"></span></span></a></td>
+<td class="table-map__block is-imports has-account-rows" style="--account-rows:2"><a href="#matrix-IMP_Y" data-matrix-link="matrix-IMP_Y" aria-label="IMP_Y"><code>IMP_Y</code><span class="table-map__account-partition"><span class="is-import" data-account-kind="import" data-foreign-region="F1" aria-label="Import F1"></span><span class="is-import" data-account-kind="import" data-foreign-region="F2" aria-label="Import F2"></span></span></a></td>
+</tr>
+<tr><th scope="row">Satellite accounts</th>
+<td class="table-map__block is-satellite"><a href="#matrix-E" data-matrix-link="matrix-E" aria-label="E"><code>E</code></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY" aria-label="EY"><code>EY</code></a></td>
+</tr>
+</tbody></table></template>
+<template data-config-grid="single-region/external-trade/separate/flows/by_region/sector"><table class="table-map__grid">
+<caption>IOT · single-region · flows<br>import_representation=separate · trade_resolution=by_region · imports_by=sector</caption>
+<thead><tr><td></td>
+<th scope="col">Sectors</th>
+<th scope="col">Final demand<small class="table-map__export-partners">Export partners F1, F2</small></th>
+</tr></thead><tbody>
+<tr><th scope="row">Sectors</th>
+<td class="table-map__block is-core"><a href="#matrix-Z" data-matrix-link="matrix-Z" aria-label="Z"><code>Z</code></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y" aria-label="Y"><code>Y</code></a></td>
+</tr>
+<tr><th scope="row">Factors</th>
+<td class="table-map__block is-factors"><a href="#matrix-V" data-matrix-link="matrix-V" aria-label="V"><code>V</code></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY" aria-label="VY"><code>VY</code></a></td>
+</tr>
+<tr><th scope="row" class="table-map__account-axis" data-imports-by="sector"><span class="table-map__axis-caption">External imports</span><span class="table-map__axis-members"><span data-account-kind="import"><span>S1</span><span class="table-map__foreign-region" data-foreign-region="F1">F1</span></span><span data-account-kind="import"><span>S1</span><span class="table-map__foreign-region" data-foreign-region="F2">F2</span></span><span data-account-kind="import"><span>S2</span><span class="table-map__foreign-region" data-foreign-region="F1">F1</span></span><span data-account-kind="import"><span>S2</span><span class="table-map__foreign-region" data-foreign-region="F2">F2</span></span></span></th>
+<td class="table-map__block is-imports has-account-rows" style="--account-rows:4"><a href="#matrix-IMP" data-matrix-link="matrix-IMP" aria-label="IMP"><code>IMP</code><span class="table-map__account-partition"><span class="is-import" data-account-kind="import" data-import-item="S1" data-foreign-region="F1" aria-label="Import S1 F1"></span><span class="is-import" data-account-kind="import" data-import-item="S1" data-foreign-region="F2" aria-label="Import S1 F2"></span><span class="is-import" data-account-kind="import" data-import-item="S2" data-foreign-region="F1" aria-label="Import S2 F1"></span><span class="is-import" data-account-kind="import" data-import-item="S2" data-foreign-region="F2" aria-label="Import S2 F2"></span></span></a></td>
+<td class="table-map__block is-imports has-account-rows" style="--account-rows:4"><a href="#matrix-IMP_Y" data-matrix-link="matrix-IMP_Y" aria-label="IMP_Y"><code>IMP_Y</code><span class="table-map__account-partition"><span class="is-import" data-account-kind="import" data-import-item="S1" data-foreign-region="F1" aria-label="Import S1 F1"></span><span class="is-import" data-account-kind="import" data-import-item="S1" data-foreign-region="F2" aria-label="Import S1 F2"></span><span class="is-import" data-account-kind="import" data-import-item="S2" data-foreign-region="F1" aria-label="Import S2 F1"></span><span class="is-import" data-account-kind="import" data-import-item="S2" data-foreign-region="F2" aria-label="Import S2 F2"></span></span></a></td>
+</tr>
+<tr><th scope="row">Satellite accounts</th>
+<td class="table-map__block is-satellite"><a href="#matrix-E" data-matrix-link="matrix-E" aria-label="E"><code>E</code></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY" aria-label="EY"><code>EY</code></a></td>
+</tr>
+</tbody></table></template>
+<template data-config-grid="single-region/external-trade/separate/coefficients/aggregate/total"><table class="table-map__grid">
+<caption>IOT · single-region · coefficients<br>import_representation=separate · trade_resolution=aggregate · imports_by=None</caption>
+<thead><tr><td></td>
+<th scope="col">Sectors</th>
+<th scope="col">Final demand<small class="table-map__export-partners">Export partners aggregated</small></th>
 </tr></thead><tbody>
 <tr><th scope="row">Sectors</th>
 <td class="table-map__block is-core"><a href="#matrix-z" data-matrix-link="matrix-z" aria-label="z"><code>z</code></a></td>
@@ -138,9 +325,78 @@
 <td class="table-map__block is-factors"><a href="#matrix-v" data-matrix-link="matrix-v" aria-label="v"><code>v</code></a></td>
 <td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY" aria-label="VY"><code>VY</code></a></td>
 </tr>
-<tr><th scope="row">External imports</th>
-<td class="table-map__block is-imports"><a href="#matrix-imp" data-matrix-link="matrix-imp" aria-label="imp"><code>imp</code></a></td>
-<td class="table-map__block is-imports"><a href="#matrix-IMP_Y" data-matrix-link="matrix-IMP_Y" aria-label="IMP_Y"><code>IMP_Y</code></a></td>
+<tr><th scope="row" class="table-map__account-axis" data-imports-by="total"><span class="table-map__axis-caption">External imports</span><span class="table-map__axis-members"><span data-account-kind="import"><span>Total imports</span></span></span></th>
+<td class="table-map__block is-imports has-account-rows" style="--account-rows:1"><a href="#matrix-imp" data-matrix-link="matrix-imp" aria-label="imp"><code>imp</code><span class="table-map__account-partition"><span class="is-import" data-account-kind="import" aria-label="Import "></span></span></a></td>
+<td class="table-map__block is-imports has-account-rows" style="--account-rows:1"><a href="#matrix-IMP_Y" data-matrix-link="matrix-IMP_Y" aria-label="IMP_Y"><code>IMP_Y</code><span class="table-map__account-partition"><span class="is-import" data-account-kind="import" aria-label="Import "></span></span></a></td>
+</tr>
+<tr><th scope="row">Satellite accounts</th>
+<td class="table-map__block is-satellite"><a href="#matrix-e" data-matrix-link="matrix-e" aria-label="e"><code>e</code></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY" aria-label="EY"><code>EY</code></a></td>
+</tr>
+</tbody></table></template>
+<template data-config-grid="single-region/external-trade/separate/coefficients/aggregate/sector"><table class="table-map__grid">
+<caption>IOT · single-region · coefficients<br>import_representation=separate · trade_resolution=aggregate · imports_by=sector</caption>
+<thead><tr><td></td>
+<th scope="col">Sectors</th>
+<th scope="col">Final demand<small class="table-map__export-partners">Export partners aggregated</small></th>
+</tr></thead><tbody>
+<tr><th scope="row">Sectors</th>
+<td class="table-map__block is-core"><a href="#matrix-z" data-matrix-link="matrix-z" aria-label="z"><code>z</code></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y" aria-label="Y"><code>Y</code></a></td>
+</tr>
+<tr><th scope="row">Factors</th>
+<td class="table-map__block is-factors"><a href="#matrix-v" data-matrix-link="matrix-v" aria-label="v"><code>v</code></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY" aria-label="VY"><code>VY</code></a></td>
+</tr>
+<tr><th scope="row" class="table-map__account-axis" data-imports-by="sector"><span class="table-map__axis-caption">External imports</span><span class="table-map__axis-members"><span data-account-kind="import"><span>S1</span></span><span data-account-kind="import"><span>S2</span></span></span></th>
+<td class="table-map__block is-imports has-account-rows" style="--account-rows:2"><a href="#matrix-imp" data-matrix-link="matrix-imp" aria-label="imp"><code>imp</code><span class="table-map__account-partition"><span class="is-import" data-account-kind="import" data-import-item="S1" aria-label="Import S1"></span><span class="is-import" data-account-kind="import" data-import-item="S2" aria-label="Import S2"></span></span></a></td>
+<td class="table-map__block is-imports has-account-rows" style="--account-rows:2"><a href="#matrix-IMP_Y" data-matrix-link="matrix-IMP_Y" aria-label="IMP_Y"><code>IMP_Y</code><span class="table-map__account-partition"><span class="is-import" data-account-kind="import" data-import-item="S1" aria-label="Import S1"></span><span class="is-import" data-account-kind="import" data-import-item="S2" aria-label="Import S2"></span></span></a></td>
+</tr>
+<tr><th scope="row">Satellite accounts</th>
+<td class="table-map__block is-satellite"><a href="#matrix-e" data-matrix-link="matrix-e" aria-label="e"><code>e</code></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY" aria-label="EY"><code>EY</code></a></td>
+</tr>
+</tbody></table></template>
+<template data-config-grid="single-region/external-trade/separate/coefficients/by_region/total"><table class="table-map__grid">
+<caption>IOT · single-region · coefficients<br>import_representation=separate · trade_resolution=by_region · imports_by=None</caption>
+<thead><tr><td></td>
+<th scope="col">Sectors</th>
+<th scope="col">Final demand<small class="table-map__export-partners">Export partners F1, F2</small></th>
+</tr></thead><tbody>
+<tr><th scope="row">Sectors</th>
+<td class="table-map__block is-core"><a href="#matrix-z" data-matrix-link="matrix-z" aria-label="z"><code>z</code></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y" aria-label="Y"><code>Y</code></a></td>
+</tr>
+<tr><th scope="row">Factors</th>
+<td class="table-map__block is-factors"><a href="#matrix-v" data-matrix-link="matrix-v" aria-label="v"><code>v</code></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY" aria-label="VY"><code>VY</code></a></td>
+</tr>
+<tr><th scope="row" class="table-map__account-axis" data-imports-by="total"><span class="table-map__axis-caption">External imports</span><span class="table-map__axis-members"><span data-account-kind="import"><span>Imports</span><span class="table-map__foreign-region" data-foreign-region="F1">F1</span></span><span data-account-kind="import"><span>Imports</span><span class="table-map__foreign-region" data-foreign-region="F2">F2</span></span></span></th>
+<td class="table-map__block is-imports has-account-rows" style="--account-rows:2"><a href="#matrix-imp" data-matrix-link="matrix-imp" aria-label="imp"><code>imp</code><span class="table-map__account-partition"><span class="is-import" data-account-kind="import" data-foreign-region="F1" aria-label="Import F1"></span><span class="is-import" data-account-kind="import" data-foreign-region="F2" aria-label="Import F2"></span></span></a></td>
+<td class="table-map__block is-imports has-account-rows" style="--account-rows:2"><a href="#matrix-IMP_Y" data-matrix-link="matrix-IMP_Y" aria-label="IMP_Y"><code>IMP_Y</code><span class="table-map__account-partition"><span class="is-import" data-account-kind="import" data-foreign-region="F1" aria-label="Import F1"></span><span class="is-import" data-account-kind="import" data-foreign-region="F2" aria-label="Import F2"></span></span></a></td>
+</tr>
+<tr><th scope="row">Satellite accounts</th>
+<td class="table-map__block is-satellite"><a href="#matrix-e" data-matrix-link="matrix-e" aria-label="e"><code>e</code></a></td>
+<td class="table-map__block is-satellite"><a href="#matrix-EY" data-matrix-link="matrix-EY" aria-label="EY"><code>EY</code></a></td>
+</tr>
+</tbody></table></template>
+<template data-config-grid="single-region/external-trade/separate/coefficients/by_region/sector"><table class="table-map__grid">
+<caption>IOT · single-region · coefficients<br>import_representation=separate · trade_resolution=by_region · imports_by=sector</caption>
+<thead><tr><td></td>
+<th scope="col">Sectors</th>
+<th scope="col">Final demand<small class="table-map__export-partners">Export partners F1, F2</small></th>
+</tr></thead><tbody>
+<tr><th scope="row">Sectors</th>
+<td class="table-map__block is-core"><a href="#matrix-z" data-matrix-link="matrix-z" aria-label="z"><code>z</code></a></td>
+<td class="table-map__block is-demand"><a href="#matrix-Y" data-matrix-link="matrix-Y" aria-label="Y"><code>Y</code></a></td>
+</tr>
+<tr><th scope="row">Factors</th>
+<td class="table-map__block is-factors"><a href="#matrix-v" data-matrix-link="matrix-v" aria-label="v"><code>v</code></a></td>
+<td class="table-map__block is-factors"><a href="#matrix-VY" data-matrix-link="matrix-VY" aria-label="VY"><code>VY</code></a></td>
+</tr>
+<tr><th scope="row" class="table-map__account-axis" data-imports-by="sector"><span class="table-map__axis-caption">External imports</span><span class="table-map__axis-members"><span data-account-kind="import"><span>S1</span><span class="table-map__foreign-region" data-foreign-region="F1">F1</span></span><span data-account-kind="import"><span>S1</span><span class="table-map__foreign-region" data-foreign-region="F2">F2</span></span><span data-account-kind="import"><span>S2</span><span class="table-map__foreign-region" data-foreign-region="F1">F1</span></span><span data-account-kind="import"><span>S2</span><span class="table-map__foreign-region" data-foreign-region="F2">F2</span></span></span></th>
+<td class="table-map__block is-imports has-account-rows" style="--account-rows:4"><a href="#matrix-imp" data-matrix-link="matrix-imp" aria-label="imp"><code>imp</code><span class="table-map__account-partition"><span class="is-import" data-account-kind="import" data-import-item="S1" data-foreign-region="F1" aria-label="Import S1 F1"></span><span class="is-import" data-account-kind="import" data-import-item="S1" data-foreign-region="F2" aria-label="Import S1 F2"></span><span class="is-import" data-account-kind="import" data-import-item="S2" data-foreign-region="F1" aria-label="Import S2 F1"></span><span class="is-import" data-account-kind="import" data-import-item="S2" data-foreign-region="F2" aria-label="Import S2 F2"></span></span></a></td>
+<td class="table-map__block is-imports has-account-rows" style="--account-rows:4"><a href="#matrix-IMP_Y" data-matrix-link="matrix-IMP_Y" aria-label="IMP_Y"><code>IMP_Y</code><span class="table-map__account-partition"><span class="is-import" data-account-kind="import" data-import-item="S1" data-foreign-region="F1" aria-label="Import S1 F1"></span><span class="is-import" data-account-kind="import" data-import-item="S1" data-foreign-region="F2" aria-label="Import S1 F2"></span><span class="is-import" data-account-kind="import" data-import-item="S2" data-foreign-region="F1" aria-label="Import S2 F1"></span><span class="is-import" data-account-kind="import" data-import-item="S2" data-foreign-region="F2" aria-label="Import S2 F2"></span></span></a></td>
 </tr>
 <tr><th scope="row">Satellite accounts</th>
 <td class="table-map__block is-satellite"><a href="#matrix-e" data-matrix-link="matrix-e" aria-label="e"><code>e</code></a></td>
@@ -177,18 +433,18 @@
 <td class="table-map__block is-satellite" colspan="2" rowspan="1"><a href="#matrix-EY" data-matrix-link="matrix-EY" aria-label="EY"><span class="table-map__partition" style="--region-rows:1"><span class="is-flow" data-region-to="R1" aria-label="R1 account column, allowed flow"></span><span class="is-flow" data-region-to="R2" aria-label="R2 account column, allowed flow"></span></span><code>EY</code></a></td>
 </tr>
 </tbody></table></div>
-<p class="table-map__legend"><span data-regional-legend>R1 and R2 identify representative regions on the axes. Colored matrix cells allow flows. 0 marks a structural zero. — marks an absent native block. </span><span data-config-explanation></span></p>
+<p class="table-map__legend"><span data-regional-legend>R1 and R2 identify representative regions on the axes. Colored matrix cells allow flows. 0 marks a structural zero. — marks an absent native block. </span><span data-import-legend hidden>F1 and F2 identify representative foreign partners. S1/S2, C1/C2 and A1/A2 illustrate imported sectors, commodities or producing activities. Import rows are yellow. </span><span data-config-explanation></span></p>
 <div class="table-map__definitions" aria-live="polite">
-<section id="matrix-Z" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Z</code></p><p class="table-map__description">Intersectoral transaction flows matrix</p><dl><dt>Rows</dt><dd>Region, Sector</dd><dt>Columns</dt><dd>Region, Sector</dd></dl></section>
-<section id="matrix-Y" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Y</code></p><p class="table-map__description">Final demand matrix</p><dl><dt>Rows</dt><dd>Region, Sector</dd><dt>Columns</dt><dd>Region, Consumption category</dd></dl></section>
-<section id="matrix-V" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>V</code></p><p class="table-map__description">Value added transaction flows matrix</p><dl><dt>Rows</dt><dd>Factor of production*</dd><dt>Columns</dt><dd>Region, Sector</dd></dl></section>
-<section id="matrix-VY" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>VY</code></p><p class="table-map__description">Value added transaction matrix for final demand</p><dl><dt>Rows</dt><dd>Factor of production*</dd><dt>Columns</dt><dd>Region, Consumption category</dd></dl></section>
-<section id="matrix-E" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>E</code></p><p class="table-map__description">Environmental transaction flows matrix</p><dl><dt>Rows</dt><dd>Satellite account*</dd><dt>Columns</dt><dd>Region, Sector</dd></dl></section>
-<section id="matrix-EY" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>EY</code></p><p class="table-map__description">Environmental transaction flows matrix for final demand</p><dl><dt>Rows</dt><dd>Satellite account*</dd><dt>Columns</dt><dd>Region, Consumption category</dd></dl></section>
-<section id="matrix-z" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>z</code></p><p class="table-map__description">Intersectoral transaction coefficients matrix</p><dl><dt>Rows</dt><dd>Region, Sector</dd><dt>Columns</dt><dd>Region, Sector</dd></dl></section>
-<section id="matrix-v" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>v</code></p><p class="table-map__description">Value added coefficients matrix</p><dl><dt>Rows</dt><dd>Factor of production*</dd><dt>Columns</dt><dd>Region, Sector</dd></dl></section>
-<section id="matrix-e" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>e</code></p><p class="table-map__description">Environmental transaction coefficients matrix</p><dl><dt>Rows</dt><dd>Satellite account*</dd><dt>Columns</dt><dd>Region, Sector</dd></dl></section>
-<section id="matrix-IMP" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>IMP</code></p><p class="table-map__description">External import flows into domestic production.</p><dl><dt>Rows</dt><dd>Import descriptors, or one total-import row</dd><dt>Columns</dt><dd>Region × Sector</dd></dl></section>
-<section id="matrix-IMP_Y" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>IMP_Y</code></p><p class="table-map__description">External imports delivered directly to final demand.</p><dl><dt>Rows</dt><dd>Import descriptors, or one total-import row</dd><dt>Columns</dt><dd>Region × Consumption category</dd></dl></section>
-<section id="matrix-imp" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>imp</code></p><p class="table-map__description">External import coefficients per unit of domestic output.</p><dl><dt>Rows</dt><dd>Import descriptors, or one total-import row</dd><dt>Columns</dt><dd>Region × Sector</dd></dl></section>
+<section id="matrix-Z" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Z</code></p><p class="table-map__description">Intersectoral transaction flows matrix</p><dl><dt>Rows</dt><dd data-row-indices data-default-rows="Region, Sector">Region, Sector</dd><dt>Columns</dt><dd>Region, Sector</dd></dl></section>
+<section id="matrix-Y" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>Y</code></p><p class="table-map__description">Final demand matrix</p><dl><dt>Rows</dt><dd data-row-indices data-default-rows="Region, Sector">Region, Sector</dd><dt>Columns</dt><dd>Region, Consumption category</dd></dl></section>
+<section id="matrix-V" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>V</code></p><p class="table-map__description">Value added transaction flows matrix</p><dl><dt>Rows</dt><dd data-row-indices data-default-rows="Factor of production*">Factor of production*</dd><dt>Columns</dt><dd>Region, Sector</dd></dl></section>
+<section id="matrix-VY" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>VY</code></p><p class="table-map__description">Value added transaction matrix for final demand</p><dl><dt>Rows</dt><dd data-row-indices data-default-rows="Factor of production*">Factor of production*</dd><dt>Columns</dt><dd>Region, Consumption category</dd></dl></section>
+<section id="matrix-E" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>E</code></p><p class="table-map__description">Environmental transaction flows matrix</p><dl><dt>Rows</dt><dd data-row-indices data-default-rows="Satellite account*">Satellite account*</dd><dt>Columns</dt><dd>Region, Sector</dd></dl></section>
+<section id="matrix-EY" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>EY</code></p><p class="table-map__description">Environmental transaction flows matrix for final demand</p><dl><dt>Rows</dt><dd data-row-indices data-default-rows="Satellite account*">Satellite account*</dd><dt>Columns</dt><dd>Region, Consumption category</dd></dl></section>
+<section id="matrix-z" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>z</code></p><p class="table-map__description">Intersectoral transaction coefficients matrix</p><dl><dt>Rows</dt><dd data-row-indices data-default-rows="Region, Sector">Region, Sector</dd><dt>Columns</dt><dd>Region, Sector</dd></dl></section>
+<section id="matrix-v" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>v</code></p><p class="table-map__description">Value added coefficients matrix</p><dl><dt>Rows</dt><dd data-row-indices data-default-rows="Factor of production*">Factor of production*</dd><dt>Columns</dt><dd>Region, Sector</dd></dl></section>
+<section id="matrix-e" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>e</code></p><p class="table-map__description">Environmental transaction coefficients matrix</p><dl><dt>Rows</dt><dd data-row-indices data-default-rows="Satellite account*">Satellite account*</dd><dt>Columns</dt><dd>Region, Sector</dd></dl></section>
+<section id="matrix-IMP" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>IMP</code></p><p class="table-map__description">External import flows into domestic production.</p><dl><dt>Rows</dt><dd data-row-indices data-default-rows="Import descriptors, or one total-import row">Import descriptors, or one total-import row</dd><dt>Columns</dt><dd>Region × Sector</dd></dl></section>
+<section id="matrix-IMP_Y" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>IMP_Y</code></p><p class="table-map__description">External imports delivered directly to final demand.</p><dl><dt>Rows</dt><dd data-row-indices data-default-rows="Import descriptors, or one total-import row">Import descriptors, or one total-import row</dd><dt>Columns</dt><dd>Region × Consumption category</dd></dl></section>
+<section id="matrix-imp" class="table-map__definition" data-matrix-definition><p class="table-map__symbol"><code>imp</code></p><p class="table-map__description">External import coefficients per unit of domestic output.</p><dl><dt>Rows</dt><dd data-row-indices data-default-rows="Import descriptors, or one total-import row">Import descriptors, or one total-import row</dd><dt>Columns</dt><dd>Region × Sector</dd></dl></section>
 </div></div>

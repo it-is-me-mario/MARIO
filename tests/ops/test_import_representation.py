@@ -1,5 +1,8 @@
 """Native import blocks preserve the open-economy accounting identities."""
 
+import inspect
+import json
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -10,10 +13,36 @@ from tests.ops.test_semantic_import_accounts import iot, dense
 from tests.ops.test_sut_region_subset import database as sut
 
 
+@pytest.mark.parametrize("method", ["to_single_region", "to_region_subset"])
+def test_external_trade_keyword_is_trade_resolution(method):
+    parameters = inspect.signature(getattr(mario.Database, method)).parameters
+    assert parameters["trade_resolution"].default == "aggregate"
+    assert "trade_mode" not in parameters
+
+
+@pytest.mark.parametrize("table,by", [("IOT", "sector"), ("SUT", "commodity")])
+def test_earlier_import_origin_metadata_loads_as_trade_resolution(tmp_path, table, by):
+    source = mario.load_test(table)
+    source.to_single_region(source.regions[0], imports_by=by, trade_resolution="by_region",
+                            import_representation="separate")
+    source.to_parquet(path=tmp_path, flows=True, coefficients=False)
+    path = tmp_path / "flows/accounting.json"
+    manifest = json.loads(path.read_text())
+    values = manifest["configuration"]
+    values["import_origins"] = values.pop("trade_resolution")
+    path.write_text(json.dumps(manifest))
+    loaded = mario.parse_from_parquet(str(tmp_path), table=table, mode="flows")
+    assert loaded.configuration.trade_resolution == "by_region"
+    assert loaded.configuration == source.configuration
+    assert "import_origins" not in loaded.configuration.to_dict()
+    restored = loaded.to_import_representation("factor-accounts", inplace=False)
+    assert restored.configuration.trade_resolution == "by_region"
+
+
 @pytest.mark.parametrize("by", [None, "sector"])
 @pytest.mark.parametrize("origins", ["aggregate", "by_region"])
 def test_iot_native_imports(iot, by, origins):
-    combined = iot.to_single_region("IT", imports_by=by, trade_mode=origins, inplace=False)
+    combined = iot.to_single_region("IT", imports_by=by, trade_resolution=origins, inplace=False)
     native = combined.to_import_representation("separate", inplace=False)
     assert native.configuration.import_representation == "separate"
     assert "imports" not in native.factors
@@ -34,8 +63,8 @@ def test_iot_native_imports(iot, by, origins):
 @pytest.mark.parametrize("by", [None, "commodity", "activity"])
 @pytest.mark.parametrize("origins", ["aggregate", "by_region"])
 def test_sut_native_imports(sut, by, origins):
-    combined = sut.to_single_region("IT", imports_by=by, trade_mode=origins, inplace=False)
-    native = sut.to_single_region("IT", imports_by=by, trade_mode=origins, import_representation="separate", inplace=False)
+    combined = sut.to_single_region("IT", imports_by=by, trade_resolution=origins, inplace=False)
+    native = sut.to_single_region("IT", imports_by=by, trade_resolution=origins, import_representation="separate", inplace=False)
     assert native.IMP_a.index.equals(native.IMP_c.index)
     assert native.IMP_a.index.equals(native.IMP_Y.index)
     for factor, imported in (("Va", "IMP_a"), ("Vc", "IMP_c"), ("VY", "IMP_Y")):
@@ -69,7 +98,7 @@ def test_conversion_errors_are_atomic(iot):
 def test_native_roundtrip(tmp_path, table, by, format, flat, mode, reverse_axes):
     source = mario.load_test(table)
     db = source.to_single_region(
-        source.regions[0], imports_by=by, trade_mode="by_region" if by else "aggregate",
+        source.regions[0], imports_by=by, trade_resolution="by_region" if by else "aggregate",
         import_representation="separate", inplace=False,
     )
     if reverse_axes:
@@ -93,7 +122,7 @@ def test_native_roundtrip(tmp_path, table, by, format, flat, mode, reverse_axes)
 
 @pytest.mark.parametrize("by", [None, "sector"])
 def test_native_aggregation_and_balances(iot, by):
-    native = iot.to_single_region("IT", imports_by=by, trade_mode="by_region", import_representation="separate", inplace=False)
+    native = iot.to_single_region("IT", imports_by=by, trade_resolution="by_region", import_representation="separate", inplace=False)
     combined = native.to_import_representation("factor-accounts", inplace=False)
     mapping = {"Sector": pd.DataFrame({"Aggregation": "energy"}, index=["coal", "wind"])}
     for db in (native, combined):
@@ -109,7 +138,7 @@ def test_native_aggregation_and_balances(iot, by):
 
 @pytest.mark.parametrize("by", ["commodity", "activity"])
 def test_sut_native_aggregation(sut, by):
-    native = sut.to_single_region("IT", imports_by=by, trade_mode="by_region", import_representation="separate", inplace=False)
+    native = sut.to_single_region("IT", imports_by=by, trade_resolution="by_region", import_representation="separate", inplace=False)
     combined = native.to_import_representation("factor-accounts", inplace=False)
     classification = by.title()
     items = list(dict.fromkeys(sut.get_index(classification, flat=True)))
@@ -195,11 +224,11 @@ def test_native_import_coefficient_updates(iot):
 @pytest.mark.parametrize("origins", ["aggregate", "by_region"])
 def test_older_declared_import_layouts_keep_their_detail(table, by, origins):
     source = mario.load_test(table)
-    old = source.to_single_region(source.regions[0], imports_by=by, trade_mode=origins, inplace=False)
+    old = source.to_single_region(source.regions[0], imports_by=by, trade_resolution=origins, inplace=False)
     old.meta.model_configuration = {}
     native = old.to_import_representation("separate", inplace=False)
     assert native.configuration.imports_by == by
-    assert native.configuration.import_origins == origins
+    assert native.configuration.trade_resolution == origins
     restored = native.to_import_representation("factor-accounts", inplace=False)
     for name in ("V", "VY"):
         pd.testing.assert_frame_equal(restored.query(name), old.query(name))

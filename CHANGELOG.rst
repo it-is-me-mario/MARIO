@@ -8,6 +8,19 @@ package on PyPI, and dates are its publication dates.
 Unreleased
 ----------
 
+External trade resolution
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Rename ``trade_mode`` to ``trade_resolution`` in ``to_single_region()`` and
+  ``to_region_subset()``. Use ``"aggregate"`` for aggregated foreign partners
+  or ``"by_region"`` for explicit import origins and export partners.
+  Update callers to the new keyword.
+* Expose ``trade_resolution`` in ``configuration`` and exported accounting
+  metadata. Read saved configurations using the earlier ``import_origins`` key.
+* Add explicit import-representation, trade-resolution and import-classification
+  selectors to the IOT/SUT diagrams. Show the resulting import rows and export
+  partners, including foreign regions inside each imported classification.
+
 CVXLab input preparation
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -61,7 +74,7 @@ Regional extraction and semantic import accounts
 * Add ``imports_by="sector"`` for IOTs and ``"commodity"`` or ``"activity"``
   for SUTs to ``to_single_region()`` and ``to_region_subset()``. Independently
   choose total foreign sourcing or explicit origins with
-  ``trade_mode="aggregate"`` / ``"by_region"``.
+  ``trade_resolution="aggregate"`` / ``"by_region"``.
 * Store imported classifications as declared matrix-layout dimensions beside
   the single factor label ``"imports"``. Sector, Commodity and Activity
   aggregation applies to import rows as well as productive axes. Original

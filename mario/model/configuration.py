@@ -37,7 +37,7 @@ class ModelConfiguration:
     trade_representation: str
     import_representation: str
     imports_by: str | None
-    import_origins: str
+    trade_resolution: str
     tech_assumption: str | None
     sector_type: str | None
 
@@ -58,9 +58,13 @@ def configuration_values(database):
     attributes = getattr(database, "__dict__", {})
     metadata = attributes.get("meta")
     if metadata is not None:
-        return dict(getattr(metadata, "model_configuration", {}) or {})
-    metadata = attributes.get("metadata")
-    return dict(getattr(metadata, "extra", {}).get("model_configuration", {}) or {})
+        values = dict(getattr(metadata, "model_configuration", {}) or {})
+    else:
+        metadata = attributes.get("metadata")
+        values = dict(getattr(metadata, "extra", {}).get("model_configuration", {}) or {})
+    if "import_origins" in values:
+        values.setdefault("trade_resolution", values.pop("import_origins"))
+    return values
 
 
 def separate_imports(database):
@@ -87,7 +91,7 @@ def get_configuration(database, scenario="baseline"):
         trade_representation=trade,
         import_representation=values.get("import_representation", "factor-accounts"),
         imports_by=values.get("imports_by"),
-        import_origins=values.get("import_origins", "unspecified"),
+        trade_resolution=values.get("trade_resolution", "unspecified"),
         tech_assumption=getattr(database.meta, "tech_assumption", None),
         sector_type=getattr(database.meta, "sector_type", None),
     )

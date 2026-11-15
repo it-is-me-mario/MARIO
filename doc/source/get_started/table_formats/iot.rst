@@ -15,7 +15,9 @@ on the source. In a multiregional table, each sector is also identified by regio
 Structure and native matrices
 -----------------------------
 
-Select regional scope, import representation and flows or coefficients.
+Select regional scope and the flow or coefficient view. In single-region
+mode, ``import_representation``, ``trade_resolution`` and ``imports_by``
+control the import blocks, foreign-partner labels and sector detail.
 Select a block to see its definition and default axes.
 
 In the multiregional view, sector and final-demand headings contain regional

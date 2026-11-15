@@ -1289,7 +1289,7 @@ class Database(CoreModel):
         self,
         regions,
         inplace=True,
-        trade_mode="aggregate",
+        trade_resolution="aggregate",
         externalized_trade_layout="legacy",
         *,
         imports_by=None,
@@ -1304,7 +1304,7 @@ class Database(CoreModel):
         inplace:
             When ``True``, mutate the current database. When ``False``, return
             a transformed copy.
-        trade_mode:
+        trade_resolution:
             ``"aggregate"`` sums the excluded source regions within each
             requested import classification. ``"by_region"`` retains source
             regions as an explicit row dimension and separates export partners.
@@ -1325,7 +1325,7 @@ class Database(CoreModel):
             using their shares in the source supply matrix. ``None`` retains
             aggregate import accounts, or selects the table's productive set
             when the layout is ``"sectorized"``. Combine with
-            ``trade_mode="by_region"`` to retain producer/partner regions too.
+            ``trade_resolution="by_region"`` to retain producer/partner regions too.
         import_representation:
             ``"factor-accounts"`` stores external imports with factors.
             ``"separate"`` creates native import blocks and requires exactly
@@ -1370,7 +1370,7 @@ class Database(CoreModel):
             subset = db.to_region_subset(
                 ["IT", "FR"],
                 inplace=False,
-                trade_mode="by_region",
+                trade_resolution="by_region",
             )
         """
         from mario.model.configuration import validate_import_representation
@@ -1380,7 +1380,7 @@ class Database(CoreModel):
             if len(selected) != 1:
                 raise WrongInput("Separate-import accounting requires one modeled region.")
             new = self.to_region_subset(
-                selected, inplace=False, trade_mode=trade_mode,
+                selected, inplace=False, trade_resolution=trade_resolution,
                 externalized_trade_layout=externalized_trade_layout, imports_by=imports_by,
             )
             new.to_import_representation("separate")
@@ -1399,7 +1399,7 @@ class Database(CoreModel):
             new.to_region_subset(
                 regions=regions,
                 inplace=True,
-                trade_mode=trade_mode,
+                trade_resolution=trade_resolution,
                 externalized_trade_layout=externalized_trade_layout,
                 imports_by=imports_by,
             )
@@ -1439,22 +1439,22 @@ class Database(CoreModel):
                 "Selected regions already cover the full database; choose a strict subset."
             )
 
-        trade_mode_aliases = {
+        trade_resolution_aliases = {
             "by_sector": ("aggregate", "sectorized"),
             "by_region_and_sector": ("by_region", "sectorized"),
         }
-        if trade_mode in trade_mode_aliases:
-            trade_mode, implied_layout = trade_mode_aliases[trade_mode]
+        if trade_resolution in trade_resolution_aliases:
+            trade_resolution, implied_layout = trade_resolution_aliases[trade_resolution]
             if externalized_trade_layout == "legacy":
                 externalized_trade_layout = implied_layout
             elif externalized_trade_layout != implied_layout:
                 raise WrongInput(
-                    "trade_mode alias requires externalized_trade_layout='sectorized'."
+                    "trade_resolution alias requires externalized_trade_layout='sectorized'."
                 )
 
-        if trade_mode not in {"aggregate", "by_region"}:
+        if trade_resolution not in {"aggregate", "by_region"}:
             raise WrongInput(
-                "trade_mode should be one of 'aggregate', 'by_region', 'by_sector', or 'by_region_and_sector'."
+                "trade_resolution should be one of 'aggregate', 'by_region', 'by_sector', or 'by_region_and_sector'."
             )
 
         if externalized_trade_layout not in {"legacy", "sectorized"}:
@@ -1467,7 +1467,7 @@ class Database(CoreModel):
         else:
             from mario.ops.iot_region_subset import transform
         return transform(
-            self, selected_regions, trade_mode=trade_mode,
+            self, selected_regions, trade_resolution=trade_resolution,
             layout=externalized_trade_layout, imports_by=imports_by,
         )
 
@@ -1475,7 +1475,7 @@ class Database(CoreModel):
         self,
         region,
         inplace=True,
-        trade_mode="aggregate",
+        trade_resolution="aggregate",
         externalized_trade_layout="legacy",
         *,
         imports_by=None,
@@ -1490,10 +1490,10 @@ class Database(CoreModel):
         inplace:
             When ``True``, mutate the current database. When ``False``, return
             a transformed copy.
-        trade_mode:
+        trade_resolution:
             ``"aggregate"`` collapses all excluded regions into aggregated
-            imports and export categories. ``"by_region"`` keeps one explicit
-            import row and one explicit export category per excluded region.
+            imports and export categories. ``"by_region"`` retains foreign
+            origins in import rows and separates export partners.
             ``"by_sector"`` and ``"by_region_and_sector"`` are forwarded to
             :meth:`to_region_subset`.
         externalized_trade_layout:
@@ -1521,7 +1521,7 @@ class Database(CoreModel):
         return self.to_region_subset(
             regions=[region],
             inplace=inplace,
-            trade_mode=trade_mode,
+            trade_resolution=trade_resolution,
             externalized_trade_layout=externalized_trade_layout,
             imports_by=imports_by,
             import_representation=import_representation,

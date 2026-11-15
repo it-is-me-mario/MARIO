@@ -6,7 +6,7 @@ mario.CoreModel.get_configuration
 Inspect the configuration of a selected scenario. The returned immutable
 ``ModelConfiguration`` exposes ``table_format``, ``regional_scope``,
 ``trade_representation``, ``import_representation``, ``imports_by``,
-``import_origins``, ``tech_assumption`` and ``sector_type``.
+``trade_resolution``, ``tech_assumption`` and ``sector_type``.
 ``to_dict()`` returns independent serializable values.
 
 See :doc:`model configurations <../get_started/table_formats>` and

@@ -56,7 +56,7 @@ Classify imports and choose source-region detail
 Both extraction methods accept two independent choices:
 
 * ``imports_by="sector"`` on IOTs; ``"commodity"`` or ``"activity"`` on SUTs.
-* ``trade_mode="aggregate"`` (default) sums foreign source regions, while
+* ``trade_resolution="aggregate"`` (default) sums foreign source regions, while
   ``"by_region"`` retains them as an explicit row dimension.
 
 For example, keep one SUT region with imports by commodity and total foreign
@@ -67,7 +67,7 @@ sourcing:
    sut = mario.load_test("SUT")
    region = sut.regions[0]
    commodities = sut.to_single_region(
-       region, imports_by="commodity", trade_mode="aggregate", inplace=False,
+       region, imports_by="commodity", trade_resolution="aggregate", inplace=False,
    )
    commodities.query("Va").index.names
    # ["Commodity", "Factor of production"]
@@ -77,7 +77,7 @@ To retain source regions as well:
 .. code-block:: python
 
    partners = sut.to_region_subset(
-       [region], imports_by="commodity", trade_mode="by_region", inplace=False,
+       [region], imports_by="commodity", trade_resolution="by_region", inplace=False,
    )
    partners.query("Va").index.names
    # ["Region", "Commodity", "Factor of production"]
@@ -138,14 +138,14 @@ when they are absent from endogenous productive axes. Geographic presets also
 cover retained import origins. These descriptors do not add economic nodes or
 expand the endogenous region set. If source regions were collapsed, a
 region-specific classifier mapping must give the same target for that item
-across origins; otherwise extraction with ``trade_mode="by_region"`` is needed.
+across origins; otherwise extraction with ``trade_resolution="by_region"`` is needed.
 
 On IOTs, the analogous call is:
 
 .. code-block:: python
 
    sector_imports = db.to_single_region(
-       db.regions[0], imports_by="sector", trade_mode="aggregate", inplace=False,
+       db.regions[0], imports_by="sector", trade_resolution="aggregate", inplace=False,
    )
 
 SUT producer attribution
@@ -197,7 +197,7 @@ are not added to domestic environmental accounts. Imported final demand is
 retained in ``VY`` for both table types, including the default extraction.
 
 With ``imports_by=None``, the legacy layout keeps imports total over items.
-``trade_mode="by_sector"`` selects sector imports on IOTs or commodity imports
+``trade_resolution="by_sector"`` selects sector imports on IOTs or commodity imports
 on SUTs, plus a single ``Export`` category per retained region;
 ``"by_region_and_sector"`` retains source-region detail as well. SUT productive
 axes retain their native ``Region/Level/Item`` structure.

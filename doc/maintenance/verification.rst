@@ -26,7 +26,12 @@ For format/nomenclature changes, also verify IOT/SUT block selection, keyboard
 activation and old Nomenclature/technology-assumption URLs with their fragments.
 Check regional subheadings inside the productive and final-demand axes, one
 symbol per matrix, and structural zeros at their origin/destination coordinates.
+In single-region mode, change import representation, external trade resolution
+and import classification. Check import-row partitions, foreign origins inside
+the classification, export-partner annotations and the active row definitions.
 ``tests/docs/test_table_configurations.py`` checks the generated layouts.
+Run ``node tests/docs/test_table_formats.cjs`` to check selector combinations,
+dynamic row definitions, regional-scope changes and import-matrix anchors.
 
 Run existing tests relevant to the change. For public APIs or notebook downloads::
 

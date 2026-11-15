@@ -161,7 +161,7 @@ def _aggregate_semantic_axis(
                             raise WrongInput(
                                 f"Cannot apply region-specific {level_name} aggregation "
                                 f"to {value!r} after import origins were collapsed. "
-                                "Retain imports with trade_mode='by_region'."
+                                "Retain imports with trade_resolution='by_region'."
                             )
                         mapped.append(next(iter(targets)))
                     else:

@@ -15,7 +15,10 @@ blocks therefore need not be square.
 Structure and native matrices
 -----------------------------
 
-Select regional scope, trade representation, imports and flows or coefficients.
+Select regional scope, trade representation and the flow or coefficient view.
+In single-region mode, ``import_representation``, ``trade_resolution`` and
+``imports_by`` control the import blocks, foreign-partner labels and imported
+commodity or producer detail.
 Select a block to see its definition and default axes.
 
 .. raw:: html

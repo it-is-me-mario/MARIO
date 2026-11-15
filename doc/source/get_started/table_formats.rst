@@ -100,12 +100,15 @@ with :meth:`db.get_configuration() <mario.CoreModel.get_configuration>`.
    * - Trade representation
      - Isard carries trade in SUT use and final demand. Chenery–Moses carries
        commodity trade in supply. IOT transactions are bilateral.
-   * - Import representation
+   * - Import representation (``import_representation``)
      - Single-region models can include external imports in factor accounts
-       or use separate native import blocks.
-   * - Import detail
+       with ``"factor-accounts"`` or use native blocks with ``"separate"``.
+   * - External trade resolution (``trade_resolution``)
+     - ``"aggregate"`` combines foreign origins and export partners.
+       ``"by_region"`` retains their regional labels.
+   * - Import detail (``imports_by``)
      - Total imports, or imports by Sector, Commodity or producing Activity.
-       Source regions can be aggregated or retained independently.
+       The classification and the foreign-partner resolution are independent.
    * - Technology assumption
      - Industry-based or product-based SUT supply coefficients. For an IOT,
        ``sector_type`` records the productive classification when available.
@@ -117,9 +120,18 @@ regional SUT patterns report ``mixed``. A table with zero international flows
 reports ``domestic-only``. A coefficient-only or incomplete source can report
 ``unspecified`` until its regional pattern is available.
 
-The IOT and SUT diagrams provide selectors for regional scope, trade, imports
-and flows or coefficients. Foreign origin descriptors on imports identify
-external suppliers. The endogenous Region set determines regional scope.
+The IOT and SUT diagrams provide single-region selectors named
+``import_representation``, ``trade_resolution`` and ``imports_by``, matching
+:meth:`db.to_single_region() <mario.Database.to_single_region>` and the fields
+exposed by :attr:`db.configuration <mario.CoreModel.configuration>`.
+The diagrams show the resulting import rows, their foreign origins and the
+export-partner detail. F1/F2 illustrate foreign partners, with regions inside
+the imported classification. Each matrix has one symbol across its rows.
+
+The SUT multiregional selector **Trade representation** chooses Isard or
+Chenery–Moses. Foreign origin descriptors identify external suppliers.
+The endogenous Region set determines regional scope. Both diagrams also
+provide flow and coefficient views.
 See :doc:`separate import accounts </user_guide/transformations/import_accounts>`
 for extraction and reversible conversion.
 

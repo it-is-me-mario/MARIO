@@ -54,9 +54,48 @@ def test_iot_keeps_each_matrix_whole_with_regional_subheadings(mode):
 
 @pytest.mark.parametrize("kind,name", [("iot", "IMP"), ("sut", "IMP_a"), ("sut", "IMP_c"), ("sut", "IMP_Y")])
 def test_single_region_blocks_use_the_compact_layout(kind, name):
-    grid = diagram(kind, "single-region/external-trade/separate/flows")
+    grid = diagram(kind, "single-region/external-trade/separate/flows/aggregate/total")
     block = grid.select_one(f'[data-matrix-link="matrix-{name}"]')
     assert block is not None
     assert not grid.select(".table-map__region-heading")
     assert not grid.select(".table-map__partition")
     assert not grid.select(".table-map__grid--regional")
+
+
+@pytest.mark.parametrize("kind,detail", [("iot", "total"), ("iot", "sector"),
+                                        ("sut", "total"), ("sut", "commodity"), ("sut", "activity")])
+@pytest.mark.parametrize("resolution", ["aggregate", "by_region"])
+@pytest.mark.parametrize("representation", ["factor-accounts", "separate"])
+@pytest.mark.parametrize("mode", ["flows", "coefficients"])
+def test_single_region_api_parameters_change_import_axes(kind, detail, resolution, representation, mode):
+    grid = diagram(kind, f"single-region/external-trade/{representation}/{mode}/{resolution}/{detail}")
+    assert grid is not None
+    assert not grid.select(".table-map__region-heading")
+    assert grid.select_one("[data-imports-by]")["data-imports-by"] == detail
+    assert f"trade_resolution={resolution}" in grid.caption.get_text(types=None)
+    assert f"import_representation={representation}" in grid.caption.get_text(types=None)
+    item_count = 1 if detail == "total" else 2
+    origin_count = 2 if resolution == "by_region" else 1
+    row_count = item_count * origin_count + (representation == "factor-accounts")
+    blocks = grid.select(".has-account-rows")
+    assert len(blocks) == (2 if kind == "iot" else 3)
+    for block in blocks:
+        assert len(block.select("code")) == 1
+        rows = block.select(".table-map__account-partition > span")
+        assert len(rows) == row_count
+        imported = [row for row in rows if row["data-account-kind"] == "import"]
+        origins = [row.get("data-foreign-region") for row in imported]
+        assert origins == (["F1", "F2"] * item_count if resolution == "by_region" else [None] * item_count)
+        assert all(row.get("data-import-item") is None for row in imported) == (detail == "total")
+    assert ("F1, F2" in grid.select_one(".table-map__export-partners").get_text(types=None)) == (resolution == "by_region")
+
+
+@pytest.mark.parametrize("kind", ["iot", "sut"])
+def test_diagram_controls_use_public_api_names(kind):
+    path = REPO_ROOT / "doc/source/get_started/_generated" / f"{kind}_structure.html"
+    soup = BeautifulSoup(path.read_text(), "html.parser")
+    for field, parameter in (("imports", "import_representation"), ("resolution", "trade_resolution"),
+                             ("detail", "imports_by")):
+        select = soup.select_one(f'select[data-config="{field}"]')
+        assert parameter in select.parent.get_text()
+    assert [option["value"] for option in soup.select('select[data-config="resolution"] option')] == ["aggregate", "by_region"]
