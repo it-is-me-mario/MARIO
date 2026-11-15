@@ -110,9 +110,10 @@ Merge, publish and verify
    ``.github/workflows/docs-pages.yml`` builds the refs in ``doc/versions.json``
    and deploys both ``/en/latest/`` and ``/en/dev/`` at
    ``https://www.marioproject.com/``. The Dev branch runs verification on push;
-   its successful build requests a default-branch publication through
-   ``workflow_run``. Only the main-branch job deploys to Pages. The workflow's
-   completed-build branch filter prevents publication loops. Check the run for the
+   the separate ``docs-dev.yml`` workflow; its successful build requests a
+   default-branch publication through ``workflow_run``. GitHub rejects workflows
+   that listen to their own completion, so keep verification and publication
+   in separate files. Only the main-branch job deploys to Pages. Check the run for the
    **merged commit**, wait for deployment success, and open representative
    public pages. Read the Docs and a local preview are separate build targets;
    do not assume either proves the canonical site has been updated.
