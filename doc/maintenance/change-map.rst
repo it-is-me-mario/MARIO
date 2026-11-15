@@ -75,6 +75,10 @@ records source commits. MARIO owns the Resources navigation link and the Teachin
 Examples and related-project entry points. Review those links together when
 changing the tutorial site address. Follow ``site/README.rst`` in Tutorials for
 build, download and cross-repository refresh verification.
+Tutorials and Explorer each select their channels in their own ``versions.json``.
+Their Latest routes stay at the host root and their Dev routes use ``/dev/``.
+MARIO's navigation and compatibility redirects select the corresponding channel
+from ``MARIO_DOCS_CHANNEL``. Each site publishes independently.
 
 ``doc/source/conf.py`` owns topic membership through
 ``mario_site["sections"]`` and compatibility URLs through

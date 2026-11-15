@@ -14,6 +14,9 @@ behaviour. Check navigation between the main site, Tutorials and Explorer in
 the browser and confirm that these destinations use the current tab. The shared
 ``_static/external-links.js`` owns this behaviour; update consumers' pinned theme
 revisions after its publication.
+Check both channels across all three sites. A Dev header link must retain Dev
+when opening Tutorials, Explorer or MARIO, including compatibility redirects.
+Read each site's version manifest to verify its own source commits independently.
 
 Run commands from the repository root, using an environment with MARIO and
 ``doc/docs-requirements.txt`` installed. Use the supported Python version in
