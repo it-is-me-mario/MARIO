@@ -4021,6 +4021,14 @@ html:not(.mario-js) .mario-nav__item:is(:hover, :focus-within) .mario-nav__panel
   .mario-nav__item { position: static; }
   .mario-nav__panel { left: 0; width: 100%; transform: none; }
 }
+@media (max-width: 30em) {
+  :root { --header-h: calc(6 * var(--cell)); }
+  .mario-header__inner { grid-template-rows: calc(2 * var(--cell) - 4px) auto; }
+  .mario-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 .5rem; }
+  .mario-nav__item { justify-content: center; min-width: 0; }
+  .mario-nav__link { font-size: .85rem; white-space: normal; text-align: center; line-height: 1.2; }
+  .mario-nav__toggle { flex: 0 0 1.6rem; }
+}
 @media print {
   .mario-nav__panel { display: none; }
 }
