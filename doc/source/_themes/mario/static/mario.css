@@ -4021,6 +4021,14 @@ html:not(.mario-js) .mario-nav__item:is(:hover, :focus-within) .mario-nav__panel
   .mario-nav__item { position: static; }
   .mario-nav__panel { left: 0; width: 100%; transform: none; }
 }
+@media (max-width: 30em) {
+  :root { --header-h: calc(6 * var(--cell)); }
+  .mario-header__inner { grid-template-rows: calc(2 * var(--cell) - 4px) auto; }
+  .mario-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 .5rem; }
+  .mario-nav__item { justify-content: center; min-width: 0; }
+  .mario-nav__link { font-size: .85rem; white-space: normal; text-align: center; line-height: 1.2; }
+  .mario-nav__toggle { flex: 0 0 1.6rem; }
+}
 @media print {
   .mario-nav__panel { display: none; }
 }
@@ -4235,10 +4243,11 @@ html:not(.mario-js) .mario-nav__item:is(:hover, :focus-within) .mario-nav__panel
 .mario-home-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .8rem; margin-top: 1.5rem; }
 .mario-home-actions .mario-install,
 .mario-home-actions .mario-hero__actions { margin-top: 0; }
-.mario-home-map { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--cell); }
+.mario-home-map { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--cell); }
 .mario-home-area { min-width: 0; padding: 1.5rem; border: 1px solid var(--line); border-top: 3px solid var(--home-accent); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
 .mario-home-area--get_started { --home-accent: var(--accent); }
 .mario-home-area--docs { --home-accent: var(--ribbon-cyan); }
+.mario-home-area--explorer { --home-accent: var(--ribbon-green); }
 .mario-home-area--resources { --home-accent: var(--accent-alt); }
 .mario-layout-home .mario-article h2 { margin: 0 0 .65rem; padding: 0; border: 0; }
 .mario-home-area__intro { min-height: 6.2rem; }

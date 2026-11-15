@@ -68,6 +68,9 @@ Close software projects
       `GitHub <https://github.com/cvxlab/cvxlab>`__
       `Docs <https://cvxlab.readthedocs.io/en/latest/>`__
 
+      Complete MARIO exercises using CVXLab are available in
+      `Tutorials <https://tutorials.marioproject.com/>`_.
+
    .. mario-card:: Industrial Ecology Dashboard
       :kicker: IndEcol community list
       :logo: /_static/images/logos/github.svg

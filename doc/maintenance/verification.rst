@@ -1,6 +1,15 @@
 Documentation verification
 ==========================
 
+For cross-repository site links, verify the public Tutorials and Explorer hosts
+and representative paths before merging navigation changes. Their publication
+workflows run independently. Verify a tutorial's deployed source manifest against
+its canonical repository commit and compare downloaded notebook source cells
+with that commit. Preserve the original repository links used in external work.
+Check the complete cross-site header at narrow widths, including 320 and 390 px.
+Verify dropdown keyboard activation and that the document has no horizontal
+overflow with menus closed or open.
+
 Run commands from the repository root, using an environment with MARIO and
 ``doc/docs-requirements.txt`` installed. Use the supported Python version in
 the project's packaging configuration. No real database is needed for a

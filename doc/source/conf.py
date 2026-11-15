@@ -401,24 +401,33 @@ mario_site = {
             ],
         },
         {
+            "key": "explorer",
+            "home_label": "Database explorer",
+            "home_summary": "Compare database classifications and explore economic and environmental indicators.",
+            "label": "Database explorer",
+            "landing": "https://explorer.marioproject.com/",
+            "prefixes": ["resources/data-explorer/"],
+            "tabs": [
+                {"label": "Classifications", "doc": "https://explorer.marioproject.com/resources/data-explorer/scope.html", "summary": "Compare geographical, sectoral and environmental coverage."},
+                {"label": "Compare databases", "doc": "https://explorer.marioproject.com/resources/data-explorer/compare.html", "summary": "Explore economic indicators, emissions and bilateral trade."},
+                {"label": "Analyses", "doc": "https://explorer.marioproject.com/resources/data-explorer/analyses.html", "summary": "Read economic and electricity comparisons across databases."},
+            ],
+        },
+        {
             "key": "resources",
             "home_label": "Resources",
-            "home_summary": "Explore databases, applications and learning material.",
+            "home_summary": "Find tutorials, courses, applications and learning material.",
             "label": "Resources",
-            "landing": "resources/data-explorer/scope",
+            "landing": "https://tutorials.marioproject.com/",
             "prefixes": ["resources/"],
             "hero": {
                 "title": "Everything <mark>around</mark> MARIO",
-                "text": "Database explorer, projects and publications, teaching and downloadable material.",
+                "text": "Tutorials, teaching, projects and publications, and downloadable material.",
             },
             "tabs": [
-                {"label": "Database explorer", "doc": "resources/data-explorer/scope", "featured": True, "summary": "Compare classifications, explore indicators and read analyses.", "prefixes": ["resources/data-explorer/"], "children": [
-                    {"label": "Classifications", "doc": "resources/data-explorer/scope"},
-                    {"label": "Compare databases", "doc": "resources/data-explorer/compare"},
-                    {"label": "Analyses", "doc": "resources/data-explorer/analyses", "prefixes": ["resources/data-explorer/electricity_"]},
-                ]},
+                {"label": "Tutorials", "doc": "https://tutorials.marioproject.com/", "summary": "Follow complete exercises and download their source materials."},
+                {"label": "Teaching", "doc": "resources/teaching", "summary": "Learn through courses and recorded lessons."},
                 {"label": "Projects & Publications", "doc": "resources/projects_publications", "summary": "Discover the research built with MARIO."},
-                {"label": "Teaching", "doc": "resources/teaching", "summary": "Learn through courses and guided examples."},
                 {"label": "Downloadable material", "doc": "resources/material", "summary": "Download notebooks, set lists and reference sheets."},
             ],
         },
@@ -476,3 +485,9 @@ bibtex_bibfiles = ["publications/mario.bib"]
 
 # copy btn settings
 copybutton_prompt_text = "<AxesSubplot:>"
+
+# The independent explorer has its own release and deployment workflow.
+mario_site["external_pages"] = {
+    "resources/data-explorer/" + name: "https://explorer.marioproject.com/resources/data-explorer/" + name + ".html"
+    for name in ("scope", "compare", "analyses", "electricity_carbon_footprint", "economy_emissions")
+}

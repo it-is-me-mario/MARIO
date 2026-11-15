@@ -1,7 +1,7 @@
 Teaching
 ========
 
-Course material and guided examples to learn MARIO, from the first concepts to
+Course material and recorded lessons to learn MARIO, from the first concepts to
 real databases and scenarios.
 
 
@@ -52,20 +52,16 @@ For CCG's current framework for institution-led training events, see
 `EMP-X <https://climatecompatiblegrowth.com/international-partnerships/capacity-building/emp-x/>`_.
 
 
-Guided examples
----------------
+.. _guided-examples:
 
-.. mario-cards::
-   :columns: 1
-   :links:
+Tutorials
+---------
 
-   .. mario-card:: `MRIO disaggregation model <https://github.com/it-is-me-mario/MRIO-disaggregation-model>`_
-      :kicker: GitHub · it-is-me-mario/MRIO-disaggregation-model
-      :logo: /_static/images/logos/github.svg
-
-      Split a sector out of a multi-regional table with ``add_sectors`` and CVXLab:
-      cement carved out of an aggregated GTAP 12 table with two regions, EU27 and
-      the rest of the world, from an Excel inventory. Developed within ENTICE.
+Follow `MARIO Tutorials <https://tutorials.marioproject.com/>`_ for complete
+exercises, readable notebooks and downloadable materials. The collection
+includes `MRIO disaggregation <https://tutorials.marioproject.com/mrio-disaggregation/>`_,
+with its source maintained in the
+`original repository <https://github.com/it-is-me-mario/MRIO-disaggregation-model>`_.
 
 .. raw:: html
 
