@@ -1,4 +1,4 @@
-:summary: Find the next step for your data, model or analysis.
+:summary: Guides and API reference for working with MARIO.
 
 Documentation
 =============
@@ -9,8 +9,8 @@ Start with :doc:`a data source <parsers/index>`,
 For installation and the meaning of MARIO's tables and matrices, follow
 :doc:`Get started <../get_started/index>`.
 
-Guides explain a specific task. Worked examples connect tasks in a complete analysis. Download their
-companion notebooks when you want to run the code. The API reference documents each method's parameters and return value.
+The guides include code examples and downloadable notebooks. Use the API
+reference for complete signatures, parameters and return values.
 
 .. mario-docs-overview::
    :max-items: 3

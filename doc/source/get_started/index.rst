@@ -36,7 +36,7 @@ Installation
 Test the installation
 ---------------------
 
-Run a quick sanity check after the installation in a new Python session:
+Load the packaged test database in a new Python session:
 
 .. code-block:: python
 

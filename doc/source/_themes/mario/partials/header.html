@@ -8,7 +8,7 @@
     <nav class="mario-nav" aria-label="Main">
       {%- for item in mario.nav %}
       <div class="mario-nav__item" data-header-menu data-nav-section="{{ item.key }}">
-        <a class="mario-nav__link" href="{{ item.url }}"{% if item.active %} aria-current="true"{% endif %}>{{ item.label }}</a>
+        <a class="mario-nav__link" href="{{ item.url }}"{% if item.active %} aria-current="true"{% endif %}>{{ 'Explorer' if item.key == 'explorer' else item.label }}</a>
         <button type="button" class="mario-nav__toggle" data-header-menu-toggle aria-label="Toggle {{ item.label }} navigation" aria-expanded="false" aria-controls="mario-nav-{{ item.key }}">{{ icon("chevron") }}</button>
         <div class="mario-nav__panel" id="mario-nav-{{ item.key }}" hidden>
           <ul>

@@ -55,6 +55,14 @@ body:has(> .mario-versions) .mario-footer__inner {
   font-size: .82rem;
 }
 .mario-dev-notice a { margin-left: .65rem; text-decoration: underline; }
+.mario-home-actions { max-width: 100%; min-width: 0; }
+.mario-home-actions .mario-install { max-width: 100%; min-width: 0; }
+.mario-home-actions .mario-install code {
+  min-width: 0;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.mario-home-actions .mario-install__copy { flex-shrink: 0; }
 @media print {
   .mario-versions { display: none; }
 }

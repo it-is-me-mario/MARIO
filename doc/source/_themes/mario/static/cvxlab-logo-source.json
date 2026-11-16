@@ -1,0 +1,14 @@
+{
+  "repository": "cvxlab/cvxlab",
+  "commit": "1f2521b52d85ca0783dca5991d697d22bfa044a3",
+  "files": {
+    "cvxlab-logo-light.png": {
+      "source": "docs/source/_static/CVXlab_logo_light.png",
+      "sha256": "a65e2d680652fd42ecde2a32fb08fd9be382f5528dd219d1f33c1ee8719fc0f7"
+    },
+    "cvxlab-logo-dark.png": {
+      "source": "docs/source/_static/CVXlab_logo_dark.png",
+      "sha256": "c0aaa5b8405989bfe21dc91c071a89e87ec46f166702cbf566d6157ae84de66c"
+    }
+  }
+}

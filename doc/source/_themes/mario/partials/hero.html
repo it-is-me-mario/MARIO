@@ -2,26 +2,39 @@
 {%- set hero = mario.hero %}
 <section class="mario-hero mario-hero--{{ mario.layout }}" data-hero data-snap>
   <div class="mario-hero__inner mario-wide">
+    <div class="mario-hero__copy">
+    {%- if hero.breadcrumb %}<a class="mario-eyebrow mario-hero__back" href="{{ hero.breadcrumb.url }}">← {{ hero.breadcrumb.label }}</a>{% endif %}
+    {%- if hero.eyebrow %}<p class="mario-eyebrow">{{ hero.eyebrow }}</p>{% endif %}
     {%- if mario.layout == "tabs" and mario.group_key != "formats" %}
     <p class="mario-hero__title">{{ hero.title }}</p>
     {%- else %}
     <h1 class="mario-hero__title">{{ hero.title }}</h1>
     {%- endif %}
+    {%- if hero.partner == 'cvxlab' %}
+    <div class="mario-tutorial-partner" aria-label="Joint MARIO and CVXLab tutorial">
+      <span>Joint tutorial · MARIO ×</span>
+      <a href="https://cvxlab.readthedocs.io/en/latest/" aria-label="CVXLab documentation">
+        <img class="mario-partner-logo--light" src="{{ pathto('_static/cvxlab-logo-light.png', 1) }}" alt="CVXLab" width="104" height="30">
+        <img class="mario-partner-logo--dark" src="{{ pathto('_static/cvxlab-logo-dark.png', 1) }}" alt="CVXLab" width="104" height="30">
+      </a>
+    </div>
+    {%- endif %}
     {%- if hero.text %}<p class="mario-hero__text">{{ hero.text }}</p>{% endif %}
     {%- if mario.layout == "home" %}<div class="mario-home-actions">{% endif %}
+    {%- if hero.actions %}
+    <div class="mario-hero__actions">
+      {%- for action in hero.actions %}
+      <a class="mario-button{% if loop.first %} mario-button--primary{% endif %}" href="{{ action.url if action.url else pathto(action.doc) }}">{{ action.label }} {{ icon("next") }}</a>
+      {%- endfor %}
+    </div>
+    {%- endif %}
+    {%- if mario.layout == "home" %}</div>{% endif %}
     {%- if hero.install and mario.install %}
     <div class="mario-install">
       <code data-copy-source>{{ mario.install }}</code>
       <button type="button" class="mario-install__copy" data-copy aria-label="Copy the install command">{{ icon("copy") }}<span data-copy-label>Copy</span></button>
     </div>
     {%- endif %}
-    {%- if hero.actions %}
-    <div class="mario-hero__actions">
-      {%- for action in hero.actions %}
-      <a class="mario-button{% if loop.first %} mario-button--primary{% endif %}" href="{{ pathto(action.doc) }}">{{ action.label }}</a>
-      {%- endfor %}
     </div>
-    {%- endif %}
-    {%- if mario.layout == "home" %}</div>{% endif %}
   </div>
 </section>

@@ -1,4 +1,4 @@
-"""Build Latest, Dev and Preview into one verified GitHub Pages artifact."""
+"""Build Latest and Dev into one verified GitHub Pages artifact."""
 
 import argparse
 import hashlib
@@ -11,6 +11,7 @@ import shutil
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 from urllib.parse import unquote, urlsplit
 
 
@@ -98,6 +99,32 @@ def deduplicate_legacy_json(output, catalogue):
         shutil.rmtree(folder)
 
 
+
+def write_preview_redirects(output, catalogue):
+    """Retire Preview while preserving its page URLs, query strings and anchors."""
+    destinations = {}
+    # Prefer Latest; a page available only in Dev keeps its working counterpart.
+    for channel in ("dev", "latest"):
+        version = catalogue["versions"][channel]
+        for document in version["documents"]:
+            destinations[document] = version["url"] + document + ".html"
+    for document, target in destinations.items():
+        path = output / "en/preview" / (document + ".html")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        address = escape(target, quote=True)
+        path.write_text(
+            '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+            '<meta name="viewport" content="width=device-width,initial-scale=1">'
+            '<meta name="robots" content="noindex">'
+            '<title>MARIO · Page moved</title><link rel="canonical" href="' + address + '">'
+            '<meta http-equiv="refresh" content="0;url=' + address + '">'
+            '<script>const target = new URL(' + json.dumps(target) + ');'
+            'target.search = location.search; target.hash = location.hash;'
+            'location.replace(target.href);</script></head><body>'
+            '<p>This page has moved. <a href="' + address + '">Continue to MARIO</a>.</p>'
+            '</body></html>')
+
+
 def build(sources, output, site_root):
     if output.exists() and any(output.iterdir()):
         raise ValueError("Use a fresh output directory for the versioned site")
@@ -118,10 +145,18 @@ def build(sources, output, site_root):
             "MARIO_DOCS_SITE_ROOT": site_root,
             "MARIO_DOCS_BASEURL": base_url,
         }
-        subprocess.run([
-            sys.executable, "-m", "sphinx", "-b", "html", "-W", "--keep-going",
-            str(source / "doc/source"), str(destination),
-        ], cwd=source, env=env, check=True)
+        # Share the approved frontend without replacing a channel's library or guides.
+        frontend = Path(__file__).parents[1] / "source"
+        with tempfile.TemporaryDirectory(prefix="mario-channel-theme-") as folder:
+            for name in ("docs-versions.css", "docs-versions.js", "external-links.js"):
+                shutil.copyfile(frontend / "_static" / name, Path(folder) / name)
+            subprocess.run([
+                sys.executable, "-m", "sphinx", "-b", "html", "-W", "--keep-going",
+                "-D", "html_theme_path=" + str(frontend / "_themes"),
+                "-D", "html_static_path=_static," + folder,
+                "-D", "mario_site.install=pip install mariopy",
+                str(source / "doc/source"), str(destination),
+            ], cwd=source, env=env, check=True)
         documents = {}
         for path in sorted(destination.rglob("*.html")):
             parser = PageAnchors()
@@ -132,6 +167,7 @@ def build(sources, output, site_root):
         }
     write_catalogue(output, catalogue)
     deduplicate_legacy_json(output, catalogue)
+    write_preview_redirects(output, catalogue)
     size = sum(path.stat().st_size for path in output.rglob('*') if path.is_file())
     if size > 1024 ** 3:
         raise ValueError(f"The combined Pages artifact exceeds 1 GB ({size:,} bytes)")
@@ -155,10 +191,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--latest-source", type=Path, required=True)
     parser.add_argument("--dev-source", type=Path, required=True)
-    parser.add_argument("--preview-source", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--site-root", default="https://www.marioproject.com")
     args = parser.parse_args()
-    build({"latest": args.latest_source.resolve(), "dev": args.dev_source.resolve(),
-           "preview": args.preview_source.resolve()},
+    build({"latest": args.latest_source.resolve(), "dev": args.dev_source.resolve()},
           args.output.resolve(), args.site_root)

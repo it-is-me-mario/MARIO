@@ -1349,7 +1349,7 @@ def _write_nav_index(app):
 
 
 def _clean_notebook_downloads(app):
-    from mario_downloads import clean_notebook
+    from mario_downloads import DOCS, clean_notebook
     for source, info in app.env.dlfiles.items():
         if not str(source).endswith(".ipynb"):
             continue
@@ -1357,7 +1357,8 @@ def _clean_notebook_downloads(app):
         if not path.is_absolute():
             path = Path(app.srcdir) / path
         target = Path(app.outdir) / "_downloads" / info[1]
-        payload = json.dumps(clean_notebook(path, app.srcdir), ensure_ascii=False, indent=1) + "\n"
+        notebook = clean_notebook(path, app.srcdir, base_url=app.config.html_baseurl or DOCS)
+        payload = json.dumps(notebook, ensure_ascii=False, indent=1) + "\n"
         target.write_text(payload, encoding="utf-8")
         # Sphinx source copies are downloadable too; avoid a second raw notebook.
         source_copy = Path(app.outdir) / "_sources" / (str(path.relative_to(app.srcdir)) + ".txt")
