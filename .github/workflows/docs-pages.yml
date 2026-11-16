@@ -36,6 +36,7 @@ jobs:
           sources = json.loads(Path('doc/versions.json').read_text())
           with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
               output.write('dev=' + sources['dev']['ref'] + '\n')
+              output.write('preview=' + sources['preview']['ref'] + '\n')
           PY
       - uses: actions/checkout@v4
         with:
@@ -45,6 +46,10 @@ jobs:
         with:
           ref: ${{ steps.sources.outputs.dev }}
           path: source-dev
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.sources.outputs.preview }}
+          path: source-preview
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -55,17 +60,22 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y pandoc
-          python -m pip install -r doc/docs-requirements.txt
+          python -m pip install -r doc/docs-requirements.txt pytest
       - name: Check cross-site navigation
         working-directory: publisher
-        run: node --test tests/docs/test_external_links.cjs tests/docs/test_docs_versions.cjs
-      - name: Build and verify both versions
+        run: |
+          node --test tests/docs/test_external_links.cjs tests/docs/test_docs_versions.cjs
+          python -m pytest tests/docs/test_versioned_packaging.py -q
+      - name: Build and verify all versions
         run: |
           python publisher/doc/scripts/build_versioned_docs.py \
-            --latest-source source-latest --dev-source source-dev --output _site
+            --latest-source source-latest --dev-source source-dev \
+            --preview-source source-preview --output _site
           test -s _site/en/latest/index.html
           test -s _site/en/dev/user_guide/inspection/to_cvxlab.html
           test -s _site/en/dev/user_guide/transformations/import_accounts.html
+          test -s _site/en/preview/user_guide/index.html
+          test -s _site/en/preview/_static/mario-editorial.css
       - uses: actions/configure-pages@v5
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
       - uses: actions/upload-pages-artifact@v4
