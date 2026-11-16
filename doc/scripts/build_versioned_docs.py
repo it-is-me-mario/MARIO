@@ -153,7 +153,7 @@ def build(sources, output, site_root):
             subprocess.run([
                 sys.executable, "-m", "sphinx", "-b", "html", "-W", "--keep-going",
                 "-D", "html_theme_path=" + str(frontend / "_themes"),
-                "-D", "html_static_path=" + str(source / "doc/source/_static") + "," + folder,
+                "-D", "html_static_path=_static," + folder,
                 "-D", "mario_site.install=pip install mariopy",
                 str(source / "doc/source"), str(destination),
             ], cwd=source, env=env, check=True)
