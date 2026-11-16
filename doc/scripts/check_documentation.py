@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import ast
 import fnmatch
+import hashlib
 from html.parser import HTMLParser
 import json
 from pathlib import Path
@@ -83,13 +84,26 @@ def audit(site, source=SOURCE):
     patterns = excluded_patterns(source)
     pages = sorted(
         path.relative_to(source).with_suffix(".html")
-        for folder in ("get_started", "user_guide", "notebooks/parsers")
+        for folder in ("get_started", "user_guide", "notebooks/parsers", "resources/model-gallery")
         for path in (source / folder).rglob("*.rst")
         if not any(fnmatch.fnmatchcase(path.relative_to(source).as_posix(), pattern)
                    for pattern in patterns)
     )
     pages.append(Path("resources/material.html"))
     pages.extend(Path(f"reference/{name}.html") for name in ("api_indices", "api_resolvable_matrices"))
+
+    gallery_source = source / "resources/model-gallery"
+    manifest = gallery_source / "catalog-manifest.json"
+    if gallery_source.exists():
+        if not manifest.is_file():
+            errors.append("Model gallery: export manifest missing")
+        else:
+            for name, expected in json.loads(manifest.read_text())["files"].items():
+                target = (gallery_source / name).resolve()
+                if not target.is_relative_to(gallery_source.resolve()) or not target.is_file():
+                    errors.append(f"Model gallery: missing export {name}")
+                elif hashlib.sha256(target.read_bytes()).hexdigest() != expected:
+                    errors.append(f"Model gallery: edited generated export {name}")
 
     def read(path):
         if path not in cache:

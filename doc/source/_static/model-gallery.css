@@ -1,0 +1,16 @@
+/* Research families use the site's existing palette and typography. */
+.mg-families { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.4rem; margin: 1.5rem 0 2.5rem; }
+.mg-family { min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 1.4rem; }
+.mg-heading { display: flex; gap: .8rem; align-items: center; }
+.mg-heading svg { width: 1.8rem; height: 1.8rem; flex-shrink: 0; fill: none; stroke: var(--link); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.mario-body .mg-heading h2 { margin: 0; font-size: 1.2rem; line-height: 1.25; }
+.mario-body .mg-family > p { color: var(--ink-soft); font-size: .9rem; line-height: 1.5; margin: .9rem 0 1.2rem; }
+.mario-body .mg-family ul { list-style: none; padding: 0; margin: 0; }
+.mario-body .mg-family li { margin: 0; border-top: 1px solid var(--line); }
+.mg-family li a { position: relative; display: block; padding: .9rem 1.4rem .9rem 0; text-decoration: none; color: var(--ink); }
+.mg-family li strong { display: block; font-size: 1rem; font-weight: 550; line-height: 1.35; }
+.mg-family li span { display: block; color: var(--ink-muted); font-size: .8rem; margin-top: .3rem; }
+.mg-family li .mg-arrow { position: absolute; right: 0; top: .75rem; color: var(--link); font-size: 1.15rem; }
+.mg-family li a:hover strong { color: var(--link); text-decoration: underline; text-underline-offset: .18em; }
+.mg-family li a:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
+@media (max-width: 700px) { .mg-families { grid-template-columns: 1fr; gap: 1rem; } .mg-family { padding: 1.1rem; } }

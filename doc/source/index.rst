@@ -68,5 +68,6 @@ MARIO
    resources/database_coverage
    resources/data-explorer/scope
    resources/projects_publications
+   resources/model-gallery/index
    resources/teaching
    resources/material

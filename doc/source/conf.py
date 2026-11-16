@@ -214,7 +214,7 @@ html_show_sourcelink = False
 html_copy_source = False
 
 html_static_path = ["_static"]
-html_css_files = ["heatmap-background.css", "benchmarks.css"]
+html_css_files = ["heatmap-background.css", "benchmarks.css", "model-gallery.css"]
 html_js_files = [
     # Reproducible frontend; dashed marker outlines require this Plotly.js version.
     "https://cdn.plot.ly/plotly-3.6.0.min.js",
@@ -438,6 +438,7 @@ mario_site = {
             },
             "tabs": [
                 {"label": "Tutorials", "doc": _tutorials_url, "summary": "Follow complete exercises and download their source materials."},
+                {"label": "Model gallery", "doc": "resources/model-gallery/index", "prefixes": ["resources/model-gallery/"], "summary": "Research models, publications and their code and data editions."},
                 {"label": "Teaching", "doc": "resources/teaching", "summary": "Learn through courses and recorded lessons."},
                 {"label": "Projects & Publications", "doc": "resources/projects_publications", "summary": "Discover the research built with MARIO."},
                 {"label": "Downloadable material", "doc": "resources/material", "summary": "Download notebooks, set lists and reference sheets."},

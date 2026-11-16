@@ -1,0 +1,17 @@
+{
+  "repository": "https://github.com/it-is-me-mario/Model-gallery",
+  "source_revision": "7bfbbd0db1f9c18f2acf06efff909621132445ff",
+  "catalog_sha256": "fa82d613f8ca537411a77b434a4eb51a6f9927132bce335eb5090c68d2970fc8",
+  "generator_sha256": "74aba53cb2f71330fbba27172802c6cbfa63ca619888ff4c144ffd01c5caad30",
+  "files": {
+    "index.rst": "fda24e35c1ab3ed0d3d5b7ab8b0b4f2fae4adeb3d75ed14481e1b136b681410a",
+    "databases.rst": "ef50fc7baf199f59c7abe5be24c1af275700dd2c842b4ca4f09db0c43db7fa27",
+    "steel-transition-eu.rst": "4cd3dc15766c3a2c86fae5f4abb378ca6df6f9dd6e6669ae5bf39cd7b409c95d",
+    "gcam-mario-steel.rst": "1fd947226d448d66118cb8479eaf0df7caa93737589b63b53998197222512f54",
+    "pv-hlca.rst": "7dfbda2ae329a1fbd16ce5e28929a259bd5fc442545e1a45274d766968f123c7",
+    "fulfill.rst": "01ccbe001f033b17a7dcf804dbafb9cef52ce7012c7765a6abc046b3871d0f4e",
+    "fulfill-targets.rst": "6868179951e9766ebbacc44825551736c6ffcdad3d7014fd790e0a746be3781a",
+    "electricity-carbon-footprint.rst": "88ff30ab4c4b9b93e62d0785b49ff63ba1cb661b6c2e4df5754844f8659923c4",
+    "assets/pv-reconstruction.png": "55728ec4b5702e1e64298d4297cc2fd7e17fec76999c69368d70fe973f0c1ad1"
+  }
+}

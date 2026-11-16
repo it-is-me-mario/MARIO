@@ -57,6 +57,9 @@ source tree. It checks built pages, sidebar membership, local links and anchors,
 guide downloads, the shared download list, output-free notebook copies with
 source notices, and absence of raw notebook sources. It does not execute examples,
 check external URLs or assess scientific correctness and visual quality.
+It also checks generated Model gallery pages and the export checksums. Regenerate
+the complete gallery from its catalogue when a checksum differs; do not patch
+the manifest to accept a hand-edited page.
 For format/nomenclature changes, also verify IOT/SUT block selection, keyboard
 activation and old Nomenclature/technology-assumption URLs with their fragments.
 
