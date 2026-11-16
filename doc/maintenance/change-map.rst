@@ -64,8 +64,8 @@ Navigation and layout
 Documentation channels are selected in ``doc/versions.json`` and built together
 by ``doc/scripts/build_versioned_docs.py``. The ``mario_versions`` extension,
 ``partials/versions.html``, ``docs-versions.js`` and ``docs-versions.css`` supply
-the selector and development notice. Review the installation page and hero command together
-so Dev installs its recorded source revision. The cross-version catalogue is
+the selector and development notice. The home hero uses ``pip install mariopy``;
+the development installation guide records the exact source revision. The cross-version catalogue is
 generated from published HTML routes and anchors. Changing a source branch also
 requires reviewing the workflow's push and completed-build triggers.
 The selector is a body-level floating control in the bottom-right corner,
@@ -126,11 +126,13 @@ not Sphinx source documents. Consumers adopt the complete theme at their pinned
 revision; preview the same local theme against all three sites before updating
 those pins.
 
-The shared header promotes the existing Tutorials destination to a direct link;
-Resources retains its full submenu. ``partials/home-navigation.html`` owns the
-main site's three entry paths, and ``partials/home-system.html`` owns its
-illustrative accounting diagram. The diagram contains no observed data.
-Home titles and actions remain in ``conf.py``. Keep navigation labels consistent
+The shared header keeps Tutorials inside Resources. ``partials/home-navigation.html``
+owns the main site's Database explorer, Documentation and Resources cards.
+The cards use icons from ``partials/icons.html`` and separate native links for
+their destinations; the Resources links come from the shared navigation config.
+Keep task shortcuts inside their card rather than in a separate workflow strip.
+Home titles and actions remain in ``conf.py``. Keep its centered introduction
+free of decorative labels and illustrations. Keep navigation labels consistent
 with the independent sites without moving their published documents.
 
 Format diagrams and tables come from

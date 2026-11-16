@@ -220,21 +220,19 @@ body:has(.mario-shell--benchmark) .mario-tabs__list { height: 3rem; }
 .mario-shell--home { width: min(80rem, calc(100% - 3rem)); margin-top: 0; }
 .mario-shell--home .mario-article { padding: 0; border: 0; background: transparent; }
 .mario-pathways { padding: 3rem 0 0; }
-.mario-section-heading { margin-bottom: 1.75rem; }
-.mario-layout-home .mario-section-heading { text-align: center; }
-.mario-section-heading .mario-eyebrow { margin-bottom: .7rem; }
-.mario-article .mario-section-heading h2 { font-size: 2rem; font-weight: 500; letter-spacing: -.035em; margin: 0; }
 .mario-pathways__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
-.mario-pathway { color: var(--ink); display: flex; flex-direction: column; padding: 1.6rem; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; text-decoration: none; }
-.mario-pathway:visited { color: var(--ink); }
-.mario-pathway:hover { border-color: var(--link); background: var(--surface-2); text-decoration: none; }
-.mario-pathway--explore { background: var(--surface-2); border-top: 3px solid var(--mario-yellow); }
-.mario-pathway .mario-eyebrow { font-size: .6875rem; }
-.mario-article .mario-pathway h3 { font-size: 1.55rem; line-height: 1.2; font-weight: 500; letter-spacing: -.03em; margin: 0 0 1rem; }
-.mario-pathway p { color: var(--ink-soft); font-size: .9375rem; line-height: 1.65; margin: 0 0 1.8rem; }
-.mario-pathway__link { display: flex; justify-content: space-between; gap: .75rem; margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--line); font-size: .875rem; font-weight: 500; }
-.mario-workflow-links { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .75rem 1.6rem; padding: 1.4rem 0; margin: 1.2rem 0 0; border-block: 1px solid var(--line); font-size: .875rem; text-align: center; }
-.mario-workflow-links > span { color: var(--ink-muted); }
+.mario-pathway { min-width: 0; color: var(--ink); padding: 1.6rem; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; }
+.mario-pathway:focus-within { border-color: var(--link); }
+.mario-pathway__icon { display: inline-flex; align-items: center; justify-content: center; width: 3.5rem; height: 3.5rem; margin-bottom: 1.25rem; border-radius: 6px; background: color-mix(in srgb, var(--mario-yellow) 20%, var(--surface)); color: var(--ink); }
+.mario-pathway__icon .mario-icon { width: 2.15rem; height: 2.15rem; stroke-width: 1.6; }
+.mario-article .mario-pathway h2 { font-size: 1.55rem; line-height: 1.2; font-weight: 500; letter-spacing: -.03em; margin: 0; }
+.mario-article .mario-pathway__intro { min-height: 4.65rem; color: var(--ink-soft); font-size: .9375rem; line-height: 1.65; margin: 1rem 0 1.25rem; }
+.mario-article .mario-pathway__links { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.mario-article .mario-pathway__links li { margin: 0; padding: 0; }
+.mario-pathway__links li + li { border-top: 1px solid var(--line); }
+.mario-pathway__links a { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .7rem 0; min-height: 2.75rem; color: var(--ink); font-size: .875rem; font-weight: 500; line-height: 1.45; text-decoration: none; }
+.mario-pathway__links a:visited { color: var(--ink); }
+.mario-pathway__links a:hover { color: var(--link); text-decoration: underline; text-underline-offset: .2em; }
 .mario-home-footer { margin-top: 3.5rem; gap: 3rem; border-top: 0; }
 .mario-home-footer h2 { font-size: 1.25rem; font-weight: 500; }
 .mario-footer { margin-top: 4rem; background: var(--surface-2); border-top: 1px solid var(--line); }
@@ -297,7 +295,7 @@ body:has(.mario-shell--benchmark) .mario-hero:not(.mario-hero--home) .mario-hero
   .mario-hero--home .mario-hero__title { font-size: clamp(2.25rem, 7.5vw, 3.5rem); }
   .mario-pathways__grid { grid-template-columns: 1fr; }
   .mario-pathway { padding: 1.5rem; }
-  .mario-workflow-links > span { width: 100%; }
+  .mario-article .mario-pathway__intro { min-height: 0; }
   .mario-tabs__track { width: calc(100% - 2rem); }
   .mario-tabs__list { gap: 1.5rem; }
   .mario-home-footer { margin-top: 2rem; }
@@ -306,7 +304,6 @@ body:has(.mario-shell--benchmark) .mario-hero:not(.mario-hero--home) .mario-hero
   .mario-shell--benchmark .eb-question-text { font-size: 1rem; margin: 0; }
   .mario-shell--benchmark .eb-filter-panel { padding: .9rem; }
   .mario-shell--benchmark .eb-viewbar h3 { font-size: 1.25rem; }
-  .mario-article .mario-section-heading h2 { font-size: 1.65rem; }
 }
 @media (max-width: 23em) {
   :root { --header-h: 7.5rem; }

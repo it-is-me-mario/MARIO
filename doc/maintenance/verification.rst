@@ -36,10 +36,11 @@ Both Sphinx builds run with strict warnings and their own source's link/download
 checker. Check ``docs-versions.json`` against the checkout commits. In a browser,
 switch a common page and anchor, then a Dev-only page that falls back to the
 Latest home. Check native home links with scripts unavailable, Escape and narrow
-layouts with the selector open. The development installation command must name
+layouts with the selector open. The development installation guide's command must name
 the same commit as the notice and catalogue. Tutorial publication remains
 independent of publishing the development API documentation.
-Check the long pinned command and its copy control on the Dev home at 320 px.
+Check the home's ``pip install mariopy`` command and its copy control at 320 px;
+check the longer pinned command in the development installation guide separately.
 Download a companion from each channel and check that its guide notice links
 back to that channel, including pages available in Dev.
 Check the floating selector at the bottom-right before and after scrolling,

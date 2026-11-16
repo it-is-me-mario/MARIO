@@ -253,7 +253,6 @@ mario_site = {
         'Spotted an error? <a href="https://github.com/it-is-me-mario/MARIO/issues">Tell us on GitHub Issues</a>.'
     ),
     "home_hero": {
-        "eyebrow": "Open-source Python · Input-output analysis",
         "title": "Input-output analysis<br>in <mark>Python</mark>",
         "text": (
             "Work with input-output and supply-use tables, from reading a database "

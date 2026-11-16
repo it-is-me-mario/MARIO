@@ -1,29 +1,47 @@
-{%- set destinations = namespace(explorer='', tutorials='', docs='') %}
+{%- from "partials/icons.html" import icon %}
+{%- set destinations = namespace(explorer='', resources=[]) %}
 {%- for area in mario.nav %}
   {%- if area.key == 'explorer' %}{% set destinations.explorer = area.url %}{% endif %}
-  {%- if area.key == 'docs' %}{% set destinations.docs = area.url %}{% endif %}
-  {%- if area.key == 'resources' %}{% for child in area.children if child.label == 'Tutorials' %}{% set destinations.tutorials = child.url %}{% endfor %}{% endif %}
+  {%- if area.key == 'resources' %}{% set destinations.resources = area.children %}{% endif %}
 {%- endfor %}
-<section class="mario-pathways" aria-labelledby="mario-pathways-title">
-  <div class="mario-section-heading"><p class="mario-eyebrow">Choose your starting point</p><h2 id="mario-pathways-title">A question. Three ways in.</h2></div>
-  <nav class="mario-pathways__grid" aria-label="Start exploring MARIO">
-    <a class="mario-pathway mario-pathway--explore" href="{{ destinations.explorer }}">
-      <span class="mario-eyebrow">Explore the data</span><h3>What do the indicators tell us?</h3>
-      <p>Investigate economies, emissions and trade. Inspect the sources and the assumptions behind each result.</p><span class="mario-pathway__link">Open Explorer <span aria-hidden="true">↗</span></span>
-    </a>
-    <a class="mario-pathway" href="{{ destinations.tutorials }}">
-      <span class="mario-eyebrow">Learn by doing</span><h3>How does a change affect the system?</h3>
-      <p>Follow a complete analysis, from the research question to scenarios, results and downloadable notebooks.</p><span class="mario-pathway__link">Browse tutorials <span aria-hidden="true">↗</span></span>
-    </a>
-    <a class="mario-pathway" href="{{ destinations.docs }}">
-      <span class="mario-eyebrow">Build your analysis</span><h3>Make the workflow your own.</h3>
-      <p>Import a database, inspect its accounts and model a scenario. Find focused guides and the complete API.</p><span class="mario-pathway__link">Read the documentation <span aria-hidden="true">→</span></span>
-    </a>
-  </nav>
-  <div class="mario-workflow-links"><span>Work with MARIO</span>
-    <a href="{{ pathto('user_guide/parsers/index') }}">Import data</a>
-    <a href="{{ pathto('user_guide/analysis/index') }}">Calculate impacts</a>
-    <a href="{{ pathto('user_guide/transformations/index') }}">Build scenarios</a>
-    <a href="{{ pathto('reference/api_library') }}">API reference</a>
+<section class="mario-pathways" aria-label="Explore MARIO">
+  <div class="mario-pathways__grid">
+    <section class="mario-pathway" aria-labelledby="mario-home-explorer">
+      <span class="mario-pathway__icon">{{ icon("chart") }}</span>
+      <h2 id="mario-home-explorer">Database explorer</h2>
+      <p class="mario-pathway__intro">Explore economies, emissions and trade across countries, sectors and years.</p>
+      <nav aria-label="Database explorer">
+        <ul class="mario-pathway__links">
+          <li><a href="{{ destinations.explorer }}resources/data-explorer/compare.html">Explore indicators {{ icon("next") }}</a></li>
+          <li><a href="{{ destinations.explorer }}resources/data-explorer/scope.html">Compare classifications {{ icon("next") }}</a></li>
+          <li><a href="{{ destinations.explorer }}resources/data-explorer/analyses.html">Read analyses {{ icon("next") }}</a></li>
+        </ul>
+      </nav>
+    </section>
+    <section class="mario-pathway" aria-labelledby="mario-home-documentation">
+      <span class="mario-pathway__icon">{{ icon("book") }}</span>
+      <h2 id="mario-home-documentation">Documentation</h2>
+      <p class="mario-pathway__intro">Learn how to work with MARIO, from importing a database to building a model.</p>
+      <nav aria-label="Documentation">
+        <ul class="mario-pathway__links">
+          <li><a href="{{ pathto('user_guide/parsers/index') }}">Import data {{ icon("next") }}</a></li>
+          <li><a href="{{ pathto('user_guide/analysis/index') }}">Calculate impacts {{ icon("next") }}</a></li>
+          <li><a href="{{ pathto('user_guide/transformations/index') }}">Build scenarios {{ icon("next") }}</a></li>
+          <li><a href="{{ pathto('reference/api_library') }}">API reference {{ icon("next") }}</a></li>
+        </ul>
+      </nav>
+    </section>
+    <section class="mario-pathway" aria-labelledby="mario-home-resources">
+      <span class="mario-pathway__icon">{{ icon("library") }}</span>
+      <h2 id="mario-home-resources">Resources</h2>
+      <p class="mario-pathway__intro">Find tutorials, teaching material and research built with MARIO.</p>
+      <nav aria-label="Resources">
+        <ul class="mario-pathway__links">
+          {%- for item in destinations.resources %}
+          <li><a href="{{ item.url }}">{{ item.label }} {{ icon("next") }}</a></li>
+          {%- endfor %}
+        </ul>
+      </nav>
+    </section>
   </div>
 </section>
