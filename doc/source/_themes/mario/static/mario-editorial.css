@@ -334,3 +334,15 @@ body:has(.mario-shell--benchmark) .mario-hero:not(.mario-hero--home) .mario-hero
   .mario-hero__actions { flex-wrap: wrap; }
   .mario-button { font-size: .8125rem; padding-inline: .8rem; }
 }
+
+/* Joint tutorial identity: use the official CVXLab marks in both themes. */
+.mario-tutorial-partner { display: flex; align-items: center; flex-wrap: wrap; gap: .65rem; margin: 1rem 0; color: var(--ink-soft); font-size: .8125rem; }
+.mario-tutorial-partner > a { display: inline-flex; }
+.mario-tutorial-partner img { width: 104px; height: 30px; object-fit: contain; }
+.mario-partner-logo--dark { display: none; }
+:root[data-theme="dark"] .mario-partner-logo--light { display: none; }
+:root[data-theme="dark"] .mario-partner-logo--dark { display: block; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .mario-partner-logo--light { display: none; }
+  :root:not([data-theme="light"]) .mario-partner-logo--dark { display: block; }
+}

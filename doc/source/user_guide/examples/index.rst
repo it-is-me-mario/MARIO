@@ -3,33 +3,34 @@
 Examples
 ========
 
-These examples combine multiple MARIO operations. Each states the source
-inputs it needs; real database files must be obtained separately. Download
-the notebook from its page to run the workflow locally.
+These complete workflows are part of `MARIO Tutorials
+<https://tutorials.marioproject.com/preview/>`_. Each tutorial includes a web
+explanation, its required inputs and a downloadable notebook. Real database
+files must be obtained separately.
 
 .. mario-cards::
    :columns: 2
    :links:
 
-   .. mario-card:: :doc:`Import and inspect BONSAI <bonsai>`
+   .. mario-card:: `Import and inspect BONSAI <https://tutorials.marioproject.com/preview/import-inspect-bonsai/>`_
       :icon: parsers
 
       Read a Balanced HSUT and a native HIOT, then inspect their regions,
       product units and import diagnostics.
 
-   .. mario-card:: :doc:`Compare GHG footprints <compare_ghg>`
+   .. mario-card:: `Compare GHG footprints across databases <https://tutorials.marioproject.com/preview/compare-ghg-footprints/>`_
       :icon: cloud
 
       Characterize EXIOBASE, EORA26 and ADB, harmonize regional totals and
       compare the results graphically.
 
-   .. mario-card:: :doc:`Trace a supply chain <../advanced/supply_chain_analyses>`
+   .. mario-card:: `Trace a nickel supply chain <https://tutorials.marioproject.com/preview/nickel-supply-chain/>`_
       :icon: chain
 
       Connect structural indicators, bilateral trade and embodied impacts
       across EXIOBASE years.
 
-   .. mario-card:: :doc:`Find structural paths <../advanced/structural_path_analysis>`
+   .. mario-card:: `Trace motor-vehicle supply chains <https://tutorials.marioproject.com/preview/structural-path-analysis/>`_
       :icon: paths
 
       Trace the paths from German final demand to a selected environmental
@@ -40,9 +41,10 @@ Calculations and analysis, or Transformations and scenarios. Other guide
 notebooks and Excel templates are also available in
 :doc:`Downloadable material <../../resources/material>`.
 
-For complete exercises maintained in their own repositories, visit
-`MARIO Tutorials <https://tutorials.marioproject.com/>`_. Each published tutorial
-links to its canonical notebook, supporting materials and source revision.
+The tutorial collection also includes economy-wide impact assessment,
+MRIO disaggregation and BONSAI GHG footprints. Each tutorial records its
+canonical source revision. The documentation copies below remain available
+at their existing addresses.
 
 .. toctree::
    :hidden:

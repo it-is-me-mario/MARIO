@@ -10,6 +10,15 @@
     {%- else %}
     <h1 class="mario-hero__title">{{ hero.title }}</h1>
     {%- endif %}
+    {%- if hero.partner == 'cvxlab' %}
+    <div class="mario-tutorial-partner" aria-label="Joint MARIO and CVXLab tutorial">
+      <span>Joint tutorial · MARIO ×</span>
+      <a href="https://cvxlab.github.io/cvxlab/" aria-label="CVXLab documentation">
+        <img class="mario-partner-logo--light" src="{{ pathto('_static/cvxlab-logo-light.png', 1) }}" alt="CVXLab" width="104" height="30">
+        <img class="mario-partner-logo--dark" src="{{ pathto('_static/cvxlab-logo-dark.png', 1) }}" alt="CVXLab" width="104" height="30">
+      </a>
+    </div>
+    {%- endif %}
     {%- if hero.text %}<p class="mario-hero__text">{{ hero.text }}</p>{% endif %}
     {%- if mario.layout == "home" %}<div class="mario-home-actions">{% endif %}
     {%- if hero.actions %}
