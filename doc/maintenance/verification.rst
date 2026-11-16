@@ -29,7 +29,7 @@ Build and structural checks
 For the versioned publisher, use clean checkouts of the configured refs and a
 fresh output directory::
 
-   node --test tests/docs/test_docs_versions.cjs tests/docs/test_external_links.cjs
+   node --test tests/docs/test_docs_versions.cjs tests/docs/test_external_links.cjs tests/docs/test_theme.cjs
    python doc/scripts/build_versioned_docs.py --latest-source /path/to/latest --dev-source /path/to/dev --output /tmp/mario-versioned-docs
 
 Both Sphinx builds run with strict warnings and their own source's link/download
@@ -47,6 +47,13 @@ Check the floating selector at the bottom-right before and after scrolling,
 including when the header hides, and at the page footer. Its menu opens upward,
 stays within a 320 px viewport and supports keyboard activation and Escape.
 Check both colour themes and verify that footer links remain accessible.
+After theme-persistence changes, switch colour on one public MARIO host, follow
+links to Tutorials and Explorer, and return using browser history. Repeat with
+the other colour and a previously opened page. A stale local preference must
+not overwrite the last explicit shared choice. Check the theme before body
+rendering as well as after navigation; the head bootstrap must ship with every
+consumer's pinned theme. The theme regression tests cover migration, history,
+focus, the system default and blocked browser storage.
 For local design previews, verify the added ``Preview`` choice and active label
 on all three sites, and confirm that Latest/Dev use their published URLs rather
 than nonexistent local version directories. Check a nested page and anchor

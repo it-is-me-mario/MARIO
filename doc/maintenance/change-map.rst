@@ -126,6 +126,15 @@ not Sphinx source documents. Consumers adopt the complete theme at their pinned
 revision; preview the same local theme against all three sites before updating
 those pins.
 
+``partials/theme.html`` applies the colour preference in the document head and
+owns its persistence. Explicit choices use the ``mario-theme`` cookie on
+``marioproject.com`` so MARIO, Tutorials and Explorer share the same preference.
+The shared choice takes precedence over each origin's older local storage;
+local storage remains the fallback for previews on other hosts or blocked cookies.
+Do not save the system colour scheme as an explicit choice. The header/footer
+controls in ``mario.js`` use this same controller, which resynchronizes when a
+page returns from browser history or becomes active again.
+
 The shared header keeps Tutorials inside Resources. ``partials/home-navigation.html``
 owns the main site's Database explorer, Documentation and Resources cards.
 The cards use icons from ``partials/icons.html`` and separate native links for

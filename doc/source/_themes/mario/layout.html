@@ -11,14 +11,9 @@
 
 {%- block extrahead %}
     <meta name="color-scheme" content="light dark">
+    {%- include "partials/theme.html" %}
     <script>
       (function () {
-        try {
-          var theme = localStorage.getItem("mario-theme");
-          if (theme === "light" || theme === "dark") {
-            document.documentElement.dataset.theme = theme;
-          }
-        } catch (error) {}
         try {
           var tab = JSON.parse(sessionStorage.getItem("mario-tab-nav") || "null");
           if (tab && tab.to === location.pathname && Date.now() - tab.t < 15000) {
