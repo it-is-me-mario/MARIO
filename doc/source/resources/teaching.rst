@@ -1,8 +1,7 @@
 Teaching
 ========
 
-Course material and recorded lessons to learn MARIO, from the first concepts to
-real databases and scenarios.
+Courses, notebooks and recorded lessons on input-output analysis with MARIO.
 
 
 .. _courses:
@@ -26,9 +25,8 @@ Course materials
 
          The three lectures of the 2026 edition are available as video recordings
          in the `course-recordings-2026 release <https://github.com/it-is-me-mario/Crash-course/releases/tag/course-recordings-2026>`_.
-         They are recordings of live, interactive sessions, not tutorials produced
-         for online viewing: they include pauses, discussions with participants and
-         some troubleshooting. They complement the notebooks of the course.
+         Recorded during live classes, they include participant discussions,
+         pauses and troubleshooting alongside the course notebooks.
 
 
 Past courses

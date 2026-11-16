@@ -8,11 +8,12 @@ from urllib.parse import urljoin, urlsplit, urlunsplit
 DOCS = 'https://www.marioproject.com/en/latest/'
 
 
-def clean_notebook(path, srcdir):
+def clean_notebook(path, srcdir, *, base_url=DOCS):
     path, srcdir = Path(path), Path(srcdir)
     notebook = deepcopy(json.loads(path.read_text(encoding='utf-8')))
     docname = path.relative_to(srcdir).with_suffix('').as_posix()
-    guide = DOCS + docname + '.html'
+    docs_url = base_url.rstrip('/') + '/'
+    guide = docs_url + docname + '.html'
     licences = json.loads((srcdir / '_static/data/database_licences.json').read_text())
     catalogue = json.loads((srcdir / '_static/data/database_profiles.json').read_text())
     # Examples can move away from a source guide while retaining its attribution.
@@ -43,7 +44,7 @@ def clean_notebook(path, srcdir):
                 label, link = match.groups()
                 if link.startswith(('https://', 'http://', '#', 'mailto:')):
                     return match[0]
-                target = DOCS + link.lstrip('/') if link.startswith('/') else urljoin(guide, link)
+                target = docs_url + link.lstrip('/') if link.startswith('/') else urljoin(guide, link)
                 parts = urlsplit(link)
                 local = srcdir / parts.path.lstrip('/') if parts.path.startswith('/') else path.parent / parts.path
                 if local.suffix in {'.rst', '.ipynb'} and local.is_file():

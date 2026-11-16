@@ -103,6 +103,10 @@ _development_install = (
     + _docs_revision + '"'
 )
 rst_epilog = "\n.. |mario_development_install| replace:: " + _development_install + "\n"
+_docs_channel = os.environ.get("MARIO_DOCS_CHANNEL", "latest")
+_site_channel_path = _docs_channel + "/" if _docs_channel == "dev" else ""
+_explorer_url = "https://explorer.marioproject.com/" + _site_channel_path
+_tutorials_url = "https://tutorials.marioproject.com/" + _site_channel_path
 
 
 # -- General configuration ---------------------------------------------------
@@ -240,7 +244,7 @@ _nomenclature_redirect = {
 mario_site = {
     "github": "https://github.com/it-is-me-mario/MARIO",
     "pypi": "https://pypi.org/project/mariopy/",
-    "install": _development_install if os.environ.get("MARIO_DOCS_CHANNEL") == "dev" else "pip install mariopy",
+    "install": "pip install mariopy",
     # Transparency notice on AI-assisted content (EU AI Act, Regulation (EU) 2024/1689), shown in every footer.
     "ai_notice": (
         "<strong>AI disclosure.</strong> This documentation and its database explorer were written and built "
@@ -248,14 +252,15 @@ mario_site = {
         'Spotted an error? <a href="https://github.com/it-is-me-mario/MARIO/issues">Tell us on GitHub Issues</a>.'
     ),
     "home_hero": {
-        "title": "Input-output analysis in <mark>Python</mark>",
+        "title": "Input-output analysis<br>in <mark>Python</mark>",
         "text": (
             "Work with input-output and supply-use tables, from reading a database "
             "to building scenarios and analysing impacts across regions and sectors."
         ),
         "install": True,
         "actions": [
-            {"label": "Get started", "doc": "get_started/index"},
+            {"label": "Start with MARIO", "doc": "get_started/index"},
+            {"label": "Explore indicators", "url": _explorer_url + "resources/data-explorer/compare.html"},
         ],
     },
     "sections": [
@@ -267,7 +272,7 @@ mario_site = {
             "landing": "get_started/index",
             "prefixes": ["get_started/"],
             "hero": {
-                "title": "<mark>Install</mark> and <mark>discover</mark> MARIO",
+                "title": "Get started with MARIO",
                 "text": "Install MARIO, understand your table's structure and work with scenarios.",
             },
             "tabs": [
@@ -281,17 +286,14 @@ mario_site = {
         {
             "key": "docs",
             "home_label": "Documentation",
-            "home_summary": "Find a guide for every step of your workflow.",
+            "home_summary": "Import data, calculate indicators and modify models.",
             "label": "Docs",
             "landing": "user_guide/index",
             "prefixes": ["user_guide/", "notebooks/", "reference/", "api_document/", "changelog"],
             "sidebar": True,
             "hero": {
-                "title": "Everything MARIO <mark>can do</mark>",
-                "text": (
-                    "Parse a database, inspect and transform it, run advanced workflows, "
-                    "look up every method in the API reference and see what changed in each release."
-                ),
+                "title": "Documentation",
+                "text": "Guides to importing data, calculating results and building scenarios, with the complete API reference.",
             },
             "navigation_style": "sidebar",
             "tabs": [
@@ -412,15 +414,15 @@ mario_site = {
         },
         {
             "key": "explorer",
-            "home_label": "Database explorer",
+            "home_label": "Explorer",
             "home_summary": "Compare database classifications and explore economic and environmental indicators.",
-            "label": "Database explorer",
-            "landing": "https://explorer.marioproject.com/",
+            "label": "Explorer",
+            "landing": _explorer_url,
             "prefixes": ["resources/data-explorer/"],
             "tabs": [
-                {"label": "Classifications", "doc": "https://explorer.marioproject.com/resources/data-explorer/scope.html", "summary": "Compare geographical, sectoral and environmental coverage."},
-                {"label": "Compare databases", "doc": "https://explorer.marioproject.com/resources/data-explorer/compare.html", "summary": "Explore economic indicators, emissions and bilateral trade."},
-                {"label": "Analyses", "doc": "https://explorer.marioproject.com/resources/data-explorer/analyses.html", "summary": "Read economic and electricity comparisons across databases."},
+                {"label": "Classifications", "doc": _explorer_url + "resources/data-explorer/scope.html", "summary": "Compare geographical, sectoral and environmental coverage."},
+                {"label": "Indicators", "doc": _explorer_url + "resources/data-explorer/compare.html", "summary": "Explore economic indicators, emissions and bilateral trade."},
+                {"label": "Analyses", "doc": _explorer_url + "resources/data-explorer/analyses.html", "summary": "Read economic and electricity comparisons across databases."},
             ],
         },
         {
@@ -428,14 +430,14 @@ mario_site = {
             "home_label": "Resources",
             "home_summary": "Find tutorials, courses, applications and learning material.",
             "label": "Resources",
-            "landing": "https://tutorials.marioproject.com/",
+            "landing": _tutorials_url,
             "prefixes": ["resources/"],
             "hero": {
-                "title": "Everything <mark>around</mark> MARIO",
+                "title": "Resources",
                 "text": "Tutorials, teaching, projects and publications, and downloadable material.",
             },
             "tabs": [
-                {"label": "Tutorials", "doc": "https://tutorials.marioproject.com/", "summary": "Follow complete exercises and download their source materials."},
+                {"label": "Tutorials", "doc": _tutorials_url, "summary": "Follow complete exercises and download their source materials."},
                 {"label": "Teaching", "doc": "resources/teaching", "summary": "Learn through courses and recorded lessons."},
                 {"label": "Projects & Publications", "doc": "resources/projects_publications", "summary": "Discover the research built with MARIO."},
                 {"label": "Downloadable material", "doc": "resources/material", "summary": "Download notebooks, set lists and reference sheets."},
@@ -448,9 +450,9 @@ mario_site = {
            for page in ("resources/data-explorer/scope", "resources/data-explorer/compare")},
         # Opens a contact dialog that drafts an email in the visitor's own mail app; nothing is sent by the site.
         "resources/teaching": {
-            "text": "Would you be interested in a <mark>MARIO course</mark>? Let us know!",
+            "text": "Request a <mark>MARIO course</mark>",
             "dialog": {
-                "title": "A MARIO course for you or your team",
+                "title": "MARIO courses",
                 "intro": (
                     "We don't run scheduled courses yet, but if you or your team are interested "
                     "in a course, we can work out the format together."
@@ -498,6 +500,6 @@ copybutton_prompt_text = "<AxesSubplot:>"
 
 # The independent explorer has its own release and deployment workflow.
 mario_site["external_pages"] = {
-    "resources/data-explorer/" + name: "https://explorer.marioproject.com/resources/data-explorer/" + name + ".html"
+    "resources/data-explorer/" + name: _explorer_url + "resources/data-explorer/" + name + ".html"
     for name in ("scope", "compare", "analyses", "electricity_carbon_footprint", "economy_emissions")
 }

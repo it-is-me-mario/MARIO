@@ -1,0 +1,77 @@
+<script>
+  /* Apply the shared preference before the page is painted. */
+  (function () {
+    "use strict";
+    var root = document.documentElement;
+    var key = "mario-theme";
+    var host = window.location.hostname;
+    var sharedHost = host === "marioproject.com" || host.endsWith(".marioproject.com");
+
+    function valid(value) {
+      return value === "light" || value === "dark" ? value : null;
+    }
+
+    function localChoice() {
+      try { return valid(window.localStorage.getItem(key)); } catch (error) { return null; }
+    }
+
+    function sharedChoice() {
+      if (!sharedHost) return null;
+      try {
+        var cookies = document.cookie.split(";");
+        for (var i = 0; i < cookies.length; i++) {
+          var cookie = cookies[i].trim();
+          if (cookie.indexOf(key + "=") === 0) return valid(cookie.slice(key.length + 1));
+        }
+      } catch (error) {}
+      return null;
+    }
+
+    function cacheLocally(theme) {
+      try {
+        if (window.localStorage.getItem(key) !== theme) window.localStorage.setItem(key, theme);
+      } catch (error) {}
+    }
+
+    function share(theme) {
+      if (!sharedHost) return;
+      try {
+        document.cookie = key + "=" + theme + "; Domain=marioproject.com; Path=/; Max-Age=31536000; SameSite=Lax; Secure";
+      } catch (error) {}
+    }
+
+    function current() {
+      return valid(root.dataset.theme) || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    }
+
+    function set(theme) {
+      if (!valid(theme)) return;
+      root.dataset.theme = theme;
+      cacheLocally(theme);
+      share(theme);
+    }
+
+    function sync() {
+      var shared = sharedChoice();
+      var theme = shared || localChoice();
+      if (theme) {
+        root.dataset.theme = theme;
+        cacheLocally(theme);
+        // Migrate an existing choice once; a stale origin must not replace it.
+        if (!shared) share(theme);
+      }
+      return current();
+    }
+
+    window.MarioTheme = { current: current, set: set, sync: sync };
+    sync();
+    window.addEventListener("pageshow", sync);
+    window.addEventListener("focus", sync);
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden) sync();
+    });
+    window.addEventListener("storage", function (event) {
+      if (event.key === key || event.key === null) sync();
+    });
+  })();
+</script>

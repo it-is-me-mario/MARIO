@@ -108,7 +108,7 @@ Merge, publish and verify
    assets. Report partial publication accurately if any destination fails.
 5. Read the current documentation workflow and canonical URL. At present,
    ``.github/workflows/docs-pages.yml`` builds the refs in ``doc/versions.json``
-   and deploys ``/en/latest/``, ``/en/dev/`` and ``/en/preview/`` at
+   and deploys ``/en/latest/`` and ``/en/dev/`` at
    ``https://www.marioproject.com/``. The Dev branch runs verification on push;
    the separate ``docs-dev.yml`` workflow; its successful build requests a
    default-branch publication through ``workflow_run``. GitHub rejects workflows
@@ -120,6 +120,11 @@ Merge, publish and verify
 6. Report the release, package and documentation links, verification results
    and any remaining limits. Clean up task branches/worktrees only when their
    work is safely integrated and cleanup is authorized.
+
+The retired ``/en/preview/`` routes redirect to matching Latest pages, or Dev
+when a guide describes an unreleased feature. They are not a third channel.
+The publisher supplies the shared theme; each channel retains its own library
+and documentation source. Promoting a design does not release Python features.
 
 Documentation-only publication uses the same source, link, deployment-commit
 and live-page checks, without inventing a package-version bump or PyPI upload.
