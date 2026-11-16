@@ -1,50 +1,38 @@
-:summary: Follow complete workflows and download the notebooks to adapt them.
+:summary: Worked analyses and downloadable notebooks.
 
 Examples
 ========
 
-These complete workflows are part of `MARIO Tutorials
-<https://tutorials.marioproject.com/preview/>`_. Each tutorial includes a web
-explanation, its required inputs and a downloadable notebook. Real database
-files must be obtained separately.
+These analyses are part of `MARIO Tutorials
+<https://tutorials.marioproject.com/preview/>`_. Each tutorial lists its required
+inputs and provides notebooks to run locally. Obtain database files from their
+original sources.
 
 .. mario-cards::
    :columns: 2
    :links:
 
-   .. mario-card:: `Import and inspect BONSAI <https://tutorials.marioproject.com/preview/import-inspect-bonsai/>`_
-      :icon: parsers
+   .. mario-card:: `Use BONSAI and calculate GHG footprints <https://tutorials.marioproject.com/preview/bonsai-ghg/>`_
+      :icon: cloud
 
-      Read a Balanced HSUT and a native HIOT, then inspect their regions,
-      product units and import diagnostics.
+      Import and inspect BONSAI, then calculate per-unit GHG footprints and
+      compare them with BONSAI's reference export.
 
    .. mario-card:: `Compare GHG footprints across databases <https://tutorials.marioproject.com/preview/compare-ghg-footprints/>`_
       :icon: cloud
 
-      Characterize EXIOBASE, EORA26 and ADB, harmonize regional totals and
-      compare the results graphically.
+      Characterize EXIOBASE, EORA26 and ADB emissions, align regional totals
+      and compare production and consumption footprints.
 
-   .. mario-card:: `Trace a nickel supply chain <https://tutorials.marioproject.com/preview/nickel-supply-chain/>`_
+   .. mario-card:: `Trace supply chains <https://tutorials.marioproject.com/preview/trace-supply-chains/>`_
       :icon: chain
 
-      Connect structural indicators, bilateral trade and embodied impacts
-      across EXIOBASE years.
+      Examine nickel trade, embodied impacts and regional exposure, then
+      trace upstream CO₂ paths serving German motor-vehicle demand.
 
-   .. mario-card:: `Trace motor-vehicle supply chains <https://tutorials.marioproject.com/preview/structural-path-analysis/>`_
-      :icon: paths
-
-      Trace the paths from German final demand to a selected environmental
-      impact in EXIOBASE.
-
-For a single operation, use the corresponding guide under Data sources,
-Calculations and analysis, or Transformations and scenarios. Other guide
-notebooks and Excel templates are also available in
-:doc:`Downloadable material <../../resources/material>`.
-
-The tutorial collection also includes economy-wide impact assessment,
-MRIO disaggregation and BONSAI GHG footprints. Each tutorial records its
-canonical source revision. The documentation copies below remain available
-at their existing addresses.
+The collection also includes economy-wide impact assessment and MRIO
+disaggregation. For individual operations, use the topic guides; their notebooks
+and Excel templates are in :doc:`Downloadable material <../../resources/material>`.
 
 .. toctree::
    :hidden:

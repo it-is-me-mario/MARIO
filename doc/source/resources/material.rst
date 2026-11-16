@@ -2,8 +2,8 @@ Downloadable material
 =====================
 
 Download set inventories, classification lookups and runnable guide notebooks.
-Sources and conditions of reuse travel with each file; MARIO does not replace
-the licence of the original database.
+Each file includes source attribution and reuse terms; the original database
+licences apply.
 
 
 Nomenclature and formulas

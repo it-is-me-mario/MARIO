@@ -273,7 +273,7 @@ mario_site = {
             "landing": "get_started/index",
             "prefixes": ["get_started/"],
             "hero": {
-                "title": "<mark>Install</mark> and <mark>discover</mark> MARIO",
+                "title": "Get started with MARIO",
                 "text": "Install MARIO, understand your table's structure and work with scenarios.",
             },
             "tabs": [
@@ -287,17 +287,14 @@ mario_site = {
         {
             "key": "docs",
             "home_label": "Documentation",
-            "home_summary": "Find a guide for every step of your workflow.",
+            "home_summary": "Import data, calculate indicators and modify models.",
             "label": "Docs",
             "landing": "user_guide/index",
             "prefixes": ["user_guide/", "notebooks/", "reference/", "api_document/", "changelog"],
             "sidebar": True,
             "hero": {
-                "title": "Everything MARIO <mark>can do</mark>",
-                "text": (
-                    "Parse a database, inspect and transform it, run advanced workflows, "
-                    "look up every method in the API reference and see what changed in each release."
-                ),
+                "title": "Documentation",
+                "text": "Guides to importing data, calculating results and building scenarios, with the complete API reference.",
             },
             "navigation_style": "sidebar",
             "tabs": [
@@ -437,7 +434,7 @@ mario_site = {
             "landing": _tutorials_url,
             "prefixes": ["resources/"],
             "hero": {
-                "title": "Everything <mark>around</mark> MARIO",
+                "title": "Resources",
                 "text": "Tutorials, teaching, projects and publications, and downloadable material.",
             },
             "tabs": [
@@ -454,9 +451,9 @@ mario_site = {
            for page in ("resources/data-explorer/scope", "resources/data-explorer/compare")},
         # Opens a contact dialog that drafts an email in the visitor's own mail app; nothing is sent by the site.
         "resources/teaching": {
-            "text": "Would you be interested in a <mark>MARIO course</mark>? Let us know!",
+            "text": "Request a <mark>MARIO course</mark>",
             "dialog": {
-                "title": "A MARIO course for you or your team",
+                "title": "MARIO courses",
                 "intro": (
                     "We don't run scheduled courses yet, but if you or your team are interested "
                     "in a course, we can work out the format together."

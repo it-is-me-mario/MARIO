@@ -14,7 +14,7 @@ MARIO
 
          <h2 id="citation">Cite MARIO</h2>
 
-      Using MARIO in your research? Please cite the software paper.
+      If you use MARIO in your research, please cite the software paper.
 
       .. mario-citation:: Tahavori2023
          :bib: publications/mario.bib
@@ -24,8 +24,6 @@ MARIO
       .. raw:: html
 
          <h2 id="supporting-institutions">Supporting institutions</h2>
-
-      MARIO connects academic research and applied analysis.
 
       .. raw:: html
 
