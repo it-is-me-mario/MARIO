@@ -5,6 +5,12 @@ Release History
 All notable changes to MARIO, newest first. Versions match the ``mariopy``
 package on PyPI, and dates are its publication dates.
 
+Unreleased
+----------
+
+* Add ``mario.model_setup()`` for research models maintained in their own
+  repositories and ``mario.models.install()`` for catalogued releases and refs.
+
 v1.3.5
 ------
 

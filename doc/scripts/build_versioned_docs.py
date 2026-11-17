@@ -1,4 +1,4 @@
-"""Build Latest and Dev into one verified GitHub Pages artifact."""
+"""Build Latest, Dev and Model Gallery into one verified GitHub Pages artifact."""
 
 import argparse
 import hashlib
@@ -68,7 +68,7 @@ def deduplicate_legacy_json(output, catalogue):
     """Keep frozen compatibility JSON on Latest, plus every referenced/changed file."""
     latest = output / "en/latest"
     for channel in catalogue["versions"]:
-        if channel == "latest":
+        if channel == "latest" or catalogue["versions"][channel].get("kind") == "gallery":
             continue
         destination = output / "en" / channel
         referenced = set()
@@ -129,11 +129,14 @@ def build(sources, output, site_root):
     if output.exists() and any(output.iterdir()):
         raise ValueError("Use a fresh output directory for the versioned site")
     output.mkdir(parents=True, exist_ok=True)
-    definitions = json.loads((Path(__file__).parents[1] / "versions.json").read_text())
+    publisher = Path(__file__).resolve().parents[2]
+    definitions = json.loads((publisher / "doc/versions.json").read_text())
+    frontend = publisher / "doc/source"
     catalogue = {"publisher_commit": subprocess.check_output(
-        ["git", "rev-parse", "HEAD"], cwd=Path(__file__).parents[2], text=True
+        ["git", "rev-parse", "HEAD"], cwd=publisher, text=True
     ).strip(), "versions": {}}
-    for channel, source in sources.items():
+    for channel, source in {**sources, "model_gallery": publisher}.items():
+        gallery = definitions[channel].get("kind") == "gallery"
         revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=source, text=True).strip()
         destination = output / "en" / channel
         base_url = f"{site_root.rstrip('/')}/en/{channel}/"
@@ -146,16 +149,26 @@ def build(sources, output, site_root):
             "MARIO_DOCS_BASEURL": base_url,
         }
         # Share the approved frontend without replacing a channel's library or guides.
-        frontend = Path(__file__).parents[1] / "source"
         with tempfile.TemporaryDirectory(prefix="mario-channel-theme-") as folder:
-            for name in ("docs-versions.css", "docs-versions.js", "external-links.js"):
-                shutil.copyfile(frontend / "_static" / name, Path(folder) / name)
+            assets = ["docs-versions.css", "docs-versions.js", "external-links.js"]
+            if gallery:
+                assets += [
+                    "docs-workflows.css", "download-figure.js", "heatmap-background.css",
+                    "images/heatmap-background.png", "images/heatmap-background-dark.png",
+                    "images/mario-logo.png", "images/mario-favicon.ico",
+                ]
+            for name in assets:
+                target = Path(folder) / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(frontend / "_static" / name, target)
+            options = ["-D", "html_static_path=_static," + folder]
+            if not gallery:
+                options += ["-D", "mario_site.install=pip install mariopy"]
+            doc_source = source / ("doc/model_gallery" if gallery else "doc/source")
             subprocess.run([
                 sys.executable, "-m", "sphinx", "-b", "html", "-W", "--keep-going",
                 "-D", "html_theme_path=" + str(frontend / "_themes"),
-                "-D", "html_static_path=_static," + folder,
-                "-D", "mario_site.install=pip install mariopy",
-                str(source / "doc/source"), str(destination),
+                *options, str(doc_source), str(destination),
             ], cwd=source, env=env, check=True)
         documents = {}
         for path in sorted(destination.rglob("*.html")):

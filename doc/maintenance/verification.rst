@@ -49,6 +49,9 @@ Check both colour themes and verify that footer links remain accessible.
 Check the Latest/Dev selector and retired Preview redirects, including query
 strings and anchors. A page only present in Dev must redirect there. Verify that
 Latest documents the released package and that both channels use the shared theme.
+Open the Model Gallery from a guide in both Latest and Dev. From a model page,
+verify that Latest and Dev return to their home pages. Check the selector with
+JavaScript disabled and verify the model's publication, data and setup links.
 
 Build with warnings treated as errors, then check the built guides::
 
@@ -104,6 +107,10 @@ Example verification
   and conflicting source coordinates. Execute the companion with its
   downloaded settings workbook beside it. The split-model bridge has separate
   Excel/CSV integration checks in the add-sector tests.
+* For an installable model, install into an isolated environment and open the
+  workspace outside the source checkout. Check the pinned installation and a
+  development ref, fetch the declared data, and verify that the documented
+  YAML change and Python override give the same result.
 * Source-specific calls need the stated release, files and options. When those
   inputs are unavailable, check signatures and data requirements and explicitly
   report that full execution was not performed.

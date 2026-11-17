@@ -25,3 +25,4 @@ for the full formula overview.
    api_template_methods
    api_visualization_methods
    api_settings_methods
+   api_model_methods

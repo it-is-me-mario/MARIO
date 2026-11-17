@@ -2,12 +2,15 @@
 (function () {
   function updateLinks(menu, catalogue, location) {
     const page = menu.dataset.document;
+    const current = catalogue.versions[menu.dataset.channel];
     let anchor = location.hash.slice(1);
     try { anchor = decodeURIComponent(anchor); } catch (error) { /* Keep literal fragments. */ }
     menu.querySelectorAll("a[data-docs-version]").forEach((link) => {
       const version = catalogue.versions[link.dataset.docsVersion];
-      const anchors = version.documents[page];
-      const target = new URL(anchors ? page + ".html" : "index.html", version.url);
+      const crossesGallery = (current?.kind === "gallery") !== (version.kind === "gallery");
+      const anchors = crossesGallery ? undefined : version.documents[page];
+      const filename = anchors ? page + ".html" : "index.html";
+      const target = new URL(crossesGallery ? "" : filename, version.url);
       if (anchors && anchors.includes(anchor)) target.hash = location.hash;
       link.href = target.href;
       link.target = "_self";
