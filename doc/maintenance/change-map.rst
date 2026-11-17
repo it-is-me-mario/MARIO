@@ -54,6 +54,9 @@ Page ownership
    * - Complete analyses
      - ``user_guide/examples/index.rst`` and linked case pages
      - Topic guide, notebook, scientific assumptions and figure captions
+   * - Installable research models
+     - ``user_guide/configuration/model_setups.rst`` and ``reference/api_model_methods.rst``
+     - Model repository guide, install catalogue, workspace and data provenance
    * - API reference
      - ``api_document/`` for individual symbols; ``reference/`` for indexes
      - Implementation docstrings, task guide and public-symbol coverage tests

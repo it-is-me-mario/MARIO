@@ -104,6 +104,10 @@ Example verification
   and conflicting source coordinates. Execute the companion with its
   downloaded settings workbook beside it. The split-model bridge has separate
   Excel/CSV integration checks in the add-sector tests.
+* For an installable model, install into an isolated environment and open the
+  workspace outside the source checkout. Check the pinned installation and a
+  development ref, fetch the declared data, and verify that the documented
+  YAML change and Python override give the same result.
 * Source-specific calls need the stated release, files and options. When those
   inputs are unavailable, check signatures and data requirements and explicitly
   report that full execution was not performed.
