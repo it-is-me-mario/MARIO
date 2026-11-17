@@ -272,7 +272,9 @@ def candidate_strategies(
     """Return candidate strategies ordered by the planner priority rules."""
     table_kind = resolve_table_kind(dataset, context)
     try:
-        spec = get_matrix_spec(table_kind, target)
+        from mario.model.configuration import configuration_values
+        representation = configuration_values(dataset).get("import_representation", "factor-accounts")
+        spec = get_matrix_spec(table_kind, target, import_representation=representation)
     except KeyError:
         operator = get_registered_operator(dataset, target)
         if operator is None:

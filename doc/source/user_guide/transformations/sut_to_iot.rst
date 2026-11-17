@@ -30,6 +30,12 @@ how to assign those inputs or sales to a single productive set.
 Choose the assumption
 ---------------------
 
+Single-region SUTs with native import blocks retain their separate-import
+configuration through all four methods. Import rows retain their source
+Commodity or Activity descriptors while productive columns become Sector.
+Aggregate those source descriptors on the SUT before conversion when needed.
+See :doc:`separate import accounts <import_accounts>` for the blocks and prices.
+
 In this guide, **product** means MARIO's ``Commodity`` and **industry** means
 ``Activity``. A symmetric IOT uses the same set on both axes; its values need
 not be symmetric.

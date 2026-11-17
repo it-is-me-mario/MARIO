@@ -95,7 +95,10 @@ class ExcelParser(BaseParser):
     ) -> ModelState:
         """Parse a generic Excel workbook into a canonical ``ModelState``."""
         log_time(logger, f"Parser: excel reading {table} {mode} from {path}.", "info")
-        normalized_layouts = normalize_matrix_layouts(matrix_layouts, table=table)
+        from mario.parsers.accounting import manifest_layouts, read_import_frames, read_manifest, restore_configuration
+
+        manifest = read_manifest(path, excel=True)
+        normalized_layouts = normalize_matrix_layouts(manifest_layouts(manifest, matrix_layouts), table=table)
         uses_explicit_template = _looks_like_explicit_units_sheet(path, data_sheet, unit_sheet)
         if not normalized_layouts and not uses_explicit_template:
             matrices, indexes, units = excel_parser(path, table, mode, data_sheet, unit_sheet)
@@ -120,6 +123,10 @@ class ExcelParser(BaseParser):
             raise WrongInput(
                 "Unsupported matrix_layouts combination for parse_from_excel."
             )
+        matrices["baseline"].update(read_import_frames(path, manifest, mode=mode, excel=True))
+        from mario.parsers.accounting import restore_public_axes
+
+        restore_public_axes(matrices, manifest)
         state = build_parser_state(
             table=table,
             matrices=matrices,
@@ -136,6 +143,7 @@ class ExcelParser(BaseParser):
             repository=repository,
         )
         state.metadata.extra.update(extra)
+        restore_configuration(state, manifest)
         log_time(logger, f"Parser: excel state ready for {table}.", "info")
         return state
 
@@ -327,6 +335,13 @@ def _resolve_sut_productive_public_sequence(
                 f"Unable to classify productive SUT item {item!r}. It is not listed in units as Activity or Commodity."
             )
 
+    if not unresolved_positions:
+        # The units catalogue can include source items used only as import
+        # descriptors. Explicitly classified economic nodes need no padding.
+        if len(set(resolved)) != len(resolved):
+            raise WrongInput("The explicit SUT productive layout contains duplicate nodes.")
+        return [item for item in resolved if item is not None]
+
     expected_commodities = len(regions) * len(commodity_items)
     expected_activities = len(regions) * len(activity_items)
     remaining_commodities = expected_commodities - commodity_assigned
@@ -467,10 +482,8 @@ def parse_explicit_iot_excel_layout(
     sector_rows: list[dict[str, object]] = []
     factor_rows: list[dict[str, object]] = []
     satellite_rows: list[dict[str, object]] = []
-    for position, raw_tokens in enumerate(
-        _compact_tokens(row) for row in row_meta.itertuples(index=False, name=None)
-    ):
-        tokens = raw_tokens
+    for position, raw_tokens in enumerate(row_meta.itertuples(index=False, name=None)):
+        tokens = _compact_tokens(raw_tokens)
         if not tokens:
             continue
         try:
@@ -486,7 +499,7 @@ def parse_explicit_iot_excel_layout(
             sector_public_names = None
         try:
             factor_tuple, _, factor_public_tuple, factor_public_names = interpret_axis_tokens(
-                tokens,
+                raw_tokens,
                 iot_axis_names("V", "from", matrix_layouts),
                 matrix_name="V",
                 side="from",
@@ -502,7 +515,7 @@ def parse_explicit_iot_excel_layout(
                 satellite_public_tuple,
                 satellite_public_names,
             ) = interpret_axis_tokens(
-                tokens,
+                raw_tokens,
                 iot_axis_names("E", "from", matrix_layouts),
                 matrix_name="E",
                 side="from",
@@ -709,7 +722,8 @@ def parse_explicit_sut_excel_layout(
     productive_row_positions: list[int] = []
     factor_rows: list[dict[str, object]] = []
     satellite_rows: list[dict[str, object]] = []
-    for position, tokens in enumerate(_compact_tokens(row) for row in row_meta.itertuples(index=False, name=None)):
+    for position, raw_tokens in enumerate(row_meta.itertuples(index=False, name=None)):
+        tokens = _compact_tokens(raw_tokens)
         if not tokens:
             continue
 
@@ -731,7 +745,7 @@ def parse_explicit_sut_excel_layout(
 
         try:
             factor_tuple, _, factor_public_tuple, factor_public_names = interpret_axis_tokens(
-                tokens,
+                raw_tokens,
                 sut_axis_names("V", "from", matrix_layouts),
                 matrix_name="V",
                 side="from",
@@ -742,7 +756,7 @@ def parse_explicit_sut_excel_layout(
             factor_public_names = None
         try:
             satellite_tuple, _, satellite_public_tuple, satellite_public_names = interpret_axis_tokens(
-                tokens,
+                raw_tokens,
                 sut_axis_names("E", "from", matrix_layouts),
                 matrix_name="E",
                 side="from",

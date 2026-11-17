@@ -14,6 +14,9 @@ behaviour. Check navigation between the main site, Tutorials and Explorer in
 the browser and confirm that these destinations use the current tab. The shared
 ``_static/external-links.js`` owns this behaviour; update consumers' pinned theme
 revisions after its publication.
+Check both channels across all three sites. A Dev header link must retain Dev
+when opening Tutorials, Explorer or MARIO, including compatibility redirects.
+Read each site's version manifest to verify its own source commits independently.
 
 Run commands from the repository root, using an environment with MARIO and
 ``doc/docs-requirements.txt`` installed. Use the supported Python version in
@@ -36,6 +39,9 @@ Latest home. Check native home links with scripts unavailable, Escape and narrow
 layouts with the selector open. The development installation command must name
 the same commit as the notice and catalogue. Tutorial publication remains
 independent of publishing the development API documentation.
+Check the long pinned command and its copy control on the Dev home at 320 px.
+Download a companion from each channel and check that its guide notice links
+back to that channel, including pages available in Dev.
 Check the floating selector at the bottom-right before and after scrolling,
 including when the header hides, and at the page footer. Its menu opens upward,
 stays within a 320 px viewport and supports keyboard activation and Escape.
@@ -59,6 +65,14 @@ source notices, and absence of raw notebook sources. It does not execute example
 check external URLs or assess scientific correctness and visual quality.
 For format/nomenclature changes, also verify IOT/SUT block selection, keyboard
 activation and old Nomenclature/technology-assumption URLs with their fragments.
+Check regional subheadings inside the productive and final-demand axes, one
+symbol per matrix, and structural zeros at their origin/destination coordinates.
+In single-region mode, change import representation, external trade resolution
+and import classification. Check import-row partitions, foreign origins inside
+the classification, export-partner annotations and the active row definitions.
+``tests/docs/test_table_configurations.py`` checks the generated layouts.
+Run ``node tests/docs/test_table_formats.cjs`` to check selector combinations,
+dynamic row definitions, regional-scope changes and import-matrix anchors.
 
 Run existing tests relevant to the change. For public APIs or notebook downloads::
 
@@ -76,6 +90,20 @@ Example verification
 
 * Execute changed minimal examples against packaged IOT/SUT fixtures where
   possible. Check outputs, units and axes, not just absence of exceptions.
+* Export separate-import models with reversed productive axes in flow and
+  coefficient modes. After Excel, text and Parquet reloads, calculate prices
+  and import coefficients to verify that import columns follow the economic
+  blocks' normalized order. ``tests/ops/test_import_representation.py`` covers
+  these round trips.
+* For ``to_cvxlab()``, run ``tests/api/test_to_cvxlab.py`` with CVXLab installed.
+  Exercise its actual template APIs and reload the generated workbooks into
+  CVXLab's database. Check copied-set dependency order, existing attributes and
+  unmapped data, several scenarios, incomplete coordinates, repeated calls and
+  rollback after a file-replacement failure. Exercise shared target tables for
+  use/final demand, imports and factors/extensions, including multiple scenarios
+  and conflicting source coordinates. Execute the companion with its
+  downloaded settings workbook beside it. The split-model bridge has separate
+  Excel/CSV integration checks in the add-sector tests.
 * Source-specific calls need the stated release, files and options. When those
   inputs are unavailable, check signatures and data requirements and explicitly
   report that full execution was not performed.
@@ -89,11 +117,41 @@ Example verification
   match the intended source. Retain portable paths and input/licence guidance.
 * After scientific changes, reconcile affected equations, examples, figures and
   captions. State characterization, allocation and numerical limits where relevant.
+  For comparisons across modelling packages, match classifications, units and
+  the treatment of zero-output nodes when checking equations and executed
+  outputs. Inspect the recipes of technologies assigned positive production
+  after a zero-output reference. Verify the receiving package's actual input
+  files and model execution as well as the independent equation calculation.
 * For regional footprints, verify producer and consumer attribution on a small
   cross-border example; a conserved global total can hide incorrect geography.
+  For SUT regional extraction, check use-side and supply-side imports
+  independently, including direct final-demand imports and nonzero ``Ya``.
+  Exercise unequal supplier shares and co-production when attributing imports
+  to producers; verify each source cell, both native monetary balances and
+  unchanged domestic environmental accounts. Keep sparse-path checks separate
+  from numerical comparisons so a unified matrix cannot hide a memory regression.
+  For IOT and SUT import accounts, aggregate the productive classification alone
+  and verify the row classifier in both production and final-demand factor
+  blocks. Exercise total foreign sourcing and explicit source regions. Preserve
+  factors with empty classification levels, including Excel round trips with
+  the declared matrix layouts. Canonicalize missing MultiIndex components in
+  scalar/groupby references before label alignment: pandas can encode the same
+  missing component either as a level member or as a missing code.
+  Include import-only classifier labels and geographic presets for explicit
+  origins. Check that descriptor mappings do not add endogenous nodes and that
+  the stored Region aggregation map includes only the modeled source regions.
+  Inspect the combined DataFrame view before aggregation and verify its factor
+  and final-demand cells without changing live matrix indexes or row ordering.
   For chained scenario workflows, execute the sequence through transformations
   that consume only the baseline or discard other scenarios, and check that
   earlier updates survive.
+  For separate-import configurations, compare prices, production and domestic
+  environmental accounts with the combined representation. Exercise both flow
+  and coefficient resets, SUT-to-IOT methods, scenario copies, the combined
+  display and monetary balance diagnostics. Round-trip native imports through
+  Excel and matrix/flat text and Parquet, retaining their structural manifests,
+  descriptors and technology assumptions. Use the pinned pandas dependency
+  when checking flat reconstruction and copy-on-write behaviour.
   ``tests/docs/test_workflow_examples.py`` executes the affected RST recipes
   and notebook calculations on small accounting/scenario fixtures. Run it
   when changing those examples; source-database and live-provider runs remain

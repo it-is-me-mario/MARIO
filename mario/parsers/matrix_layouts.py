@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from itertools import combinations
+
 import pandas as pd
 
 from mario.compute import block_spec
@@ -34,7 +36,15 @@ TABLE_LAYOUT_PREFIXES = {
         ("Commodity",),
         ("Region", "Activity"),
         ("Region", "Commodity"),
+        ("Activity", "Commodity"),
+        ("Region", "Activity", "Commodity"),
     },
+}
+
+IOT_FACTOR_PREFIXES = {
+    prefix
+    for length in range(5)
+    for prefix in combinations(("Region", "Sector", "Activity", "Commodity"), length)
 }
 
 
@@ -105,10 +115,14 @@ def normalize_matrix_layouts(
         )
 
     allowed_prefixes = TABLE_LAYOUT_PREFIXES[table_key]
+    prefixes_by_matrix = {name: allowed_prefixes for name in normalized}
+    if table_key == "IOT":
+        for name in {"V", "v", "VY"}.intersection(normalized):
+            prefixes_by_matrix[name] = IOT_FACTOR_PREFIXES
     invalid_layouts = {
         matrix_name: layout
         for matrix_name, layout in normalized.items()
-        if layout not in allowed_prefixes
+        if layout not in prefixes_by_matrix[matrix_name]
     }
     if invalid_layouts:
         formatted = ", ".join(
@@ -116,7 +130,8 @@ def normalize_matrix_layouts(
         )
         raise WrongInput(
             f"Invalid matrix_layouts for {table_key}: {formatted}. "
-            f"Allowed semantic prefixes are: {sorted(allowed_prefixes)}."
+            f"Allowed semantic prefixes are {sorted(allowed_prefixes)}. "
+            "IOT factor rows can also retain Activity or Commodity import descriptors."
         )
     return normalized
 
@@ -240,6 +255,26 @@ def interpret_axis_tokens(
         not pd.isna(value) and value != "" for value in raw
     ):
         return raw, expected_names, raw, expected_names
+
+    # Extra factor/satellite dimensions may be genuinely inapplicable. Keep
+    # their empty positions, rather than compacting them out of the layout.
+    if (side == "from" and matrix_name in {"V", "v", "VY", "E", "e", "EY"}
+            and len(expected_names) > 1):
+        candidate = list(raw)
+        while candidate and (pd.isna(candidate[-1]) or candidate[-1] == ""):
+            candidate.pop()
+        marker = len(candidate) > 1 and candidate[-2] == expected_names[-1]
+        width = len(expected_names) + int(marker)
+        while len(candidate) > width and (pd.isna(candidate[0]) or candidate[0] == ""):
+            candidate.pop(0)
+        semantic = candidate[:-2] + [candidate[-1]] if marker else candidate
+        if (len(semantic) == len(expected_names)
+                and any(pd.isna(value) or value == "" for value in semantic[:-1])):
+            semantic = tuple(None if pd.isna(value) or value == "" else value for value in semantic)
+            if marker:
+                public = semantic[:-1] + (expected_names[-1], semantic[-1])
+                return semantic, expected_names, public, expected_names[:-1] + ("Level", "Item")
+            return semantic, expected_names, semantic, expected_names
 
     compact = _compact_axis_tokens(tokens)
 

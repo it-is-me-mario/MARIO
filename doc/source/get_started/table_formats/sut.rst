@@ -15,6 +15,10 @@ blocks therefore need not be square.
 Structure and native matrices
 -----------------------------
 
+Select regional scope, trade representation and the flow or coefficient view.
+In single-region mode, ``import_representation``, ``trade_resolution`` and
+``imports_by`` control the import blocks, foreign-partner labels and imported
+commodity or producer detail.
 Select a block to see its definition and default axes.
 
 .. raw:: html
@@ -24,6 +28,17 @@ Select a block to see its definition and default axes.
 **producing activities → supplied commodities**; this orientation matters when
 importing a source that publishes supply in the opposite orientation.
 The empty diagonal cells are not additional native flow blocks.
+
+Commodity, activity and final-demand headings each contain regional subheadings.
+Each matrix spans those regional coordinates, with one symbol for the whole block.
+Its internal partitions show the regional flows and structural zeros. Factor and
+satellite rows share the regional columns. Isard has block-diagonal supply and permits bilateral use
+and final demand. Chenery–Moses has bilateral supply and block-diagonal
+commodity use and final demand. Its commodity regions identify destination
+markets. ``Ya`` retains its source activity-to-final-demand flows.
+See :doc:`Isard to Chenery–Moses </user_guide/transformations/to_chenery_moses>`
+for the transformation and :doc:`separate imports
+</user_guide/transformations/import_accounts>` for single-region blocks.
 
 .. container:: mario-format-note
 
@@ -59,6 +74,12 @@ A productive axis combines ``Region`` with ``Activity`` or ``Commodity``.
 MARIO's pandas representation also stores the set label in its ``Level`` index
 level. Satellite and factor accounts can carry extra levels through
 ``matrix_layouts`` (marked ``*`` in the block descriptions).
+
+Regional extraction can use Commodity or Activity as an import-row dimension
+on the factor accounts, with Region added when source partners are retained.
+Original factors without that classification keep an empty level. Aggregation
+maps the classification on both productive and import axes; see
+:doc:`regional extraction </user_guide/transformations/mrio_to_srio>`.
 
 .. raw:: html
    :file: ../_generated/sut_indices.html

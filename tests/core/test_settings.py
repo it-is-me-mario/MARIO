@@ -235,7 +235,8 @@ def test_region_extraction_then_aggregation_preserves_live_matrix_names(table, s
         subset = database if inplace else result
 
         assert subset.regions == [region]
-        assert {"E", "EY"} <= set(subset["baseline"])
+        native_environment = {"E", "EY"} if table == "IOT" else {"Ea", "Ec", "EY"}
+        assert native_environment <= set(subset["baseline"])
         assert not {"R", "Ry"}.intersection(subset["baseline"])
         pd.testing.assert_frame_equal(subset.R, emissions)
         assert subset.Ry.to_numpy().sum() == pytest.approx(final_emissions.to_numpy().sum())

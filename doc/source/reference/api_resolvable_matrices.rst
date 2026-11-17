@@ -24,6 +24,33 @@ For SUT databases, the built-in split and quadrant blocks include ``U``, ``u``,
 ``pc``. The canonical commodity production vector name is ``Xc``; ``Cx`` is
 not a built-in MARIO matrix name.
 
+.. _separate-import-matrices:
+
+Separate-import configurations
+-------------------------------
+
+Single-region models with ``import_representation="separate"`` add native
+imports to the runtime catalogue. Use ``db.resolve("imp")`` or the equivalent
+``db.query("imp")`` to calculate coefficients. ``IMP_Y`` stays an absolute
+final-demand block in both flow and coefficient exports.
+
+Rows carry observed import descriptors. The table's existing productive and
+final-demand axes determine the columns. See :doc:`the import-account guide
+</user_guide/transformations/import_accounts>` for normalization, total
+requirements, price equations and balance identities.
+
+IOT import blocks
+~~~~~~~~~~~~~~~~~~
+
+.. raw:: html
+   :file: ../get_started/_generated/iot_imports.html
+
+SUT import blocks
+~~~~~~~~~~~~~~~~~~
+
+.. raw:: html
+   :file: ../get_started/_generated/sut_imports.html
+
 Use and supply coefficients
 ---------------------------
 
@@ -74,7 +101,9 @@ The total environmental multipliers include direct coefficients on both sides:
 
 The value-added multipliers ``ma`` and ``mc`` use the same equations with
 :math:`v_a` and :math:`v_c` in place of :math:`e_a` and :math:`e_c`.
-The price vectors sum all factor rows:
+For the factor-account representation, price vectors sum all factor rows.
+The separate-import representation adds import requirements as described in
+:doc:`the import-account guide </user_guide/transformations/import_accounts>`.
 
 .. math::
 

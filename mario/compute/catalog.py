@@ -890,13 +890,22 @@ COMPUTE_CATALOG = {
 }
 
 
-def get_matrix_spec(table: "TableKind | str", name: str) -> MatrixSpec:
+def get_matrix_spec(table: "TableKind | str", name: str, *, import_representation="factor-accounts") -> MatrixSpec:
     """Return the catalog entry for one matrix on one table kind."""
     table_kind = TableKind.coerce(table)
+    if import_representation == "separate":
+        from mario.compute.import_catalog import import_catalog
+        imports = import_catalog(table_kind)
+        if name in imports:
+            return imports[name]
     return COMPUTE_CATALOG[table_kind][name]
 
 
-def available_matrix_names(table: "TableKind | str") -> tuple[str, ...]:
+def available_matrix_names(table: "TableKind | str", *, import_representation="factor-accounts") -> tuple[str, ...]:
     """Return the matrix names exposed by the catalog for a table kind."""
     table_kind = TableKind.coerce(table)
-    return tuple(COMPUTE_CATALOG[table_kind].keys())
+    names = tuple(COMPUTE_CATALOG[table_kind])
+    if import_representation == "separate":
+        from mario.compute.import_catalog import import_catalog
+        names = tuple(dict.fromkeys((*names, *import_catalog(table_kind))))
+    return names

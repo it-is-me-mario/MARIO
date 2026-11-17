@@ -179,8 +179,12 @@ def _read_flat_text_data(path: str, sep: str, *, _format: str | None, mode: str)
     try:
         data_path = _find_flat_payload(root, "data", suffixes)
     except FileNotFoundError:
+        from mario.parsers.accounting import read_manifest
+
+        native_names, _ = _sut_native_matrix_names(mode)
+        names = dict.fromkeys((*_flat_matrix_names_for_mode(mode), *native_names, *read_manifest(root).get("imports", {})))
         frames = []
-        for matrix_name in _flat_matrix_names_for_mode(mode):
+        for matrix_name in names:
             try:
                 matrix_path = _find_flat_payload(root, matrix_name, suffixes)
             except FileNotFoundError:
@@ -1624,7 +1628,11 @@ def flat_txt_parser(
     """Parse the canonical flat long-format txt/csv export."""
     log_time(logger, f"Parser: reading {mode} from flat txt files.", "info")
     data, unit_table = _read_flat_text_frames(path, sep, _format=_format, mode=mode)
-    return parse_flat_frames(data, unit_table, table, mode, matrix_layouts=matrix_layouts)
+    from mario.parsers.accounting import flat_import_frames, read_manifest
+
+    parsed = parse_flat_frames(data, unit_table, table, mode, matrix_layouts=matrix_layouts)
+    parsed[0]["baseline"].update(flat_import_frames(data, read_manifest(path)))
+    return parsed
 
 
 class TxtParser(BaseParser):
@@ -1665,7 +1673,10 @@ class TxtParser(BaseParser):
             f"Parser: txt reading {table} {mode} from {resolved_path} in {layout} mode ({bundle_format}).",
             "info",
         )
-        normalized_layouts = normalize_matrix_layouts(matrix_layouts, table=table)
+        from mario.parsers.accounting import manifest_layouts, read_import_frames, read_manifest, restore_configuration
+
+        manifest = read_manifest(resolved_path)
+        normalized_layouts = normalize_matrix_layouts(manifest_layouts(manifest, matrix_layouts), table=table)
         if normalized_layouts:
             if flat:
                 matrices, indexes, units, extra = flat_txt_parser(
@@ -1722,6 +1733,13 @@ class TxtParser(BaseParser):
                     requested_format,
                 )
                 extra = {}
+        if not flat:
+            matrices["baseline"].update(read_import_frames(
+                resolved_path, manifest, mode=mode, suffix=requested_format, sep=sep,
+            ))
+        from mario.parsers.accounting import restore_public_axes
+
+        restore_public_axes(matrices, manifest)
         state = build_parser_state(
             table=table,
             matrices=matrices,
@@ -1738,6 +1756,7 @@ class TxtParser(BaseParser):
             repository=repository,
         )
         state.metadata.extra.update(extra)
+        restore_configuration(state, manifest)
         log_time(logger, f"Parser: txt state ready for {table}.", "info")
         return state
 

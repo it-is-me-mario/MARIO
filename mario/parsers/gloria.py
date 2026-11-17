@@ -190,6 +190,16 @@ def _normalize_valuation(value: str | int) -> int | None:
     return _VALUATION_ALIASES[key]
 
 
+def _valuation_markups(value):
+    """Return basic prices and the requested signed adjustments exactly once."""
+    selected = value if isinstance(value, (list, tuple)) else [value]
+    markups = {1}
+    for component in selected:
+        markup = 1 if component is None else _normalize_valuation(component)
+        markups.update(range(1, 6) if markup is None else (markup,))
+    return tuple(sorted(markups))
+
+
 def _is_gloria_part_i_dir(path: Path) -> bool:
     """Return whether ``path`` looks like the Google Drive part I container."""
     name = path.name.lower()
@@ -492,6 +502,7 @@ def load_gloria_metadata(readme_path: str | Path) -> GloriaMetadata:
 
 def _gloria_use_valuation_paths(
     data_root: Path, *, year: int, release: str,
+    markups: tuple[int, ...] = (1, 2, 3, 4, 5),
 ) -> tuple[tuple[GloriaResource, GloriaResource], ...]:
     """Resolve the ordered T/Y pairs that make up purchasers' use values."""
     resources = {}
@@ -504,7 +515,8 @@ def _gloria_use_valuation_paths(
         resources[key] = resource
 
     pairs = []
-    for markup, component in enumerate(_USE_COMPONENTS, 1):
+    for markup in markups:
+        component = _USE_COMPONENTS[markup - 1]
         try:
             pairs.append((resources["T", markup], resources["Y", markup]))
         except KeyError as exc:
@@ -517,7 +529,7 @@ def _gloria_use_valuation_paths(
 def detect_gloria_layout(
     path: str | Path,
     *,
-    valuation: str | int = "basic",
+    valuation: str | int | list[str | int] | None = None,
     year: int | None = None,
 ) -> tuple[GloriaLayout, GloriaMetadata]:
     """Resolve the GLORIA files and metadata used for one SUT parse request."""
@@ -525,7 +537,8 @@ def detect_gloria_layout(
     readme_path = _find_gloria_readme(root, data_root)
     metadata = load_gloria_metadata(readme_path)
 
-    markup = _normalize_valuation(valuation)
+    selected_markups = _valuation_markups(valuation)
+    markup = 1 if selected_markups == (1,) else None
     by_var_and_markup: dict[tuple[str, int], Path] = {}
     years: set[int] = set()
     release = None
@@ -551,12 +564,15 @@ def detect_gloria_layout(
     notes: list[str] = []
     if markup is None:
         (T_path, Y_path), *adjustments = _gloria_use_valuation_paths(
-            data_root, year=year, release=release,
+            data_root, year=year, release=release, markups=selected_markups,
         )
         use_adjustments = tuple(adjustments)
-        valuation_name = "Purchaser prices"
+        valuation_name = (
+            "Purchaser prices" if selected_markups == (1, 2, 3, 4, 5)
+            else "Basic prices + " + " + ".join(_USE_COMPONENTS[i - 1] for i in selected_markups[1:])
+        )
         notes.append(
-            "GLORIA purchaser prices apply to intermediate and final uses. "
+            f"GLORIA {valuation_name} apply to intermediate and final uses. "
             "Supply, value added and satellite accounts use Markup001. "
             "Use a basic-price database for production-model calculations."
         )
@@ -1211,7 +1227,7 @@ def _empty_satellite_payload(
 def parse_gloria_sut(
     path: str | Path,
     *,
-    valuation: str | int = "basic",
+    valuation: str | int | list[str | int] | None = None,
     year: int | None = None,
     regions: str | list[str] | tuple[str, ...] | None = None,
     satellites: str | list[str] | tuple[str, ...] | None = "all",

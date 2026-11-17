@@ -310,14 +310,14 @@ def test_parse_gloria_sut_supports_zipped_google_drive_release_layout(tmp_path):
         )
 
 
-def test_parse_gloria_sut_supports_region_subset_and_markup_fallback(tmp_path):
+def test_parse_gloria_sut_adds_selected_markup_to_basic_uses(tmp_path):
     root = _write_gloria_year(tmp_path)
 
     matrices, _, _, layout = parse_gloria_sut(root, valuation="trade", regions=["ME"])
     base = matrices["baseline"]
 
-    assert layout.valuation_name == "Trade margins"
-    assert layout.notes == ("No markup-specific GLORIA V file was found; value added was read from Markup001.",)
+    assert layout.valuation_name == "Basic prices + trade"
+    assert "Supply, value added and satellite accounts use Markup001" in layout.notes[0]
     assert base["S"].shape == (2, 2)
     assert base["U"].shape == (2, 2)
     assert base["Yc"].shape == (2, 2)
@@ -325,15 +325,15 @@ def test_parse_gloria_sut_supports_region_subset_and_markup_fallback(tmp_path):
 
     np.testing.assert_allclose(
         base["S"].astype(np.float32).to_numpy(),
-        np.array([[3000, 0], [0, 4000]], dtype=np.float32),
+        np.array([[300, 0], [0, 400]], dtype=np.float32),
     )
     np.testing.assert_allclose(
         base["U"].to_numpy(),
-        np.array([[400, 0], [0, 500]], dtype=np.float32),
+        np.array([[440, 0], [0, 550]], dtype=np.float32),
     )
     np.testing.assert_allclose(
         base["Yc"].to_numpy(),
-        np.array([[310, 0], [0, 410]], dtype=np.float32),
+        np.array([[341, 0], [0, 451]], dtype=np.float32),
     )
     np.testing.assert_allclose(
         base["Va"].to_numpy(),
@@ -536,3 +536,38 @@ def test_parse_gloria_purchaser_requires_all_layers(tmp_path):
     _write_gloria_year(tmp_path)
     with pytest.raises(WrongInput, match=r"both T and Y for transport"):
         mario.parse_gloria(str(tmp_path), valuation="purchaser", year=2025)
+
+
+@pytest.mark.parametrize("valuation,adjustments", [
+    (None, ()), ("basic", ()), (1, ()), ([], ()),
+    ("trade", (2,)), (["basic", "trade", 2], (2,)),
+    (["trade", "taxes"], (2, 4)), ("subsidies", (5,)),
+    (["taxes", "subsidies", "taxes"], (4, 5)),
+    ("purchaser", (2, 3, 4, 5)),
+])
+def test_gloria_selected_adjustments_include_basic_once(tmp_path, valuation, adjustments):
+    annual = _write_gloria_year(tmp_path)
+    amounts = {3: 3.0, 4: 4.0, 5: -5.0}
+    for markup, amount in amounts.items():
+        for block, shape in (("T", (8, 8)), ("Y", (8, 4))):
+            np.savetxt(annual / f"test_{block}-Results_2025_060_Markup{markup:03d}(full).csv",
+                       np.full(shape, amount), delimiter=",")
+    basic = mario.parse_gloria(tmp_path, year=2025)
+    selected = mario.parse_gloria(tmp_path, year=2025, valuation=valuation)
+    extra = sum(amounts.get(markup, 0) for markup in adjustments)
+    for block in ("U", "Yc"):
+        expected = basic.query(block) * (11 if 2 in adjustments else 1) + extra
+        np.testing.assert_allclose(selected.query(block), expected)
+    for block in ("S", "Va", "Vc", "Ea", "Ec", "EY"):
+        pd.testing.assert_frame_equal(selected.query(block), basic.query(block))
+
+
+def test_gloria_selection_cache_is_specific_and_partial_layers_suffice(tmp_path, monkeypatch):
+    _write_gloria_year(tmp_path)
+    first = mario.parse_gloria(tmp_path, year=2025, valuation="trade", cache=True)
+    with monkeypatch.context() as patch:
+        patch.setattr(parser_entrypoints, "parse_gloria_sut", lambda *args, **kwargs: pytest.fail("cache was not reused"))
+        cached = mario.parse_gloria(tmp_path, year=2025, valuation=[2, "trade"], cache=True)
+        pd.testing.assert_frame_equal(cached.U.reindex(index=first.U.index, columns=first.U.columns), first.U)
+    basic = mario.parse_gloria(tmp_path, year=2025, cache=True)
+    np.testing.assert_allclose(first.U, basic.U * 11)

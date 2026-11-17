@@ -171,7 +171,7 @@ def build_database_from_state(
         price=price if price is not None else metadata.price,
         tech_assumption=metadata.tech_assumption,
         init_by_parsers={"matrices": matrices, "_indeces": indexes, "units": units},
-        calc_all=calc_all,
+        calc_all=False,
         notes=list(metadata.history),
         **kwargs,
     )
@@ -181,6 +181,18 @@ def build_database_from_state(
 
     for operator in metadata.extra.get("operators", ()):
         database.register_operator(operator, replace=True)
+
+    configuration = metadata.extra.get("model_configuration")
+    if configuration:
+        database.meta.model_configuration = dict(configuration)
+        if metadata.extra.get("sector_type") is not None:
+            database.meta.sector_type = metadata.extra["sector_type"]
+        if configuration.get("import_representation") == "separate":
+            from mario.ops.import_representation import register_import_layout
+
+            register_import_layout(database)
+    if calc_all:
+        database.calc_all()
 
     return database
 

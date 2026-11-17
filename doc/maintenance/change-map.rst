@@ -92,6 +92,10 @@ records source commits. MARIO owns the Resources navigation link and the Teachin
 Examples and related-project entry points. Review those links together when
 changing the tutorial site address. Follow ``site/README.rst`` in Tutorials for
 build, download and cross-repository refresh verification.
+Tutorials and Explorer each select their channels in their own ``versions.json``.
+Their Latest routes stay at the host root and their Dev routes use ``/dev/``.
+MARIO's navigation and compatibility redirects select the corresponding channel
+from ``MARIO_DOCS_CHANNEL``. Each site publishes independently.
 
 ``doc/source/conf.py`` owns topic membership through
 ``mario_site["sections"]`` and compatibility URLs through
@@ -124,6 +128,23 @@ descriptions and axes come from the same workbook as the full reference. Run
 or its presentation. Do not hand-edit ``get_started/_generated/``.
 The interactive diagram uses ``_static/table-formats.css`` and
 ``_static/table-formats.js``; its links and definitions must also work without JS.
+
+Accounting configuration values and regional zero patterns live in
+``mario/model/configuration.py``. Separate-import operators, equations and
+descriptions live in ``mario/compute/import_catalog.py``. The nomenclature
+generator reads these sources for configuration diagrams and import-reference
+tables. Review ``user_guide/transformations/import_accounts.rst``, its companion,
+regional extraction, inspection/export guides and configuration API pages together.
+Structural export manifests are owned by ``ops/accounting_export.py`` and
+``parsers/accounting.py``. Keep their parser/export round trips paired.
+
+``ops/cvxlab_export.py`` owns general model-input preparation through
+``Database.to_cvxlab()``; ``ops/cvxlab_bridge.py`` also contains the existing
+split-model adapter and shared CVXLab compatibility helpers. Review
+``user_guide/inspection/to_cvxlab.rst``, its notebook and API page together.
+``doc/scripts/generate_cvxlab_example.py`` owns the downloadable settings under
+``_static/data/supporting_files/cvxlab_sut_settings.xlsx``. Regenerate that
+workbook after changing the example model or its mapping.
 
 Notebook companions
 -------------------

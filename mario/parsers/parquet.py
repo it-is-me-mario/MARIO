@@ -281,8 +281,12 @@ def _read_flat_parquet_data(path: str, *, mode: str) -> pd.DataFrame:
     if data_path.exists():
         return pd.read_parquet(data_path)
 
+    from mario.parsers.accounting import read_manifest
+
+    native_names, _ = _sut_native_matrix_names(mode)
+    names = dict.fromkeys((*_flat_matrix_names_for_mode(mode), *native_names, *read_manifest(root).get("imports", {})))
     frames = []
-    for matrix_name in _flat_matrix_names_for_mode(mode):
+    for matrix_name in names:
         target = root / f"{matrix_name}.parquet"
         if not target.exists():
             continue
@@ -305,7 +309,11 @@ def flat_parquet_parser(
     units_path = _find_flat_payload(root, "units", {".parquet"})
     data = _read_flat_parquet_data(path, mode=mode)
     units = pd.read_parquet(units_path)
-    return parse_flat_frames(data, units, table, mode, matrix_layouts=matrix_layouts)
+    from mario.parsers.accounting import flat_import_frames, read_manifest
+
+    parsed = parse_flat_frames(data, units, table, mode, matrix_layouts=matrix_layouts)
+    parsed[0]["baseline"].update(flat_import_frames(data, read_manifest(path)))
+    return parsed
 
 
 class ParquetParser(BaseParser):
@@ -337,7 +345,10 @@ class ParquetParser(BaseParser):
             f"Parser: parquet reading {table} {mode} from {resolved_path} in {layout} mode.",
             "info",
         )
-        normalized_layouts = normalize_matrix_layouts(matrix_layouts, table=table)
+        from mario.parsers.accounting import manifest_layouts, read_import_frames, read_manifest, restore_configuration
+
+        manifest = read_manifest(resolved_path)
+        normalized_layouts = normalize_matrix_layouts(manifest_layouts(manifest, matrix_layouts), table=table)
         if normalized_layouts:
             if flat:
                 matrices, indexes, units, extra = flat_parquet_parser(
@@ -361,7 +372,13 @@ class ParquetParser(BaseParser):
             else:
                 matrices, indexes, units = parsed
                 extra = {}
-            extra = {}
+        if not flat:
+            matrices["baseline"].update(read_import_frames(
+                resolved_path, manifest, mode=mode, suffix="parquet",
+            ))
+        from mario.parsers.accounting import restore_public_axes
+
+        restore_public_axes(matrices, manifest)
         state = build_parser_state(
             table=table,
             matrices=matrices,
@@ -378,6 +395,7 @@ class ParquetParser(BaseParser):
             repository=repository,
         )
         state.metadata.extra.update(extra)
+        restore_configuration(state, manifest)
         log_time(logger, f"Parser: parquet state ready for {table}.", "info")
         return state
 
