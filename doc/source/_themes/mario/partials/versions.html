@@ -7,8 +7,7 @@
     <a href="{{ item.url }}" data-docs-version="{{ item.key }}"{% if item.key == mario_versions.current %} aria-current="page"{% endif %}>{{ item.label }}</a>
     {%- endfor %}
     {%- if not mario_versions.choices | selectattr('key', 'equalto', 'model_gallery') | list %}
-    {%- import "partials/site-navigation.html" as navigation with context %}
-    <a href="{{ navigation.gallery_url }}" data-docs-version="model_gallery">Model Gallery</a>
+    <a href="https://www.marioproject.com/en/model_gallery/" data-docs-version="model_gallery">Model Gallery</a>
     {%- endif %}
   </nav>
 </details>

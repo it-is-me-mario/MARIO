@@ -87,12 +87,12 @@ The selector is a body-level floating control in the bottom-right corner,
 included by the layout footer. Keep it outside the animated header so scrolling
 cannot change its fixed positioning. Tutorials and Explorer import the same
 partial and assets through their pinned shared theme. The theme's
-``partials/site-navigation.html`` owns the deployed header links and labels
-across MARIO, Tutorials and Explorer outside the gallery. The gallery uses
-the header links defined in its own ``conf.py``. When changing shared header
-links, update consumer theme pins and compare Latest and Dev across all three sites. Documentation
-version switching stays within the current site. The native Model Gallery link
-is shared even when a consumer catalogue only inventories Latest and Dev.
+``partials/site-navigation.html`` supplies the harmonized links used by Tutorials
+and Explorer. The MARIO publisher uses the navigation from each channel's
+source configuration with the shared header layout. Choose another
+documentation channel through the selector. The selector has a Model Gallery
+link even when a consumer catalogue inventories only Latest and Dev.
+When changing the shared links, update the consumer theme pins.
 
 The ``preview`` channel publishes a complete source checkout under
 ``/en/preview/``. It owns the proposed design independently of Latest and Dev.

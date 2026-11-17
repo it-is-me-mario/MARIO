@@ -211,6 +211,7 @@ def build(sources, output, site_root):
             subprocess.run([
                 sys.executable, "-m", "sphinx", "-b", "html", "-W", "--keep-going",
                 "-D", "html_theme_path=" + str(frontend / "_themes"),
+                "-D", "html_context.mario_use_source_navigation=1",
                 *options, str(doc_source), str(destination),
             ], cwd=source, env=env, check=True)
         documents = {}
