@@ -17,7 +17,7 @@
       <span>MARIO</span>
     </a>
     <nav class="mario-nav" aria-label="Main">
-      {%- if mario_versions is defined and mario_versions.current != 'model_gallery' %}
+      {%- if mario_versions is defined and not mario_use_source_navigation and mario_versions.current != 'model_gallery' %}
         {%- import "partials/site-navigation.html" as navigation with context %}
         {%- for key, label, url, children in navigation.groups %}
           {%- set local = mario.nav | selectattr('key', 'equalto', key) | first | default({}) %}

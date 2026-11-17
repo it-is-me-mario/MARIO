@@ -49,7 +49,8 @@ Check both colour themes and verify that footer links remain accessible.
 Check the Latest/Dev selector and retired Preview redirects, including query
 strings and anchors. A page only present in Dev must redirect there. Verify that
 Latest documents the released package and that both channels use the shared theme.
-Open the Model Gallery from a guide in both Latest and Dev. From a model page,
+Check that Latest and Dev render the header from their source configuration.
+Open the Model Gallery via the version selector on both channels. From a model page,
 verify that selecting Latest or Dev opens the corresponding home page. Exercise
 Docs, Configuration, Teaching and the model API reference before switching.
 The publisher checks that same-site links and assets throughout the gallery

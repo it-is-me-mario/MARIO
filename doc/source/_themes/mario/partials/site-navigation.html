@@ -1,8 +1,5 @@
 {#- Shared header destinations for MARIO, Tutorials and Database Explorer. -#}
 {%- set channel = 'dev' if mario_versions.current == 'dev' else 'latest' %}
-{%- set gallery_url = (
-  mario_versions.choices | selectattr('key', 'equalto', 'model_gallery') | map(attribute='url') | first
-) | default('https://www.marioproject.com/en/model_gallery/') %}
 {%- set library = 'https://www.marioproject.com/en/' ~ channel ~ '/' %}
 {%- if mario.home_url.startswith(('https://', 'http://')) %}
   {%- set library = mario.home_url %}
@@ -34,7 +31,6 @@
   ]),
   ('resources', 'Resources', tutorials, [
     ('Tutorials', tutorials),
-    ('Model Gallery', gallery_url),
     ('Teaching', library ~ 'resources/teaching.html'),
     ('Projects & Publications', library ~ 'resources/projects_publications.html'),
     ('Downloadable material', library ~ 'resources/material.html'),
