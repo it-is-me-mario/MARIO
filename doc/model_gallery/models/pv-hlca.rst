@@ -60,7 +60,9 @@ Subsequent builds in the same session can reuse that preparation.
 Install through MARIO
 ~~~~~~~~~~~~~~~~~~~~~
 
-If you run MARIO from its current source, install PV-HLCA from Python.
+To install a research model from a current MARIO source checkout, pass its
+catalogue identifier to ``mario.models.install()``. The example below uses
+``pv-hlca``.
 
 .. code-block:: python
 
