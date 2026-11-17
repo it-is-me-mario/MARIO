@@ -15,7 +15,14 @@ on the source. In a multiregional table, each sector is also identified by regio
 Structure and native matrices
 -----------------------------
 
+Select regional scope and the flow or coefficient view. In single-region
+mode, ``import_representation``, ``trade_resolution`` and ``imports_by``
+control the import blocks, foreign-partner labels and sector detail.
 Select a block to see its definition and default axes.
+
+In the multiregional view, sector and final-demand headings contain regional
+subheadings. Each matrix spans its regional coordinates and has one symbol
+for the whole block.
 
 .. raw:: html
    :file: ../_generated/iot_structure.html
@@ -58,6 +65,11 @@ An axis combines the relevant sets. For example, a transaction connects a
 ``(Region, Sector)`` to another ``(Region, Sector)``; final-demand columns use
 ``(Region, Consumption category)``. MARIO's pandas representation also stores
 the set label in its ``Level`` index level.
+
+For regional extraction, ``imports_by="sector"`` adds a Sector row dimension
+to ``V`` and ``VY``. Ordinary factors retain an empty Sector level, while
+imports carry their source sector. Source regions can be retained separately;
+see :doc:`regional extraction </user_guide/transformations/mrio_to_srio>`.
 
 .. raw:: html
    :file: ../_generated/iot_indices.html

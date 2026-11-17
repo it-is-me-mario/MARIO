@@ -27,6 +27,8 @@ formats.
      - :doc:`SUT to IOT <sut_to_iot>`
    * - Extract one or several regions
      - :doc:`MRIO to SRIO <mrio_to_srio>`
+   * - Give external imports their own native blocks
+     - :doc:`Separate import accounts <import_accounts>`
    * - Change the SUT trade representation
      - :doc:`Isard to Chenery-Moses <to_chenery_moses>`
    * - Change any supply bundle and estimate missing production recipes
@@ -45,6 +47,7 @@ formats.
    add_sectors
    sut_to_iot
    mrio_to_srio
+   import_accounts
    to_chenery_moses
    supply_mix
    ../advanced/electricity_mix

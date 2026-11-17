@@ -5,6 +5,90 @@ Release History
 All notable changes to MARIO, newest first. Versions match the ``mariopy``
 package on PyPI, and dates are its publication dates.
 
+v1.3.5
+------
+
+External trade resolution
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Add ``trade_resolution`` to ``to_single_region()`` and ``to_region_subset()``.
+  Use ``"aggregate"`` for aggregated foreign partners or ``"by_region"`` for
+  explicit import origins and export partners. Existing calls using
+  ``trade_mode`` continue to work.
+* Expose ``trade_resolution`` in ``configuration`` and exported accounting
+  metadata. Read saved configurations using the earlier ``import_origins`` key.
+* Add explicit import-representation, trade-resolution and import-classification
+  selectors to the IOT/SUT diagrams. Show the resulting import rows and export
+  partners, including foreign regions inside each imported classification.
+
+CVXLab input preparation
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Add ``to_cvxlab(model_settings=..., path=..., mapping=..., scenarios=...)``
+  to populate CVXLab set and input workbooks from IOT/SUT matrices, including
+  native imports. Use explicit set-axis and exogenous-table mappings.
+* Allow several source matrices to populate one CVXLab input table, including
+  use/final demand, imports and value-added/environmental blocks. Align by mapped
+  coordinates and reject overlapping source cells before updating files.
+* Preserve existing set attributes, input values outside the selected updates
+  and additional sheets. Report missing sets, attributes, coordinates and
+  additional inputs. Support repeated calls and multiple mapped scenarios.
+* Prepare templates through CVXLab APIs, order copied-set dependencies in
+  exported settings and restore destination files when a replacement fails.
+  Include a guide, API reference, notebook and example settings workbook.
+
+Model configurations and native import blocks
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Expose immutable baseline and scenario configurations through
+  ``configuration`` and ``get_configuration()``. Describe table format,
+  regional scope, trade representation, import detail and technology assumptions.
+* Add ``import_representation="separate"`` to single-region extraction and
+  reversible ``to_import_representation()`` conversion across all scenarios.
+  IOT uses ``IMP`` / ``IMP_Y``. SUT uses ``IMP_a`` / ``IMP_c`` / ``IMP_Y``.
+  Provide native coefficients and import requirements, including imports once
+  in prices and monetary balance diagnostics.
+* Preserve native imports through aggregation, scenario copies, flow/coefficient
+  resets, SUT-to-IOT conversion, combined views and Excel/text/Parquet round trips.
+  Keep structural accounting manifests with exported native blocks.
+* Add ``export_sets()`` for native sets and optional scenario names in a workbook.
+* Add configuration selectors to the IOT/SUT diagrams, with regional structural
+  zeros for Isard and Chenery–Moses and separate-import rows.
+* Preserve zero-filled sparse extraction outputs with the pinned pandas version.
+* Normalize import-block axes with economic blocks when reloading unsorted
+  exports, keeping coefficient and price calculations available after reload.
+
+GLORIA additive valuations
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Default ``valuation=None`` reads basic prices. A selected valuation adds
+  that signed adjustment to basic prices. Sequences add each selected layer
+  once. ``"purchaser"`` includes all four adjustments. Supply, value added and
+  satellite accounts retain their basic-price source.
+* Keep caches specific to the selected layers and preserve the requested
+  numerical dtype when reloading them.
+
+Regional extraction and semantic import accounts
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Add ``imports_by="sector"`` for IOTs and ``"commodity"`` or ``"activity"``
+  for SUTs to ``to_single_region()`` and ``to_region_subset()``. Independently
+  choose total foreign sourcing or explicit origins with
+  ``trade_resolution="aggregate"`` / ``"by_region"``.
+* Store imported classifications as declared matrix-layout dimensions beside
+  the single factor label ``"imports"``. Sector, Commodity and Activity
+  aggregation applies to import rows as well as productive axes. Original
+  factors keep empty classification levels where inapplicable. This replaces
+  text-encoded factor labels in detailed IOT trade layouts.
+* Retain imported final demand in ``VY`` for IOTs and SUTs, including default
+  extraction. Keep sparse native SUT blocks, supply-side imports in ``Vc``
+  and use-side imports in ``Va``. Activity attribution uses source supply
+  shares and rejects undefined zero-supply allocations.
+* Preserve empty extra factor dimensions through Excel export and parsing;
+  retain declared layouts on factor coefficients and multipliers.
+* Keep semantic dimensions in ``DataFrame()`` views without changing the
+  live model's matrix indexes; retain the historical view for standard layouts.
+
 v1.3.4
 ------
 

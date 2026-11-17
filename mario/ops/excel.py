@@ -765,7 +765,7 @@ def wrirte_matrices(sheet, Z, V, E, Y, EY, VY, flow_format, header_format):
             )
 
 
-def _row_tokens_for_explicit_sut_export(label, *, productive: bool) -> list[object | None]:
+def _row_tokens_for_explicit_sut_export(label, *, productive: bool, total_levels=3) -> list[object | None]:
     """Return the explicit SUT row tokens written to the Excel export."""
     if isinstance(label, tuple):
         values = list(label)
@@ -773,9 +773,9 @@ def _row_tokens_for_explicit_sut_export(label, *, productive: bool) -> list[obje
         values = [label]
 
     if productive and len(values) == 3:
-        return [values[0], values[2], None]
+        return [values[0], values[2]] + [None] * (total_levels - 2)
 
-    return values + [None] * max(0, 3 - len(values))
+    return values + [None] * max(0, total_levels - len(values))
 
 
 def _write_explicit_sut_matrices(
@@ -794,16 +794,17 @@ def _write_explicit_sut_matrices(
     header_format,
 ):
     """Write one native split SUT workbook without materializing unified Z/Y."""
+    row_meta_cols = max(3, Va.index.nlevels, Ea.index.nlevels)
     activity_columns = list(U.columns)
     commodity_columns = list(S.columns)
     productive_columns = commodity_columns + activity_columns
     final_demand_columns = list(Ya.columns)
 
-    for col, column in enumerate(productive_columns, start=3):
+    for col, column in enumerate(productive_columns, start=row_meta_cols):
         sheet.write(0, col, column[0], header_format)
         sheet.write(1, col, column[2], header_format)
 
-    for offset, column in enumerate(final_demand_columns, start=3 + len(productive_columns)):
+    for offset, column in enumerate(final_demand_columns, start=row_meta_cols + len(productive_columns)):
         sheet.write(0, offset, column[0], header_format)
         sheet.write(1, offset, column[2], header_format)
 
@@ -812,12 +813,11 @@ def _write_explicit_sut_matrices(
 
     def _write_body_row(row_number, tokens, productive_values, final_demand_values):
         for col, value in enumerate(tokens):
-            if value is not None:
-                sheet.write(row_number, col, value, header_format)
-        for col, value in enumerate(productive_values, start=3):
+            _write_header_value(sheet, row_number, col, value, header_format)
+        for col, value in enumerate(productive_values, start=row_meta_cols):
             if value is not None:
                 sheet.write(row_number, col, value, flow_format)
-        for col, value in enumerate(final_demand_values, start=3 + len(productive_columns)):
+        for col, value in enumerate(final_demand_values, start=row_meta_cols + len(productive_columns)):
             if value is not None:
                 sheet.write(row_number, col, value, flow_format)
 
@@ -825,7 +825,7 @@ def _write_explicit_sut_matrices(
     for row in U.index:
         _write_body_row(
             row_number,
-            _row_tokens_for_explicit_sut_export(row, productive=True),
+            _row_tokens_for_explicit_sut_export(row, productive=True, total_levels=row_meta_cols),
             blank_commodity + U.loc[row, activity_columns].tolist(),
             Yc.loc[row, final_demand_columns].tolist(),
         )
@@ -834,7 +834,7 @@ def _write_explicit_sut_matrices(
     for row in S.index:
         _write_body_row(
             row_number,
-            _row_tokens_for_explicit_sut_export(row, productive=True),
+            _row_tokens_for_explicit_sut_export(row, productive=True, total_levels=row_meta_cols),
             S.loc[row, commodity_columns].tolist() + blank_activity,
             Ya.loc[row, final_demand_columns].tolist(),
         )
@@ -843,7 +843,7 @@ def _write_explicit_sut_matrices(
     for row in Va.index:
         _write_body_row(
             row_number,
-            _row_tokens_for_explicit_sut_export(row, productive=False),
+            _row_tokens_for_explicit_sut_export(row, productive=False, total_levels=row_meta_cols),
             Vc.loc[row, commodity_columns].tolist() + Va.loc[row, activity_columns].tolist(),
             VY.loc[row, final_demand_columns].tolist(),
         )
@@ -852,7 +852,7 @@ def _write_explicit_sut_matrices(
     for row in Ea.index:
         _write_body_row(
             row_number,
-            _row_tokens_for_explicit_sut_export(row, productive=False),
+            _row_tokens_for_explicit_sut_export(row, productive=False, total_levels=row_meta_cols),
             Ec.loc[row, commodity_columns].tolist() + Ea.loc[row, activity_columns].tolist(),
             EY.loc[row, final_demand_columns].tolist(),
         )

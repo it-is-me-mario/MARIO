@@ -80,6 +80,61 @@ when requested; :doc:`scenarios` explains how the states are managed.
 
 .. _format-conventions:
 
+Model configurations
+--------------------
+
+Each table has an accounting configuration. Inspect the baseline with
+:attr:`db.configuration <mario.CoreModel.configuration>` or select a scenario
+with :meth:`db.get_configuration() <mario.CoreModel.get_configuration>`.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 28 72
+
+   * - Choice
+     - Meaning
+   * - Table format
+     - IOT has one productive set. SUT separates activities and commodities.
+   * - Regional scope
+     - Single-region or multi-region, determined by endogenous Region members.
+   * - Trade representation
+     - Isard carries trade in SUT use and final demand. Chenery–Moses carries
+       commodity trade in supply. IOT transactions are bilateral.
+   * - Import representation (``import_representation``)
+     - Single-region models can include external imports in factor accounts
+       with ``"factor-accounts"`` or use native blocks with ``"separate"``.
+   * - External trade resolution (``trade_resolution``)
+     - ``"aggregate"`` combines foreign origins and export partners.
+       ``"by_region"`` retains their regional labels.
+   * - Import detail (``imports_by``)
+     - Total imports, or imports by Sector, Commodity or producing Activity.
+       The classification and the foreign-partner resolution are independent.
+   * - Technology assumption
+     - Industry-based or product-based SUT supply coefficients. For an IOT,
+       ``sector_type`` records the productive classification when available.
+
+Trade representation belongs to each scenario. The import representation and
+descriptors are shared by the database's scenarios. Existing national tables
+without declared import accounts report unspecified import detail. Mixed
+regional SUT patterns report ``mixed``. A table with zero international flows
+reports ``domestic-only``. A coefficient-only or incomplete source can report
+``unspecified`` until its regional pattern is available.
+
+The IOT and SUT diagrams provide single-region selectors named
+``import_representation``, ``trade_resolution`` and ``imports_by``, matching
+:meth:`db.to_single_region() <mario.Database.to_single_region>` and the fields
+exposed by :attr:`db.configuration <mario.CoreModel.configuration>`.
+The diagrams show the resulting import rows, their foreign origins and the
+export-partner detail. F1/F2 illustrate foreign partners, with regions inside
+the imported classification. Each matrix has one symbol across its rows.
+
+The SUT multiregional selector **Trade representation** chooses Isard or
+Chenery–Moses. Foreign origin descriptors identify external suppliers.
+The endogenous Region set determines regional scope. Both diagrams also
+provide flow and coefficient views.
+See :doc:`separate import accounts </user_guide/transformations/import_accounts>`
+for extraction and reversible conversion.
+
 Flows, coefficients and units
 -----------------------------
 

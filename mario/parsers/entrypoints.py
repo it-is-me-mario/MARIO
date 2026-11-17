@@ -145,7 +145,7 @@ def _legacy_model_state_builder(
 
 models = {"Database": Database, "ModelState": _legacy_model_state_builder}
 logger = logging.getLogger(__name__)
-_GLORIA_CACHE_VERSION = "2026-11-04"
+_GLORIA_CACHE_VERSION = "2026-11-14-additive-valuations"
 
 
 @with_parser_compute_profile
@@ -341,7 +341,10 @@ def _default_gloria_cache_dir(layout, *, regions, satellites, dtype):
         satellite_token = satellite_part
     safe_region_token = (region_token or "all").replace("/", "_").replace(" ", "_")
     safe_satellite_token = (satellite_token or "all").replace("/", "_").replace(" ", "_").replace("|", "_")
-    markup_token = "purchaser" if layout.markup is None else f"{layout.markup:03d}"
+    markup_token = (
+        hashlib.sha256(layout.valuation_name.encode()).hexdigest()[:12]
+        if layout.markup is None else f"{layout.markup:03d}"
+    )
     return (
         Path(layout.root)
         / ".mario_cache"
@@ -3055,7 +3058,7 @@ def parse_useeio(
 def parse_gloria(
     path: str,
     table: str = "SUT",
-    valuation: str | int = "basic",
+    valuation: str | int | list[str | int] | None = None,
     year: int | None = None,
     regions: str | list[str] | tuple[str, ...] | None = None,
     satellites: str | list[str] | tuple[str, ...] | None = "all",
@@ -3090,9 +3093,12 @@ def parse_gloria(
         directory containing the raw csv files.
     table : str, optional
         currently only ``SUT`` is supported.
-    valuation : str or int, optional
-        one of ``basic``, ``trade``, ``transport``, ``taxes`` or
-        ``subsidies`` (or the corresponding markup number ``1``-``5``). Use
+    valuation : str, int, sequence or None, optional
+        ``None`` (default), ``basic`` and ``1`` read basic prices. A component
+        such as ``trade`` reads basic prices plus that signed adjustment.
+        A sequence such as ``["trade", "transport"]`` adds each selected
+        adjustment once. Components accept the corresponding markup numbers
+        ``2``-``5``. Use
         ``"purchaser"`` to sum the five signed layers of intermediate and final
         use. Supply, value added and the satellite accounts use Markup001.
         Use the basic-price database to calculate production coefficients and
@@ -3127,7 +3133,7 @@ def parse_gloria(
         year=year,
     )
     if layout.markup is None and calc_all:
-        raise WrongInput("GLORIA purchaser uses require calc_all=False. Calculate footprints with valuation='basic'.")
+        raise WrongInput("GLORIA adjusted uses require calc_all=False. Calculate footprints with valuation=None.")
     _select_gloria_satellites(metadata, satellites)
     cache_dir = None
     cache_signature = None
@@ -3162,6 +3168,8 @@ def parse_gloria(
                     price=cache_info.get("price", layout.price),
                 )
                 state.metadata.history.extend(layout.notes)
+                for block_name in state.list_matrices("baseline", include_inherited=False):
+                    state.set_block(block_name, state.get_block(block_name).astype(dtype))
                 return build_database_from_state(
                     state,
                     model=model,

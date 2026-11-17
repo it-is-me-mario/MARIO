@@ -56,6 +56,8 @@ Sets, Metadata and Scenarios
    ../api_document/mario.CoreModel.sets
    ../api_document/mario.CoreModel.units
    ../api_document/mario.CoreModel.table_type
+   ../api_document/mario.CoreModel.configuration
+   ../api_document/mario.CoreModel.get_configuration
    ../api_document/mario.CoreModel.tech_assumption
    ../api_document/mario.CoreModel.scenarios
    ../api_document/mario.CoreModel.baseline_scenario_name

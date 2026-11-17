@@ -670,13 +670,39 @@ class CoreModel:
             list_registered_operator_names,
         )
 
+        from mario.compute.catalog import available_matrix_names
+        from mario.model.configuration import configuration_values
+        representation = configuration_values(self).get("import_representation", "factor-accounts")
         available = {
             public_matrix_name(name)
-            for name in available_matrices(self.table_type)
+            for name in available_matrix_names(self.table_type, import_representation=representation)
         }
         available.update(list_registered_operator_names(self))
         available.update(list_registered_block_specs(self))
         return tuple(sorted(available))
+
+    @property
+    def configuration(self):
+        """Return the immutable effective model configuration for the baseline."""
+        return self.get_configuration()
+
+    def get_configuration(self, scenario="baseline"):
+        """Return the effective accounting configuration of one scenario.
+
+        Parameters
+        ----------
+        scenario : str, optional
+            Scenario name or the public baseline alias.
+
+        Returns
+        -------
+        ModelConfiguration
+            Immutable format, regional scope, trade and import representation,
+            import detail, technology assumption and productive sector type.
+            ``to_dict()`` returns independent JSON-compatible values.
+        """
+        from mario.model.configuration import get_configuration
+        return get_configuration(self, scenario)
 
     def available_blocks(self) -> tuple[str, ...]:
         """Backward-compatible alias for :meth:`available_matrices`."""
@@ -910,7 +936,9 @@ class CoreModel:
             return spec
 
         try:
-            matrix_spec = get_matrix_spec(self.table_type, canonical_name)
+            from mario.model.configuration import configuration_values
+            representation = configuration_values(self).get("import_representation", "factor-accounts")
+            matrix_spec = get_matrix_spec(self.table_type, canonical_name, import_representation=representation)
         except KeyError as exc:
             raise WrongInput(f"No block specification is known for {name!r}.") from exc
 
@@ -1973,6 +2001,9 @@ class CoreModel:
             if self.table_type == "SUT"
             else _IOT_UPDATEABLE_MATRICES
         )
+        from mario.model.configuration import import_blocks
+
+        acceptable_updates = set(acceptable_updates) | set(import_blocks(self)) | set(import_blocks(self, "coefficients"))
         invalid_updates = set(canonical_matrices).difference(acceptable_updates)
         if invalid_updates:
             raise WrongInput(
@@ -3271,6 +3302,11 @@ class CoreModel:
             raise WrongInput(f"{target_name} already exists and cannot be overwritten.")
 
         self.matrices[target_name] = copy.deepcopy(self[scenario])
+        from mario.model.configuration import configuration_values, record_trade_representation
+
+        trade = configuration_values(self).get("trade_representations", {}).get(scenario)
+        if trade is not None:
+            record_trade_representation(self, target_name, trade)
         self.meta._add_history(
             f"Scenarios: {target_name} added to scenarios by cloning {self._public_scenario_name(scenario)}"
         )
@@ -3334,6 +3370,12 @@ class CoreModel:
             raise WrongInput(f"{target_name} already exists and cannot be overwritten.")
 
         self.matrices[target_name] = self.matrices.pop(resolved_scenario)
+        from mario.model.configuration import configuration_values, update_configuration
+
+        representations = configuration_values(self).get("trade_representations", {})
+        if resolved_scenario in representations:
+            representations[target_name] = representations.pop(resolved_scenario)
+            update_configuration(self, trade_representations=representations)
         self.meta._add_history(
             f"Scenarios: {self._public_scenario_name(resolved_scenario)} renamed to {target_name}"
         )
@@ -3376,6 +3418,8 @@ class CoreModel:
         else:
             keep = [_ENUM.Z, _ENUM.E, _ENUM.V, _ENUM.EY, _ENUM.VY, _ENUM.Y]
 
+        from mario.model.configuration import import_blocks
+        keep += list(import_blocks(self))
         scenario = self._validate_scenario(scenario)
 
         matrices = {}
@@ -3425,6 +3469,8 @@ class CoreModel:
         else:
             keep = [_ENUM.z, _ENUM.e, _ENUM.v, _ENUM.EY, _ENUM.VY, _ENUM.Y]
 
+        from mario.model.configuration import import_blocks
+        keep += list(import_blocks(self, "coefficients"))
         scenario = self._validate_scenario(scenario)
 
         matrices = {}
@@ -3786,6 +3832,13 @@ class CoreModel:
                 "Balance test is not applicable for hybrid units tables."
             )
 
+        from mario.model.configuration import separate_imports
+
+        imported = None
+        if separate_imports(self) and method in {"flows", "coefficients"}:
+            imported = "IMP" if method == "flows" else "imp"
+            methods[method]["matrices"].append(imported)
+
         data = self.query(
             matrices=methods[method]["matrices"],
             scenarios=[data_set],
@@ -3795,6 +3848,8 @@ class CoreModel:
             balance = (
                 data[_ENUM.Z].sum() + data[_ENUM.V].sum() - data[_ENUM.X].sum(1)
             ).to_frame()
+            if imported:
+                balance = balance.add(data[imported].sum(), axis=0)
             balance.columns = ["col"]
 
             imbalances = balance[
@@ -3803,6 +3858,8 @@ class CoreModel:
 
         elif method == "coefficients":
             balance = (data[_ENUM.z].sum() + data[_ENUM.v].sum()).to_frame()
+            if imported:
+                balance = balance.add(data[imported].sum(), axis=0)
             balance.columns = ["col"]
 
             imbalances = balance[

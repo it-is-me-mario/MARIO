@@ -8,4 +8,8 @@ regions as exogenous imports and exports. This generalizes
 ``Database.to_single_region(...)`` to the case where more than one region must
 remain endogenous.
 
+See :doc:`Extract a region or subset <../user_guide/transformations/mrio_to_srio>`
+for sector, commodity and producer import classifications, source-region detail
+and the native accounting blocks.
+
 .. automethod:: Database.to_region_subset

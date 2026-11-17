@@ -413,6 +413,22 @@ def build_region_aggregation_index(database, region_aggregation):
     if region_aggregation is None:
         return None
 
+    from mario.ops.aggregation_inputs import aggregation_domains
+
+    source_database = database
+    region_labels = aggregation_domains(database)["Region"]
+    if region_labels != database.get_index("Region"):
+        class CoverageView:
+            def get_index(self, index, *args, **kwargs):
+                if index == "Region" and not args and not kwargs:
+                    return list(region_labels)
+                return source_database.get_index(index, *args, **kwargs)
+
+            def __getattr__(self, name):
+                return getattr(source_database, name)
+
+        database = CoverageView()
+
     if isinstance(region_aggregation, str):
         scheme = _normalize_region_aggregation_name(region_aggregation)
         mapping = _identity_region_aggregation(database)

@@ -248,6 +248,8 @@ def transform(database, scenarios):
             "aligned all scenario axes."
         )
     for scenario in selected:
+        from mario.model.configuration import record_trade_representation
+        record_trade_representation(database, scenario, "chenery-moses")
         database.meta._add_history(
             f"Transformation of the database from into Chenery-Moses for scenario {database._public_scenario_name(scenario)}"
         )

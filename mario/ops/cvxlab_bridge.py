@@ -226,7 +226,7 @@ def _prepare_split_model_inputs(
     return model, dest_dir, mapping, flat_matrices
 
 
-def _build_cvxlab_model(*, main_dir_path, model_dir_name: str, input_data_files_type: str):
+def _build_cvxlab_model(*, main_dir_path, model_dir_name: str, input_data_files_type: str, import_custom=True):
     """Instantiate ``cvxlab.Model`` across old and new constructor signatures."""
 
     model_signature = inspect.signature(cl.Model.__init__).parameters
@@ -254,9 +254,9 @@ def _build_cvxlab_model(*, main_dir_path, model_dir_name: str, input_data_files_
         )
 
     if "import_custom_operators" in model_signature:
-        kwargs["import_custom_operators"] = True
+        kwargs["import_custom_operators"] = import_custom
     if "import_custom_constants" in model_signature:
-        kwargs["import_custom_constants"] = True
+        kwargs["import_custom_constants"] = import_custom
     if "log_format" in model_signature:
         kwargs["log_format"] = "standard"
 

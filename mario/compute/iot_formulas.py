@@ -32,6 +32,13 @@ from mario.model.labels import PRICE_INDEX_LABEL, PRODUCTION_LABEL
 logger = logging.getLogger(__name__)
 
 
+def build_price_from_factor_and_import_multipliers(factors, imports):
+    """Sum the domestic and imported cost contributions on the output axis."""
+    require_same_columns(factors, imports.columns, lhs_name="factors", rhs_name="imports")
+    values = dense_values(factors).sum(axis=0) + dense_values(imports).sum(axis=0)
+    return pd.DataFrame(values, index=factors.columns, columns=[PRICE_INDEX_LABEL])
+
+
 def _resolver_linear_cache(resolver) -> dict | None:
     """Return the per-resolver linear solver cache when available."""
     if resolver is None:

@@ -1,5 +1,5 @@
 :page-type: Guide
-:summary: Save model tables for inspection or for a later MARIO session.
+:summary: Save model tables and current sets for inspection or a later MARIO session.
 
 Export a database
 =================
@@ -23,6 +23,41 @@ Choose a format by what you plan to do next.
 
       Exchange tables with scripts. Flat layouts reduce the number of files
       and support parsing back into MARIO.
+
+Export the current sets
+-----------------------
+
+Use :meth:`db.export_sets() <mario.Database.export_sets>` to write the current
+classifications separately from the matrices:
+
+.. container:: mario-recipe
+
+   .. code-block:: python
+
+      import mario
+
+      db = mario.load_test("SUT")
+      sets_path = db.export_sets(path="exports/sets.xlsx")
+
+   .. container:: mario-result
+
+      **Result** · One workbook with Activity, Commodity, Factor of production,
+      Satellite account, Consumption category and Region sheets, plus Scenario.
+      Each sheet has a column with the same MARIO set name and its current members.
+
+Run the export after selecting regions, aggregating classifications or filtering
+extensions so the lists describe the transformed database. IOT databases export
+Sector instead of Activity and Commodity. Pass ``include_scenarios=False`` to
+export only the sets listed by :attr:`db.sets <mario.CoreModel.sets>`.
+
+When a classification differs between regions, its sheet contains ``Region``
+and set-name columns with only the observed region/member pairs. Common sets
+remain single-column lists. The method preserves MARIO names and label order;
+it does not apply CVXLab mappings. The downloadable companion includes the same
+call. Full arguments are in the :meth:`API reference <mario.Database.export_sets>`.
+
+To populate a CVXLab model's set and input workbooks with its own names and
+coordinates, follow :doc:`to_cvxlab`.
 
 Save and reload
 ---------------

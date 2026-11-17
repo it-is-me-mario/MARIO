@@ -135,7 +135,7 @@ def test_published_snapshots_have_finite_additive_indicators_and_no_private_path
             elif recipe.get("gdp_proxy") == "native_value_added":
                 assert recipe["source"] == "EMERGING"
                 assert recipe["gdp_bridge_verified"] is False
-                assert region["gdp"] == sum(region["value_added"])
+                assert region["gdp"] == pytest.approx(sum(region["value_added"]), rel=1e-14, abs=1e-8)
                 assert "net_product_taxes" not in region
             elif recipe.get("value_added_available") is not False:
                 assert "gdp" not in region

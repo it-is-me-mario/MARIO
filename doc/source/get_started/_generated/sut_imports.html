@@ -1,0 +1,123 @@
+<div class="terminology-table-wrapper">
+  <table id="sut-imports" class="terminology-table">
+    <thead>
+      <tr>
+        <th>Matrix</th>
+        <th>Description</th>
+        <th>Row indices</th>
+        <th>Column indices</th>
+        <th>Formula</th>
+      </tr>
+      <tr class="terminology-column-filters">
+        <th>
+          <input class="terminology-column-filter" data-col-index="0" type="search" aria-label="Filter Matrix" placeholder="Filter Matrix..." />
+        </th>
+        <th>
+          <input class="terminology-column-filter" data-col-index="1" type="search" aria-label="Filter Description" placeholder="Filter Description..." />
+        </th>
+        <th>
+          <input class="terminology-column-filter" data-col-index="2" type="search" aria-label="Filter Row indices" placeholder="Filter Row indices..." />
+        </th>
+        <th>
+          <input class="terminology-column-filter" data-col-index="3" type="search" aria-label="Filter Column indices" placeholder="Filter Column indices..." />
+        </th>
+        <th>
+          <input class="terminology-column-filter" data-col-index="4" type="search" aria-label="Filter Formula" placeholder="Filter Formula..." />
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr data-search="imp_y external imports delivered directly to final demand. import descriptors region × consumption category ">
+        <td><strong>IMP_Y</strong></td>
+        <td>External imports delivered directly to final demand.</td>
+        <td>Import descriptors</td>
+        <td>Region × Consumption category</td>
+        <td></td>
+      </tr>
+      <tr data-search="imp_a external use imports purchased by domestic activities. import descriptors region × activity imp_a = imp_a diag(xa)">
+        <td><strong>IMP_a</strong></td>
+        <td>External use imports purchased by domestic activities.</td>
+        <td>Import descriptors</td>
+        <td>Region × Activity</td>
+        <td>IMP_a = imp_a diag(Xa)</td>
+      </tr>
+      <tr data-search="imp_a external use import coefficients per unit of activity output. import descriptors region × activity imp_a = imp_a diag(xa)^-1">
+        <td><strong>imp_a</strong></td>
+        <td>External use import coefficients per unit of activity output.</td>
+        <td>Import descriptors</td>
+        <td>Region × Activity</td>
+        <td>imp_a = IMP_a diag(Xa)^-1</td>
+      </tr>
+      <tr data-search="imp_c external supply imports entering domestic commodity markets. import descriptors region × commodity imp_c = imp_c diag(xc)">
+        <td><strong>IMP_c</strong></td>
+        <td>External supply imports entering domestic commodity markets.</td>
+        <td>Import descriptors</td>
+        <td>Region × Commodity</td>
+        <td>IMP_c = imp_c diag(Xc)</td>
+      </tr>
+      <tr data-search="imp_c external supply import coefficients per unit of commodity output. import descriptors region × commodity imp_c = imp_c diag(xc)^-1">
+        <td><strong>imp_c</strong></td>
+        <td>External supply import coefficients per unit of commodity output.</td>
+        <td>Import descriptors</td>
+        <td>Region × Commodity</td>
+        <td>imp_c = IMP_c diag(Xc)^-1</td>
+      </tr>
+      <tr data-search="im_a direct and indirect import requirements per unit of activity output. import descriptors region × activity im_a = (imp_a + imp_c u) (i-su)^-1 or im_a = (imp_a + imp_c u) waa">
+        <td><strong>im_a</strong></td>
+        <td>Direct and indirect import requirements per unit of activity output.</td>
+        <td>Import descriptors</td>
+        <td>Region × Activity</td>
+        <td>im_a = (imp_a + imp_c u) (I-su)^-1 or im_a = (imp_a + imp_c u) waa</td>
+      </tr>
+      <tr data-search="im_c direct and indirect import requirements per unit of commodity output. import descriptors region × commodity im_c = (imp_a s + imp_c) (i-us)^-1 or im_c = (imp_a s + imp_c) wcc">
+        <td><strong>im_c</strong></td>
+        <td>Direct and indirect import requirements per unit of commodity output.</td>
+        <td>Import descriptors</td>
+        <td>Region × Commodity</td>
+        <td>im_c = (imp_a s + imp_c) (I-us)^-1 or im_c = (imp_a s + imp_c) wcc</td>
+      </tr>
+      <tr data-search="im_a import requirements through activity final output, allocated to commodities. import descriptors region × commodity im_a = im_a s diag(yc 1)">
+        <td><strong>IM_a</strong></td>
+        <td>Import requirements through activity final output, allocated to commodities.</td>
+        <td>Import descriptors</td>
+        <td>Region × Commodity</td>
+        <td>IM_a = im_a s diag(Yc 1)</td>
+      </tr>
+      <tr data-search="im_c import requirements allocated to commodity final output. import descriptors region × commodity im_c = im_c diag(yc 1)">
+        <td><strong>IM_c</strong></td>
+        <td>Import requirements allocated to commodity final output.</td>
+        <td>Import descriptors</td>
+        <td>Region × Commodity</td>
+        <td>IM_c = im_c diag(Yc 1)</td>
+      </tr>
+      <tr data-search="imp external import flows into domestic production. import descriptors region × commodity/activity imp = concatenate(imp_a, imp_c)">
+        <td><strong>IMP</strong></td>
+        <td>External import flows into domestic production.</td>
+        <td>Import descriptors</td>
+        <td>Region × Commodity/Activity</td>
+        <td>IMP = concatenate(IMP_a, IMP_c)</td>
+      </tr>
+      <tr data-search="imp external import coefficients per unit of domestic output. import descriptors region × commodity/activity imp = concatenate(imp_a, imp_c)">
+        <td><strong>imp</strong></td>
+        <td>External import coefficients per unit of domestic output.</td>
+        <td>Import descriptors</td>
+        <td>Region × Commodity/Activity</td>
+        <td>imp = concatenate(imp_a, imp_c)</td>
+      </tr>
+      <tr data-search="im direct and indirect import requirements per unit of final output. import descriptors region × commodity/activity im = concatenate(im_a, im_c)">
+        <td><strong>im</strong></td>
+        <td>Direct and indirect import requirements per unit of final output.</td>
+        <td>Import descriptors</td>
+        <td>Region × Commodity/Activity</td>
+        <td>im = concatenate(im_a, im_c)</td>
+      </tr>
+      <tr data-search="im import requirements allocated to domestic final output. import descriptors region × commodity/activity im = concatenate(im_a, im_c)">
+        <td><strong>IM</strong></td>
+        <td>Import requirements allocated to domestic final output.</td>
+        <td>Import descriptors</td>
+        <td>Region × Commodity/Activity</td>
+        <td>IM = concatenate(IM_a, IM_c)</td>
+      </tr>
+    </tbody>
+  </table>
+</div>

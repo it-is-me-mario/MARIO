@@ -1,0 +1,67 @@
+<div class="terminology-table-wrapper">
+  <table id="iot-imports" class="terminology-table">
+    <thead>
+      <tr>
+        <th>Matrix</th>
+        <th>Description</th>
+        <th>Row indices</th>
+        <th>Column indices</th>
+        <th>Formula</th>
+      </tr>
+      <tr class="terminology-column-filters">
+        <th>
+          <input class="terminology-column-filter" data-col-index="0" type="search" aria-label="Filter Matrix" placeholder="Filter Matrix..." />
+        </th>
+        <th>
+          <input class="terminology-column-filter" data-col-index="1" type="search" aria-label="Filter Description" placeholder="Filter Description..." />
+        </th>
+        <th>
+          <input class="terminology-column-filter" data-col-index="2" type="search" aria-label="Filter Row indices" placeholder="Filter Row indices..." />
+        </th>
+        <th>
+          <input class="terminology-column-filter" data-col-index="3" type="search" aria-label="Filter Column indices" placeholder="Filter Column indices..." />
+        </th>
+        <th>
+          <input class="terminology-column-filter" data-col-index="4" type="search" aria-label="Filter Formula" placeholder="Filter Formula..." />
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr data-search="imp_y external imports delivered directly to final demand. import descriptors region × consumption category ">
+        <td><strong>IMP_Y</strong></td>
+        <td>External imports delivered directly to final demand.</td>
+        <td>Import descriptors</td>
+        <td>Region × Consumption category</td>
+        <td></td>
+      </tr>
+      <tr data-search="imp external import flows into domestic production. import descriptors region × sector imp = imp diag(x)">
+        <td><strong>IMP</strong></td>
+        <td>External import flows into domestic production.</td>
+        <td>Import descriptors</td>
+        <td>Region × Sector</td>
+        <td>IMP = imp diag(X)</td>
+      </tr>
+      <tr data-search="imp external import coefficients per unit of domestic output. import descriptors region × sector imp = imp diag(x)^-1">
+        <td><strong>imp</strong></td>
+        <td>External import coefficients per unit of domestic output.</td>
+        <td>Import descriptors</td>
+        <td>Region × Sector</td>
+        <td>imp = IMP diag(X)^-1</td>
+      </tr>
+      <tr data-search="im direct and indirect import requirements per unit of final output. import descriptors region × sector im = imp (i-z)^-1 or im = imp w">
+        <td><strong>im</strong></td>
+        <td>Direct and indirect import requirements per unit of final output.</td>
+        <td>Import descriptors</td>
+        <td>Region × Sector</td>
+        <td>im = imp (I-z)^-1 or im = imp w</td>
+      </tr>
+      <tr data-search="im import requirements allocated to domestic final output. import descriptors region × sector im = im diag(y 1)">
+        <td><strong>IM</strong></td>
+        <td>Import requirements allocated to domestic final output.</td>
+        <td>Import descriptors</td>
+        <td>Region × Sector</td>
+        <td>IM = im diag(Y 1)</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
