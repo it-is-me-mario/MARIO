@@ -56,8 +56,9 @@ Page ownership
      - Topic guide, notebook, scientific assumptions and figure captions.
        ``tutorial_redirects`` in ``doc/source/conf.py`` preserves the old MARIO URLs.
    * - Installable research models
-     - ``user_guide/configuration/model_setups.rst`` and ``reference/api_model_methods.rst``
-     - Model repository guide, install catalogue, workspace and data provenance
+     - Model Gallery for the workflow. ``reference/api_model_methods.rst`` for the API.
+     - Model repository guide, install catalogue, workspace and data provenance.
+       Keep a redirect for the former configuration guide.
    * - API reference
      - ``api_document/`` for individual symbols; ``reference/`` for indexes
      - Implementation docstrings, task guide and public-symbol coverage tests

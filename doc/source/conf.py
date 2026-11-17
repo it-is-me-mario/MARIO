@@ -108,6 +108,10 @@ _site_channel_path = _docs_channel + "/" if _docs_channel == "dev" else ""
 _explorer_url = "https://explorer.marioproject.com/" + _site_channel_path
 _tutorials_url = "https://tutorials.marioproject.com/" + _site_channel_path
 
+_site_root = os.environ.get("MARIO_DOCS_SITE_ROOT", "https://www.marioproject.com").rstrip("/")
+_pv_hlca_guide = _site_root + "/en/model_gallery/models/pv-hlca.html"
+rst_epilog += f"\n.. _PV-HLCA guide in the Model Gallery: {_pv_hlca_guide}\n"
+
 
 # -- General configuration ---------------------------------------------------
 
@@ -478,6 +482,13 @@ mario_site = {
         "resources/data-explorer": "resources/data-explorer/scope",
         "resources/data-explorer/browsers": "resources/data-explorer/compare",
         "resources/changelog": "changelog",
+        "user_guide/configuration/model_setups": {
+            "target": _pv_hlca_guide + "#install-and-run",
+            "anchors": {
+                "install-pv-hlca": _pv_hlca_guide + "#install-through-mario",
+                "build-a-project": _pv_hlca_guide + "#install-and-run",
+            },
+        },
     },
 }
 

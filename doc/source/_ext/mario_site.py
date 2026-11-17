@@ -1300,6 +1300,8 @@ def _write_redirects(app):
             logger.warning("mario_site: redirect source %s is still a page; skipped", old)
             continue
         def destination(value):
+            if value.startswith(("https://", "http://")):
+                return value
             new_doc, _, anchor = value.partition("#")
             if new_doc not in app.env.found_docs:
                 logger.warning("mario_site: redirect target %s does not exist", new_doc)

@@ -16,8 +16,6 @@ preferences for its database; inspect the active settings after importing.
      - :doc:`Computation settings <../advanced/compute_settings>`
    * - Customize matrix names and set aliases, or save settings
      - :doc:`Custom names and aliases <../inspection/custom_labels_and_aliases>`
-   * - Install and configure a published research model
-     - :doc:`model_setups`
 
 :doc:`Database profiles <../advanced/database_profiles>` describe the
 preferences bundled for a source. See the :doc:`settings API <../../reference/api_settings_methods>`
@@ -31,4 +29,3 @@ Provider credentials for electricity data are described beside the
 
    ../advanced/compute_settings
    ../inspection/custom_labels_and_aliases
-   model_setups
