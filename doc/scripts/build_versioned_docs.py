@@ -161,8 +161,9 @@ def build(sources, output, site_root):
                 target = Path(folder) / name
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(frontend / "_static" / name, target)
-            options = (["-D", "html_static_path=" + folder] if gallery else
-                       ["-D", "html_static_path=_static," + folder, "-D", "mario_site.install=pip install mariopy"])
+            options = ["-D", "html_static_path=_static," + folder]
+            if not gallery:
+                options += ["-D", "mario_site.install=pip install mariopy"]
             doc_source = source / ("doc/model_gallery" if gallery else "doc/source")
             subprocess.run([
                 sys.executable, "-m", "sphinx", "-b", "html", "-W", "--keep-going",
