@@ -31,26 +31,29 @@ reference results were generated with an earlier background edition.
 Install and run
 ---------------
 
-Use a Python environment with Git and a MARIO build that supports
-``mario.model_setup()``. See the `MARIO model setup guide`_ for installation
-and the `PV-HLCA API reference`_ for method signatures, configuration and outputs.
+Use a Python environment with Git. Install MARIO and the version of PV-HLCA
+used in this guide.
+
+.. code-block:: shell
+
+   pip install mariopy
+   GIT_LFS_SKIP_SMUDGE=1 pip install "mario-pv-hlca @ git+https://github.com/it-is-me-mario/pv-hlca-model.git@6b458e1a0927f15c285ed9db88814c870621115d"
+
+Open a project in Python and run the central case.
 
 .. code-block:: python
 
-   import mario
+   from pv_hlca.project import Project
 
-   mario.models.install("pv-hlca")
-
-In a new Python session, open a project and run the central case.
-
-.. code-block:: python
-
-   import mario
-
-   model = mario.model_setup("pv-hlca", workspace="./pv-study")
+   model = Project(workspace="./pv-study")
    model.fetch_data()
    db = model.build()
    tables = model.results(db, write=True)
+
+See the `PV-HLCA API reference`_ for methods, configuration and result tables.
+If you use MARIO from its current source, the `MARIO model setup guide`_ shows
+how to install and open the same project through ``mario.models.install()``
+and ``mario.model_setup()``.
 
 The first data download is about 255 MB. To use an existing copy of the same
 Parquet files, point ``data.path`` in ``pv-study/config.yaml`` to their directory.
@@ -70,9 +73,9 @@ directory contains the CSV files for inventories, aggregations and trade shares.
 Use ``model.describe()`` to see the options and ``model.docs()`` for the guide
 shipped with the installed model.
 
-For changes to the construction code, pass a branch, tag or commit as
-``ref`` to ``mario.models.install()`` or use an editable checkout of the
+For changes to the construction code, use an editable checkout of the
 `PV-HLCA repository <https://github.com/it-is-me-mario/pv-hlca-model>`_.
+The MARIO source installer also accepts a branch, tag or commit as ``ref``.
 
 Results
 -------

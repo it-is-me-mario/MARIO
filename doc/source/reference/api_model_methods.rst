@@ -2,6 +2,8 @@ Research models
 ===============
 
 See :doc:`../user_guide/configuration/model_setups` for the PV-HLCA workflow.
+The MARIO installation and setup functions are available in source builds.
+The PV-HLCA project class works with compatible releases of ``mariopy``.
 
 .. toctree::
    :maxdepth: 1

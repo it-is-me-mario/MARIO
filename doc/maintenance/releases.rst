@@ -108,7 +108,7 @@ Merge, publish and verify
    assets. Report partial publication accurately if any destination fails.
 5. Read the current documentation workflow and canonical URL. At present,
    ``.github/workflows/docs-pages.yml`` builds the refs in ``doc/versions.json``
-   and deploys ``/en/latest/`` and ``/en/dev/`` at
+   and deploys ``/en/latest/``, ``/en/dev/`` and ``/en/model_gallery/`` at
    ``https://www.marioproject.com/``. The Dev branch runs verification on push;
    the separate ``docs-dev.yml`` workflow; its successful build requests a
    default-branch publication through ``workflow_run``. GitHub rejects workflows

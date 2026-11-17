@@ -3,7 +3,8 @@ pv_hlca.project.Project
 
 The PV-HLCA project API prepares a photovoltaic supply chain model, applies
 the study scenarios and returns its environmental and economic indicators.
-Use :func:`mario.model_setup` to open the project. The
+Instantiate ``Project`` directly with released versions of ``mariopy``.
+Use :func:`mario.model_setup` with a MARIO source build. The
 :doc:`research model setup guide <../user_guide/configuration/model_setups>`
 covers installation and the first run.
 
@@ -14,7 +15,7 @@ covers installation and the first run.
    :param cache_dir: Directory for the background data cache. The default is
       ``MARIO_MODEL_CACHE`` if set, or ``~/.cache/mario/models``.
 
-   Pass ``workspace`` and ``cache_dir`` to
+   With a MARIO source build, pass ``workspace`` and ``cache_dir`` to
    ``mario.model_setup("pv-hlca", workspace=..., cache_dir=...)``.
 
    .. py:method:: describe()

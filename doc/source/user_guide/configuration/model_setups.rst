@@ -11,7 +11,11 @@ input files and indicators are defined by that model.
 Install PV-HLCA
 ---------------
 
-Use a Python environment that has MARIO, pip and Git:
+The installation and setup functions below are available when running MARIO
+from its current source. The :doc:`PV-HLCA project reference
+<../../api_document/pv_hlca.project.Project>` describes the project class
+available with released versions of ``mariopy``. Use a Python environment
+with pip and Git.
 
 .. code-block:: python
 
