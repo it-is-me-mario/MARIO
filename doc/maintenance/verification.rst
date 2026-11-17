@@ -54,7 +54,8 @@ Open the Model Gallery via the version selector on both channels. From a model p
 verify that selecting Latest or Dev opens the corresponding home page. Exercise
 Docs, Configuration, Teaching and the model API reference before switching.
 The publisher checks that same-site links and assets throughout the gallery
-resolve there, except for links in the version selector. Verify the legacy Configuration
+resolve there, except for links in the version selector. The gallery build also
+checks links to Tutorials and Explorer, which publish Latest and Dev. Verify the legacy Configuration
 redirect, the shared resource images and the model's publication and data links.
 
 Build with warnings treated as errors, then check the built guides::

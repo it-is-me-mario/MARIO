@@ -50,16 +50,18 @@ For CCG's current framework for institution-led training events, see
 `EMP-X <https://climatecompatiblegrowth.com/international-partnerships/capacity-building/emp-x/>`_.
 
 
-.. _guided-examples:
+.. only:: not model_gallery
 
-Tutorials
----------
+   .. _guided-examples:
 
-Follow `MARIO Tutorials <https://tutorials.marioproject.com/>`_ for complete
-exercises, readable notebooks and downloadable materials. The collection
-includes `MRIO disaggregation <https://tutorials.marioproject.com/mrio-disaggregation/>`_,
-with its source maintained in the
-`original repository <https://github.com/it-is-me-mario/MRIO-disaggregation-model>`_.
+   Tutorials
+   ---------
+
+   Follow `MARIO Tutorials <https://tutorials.marioproject.com/>`_ for complete
+   exercises, readable notebooks and downloadable materials. The collection
+   includes `MRIO disaggregation <https://tutorials.marioproject.com/mrio-disaggregation/>`_,
+   with its source maintained in the
+   `original repository <https://github.com/it-is-me-mario/MRIO-disaggregation-model>`_.
 
 .. raw:: html
 

@@ -78,7 +78,11 @@ def check_gallery_navigation(output, version):
         parser.feed((root / page).read_text())
         for href in parser.page_urls:
             target = urlsplit(urljoin(version["url"] + page, href))
-            if target.scheme not in {"http", "https"} or target.netloc != base.netloc:
+            if target.scheme not in {"http", "https"}:
+                continue
+            if target.hostname in {"tutorials.marioproject.com", "explorer.marioproject.com"}:
+                raise ValueError(f"Model Gallery link leaves its channel: {page} → {href}")
+            if target.netloc != base.netloc:
                 continue
             if not target.path.startswith(base.path):
                 raise ValueError(f"Model Gallery link leaves its channel: {page} → {href}")

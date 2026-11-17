@@ -3,6 +3,8 @@ import importlib.util
 import json
 from pathlib import Path
 
+import pytest
+
 SPEC = importlib.util.spec_from_file_location(
     "versioned_docs", Path(__file__).parents[2] / "doc/scripts/build_versioned_docs.py"
 )
@@ -40,3 +42,15 @@ def test_unreferenced_frozen_json_is_shared_without_removing_downloads(tmp_path)
         shared = json.loads((root / 'legacy-data-manifest.json').read_text())
         assert shared['_static/data/unused.json']['url'] == 'https://example/en/latest/_static/data/unused.json'
     assert (tmp_path / 'en/latest/_static/data/unused.json').read_bytes() == payload
+
+
+@pytest.mark.parametrize("subdomain", ["tutorials", "explorer"])
+def test_gallery_rejects_links_to_sites_without_its_channel(tmp_path, subdomain):
+    gallery = tmp_path / "en/model_gallery"
+    gallery.mkdir(parents=True)
+    (gallery / "index.html").write_text(
+        f'<header><a href="https://{subdomain}.marioproject.com/">Open site</a></header>'
+    )
+    version = {"url": "https://www.marioproject.com/en/model_gallery/", "documents": {"index": []}}
+    with pytest.raises(ValueError, match="Model Gallery link leaves its channel"):
+        publisher.check_gallery_navigation(tmp_path, version)
