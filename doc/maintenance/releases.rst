@@ -128,3 +128,9 @@ and documentation source. Promoting a design does not release Python features.
 
 Documentation-only publication uses the same source, link, deployment-commit
 and live-page checks, without inventing a package-version bump or PyPI upload.
+
+When renaming the Dev source branch, publish the replacement branch first.
+Update the Dev ref in the channel configuration, the verification workflow's
+push filter and the publication workflow's completion filter. Check the
+replacement branch's verification run and confirm the live Dev catalogue
+records its commit before removing the old branch.

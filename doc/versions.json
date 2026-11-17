@@ -5,6 +5,6 @@
   },
   "dev": {
     "label": "Dev",
-    "ref": "codex/model-configurations"
+    "ref": "model-configurations"
   }
 }

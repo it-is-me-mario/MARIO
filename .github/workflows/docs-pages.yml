@@ -8,7 +8,7 @@ on:
   workflow_run:
     workflows: [Verify development documentation]
     types: [completed]
-    branches: [codex/model-configurations]
+    branches: [model-configurations]
   workflow_dispatch:
 
 permissions:

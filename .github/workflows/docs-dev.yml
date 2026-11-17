@@ -2,7 +2,7 @@ name: Verify development documentation
 
 on:
   push:
-    branches: [codex/model-configurations]
+    branches: [model-configurations]
   workflow_dispatch:
 
 permissions:
