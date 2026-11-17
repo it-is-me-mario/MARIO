@@ -117,7 +117,6 @@
     menus.forEach((menu) => {
       const button = menu.querySelector("[data-header-menu-toggle]");
       const mainLink = menu.querySelector(".mario-nav__link");
-      const links = Array.from(menu.querySelectorAll(".mario-nav__panel a"));
       menu.addEventListener("pointerenter", (event) => {
         if (hoverPointer.matches && event.pointerType === "mouse") setOpen(menu, true);
       });
@@ -136,6 +135,7 @@
           if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
           event.preventDefault();
           setOpen(menu, true);
+          const links = menu.querySelectorAll(".mario-nav__panel a");
           const link = event.key === "ArrowDown" ? links[0] : links[links.length - 1];
           if (link) link.focus();
         });
@@ -754,8 +754,7 @@
         const link = list.querySelector('[aria-selected="true"] a');
         if (link) {
           event.preventDefault();
-          window.location.href = link.href;
-          dialog.close();
+          link.click();
         }
       }
     });

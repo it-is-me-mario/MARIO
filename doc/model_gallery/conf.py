@@ -10,8 +10,6 @@ sys.path.insert(0, str(frontend / "_ext"))
 
 from mario_resources import TEACHING_CLOSING
 
-tags.add("model_gallery")
-
 project = "MARIO Model Gallery"
 author = "Lorenzo Rinaldi, Mohammad Amin Tahavori, Nicolo Golinucci"
 copyright = f"{datetime.now().year}, {author}"
@@ -72,10 +70,20 @@ mario_site = {
             ],
         },
         {
+            "key": "explorer", "label": "Explorer",
+            "landing": "https://explorer.marioproject.com/?mario_channel=model_gallery",
+            "tabs": [
+                {"label": "Indicators", "doc": "https://explorer.marioproject.com/resources/data-explorer/compare.html?mario_channel=model_gallery"},
+                {"label": "Classifications", "doc": "https://explorer.marioproject.com/resources/data-explorer/scope.html?mario_channel=model_gallery"},
+                {"label": "Analyses", "doc": "https://explorer.marioproject.com/resources/data-explorer/analyses.html?mario_channel=model_gallery"},
+            ],
+        },
+        {
             "key": "resources", "label": "Resources", "landing": "resources/index",
             "prefixes": ["resources/"],
             "hero": {"title": "Resources"},
             "tabs": [
+                {"label": "Tutorials", "doc": "https://tutorials.marioproject.com/?mario_channel=model_gallery"},
                 {"label": "Model Gallery", "doc": "index"},
                 {"label": "Teaching", "doc": "resources/teaching"},
                 {"label": "Projects & Publications", "doc": "resources/projects_publications"},

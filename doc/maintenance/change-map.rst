@@ -79,11 +79,12 @@ at ``/en/model_gallery/``. Keep the published study and background edition on
 the model page. The MARIO API reference documents the installed project
 interfaces. Review the PV-HLCA reference against the model repository when
 updating the pinned model revision. The gallery builds its model API pages,
-Teaching and Projects & Publications from the shared sources. Its header,
-footer and in-page documentation links remain in the gallery. Tutorials
-and Explorer publish Latest and Dev, so choose one of those channels before
-opening either site. The selector opens the gallery index from both
-documentation versions and opens their homes when leaving the gallery.
+Teaching and Projects & Publications from the shared sources. Links to
+Tutorials and Explorer carry the selected Gallery channel in the URL. On
+those sites, the version script keeps the Gallery selection while serving the
+existing pages and directs the MARIO menu links back to the Gallery. The
+selector opens the gallery index from both documentation versions and opens
+their homes when leaving the gallery on the MARIO site.
 The selector is a body-level floating control in the bottom-right corner,
 included by the layout footer. Keep it outside the animated header so scrolling
 cannot change its fixed positioning. Tutorials and Explorer import the same

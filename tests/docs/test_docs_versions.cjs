@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const {updateLinks} = require('../../doc/source/_static/docs-versions.js');
+const {updateLinks, isGalleryContext, withGalleryContext} = require('../../doc/source/_static/docs-versions.js');
 
 const catalogue = {versions: {
   latest: {url: 'https://www.marioproject.com/en/latest/', documents: {'guide/page': ['shared']}},
@@ -74,7 +74,7 @@ test('independent sites keep the native Gallery link and still resolve version t
 test('version targets follow anchors selected after the page loads', async () => {
   const links = ['latest', 'dev'].map(key => ({dataset: {docsVersion: key}}));
   const events = {};
-  const location = {hash: '#shared'};
+  const location = new URL('https://www.marioproject.com/en/latest/guide/page.html#shared');
   const menu = {dataset: {document: 'guide/page'}, querySelectorAll: () => links,
     addEventListener: () => {}};
   const script = fs.readFileSync(path.join(__dirname, '../../doc/source/_static/docs-versions.js'), 'utf8');
@@ -90,4 +90,35 @@ test('version targets follow anchors selected after the page loads', async () =>
     'https://www.marioproject.com/en/latest/guide/page.html',
     'https://www.marioproject.com/en/dev/guide/page.html#new',
   ]);
+});
+
+
+test('Gallery visits carry the channel through Tutorials and Explorer links', () => {
+  const from = new URL('https://www.marioproject.com/en/model_gallery/');
+  assert.equal(isGalleryContext(from, 'model_gallery'), true);
+  for (const hostname of ['tutorials.marioproject.com', 'explorer.marioproject.com']) {
+    const destination = withGalleryContext(new URL('https://' + hostname + '/topic/index.html?year=2021#details'));
+    assert.equal(destination.href, 'https://' + hostname + '/topic/index.html?year=2021&mario_channel=model_gallery#details');
+    assert.equal(isGalleryContext(destination, 'latest'), true);
+    assert.equal(isGalleryContext(new URL('https://' + hostname + '/dev/'), 'dev'), false);
+    assert.equal(withGalleryContext(new URL('https://' + hostname + '/notebook.ipynb')), undefined);
+  }
+});
+
+test('Gallery navigation returns from a shared site to its matching MARIO pages', () => {
+  const target = withGalleryContext(new URL('https://www.marioproject.com/en/latest/user_guide/configuration/index.html'));
+  assert.equal(target.href, 'https://www.marioproject.com/en/model_gallery/user_guide/configuration/model_setups.html');
+  const teaching = withGalleryContext(new URL('https://www.marioproject.com/en/dev/resources/teaching.html#courses'));
+  assert.equal(teaching.href, 'https://www.marioproject.com/en/model_gallery/resources/teaching.html#courses');
+  assert.equal(withGalleryContext(new URL('https://www.marioproject.com/en/latest/get_started/table_formats.html')), undefined);
+});
+
+test('leaving Gallery mode through the selector keeps the available satellite page and anchor', () => {
+  const link = {dataset: {docsVersion: 'dev'}};
+  const options = {versions: {
+    dev: {url: 'https://explorer.marioproject.com/dev/', documents: {'guide/page': ['shared']}},
+  }};
+  updateLinks({dataset: {document: 'guide/page', channel: 'model_gallery'}, querySelectorAll: () => [link]},
+    options, new URL('https://explorer.marioproject.com/guide/page.html?mario_channel=model_gallery#shared'));
+  assert.equal(link.href, 'https://explorer.marioproject.com/dev/guide/page.html#shared');
 });
