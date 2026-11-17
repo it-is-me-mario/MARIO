@@ -73,9 +73,10 @@ generated from published HTML routes and anchors. Changing a source branch also
 requires reviewing the workflow's push and completed-build triggers.
 Model Gallery has its own Sphinx source under ``doc/model_gallery/`` and opens
 at ``/en/model_gallery/``. Keep the published study and background edition on
-the model page. The model repository owns the full parameter and indicator
-reference. The selector opens the gallery index from both documentation
-versions and opens their homes when leaving the gallery.
+the model page. The MARIO API reference documents the installed project
+interfaces. Review the PV-HLCA reference against the model repository when
+updating the pinned model revision. The selector opens the gallery index from
+both documentation versions and opens their homes when leaving the gallery.
 The selector is a body-level floating control in the bottom-right corner,
 included by the layout footer. Keep it outside the animated header so scrolling
 cannot change its fixed positioning. Tutorials and Explorer import the same

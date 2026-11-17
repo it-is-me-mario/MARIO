@@ -8,6 +8,7 @@ See :doc:`../user_guide/configuration/model_setups` for the PV-HLCA workflow.
 
    ../api_document/mario.model_setup
    ../api_document/mario.models.install
+   PV-HLCA project <../api_document/pv_hlca.project.Project>
 
 A model is an installable Python project that registers a factory in the
 ``mario.models`` entry point group. The entry point name identifies the model.

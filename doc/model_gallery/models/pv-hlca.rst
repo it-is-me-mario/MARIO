@@ -32,7 +32,8 @@ Install and run
 ---------------
 
 Use a Python environment with Git and a MARIO build that supports
-``mario.model_setup()``. See the `MARIO model setup guide`_.
+``mario.model_setup()``. See the `MARIO model setup guide`_ for installation
+and the `PV-HLCA API reference`_ for method signatures, configuration and outputs.
 
 .. code-block:: python
 

@@ -54,4 +54,5 @@ each run. Use ``model.docs()`` to find the guide for your installed version and
 See the `PV-HLCA repository <https://github.com/it-is-me-mario/pv-hlca-model>`_
 for the publication and packaged guide.
 
-:doc:`../../reference/api_model_methods` documents the common MARIO calls.
+:doc:`../../reference/api_model_methods` documents the common MARIO calls and
+the PV-HLCA project API.
