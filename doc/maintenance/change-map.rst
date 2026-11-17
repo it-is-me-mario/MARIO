@@ -52,8 +52,9 @@ Page ownership
        ``inspection/custom_labels_and_aliases.rst`` under ``user_guide/``
      - Settings API, install guidance and affected database guides
    * - Complete analyses
-     - ``user_guide/examples/index.rst`` and linked case pages
-     - Topic guide, notebook, scientific assumptions and figure captions
+     - Tutorials site
+     - Topic guide, notebook, scientific assumptions and figure captions.
+       ``tutorial_redirects`` in ``doc/source/conf.py`` preserves the old MARIO URLs.
    * - Installable research models
      - ``user_guide/configuration/model_setups.rst`` and ``reference/api_model_methods.rst``
      - Model repository guide, install catalogue, workspace and data provenance
