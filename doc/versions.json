@@ -6,5 +6,9 @@
   "dev": {
     "label": "Dev",
     "ref": "codex/model-configurations"
+  },
+  "model_gallery": {
+    "label": "Model Gallery",
+    "kind": "gallery"
   }
 }

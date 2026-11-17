@@ -69,6 +69,8 @@ jobs:
           test -s _site/en/latest/index.html
           test -s _site/en/dev/user_guide/inspection/to_cvxlab.html
           test -s _site/en/dev/user_guide/transformations/import_accounts.html
+          test -s _site/en/model_gallery/index.html
+          test -s _site/en/model_gallery/models/pv-hlca.html
           test -s _site/en/preview/user_guide/index.html
           test -s _site/en/latest/_static/mario-editorial.css
           test -s _site/en/dev/_static/mario-editorial.css

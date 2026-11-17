@@ -287,7 +287,8 @@ def _page_context(app, pagename, templatename, context, doctree):
         "sidebar": [],
         "sidebar_label": "",
         "local_toc": [],
-        "home_url": url(app.config.root_doc),
+        "home_url": url(config.get("home_url", app.config.root_doc)),
+        "changelog_url": config.get("changelog_url", ""),
         "github": config.get("github", ""),
         "pypi": config.get("pypi", ""),
         "install": config.get("install", ""),
@@ -326,9 +327,11 @@ def _page_context(app, pagename, templatename, context, doctree):
             page["tabs"] = []
             page["group_key"] = (tab or {}).get("key", "")
             page["sidebar"] = _docs_sidebar(app, pagename, section)
-            page["sidebar_label"] = "Documentation"
+            page["sidebar_label"] = section.get("sidebar_label", "Documentation")
             page["hero"] = {"title": context.get("title", ""), "text": "", "install": False}
-            page["breadcrumbs"] = [{"title": "Docs", "url": url(section["landing"])}]
+            page["breadcrumbs"] = [
+                {"title": section.get("breadcrumb_label", "Docs"), "url": url(section["landing"])}
+            ]
             if tab and pagename != tab["doc"]:
                 page["breadcrumbs"].append({"title": tab["label"], "url": url(tab["doc"])})
             metadata = env.metadata.get(pagename, {})
@@ -1372,8 +1375,9 @@ def _build_finished(app, exception):
     _write_redirects(app)
     _write_nav_index(app)
     _clean_notebook_downloads(app)
-    from mario_browser_assets import write_browser_assets
-    write_browser_assets(app.srcdir, app.outdir)
+    if app.config.mario_site.get("browser_assets", True):
+        from mario_browser_assets import write_browser_assets
+        write_browser_assets(app.srcdir, app.outdir)
     restricted = Path(app.outdir) / "_static/data/database_profiles/eora26-2017-bp.xlsx"
     restricted.unlink(missing_ok=True)
 
