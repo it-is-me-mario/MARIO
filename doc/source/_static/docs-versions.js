@@ -7,6 +7,7 @@
     try { anchor = decodeURIComponent(anchor); } catch (error) { /* Keep literal fragments. */ }
     menu.querySelectorAll("a[data-docs-version]").forEach((link) => {
       const version = catalogue.versions[link.dataset.docsVersion];
+      if (!version) return; // An external section can keep its native link.
       const crossesGallery = (current?.kind === "gallery") !== (version.kind === "gallery");
       const anchors = crossesGallery ? undefined : version.documents[page];
       const filename = anchors ? page + ".html" : "index.html";

@@ -80,7 +80,12 @@ both documentation versions and opens their homes when leaving the gallery.
 The selector is a body-level floating control in the bottom-right corner,
 included by the layout footer. Keep it outside the animated header so scrolling
 cannot change its fixed positioning. Tutorials and Explorer import the same
-partial and assets through their pinned shared theme.
+partial and assets through their pinned shared theme. The theme's
+``partials/site-navigation.html`` owns the deployed header links and labels
+across MARIO, Tutorials and Explorer. Change the consumer theme pins with the
+header, and compare Latest and Dev across all three sites. Documentation
+version switching stays within the current site. The native Model Gallery link
+is shared even when a consumer catalogue only inventories Latest and Dev.
 
 The ``preview`` channel publishes a complete source checkout under
 ``/en/preview/``. It owns the proposed design independently of Latest and Dev.
