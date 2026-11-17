@@ -56,9 +56,10 @@ Page ownership
      - Topic guide, notebook, scientific assumptions and figure captions.
        ``tutorial_redirects`` in ``doc/source/conf.py`` preserves the old MARIO URLs.
    * - Installable research models
-     - Model Gallery for the workflow. ``reference/api_model_methods.rst`` for the API.
-     - Model repository guide, install catalogue, workspace and data provenance.
-       Keep a redirect for the former configuration guide.
+     - Model Gallery's Configuration guide for the installation workflow,
+       with PV-HLCA as the example. Its model page owns the study workflow.
+     - Shared API reference under ``doc/source``, model repository guide,
+       install catalogue and workspace. Keep the old configuration URL as a redirect.
    * - API reference
      - ``api_document/`` for individual symbols; ``reference/`` for indexes
      - Implementation docstrings, task guide and public-symbol coverage tests
@@ -77,15 +78,19 @@ Model Gallery has its own Sphinx source under ``doc/model_gallery/`` and opens
 at ``/en/model_gallery/``. Keep the published study and background edition on
 the model page. The MARIO API reference documents the installed project
 interfaces. Review the PV-HLCA reference against the model repository when
-updating the pinned model revision. The selector opens the gallery index from
-both documentation versions and opens their homes when leaving the gallery.
+updating the pinned model revision. The gallery builds its model API pages,
+Teaching and Projects & Publications from the shared sources. Its header,
+footer and in-page documentation links remain in the gallery. The selector
+opens the gallery index from both documentation versions and opens their homes
+when leaving the gallery.
 The selector is a body-level floating control in the bottom-right corner,
 included by the layout footer. Keep it outside the animated header so scrolling
 cannot change its fixed positioning. Tutorials and Explorer import the same
 partial and assets through their pinned shared theme. The theme's
 ``partials/site-navigation.html`` owns the deployed header links and labels
-across MARIO, Tutorials and Explorer. Change the consumer theme pins with the
-header, and compare Latest and Dev across all three sites. Documentation
+across MARIO, Tutorials and Explorer outside the gallery. The gallery uses
+the header links defined in its own ``conf.py``. When changing shared header
+links, update consumer theme pins and compare Latest and Dev across all three sites. Documentation
 version switching stays within the current site. The native Model Gallery link
 is shared even when a consumer catalogue only inventories Latest and Dev.
 

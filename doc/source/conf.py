@@ -24,6 +24,7 @@ sys.path.insert(0, os.path.abspath("../../.."))
 sys.path.insert(0, os.path.abspath("_ext"))
 
 import mario_bibstyles
+from mario_resources import TEACHING_CLOSING
 import nbsphinx
 
 try:
@@ -109,7 +110,10 @@ _explorer_url = "https://explorer.marioproject.com/" + _site_channel_path
 _tutorials_url = "https://tutorials.marioproject.com/" + _site_channel_path
 
 _site_root = os.environ.get("MARIO_DOCS_SITE_ROOT", "https://www.marioproject.com").rstrip("/")
-_pv_hlca_guide = _site_root + "/en/model_gallery/models/pv-hlca.html"
+_gallery_root = _site_root + "/en/model_gallery/"
+_pv_hlca_guide = _gallery_root + "models/pv-hlca.html"
+_model_setup_guide = _gallery_root + "user_guide/configuration/model_setups.html"
+rst_epilog += f"\n.. _Research model setups: {_model_setup_guide}\n"
 rst_epilog += f"\n.. _PV-HLCA guide in the Model Gallery: {_pv_hlca_guide}\n"
 
 
@@ -440,20 +444,7 @@ mario_site = {
     "closings": {
         **{page: {"text": "Learn how to <mark>use</mark> these databases", "doc": "user_guide/parsers/index"}
            for page in ("resources/data-explorer/scope", "resources/data-explorer/compare")},
-        # Opens a contact dialog that drafts an email in the visitor's own mail app; nothing is sent by the site.
-        "resources/teaching": {
-            "text": "Request a <mark>MARIO course</mark>",
-            "dialog": {
-                "title": "MARIO courses",
-                "intro": (
-                    "We don't run scheduled courses yet, but if you or your team are interested "
-                    "in a course, we can work out the format together."
-                ),
-                "subject": "MARIO course enquiry",
-                # Split so no address appears whole in the page source.
-                "recipients": [("lorenzo.rinaldi", "polimi.it"), ("nicolo.golinucci", "enextgen.it")],
-            },
-        },
+        "resources/teaching": TEACHING_CLOSING,
     },
     # Pages moved or removed in the 2026 redesign keep working through redirect pages.
     "redirects": {
@@ -483,10 +474,10 @@ mario_site = {
         "resources/data-explorer/browsers": "resources/data-explorer/compare",
         "resources/changelog": "changelog",
         "user_guide/configuration/model_setups": {
-            "target": _pv_hlca_guide + "#install-and-run",
+            "target": _model_setup_guide,
             "anchors": {
-                "install-pv-hlca": _pv_hlca_guide + "#install-through-mario",
-                "build-a-project": _pv_hlca_guide + "#install-and-run",
+                "install-pv-hlca": _model_setup_guide + "#install-a-model",
+                "build-a-project": _model_setup_guide + "#open-a-project",
             },
         },
     },

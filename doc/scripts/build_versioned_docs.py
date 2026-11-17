@@ -12,7 +12,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
-from urllib.parse import unquote, urlsplit
+from urllib.parse import unquote, urljoin, urlsplit
 
 
 class PageAnchors(HTMLParser):
@@ -53,15 +53,44 @@ class PageAssets(HTMLParser):
     def __init__(self):
         super().__init__()
         self.urls = []
+        self.page_urls = []
         self.explorer = False
 
     def handle_starttag(self, tag, attrs):
         values = dict(attrs)
-        self.urls.extend(values[key] for key in ("href", "src") if values.get(key))
+        urls = [values[key] for key in ("href", "src") if values.get(key)]
+        self.urls.extend(urls)
+        if tag != "a" or "data-docs-version" not in values:
+            self.page_urls.extend(urls)
         self.explorer |= any(key in values for key in (
             "data-economy-browser", "data-database-comparisons", "data-database-scope",
             "data-sectoral-scope", "data-extension-scope",
         ))
+
+
+def check_gallery_navigation(output, version):
+    """Check ordinary gallery links and assets, excluding the version selector."""
+    root = output / "en/model_gallery"
+    base = urlsplit(version["url"])
+    for document in version["documents"]:
+        page = document + ".html"
+        parser = PageAssets()
+        parser.feed((root / page).read_text())
+        for href in parser.page_urls:
+            target = urlsplit(urljoin(version["url"] + page, href))
+            if target.scheme not in {"http", "https"} or target.netloc != base.netloc:
+                continue
+            if not target.path.startswith(base.path):
+                raise ValueError(f"Model Gallery link leaves its channel: {page} → {href}")
+            relative = unquote(target.path.removeprefix(base.path))
+            if relative.endswith("/") or not relative:
+                relative += "index.html"
+            if not (root / relative).is_file():
+                raise ValueError(f"Model Gallery link has no target: {page} → {href}")
+            if target.fragment and relative.endswith(".html"):
+                anchors = version["documents"].get(relative.removesuffix(".html"), [])
+                if unquote(target.fragment) not in anchors:
+                    raise ValueError(f"Model Gallery link has no anchor: {page} → {href}")
 
 
 def deduplicate_legacy_json(output, catalogue):
@@ -150,21 +179,35 @@ def build(sources, output, site_root):
         }
         # Share the approved frontend without replacing a channel's library or guides.
         with tempfile.TemporaryDirectory(prefix="mario-channel-theme-") as folder:
+            static = Path(folder) / "static"
+            doc_source = source / "doc/source"
             assets = ["docs-versions.css", "docs-versions.js", "external-links.js"]
             if gallery:
+                # Shared RST pages resolve their images from the gallery source
+                # directory, including before Sphinx copies the static assets.
+                staged_docs = Path(folder) / "doc"
+                staged_docs.mkdir()
+                (staged_docs / "source").symlink_to(frontend, target_is_directory=True)
+                doc_source = staged_docs / "model_gallery"
+                shutil.copytree(source / "doc/model_gallery", doc_source)
+                static = doc_source / "_static"
                 assets += [
                     "docs-workflows.css", "download-figure.js", "heatmap-background.css",
                     "images/heatmap-background.png", "images/heatmap-background-dark.png",
                     "images/mario-logo.png", "images/mario-favicon.ico",
+                    "images/logos/github.svg", "images/logos/pymrio.png", "images/logos/cvxlab.png",
+                    "images/logo_entice.svg", "images/logo_iam_compact.png", "images/logo_fulfill.png",
                 ]
             for name in assets:
-                target = Path(folder) / name
+                target = static / name
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(frontend / "_static" / name, target)
-            options = ["-D", "html_static_path=_static," + folder]
+            options = []
             if not gallery:
-                options += ["-D", "mario_site.install=pip install mariopy"]
-            doc_source = source / ("doc/model_gallery" if gallery else "doc/source")
+                options = [
+                    "-D", "html_static_path=_static," + str(static),
+                    "-D", "mario_site.install=pip install mariopy",
+                ]
             subprocess.run([
                 sys.executable, "-m", "sphinx", "-b", "html", "-W", "--keep-going",
                 "-D", "html_theme_path=" + str(frontend / "_themes"),
@@ -179,6 +222,7 @@ def build(sources, output, site_root):
             **definitions[channel], "commit": revision, "url": base_url, "documents": documents,
         }
     write_catalogue(output, catalogue)
+    check_gallery_navigation(output, catalogue["versions"]["model_gallery"])
     deduplicate_legacy_json(output, catalogue)
     write_preview_redirects(output, catalogue)
     size = sum(path.stat().st_size for path in output.rglob('*') if path.is_file())

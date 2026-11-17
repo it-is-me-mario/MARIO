@@ -24,5 +24,12 @@ used in its study.
 
 .. toctree::
    :hidden:
+   :caption: Models
 
    models/pv-hlca
+
+.. toctree::
+   :hidden:
+
+   user_guide/index
+   resources/index
