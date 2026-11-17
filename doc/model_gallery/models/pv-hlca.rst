@@ -50,38 +50,19 @@ Open a project in Python and run the central case.
    db = model.build()
    tables = model.results(db, write=True)
 
-See the `PV-HLCA API reference`_ for methods, configuration and result tables.
+See the :doc:`PV-HLCA API reference <../api_document/pv_hlca.project.Project>`
+for methods, configuration and result tables.
 
 The first data download is about 255 MB. To use an existing copy of the same
 Parquet files, point ``data.path`` in ``pv-study/config.yaml`` to their directory.
 The first build prepares the regional database and inserts the PV inventories.
 Subsequent builds in the same session can reuse that preparation.
 
-Install through MARIO
-~~~~~~~~~~~~~~~~~~~~~
+.. _install-through-mario:
 
-To install a research model from a current MARIO source checkout, pass its
-catalogue identifier to ``mario.models.install()``. The example below uses
-``pv-hlca``.
-
-.. code-block:: python
-
-   import mario
-
-   commit = mario.models.install("pv-hlca")
-
-The installer returns the selected commit SHA and keeps your MARIO version
-fixed. Pass ``ref="branch-name"`` to try a development branch. You can also pass
-a tag or full commit SHA.
-
-Start a new Python session after installing or changing the model revision.
-Open the project, then use the data download and build steps above.
-
-.. code-block:: python
-
-   import mario
-
-   model = mario.model_setup("pv-hlca", workspace="./pv-study")
+If you run MARIO from its current source, see :doc:`Research model setups
+<../user_guide/configuration/model_setups>` for the installation and workspace
+commands.
 
 Change an assumption
 --------------------

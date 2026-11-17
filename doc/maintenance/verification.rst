@@ -50,8 +50,11 @@ Check the Latest/Dev selector and retired Preview redirects, including query
 strings and anchors. A page only present in Dev must redirect there. Verify that
 Latest documents the released package and that both channels use the shared theme.
 Open the Model Gallery from a guide in both Latest and Dev. From a model page,
-verify that Latest and Dev return to their home pages. Check the selector with
-JavaScript disabled and verify the model's publication, data and setup links.
+verify that selecting Latest or Dev opens the corresponding home page. Exercise
+Docs, Configuration, Teaching and the model API reference before switching.
+The publisher checks that same-site links and assets throughout the gallery
+resolve there, except for links in the version selector. Verify the legacy Configuration
+redirect, the shared resource images and the model's publication and data links.
 
 Build with warnings treated as errors, then check the built guides::
 

@@ -17,16 +17,14 @@
       <span>MARIO</span>
     </a>
     <nav class="mario-nav" aria-label="Main">
-      {%- if mario_versions is defined %}
+      {%- if mario_versions is defined and mario_versions.current != 'model_gallery' %}
         {%- import "partials/site-navigation.html" as navigation with context %}
         {%- for key, label, url, children in navigation.groups %}
           {%- set local = mario.nav | selectattr('key', 'equalto', key) | first | default({}) %}
-          {%- set active = local.active or (key == 'resources' and mario_versions.current == 'model_gallery') %}
-          {%- call(links) menu(key, label, url, children, active) %}
+          {%- call(links) menu(key, label, url, children, local.active) %}
             {%- for child_label, child_url in links %}
               {%- set tab = local.children | default([]) | selectattr('label', 'equalto', child_label) | first | default({}) %}
-              {%- set gallery_page = child_url == navigation.gallery_url and mario_versions.current == 'model_gallery' %}
-              <li><a href="{{ child_url }}"{% if tab.exact or child_url == pageurl %} aria-current="page"{% elif tab.active or gallery_page %} aria-current="true"{% endif %}>{{ child_label }}</a></li>
+              <li><a href="{{ child_url }}"{% if tab.exact or child_url == pageurl %} aria-current="page"{% elif tab.active %} aria-current="true"{% endif %}>{{ child_label }}</a></li>
             {%- endfor %}
           {%- endcall %}
         {%- endfor %}
