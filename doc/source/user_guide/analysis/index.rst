@@ -38,18 +38,8 @@ analysis; MARIO resolves their dependencies.
    * - Plot a matrix or a prepared result
      - :doc:`Visualize results <../inspection/visualization>`
 
-Worked examples
----------------
-
-The :doc:`Examples <../examples/index>` collection connects these operations
-in complete analyses:
-
-* :doc:`Trace a supply chain <../advanced/supply_chain_analyses>` through
-  structural indicators, bilateral trade and embodied impacts.
-* :doc:`Find structural paths <../advanced/structural_path_analysis>` from
-  final demand to an environmental impact.
-* :doc:`Compare GHG footprints across databases <../examples/compare_ghg>`
-  with explicit source versions, characterization and unit harmonization.
+Follow complete GHG footprint and supply-chain workflows on the
+`MARIO Tutorials site`_.
 
 For numerical methods, memory use and solver selection, see
 :doc:`Computation settings <../advanced/compute_settings>`.

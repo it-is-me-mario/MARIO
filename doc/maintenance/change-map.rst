@@ -52,11 +52,13 @@ Page ownership
        ``inspection/custom_labels_and_aliases.rst`` under ``user_guide/``
      - Settings API, install guidance and affected database guides
    * - Complete analyses
-     - ``user_guide/examples/index.rst`` and linked case pages
-     - Topic guide, notebook, scientific assumptions and figure captions
+     - Tutorials site
+     - Topic guide, notebook, scientific assumptions and figure captions.
+       ``tutorial_redirects`` in ``doc/source/conf.py`` preserves the old MARIO URLs.
    * - Installable research models
-     - ``user_guide/configuration/model_setups.rst`` and ``reference/api_model_methods.rst``
-     - Model repository guide, install catalogue, workspace and data provenance
+     - Model Gallery for the workflow. ``reference/api_model_methods.rst`` for the API.
+     - Model repository guide, install catalogue, workspace and data provenance.
+       Keep a redirect for the former configuration guide.
    * - API reference
      - ``api_document/`` for individual symbols; ``reference/`` for indexes
      - Implementation docstrings, task guide and public-symbol coverage tests
@@ -80,7 +82,12 @@ both documentation versions and opens their homes when leaving the gallery.
 The selector is a body-level floating control in the bottom-right corner,
 included by the layout footer. Keep it outside the animated header so scrolling
 cannot change its fixed positioning. Tutorials and Explorer import the same
-partial and assets through their pinned shared theme.
+partial and assets through their pinned shared theme. The theme's
+``partials/site-navigation.html`` owns the deployed header links and labels
+across MARIO, Tutorials and Explorer. Change the consumer theme pins with the
+header, and compare Latest and Dev across all three sites. Documentation
+version switching stays within the current site. The native Model Gallery link
+is shared even when a consumer catalogue only inventories Latest and Dev.
 
 The ``preview`` channel publishes a complete source checkout under
 ``/en/preview/``. It owns the proposed design independently of Latest and Dev.

@@ -25,7 +25,6 @@ html_copy_source = False
 site = os.environ.get("MARIO_DOCS_SITE_ROOT", "https://www.marioproject.com").rstrip("/")
 latest = f"{site}/en/latest/"
 rst_epilog = f"""
-.. _MARIO model setup guide: {latest}user_guide/configuration/model_setups.html
 .. _PV-HLCA API reference: {latest}api_document/pv_hlca.project.Project.html
 """
 

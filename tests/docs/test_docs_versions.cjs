@@ -60,6 +60,17 @@ test('Model Gallery opens its index even when both sections have a page with the
   assert.equal(gallery.href, url + 'guide/page.html#shared');
 });
 
+test('independent sites keep the native Gallery link and still resolve version targets', () => {
+  const url = 'https://www.marioproject.com/en/model_gallery/';
+  const gallery = {dataset: {docsVersion: 'model_gallery'}, href: url};
+  const dev = {dataset: {docsVersion: 'dev'}};
+  const menu = {dataset: {document: 'guide/page', channel: 'latest'},
+    querySelectorAll: () => [gallery, dev]};
+  updateLinks(menu, catalogue, {hash: '#shared'});
+  assert.equal(gallery.href, url);
+  assert.equal(dev.href, catalogue.versions.dev.url + 'guide/page.html#shared');
+});
+
 test('version targets follow anchors selected after the page loads', async () => {
   const links = ['latest', 'dev'].map(key => ({dataset: {docsVersion: key}}));
   const events = {};

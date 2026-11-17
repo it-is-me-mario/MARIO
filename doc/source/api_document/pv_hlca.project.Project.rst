@@ -5,8 +5,7 @@ The PV-HLCA project API prepares a photovoltaic supply chain model, applies
 the study scenarios and returns its environmental and economic indicators.
 Instantiate ``Project`` directly with released versions of ``mariopy``.
 Use :func:`mario.model_setup` with a MARIO source build. The
-:doc:`research model setup guide <../user_guide/configuration/model_setups>`
-covers installation and the first run.
+`PV-HLCA guide in the Model Gallery`_ covers installation and the first run.
 
 .. py:class:: pv_hlca.project.Project(workspace, *, cache_dir=None)
 

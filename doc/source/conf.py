@@ -108,6 +108,10 @@ _site_channel_path = _docs_channel + "/" if _docs_channel == "dev" else ""
 _explorer_url = "https://explorer.marioproject.com/" + _site_channel_path
 _tutorials_url = "https://tutorials.marioproject.com/" + _site_channel_path
 
+_site_root = os.environ.get("MARIO_DOCS_SITE_ROOT", "https://www.marioproject.com").rstrip("/")
+_pv_hlca_guide = _site_root + "/en/model_gallery/models/pv-hlca.html"
+rst_epilog += f"\n.. _PV-HLCA guide in the Model Gallery: {_pv_hlca_guide}\n"
+
 
 # -- General configuration ---------------------------------------------------
 
@@ -308,7 +312,8 @@ mario_site = {
                         "notebooks/parsers/"
                     ],
                     "pages": [
-                        "user_guide/advanced/database_profiles"
+                        "user_guide/advanced/database_profiles",
+                        "user_guide/examples/bonsai"
                     ],
                     "toc": {
                         "doc": "user_guide/parsers/index",
@@ -339,7 +344,10 @@ mario_site = {
                     ],
                     "pages": [
                         "user_guide/inspection/compute_matrices",
-                        "user_guide/inspection/visualization"
+                        "user_guide/inspection/visualization",
+                        "user_guide/examples/compare_ghg",
+                        "user_guide/advanced/supply_chain_analyses",
+                        "user_guide/advanced/structural_path_analysis"
                     ],
                     "toc": {
                         "doc": "user_guide/analysis/index"
@@ -378,23 +386,6 @@ mario_site = {
                         "doc": "user_guide/configuration/index"
                     },
                     "summary": "Choose computation settings and customize your Python session."
-                },
-                {
-                    "key": "examples",
-                    "icon": "paths",
-                    "label": "Examples",
-                    "doc": "user_guide/examples/index",
-                    "prefixes": [
-                        "user_guide/examples/"
-                    ],
-                    "pages": [
-                        "user_guide/advanced/supply_chain_analyses",
-                        "user_guide/advanced/structural_path_analysis"
-                    ],
-                    "toc": {
-                        "doc": "user_guide/examples/index"
-                    },
-                    "summary": "Follow complete analyses with downloadable notebooks."
                 },
                 {
                     "key": "api",
@@ -491,6 +482,13 @@ mario_site = {
         "resources/data-explorer": "resources/data-explorer/scope",
         "resources/data-explorer/browsers": "resources/data-explorer/compare",
         "resources/changelog": "changelog",
+        "user_guide/configuration/model_setups": {
+            "target": _pv_hlca_guide + "#install-and-run",
+            "anchors": {
+                "install-pv-hlca": _pv_hlca_guide + "#install-through-mario",
+                "build-a-project": _pv_hlca_guide + "#install-and-run",
+            },
+        },
     },
 }
 
@@ -504,3 +502,14 @@ mario_site["external_pages"] = {
     "resources/data-explorer/" + name: _explorer_url + "resources/data-explorer/" + name + ".html"
     for name in ("scope", "compare", "analyses", "electricity_carbon_footprint", "economy_emissions")
 }
+
+# Tutorials now host these worked analyses. Keep the original guide and
+# notebook sources so published downloads and source attribution remain valid.
+mario_site["tutorial_redirects"] = {
+    "user_guide/examples/index": _tutorials_url,
+    "user_guide/examples/bonsai": _tutorials_url + "bonsai-ghg/#import-and-inspect",
+    "user_guide/examples/compare_ghg": _tutorials_url + "compare-ghg-footprints/",
+    "user_guide/advanced/supply_chain_analyses": _tutorials_url + "trace-supply-chains/#nickel",
+    "user_guide/advanced/structural_path_analysis": _tutorials_url + "trace-supply-chains/#motor-vehicles",
+}
+rst_epilog += f"\n.. _MARIO Tutorials site: {_tutorials_url}\n"
