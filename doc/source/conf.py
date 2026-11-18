@@ -113,7 +113,7 @@ _site_root = os.environ.get("MARIO_DOCS_SITE_ROOT", "https://www.marioproject.co
 _gallery_root = _site_root + "/en/model_gallery/"
 _pv_hlca_guide = _gallery_root + "models/pv-hlca.html"
 _model_setup_guide = _gallery_root + "user_guide/configuration/model_setups.html"
-rst_epilog += f"\n.. _Research model setups: {_model_setup_guide}\n"
+rst_epilog += f"\n.. _Setup a model from the gallery: {_model_setup_guide}\n"
 rst_epilog += f"\n.. _PV-HLCA guide in the Model Gallery: {_pv_hlca_guide}\n"
 
 

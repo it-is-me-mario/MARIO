@@ -74,8 +74,10 @@ the selector and development notice. Review the installation page and hero comma
 so Dev installs its recorded source revision. The cross-version catalogue is
 generated from published HTML routes and anchors. Changing a source branch also
 requires reviewing the workflow's push and completed-build triggers.
-Model Gallery opens at ``/en/model_gallery/`` and inherits the approved
-Latest pages and navigation. The publisher adds the source and navigation
+The Model Gallery channel keeps the MARIO homepage at
+``/en/model_gallery/`` and inherits the approved Latest pages and navigation.
+**Resources → Model Gallery** opens
+``/en/model_gallery/models/index.html``. The publisher adds the source and navigation
 in ``doc/model_gallery/`` to a staged copy of Latest. Keep the published study and background edition on
 the model page. The MARIO API reference documents the installed project
 interfaces. Review the PV-HLCA reference against the model repository when

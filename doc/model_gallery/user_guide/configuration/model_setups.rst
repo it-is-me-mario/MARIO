@@ -1,11 +1,15 @@
 :page-type: Guide
-:summary: Install a catalogued research model and open its project workspace.
+:summary: Install a model from the Gallery and open it as a MARIO project.
 
-Research model setups
-=====================
+.. _research-model-setups:
 
-Each research model has its own repository, inputs and results. Install the
-model package, then open a project in a workspace where you can edit its inputs.
+Setup a model from the gallery
+==============================
+
+Models in the :doc:`Model Gallery <../../models/index>` are built with MARIO
+and distributed from their own repositories. Install one and open it as a
+project in your Python session. Each project has a workspace where you can
+edit its inputs.
 
 Install a model
 ---------------

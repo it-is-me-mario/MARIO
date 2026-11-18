@@ -4,8 +4,11 @@
 Model Gallery
 =============
 
-EXIOBASE Hybrid
----------------
+To install a model and open a project, see
+:doc:`Setup a model from the gallery <../user_guide/configuration/model_setups>`.
+
+Models relying on Exiobase Hybrid
+---------------------------------
 
 EXIOBASE Hybrid combines physical and monetary units in a multiregional
 supply and use table. The model page identifies the edition and extensions
@@ -13,7 +16,7 @@ used in its study.
 
 .. mario-cards::
 
-   .. mario-card:: :doc:`PV-HLCA · Photovoltaic supply chains <models/pv-hlca>`
+   .. mario-card:: :doc:`PV-HLCA · Photovoltaic supply chains <pv-hlca>`
       :icon: chart
       :wide:
 
@@ -24,18 +27,5 @@ used in its study.
 
 .. toctree::
    :hidden:
-   :caption: Models
 
-   models/pv-hlca
-
-.. toctree::
-   :hidden:
-
-   get_started/index
-   get_started/table_formats
-   get_started/scenarios
-   user_guide/index
-   user_guide/configuration/model_setups
-   resources/index
-   resources/database_coverage
-   resources/data-explorer/scope
+   pv-hlca

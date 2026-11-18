@@ -166,7 +166,7 @@ def stage_gallery(publisher, latest, workspace):
     (workspace / "mario").symlink_to(latest / "mario", target_is_directory=True)
     shutil.copy2(latest / "CHANGELOG.rst", workspace / "CHANGELOG.rst")
     shutil.copy2(publisher / "doc/versions.json", staged.parent / "versions.json")
-    for relative in ("index.rst", "models", "resources/index.rst",
+    for relative in ("models", "resources/index.rst",
                      "user_guide/configuration/model_setups.rst", "_static/model-gallery.css"):
         source = gallery / relative
         if source.is_dir():
@@ -174,11 +174,14 @@ def stage_gallery(publisher, latest, workspace):
         else:
             shutil.copy2(source, staged / relative)
 
+    with (staged / "index.rst").open("a") as stream:
+        stream.write("\n.. toctree::\n   :hidden:\n\n   models/index\n   resources/index\n")
     setup = staged / "user_guide/configuration/index.rst"
     with setup.open("a") as stream:
         stream.write(
-            "\nResearch models\n---------------\n\n"
-            "See :doc:`model_setups` to install a research model and open its workspace.\n"
+            "\nModels from the Gallery\n-----------------------\n\n"
+            "See :doc:`model_setups` to install a model from its own repository and open a project.\n"
+            "\n.. toctree::\n   :hidden:\n\n   model_setups\n"
         )
     with (staged / "conf.py").open("a") as stream:
         stream.write(f"\nrun_path({str(gallery / 'conf.py')!r})['configure'](globals())\n")

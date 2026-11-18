@@ -15,29 +15,26 @@ def gallery_link(url):
 def configure(config):
     site = config["mario_site"]
     config["html_css_files"].append("model-gallery.css")
-    site["home_hero"] = {
-        "title": "Model Gallery",
-        "text": "Research models built with MARIO.",
-    }
+    for action in site["home_hero"].get("actions", []):
+        if "url" in action:
+            action["url"] = gallery_link(action["url"])
     sections = {section["key"]: section for section in site["sections"]}
-    setup = config["_gallery_root"] + "user_guide/configuration/model_setups.html"
-    sections["get_started"]["tabs"].extend([
-        {"label": "Install a model", "doc": setup + "#install-a-model"},
-        {"label": "Open a project", "doc": setup + "#open-a-project"},
-    ])
-    docs = sections["docs"]
-    docs["prefixes"].append("models/")
-    docs["tabs"].append({
+    site["sections"].append({
         "key": "models",
-        "label": "Model guides",
-        "doc": "index",
+        "label": "Model Gallery",
+        "landing": "models/index",
         "prefixes": ["models/"],
-        "toc": {"doc": "index", "caption": "Models", "max_depth": 1},
-        "summary": "Browse research models, their data and published studies.",
+        "navigation": False,
+        "navigation_style": "sidebar",
+        "sidebar_label": "Model Gallery",
+        "breadcrumb_label": "Model Gallery",
+        "tabs": [{"key": "pv-hlca", "label": "PV-HLCA", "doc": "models/pv-hlca"}],
     })
     resources = sections["resources"]
     resources["landing"] = "resources/index"
-    resources["tabs"].insert(1, {"label": "Model Gallery", "doc": "index"})
+    resources["tabs"].insert(1, {
+        "label": "Model Gallery", "doc": "models/index", "prefixes": ["models/"],
+    })
     site["redirects"].pop("user_guide/configuration/model_setups", None)
 
     for section in sections.values():

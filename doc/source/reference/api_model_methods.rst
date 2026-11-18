@@ -1,7 +1,7 @@
 Research models
 ===============
 
-See `Research model setups`_ to install a model and open a workspace. The
+See `Setup a model from the gallery`_ to install a model and open a workspace. The
 `PV-HLCA guide in the Model Gallery`_ covers its data, scenarios and results.
 The MARIO installation and setup functions are available in source builds.
 The PV-HLCA project class works with compatible releases of ``mariopy``.

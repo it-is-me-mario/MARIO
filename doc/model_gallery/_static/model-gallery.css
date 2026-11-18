@@ -1,14 +1,4 @@
-/* Keep the database groups and model summaries within a comfortable line length. */
-.mario-shell--home .mario-content {
-  width: 100%;
-  max-width: 60rem;
-  margin-inline: auto;
-  padding-block-start: clamp(1.5rem, 3.5vw, 3rem);
-}
-.mario-shell--home .mario-body > section > p {
-  max-width: 66ch;
-}
-.mario-shell--home .mario-card__body p:last-child {
+[data-section="models"] .mario-card__body p:last-child {
   color: var(--ink-muted);
   font-size: .9rem;
 }

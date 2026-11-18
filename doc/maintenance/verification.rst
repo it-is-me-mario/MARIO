@@ -51,9 +51,12 @@ strings and anchors. A page only present in Dev must redirect there. Verify that
 Latest documents the released package and that both channels use the shared theme.
 Check that Latest and Dev render the header from their source configuration.
 Check that Dev and Model Gallery contain the approved Latest pages, except
-where a source change explicitly removes one. In Model Gallery, the Docs
-menu includes the approved library topics and Model guides. Check both menus
-from the Gallery and from Tutorials and Explorer with Model Gallery selected.
+where a source change explicitly removes one. In Model Gallery, Docs and Get
+started keep the approved menus from Latest. Check both menus from the
+Gallery and from Tutorials and Explorer with Model Gallery selected.
+Check that the MARIO logo still opens the MARIO homepage in this channel.
+Open the model catalogue from Resources and check its link to the model page.
+From Docs → Configuration, open Setup a model from the gallery in the topic sidebar.
 Select Model Gallery from a page shared with Latest or Dev and check that the
 corresponding page and anchor open. On a library page without a counterpart,
 verify that the current page stays open with Model Gallery selected. From a

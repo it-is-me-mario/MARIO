@@ -1,7 +1,7 @@
 {%- from "partials/icons.html" import icon %}
-{%- set destinations = namespace(explorer='', resources=[]) %}
+{%- set destinations = namespace(explorer=[], resources=[]) %}
 {%- for area in mario.nav %}
-  {%- if area.key == 'explorer' %}{% set destinations.explorer = area.url %}{% endif %}
+  {%- if area.key == 'explorer' %}{% set destinations.explorer = area.children %}{% endif %}
   {%- if area.key == 'resources' %}{% set destinations.resources = area.children %}{% endif %}
 {%- endfor %}
 <section class="mario-pathways" aria-label="Explore MARIO">
@@ -12,9 +12,12 @@
       <p class="mario-pathway__intro">Explore economies, emissions and trade across countries, sectors and years.</p>
       <nav aria-label="Database explorer">
         <ul class="mario-pathway__links">
-          <li><a href="{{ destinations.explorer }}resources/data-explorer/compare.html">Explore indicators {{ icon("next") }}</a></li>
-          <li><a href="{{ destinations.explorer }}resources/data-explorer/scope.html">Compare classifications {{ icon("next") }}</a></li>
-          <li><a href="{{ destinations.explorer }}resources/data-explorer/analyses.html">Read analyses {{ icon("next") }}</a></li>
+          {%- for tab, label in [('Indicators', 'Explore indicators'), ('Classifications', 'Compare classifications'), ('Analyses', 'Read analyses')] %}
+            {%- set item = destinations.explorer | selectattr('label', 'equalto', tab) | first | default(none) %}
+            {%- if item %}
+          <li><a href="{{ item.url }}">{{ label }} {{ icon("next") }}</a></li>
+            {%- endif %}
+          {%- endfor %}
         </ul>
       </nav>
     </section>
@@ -37,7 +40,7 @@
       <p class="mario-pathway__intro">Find tutorials, teaching material and research built with MARIO.</p>
       <nav aria-label="Resources">
         <ul class="mario-pathway__links">
-          {%- for item in destinations.resources %}
+          {%- for item in destinations.resources if item.label != 'Model Gallery' %}
           <li><a href="{{ item.url }}">{{ item.label }} {{ icon("next") }}</a></li>
           {%- endfor %}
         </ul>

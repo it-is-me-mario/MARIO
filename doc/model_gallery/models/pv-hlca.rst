@@ -60,7 +60,7 @@ Subsequent builds in the same session can reuse that preparation.
 
 .. _install-through-mario:
 
-If you run MARIO from its current source, see :doc:`Research model setups
+If you run MARIO from its current source, see :doc:`Setup a model from the gallery
 <../user_guide/configuration/model_setups>` for the installation and workspace
 commands.
 
