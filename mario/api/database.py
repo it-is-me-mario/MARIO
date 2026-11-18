@@ -1294,6 +1294,7 @@ class Database(CoreModel):
         *,
         imports_by=None,
         import_representation="factor-accounts",
+        trade_mode=None,
     ):
         """Keep one explicit region subset and externalize the remaining regions.
 
@@ -1330,6 +1331,8 @@ class Database(CoreModel):
             ``"factor-accounts"`` stores external imports with factors.
             ``"separate"`` creates native import blocks and requires exactly
             one retained region. Inspect the choices with ``configuration``.
+        trade_mode:
+            Compatibility alias for ``trade_resolution``.
 
         Returns
         -------
@@ -1373,6 +1376,11 @@ class Database(CoreModel):
                 trade_resolution="by_region",
             )
         """
+        if trade_mode is not None:
+            if trade_resolution not in ("aggregate", trade_mode):
+                raise WrongInput("trade_mode and trade_resolution must agree.")
+            trade_resolution = trade_mode
+
         from mario.model.configuration import validate_import_representation
         validate_import_representation(import_representation)
         if import_representation == "separate":
@@ -1480,6 +1488,7 @@ class Database(CoreModel):
         *,
         imports_by=None,
         import_representation="factor-accounts",
+        trade_mode=None,
     ):
         """Extract one region from a multi-regional database.
 
@@ -1506,6 +1515,8 @@ class Database(CoreModel):
             ``"factor-accounts"`` (default) includes imports in factors.
             ``"separate"`` creates ``IMP`` / ``IMP_Y`` for IOTs or
             ``IMP_a`` / ``IMP_c`` / ``IMP_Y`` for SUTs.
+        trade_mode:
+            Compatibility alias for ``trade_resolution``.
 
         Returns
         -------
@@ -1525,6 +1536,7 @@ class Database(CoreModel):
             externalized_trade_layout=externalized_trade_layout,
             imports_by=imports_by,
             import_representation=import_representation,
+            trade_mode=trade_mode,
         )
 
     def _adopt_accounting_state(self, staged):

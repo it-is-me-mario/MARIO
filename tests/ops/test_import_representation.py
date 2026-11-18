@@ -17,7 +17,8 @@ from tests.ops.test_sut_region_subset import database as sut
 def test_external_trade_keyword_is_trade_resolution(method):
     parameters = inspect.signature(getattr(mario.Database, method)).parameters
     assert parameters["trade_resolution"].default == "aggregate"
-    assert "trade_mode" not in parameters
+    assert parameters["trade_mode"].kind == inspect.Parameter.KEYWORD_ONLY
+    assert parameters["trade_mode"].default is None
 
 
 @pytest.mark.parametrize("table,by", [("IOT", "sector"), ("SUT", "commodity")])

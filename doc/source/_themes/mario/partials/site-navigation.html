@@ -1,0 +1,38 @@
+{#- Shared header destinations for MARIO, Tutorials and Database Explorer. -#}
+{%- set channel = 'dev' if mario_versions.current == 'dev' else 'latest' %}
+{%- set library = 'https://www.marioproject.com/en/' ~ channel ~ '/' %}
+{%- if mario.home_url.startswith(('https://', 'http://')) %}
+  {%- set library = mario.home_url %}
+{%- else %}
+  {%- set library = mario_versions.choices | selectattr('key', 'equalto', channel) | map(attribute='url') | first %}
+{%- endif %}
+{%- set suffix = 'dev/' if channel == 'dev' else '' %}
+{%- set explorer = 'https://explorer.marioproject.com/' ~ suffix %}
+{%- set tutorials = 'https://tutorials.marioproject.com/' ~ suffix %}
+{%- set explorer_pages = explorer ~ 'resources/data-explorer/' %}
+{%- set groups = [
+  ('get_started', 'Get started', library ~ 'get_started/index.html', [
+    ('Installation', library ~ 'get_started/index.html'),
+    ('Table formats', library ~ 'get_started/table_formats.html'),
+    ('Scenarios', library ~ 'get_started/scenarios.html'),
+  ]),
+  ('docs', 'Docs', library ~ 'user_guide/index.html', [
+    ('Data sources', library ~ 'user_guide/parsers/index.html'),
+    ('Working with a database', library ~ 'user_guide/inspection/index.html'),
+    ('Calculations and analysis', library ~ 'user_guide/analysis/index.html'),
+    ('Transformations and scenarios', library ~ 'user_guide/transformations/index.html'),
+    ('Configuration', library ~ 'user_guide/configuration/index.html'),
+    ('API reference', library ~ 'reference/api_library.html'),
+  ]),
+  ('explorer', 'Explorer', explorer, [
+    ('Indicators', explorer_pages ~ 'compare.html'),
+    ('Classifications', explorer_pages ~ 'scope.html'),
+    ('Analyses', explorer_pages ~ 'analyses.html'),
+  ]),
+  ('resources', 'Resources', tutorials, [
+    ('Tutorials', tutorials),
+    ('Teaching', library ~ 'resources/teaching.html'),
+    ('Projects & Publications', library ~ 'resources/projects_publications.html'),
+    ('Downloadable material', library ~ 'resources/material.html'),
+  ]),
+] %}

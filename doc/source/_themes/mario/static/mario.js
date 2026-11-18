@@ -32,6 +32,7 @@
   /* ------------------------------------------------------------ theme */
 
   function effectiveTheme() {
+    if (window.MarioTheme) return window.MarioTheme.current();
     if (root.dataset.theme === "light" || root.dataset.theme === "dark") {
       return root.dataset.theme;
     }
@@ -42,8 +43,12 @@
     document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
       button.addEventListener("click", () => {
         const next = effectiveTheme() === "dark" ? "light" : "dark";
-        root.dataset.theme = next;
-        storage.set("mario-theme", next);
+        if (window.MarioTheme) {
+          window.MarioTheme.set(next);
+        } else {
+          root.dataset.theme = next;
+          storage.set("mario-theme", next);
+        }
       });
     });
   }

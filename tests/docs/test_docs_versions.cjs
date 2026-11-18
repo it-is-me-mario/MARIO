@@ -41,6 +41,36 @@ test('malformed URL fragments retain valid page links', () => {
   ]);
 });
 
+test('Model Gallery opens its index even when both sections have a page with the same name', () => {
+  const url = 'https://www.marioproject.com/en/model_gallery/';
+  const versions = {...catalogue.versions, model_gallery: {
+    url, kind: 'gallery', documents: {'guide/page': ['shared']},
+  }};
+  const gallery = {dataset: {docsVersion: 'model_gallery'}};
+  const latest = {dataset: {docsVersion: 'latest'}};
+  const menu = {dataset: {document: 'guide/page', channel: 'latest'},
+    querySelectorAll: () => [gallery, latest]};
+  updateLinks(menu, {versions}, {hash: '#shared'});
+  assert.equal(gallery.href, url);
+  assert.equal(latest.href, versions.latest.url + 'guide/page.html#shared');
+
+  menu.dataset.channel = 'model_gallery';
+  updateLinks(menu, {versions}, {hash: '#shared'});
+  assert.equal(latest.href, versions.latest.url);
+  assert.equal(gallery.href, url + 'guide/page.html#shared');
+});
+
+test('independent sites keep the native Gallery link and still resolve version targets', () => {
+  const url = 'https://www.marioproject.com/en/model_gallery/';
+  const gallery = {dataset: {docsVersion: 'model_gallery'}, href: url};
+  const dev = {dataset: {docsVersion: 'dev'}};
+  const menu = {dataset: {document: 'guide/page', channel: 'latest'},
+    querySelectorAll: () => [gallery, dev]};
+  updateLinks(menu, catalogue, {hash: '#shared'});
+  assert.equal(gallery.href, url);
+  assert.equal(dev.href, catalogue.versions.dev.url + 'guide/page.html#shared');
+});
+
 test('version targets follow anchors selected after the page loads', async () => {
   const links = ['latest', 'dev'].map(key => ({dataset: {docsVersion: key}}));
   const events = {};

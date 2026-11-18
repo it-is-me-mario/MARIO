@@ -8,13 +8,19 @@ package on PyPI, and dates are its publication dates.
 Unreleased
 ----------
 
+* Add ``mario.model_setup()`` for research models maintained in their own
+  repositories and ``mario.models.install()`` for catalogued releases and refs.
+
+v1.3.5
+------
+
 External trade resolution
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* Rename ``trade_mode`` to ``trade_resolution`` in ``to_single_region()`` and
-  ``to_region_subset()``. Use ``"aggregate"`` for aggregated foreign partners
-  or ``"by_region"`` for explicit import origins and export partners.
-  Update callers to the new keyword.
+* Add ``trade_resolution`` to ``to_single_region()`` and ``to_region_subset()``.
+  Use ``"aggregate"`` for aggregated foreign partners or ``"by_region"`` for
+  explicit import origins and export partners. Existing calls using
+  ``trade_mode`` continue to work.
 * Expose ``trade_resolution`` in ``configuration`` and exported accounting
   metadata. Read saved configurations using the earlier ``import_origins`` key.
 * Add explicit import-representation, trade-resolution and import-classification

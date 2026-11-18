@@ -52,8 +52,14 @@ Page ownership
        ``inspection/custom_labels_and_aliases.rst`` under ``user_guide/``
      - Settings API, install guidance and affected database guides
    * - Complete analyses
-     - ``user_guide/examples/index.rst`` and linked case pages
-     - Topic guide, notebook, scientific assumptions and figure captions
+     - Tutorials site
+     - Topic guide, notebook, scientific assumptions and figure captions.
+       ``tutorial_redirects`` in ``doc/source/conf.py`` preserves the old MARIO URLs.
+   * - Installable research models
+     - Model Gallery's Configuration guide for the installation workflow,
+       with PV-HLCA as the example. Its model page owns the study workflow.
+     - Shared API reference under ``doc/source``, model repository guide,
+       install catalogue and workspace. Keep the old configuration URL as a redirect.
    * - API reference
      - ``api_document/`` for individual symbols; ``reference/`` for indexes
      - Implementation docstrings, task guide and public-symbol coverage tests
@@ -68,10 +74,38 @@ the selector and development notice. Review the installation page and hero comma
 so Dev installs its recorded source revision. The cross-version catalogue is
 generated from published HTML routes and anchors. Changing a source branch also
 requires reviewing the workflow's push and completed-build triggers.
+Model Gallery has its own Sphinx source under ``doc/model_gallery/`` and opens
+at ``/en/model_gallery/``. Keep the published study and background edition on
+the model page. The MARIO API reference documents the installed project
+interfaces. Review the PV-HLCA reference against the model repository when
+updating the pinned model revision. The gallery builds its model API pages,
+Teaching and Projects & Publications from the shared sources. Its header,
+footer and in-page documentation links remain in the gallery. The selector
+opens the gallery index from both documentation versions and opens their homes
+when leaving the gallery.
 The selector is a body-level floating control in the bottom-right corner,
 included by the layout footer. Keep it outside the animated header so scrolling
 cannot change its fixed positioning. Tutorials and Explorer import the same
-partial and assets through their pinned shared theme.
+partial and assets through their pinned shared theme. The theme's
+``partials/site-navigation.html`` supplies the harmonized links used by Tutorials
+and Explorer. The MARIO publisher uses the navigation from each channel's
+source configuration with the shared header layout. Choose another
+documentation channel through the selector. The selector has a Model Gallery
+link even when a consumer catalogue inventories only Latest and Dev.
+When changing the shared links, update the consumer theme pins.
+
+The ``preview`` channel publishes a complete source checkout under
+``/en/preview/``. It owns the proposed design independently of Latest and Dev.
+The publisher fills every native selector from the final channel catalogue,
+including older source themes. Preview links to Tutorials and Explorer must
+retain ``/preview/``. Publishing requires the ordinary main-branch workflow;
+changing the preview ref does not update the public site until that workflow runs.
+The publisher retains frozen legacy Explorer JSON at its canonical Latest URLs.
+Dev and Preview omit only large, byte-identical JSON copies that no rendered page
+references. Changed JSON, all linked files and classification workbooks remain
+local. ``legacy-data-manifest.json`` records the canonical URLs and checksums;
+an active legacy Explorer widget blocks this packaging step. This avoids
+triplicating historical data after the Explorer application moved to its own host.
 
 The independent tutorial site is maintained in the organization’s ``Tutorials``
 repository. Its catalogue selects canonical source repositories and its publisher

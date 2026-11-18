@@ -1,0 +1,42 @@
+[
+  {
+    "file": "ibm-plex-mono-normal-400-latin-ext.woff2",
+    "source": "https://fonts.gstatic.com/s/ibmplexmono/v23/-F63fjptAgt5VM-kVkqdyU8n1iEq131nj-otFQ.woff2",
+    "sha256": "e2318e4993a9cd4a2aad0eb1798c41d8bddec6ee7850f627e44653c15712a2b6"
+  },
+  {
+    "file": "ibm-plex-mono-normal-400-latin.woff2",
+    "source": "https://fonts.gstatic.com/s/ibmplexmono/v23/-F63fjptAgt5VM-kVkqdyU8n1i8q131nj-o.woff2",
+    "sha256": "52de70091213c9eab340e2a7ac59e7b6b2b94e089bf69ef38479b22cfde4274c"
+  },
+  {
+    "file": "ibm-plex-mono-normal-600-latin-ext.woff2",
+    "source": "https://fonts.gstatic.com/s/ibmplexmono/v23/-F6qfjptAgt5VM-kVkqdyU8n3vAOwl5FgsAXHNlYzg.woff2",
+    "sha256": "382bddd14c18b4909e61044933271060a09d536f1800c74c2005cf1d4b0d7b61"
+  },
+  {
+    "file": "ibm-plex-mono-normal-600-latin.woff2",
+    "source": "https://fonts.gstatic.com/s/ibmplexmono/v23/-F6qfjptAgt5VM-kVkqdyU8n3vAOwlBFgsAXHNk.woff2",
+    "sha256": "5b7716398b823c97f0553b4d0d45bdba9b8a6efe73c429d3fc1cbceadd64adb0"
+  },
+  {
+    "file": "ibm-plex-sans-italic-100-700-latin-ext.woff2",
+    "source": "https://fonts.gstatic.com/s/ibmplexsans/v23/zYXxKVElMYYaJe8bpLHnCwDKhdTEG46kmUZQCX598fQbGYrYAKRjdNS7Iw.woff2",
+    "sha256": "8e5c23cef16278755c741e7079994506495d44d102890a1842c564b941131ee6"
+  },
+  {
+    "file": "ibm-plex-sans-italic-100-700-latin.woff2",
+    "source": "https://fonts.gstatic.com/s/ibmplexsans/v23/zYXxKVElMYYaJe8bpLHnCwDKhdTEG46kmUZQCX598fQbGYTYAKRjdNQ.woff2",
+    "sha256": "add25efa61ce6904468e321727e4de5d875d8007f4eb00a777182a60a89142ef"
+  },
+  {
+    "file": "ibm-plex-sans-normal-100-700-latin-ext.woff2",
+    "source": "https://fonts.gstatic.com/s/ibmplexsans/v23/zYXzKVElMYYaJe8bpLHnCwDKr932-G7dytD-Dmu1syxQKYbSB4ZhRNU.woff2",
+    "sha256": "ae1d854fefa1167a79071f1afe01d4d51b60c5840c1be36dd74bd5fe7375b405"
+  },
+  {
+    "file": "ibm-plex-sans-normal-100-700-latin.woff2",
+    "source": "https://fonts.gstatic.com/s/ibmplexsans/v23/zYXzKVElMYYaJe8bpLHnCwDKr932-G7dytD-Dmu1syxeKYbSB4Zh.woff2",
+    "sha256": "056e4e2459f57a0033c8c9c844ff19d6e42ac8602027803d4345823bcc939818"
+  }
+]

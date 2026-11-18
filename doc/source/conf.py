@@ -24,6 +24,7 @@ sys.path.insert(0, os.path.abspath("../../.."))
 sys.path.insert(0, os.path.abspath("_ext"))
 
 import mario_bibstyles
+from mario_resources import TEACHING_CLOSING
 import nbsphinx
 
 try:
@@ -103,9 +104,17 @@ _development_install = (
     + _docs_revision + '"'
 )
 rst_epilog = "\n.. |mario_development_install| replace:: " + _development_install + "\n"
-_site_channel_path = "dev/" if os.environ.get("MARIO_DOCS_CHANNEL") == "dev" else ""
+_docs_channel = os.environ.get("MARIO_DOCS_CHANNEL", "latest")
+_site_channel_path = _docs_channel + "/" if _docs_channel == "dev" else ""
 _explorer_url = "https://explorer.marioproject.com/" + _site_channel_path
 _tutorials_url = "https://tutorials.marioproject.com/" + _site_channel_path
+
+_site_root = os.environ.get("MARIO_DOCS_SITE_ROOT", "https://www.marioproject.com").rstrip("/")
+_gallery_root = _site_root + "/en/model_gallery/"
+_pv_hlca_guide = _gallery_root + "models/pv-hlca.html"
+_model_setup_guide = _gallery_root + "user_guide/configuration/model_setups.html"
+rst_epilog += f"\n.. _Research model setups: {_model_setup_guide}\n"
+rst_epilog += f"\n.. _PV-HLCA guide in the Model Gallery: {_pv_hlca_guide}\n"
 
 
 # -- General configuration ---------------------------------------------------
@@ -244,7 +253,7 @@ _nomenclature_redirect = {
 mario_site = {
     "github": "https://github.com/it-is-me-mario/MARIO",
     "pypi": "https://pypi.org/project/mariopy/",
-    "install": _development_install if os.environ.get("MARIO_DOCS_CHANNEL") == "dev" else "pip install mariopy",
+    "install": "pip install mariopy",
     # Transparency notice on AI-assisted content (EU AI Act, Regulation (EU) 2024/1689), shown in every footer.
     "ai_notice": (
         "<strong>AI disclosure.</strong> This documentation and its database explorer were written and built "
@@ -252,14 +261,15 @@ mario_site = {
         'Spotted an error? <a href="https://github.com/it-is-me-mario/MARIO/issues">Tell us on GitHub Issues</a>.'
     ),
     "home_hero": {
-        "title": "Input-output analysis in <mark>Python</mark>",
+        "title": "Input-output analysis<br>in <mark>Python</mark>",
         "text": (
             "Work with input-output and supply-use tables, from reading a database "
             "to building scenarios and analysing impacts across regions and sectors."
         ),
         "install": True,
         "actions": [
-            {"label": "Get started", "doc": "get_started/index"},
+            {"label": "Start with MARIO", "doc": "get_started/index"},
+            {"label": "Explore indicators", "url": _explorer_url + "resources/data-explorer/compare.html"},
         ],
     },
     "sections": [
@@ -271,7 +281,7 @@ mario_site = {
             "landing": "get_started/index",
             "prefixes": ["get_started/"],
             "hero": {
-                "title": "<mark>Install</mark> and <mark>discover</mark> MARIO",
+                "title": "Get started with MARIO",
                 "text": "Install MARIO, understand your table's structure and work with scenarios.",
             },
             "tabs": [
@@ -285,17 +295,14 @@ mario_site = {
         {
             "key": "docs",
             "home_label": "Documentation",
-            "home_summary": "Find a guide for every step of your workflow.",
+            "home_summary": "Import data, calculate indicators and modify models.",
             "label": "Docs",
             "landing": "user_guide/index",
             "prefixes": ["user_guide/", "notebooks/", "reference/", "api_document/", "changelog"],
             "sidebar": True,
             "hero": {
-                "title": "Everything MARIO <mark>can do</mark>",
-                "text": (
-                    "Parse a database, inspect and transform it, run advanced workflows, "
-                    "look up every method in the API reference and see what changed in each release."
-                ),
+                "title": "Documentation",
+                "text": "Guides to importing data, calculating results and building scenarios, with the complete API reference.",
             },
             "navigation_style": "sidebar",
             "tabs": [
@@ -403,14 +410,14 @@ mario_site = {
         },
         {
             "key": "explorer",
-            "home_label": "Database explorer",
+            "home_label": "Explorer",
             "home_summary": "Compare database classifications and explore economic and environmental indicators.",
-            "label": "Database explorer",
+            "label": "Explorer",
             "landing": _explorer_url,
             "prefixes": ["resources/data-explorer/"],
             "tabs": [
                 {"label": "Classifications", "doc": _explorer_url + "resources/data-explorer/scope.html", "summary": "Compare geographical, sectoral and environmental coverage."},
-                {"label": "Compare databases", "doc": _explorer_url + "resources/data-explorer/compare.html", "summary": "Explore economic indicators, emissions and bilateral trade."},
+                {"label": "Indicators", "doc": _explorer_url + "resources/data-explorer/compare.html", "summary": "Explore economic indicators, emissions and bilateral trade."},
                 {"label": "Analyses", "doc": _explorer_url + "resources/data-explorer/analyses.html", "summary": "Read economic and electricity comparisons across databases."},
             ],
         },
@@ -422,7 +429,7 @@ mario_site = {
             "landing": _tutorials_url,
             "prefixes": ["resources/"],
             "hero": {
-                "title": "Everything <mark>around</mark> MARIO",
+                "title": "Resources",
                 "text": "Tutorials, teaching, projects and publications, and downloadable material.",
             },
             "tabs": [
@@ -437,20 +444,7 @@ mario_site = {
     "closings": {
         **{page: {"text": "Learn how to <mark>use</mark> these databases", "doc": "user_guide/parsers/index"}
            for page in ("resources/data-explorer/scope", "resources/data-explorer/compare")},
-        # Opens a contact dialog that drafts an email in the visitor's own mail app; nothing is sent by the site.
-        "resources/teaching": {
-            "text": "Would you be interested in a <mark>MARIO course</mark>? Let us know!",
-            "dialog": {
-                "title": "A MARIO course for you or your team",
-                "intro": (
-                    "We don't run scheduled courses yet, but if you or your team are interested "
-                    "in a course, we can work out the format together."
-                ),
-                "subject": "MARIO course enquiry",
-                # Split so no address appears whole in the page source.
-                "recipients": [("lorenzo.rinaldi", "polimi.it"), ("nicolo.golinucci", "enextgen.it")],
-            },
-        },
+        "resources/teaching": TEACHING_CLOSING,
     },
     # Pages moved or removed in the 2026 redesign keep working through redirect pages.
     "redirects": {
@@ -479,6 +473,13 @@ mario_site = {
         "resources/data-explorer": "resources/data-explorer/scope",
         "resources/data-explorer/browsers": "resources/data-explorer/compare",
         "resources/changelog": "changelog",
+        "user_guide/configuration/model_setups": {
+            "target": _model_setup_guide,
+            "anchors": {
+                "install-pv-hlca": _model_setup_guide + "#install-a-model",
+                "build-a-project": _model_setup_guide + "#open-a-project",
+            },
+        },
     },
 }
 

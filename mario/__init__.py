@@ -48,6 +48,7 @@ import pandas as pd
 
 from mario.version import __version__
 from mario.api import Database, CoreModel
+from mario.models import model_setup
 from mario.compute.primitives import (
     calc_u,
     calc_U,

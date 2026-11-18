@@ -60,8 +60,8 @@ Close software projects
 
       Python laboratory for convex optimisation models, built on cvxpy. MARIO
       uses it to solve the sector split in
-      :meth:`add_sectors <mario.Database.add_sectors>`, with more
-      integrations to come.
+      :meth:`add_sectors <mario.Database.add_sectors>` and can export model inputs
+      through :meth:`to_cvxlab <mario.Database.to_cvxlab>`.
 
       .. rst-class:: mario-link-pills
 
@@ -87,7 +87,7 @@ Publications
 ------------
 
 .. mario-publications::
-   :bib: ../publications/mario.bib
+   :bib: ../../source/publications/mario.bib
    :count:
    :code: Rinaldi2026=https://github.com/it-is-me-mario/pv-hlca-model
    :cite: Tahavori2023

@@ -18,8 +18,7 @@ preferences for its database; inspect the active settings after importing.
      - :doc:`Custom names and aliases <../inspection/custom_labels_and_aliases>`
 
 :doc:`Database profiles <../advanced/database_profiles>` describe the
-preferences bundled for a source. Active session settings are inspected
-separately. See the :doc:`settings API <../../reference/api_settings_methods>`
+preferences bundled for a source. See the :doc:`settings API <../../reference/api_settings_methods>`
 for all configuration functions.
 
 Provider credentials for electricity data are described beside the

@@ -32,7 +32,7 @@ fresh output directory::
    node --test tests/docs/test_docs_versions.cjs tests/docs/test_external_links.cjs
    python doc/scripts/build_versioned_docs.py --latest-source /path/to/latest --dev-source /path/to/dev --output /tmp/mario-versioned-docs
 
-Both Sphinx builds run with strict warnings and their own source's link/download
+All three Sphinx builds run with strict warnings and their own source's link/download
 checker. Check ``docs-versions.json`` against the checkout commits. In a browser,
 switch a common page and anchor, then a Dev-only page that falls back to the
 Latest home. Check native home links with scripts unavailable, Escape and narrow
@@ -46,6 +46,16 @@ Check the floating selector at the bottom-right before and after scrolling,
 including when the header hides, and at the page footer. Its menu opens upward,
 stays within a 320 px viewport and supports keyboard activation and Escape.
 Check both colour themes and verify that footer links remain accessible.
+Check the Latest/Dev selector and retired Preview redirects, including query
+strings and anchors. A page only present in Dev must redirect there. Verify that
+Latest documents the released package and that both channels use the shared theme.
+Check that Latest and Dev render the header from their source configuration.
+Open the Model Gallery via the version selector on both channels. From a model page,
+verify that selecting Latest or Dev opens the corresponding home page. Exercise
+Docs, Configuration, Teaching and the model API reference before switching.
+The publisher checks that same-site links and assets throughout the gallery
+resolve there, except for links in the version selector. Verify the legacy Configuration
+redirect, the shared resource images and the model's publication and data links.
 
 Build with warnings treated as errors, then check the built guides::
 
@@ -101,6 +111,10 @@ Example verification
   and conflicting source coordinates. Execute the companion with its
   downloaded settings workbook beside it. The split-model bridge has separate
   Excel/CSV integration checks in the add-sector tests.
+* For an installable model, install into an isolated environment and open the
+  workspace outside the source checkout. Check the pinned installation and a
+  development ref, fetch the declared data, and verify that the documented
+  YAML change and Python override give the same result.
 * Source-specific calls need the stated release, files and options. When those
   inputs are unavailable, check signatures and data requirements and explicitly
   report that full execution was not performed.

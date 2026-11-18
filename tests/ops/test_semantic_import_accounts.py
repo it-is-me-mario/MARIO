@@ -55,6 +55,15 @@ def iot(request):
     return db
 
 
+@pytest.mark.parametrize("method", ["to_region_subset", "to_single_region"])
+def test_legacy_trade_mode_keyword_preserves_partner_detail(iot, method):
+    extract = getattr(iot, method)
+    legacy = extract("IT", trade_mode="by_region_and_sector", inplace=False)
+    current = extract("IT", trade_resolution="by_region_and_sector", inplace=False)
+    assert legacy.configuration.trade_resolution == "by_region"
+    pd.testing.assert_frame_equal(legacy.V, current.V)
+
+
 @pytest.mark.parametrize("partners", [False, True])
 def test_iot_import_cells_and_empty_sector_factors(iot, partners):
     original = {name: dense(iot.query(name)) for name in ("Z", "Y", "V", "VY", "E", "EY")}
