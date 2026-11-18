@@ -50,11 +50,22 @@ Check the Latest/Dev selector and retired Preview redirects, including query
 strings and anchors. A page only present in Dev must redirect there. Verify that
 Latest documents the released package and that both channels use the shared theme.
 Check that Latest and Dev render the header from their source configuration.
-Open the Model Gallery via the version selector on both channels. From a model page,
-verify that selecting Latest or Dev opens the corresponding home page. Exercise
-Docs, Configuration, Teaching and the model API reference before switching.
+Check that Dev and Model Gallery contain the approved Latest pages, except
+where a source change explicitly removes one. In Model Gallery, the Docs
+menu includes the approved library topics and Model guides. Check both menus
+from the Gallery and from Tutorials and Explorer with Model Gallery selected.
+Select Model Gallery from a page shared with Latest or Dev and check that the
+corresponding page and anchor open. On a library page without a counterpart,
+verify that the current page stays open with Model Gallery selected. From a
+model page, verify that selecting Latest or Dev opens the corresponding home
+page. Exercise Docs, Configuration, Teaching and the model API reference
+before switching.
 The publisher checks that same-site links and assets throughout the gallery
-resolve there, except for links in the version selector. Verify the legacy Configuration
+resolve there, except for links in the version selector. From the Gallery,
+open Tutorials and Explorer, follow a link on each site, and return via Docs.
+Also select Model Gallery from an open tutorial and an Explorer view and check
+that the page, query and anchor are retained. Check that the selector remains
+on Gallery until the user chooses Latest or Dev. Verify the legacy Configuration
 redirect, the shared resource images and the model's publication and data links.
 
 Build with warnings treated as errors, then check the built guides::

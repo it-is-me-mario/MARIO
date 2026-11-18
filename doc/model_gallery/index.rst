@@ -31,5 +31,11 @@ used in its study.
 .. toctree::
    :hidden:
 
+   get_started/index
+   get_started/table_formats
+   get_started/scenarios
    user_guide/index
+   user_guide/configuration/model_setups
    resources/index
+   resources/database_coverage
+   resources/data-explorer/scope

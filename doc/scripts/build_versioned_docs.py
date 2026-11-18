@@ -19,11 +19,15 @@ class PageAnchors(HTMLParser):
     def __init__(self):
         super().__init__()
         self.ids = []
+        self.redirect = False
 
     def handle_starttag(self, tag, attrs):
-        value = dict(attrs).get("id")
+        values = dict(attrs)
+        value = values.get("id")
         if value:
             self.ids.append(value)
+        if tag == "meta" and values.get("http-equiv", "").lower() == "refresh":
+            self.redirect = True
 
 
 def write_catalogue(output, catalogue):
@@ -97,7 +101,7 @@ def deduplicate_legacy_json(output, catalogue):
     """Keep frozen compatibility JSON on Latest, plus every referenced/changed file."""
     latest = output / "en/latest"
     for channel in catalogue["versions"]:
-        if channel == "latest" or catalogue["versions"][channel].get("kind") == "gallery":
+        if channel == "latest":
             continue
         destination = output / "en" / channel
         referenced = set()
@@ -154,6 +158,33 @@ def write_preview_redirects(output, catalogue):
             '</body></html>')
 
 
+def stage_gallery(publisher, latest, workspace):
+    """Layer the model pages and navigation over the approved library docs."""
+    gallery = publisher / "doc/model_gallery"
+    staged = workspace / "doc/source"
+    shutil.copytree(latest / "doc/source", staged, ignore=shutil.ignore_patterns("__pycache__", ".DS_Store"))
+    (workspace / "mario").symlink_to(latest / "mario", target_is_directory=True)
+    shutil.copy2(latest / "CHANGELOG.rst", workspace / "CHANGELOG.rst")
+    shutil.copy2(publisher / "doc/versions.json", staged.parent / "versions.json")
+    for relative in ("index.rst", "models", "resources/index.rst",
+                     "user_guide/configuration/model_setups.rst", "_static/model-gallery.css"):
+        source = gallery / relative
+        if source.is_dir():
+            shutil.copytree(source, staged / relative, dirs_exist_ok=True)
+        else:
+            shutil.copy2(source, staged / relative)
+
+    setup = staged / "user_guide/configuration/index.rst"
+    with setup.open("a") as stream:
+        stream.write(
+            "\nResearch models\n---------------\n\n"
+            "See :doc:`model_setups` to install a research model and open its workspace.\n"
+        )
+    with (staged / "conf.py").open("a") as stream:
+        stream.write(f"\nrun_path({str(gallery / 'conf.py')!r})['configure'](globals())\n")
+    return staged
+
+
 def build(sources, output, site_root):
     if output.exists() and any(output.iterdir()):
         raise ValueError("Use a fresh output directory for the versioned site")
@@ -183,44 +214,31 @@ def build(sources, output, site_root):
             doc_source = source / "doc/source"
             assets = ["docs-versions.css", "docs-versions.js", "external-links.js"]
             if gallery:
-                # Shared RST pages resolve their images from the gallery source
-                # directory, including before Sphinx copies the static assets.
-                staged_docs = Path(folder) / "doc"
-                staged_docs.mkdir()
-                (staged_docs / "source").symlink_to(frontend, target_is_directory=True)
-                doc_source = staged_docs / "model_gallery"
-                shutil.copytree(source / "doc/model_gallery", doc_source)
-                static = doc_source / "_static"
-                assets += [
-                    "docs-workflows.css", "download-figure.js", "heatmap-background.css",
-                    "images/heatmap-background.png", "images/heatmap-background-dark.png",
-                    "images/mario-logo.png", "images/mario-favicon.ico",
-                    "images/logos/github.svg", "images/logos/pymrio.png", "images/logos/cvxlab.png",
-                    "images/logo_entice.svg", "images/logo_iam_compact.png", "images/logo_fulfill.png",
-                ]
+                doc_source = stage_gallery(publisher, sources["latest"], Path(folder))
             for name in assets:
                 target = static / name
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(frontend / "_static" / name, target)
-            options = []
-            if not gallery:
-                options = [
-                    "-D", "html_static_path=_static," + str(static),
-                    "-D", "mario_site.install=pip install mariopy",
-                ]
             subprocess.run([
                 sys.executable, "-m", "sphinx", "-b", "html", "-W", "--keep-going",
                 "-D", "html_theme_path=" + str(frontend / "_themes"),
                 "-D", "html_context.mario_use_source_navigation=1",
-                *options, str(doc_source), str(destination),
+                "-D", "html_static_path=_static," + str(static),
+                "-D", "mario_site.install=pip install mariopy",
+                str(doc_source), str(destination),
             ], cwd=source, env=env, check=True)
         documents = {}
+        redirects = []
         for path in sorted(destination.rglob("*.html")):
             parser = PageAnchors()
             parser.feed(path.read_text())
-            documents[path.relative_to(destination).with_suffix("").as_posix()] = parser.ids
+            document = path.relative_to(destination).with_suffix("").as_posix()
+            documents[document] = parser.ids
+            if parser.redirect:
+                redirects.append(document)
         catalogue["versions"][channel] = {
-            **definitions[channel], "commit": revision, "url": base_url, "documents": documents,
+            **definitions[channel], "commit": revision, "url": base_url,
+            "documents": documents, "redirects": redirects,
         }
     write_catalogue(output, catalogue)
     check_gallery_navigation(output, catalogue["versions"]["model_gallery"])
