@@ -43,7 +43,7 @@
     }
     if (!librarySites.has(target.hostname)) return;
     const libraryPath = target.pathname === "/" ? "" :
-      target.pathname.match(/^\/en\/(?:latest|dev)\/(.*)$/)?.[1];
+      target.pathname.match(/^\/en\/latest\/(.*)$/)?.[1];
     if (!galleryPages.has(libraryPath)) return;
     const destination = new URL(libraryPath === "index.html" ? "" : libraryPath, galleryRoot);
     destination.search = target.search;
@@ -83,7 +83,7 @@
       const destination = withGalleryContext(target);
       if (destination) link.setAttribute("href", destination.href);
       else if (usingExistingPage && librarySites.has(target.hostname) &&
-               /^\/en\/(?:latest|dev)\//.test(target.pathname)) {
+               target.pathname.startsWith("/en/latest/")) {
         const item = link.closest(".mario-nav__panel li");
         if (item) item.remove();
         else if (isPage(target)) {

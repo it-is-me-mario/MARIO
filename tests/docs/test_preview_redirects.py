@@ -1,6 +1,5 @@
 """Retired Preview routes preserve the destination and visitor's URL state."""
 import importlib.util
-import json
 from pathlib import Path
 import re
 import subprocess
@@ -13,20 +12,20 @@ SPEC.loader.exec_module(publisher)
 
 
 class PreviewRedirects(unittest.TestCase):
-    def test_shared_pages_prefer_latest_and_experimental_pages_use_dev(self):
+    def test_redirects_use_latest_pages(self):
         with TemporaryDirectory() as folder:
             root = Path(folder)
             catalogue = {"versions": {
                 "latest": {"url": "https://example.test/latest/", "documents": {"index": [], "guide/analysis": []}},
-                "dev": {"url": "https://example.test/dev/", "documents": {"index": [], "guide/new-api": []}},
+                "model_gallery": {"url": "https://example.test/model_gallery/", "documents": {"index": [], "models/pv": []}},
             }}
             publisher.write_preview_redirects(root, catalogue)
             aliases = root / 'en/preview'
             self.assertEqual({p.relative_to(aliases).as_posix() for p in aliases.rglob("*") if p.is_file()},
-                             {"index.html", "guide/analysis.html", "guide/new-api.html"})
-            for document, channel in (("index", "latest"), ("guide/analysis", "latest"), ("guide/new-api", "dev")):
+                             {"index.html", "guide/analysis.html"})
+            for document in ("index", "guide/analysis"):
                 page = (aliases / (document + ".html")).read_text()
-                target = f"https://example.test/{channel}/{document}.html"
+                target = f"https://example.test/latest/{document}.html"
                 self.assertIn('href="' + target + '"', page)
                 self.assertIn('content="0;url=' + target + '"', page)
                 self.assertIn('name="robots" content="noindex"', page)
@@ -36,4 +35,4 @@ class PreviewRedirects(unittest.TestCase):
                     'global.location={search:"?indicator=ghg&country=C%26D",hash:"#motor-vehicles",'
                     'replace:target=>process.stdout.write(target)};' + script], text=True)
                 self.assertEqual(result, target + "?indicator=ghg&country=C%26D#motor-vehicles")
-            self.assertEqual(set(catalogue["versions"]), {"latest", "dev"})
+            self.assertEqual(set(catalogue["versions"]), {"latest", "model_gallery"})

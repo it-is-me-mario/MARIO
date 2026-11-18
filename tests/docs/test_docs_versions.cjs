@@ -123,7 +123,7 @@ test('Gallery visits carry the channel through Tutorials and Explorer links', ()
 test('Gallery navigation returns from a shared site to its matching MARIO pages', () => {
   const target = withGalleryContext(new URL('https://www.marioproject.com/en/latest/user_guide/configuration/index.html'));
   assert.equal(target.href, 'https://www.marioproject.com/en/model_gallery/user_guide/configuration/index.html');
-  const teaching = withGalleryContext(new URL('https://www.marioproject.com/en/dev/resources/teaching.html#courses'));
+  const teaching = withGalleryContext(new URL('https://www.marioproject.com/en/latest/resources/teaching.html#courses'));
   assert.equal(teaching.href, 'https://www.marioproject.com/en/model_gallery/resources/teaching.html#courses');
   const formats = withGalleryContext(new URL('https://www.marioproject.com/en/latest/get_started/table_formats.html'));
   assert.equal(formats.href, 'https://www.marioproject.com/en/model_gallery/get_started/table_formats.html');

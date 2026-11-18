@@ -5,10 +5,6 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-  workflow_run:
-    workflows: [Verify development documentation]
-    types: [completed]
-    branches: [codex/model-configurations]
   workflow_dispatch:
 
 permissions:
@@ -20,31 +16,15 @@ concurrency:
 
 jobs:
   build:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
           path: publisher
-      - name: Read documentation sources
-        id: sources
-        working-directory: publisher
-        run: |
-          python - <<'PY'
-          import json, os
-          from pathlib import Path
-          sources = json.loads(Path('doc/versions.json').read_text())
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
-              output.write('dev=' + sources['dev']['ref'] + '\n')
-          PY
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event_name == 'pull_request' && github.sha || github.ref == 'refs/heads/main' && github.sha || 'main' }}
           path: source-latest
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ steps.sources.outputs.dev }}
-          path: source-dev
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -64,16 +44,16 @@ jobs:
       - name: Build and verify all versions
         run: |
           python publisher/doc/scripts/build_versioned_docs.py \
-            --latest-source source-latest --dev-source source-dev \
+            --latest-source source-latest \
             --output _site
           test -s _site/en/latest/index.html
-          test -s _site/en/dev/user_guide/inspection/to_cvxlab.html
-          test -s _site/en/dev/user_guide/transformations/import_accounts.html
+          test -s _site/en/latest/user_guide/inspection/to_cvxlab.html
+          test -s _site/en/latest/user_guide/transformations/import_accounts.html
           test -s _site/en/model_gallery/index.html
           test -s _site/en/model_gallery/models/pv-hlca.html
           test -s _site/en/preview/user_guide/index.html
           test -s _site/en/latest/_static/mario-editorial.css
-          test -s _site/en/dev/_static/mario-editorial.css
+          test ! -e _site/en/dev
       - uses: actions/configure-pages@v5
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
       - uses: actions/upload-pages-artifact@v4
