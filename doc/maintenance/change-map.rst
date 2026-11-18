@@ -72,6 +72,8 @@ by ``doc/scripts/build_versioned_docs.py``. The ``mario_versions`` extension,
 ``partials/versions.html``, ``docs-versions.js`` and ``docs-versions.css`` supply
 the selector. The cross-version catalogue is generated from published HTML routes
 and anchors. Review the publication triggers when changing a source branch.
+The homepage cards read their links from the corresponding header sections.
+Check their labels, destinations and order on both homepages after menu changes.
 The Model Gallery channel keeps the MARIO homepage at
 ``/en/model_gallery/`` and inherits the approved Latest pages and navigation.
 **Resources → Model Gallery** opens

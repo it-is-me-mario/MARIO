@@ -1,50 +1,43 @@
 {%- from "partials/icons.html" import icon %}
-{%- set destinations = namespace(explorer=[], resources=[]) %}
-{%- for area in mario.nav %}
-  {%- if area.key == 'explorer' %}{% set destinations.explorer = area.children %}{% endif %}
-  {%- if area.key == 'resources' %}{% set destinations.resources = area.children %}{% endif %}
-{%- endfor %}
+{%- set cards = [
+  {
+    "section": "explorer",
+    "anchor": "mario-home-explorer",
+    "title": "Database explorer",
+    "icon": "chart",
+    "intro": "Explore economies, emissions and trade across countries, sectors and years.",
+  },
+  {
+    "section": "docs",
+    "anchor": "mario-home-documentation",
+    "title": "Documentation",
+    "icon": "book",
+    "intro": "Learn how to work with MARIO, from importing a database to building a model.",
+  },
+  {
+    "section": "resources",
+    "anchor": "mario-home-resources",
+    "title": "Resources",
+    "icon": "library",
+    "intro": "Find tutorials, teaching material and research built with MARIO.",
+  },
+] %}
 <section class="mario-pathways" aria-label="Explore MARIO">
   <div class="mario-pathways__grid">
-    <section class="mario-pathway" aria-labelledby="mario-home-explorer">
-      <span class="mario-pathway__icon">{{ icon("chart") }}</span>
-      <h2 id="mario-home-explorer">Database explorer</h2>
-      <p class="mario-pathway__intro">Explore economies, emissions and trade across countries, sectors and years.</p>
-      <nav aria-label="Database explorer">
+    {%- for card in cards %}
+      {%- set section = mario.nav | selectattr('key', 'equalto', card.section) | first %}
+    <section class="mario-pathway" aria-labelledby="{{ card.anchor }}">
+      <span class="mario-pathway__icon">{{ icon(card.icon) }}</span>
+      <h2 id="{{ card.anchor }}">{{ card.title }}</h2>
+      <p class="mario-pathway__intro">{{ card.intro }}</p>
+      <nav aria-label="{{ card.title }}">
         <ul class="mario-pathway__links">
-          {%- for tab, label in [('Indicators', 'Explore indicators'), ('Classifications', 'Compare classifications'), ('Analyses', 'Read analyses')] %}
-            {%- set item = destinations.explorer | selectattr('label', 'equalto', tab) | first | default(none) %}
-            {%- if item %}
-          <li><a href="{{ item.url }}">{{ label }} {{ icon("next") }}</a></li>
-            {%- endif %}
-          {%- endfor %}
-        </ul>
-      </nav>
-    </section>
-    <section class="mario-pathway" aria-labelledby="mario-home-documentation">
-      <span class="mario-pathway__icon">{{ icon("book") }}</span>
-      <h2 id="mario-home-documentation">Documentation</h2>
-      <p class="mario-pathway__intro">Learn how to work with MARIO, from importing a database to building a model.</p>
-      <nav aria-label="Documentation">
-        <ul class="mario-pathway__links">
-          <li><a href="{{ pathto('user_guide/parsers/index') }}">Import data {{ icon("next") }}</a></li>
-          <li><a href="{{ pathto('user_guide/analysis/index') }}">Calculate impacts {{ icon("next") }}</a></li>
-          <li><a href="{{ pathto('user_guide/transformations/index') }}">Build scenarios {{ icon("next") }}</a></li>
-          <li><a href="{{ pathto('reference/api_library') }}">API reference {{ icon("next") }}</a></li>
-        </ul>
-      </nav>
-    </section>
-    <section class="mario-pathway" aria-labelledby="mario-home-resources">
-      <span class="mario-pathway__icon">{{ icon("library") }}</span>
-      <h2 id="mario-home-resources">Resources</h2>
-      <p class="mario-pathway__intro">Find tutorials, teaching material and research built with MARIO.</p>
-      <nav aria-label="Resources">
-        <ul class="mario-pathway__links">
-          {%- for item in destinations.resources if item.label != 'Model Gallery' %}
+          {%- for item in section.children %}
           <li><a href="{{ item.url }}">{{ item.label }} {{ icon("next") }}</a></li>
           {%- endfor %}
         </ul>
       </nav>
     </section>
+    {%- endfor %}
   </div>
 </section>
