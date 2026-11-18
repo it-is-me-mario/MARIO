@@ -4,6 +4,9 @@
 Model Gallery
 =============
 
+To install a model and open a project, see
+:doc:`Setup a model from the gallery <../user_guide/configuration/model_setups>`.
+
 Models relying on Exiobase Hybrid
 ---------------------------------
 
