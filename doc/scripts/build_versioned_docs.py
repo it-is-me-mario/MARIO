@@ -19,11 +19,15 @@ class PageAnchors(HTMLParser):
     def __init__(self):
         super().__init__()
         self.ids = []
+        self.redirect = False
 
     def handle_starttag(self, tag, attrs):
-        value = dict(attrs).get("id")
+        values = dict(attrs)
+        value = values.get("id")
         if value:
             self.ids.append(value)
+        if tag == "meta" and values.get("http-equiv", "").lower() == "refresh":
+            self.redirect = True
 
 
 def write_catalogue(output, catalogue):
@@ -215,12 +219,17 @@ def build(sources, output, site_root):
                 *options, str(doc_source), str(destination),
             ], cwd=source, env=env, check=True)
         documents = {}
+        redirects = []
         for path in sorted(destination.rglob("*.html")):
             parser = PageAnchors()
             parser.feed(path.read_text())
-            documents[path.relative_to(destination).with_suffix("").as_posix()] = parser.ids
+            document = path.relative_to(destination).with_suffix("").as_posix()
+            documents[document] = parser.ids
+            if parser.redirect:
+                redirects.append(document)
         catalogue["versions"][channel] = {
-            **definitions[channel], "commit": revision, "url": base_url, "documents": documents,
+            **definitions[channel], "commit": revision, "url": base_url,
+            "documents": documents, "redirects": redirects,
         }
     write_catalogue(output, catalogue)
     check_gallery_navigation(output, catalogue["versions"]["model_gallery"])

@@ -12,7 +12,8 @@ const catalogue = {versions: {
 
 function targets(document, hash) {
   const links = ['latest', 'dev'].map(key => ({dataset: {docsVersion: key}}));
-  updateLinks({dataset: {document}, querySelectorAll: () => links}, catalogue, {hash});
+  const location = new URL('https://www.marioproject.com/en/latest/' + document + '.html' + hash);
+  updateLinks({dataset: {document}, querySelectorAll: () => links}, catalogue, location);
   return links.map(link => link.href);
 }
 
@@ -41,7 +42,7 @@ test('malformed URL fragments retain valid page links', () => {
   ]);
 });
 
-test('Model Gallery opens its index even when both sections have a page with the same name', () => {
+test('switching between the library and Model Gallery keeps a page and anchor available in both', () => {
   const url = 'https://www.marioproject.com/en/model_gallery/';
   const versions = {...catalogue.versions, model_gallery: {
     url, kind: 'gallery', documents: {'guide/page': ['shared']},
@@ -50,25 +51,39 @@ test('Model Gallery opens its index even when both sections have a page with the
   const latest = {dataset: {docsVersion: 'latest'}};
   const menu = {dataset: {document: 'guide/page', channel: 'latest'},
     querySelectorAll: () => [gallery, latest]};
-  updateLinks(menu, {versions}, {hash: '#shared'});
-  assert.equal(gallery.href, url);
+  const location = new URL(versions.latest.url + 'guide/page.html#shared');
+  updateLinks(menu, {versions}, location);
+  assert.equal(gallery.href, url + 'guide/page.html#shared');
   assert.equal(latest.href, versions.latest.url + 'guide/page.html#shared');
 
   menu.dataset.channel = 'model_gallery';
-  updateLinks(menu, {versions}, {hash: '#shared'});
-  assert.equal(latest.href, versions.latest.url);
+  updateLinks(menu, {versions}, new URL(gallery.href));
+  assert.equal(latest.href, versions.latest.url + 'guide/page.html#shared');
   assert.equal(gallery.href, url + 'guide/page.html#shared');
 });
 
-test('independent sites keep the native Gallery link and still resolve version targets', () => {
-  const url = 'https://www.marioproject.com/en/model_gallery/';
-  const gallery = {dataset: {docsVersion: 'model_gallery'}, href: url};
-  const dev = {dataset: {docsVersion: 'dev'}};
-  const menu = {dataset: {document: 'guide/page', channel: 'latest'},
-    querySelectorAll: () => [gallery, dev]};
-  updateLinks(menu, catalogue, {hash: '#shared'});
-  assert.equal(gallery.href, url);
-  assert.equal(dev.href, catalogue.versions.dev.url + 'guide/page.html#shared');
+test('the Gallery choice preserves the current page when there is no Gallery edition', () => {
+  const gallery = {dataset: {docsVersion: 'model_gallery'}};
+  const menu = {dataset: {document: 'guide/page'}, querySelectorAll: () => [gallery]};
+  for (const address of [
+    'https://tutorials.marioproject.com/bonsai-ghg/index.html',
+    'https://explorer.marioproject.com/dev/resources/data-explorer/compare.html',
+    'https://www.marioproject.com/en/latest/guide/page.html',
+  ]) {
+    const location = new URL(address + '?year=2021#shared');
+    updateLinks(menu, catalogue, location);
+    assert.equal(gallery.href, address + '?year=2021&mario_channel=model_gallery#shared');
+    assert.equal(isGalleryContext(new URL(gallery.href), 'latest'), true);
+  }
+});
+
+test('a compatibility redirect does not count as a page in the destination version', () => {
+  const latest = {dataset: {docsVersion: 'latest'}};
+  const latestVersion = {...catalogue.versions.latest, redirects: ['guide/page']};
+  const menu = {dataset: {document: 'guide/page'}, querySelectorAll: () => [latest]};
+  updateLinks(menu, {versions: {latest: latestVersion}},
+    new URL('https://www.marioproject.com/en/model_gallery/guide/page.html'));
+  assert.equal(latest.href, latestVersion.url + 'index.html');
 });
 
 test('version targets follow anchors selected after the page loads', async () => {
