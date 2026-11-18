@@ -52,17 +52,6 @@
     return destination;
   }
 
-  function addGalleryMenuLink(section, label, page, index) {
-    const list = document.querySelector(`[data-nav-section=${section}] .mario-nav__panel ul`);
-    if (!list) return;
-    const item = document.createElement("li");
-    const link = document.createElement("a");
-    link.textContent = label;
-    link.href = new URL(page, galleryRoot).href;
-    item.append(link);
-    list.insertBefore(item, list.children[index] || null);
-  }
-
   function applyGalleryContext(menu) {
     const usingExistingPage = menu.dataset.channel !== galleryChannel;
     if (usingExistingPage) {
@@ -75,11 +64,15 @@
         if (choice.dataset.docsVersion === galleryChannel) choice.setAttribute("aria-current", "page");
         else choice.removeAttribute("aria-current");
       }
-      const setup = "user_guide/configuration/model_setups.html";
-      addGalleryMenuLink("get_started", "Install a model", setup + "#install-a-model");
-      addGalleryMenuLink("get_started", "Open a project", setup + "#open-a-project");
-      addGalleryMenuLink("docs", "Model guides", "");
-      addGalleryMenuLink("resources", "Model Gallery", "", 1);
+      const resources = document.querySelector("[data-nav-section=resources] .mario-nav__panel ul");
+      if (resources) {
+        const item = document.createElement("li");
+        const link = document.createElement("a");
+        link.textContent = "Model Gallery";
+        link.href = new URL("models/index.html", galleryRoot).href;
+        item.append(link);
+        resources.insertBefore(item, resources.children[1] || null);
+      }
     }
 
     function decorate(link) {
