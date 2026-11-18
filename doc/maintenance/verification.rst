@@ -14,8 +14,8 @@ behaviour. Check navigation between the main site, Tutorials and Explorer in
 the browser and confirm that these destinations use the current tab. The shared
 ``_static/external-links.js`` owns this behaviour; update consumers' pinned theme
 revisions after its publication.
-Check both channels across all three sites. A Dev header link must retain Dev
-when opening Tutorials, Explorer or MARIO, including compatibility redirects.
+Check links across all three sites. Tutorials and Explorer link to the MARIO
+library on Latest. Their own version selectors control their local sites.
 Read each site's version manifest to verify its own source commits independently.
 
 Run commands from the repository root, using an environment with MARIO and
@@ -30,37 +30,32 @@ For the versioned publisher, use clean checkouts of the configured refs and a
 fresh output directory::
 
    node --test tests/docs/test_docs_versions.cjs tests/docs/test_external_links.cjs
-   python doc/scripts/build_versioned_docs.py --latest-source /path/to/latest --dev-source /path/to/dev --output /tmp/mario-versioned-docs
+   python doc/scripts/build_versioned_docs.py --latest-source /path/to/latest --output /tmp/mario-versioned-docs
 
-All three Sphinx builds run with strict warnings and their own source's link/download
-checker. Check ``docs-versions.json`` against the checkout commits. In a browser,
-switch a common page and anchor, then a Dev-only page that falls back to the
-Latest home. Check native home links with scripts unavailable, Escape and narrow
-layouts with the selector open. The development installation command must name
-the same commit as the notice and catalogue. Tutorial publication remains
-independent of publishing the development API documentation.
-Check the long pinned command and its copy control on the Dev home at 320 px.
-Download a companion from each channel and check that its guide notice links
-back to that channel, including pages available in Dev.
+Both site builds run with strict Sphinx warnings. Check ``docs-versions.json``
+against the checkout commits. In a browser, switch a common page and anchor,
+then a Gallery-only model page that falls back to the Latest home. Check native
+home links with scripts unavailable, Escape and narrow layouts with the selector
+open. Download a companion from each channel and check that its guide notice
+links back to that channel.
 Check the floating selector at the bottom-right before and after scrolling,
 including when the header hides, and at the page footer. Its menu opens upward,
 stays within a 320 px viewport and supports keyboard activation and Escape.
 Check both colour themes and verify that footer links remain accessible.
-Check the Latest/Dev selector and retired Preview redirects, including query
-strings and anchors. A page only present in Dev must redirect there. Verify that
-Latest documents the released package and that both channels use the shared theme.
-Check that Latest and Dev render the header from their source configuration.
-Check that Dev and Model Gallery contain the approved Latest pages, except
+Check the Latest/Model Gallery selector and retired Preview redirects,
+including query strings and anchors. Verify that Latest documents the
+released package and that both headers use their source configuration.
+Check that Model Gallery contains the approved Latest pages, except
 where a source change explicitly removes one. In Model Gallery, Docs and Get
 started keep the approved menus from Latest. Check both menus from the
 Gallery and from Tutorials and Explorer with Model Gallery selected.
 Check that the MARIO logo still opens the MARIO homepage in this channel.
 Open the model catalogue from Resources and check its link to the model page.
 From Docs → Configuration, open Setup a model from the gallery in the topic sidebar.
-Select Model Gallery from a page shared with Latest or Dev and check that the
+Select Model Gallery from a page shared with Latest and check that the
 corresponding page and anchor open. On a library page without a counterpart,
 verify that the current page stays open with Model Gallery selected. From a
-model page, verify that selecting Latest or Dev opens the corresponding home
+model page, verify that selecting Latest opens its home
 page. Exercise Docs, Configuration, Teaching and the model API reference
 before switching.
 The publisher checks that same-site links and assets throughout the gallery
@@ -68,7 +63,7 @@ resolve there, except for links in the version selector. From the Gallery,
 open Tutorials and Explorer, follow a link on each site, and return via Docs.
 Also select Model Gallery from an open tutorial and an Explorer view and check
 that the page, query and anchor are retained. Check that the selector remains
-on Gallery until the user chooses Latest or Dev. Verify the legacy Configuration
+on Gallery until the user chooses another version. Verify the legacy Configuration
 redirect, the shared resource images and the model's publication and data links.
 
 Build with warnings treated as errors, then check the built guides::

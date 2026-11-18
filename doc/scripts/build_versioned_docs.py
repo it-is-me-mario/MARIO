@@ -1,4 +1,4 @@
-"""Build Latest, Dev and Model Gallery into one verified GitHub Pages artifact."""
+"""Build Latest and Model Gallery into one verified GitHub Pages artifact."""
 
 import argparse
 import hashlib
@@ -135,13 +135,9 @@ def deduplicate_legacy_json(output, catalogue):
 
 def write_preview_redirects(output, catalogue):
     """Retire Preview while preserving its page URLs, query strings and anchors."""
-    destinations = {}
-    # Prefer Latest; a page available only in Dev keeps its working counterpart.
-    for channel in ("dev", "latest"):
-        version = catalogue["versions"][channel]
-        for document in version["documents"]:
-            destinations[document] = version["url"] + document + ".html"
-    for document, target in destinations.items():
+    latest = catalogue["versions"]["latest"]
+    for document in latest["documents"]:
+        target = latest["url"] + document + ".html"
         path = output / "en/preview" / (document + ".html")
         path.parent.mkdir(parents=True, exist_ok=True)
         address = escape(target, quote=True)
@@ -269,9 +265,7 @@ def build(sources, output, site_root):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--latest-source", type=Path, required=True)
-    parser.add_argument("--dev-source", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--site-root", default="https://www.marioproject.com")
     args = parser.parse_args()
-    build({"latest": args.latest_source.resolve(), "dev": args.dev_source.resolve()},
-          args.output.resolve(), args.site_root)
+    build({"latest": args.latest_source.resolve()}, args.output.resolve(), args.site_root)

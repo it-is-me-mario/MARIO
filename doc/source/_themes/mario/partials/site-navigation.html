@@ -1,10 +1,10 @@
 {#- Shared header destinations for MARIO, Tutorials and Database Explorer. -#}
 {%- set channel = 'dev' if mario_versions.current == 'dev' else 'latest' %}
-{%- set library = 'https://www.marioproject.com/en/' ~ channel ~ '/' %}
+{%- set library = 'https://www.marioproject.com/en/latest/' %}
 {%- if mario.home_url.startswith(('https://', 'http://')) %}
   {%- set library = mario.home_url %}
 {%- else %}
-  {%- set library = mario_versions.choices | selectattr('key', 'equalto', channel) | map(attribute='url') | first %}
+  {%- set library = mario_versions.choices | selectattr('key', 'equalto', 'latest') | map(attribute='url') | first %}
 {%- endif %}
 {%- set suffix = 'dev/' if channel == 'dev' else '' %}
 {%- set explorer = 'https://explorer.marioproject.com/' ~ suffix %}

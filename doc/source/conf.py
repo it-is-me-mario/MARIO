@@ -96,18 +96,9 @@ author = 'Lorenzo Rinaldi, Mohammad Amin Tahavori, Nicolo Golinucci'
 # The full version, including alpha/beta/rc tags
 release = run_path(str(Path(__file__).resolve().parents[2] / "mario" / "version.py"))["__version__"]
 
-if os.environ.get("MARIO_DOCS_CHANNEL") == "dev":
-    tags.add("development")
-_docs_revision = os.environ.get("MARIO_DOCS_REVISION", "main")
-_development_install = (
-    'python -m pip install "mariopy @ git+https://github.com/it-is-me-mario/MARIO.git@'
-    + _docs_revision + '"'
-)
-rst_epilog = "\n.. |mario_development_install| replace:: " + _development_install + "\n"
-_docs_channel = os.environ.get("MARIO_DOCS_CHANNEL", "latest")
-_site_channel_path = _docs_channel + "/" if _docs_channel == "dev" else ""
-_explorer_url = "https://explorer.marioproject.com/" + _site_channel_path
-_tutorials_url = "https://tutorials.marioproject.com/" + _site_channel_path
+rst_epilog = ""
+_explorer_url = "https://explorer.marioproject.com/"
+_tutorials_url = "https://tutorials.marioproject.com/"
 
 _site_root = os.environ.get("MARIO_DOCS_SITE_ROOT", "https://www.marioproject.com").rstrip("/")
 _gallery_root = _site_root + "/en/model_gallery/"

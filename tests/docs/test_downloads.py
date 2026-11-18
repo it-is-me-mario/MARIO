@@ -141,9 +141,9 @@ def module(name):
 def test_notebook_guide_link_uses_the_requested_documentation_channel(guide):
     cleaner = module('mario_downloads')
     path = SOURCE / f'user_guide/inspection/{guide}.ipynb'
-    notebook = cleaner.clean_notebook(path, SOURCE, base_url='https://www.marioproject.com/en/dev')
+    notebook = cleaner.clean_notebook(path, SOURCE, base_url='https://www.marioproject.com/en/model_gallery')
     notice = next(cell for cell in notebook['cells'] if cell.get('id') == 'mario-download-notes')
-    assert f'https://www.marioproject.com/en/dev/user_guide/inspection/{guide}.html' in ''.join(notice['source'])
+    assert f'https://www.marioproject.com/en/model_gallery/user_guide/inspection/{guide}.html' in ''.join(notice['source'])
 
 
 def texts(book, name):

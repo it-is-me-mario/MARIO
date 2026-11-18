@@ -70,10 +70,8 @@ Navigation and layout
 Documentation channels are selected in ``doc/versions.json`` and built together
 by ``doc/scripts/build_versioned_docs.py``. The ``mario_versions`` extension,
 ``partials/versions.html``, ``docs-versions.js`` and ``docs-versions.css`` supply
-the selector and development notice. Review the installation page and hero command together
-so Dev installs its recorded source revision. The cross-version catalogue is
-generated from published HTML routes and anchors. Changing a source branch also
-requires reviewing the workflow's push and completed-build triggers.
+the selector. The cross-version catalogue is generated from published HTML routes
+and anchors. Review the publication triggers when changing a source branch.
 The Model Gallery channel keeps the MARIO homepage at
 ``/en/model_gallery/`` and inherits the approved Latest pages and navigation.
 **Resources → Model Gallery** opens
@@ -99,18 +97,13 @@ documentation channel through the selector. The selector has a Model Gallery
 link even when a consumer catalogue inventories only Latest and Dev.
 When changing the shared links, update the consumer theme pins.
 
-The ``preview`` channel publishes a complete source checkout under
-``/en/preview/``. It owns the proposed design independently of Latest and Dev.
-The publisher fills every native selector from the final channel catalogue,
-including older source themes. Preview links to Tutorials and Explorer must
-retain ``/preview/``. Publishing requires the ordinary main-branch workflow;
-changing the preview ref does not update the public site until that workflow runs.
-The publisher retains frozen legacy Explorer JSON at its canonical Latest URLs.
-Dev and Preview omit only large, byte-identical JSON copies that no rendered page
-references. Changed JSON, all linked files and classification workbooks remain
-local. ``legacy-data-manifest.json`` records the canonical URLs and checksums;
-an active legacy Explorer widget blocks this packaging step. This avoids
-triplicating historical data after the Explorer application moved to its own host.
+The retired ``/en/preview/`` routes link to matching Latest pages. The publisher
+fills each native selector from the final channel catalogue and retains frozen
+legacy Explorer JSON at its canonical Latest URLs. Model Gallery omits large,
+byte-identical JSON copies without rendered page references. Changed JSON,
+linked files and classification workbooks remain local.
+``legacy-data-manifest.json`` records the canonical URLs and checksums.
+An active legacy Explorer widget blocks this packaging step.
 
 The independent tutorial site is maintained in the organization’s ``Tutorials``
 repository. Its catalogue selects canonical source repositories and its publisher
@@ -120,8 +113,8 @@ changing the tutorial site address. Follow ``site/README.rst`` in Tutorials for
 build, download and cross-repository refresh verification.
 Tutorials and Explorer each select their channels in their own ``versions.json``.
 Their Latest routes stay at the host root and their Dev routes use ``/dev/``.
-MARIO's navigation and compatibility redirects select the corresponding channel
-from ``MARIO_DOCS_CHANNEL``. Each site publishes independently.
+Their links to the library use Latest on MARIO, with Model Gallery links
+selected when the Gallery context is active. Each site publishes independently.
 
 ``doc/source/conf.py`` owns topic membership through
 ``mario_site["sections"]`` and compatibility URLs through

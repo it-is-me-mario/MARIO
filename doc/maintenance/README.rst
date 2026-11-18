@@ -48,11 +48,9 @@ for each edit:
 Established decisions
 ---------------------
 
-* The documentation publisher builds Latest, Dev and Model Gallery into one
-  Pages artifact. ``doc/versions.json`` owns the selector labels and the source
-  refs for Latest and Dev. Dev merges the approved Latest source before
-  adding development pages. Model Gallery builds the same approved docs with
-  the additions from ``doc/model_gallery/``. See the publication and verification checklists
+* The documentation publisher builds Latest and Model Gallery into one Pages
+  artifact. ``doc/versions.json`` owns the selector labels. Model Gallery builds
+  the approved Latest docs with additions from ``doc/model_gallery/``. See the publication and verification checklists
   when changing sources or navigation.
 
 * The Database Explorer application and new trade snapshots are maintained in
