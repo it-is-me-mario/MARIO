@@ -74,17 +74,18 @@ the selector and development notice. Review the installation page and hero comma
 so Dev installs its recorded source revision. The cross-version catalogue is
 generated from published HTML routes and anchors. Changing a source branch also
 requires reviewing the workflow's push and completed-build triggers.
-Model Gallery has its own Sphinx source under ``doc/model_gallery/`` and opens
-at ``/en/model_gallery/``. Keep the published study and background edition on
+Model Gallery opens at ``/en/model_gallery/`` and inherits the approved
+Latest pages and navigation. The publisher adds the source and navigation
+in ``doc/model_gallery/`` to a staged copy of Latest. Keep the published study and background edition on
 the model page. The MARIO API reference documents the installed project
 interfaces. Review the PV-HLCA reference against the model repository when
-updating the pinned model revision. The gallery builds its model API pages,
-Teaching and Projects & Publications from the shared sources. Links to
+updating the pinned model revision. Links to
 Tutorials and Explorer carry the selected Gallery channel in the URL. On
 those sites, the version script keeps the Gallery selection while serving the
 existing pages and directs the MARIO menu links back to the Gallery. The
-selector opens the gallery index from both documentation versions and opens
-their homes when leaving the gallery on the MARIO site.
+selector keeps the current page and its anchor when they exist in the
+chosen channel. Tutorials and Explorer keep their open pages when the
+reader selects Model Gallery.
 The selector is a body-level floating control in the bottom-right corner,
 included by the layout footer. Keep it outside the animated header so scrolling
 cannot change its fixed positioning. Tutorials and Explorer import the same

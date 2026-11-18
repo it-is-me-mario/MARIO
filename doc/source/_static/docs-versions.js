@@ -5,22 +5,16 @@
   const galleryRoot = "https://www.marioproject.com/en/model_gallery/";
   const sharedSites = new Set(["tutorials.marioproject.com", "explorer.marioproject.com"]);
   const librarySites = new Set(["www.marioproject.com", "marioproject.com"]);
-  const galleryPages = new Map([
-    ["", ""],
-    ["index.html", ""],
-    ["get_started/index.html", "user_guide/configuration/model_setups.html#install-a-model"],
-    ["user_guide/index.html", "user_guide/index.html"],
-    ["user_guide/configuration/index.html", "user_guide/configuration/model_setups.html"],
-    ["user_guide/configuration/model_setups.html", "user_guide/configuration/model_setups.html"],
-    ["reference/api_library.html", "reference/api_model_methods.html"],
-    ["reference/api_model_methods.html", "reference/api_model_methods.html"],
-    ["api_document/mario.models.install.html", "api_document/mario.models.install.html"],
-    ["api_document/mario.model_setup.html", "api_document/mario.model_setup.html"],
-    ["api_document/pv_hlca.project.Project.html", "api_document/pv_hlca.project.Project.html"],
-    ["resources/teaching.html", "resources/teaching.html"],
-    ["resources/projects_publications.html", "resources/projects_publications.html"],
-    ["resources/material.html", "resources/material.html"],
-    ["changelog.html", "https://github.com/it-is-me-mario/MARIO/releases"],
+  const galleryPages = new Set([
+    "", "index.html", "changelog.html",
+    "get_started/index.html", "get_started/table_formats.html", "get_started/scenarios.html",
+    "user_guide/index.html", "user_guide/parsers/index.html", "user_guide/inspection/index.html",
+    "user_guide/analysis/index.html", "user_guide/transformations/index.html",
+    "user_guide/configuration/index.html", "user_guide/configuration/model_setups.html",
+    "reference/api_library.html", "reference/api_model_methods.html",
+    "api_document/mario.models.install.html", "api_document/mario.model_setup.html",
+    "api_document/pv_hlca.project.Project.html",
+    "resources/teaching.html", "resources/projects_publications.html", "resources/material.html",
   ]);
 
   function isGalleryContext(location, channel) {
@@ -51,11 +45,22 @@
     const libraryPath = target.pathname === "/" ? "" :
       target.pathname.match(/^\/en\/(?:latest|dev)\/(.*)$/)?.[1];
     if (!galleryPages.has(libraryPath)) return;
-    const destination = new URL(galleryPages.get(libraryPath), galleryRoot);
+    const destination = new URL(libraryPath === "index.html" ? "" : libraryPath, galleryRoot);
     destination.search = target.search;
     destination.searchParams.delete(channelParameter);
     if (target.hash) destination.hash = target.hash;
     return destination;
+  }
+
+  function addGalleryMenuLink(section, label, page, index) {
+    const list = document.querySelector(`[data-nav-section=${section}] .mario-nav__panel ul`);
+    if (!list) return;
+    const item = document.createElement("li");
+    const link = document.createElement("a");
+    link.textContent = label;
+    link.href = new URL(page, galleryRoot).href;
+    item.append(link);
+    list.insertBefore(item, list.children[index] || null);
   }
 
   function applyGalleryContext(menu) {
@@ -70,6 +75,11 @@
         if (choice.dataset.docsVersion === galleryChannel) choice.setAttribute("aria-current", "page");
         else choice.removeAttribute("aria-current");
       }
+      const setup = "user_guide/configuration/model_setups.html";
+      addGalleryMenuLink("get_started", "Install a model", setup + "#install-a-model");
+      addGalleryMenuLink("get_started", "Open a project", setup + "#open-a-project");
+      addGalleryMenuLink("docs", "Model guides", "");
+      addGalleryMenuLink("resources", "Model Gallery", "", 1);
     }
 
     function decorate(link) {

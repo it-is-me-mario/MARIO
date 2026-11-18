@@ -50,6 +50,10 @@ Check the Latest/Dev selector and retired Preview redirects, including query
 strings and anchors. A page only present in Dev must redirect there. Verify that
 Latest documents the released package and that both channels use the shared theme.
 Check that Latest and Dev render the header from their source configuration.
+Check that Dev and Model Gallery contain the approved Latest pages, except
+where a source change explicitly removes one. In Model Gallery, the Docs
+menu includes the approved library topics and Model guides. Check both menus
+from the Gallery and from Tutorials and Explorer with Model Gallery selected.
 Select Model Gallery from a page shared with Latest or Dev and check that the
 corresponding page and anchor open. On a library page without a counterpart,
 verify that the current page stays open with Model Gallery selected. From a
