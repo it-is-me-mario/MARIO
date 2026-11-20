@@ -25,7 +25,15 @@ used in its study.
 
       Hybrid LCA · Input-output model · Energy transition
 
+   .. mario-card:: :doc:`GCAM–MARIO · Steel production routes <gcam-mario-steel>`
+      :icon: chart
+      :wide:
+
+      Apply GCAM steel production by route to EU-12 and EU-15 and verify
+      the shares in EXIOBASE Hybrid supply flows.
+
 .. toctree::
    :hidden:
 
    pv-hlca
+   gcam-mario-steel

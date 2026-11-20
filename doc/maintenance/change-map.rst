@@ -79,7 +79,11 @@ The Model Gallery channel keeps the MARIO homepage at
 **Resources → Model Gallery** opens
 ``/en/model_gallery/models/index.html``. The publisher adds the source and navigation
 in ``doc/model_gallery/`` to a staged copy of Latest. Keep the published study and background edition on
-the model page. The MARIO API reference documents the installed project
+the model page. For the GCAM steel case, maintain the model page and companion in
+``doc/model_gallery/models/gcam-mario-steel.*`` together. Verify that both
+Gallery download links serve the same notebook and compare solved steel route
+shares with the regional GCAM export on the prepared ExioSteel SUT.
+The MARIO API reference documents the installed project
 interfaces. Review the PV-HLCA reference against the model repository when
 updating the pinned model revision. Links to
 Tutorials and Explorer carry the selected Gallery channel in the URL. On
