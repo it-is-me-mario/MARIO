@@ -136,6 +136,14 @@ unexamined change.
   and conflicting source coordinates. Execute the companion with its
   downloaded settings workbook beside it. The split-model bridge has separate
   Excel/CSV integration checks in the add-sector tests.
+  When a user supplies model settings, snapshot that workbook and verify its
+  equations, variables, filters and table keys are unchanged. A new input-only
+  container does not validate compatibility with the supplied analysis model.
+  Match the actual exogenous coordinates, retain undeclared nonzero source
+  blocks in native exports, and check declared blank-fill behaviour in CVXLab.
+  For translated examples, compare values by renamed coordinates and verify
+  imports and unit labels together. Generate requested native aggregation
+  workbooks with MARIO and populate only mapping values; preserve writer styles.
 * For an installable model, install into an isolated environment and open the
   workspace outside the source checkout. Check the pinned installation and a
   development ref, fetch the declared data, and verify that the documented
