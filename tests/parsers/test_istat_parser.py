@@ -5,10 +5,11 @@ from pathlib import Path
 import zipfile
 
 import pandas as pd
+import numpy as np
 import pytest
 
 import mario
-from mario.log_exc.exceptions import WrongInput
+from mario.log_exc.exceptions import WrongFormat, WrongInput
 from mario.model.conventions import _MASTER_INDEX
 from mario.parsers.istat import (
     build_istat_iot_from_frame,
@@ -217,7 +218,7 @@ def test_build_istat_sut_from_frames_returns_split_native_blocks():
     base = matrices["baseline"]
 
     assert layout.dataset_name == "ISTAT SUT 2020 63 current basic"
-    assert set(base) == {"S", "U", "Ya", "Yc", "Va", "Vc", "Ea", "Ec", "EY"}
+    assert set(base) == {"S", "U", "Ya", "Yc", "Va", "Vc", "VY", "Ea", "Ec", "EY"}
     assert base["S"].shape == (2, 2)
     assert base["U"].shape == (2, 2)
     assert base["Yc"].shape == (2, 2)
@@ -228,6 +229,107 @@ def test_build_istat_sut_from_frames_returns_split_native_blocks():
     assert float(base["Vc"].loc["Importazioni cif"].iloc[0]) == 6.0
     assert "Spesa per consumi finali" not in indeces["n"]["main"]
     assert units["Activity"].iloc[0, 0] == "Milioni di euro"
+
+
+def test_istat_separate_imports_pipeline(tmp_path):
+    """Raw workbooks -> coefficients -> aggregation -> accounting/file round trips."""
+    supply, use, imports = _istat_supply_frame(), _istat_use_frame(), _istat_import_frame()
+    # Make published rows balance exactly, with nonzero imported intermediate
+    # and final uses and a final-demand product-tax adjustment.
+    supply.iloc[6, 2:4] = [5.0, 4.0]
+    supply.iloc[7, 2:4] = [5.0, 5.0]
+    use.iloc[10, 2:4] = [4.5, 3.3]
+    use.iat[9, 5] = 0.25
+    for filename, sheet, frame in (
+        ("SUPPLY_63B.xlsx", "sup20", supply),
+        ("USEPB_63B.xlsx", "uspb20", use),
+        ("IMPORT_63B.xlsx", "imprt20", imports),
+    ):
+        _write_xlsx(tmp_path / filename, sheet, frame)
+    db = mario.parse_istat(str(tmp_path), year=2020, table="SUT", import_representation="separate")
+    from mario.parsers.api import build_database_from_state
+    state = mario.parse_istat(str(tmp_path), year=2020, table="SUT",
+                             import_representation="separate", model="ModelState")
+    rebuilt = build_database_from_state(state)
+    assert rebuilt.configuration == db.configuration
+    pd.testing.assert_frame_equal(rebuilt.query("IMP_a"), db.query("IMP_a"))
+    assert db.configuration.imports_by == "commodity"
+    assert db.configuration.import_representation == "separate"
+    assert "Importazioni cif" not in db.get_index("Factor of production")
+    np.testing.assert_allclose(db.query("U") + db.query("IMP_a").to_numpy(), use.iloc[6:8, 2:4].astype(float))
+    np.testing.assert_allclose(db.query("Yc") + db.query("IMP_Y").to_numpy(), use.iloc[6:8, 5:7].astype(float))
+    np.testing.assert_allclose(db.query("IMP_a"), [[1, 0], [0, 2]])
+    np.testing.assert_allclose(db.query("IMP_Y"), [[2, 3], [4, 5]])
+    assert db.query("VY").loc["Tasse meno contributi ai prodotti"].iloc[0] == 0.25
+    np.testing.assert_allclose(db.query("imp_a").to_numpy() * db.query("Xa").to_numpy().T, db.query("IMP_a"))
+    np.testing.assert_allclose(
+        db.query("U").sum().to_numpy() + db.query("Va").sum().to_numpy() + db.query("IMP_a").sum().to_numpy(),
+        db.query("Xa").to_numpy().ravel(),
+    )
+    np.testing.assert_allclose(db.query("S").sum().to_numpy(), db.query("Xc").to_numpy().ravel())
+    db.reset_to_coefficients("baseline")
+    db.reset_to_flows("baseline")
+    combined = db.to_import_representation("factor-accounts", inplace=False)
+    restored = combined.to_import_representation("separate", inplace=False)
+    for name in ("IMP_a", "IMP_Y", "U", "Yc", "VY"):
+        np.testing.assert_allclose(restored.query(name), db.query(name))
+    mappings = {
+        level: pd.DataFrame({"Aggregation": ["All", "All"]}, index=db.get_index(level))
+        for level in ("Activity", "Commodity")
+    }
+    db.aggregate(io=mappings, levels=["Activity", "Commodity"], calc_all=False)
+    assert db.query("IMP_a").shape == (1, 1)
+    assert db.query("IMP_a").iloc[0, 0] == pytest.approx(3.0)
+    np.testing.assert_allclose(db.query("IMP_Y"), [[6, 8]])
+    output = tmp_path / "roundtrip.xlsx"
+    db.to_excel(str(output), flows=True, coefficients=False)
+    loaded = mario.parse_from_excel(str(output), table="SUT", mode="flows", data_sheet="flows")
+    assert loaded.configuration.import_representation == "separate"
+    for name in ("S", "U", "Yc", "Va", "VY", "IMP_a", "IMP_Y", "Xa", "Xc"):
+        np.testing.assert_allclose(loaded.query(name), db.query(name))
+
+
+def test_istat_sut_excludes_overlapping_value_added_subtotals():
+    use = _istat_use_frame()
+    # Include all published decomposition levels in a reduced official layout.
+    use.iloc[10:16, 1] = [
+        "Redditi da lavoro dipendente", "Altre imposte nette sulla produzione",
+        "Ammortamenti", "Risultato netto di gestione", "Risultato lordo di gestione",
+        "Valore aggiunto ai prezzi base",
+    ]
+    use.iloc[10:16, 2:4] = [[2, 3], [1, 1], [1, 2], [4, 5], [5, 7], [8, 11]]
+    matrices, indexes, _, _ = build_istat_sut_from_frames(
+        _istat_supply_frame(), use, _istat_import_frame(), year=2020,
+    )
+    assert "Risultato lordo di gestione" not in indexes["f"]["main"]
+    assert "Valore aggiunto ai prezzi base" not in indexes["f"]["main"]
+    np.testing.assert_allclose(matrices["baseline"]["Va"].sum(), [8.5, 11.7])
+
+
+def test_istat_import_final_demand_aligns_by_label_and_rejects_missing_categories():
+    imports = _istat_import_frame()
+    imports.iloc[:, [5, 6]] = imports.iloc[:, [6, 5]].to_numpy()
+    matrices, _, _, _ = build_istat_sut_from_frames(
+        _istat_supply_frame(), _istat_use_frame(), imports, year=2020,
+        import_representation="separate",
+    )
+    np.testing.assert_allclose(matrices["baseline"]["IMP_Y"], [[2, 3], [4, 5]])
+    imports.iat[4, 5] = "Unknown final demand"
+    with pytest.raises(WrongFormat, match="final-demand"):
+        build_istat_sut_from_frames(
+            _istat_supply_frame(), _istat_use_frame(), imports, year=2020,
+            import_representation="separate",
+        )
+
+
+@pytest.mark.parametrize("table,valuation,representation", [
+    ("IOT", "basic", "separate"), ("SUT", "purchaser", "separate"),
+    ("SUT", "basic", "invalid"),
+])
+def test_istat_rejects_unsupported_import_requests_before_io(table, valuation, representation):
+    with pytest.raises(WrongInput):
+        mario.parse_istat("missing", year=2022, table=table, valuation=valuation,
+                          import_representation=representation)
 
 
 def test_detect_istat_layouts_require_unambiguous_files(tmp_path):
@@ -261,7 +363,7 @@ def test_public_parse_istat_builds_sut_database_from_local_directory(tmp_path):
 
     assert database.table_type == "SUT"
     assert database.meta.year == 2020
-    assert sorted(database["baseline"].keys()) == ["EY", "Ea", "Ec", "S", "U", "Va", "Vc", "Ya", "Yc"]
+    assert sorted(database["baseline"].keys()) == ["EY", "Ea", "Ec", "S", "U", "VY", "Va", "Vc", "Ya", "Yc"]
     assert database.Z.shape == (4, 4)
 
 

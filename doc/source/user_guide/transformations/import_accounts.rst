@@ -64,6 +64,12 @@ It recognizes the explicit ``imports`` accounts created by extraction.
 Native blocks
 -------------
 
+An already national ISTAT SUT can also be parsed with native commodity imports
+using :func:`mario.parse_istat` and ``import_representation="separate"``.
+The parser subtracts the official imported uses from total uses; it does not
+require regional extraction. See the :doc:`ISTAT guide
+</notebooks/parsers/istat/walkthrough_istat>` for its valuation and data limits.
+
 IOT uses ``IMP`` for imports purchased by productive sectors and ``IMP_Y`` for
 direct final-demand imports. SUT distinguishes use-side ``IMP_a`` from
 supply-side ``IMP_c`` and direct final-demand ``IMP_Y``. A Chenery–Moses source

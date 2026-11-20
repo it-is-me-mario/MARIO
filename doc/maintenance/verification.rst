@@ -104,6 +104,15 @@ Do not rerun every real database for a wording-only edit.
 Example verification
 --------------------
 
+For national SUT import parsers, compare ``U + IMP_a`` and ``Yc + IMP_Y``
+cell by cell against the source total-use workbooks. Check imported rows against
+the official import-use table, and verify both product and activity balances
+before and after aggregation. Published income hierarchies require disjoint
+components: including both value-added subtotals and their parts can pass a
+shape-only parser test while invalidating the model. Retain source rounding
+differences explicitly and include a coefficient reset and accounting/export
+round trip in the integration check.
+
 * Execute changed minimal examples against packaged IOT/SUT fixtures where
   possible. Check outputs, units and axes, not just absence of exceptions.
 * Export separate-import models with reversed productive axes in flow and

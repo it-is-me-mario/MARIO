@@ -9,6 +9,7 @@ ISTAT
    :download:`Download notebook <walkthrough_istat.ipynb>`
 
 This example downloads the selected edition. Choose the table, valuation and industry or product system before comparing results.
+See :func:`mario.parse_istat` for the complete parser signature.
 
 Import
 ------
@@ -49,6 +50,7 @@ Inputs and options
    - ``level``: for ``SUT``, either ``"63"`` or ``"20"``;
    - ``price``: for ``SUT``, either ``"current"`` or ``"pyp"``;
    - ``valuation``: for ``SUT``, either ``"basic"`` or ``"purchaser"``;
+   - ``import_representation``: for basic-price SUT, choose total imports in factor accounts or native imports by commodity;
    - ``download``: when ``True``, MARIO downloads the official release before parsing it;
    - ``edition`` and ``page_url``: downloader selectors for the official ISTAT release page.
 
@@ -149,3 +151,48 @@ Inputs and options
 
 Continue with :doc:`Inspect and query a database </user_guide/inspection/basic_inspections>`
 or :doc:`Calculate matrices </user_guide/inspection/compute_matrices>`.
+
+Separate SUT imports by product
+-------------------------------
+
+The official ``IMPORT`` workbook records imported products by purchasing
+activity and final-demand category. Select native import accounts directly
+when parsing this already single-region table:
+
+.. code-block:: python
+
+   db = mario.parse_istat(
+       "istat_cache", year=2022, table="SUT", level="63",
+       price="current", valuation="basic", import_representation="separate",
+       download=True, edition="2020-2022",
+   )
+   imported_intermediates = db.query("IMP_a")
+   imported_final_demand = db.query("IMP_Y")
+
+``IMP_a`` and ``IMP_Y`` have one row per imported commodity, with no origin
+country detail. ``U`` and ``Yc`` contain domestic uses after subtracting the
+corresponding imported cells. ``IMP_c`` is zero. All monetary flows are in
+millions of euros. Aggregation maps domestic and imported commodity rows
+together. Do not call ``to_single_region()`` on this national table.
+
+The default ``import_representation="factor-accounts"`` retains total imported
+supply by product in ``Vc`` and total uses in ``U`` and ``Yc``. It is a
+different accounting layout from allocating imported uses to ``IMP_a`` and
+``IMP_Y``. Parse the source again to choose that layout. Once separated,
+:meth:`db.to_import_representation() <mario.Database.to_import_representation>`
+can combine those same imported-use accounts with the factors and restore them.
+Separate parsing currently requires SUT at basic prices; IOT and purchaser-price
+requests are rejected before downloading.
+
+SUT income rows contain disjoint value-added components, excluding the published
+subtotals and the wages already included in employee compensation. A reduced
+workbook without the full decomposition uses total value added instead.
+``VY`` retains product taxes and the published final-demand accounting
+adjustments. These adjustments are separate from domestic and imported product
+uses. Published rounding differences are retained rather than balanced by an
+unreported correction. The monetary release supplies no environmental
+extensions: the zero satellite placeholder is not an emissions inventory.
+
+See :doc:`separate import accounts </user_guide/transformations/import_accounts>`
+and :doc:`exports to CVXLab </user_guide/inspection/to_cvxlab>` for coefficients,
+aggregation and exports.

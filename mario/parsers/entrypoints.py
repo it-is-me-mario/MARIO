@@ -89,6 +89,7 @@ from mario.parsers.specs import (
     GTAP_LAYOUTS,
     GTAP_VARIANTS,
     ISTAT_IOT_MODES,
+    ISTAT_MONETARY_UNIT,
     ISTAT_SUT_LEVELS,
     ISTAT_SUT_PRICES,
     ISTAT_SUT_VALUATIONS,
@@ -1915,6 +1916,7 @@ def parse_istat(
     level: str = "63",
     price: str = "current",
     valuation: str = "basic",
+    import_representation: str = "factor-accounts",
     download: bool = False,
     overwrite_download: bool = False,
     edition: str = "latest",
@@ -1953,6 +1955,12 @@ def parse_istat(
     valuation : str, optional
         SUT use-table valuation when ``table='SUT'``. Supported values are
         ``basic`` and ``purchaser``.
+    import_representation : {"factor-accounts", "separate"}, optional
+        SUT import accounting. The default retains total imports in ``Vc``.
+        ``separate`` requires ``table='SUT', valuation='basic'`` and reads
+        imports by commodity and destination from the IMPORT workbook into
+        ``IMP_a`` and ``IMP_Y``. ``U`` and ``Yc`` then contain domestic uses;
+        ``IMP_c`` is zero. No country-of-origin detail is available.
     download : bool, optional
         when ``True``, download the official ISTAT release zip into ``path``
         before parsing it locally.
@@ -1969,6 +1977,12 @@ def parse_istat(
         raise WrongInput("Available models are {}".format([*models]))
 
     validate_parse_request(table=table, model=model)
+
+    from mario.model.configuration import validate_import_representation
+
+    validate_import_representation(import_representation)
+    if import_representation == "separate" and (table != "SUT" or valuation != "basic"):
+        raise WrongInput("Separate ISTAT imports require table='SUT' and valuation='basic'.")
 
     effective_path = path
     if download:
@@ -2003,7 +2017,21 @@ def parse_istat(
             level=level,
             price=price,
             valuation=valuation,
+            import_representation=import_representation,
         )
+
+    if import_representation == "separate":
+        state = build_parser_state(
+            table=table, matrices=matrices, indexes=indeces, units=units,
+            parser_name="parse_istat", name=name or layout.dataset_name,
+            source=layout.source, year=layout.year, price=layout.price_label,
+            tech_assumption=kwargs.pop("tech_assumption", None),
+        )
+        state.metadata.extra["model_configuration"] = {
+            "import_representation": "separate", "imports_by": "commodity",
+            "trade_resolution": "aggregate", "import_unit": ISTAT_MONETARY_UNIT,
+        }
+        return build_database_from_state(state, model=model, calc_all=calc_all, **kwargs)
 
     return models[model](
         name=name or layout.dataset_name,

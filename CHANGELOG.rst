@@ -10,6 +10,12 @@ Unreleased
 
 * Add ``mario.model_setup()`` for research models maintained in their own
   repositories and ``mario.models.install()`` for catalogued releases and refs.
+* Add ``import_representation="separate"`` to the ISTAT basic-price SUT parser.
+  Read imported intermediate and final uses by commodity into ``IMP_a`` and
+  ``IMP_Y``, with domestic ``U`` / ``Yc`` and native accounting metadata.
+* Correct ISTAT SUT value-added double counting by selecting disjoint income
+  components instead of their overlapping subtotals. Preserve final-demand
+  taxes and accounting adjustments in ``VY``.
 
 v1.3.5
 ------
