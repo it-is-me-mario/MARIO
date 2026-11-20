@@ -172,6 +172,15 @@ def stage_gallery(publisher, latest, workspace):
 
     with (staged / "index.rst").open("a") as stream:
         stream.write("\n.. toctree::\n   :hidden:\n\n   models/index\n   resources/index\n")
+    companions = sorted((staged / "models").glob("*.ipynb"))
+    if companions:
+        with (staged / "resources/material.rst").open("a") as stream:
+            stream.write("\nModel Gallery notebooks\n-----------------------\n\n")
+            for notebook in companions:
+                stream.write(
+                    f"* :doc:`../models/{notebook.stem}` · "
+                    f":download:`Download notebook <../models/{notebook.name}>`\n"
+                )
     setup = staged / "user_guide/configuration/index.rst"
     with setup.open("a") as stream:
         stream.write(

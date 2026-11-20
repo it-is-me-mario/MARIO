@@ -41,7 +41,9 @@ Page ownership
        electricity presets use ``user_guide/advanced/electricity_mix.rst``
      - API, paired notebook and transformation index
    * - IAM scenario mixes
-     - ``user_guide/transformations/iam_scenarios.rst`` and its notebook
+     - ``user_guide/transformations/iam_scenarios.rst`` and its notebook.
+       The Model Gallery steel case lives in ``doc/model_gallery/models/gcam-mario-steel.rst``
+       with its companion notebook.
      - Packaged IAM shock taxonomy, IAMC reader, NGFS downloader and database
        shock API. Verify that specified entries stop before a download and
        executable entries reach their declared operator. Verify raw
@@ -50,6 +52,8 @@ Page ownership
        with the same technology prices. Check production from other activities
        separately. For live downloads, compare the IAMC dimensions, years and
        values for each run with its archived workbook at the same version.
+       For the steel case, compare all mapped route shares in solved supply
+       to the regional GCAM export on the prepared ExioSteel SUT.
    * - Database profiles and classifications
      - ``user_guide/advanced/database_profiles.rst``,
        ``inspection/concordances.rst``,
