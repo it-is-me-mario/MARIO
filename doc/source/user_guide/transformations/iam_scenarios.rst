@@ -24,17 +24,25 @@ an archived export or study-specific data, use :func:`mario.read_iamc`, for
 example ``mario.read_iamc("study.xlsx", sheet_name="Results")``. Both paths
 preserve the source labels and support the same supply-mix calculation.
 
-For a hybrid EXIOBASE SUT named ``db``, pool the generating commodities into
-a single TJ commodity called ``Electricity (generation)``, as shown in the
-companion notebook. Then select a scenario from the downloaded data.
+:meth:`mario.Database.shock_from_iam` creates a MARIO scenario and returns
+its name. For the two EXIOBASE SUTs in the companion notebook, select the
+same IAM run and year. The generation commodity is measured in TJ on the
+hybrid table and in EUR on the monetary table.
 
 .. code-block:: python
 
-   select = dict(model="GCAM 6.0 NGFS", scenario="Net Zero 2050",
-                 year=2050, regions={"US": "GCAM 6.0 NGFS|USA"}, unit="EJ/yr")
-   shares = iam.supply_mix(**select, basis="physical")
-   db.update_supply_mix(shares, level="Activity", commodities="Electricity (generation)",
-                        scenario="US power 2050", clone_from="baseline")
+   select = dict(model=model, scenario="Net Zero 2050", year=2050,
+                 regions={"US": "GCAM 6.0 NGFS|USA"})
+   hybrid_case = physical_db.shock_from_iam(iam, **select)
+   money_case = monetary_db.shock_from_iam(iam, **select, prices="peng-2026")
+   supply = monetary_db.query("S", scenarios=money_case)
+
+On an original EXIOBASE SUT with separate generation commodities, pass
+``pool=True`` in the same call to build the common electricity market. This
+changes the commodity classification for every scenario, including the baseline.
+On a prepared SUT, the method detects the shared generation commodity.
+Pass ``commodity=...`` if it has a custom name. To download a single public
+NGFS run and apply it directly, omit ``iam`` from either call.
 
 The electricity preset uses disjoint generation variables, including separate
 solar PV and CSP. It checks coverage against reported total generation for
@@ -46,25 +54,29 @@ co-product. Inspect the solved ``S`` block to measure their contribution.
 Monetary valuation
 ------------------
 
-For a monetary SUT, use ``basis="value"`` and pass regional prices per unit of
-production for each mapped technology. The share is quantity times price
+For a monetary SUT, choose regional prices per unit of production for each
+mapped technology. The share is quantity times price
 divided by total valued production. Any common price factor cancels. To use
 base-year prices, divide regional generation receipts by physical generation
 for the same technology, year and accounting boundary. To use scenario prices,
-the companion applies Peng et al.'s relative cost assumptions in Table S6 and
-anchors the prices to the reported US electricity price. These relative costs
-are a modelling assumption. An electricity mix shock alone sets neither total
-future generation nor total expenditure.
+the ``"peng-2026"`` option applies the relative generation costs in Table S6
+to each selected region. The notebook also scales them to GCAM's reported
+regional mean and verifies the same shares. The relative costs are a modelling
+assumption. In this example wind accounts for 34.52% of US generation value.
+To use your own prices keyed by EXIOBASE activity, pass the regional mapping.
 
 .. code-block:: python
 
-   value_shares = iam.supply_mix(**select, basis="value", prices={"US": prices_by_activity})
+   case = monetary_db.shock_from_iam(iam, **select, prices={"US": prices_by_activity},
+                                     target_scenario="US power at base-year prices")
 
 Custom variables and geographic coverage
 ----------------------------------------
 
-Use ``variables={native_label: series_name}`` for custom routes, including
-steel. Multiple series can contribute to one native label. The optional
+For a SUT with a shared steel commodity and distinct route activities, use
+``shock="production_mix"`` with ``commodity``, the IAM ``unit``, and
+``variables={native_label: series_name}``. Multiple series can contribute
+to one native label. The optional
 ``total`` names a separately reported control series. Source regions mapped
 to one MRIO region are summed in physical units before valuation. For a
 downscaled geography, prepare country-level quantities using an explicit

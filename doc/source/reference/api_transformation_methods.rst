@@ -42,6 +42,7 @@ IOT-only backward-compatible aliases of ``update_supply_mix``.
    :maxdepth: 1
 
    ../api_document/mario.read_iamc
+   ../api_document/mario.Database.shock_from_iam
    ../api_document/mario.Database.update_supply_mix
    ../api_document/mario.Database.update_trade_mix
    ../api_document/mario.Database.get_mix

@@ -24,6 +24,20 @@ _EXIOBASE_GENERATORS = {
     "solar thermal": "Solar|CSP",
 }
 
+# Relative LCOE (wind = 1), Peng et al. 2026, Supporting Information 1, Table S6.
+_PENG_ELECTRICITY_COSTS = {
+    "Coal": 2.76,
+    "Gas": 1.47,
+    "Nuclear": 4.08,
+    "Hydro": 1.20,
+    "Wind": 1.00,
+    "Oil": 3.99,
+    "Biomass": 1.79,
+    "Geothermal": 2.07,
+    "Solar|PV": 0.95,
+    "Solar|CSP": 3.55,
+}
+
 
 def _year(column):
     if re.fullmatch(r"[0-9]{4}(?:\.0)?", str(column)):
@@ -117,9 +131,25 @@ class IamData:
         basis='physical' uses production quantities. basis='value' multiplies
         by strictly positive prices[target_region][native_label] in one consistent
         valuation per unit. Regional prices apply after geographic aggregation.
+        For the electricity preset, prices="peng-2026" uses Peng et al.'s
+        Table S6 relative generation costs in each target region (wind = 1).
         Returns shares within the specified production bundle, not output levels.
         """
         preset = isinstance(variables, str) and variables == "exiobase-electricity"
+        if isinstance(prices, str):
+            if prices != "peng-2026" or not preset or basis != "value":
+                raise ValueError(
+                    "prices='peng-2026' requires the EXIOBASE electricity preset and a value mix."
+                )
+            if not isinstance(regions, Mapping):
+                raise ValueError(
+                    "Provide a mapping from target regions to IAM regions."
+                )
+            ratios = {
+                f"Production of electricity by {label}": _PENG_ELECTRICITY_COSTS[fuel]
+                for label, fuel in _EXIOBASE_GENERATORS.items()
+            }
+            prices = dict.fromkeys(regions, ratios)
         if preset:
             variables = {
                 f"Production of electricity by {label}": f"{_ELECTRICITY}|{fuel}"
@@ -216,8 +246,15 @@ class IamData:
             weights = pd.Series({k: quantities.loc[v].sum() for k, v in groups.items()})
             if prices is not None:
                 factors = pd.Series(prices[target], dtype=float)
+                if preset:
+                    aliases = {item.casefold(): item for item in weights.index}
+                    factors.index = [
+                        aliases.get(str(item).casefold(), item)
+                        for item in factors.index
+                    ]
                 if (
-                    set(factors.index) != set(weights.index)
+                    factors.index.has_duplicates
+                    or set(factors.index) != set(weights.index)
                     or not np.isfinite(factors).all()
                     or (factors <= 0).any()
                 ):
