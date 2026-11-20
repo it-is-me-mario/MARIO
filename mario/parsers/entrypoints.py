@@ -68,6 +68,7 @@ from mario.parsers.gtap import (
     parse_gtap_mrio_gdx,
 )
 from mario.parsers.istat import parse_istat_iot, parse_istat_sut
+from mario.parsers.istat_extensions import attach_istat_extensions, normalize_istat_extensions
 from mario.parsers.oecd_icio import parse_oecd_icio
 from mario.parsers.oecd_iot import parse_oecd_iot_total
 from mario.parsers.oecd_sdmx import parse_oecd_sut_sdmx
@@ -1917,6 +1918,7 @@ def parse_istat(
     price: str = "current",
     valuation: str = "basic",
     import_representation: str = "factor-accounts",
+    extensions: str | list[str] | None = None,
     download: bool = False,
     overwrite_download: bool = False,
     edition: str = "latest",
@@ -1961,11 +1963,27 @@ def parse_istat(
         imports by commodity and destination from the IMPORT workbook into
         ``IMP_a`` and ``IMP_Y``. ``U`` and ``Yc`` then contain domestic uses;
         ``IMP_c`` is zero. No country-of-origin detail is available.
+    extensions : str or list of str, optional
+        Optional satellite groups: ``emissions`` (24 AEA indicators),
+        ``employment`` (total employed persons and hours worked), ``energy``
+        (PEFA net domestic energy use), or ``all``. Default ``None`` loads no
+        satellites. Requires ``table='SUT', level='63'``. Accounts match the
+        requested year and native NACE Rev. 2 activity codes; no allocation
+        to products is inferred. Environmental household totals populate
+        ``EY``; activity accounts populate ``Ea``. ``Ec`` remains zero.
+        Eurostat snapshots are cached in ``path/extensions`` (beside a local
+        zip/workbook); ``download=False`` requires those cached snapshots.
+        Missing or confidential observations raise an error, not a zero fill.
+        Provenance and observation flags are in ``db.info['istat_extensions']``
+        (``metadata.extra`` when requesting a ModelState). AEA totals and their
+        overlapping components must not be summed together. See the
+        :doc:`ISTAT guide </notebooks/parsers/istat/walkthrough_istat>`.
     download : bool, optional
         when ``True``, download the official ISTAT release zip into ``path``
-        before parsing it locally.
+        before parsing it locally, and fetch missing selected satellite caches.
     overwrite_download : bool, optional
-        when ``download=True``, overwrite an existing local archive/extraction.
+        when ``download=True``, overwrite an existing local archive/extraction
+        and refresh selected satellite snapshots after validating observations.
     edition : str, optional
         known ISTAT release page label used by the downloader, for example
         ``"2020-2022"`` or ``"2015-2020"``. Ignored when ``download=False``.
@@ -1977,6 +1995,10 @@ def parse_istat(
         raise WrongInput("Available models are {}".format([*models]))
 
     validate_parse_request(table=table, model=model)
+
+    selected_extensions = normalize_istat_extensions(extensions)
+    if selected_extensions and (table != "SUT" or level != "63"):
+        raise WrongInput("ISTAT extensions require table='SUT' and level='63'.")
 
     from mario.model.configuration import validate_import_representation
 
@@ -2020,18 +2042,31 @@ def parse_istat(
             import_representation=import_representation,
         )
 
-    if import_representation == "separate":
+    extension_report = None
+    if selected_extensions:
+        extension_report = attach_istat_extensions(
+            matrices, indeces, units, layout, selection=selected_extensions,
+            path=path, download=download, overwrite=overwrite_download,
+        )
+
+    if import_representation == "separate" or selected_extensions:
         state = build_parser_state(
             table=table, matrices=matrices, indexes=indeces, units=units,
             parser_name="parse_istat", name=name or layout.dataset_name,
             source=layout.source, year=layout.year, price=layout.price_label,
             tech_assumption=kwargs.pop("tech_assumption", None),
         )
-        state.metadata.extra["model_configuration"] = {
-            "import_representation": "separate", "imports_by": "commodity",
-            "trade_resolution": "aggregate", "import_unit": ISTAT_MONETARY_UNIT,
-        }
-        return build_database_from_state(state, model=model, calc_all=calc_all, **kwargs)
+        if import_representation == "separate":
+            state.metadata.extra["model_configuration"] = {
+                "import_representation": "separate", "imports_by": "commodity",
+                "trade_resolution": "aggregate", "import_unit": ISTAT_MONETARY_UNIT,
+            }
+        if extension_report is not None:
+            state.metadata.extra["istat_extensions"] = extension_report
+        database = build_database_from_state(state, model=model, calc_all=calc_all, **kwargs)
+        if model == "Database" and extension_report is not None:
+            database.info["istat_extensions"] = extension_report
+        return database
 
     return models[model](
         name=name or layout.dataset_name,

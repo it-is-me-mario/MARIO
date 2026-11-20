@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import logging
 from pathlib import Path
 import re
@@ -61,6 +61,8 @@ class IstatLayout:
     use_path: Path | None = None
     import_path: Path | None = None
     sheet_name: str | None = None
+    activity_codes: tuple[str, ...] = ()
+    hours_worked: tuple[object, ...] = ()
 
     @property
     def dataset_name(self) -> str:
@@ -602,6 +604,14 @@ def build_istat_sut_from_frames(
     )
     factor_start = _find_row_by_label(use_frame, "Consumi intermedi ai prezzi base") + 1
     va_labels, va_positions = _sut_factor_rows(use_frame, start_row=factor_start)
+    hours_rows = [
+        row for row in range(factor_start, len(use_frame))
+        if _normalize_text(use_frame.iat[row, 1]) == "Ore lavorate (migliaia)"
+    ]
+    layout = replace(
+        layout, activity_codes=tuple(activity_codes),
+        hours_worked=tuple(use_frame.iloc[hours_rows[0], use_activity_positions]) if len(hours_rows) == 1 else (),
+    )
     total_import_col = _find_last_total_use_column(import_frame)
 
     activity_axis = _three_level_axis("ITA", _MASTER_INDEX["a"], activity_labels)

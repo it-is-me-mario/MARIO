@@ -171,7 +171,7 @@ Other MRIO and SRIO databases
       :database: istat
       :logo: /_static/images/logos/istat.svg
 
-      Official ISTAT input-output releases for Italy, IOT and SUT.
+      Official Italian IOT and SUT, with optional SUT emissions, employment and energy accounts.
 
    .. mario-card:: :doc:`StatCan <../../notebooks/parsers/statcan/walkthrough_statcan>`
       :kicker: mario.parse_statcan

@@ -16,6 +16,10 @@ Unreleased
 * Correct ISTAT SUT value-added double counting by selecting disjoint income
   components instead of their overlapping subtotals. Preserve final-demand
   taxes and accounting adjustments in ``VY``.
+* Add optional ``extensions`` to the 63-branch ISTAT SUT parser: AEA emissions,
+  employed persons and hours worked, and PEFA net domestic energy use.
+  Align Italy/year observations by NACE codes, retain household environmental
+  accounts in ``EY``, and cache validated Eurostat snapshots for offline reuse.
 
 v1.3.5
 ------

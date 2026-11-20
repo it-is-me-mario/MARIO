@@ -244,6 +244,17 @@ out restores the original failure. Such a correction is not evidence that
 the unmodified source is invertible or that its producer accounts reconcile
 with native final-demand footprints.
 
+For optional ISTAT satellites, verify the annual country/year/unit selection
+and the native-code concordance independently of activity descriptions.
+Exercise sparse and dense JSON-stat responses, missing/confidential values,
+observation flags and refresh failure without replacing a valid cache.
+Check offline parsing from both an extracted bundle and a zip: satellite
+snapshots must survive temporary extraction. Compare activity and household
+accounts with source observations, and native hours with the USE workbook.
+Check unit scales, overlapping characterised totals, aggregation conservation,
+separate-import descriptors, and native/CVXLab exports in the same workflow.
+Record satellite source vintages separately from the monetary release edition.
+
 Rendered review
 ---------------
 
