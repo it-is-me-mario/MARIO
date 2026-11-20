@@ -41,7 +41,8 @@ Run the notebook
    <https://github.com/SESAM-Polimi/ExioSteel/blob/be43497a18302f7c2ad0df13a3cb6b6536355839/docs/installation.md>`_
    and run ``gcam-mario prepare`` in the checkout. The source download is 1.78 GB.
 #. Open the notebook in a separate kernel with MARIO installed from the
-   ``link-iam-mrio`` branch. Set ``EXIOSTEEL_ROOT`` to the ExioSteel checkout
+   `tested revision of the link-iam-mrio branch
+   <https://github.com/it-is-me-mario/MARIO/tree/f4594ab917f75f687b44171b8ce9027ed8c97359>`_. Set ``EXIOSTEEL_ROOT`` to the ExioSteel checkout
    or set ``root`` in the first code cell.
 #. Run all cells. To explore another case, choose a scenario printed by the
    notebook and a reporting year from the CSV, then rerun from the top.
