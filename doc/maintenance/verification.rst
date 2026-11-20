@@ -113,6 +113,13 @@ shape-only parser test while invalidating the model. Retain source rounding
 differences explicitly and include a coefficient reset and accounting/export
 round trip in the integration check.
 
+In cloud-synced CVXLab destinations, synchronization can change a workbook's
+timestamp during export. If the concurrent-file guard stops the update, compare
+the current logical sheet values with the verified settings, sets and inputs,
+then rerun using those current files. A changed ZIP checksum alone is not proof
+that cells changed. Keep the concurrency guard enabled; do not overwrite an
+unexamined change.
+
 * Execute changed minimal examples against packaged IOT/SUT fixtures where
   possible. Check outputs, units and axes, not just absence of exceptions.
 * Export separate-import models with reversed productive axes in flow and
