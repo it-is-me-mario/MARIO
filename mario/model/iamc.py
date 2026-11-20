@@ -32,7 +32,7 @@ def _year(column):
 
 
 def read_iamc(source, *, sheet_name=0):
-    """Read an annual IAMC CSV, XLSX worksheet or DataFrame.
+    """Read an annual IAMC CSV, XLSX worksheet, pandas ExcelFile or DataFrame.
 
     Accept wide year columns or long Year/Value data. Preserve model, scenario,
     region, variable and unit labels, including project-specific names.
@@ -40,7 +40,10 @@ def read_iamc(source, *, sheet_name=0):
     """
     if isinstance(source, pd.DataFrame):
         frame = source.copy()
-    elif Path(source).suffix.lower() in (".xlsx", ".xlsm"):
+    elif isinstance(source, pd.ExcelFile) or Path(source).suffix.lower() in (
+        ".xlsx",
+        ".xlsm",
+    ):
         frame = pd.read_excel(source, sheet_name=sheet_name, keep_default_na=False)
     else:
         frame = pd.read_csv(source, keep_default_na=False)

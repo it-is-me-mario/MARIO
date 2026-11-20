@@ -4,6 +4,9 @@ Downloads
 These helpers download source files for datasets where MARIO supports a stable
 automatic download path.
 
+For IAM scenarios, :func:`mario.list_ngfs_runs` lists the public NGFS Phase V
+catalogue. :func:`mario.download_ngfs` loads selected runs into memory.
+
 Automatic Download Helpers
 --------------------------
 

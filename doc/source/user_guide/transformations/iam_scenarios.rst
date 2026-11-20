@@ -4,23 +4,32 @@
 Apply an IAM production mix
 ===========================
 
-Read a public or custom annual IAMC dataset with :func:`mario.read_iamc`.
-Model, scenario, region and variable names are taken from the file. Select
-the worksheet by name for a research workbook with a cover page.
-
-From a MARIO checkout, download the two public NGFS runs and their identifiers
-with ``python scripts/download_ngfs_gcam.py .``.
-
-The following example expects a GCAM 6.0 NGFS Net Zero 2050 export and a
-hybrid EXIOBASE SUT named ``db``. Its generating commodities have already
-been pooled into a single TJ commodity called ``Electricity (generation)``.
-The companion notebook includes that preparation.
+Select a model and one or more scenarios from the public NGFS Phase V
+catalogue. :func:`mario.download_ngfs` returns one :class:`mario.IamData` with
+the complete annual series for the selected runs. Use
+:func:`mario.list_ngfs_runs` to find the model and scenario names.
 
 .. code-block:: python
 
    import mario
 
-   iam = mario.read_iamc("Net_Zero_2050.xlsx")
+   model = "GCAM 6.0 NGFS"
+   available = mario.list_ngfs_runs(model=model)
+   iam = mario.download_ngfs(model=model, scenarios=["Current Policies", "Net Zero 2050"])
+   iam.frame.groupby("Scenario").size()
+
+The downloader uses the current default run of each scenario. Inspect
+``iam.frame.attrs["ngfs_runs"]`` for the identifiers and versions used. To read
+an archived export or study-specific data, use :func:`mario.read_iamc`, for
+example ``mario.read_iamc("study.xlsx", sheet_name="Results")``. Both paths
+preserve the source labels and support the same supply-mix calculation.
+
+For a hybrid EXIOBASE SUT named ``db``, pool the generating commodities into
+a single TJ commodity called ``Electricity (generation)``, as shown in the
+companion notebook. Then select a scenario from the downloaded data.
+
+.. code-block:: python
+
    select = dict(model="GCAM 6.0 NGFS", scenario="Net Zero 2050",
                  year=2050, regions={"US": "GCAM 6.0 NGFS|USA"}, unit="EJ/yr")
    shares = iam.supply_mix(**select, basis="physical")

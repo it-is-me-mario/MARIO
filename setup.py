@@ -78,6 +78,7 @@ setup(
         "cvxlab==1.0.1b1",
         "IPython >= 8.27.0",
         "pymrio",
+        "requests",
         "pyyaml",
         "country_converter",
         "pyarrow>=17",

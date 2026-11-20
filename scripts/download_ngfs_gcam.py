@@ -3,59 +3,32 @@
 import argparse
 import hashlib
 import json
+import sys
 from pathlib import Path
 
-import requests
+# Support direct execution from a source checkout.
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-PORTAL = "https://data.ene.iiasa.ac.at/ngfs"
-API = "https://db1.ene.iiasa.ac.at/ngfs-phase-5-api/rest/v2.1"
-AUTH = "https://api.manager.ece.iiasa.ac.at/legacy/anonym/IXSE_NGFS_PHASE_5"
+from mario.model.ngfs import PORTAL, _workbooks
+
 MODEL = "GCAM 6.0 NGFS"
 SCENARIOS = ("Current Policies", "Net Zero 2050")
 
 
 def download(destination):
     destination.mkdir(parents=True, exist_ok=True)
-    session = requests.Session()
-    guest = session.get(AUTH, params={"algorithm": "HS256"}, timeout=40)
-    guest.raise_for_status()
-    session.headers["Authorization"] = "Bearer " + guest.text.strip().strip('"')
-    runs = session.get(API + "/runs", params={"getOnlyDefaultRuns": "true"}, timeout=90)
-    runs.raise_for_status()
     manifest = []
-    for scenario in SCENARIOS:
-        (run,) = [
-            r for r in runs.json() if r["model"] == MODEL and r["scenario"] == scenario
-        ]
-        url = f"{API}/runs/{run['run_id']}/ts"
+    for run, content in _workbooks(MODEL, SCENARIOS):
+        scenario = run["scenario"]
         file = destination / (scenario.replace(" ", "_") + ".xlsx")
-        response = session.get(
-            url,
-            headers={
-                "Accept": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            },
-            timeout=240,
-        )
-        response.raise_for_status()
-        if not response.content.startswith(b"PK"):
-            raise ValueError(
-                f"Expected an XLSX from {url}: {response.headers.get('Content-Type')}"
-            )
         tmp = file.with_suffix(".part")
-        tmp.write_bytes(response.content)
+        tmp.write_bytes(content)
         tmp.replace(file)
         manifest.append(
-            dict(
-                model=MODEL,
-                scenario=scenario,
-                run_id=run["run_id"],
-                version=run.get("version"),
-                file=file.name,
-                sha256=hashlib.sha256(response.content).hexdigest(),
-                url=url,
-            )
+            dict(run, file=file.name, sha256=hashlib.sha256(content).hexdigest())
         )
-        print(scenario, run["run_id"], len(response.content), flush=True)
+        print(scenario, run["run_id"], len(content), flush=True)
     (destination / "source.json").write_text(
         json.dumps({"source": PORTAL, "runs": manifest}, indent=2) + "\n"
     )

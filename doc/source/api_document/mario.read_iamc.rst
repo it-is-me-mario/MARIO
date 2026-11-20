@@ -3,6 +3,10 @@ IAMC scenario data
 
 .. currentmodule:: mario
 
+.. autofunction:: list_ngfs_runs
+
+.. autofunction:: download_ngfs
+
 .. autofunction:: read_iamc
 
 .. autoclass:: IamData

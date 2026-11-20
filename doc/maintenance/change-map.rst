@@ -45,7 +45,8 @@ Page ownership
      - IAMC reader, NGFS downloader and supply-mix API. Recompute the shares
        from solved supply flows in both units and reverse the monetary valuation
        with the same technology prices. Check production from other activities
-       separately.
+       separately. For live downloads, compare the IAMC dimensions, years and
+       values for each run with its archived workbook at the same version.
    * - Database profiles and classifications
      - ``user_guide/advanced/database_profiles.rst``,
        ``inspection/concordances.rst``,
