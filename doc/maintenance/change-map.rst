@@ -40,6 +40,12 @@ Page ownership
        estimation use ``user_guide/transformations/supply_mix.rst``;
        electricity presets use ``user_guide/advanced/electricity_mix.rst``
      - API, paired notebook and transformation index
+   * - IAM scenario mixes
+     - ``user_guide/transformations/iam_scenarios.rst`` and its notebook
+     - IAMC reader, NGFS downloader and supply-mix API. Recompute the shares
+       from solved supply flows in both units and reverse the monetary valuation
+       with the same technology prices. Check production from other activities
+       separately.
    * - Database profiles and classifications
      - ``user_guide/advanced/database_profiles.rst``,
        ``inspection/concordances.rst``,

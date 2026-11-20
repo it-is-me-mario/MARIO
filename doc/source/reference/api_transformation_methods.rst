@@ -41,6 +41,7 @@ IOT-only backward-compatible aliases of ``update_supply_mix``.
 .. toctree::
    :maxdepth: 1
 
+   ../api_document/mario.read_iamc
    ../api_document/mario.Database.update_supply_mix
    ../api_document/mario.Database.update_trade_mix
    ../api_document/mario.Database.get_mix

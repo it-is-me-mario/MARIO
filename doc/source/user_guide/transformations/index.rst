@@ -33,6 +33,8 @@ formats.
      - :doc:`Isard to Chenery-Moses <to_chenery_moses>`
    * - Change any supply bundle and estimate missing production recipes
      - :doc:`Update supply mixes <supply_mix>`
+   * - Apply an annual IAM scenario to a supply mix
+     - :doc:`IAM scenario data <iam_scenarios>`
    * - Update electricity generation or trade shares
      - :doc:`Update electricity mixes <../advanced/electricity_mix>`
 
@@ -50,4 +52,5 @@ formats.
    import_accounts
    to_chenery_moses
    supply_mix
+   iam_scenarios
    ../advanced/electricity_mix

@@ -31,6 +31,9 @@ The shares redistribute the combined rows of the selected bundle, preserving
 its total for each buyer. Other members of the classification keep their
 shares. Pass ``rescale=True`` for weights that do not sum to one.
 
+To derive regional shares from public or custom IAMC outputs, see
+:doc:`iam_scenarios`.
+
 Choose the table layout
 -----------------------
 
