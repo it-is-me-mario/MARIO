@@ -42,7 +42,9 @@ Page ownership
      - API, paired notebook and transformation index
    * - IAM scenario mixes
      - ``user_guide/transformations/iam_scenarios.rst`` and its notebook
-     - IAMC reader, NGFS downloader and database shock API. Verify raw
+     - Packaged IAM shock taxonomy, IAMC reader, NGFS downloader and database
+       shock API. Verify that specified entries stop before a download and
+       executable entries reach their declared operator. Verify raw
        commodity pooling and a second shock on the prepared market. Recompute the shares
        from solved supply flows in both units and reverse the monetary valuation
        with the same technology prices. Check production from other activities

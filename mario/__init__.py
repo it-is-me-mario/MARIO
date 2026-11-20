@@ -117,6 +117,7 @@ from mario.compute.types import (
 from mario.ops import ras
 from mario.log_exc.logger import set_log_verbosity
 from mario.model.iamc import IamData, read_iamc
+from mario.model.iam_shock_taxonomy import list_iam_shocks
 from mario.model.ngfs import download_ngfs, list_ngfs_runs
 from mario.model._api_key import set_api_keys
 from mario.model.builders import (

@@ -1,0 +1,75 @@
+# Families describe the economic change. Operators describe the MRIO operation.
+# Variable examples illustrate reporting labels; availability depends on the run.
+electricity_mix:
+  family: production_structure
+  operator: activity_market_shares
+  variable_preset: exiobase-electricity
+  default_unit: EJ/yr
+  iam_input: Electricity generation by technology and total generation, in a common energy unit per year.
+  example_variables: [Secondary Energy|Electricity|Wind, Secondary Energy|Electricity|Solar|PV, Secondary Energy|Electricity]
+  sut_target: s, generation activities supplying a shared electricity commodity.
+  iot_target: z and Y, generation-sector rows supplying each buyer, if the IOT distinguishes technologies.
+  physical_rule: Set the shares within the generation bundle to its regional output shares. Preserve the bundle coefficient in each market.
+  monetary_rule: Weight generation by technology-specific prices and normalize within the bundle.
+  requires: Disjoint source regions and generation series, a common market, a technology concordance and consistent regional prices for value shares.
+steel_mix:
+  family: production_structure
+  operator: activity_market_shares
+  min_activities: 2
+  iam_input: Annual tonnes of comparable steel output by mutually exclusive production route.
+  example_variables: [Steel|Scrap EAF, Steel|Blast furnace]  # Illustrative custom export
+  sut_target: s, steelmaking route activities supplying a common steel grade or aggregate.
+  iot_target: z and Y, route-specific steel-sector rows if present.
+  physical_rule: Normalize tonnes across the routes in the selected product market. Route output and total crude steel must cover the same production stage.
+  monetary_rule: Weight tonnes by price per tonne for each route and grade. Equal prices are an explicit assumption.
+  requires: A study-specific mapping to distinct MRIO route activities and a shared steel commodity. Split an aggregated steel activity before applying route shares.
+production_mix:
+  family: production_structure
+  operator: activity_market_shares
+  iam_input: Annual production by technology for a common output, using user-defined series.
+  example_variables: []
+  sut_target: s, mapped producer activities supplying one shared commodity.
+  iot_target: z and Y, technology-specific sector rows if present.
+  physical_rule: Normalize comparable production quantities over the mapped bundle while preserving its combined market share.
+  monetary_rule: Multiply output by comparable regional producer prices before normalizing.
+  requires: Product boundary, native activity-to-IAM-variable concordance, common unit and disjoint source regions.
+fuel_switch:
+  family: input_structure
+  operator: carrier_substitution
+  iam_input: Final energy by fuel for a common consuming sector or end use, in energy units per year.
+  example_variables: [Final Energy|Industry|Gases, Final Energy|Industry|Solids|Coal]
+  sut_target: u, fuel commodity rows and selected consuming activity columns.
+  iot_target: z, fuel supply rows and selected consuming sector columns.
+  physical_rule: Replace the input fuel bundle per unit of output. Choose a fixed delivered-energy total or preserve useful service with conversion efficiencies.
+  monetary_rule: Value each new physical input at its carrier price. Total fuel expenditure can change.
+  requires: Match IAM end uses to buyers and carriers to products. Specify the displaced fuels, reference intensity, sourcing shares, efficiency and valuation.
+electrification:
+  family: input_structure
+  operator: carrier_substitution
+  iam_input: Purchased electricity and displaced fuels for the same end use, plus output or useful-service demand for intensity changes.
+  example_variables: [Final Energy|Industry|Steel|Electricity, Final Energy|Industry|Steel|Solids]
+  sut_target: u for producing activities, or Yc for direct household purchases.
+  iot_target: z for producing sectors, or Y for direct household purchases.
+  physical_rule: Set electricity and displaced fuel inputs jointly. For a fixed useful service, divide the service supplied by each technology by its efficiency or COP.
+  monetary_rule: Multiply new electricity and fuel quantities by carrier-specific prices at the chosen valuation boundary.
+  requires: End-use and buyer mapping, electric and displaced technologies, conversion efficiencies or observed final-energy intensities, and sourcing shares.
+final_demand_change:
+  family: final_demand
+  operator: final_demand_update
+  iam_input: Final purchases by product and final-use category, or a mapped quantity or expenditure index at reference and target dates.
+  example_variables: [Final Energy|Residential and Commercial|Residential|Electricity]
+  sut_target: Yc, selected product rows and final-demand category in the purchasing region.
+  iot_target: Y, selected supplier rows and final-demand category in the purchasing region.
+  physical_rule: Apply the target quantity or its change relative to the reference to the mapped final purchases.
+  monetary_rule: Value quantities at matching product prices, or align reported expenditure for currency, valuation and price year before applying the change.
+  requires: Product and end-user concordance, reference level, allocation across origins, and a choice of absolute target or growth factor. Reconcile residential energy with household purchases, including self-generation. Industrial final energy belongs to intermediate use.
+capacity_investment:
+  family: final_demand
+  operator: capital_formation
+  iam_input: Annual investment spending, or gross capacity additions and unit capital costs. Stocks require a time interval and retirements.
+  example_variables: [Investment|Energy Supply|Electricity|Wind, Capacity Additions|Electricity|Wind, Capacity|Electricity|Wind]
+  sut_target: Yc, capital-goods and construction rows in the investing region's GFCF column.
+  iot_target: Y, capital-goods and construction rows in the investing region's GFCF column.
+  physical_rule: Derive gross additions from the stock change plus retirements over the interval. Translate builds into native product units with a capital-goods bill of inputs.
+  monetary_rule: Use reported capital expenditure or value gross additions at cost per capacity unit. Align currency and price year, then distribute spending across the capital-goods basket.
+  requires: A construction schedule or annual additions, comparable asset scope, a capital-goods and origin allocation, and the investment already in baseline GFCF to compute an increment.

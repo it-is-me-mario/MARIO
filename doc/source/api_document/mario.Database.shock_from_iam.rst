@@ -3,6 +3,8 @@ mario.Database.shock_from_iam
 
 .. currentmodule:: mario
 
+.. autofunction:: list_iam_shocks
+
 .. automethod:: Database.shock_from_iam
 
 See :doc:`../user_guide/transformations/iam_scenarios` for the hybrid and

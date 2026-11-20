@@ -13,7 +13,7 @@ Apply shocks and compare scenarios
    **Baseline** → **Specified changes** → **Alternative** → **Comparison**
 
 For a shock driven by IAM production data, see
-:doc:`Apply an IAM production mix <iam_scenarios>`.
+:doc:`Choose and apply an IAM shock <iam_scenarios>`.
 
 Use a filled shock workbook
 ---------------------------

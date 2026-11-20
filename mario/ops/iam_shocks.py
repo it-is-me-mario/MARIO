@@ -1,11 +1,13 @@
 """Resolve a SUT production market and its valuation for IAM shocks."""
 
+from collections.abc import Mapping
 import copy
 import re
 
 from mario.log_exc.exceptions import WrongInput
 from mario.model.electricity_mix import resolve_electricity_commodity_aggregation
 from mario.model.conventions import _MASTER_INDEX
+from mario.model.iamc import IamData
 
 
 def iam_market(database, commodity, electricity, pool):
@@ -46,7 +48,7 @@ def iam_market_basis(database, members, basis):
             f"The generation or production market needs one common unit, found {units.unique().tolist()}."
         )
     unit = str(units.iloc[0]).strip()
-    if re.fullmatch(r"(?:[kMGTPE]?Wh|[kMGTPE]?J)", unit):
+    if re.fullmatch(r"(?:[kMGTPE]?(?:Wh|J)|[kMG]?t|kg|tonnes?|metric tons?)", unit):
         detected = "physical"
     elif re.fullmatch(
         r"(?:(?:mio|million|millions|mn|m|bn|billion)[. _-]*)?(?:EUR|EURO|USD|GBP|JPY|CNY|CHF|CAD|AUD|€|\$)",
@@ -125,3 +127,76 @@ def apply_iam_market_shares(
     else:
         database.matrices[target] = staged.matrices[target]
     database.meta = staged.meta
+
+
+def apply_iam_production_mix(
+    database,
+    iam,
+    definition,
+    *,
+    base,
+    target,
+    model,
+    scenario,
+    year,
+    regions,
+    commodity,
+    pool,
+    variables,
+    unit,
+    total,
+    basis,
+    prices,
+):
+    """Translate IAM production to regional shares and update a SUT market."""
+    from mario.model.ngfs import download_ngfs
+
+    preset = definition.get("variable_preset")
+    if preset:
+        if variables is not None:
+            raise WrongInput("Use shock='production_mix' to supply custom variables.")
+        variables = preset
+        unit = unit or definition["default_unit"]
+    else:
+        if (
+            not isinstance(variables, Mapping)
+            or not variables
+            or not unit
+            or not commodity
+            or pool
+        ):
+            raise WrongInput(
+                "A custom production mix requires variables, unit and a shared commodity."
+            )
+        if len(variables) < definition.get("min_activities", 1):
+            raise WrongInput(
+                "A steel mix needs steel output mapped to at least two route activities."
+            )
+    if not isinstance(pool, bool):
+        raise WrongInput("pool must be a boolean.")
+    electricity = preset == "exiobase-electricity"
+    market, members = iam_market(database, commodity, electricity, pool)
+    basis = iam_market_basis(database, members, basis)
+    if basis == "value" and prices is None:
+        raise WrongInput(
+            "This market is monetary. Supply regional technology prices or, for EXIOBASE electricity, prices='peng-2026'."
+        )
+    if iam is None:
+        iam = download_ngfs(model=model, scenarios=scenario)
+    if not isinstance(iam, IamData):
+        raise WrongInput("Pass an IamData from read_iamc or download_ngfs.")
+    shares = iam.supply_mix(
+        model=model,
+        scenario=scenario,
+        year=year,
+        regions=regions,
+        variables=variables,
+        unit=unit,
+        total=total,
+        basis=basis,
+        prices=prices,
+    )
+
+    apply_iam_market_shares(
+        database, base, target, market, members, shares, electricity
+    )

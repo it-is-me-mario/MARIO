@@ -2,7 +2,6 @@
 """``Database`` implementation and high-level user operations."""
 
 import inspect
-from collections.abc import Mapping
 
 from mario.log_exc.exceptions import (
     LackOfInput,
@@ -5637,8 +5636,10 @@ class Database(CoreModel):
         currency units select value shares and require prices, either a mapping
         of region to technology prices or "peng-2026" for the published
         relative electricity costs. Specify basis for other market units.
-        With shock="production_mix", supply a shared commodity, IAM unit and
-        variables mapping native activity names to IAM series. The optional
+        With shock="steel_mix" or the generic "production_mix", supply a shared
+        commodity, IAM unit and variables mapping native activity names to
+        IAM series. See :func:`mario.list_iam_shocks` for the taxonomy,
+        required inputs and current table support. The optional
         total is a separate IAM series for checking production coverage.
 
         Returns the name of the new scenario, cloned from base_scenario.
@@ -5646,42 +5647,9 @@ class Database(CoreModel):
         The target name must be new. Only shares within the selected regional
         production bundle are prescribed.
         """
-        from mario.model.iamc import IamData
-        from mario.model.ngfs import download_ngfs
-        from mario.ops.iam_shocks import (
-            apply_iam_market_shares,
-            iam_market,
-            iam_market_basis,
-        )
+        from mario.model.iam_shock_taxonomy import resolve_iam_shock
 
-        if self.table_type != "SUT":
-            raise WrongInput(
-                "IAM production-mix shocks require a supply and use table (SUT)."
-            )
-        if shock == "electricity_mix":
-            if variables is not None:
-                raise WrongInput(
-                    "Use shock='production_mix' to supply custom variables."
-                )
-            variables = "exiobase-electricity"
-            unit = unit or "EJ/yr"
-        elif shock == "production_mix":
-            if (
-                not isinstance(variables, Mapping)
-                or not variables
-                or not unit
-                or not commodity
-                or pool
-            ):
-                raise WrongInput(
-                    "A custom production mix requires variables, unit and a shared commodity."
-                )
-        else:
-            raise WrongInput(
-                f"Unknown IAM shock {shock!r}. Use 'electricity_mix' or 'production_mix'."
-            )
-        if not isinstance(pool, bool):
-            raise WrongInput("pool must be a boolean.")
+        definition, apply_shock = resolve_iam_shock(shock, self.table_type)
         target = (
             f"{model} | {scenario} | {year}"
             if target_scenario is None
@@ -5694,37 +5662,33 @@ class Database(CoreModel):
         ):
             raise WrongInput(f"Provide a new MARIO scenario name, got {target!r}.")
         base = self._validate_scenario(base_scenario)
-        market, members = iam_market(self, commodity, shock == "electricity_mix", pool)
-        basis = iam_market_basis(self, members, basis)
-        if basis == "value" and prices is None:
-            raise WrongInput(
-                "This market is monetary. Supply regional technology prices or, for EXIOBASE electricity, prices='peng-2026'."
-            )
-        if iam is None:
-            iam = download_ngfs(model=model, scenarios=scenario)
-        if not isinstance(iam, IamData):
-            raise WrongInput("Pass an IamData from read_iamc or download_ngfs.")
-        shares = iam.supply_mix(
+        apply_shock(
+            self,
+            iam,
+            definition,
+            base=base,
+            target=target,
             model=model,
             scenario=scenario,
             year=year,
             regions=regions,
+            commodity=commodity,
+            pool=pool,
             variables=variables,
             unit=unit,
             total=total,
             basis=basis,
             prices=prices,
         )
-
-        apply_iam_market_shares(
-            self, base, target, market, members, shares, shock == "electricity_mix"
-        )
         valuation = (
             prices
             if isinstance(prices, str)
             else ("supplied prices" if prices is not None else "physical quantities")
         )
-        note = f"IAM {shock} from {model} / {scenario} / {year} for {regions!r} in {target!r} using {valuation}."
+        note = (
+            f"IAM {shock} ({definition['family']}, {definition['operator']}) from "
+            f"{model} / {scenario} / {year} for {regions!r} in {target!r} using {valuation}."
+        )
         self.meta._add_history(note)
         return target
 

@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 
 import mario
-from mario.log_exc.exceptions import WrongInput
+from mario.log_exc.exceptions import NotImplementable, WrongInput
 from tests.api.test_coremodel import (
     _build_electricity_mix_sut_database,
     _build_supply_mix_sut_database,
@@ -135,3 +135,124 @@ def test_custom_production_mix_and_optional_ngfs_source(monkeypatch):
     )
     assert flows["gen wind"] / flows["gen coal"] == pytest.approx(2)
     pd.testing.assert_frame_equal(db.query("S"), baseline)
+
+
+def test_taxonomy_distinguishes_economic_family_and_table_support():
+    taxonomy = mario.list_iam_shocks()
+    assert taxonomy.index.is_unique
+    assert set(mario.list_iam_shocks(implemented_only=True).index) == {
+        "electricity_mix",
+        "steel_mix",
+        "production_mix",
+    }
+    assert set(mario.list_iam_shocks("final_demand").index) == {
+        "final_demand_change",
+        "capacity_investment",
+    }
+    assert mario.list_iam_shocks("input_structure", implemented_only=True).empty
+    for name, entry in taxonomy.iterrows():
+        for field in (
+            "iam_input",
+            "sut_target",
+            "iot_target",
+            "physical_rule",
+            "monetary_rule",
+            "requires",
+        ):
+            assert entry[field].strip(), (name, field)
+        assert entry.supported_tables == (
+            ("SUT",) if entry.status == "implemented" else ()
+        )
+    with pytest.raises(WrongInput, match="family"):
+        mario.list_iam_shocks("unknown")
+
+
+@pytest.mark.parametrize(
+    "shock",
+    [
+        "fuel_switch",
+        "electrification",
+        "final_demand_change",
+        "capacity_investment",
+        "typo",
+    ],
+)
+def test_catalogued_and_unknown_shocks_fail_before_access(shock, monkeypatch):
+    db = _build_supply_mix_sut_database()
+    monkeypatch.setattr(
+        "mario.model.ngfs.download_ngfs",
+        lambda **kw: pytest.fail("unexpected download"),
+    )
+    before = list(db.meta._history)
+    error = WrongInput if shock == "typo" else NotImplementable
+    with pytest.raises(error, match=shock):
+        db.shock_from_iam(shock=shock, **SELECT)
+    assert db.scenarios == ["baseline"] and db.meta._history == before
+
+
+@pytest.mark.parametrize(
+    "unit, prices, eaf_share",
+    [
+        ("tonnes", None, 0.6),
+        ("EUR", {"R1": {"EAF": 2, "BF-BOF": 1}}, 0.75),
+    ],
+)
+def test_named_steel_mix_uses_custom_route_series(unit, prices, eaf_share):
+    db = _build_supply_mix_sut_database()
+    replacements = {
+        "Activity": {"gen coal": "BF-BOF", "gen wind": "EAF"},
+        "Commodity": {"electricity": "crude steel"},
+    }
+    mapping = {
+        level: pd.DataFrame(
+            {
+                "Aggregation": {
+                    item: names.get(item, item) for item in db.get_index(level)
+                }
+            }
+        )
+        for level, names in replacements.items()
+    }
+    db.aggregate(io=mapping, levels=list(mapping), calc_all=False)
+    db.units["Commodity"].loc["crude steel", "unit"] = unit
+    iam = mario.read_iamc(
+        pd.DataFrame(
+            {
+                "Model": "Project IAM",
+                "Scenario": "Custom steel",
+                "Region": "North",
+                "Unit": "Mt/yr",
+                "Variable": ["Steel|Scrap EAF", "Steel|Blast furnace", "Steel"],
+                2050: [60, 40, 100],
+            }
+        )
+    )
+    case = db.shock_from_iam(
+        iam,
+        shock="steel_mix",
+        model="Project IAM",
+        scenario="Custom steel",
+        year=2050,
+        regions={"R1": "North"},
+        commodity="crude steel",
+        unit="Mt/yr",
+        total="Steel",
+        variables={"EAF": "Steel|Scrap EAF", "BF-BOF": "Steel|Blast furnace"},
+        prices=prices,
+    )
+    supply = db.query("S", scenarios=case)[("R1", "Commodity", "crude steel")]
+    routes = supply.xs(("R1", "Activity")).loc[["EAF", "BF-BOF"]]
+    assert routes["EAF"] / routes.sum() == pytest.approx(eaf_share)
+
+
+def test_aggregate_steel_output_cannot_identify_route_shares():
+    db = _build_supply_mix_sut_database()
+    with pytest.raises(WrongInput, match="at least two"):
+        db.shock_from_iam(
+            **SELECT,
+            shock="steel_mix",
+            variables={"Steel": "Production|Steel"},
+            commodity="steel",
+            unit="Mt/yr",
+        )
+    assert db.scenarios == ["baseline"]
