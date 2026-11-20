@@ -1,4 +1,4 @@
-"""Build Latest and Dev into one verified GitHub Pages artifact."""
+"""Build Latest and Model Gallery into one verified GitHub Pages artifact."""
 
 import argparse
 import hashlib
@@ -12,18 +12,22 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
-from urllib.parse import unquote, urlsplit
+from urllib.parse import unquote, urljoin, urlsplit
 
 
 class PageAnchors(HTMLParser):
     def __init__(self):
         super().__init__()
         self.ids = []
+        self.redirect = False
 
     def handle_starttag(self, tag, attrs):
-        value = dict(attrs).get("id")
+        values = dict(attrs)
+        value = values.get("id")
         if value:
             self.ids.append(value)
+        if tag == "meta" and values.get("http-equiv", "").lower() == "refresh":
+            self.redirect = True
 
 
 def write_catalogue(output, catalogue):
@@ -53,15 +57,44 @@ class PageAssets(HTMLParser):
     def __init__(self):
         super().__init__()
         self.urls = []
+        self.page_urls = []
         self.explorer = False
 
     def handle_starttag(self, tag, attrs):
         values = dict(attrs)
-        self.urls.extend(values[key] for key in ("href", "src") if values.get(key))
+        urls = [values[key] for key in ("href", "src") if values.get(key)]
+        self.urls.extend(urls)
+        if tag != "a" or "data-docs-version" not in values:
+            self.page_urls.extend(urls)
         self.explorer |= any(key in values for key in (
             "data-economy-browser", "data-database-comparisons", "data-database-scope",
             "data-sectoral-scope", "data-extension-scope",
         ))
+
+
+def check_gallery_navigation(output, version):
+    """Check ordinary gallery links and assets, excluding the version selector."""
+    root = output / "en/model_gallery"
+    base = urlsplit(version["url"])
+    for document in version["documents"]:
+        page = document + ".html"
+        parser = PageAssets()
+        parser.feed((root / page).read_text())
+        for href in parser.page_urls:
+            target = urlsplit(urljoin(version["url"] + page, href))
+            if target.scheme not in {"http", "https"} or target.netloc != base.netloc:
+                continue
+            if not target.path.startswith(base.path):
+                raise ValueError(f"Model Gallery link leaves its channel: {page} → {href}")
+            relative = unquote(target.path.removeprefix(base.path))
+            if relative.endswith("/") or not relative:
+                relative += "index.html"
+            if not (root / relative).is_file():
+                raise ValueError(f"Model Gallery link has no target: {page} → {href}")
+            if target.fragment and relative.endswith(".html"):
+                anchors = version["documents"].get(relative.removesuffix(".html"), [])
+                if unquote(target.fragment) not in anchors:
+                    raise ValueError(f"Model Gallery link has no anchor: {page} → {href}")
 
 
 def deduplicate_legacy_json(output, catalogue):
@@ -102,13 +135,9 @@ def deduplicate_legacy_json(output, catalogue):
 
 def write_preview_redirects(output, catalogue):
     """Retire Preview while preserving its page URLs, query strings and anchors."""
-    destinations = {}
-    # Prefer Latest; a page available only in Dev keeps its working counterpart.
-    for channel in ("dev", "latest"):
-        version = catalogue["versions"][channel]
-        for document in version["documents"]:
-            destinations[document] = version["url"] + document + ".html"
-    for document, target in destinations.items():
+    latest = catalogue["versions"]["latest"]
+    for document in latest["documents"]:
+        target = latest["url"] + document + ".html"
         path = output / "en/preview" / (document + ".html")
         path.parent.mkdir(parents=True, exist_ok=True)
         address = escape(target, quote=True)
@@ -125,15 +154,48 @@ def write_preview_redirects(output, catalogue):
             '</body></html>')
 
 
+def stage_gallery(publisher, latest, workspace):
+    """Layer the model pages and navigation over the approved library docs."""
+    gallery = publisher / "doc/model_gallery"
+    staged = workspace / "doc/source"
+    shutil.copytree(latest / "doc/source", staged, ignore=shutil.ignore_patterns("__pycache__", ".DS_Store"))
+    (workspace / "mario").symlink_to(latest / "mario", target_is_directory=True)
+    shutil.copy2(latest / "CHANGELOG.rst", workspace / "CHANGELOG.rst")
+    shutil.copy2(publisher / "doc/versions.json", staged.parent / "versions.json")
+    for relative in ("models", "resources/index.rst",
+                     "user_guide/configuration/model_setups.rst", "_static/model-gallery.css"):
+        source = gallery / relative
+        if source.is_dir():
+            shutil.copytree(source, staged / relative, dirs_exist_ok=True)
+        else:
+            shutil.copy2(source, staged / relative)
+
+    with (staged / "index.rst").open("a") as stream:
+        stream.write("\n.. toctree::\n   :hidden:\n\n   models/index\n   resources/index\n")
+    setup = staged / "user_guide/configuration/index.rst"
+    with setup.open("a") as stream:
+        stream.write(
+            "\nModels from the Gallery\n-----------------------\n\n"
+            "See :doc:`model_setups` to install a model from its own repository and open a project.\n"
+            "\n.. toctree::\n   :hidden:\n\n   model_setups\n"
+        )
+    with (staged / "conf.py").open("a") as stream:
+        stream.write(f"\nrun_path({str(gallery / 'conf.py')!r})['configure'](globals())\n")
+    return staged
+
+
 def build(sources, output, site_root):
     if output.exists() and any(output.iterdir()):
         raise ValueError("Use a fresh output directory for the versioned site")
     output.mkdir(parents=True, exist_ok=True)
-    definitions = json.loads((Path(__file__).parents[1] / "versions.json").read_text())
+    publisher = Path(__file__).resolve().parents[2]
+    definitions = json.loads((publisher / "doc/versions.json").read_text())
+    frontend = publisher / "doc/source"
     catalogue = {"publisher_commit": subprocess.check_output(
-        ["git", "rev-parse", "HEAD"], cwd=Path(__file__).parents[2], text=True
+        ["git", "rev-parse", "HEAD"], cwd=publisher, text=True
     ).strip(), "versions": {}}
-    for channel, source in sources.items():
+    for channel, source in {**sources, "model_gallery": publisher}.items():
+        gallery = definitions[channel].get("kind") == "gallery"
         revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=source, text=True).strip()
         destination = output / "en" / channel
         base_url = f"{site_root.rstrip('/')}/en/{channel}/"
@@ -146,26 +208,39 @@ def build(sources, output, site_root):
             "MARIO_DOCS_BASEURL": base_url,
         }
         # Share the approved frontend without replacing a channel's library or guides.
-        frontend = Path(__file__).parents[1] / "source"
         with tempfile.TemporaryDirectory(prefix="mario-channel-theme-") as folder:
-            for name in ("docs-versions.css", "docs-versions.js", "external-links.js"):
-                shutil.copyfile(frontend / "_static" / name, Path(folder) / name)
+            static = Path(folder) / "static"
+            doc_source = source / "doc/source"
+            assets = ["docs-versions.css", "docs-versions.js", "external-links.js"]
+            if gallery:
+                doc_source = stage_gallery(publisher, sources["latest"], Path(folder))
+            for name in assets:
+                target = static / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(frontend / "_static" / name, target)
             subprocess.run([
                 sys.executable, "-m", "sphinx", "-b", "html", "-W", "--keep-going",
                 "-D", "html_theme_path=" + str(frontend / "_themes"),
-                "-D", "html_static_path=_static," + folder,
+                "-D", "html_context.mario_use_source_navigation=1",
+                "-D", "html_static_path=_static," + str(static),
                 "-D", "mario_site.install=pip install mariopy",
-                str(source / "doc/source"), str(destination),
+                str(doc_source), str(destination),
             ], cwd=source, env=env, check=True)
         documents = {}
+        redirects = []
         for path in sorted(destination.rglob("*.html")):
             parser = PageAnchors()
             parser.feed(path.read_text())
-            documents[path.relative_to(destination).with_suffix("").as_posix()] = parser.ids
+            document = path.relative_to(destination).with_suffix("").as_posix()
+            documents[document] = parser.ids
+            if parser.redirect:
+                redirects.append(document)
         catalogue["versions"][channel] = {
-            **definitions[channel], "commit": revision, "url": base_url, "documents": documents,
+            **definitions[channel], "commit": revision, "url": base_url,
+            "documents": documents, "redirects": redirects,
         }
     write_catalogue(output, catalogue)
+    check_gallery_navigation(output, catalogue["versions"]["model_gallery"])
     deduplicate_legacy_json(output, catalogue)
     write_preview_redirects(output, catalogue)
     size = sum(path.stat().st_size for path in output.rglob('*') if path.is_file())
@@ -190,9 +265,7 @@ def build(sources, output, site_root):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--latest-source", type=Path, required=True)
-    parser.add_argument("--dev-source", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--site-root", default="https://www.marioproject.com")
     args = parser.parse_args()
-    build({"latest": args.latest_source.resolve(), "dev": args.dev_source.resolve()},
-          args.output.resolve(), args.site_root)
+    build({"latest": args.latest_source.resolve()}, args.output.resolve(), args.site_root)

@@ -13,7 +13,7 @@ SPEC.loader.exec_module(publisher)
 def test_unreferenced_frozen_json_is_shared_without_removing_downloads(tmp_path):
     payload = b'{"padding":"' + b'x' * 70000 + b'"}'
     versions = {}
-    for channel in ('latest', 'dev'):
+    for channel in ('latest', 'model_gallery'):
         root = tmp_path / 'en' / channel
         data = root / '_static/data'
         data.mkdir(parents=True)
@@ -29,7 +29,7 @@ def test_unreferenced_frozen_json_is_shared_without_removing_downloads(tmp_path)
     catalogue = {'versions': versions}
     publisher.write_catalogue(tmp_path, catalogue)
     publisher.deduplicate_legacy_json(tmp_path, catalogue)
-    for channel in ('dev',):
+    for channel in ('model_gallery',):
         root = tmp_path / 'en' / channel
         assert not (root / '_static/data/unused.json').exists()
         for name in ('linked.json', 'changed.json', 'classification.xlsx'):

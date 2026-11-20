@@ -24,6 +24,7 @@ sys.path.insert(0, os.path.abspath("../../.."))
 sys.path.insert(0, os.path.abspath("_ext"))
 
 import mario_bibstyles
+from mario_resources import TEACHING_CLOSING
 import nbsphinx
 
 try:
@@ -95,18 +96,16 @@ author = 'Lorenzo Rinaldi, Mohammad Amin Tahavori, Nicolo Golinucci'
 # The full version, including alpha/beta/rc tags
 release = run_path(str(Path(__file__).resolve().parents[2] / "mario" / "version.py"))["__version__"]
 
-if os.environ.get("MARIO_DOCS_CHANNEL") == "dev":
-    tags.add("development")
-_docs_revision = os.environ.get("MARIO_DOCS_REVISION", "main")
-_development_install = (
-    'python -m pip install "mariopy @ git+https://github.com/it-is-me-mario/MARIO.git@'
-    + _docs_revision + '"'
-)
-rst_epilog = "\n.. |mario_development_install| replace:: " + _development_install + "\n"
-_docs_channel = os.environ.get("MARIO_DOCS_CHANNEL", "latest")
-_site_channel_path = _docs_channel + "/" if _docs_channel == "dev" else ""
-_explorer_url = "https://explorer.marioproject.com/" + _site_channel_path
-_tutorials_url = "https://tutorials.marioproject.com/" + _site_channel_path
+rst_epilog = ""
+_explorer_url = "https://explorer.marioproject.com/"
+_tutorials_url = "https://tutorials.marioproject.com/"
+
+_site_root = os.environ.get("MARIO_DOCS_SITE_ROOT", "https://www.marioproject.com").rstrip("/")
+_gallery_root = _site_root + "/en/model_gallery/"
+_pv_hlca_guide = _gallery_root + "models/pv-hlca.html"
+_model_setup_guide = _gallery_root + "user_guide/configuration/model_setups.html"
+rst_epilog += f"\n.. _Setup a model from the gallery: {_model_setup_guide}\n"
+rst_epilog += f"\n.. _PV-HLCA guide in the Model Gallery: {_pv_hlca_guide}\n"
 
 
 # -- General configuration ---------------------------------------------------
@@ -308,7 +307,8 @@ mario_site = {
                         "notebooks/parsers/"
                     ],
                     "pages": [
-                        "user_guide/advanced/database_profiles"
+                        "user_guide/advanced/database_profiles",
+                        "user_guide/examples/bonsai"
                     ],
                     "toc": {
                         "doc": "user_guide/parsers/index",
@@ -339,7 +339,10 @@ mario_site = {
                     ],
                     "pages": [
                         "user_guide/inspection/compute_matrices",
-                        "user_guide/inspection/visualization"
+                        "user_guide/inspection/visualization",
+                        "user_guide/examples/compare_ghg",
+                        "user_guide/advanced/supply_chain_analyses",
+                        "user_guide/advanced/structural_path_analysis"
                     ],
                     "toc": {
                         "doc": "user_guide/analysis/index"
@@ -378,23 +381,6 @@ mario_site = {
                         "doc": "user_guide/configuration/index"
                     },
                     "summary": "Choose computation settings and customize your Python session."
-                },
-                {
-                    "key": "examples",
-                    "icon": "paths",
-                    "label": "Examples",
-                    "doc": "user_guide/examples/index",
-                    "prefixes": [
-                        "user_guide/examples/"
-                    ],
-                    "pages": [
-                        "user_guide/advanced/supply_chain_analyses",
-                        "user_guide/advanced/structural_path_analysis"
-                    ],
-                    "toc": {
-                        "doc": "user_guide/examples/index"
-                    },
-                    "summary": "Follow complete analyses with downloadable notebooks."
                 },
                 {
                     "key": "api",
@@ -449,20 +435,7 @@ mario_site = {
     "closings": {
         **{page: {"text": "Learn how to <mark>use</mark> these databases", "doc": "user_guide/parsers/index"}
            for page in ("resources/data-explorer/scope", "resources/data-explorer/compare")},
-        # Opens a contact dialog that drafts an email in the visitor's own mail app; nothing is sent by the site.
-        "resources/teaching": {
-            "text": "Request a <mark>MARIO course</mark>",
-            "dialog": {
-                "title": "MARIO courses",
-                "intro": (
-                    "We don't run scheduled courses yet, but if you or your team are interested "
-                    "in a course, we can work out the format together."
-                ),
-                "subject": "MARIO course enquiry",
-                # Split so no address appears whole in the page source.
-                "recipients": [("lorenzo.rinaldi", "polimi.it"), ("nicolo.golinucci", "enextgen.it")],
-            },
-        },
+        "resources/teaching": TEACHING_CLOSING,
     },
     # Pages moved or removed in the 2026 redesign keep working through redirect pages.
     "redirects": {
@@ -491,6 +464,13 @@ mario_site = {
         "resources/data-explorer": "resources/data-explorer/scope",
         "resources/data-explorer/browsers": "resources/data-explorer/compare",
         "resources/changelog": "changelog",
+        "user_guide/configuration/model_setups": {
+            "target": _model_setup_guide,
+            "anchors": {
+                "install-pv-hlca": _model_setup_guide + "#install-a-model",
+                "build-a-project": _model_setup_guide + "#open-a-project",
+            },
+        },
     },
 }
 
@@ -504,3 +484,14 @@ mario_site["external_pages"] = {
     "resources/data-explorer/" + name: _explorer_url + "resources/data-explorer/" + name + ".html"
     for name in ("scope", "compare", "analyses", "electricity_carbon_footprint", "economy_emissions")
 }
+
+# Tutorials now host these worked analyses. Keep the original guide and
+# notebook sources so published downloads and source attribution remain valid.
+mario_site["tutorial_redirects"] = {
+    "user_guide/examples/index": _tutorials_url,
+    "user_guide/examples/bonsai": _tutorials_url + "bonsai-ghg/#import-and-inspect",
+    "user_guide/examples/compare_ghg": _tutorials_url + "compare-ghg-footprints/",
+    "user_guide/advanced/supply_chain_analyses": _tutorials_url + "trace-supply-chains/#nickel",
+    "user_guide/advanced/structural_path_analysis": _tutorials_url + "trace-supply-chains/#motor-vehicles",
+}
+rst_epilog += f"\n.. _MARIO Tutorials site: {_tutorials_url}\n"

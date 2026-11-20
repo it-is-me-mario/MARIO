@@ -1,23 +1,28 @@
 """Supply the channel, source revision and native links for versioned docs."""
 
+import json
 import os
+from pathlib import Path
+
+
+DEFINITIONS = json.loads((Path(__file__).resolve().parents[2] / "versions.json").read_text())
 
 
 def page_context(app, pagename, templatename, context, doctree):
     channel = os.environ.get("MARIO_DOCS_CHANNEL")
-    if channel not in {"latest", "dev"}:
+    if channel not in DEFINITIONS:
         return
     root = os.environ["MARIO_DOCS_SITE_ROOT"].rstrip("/")
     revision = os.environ["MARIO_DOCS_REVISION"]
     context["mario_versions"] = {
         "current": channel,
-        "label": "Dev" if channel == "dev" else "Latest",
+        "label": DEFINITIONS[channel]["label"],
         "document": pagename,
         "catalogue": app.builder.get_relative_uri(pagename, "index").removesuffix("index.html") + "_static/docs-versions.json",
         "revision": revision[:7],
         "source_url": "https://github.com/it-is-me-mario/MARIO/tree/" + revision,
-        "choices": [{"key": key, "label": label, "url": f"{root}/en/{key}/"}
-                    for key, label in (("latest", "Latest"), ("dev", "Dev"))],
+        "choices": [{"key": key, "label": item["label"], "url": f"{root}/en/{key}/"}
+                    for key, item in DEFINITIONS.items()],
     }
 
 

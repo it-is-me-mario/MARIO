@@ -1,0 +1,4 @@
+[data-section="models"] .mario-card__body p:last-child {
+  color: var(--ink-muted);
+  font-size: .9rem;
+}

@@ -10,21 +10,11 @@ Installation
 
 2. Install MARIO.
 
-   .. only:: not development
+   Install the published package from PyPI.
 
-      Install the published package from PyPI.
+   .. code-block:: bash
 
-      .. code-block:: bash
-
-         pip install mariopy
-
-   .. only:: development
-
-      Install the exact development revision documented on this site.
-
-      .. parsed-literal::
-
-         |mario_development_install|
+      pip install mariopy
 
    .. note::
 

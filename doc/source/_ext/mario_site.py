@@ -287,7 +287,8 @@ def _page_context(app, pagename, templatename, context, doctree):
         "sidebar": [],
         "sidebar_label": "",
         "local_toc": [],
-        "home_url": url(app.config.root_doc),
+        "home_url": url(config.get("home_url", app.config.root_doc)),
+        "changelog_url": config.get("changelog_url", ""),
         "github": config.get("github", ""),
         "pypi": config.get("pypi", ""),
         "install": config.get("install", ""),
@@ -326,17 +327,17 @@ def _page_context(app, pagename, templatename, context, doctree):
             page["tabs"] = []
             page["group_key"] = (tab or {}).get("key", "")
             page["sidebar"] = _docs_sidebar(app, pagename, section)
-            page["sidebar_label"] = "Documentation"
+            page["sidebar_label"] = section.get("sidebar_label", "Documentation")
             page["hero"] = {"title": context.get("title", ""), "text": "", "install": False}
-            page["breadcrumbs"] = [{"title": "Docs", "url": url(section["landing"])}]
+            page["breadcrumbs"] = [
+                {"title": section.get("breadcrumb_label", "Docs"), "url": url(section["landing"])}
+            ]
             if tab and pagename != tab["doc"]:
                 page["breadcrumbs"].append({"title": tab["label"], "url": url(tab["doc"])})
             metadata = env.metadata.get(pagename, {})
             default_type = "API reference" if pagename.startswith(("api_document/", "reference/")) else "Guide"
             if pagename == section["landing"] or (tab and pagename == tab["doc"]):
                 default_type = "Overview"
-            elif tab and tab["key"] == "examples":
-                default_type = "Worked example"
             elif pagename == "changelog":
                 default_type = "Release notes"
             page["page_type"] = metadata.get("page-type", default_type)
@@ -371,13 +372,16 @@ def _page_context(app, pagename, templatename, context, doctree):
                            "dialog": closing.get("dialog")}
 
     context["mario_page"] = page
-    external = config.get("external_pages", {}).get(pagename)
+    external = (config.get("tutorial_redirects", {}).get(pagename)
+                or config.get("external_pages", {}).get(pagename))
     if external:
         target = html.escape(external, quote=True)
         context["metatags"] = context.get("metatags", "") + (
             f'<link rel="canonical" href="{target}">'
             f'<meta http-equiv="refresh" content="0;url={target}">'
-            '<script>location.replace(' + json.dumps(external) + '+location.hash);</script>'
+            '<script>const target = new URL(' + json.dumps(external) + ');'
+            'target.search = location.search; if (!target.hash) target.hash = location.hash;'
+            'location.replace(target.href);</script>'
         )
     if page["topic_navigation"] or page["group_key"] == "formats":
         app.add_css_file("docs-workflows.css")
@@ -1296,6 +1300,8 @@ def _write_redirects(app):
             logger.warning("mario_site: redirect source %s is still a page; skipped", old)
             continue
         def destination(value):
+            if value.startswith(("https://", "http://")):
+                return value
             new_doc, _, anchor = value.partition("#")
             if new_doc not in app.env.found_docs:
                 logger.warning("mario_site: redirect target %s does not exist", new_doc)
@@ -1330,7 +1336,7 @@ def _write_nav_index(app):
     config = app.config.mario_site
     entries = []
     for docname in sorted(env.found_docs):
-        if docname not in env.titles:
+        if docname not in env.titles or docname in config.get("tutorial_redirects", {}):
             continue
         label = _section_label(config, docname)
         if not label and docname not in {"search", "genindex"}:
@@ -1372,8 +1378,9 @@ def _build_finished(app, exception):
     _write_redirects(app)
     _write_nav_index(app)
     _clean_notebook_downloads(app)
-    from mario_browser_assets import write_browser_assets
-    write_browser_assets(app.srcdir, app.outdir)
+    if app.config.mario_site.get("browser_assets", True):
+        from mario_browser_assets import write_browser_assets
+        write_browser_assets(app.srcdir, app.outdir)
     restricted = Path(app.outdir) / "_static/data/database_profiles/eora26-2017-bp.xlsx"
     restricted.unlink(missing_ok=True)
 

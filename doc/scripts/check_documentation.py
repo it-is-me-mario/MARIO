@@ -106,7 +106,7 @@ def audit(site, source=SOURCE):
             errors.append(f"{relative}: expected one h1, found {page.headings}")
         if page.notebook_cells:
             errors.append(f"{relative}: notebook cells rendered as a web page")
-        if relative.parts[0] in {"user_guide", "notebooks"} and not any(
+        if relative.parts[0] in {"user_guide", "notebooks"} and not page.redirect and not any(
             local_target(href, path, site) == (path, "") for href in page.current_links
         ):
             errors.append(f"{relative}: missing current-page link in topic sidebar")
