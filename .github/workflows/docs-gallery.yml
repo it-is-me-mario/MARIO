@@ -1,0 +1,20 @@
+name: Model Gallery branch update
+
+on:
+  push:
+    branches: [model-gallery]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check the Gallery entry points
+        run: |
+          test -s doc/model_gallery/models/index.rst
+          python -m py_compile doc/model_gallery/conf.py

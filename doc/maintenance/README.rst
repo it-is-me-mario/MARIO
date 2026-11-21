@@ -49,8 +49,9 @@ Established decisions
 ---------------------
 
 * The documentation publisher builds Latest and Model Gallery into one Pages
-  artifact. ``doc/versions.json`` owns the selector labels. Model Gallery builds
-  the approved Latest docs with additions from ``doc/model_gallery/``. See the publication and verification checklists
+  artifact. ``doc/versions.json`` owns each channel’s label and Git ref. Latest
+  reads ``main``. Model Gallery reads the library, guides and ``doc/model_gallery/``
+  from the ``model-gallery`` branch. See the publication and verification checklists
   when changing sources or navigation.
 
 * The Database Explorer application and new trade snapshots are maintained in
