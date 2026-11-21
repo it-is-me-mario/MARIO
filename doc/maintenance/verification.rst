@@ -144,6 +144,13 @@ unexamined change.
   For translated examples, compare values by renamed coordinates and verify
   imports and unit labels together. Generate requested native aggregation
   workbooks with MARIO and populate only mapping values; preserve writer styles.
+  After narrowing satellites or changing aggregation, reexport into a previous
+  receiver as well as a clean one. Exercise explicit set synchronization,
+  shared factors/satellites, copied-set aliases and already-pruned sets with
+  stale input rows. Check removals in every dependent exogenous table,
+  preservation of unrelated data and attributes, and repeat-export stability.
+  ``tests/parsers/test_istat_extensions.py`` uses the tutorial's actual symbolic
+  settings from ``tests/fixtures/cvxlab/`` with small offline source fixtures.
 * For an installable model, install into an isolated environment and open the
   workspace outside the source checkout. Check the pinned installation and a
   development ref, fetch the declared data, and verify that the documented

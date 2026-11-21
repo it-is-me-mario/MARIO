@@ -2,6 +2,8 @@
 
 from itertools import product
 import json
+from pathlib import Path
+import shutil
 import sqlite3
 import zipfile
 
@@ -265,3 +267,95 @@ def test_satellites_and_native_imports_reach_cvxlab_database(source, monkeypatch
         for name in ("Ea", "EY", "IMP_a", "IMP_Y"):
             actual = pd.read_sql_query(f'SELECT * FROM "{mapping["matrices"][name]}"', connection)
             np.testing.assert_allclose(np.sort(actual["values"].to_numpy(dtype=float)), np.sort(db.query(name).to_numpy().ravel()))
+
+
+def test_selected_satellites_regenerate_the_actual_tutorial_model(source, monkeypatch):
+    """Parse -> reconcile -> aggregate -> reexport -> load the tutorial's SQL."""
+    pytest.importorskip("cvxlab")
+    from openpyxl import load_workbook
+    from mario.ops.cvxlab_bridge import _build_cvxlab_model
+
+    _cache(source)
+    db = mario.parse_istat(source, year=2020, table="SUT", extensions="all", import_representation="separate")
+    # Independent source cells, including asymmetric imports and final uses.
+    use, imports = _istat_use_frame(), _istat_import_frame()
+    for domestic, imported, columns in [("U", "IMP_a", [2, 3]), ("Yc", "IMP_Y", [5, 6])]:
+        total = use.iloc[[6, 7], columns].to_numpy(dtype=float)
+        imp = imports.iloc[[6, 7], columns].to_numpy(dtype=float)
+        np.testing.assert_allclose(db.query(domestic).to_numpy() + db.query(imported).to_numpy(), total)
+        np.testing.assert_allclose(db.query(imported), imp)
+    levels = ["Activity", "Commodity", "Consumption category"]
+    names = [["Industry", "Industry"], ["Product A", "Product B"], ["Households", "Exports"]]
+    db.aggregate(io={level: pd.DataFrame({"Aggregation": labels}, index=db.get_index(level))
+                     for level, labels in zip(levels, names)}, levels=levels, calc_all=False)
+    for domestic, imported, columns in [("U", "IMP_a", [2, 3]), ("Yc", "IMP_Y", [5, 6])]:
+        total = use.iloc[[6, 7], columns].to_numpy(dtype=float)
+        imp = imports.iloc[[6, 7], columns].to_numpy(dtype=float)
+        if domestic == "U":
+            total, imp = total.sum(axis=1, keepdims=True), imp.sum(axis=1, keepdims=True)
+        np.testing.assert_allclose(db.query(domestic).to_numpy() + db.query(imported).to_numpy(), total)
+        np.testing.assert_allclose(db.query(imported), imp)
+    before = {name: db.query(name).copy() for name in ["S", "U", "Yc", "IMP_a", "IMP_Y", "Va", "VY"]}
+    settings = Path(__file__).parents[1] / "fixtures/cvxlab/istat_tutorial_settings.xlsx"
+    mapping = {
+        "sets": {"Commodity_from": "products", "Commodity_to": "products",
+                 "Activity_from": "accounts", "Activity_to": "accounts", "Consumption category_to": "accounts",
+                 "Factor of production_from": "extensions", "Satellite account_from": "extensions"},
+        "matrices": {"S": "make_0", "U": "use_0", "Yc": "use_0", "IMP_a": "imports_0", "IMP_Y": "imports_0",
+                     "Va": "extensions_0", "Ea": "extensions_0", "EY": "extensions_0",
+                     "Xa": "total_activity_0", "Xc": "total_demand_0"},
+    }
+    target = source / "tutorial"
+    report = db.to_cvxlab(model_settings=settings, path=target, mapping=mapping)
+    # Initial receiver setup: categories are user input, not inferred by MARIO.
+    book = load_workbook(report["sets_file"])
+    for row in book["_set_PRODUCTS"].iter_rows(min_row=2):
+        row[1].value, row[2].value = "other", "Products"
+    for row in book["_set_ACCOUNTS"].iter_rows(min_row=2):
+        row[1].value = "intermediate" if row[0].value == "Industry" else "final"
+        row[2].value, row[3].value = "other", row[0].value
+    for row in book["_set_EXTENSIONS"].iter_rows(min_row=2):
+        row[1].value = "value_added" if row[0].value in db.get_index("Factor of production") else "environmental_flows"
+    book["_set_SCENARIOS"].append(["Reference"])
+    book.save(report["sets_file"])
+    db.to_cvxlab(model_settings=settings, path=target, mapping=mapping)
+    selected = ["Employment | Total", "Energy | Net domestic energy use"]
+    db.keep_extensions(selected)
+    stale = db.to_cvxlab(model_settings=settings, path=target, mapping=mapping)
+    assert len(pd.read_excel(stale["sets_file"], sheet_name="_set_EXTENSIONS")) == len(db.get_index("Factor of production")) + 27
+    report = db.to_cvxlab(model_settings=settings, path=target, mapping=mapping, sync_sets=["extensions"])
+    assert len(report["removed_set_members"]["extensions"]) == 25
+    assert report["removed_input_rows"] == {"extensions_0": 25 * 3}
+    for key in ["pending_sets", "missing_attributes", "pending_matrices", "missing_values", "extra_input_rows", "unmatched_coordinates"]:
+        assert not report[key], (key, report[key])
+    for name, expected in before.items():
+        pd.testing.assert_frame_equal(db.query(name), expected)
+    values = pd.read_excel(report["input_files"][0], sheet_name=None)
+    assert set(values["extensions_0"]["extensions_Name"]) == set(db.get_index("Factor of production") + selected)
+    # Keep equations, declared variables and filters logically identical.
+    for sheet, expected in pd.read_excel(settings, sheet_name=None).items():
+        pd.testing.assert_frame_equal(pd.read_excel(target / "model_settings.xlsx", sheet_name=sheet), expected)
+    # Build elsewhere so the constructor never overwrites exported workbooks.
+    validation = source / "validation"
+    validation.mkdir()
+    shutil.copy2(settings, validation / "model_settings.xlsx")
+    model = _build_cvxlab_model(main_dir_path=source, model_dir_name="validation", input_data_files_type="xlsx", import_custom=False)
+    shutil.copy2(report["sets_file"], validation / "sets.xlsx")
+    shutil.copytree(target / "input_data", validation / "input_data", dirs_exist_ok=True)
+    model.load_model_coordinates()
+    model.core.database.create_blank_sqlite_database()
+    model.core.database.load_sets_to_sqlite_database()
+    model.core.database.generate_blank_sqlite_data_tables()
+    model.core.database.sets_data_to_sql_data_tables()
+    model.load_exogenous_data_to_sqlite_database(force_overwrite=True)
+    with sqlite3.connect(model.paths.sqlite_database) as connection:
+        for table, expected in values.items():
+            actual = pd.read_sql_query(f'SELECT * FROM "{table}"', connection)
+            if table.startswith("delta_"):
+                assert actual["values"].eq(0).all()  # Declared CVXLab blank_fill.
+                continue
+            keys = [key for key in expected if key != "values"]
+            actual = actual.set_index(keys)["values"].sort_index()
+            expected = expected.set_index(keys)["values"].sort_index()
+            pd.testing.assert_index_equal(actual.index, expected.index)
+            np.testing.assert_allclose(actual, expected)

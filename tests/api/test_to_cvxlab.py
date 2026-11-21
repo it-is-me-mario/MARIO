@@ -479,3 +479,79 @@ def test_overlapping_shared_cells_leave_existing_files_intact(tmp_path, source):
     with pytest.raises(WrongInput, match="use_0.*overlap"):
         source.to_cvxlab(model_settings=settings, path=target, mapping=mapping)
     assert {path: path.read_bytes() for path in target.rglob("*.xlsx")} == before
+
+
+@pytest.mark.parametrize("alias", [False, True])
+@pytest.mark.parametrize("pruned", [False, True])
+def test_sync_sets_removes_stale_coordinates_and_keeps_attributes(tmp_path, source, alias, pruned, monkeypatch):
+    settings = tmp_path / "settings.xlsx"
+    mapping = make_settings(settings, attributes=True)
+    target = tmp_path / "model"
+    report = source.to_cvxlab(model_settings=settings, path=target, mapping=mapping)
+    book = load_workbook(report["sets_file"])
+    sheet = book["_set_ACTIVITY_FROM"]
+    for row in range(2, sheet.max_row + 1):
+        sheet.cell(row, 2, "selected")
+    sheet.cell(2, 2).comment = Comment("Retain annotation", "User")
+    sheet.append(["obsolete buyer", "selected"])
+    book["_set_MANUAL"].append(["manual item"])
+    book.create_sheet("notes").cell(1, 1, "User notes")
+    book.save(report["sets_file"])
+    source.to_cvxlab(model_settings=settings, path=target, mapping=mapping)
+    book = load_workbook(report["input_files"][0])
+    book["EXTRA"].cell(2, 3, 123)
+    book.create_sheet("notes").cell(1, 1, "Input notes")
+    book.save(report["input_files"][0])
+    if pruned:
+        book = load_workbook(report["sets_file"])
+        sheet = book["_set_ACTIVITY_FROM"]
+        sheet.delete_rows(sheet.max_row)
+        book.save(report["sets_file"])
+    # A copied set must synchronize the shared root, including both directions.
+    name = mapping["sets"]["Activity_to" if alias else "Activity_from"]
+    selected_mapping = deepcopy(mapping)
+    selected_mapping["matrices"].pop("S")  # Still prune dependent, unmapped data.
+    if not alias and not pruned:
+        before = {path: path.read_bytes() for path in target.rglob("*.xlsx")}
+        replace = cvxlab_export.os.replace
+        failed = False
+
+        def fail_once(source_path, destination):
+            nonlocal failed
+            if Path(destination) == target / "sets.xlsx" and not failed:
+                failed = True
+                raise OSError("Injected synchronization failure")
+            return replace(source_path, destination)
+
+        with monkeypatch.context() as context:
+            context.setattr(cvxlab_export.os, "replace", fail_once)
+            with pytest.raises(OSError, match="synchronization"):
+                source.to_cvxlab(model_settings=settings, path=target, mapping=selected_mapping, sync_sets=[name])
+        assert {path: path.read_bytes() for path in before} == before
+    report = source.to_cvxlab(model_settings=settings, path=target, mapping=selected_mapping, sync_sets=[name])
+    root = mapping["sets"]["Activity_from"]
+    assert report["removed_set_members"] == ({} if pruned else {root: ["obsolete buyer"]})
+    assert report["removed_input_rows"]
+    assert not report["extra_input_rows"]
+    book = load_workbook(report["sets_file"])
+    assert book["_set_ACTIVITY_FROM"].cell(2, 2).comment.text == "Retain annotation"
+    assert book["notes"].cell(1, 1).value == "User notes"
+    for matrix, fields in SUT_AXES.items():
+        assert_matrix_values(report["input_files"][0], source, matrix, fields, mapping)
+    book = load_workbook(report["input_files"][0])
+    assert book["EXTRA"].cell(2, 3).value == 123
+    assert book["notes"].cell(1, 1).value == "Input notes"
+    repeat = source.to_cvxlab(model_settings=settings, path=target, mapping=mapping, sync_sets=name)
+    assert repeat["removed_set_members"] == repeat["removed_input_rows"] == {}
+
+
+@pytest.mark.parametrize("selection", [True, False, 1, [None], ["unknown"], ["manual"]])
+def test_invalid_sync_sets_leave_existing_files_intact(tmp_path, source, selection):
+    settings = tmp_path / "settings.xlsx"
+    mapping = make_settings(settings)
+    target = tmp_path / "model"
+    source.to_cvxlab(model_settings=settings, path=target, mapping=mapping)
+    before = {path: path.read_bytes() for path in target.rglob("*.xlsx")}
+    with pytest.raises(WrongInput, match="sync_sets"):
+        source.to_cvxlab(model_settings=settings, path=target, mapping=mapping, sync_sets=selection)
+    assert {path: path.read_bytes() for path in before} == before
