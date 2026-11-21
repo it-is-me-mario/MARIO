@@ -937,7 +937,7 @@
       "notebook": "source/notebooks/parsers/istat/walkthrough_istat.ipynb",
       "parser": "parse_istat",
       "cell": 11,
-      "fingerprint": "c324365e9bcf8130feefa0973d8e4908a74cd2b0b8a8b0bfde94c92d7f3c4a55",
+      "fingerprint": "41252e6fe17cfed1f7d00ef47abbd2f5a4c106849d5bf524515e3dd059d3e455",
       "parameters": {
         "path": "/path/to/IOT",
         "year": 2022,
@@ -954,7 +954,7 @@
       "notebook": "source/notebooks/parsers/istat/walkthrough_istat.ipynb",
       "parser": "parse_istat",
       "cell": 13,
-      "fingerprint": "a8653418668ebfe504f8dd3faded6d490bcadc0911b1a96fd10aa381923eee0e",
+      "fingerprint": "9dfd9b40961e9b5c68a5bd80a686a1d2ec8357ccf7ed2da90a0a6b2a64b3c108",
       "parameters": {
         "path": "/path/to/SUT",
         "year": 2022,
@@ -964,6 +964,60 @@
         "valuation": "basic",
         "download": true,
         "edition": "latest"
+      },
+      "runnable": true
+    },
+    {
+      "id": "istat--03",
+      "guide": "istat",
+      "notebook": "source/notebooks/parsers/istat/walkthrough_istat.ipynb",
+      "parser": "parse_istat",
+      "cell": 20,
+      "fingerprint": "5b0d2ade4ae6e6dd13b350bfbc2b09bb3811be9ca03ad03531e4d4fdbccf11de",
+      "parameters": {},
+      "runnable": false,
+      "reason": "This example needs in-memory Python objects, not only file paths."
+    },
+    {
+      "id": "istat--04",
+      "guide": "istat",
+      "notebook": "source/notebooks/parsers/istat/walkthrough_istat.ipynb",
+      "parser": "parse_istat",
+      "cell": 23,
+      "fingerprint": "5f3199237f86fc6c115cee50282afc367f10463da990eb8b91ad6dc75e5dc616",
+      "parameters": {
+        "path": "istat_cache",
+        "year": 2022,
+        "table": "SUT",
+        "level": "63",
+        "valuation": "basic",
+        "import_representation": "separate",
+        "extensions": [
+          "emissions",
+          "employment",
+          "energy"
+        ],
+        "download": true,
+        "edition": "2020-2022"
+      },
+      "runnable": true
+    },
+    {
+      "id": "istat--05",
+      "guide": "istat",
+      "notebook": "source/notebooks/parsers/istat/walkthrough_istat.ipynb",
+      "parser": "parse_istat",
+      "cell": 25,
+      "fingerprint": "044da4ef934730cb3adc7ea8a28be41a691fc4d3dc147230d38706c3561db888",
+      "parameters": {
+        "path": "istat_cache",
+        "year": 2022,
+        "table": "SUT",
+        "level": "63",
+        "valuation": "basic",
+        "import_representation": "separate",
+        "extensions": "all",
+        "download": false
       },
       "runnable": true
     },

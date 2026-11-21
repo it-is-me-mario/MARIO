@@ -111,7 +111,7 @@ def _order_set_definitions(path, order):
     book.close()
 
 
-def _populate_sets(database, model, existing, path, set_map, matrix_map, payloads, scenarios):
+def _populate_sets(database, model, existing, path, set_map, matrix_map, payloads, scenarios, sync_sets):
     sets = model.core.index.sets
     unknown = [target for _, target in set_map if target not in sets]
     if unknown:
@@ -133,6 +133,18 @@ def _populate_sets(database, model, existing, path, set_map, matrix_map, payload
             values = database.get_index(base, flat=True)
         root = _set_chain(sets, target)[-1]
         members.setdefault(root, []).extend(values)
+    try:
+        selected = [sync_sets] if isinstance(sync_sets, str) else ([] if sync_sets is None else list(sync_sets))
+    except TypeError as error:
+        raise WrongInput("sync_sets must name mapped CVXLab sets.") from error
+    if any(not isinstance(name, str) or name not in sets for name in selected):
+        raise WrongInput("sync_sets must name mapped CVXLab sets.")
+    roots = {_set_chain(sets, name)[-1] for name in selected}
+    if not roots.issubset(members):
+        raise WrongInput("sync_sets must name mapped CVXLab sets.")
+    domains = {name: set(map(_key, members[root])) for name in sets
+               if (root := _set_chain(sets, name)[-1]) in roots}
+    removed_members = {}
     for name, table in sets.items():
         if table.copy_from:
             continue
@@ -152,6 +164,15 @@ def _populate_sets(database, model, existing, path, set_map, matrix_map, payload
         present = [value for value in labels if value is not None]
         if len(present) != len(set(present)):
             raise WrongInput(f"CVXLab set {name} contains duplicate members.")
+        if name in roots:
+            removed = [value for value in present if value not in domains[name]]
+            if removed:
+                removed_members[name] = removed
+                removed_labels = set(removed)
+                for row in range(sheet.max_row, 1, -1):
+                    if _key(sheet.cell(row, column).value) in removed_labels:
+                        sheet.delete_rows(row)
+                present = [value for value in present if value in domains[name]]
         known = set(present)
         for value in members.get(name, []):
             label = _key(value)
@@ -178,7 +199,7 @@ def _populate_sets(database, model, existing, path, set_map, matrix_map, payload
                    and table.data[column].map(_key).isna().any()]
         if missing:
             missing_attributes[name] = missing
-    return pending_sets, missing_attributes
+    return pending_sets, missing_attributes, domains, removed_members
 
 
 def _generate_inputs(model, pending_sets):
@@ -253,15 +274,17 @@ def _mapped_values(matrix, frame, table, sets, set_map):
     return updates, []
 
 
-def _merge_inputs(generated, existing, exogenous, updates):
+def _merge_inputs(generated, existing, exogenous, updates, sync_domains):
     template = load_workbook(generated)
     book = load_workbook(existing) if existing.is_file() else template
     counts = {}
     unmatched = {}
     missing_values = {}
     extra_input_rows = {}
+    removed_input_rows = {}
     for name, table in exogenous.items():
-        if name in book.sheetnames and name not in updates and book is not template:
+        synchronized = set(table.coordinates).intersection(sync_domains)
+        if name in book.sheetnames and name not in updates and book is not template and not synchronized:
             continue
         sheet = book[name] if name in book.sheetnames else book.create_sheet(name)
         headers = _headers(sheet)
@@ -272,6 +295,14 @@ def _merge_inputs(generated, existing, exogenous, updates):
                 sheet.cell(1, column, cell.value)
                 headers[cell.value] = column
         keys = list(table.coordinates_headers.values())
+        removed = 0
+        for row in range(sheet.max_row, 1, -1):
+            if any(_key(sheet.cell(row, headers[table.coordinates_headers[coordinate]]).value)
+                   not in sync_domains[coordinate] for coordinate in synchronized):
+                sheet.delete_rows(row)
+                removed += 1
+        if removed:
+            removed_input_rows[name] = removed
         rows = {}
         for row in range(2, sheet.max_row + 1):
             key = tuple(_key(sheet.cell(row, headers[field]).value) for field in keys)
@@ -316,7 +347,7 @@ def _merge_inputs(generated, existing, exogenous, updates):
     book.close()
     if book is not template:
         template.close()
-    return counts, unmatched, missing_values, extra_input_rows
+    return counts, unmatched, missing_values, extra_input_rows, removed_input_rows
 
 
 @contextmanager
@@ -362,7 +393,7 @@ def _commit_files(files, destination, originals, backup):
         raise
 
 
-def export_to_cvxlab(database, *, model_settings, path, mapping, scenarios="baseline"):
+def export_to_cvxlab(database, *, model_settings, path, mapping, scenarios="baseline", sync_sets=None):
     """Prepare mapped CVXLab workbooks in isolation, then commit their updates."""
     if cvxlab_bridge.cl is None:
         raise ImportError("to_cvxlab() requires the optional 'cvxlab' package.")
@@ -387,9 +418,9 @@ def export_to_cvxlab(database, *, model_settings, path, mapping, scenarios="base
         unknown = set(mapping["matrices"].values()).difference(exogenous)
         if unknown:
             raise WrongInput(f"Map matrices to CVXLab exogenous input tables. Unknown tables {sorted(unknown)}.")
-        pending_sets, missing_attributes = _populate_sets(
+        pending_sets, missing_attributes, sync_domains, removed_members = _populate_sets(
             database, model, destination / names[1], stage / names[1], set_map,
-            mapping["matrices"], payloads, selected,
+            mapping["matrices"], payloads, selected, sync_sets,
         )
         generated, exogenous = _generate_inputs(model, pending_sets)
         grouped = {}
@@ -415,8 +446,8 @@ def export_to_cvxlab(database, *, model_settings, path, mapping, scenarios="base
                 coordinate = combined.loc[duplicates, keys].iloc[0].to_dict()
                 raise WrongInput(f"Matrices mapped to CVXLab table {target} overlap at {coordinate}.")
             updates[target] = combined
-        counts, unmatched, missing_values, extra_input_rows = _merge_inputs(
-            generated, destination / relative_inputs, exogenous, updates,
+        counts, unmatched, missing_values, extra_input_rows, removed_input_rows = _merge_inputs(
+            generated, destination / relative_inputs, exogenous, updates, sync_domains,
         )
         _commit_files({name: stage / name for name in names}, destination, originals, root / "backup")
     report = {
@@ -431,6 +462,8 @@ def export_to_cvxlab(database, *, model_settings, path, mapping, scenarios="base
         "unmatched_coordinates": unmatched,
         "missing_values": missing_values,
         "extra_input_rows": extra_input_rows,
+        "removed_set_members": removed_members,
+        "removed_input_rows": removed_input_rows,
     }
     if pending_sets or pending_matrices or missing_attributes or unmatched or missing_values or extra_input_rows:
         logger.warning("CVXLab export needs additional data. Inspect the returned export report.")

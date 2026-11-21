@@ -4661,7 +4661,7 @@ class Database(CoreModel):
             self, path=path, include_scenarios=include_scenarios,
         )
 
-    def to_cvxlab(self, *, model_settings, path, mapping, scenarios="baseline"):
+    def to_cvxlab(self, *, model_settings, path, mapping, scenarios="baseline", sync_sets=None):
         """Fill CVXLab set and input workbooks using explicit name mappings.
 
         Parameters
@@ -4684,6 +4684,14 @@ class Database(CoreModel):
         scenarios : str or iterable of str, optional
             Existing MARIO scenarios to transfer. Defaults to ``"baseline"``.
             Multiple scenarios require an explicit ``Scenario`` mapping.
+        sync_sets : str or iterable of str, optional
+            Mapped CVXLab set names whose members must match the current
+            MARIO export. Defaults to None, preserving existing members.
+            For a shared target, use the union of all mapped source axes.
+            A copied set synchronizes its source and all aliases. Remove
+            obsolete members and records referencing them in every dependent
+            exogenous table, including unmapped tables and other scenarios.
+            Retain attributes of surviving members and unrelated workbook data.
 
         Returns
         -------
@@ -4696,6 +4704,8 @@ class Database(CoreModel):
             records outside the current CVXLab coordinate/filter domain.
             Pending matrices list the additional CVXLab set coordinates
             needed before those matrices can be transferred.
+            ``removed_set_members`` lists removed members by source set;
+            ``removed_input_rows`` counts removed records by input table.
 
         Notes
         -----
@@ -4722,7 +4732,7 @@ class Database(CoreModel):
 
         return export_to_cvxlab(
             self, model_settings=model_settings, path=path,
-            mapping=mapping, scenarios=scenarios,
+            mapping=mapping, scenarios=scenarios, sync_sets=sync_sets,
         )
 
     def to_pymrio(

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import logging
 from pathlib import Path
 import re
@@ -16,6 +16,7 @@ import pandas as pd
 from mario.log_exc.exceptions import WrongFormat, WrongInput
 from mario.log_exc.logger import log_time
 from mario.model.conventions import _MASTER_INDEX
+from mario.model.configuration import validate_import_representation
 from mario.parsers.specs import (
     ISTAT_FINAL_DEMAND_TOTAL_PREFIX,
     ISTAT_IMPORT_FACTOR_LABEL,
@@ -60,6 +61,8 @@ class IstatLayout:
     use_path: Path | None = None
     import_path: Path | None = None
     sheet_name: str | None = None
+    activity_codes: tuple[str, ...] = ()
+    hours_worked: tuple[object, ...] = ()
 
     @property
     def dataset_name(self) -> str:
@@ -227,6 +230,35 @@ def _find_row_by_label(frame: pd.DataFrame, label: str) -> int:
         if _normalize_text(frame.iat[row, 1]) == label:
             return row
     raise WrongFormat(f"Could not find row '{label}' in the selected ISTAT workbook.")
+
+
+def _sut_factor_rows(frame, *, start_row):
+    """Select disjoint income components, retaining product-tax adjustments.
+
+    Official workbooks contain wages inside compensation, depreciation and net
+    surplus inside gross surplus, and the total value added alongside its parts.
+    Reduced workbooks without that decomposition can use the published total.
+    """
+    labels, positions = _factor_rows(
+        frame, start_row=start_row, excluded_labels=ISTAT_SUT_FACTOR_EXCLUDE,
+    )
+    components = {
+        "Redditi da lavoro dipendente", "Altre imposte nette sulla produzione",
+        "Ammortamenti", "Risultato netto di gestione",
+    }
+    if components.issubset(labels):
+        excluded = {
+            "Retribuzioni lorde", "Risultato lordo di gestione",
+            "Reddito misto lordo", "Valore aggiunto ai prezzi base",
+        }
+    elif "Valore aggiunto ai prezzi base" in labels:
+        excluded = components | {
+            "Retribuzioni lorde", "Risultato lordo di gestione", "Reddito misto lordo",
+        }
+    else:
+        raise WrongFormat("ISTAT SUT requires disjoint income components or total value added.")
+    selected = [(label, pos) for label, pos in zip(labels, positions) if label not in excluded]
+    return [label for label, _ in selected], [pos for _, pos in selected]
 
 
 def _find_last_total_use_column(frame: pd.DataFrame) -> int:
@@ -514,6 +546,7 @@ def build_istat_sut_from_frames(
     level: str = "63",
     price: str = "current",
     valuation: str = "basic",
+    import_representation: str = "factor-accounts",
     source_path: str | Path | None = None,
 ) -> tuple[
     dict[str, dict[str, pd.DataFrame]],
@@ -522,6 +555,9 @@ def build_istat_sut_from_frames(
     IstatLayout,
 ]:
     """Transform one ISTAT SUT workbook triplet into split-native MARIO blocks."""
+    validate_import_representation(import_representation)
+    if import_representation == "separate" and valuation != "basic":
+        raise WrongInput("Separate ISTAT imports require valuation='basic'.")
     layout = IstatLayout(
         root=Path(source_path or ".").parent,
         year=int(year),
@@ -567,17 +603,23 @@ def build_istat_sut_from_frames(
         excluded_labels=ISTAT_SUT_FINAL_DEMAND_EXCLUDE,
     )
     factor_start = _find_row_by_label(use_frame, "Consumi intermedi ai prezzi base") + 1
-    va_labels, va_positions = _factor_rows(
-        use_frame,
-        start_row=factor_start,
-        excluded_labels=ISTAT_SUT_FACTOR_EXCLUDE,
+    va_labels, va_positions = _sut_factor_rows(use_frame, start_row=factor_start)
+    hours_rows = [
+        row for row in range(factor_start, len(use_frame))
+        if _normalize_text(use_frame.iat[row, 1]) == "Ore lavorate (migliaia)"
+    ]
+    layout = replace(
+        layout, activity_codes=tuple(activity_codes),
+        hours_worked=tuple(use_frame.iloc[hours_rows[0], use_activity_positions]) if len(hours_rows) == 1 else (),
     )
     total_import_col = _find_last_total_use_column(import_frame)
 
     activity_axis = _three_level_axis("ITA", _MASTER_INDEX["a"], activity_labels)
     commodity_axis = _three_level_axis("ITA", _MASTER_INDEX["c"], commodity_labels)
     final_demand_axis = _three_level_axis("ITA", _MASTER_INDEX["n"], fd_labels)
-    factor_labels = va_labels if ISTAT_IMPORT_FACTOR_LABEL in va_labels else [ISTAT_IMPORT_FACTOR_LABEL, *va_labels]
+    factor_labels = list(va_labels)
+    if import_representation == "factor-accounts" and ISTAT_IMPORT_FACTOR_LABEL not in factor_labels:
+        factor_labels.insert(0, ISTAT_IMPORT_FACTOR_LABEL)
     factor_axis = pd.Index(factor_labels, name=None)
     satellite_axis = pd.Index([ISTAT_SATELLITE_PLACEHOLDER], name=None)
 
@@ -602,7 +644,11 @@ def build_istat_sut_from_frames(
         _numeric_block(use_frame, va_positions, use_activity_positions),
         index=pd.Index(va_labels, name=None),
         columns=activity_axis,
-    )
+    ).reindex(index=factor_axis, fill_value=0.0)
+    VY = pd.DataFrame(
+        _numeric_block(use_frame, va_positions, fd_positions),
+        index=pd.Index(va_labels, name=None), columns=final_demand_axis,
+    ).reindex(index=factor_axis, fill_value=0.0)
     Vc = _zero_frame(factor_axis, commodity_axis)
     import_values = pd.to_numeric(import_frame.iloc[import_commodity_positions, total_import_col], errors="coerce").fillna(0.0).to_numpy(dtype=float, copy=True)
     if ISTAT_IMPORT_FACTOR_LABEL in Vc.index:
@@ -619,12 +665,30 @@ def build_istat_sut_from_frames(
             "Yc": Yc,
             "Va": Va,
             "Vc": Vc,
+            "VY": VY,
             "Ea": Ea,
             "Ec": Ec,
             "EY": EY,
         }
     }
     rename_index(matrices["baseline"])
+    if import_representation == "separate":
+        import_fd_labels, import_fd_positions = _final_demand_columns(
+            import_frame, start_col=_import_first_non_activity_col + 1,
+            excluded_labels=ISTAT_SUT_FINAL_DEMAND_EXCLUDE,
+        )
+        if len(set(import_fd_labels)) != len(import_fd_labels) or set(import_fd_labels) != set(fd_labels):
+            raise WrongFormat("ISTAT IMPORT final-demand columns do not match USE columns.")
+        import_fd_positions = [import_fd_positions[import_fd_labels.index(label)] for label in fd_labels]
+        imported_use = _numeric_block(import_frame, import_commodity_positions, _import_activity_positions)
+        imported_final = _numeric_block(import_frame, import_commodity_positions, import_fd_positions)
+        import_axis = pd.Index(commodity_labels, name=_MASTER_INDEX["c"])
+        baseline = matrices["baseline"]
+        baseline["U"] = U - imported_use
+        baseline["Yc"] = Yc - imported_final
+        baseline["IMP_a"] = pd.DataFrame(imported_use, index=import_axis, columns=activity_axis)
+        baseline["IMP_c"] = _zero_frame(import_axis, commodity_axis)
+        baseline["IMP_Y"] = pd.DataFrame(imported_final, index=import_axis, columns=final_demand_axis)
     indeces = {
         "r": {"main": ["ITA"]},
         "a": {"main": activity_labels},
@@ -678,6 +742,7 @@ def parse_istat_sut(
     level: str = "63",
     price: str = "current",
     valuation: str = "basic",
+    import_representation: str = "factor-accounts",
 ) -> tuple[
     dict[str, dict[str, pd.DataFrame]],
     dict[str, dict[str, list[str]]],
@@ -707,5 +772,6 @@ def parse_istat_sut(
             level=layout.level,
             price=layout.price,
             valuation=layout.valuation,
+            import_representation=import_representation,
             source_path=layout.supply_path,
         )

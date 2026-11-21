@@ -10,6 +10,24 @@ Unreleased
 
 * Add ``mario.model_setup()`` for research models maintained in their own
   repositories and ``mario.models.install()`` for catalogued releases and refs.
+* Add ``import_representation="separate"`` to the ISTAT basic-price SUT parser.
+  Read imported intermediate and final uses by commodity into ``IMP_a`` and
+  ``IMP_Y``, with domestic ``U`` / ``Yc`` and native accounting metadata.
+* Correct ISTAT SUT value-added double counting by selecting disjoint income
+  components instead of their overlapping subtotals. Preserve final-demand
+  taxes and accounting adjustments in ``VY``.
+* Add optional ``extensions`` to the 63-branch ISTAT SUT parser: AEA emissions,
+  employed persons and hours worked, and PEFA net domestic energy use.
+  Align Italy/year observations by NACE codes, retain household environmental
+  accounts in ``EY``, and cache validated Eurostat snapshots for offline reuse.
+* Add opt-in ``sync_sets`` to ``to_cvxlab()`` for regenerating inputs after
+  satellite selection or aggregation. Synchronize mapped CVXLab domains and
+  remove obsolete dependent input records while retaining valid attributes,
+  all mapped value-added accounts and unrelated workbook data. The default
+  continues to append members and preserve existing inputs.
+* Cover the ISTAT parser-to-CVXLab workflow with a regression using the
+  tutorial's receiving model, including import-use reconciliation, satellite
+  selection, aggregation, shared filtered tables and actual SQLite loading.
 
 v1.3.5
 ------
