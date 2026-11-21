@@ -4,6 +4,9 @@ Projects & Publications
 How MARIO is used in research projects and peer-reviewed publications, and the
 software projects it works closely with.
 
+The :doc:`Model gallery <model-gallery/index>` connects research studies to
+their model descriptions, code and data editions.
+
 
 Research projects
 -----------------
