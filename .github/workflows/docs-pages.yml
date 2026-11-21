@@ -4,7 +4,11 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, model-gallery]
+  workflow_run:
+    workflows: [Model Gallery branch update]
+    types: [completed]
+    branches: [model-gallery]
   workflow_dispatch:
 
 permissions:
@@ -16,15 +20,27 @@ concurrency:
 
 jobs:
   build:
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event_name == 'pull_request' && github.base_ref == 'main' && github.sha || 'main' }}
           path: publisher
+          persist-credentials: false
+      - name: Read the Gallery branch
+        id: gallery
+        working-directory: publisher
+        run: echo "ref=$(jq -er '.model_gallery.ref' doc/versions.json)" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'pull_request' && github.sha || github.ref == 'refs/heads/main' && github.sha || 'main' }}
-          path: source-latest
+          ref: ${{ github.event_name == 'pull_request' && github.base_ref == steps.gallery.outputs.ref && github.sha || steps.gallery.outputs.ref }}
+          path: source-gallery
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -44,7 +60,7 @@ jobs:
       - name: Build and verify all versions
         run: |
           python publisher/doc/scripts/build_versioned_docs.py \
-            --latest-source source-latest \
+            --latest-source publisher --gallery-source source-gallery \
             --output _site
           test -s _site/en/latest/index.html
           test -s _site/en/latest/user_guide/inspection/to_cvxlab.html

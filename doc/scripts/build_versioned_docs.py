@@ -154,24 +154,60 @@ def write_preview_redirects(output, catalogue):
             '</body></html>')
 
 
-def stage_gallery(publisher, latest, workspace):
-    """Layer the model pages and navigation over the approved library docs."""
-    gallery = publisher / "doc/model_gallery"
+def check_model_pages(output, gallery_source):
+    """Verify that the model pages and their notebook downloads belong to the Gallery."""
+    gallery = output / "en/model_gallery"
+    latest = output / "en/latest"
+    overlay = gallery_source / "doc/model_gallery"
+    for guide in (overlay / "models").rglob("*.rst"):
+        route = guide.relative_to(overlay).with_suffix(".html")
+        page = gallery / route
+        if not page.is_file() or (latest / route).exists():
+            raise ValueError(f"Expected the model page only in Model Gallery: {route}")
+        companion = guide.with_suffix(".ipynb")
+        if not companion.is_file():
+            continue
+        parser = PageAssets()
+        parser.feed(page.read_text())
+        for href in parser.page_urls:
+            target = urlsplit(href)
+            if target.netloc or target.scheme:
+                continue
+            download = (page.parent / unquote(target.path)).resolve()
+            if download.name == companion.name and download.is_relative_to(gallery / "_downloads"):
+                if download.is_file() and not (latest / download.relative_to(gallery)).exists():
+                    break
+        else:
+            raise ValueError(f"Expected a Gallery-only notebook download on {route}: {companion.name}")
+
+
+def stage_gallery(publisher, source, workspace):
+    """Build model pages on the library and guides in the Gallery checkout."""
+    gallery = source / "doc/model_gallery"
     staged = workspace / "doc/source"
-    shutil.copytree(latest / "doc/source", staged, ignore=shutil.ignore_patterns("__pycache__", ".DS_Store"))
-    (workspace / "mario").symlink_to(latest / "mario", target_is_directory=True)
-    shutil.copy2(latest / "CHANGELOG.rst", workspace / "CHANGELOG.rst")
+    shutil.copytree(source / "doc/source", staged, ignore=shutil.ignore_patterns("__pycache__", ".DS_Store"))
+    (workspace / "mario").symlink_to(source / "mario", target_is_directory=True)
+    shutil.copy2(source / "CHANGELOG.rst", workspace / "CHANGELOG.rst")
     shutil.copy2(publisher / "doc/versions.json", staged.parent / "versions.json")
     for relative in ("models", "resources/index.rst",
                      "user_guide/configuration/model_setups.rst", "_static/model-gallery.css"):
-        source = gallery / relative
-        if source.is_dir():
-            shutil.copytree(source, staged / relative, dirs_exist_ok=True)
+        asset = gallery / relative
+        if asset.is_dir():
+            shutil.copytree(asset, staged / relative, dirs_exist_ok=True)
         else:
-            shutil.copy2(source, staged / relative)
+            shutil.copy2(asset, staged / relative)
 
     with (staged / "index.rst").open("a") as stream:
         stream.write("\n.. toctree::\n   :hidden:\n\n   models/index\n   resources/index\n")
+    companions = sorted((staged / "models").glob("*.ipynb"))
+    if companions:
+        with (staged / "resources/material.rst").open("a") as stream:
+            stream.write("\nModel Gallery notebooks\n-----------------------\n\n")
+            for notebook in companions:
+                stream.write(
+                    f"* :doc:`../models/{notebook.stem}` · "
+                    f":download:`Download notebook <../models/{notebook.name}>`\n"
+                )
     setup = staged / "user_guide/configuration/index.rst"
     with setup.open("a") as stream:
         stream.write(
@@ -194,7 +230,7 @@ def build(sources, output, site_root):
     catalogue = {"publisher_commit": subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=publisher, text=True
     ).strip(), "versions": {}}
-    for channel, source in {**sources, "model_gallery": publisher}.items():
+    for channel, source in sources.items():
         gallery = definitions[channel].get("kind") == "gallery"
         revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=source, text=True).strip()
         destination = output / "en" / channel
@@ -213,7 +249,7 @@ def build(sources, output, site_root):
             doc_source = source / "doc/source"
             assets = ["docs-versions.css", "docs-versions.js", "external-links.js"]
             if gallery:
-                doc_source = stage_gallery(publisher, sources["latest"], Path(folder))
+                doc_source = stage_gallery(publisher, source, Path(folder))
             for name in assets:
                 target = static / name
                 target.parent.mkdir(parents=True, exist_ok=True)
@@ -241,16 +277,17 @@ def build(sources, output, site_root):
         }
     write_catalogue(output, catalogue)
     check_gallery_navigation(output, catalogue["versions"]["model_gallery"])
+    check_model_pages(output, sources["model_gallery"])
     deduplicate_legacy_json(output, catalogue)
     write_preview_redirects(output, catalogue)
     size = sum(path.stat().st_size for path in output.rglob('*') if path.is_file())
     if size > 1024 ** 3:
         raise ValueError(f"The combined Pages artifact exceeds 1 GB ({size:,} bytes)")
-    for channel, source in sources.items():
-        subprocess.run([
-            sys.executable, str(source / "doc/scripts/check_documentation.py"),
-            str(output / "en" / channel),
-        ], cwd=source, env={**os.environ, "PYTHONPATH": str(source)}, check=True)
+    latest = sources["latest"]
+    subprocess.run([
+        sys.executable, str(latest / "doc/scripts/check_documentation.py"),
+        str(output / "en/latest"),
+    ], cwd=latest, env={**os.environ, "PYTHONPATH": str(latest)}, check=True)
     (output / ".nojekyll").touch()
     (output / "index.html").write_text(
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
@@ -265,7 +302,9 @@ def build(sources, output, site_root):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--latest-source", type=Path, required=True)
+    parser.add_argument("--gallery-source", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--site-root", default="https://www.marioproject.com")
     args = parser.parse_args()
-    build({"latest": args.latest_source.resolve()}, args.output.resolve(), args.site_root)
+    sources = {"latest": args.latest_source.resolve(), "model_gallery": args.gallery_source.resolve()}
+    build(sources, args.output.resolve(), args.site_root)

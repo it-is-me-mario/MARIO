@@ -30,7 +30,7 @@ For the versioned publisher, use clean checkouts of the configured refs and a
 fresh output directory::
 
    node --test tests/docs/test_docs_versions.cjs tests/docs/test_external_links.cjs
-   python doc/scripts/build_versioned_docs.py --latest-source /path/to/latest --output /tmp/mario-versioned-docs
+   python doc/scripts/build_versioned_docs.py --latest-source /path/to/main --gallery-source /path/to/model-gallery --output /tmp/mario-versioned-docs
 
 Both site builds run with strict Sphinx warnings. Check ``docs-versions.json``
 against the checkout commits. In a browser, switch a common page and anchor,
@@ -45,9 +45,10 @@ Check both colour themes and verify that footer links remain accessible.
 Check the Latest/Model Gallery selector and retired Preview redirects,
 including query strings and anchors. Verify that Latest documents the
 released package and that both headers use their source configuration.
-Check that Model Gallery contains the approved Latest pages, except
-where a source change explicitly removes one. In Model Gallery, Docs and Get
-started keep the approved menus from Latest. Check both menus from the
+Compare each entry in ``docs-versions.json`` with its own source checkout.
+Check the Gallery catalogue and a served notebook, and check the absence of
+that model page and download in Latest. In Model Gallery, Docs and Get
+started use the menus approved on its branch. Check both menus from the
 Gallery and from Tutorials and Explorer with Model Gallery selected.
 Check that the MARIO logo still opens the MARIO homepage in this channel.
 Open the model catalogue from Resources and check its link to the model page.

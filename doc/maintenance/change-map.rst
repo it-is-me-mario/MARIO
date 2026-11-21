@@ -75,10 +75,11 @@ and anchors. Review the publication triggers when changing a source branch.
 The homepage cards read their links from the corresponding header sections.
 Check their labels, destinations and order on both homepages after menu changes.
 The Model Gallery channel keeps the MARIO homepage at
-``/en/model_gallery/`` and inherits the approved Latest pages and navigation.
+``/en/model_gallery/``. Its guides, library, model pages and navigation come
+from the ``model-gallery`` branch. Target that branch with model updates.
 **Resources → Model Gallery** opens
 ``/en/model_gallery/models/index.html``. The publisher adds the source and navigation
-in ``doc/model_gallery/`` to a staged copy of Latest. Keep the published study and background edition on
+in ``doc/model_gallery/`` to that branch’s own ``doc/source/``. Keep the published study and background edition on
 the model page. The MARIO API reference documents the installed project
 interfaces. Review the PV-HLCA reference against the model repository when
 updating the pinned model revision. Links to
