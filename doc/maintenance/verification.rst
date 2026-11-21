@@ -177,6 +177,11 @@ Example verification
   and notebook calculations on small accounting/scenario fixtures. Run it
   when changing those examples; source-database and live-provider runs remain
   separate checks.
+* Run ``python -m pytest tests/integration/test_table_transformations.py`` when
+  changing regional extraction, trade representation or SUT-to-IOT conversion.
+  The workflows reconcile bilateral trade and national import accounts against
+  source flows, apply demand shocks before and after conversion, and reaggregate
+  a sector split solved with CVXLab and Clarabel.
 * For supply-mix recipe estimation, check unequal donor outputs, receiving-region
   domestic/import shares and the no-purchases fallback independently. Verify
   both intermediate and direct coefficients, SUT commodity-to-activity routing,
