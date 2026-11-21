@@ -40,3 +40,29 @@ def test_unreferenced_frozen_json_is_shared_without_removing_downloads(tmp_path)
         shared = json.loads((root / 'legacy-data-manifest.json').read_text())
         assert shared['_static/data/unused.json']['url'] == 'https://example/en/latest/_static/data/unused.json'
     assert (tmp_path / 'en/latest/_static/data/unused.json').read_bytes() == payload
+
+
+def test_gallery_only_companion_requires_a_local_download_and_stays_out_of_latest(tmp_path):
+    import pytest
+
+    source = tmp_path / "source/doc/model_gallery/models"
+    source.mkdir(parents=True)
+    (source / "steel.rst").touch()
+    (source / "steel.ipynb").touch()
+    site = tmp_path / "site"
+    gallery = site / "en/model_gallery"
+    page = gallery / "models/steel.html"
+    page.parent.mkdir(parents=True)
+    download = Path("_downloads/abc/steel.ipynb")
+    (gallery / download).parent.mkdir(parents=True)
+    (gallery / download).touch()
+    page.write_text('<a href="https://example.org/steel.ipynb">Notebook</a>')
+    with pytest.raises(ValueError, match="Gallery-only notebook download"):
+        publisher.check_model_pages(site, tmp_path / "source")
+    page.write_text(f'<a href="../{download}">Notebook</a>')
+    publisher.check_model_pages(site, tmp_path / "source")
+    leaked = site / "en/latest" / download
+    leaked.parent.mkdir(parents=True)
+    leaked.touch()
+    with pytest.raises(ValueError, match="Gallery-only notebook download"):
+        publisher.check_model_pages(site, tmp_path / "source")

@@ -111,7 +111,12 @@ Merge, publish and verify
    and deploys ``/en/latest/`` and ``/en/model_gallery/`` at
    ``https://www.marioproject.com/``. When retiring a channel, update inbound
    links on the companion sites and verify the new Pages artifact before
-   deleting its source branch. Only the main-branch job deploys to Pages. Check the run for the
+   deleting its source branch. Push model content to ``model-gallery``. A successful
+   push check triggers the publisher on ``main``, which reads both current
+   branches under the same deployment concurrency group. Gallery pull requests
+   build a preview. To refresh the Gallery’s common guides, merge the desired
+   ``main`` revision into its branch. Check both source SHAs in
+   ``docs-versions.json`` after deployment. For releases, check the run for the
    **merged commit**, wait for deployment success, and open representative
    public pages. Read the Docs and a local preview are separate build targets;
    do not assume either proves the canonical site has been updated.

@@ -5,6 +5,7 @@
   },
   "model_gallery": {
     "label": "Model Gallery",
-    "kind": "gallery"
+    "kind": "gallery",
+    "ref": "model-gallery"
   }
 }
