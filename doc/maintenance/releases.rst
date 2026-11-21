@@ -52,6 +52,9 @@ Verify before publication
 * Run the test suite in a supported Python environment with the declared
   runtime dependencies. Investigate failures; distinguish code regressions,
   obsolete expectations and optional/external prerequisites with evidence.
+  Check installed pandas and CVXLab versions against the package's dependency
+  declarations when combining work validated in different environments.
+  Include the documentation dependencies before running documentation tests.
   Do not silently deselect a failing required check.
   Preview-server tests need permission to bind loopback sockets. Reuse valid
   local data for optional integration tests where possible; do not trigger

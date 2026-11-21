@@ -105,6 +105,22 @@ Do not rerun every real database for a wording-only edit.
 Example verification
 --------------------
 
+For national SUT import parsers, compare ``U + IMP_a`` and ``Yc + IMP_Y``
+cell by cell against the source total-use workbooks. Check imported rows against
+the official import-use table, and verify both product and activity balances
+before and after aggregation. Published income hierarchies require disjoint
+components: including both value-added subtotals and their parts can pass a
+shape-only parser test while invalidating the model. Retain source rounding
+differences explicitly and include a coefficient reset and accounting/export
+round trip in the integration check.
+
+In cloud-synced CVXLab destinations, synchronization can change a workbook's
+timestamp during export. If the concurrent-file guard stops the update, compare
+the current logical sheet values with the verified settings, sets and inputs,
+then rerun using those current files. A changed ZIP checksum alone is not proof
+that cells changed. Keep the concurrency guard enabled; do not overwrite an
+unexamined change.
+
 * Execute changed minimal examples against packaged IOT/SUT fixtures where
   possible. Check outputs, units and axes, not just absence of exceptions.
 * Export separate-import models with reversed productive axes in flow and
@@ -121,6 +137,21 @@ Example verification
   and conflicting source coordinates. Execute the companion with its
   downloaded settings workbook beside it. The split-model bridge has separate
   Excel/CSV integration checks in the add-sector tests.
+  When a user supplies model settings, snapshot that workbook and verify its
+  equations, variables, filters and table keys are unchanged. A new input-only
+  container does not validate compatibility with the supplied analysis model.
+  Match the actual exogenous coordinates, retain undeclared nonzero source
+  blocks in native exports, and check declared blank-fill behaviour in CVXLab.
+  For translated examples, compare values by renamed coordinates and verify
+  imports and unit labels together. Generate requested native aggregation
+  workbooks with MARIO and populate only mapping values; preserve writer styles.
+  After narrowing satellites or changing aggregation, reexport into a previous
+  receiver as well as a clean one. Exercise explicit set synchronization,
+  shared factors/satellites, copied-set aliases and already-pruned sets with
+  stale input rows. Check removals in every dependent exogenous table,
+  preservation of unrelated data and attributes, and repeat-export stability.
+  ``tests/parsers/test_istat_extensions.py`` uses the tutorial's actual symbolic
+  settings from ``tests/fixtures/cvxlab/`` with small offline source fixtures.
 * For an installable model, install into an isolated environment and open the
   workspace outside the source checkout. Check the pinned installation and a
   development ref, fetch the declared data, and verify that the documented
@@ -177,6 +208,14 @@ Example verification
   and notebook calculations on small accounting/scenario fixtures. Run it
   when changing those examples; source-database and live-provider runs remain
   separate checks.
+* Run ``python -m pytest tests/integration/test_table_transformations.py`` when
+  changing regional extraction, trade representation or SUT-to-IOT conversion.
+  The workflows reconcile bilateral trade and national import accounts against
+  source flows, apply demand shocks before and after conversion, and reaggregate
+  a sector split solved with CVXLab and Clarabel.
+  After a domestic demand shock, check each partner's intermediate imports
+  against its base-scenario coefficients and the new output. Compare direct
+  final-demand imports with their base-scenario amounts.
 * For supply-mix recipe estimation, check unequal donor outputs, receiving-region
   domestic/import shares and the no-purchases fallback independently. Verify
   both intermediate and direct coefficients, SUT commodity-to-activity routing,
@@ -228,6 +267,17 @@ Check full inverses against the corrected operator and confirm that opting
 out restores the original failure. Such a correction is not evidence that
 the unmodified source is invertible or that its producer accounts reconcile
 with native final-demand footprints.
+
+For optional ISTAT satellites, verify the annual country/year/unit selection
+and the native-code concordance independently of activity descriptions.
+Exercise sparse and dense JSON-stat responses, missing/confidential values,
+observation flags and refresh failure without replacing a valid cache.
+Check offline parsing from both an extracted bundle and a zip: satellite
+snapshots must survive temporary extraction. Compare activity and household
+accounts with source observations, and native hours with the USE workbook.
+Check unit scales, overlapping characterised totals, aggregation conservation,
+separate-import descriptors, and native/CVXLab exports in the same workflow.
+Record satellite source vintages separately from the monetary release edition.
 
 Rendered review
 ---------------
