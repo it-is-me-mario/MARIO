@@ -28,7 +28,10 @@ def configure(config):
         "navigation_style": "sidebar",
         "sidebar_label": "Model Gallery",
         "breadcrumb_label": "Model Gallery",
-        "tabs": [{"key": "pv-hlca", "label": "PV-HLCA", "doc": "models/pv-hlca"}],
+        "tabs": [
+            {"key": "pv-hlca", "label": "PV-HLCA", "doc": "models/pv-hlca"},
+            {"key": "gcam-mario-steel", "label": "GCAM–MARIO steel", "doc": "models/gcam-mario-steel"},
+        ],
     })
     resources = sections["resources"]
     resources["landing"] = "resources/index"
