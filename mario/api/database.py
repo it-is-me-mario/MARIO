@@ -104,6 +104,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 
+from mario.model.configuration import import_blocks
 from mario.model.conventions import MATRIX_TITLES, TABLE_LEVELS
 from mario.model.conventions import _MASTER_INDEX, _ENUM
 
@@ -5836,6 +5837,10 @@ class Database(CoreModel):
             _results = calc_all_shock(z_c, e_c, v_c, Y_c)
             _results["EY"] = EY_c
             _results["VY"] = VY_c
+            # Intermediate import flows follow the new output at the base rates.
+            # Direct final-demand imports (IMP_Y) carry over in absolute units.
+            for name in import_blocks(self, mode="coefficients"):
+                _results[name] = _baseline_block(name)
 
             if scenario is None:
                 scenario = f"shock {self.__counter}"

@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 
 import mario
-from mario.log_exc.exceptions import DataMissing, NotImplementable
+from mario.log_exc.exceptions import NotImplementable
 from mario.ops.workbook_specs import SHOCK_FLAT_COLUMNS
 from tests.api.test_regional_indexes import regional_database
 from tests.ops.test_addsector import _configure_split_workbook
@@ -255,20 +255,7 @@ def test_sut_to_iot_demand_shock_and_export(tmp_path, multiregional_sut, method)
     np.testing.assert_allclose(loaded.X.loc[labels].iloc[:, 0], expected_x)
 
 
-@pytest.mark.parametrize(
-    "representation",
-    [
-        "factor-accounts",
-        pytest.param(
-            "separate",
-            marks=pytest.mark.xfail(
-                strict=True,
-                raises=DataMissing,
-                reason="shock_calc omits native import blocks from the new IOT scenario",
-            ),
-        ),
-    ],
-)
+@pytest.mark.parametrize("representation", ["factor-accounts", "separate"])
 def test_single_region_iot_shock_preserves_imports_by_partner(
     three_region_iot, tmp_path, representation
 ):
