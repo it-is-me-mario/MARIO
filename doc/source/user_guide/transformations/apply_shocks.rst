@@ -51,6 +51,12 @@ Fill the relevant sheets, then enable those blocks in ``shock_calc()``.
 For a SUT, generate the template from that SUT to obtain its activity and
 commodity labels.
 
+For a database with separate import accounts, intermediate imports follow
+the new output using the starting scenario's import coefficients. Direct
+final-demand imports in ``IMP_Y`` retain their absolute values. Commodity
+and origin-partner detail are preserved in IOT and SUT scenarios, including
+when ``base_scenario`` selects an earlier shock result.
+
 .. mario-details:: Plot the result
 
    .. code-block:: python

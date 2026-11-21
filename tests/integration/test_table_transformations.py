@@ -308,6 +308,30 @@ def test_single_region_iot_shock_preserves_imports_by_partner(
         )
 
 
+def test_sut_emission_shock_preserves_native_imports(tmp_path, multiregional_sut):
+    sut = multiregional_sut.to_single_region(
+        "IT", imports_by="commodity", trade_resolution="by_region",
+        import_representation="separate", inplace=False,
+    )
+    before = {name: sut.query(name).copy() for name in ("IMP_a", "IMP_c", "IMP_Y")}
+    coefficient = sut.query("ea")
+    indicator, buyer = coefficient.index[0], coefficient.columns[0]
+    value = coefficient.at[indicator, buyer] * .5
+    path = tmp_path / "emissions.xlsx"
+    pd.DataFrame([{
+        SHOCK_FLAT_COLUMNS["satellite_from"]: indicator,
+        SHOCK_FLAT_COLUMNS["region_to"]: buyer[0],
+        SHOCK_FLAT_COLUMNS["activity_to"]: buyer[-1],
+        SHOCK_FLAT_COLUMNS["type"]: "Update",
+        SHOCK_FLAT_COLUMNS["value"]: value,
+    }]).to_excel(path, sheet_name="ea", index=False)
+    sut.shock_calc(str(path), ea=True, scenario="corrected_emissions")
+    assert sut.query("ea", scenarios="corrected_emissions").at[indicator, buyer] == pytest.approx(value)
+    for name, expected in before.items():
+        pd.testing.assert_frame_equal(sut.query(name, scenarios="corrected_emissions"), expected)
+        pd.testing.assert_frame_equal(sut.query(name), expected)
+
+
 def test_sut_to_iot_split_then_reaggregate(tmp_path, multiregional_sut):
     pytest.importorskip("cvxlab")
     iot = multiregional_sut.to_iot("B", inplace=False)

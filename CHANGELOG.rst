@@ -5,11 +5,14 @@ Release History
 All notable changes to MARIO, newest first. Versions match the ``mariopy``
 package on PyPI, and dates are its publication dates.
 
-Unreleased
-----------
+v1.3.6
+------
 
-* Add ``mario.model_setup()`` for research models maintained in their own
-  repositories and ``mario.models.install()`` for catalogued releases and refs.
+Released on 21 November 2026.
+
+ISTAT supply-use data and satellite accounts
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * Add ``import_representation="separate"`` to the ISTAT basic-price SUT parser.
   Read imported intermediate and final uses by commodity into ``IMP_a`` and
   ``IMP_Y``, with domestic ``U`` / ``Yc`` and native accounting metadata.
@@ -20,14 +23,33 @@ Unreleased
   employed persons and hours worked, and PEFA net domestic energy use.
   Align Italy/year observations by NACE codes, retain household environmental
   accounts in ``EY``, and cache validated Eurostat snapshots for offline reuse.
+
+CVXLab input regeneration and shock scenarios
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * Add opt-in ``sync_sets`` to ``to_cvxlab()`` for regenerating inputs after
   satellite selection or aggregation. Synchronize mapped CVXLab domains and
   remove obsolete dependent input records while retaining valid attributes,
   all mapped value-added accounts and unrelated workbook data. The default
   continues to append members and preserve existing inputs.
+* Preserve native import accounts when ``shock_calc()`` creates a scenario.
+  Recalculate intermediate imports using the base scenario's coefficients and
+  the new output, retaining direct final-demand imports in absolute units.
+  Preserve origin-partner detail and support chained IOT and SUT scenarios.
 * Cover the ISTAT parser-to-CVXLab workflow with a regression using the
   tutorial's receiving model, including import-use reconciliation, satellite
   selection, aggregation, shared filtered tables and actual SQLite loading.
+* Add integration tests for transformed SUT/IOT workflows, including bilateral
+  trade, native import exports, demand shocks and CVXLab split/reaggregation.
+
+Research models and documentation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Add ``mario.model_setup()`` for research models maintained in their own
+  repositories and ``mario.models.install()`` for catalogued releases and refs.
+* Build Latest from ``main`` and Model Gallery from its dedicated branch.
+  Keep worked examples on Tutorials, retain legacy redirects and preserve
+  the selected documentation channel across the shared sites.
 
 v1.3.5
 ------

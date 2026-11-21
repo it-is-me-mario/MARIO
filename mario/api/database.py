@@ -5663,6 +5663,10 @@ class Database(CoreModel):
         base_scenario:
             Scenario the shock is built on top of. Defaults to the baseline,
             so shocks can be chained on any existing scenario.
+            With separate import accounts, retain this scenario's import
+            coefficients and recalculate intermediate imports with the new
+            output. Direct final-demand imports in ``IMP_Y`` retain their
+            absolute values and classification, including origin partners.
         force_rewrite:
             When ``True``, allow overwriting an existing non-baseline scenario.
         **legacy_clusters:
