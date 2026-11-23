@@ -92,6 +92,77 @@ def test_template_names_by_mode():
     }
 
 
+def _problem_and_variables(name):
+    workbook = openpyxl.load_workbook(MODELS_DIR / name / "model_settings.xlsx")
+    return _sheet(workbook, "structure_variables"), _sheet(workbook, "problem")
+
+
+def test_split_sut_model_has_the_use_prior_of_the_new_commodities():
+    variables, problem = _problem_and_variables("Split_sut")
+    by_name = variables.set_index("variables_info")
+    for name, columns in (("U0_pn_s", "stable"), ("U0_pn_p", "parent"), ("U_pn_p", "parent")):
+        row = by_name.loc[name]
+        assert row["commodity_from"] == "dim: rows, filters: {category: [parent, new]}"
+        assert row["activity_to"] == f"dim: cols, filters: {{category: [{columns}]}}"
+    assert by_name.loc["U0_pn_s", "table_key"] == by_name.loc["U0_pn_p", "table_key"] == "U0"
+    assert by_name.loc["U0_pn_s", "type"] == "exogenous" and by_name.loc["U_pn_p", "type"] == "endogenous"
+    objective = problem["objective"].dropna().iloc[0]
+    assert "kl_active(U_pn_s,U0_pn_s)" in objective and "kl_active(U_pn_p,U0_pn_p)" in objective
+    # the existing terms are untouched
+    assert "kl(U_s_p,U0_s_p)" in objective and "kl(U_c_n,U0_c_n)" in objective
+    assert "kl_signed(V,V0)" in objective and "kl_signed(Y,Y0)" in objective
+    assert "entropy" not in objective  # complete Kullback-Leibler distance everywhere
+
+
+def test_split_sut_com_model_has_the_use_prior_of_the_new_commodities():
+    variables, problem = _problem_and_variables("Split_sut_com")
+    row = variables.set_index("variables_info").loc["U0_pn"]
+    assert row["table_key"] == "U0" and row["type"] == "exogenous"
+    assert row["coordinates"] == "commodity_from,region_from,activity_to,region_to"
+    assert row["commodity_from"] == "dim: rows, filters: {category: [parent, new]}"
+    assert row["activity_to"] == "dim: cols"
+    objective = problem["objective"].dropna().iloc[0]
+    assert "kl_active(U_pn,U0_pn)" in objective and "kl(M_pn,M0_pn)" in objective
+    assert "kl_signed(Y_pn,Y0_pn)" in objective and "entropy" not in objective
+
+
+def test_split_sut_act_model_has_the_complete_kl_objective_and_no_use_prior_of_new_commodities():
+    variables, problem = _problem_and_variables("Split_sut_act")
+    objective = problem["objective"].dropna().iloc[0]
+    assert objective == "Minimize(sum(kl(U_pn,U0_pn))+sum(kl(M_pn,M0_pn))+sum(kl_signed(V_pn,V0_pn)))"
+    assert "kl_active" not in objective and "entropy" not in objective
+    assert not any(str(name).startswith("U0_pn_") for name in variables["variables_info"])
+
+
+@pytest.mark.parametrize("name", ["Split_sut", "Split_sut_com", "Split_sut_act"])
+def test_kl_active_leaves_zero_prior_cells_out_of_the_objective(name):
+    cp = pytest.importorskip("cvxpy")
+    spec = importlib.util.spec_from_file_location(f"{name}_operators", MODELS_DIR / name / "user_defined_operators.py")
+    operators = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(operators)
+
+    prior = np.array([[0.0, 2.0], [3.0, 0.0]])
+    A, A0 = cp.Variable((2, 2), nonneg=True), cp.Parameter((2, 2), value=prior)
+    expression = operators.kl_active(A, A0)
+    assert expression.is_dcp()
+    A.value = np.array([[5.0, 2.0], [6.0, 7.0]])
+    def kl_div(x, y):  # x log(x / y) - x + y: the complete Kullback-Leibler distance
+        return x * np.log(x / y) - x + y
+
+    expected = np.array([[0.0, kl_div(2, 2 + 1e-8)], [kl_div(6, 3 + 1e-8), 0.0]])
+    np.testing.assert_allclose(expression.value, expected, atol=1e-9)
+    # the plain distance would penalise the zero-prior cells
+    assert operators.kl(A, A0).value[0, 0] > 50
+    # complete KL is zero at the prior and never negative; the incomplete entropy goes negative below the prior
+    A.value = prior
+    np.testing.assert_allclose(operators.kl(A, A0).value, 0.0, atol=1e-6)
+    A.value = 0.5 * prior
+    assert (operators.kl(A, A0).value >= 0).all()
+    assert (operators.entropy(A, A0).value < 0).any()
+    with pytest.raises(ValueError, match="same shape"):
+        operators.kl_active(cp.Variable((3, 3)), A0)
+
+
 def test_sut_bridge_prefers_clarabel_then_ecos_then_scs():
     assert CVXLAB_SUT_PREFERRED_SOLVERS == ("CLARABEL", "ECOS", "SCS")
     assert _resolve_split_solver("MOSEK", preferred=CVXLAB_SUT_PREFERRED_SOLVERS) == "MOSEK"
@@ -266,7 +337,8 @@ def test_activity_only_priors(act_priors):
 def test_commodity_only_priors(com_priors):
     _, priors, truth = com_priors
     assert priors.mode == MODE_COMMODITIES
-    assert priors.U0 is None and priors.V0 is None
+    # U0 only carries the new-commodity rows of the Use matrix; there is no value-added prior
+    assert priors.U0 is not None and priors.V0 is None
     assert priors.Y0 is not None
     # Xnew is the total use of the new commodity, indexed by (Region, commodity)
     known = priors.Xnew[priors.Xnew > 0].to_dict()
@@ -279,6 +351,28 @@ def test_commodity_only_priors(com_priors):
     assert np.abs(priors.Y0.loc[new_rows] - Y.loc[new_rows]).to_numpy().max() < 1e-9
     # the same number scales the supply shares: supply of the new commodity equals its known use
     assert priors.M0[("DE", "c2b")].sum() == pytest.approx(11.5)
+
+
+def test_commodity_only_use_prior_splits_the_parent_rows(com_priors):
+    _, priors, _ = com_priors
+    U0, original = priors.U0, priors.original.U
+    for region in ("DE", "IT"):
+        rows = [(region, "c2"), (region, "c2b")]
+        # no activity is split: every column is a stable one and the group adds up to the original row
+        assert U0.loc[rows].sum().to_numpy() == pytest.approx(original.loc[(region, "c2")].reindex(U0.columns).to_numpy())
+        share = priors.Xc[(region, "c2b")] / priors.original.Xc[(region, "c2")]
+        assert U0.loc[(region, "c2b")].to_numpy() == pytest.approx(share * original.loc[(region, "c2")].to_numpy())
+
+
+def test_commodity_only_use_coef_is_applied(tmp_path):
+    def add(sheets):
+        sheets["Use coef"] = _use_coef_sheet()
+
+    path = write_modified_workbook(VARIANT_ADD_SECTOR_PATHS[VARIANT_COMMODITIES], tmp_path, add)
+    db = _read(VARIANT_COMMODITIES, path)
+    prepare_sut_split_support(db)
+    priors = build_sut_split_priors(db)
+    assert priors.U0.loc[("DE", "c2b"), ("DE", "a1")] == pytest.approx(0.1 * priors.Xa[("DE", "a1")])
 
 
 def test_combined_priors_keep_every_block():
@@ -324,6 +418,30 @@ def test_input_tables_activity_xnew_and_no_prior_error(act_priors):
         build_sut_split_input_tables(priors, {"Y0": _blank(["commodity_from_Name"], [("c1",)])})
 
 
+def test_commodity_only_bridge_hands_only_informed_use_cells_to_the_model(com_priors, tmp_path):
+    _, priors, _ = com_priors
+    columns = ["commodity_from_Name", "region_from_Name", "activity_to_Name", "region_to_Name"]
+    cells = [("c2b", "DE", "a1", "DE"), ("c2", "DE", "a2", "IT"), ("c2b", "IT", "a1", "DE")]
+
+    def filled(p):
+        return build_sut_split_input_tables(p, {"U0": _blank(columns, cells)})["U0"].set_index(columns)["values"]
+
+    # no coefficient: the baseline is only a guess, the model gets no prior for these cells
+    assert (filled(priors) == 0).all()
+    assert priors.U0.loc[("DE", "c2b"), ("DE", "a1")] > 0  # ... although the full prior keeps it
+
+    def add(sheets):
+        sheets["Use coef"] = _use_coef_sheet()
+
+    path = write_modified_workbook(VARIANT_ADD_SECTOR_PATHS[VARIANT_COMMODITIES], tmp_path, add)
+    db = _read(VARIANT_COMMODITIES, path)
+    prepare_sut_split_support(db)
+    informed = build_sut_split_priors(db)
+    values = filled(informed)
+    assert values[("c2b", "DE", "a1", "DE")] == pytest.approx(0.1 * informed.Xa[("DE", "a1")])
+    assert values[("c2", "DE", "a2", "IT")] == 0 and values[("c2b", "IT", "a1", "DE")] == 0
+
+
 # ---------------------------------------------------------------------------
 # Solved variants (need CVXLab and a solver)
 # ---------------------------------------------------------------------------
@@ -359,7 +477,8 @@ def test_variant_uses_its_own_model(solved_variant):
         assert "U0" in keys and "Y0" not in keys
         assert xnew["coordinates"] == "activity_to,region_to"
     else:
-        assert "Y0" in keys and "U0" not in keys
+        # the commodity-only model has a prior for the Use of the new commodities (no value-added prior)
+        assert "Y0" in keys and "U0" in keys and "V0" not in keys
         assert xnew["coordinates"] == "commodity_from,region_from"
 
 
@@ -431,4 +550,72 @@ def test_only_input_data_gen_writes_variant_inputs(variant, tmp_path):
     if variant == VARIANT_ACTIVITIES:
         assert {"U0", "M0", "V0", "Xnew"} <= set(tables) and "Y0" not in tables
     else:
-        assert {"M0", "Y0", "Xnew"} <= set(tables) and "U0" not in tables and "V0" not in tables
+        assert {"M0", "Y0", "U0", "Xnew"} <= set(tables) and "V0" not in tables
+
+
+def _use_coef_sheet():
+    return pd.DataFrame(
+        [["DE", "DE", "c2b", "a1", 0.1, None, None]],
+        columns=["Region_from", "Region_to", "Commodity_from", "Activity_to", "Coefficient", "Source", "Notes"],
+    )
+
+
+def test_use_coef_sheet_is_optional_in_every_variant():
+    for variant in (VARIANT_ACTIVITIES, VARIANT_COMMODITIES):
+        assert _read(variant).split_info["Use coef"].empty
+
+
+def test_commodity_only_split_keeps_use_coef(tmp_path):
+    def add(sheets):
+        sheets["Use coef"] = _use_coef_sheet()
+
+    path = write_modified_workbook(VARIANT_ADD_SECTOR_PATHS[VARIANT_COMMODITIES], tmp_path, add)
+    db = _read(VARIANT_COMMODITIES, path)
+    prepare_sut_split_support(db)
+    assert len(db.split_info["Use coef"]) == 1
+
+
+def test_activity_only_split_ignores_use_coef_with_a_warning(tmp_path):
+    def add(sheets):
+        sheets["Use coef"] = _use_coef_sheet()
+
+    path = write_modified_workbook(VARIANT_ADD_SECTOR_PATHS[VARIANT_ACTIVITIES], tmp_path, add)
+    db = _read(VARIANT_ACTIVITIES, path)
+    with pytest.warns(UserWarning, match="Use coef.*ignored"):
+        prepare_sut_split_support(db)
+    assert db.split_info["Use coef"].empty
+
+
+@pytest.mark.parametrize("name", ["Split_sut", "Split_sut_com", "Split_sut_act"])
+def test_sut_models_use_the_complete_kl_distance_everywhere(name):
+    _, problem = _problem_and_variables(name)
+    objective = problem["objective"].dropna().iloc[0]
+    assert "entropy" not in objective and "kl(" in objective and "kl_signed(" in objective
+
+
+@pytest.mark.parametrize("name", ["Split_sut", "Split_sut_com", "Split_sut_act"])
+def test_kl_and_kl_signed_operators(name):
+    cp = pytest.importorskip("cvxpy")
+    spec = importlib.util.spec_from_file_location(f"{name}_ops", MODELS_DIR / name / "user_defined_operators.py")
+    operators = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(operators)
+
+    prior = np.array([[2.0, -3.0], [4.0, 0.0]])
+    A = cp.Variable((2, 2))
+    A0 = cp.Parameter((2, 2), value=prior)
+    A.value = np.array([[3.0, -2.0], [1.0, 1.0]])
+    kl_div = lambda x, y: x * np.log(x / y) - x + y
+    plain = operators.kl(cp.Variable((2, 2), nonneg=True), A0)
+    assert plain.is_dcp()
+    signed = operators.kl_signed(A, A0)
+    assert signed.is_dcp()
+    # the sign of the prior is kept: a negative prior is compared with -A
+    expected = np.array(
+        [[kl_div(3.0, 2.0 + 1e-8), kl_div(2.0, 3.0 + 1e-8)], [kl_div(1.0, 4.0 + 1e-8), kl_div(1.0, 1e-8)]]
+    )
+    np.testing.assert_allclose(signed.value, expected, atol=1e-9)
+    # zero at the prior (complete distance), whatever the sign
+    A.value = prior
+    np.testing.assert_allclose(operators.kl_signed(A, A0).value, 0.0, atol=1e-6)
+    with pytest.raises(ValueError, match="same shape"):
+        operators.kl_signed(cp.Variable((3, 3)), A0)

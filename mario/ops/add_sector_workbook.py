@@ -24,6 +24,8 @@ from mario.ops.add_sector_specs import (
     ADD_SECTOR_SPLIT_SUPPLY_EXCLUSION_COLUMNS,
     ADD_SECTOR_SPLIT_SUPPLY_EXCLUSION_SHEET,
     ADD_SECTOR_SPLIT_SUT_OUTPUT_COLUMNS,
+    ADD_SECTOR_SPLIT_USE_COEF_COLUMNS,
+    ADD_SECTOR_SPLIT_USE_COEF_SHEET,
     ADD_SECTOR_SPLIT_USE_EXCLUSION_COLUMNS,
     ADD_SECTOR_SPLIT_USE_EXCLUSION_SHEET,
     ADVANCED_ADD_SECTOR_SUT_OPTIONAL_MASTER_COLUMNS,
@@ -223,6 +225,12 @@ def build_split_supply_coef_template() -> pd.DataFrame:
     return pd.DataFrame(columns=list(ADD_SECTOR_SPLIT_SUPPLY_COEF_COLUMNS.values()))
 
 
+def build_split_use_coef_template() -> pd.DataFrame:
+    """Build the (optional) SUT split use-coefficient sheet."""
+
+    return pd.DataFrame(columns=list(ADD_SECTOR_SPLIT_USE_COEF_COLUMNS.values()))
+
+
 def build_split_final_demand_share_template() -> pd.DataFrame:
     """Build the SUT split final-demand-share sheet."""
 
@@ -386,6 +394,7 @@ def write_inventory_templates_to_workbook(
         if split_sheets_needed and workbook.table == SUT:
             _write_sheet(writer, ADD_SECTOR_SPLIT_OUTPUT_SHEET, build_split_sut_total_outputs_template())
             _write_sheet(writer, ADD_SECTOR_SPLIT_SUPPLY_COEF_SHEET, build_split_supply_coef_template())
+            _write_sheet(writer, ADD_SECTOR_SPLIT_USE_COEF_SHEET, build_split_use_coef_template())
             _write_sheet(
                 writer, ADD_SECTOR_SPLIT_FINAL_DEMAND_SHARE_SHEET, build_split_final_demand_share_template()
             )
@@ -957,7 +966,8 @@ def _parse_sut_split_sheets(
 
     ``Total outputs`` is always required. ``Supply coef`` is required when activities are
     split and ``Final dem share`` when commodities are split; the other one is optional
-    (a missing sheet is read as empty). The two exclusion sheets and ``Tolerances`` are optional.
+    (a missing sheet is read as empty). ``Use coef``, the two exclusion sheets and ``Tolerances``
+    are optional.
     """
 
     supply_parser = (
@@ -976,6 +986,11 @@ def _parse_sut_split_sheets(
             sheets,
             sheet_name=ADD_SECTOR_SPLIT_SUPPLY_COEF_SHEET,
             columns=ADD_SECTOR_SPLIT_SUPPLY_COEF_COLUMNS,
+        ),
+        ADD_SECTOR_SPLIT_USE_COEF_SHEET: _parse_optional_split_sheet(
+            sheets,
+            sheet_name=ADD_SECTOR_SPLIT_USE_COEF_SHEET,
+            columns=ADD_SECTOR_SPLIT_USE_COEF_COLUMNS,
         ),
         ADD_SECTOR_SPLIT_FINAL_DEMAND_SHARE_SHEET: share_parser(
             sheets,

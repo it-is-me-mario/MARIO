@@ -5,6 +5,21 @@ Release History
 Unreleased
 ----------
 
+* SUT sector split: new optional ``Use coef`` sheet in the add-sectors workbook
+  with known coefficients for the use of the new commodities by stable and parent
+  activities. MARIO builds a baseline prior of the new-commodity rows of the Use
+  matrix (the parent cell split by commodity output, consistent with the original
+  self-consumption of the parent activity), updates it with the coefficients and
+  hands only the cells informed by a coefficient (and their residual parent) to
+  the optimization through the new ``kl_active`` term of ``Split_sut`` and
+  ``Split_sut_com``. Without the sheet the optimization is unchanged. For a
+  commodity-only split ``SutSplitPriors.U0`` is now a frame (only the new-commodity
+  rows are meaningful) instead of ``None``.
+* The ``Split_sut``, ``Split_sut_com`` and ``Split_sut_act`` CVXLab models now minimize the
+  complete Kullback-Leibler distance (``kl_div``, with the ``-A + A0`` terms) instead of the
+  relative entropy (``rel_entr``) for every term of the objective; the new operators
+  are ``kl``, ``kl_signed`` and ``kl_active`` (``kl_active`` is only used where new-commodity
+  Use priors exist, i.e. ``Split_sut`` and ``Split_sut_com``).
 * Added ``Database.get_add_sectors_intermediate_steps_plan`` to fill an existing
   IOT add-sectors workbook with an inventory-driven sequential plan. It supports
   supplier/buyer preferences, maximum group size, mandatory precedences and joint

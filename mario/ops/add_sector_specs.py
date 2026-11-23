@@ -170,6 +170,18 @@ ADD_SECTOR_SPLIT_SUPPLY_COEF_COLUMNS = {
 }
 
 
+ADD_SECTOR_SPLIT_USE_COEF_SHEET = "Use coef"
+ADD_SECTOR_SPLIT_USE_COEF_COLUMNS = {
+    "region_from": f"{_MASTER_INDEX['r']}_from",
+    "region_to": f"{_MASTER_INDEX['r']}_to",
+    "commodity_from": f"{_MASTER_INDEX['c']}_from",
+    "activity_to": f"{_MASTER_INDEX['a']}_to",
+    "coefficient": "Coefficient",
+    "source": "Source",
+    "notes": "Notes",
+}
+
+
 ADD_SECTOR_SPLIT_FINAL_DEMAND_SHARE_SHEET = "Final dem share"
 ADD_SECTOR_SPLIT_FINAL_DEMAND_SHARE_COLUMNS = {
     "region_from": f"{_MASTER_INDEX['r']}_from",

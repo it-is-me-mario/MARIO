@@ -185,7 +185,8 @@ def build_sut_split_input_tables(
         "Mold": long(original.M, "M"),
         "Yold": long(original.Y, "Y"),
         "Vold": long(original.V, "V"),
-        "U0": long(priors.U0, "U"),
+        # the prior handed to the optimisation: only the informed cells of the new-commodity rows
+        "U0": long(priors.U0 if priors.U0_objective is None else priors.U0_objective, "U"),
         "M0": long(priors.M0, "M"),
         "Y0": long(priors.Y0, "Y"),
         "V0": long(priors.V0, "V"),

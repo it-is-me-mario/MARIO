@@ -35,6 +35,7 @@ def test_guide_workbook_is_read_as_sut_split(guide_db):
     assert set(guide_db.split_info) == {
         "Total outputs",
         "Supply coef",
+        "Use coef",
         "Final dem share",
         "Exclusions use",
         "Exclusions supply",
@@ -365,7 +366,8 @@ def test_split_stays_close_to_the_reference_disaggregation(solved_split):
     make = Z.loc[[i for i in Z.index if i[1] == "Activity"], [c for c in Z.columns if c[1] == "Commodity"]]
     assert np.abs(new.S.to_numpy() - make.to_numpy()).max() < 0.5
     final = reference["Y"].loc[[i for i in reference["Y"].index if i[1] == "Commodity"]]
-    assert np.abs(new.Y.loc[final.index, final.columns].to_numpy() - final.to_numpy()).max() < 1e-4
+    # exact up to the tolerance band of the constraints (eps = 1e-5 of the flow) and the solver accuracy
+    assert np.abs(new.Y.loc[final.index, final.columns].to_numpy() - final.to_numpy()).max() < 1e-3
     va = new.V.loc[VALUE_ADDED]
     for region, expected in (("DE", 1.1), ("IT", 1.3)):
         assert va[(region, "Activity", "a2b")] == pytest.approx(expected, abs=1.0)
@@ -430,7 +432,9 @@ def test_sut_template_gets_split_sheets_when_master_is_marked_split(tmp_path):
     db.read_add_sectors_excel(path)
     db.get_inventory_sheets(path)
     sheets = set(load_workbook(path).sheetnames)
-    assert {"Total outputs", "Supply coef", "Final dem share", "Exclusions use", "Exclusions supply", "Tolerances"} <= sheets
+    assert {
+        "Total outputs", "Supply coef", "Use coef", "Final dem share", "Exclusions use", "Exclusions supply", "Tolerances"
+    } <= sheets
     assert "Trades" not in sheets
 
 
@@ -476,3 +480,306 @@ def test_unknown_items_in_split_sheets_are_rejected(guide_db, sheet, column, val
     guide_db.split_info[sheet] = frame
     with pytest.raises(WrongInput, match="unknown"):
         prepare_sut_split_support(guide_db)
+
+
+# ---------------------------------------------------------------------------
+# Use coef sheet (optional, new commodity rows of the Use matrix)
+# ---------------------------------------------------------------------------
+USE_COEF_COLUMNS = ["Region_from", "Region_to", "Commodity_from", "Activity_to", "Coefficient", "Source", "Notes"]
+
+
+def _with_use_coef(db, rows):
+    db.split_info["Use coef"] = pd.DataFrame(rows, columns=USE_COEF_COLUMNS)
+    return db
+
+
+def test_use_coef_sheet_is_optional_and_empty_when_absent(guide_db):
+    assert list(guide_db.split_info["Use coef"].columns) == USE_COEF_COLUMNS
+    assert guide_db.split_info["Use coef"].empty
+    prepare_sut_split_support(guide_db)
+    assert guide_db.split_info["Use coef"].empty
+
+
+def test_valid_use_coef_rows_are_normalised(guide_db):
+    _with_use_coef(
+        guide_db,
+        [
+            [" DE ", "DE", "c2b", "a1", 0.1, None, None],  # stable column
+            ["DE", "IT", "c2b", "a2", 0, None, None],  # parent column, cross-region
+        ],
+    )
+    prepare_sut_split_support(guide_db)
+    sheet = guide_db.split_info["Use coef"]
+    assert sheet["Region_from"].tolist() == ["DE", "DE"]
+    assert sheet["Coefficient"].tolist() == [0.1, 0.0]
+
+
+@pytest.mark.parametrize(
+    "row, match",
+    [
+        (["XX", "DE", "c2b", "a1", 0.1, None, None], "unknown regions"),
+        (["DE", "XX", "c2b", "a1", 0.1, None, None], "unknown regions"),
+        (["DE", "DE", "c1", "a1", 0.1, None, None], "unknown commodities not marked for split"),
+        (["DE", "DE", "c2", "a1", 0.1, None, None], "unknown commodities not marked for split"),
+        (["DE", "DE", "c2b", "nope", 0.1, None, None], "unknown activities"),
+        (["DE", "DE", "c2b", "a2b", 0.1, None, None], "new activities"),
+        (["DE", "DE", "c2b", "a1", -0.1, None, None], "cannot be negative"),
+        (["DE", "DE", "c2b", "a1", "abc", None, None], "Invalid numeric"),
+    ],
+)
+def test_use_coef_validation(guide_db, row, match):
+    _with_use_coef(guide_db, [row])
+    with pytest.raises(WrongInput, match=match):
+        prepare_sut_split_support(guide_db)
+
+
+def test_duplicated_use_coef_rows_are_rejected(guide_db):
+    row = ["DE", "DE", "c2b", "a1", 0.1, None, None]
+    _with_use_coef(guide_db, [row, row[:4] + [0.2, None, None]])
+    with pytest.raises(WrongInput, match="duplicated"):
+        prepare_sut_split_support(guide_db)
+
+
+def test_blank_use_coef_rows_are_dropped(guide_db):
+    _with_use_coef(guide_db, [[None] * 7, ["DE", "DE", "c2b", "a1", 0.1, None, None]])
+    prepare_sut_split_support(guide_db)
+    assert len(guide_db.split_info["Use coef"]) == 1
+
+
+# ---------------------------------------------------------------------------
+# Prior of the new-commodity rows of the Use matrix
+# ---------------------------------------------------------------------------
+def _use_priors(db, coefficients=None, **kwargs):
+    if coefficients is not None:
+        _with_use_coef(db, coefficients)
+    structure = prepare_sut_split_support(db)
+    return build_sut_split_priors(db, structure, **kwargs)
+
+
+def _share(priors, region):
+    return float(priors.Xc[(region, "c2b")] / priors.original.Xc[(region, "c2")])
+
+
+def test_use_prior_blocks_add_up_to_the_original_cells(guide_priors):
+    U0, original = guide_priors.U0, guide_priors.original.U
+    for region in ("DE", "IT"):
+        for r2 in ("DE", "IT"):
+            for activity in ("a1", "a2"):
+                total = U0.loc[[(region, "c2"), (region, "c2b")], (r2, activity)].sum()
+                if activity == "a2":  # the parent column also gives room to the new activity
+                    total += U0.loc[[(region, "c2"), (region, "c2b")], (r2, "a2b")].sum()
+                assert total == pytest.approx(original.loc[(region, "c2"), (r2, activity)]), (region, r2, activity)
+
+
+def test_use_prior_baseline_splits_by_commodity_output(guide_priors):
+    U0, original = guide_priors.U0, guide_priors.original.U
+    share_de = 15.0 / 37.0
+    # stable column: the original cell is split by the output of the commodity (region of the row)
+    assert U0.loc[("DE", "c2b"), ("DE", "a1")] == pytest.approx(share_de * 5.0)
+    assert U0.loc[("DE", "c2"), ("DE", "a1")] == pytest.approx((1 - share_de) * 5.0)
+    assert U0.loc[("DE", "c2b"), ("IT", "a1")] == pytest.approx(share_de * 1.0)  # cross-region cell
+    # parent column: the budget is the original cell minus the use of the new activity (3 + 1)
+    assert U0.loc[("DE", "c2b"), ("DE", "a2")] == pytest.approx(share_de * 6.0)
+    assert U0.loc[("DE", "c2"), ("DE", "a2")] == pytest.approx((1 - share_de) * 6.0)
+
+
+def test_use_prior_leaves_already_priored_cells_untouched(guide_priors):
+    # stable commodity rows keep the existing prior (original minus the new activity's use)
+    assert guide_priors.U0.loc[("DE", "c1"), ("DE", "a2")] == pytest.approx(6.0)
+    assert guide_priors.U0.loc[("DE", "c1"), ("DE", "a1")] == pytest.approx(2.0)
+
+
+def test_use_coef_replaces_the_baseline_of_a_stable_column(guide_db):
+    priors = _use_priors(guide_db, [["DE", "DE", "c2b", "a1", 0.1, None, None]])
+    child = 0.1 * priors.Xa[("DE", "a1")]
+    assert priors.U0.loc[("DE", "c2b"), ("DE", "a1")] == pytest.approx(child)
+    assert priors.U0.loc[("DE", "c2"), ("DE", "a1")] == pytest.approx(5.0 - child)
+
+
+def test_use_coef_on_a_parent_column_uses_the_residual_output_and_the_budget(guide_db):
+    priors = _use_priors(guide_db, [["DE", "DE", "c2b", "a2", 0.1, None, None]])
+    child = 0.1 * priors.Xa[("DE", "a2")]  # residual output of the parent activity, 24.9
+    assert child == pytest.approx(2.49)
+    assert priors.U0.loc[("DE", "c2b"), ("DE", "a2")] == pytest.approx(child)
+    assert priors.U0.loc[("DE", "c2"), ("DE", "a2")] == pytest.approx(6.0 - child)
+    block = priors.U0.loc[[("DE", "c2"), ("DE", "c2b")], [("DE", "a2"), ("DE", "a2b")]].to_numpy().sum()
+    assert block == pytest.approx(10.0)
+
+
+def test_use_coef_flow_uses_the_region_of_the_activity(guide_db):
+    priors = _use_priors(guide_db, [["DE", "IT", "c2b", "a1", 0.02, None, None]])
+    assert priors.U0.loc[("DE", "c2b"), ("IT", "a1")] == pytest.approx(0.02 * priors.Xa[("IT", "a1")])
+    assert priors.Xa[("IT", "a1")] != priors.Xa[("DE", "a1")]
+    # the other regions keep the baseline
+    assert priors.U0.loc[("DE", "c2b"), ("DE", "a1")] == pytest.approx(_share(priors, "DE") * 5.0)
+
+
+def test_use_coef_with_negative_residual_falls_back_to_the_baseline(guide_db):
+    baseline = _use_priors(guide_db)
+    guide_db.split_info["Use coef"] = pd.DataFrame(
+        [["DE", "DE", "c2b", "a1", 1.0, None, None]], columns=USE_COEF_COLUMNS
+    )  # 17.4 > the original cell (5)
+    with pytest.warns(UserWarning, match="would make the residual parent negative.*1 cells"):
+        priors = build_sut_split_priors(guide_db, prepare_sut_split_support(guide_db))
+    pd.testing.assert_frame_equal(priors.U0, baseline.U0)
+
+
+def test_fallback_warnings_are_aggregated(guide_db):
+    rows = [[r, "DE", "c2b", a, 50.0, None, None] for r in ("DE",) for a in ("a1", "a2")]
+    _with_use_coef(guide_db, rows)
+    with pytest.warns(UserWarning, match="2 cells") as record:
+        build_sut_split_priors(guide_db, prepare_sut_split_support(guide_db))
+    assert sum("residual parent negative" in str(w.message) for w in record) == 1
+
+
+def test_use_coef_on_a_zero_cell_is_ignored_with_a_warning(guide_db):
+    # (IT, c2b) -> (DE, a1) is a structural zero (original cell is zero / excluded)
+    _with_use_coef(guide_db, [["IT", "DE", "c2b", "a1", 0.5, None, None]])
+    with pytest.warns(UserWarning, match="cells known to be zero are ignored"):
+        priors = build_sut_split_priors(guide_db, prepare_sut_split_support(guide_db))
+    assert priors.U0.loc[("IT", "c2b"), ("DE", "a1")] == 0.0
+
+
+def test_masked_cell_mass_goes_to_the_other_cells_of_the_group(guide_db):
+    sheet = guide_db.split_info["Exclusions use"]
+    guide_db.split_info["Exclusions use"] = pd.concat(
+        [sheet, pd.DataFrame([{"Region_from": "DE", "Region_to": "DE", "Commodity_from": "c2b", "Activity_to": "a1"}])],
+        ignore_index=True,
+    )
+    priors = _use_priors(guide_db)
+    assert priors.U0.loc[("DE", "c2b"), ("DE", "a1")] == 0.0
+    assert priors.U0.loc[("DE", "c2"), ("DE", "a1")] == pytest.approx(5.0)
+
+
+def test_parent_column_with_too_large_new_activity_use_gets_zeros_and_a_warning(guide_db):
+    inventory = guide_db.add_sectors_workbook.inventories_by_sheet["a2b_DE"]
+    inventory.loc[(inventory["DB Item"] == "c2") & (inventory["DB Region"] == "DE"), "Quantity"] = 1.0
+    structure = prepare_sut_split_support(guide_db)
+    with pytest.warns(UserWarning, match="already use more of the parent cell"):
+        priors = build_sut_split_priors(guide_db, structure)
+    assert priors.U0.loc[("DE", "c2b"), ("DE", "a2")] == 0.0
+    assert priors.U0.loc[("DE", "c2"), ("DE", "a2")] == 0.0
+
+
+def test_parent_commodity_without_output_keeps_everything_in_the_parent(guide_db):
+    sheet = guide_db.split_info["Total outputs"].copy()
+    sheet.loc[sheet["Commodity"] == "c2b", "Quantity"] = 0.0
+    guide_db.split_info["Total outputs"] = sheet
+    priors = _use_priors(guide_db)
+    assert priors.U0.loc[("DE", "c2b"), ("DE", "a1")] == 0.0
+    assert priors.U0.loc[("DE", "c2"), ("DE", "a1")] == pytest.approx(5.0)
+
+
+def _reference_use_coef(db):
+    """"Use coef" rows of the new commodity taken from the reference table (stable + parent columns)."""
+
+    priors = build_sut_split_priors(db, prepare_sut_split_support(db))
+    Z = read_expected()["Z"]
+    rows = [
+        [r, s, "c2b", a, float(Z.loc[(r, "Commodity", "c2b"), (s, "Activity", a)]) / float(priors.Xa[(s, a)]), None, None]
+        for r in ("DE", "IT")
+        for s in ("DE", "IT")
+        for a in ("a1", "a2")
+    ]
+    return rows
+
+
+@needs_cvxlab
+def test_use_coef_from_the_reference_gets_the_solution_closer_to_it(tmp_path):
+    reference = read_expected()
+    Z = reference["Z"]
+    use_rows = [i for i in Z.index if i == i and i[1] == "Commodity" and i[2] == "c2b"]
+    use_cols = [c for c in Z.columns if c[1] == "Activity"]
+
+    def solve(folder, coefficients):
+        db = build_example_database()
+        db.read_add_sectors_excel(ADD_SECTOR_PATH, read_inventories=True, split=True)
+        rows = _reference_use_coef(db) if coefficients else []
+
+        def add(sheets):
+            sheets["Use coef"] = pd.DataFrame(rows, columns=USE_COEF_COLUMNS)
+
+        from .sut_split_helpers import write_modified_workbook
+
+        path = write_modified_workbook(ADD_SECTOR_PATH, folder, add)
+        new = build_example_database().add_sectors(io=path, split=True, cvxlab_path=folder, inplace=False)
+        make = Z.loc[[i for i in Z.index if i[1] == "Activity"], [c for c in Z.columns if c[1] == "Commodity"]]
+        use = new.U.loc[use_rows, use_cols] - Z.loc[use_rows, use_cols]
+        return np.abs(new.S.to_numpy() - make.to_numpy()).max(), np.abs(use.to_numpy()).max()
+
+    (tmp_path / "a").mkdir()
+    (tmp_path / "b").mkdir()
+    make_baseline, use_baseline = solve(tmp_path / "a", coefficients=False)
+    make_coef, use_coef = solve(tmp_path / "b", coefficients=True)
+    assert make_coef < make_baseline and use_coef < use_baseline
+    assert make_coef < 0.5 and use_coef < 0.05
+
+
+# ---------------------------------------------------------------------------
+# Which cells of the Use prior reach the optimisation (U0_objective)
+# ---------------------------------------------------------------------------
+def _new_rows_in_plain_columns(priors):
+    structure = priors.structure
+    rows = [i for i in priors.U0.index if structure.commodity_category(i[1]) != "stable"]
+    cols = [c for c in priors.U0.columns if structure.activity_category(c[1]) != "new"]
+    return rows, cols
+
+
+def test_without_coefficients_no_use_cell_of_the_new_rows_enters_the_optimisation(guide_priors):
+    rows, cols = _new_rows_in_plain_columns(guide_priors)
+    assert (guide_priors.U0_objective.loc[rows, cols].to_numpy() == 0).all()
+    assert (guide_priors.U0.loc[rows, cols].to_numpy() > 0).any()  # the baseline itself is kept
+    # every other prior cell (stable rows, new-activity columns) is handed over unchanged
+    pd.testing.assert_frame_equal(
+        guide_priors.U0_objective.drop(index=rows), guide_priors.U0.drop(index=rows), check_exact=False
+    )
+    new_columns = [c for c in guide_priors.U0.columns if c not in cols]
+    pd.testing.assert_frame_equal(
+        guide_priors.U0_objective[new_columns], guide_priors.U0[new_columns], check_exact=False
+    )
+
+
+def test_only_the_coefficient_cell_and_the_residual_parent_are_informed(guide_db):
+    priors = _use_priors(guide_db, [["DE", "DE", "c2b", "a1", 0.1, None, None]])
+    objective, full = priors.U0_objective, priors.U0
+    for row in (("DE", "c2b"), ("DE", "c2")):
+        assert objective.loc[row, ("DE", "a1")] == full.loc[row, ("DE", "a1")] > 0
+    # a different column / region of the same commodities stays a free baseline guess
+    assert objective.loc[("DE", "c2b"), ("IT", "a1")] == 0 and full.loc[("DE", "c2b"), ("IT", "a1")] > 0
+    assert objective.loc[("DE", "c2"), ("DE", "a2")] == 0 and objective.loc[("DE", "c2b"), ("DE", "a2")] == 0
+
+
+def test_fallback_and_ignored_coefficients_inform_nothing(guide_db):
+    rows = [["DE", "DE", "c2b", "a1", 1.0, None, None], ["IT", "DE", "c2b", "a1", 0.5, None, None]]
+    _with_use_coef(guide_db, rows)
+    with pytest.warns(UserWarning):
+        priors = build_sut_split_priors(guide_db, prepare_sut_split_support(guide_db))
+    structure = priors.structure
+    pn_rows = [i for i in priors.U0.index if structure.commodity_category(i[1]) != "stable"]
+    cols = [c for c in priors.U0.columns if structure.activity_category(c[1]) != "new"]
+    assert (priors.U0_objective.loc[pn_rows, cols].to_numpy() == 0).all()
+
+
+def test_children_without_a_coefficient_are_left_free():
+    from mario.ops.add_sector_split_sut import SutSplitStructure, _fill_new_commodity_use_prior, _informed_use_prior
+
+    structure = SutSplitStructure(
+        regions=["R"], activities=["a1"], commodities=["c1"], new_activities=[], new_commodities=["n1", "n2"],
+        activity_parent={}, commodity_parent={"n1": "c1", "n2": "c1"}, master_rows=pd.DataFrame(),
+    )
+    rows = pd.MultiIndex.from_product([["R"], ["c1", "n1", "n2"]], names=["Region", "Item"])
+    cols = pd.MultiIndex.from_tuples([("R", "a1")], names=["Region", "Item"])
+    old = pd.DataFrame([[50.0], [0.0], [0.0]], index=rows, columns=cols)
+    kwargs = dict(
+        structure=structure, old_U=old,
+        Xa=pd.Series([200.0], index=cols),
+        Xc=pd.Series([60.0, 10.0, 30.0], index=rows),
+        Xc_orig=pd.Series([100.0], index=pd.MultiIndex.from_tuples([("R", "c1")])),
+        zero_U=pd.DataFrame(False, index=rows, columns=cols),
+    )
+    coef = pd.DataFrame([["R", "R", "n1", "a1", 0.1, None, None]], columns=USE_COEF_COLUMNS)
+    U0, informed = _fill_new_commodity_use_prior(old.copy(), use_coef=coef, **kwargs)
+    assert U0[("R", "a1")].tolist() == pytest.approx([50 - 20 - 15, 20, 15])  # n2 keeps its baseline (30 %)
+    assert informed[("R", "a1")].tolist() == [True, True, False]
+    objective = _informed_use_prior(U0, informed, structure)
+    assert objective[("R", "a1")].tolist() == pytest.approx([15, 20, 0])

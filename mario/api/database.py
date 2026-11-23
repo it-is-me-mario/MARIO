@@ -5070,7 +5070,7 @@ class Database(CoreModel):
         runs: MARIO builds the a-priori Use, Make, Final demand and Value added
         matrices from the original table and the split-support sheets
         (``Total outputs``, ``Supply coef``, ``Final dem share`` and the optional
-        ``Exclusions use``, ``Exclusions supply`` and ``Tolerances``), stores
+        ``Use coef``, ``Exclusions use``, ``Exclusions supply`` and ``Tolerances``), stores
         them in ``split_<scenario>``, and hands them to CVXLab. For SUT,
         ``parent_name`` / ``parent_names`` can rename split activities and
         commodities (nested ``{"Activity": {...}, "Commodity": {...}}`` mappings

@@ -19,7 +19,7 @@ How it differs from the IOT split
   error. An empty cell means ``Add``. With ``split=False`` a workbook marked
   ``Split`` raises an error asking for ``split=True``.
 * There is no ``Trades`` sheet: the regional pattern comes from the
-  ``Region_to`` columns of ``Supply coef`` and ``Final dem share`` and from the
+  ``Region_to`` columns of ``Supply coef``, ``Use coef`` and ``Final dem share`` and from the
   ``DB Region`` column of the inventory sheets.
 
 Variants: activities only, commodities only, or both
@@ -31,7 +31,7 @@ The CVXLab model is chosen from the ``Master`` sheet:
 Items split                  CVXLab model         Priors that are built
 ===========================  ===================  ===============================
 only activities              ``Split_sut_act``    ``U0``, ``M0``, ``V0``
-only commodities             ``Split_sut_com``    ``M0``, ``Y0``
+only commodities             ``Split_sut_com``    ``U0``, ``M0``, ``Y0``
 activities and commodities   ``Split_sut``        ``U0``, ``M0``, ``Y0``, ``V0``
 ===========================  ===================  ===============================
 
@@ -89,8 +89,20 @@ Inventory sheets
    to the new commodity. Missing combinations take a share of 0 (with a
    warning); shares must lie in [0, 1].
 
+``Use coef`` (optional, commodities split)
+   ``Region_from``, ``Region_to``, ``Commodity_from``, ``Activity_to``,
+   ``Coefficient``: the use of the new commodity ``Commodity_from`` (produced
+   in ``Region_from``) per unit of total output of the activity ``Activity_to``
+   in ``Region_to``. It can be empty or list only a few cells. Only stable or
+   parent activities (with their original names) are listed: the use of a new
+   commodity by a new activity comes from the activity inventory. For a parent
+   activity the output is the output left after the split. See
+   :ref:`use of the new commodities <sut-split-use-prior>`.
+
 A split of only one kind does not need the sheet of the other kind. If it is
-present and filled, MARIO warns that it is ignored.
+present and filled, MARIO warns that it is ignored (``Supply coef`` for a
+commodity-only split; ``Final dem share`` and ``Use coef`` for an activity-only
+split).
 
 ``Exclusions use`` and ``Exclusions supply`` (optional)
    Cells of the Use (``Region_from``, ``Commodity_from``, ``Region_to``,
@@ -153,3 +165,42 @@ For a new activity ``a_n`` with parent ``a_p`` (and analogously for commodities)
 
 Negative values that this subtraction may produce are clipped to zero with a
 warning; a child output larger than its parent output raises an error.
+
+.. _sut-split-use-prior:
+
+Use of the new commodities
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When commodities are split, the rows of the new commodities of the Use matrix
+(for the stable and the parent activities) get a prior of their own. For a parent
+commodity ``c_p``, a new commodity ``c_n``, an activity ``j`` and the regions of
+the row ``r`` and of the column ``s``:
+
+#. **Amount to split.** For a stable activity it is the original cell
+   ``U[c_p, j]``. For a parent activity ``a_p`` it is what is left of
+   ``U[c_p, a_p]`` once the new activities of ``a_p`` have taken their use of
+   ``c_p`` and ``c_n`` from the inventories, so that the four cells of the block
+   (parent and new commodity, residual parent and new activity) add up to the
+   original self-consumption. If nothing is left (negative amount) the cells of the
+   residual parent activity are set to zero, with a warning.
+#. **Baseline.** The amount is split between ``c_n`` and the residual ``c_p``
+   proportionally to the commodity outputs, in the region ``r`` of the
+   commodity: ``X(c_n) / X_original(c_p)``. Cells known to be zero (the
+   zeros of the original table and ``Exclusions use``) get nothing and their
+   share goes to the other cells.
+#. **Coefficients.** If ``Use coef`` gives a coefficient, the new commodity cell
+   becomes ``Coefficient x X(j)`` with the output of the activity in the
+   region ``s`` of the column, and the residual parent takes what is left of the
+   amount. If the residual would be negative, the whole group (all new
+   commodities and the residual parent of that cell) goes back to the baseline
+   and a single warning lists the cells affected. A coefficient on a cell known
+   to be zero is ignored with a warning.
+
+The three SUT models (``Split_sut``, ``Split_sut_com``, ``Split_sut_act``) measure the distance to every prior with the complete
+Kullback-Leibler distance ``x log(x / x0) - x + x0``. Only the **informed** cells enter the optimization: the cells given by a
+coefficient and the residual parent cell of the same group. The baseline of every
+other cell is only a first guess, used for the prior scenario
+``split_<scenario>``; the model leaves those cells free (they are bound by the
+balances and the consistency constraints). Without ``Use coef`` the optimization
+is therefore the same as before. A coefficient of 0 informs nothing (a zero prior
+is ignored); use ``Exclusions use`` to force a cell to zero.

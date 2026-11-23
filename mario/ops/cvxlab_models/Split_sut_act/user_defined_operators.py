@@ -188,6 +188,55 @@ def entropy_signed(A, A0):
     return cp.rel_entr(cp.multiply(cp.Constant(s), A), np.abs(a0) + eps)
 
 
+def kl(A, A0):
+    """Complete Kullback-Leibler distance between a variable and its prior.
+
+    Args:
+        A: The variable.
+        A0: The exogenous prior (same shape as A).
+    Returns:
+        cp.Expression: kl_div(A, A0 + eps) = A * log(A / (A0 + eps)) - A + (A0 + eps), element-wise.
+        Unlike ``entropy`` it keeps the ``-A + A0`` terms, so the distance is non-negative and zero only at A = A0.
+    """
+    eps = 1e-8
+    return cp.kl_div(A, A0 + eps)
+
+
+def kl_signed(A, A0):
+    """Complete Kullback-Leibler distance that allows a prior A0 < 0 (cells keep the sign of the prior).
+
+    Args:
+        A: The variable (matrix with the same shape as A0).
+        A0: The exogenous prior. Its sign is read at build time.
+    Returns:
+        cp.Expression: kl_div(s * A, |A0| + eps) with s = -1 where A0 < 0 and s = +1 elsewhere.
+    """
+    eps = 1e-8
+    a0 = _constant_value(A0)
+    if tuple(A.shape) != a0.shape:
+        raise ValueError(f"A and A0 must have the same shape. Shapes -> A: {A.shape}, A0: {a0.shape}.")
+    s = np.where(a0 < 0, -1.0, 1.0)
+    return cp.kl_div(cp.multiply(cp.Constant(s), A), np.abs(a0) + eps)
+
+
+def kl_active(A, A0):
+    """Complete Kullback-Leibler distance restricted to the cells whose prior is positive.
+
+    Args:
+        A: The variable (matrix with the same shape as A0).
+        A0: The exogenous prior. Which cells are positive is read at build time.
+    Returns:
+        cp.Expression: kl_div(A, A0 + eps) multiplied by 1 where A0 > 0 and by 0 elsewhere, so cells with a
+        zero prior are kept out of the objective (they are only bounded by the constraints) instead of being
+        pulled towards zero.
+    """
+    eps = 1e-8
+    a0 = _constant_value(A0)
+    if tuple(A.shape) != a0.shape:
+        raise ValueError(f"A and A0 must have the same shape. Shapes -> A: {A.shape}, A0: {a0.shape}.")
+    return cp.multiply(cp.Constant((a0 > 0).astype(float)), cp.kl_div(A, a0 + eps))
+
+
 def absval(A):
     """Element-wise absolute value of a parameter (used to build tolerance bands that are valid for either sign)."""
     return cp.Constant(np.abs(_constant_value(A)))

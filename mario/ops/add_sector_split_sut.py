@@ -42,6 +42,8 @@ from mario.ops.add_sector_specs import (
     ADD_SECTOR_SPLIT_TOLERANCE_COLUMNS,
     ADD_SECTOR_SPLIT_TOLERANCE_DEFAULTS,
     ADD_SECTOR_SPLIT_TOLERANCE_SHEET,
+    ADD_SECTOR_SPLIT_USE_COEF_COLUMNS,
+    ADD_SECTOR_SPLIT_USE_COEF_SHEET,
     ADD_SECTOR_SPLIT_USE_EXCLUSION_COLUMNS,
     ADD_SECTOR_SPLIT_USE_EXCLUSION_SHEET,
     ADVANCED_ADD_SECTOR_INVENTORY_SHEET_COLUMNS as INV,
@@ -307,17 +309,18 @@ def prepare_sut_split_support(instance) -> SutSplitStructure:
     normalized = {name: frame.copy() for name, frame in split_info.items()}
 
     # --- sheets the variant does not use ----------------------------------
-    # Supply coef describes new activities and Final dem share new commodities: a split of
-    # only one kind never reads the other sheet, so it is ignored (with a warning) if filled.
-    unused_sheet = {
-        MODE_COMMODITIES: ADD_SECTOR_SPLIT_SUPPLY_COEF_SHEET,
-        MODE_ACTIVITIES: ADD_SECTOR_SPLIT_FINAL_DEMAND_SHARE_SHEET,
-    }.get(structure.mode)
-    if unused_sheet is not None and not normalized[unused_sheet].dropna(how="all").empty:
-        warnings.warn(
-            f"Split sheet '{unused_sheet}' is not used by a {structure.mode}-only split and is ignored."
-        )
-        normalized[unused_sheet] = normalized[unused_sheet].iloc[0:0]
+    # Supply coef describes new activities, Final dem share and Use coef new commodities: a split
+    # of only one kind never reads the other sheets, so they are ignored (with a warning) if filled.
+    unused_sheets = {
+        MODE_COMMODITIES: [ADD_SECTOR_SPLIT_SUPPLY_COEF_SHEET],
+        MODE_ACTIVITIES: [ADD_SECTOR_SPLIT_FINAL_DEMAND_SHARE_SHEET, ADD_SECTOR_SPLIT_USE_COEF_SHEET],
+    }.get(structure.mode, [])
+    for unused_sheet in unused_sheets:
+        if not normalized[unused_sheet].dropna(how="all").empty:
+            warnings.warn(
+                f"Split sheet '{unused_sheet}' is not used by a {structure.mode}-only split and is ignored."
+            )
+            normalized[unused_sheet] = normalized[unused_sheet].iloc[0:0]
 
     # --- Total outputs --------------------------------------------------
     cols = ADD_SECTOR_SPLIT_SUT_OUTPUT_COLUMNS
@@ -407,6 +410,45 @@ def prepare_sut_split_support(instance) -> SutSplitStructure:
     if supply.duplicated(subset=key).any():
         raise WrongInput(f"Split sheet '{ADD_SECTOR_SPLIT_SUPPLY_COEF_SHEET}' contains duplicated rows.")
     normalized[ADD_SECTOR_SPLIT_SUPPLY_COEF_SHEET] = supply.reset_index(drop=True)
+
+    # --- Use coefficients (optional) -----------------------------------
+    cols = ADD_SECTOR_SPLIT_USE_COEF_COLUMNS
+    use_coef = normalized.get(ADD_SECTOR_SPLIT_USE_COEF_SHEET, pd.DataFrame(columns=list(cols.values())))
+    use_coef = use_coef.dropna(how="all", subset=[cols["region_from"], cols["region_to"]]).copy()
+    use_coef = _clean_text_columns(
+        use_coef, [cols["region_from"], cols["region_to"], cols["commodity_from"], cols["activity_to"]]
+    )
+    _check_membership(
+        pd.concat([use_coef[cols["region_from"]], use_coef[cols["region_to"]]]),
+        regions,
+        sheet=ADD_SECTOR_SPLIT_USE_COEF_SHEET,
+        label="regions",
+    )
+    _check_membership(
+        use_coef[cols["commodity_from"]],
+        structure.new_commodities,
+        sheet=ADD_SECTOR_SPLIT_USE_COEF_SHEET,
+        label="commodities not marked for split",
+    )
+    new_activities_listed = sorted(set(use_coef[cols["activity_to"]]).intersection(structure.new_activities))
+    if new_activities_listed:
+        raise WrongInput(
+            f"Split sheet '{ADD_SECTOR_SPLIT_USE_COEF_SHEET}' lists new activities "
+            f"{new_activities_listed}: their use must be defined in the activity inventory sheets."
+        )
+    _check_membership(
+        use_coef[cols["activity_to"]],
+        structure.activities,
+        sheet=ADD_SECTOR_SPLIT_USE_COEF_SHEET,
+        label="activities",
+    )
+    use_coef[cols["coefficient"]] = _numeric(use_coef, cols["coefficient"], ADD_SECTOR_SPLIT_USE_COEF_SHEET)
+    if (use_coef[cols["coefficient"]] < 0).any():
+        raise WrongInput("Split use coefficients cannot be negative.")
+    key = [cols["region_from"], cols["region_to"], cols["commodity_from"], cols["activity_to"]]
+    if use_coef.duplicated(subset=key).any():
+        raise WrongInput(f"Split sheet '{ADD_SECTOR_SPLIT_USE_COEF_SHEET}' contains duplicated rows.")
+    normalized[ADD_SECTOR_SPLIT_USE_COEF_SHEET] = use_coef.reset_index(drop=True)
 
     # --- Final demand shares -------------------------------------------
     cols = ADD_SECTOR_SPLIT_FINAL_DEMAND_SHARE_COLUMNS
@@ -730,7 +772,7 @@ class SutSplitPriors:
     All matrices are expressed at the disaggregated granularity (parent, new and
     stable items). Cells that the optimization does not use as a prior are zero.
     A prior that the model of the split variant does not consume is ``None``:
-    ``U0`` and ``V0`` for a commodity-only split, ``Y0`` for an activity-only split.
+    ``V0`` for a commodity-only split (its ``U0`` only carries the new-commodity rows), ``Y0`` for an activity-only split.
     """
 
     structure: SutSplitStructure
@@ -748,6 +790,10 @@ class SutSplitPriors:
     zero_M: pd.DataFrame
     inventories: dict = field(default_factory=dict, repr=False)
     mode: str = MODE_BOTH
+    # ``U0`` as handed to the optimisation: the cells of the parent&new commodity rows (stable and
+    # parent activity columns) that are not informed by a ``Use coef`` coefficient are zero, so the
+    # model leaves them free. ``None`` means the model uses ``U0`` as it is.
+    U0_objective: pd.DataFrame | None = None
 
 
 def _warn_and_clip(frame: pd.DataFrame, label: str, *, signed: bool = False) -> pd.DataFrame:
@@ -767,6 +813,179 @@ def _warn_and_clip(frame: pd.DataFrame, label: str, *, signed: bool = False) -> 
 
 def _output_series(index: pd.MultiIndex, old: pd.Series) -> pd.Series:
     return old.reindex(index).fillna(0.0)
+
+
+def _informed_use_prior(U0: pd.DataFrame, informed: pd.DataFrame, structure: SutSplitStructure) -> pd.DataFrame:
+    """``U0`` with the not-informed cells of the parent&new commodity rows set to zero.
+
+    Only cells of the stable and parent activity columns are concerned (the new-activity columns
+    and the other rows are priors of their own). The optimisation ignores zero-prior cells.
+    """
+
+    rows = np.array([structure.commodity_category(item) != "stable" for _, item in U0.index])
+    cols = np.array([structure.activity_category(item) != "new" for _, item in U0.columns])
+    drop = np.outer(rows, cols) & ~informed.to_numpy(dtype=bool)
+    return U0.mask(pd.DataFrame(drop, index=U0.index, columns=U0.columns), 0.0)
+
+
+def _warn_groups(message: str, groups: list) -> None:
+    """One aggregated warning: the number of affected groups and the first five."""
+
+    if groups:
+        shown = ", ".join(str(group) for group in groups[:5])
+        warnings.warn(f"{message} ({len(groups)} cells, first: {shown}{' ...' if len(groups) > 5 else ''}).")
+
+
+def _fill_new_commodity_use_prior(
+    U0: pd.DataFrame,
+    *,
+    structure: SutSplitStructure,
+    old_U: pd.DataFrame,
+    Xa: pd.Series,
+    Xc: pd.Series,
+    Xc_orig: pd.Series,
+    zero_U: pd.DataFrame,
+    use_coef: pd.DataFrame | None,
+) -> pd.DataFrame:
+    """Prior for the parent&new commodity rows of ``U0`` (stable and parent activity columns).
+
+    For every parent commodity ``p``, region of the commodity ``r`` and column ``j`` the original
+    cell is split between the residual parent and its new commodities. The amount to split is
+    the original cell for a stable column and, for a parent column, what the new activities
+    leave of it once their (inventory) use of ``p`` and of the new commodities is taken out, so
+    that the whole block adds up to the original cell. The baseline splits it proportionally to
+    the commodity outputs (``Xc_orig`` is the output of the parent before the split); cells known
+    to be zero (``zero_U``) get nothing and their share goes to the other cells of the group.
+    A ``Use coef`` coefficient replaces the baseline of a new commodity with
+    ``coefficient x Xa[column]`` and the parent takes the remainder; if that remainder is
+    negative the whole group goes back to the baseline.
+
+    Returns the prior and a boolean frame flagging the *informed* cells: the new-commodity cells
+    given by an accepted coefficient and the residual parent cell of that group. Every other cell
+    is only a baseline guess.
+    """
+
+    if not structure.new_commodities:
+        return U0, pd.DataFrame(False, index=U0.index, columns=U0.columns)
+    cols_index, rows_index = U0.columns, U0.index
+    values = U0.to_numpy(dtype=float).copy()
+    old = old_U.reindex(index=rows_index, columns=cols_index).fillna(0.0).to_numpy(dtype=float)
+    zero = zero_U.reindex(index=rows_index, columns=cols_index).fillna(True).to_numpy(dtype=bool)
+    xa = Xa.reindex(cols_index).fillna(0.0).to_numpy(dtype=float)
+    row_pos = {row: i for i, row in enumerate(rows_index)}
+    col_pos = {col: i for i, col in enumerate(cols_index)}
+    categories = [structure.activity_category(col[1]) for col in cols_index]
+    plain = np.array([category != "new" for category in categories], dtype=bool)
+    plain_idx = np.flatnonzero(plain)
+    # parent columns: the columns of their new activities (same region)
+    parent_columns = {
+        i: [col_pos[(col[0], child)] for child in structure.activity_children[col[1]] if (col[0], child) in col_pos]
+        for i, col in enumerate(cols_index)
+        if categories[i] == "parent"
+    }
+
+    coefficients: dict[tuple, dict[int, float]] = {}
+    if use_coef is not None and not use_coef.empty:
+        uc = ADD_SECTOR_SPLIT_USE_COEF_COLUMNS
+        for r_from, r_to, commodity, activity, coefficient in zip(
+            use_coef[uc["region_from"]],
+            use_coef[uc["region_to"]],
+            use_coef[uc["commodity_from"]],
+            use_coef[uc["activity_to"]],
+            use_coef[uc["coefficient"]],
+        ):
+            column = col_pos.get((r_to, activity))
+            if column is not None:
+                coefficients.setdefault((r_from, commodity), {})[column] = float(coefficient)
+
+    informed = np.zeros(values.shape, dtype=bool)
+    negative_budget, lost, fallback, masked_coef, masked_parent = [], [], [], [], []
+    for parent in structure.parent_commodities:
+        children = structure.commodity_children[parent]
+        for region in structure.regions:
+            prow = row_pos[(region, parent)]
+            crows = [row_pos[(region, child)] for child in children]
+            group = [prow] + crows
+            original_output = float(Xc_orig.get((region, parent), 0.0))
+            w_child = np.array(
+                [float(Xc[(region, child)]) / original_output if original_output > 0 else 0.0 for child in children]
+            )
+            weights = np.concatenate([[max(1.0 - w_child.sum(), 0.0)], w_child])
+
+            budget = old[prow].copy()
+            for column, new_columns in parent_columns.items():
+                budget[column] = old[prow, column] - values[np.ix_(group, new_columns)].sum()
+                if budget[column] < -_TINY_NEGATIVE * max(1.0, abs(old[prow, column])):
+                    negative_budget.append((parent, region, cols_index[column]))
+                    budget[column] = 0.0
+            tolerance = _TINY_NEGATIVE * np.maximum(1.0, np.abs(old[prow]))
+
+            effective = weights[:, None] * (~zero[group, :])
+            total = effective.sum(axis=0)
+            share = np.divide(effective, total, out=np.zeros_like(effective), where=total > 0)
+            allocation = share * budget
+            for column in np.flatnonzero(plain & (total == 0) & (np.abs(budget) > tolerance)):
+                lost.append((parent, region, cols_index[column]))
+
+            coef_columns = sorted(
+                {c for child in children for c in coefficients.get((region, child), {}) if plain[c]}
+            )
+            for column in coef_columns:
+                label = (parent, region, cols_index[column])
+                if (parent, region, cols_index[column]) in negative_budget:
+                    continue
+                new = allocation[:, column].copy()
+                applied = []
+                for k, child in enumerate(children, start=1):
+                    coefficient = coefficients.get((region, child), {}).get(column)
+                    if coefficient is None:
+                        continue
+                    if zero[crows[k - 1], column]:
+                        masked_coef.append((child, region, cols_index[column]))
+                        continue
+                    new[k] = coefficient * xa[column]
+                    applied.append(crows[k - 1])
+                if not applied:
+                    continue
+                if zero[prow, column]:
+                    masked_parent.append(label)
+                    continue
+                residual = budget[column] - new[1:].sum()
+                if residual < -tolerance[column]:
+                    fallback.append(label)
+                    continue
+                new[0] = max(residual, 0.0)
+                allocation[:, column] = new
+                informed[applied + [prow], column] = True
+            values[np.ix_(group, plain_idx)] = allocation[:, plain_idx]
+
+    _warn_groups(
+        "Use prior of the new commodities: the new activities already use more of the parent cell than the "
+        "original table contains; the residual parent activity prior is set to zero",
+        negative_budget,
+    )
+    _warn_groups(
+        "Use prior of the new commodities: coefficients of 'Use coef' would make the residual parent negative; "
+        "the baseline split by output is used instead",
+        fallback,
+    )
+    _warn_groups(
+        "Use prior of the new commodities: coefficients of 'Use coef' on cells known to be zero are ignored",
+        masked_coef,
+    )
+    _warn_groups(
+        "Use prior of the new commodities: coefficients of 'Use coef' are ignored where the residual parent "
+        "cell is known to be zero",
+        masked_parent,
+    )
+    _warn_groups(
+        "Use prior of the new commodities: every cell of the group is known to be zero, the original flow is lost",
+        lost,
+    )
+    return (
+        pd.DataFrame(values, index=rows_index, columns=cols_index),
+        pd.DataFrame(informed, index=rows_index, columns=cols_index),
+    )
 
 
 def build_sut_split_priors(
@@ -841,8 +1060,33 @@ def build_sut_split_priors(
         )
         _warn_if_not_unitary(row, inventories[key])
 
+    zero_U = _structural_zero_mask(
+        Uold,
+        row_map=[(r, structure.aggregate_commodity(c)) for r, c in com_index],
+        col_map=[(r, structure.aggregate_activity(a)) for r, a in act_index],
+        index=com_index,
+        columns=act_index,
+    )
+    uc = ADD_SECTOR_SPLIT_USE_EXCLUSION_COLUMNS
+    _apply_exclusions(
+        zero_U,
+        split_info[ADD_SECTOR_SPLIT_USE_EXCLUSION_SHEET],
+        row_keys=(uc["region_from"], uc["commodity_from"]),
+        col_keys=(uc["region_to"], uc["activity_to"]),
+    )
+    use_coef = split_info.get(ADD_SECTOR_SPLIT_USE_COEF_SHEET)
+    new_use_prior = dict(
+        structure=structure, Xa=Xa, Xc=Xc, Xc_orig=original.Xc, zero_U=zero_U, use_coef=use_coef
+    )
+
     # --- U0 and V0 ---------------------------------------------------------
-    U0 = V0 = None
+    U0 = V0 = U0_objective = None
+    if mode == MODE_COMMODITIES:
+        # no activity is split: U0 only carries the new-commodity rows (the other cells are not used)
+        old_U = Uold.reindex(index=com_index, columns=act_index).fillna(0.0)
+        U0, informed = _fill_new_commodity_use_prior(old_U.copy(), old_U=old_U, **new_use_prior)
+        U0 = _warn_and_clip(U0, "U0")
+        U0_objective = _informed_use_prior(U0, informed, structure)
     if mode != MODE_COMMODITIES:
         old_U = Uold.reindex(index=com_index, columns=act_index).fillna(0.0)
         old_V = Vold.reindex(columns=act_index).fillna(0.0)
@@ -878,7 +1122,11 @@ def build_sut_split_priors(
                 child_columns = [(region, child) for child in children]
                 U0.loc[stable_rows, column] = old_U.loc[stable_rows, column] - U0.loc[stable_rows, child_columns].sum(axis=1)
                 V0[column] = old_V[column] - V0[child_columns].sum(axis=1)
+        if structure.new_commodities:
+            U0, informed = _fill_new_commodity_use_prior(U0, old_U=old_U, **new_use_prior)
         U0 = _warn_and_clip(U0, "U0")
+        if structure.new_commodities:
+            U0_objective = _informed_use_prior(U0, informed, structure)
         V0 = _warn_and_clip(V0, "V0", signed=True)
 
     # --- M0 -----------------------------------------------------------------
@@ -957,14 +1205,7 @@ def build_sut_split_priors(
                 f"{' ...' if len(missing_shares) > 5 else ''}; a share of 0 is assumed."
             )
 
-    # --- zero masks -----------------------------------------------------------
-    zero_U = _structural_zero_mask(
-        Uold,
-        row_map=[(r, structure.aggregate_commodity(c)) for r, c in com_index],
-        col_map=[(r, structure.aggregate_activity(a)) for r, a in act_index],
-        index=com_index,
-        columns=act_index,
-    )
+    # --- zero masks (zero_U is built before U0: the new-commodity Use prior needs it) ----
     zero_M = _structural_zero_mask(
         Mold,
         row_map=[(r, structure.aggregate_activity(a)) for r, a in act_index],
@@ -972,14 +1213,7 @@ def build_sut_split_priors(
         index=act_index,
         columns=com_index,
     )
-    uc = ADD_SECTOR_SPLIT_USE_EXCLUSION_COLUMNS
-    _apply_exclusions(
-        zero_U,
-        split_info[ADD_SECTOR_SPLIT_USE_EXCLUSION_SHEET],
-        row_keys=(uc["region_from"], uc["commodity_from"]),
-        col_keys=(uc["region_to"], uc["activity_to"]),
-    )
-    sx = ADD_SECTOR_SPLIT_SUPPLY_EXCLUSION_COLUMNS
+    sx =ADD_SECTOR_SPLIT_SUPPLY_EXCLUSION_COLUMNS
     _apply_exclusions(
         zero_M,
         split_info[ADD_SECTOR_SPLIT_SUPPLY_EXCLUSION_SHEET],
@@ -994,6 +1228,7 @@ def build_sut_split_priors(
         Xc=Xc,
         Xnew=Xnew,
         U0=U0,
+        U0_objective=U0_objective,
         M0=M0,
         Y0=Y0,
         V0=V0,
