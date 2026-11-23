@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 import inspect
+import json
 import os
 import shutil
 import sqlite3
@@ -274,6 +275,11 @@ def _prepare_split_model_inputs(
                                              template_name=template, settings_filename=filename)
     instance._last_split_model_definition = record_model_configuration(
         dest_dir, split_model_options, template, filename)
+    output_roundoff = getattr(instance, '_split_output_roundoff', [])
+    if output_roundoff:
+        (dest_dir / 'output_roundoff.json').write_text(
+            json.dumps(dict(entries=output_roundoff, units='original monetary units'), indent=2) + '\n'
+        )
     mapping = pd.read_excel(dest_dir / "mapping.xlsx", sheet_name=None, index_col=0)
 
     model = _build_cvxlab_model(
@@ -1221,7 +1227,8 @@ def _write_input_data(
     )
 
     from mario.ops.split_model import fill_model_inputs, prepare_prior_references, fill_numerical_controls, FLOW_TABLES
-    fill_model_inputs(instance, input_data, flat_matrices, set_map, scenario_label, split_model_options)
+    fill_model_inputs(instance, input_data, flat_matrices, set_map, scenario_label, split_model_options,
+                      destination=dest_dir)
 
     #Remove values below the residue threshold, if specified.
     if residue is not None:

@@ -232,8 +232,12 @@ def build_split_flow_scenario(
     *,
     base_scenario: str = "baseline",
     scenario_label: str = "baseline",
+    output_tolerance: float = 0.0,
 ) -> str:
     """Create the deterministic pre-optimization split scenario."""
+
+    if not np.isfinite(output_tolerance) or output_tolerance < 0:
+        raise WrongInput("Output tolerance must be finite and nonnegative.")
 
     split_scenario = f"split_{scenario_label}"
     sector_to_parent_map = _sector_to_parent_map(instance)
@@ -268,7 +272,12 @@ def build_split_flow_scenario(
             if sector_to_parent_map[sector] == parent:
                 for _, row in split_output.loc[split_output[sector_col] == sector].iterrows():
                     magnitude[region_positions[row[region_col]]] += abs(float(row[quantity_col]))
-        output_roundoff[parent] = terms * np.finfo(float).eps * magnitude
+        # Aggregated external targets need not agree to machine precision with
+        # a residual obtained by repeated subtraction. Named models supply the
+        # existing absolute numerical tolerance, in original monetary units.
+        output_roundoff[parent] = np.maximum(
+            terms * np.finfo(float).eps * magnitude, output_tolerance
+        )
 
     for sector in getattr(instance, "to_split_sectors", []):
         parent_sector = sector_to_parent_map[sector]
@@ -310,15 +319,22 @@ def build_split_flow_scenario(
         production = X.iloc[:, production_col].to_numpy(dtype=float, copy=True)
         X.iloc[parent_rows, production_col] = production[parent_rows] - production[child_rows]
 
-    # A fully allocated family can leave a negative residual of a few ulps
-    # after sibling subtraction / workbook serialization. Only remove errors
-    # within the floating-point subtraction bound; real budget excesses still
-    # fail below, and the child output observations remain untouched.
+    # Keep observations exact. Only a negative residual within the common
+    # numerical band is represented as zero; report its full size and bound.
+    instance._split_output_roundoff = []
     for parent_sector in sibling_counts:
         rows = _row_positions(X.index, all_regions, parent_sector)
         residual = X.iloc[rows, production_col].to_numpy(dtype=float)
         roundoff = output_roundoff[parent_sector]
         tiny_negative = (residual < 0) & (residual >= -roundoff)
+        for position in np.flatnonzero(tiny_negative):
+            instance._split_output_roundoff.append(dict(
+                parent=parent_sector, region=all_regions[position],
+                residual_before=float(residual[position]), residual_after=0.0,
+                allowed_bound=float(roundoff[position]),
+                absolute_tolerance=float(output_tolerance),
+                child_targets_unchanged=True,
+            ))
         X.iloc[rows[tiny_negative], production_col] = 0.0
 
     negatives = X["production"] < 0

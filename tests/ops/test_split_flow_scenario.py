@@ -222,3 +222,33 @@ def test_sequential_output_guard_accounts_for_preceding_sibling_roundoff(excess)
         assert output.at[(region, MI["s"], "a"), "production"] == 0.0
         assert output.at[(region, MI["s"], "n1"), "production"] == requested
         assert output.at[(region, MI["s"], "b"), "production"] == 1280.599679742415
+
+
+@pytest.mark.parametrize("excess", [0.0, 2e-6])
+def test_aggregated_target_uses_existing_absolute_tolerance_without_editing_target(excess):
+    """PLSR boundary: aggregation differs beyond an ulp-only subtraction bound."""
+    instance = _build_instance(0, {"n1": "a"})
+    parent, requested = 5885.63589437044, 5885.635894370934 + excess
+    for region in REGIONS:
+        instance.X.at[(region, MI["s"], "a"), "production"] = parent
+        instance.X.at[(region, MI["s"], "b"), "production"] = 99254.28416609364
+        instance.X.at[(region, MI["s"], "c"), "production"] = 45507.96783498461
+    instance._intermediate_steps_state = {
+        "completed_sectors": ["b", "c"], "sector_parents": {"b": "a", "c": "a"}}
+    targets = instance.split_info[ADD_SECTOR_SPLIT_OUTPUT_SHEET]
+    targets["Quantity"] = requested
+    source = targets.copy(deep=True)
+    if excess:
+        with pytest.raises(WrongInput, match="larger than parent"):
+            build_split_flow_scenario(instance, output_tolerance=1e-6)
+    else:
+        scenario = build_split_flow_scenario(instance, output_tolerance=1e-6)
+        output = instance.matrices[scenario][_ENUM["X"]]
+        assert len(instance._split_output_roundoff) == len(REGIONS)
+        for region, record in zip(REGIONS, instance._split_output_roundoff):
+            assert output.at[(region, MI["s"], "a"), "production"] == 0
+            assert output.at[(region, MI["s"], "n1"), "production"] == requested
+            assert record["residual_before"] == parent-requested
+            assert record["absolute_tolerance"] == 1e-6
+            assert record["child_targets_unchanged"]
+    pd.testing.assert_frame_equal(targets, source)

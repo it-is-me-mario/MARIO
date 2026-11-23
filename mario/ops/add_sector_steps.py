@@ -27,6 +27,27 @@ ATOL, RTOL = 1e-6, 1e-8
 logger = logging.getLogger(__name__)
 
 
+def _validate_resume_model_options(previous, current, *, allow_model_change=False):
+    """Separate an optional LP preflight from the mathematical split settings."""
+    transition = dict(model_changed=False, preflight_changes={})
+    if previous == current:
+        return transition
+    if previous is None or current is None:
+        raise WrongInput('Split model options changed; historical and named models cannot be interchanged on resume.')
+    preflight_keys = {'check_feasibility', 'feasibility_solver'}
+    objective_keys = {'model', 'flow_loss', 'value_added_loss', 'complete_intermediate_priors'}
+    changed = {key for key in previous.keys() | current.keys() if previous.get(key) != current.get(key)}
+    model_changes = changed - preflight_keys
+    if model_changes and (not allow_model_change or model_changes - objective_keys):
+        raise WrongInput('Split model options changed; only an explicit named-objective transition with '
+                         'unchanged accounting, weights and numerical controls is allowed.')
+    transition['model_changed'] = bool(model_changes)
+    transition['preflight_changes'] = {
+        key: dict(previous=previous.get(key), current=current.get(key))
+        for key in sorted(changed & preflight_keys)}
+    return transition
+
+
 def _recoverable_step_failure(exc):
     """Recognise failed optimisation without hiding schema or code errors."""
     from mario.ops.split_model import solver_failure
@@ -527,12 +548,9 @@ def run_intermediate_steps(instance, *, io, scenario, inplace, split, save_inter
         raise WrongInput('Split model factor domains changed or entropy support changed; restart before the completed steps. '
                          'Historical checkpoints remain readable but cannot silently use the new formulation.')
     preceding_options = normalize_options(state.get('split_model_options'))
-    if completed and preceding_options != model_options:
-        objective_keys = {'model', 'flow_loss', 'value_added_loss', 'complete_intermediate_priors'}
-        if (not allow_model_change or preceding_options is None or model_options is None
-                or any(preceding_options[k] != model_options[k] for k in model_options.keys() - objective_keys)):
-            raise WrongInput('Split model options changed; only an explicit named-objective transition with '
-                             'unchanged accounting, weights and numerical controls is allowed.')
+    option_transition = (_validate_resume_model_options(
+        preceding_options, model_options, allow_model_change=allow_model_change)
+        if completed else dict(model_changed=False, preflight_changes={}))
     validation_code_transition = None
     if completed and preceding_options is not None:
         recorded_definition = state.get('model_definition')
@@ -562,7 +580,10 @@ def run_intermediate_steps(instance, *, io, scenario, inplace, split, save_inter
     deferred = set(state.get('deferred_sectors', [])) - set(target.get_index('Sector'))
     report = dict(format='mario-sector-steps-report-v1', run_id=uuid4().hex,
                   status='running', on_step_failure=on_step_failure,
-                  stop_after_step=stop_after_step, attempts=[], last_checkpoint_this_call=None)
+                  stop_after_step=stop_after_step, attempts=[], last_checkpoint_this_call=None,
+                  preflight_options={key: model_options[key] for key in ('check_feasibility', 'feasibility_solver')}
+                      if model_options is not None else None,
+                  preflight_option_changes=option_transition['preflight_changes'])
 
     def save_report(status):
         pending = set(workbook.master_sheet['Sector']) - set(target.get_index('Sector'))
@@ -622,6 +643,10 @@ def run_intermediate_steps(instance, *, io, scenario, inplace, split, save_inter
             canonical.update({s: _canonical_record(workbook, s, parents) for s in sectors})
             deferred.difference_update(sectors)
             cleanup = (validation_options or {}).get('solution_cleanup')
+            step_transition = (_validate_resume_model_options(
+                normalize_options(state.get('split_model_options')), model_options,
+                allow_model_change=allow_model_change)
+                if state.get('completed_sectors') else dict(model_changed=False, preflight_changes={}))
             state = {"format": "mario-sector-steps-v1", "status": "complete", "step_index": counter,
                      "step_name": name, "step_sectors": sectors, "completed_sectors": completed,
                      "sector_fingerprints": fingerprints, "preservation": preservation,
@@ -641,8 +666,8 @@ def run_intermediate_steps(instance, *, io, scenario, inplace, split, save_inter
                          split_model_options=model_options,
                          model_definition=getattr(candidate, '_last_split_model_definition', None),
                          solver=getattr(candidate, '_last_split_solver', solve_options.get('solver')),
-                         explicit_model_change=bool(state.get('completed_sectors') and
-                             normalize_options(state.get('split_model_options')) != model_options))],
+                         explicit_model_change=step_transition['model_changed'],
+                         preflight_option_changes=step_transition['preflight_changes'])],
                      "pending_recalculations": ['E'] if preservation['E'].get('requires_recalculation') else [],
                      "tolerances": {"absolute": cleanup.get('absolute_tolerance', ATOL) if cleanup else ATOL,
                                     "relative": cleanup.get('relative_tolerance', RTOL) if cleanup else RTOL,

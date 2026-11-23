@@ -5037,6 +5037,13 @@ class Database(CoreModel):
             optional convex losses, prior coverage, LP feasibility and numerical
             scaling are configured independently. ``defer_satellite_recalculation``
             skips E conservation in sequential acceptance and marks E pending.
+            ``intermediate_prior_policy='conservative'`` is the named-model
+            default: interactions between split families conserve preceding Z
+            budgets before entropy floors, retaining compatible child recipes
+            and allocating remaining references by supplier output shares.
+            Reference rescaling/support conflicts are audited separately.
+            ``'legacy'`` retains the previous references for controlled comparisons.
+            This policy does not change the selected objective or constraints.
             Named MRIO models (including KL and quadratic) automatically export
             optimal solver points after sign/zero-domain projection, with
             monetary residuals reported for review without a dollar cutoff.
@@ -5057,6 +5064,10 @@ class Database(CoreModel):
             Explicitly permit a different named objective for pending intermediate
             steps. Accounting, weights, numerical controls and completed inputs
             must remain identical. Each checkpoint records the model history.
+            The optional LP controls ``check_feasibility`` and
+            ``feasibility_solver`` may change on resume without this flag;
+            their changes are recorded separately. Disabling the preflight
+            leaves the main optimization and result acceptance unchanged.
 
         Notes
         -----
@@ -5376,6 +5387,10 @@ class Database(CoreModel):
                 self,
                 base_scenario="baseline",
                 scenario_label=scenario,
+                output_tolerance=(
+                    (split_model_options.get('solution_cleanup') or {}).get('absolute_tolerance', 1e-6)
+                    if split_model_options is not None else 0.0
+                ),
             )
             log_split_scenario(logger, split_scenario, getattr(self, "to_split_sectors", []))
             self.meta._add_history(

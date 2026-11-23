@@ -205,6 +205,14 @@ for Z, Y, V, E, X, EY and VY, with elementwise allowance
 ``1e-6 + 1e-8 * abs(reference)`` in each matrix's units. Supplied baseline
 accounting residuals are preserved; they are not repaired. Order can affect the
 final solution because earlier aggregates become binding constraints.
+Before optimization, a named model uses the existing absolute numerical
+tolerance (``1e-6`` in original monetary units by default) as a floor for
+output-subtraction roundoff. A residual parent just below zero within this
+band is represented as zero, without editing the child output target or
+source database. ``output_roundoff.json`` records the discrepancy and bound;
+the usual reaggregation checks still report the resulting difference.
+Larger output-budget excesses remain errors. This changes neither the
+optimization constraints nor their tolerances.
 New child columns have input/output accounting constraints. Each
 final-demand cell is split within its preceding sign domain: negative stock
 changes remain permissible, while positive consumption cannot be offset by
@@ -326,6 +334,29 @@ of adding a second loss on the same cells. Weights are modelling preferences,
 not estimated sampling variances. Structural zeros are omitted from these KL
 terms to avoid unnecessary exponential cones.
 
+Named models default to ``intermediate_prior_policy="conservative"``.
+For each original Z cell between currently split families, jointly prepare
+the references of its child/residual-parent block at every origin/destination
+pair. Compatible new-buyer recipes are retained. Allocate the remaining budget
+to the residual buyer column using supplier output shares. A zero-output family
+retains its available reference in the parent. Stable suppliers and buyers,
+baseline matrices, X/trade targets and all masks are untouched.
+
+If child-recipe references exceed their preceding cell budget, proportionally
+rescale those references. If the residual buyer column has no admissible support,
+rescale the admissible child references or use output-share references where
+none exist. These are prior estimates, not new observations. Support conflicts
+and every changed group are recorded in ``intermediate_prior_preparation.json``
+and ``intermediate_prior_preparation.csv``. A wholly unsupported budget is
+reported without altering the baseline or introducing a monetary rejection gate.
+Conservation is checked before any entropy threshold/floor is applied.
+
+``intermediate_prior_policy="legacy"`` retains the former references for
+controlled comparisons. It is independent of the named objective and solver.
+Changing prior policy requires a fresh build from the preceding unsplit baseline;
+completed checkpoints from the former prior revision remain readable but cannot
+silently be resumed under the corrected construction.
+
 ``flow_loss="quadratic"`` replaces KL on Z and Y with weighted squared
 deviations and requires complete intermediate priors. Combined with quadratic
 V it produces a QP, avoiding exponential cones. This is a different modelling
@@ -350,6 +381,18 @@ including native status, numerical band and measured residuals. A feasible
 preflight establishes only feasibility within that band; the final solution
 is audited independently, with the named-MRIO monetary residuals retained as
 diagnostics under the export policy above.
+
+For an explicitly selected retry, ``check_feasibility=False`` bypasses that
+preliminary LP. This can avoid a stricter preflight veto on an accepted
+checkpoint with accumulated numerical residuals. It does not establish
+feasibility or guarantee recovery: the main solver still receives the original
+constraints and must satisfy the ordinary solution acceptance policy.
+Targets, preceding flows and completed-sector observations remain unchanged.
+The controls ``check_feasibility`` and ``feasibility_solver`` may change on
+resume without ``allow_model_change=True``. The run report records the chosen
+controls even if every retry fails; accepted checkpoint histories record the
+preflight changes separately from mathematical model changes. A bypassed LP
+does not produce a new ``feasibility.json``.
 
 ``compact_constraints=True`` indexes structural/sign masks at their active
 coordinates and replaces exact two-sided bands with single equalities. These

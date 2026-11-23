@@ -20,12 +20,13 @@ import pandas as pd
 from mario.log_exc.exceptions import WrongInput
 
 
-MODEL_REVISION = 'prior-floor-kl-v6'
+MODEL_REVISION = 'conservative-intermediate-priors-v7'
 DEFAULTS = dict(model=None, accounting='strict', value_added_loss='legacy', flow_loss='kl', final_demand_weight=0.,
                 supply_weight=0., complete_intermediate_priors=False,
                 check_feasibility=False, feasibility_solver='HIGHS', scale=1.,compact_constraints=False,
                 defer_satellite_recalculation=False, require_finite_objective=False,
-                prior_zero_tolerance=None, solution_cleanup=None)
+                prior_zero_tolerance=None, solution_cleanup=None,
+                intermediate_prior_policy='conservative')
 FLOW_TABLES = {'Z0','V0','X','Trade','Zold','Yold','Vold','Z_refine',
                'RowResidual','ColumnResidual','Y0','Z_use0','Z_supply0'}
 
@@ -47,6 +48,8 @@ def normalize_options(options):
             result[key] = value
     if result['accounting'] not in ('strict','inherit'):
         raise WrongInput("accounting must be 'strict' or 'inherit'.")
+    if result['intermediate_prior_policy'] not in ('conservative', 'legacy'):
+        raise WrongInput("intermediate_prior_policy must be 'conservative' or 'legacy'.")
     if result['value_added_loss'] not in ('legacy','signed_kl','quadratic'):
         raise WrongInput("value_added_loss must be 'legacy', 'signed_kl' or 'quadratic'.")
     if result['flow_loss'] not in ('kl','quadratic'):
@@ -123,6 +126,7 @@ def describe_model(options, *, staged=False):
                     'split_operators.py': hashlib.sha256((resources.files('mario.ops.cvxlab_models') / 'split_operators.py').read_bytes()).hexdigest(),
                     'Split_sectors/user_defined_operators.py': hashlib.sha256((resources.files('mario.ops.cvxlab_models') / 'Split_sectors/user_defined_operators.py').read_bytes()).hexdigest(),
                     'split_model.py': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+                    'split_priors.py': hashlib.sha256(Path(__file__).with_name('split_priors.py').read_bytes()).hexdigest(),
                     'split_solution.py': hashlib.sha256(Path(__file__).with_name('split_solution.py').read_bytes()).hexdigest(),
                 })
 
@@ -317,7 +321,7 @@ def proportional_row_reference(table, original, outputs, previous_outputs, paren
     return table.assign(values=values*share)
 
 
-def fill_model_inputs(instance, input_data, flat_matrices, set_map, scenario_label, options):
+def fill_model_inputs(instance, input_data, flat_matrices, set_map, scenario_label, options, *, destination=None):
     if options is None:
         return
     for name, signed in [('V_nonnegative_mask', False), ('V_signed_mask', True)]:
@@ -356,6 +360,22 @@ def fill_model_inputs(instance, input_data, flat_matrices, set_map, scenario_lab
                 [(label[0],label[-1]) for label in target.index],names=keys))
             index = pd.MultiIndex.from_frame(input_data[table][keys])
             input_data[table]['values'] = series.reindex(index).to_numpy()
+    from mario.ops.split_priors import prepare_intermediate_priors
+    lookup = _split_parent_lookup(instance)
+    parent_codes = {p for p in lookup.values() if p}
+    member_codes = set(lookup) | parent_codes
+    flat_z = flat_matrices['Z']
+    original_z = flat_z.loc[flat_z.Scenario.eq('original')
+        & flat_z.Sector_from.isin(parent_codes) & flat_z.Sector_to.isin(parent_codes)].drop(columns=['Scenario'])
+    complete_reference = None
+    if 'Z_use0' not in input_data and options['intermediate_prior_policy']=='conservative':
+        complete_reference = _rename_flat_columns(flat_z.loc[flat_z.Scenario.eq(split)
+            & flat_z.Sector_from.isin(member_codes) & flat_z.Sector_to.isin(member_codes)
+            ].drop(columns=['Scenario']), set_map)
+    prepare_intermediate_priors(
+        input_data, _rename_flat_columns(original_z, set_map), instance.matrices[split]['X'],
+        lookup, options['intermediate_prior_policy'], destination,
+        complete_reference=complete_reference)
     for name in ('RowResidual','ColumnResidual','Y0','Z_use0','Z_supply0'):
         if name in input_data and not np.isfinite(input_data[name]['values'].to_numpy(dtype=float)).all():
             raise WrongInput(f'Incomplete or nonfinite {name} model inputs.')
